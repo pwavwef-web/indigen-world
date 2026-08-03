@@ -1,0 +1,46 @@
+name: Repository checks
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  structure:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Reject tracked paths containing spaces
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git ls-files | grep -E ' '; then
+            echo "Tracked repository paths must not contain spaces."
+            exit 1
+          fi
+
+      - name: Validate committed JSON files
+        shell: bash
+        run: |
+          set -euo pipefail
+          while IFS= read -r file; do
+            python -m json.tool "$file" >/dev/null
+          done < <(git ls-files '*.json')
+
+      - name: Reject common secret and production-data filenames
+        shell: bash
+        run: |
+          set -euo pipefail
+          forbidden='(^|/)(\.env($|\.)|.*service-account.*\.json$|firebase-adminsdk-.*\.json$|google-services\.json$|GoogleService-Info\.plist$|.*\.pem$|.*\.key$|production-backups/|consent-records/|voice-recordings/)'
+          candidates="$(git ls-files | grep -Ei "$forbidden" | grep -Ev '(^|/)\.env\.example$' || true)"
+          if [[ -n "$candidates" ]]; then
+            printf '%s\n' "$candidates"
+            echo "Potential secret or protected-data file detected."
+            exit 1
+          fi

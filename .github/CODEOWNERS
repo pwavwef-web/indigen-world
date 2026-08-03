@@ -1,0 +1,12 @@
+# Francis Pwavwe is the temporary default reviewer until each product lead's
+# GitHub username is confirmed and added below.
+* @pwavwef-web
+
+# Replace or extend these entries with the confirmed GitHub accounts.
+/apps/website/ @pwavwef-web
+/apps/tribestudio/ @pwavwef-web
+/apps/mobile/ @pwavwef-web
+/services/ @pwavwef-web
+/packages/contracts/ @pwavwef-web
+/firebase/ @pwavwef-web
+/docs/governance/ @pwavwef-web

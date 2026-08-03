@@ -1,0 +1,45 @@
+name: Feature request
+description: Propose a focused product, service, data, or governance improvement
+title: "[Feature]: "
+labels: []
+body:
+  - type: dropdown
+    id: area
+    attributes:
+      label: Product or service
+      options:
+        - Indigen World website
+        - TribeStudio
+        - Indigen World mobile
+        - Firebase Functions
+        - AI infrastructure
+        - Shared contracts or UI
+        - Firebase rules or indexes
+        - Documentation, governance, or assets
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: Describe the user or operational problem before proposing the implementation.
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Desired outcome
+    validations:
+      required: true
+  - type: textarea
+    id: governance
+    attributes:
+      label: Data, cultural, security, or legal considerations
+      description: Mention personal data, consent, dialect, validation, permissions, rewards, minors, AI, or external providers.
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: List observable conditions that define completion.
+    validations:
+      required: true

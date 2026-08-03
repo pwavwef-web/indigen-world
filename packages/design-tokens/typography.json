@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "fontFamilies": {
+    "primary": "Noto Sans, system-ui, sans-serif",
+    "display": "Noto Sans, system-ui, sans-serif",
+    "monospace": "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace"
+  },
+  "fontSizesRem": {
+    "xs": 0.75,
+    "sm": 0.875,
+    "base": 1,
+    "lg": 1.125,
+    "xl": 1.25,
+    "2xl": 1.5,
+    "3xl": 1.875,
+    "4xl": 2.25,
+    "5xl": 3
+  },
+  "fontWeights": {
+    "regular": 400,
+    "medium": 500,
+    "semibold": 600,
+    "bold": 700
+  },
+  "lineHeights": {
+    "tight": 1.2,
+    "normal": 1.5,
+    "relaxed": 1.7
+  }
+}

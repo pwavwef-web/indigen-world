@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "status": "provisional-until-brand-approval",
+  "brand": {
+    "indigo": "#1E365D",
+    "terracotta": "#B65A3A",
+    "gold": "#C58A00",
+    "savannahGreen": "#1F5A3A",
+    "plasterCream": "#FFF8E7"
+  },
+  "semantic": {
+    "background": "#FFFDF8",
+    "surface": "#FFFFFF",
+    "textPrimary": "#172033",
+    "textSecondary": "#4C5568",
+    "border": "#D8D2C6",
+    "success": "#1F6B45",
+    "warning": "#9A6700",
+    "danger": "#A12A2A",
+    "focus": "#1E5E9C"
+  }
+}
