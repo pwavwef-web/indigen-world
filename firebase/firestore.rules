@@ -1,0 +1,11 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Deny by default until collection contracts, role claims, ownership rules,
+    // consent requirements, and emulator tests have been approved.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
