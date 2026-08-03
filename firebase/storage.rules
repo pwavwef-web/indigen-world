@@ -1,0 +1,11 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Deny by default until media categories, ownership, consent,
+    // cultural permissions, file limits, and malware controls are defined.
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
