@@ -1,0 +1,61 @@
+# Environment and secrets
+.env
+.env.*
+!.env.example
+.firebaserc
+*service-account*.json
+firebase-adminsdk-*.json
+*.pem
+*.key
+
+# JavaScript and TypeScript
+node_modules/
+dist/
+build/
+coverage/
+.vite/
+.next/
+.turbo/
+
+# Flutter and Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+build/
+android/key.properties
+android/app/*.jks
+android/app/*.keystore
+ios/Runner/GoogleService-Info.plist
+android/app/google-services.json
+
+# Firebase
+.firebase/
+functions/.runtimeconfig.json
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+
+# Local tooling
+.vscode/
+.idea/
+*.iml
+.DS_Store
+Thumbs.db
+*.log
+
+# Data and cultural records — never commit raw or private datasets
+data/raw/
+data/private/
+data/exports/
+corpus/raw/
+corpus/private/
+consent-records/
+voice-recordings/
+production-backups/
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
