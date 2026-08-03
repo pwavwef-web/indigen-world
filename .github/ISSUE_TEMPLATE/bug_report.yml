@@ -1,0 +1,51 @@
+name: Bug report
+description: Report a reproducible defect without exposing secrets or private data
+title: "[Bug]: "
+labels: []
+body:
+  - type: dropdown
+    id: area
+    attributes:
+      label: Product or service
+      options:
+        - Indigen World website
+        - TribeStudio
+        - Indigen World mobile
+        - Firebase Functions
+        - AI infrastructure
+        - Shared contracts or UI
+        - Firebase rules or indexes
+        - Documentation, governance, or assets
+    validations:
+      required: true
+  - type: textarea
+    id: summary
+    attributes:
+      label: What happened?
+      description: Do not paste credentials, phone numbers, private corpus records, consent forms, or restricted cultural content.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Reproduction steps
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Browser, device, operating system, app version, Firebase environment, or emulator details.
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Safety check
+      options:
+        - label: I removed secrets, personal data, and restricted cultural content from this report.
+          required: true
