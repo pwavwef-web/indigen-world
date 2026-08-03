@@ -38,7 +38,9 @@ jobs:
         run: |
           set -euo pipefail
           forbidden='(^|/)(\.env($|\.)|.*service-account.*\.json$|firebase-adminsdk-.*\.json$|google-services\.json$|GoogleService-Info\.plist$|.*\.pem$|.*\.key$|production-backups/|consent-records/|voice-recordings/)'
-          if git ls-files | grep -Ei "$forbidden"; then
+          candidates="$(git ls-files | grep -Ei "$forbidden" | grep -Ev '(^|/)\.env\.example$' || true)"
+          if [[ -n "$candidates" ]]; then
+            printf '%s\n' "$candidates"
             echo "Potential secret or protected-data file detected."
             exit 1
           fi
