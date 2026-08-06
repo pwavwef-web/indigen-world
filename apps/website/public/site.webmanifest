@@ -1,0 +1,16 @@
+{
+  "name": "Indigen World",
+  "short_name": "Indigen World",
+  "description": "A community-governed cultural technology ecosystem.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f6f0e5",
+  "theme_color": "#101c36",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

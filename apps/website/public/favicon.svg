@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Indigen World mark">
+  <rect width="64" height="64" rx="18" fill="#101c36"/>
+  <path d="M16 45V23l16-9 16 9v22" fill="none" stroke="#f6c453" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M24 43V29m8 14V24m8 19V29" fill="none" stroke="#f7f0e4" stroke-width="4" stroke-linecap="round"/>
+  <circle cx="32" cy="14" r="4" fill="#c96e4b"/>
+</svg>
