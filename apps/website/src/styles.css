@@ -1902,3 +1902,74 @@ h3 {
     transition-duration: 0.001ms !important;
   }
 }
+
+/* ---- Sub-page primitives (multi-page content) ---- */
+.check-list {
+  list-style: none;
+  margin: 28px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 14px;
+}
+
+.check-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--ink);
+  font-size: 16px;
+}
+
+.check-list svg {
+  color: var(--terracotta);
+  flex-shrink: 0;
+}
+
+.page-cta {
+  margin: 28px 0 0;
+}
+
+.demo-note--light {
+  color: var(--muted);
+  font-size: 13px;
+  margin-top: 28px;
+}
+
+.updates-list {
+  list-style: none;
+  counter-reset: updates;
+  margin: 34px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 16px;
+}
+
+.updates-list li {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  gap: 20px;
+  align-items: baseline;
+  padding: 20px 22px;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+}
+
+.updates-list__stage {
+  font-weight: 700;
+  color: var(--indigo-900);
+  letter-spacing: -0.01em;
+}
+
+.updates-list p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+@media (max-width: 640px) {
+  .updates-list li {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+}
