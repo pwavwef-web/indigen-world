@@ -19,6 +19,7 @@ indigen-world/
 ├── apps/
 │   ├── website/
 │   ├── tribestudio/
+│   ├── admin/
 │   └── mobile/
 ├── services/
 │   ├── functions/

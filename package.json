@@ -7,15 +7,26 @@
     "node": ">=22.12.0"
   },
   "workspaces": [
+    "packages/contracts",
+    "packages/design-tokens",
+    "packages/web-ui",
     "apps/website",
+    "apps/admin",
     "apps/tribestudio",
-    "packages/contracts"
+    "firebase/tests",
+    "services/functions"
   ],
   "scripts": {
+    "build:web-ui": "npm run build --workspace @indigen-world/web-ui",
     "build:website": "npm run build --workspace @indigen-world/website",
+    "build:admin": "npm run build --workspace @indigen-world/admin",
     "build:tribestudio": "npm run build --workspace @indigen-world/tribestudio",
+    "build:functions": "npm run build --workspace @indigen-world/functions",
     "typecheck:website": "npm run typecheck --workspace @indigen-world/website",
+    "typecheck:admin": "npm run typecheck --workspace @indigen-world/admin",
     "typecheck:tribestudio": "npm run typecheck --workspace @indigen-world/tribestudio",
-    "test:contracts": "npm test --workspace @indigen-world/contracts"
+    "test:contracts": "npm test --workspace @indigen-world/contracts",
+    "test:rules": "firebase emulators:exec --project demo-indigen-world --only firestore \"node --test firebase/tests/firestore.rules.test.mjs\"",
+    "test:e2e": "npm run build:functions && firebase emulators:exec --project demo-indigen-world --only auth,firestore,functions \"node --test firebase/tests/decideReview.test.mjs\""
   }
 }
