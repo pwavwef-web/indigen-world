@@ -7,8 +7,20 @@ This package stores platform-neutral visual tokens used to keep the website, Tri
 - `colors.json` — brand and semantic colour values
 - `typography.json` — font-family and type-scale decisions
 - `spacing.json` — spacing and radius scale
+- `tokens.css` — the palette as CSS custom properties, for the web apps
+- `index.mjs` — the JSON groups as importable objects (for tooling / mobile generation)
 
-These files are source tokens, not framework-specific CSS or Flutter theme code. Each application should transform or map them into its own implementation.
+The JSON files are the source tokens; `tokens.css` mirrors them for web consumption. The mobile app should map the JSON into a Flutter theme rather than consume the CSS.
+
+## Usage (web)
+
+```ts
+// Load the palette once, at the app entry point:
+import '@indigen-world/design-tokens/tokens.css';
+// Then reference variables in CSS: var(--indigo), var(--terracotta), var(--bg), …
+```
+
+The admin console and TribeStudio load this file, so the palette lives in one place instead of being duplicated per app.
 
 ## Brand architecture
 

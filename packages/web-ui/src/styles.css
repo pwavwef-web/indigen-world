@@ -1,0 +1,82 @@
+/*
+ * Styles for @indigen-world/web-ui primitives. These reference design-token CSS
+ * variables, so a consumer must also load @indigen-world/design-tokens/tokens.css.
+ */
+
+.iw-container {
+  width: min(1100px, 100%);
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.iw-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 9px 16px;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.iw-button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+.iw-button--primary {
+  background: var(--terracotta);
+  color: #fff;
+}
+.iw-button--secondary {
+  background: transparent;
+  color: var(--indigo);
+  border-color: var(--border);
+}
+.iw-button--ghost {
+  background: transparent;
+  color: inherit;
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
+.iw-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  background: #eef1f6;
+  color: var(--indigo);
+}
+.iw-badge--success {
+  background: #e4f2ea;
+  color: var(--success);
+}
+.iw-badge--danger {
+  background: #f6e7e7;
+  color: var(--danger);
+}
+.iw-badge--warning {
+  background: #fbf0dc;
+  color: #8a5a00;
+}
+.iw-badge--info {
+  background: #e6eefb;
+  color: #26467e;
+}
+
+.iw-section-heading .iw-eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--terracotta);
+  margin: 0 0 6px;
+}
+.iw-section-heading h2 {
+  margin: 0 0 8px;
+}
+.iw-section-heading__body {
+  color: var(--text-soft);
+  margin: 0;
+}

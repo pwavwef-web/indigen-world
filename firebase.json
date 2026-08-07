@@ -27,6 +27,21 @@
     },
     {
       "site": "indigen-admin",
+      "public": "apps/admin/dist",
+      "ignore": [
+        "firebase.json",
+        "**/.*",
+        "**/node_modules/**"
+      ],
+      "rewrites": [
+        {
+          "source": "**",
+          "destination": "/index.html"
+        }
+      ]
+    },
+    {
+      "site": "tribestudio",
       "public": "apps/tribestudio/dist",
       "ignore": [
         "firebase.json",

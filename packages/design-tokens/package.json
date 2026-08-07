@@ -1,0 +1,28 @@
+{
+  "name": "@indigen-world/design-tokens",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Platform-neutral design tokens for the Indigen World ecosystem.",
+  "type": "module",
+  "main": "./index.mjs",
+  "types": "./index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./index.mjs"
+    },
+    "./tokens.css": "./tokens.css",
+    "./colors.json": "./colors.json",
+    "./spacing.json": "./spacing.json",
+    "./typography.json": "./typography.json",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "tokens.css",
+    "colors.json",
+    "spacing.json",
+    "typography.json",
+    "index.mjs",
+    "index.d.ts"
+  ]
+}
