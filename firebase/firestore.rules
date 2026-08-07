@@ -1,9 +1,154 @@
 rules_version = '2';
 
+// Indigen World Firestore Security Rules.
+//
+// Model:
+//   * Roles are carried as the custom auth claim `role` ∈ {contributor, validator, admin}.
+//     Everyday users (learners) sign in with no role and may read public content.
+//   * Contributor documents are keyed by the auth uid, so a governance.contributor.id
+//     that equals request.auth.uid identifies the owner of a content record.
+//   * Privileged transitions (validate, reject, move to in_review, retire, reward
+//     settlement, consent withdrawal, audit) are performed server-side in
+//     services/functions with the Admin SDK, which bypasses these rules. Clients are
+//     therefore never allowed to set those states directly.
+//
+// See docs/governance/data-safety.md and packages/contracts for the data shapes.
+
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Deny by default until collection contracts, role claims, ownership rules,
-    // consent requirements, and emulator tests have been approved.
+
+    // ---- Role helpers -------------------------------------------------------
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    function role() {
+      return isSignedIn() ? request.auth.token.role : null;
+    }
+    function isAdmin() {
+      return role() == 'admin';
+    }
+    function isValidator() {
+      return role() == 'validator' || isAdmin();
+    }
+    function isContributor() {
+      return role() == 'contributor' || isValidator();
+    }
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    // ---- Content helpers (lexical entries, sentence pairs) ------------------
+    function contentReadable(data) {
+      return
+        // Public, validated content is world-readable.
+        (data.governance.validationStatus == 'validated'
+          && data.governance.culturalPermissionTier == 'public')
+        // Validators and admins can read everything, including restricted tiers.
+        || isValidator()
+        // Signed-in contributors can read validated community-tier content...
+        || (isContributor()
+          && data.governance.validationStatus == 'validated'
+          && data.governance.culturalPermissionTier == 'community_only')
+        // ...and their own records in any state.
+        || (isContributor() && data.governance.contributor.id == request.auth.uid);
+    }
+
+    function contentCreatable() {
+      return isContributor()
+        && request.resource.data.governance.contributor.id == request.auth.uid
+        && request.resource.data.governance.validationStatus in ['draft', 'submitted']
+        && request.resource.data.governance.validator == null;
+    }
+
+    function contentUpdatable() {
+      return isContributor()
+        // Only the owner, and the owner cannot reassign ownership.
+        && resource.data.governance.contributor.id == request.auth.uid
+        && request.resource.data.governance.contributor.id == request.auth.uid
+        // Owners may edit their own drafts / returned items and (re)submit them,
+        // but may never grant validation or attach a validator.
+        && resource.data.governance.validationStatus in ['draft', 'needs_changes']
+        && request.resource.data.governance.validationStatus in ['draft', 'submitted']
+        && request.resource.data.governance.validator == null;
+    }
+
+    // ---- Registry entities: public read, admin-managed ---------------------
+    match /communities/{communityId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /languages/{languageId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /dialects/{dialectId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /validators/{validatorId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // ---- Content collections ----------------------------------------------
+    match /lexicalEntries/{entryId} {
+      allow read: if contentReadable(resource.data);
+      allow create: if contentCreatable() || isAdmin();
+      allow update: if contentUpdatable() || isAdmin();
+      allow delete: if isAdmin();
+    }
+    match /sentencePairs/{pairId} {
+      allow read: if contentReadable(resource.data);
+      allow create: if contentCreatable() || isAdmin();
+      allow update: if contentUpdatable() || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // ---- Contributors: self-managed profile, no privilege escalation -------
+    match /contributors/{contributorId} {
+      allow read: if isOwner(contributorId) || isValidator();
+      allow create: if isAdmin() || (
+        isOwner(contributorId)
+        && request.resource.data.authUid == request.auth.uid
+        && request.resource.data.status == 'pending'
+        && (!('points' in request.resource.data) || request.resource.data.points == 0)
+      );
+      // Owners may edit descriptive fields but not roles, status, points, or identity.
+      allow update: if isAdmin() || (
+        isOwner(contributorId)
+        && request.resource.data.authUid == resource.data.authUid
+        && request.resource.data.roles == resource.data.roles
+        && request.resource.data.status == resource.data.status
+        && request.resource.data.points == resource.data.points
+      );
+      allow delete: if isAdmin();
+    }
+
+    // ---- Consent records: owner may create, changes go through Functions ----
+    match /consentRecords/{consentId} {
+      allow read: if isValidator() || (
+        isSignedIn() && resource.data.subject.id == request.auth.uid
+      );
+      allow create: if isAdmin() || (
+        isSignedIn() && request.resource.data.subject.id == request.auth.uid
+      );
+      // Withdrawal / expiry transitions are privileged (audited) — server only.
+      allow update, delete: if isAdmin();
+    }
+
+    // ---- Reviews: written by Functions when a validation decision is made ---
+    match /reviews/{reviewId} {
+      allow read: if isValidator();
+      allow write: if false;
+    }
+
+    // ---- Audit log: append-only, server-authored, admin-readable ------------
+    match /auditLogs/{logId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    // ---- Default deny -------------------------------------------------------
     match /{document=**} {
       allow read, write: if false;
     }

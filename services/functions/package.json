@@ -1,0 +1,23 @@
+{
+  "name": "@indigen-world/functions",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Trusted backend (Firebase Functions) for the Indigen World ecosystem.",
+  "main": "lib/index.js",
+  "engines": {
+    "node": "22"
+  },
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "serve": "npm run build && firebase emulators:start --only functions"
+  },
+  "dependencies": {
+    "@indigen-world/contracts": "*",
+    "firebase-admin": "^13.0.2",
+    "firebase-functions": "^6.3.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2"
+  }
+}
