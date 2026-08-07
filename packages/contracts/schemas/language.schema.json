@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.indigen-world.org/v0/language.schema.json",
+  "title": "Language",
+  "description": "A language cell. Project Kasena's first cell is Kasem (xsm). The shape is reusable so new cells can be added without hard-coding Kasem.",
+  "type": "object",
+  "properties": {
+    "id": { "$ref": "common.schema.json#/$defs/identifier" },
+    "code": { "$ref": "common.schema.json#/$defs/languageCode" },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Endonym — the name speakers use for the language."
+    },
+    "englishName": { "type": "string", "minLength": 1 },
+    "community": { "$ref": "common.schema.json#/$defs/reference" },
+    "status": {
+      "type": "string",
+      "description": "Programme status of the language cell.",
+      "enum": ["proposed", "pilot", "active", "paused"]
+    },
+    "writingSystems": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Scripts/orthographies in use (e.g. Latin)."
+    },
+    "defaultDialect": {
+      "oneOf": [
+        { "$ref": "common.schema.json#/$defs/reference" },
+        { "type": "null" }
+      ]
+    },
+    "lifecycle": { "$ref": "common.schema.json#/$defs/recordLifecycle" }
+  },
+  "required": ["id", "code", "name", "englishName", "community", "status", "lifecycle"],
+  "additionalProperties": false
+}

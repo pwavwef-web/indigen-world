@@ -1,0 +1,3 @@
+# TribeStudio is an internal workspace and must not be indexed.
+User-agent: *
+Disallow: /

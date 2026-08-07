@@ -1,0 +1,16 @@
+{
+  "id": "contributor-ama",
+  "authUid": "synthetic-uid-ama",
+  "displayName": "Ama (synthetic contributor)",
+  "roles": ["contributor", "learner"],
+  "community": { "collection": "communities", "id": "kasena-community" },
+  "languages": [{ "collection": "languages", "id": "kasem" }],
+  "status": "active",
+  "points": 120,
+  "joinedAt": "2026-07-20T08:00:00Z",
+  "lifecycle": {
+    "createdAt": "2026-07-20T08:00:00Z",
+    "updatedAt": "2026-08-03T08:30:00Z",
+    "version": 3
+  }
+}

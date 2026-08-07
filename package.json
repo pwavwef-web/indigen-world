@@ -1,0 +1,21 @@
+{
+  "name": "indigen-world",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Monorepo for the Indigen World cultural-technology ecosystem.",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "workspaces": [
+    "apps/website",
+    "apps/tribestudio",
+    "packages/contracts"
+  ],
+  "scripts": {
+    "build:website": "npm run build --workspace @indigen-world/website",
+    "build:tribestudio": "npm run build --workspace @indigen-world/tribestudio",
+    "typecheck:website": "npm run typecheck --workspace @indigen-world/website",
+    "typecheck:tribestudio": "npm run typecheck --workspace @indigen-world/tribestudio",
+    "test:contracts": "npm test --workspace @indigen-world/contracts"
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "id": "validator-elder-1",
+  "contributor": null,
+  "displayName": "Elder validator (synthetic)",
+  "credentials": [
+    {
+      "type": "elder",
+      "description": "Recognised Kasem-language elder for the Kasena community.",
+      "verifiedBy": { "collection": "communities", "id": "kasena-community" }
+    }
+  ],
+  "languages": [{ "collection": "languages", "id": "kasem" }],
+  "dialects": [{ "collection": "dialects", "id": "kasem-nankana" }],
+  "authorityScope": ["lexical", "sentence", "cultural"],
+  "status": "active",
+  "lifecycle": {
+    "createdAt": "2026-07-15T08:00:00Z",
+    "updatedAt": "2026-07-15T08:00:00Z",
+    "version": 1
+  }
+}

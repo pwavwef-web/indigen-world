@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.indigen-world.org/v0/consent-record.schema.json",
+  "title": "Consent record",
+  "description": "A record of consent granted by a contributor or community, scoping how their material may be used. Consent travels with content.",
+  "type": "object",
+  "properties": {
+    "id": { "$ref": "common.schema.json#/$defs/identifier" },
+    "subject": {
+      "allOf": [{ "$ref": "common.schema.json#/$defs/reference" }],
+      "description": "Contributor or community the consent is about."
+    },
+    "grantedBy": {
+      "allOf": [{ "$ref": "common.schema.json#/$defs/reference" }],
+      "description": "Person or body that granted the consent."
+    },
+    "status": { "$ref": "common.schema.json#/$defs/consentStatus" },
+    "scope": {
+      "type": "array",
+      "description": "Uses the consent authorises.",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "enum": [
+          "publication",
+          "adaptation",
+          "redistribution",
+          "commercial_use",
+          "model_training"
+        ]
+      },
+      "uniqueItems": true
+    },
+    "method": {
+      "type": "string",
+      "enum": [
+        "written",
+        "verbal_recorded",
+        "digital_signature",
+        "community_resolution"
+      ]
+    },
+    "evidence": {
+      "oneOf": [
+        { "$ref": "common.schema.json#/$defs/reference" },
+        { "type": "null" }
+      ],
+      "description": "Reference to a media/document record evidencing the consent."
+    },
+    "restrictions": {
+      "type": "string",
+      "description": "Free-text restrictions or conditions attached to the consent."
+    },
+    "effectiveFrom": { "$ref": "common.schema.json#/$defs/isoDate" },
+    "expiresAt": {
+      "oneOf": [
+        { "$ref": "common.schema.json#/$defs/isoDate" },
+        { "type": "null" }
+      ]
+    },
+    "lifecycle": { "$ref": "common.schema.json#/$defs/recordLifecycle" }
+  },
+  "required": [
+    "id",
+    "subject",
+    "grantedBy",
+    "status",
+    "scope",
+    "method",
+    "effectiveFrom",
+    "lifecycle"
+  ],
+  "additionalProperties": false
+}

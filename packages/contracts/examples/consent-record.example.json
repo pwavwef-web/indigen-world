@@ -1,0 +1,17 @@
+{
+  "id": "consent-ama-2026",
+  "subject": { "collection": "contributors", "id": "contributor-ama" },
+  "grantedBy": { "collection": "contributors", "id": "contributor-ama" },
+  "status": "granted",
+  "scope": ["publication", "adaptation"],
+  "method": "digital_signature",
+  "evidence": null,
+  "restrictions": "No commercial redistribution without renewed consent.",
+  "effectiveFrom": "2026-08-02",
+  "expiresAt": null,
+  "lifecycle": {
+    "createdAt": "2026-08-02T10:55:00Z",
+    "updatedAt": "2026-08-02T10:55:00Z",
+    "version": 1
+  }
+}

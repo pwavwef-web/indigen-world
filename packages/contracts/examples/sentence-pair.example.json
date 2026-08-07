@@ -1,0 +1,25 @@
+{
+  "id": "sp-water-is-cold",
+  "source": { "languageCode": "xsm", "text": "Nia pe yogo." },
+  "target": { "languageCode": "en", "text": "The water is cold." },
+  "domain": "general",
+  "riskLevel": "standard",
+  "notes": "Synthetic fixture used for interface illustration.",
+  "governance": {
+    "source": "Contributor submission (synthetic)",
+    "contributor": { "collection": "contributors", "id": "contributor-ama" },
+    "language": { "collection": "languages", "id": "kasem" },
+    "dialect": null,
+    "validationStatus": "submitted",
+    "validator": null,
+    "consentStatus": "pending",
+    "consent": null,
+    "licence": "undetermined",
+    "culturalPermissionTier": "public"
+  },
+  "lifecycle": {
+    "createdAt": "2026-08-04T14:20:00Z",
+    "updatedAt": "2026-08-04T14:20:00Z",
+    "version": 1
+  }
+}

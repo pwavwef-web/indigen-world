@@ -1,0 +1,13 @@
+{
+  "id": "kasem-nankana",
+  "language": { "collection": "languages", "id": "kasem" },
+  "name": "Nankana-area Kasem",
+  "code": "xsm-nk",
+  "region": "Navrongo area",
+  "description": "Synthetic fixture describing a regional variety of Kasem.",
+  "lifecycle": {
+    "createdAt": "2026-08-01T09:10:00Z",
+    "updatedAt": "2026-08-01T09:10:00Z",
+    "version": 1
+  }
+}

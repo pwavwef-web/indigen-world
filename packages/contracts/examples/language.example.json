@@ -1,0 +1,15 @@
+{
+  "id": "kasem",
+  "code": "xsm",
+  "name": "Kasem",
+  "englishName": "Kasem",
+  "community": { "collection": "communities", "id": "kasena-community" },
+  "status": "pilot",
+  "writingSystems": ["Latin"],
+  "defaultDialect": { "collection": "dialects", "id": "kasem-nankana" },
+  "lifecycle": {
+    "createdAt": "2026-08-01T09:05:00Z",
+    "updatedAt": "2026-08-01T09:05:00Z",
+    "version": 1
+  }
+}

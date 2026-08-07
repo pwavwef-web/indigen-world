@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.indigen-world.org/v0/community.schema.json",
+  "title": "Community",
+  "description": "A language- or culture-bearing community that holds authority over its content. Communities are decision-makers, not data suppliers.",
+  "type": "object",
+  "properties": {
+    "id": { "$ref": "common.schema.json#/$defs/identifier" },
+    "slug": { "$ref": "common.schema.json#/$defs/slug" },
+    "name": { "type": "string", "minLength": 1 },
+    "summary": { "type": "string" },
+    "region": {
+      "type": "string",
+      "description": "Sub-national region (e.g. Upper East Region, Ghana)."
+    },
+    "country": { "$ref": "common.schema.json#/$defs/countryCode" },
+    "languages": {
+      "type": "array",
+      "description": "Language cells associated with this community.",
+      "items": { "$ref": "common.schema.json#/$defs/reference" }
+    },
+    "custodians": {
+      "type": "array",
+      "description": "Validators or contributors recognised as cultural custodians for this community.",
+      "items": { "$ref": "common.schema.json#/$defs/reference" }
+    },
+    "status": {
+      "type": "string",
+      "enum": ["proposed", "active", "archived"]
+    },
+    "lifecycle": { "$ref": "common.schema.json#/$defs/recordLifecycle" }
+  },
+  "required": ["id", "slug", "name", "country", "languages", "status", "lifecycle"],
+  "additionalProperties": false
+}

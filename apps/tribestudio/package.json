@@ -1,5 +1,5 @@
 {
-  "name": "@indigen-world/website",
+  "name": "@indigen-world/tribestudio",
   "private": true,
   "version": "0.1.0",
   "type": "module",
@@ -13,6 +13,7 @@
     "typecheck": "tsc -b --pretty false"
   },
   "dependencies": {
+    "@indigen-world/contracts": "*",
     "firebase": "^11.3.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"

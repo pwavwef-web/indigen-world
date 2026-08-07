@@ -11,7 +11,7 @@
   },
   "hosting": [
     {
-      "target": "website",
+      "site": "indigen-world",
       "public": "apps/website/dist",
       "ignore": [
         "firebase.json",
@@ -26,7 +26,7 @@
       ]
     },
     {
-      "target": "tribestudio",
+      "site": "indigen-admin",
       "public": "apps/tribestudio/dist",
       "ignore": [
         "firebase.json",

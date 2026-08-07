@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.indigen-world.org/v0/sentence-pair.schema.json",
+  "title": "Sentence pair",
+  "description": "An aligned pair of sentences across two languages, used for translation utilities and future text AI. Content record — carries full governance metadata.",
+  "type": "object",
+  "properties": {
+    "id": { "$ref": "common.schema.json#/$defs/identifier" },
+    "source": {
+      "type": "object",
+      "properties": {
+        "languageCode": { "$ref": "common.schema.json#/$defs/languageCode" },
+        "text": { "type": "string", "minLength": 1 }
+      },
+      "required": ["languageCode", "text"],
+      "additionalProperties": false
+    },
+    "target": {
+      "type": "object",
+      "properties": {
+        "languageCode": { "$ref": "common.schema.json#/$defs/languageCode" },
+        "text": { "type": "string", "minLength": 1 }
+      },
+      "required": ["languageCode", "text"],
+      "additionalProperties": false
+    },
+    "domain": {
+      "type": "string",
+      "description": "Subject domain. Health, legal and civic pairs require specialised review and disclaimers before public or model use.",
+      "enum": ["general", "education", "cultural", "health", "legal", "civic"]
+    },
+    "riskLevel": {
+      "type": "string",
+      "description": "Escalation level for high-impact translations.",
+      "enum": ["standard", "elevated", "high_impact"]
+    },
+    "notes": { "type": "string" },
+    "governance": { "$ref": "common.schema.json#/$defs/governanceMetadata" },
+    "lifecycle": { "$ref": "common.schema.json#/$defs/recordLifecycle" }
+  },
+  "required": ["id", "source", "target", "domain", "governance", "lifecycle"],
+  "additionalProperties": false
+}

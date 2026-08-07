@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.indigen-world.org/v0/validator.schema.json",
+  "title": "Validator",
+  "description": "An elder, teacher, linguist or cultural custodian authorised to validate content. Model output is never equivalent to validator authority.",
+  "type": "object",
+  "properties": {
+    "id": { "$ref": "common.schema.json#/$defs/identifier" },
+    "contributor": {
+      "oneOf": [
+        { "$ref": "common.schema.json#/$defs/reference" },
+        { "type": "null" }
+      ],
+      "description": "Linked contributor record, when the validator is also a contributor."
+    },
+    "displayName": { "type": "string", "minLength": 1 },
+    "credentials": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["elder", "teacher", "linguist", "custodian"]
+          },
+          "description": { "type": "string" },
+          "verifiedBy": {
+            "oneOf": [
+              { "$ref": "common.schema.json#/$defs/reference" },
+              { "type": "null" }
+            ]
+          }
+        },
+        "required": ["type"],
+        "additionalProperties": false
+      }
+    },
+    "languages": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "common.schema.json#/$defs/reference" }
+    },
+    "dialects": {
+      "type": "array",
+      "items": { "$ref": "common.schema.json#/$defs/reference" }
+    },
+    "authorityScope": {
+      "type": "array",
+      "description": "What this validator is authorised to review.",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "enum": ["lexical", "sentence", "cultural", "media", "all"]
+      },
+      "uniqueItems": true
+    },
+    "status": {
+      "type": "string",
+      "enum": ["active", "inactive"]
+    },
+    "lifecycle": { "$ref": "common.schema.json#/$defs/recordLifecycle" }
+  },
+  "required": [
+    "id",
+    "displayName",
+    "credentials",
+    "languages",
+    "authorityScope",
+    "status",
+    "lifecycle"
+  ],
+  "additionalProperties": false
+}
