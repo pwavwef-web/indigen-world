@@ -13,6 +13,7 @@
     "apps/website",
     "apps/admin",
     "apps/tribestudio",
+    "apps/team-websites/francis-pwavwe",
     "firebase/tests",
     "services/functions"
   ],
@@ -21,10 +22,12 @@
     "build:website": "npm run build --workspace @indigen-world/website",
     "build:admin": "npm run build --workspace @indigen-world/admin",
     "build:tribestudio": "npm run build --workspace @indigen-world/tribestudio",
+    "build:team-francis-pwavwe": "npm run build --workspace @indigen-world/team-francis-pwavwe",
     "build:functions": "npm run build --workspace @indigen-world/functions",
     "typecheck:website": "npm run typecheck --workspace @indigen-world/website",
     "typecheck:admin": "npm run typecheck --workspace @indigen-world/admin",
     "typecheck:tribestudio": "npm run typecheck --workspace @indigen-world/tribestudio",
+    "typecheck:team-francis-pwavwe": "npm run typecheck --workspace @indigen-world/team-francis-pwavwe",
     "test:contracts": "npm test --workspace @indigen-world/contracts",
     "test:rules": "firebase emulators:exec --project demo-indigen-world --only firestore \"node --test firebase/tests/firestore.rules.test.mjs\"",
     "test:e2e": "npm run build:functions && firebase emulators:exec --project demo-indigen-world --only auth,firestore,functions \"node --test firebase/tests/decideReview.test.mjs\""
