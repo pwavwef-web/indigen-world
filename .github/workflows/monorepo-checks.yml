@@ -1,0 +1,49 @@
+name: Monorepo checks
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: monorepo-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.12.0'
+          cache: npm
+
+      - name: Use Java 21 for Firebase emulators
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Install the root lockfile
+        run: npm ci --no-audit --no-fund
+
+      - name: Reject high or critical production vulnerabilities
+        run: npm run audit:prod
+
+      - name: Typecheck every workspace
+        run: npm run typecheck
+
+      - name: Build every workspace
+        run: npm run build
+
+      - name: Validate contracts and Firebase governance paths
+        run: npm test

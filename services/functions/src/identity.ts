@@ -1,18 +1,24 @@
 import { HttpsError, onCall } from 'firebase-functions/v2/https';
 import { getAuth } from 'firebase-admin/auth';
-import { FieldValue, getFirestore } from 'firebase-admin/firestore';
-import { requireAuth, requireRole, type Role } from './lib/auth.js';
+import { getFirestore } from 'firebase-admin/firestore';
+import { requireAuth, requireRole, type Role } from './auth.js';
+import { consumeRateLimit } from './rate-limit.js';
 
 const ASSIGNABLE_ROLES: readonly Role[] = ['contributor', 'validator', 'admin'];
+const ENFORCE_APP_CHECK = process.env.FUNCTIONS_EMULATOR !== 'true';
 
 /**
  * An admin assigns a role claim to a user. Role claims are the source of truth
  * the Security Rules read, so this must never be client-controllable. The change
  * is recorded in the audit log.
  */
-export const setUserRole = onCall(async (req) => {
+export const setUserRole = onCall({
+  enforceAppCheck: ENFORCE_APP_CHECK,
+  consumeAppCheckToken: ENFORCE_APP_CHECK,
+}, async (req) => {
   const actorUid = requireAuth(req);
   requireRole(req, 'admin');
+  await consumeRateLimit('setUserRole', actorUid, 10);
 
   const { uid, role } = req.data ?? {};
   if (typeof uid !== 'string' || uid.length === 0) {
@@ -36,7 +42,7 @@ export const setUserRole = onCall(async (req) => {
     before: null,
     after: { role },
     metadata: {},
-    occurredAt: FieldValue.serverTimestamp(),
+    occurredAt: new Date().toISOString(),
   });
 
   return { uid, role };

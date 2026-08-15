@@ -17,6 +17,9 @@ import {
 
 const PARTS_OF_SPEECH = (lexicalEntrySchema.properties.partOfSpeech.enum as string[]) ?? [];
 const TIERS = enums.culturalPermissionTier;
+const LICENCES = (enums.licence as string[]).filter(
+  (licence) => !['undetermined', 'all_rights_reserved', 'custom'].includes(licence),
+);
 
 const TIER_LABELS: Record<string, string> = {
   public: 'Public',
@@ -44,6 +47,7 @@ const emptyForm = (languageId: string): EntryInput => ({
   languageId,
   culturalPermissionTier: 'public',
   consentGranted: false,
+  licence: 'community_restricted',
 });
 
 function StatusBadge({ status }: { status: string }) {
@@ -132,8 +136,13 @@ function App() {
       </nav>
 
       <main id="main-content" className="content">
-        {tab === 'contribute' ? (
+        {tab === 'contribute' && canContribute(role) ? (
           <ContributeTab role={role} uid={user.uid} flash={flash} />
+        ) : tab === 'contribute' ? (
+          <section className="panel">
+            <h2>Contributor access required</h2>
+            <p className="notice">An administrator must grant your account a contributor role before these controls are available.</p>
+          </section>
         ) : (
           <ReviewTab flash={flash} />
         )}
@@ -206,9 +215,15 @@ function ContributeTab({
     }
   };
 
-  const resubmit = async (id: string) => {
+  const resubmit = async (entry: LexicalEntryDoc) => {
+    if (entry.governance.consentStatus !== 'granted') {
+      const confirmed = window.confirm(
+        'I confirm I have the right to contribute this material and consent to publication review under the selected licence.',
+      );
+      if (!confirmed) return;
+    }
     try {
-      await submitDraft(id);
+      await submitDraft(entry, uid);
       flash('ok', 'Draft submitted for validation.');
       await loadEntries();
     } catch (err) {
@@ -291,13 +306,22 @@ function ContributeTab({
           </select>
         </div>
 
+        <div className="field">
+          <label htmlFor="licence">Publication licence</label>
+          <select id="licence" value={form.licence} onChange={(e) => update('licence', e.target.value)}>
+            {LICENCES.map((licence) => (
+              <option key={licence} value={licence}>{licence.replaceAll('_', ' ')}</option>
+            ))}
+          </select>
+        </div>
+
         <label className="checkbox">
           <input
             type="checkbox"
             checked={form.consentGranted}
             onChange={(e) => update('consentGranted', e.target.checked)}
           />
-          I confirm I have the right to contribute this and consent to its review.
+          I confirm I have the right to contribute this and consent to its publication review under the selected licence.
         </label>
 
         <div className="actions">
@@ -326,7 +350,7 @@ function ContributeTab({
                 <div className="list__side">
                   <StatusBadge status={e.governance.validationStatus} />
                   {['draft', 'needs_changes'].includes(e.governance.validationStatus) ? (
-                    <button type="button" className="button button--small" onClick={() => void resubmit(e.id)}>
+                    <button type="button" className="button button--small" onClick={() => void resubmit(e)}>
                       Submit
                     </button>
                   ) : null}
@@ -344,6 +368,7 @@ function ReviewTab({ flash }: { flash: (kind: 'ok' | 'err', text: string) => voi
   const [queue, setQueue] = useState<LexicalEntryDoc[]>([]);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [notes, setNotes] = useState<Record<string, string>>({});
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -363,7 +388,13 @@ function ReviewTab({ flash }: { flash: (kind: 'ok' | 'err', text: string) => voi
   const decide = async (id: string, decision: Decision) => {
     setBusyId(id);
     try {
-      const res = await decideReview(id, decision, '');
+      const reason = notes[id]?.trim() ?? '';
+      const res = await decideReview(
+        id,
+        decision,
+        reason,
+        decision === 'needs_changes' ? [reason] : [],
+      );
       flash('ok', `Recorded: ${res.newStatus}.`);
       await load();
     } catch (err) {
@@ -395,13 +426,21 @@ function ReviewTab({ flash }: { flash: (kind: 'ok' | 'err', text: string) => voi
                 </p>
               </div>
               <div className="list__side list__side--stack">
-                <button type="button" className="button button--small button--approve" disabled={busyId === e.id} onClick={() => void decide(e.id, 'approved')}>
+                <label htmlFor={`review-${e.id}`} className="tiny">Required review reason</label>
+                <textarea
+                  id={`review-${e.id}`}
+                  value={notes[e.id] ?? ''}
+                  minLength={10}
+                  maxLength={2000}
+                  onChange={(event) => setNotes((current) => ({ ...current, [e.id]: event.target.value }))}
+                />
+                <button type="button" className="button button--small button--approve" disabled={busyId === e.id || (notes[e.id]?.trim().length ?? 0) < 10} onClick={() => void decide(e.id, 'approved')}>
                   Approve
                 </button>
-                <button type="button" className="button button--small" disabled={busyId === e.id} onClick={() => void decide(e.id, 'needs_changes')}>
+                <button type="button" className="button button--small" disabled={busyId === e.id || (notes[e.id]?.trim().length ?? 0) < 10} onClick={() => void decide(e.id, 'needs_changes')}>
                   Needs changes
                 </button>
-                <button type="button" className="button button--small button--reject" disabled={busyId === e.id} onClick={() => void decide(e.id, 'rejected')}>
+                <button type="button" className="button button--small button--reject" disabled={busyId === e.id || (notes[e.id]?.trim().length ?? 0) < 10} onClick={() => void decide(e.id, 'rejected')}>
                   Reject
                 </button>
               </div>

@@ -18,6 +18,10 @@
     "services/functions"
   ],
   "scripts": {
+    "build": "npm run --workspaces --if-present build",
+    "typecheck": "npm run --workspaces --if-present typecheck",
+    "test": "npm run test:contracts && npm run test:rules && npm run test:e2e",
+    "audit:prod": "npm audit --omit=dev --audit-level=high",
     "build:web-ui": "npm run build --workspace @indigen-world/web-ui",
     "build:website": "npm run build --workspace @indigen-world/website",
     "build:admin": "npm run build --workspace @indigen-world/admin",
@@ -31,5 +35,8 @@
     "test:contracts": "npm test --workspace @indigen-world/contracts",
     "test:rules": "firebase emulators:exec --project demo-indigen-world --only firestore \"node --test firebase/tests/firestore.rules.test.mjs\"",
     "test:e2e": "npm run build:functions && firebase emulators:exec --project demo-indigen-world --only auth,firestore,functions \"node --test firebase/tests/decideReview.test.mjs\""
+  },
+  "devDependencies": {
+    "firebase-tools": "15.19.1"
   }
 }

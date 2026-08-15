@@ -15,7 +15,7 @@ import {
   assertSucceeds,
   initializeTestEnvironment,
 } from '@firebase/rules-unit-testing';
-import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, writeBatch } from 'firebase/firestore';
 
 const PROJECT_ID = 'demo-indigen-world';
 const host = '127.0.0.1';
@@ -23,8 +23,9 @@ const port = 8080;
 const rulesPath = join(dirname(fileURLToPath(import.meta.url)), '..', 'firestore.rules');
 
 /** A content document whose governance block is what the rules inspect. */
-function makeEntry(ownerUid, { status, tier, validator = null }) {
+function makeEntry(ownerUid, { id, status, tier, validator = null, consentStatus = 'granted', licence = 'community_restricted' }) {
   return {
+    id,
     headword: 'nia',
     partOfSpeech: 'noun',
     senses: [{ definition: 'water' }],
@@ -35,11 +36,30 @@ function makeEntry(ownerUid, { status, tier, validator = null }) {
       dialect: null,
       validationStatus: status,
       validator,
-      consentStatus: 'granted',
-      consent: null,
-      licence: 'community_restricted',
+      consentStatus,
+      consent: consentStatus === 'granted'
+        ? { collection: 'consentRecords', id: `consent-${ownerUid}` }
+        : null,
+      licence,
       culturalPermissionTier: tier,
     },
+    lifecycle: {
+      createdAt: '2026-08-01T00:00:00Z',
+      updatedAt: '2026-08-01T00:00:00Z',
+      version: 1,
+    },
+  };
+}
+
+function makeConsent(ownerUid, status = 'granted') {
+  return {
+    id: `consent-${ownerUid}`,
+    subject: { collection: 'contributors', id: ownerUid },
+    grantedBy: { collection: 'contributors', id: ownerUid },
+    status,
+    scope: ['publication'],
+    method: 'digital_attestation',
+    effectiveFrom: '2026-08-01',
     lifecycle: {
       createdAt: '2026-08-01T00:00:00Z',
       updatedAt: '2026-08-01T00:00:00Z',
@@ -59,8 +79,9 @@ before(async () => {
   // Seed fixtures with rules disabled.
   await env.withSecurityRulesDisabled(async (ctx) => {
     const db = ctx.firestore();
-    await setDoc(doc(db, 'lexicalEntries/validated-public'), makeEntry('contrib1', { status: 'validated', tier: 'public' }));
-    await setDoc(doc(db, 'lexicalEntries/draft-own'), makeEntry('contrib1', { status: 'draft', tier: 'public' }));
+    await setDoc(doc(db, 'consentRecords/consent-contrib1'), makeConsent('contrib1'));
+    await setDoc(doc(db, 'lexicalEntries/validated-public'), makeEntry('contrib1', { id: 'validated-public', status: 'validated', tier: 'public' }));
+    await setDoc(doc(db, 'lexicalEntries/draft-own'), makeEntry('contrib1', { id: 'draft-own', status: 'draft', tier: 'public' }));
     await setDoc(doc(db, 'languages/kasem'), { code: 'xsm', name: 'Kasem' });
     await setDoc(doc(db, 'reviews/r1'), { target: { collection: 'lexicalEntries', id: 'x' }, decision: 'approved' });
     await setDoc(doc(db, 'auditLogs/a1'), { actor: { collection: 'validators', id: 'v1' }, action: 'content.validate' });
@@ -91,28 +112,54 @@ test('a validator can read any content, including drafts', async () => {
 test('a contributor can create their own draft', async () => {
   const contrib = env.authenticatedContext('contrib2', { role: 'contributor' });
   await assertSucceeds(
-    setDoc(doc(db(contrib), 'lexicalEntries/new-draft'), makeEntry('contrib2', { status: 'draft', tier: 'public' })),
+    setDoc(doc(db(contrib), 'lexicalEntries/new-draft'), makeEntry('contrib2', { id: 'new-draft', status: 'draft', tier: 'public', consentStatus: 'pending' })),
   );
+});
+
+test('a contributor can atomically create consent and a ready submission', async () => {
+  const contrib = env.authenticatedContext('contrib4', { role: 'contributor' });
+  const store = db(contrib);
+  const batch = writeBatch(store);
+  batch.set(doc(store, 'consentRecords/consent-contrib4'), makeConsent('contrib4'));
+  batch.set(doc(store, 'lexicalEntries/ready-submission'), makeEntry('contrib4', {
+    id: 'ready-submission', status: 'submitted', tier: 'public',
+  }));
+  await assertSucceeds(batch.commit());
+});
+
+test('a custom or undetermined licence cannot be submitted without reviewed terms', async () => {
+  const contrib = env.authenticatedContext('contrib5', { role: 'contributor' });
+  const store = db(contrib);
+  const batch = writeBatch(store);
+  batch.set(doc(store, 'consentRecords/consent-contrib5'), makeConsent('contrib5'));
+  batch.set(doc(store, 'lexicalEntries/custom-licence'), makeEntry('contrib5', {
+    id: 'custom-licence', status: 'submitted', tier: 'public', licence: 'custom',
+  }));
+  await assertFails(batch.commit());
 });
 
 test('a contributor cannot create content already marked validated', async () => {
   const contrib = env.authenticatedContext('contrib2', { role: 'contributor' });
   await assertFails(
-    setDoc(doc(db(contrib), 'lexicalEntries/cheat'), makeEntry('contrib2', { status: 'validated', tier: 'public' })),
+    setDoc(doc(db(contrib), 'lexicalEntries/cheat'), makeEntry('contrib2', { id: 'cheat', status: 'validated', tier: 'public' })),
   );
 });
 
 test('a contributor cannot create content owned by someone else', async () => {
   const contrib = env.authenticatedContext('contrib2', { role: 'contributor' });
   await assertFails(
-    setDoc(doc(db(contrib), 'lexicalEntries/forge'), makeEntry('contrib1', { status: 'draft', tier: 'public' })),
+    setDoc(doc(db(contrib), 'lexicalEntries/forge'), makeEntry('contrib1', { id: 'forge', status: 'draft', tier: 'public' })),
   );
 });
 
 test('an owner can submit their own draft', async () => {
   const contrib = env.authenticatedContext('contrib1', { role: 'contributor' });
   await assertSucceeds(
-    updateDoc(doc(db(contrib), 'lexicalEntries/draft-own'), { 'governance.validationStatus': 'submitted' }),
+    updateDoc(doc(db(contrib), 'lexicalEntries/draft-own'), {
+      'governance.validationStatus': 'submitted',
+      'lifecycle.updatedAt': '2026-08-02T00:00:00Z',
+      'lifecycle.version': 2,
+    }),
   );
 });
 
@@ -121,6 +168,31 @@ test('an owner cannot self-validate their content', async () => {
   await assertFails(
     updateDoc(doc(db(contrib), 'lexicalEntries/draft-own'), { 'governance.validationStatus': 'validated' }),
   );
+});
+
+test('pending consent cannot be bypassed when a contributor submits', async () => {
+  const contrib = env.authenticatedContext('contrib2', { role: 'contributor' });
+  await assertSucceeds(
+    setDoc(doc(db(contrib), 'lexicalEntries/pending-consent'), makeEntry('contrib2', {
+      id: 'pending-consent', status: 'draft', tier: 'public', consentStatus: 'pending',
+    })),
+  );
+  await assertFails(updateDoc(doc(db(contrib), 'lexicalEntries/pending-consent'), {
+    'governance.validationStatus': 'submitted',
+    'lifecycle.updatedAt': '2026-08-02T00:00:00Z',
+    'lifecycle.version': 2,
+  }));
+});
+
+test('withdrawn consent immediately removes public access', async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await updateDoc(doc(db(ctx), 'consentRecords/consent-contrib1'), { status: 'withdrawn' });
+  });
+  const anon = env.unauthenticatedContext();
+  await assertFails(getDoc(doc(db(anon), 'lexicalEntries/validated-public')));
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await updateDoc(doc(db(ctx), 'consentRecords/consent-contrib1'), { status: 'granted' });
+  });
 });
 
 test('reviews are readable by validators but not contributors', async () => {

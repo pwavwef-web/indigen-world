@@ -42,6 +42,11 @@ VITE_USE_EMULATORS=true npm run dev --workspace @indigen-world/tribestudio
 npm run build:tribestudio     # from the repo root
 ```
 
+Production builds must set `VITE_RECAPTCHA_ENTERPRISE_SITE_KEY` to the web key
+registered for this app in Firebase App Check. Callable Functions reject
+production requests without a valid App Check token. Copy `.env.example` for
+the supported environment variable names; never put private credentials there.
+
 ## Deploy
 
 ```bash
