@@ -1,9 +1,223 @@
 rules_version = '2';
 
+// Indigen World Firestore Security Rules.
+//
+// Model:
+//   * Roles are carried as the custom auth claim `role` ∈ {contributor, validator, admin}.
+//     Everyday users (learners) sign in with no role and may read public content.
+//   * Contributor documents are keyed by the auth uid, so a governance.contributor.id
+//     that equals request.auth.uid identifies the owner of a content record.
+//   * Privileged transitions (validate, reject, move to in_review, retire, reward
+//     settlement, consent withdrawal, audit) are performed server-side in
+//     services/functions with the Admin SDK, which bypasses these rules. Clients are
+//     therefore never allowed to set those states directly.
+//
+// See docs/governance/data-safety.md and packages/contracts for the data shapes.
+
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Deny by default until collection contracts, role claims, ownership rules,
-    // consent requirements, and emulator tests have been approved.
+
+    // ---- Role helpers -------------------------------------------------------
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    function role() {
+      return isSignedIn() ? request.auth.token.role : null;
+    }
+    function isAdmin() {
+      return role() == 'admin';
+    }
+    function isValidator() {
+      return role() == 'validator' || isAdmin();
+    }
+    function isContributor() {
+      return role() == 'contributor' || isValidator();
+    }
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    function publicationLicenceAllowed(licence) {
+      return licence in [
+        'community_restricted', 'cc_by', 'cc_by_sa', 'cc_by_nc',
+        'public_domain'
+      ];
+    }
+
+    function hasConsentReference(data) {
+      return data.governance.consentStatus == 'granted'
+        && data.governance.consent is map
+        && data.governance.consent.collection == 'consentRecords'
+        && data.governance.consent.id is string;
+    }
+
+    function consentIsActive(data) {
+      let consent = get(/databases/$(database)/documents/consentRecords/$(data.governance.consent.id)).data;
+      return consent.status == 'granted'
+        && consent.subject.id == data.governance.contributor.id
+        && 'publication' in consent.scope;
+    }
+
+    function consentWillBeActive(data) {
+      let consent = getAfter(/databases/$(database)/documents/consentRecords/$(data.governance.consent.id)).data;
+      return consent.status == 'granted'
+        && consent.subject.id == data.governance.contributor.id
+        && 'publication' in consent.scope;
+    }
+
+    function lifecycleIsValid(data) {
+      return data.lifecycle.createdAt is string
+        && data.lifecycle.updatedAt is string
+        && data.lifecycle.version is int
+        && data.lifecycle.version >= 1;
+    }
+
+    function submissionReady(data) {
+      return data.governance.validationStatus == 'submitted'
+        && data.governance.validator == null
+        && publicationLicenceAllowed(data.governance.licence)
+        && hasConsentReference(data)
+        && consentWillBeActive(data)
+        && lifecycleIsValid(data);
+    }
+
+    // ---- Content helpers (lexical entries, sentence pairs) ------------------
+    function contentReadable(data) {
+      return
+        // Public, validated content is world-readable.
+        (data.governance.validationStatus == 'validated'
+          && data.governance.culturalPermissionTier == 'public'
+          && publicationLicenceAllowed(data.governance.licence)
+          && hasConsentReference(data)
+          && consentIsActive(data))
+        // Validators and admins can read everything, including restricted tiers.
+        || isValidator()
+        // Signed-in contributors can read validated community-tier content...
+        || (isContributor()
+          && data.governance.validationStatus == 'validated'
+          && data.governance.culturalPermissionTier == 'community_only'
+          && publicationLicenceAllowed(data.governance.licence)
+          && hasConsentReference(data)
+          && consentIsActive(data))
+        // ...and their own records in any state.
+        || (isContributor() && data.governance.contributor.id == request.auth.uid);
+    }
+
+    function contentCreatable() {
+      return isContributor()
+        && request.resource.data.governance.contributor.id == request.auth.uid
+        && request.resource.data.governance.validator == null
+        && lifecycleIsValid(request.resource.data)
+        && (
+          (request.resource.data.governance.validationStatus == 'draft'
+            && request.resource.data.governance.consentStatus in ['pending', 'granted'])
+          || submissionReady(request.resource.data)
+        );
+    }
+
+    function contentUpdatable() {
+      return isContributor()
+        // Only the owner, and the owner cannot reassign ownership.
+        && resource.data.governance.contributor.id == request.auth.uid
+        && request.resource.data.governance.contributor.id == request.auth.uid
+        // Owners may edit their own drafts / returned items and (re)submit them,
+        // but may never grant validation or attach a validator.
+        && resource.data.governance.validationStatus in ['draft', 'needs_changes']
+        && request.resource.data.governance.validationStatus in ['draft', 'submitted']
+        && request.resource.data.governance.validator == null
+        && request.resource.data.lifecycle.createdAt == resource.data.lifecycle.createdAt
+        && request.resource.data.lifecycle.updatedAt is string
+        && request.resource.data.lifecycle.version == resource.data.lifecycle.version + 1
+        && (
+          request.resource.data.governance.validationStatus == 'draft'
+          || submissionReady(request.resource.data)
+        );
+    }
+
+    // ---- Registry entities: public read, admin-managed ---------------------
+    match /communities/{communityId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /languages/{languageId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /dialects/{dialectId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /validators/{validatorId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // ---- Content collections ----------------------------------------------
+    match /lexicalEntries/{entryId} {
+      allow read: if contentReadable(resource.data);
+      allow create: if request.resource.data.id == entryId && contentCreatable();
+      allow update: if request.resource.data.id == entryId && contentUpdatable();
+      allow delete: if false;
+    }
+    match /sentencePairs/{pairId} {
+      allow read: if contentReadable(resource.data);
+      allow create: if request.resource.data.id == pairId && contentCreatable();
+      allow update: if request.resource.data.id == pairId && contentUpdatable();
+      allow delete: if false;
+    }
+
+    // ---- Contributors: self-managed profile, no privilege escalation -------
+    match /contributors/{contributorId} {
+      allow read: if isOwner(contributorId) || isValidator();
+      allow create: if isAdmin() || (
+        isOwner(contributorId)
+        && request.resource.data.authUid == request.auth.uid
+        && request.resource.data.status == 'pending'
+        && (!('points' in request.resource.data) || request.resource.data.points == 0)
+      );
+      // Owners may edit descriptive fields but not roles, status, points, or identity.
+      allow update: if isAdmin() || (
+        isOwner(contributorId)
+        && request.resource.data.authUid == resource.data.authUid
+        && request.resource.data.roles == resource.data.roles
+        && request.resource.data.status == resource.data.status
+        && request.resource.data.points == resource.data.points
+      );
+      allow delete: if isAdmin();
+    }
+
+    // ---- Consent records: owner may create, changes go through Functions ----
+    match /consentRecords/{consentId} {
+      allow read: if isValidator() || (
+        isSignedIn() && resource.data.subject.id == request.auth.uid
+      );
+      allow create: if isSignedIn()
+        && request.resource.data.id == consentId
+        && request.resource.data.subject.collection == 'contributors'
+        && request.resource.data.subject.id == request.auth.uid
+        && request.resource.data.grantedBy.collection == 'contributors'
+        && request.resource.data.grantedBy.id == request.auth.uid
+        && request.resource.data.status == 'granted'
+        && 'publication' in request.resource.data.scope
+        && request.resource.data.effectiveFrom is string
+        && lifecycleIsValid(request.resource.data);
+      // Withdrawal / expiry transitions are privileged (audited) — server only.
+      allow update, delete: if false;
+    }
+
+    // ---- Reviews: written by Functions when a validation decision is made ---
+    match /reviews/{reviewId} {
+      allow read: if isValidator();
+      allow write: if false;
+    }
+
+    // ---- Audit log: append-only, server-authored, admin-readable ------------
+    match /auditLogs/{logId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    // ---- Default deny -------------------------------------------------------
     match /{document=**} {
       allow read, write: if false;
     }

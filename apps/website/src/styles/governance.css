@@ -1,0 +1,133 @@
+/**
+ * src/styles/governance.css
+ *
+ * Impact & Governance page: the principle list, the sticky governance
+ * seal (desktop-only), and the impact-target grid. Mobile-first.
+ */
+
+.governance-grid {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.governance-sticky {
+  display: flex;
+}
+.governance-seal {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: var(--space-3);
+  border-radius: var(--radius-lg);
+  background: var(--white);
+  border: 1px solid var(--line);
+  color: var(--indigo-900);
+}
+.governance-seal strong {
+  display: block;
+}
+.governance-seal span {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.principle-list {
+  display: grid;
+  gap: var(--space-3);
+}
+.principle {
+  display: grid;
+  grid-template-columns: 44px 1fr;
+  gap: 14px;
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--line);
+}
+.principle span {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: var(--terracotta);
+}
+.principle p {
+  margin-top: 6px;
+}
+
+.impact-header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+
+.impact-grid {
+  display: grid;
+  gap: var(--space-2);
+}
+.impact-grid article {
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--sand);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 140px;
+  justify-content: center;
+}
+.impact-grid strong {
+  font-size: 1.6rem;
+  color: var(--indigo-900);
+}
+.impact-grid span {
+  font-size: 0.86rem;
+  color: var(--muted);
+}
+
+.team-list {
+  display: grid;
+  gap: var(--space-2);
+}
+.team-list article {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--white);
+  border: 1px solid var(--line);
+}
+.team-list article > span {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--terracotta);
+}
+.team-list article strong {
+  display: block;
+  margin-bottom: 2px;
+}
+.team-footnote {
+  margin-top: var(--space-3);
+  font-size: 0.86rem;
+  color: var(--muted);
+}
+
+@media (min-width: 900px) {
+  .governance-grid {
+    grid-template-columns: 320px 1fr;
+    gap: 60px;
+  }
+  .governance-sticky {
+    position: sticky;
+    top: 110px;
+    align-self: start;
+  }
+  .impact-header {
+    flex-direction: row;
+    align-items: flex-end;
+    justify-content: space-between;
+  }
+  .impact-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+  .team-list {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

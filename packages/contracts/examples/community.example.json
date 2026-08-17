@@ -1,0 +1,16 @@
+{
+  "id": "kasena-community",
+  "slug": "kasena",
+  "name": "Kasena community",
+  "summary": "Synthetic fixture. Kasem-speaking community for the Project Kasena pilot.",
+  "region": "Upper East Region",
+  "country": "GH",
+  "languages": [{ "collection": "languages", "id": "kasem" }],
+  "custodians": [{ "collection": "validators", "id": "validator-elder-1" }],
+  "status": "active",
+  "lifecycle": {
+    "createdAt": "2026-08-01T09:00:00Z",
+    "updatedAt": "2026-08-01T09:00:00Z",
+    "version": 1
+  }
+}

@@ -6,7 +6,8 @@
 indigen-world/
 ├── apps/
 │   ├── website/          # Public Indigen World website
-│   ├── tribestudio/      # Creator, contributor, validator and admin web app
+│   ├── tribestudio/      # Creator, contributor and validator web app
+│   ├── admin/            # Internal administration and governance console
 │   └── mobile/           # Flutter app for everyday users
 ├── services/
 │   ├── functions/        # Firebase Functions and trusted backend operations
@@ -14,7 +15,7 @@ indigen-world/
 ├── packages/
 │   ├── contracts/        # Shared schemas and API contracts
 │   ├── design-tokens/    # Platform-neutral design decisions
-│   └── web-ui/           # Stable React components shared by the two web apps
+│   └── web-ui/           # Stable React components shared by the web apps
 ├── firebase/             # Rules, indexes and emulator tests
 ├── assets/               # Brand, icons, patterns and approved shared media
 ├── docs/                 # Architecture, product, governance, data and onboarding

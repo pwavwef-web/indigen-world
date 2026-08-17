@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.indigen-world.org/v0/audit-log.schema.json",
+  "title": "Audit log entry",
+  "description": "An append-only record of a privileged action. Written server-side (Functions or Rules), never mutated, and never authored by clients. Deliberately has no updatable lifecycle.",
+  "type": "object",
+  "properties": {
+    "id": { "$ref": "common.schema.json#/$defs/identifier" },
+    "actor": {
+      "allOf": [{ "$ref": "common.schema.json#/$defs/reference" }],
+      "description": "Who performed the action."
+    },
+    "action": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Dotted action name, e.g. 'content.validate', 'consent.withdraw', 'reward.settle'.",
+      "pattern": "^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)+$"
+    },
+    "target": {
+      "oneOf": [
+        { "$ref": "common.schema.json#/$defs/reference" },
+        { "type": "null" }
+      ],
+      "description": "Record the action affected, when applicable."
+    },
+    "outcome": {
+      "type": "string",
+      "enum": ["success", "denied", "error"]
+    },
+    "source": {
+      "type": "string",
+      "description": "Execution context that produced the entry.",
+      "enum": ["functions", "rules", "admin"]
+    },
+    "before": {
+      "description": "Optional snapshot of relevant fields before the action.",
+      "type": ["object", "null"]
+    },
+    "after": {
+      "description": "Optional snapshot of relevant fields after the action.",
+      "type": ["object", "null"]
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Additional non-sensitive context (request id, reason code, etc.).",
+      "additionalProperties": true
+    },
+    "occurredAt": { "$ref": "common.schema.json#/$defs/isoTimestamp" }
+  },
+  "required": ["id", "actor", "action", "outcome", "source", "occurredAt"],
+  "additionalProperties": false
+}

@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.indigen-world.org/v0/lexical-entry.schema.json",
+  "title": "Lexical entry",
+  "description": "A dictionary entry: a headword with one or more senses and translations. Content record — carries full governance metadata.",
+  "type": "object",
+  "properties": {
+    "id": { "$ref": "common.schema.json#/$defs/identifier" },
+    "headword": { "type": "string", "minLength": 1 },
+    "partOfSpeech": {
+      "type": "string",
+      "enum": [
+        "noun",
+        "verb",
+        "adjective",
+        "adverb",
+        "pronoun",
+        "preposition",
+        "conjunction",
+        "interjection",
+        "numeral",
+        "particle",
+        "phrase",
+        "other"
+      ]
+    },
+    "pronunciation": {
+      "type": "object",
+      "properties": {
+        "ipa": { "type": "string" },
+        "audio": {
+          "oneOf": [
+            { "$ref": "common.schema.json#/$defs/reference" },
+            { "type": "null" }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "senses": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "properties": {
+          "definition": { "type": "string", "minLength": 1 },
+          "register": {
+            "type": "string",
+            "description": "Usage register (e.g. formal, colloquial, archaic)."
+          },
+          "translations": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "languageCode": { "$ref": "common.schema.json#/$defs/languageCode" },
+                "text": { "type": "string", "minLength": 1 }
+              },
+              "required": ["languageCode", "text"],
+              "additionalProperties": false
+            }
+          },
+          "examples": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        },
+        "required": ["definition"],
+        "additionalProperties": false
+      }
+    },
+    "tags": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "governance": { "$ref": "common.schema.json#/$defs/governanceMetadata" },
+    "lifecycle": { "$ref": "common.schema.json#/$defs/recordLifecycle" }
+  },
+  "required": ["id", "headword", "partOfSpeech", "senses", "governance", "lifecycle"],
+  "additionalProperties": false
+}

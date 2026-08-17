@@ -1,0 +1,8 @@
+{
+  "projects": {
+    "default": "project-kassena-7e026",
+    "development": "project-kassena-7e026",
+    "staging": "project-kassena-7e026",
+    "production": "project-kassena-7e026"
+  }
+}

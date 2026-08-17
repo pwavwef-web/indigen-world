@@ -1,0 +1,164 @@
+/**
+ * src/styles/kasena.css
+ *
+ * Styles specific to the Project Kasena page: the flagship two-column
+ * layout, the "what the language module will include" preview panel,
+ * and the three-phase roadmap. Mobile-first throughout.
+ *
+ * This file previously also styled an interactive translation-demo
+ * widget (a language toggle + live word lookup). That's been removed:
+ * the brief's Ecosystem scope note is explicit that the public website
+ * "does not rebuild: dashboards, dictionaries, translators or
+ * validator tools — those belong to their own products." An
+ * interactive dictionary/translator UI is exactly that, even when
+ * clearly labeled as illustrative. See module-preview below for its
+ * static, non-functional replacement.
+ */
+
+.kasena-grid {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.kasena-points {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: var(--space-3) 0;
+}
+.kasena-points span {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  color: rgba(255, 255, 255, 0.86);
+  font-size: 0.94rem;
+}
+.kasena-points svg {
+  color: var(--gold);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+/* ---------- Module preview (static, non-functional) ---------- */
+/* Describes what the Kasem dictionary/translator module will include,
+   without behaving like a working version of that tool. No inputs, no
+   toggles, no live lookups — just a labeled list of planned
+   capabilities, consistent with the rest of the site's "target" /
+   "planned" language. */
+.module-preview {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: var(--radius-lg);
+  padding: var(--space-3);
+}
+.module-preview__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: var(--space-3);
+}
+/* .eyebrow defaults to inline-flex (so an eyebrow can sit flush above
+   a heading with no gap), but here it's followed by a sibling <strong>
+   in the same wrapping div — without forcing it back to block level,
+   the two would render side-by-side on one line instead of stacked. */
+.module-preview__header .eyebrow {
+  display: flex;
+}
+.module-preview__header strong {
+  color: white;
+  font-size: 1.05rem;
+}
+/* StatusBadge's color variants (src/styles/products.css) are tuned for
+   light card backgrounds elsewhere on the site (Ecosystem's product
+   cards) — dark, low-opacity text on a near-transparent tint. Inside
+   this dark, semi-transparent module-preview card, that same styling
+   is nearly unreadable. This overrides the badge to a solid, high-
+   contrast treatment specifically in this dark context, rather than
+   changing StatusBadge globally and risking the opposite problem on
+   its light-background usages. */
+.module-preview__header .status-badge {
+  background: var(--gold);
+  color: var(--indigo-950);
+}
+.module-preview__header .status-badge::before {
+  background: var(--indigo-950);
+}
+
+.module-preview__list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0 0 var(--space-3);
+  padding: 0;
+  list-style: none;
+}
+.module-preview__list li {
+  display: flex;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 0.92rem;
+}
+.module-preview__list svg {
+  color: var(--gold);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.module-preview__note {
+  font-size: 0.76rem;
+  color: rgba(255, 255, 255, 0.5);
+  margin: 0;
+}
+
+.roadmap {
+  display: grid;
+  gap: 20px;
+}
+.roadmap__item {
+  padding: 16px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+.roadmap__item span {
+  display: block;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--gold-soft);
+  margin-bottom: 6px;
+}
+.roadmap__item strong {
+  display: block;
+  font-size: 1.05rem;
+  margin-bottom: 4px;
+}
+.roadmap__line {
+  display: none;
+}
+
+@media (min-width: 900px) {
+  .kasena-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 70px;
+    align-items: start;
+  }
+  .roadmap {
+    grid-template-columns: 1fr auto 1fr auto 1fr;
+    align-items: start;
+    gap: 24px;
+  }
+  .roadmap__item {
+    border-bottom: none;
+    padding: 0;
+  }
+  .roadmap__line {
+    display: block;
+    width: 100%;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.16);
+    margin-top: 12px;
+  }
+}

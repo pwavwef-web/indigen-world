@@ -1,0 +1,12 @@
+{
+  "id": "audit-0001",
+  "actor": { "collection": "validators", "id": "validator-elder-1" },
+  "action": "content.validate",
+  "target": { "collection": "lexicalEntries", "id": "lex-nia-water" },
+  "outcome": "success",
+  "source": "functions",
+  "before": { "validationStatus": "in_review" },
+  "after": { "validationStatus": "validated" },
+  "metadata": { "reviewId": "review-lex-nia-0001", "requestId": "synthetic-req-1" },
+  "occurredAt": "2026-08-03T08:30:00Z"
+}

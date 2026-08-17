@@ -1,30 +1,94 @@
-# Indigen World Website
+# Indigen World public website
 
-**Product lead:** Francis Onai
+The public website is Indigen World's discovery, trust and participation layer. It explains the
+ecosystem, positions Project Kasena as the flagship Kasem-language initiative, labels unfinished
+work honestly, and routes visitors to an appropriate next step. Product tools, validators,
+datasets and backend workflows remain outside this app.
 
-The public website is Indigen World’s outward-facing information, storytelling, impact, partnership, and support platform.
+## Local setup
 
-## Responsibilities
+Use Node.js 22.12 or newer from the repository root:
 
-- Public brand and ecosystem explanation
-- Programmes and language cells, beginning with Project Kasena
-- Communities and cultural stories approved for public release
-- Impact reporting and updates
-- Partner, sponsor, supporter, and contact pathways
-- Cultural-data, consent, and governance statements
-- Public search and discovery where approved
+```bash
+npm install
+copy apps\website\.env.example apps\website\.env.local
+npm run dev --workspace @indigen-world/website
+```
 
-## Out of scope
+The site renders without Firebase configuration. With no reviewed forms endpoint, the forms show
+an honest service-unavailable state instead of pretending a message was delivered.
 
-- Creator and validator operations — use `apps/tribestudio`
-- Everyday learning and saved-content journeys — use `apps/mobile`
-- Trusted reward, moderation, notification, and AI execution — use `services/functions`
-- Provider credentials or direct model calls
+## Checks and production build
 
-## Expected stack
+```bash
+npm run check --workspace @indigen-world/website
+npm run preview --workspace @indigen-world/website
+```
 
-React + TypeScript + Vite, hosted on Firebase Hosting. Final package scripts and environment templates should be added when the app is scaffolded.
+`check` runs TypeScript, the route/privacy invariant test, and the production Vite build. The app
+uses real History API routes and Firebase Hosting's existing catch-all rewrite.
 
-## Project Kasena
+## Environment variables
 
-Project Kasena appears here as Indigen World’s flagship Kasem-language programme, not as a competing umbrella platform. Public Kasem content must be approved and must preserve attribution, dialect, validation, consent, licence, and cultural-permission metadata.
+| Variable | Purpose |
+| --- | --- |
+| `VITE_SITE_URL` | Canonical production origin used for route metadata. |
+| `VITE_PUBLIC_FORMS_ENDPOINT` | Reviewed, rate-limited Firebase HTTPS Function for public forms. |
+| `VITE_ANALYTICS_ENABLED` | Enables privacy-safe analytics only when set to `true` at build time. |
+| `VITE_FIREBASE_*` | Firebase web and measurement configuration used by analytics when enabled. |
+
+Commit variable names only. Keep values in ignored local/CI environment files. The form endpoint
+must validate payloads, enforce rate limits and return a non-2xx response when a submission is not
+accepted. Do not put recipient addresses, Firestore collection names or service credentials in the
+client.
+
+## MVP routes
+
+- `/` — mission, ecosystem, Project Kasena, operating model, audiences, verified status and CTA
+- `/about` — problem, mission, principles and Kasem-first starting point
+- `/ecosystem` — product audiences, owners, status and boundaries
+- `/project-kasena` — Kasem/Kasena distinction, validation model and planned roadmap
+- `/impact-governance` — permissions, cultural-data stewardship and labelled targets
+- `/get-involved` — contributor, validator, school, research, diaspora, sponsor and volunteer routes
+- `/team` — approved names, public roles and workstream ownership only
+- `/contact` — privacy-aware general, publication, correction and takedown route
+- `/privacy` and `/terms` — plain-language implementation summaries pending legal approval
+
+## Updating content
+
+Editable product, status, team, principle and Project Kasena copy lives under `src/content/`.
+Navigation and route metadata live in `src/content/navigation.ts`. Page layouts live under
+`src/pages/`; shared UI is under `src/components/`; form behavior is under `src/features/forms/`.
+The privacy-safe analytics vocabulary is documented in `src/lib/analytics.ts`.
+
+Never publish a partner, funder, school, chief, elder, validator, dataset, cultural record, audio
+sample, biography, portrait or personal contact detail without approval and the required consent,
+licence and cultural permissions.
+
+## Deployment and rollback
+
+The repository `firebase.json` serves `apps/website/dist` and rewrites unknown paths to
+`index.html` so direct route loads work.
+
+```bash
+npm run check --workspace @indigen-world/website
+firebase deploy --only hosting:website
+```
+
+Use the reviewed Firebase project/site mapping supplied by the project manager. To roll back,
+select the preceding release in Firebase Hosting release history and verify the same core routes.
+Do not change Firebase project structure, rules or production targets from this app.
+
+## Approval and asset gaps
+
+Before public launch, the project manager still needs to supply or approve:
+
+- the production Indigen World master logo/favicon and social-preview artwork;
+- public social profile URLs and any editorial photography with permission and attribution;
+- final legal copy and an unsubscribe route;
+- the Firebase forms endpoint and production environment values;
+- a staging review, route screenshots and Lighthouse results.
+
+Until those are approved, the site uses restrained CSS artwork, omits social links and marks legal
+copy as an implementation summary. Update `public/sitemap.xml`, `public/robots.txt` and
+`VITE_SITE_URL` together if a custom production domain replaces the Firebase Hosting domain.

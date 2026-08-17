@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.indigen-world.org/v0/dialect.schema.json",
+  "title": "Dialect",
+  "description": "A regional or community variety of a language. Dialect metadata must be preserved on lexical and sentence records.",
+  "type": "object",
+  "properties": {
+    "id": { "$ref": "common.schema.json#/$defs/identifier" },
+    "language": { "$ref": "common.schema.json#/$defs/reference" },
+    "name": { "type": "string", "minLength": 1 },
+    "code": {
+      "type": "string",
+      "description": "Optional short code for the dialect variety."
+    },
+    "region": { "type": "string" },
+    "description": { "type": "string" },
+    "lifecycle": { "$ref": "common.schema.json#/$defs/recordLifecycle" }
+  },
+  "required": ["id", "language", "name", "lifecycle"],
+  "additionalProperties": false
+}
