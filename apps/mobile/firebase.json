@@ -1,0 +1,48 @@
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "buildConfigurations": {
+          "src\\development": {
+            "projectId": "project-kassena-7e026",
+            "appId": "1:111428711822:android:52fcab9fd01a415729a0df",
+            "fileOutput": "android/app/src/development/google-services.json"
+          },
+          "src\\staging": {
+            "projectId": "project-kassena-7e026",
+            "appId": "1:111428711822:android:0e64c3db3d1ba2c429a0df",
+            "fileOutput": "android/app/src/staging/google-services.json"
+          },
+          "src\\production": {
+            "projectId": "project-kassena-7e026",
+            "appId": "1:111428711822:android:f9f95f9487eb879229a0df",
+            "fileOutput": "android/app/src/production/google-services.json"
+          }
+        }
+      },
+      "dart": {
+        "lib/firebase_options_development.dart": {
+          "projectId": "project-kassena-7e026",
+          "configurations": {
+            "android": "1:111428711822:android:52fcab9fd01a415729a0df",
+            "ios": "1:111428711822:ios:baed27a8d8ceca1029a0df"
+          }
+        },
+        "lib/firebase_options_staging.dart": {
+          "projectId": "project-kassena-7e026",
+          "configurations": {
+            "android": "1:111428711822:android:0e64c3db3d1ba2c429a0df",
+            "ios": "1:111428711822:ios:471b3cb4a84674db29a0df"
+          }
+        },
+        "lib/firebase_options_production.dart": {
+          "projectId": "project-kassena-7e026",
+          "configurations": {
+            "android": "1:111428711822:android:f9f95f9487eb879229a0df",
+            "ios": "1:111428711822:ios:35b5d2a9c8f412a329a0df"
+          }
+        }
+      }
+    }
+  }
+}
