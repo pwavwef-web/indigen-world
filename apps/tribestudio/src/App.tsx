@@ -1,18 +1,34 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { enums } from '@indigen-world/contracts';
+import lexicalEntrySchema from '@indigen-world/contracts/schemas/lexical-entry.schema.json';
+import { canContribute, canValidate, signIn, signOutUser, useAuth, type Role } from './auth';
 import {
-  GoogleAuthProvider,
-  onAuthStateChanged,
-  signInWithPopup,
-  signOut,
-  type User,
-} from 'firebase/auth';
-import { enums, schemas } from '@indigen-world/contracts';
-import { auth } from './firebase';
+  createEntry,
+  decideReview,
+  fetchLanguages,
+  fetchMyEntries,
+  fetchSubmittedQueue,
+  submitDraft,
+  type Decision,
+  type EntryInput,
+  type LanguageOption,
+  type LexicalEntryDoc,
+} from './data';
 
-const provider = new GoogleAuthProvider();
+const PARTS_OF_SPEECH = (lexicalEntrySchema.properties.partOfSpeech.enum as string[]) ?? [];
+const TIERS = enums.culturalPermissionTier;
+const LICENCES = (enums.licence as string[]).filter(
+  (licence) => !['undetermined', 'all_rights_reserved', 'custom'].includes(licence),
+);
 
-// Human-readable labels for the contract's validation lifecycle.
-const statusLabels: Record<string, string> = {
+const TIER_LABELS: Record<string, string> = {
+  public: 'Public',
+  community_only: 'Community only',
+  restricted: 'Restricted',
+  sacred_restricted: 'Sacred / restricted',
+};
+
+const STATUS_LABELS: Record<string, string> = {
   draft: 'Draft',
   submitted: 'Submitted',
   in_review: 'In review',
@@ -22,125 +38,417 @@ const statusLabels: Record<string, string> = {
   retired: 'Retired',
 };
 
-function App() {
-  const [user, setUser] = useState<User | null>(null);
-  const [ready, setReady] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+const emptyForm = (languageId: string): EntryInput => ({
+  headword: '',
+  partOfSpeech: PARTS_OF_SPEECH[0] ?? 'noun',
+  definition: '',
+  englishTranslation: '',
+  example: '',
+  languageId,
+  culturalPermissionTier: 'public',
+  consentGranted: false,
+  licence: 'community_restricted',
+});
 
-  useEffect(() => {
-    return onAuthStateChanged(auth, (next) => {
-      setUser(next);
-      setReady(true);
-    });
+function StatusBadge({ status }: { status: string }) {
+  return <span className={`badge badge--${status}`}>{STATUS_LABELS[status] ?? status}</span>;
+}
+
+function BrandMark() {
+  return (
+    <span className="brand__mark" aria-hidden="true">
+      <svg viewBox="0 0 64 64">
+        <path d="M15 47V23l17-9 17 9v24" />
+        <path d="M24 44V29m8 15V24m8 20V29" />
+        <circle cx="32" cy="14" r="4" />
+      </svg>
+    </span>
+  );
+}
+
+function App() {
+  const { user, role, ready } = useAuth();
+  const [tab, setTab] = useState<'contribute' | 'review'>('contribute');
+  const [toast, setToast] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null);
+
+  const flash = useCallback((kind: 'ok' | 'err', text: string) => {
+    setToast({ kind, text });
+    window.setTimeout(() => setToast(null), 4000);
   }, []);
 
-  const handleSignIn = async () => {
-    setError(null);
-    try {
-      await signInWithPopup(auth, provider);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Sign-in failed.');
-    }
-  };
+  if (!ready) {
+    return <div className="loading">Loading…</div>;
+  }
 
-  const handleSignOut = async () => {
-    setError(null);
-    try {
-      await signOut(auth);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Sign-out failed.');
-    }
-  };
-
-  const entities = Object.entries(schemas);
+  if (!user) {
+    return (
+      <div className="signin">
+        <div className="signin__card">
+          <BrandMark />
+          <h1>TribeStudio</h1>
+          <p>The Indigen World workspace for contributors, content creators and validators.</p>
+          <button type="button" className="button button--primary" onClick={() => void signIn()}>
+            Sign in with Google
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="shell">
       <header className="topbar">
         <div className="brand">
-          <span className="brand__mark" aria-hidden="true">
-            <svg viewBox="0 0 64 64">
-              <path d="M15 47V23l17-9 17 9v24" />
-              <path d="M24 44V29m8 15V24m8 20V29" />
-              <circle cx="32" cy="14" r="4" />
-            </svg>
-          </span>
+          <BrandMark />
           <span className="brand__text">
             <strong>TribeStudio</strong>
             <small>Indigen World workspace</small>
           </span>
         </div>
         <div className="topbar__account">
-          {ready && user ? (
-            <>
-              <span className="account-name">{user.displayName ?? user.email}</span>
-              <button type="button" className="button button--ghost" onClick={handleSignOut}>
-                Sign out
-              </button>
-            </>
-          ) : (
-            <button
-              type="button"
-              className="button button--primary"
-              onClick={handleSignIn}
-              disabled={!ready}
-            >
-              {ready ? 'Sign in with Google' : 'Loading…'}
-            </button>
-          )}
+          <span className="account-name">
+            {user.displayName ?? user.email}
+            {role ? <span className="role-chip">{role}</span> : null}
+          </span>
+          <button type="button" className="button button--ghost" onClick={() => void signOutUser()}>
+            Sign out
+          </button>
         </div>
       </header>
 
+      <nav className="tabs">
+        <button
+          type="button"
+          className={tab === 'contribute' ? 'tab is-active' : 'tab'}
+          onClick={() => setTab('contribute')}
+        >
+          Contribute
+        </button>
+        {canValidate(role) ? (
+          <button
+            type="button"
+            className={tab === 'review' ? 'tab is-active' : 'tab'}
+            onClick={() => setTab('review')}
+          >
+            Review queue
+          </button>
+        ) : null}
+      </nav>
+
       <main id="main-content" className="content">
-        <section className="panel panel--notice">
-          <h1>Operational workspace scaffold</h1>
-          <p>
-            TribeStudio is the internal space for creators, contributors, validators and
-            administrators. This is the initial shell: authentication is wired, but role claims,
-            data access and validator workflows arrive with the Firebase data layer (Phase 2).
-          </p>
-          <p className="notice-line">
-            Firestore is <strong>deny-all by default</strong> until per-collection rules and
-            emulator tests are approved. No production content is loaded here.
-          </p>
-          {error ? <p className="error-line">{error}</p> : null}
-        </section>
+        {tab === 'contribute' && canContribute(role) ? (
+          <ContributeTab role={role} uid={user.uid} flash={flash} />
+        ) : tab === 'contribute' ? (
+          <section className="panel">
+            <h2>Contributor access required</h2>
+            <p className="notice">An administrator must grant your account a contributor role before these controls are available.</p>
+          </section>
+        ) : (
+          <ReviewTab flash={flash} />
+        )}
+      </main>
 
-        <section className="panel">
-          <h2>Validation lifecycle</h2>
-          <p className="panel__hint">
-            The status pipeline every content record moves through, read from the shared contracts.
+      {toast ? <div className={`toast toast--${toast.kind}`}>{toast.text}</div> : null}
+    </div>
+  );
+}
+
+function ContributeTab({
+  role,
+  uid,
+  flash,
+}: {
+  role: Role;
+  uid: string;
+  flash: (kind: 'ok' | 'err', text: string) => void;
+}) {
+  const [languages, setLanguages] = useState<LanguageOption[]>([]);
+  const [form, setForm] = useState<EntryInput>(() => emptyForm('kasem'));
+  const [entries, setEntries] = useState<LexicalEntryDoc[]>([]);
+  const [busy, setBusy] = useState(false);
+
+  const languageOptions = useMemo(
+    () => (languages.length > 0 ? languages : [{ id: 'kasem', name: 'Kasem' }]),
+    [languages],
+  );
+
+  const loadEntries = useCallback(async () => {
+    try {
+      setEntries(await fetchMyEntries(uid));
+    } catch (err) {
+      flash('err', err instanceof Error ? err.message : 'Could not load your submissions.');
+    }
+  }, [uid, flash]);
+
+  useEffect(() => {
+    void fetchLanguages().then((langs) => {
+      setLanguages(langs);
+      if (langs.length > 0) setForm((f) => ({ ...f, languageId: langs[0].id }));
+    });
+    void loadEntries();
+  }, [loadEntries]);
+
+  const update = <K extends keyof EntryInput>(key: K, value: EntryInput[K]) =>
+    setForm((f) => ({ ...f, [key]: value }));
+
+  const valid = form.headword.trim() && form.definition.trim();
+
+  const save = async (status: 'draft' | 'submitted') => {
+    if (!valid) {
+      flash('err', 'A headword and definition are required.');
+      return;
+    }
+    if (status === 'submitted' && !form.consentGranted) {
+      flash('err', 'Please confirm consent before submitting for review.');
+      return;
+    }
+    setBusy(true);
+    try {
+      await createEntry(uid, form, status);
+      flash('ok', status === 'submitted' ? 'Submitted for validation.' : 'Draft saved.');
+      setForm(emptyForm(form.languageId));
+      await loadEntries();
+    } catch (err) {
+      flash('err', err instanceof Error ? err.message : 'Save failed.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const resubmit = async (entry: LexicalEntryDoc) => {
+    if (entry.governance.consentStatus !== 'granted') {
+      const confirmed = window.confirm(
+        'I confirm I have the right to contribute this material and consent to publication review under the selected licence.',
+      );
+      if (!confirmed) return;
+    }
+    try {
+      await submitDraft(entry, uid);
+      flash('ok', 'Draft submitted for validation.');
+      await loadEntries();
+    } catch (err) {
+      flash('err', err instanceof Error ? err.message : 'Submit failed.');
+    }
+  };
+
+  return (
+    <div className="grid">
+      <section className="panel">
+        <h2>Add a Kasem entry</h2>
+        {!canContribute(role) ? (
+          <p className="notice">
+            Your account does not yet have contributor access. An administrator must grant a role
+            before submissions will be accepted.
           </p>
-          <ol className="pipeline">
-            {(enums.validationStatus as string[]).map((status) => (
-              <li key={status} className={`pipeline__step pipeline__step--${status}`}>
-                {statusLabels[status] ?? status}
-              </li>
+        ) : null}
+
+        <div className="field">
+          <label htmlFor="headword">Headword *</label>
+          <input
+            id="headword"
+            value={form.headword}
+            onChange={(e) => update('headword', e.target.value)}
+            placeholder="e.g. nia"
+          />
+        </div>
+
+        <div className="field-row">
+          <div className="field">
+            <label htmlFor="pos">Part of speech</label>
+            <select id="pos" value={form.partOfSpeech} onChange={(e) => update('partOfSpeech', e.target.value)}>
+              {PARTS_OF_SPEECH.map((p) => (
+                <option key={p} value={p}>
+                  {p}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="field">
+            <label htmlFor="lang">Language</label>
+            <select id="lang" value={form.languageId} onChange={(e) => update('languageId', e.target.value)}>
+              {languageOptions.map((l) => (
+                <option key={l.id} value={l.id}>
+                  {l.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="field">
+          <label htmlFor="def">Definition *</label>
+          <textarea
+            id="def"
+            value={form.definition}
+            onChange={(e) => update('definition', e.target.value)}
+            placeholder="Meaning in plain language"
+          />
+        </div>
+
+        <div className="field">
+          <label htmlFor="en">English translation</label>
+          <input id="en" value={form.englishTranslation} onChange={(e) => update('englishTranslation', e.target.value)} placeholder="e.g. water" />
+        </div>
+
+        <div className="field">
+          <label htmlFor="ex">Example sentence</label>
+          <input id="ex" value={form.example} onChange={(e) => update('example', e.target.value)} placeholder="e.g. Nia pe yogo." />
+        </div>
+
+        <div className="field">
+          <label htmlFor="tier">Cultural permission</label>
+          <select id="tier" value={form.culturalPermissionTier} onChange={(e) => update('culturalPermissionTier', e.target.value)}>
+            {TIERS.map((t) => (
+              <option key={t} value={t}>
+                {TIER_LABELS[t] ?? t}
+              </option>
             ))}
-          </ol>
-        </section>
+          </select>
+        </div>
 
-        <section className="panel">
-          <h2>Shared contract entities</h2>
-          <p className="panel__hint">
-            {entities.length} entities from <code>@indigen-world/contracts</code>. TribeStudio,
-            the mobile app and Functions all build against these shapes.
-          </p>
-          <ul className="entity-grid">
-            {entities.map(([key, schema]) => (
-              <li key={key} className="entity-card">
-                <strong>{(schema as { title?: string }).title ?? key}</strong>
-                <p>{(schema as { description?: string }).description ?? ''}</p>
+        <div className="field">
+          <label htmlFor="licence">Publication licence</label>
+          <select id="licence" value={form.licence} onChange={(e) => update('licence', e.target.value)}>
+            {LICENCES.map((licence) => (
+              <option key={licence} value={licence}>{licence.replaceAll('_', ' ')}</option>
+            ))}
+          </select>
+        </div>
+
+        <label className="checkbox">
+          <input
+            type="checkbox"
+            checked={form.consentGranted}
+            onChange={(e) => update('consentGranted', e.target.checked)}
+          />
+          I confirm I have the right to contribute this and consent to its publication review under the selected licence.
+        </label>
+
+        <div className="actions">
+          <button type="button" className="button button--ghost-dark" disabled={busy} onClick={() => void save('draft')}>
+            Save draft
+          </button>
+          <button type="button" className="button button--primary" disabled={busy} onClick={() => void save('submitted')}>
+            Submit for review
+          </button>
+        </div>
+      </section>
+
+      <section className="panel">
+        <h2>My submissions</h2>
+        {entries.length === 0 ? (
+          <p className="notice">No submissions yet.</p>
+        ) : (
+          <ul className="list">
+            {entries.map((e) => (
+              <li key={e.id} className="list__item">
+                <div>
+                  <strong>{e.headword}</strong>
+                  <span className="muted"> · {e.partOfSpeech}</span>
+                  <p className="muted">{e.senses[0]?.definition}</p>
+                </div>
+                <div className="list__side">
+                  <StatusBadge status={e.governance.validationStatus} />
+                  {['draft', 'needs_changes'].includes(e.governance.validationStatus) ? (
+                    <button type="button" className="button button--small" onClick={() => void resubmit(e)}>
+                      Submit
+                    </button>
+                  ) : null}
+                </div>
               </li>
             ))}
           </ul>
-        </section>
-      </main>
-
-      <footer className="footer">
-        <p>© {new Date().getFullYear()} Indigen World · TribeStudio · Internal workspace</p>
-      </footer>
+        )}
+      </section>
     </div>
+  );
+}
+
+function ReviewTab({ flash }: { flash: (kind: 'ok' | 'err', text: string) => void }) {
+  const [queue, setQueue] = useState<LexicalEntryDoc[]>([]);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [notes, setNotes] = useState<Record<string, string>>({});
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      setQueue(await fetchSubmittedQueue());
+    } catch (err) {
+      flash('err', err instanceof Error ? err.message : 'Could not load the queue.');
+    } finally {
+      setLoading(false);
+    }
+  }, [flash]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const decide = async (id: string, decision: Decision) => {
+    setBusyId(id);
+    try {
+      const reason = notes[id]?.trim() ?? '';
+      const res = await decideReview(
+        id,
+        decision,
+        reason,
+        decision === 'needs_changes' ? [reason] : [],
+      );
+      flash('ok', `Recorded: ${res.newStatus}.`);
+      await load();
+    } catch (err) {
+      flash('err', err instanceof Error ? err.message : 'Decision failed.');
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  return (
+    <section className="panel">
+      <h2>Validation queue</h2>
+      <p className="panel__hint">Submitted entries awaiting a validator decision.</p>
+      {loading ? (
+        <p className="notice">Loading…</p>
+      ) : queue.length === 0 ? (
+        <p className="notice">The queue is empty.</p>
+      ) : (
+        <ul className="list">
+          {queue.map((e) => (
+            <li key={e.id} className="list__item">
+              <div>
+                <strong>{e.headword}</strong>
+                <span className="muted"> · {e.partOfSpeech}</span>
+                <p className="muted">{e.senses[0]?.definition}</p>
+                <p className="tiny">
+                  {TIER_LABELS[e.governance.culturalPermissionTier] ?? e.governance.culturalPermissionTier} ·
+                  contributor {e.governance.contributor.id}
+                </p>
+              </div>
+              <div className="list__side list__side--stack">
+                <label htmlFor={`review-${e.id}`} className="tiny">Required review reason</label>
+                <textarea
+                  id={`review-${e.id}`}
+                  value={notes[e.id] ?? ''}
+                  minLength={10}
+                  maxLength={2000}
+                  onChange={(event) => setNotes((current) => ({ ...current, [e.id]: event.target.value }))}
+                />
+                <button type="button" className="button button--small button--approve" disabled={busyId === e.id || (notes[e.id]?.trim().length ?? 0) < 10} onClick={() => void decide(e.id, 'approved')}>
+                  Approve
+                </button>
+                <button type="button" className="button button--small" disabled={busyId === e.id || (notes[e.id]?.trim().length ?? 0) < 10} onClick={() => void decide(e.id, 'needs_changes')}>
+                  Needs changes
+                </button>
+                <button type="button" className="button button--small button--reject" disabled={busyId === e.id || (notes[e.id]?.trim().length ?? 0) < 10} onClick={() => void decide(e.id, 'rejected')}>
+                  Reject
+                </button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }
 

@@ -2,7 +2,7 @@
 
 ## Source-of-truth statement
 
-Indigen World is the umbrella cultural-technology ecosystem. It delivers three user-facing products: the Indigen World public website, TribeStudio for creators and cultural custodians, and the Indigen World mobile app for everyday users. A shared Firebase and AI infrastructure supports the ecosystem. Project Kasena is Indigen World’s flagship Kasem-language programme and the first implementation of its language-preservation model.
+Indigen World is the umbrella cultural-technology ecosystem. It delivers three user-facing products: the Indigen World public website, TribeStudio for creators and cultural custodians, and the Indigen World mobile app for everyday users. An internal Indigen World Admin console supports platform administration and governance and is not offered to the public. A shared Firebase and AI infrastructure supports the ecosystem. Project Kasena is Indigen World’s flagship Kasem-language programme and the first implementation of its language-preservation model.
 
 ## Indigen World Website
 
@@ -20,17 +20,32 @@ Does not own creator production workflows, validator queues, detailed administra
 
 ## TribeStudio
 
-Primary audience: creators, contributors, cultural custodians, validators, campaign managers, researchers with authorised workflows, and administrators.
+Primary audience: creators, contributors, cultural custodians, validators, and campaign participants.
 
 Owns:
 
 - Creator and contributor workspaces
 - Language and cultural-content submission
-- Validation, review, approval, rejection, and escalation
-- Campaigns, bounties, rewards, analytics, and administrative operations
-- Content classification, consent, licensing, and cultural permissions
+- Validation, review, approval, rejection, and escalation of content (the day-to-day validator queues)
+- Campaign and bounty participation and contributor history
+- Content classification, and capture of consent, licensing, and cultural-permission metadata
 
-Does not become the public marketing site or the everyday consumer app.
+Does not own platform administration, role assignment, moderation of reported content, reward settlement, or audit inspection — those belong to the Indigen World Admin console. It is not the public marketing site or the everyday consumer app.
+
+## Indigen World Admin (internal)
+
+Primary audience: platform administrators, operations staff, and authorised governance roles. This is an internal console, not a public product; it is `noindex` and must not be discoverable or offered to end users.
+
+Owns:
+
+- Role and access administration (assigning and auditing role claims)
+- Validation oversight across language cells — queue health, escalations, and quality (not individual content review, which happens in TribeStudio)
+- Moderation of reported content and enforcement of consent and cultural-permission policy
+- Campaign, bounty, and reward-integrity oversight and settlement approval
+- Audit and accountability (inspecting the append-only audit log)
+- Operational reporting and approved, permission-safe exports
+
+Does not replace TribeStudio’s creation and review workflows, and does not perform trusted execution itself — privileged mutations run in `services/functions` with role, validation, and audit enforcement.
 
 ## Indigen World Mobile
 
@@ -43,7 +58,7 @@ Owns:
 - Offline-friendly use
 - Language-cell modules beginning with Kasem
 
-It may offer simplified contribution flows but does not replace TribeStudio’s professional validator and administration tools.
+It may offer simplified contribution flows but does not replace TribeStudio’s professional validator tools or the Indigen World Admin console.
 
 ## Shared Firebase and AI infrastructure
 

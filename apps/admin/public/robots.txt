@@ -1,0 +1,3 @@
+# The Indigen World Admin console is internal and must not be indexed.
+User-agent: *
+Disallow: /

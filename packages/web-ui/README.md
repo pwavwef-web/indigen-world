@@ -1,6 +1,28 @@
 # Shared Web UI
 
-This package is reserved for reusable React components shared by the Indigen World website and TribeStudio.
+Reusable React primitives shared by the Indigen World web apps, built on
+`@indigen-world/design-tokens`.
+
+## Current primitives
+
+`Button` (primary / secondary / ghost), `Badge` (neutral / info / success /
+warning / danger), `Container`, `SectionHeading`. Adopted by the admin console;
+available to the website and TribeStudio.
+
+## Usage
+
+```ts
+import '@indigen-world/design-tokens/tokens.css'; // palette (once, at entry)
+import '@indigen-world/web-ui/styles.css';        // primitive styles (once)
+import { Button, Badge } from '@indigen-world/web-ui';
+```
+
+Build with `npm run build --workspace @indigen-world/web-ui` (emits `dist/` with
+types). The package ships built ESM + `.d.ts`; consumers import from `.`.
+
+---
+
+This package is reserved for reusable React components shared by the Indigen World web apps.
 
 ## Appropriate contents
 

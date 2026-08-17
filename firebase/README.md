@@ -13,7 +13,18 @@ The root `firebase.json` points to these files and to `services/functions`.
 
 ## Current posture
 
-The initial rules deliberately deny all client access until collections, roles, ownership, validation states, and test cases are formally defined. Do not weaken them merely to make a screen appear to work.
+`firestore.rules` defines per-collection access for the first data-layer
+collections — registry entities (communities, languages, dialects, validators),
+content records (lexicalEntries, sentencePairs), contributor profiles, consent
+records, reviews and the audit log — over a default-deny base. Roles are carried
+as the custom auth claim `role` ∈ {contributor, validator, admin}. Privileged
+transitions (validation decisions, role assignment, consent withdrawal, audit)
+are performed server-side in `services/functions`; clients cannot set those
+states. Every collection here is covered by emulator tests (`npm run test:rules`).
+
+Any collection not explicitly matched is still denied by default. Do not weaken
+rules merely to make a screen appear to work, and do not enable a new collection
+without matching allowed/denied tests.
 
 ## Required process for rule changes
 
