@@ -1,0 +1,52 @@
+name: indigen_world_mobile
+description: Offline-first mobile experience for Indigen World and Project Kasena.
+publish_to: none
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.13.0
+
+dependencies:
+  cached_network_image: ^3.4.1
+  cloud_firestore: ^6.8.0
+  cloud_functions: ^6.3.6
+  connectivity_plus: ^7.3.1
+  cupertino_icons: ^1.0.8
+  drift: ^2.34.3
+  drift_flutter: ^0.3.1
+  firebase_analytics: ^12.4.6
+  firebase_app_check: ^0.4.6
+  firebase_auth: ^6.5.7
+  firebase_core: ^4.13.0
+  firebase_crashlytics: ^5.2.7
+  firebase_messaging: ^16.5.0
+  firebase_performance: ^0.11.4+6
+  firebase_remote_config: ^6.5.6
+  firebase_storage: ^13.4.6
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  flutter_riverpod: ^3.4.2
+  flutter_secure_storage: ^10.3.1
+  freezed_annotation: ^3.1.0
+  go_router: '>=16.0.0 <20.0.0'
+  intl: ^0.20.3
+  json_annotation: ^4.12.0
+  shared_preferences: ^2.5.5
+
+dev_dependencies:
+  integration_test:
+    sdk: flutter
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  build_runner: ^2.16.0
+  drift_dev: ^2.34.5
+  # Required for analyzer 13 compatibility with the current Drift generator.
+  freezed: 4.0.0-dev.3
+  json_serializable: ^6.14.1
+
+flutter:
+  generate: true
+  uses-material-design: true
