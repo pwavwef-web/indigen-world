@@ -25,6 +25,7 @@ coverage/
 .pub-cache/
 build/
 android/key.properties
+android/local.properties
 android/app/*.jks
 android/app/*.keystore
 ios/Runner/GoogleService-Info.plist
@@ -43,6 +44,10 @@ ui-debug.log
 # Local tooling
 .vscode/
 .idea/
+.tooling/
+.tmp_docx_render/
+Indigen_World_Mobile_App_Build_Instructions_for_Andy.docx
+apps/mobile/artifacts/
 *.iml
 .DS_Store
 Thumbs.db
