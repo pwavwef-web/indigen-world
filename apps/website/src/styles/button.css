@@ -1,0 +1,83 @@
+/**
+ * src/styles/button.css
+ *
+ * The two button variants (primary/secondary) used by every CTA on
+ * the site, plus the arrow-icon hover motion carried over from the
+ * template. min-height: 44px on every variant keeps touch targets
+ * accessible on mobile regardless of how little text a button has.
+ */
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 13px 22px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 0.92rem;
+  border: 2px solid transparent;
+  cursor: pointer;
+  min-height: 44px;
+  transition: transform var(--motion-duration) var(--motion-ease), background var(--motion-duration)
+    var(--motion-ease), border-color var(--motion-duration) var(--motion-ease);
+}
+.button:hover,
+.button:focus-visible {
+  transform: translateY(-2px);
+}
+.button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+}
+.button svg {
+  transition: transform var(--motion-duration) var(--motion-ease);
+}
+.button:hover svg,
+.button:focus-visible svg {
+  transform: translateX(3px);
+}
+
+.button--primary {
+  background: var(--terracotta);
+  color: white;
+}
+.button--primary:hover,
+.button--primary:focus-visible {
+  background: var(--terracotta-dark);
+}
+
+.button--secondary {
+  background: transparent;
+  border-color: rgba(255, 255, 255, 0.5);
+  color: inherit;
+}
+.button--secondary:hover,
+.button--secondary:focus-visible {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+/* On light backgrounds, .button--secondary's default border/hover
+   (tuned for the dark hero) would be nearly invisible — this variant
+   swaps in indigo instead, used for e.g. "See the full ecosystem" on
+   the white-background Home sections. */
+.section--white .button--secondary,
+.section--cream .button--secondary,
+.section--sand .button--secondary {
+  border-color: var(--indigo-900);
+  color: var(--indigo-900);
+}
+.section--white .button--secondary:hover,
+.section--cream .button--secondary:hover,
+.section--sand .button--secondary:hover {
+  background: var(--indigo-900);
+  color: white;
+}
+
+@media (min-width: 640px) {
+  .button {
+    width: auto;
+  }
+}

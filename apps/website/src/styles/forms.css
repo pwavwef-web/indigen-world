@@ -1,0 +1,107 @@
+/**
+ * src/styles/forms.css
+ *
+ * Styles for FormField and the three forms (Contact, Get Involved,
+ * Waitlist). Inputs are full-width by default with a 44px minimum
+ * touch target, matching the mobile-first accessibility baseline used
+ * throughout the rest of the site.
+ */
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  max-width: 560px;
+}
+
+.field label {
+  display: block;
+  font-weight: 700;
+  font-size: 0.88rem;
+  margin-bottom: 6px;
+  color: var(--indigo-900);
+}
+.field input,
+.field select,
+.field textarea {
+  width: 100%;
+  font-family: var(--font-body);
+  font-size: 1rem;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1.5px solid var(--line);
+  background: var(--white);
+  color: var(--ink);
+  min-height: 44px;
+}
+.field textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+  border-color: var(--indigo-900);
+}
+.field--error input,
+.field--error select,
+.field--error textarea {
+  border-color: var(--terracotta);
+}
+.field__hint {
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin-top: 6px;
+}
+.field__error {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--terracotta-dark);
+  margin-top: 6px;
+}
+
+.form-status {
+  padding: 12px 14px;
+  border-radius: 10px;
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+.form-status--success {
+  background: rgba(31, 91, 58, 0.1);
+  color: var(--green);
+}
+.form-status--error {
+  background: rgba(182, 90, 58, 0.1);
+  color: var(--terracotta-dark);
+}
+.form-status--submitting {
+  background: var(--sand);
+  color: var(--muted);
+}
+
+.form-notice {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.waitlist-form__row {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: stretch;
+}
+.waitlist-form__row .field {
+  flex: 1;
+  min-width: 0;
+}
+
+@media (min-width: 700px) {
+  .waitlist-form__row {
+    flex-direction: row;
+    align-items: flex-end;
+  }
+  .waitlist-form__row .button {
+    width: auto;
+  }
+}

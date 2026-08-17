@@ -1,0 +1,274 @@
+/**
+ * src/styles/sections.css
+ *
+ * Generic section-level building blocks used across every page:
+ * eyebrow labels, SectionHeading, the `.section`/`.section--*`
+ * background variants, page-hero banners, and the belief-strip. All
+ * mobile-first — padding and heading sizes start small and grow at
+ * the min-width queries near the bottom of the file.
+ */
+
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--terracotta);
+  margin-bottom: 10px;
+}
+
+.section-heading {
+  max-width: 640px;
+  margin-bottom: var(--space-4);
+}
+.section-heading__body {
+  margin-top: 10px;
+  font-size: 1rem;
+}
+.section-heading--light .eyebrow {
+  color: var(--gold-soft);
+}
+.section-heading--light h1,
+.section-heading--light h2 {
+  color: white;
+}
+.section-heading--light .section-heading__body {
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.section {
+  padding: var(--space-5) 0;
+}
+.section--white {
+  background: var(--white);
+}
+.section--cream {
+  background: var(--cream);
+}
+.section--sand {
+  background: var(--sand);
+}
+.section--indigo {
+  background: linear-gradient(160deg, var(--indigo-950), var(--indigo-900));
+  color: white;
+}
+.section--indigo p {
+  color: rgba(255, 255, 255, 0.78);
+}
+.section--indigo h2,
+.section--indigo h3,
+.section--indigo strong {
+  color: white;
+}
+
+.page-hero {
+  padding: 128px 0 var(--space-4);
+  background: linear-gradient(150deg, var(--indigo-950), var(--indigo-900));
+  color: white;
+}
+.page-hero--indigo {
+  background: linear-gradient(150deg, var(--indigo-950), var(--indigo-900));
+}
+.page-hero--sand {
+  background: linear-gradient(150deg, var(--indigo-900), var(--indigo-700));
+}
+
+.section-cta {
+  margin-top: var(--space-4);
+}
+
+.belief-strip {
+  background: var(--indigo-950);
+  color: white;
+  padding: var(--space-3) 0;
+}
+.belief-strip__inner {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  text-align: left;
+}
+.belief-strip__inner p {
+  color: rgba(255, 255, 255, 0.88);
+  font-weight: 600;
+  margin: 0;
+}
+.belief-strip__inner span {
+  display: none;
+}
+
+.split-intro {
+  display: grid;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+.split-intro__copy p {
+  margin-bottom: var(--space-2);
+}
+
+.kicker-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.kicker-list li {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--line);
+}
+.kicker-list li:last-child {
+  border-bottom: none;
+}
+.kicker-list strong {
+  color: var(--indigo-900);
+}
+
+.legal-copy {
+  max-width: 68ch;
+}
+.legal-disclaimer {
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin-top: var(--space-4);
+  font-style: italic;
+}
+
+.not-found {
+  padding: 160px 0 var(--space-6);
+}
+.not-found__body {
+  max-width: 52ch;
+  margin: 0 auto var(--space-3);
+}
+
+.target-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--terracotta-dark);
+  margin-bottom: var(--space-3);
+}
+
+.process-list,
+.audience-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.process-list {
+  display: grid;
+  border-top: 1px solid var(--line);
+}
+.process-list li {
+  display: grid;
+  grid-template-columns: 42px 1fr;
+  gap: var(--space-2);
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--line);
+}
+.process-list li > span {
+  color: var(--terracotta);
+  font-weight: 800;
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+}
+.process-list strong {
+  color: var(--indigo-900);
+  font-size: 1.05rem;
+}
+.process-list p {
+  margin: 4px 0 0;
+}
+
+.audience-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.audience-list li {
+  min-height: 72px;
+  display: flex;
+  align-items: center;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  color: var(--indigo-900);
+  background: rgba(255, 255, 255, 0.52);
+  font-weight: 700;
+}
+
+.route-loading {
+  min-height: 70vh;
+  display: grid;
+  place-items: center;
+  padding: 120px 24px;
+  color: var(--muted);
+}
+
+#main-content:focus {
+  outline: none;
+}
+
+@media (min-width: 640px) {
+  .belief-strip__inner {
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    text-align: center;
+  }
+  .belief-strip__inner span {
+    display: inline;
+    color: var(--gold-soft);
+  }
+}
+
+@media (min-width: 720px) {
+  .split-intro {
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-4);
+    align-items: start;
+  }
+  .kicker-list li {
+    flex-direction: row;
+    gap: var(--space-3);
+  }
+  .kicker-list strong {
+    min-width: 210px;
+    flex-shrink: 0;
+  }
+  .process-list {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    border-bottom: 1px solid var(--line);
+  }
+  .process-list li {
+    grid-template-columns: 1fr;
+    align-content: start;
+    padding: var(--space-3);
+    border-bottom: 0;
+    border-right: 1px solid var(--line);
+  }
+  .process-list li:last-child {
+    border-right: 0;
+  }
+  .audience-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 900px) {
+  .page-hero {
+    padding: 156px 0 var(--space-5);
+  }
+  .section {
+    padding: var(--space-6) 0;
+  }
+}

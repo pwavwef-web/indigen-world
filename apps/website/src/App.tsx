@@ -1,24 +1,42 @@
-import { Route, Routes } from 'react-router-dom';
-import Layout from './Layout';
-import Home from './pages/Home';
-import Impact from './pages/Impact';
-import Partners from './pages/Partners';
-import ProjectKasena from './pages/ProjectKasena';
-import Stories from './pages/Stories';
+/**
+ * src/App.tsx
+ *
+ * Root component: the fixed page shell (header, footer) plus whichever
+ * page matches the current route. This replaces the uploaded
+ * template's App.tsx, which was the entire site (nav, hero, every
+ * section, footer) in one 818-line component — everything below is
+ * now composed from src/components and src/pages instead.
+ */
+import { Suspense, useEffect, useRef } from "react";
+import { useRoute, scrollToTop } from "./app/router";
+import { Header } from "./components/Header";
+import { Footer } from "./components/Footer";
+import { PAGE_COMPONENTS, NotFoundPage } from "./pages";
 
-function App() {
+export function App() {
+  const { path } = useRoute();
+  const hasMounted = useRef(false);
+
+  useEffect(() => {
+    scrollToTop();
+    if (hasMounted.current) {
+      window.requestAnimationFrame(() => document.getElementById("main-content")?.focus());
+    } else {
+      hasMounted.current = true;
+    }
+  }, [path]);
+
+  const PageComponent = PAGE_COMPONENTS[path] ?? NotFoundPage;
+
   return (
-    <Routes>
-      <Route element={<Layout />}>
-        <Route index element={<Home />} />
-        <Route path="project-kasena" element={<ProjectKasena />} />
-        <Route path="stories" element={<Stories />} />
-        <Route path="impact" element={<Impact />} />
-        <Route path="partners" element={<Partners />} />
-        <Route path="*" element={<Home />} />
-      </Route>
-    </Routes>
+    <div className="site-shell">
+      <Header />
+      <main id="main-content" tabIndex={-1}>
+        <Suspense fallback={<div className="route-loading" role="status">Loading page…</div>}>
+          <PageComponent />
+        </Suspense>
+      </main>
+      <Footer />
+    </div>
   );
 }
-
-export default App;

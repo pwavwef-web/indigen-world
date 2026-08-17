@@ -1,0 +1,269 @@
+/**
+ * src/styles/hero.css
+ *
+ * The homepage hero and its decorative visual. Mobile-first: the hero
+ * visual's "floating cards" render as a simple stacked list on small
+ * screens (no absolute positioning to fight with), and only become
+ * the overlapping/orbiting desktop arrangement once there's enough
+ * width for them not to collide — a deliberate simplification versus
+ * the template, which hand-tuned absolute pixel offsets for the
+ * floating cards at every one of its three breakpoints. That's fragile
+ * to maintain; a mobile-first stacked default with one desktop
+ * treatment is more robust and just as visually rich.
+ */
+
+.hero {
+  position: relative;
+  padding: 132px 0 64px;
+  background: radial-gradient(circle at 78% 20%, rgba(182, 90, 58, 0.24), transparent 32%),
+    radial-gradient(circle at 12% 95%, rgba(214, 165, 43, 0.14), transparent 34%),
+    linear-gradient(150deg, var(--indigo-950), var(--indigo-900) 60%, var(--indigo-800));
+  color: white;
+  overflow: hidden;
+}
+
+.hero__pattern {
+  position: absolute;
+  inset: 0;
+  opacity: 0.1;
+  background-image: linear-gradient(
+      30deg,
+      transparent 46%,
+      rgba(255, 255, 255, 0.2) 47%,
+      rgba(255, 255, 255, 0.2) 53%,
+      transparent 54%
+    ),
+    linear-gradient(150deg, transparent 46%, rgba(255, 255, 255, 0.2) 47%, rgba(255, 255, 255, 0.2) 53%, transparent 54%);
+  background-size: 38px 64px;
+  pointer-events: none;
+}
+
+.hero__grid {
+  position: relative;
+  display: grid;
+  gap: var(--space-5);
+}
+
+.hero__content {
+  max-width: 620px;
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px 7px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.85);
+  margin-bottom: var(--space-3);
+}
+.status-pill__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--gold);
+}
+
+.hero__kicker {
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: var(--gold-soft);
+  margin-bottom: 10px;
+}
+
+.hero h1 {
+  color: white;
+  margin-bottom: var(--space-3);
+}
+.hero h1 span {
+  color: var(--gold-soft);
+}
+
+.hero__lead {
+  font-size: 1.02rem;
+  color: rgba(255, 255, 255, 0.82);
+  max-width: 52ch;
+  margin-bottom: var(--space-3);
+}
+
+.hero__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: var(--space-3);
+}
+
+.hero__trust-row {
+  display: grid;
+  gap: 10px;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.75);
+}
+.hero__trust-row span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Hero visual: mobile-first stacked card list. */
+.hero-visual {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.hero-orbit {
+  display: none;
+}
+.hero-visual__core {
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.05);
+  padding: var(--space-4);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.hero-visual__core p {
+  color: white;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  font-size: 0.85rem;
+  margin: 0;
+}
+.hero-visual__core span {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.78rem;
+}
+
+.floating-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+.floating-card__icon {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--gold-soft);
+  flex-shrink: 0;
+}
+.floating-card small {
+  display: block;
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 0.72rem;
+}
+.floating-card strong {
+  color: white;
+  font-size: 0.92rem;
+}
+
+.language-chip {
+  display: none;
+}
+
+@media (min-width: 900px) {
+  .hero {
+    padding: 168px 0 96px;
+    min-height: 720px;
+  }
+  .hero__grid {
+    grid-template-columns: minmax(0, 1.04fr) minmax(380px, 0.96fr);
+    align-items: center;
+    gap: 64px;
+  }
+  .hero__actions {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+  .hero__trust-row {
+    grid-auto-flow: column;
+    grid-auto-columns: max-content;
+    gap: 20px;
+  }
+
+  /* Once there's room, switch the hero visual from a stacked list to
+     the layered/orbiting arrangement, and turn the orbit rings on. */
+  .hero-visual {
+    position: relative;
+    min-height: 460px;
+    display: block;
+  }
+  .hero-orbit {
+    display: block;
+    position: absolute;
+    border-radius: 50%;
+    border: 1px dashed rgba(255, 255, 255, 0.14);
+    inset: 0;
+  }
+  .hero-orbit--one {
+    inset: 40px;
+  }
+  .hero-orbit--two {
+    inset: -20px;
+    border-color: rgba(214, 165, 43, 0.16);
+  }
+  .hero-visual__core {
+    position: absolute;
+    inset: 0;
+    margin: auto;
+    width: 240px;
+    height: 240px;
+    justify-content: center;
+    border-radius: 50%;
+  }
+  .floating-card {
+    position: absolute;
+    width: 210px;
+    box-shadow: var(--shadow);
+  }
+  .floating-card--language {
+    top: 8%;
+    left: -10px;
+  }
+  .floating-card--creator {
+    bottom: 14%;
+    right: -20px;
+  }
+  .floating-card--community {
+    bottom: -4%;
+    left: 6%;
+  }
+  .language-chip {
+    display: inline-flex;
+    position: absolute;
+    padding: 6px 14px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    font-size: 0.78rem;
+    color: white;
+  }
+  .language-chip--one {
+    top: 2%;
+    right: 18%;
+  }
+  .language-chip--two {
+    top: 44%;
+    right: -6%;
+  }
+  .language-chip--three {
+    bottom: 2%;
+    left: 30%;
+  }
+}
