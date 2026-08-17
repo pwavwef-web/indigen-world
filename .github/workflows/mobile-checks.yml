@@ -1,0 +1,166 @@
+name: Mobile checks
+
+on:
+  pull_request:
+    paths:
+      - "apps/mobile/**"
+      - ".github/workflows/mobile-checks.yml"
+      - ".gitleaks.toml"
+  push:
+    branches:
+      - main
+    paths:
+      - "apps/mobile/**"
+      - ".github/workflows/mobile-checks.yml"
+
+permissions:
+  contents: read
+
+env:
+  FLUTTER_VERSION: 3.47.0
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/mobile
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Resolve dependencies
+        run: flutter pub get
+
+      - name: Verify formatting
+        run: dart format --output=none --set-exit-if-changed .
+
+      - name: Regenerate source
+        run: |
+          flutter gen-l10n
+          dart run build_runner build
+
+      - name: Verify generated code is committed
+        working-directory: .
+        run: git diff --exit-code -- apps/mobile
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Test with coverage
+        run: flutter test --coverage
+
+      - name: Enforce 50 percent line coverage
+        shell: bash
+        run: |
+          lines_found=$(awk -F: '/^LF:/{total += $2} END{print total + 0}' coverage/lcov.info)
+          lines_hit=$(awk -F: '/^LH:/{total += $2} END{print total + 0}' coverage/lcov.info)
+          awk -v hit="$lines_hit" -v found="$lines_found" 'BEGIN { coverage = found ? (100 * hit / found) : 0; printf "Line coverage: %.2f%%\n", coverage; exit coverage < 50 }'
+
+      - name: Upload coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: mobile-coverage
+          path: apps/mobile/coverage/lcov.info
+
+  emulator-integration:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/mobile
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Install Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Prepare integration dependencies
+        run: |
+          flutter pub get
+          flutter gen-l10n
+          dart run build_runner build
+          npm install --global firebase-tools@15.27.0
+
+      - name: Run against Firebase emulators
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          profile: pixel_6
+          working-directory: .
+          script: firebase emulators:exec --config firebase.json --project project-kassena-7e026 --only auth,firestore,storage "cd apps/mobile && flutter test integration_test/firebase_emulator_test.dart -d emulator-5554 --flavor development --dart-define=APP_ENV=development"
+
+  android-release:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/mobile
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Install Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Build production Android App Bundle
+        run: |
+          flutter pub get
+          flutter gen-l10n
+          dart run build_runner build
+          flutter build appbundle --release --flavor production --dart-define=APP_ENV=production
+
+  ios-release:
+    runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: apps/mobile
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Build unsigned production iOS app
+        run: |
+          flutter pub get
+          flutter gen-l10n
+          dart run build_runner build
+          flutter build ios --release --no-codesign --flavor production --dart-define=APP_ENV=production

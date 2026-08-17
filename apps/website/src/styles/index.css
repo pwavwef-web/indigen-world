@@ -1,0 +1,28 @@
+/**
+ * src/styles/index.css
+ *
+ * Single entry point, imported once from src/main.tsx. Order matters:
+ * tokens first (custom properties everything else depends on), base
+ * element styles next, then structural/header/hero, then each page
+ * area's specific styles, then shared leaf components (buttons, forms)
+ * last so their rules can rely on everything above.
+ *
+ * The uploaded template kept everything in one 1,900-line styles.css.
+ * Splitting it by concern here makes it possible to find "the hero
+ * styles" or "the form styles" without scrolling through the whole
+ * file — the trade-off (more files) is worth it once a stylesheet
+ * passes a few hundred lines.
+ */
+@import "./tokens.css";
+@import "./base.css";
+@import "./header.css";
+@import "./hero.css";
+@import "./sections.css";
+@import "./vision.css";
+@import "./products.css";
+@import "./kasena.css";
+@import "./governance.css";
+@import "./contact.css";
+@import "./button.css";
+@import "./forms.css";
+@import "./footer.css";

@@ -1,0 +1,3 @@
+#include "Generated.xcconfig"
+APP_BUNDLE_ID = world.indigen.mobile.dev
+APP_DISPLAY_NAME = Indigen World DEV

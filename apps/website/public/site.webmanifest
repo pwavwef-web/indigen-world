@@ -4,8 +4,8 @@
   "description": "A community-governed cultural technology ecosystem.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#f6f0e5",
-  "theme_color": "#101c36",
+  "background_color": "#faf6ed",
+  "theme_color": "#1e365d",
   "icons": [
     {
       "src": "/favicon.svg",

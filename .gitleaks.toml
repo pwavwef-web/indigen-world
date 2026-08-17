@@ -1,0 +1,9 @@
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Public Firebase client configuration"
+paths = [
+  '''apps/mobile/lib/firebase_options_(development|staging|production)\.dart''',
+  '''apps/(website|tribestudio)/src/firebase\.ts'''
+]

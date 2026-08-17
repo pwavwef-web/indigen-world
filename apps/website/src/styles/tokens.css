@@ -1,0 +1,71 @@
+/**
+ * src/styles/tokens.css
+ *
+ * Design tokens as CSS custom properties. This is the single biggest
+ * visual correction from the uploaded template: the template's palette
+ * (--indigo-900: #101c36, --terracotta: #c96e4b, --gold: #f0ba3c,
+ * --green: #39735b, --cream: #f6f0e5) and its Inter font-family didn't
+ * match the brief's exact spec. Every value below is now the literal
+ * hex/typeface the brief lists, and every other stylesheet reads from
+ * these variables rather than hardcoding color — so the correction
+ * only had to happen in one place.
+ */
+:root {
+  color-scheme: light;
+
+  /* Brief-specified palette */
+  --indigo-950: #142543; /* deepest tint, used for footer/backgrounds */
+  --indigo-900: #1e365d; /* Deep Indigo — the brief's primary brand color */
+  --indigo-800: #24406e;
+  --indigo-700: #2c4b80;
+  --terracotta: #b65a3a; /* brief-specified Terracotta */
+  --terracotta-dark: #9a492e;
+  --gold: #d6a52b; /* brief-specified Kente Gold */
+  --gold-soft: #f0d99c;
+  --green: #1f5b3a; /* brief-specified Savannah Green */
+  --cream: #faf6ed; /* brief-specified Plaster Cream */
+  --sand: #f1eada;
+  --white: #fffdfa;
+  --ink: #1b1b18;
+  --muted: #66604f;
+  --line: rgba(30, 54, 93, 0.14);
+  --shadow: 0 28px 80px rgba(20, 37, 67, 0.14);
+
+  /* Mobile-first container: percentage-based margin by default, capped
+     at a max width once the viewport is wide enough for it to matter. */
+  --container: min(1180px, calc(100% - 32px));
+
+  /* Brief-specified typeface: Noto Sans (the template used Inter). */
+  --font-body: "Noto Sans Variable", "Noto Sans", ui-sans-serif, system-ui, -apple-system,
+    BlinkMacSystemFont, "Segoe UI", sans-serif;
+
+  --space-1: 0.5rem;
+  --space-2: 1rem;
+  --space-3: 1.5rem;
+  --space-4: 2.25rem;
+  --space-5: 3.5rem;
+  --space-6: 5rem;
+
+  --radius-sm: 8px;
+  --radius-md: 16px;
+  --radius-lg: 26px;
+  --motion-duration: 220ms;
+  --motion-ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+@media (min-width: 660px) {
+  :root {
+    --container: min(1180px, calc(100% - 40px));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

@@ -1,0 +1,92 @@
+/**
+ * src/styles/vision.css
+ *
+ * The three "vision cards" on the About page (risk / opportunity /
+ * standard). Mobile-first: single column by default, becoming a
+ * three-column grid with the middle "image" card spanning two columns
+ * once there's room, matching the template's desktop layout.
+ */
+
+.vision-grid {
+  display: grid;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+
+.vision-card {
+  position: relative;
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  min-height: 260px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  overflow: hidden;
+}
+.vision-card__number {
+  font-size: 2.4rem;
+  font-weight: 800;
+  opacity: 0.35;
+  margin-bottom: auto;
+}
+.vision-card--dark {
+  background: linear-gradient(160deg, var(--indigo-950), var(--indigo-800));
+  color: white;
+}
+.vision-card--dark p,
+.vision-card--dark h3 {
+  color: white;
+}
+.vision-card--dark .eyebrow {
+  color: var(--gold-soft);
+}
+.vision-card--light {
+  background: var(--sand);
+  border: 1px solid var(--line);
+}
+.vision-card--image {
+  min-height: 300px;
+  background: linear-gradient(160deg, var(--terracotta-dark), var(--terracotta));
+  color: white;
+}
+.vision-card--image .eyebrow {
+  color: var(--gold-soft);
+}
+.vision-card--image h3,
+.vision-card--image p {
+  color: white;
+}
+.woven-pattern {
+  position: absolute;
+  inset: 0;
+  opacity: 0.14;
+  background-image: repeating-linear-gradient(
+      45deg,
+      rgba(255, 255, 255, 0.5) 0 2px,
+      transparent 2px 14px
+    ),
+    repeating-linear-gradient(-45deg, rgba(255, 255, 255, 0.5) 0 2px, transparent 2px 14px);
+}
+.vision-card__overlay {
+  position: relative;
+}
+
+@media (min-width: 720px) {
+  .vision-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .vision-card--image {
+    grid-column: span 2;
+    order: -1;
+  }
+}
+
+@media (min-width: 1024px) {
+  .vision-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .vision-card--image {
+    grid-column: span 1;
+    order: 0;
+  }
+}

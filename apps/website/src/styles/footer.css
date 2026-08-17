@@ -1,0 +1,80 @@
+/**
+ * src/styles/footer.css
+ *
+ * Site footer. Mobile-first: two link columns stack by default,
+ * becoming a four-column row (brand + 3 link groups) at the min-width
+ * query.
+ */
+
+.site-footer {
+  background: var(--indigo-950);
+  color: rgba(255, 255, 255, 0.75);
+  padding: var(--space-5) 0 var(--space-3);
+}
+
+.site-footer__top {
+  display: grid;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.footer-brand .brand__text strong {
+  color: white;
+}
+.footer-brand p {
+  margin-top: 10px;
+  max-width: 40ch;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.9rem;
+}
+
+.footer-links {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+}
+.footer-links > div {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.footer-links strong {
+  color: white;
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.footer-links a,
+.footer-links span {
+  font-size: 0.88rem;
+  color: rgba(255, 255, 255, 0.65);
+}
+.footer-links a:hover {
+  color: var(--gold-soft);
+}
+
+.site-footer__bottom {
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding-top: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.8rem;
+}
+
+@media (min-width: 640px) {
+  .footer-links {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (min-width: 900px) {
+  .site-footer__top {
+    grid-template-columns: 1.4fr 2fr;
+    gap: 60px;
+  }
+  .site-footer__bottom {
+    flex-direction: row;
+    justify-content: space-between;
+  }
+}
