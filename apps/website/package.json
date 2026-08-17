@@ -13,8 +13,10 @@
     "typecheck": "tsc -b --pretty false"
   },
   "dependencies": {
+    "firebase": "^11.3.0",
     "react": "^19.2.8",
-    "react-dom": "^19.2.8"
+    "react-dom": "^19.2.8",
+    "react-router-dom": "^7.18.2"
   },
   "devDependencies": {
     "@types/react": "^19.2.17",

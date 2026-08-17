@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.indigen-world.org/v0/review.schema.json",
+  "title": "Review",
+  "description": "A validation decision by a validator against a content record, recording the status transition. Every privileged transition must also emit an audit-log entry.",
+  "type": "object",
+  "properties": {
+    "id": { "$ref": "common.schema.json#/$defs/identifier" },
+    "target": {
+      "allOf": [{ "$ref": "common.schema.json#/$defs/reference" }],
+      "description": "Content record under review (lexical entry, sentence pair, media, etc.)."
+    },
+    "validator": { "$ref": "common.schema.json#/$defs/reference" },
+    "decision": {
+      "type": "string",
+      "enum": ["approved", "rejected", "needs_changes", "escalated"]
+    },
+    "previousStatus": { "$ref": "common.schema.json#/$defs/validationStatus" },
+    "newStatus": { "$ref": "common.schema.json#/$defs/validationStatus" },
+    "notes": { "type": "string" },
+    "changesRequested": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "decidedAt": { "$ref": "common.schema.json#/$defs/isoTimestamp" },
+    "lifecycle": { "$ref": "common.schema.json#/$defs/recordLifecycle" }
+  },
+  "required": [
+    "id",
+    "target",
+    "validator",
+    "decision",
+    "previousStatus",
+    "newStatus",
+    "decidedAt",
+    "lifecycle"
+  ],
+  "additionalProperties": false
+}

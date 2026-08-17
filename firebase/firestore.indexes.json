@@ -1,4 +1,63 @@
 {
-  "indexes": [],
+  "indexes": [
+    {
+      "collectionGroup": "lexicalEntries",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "governance.validationStatus", "order": "ASCENDING" },
+        { "fieldPath": "lifecycle.createdAt", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "lexicalEntries",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "governance.language.id", "order": "ASCENDING" },
+        { "fieldPath": "governance.validationStatus", "order": "ASCENDING" },
+        { "fieldPath": "headword", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "sentencePairs",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "governance.validationStatus", "order": "ASCENDING" },
+        { "fieldPath": "lifecycle.createdAt", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "sentencePairs",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "governance.language.id", "order": "ASCENDING" },
+        { "fieldPath": "governance.validationStatus", "order": "ASCENDING" },
+        { "fieldPath": "lifecycle.updatedAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "reviews",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "target.id", "order": "ASCENDING" },
+        { "fieldPath": "decidedAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "auditLogs",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "target.id", "order": "ASCENDING" },
+        { "fieldPath": "occurredAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "auditLogs",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "actor.id", "order": "ASCENDING" },
+        { "fieldPath": "occurredAt", "order": "DESCENDING" }
+      ]
+    }
+  ],
   "fieldOverrides": []
 }

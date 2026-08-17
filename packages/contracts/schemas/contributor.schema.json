@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.indigen-world.org/v0/contributor.schema.json",
+  "title": "Contributor",
+  "description": "A person who contributes to or learns within the ecosystem. Personal data beyond a display name is server-only and must not be stored in synthetic fixtures.",
+  "type": "object",
+  "properties": {
+    "id": { "$ref": "common.schema.json#/$defs/identifier" },
+    "authUid": {
+      "type": "string",
+      "description": "Firebase Authentication uid. Identity linkage only — never a place for secrets."
+    },
+    "displayName": { "type": "string", "minLength": 1 },
+    "roles": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "enum": ["learner", "contributor", "creator"]
+      },
+      "uniqueItems": true
+    },
+    "community": {
+      "oneOf": [
+        { "$ref": "common.schema.json#/$defs/reference" },
+        { "type": "null" }
+      ]
+    },
+    "languages": {
+      "type": "array",
+      "items": { "$ref": "common.schema.json#/$defs/reference" }
+    },
+    "status": {
+      "type": "string",
+      "enum": ["pending", "active", "suspended"]
+    },
+    "points": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Contribution points. Authoritative balance is settled server-side, not by clients."
+    },
+    "joinedAt": { "$ref": "common.schema.json#/$defs/isoTimestamp" },
+    "lifecycle": { "$ref": "common.schema.json#/$defs/recordLifecycle" }
+  },
+  "required": ["id", "authUid", "displayName", "roles", "status", "lifecycle"],
+  "additionalProperties": false
+}

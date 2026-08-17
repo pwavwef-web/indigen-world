@@ -1,0 +1,33 @@
+{
+  "id": "lex-nia-water",
+  "headword": "nia",
+  "partOfSpeech": "noun",
+  "pronunciation": { "ipa": "ni.a", "audio": null },
+  "senses": [
+    {
+      "definition": "water",
+      "register": "everyday",
+      "translations": [{ "languageCode": "en", "text": "water" }],
+      "examples": ["Nia pe yogo."]
+    }
+  ],
+  "tags": ["nature", "basic-vocabulary"],
+  "governance": {
+    "source": "Contributor submission (synthetic)",
+    "contributor": { "collection": "contributors", "id": "contributor-ama" },
+    "language": { "collection": "languages", "id": "kasem" },
+    "dialect": { "collection": "dialects", "id": "kasem-nankana" },
+    "validationStatus": "validated",
+    "validator": { "collection": "validators", "id": "validator-elder-1" },
+    "consentStatus": "granted",
+    "consent": { "collection": "consentRecords", "id": "consent-ama-2026" },
+    "licence": "community_restricted",
+    "culturalPermissionTier": "public"
+  },
+  "lifecycle": {
+    "createdAt": "2026-08-02T11:00:00Z",
+    "updatedAt": "2026-08-03T08:30:00Z",
+    "version": 2,
+    "auditRefs": [{ "collection": "auditLogs", "id": "audit-0001" }]
+  }
+}

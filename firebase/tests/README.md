@@ -1,8 +1,24 @@
 # Firebase Rules Tests
 
-Add emulator-based tests here before enabling client access to any Firestore collection or Storage path.
+Emulator-based tests for `firebase/firestore.rules`, using
+`@firebase/rules-unit-testing` and Node's built-in test runner.
 
-Minimum coverage should include:
+## Running
+
+```bash
+npm run test:rules      # from the repo root
+```
+
+This wraps the tests in `firebase emulators:exec --only firestore`, so the
+Firestore emulator (Java required) is started, the suite runs, and the emulator
+is torn down. Current coverage lives in `firestore.rules.test.mjs`
+(12 allowed/denied cases across content, registry, profile, review and audit
+collections).
+
+Add emulator-based tests here before enabling client access to any Firestore
+collection or Storage path.
+
+Coverage should include:
 
 - Anonymous public reads where explicitly permitted
 - Authenticated ownership checks

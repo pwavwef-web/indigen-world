@@ -1,0 +1,16 @@
+{
+  "id": "review-lex-nia-0001",
+  "target": { "collection": "lexicalEntries", "id": "lex-nia-water" },
+  "validator": { "collection": "validators", "id": "validator-elder-1" },
+  "decision": "approved",
+  "previousStatus": "in_review",
+  "newStatus": "validated",
+  "notes": "Headword and translation confirmed against everyday usage.",
+  "changesRequested": [],
+  "decidedAt": "2026-08-03T08:30:00Z",
+  "lifecycle": {
+    "createdAt": "2026-08-03T08:30:00Z",
+    "updatedAt": "2026-08-03T08:30:00Z",
+    "version": 1
+  }
+}

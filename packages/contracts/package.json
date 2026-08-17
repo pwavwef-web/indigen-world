@@ -1,0 +1,35 @@
+{
+  "name": "@indigen-world/contracts",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Canonical JSON Schemas and shared contracts for the Indigen World ecosystem.",
+  "type": "module",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "main": "./index.mjs",
+  "types": "./index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./index.mjs"
+    },
+    "./schemas/*.json": "./schemas/*.json",
+    "./examples/*.json": "./examples/*.json",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "index.mjs",
+    "index.d.ts",
+    "schemas",
+    "examples"
+  ],
+  "scripts": {
+    "test": "node scripts/validate.mjs",
+    "validate": "node scripts/validate.mjs"
+  },
+  "devDependencies": {
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1"
+  }
+}

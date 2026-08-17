@@ -1,0 +1,166 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.indigen-world.org/v0/common.schema.json",
+  "title": "Indigen World shared contract definitions",
+  "description": "Reusable identifiers, enums, references, governance metadata and record lifecycle shared across all Indigen World entity contracts. This file is canonical; language and framework models are derived from it.",
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "description": "Stable record identifier (e.g. Firestore document id).",
+      "pattern": "^[A-Za-z0-9_-]{1,128}$"
+    },
+    "slug": {
+      "type": "string",
+      "description": "URL- and code-safe lowercase identifier.",
+      "pattern": "^[a-z0-9][a-z0-9-]{0,127}$"
+    },
+    "isoTimestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 / RFC 3339 timestamp in UTC."
+    },
+    "isoDate": {
+      "type": "string",
+      "format": "date",
+      "description": "ISO 8601 calendar date (YYYY-MM-DD)."
+    },
+    "languageCode": {
+      "type": "string",
+      "description": "BCP 47 / ISO 639-3 language code. Kasem is 'xsm'.",
+      "pattern": "^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$"
+    },
+    "countryCode": {
+      "type": "string",
+      "description": "ISO 3166-1 alpha-2 country code.",
+      "pattern": "^[A-Z]{2}$"
+    },
+    "reference": {
+      "type": "object",
+      "description": "Typed pointer to another record by collection and id.",
+      "properties": {
+        "collection": { "type": "string", "minLength": 1 },
+        "id": { "$ref": "#/$defs/identifier" }
+      },
+      "required": ["collection", "id"],
+      "additionalProperties": false
+    },
+    "validationStatus": {
+      "type": "string",
+      "description": "Lifecycle of a content record through community validation.",
+      "enum": [
+        "draft",
+        "submitted",
+        "in_review",
+        "needs_changes",
+        "validated",
+        "rejected",
+        "retired"
+      ]
+    },
+    "consentStatus": {
+      "type": "string",
+      "description": "State of consent attached to a record or contributor.",
+      "enum": [
+        "not_required",
+        "pending",
+        "granted",
+        "restricted",
+        "withdrawn",
+        "expired"
+      ]
+    },
+    "licence": {
+      "type": "string",
+      "description": "Licence applied to a record. 'undetermined' is the default until a governance decision is recorded; cultural material must not inherit an ordinary source-code licence. See docs/governance/licensing-status.md.",
+      "enum": [
+        "undetermined",
+        "all_rights_reserved",
+        "community_restricted",
+        "cc_by",
+        "cc_by_sa",
+        "cc_by_nc",
+        "public_domain",
+        "custom"
+      ]
+    },
+    "culturalPermissionTier": {
+      "type": "string",
+      "description": "How widely a record may be exposed, from most to least open.",
+      "enum": [
+        "public",
+        "community_only",
+        "restricted",
+        "sacred_restricted"
+      ]
+    },
+    "mediaType": {
+      "type": "string",
+      "enum": ["image", "audio", "video", "document"]
+    },
+    "governanceMetadata": {
+      "type": "object",
+      "description": "Community-governance metadata that must travel with every content record. See docs/governance/data-safety.md.",
+      "properties": {
+        "source": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Origin of the record (contributor submission, elder recording, approved corpus, etc.)."
+        },
+        "contributor": {
+          "allOf": [{ "$ref": "#/$defs/reference" }],
+          "description": "Contributor who supplied the record."
+        },
+        "language": {
+          "allOf": [{ "$ref": "#/$defs/reference" }],
+          "description": "Language cell the record belongs to."
+        },
+        "dialect": {
+          "oneOf": [{ "$ref": "#/$defs/reference" }, { "type": "null" }],
+          "description": "Dialect, when known; null when dialect-neutral or unknown."
+        },
+        "validationStatus": { "$ref": "#/$defs/validationStatus" },
+        "validator": {
+          "oneOf": [{ "$ref": "#/$defs/reference" }, { "type": "null" }],
+          "description": "Validator who last acted on the record. Null until reviewed."
+        },
+        "consentStatus": { "$ref": "#/$defs/consentStatus" },
+        "consent": {
+          "oneOf": [{ "$ref": "#/$defs/reference" }, { "type": "null" }],
+          "description": "Consent record governing this content, when one applies."
+        },
+        "licence": { "$ref": "#/$defs/licence" },
+        "culturalPermissionTier": { "$ref": "#/$defs/culturalPermissionTier" }
+      },
+      "required": [
+        "source",
+        "contributor",
+        "language",
+        "validationStatus",
+        "consentStatus",
+        "licence",
+        "culturalPermissionTier"
+      ],
+      "additionalProperties": false
+    },
+    "recordLifecycle": {
+      "type": "object",
+      "description": "Creation, modification, version and audit trail shared by all records.",
+      "properties": {
+        "createdAt": { "$ref": "#/$defs/isoTimestamp" },
+        "updatedAt": { "$ref": "#/$defs/isoTimestamp" },
+        "version": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Monotonically increasing schema/content version for the record."
+        },
+        "auditRefs": {
+          "type": "array",
+          "description": "References to audit-log entries recording changes to this record.",
+          "items": { "$ref": "#/$defs/reference" }
+        }
+      },
+      "required": ["createdAt", "updatedAt", "version"],
+      "additionalProperties": false
+    }
+  }
+}

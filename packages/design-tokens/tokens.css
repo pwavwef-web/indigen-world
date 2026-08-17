@@ -1,0 +1,32 @@
+/*
+ * Indigen World design tokens as CSS custom properties.
+ * Generated intent: single source of the palette used by the web apps.
+ * Values mirror ./colors.json (provisional until brand approval).
+ */
+:root {
+  /* Brand */
+  --indigo: #1e365d;
+  --indigo-deep: #101c36;
+  --terracotta: #b65a3a;
+  --gold: #c58a00;
+  --savannah-green: #1f5a3a;
+  --plaster-cream: #fff8e7;
+
+  /* Semantic surfaces & text */
+  --bg: #fffdf8;
+  --surface: #ffffff;
+  --text: #172033;
+  --text-soft: #4c5568;
+  --border: #d8d2c6;
+  --success: #1f6b45;
+  --warning: #9a6700;
+  --danger: #a12a2a;
+  --focus: #1e5e9c;
+
+  /* Shape */
+  --radius: 12px;
+  --radius-lg: 16px;
+
+  /* Type */
+  --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
