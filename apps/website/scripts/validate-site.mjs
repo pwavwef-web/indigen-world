@@ -12,7 +12,6 @@ const routes = [
   ["/project-kasena", "ProjectKasenaPage.tsx"],
   ["/impact-governance", "ImpactGovernancePage.tsx"],
   ["/get-involved", "GetInvolvedPage.tsx"],
-  ["/team", "TeamPage.tsx"],
   ["/contact", "ContactPage.tsx"],
   ["/privacy", "PrivacyPage.tsx"],
   ["/terms", "TermsPage.tsx"],

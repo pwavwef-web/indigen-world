@@ -45,7 +45,7 @@ export interface Principle {
   body: string;
 }
 
-/** One team member, shown on the Team page. */
+/** One team member, shown in the About page's team section. */
 export interface TeamMember {
   name: string;
   role: string;

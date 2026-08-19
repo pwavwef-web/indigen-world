@@ -1,7 +1,7 @@
 /**
  * src/content/team.ts
  *
- * Team roster shown on the Team page. Carried over from the uploaded
+ * Team roster shown on the About page. Carried over from the uploaded
  * template's `team` array (previously a tuple list inline in App.tsx),
  * now typed and separated so an edit here never touches JSX.
  */

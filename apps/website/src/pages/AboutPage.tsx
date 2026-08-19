@@ -4,12 +4,13 @@
  * The "why" page — new relative to the template, which folded this
  * material into the single-page "vision" section. Reuses that
  * section's actual copy (the risk/opportunity/standard vision cards)
- * plus the belief-strip line, giving About a proper standalone home
- * per the brief's sitemap.
+ * plus the belief-strip line and team roster, giving the mission and
+ * the people responsible for it one shared home.
  */
 import { useDocumentMeta } from "../lib/useDocumentMeta";
 import { useRevealOnScroll } from "../lib/useRevealOnScroll";
 import { ROUTES_BY_PATH } from "../content/navigation";
+import { TEAM_MEMBERS } from "../content/team";
 import { Button } from "../components/Button";
 import { SectionHeading } from "../components/SectionHeading";
 
@@ -101,7 +102,32 @@ export function AboutPage() {
         </div>
       </section>
 
-      <section className="section section--white">
+      <section id="team" className="section section--white">
+        <div className="container">
+          <SectionHeading
+            eyebrow="Core team"
+            title="Clear ownership across the ecosystem."
+            body="Product leads work inside shared standards so the website, TribeStudio, mobile app and backend do not become four unrelated products wearing the same logo."
+          />
+          <div className="team-list team-list--about">
+            {TEAM_MEMBERS.map((member, index) => (
+              <article key={member.name} data-reveal>
+                <span>{String(index + 1).padStart(2, "0")}</span>
+                <div>
+                  <strong>{member.name}</strong>
+                  <p>{member.role}</p>
+                </div>
+              </article>
+            ))}
+          </div>
+          <p className="team-footnote">
+            Full biographies and portraits are added once each team member approves their own
+            listing.
+          </p>
+        </div>
+      </section>
+
+      <section className="section section--cream">
         <div className="container split-intro">
           <SectionHeading
             eyebrow="Starting point"

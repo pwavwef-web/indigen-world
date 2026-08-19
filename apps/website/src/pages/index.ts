@@ -25,7 +25,6 @@ export const PAGE_COMPONENTS: Record<string, LazyPage> = {
       default: ImpactGovernancePage,
     }))
   ),
-  team: lazy(() => import("./TeamPage").then(({ TeamPage }) => ({ default: TeamPage }))),
   "get-involved": lazy(() =>
     import("./GetInvolvedPage").then(({ GetInvolvedPage }) => ({ default: GetInvolvedPage }))
   ),

@@ -1,7 +1,7 @@
 /**
  * src/components/Header.tsx
  *
- * Site header: brand, primary nav, "Partner with us" CTA, and the
+ * Site header: brand, compact primary nav, "Partner with us" CTA, and the
  * mobile menu. The uploaded template's mobile nav used a neat
  * `grid-template-rows: 0fr -> 1fr` collapse animation instead of the
  * more common `position: fixed` overlay — that's kept as-is here
