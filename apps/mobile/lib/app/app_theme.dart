@@ -88,10 +88,23 @@ ThemeData buildIndigenTheme() {
     ),
     navigationBarTheme: NavigationBarThemeData(
       height: 74,
-      backgroundColor: Colors.white,
-      indicatorColor: BrandColors.heritageGreen.withValues(alpha: 0.12),
-      labelTextStyle: const WidgetStatePropertyAll(
-        TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
+      backgroundColor: BrandColors.heritageGreen,
+      indicatorColor: BrandColors.kenteGold.withValues(alpha: 0.2),
+      iconTheme: WidgetStateProperty.resolveWith((states) {
+        final selected = states.contains(WidgetState.selected);
+        return IconThemeData(
+          color: selected ? BrandColors.kenteGold : Colors.white60,
+          size: selected ? 27 : 24,
+        );
+      }),
+      labelTextStyle: WidgetStateProperty.resolveWith(
+        (states) => TextStyle(
+          color: states.contains(WidgetState.selected)
+              ? BrandColors.kenteGold
+              : Colors.white60,
+          fontSize: 10,
+          fontWeight: FontWeight.w800,
+        ),
       ),
     ),
     filledButtonTheme: FilledButtonThemeData(

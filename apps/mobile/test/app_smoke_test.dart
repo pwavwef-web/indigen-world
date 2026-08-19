@@ -15,7 +15,7 @@ void main() {
 
   tearDown(() => database.close());
 
-  testWidgets('guest home renders and local search filters results', (
+  testWidgets('guest lands on reels, joins community, and can still learn', (
     tester,
   ) async {
     SharedPreferences.setMockInitialValues({
@@ -27,7 +27,44 @@ void main() {
         child: const IndigenWorldApp(),
       ),
     );
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 3300));
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(find.text('For you'), findsOneWidget);
+    expect(find.text('Every rhythm remembers.'), findsOneWidget);
+    expect(find.text('Explore'), findsOneWidget);
+
+    await tester.tap(find.text('Community'));
+    await tester.pump(const Duration(milliseconds: 400));
+
+    expect(
+      find.text('A room where Kasem never has to translate itself.'),
+      findsOneWidget,
+    );
+    expect(find.text('KASEM-ONLY SPACE'), findsOneWidget);
+
+    await tester.enterText(
+      find.byKey(const Key('community-composer')),
+      'De zaanem. Ko gara.',
+    );
+    await tester.drag(find.byType(CustomScrollView), const Offset(0, -320));
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.tap(find.text('I confirm this post is written in Kasem.'));
+    await tester.tap(find.byKey(const Key('community-publish')));
+    await tester.pump(const Duration(milliseconds: 400));
+
+    expect(find.text('You'), findsWidgets);
+    expect(find.text('De zaanem. Ko gara.'), findsOneWidget);
+    expect(
+      tester
+          .widget<TextField>(find.byKey(const Key('community-composer')))
+          .controller
+          ?.text,
+      isEmpty,
+    );
+
+    await tester.tap(find.text('Learn'));
+    await tester.pump(const Duration(milliseconds: 400));
 
     expect(find.text('Kasem, close at hand.'), findsOneWidget);
     expect(find.text('AVAILABLE OFFLINE'), findsOneWidget);

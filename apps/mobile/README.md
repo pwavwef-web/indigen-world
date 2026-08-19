@@ -8,7 +8,10 @@ The assigned native-app folder is `apps/mobile`. Native work must be developed o
 
 ## What the beta includes
 
-- Five-destination shell: Home, Learn, Explore, Contribute, and You
+- Animated cultural launch where artefacts and Ghana-inspired motifs assemble the Indigen World name
+- Five-destination shell: Explore, Community, Learn, Contribute, and You
+- Explore-first vertical reel previews with likes, comments, saves, attribution, and rights-aware media fallbacks
+- Kasem-only community preview with local posts, media attachments, threaded replies, and a language pledge
 - Guest-first local dictionary search and entry details
 - Clearly labelled synthetic dictionary fixtures (no unapproved language data in Git)
 - Saved words stored on the device

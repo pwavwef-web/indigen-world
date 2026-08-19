@@ -19,6 +19,86 @@ class ScreenContainer extends StatelessWidget {
   );
 }
 
+class AnimatedCulturalSymbol extends StatefulWidget {
+  const AnimatedCulturalSymbol({
+    required this.glyph,
+    required this.label,
+    this.color = BrandColors.kenteGold,
+    this.size = 58,
+    super.key,
+  });
+
+  final String glyph;
+  final String label;
+  final Color color;
+  final double size;
+
+  @override
+  State<AnimatedCulturalSymbol> createState() => _AnimatedCulturalSymbolState();
+}
+
+class _AnimatedCulturalSymbolState extends State<AnimatedCulturalSymbol>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 9),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    label: '${widget.label} cultural motif',
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        RotationTransition(
+          turns: Tween(begin: 0.0, end: 1.0).animate(_controller),
+          child: Container(
+            width: widget.size,
+            height: widget.size,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: widget.color.withValues(alpha: 0.45)),
+              color: widget.color.withValues(alpha: 0.08),
+            ),
+            child: Center(
+              child: Text(
+                widget.glyph,
+                style: TextStyle(
+                  color: widget.color,
+                  fontSize: widget.size * 0.55,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 5),
+        Text(
+          widget.label,
+          style: TextStyle(
+            color: widget.color,
+            fontSize: 7,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 0.8,
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
 class BrandHeader extends StatelessWidget {
   const BrandHeader({
     required this.eyebrow,

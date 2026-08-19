@@ -23,6 +23,7 @@ class _StartupGateState extends State<StartupGate> {
 
   Future<void> _load() async {
     final preferences = await SharedPreferences.getInstance();
+    await Future<void>.delayed(const Duration(milliseconds: 3100));
     if (!mounted) return;
     setState(
       () => _onboardingComplete = preferences.getBool(_onboardingKey) ?? false,
@@ -56,42 +57,309 @@ class _StartupGateState extends State<StartupGate> {
   }
 }
 
-class _LaunchScreen extends StatelessWidget {
+class _LaunchScreen extends StatefulWidget {
   const _LaunchScreen();
 
   @override
-  Widget build(BuildContext context) => const Scaffold(
-    backgroundColor: BrandColors.heritageGreen,
-    body: SafeArea(
-      child: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _BrandMark(size: 86),
-            SizedBox(height: 22),
-            Text(
-              'INDIGEN WORLD',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 24,
-                fontWeight: FontWeight.w900,
-                letterSpacing: 2,
-              ),
+  State<_LaunchScreen> createState() => _LaunchScreenState();
+}
+
+class _LaunchScreenState extends State<_LaunchScreen>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2850),
+    )..forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    backgroundColor: const Color(0xFF071D17),
+    body: AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        final artifactProgress = CurvedAnimation(
+          parent: _controller,
+          curve: const Interval(0, 0.56, curve: Curves.easeInOutCubic),
+        ).value;
+        final brandProgress = CurvedAnimation(
+          parent: _controller,
+          curve: const Interval(0.34, 0.78, curve: Curves.easeOutCubic),
+        ).value;
+        final taglineProgress = CurvedAnimation(
+          parent: _controller,
+          curve: const Interval(0.68, 0.95, curve: Curves.easeOut),
+        ).value;
+
+        return DecoratedBox(
+          decoration: const BoxDecoration(
+            gradient: RadialGradient(
+              radius: 1.2,
+              center: Alignment(0, -0.12),
+              colors: [Color(0xFF174B39), Color(0xFF071D17), Color(0xFF050807)],
             ),
-            SizedBox(height: 18),
-            SizedBox.square(
-              dimension: 24,
-              child: CircularProgressIndicator(
-                color: BrandColors.kenteGold,
-                strokeWidth: 3,
+          ),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              const _LaunchPattern(),
+              for (final artifact in _launchArtifacts)
+                _ArtifactFlight(artifact: artifact, progress: artifactProgress),
+              SafeArea(
+                child: Center(
+                  child: Transform.translate(
+                    offset: Offset(0, 16 * (1 - brandProgress)),
+                    child: Opacity(
+                      opacity: brandProgress,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'LANGUAGE  ·  STORY  ·  RHYTHM  ·  IDENTITY',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: BrandColors.kenteGold.withValues(
+                                alpha: 0.9,
+                              ),
+                              fontSize: 9,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 1.5,
+                            ),
+                          ),
+                          const SizedBox(height: 18),
+                          Text(
+                            'INDIGEN',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 52,
+                              height: 0.82,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: -3 + (3 * (1 - brandProgress)),
+                            ),
+                          ),
+                          const SizedBox(height: 11),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 13,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              border: Border.all(color: Colors.white54),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: const Text(
+                              'W O R L D',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 18,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 6,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+                          Opacity(
+                            opacity: taglineProgress,
+                            child: const Text(
+                              'Our culture is not behind us. It is becoming.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: Colors.white70,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
               ),
-            ),
-          ],
-        ),
-      ),
+              Positioned(
+                left: 24,
+                right: 24,
+                bottom: 26,
+                child: Opacity(
+                  opacity: taglineProgress,
+                  child: const LinearProgressIndicator(
+                    minHeight: 2,
+                    color: BrandColors.kenteGold,
+                    backgroundColor: Colors.white12,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     ),
   );
 }
+
+class _LaunchPattern extends StatelessWidget {
+  const _LaunchPattern();
+
+  @override
+  Widget build(BuildContext context) => const Opacity(
+    opacity: 0.055,
+    child: GridPaper(
+      color: BrandColors.kenteGold,
+      interval: 42,
+      divisions: 2,
+      subdivisions: 1,
+      child: SizedBox.expand(),
+    ),
+  );
+}
+
+class _ArtifactFlight extends StatelessWidget {
+  const _ArtifactFlight({required this.artifact, required this.progress});
+
+  final _LaunchArtifact artifact;
+  final double progress;
+
+  @override
+  Widget build(BuildContext context) {
+    final alignment = Alignment.lerp(artifact.start, artifact.end, progress)!;
+    final opacity = (progress < 0.78 ? progress : (1 - progress) * 4.5)
+        .clamp(0.0, 1.0)
+        .toDouble();
+    return Align(
+      alignment: alignment,
+      child: Transform.rotate(
+        angle: (1 - progress) * artifact.rotation,
+        child: Opacity(
+          opacity: opacity,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: artifact.size,
+                height: artifact.size,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: artifact.color.withValues(alpha: 0.14),
+                  border: Border.all(
+                    color: artifact.color.withValues(alpha: 0.7),
+                  ),
+                ),
+                child: Center(
+                  child: Text(
+                    artifact.glyph,
+                    style: TextStyle(
+                      color: artifact.color,
+                      fontSize: artifact.size * 0.5,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 5),
+              Text(
+                artifact.label,
+                style: const TextStyle(
+                  color: Colors.white54,
+                  fontSize: 7,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _LaunchArtifact {
+  const _LaunchArtifact({
+    required this.glyph,
+    required this.label,
+    required this.start,
+    required this.end,
+    required this.color,
+    required this.size,
+    required this.rotation,
+  });
+
+  final String glyph;
+  final String label;
+  final Alignment start;
+  final Alignment end;
+  final Color color;
+  final double size;
+  final double rotation;
+}
+
+const _launchArtifacts = [
+  _LaunchArtifact(
+    glyph: '◒',
+    label: 'CALABASH',
+    start: Alignment(-0.9, -0.84),
+    end: Alignment(-0.3, -0.12),
+    color: BrandColors.kenteGold,
+    size: 54,
+    rotation: -0.8,
+  ),
+  _LaunchArtifact(
+    glyph: '▥',
+    label: 'DRUM',
+    start: Alignment(0.92, -0.72),
+    end: Alignment(0.28, -0.12),
+    color: BrandColors.terracotta,
+    size: 60,
+    rotation: 0.7,
+  ),
+  _LaunchArtifact(
+    glyph: '◉',
+    label: 'COWRIE',
+    start: Alignment(-0.94, 0.62),
+    end: Alignment(-0.18, 0.08),
+    color: BrandColors.surface,
+    size: 46,
+    rotation: 1.1,
+  ),
+  _LaunchArtifact(
+    glyph: '✣',
+    label: 'SYMBOL',
+    start: Alignment(0.9, 0.7),
+    end: Alignment(0.2, 0.08),
+    color: BrandColors.kenteGold,
+    size: 58,
+    rotation: -1,
+  ),
+  _LaunchArtifact(
+    glyph: '●',
+    label: 'BEAD',
+    start: Alignment(-0.72, 0.02),
+    end: Alignment(-0.08, -0.02),
+    color: BrandColors.terracotta,
+    size: 34,
+    rotation: 0.4,
+  ),
+  _LaunchArtifact(
+    glyph: '◆',
+    label: 'WEAVE',
+    start: Alignment(0.74, 0.06),
+    end: Alignment(0.08, -0.02),
+    color: BrandColors.surface,
+    size: 38,
+    rotation: -0.5,
+  ),
+];
 
 class _OnboardingScreen extends StatelessWidget {
   const _OnboardingScreen({
