@@ -1,0 +1,17 @@
+{
+  "id": "notif-1",
+  "recipient": { "collection": "creatorProfiles", "id": "creator-ama" },
+  "authUid": "creator-ama",
+  "type": "application_update",
+  "title": "Your founding-creator application was received",
+  "body": "Thank you for applying to the Kasem Creator Challenge. We will announce when submissions open.",
+  "link": "/studio",
+  "read": false,
+  "channels": ["in_app", "email"],
+  "schemaVersion": 1,
+  "lifecycle": {
+    "createdAt": "2026-08-02T00:00:00Z",
+    "updatedAt": "2026-08-02T00:00:00Z",
+    "version": 1
+  }
+}

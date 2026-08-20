@@ -17,6 +17,14 @@ import contributor from './schemas/contributor.schema.json' with { type: 'json' 
 import validator from './schemas/validator.schema.json' with { type: 'json' };
 import review from './schemas/review.schema.json' with { type: 'json' };
 import auditLog from './schemas/audit-log.schema.json' with { type: 'json' };
+import campaign from './schemas/campaign.schema.json' with { type: 'json' };
+import creatorProfile from './schemas/creator-profile.schema.json' with { type: 'json' };
+import creatorMembership from './schemas/creator-membership.schema.json' with { type: 'json' };
+import creatorApplication from './schemas/creator-application.schema.json' with { type: 'json' };
+import submission from './schemas/submission.schema.json' with { type: 'json' };
+import publishedContent from './schemas/published-content.schema.json' with { type: 'json' };
+import notification from './schemas/notification.schema.json' with { type: 'json' };
+import platformConfiguration from './schemas/platform-configuration.schema.json' with { type: 'json' };
 
 export {
   common,
@@ -30,6 +38,14 @@ export {
   validator,
   review,
   auditLog,
+  campaign,
+  creatorProfile,
+  creatorMembership,
+  creatorApplication,
+  submission,
+  publishedContent,
+  notification,
+  platformConfiguration,
 };
 
 /** All entity schemas keyed by camelCase entity name (excludes the shared common definitions). */
@@ -44,6 +60,14 @@ export const schemas = {
   validator,
   review,
   auditLog,
+  campaign,
+  creatorProfile,
+  creatorMembership,
+  creatorApplication,
+  submission,
+  publishedContent,
+  notification,
+  platformConfiguration,
 };
 
 /** The shared definitions schema, plus every entity schema, for bulk registration with a validator. */
@@ -60,4 +84,12 @@ export const enums = {
   licence: defs.licence.enum,
   culturalPermissionTier: defs.culturalPermissionTier.enum,
   mediaType: defs.mediaType.enum,
+  campaignStatus: defs.campaignStatus.enum,
+  creatorApplicationStatus: defs.creatorApplicationStatus.enum,
+  submissionStatus: defs.submissionStatus.enum,
+  paymentStatus: defs.paymentStatus.enum,
+  kasemProficiency: defs.kasemProficiency.enum,
+  contactMethod: defs.contactMethod.enum,
+  publicationStatus: defs.publicationStatus.enum,
+  creatorConsentScope: defs.creatorConsentScope.enum,
 };

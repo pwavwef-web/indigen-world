@@ -1,0 +1,118 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.indigen-world.org/v0/campaign.schema.json",
+  "title": "Campaign",
+  "description": "A creator campaign (e.g. the Kasem Creator Challenge). Its status drives what the workspace exposes; dates, prizes and submission availability are admin-managed here, never hardcoded in the client.",
+  "type": "object",
+  "properties": {
+    "id": { "$ref": "common.schema.json#/$defs/identifier" },
+    "slug": { "$ref": "common.schema.json#/$defs/slug" },
+    "title": { "type": "string", "minLength": 1 },
+    "initiative": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Programme or initiative, e.g. 'Project Kasena'."
+    },
+    "language": {
+      "oneOf": [
+        { "$ref": "common.schema.json#/$defs/reference" },
+        { "type": "null" }
+      ]
+    },
+    "community": { "type": "string" },
+    "description": { "type": "string" },
+    "brief": { "type": "string", "description": "Content brief shown to creators." },
+    "categories": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Eligible content category slugs, drawn from platform configuration."
+    },
+    "eligibility": { "type": "string" },
+    "geographies": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Allowed country codes, or empty for no geographic limit."
+    },
+    "status": { "$ref": "common.schema.json#/$defs/campaignStatus" },
+    "prizeTiers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "label": { "type": "string", "minLength": 1 },
+          "amount": { "type": "number", "minimum": 0 },
+          "currency": { "type": "string", "pattern": "^[A-Z]{3}$" },
+          "count": { "type": "integer", "minimum": 1 }
+        },
+        "required": ["label"],
+        "additionalProperties": false
+      }
+    },
+    "totalPrizeCommitment": { "type": "number", "minimum": 0 },
+    "currency": { "type": "string", "pattern": "^[A-Z]{3}$" },
+    "maxEntriesPerCreator": { "type": "integer", "minimum": 1 },
+    "timeline": {
+      "type": "object",
+      "properties": {
+        "waitlistOpensAt": { "oneOf": [{ "$ref": "common.schema.json#/$defs/isoTimestamp" }, { "type": "null" }] },
+        "submissionsOpenAt": { "oneOf": [{ "$ref": "common.schema.json#/$defs/isoTimestamp" }, { "type": "null" }] },
+        "submissionsCloseAt": { "oneOf": [{ "$ref": "common.schema.json#/$defs/isoTimestamp" }, { "type": "null" }] },
+        "revisionDeadlineAt": { "oneOf": [{ "$ref": "common.schema.json#/$defs/isoTimestamp" }, { "type": "null" }] },
+        "judgingFrom": { "oneOf": [{ "$ref": "common.schema.json#/$defs/isoTimestamp" }, { "type": "null" }] },
+        "winnersAnnouncedAt": { "oneOf": [{ "$ref": "common.schema.json#/$defs/isoTimestamp" }, { "type": "null" }] }
+      },
+      "additionalProperties": false
+    },
+    "fileRequirements": {
+      "type": "object",
+      "properties": {
+        "maxFileBytes": { "type": "integer", "minimum": 1 },
+        "acceptedMimeTypes": { "type": "array", "items": { "type": "string" } },
+        "minDurationSeconds": { "type": "integer", "minimum": 0 },
+        "maxDurationSeconds": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "judgingRubric": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "key": { "type": "string", "minLength": 1 },
+          "label": { "type": "string", "minLength": 1 },
+          "weight": { "type": "number", "minimum": 0 }
+        },
+        "required": ["key", "label"],
+        "additionalProperties": false
+      }
+    },
+    "consentRequirements": {
+      "type": "array",
+      "items": { "$ref": "common.schema.json#/$defs/creatorConsentScope" }
+    },
+    "termsVersion": { "type": "string" },
+    "faqs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "question": { "type": "string", "minLength": 1 },
+          "answer": { "type": "string", "minLength": 1 }
+        },
+        "required": ["question", "answer"],
+        "additionalProperties": false
+      }
+    },
+    "featuredImageUrl": { "type": "string", "format": "uri" },
+    "sponsor": { "type": "string" },
+    "visibility": {
+      "type": "string",
+      "description": "Whether this campaign is publicly listable. 'public' campaigns are guest-readable.",
+      "enum": ["public", "internal"]
+    },
+    "schemaVersion": { "type": "integer", "minimum": 1 },
+    "lifecycle": { "$ref": "common.schema.json#/$defs/recordLifecycle" }
+  },
+  "required": ["id", "slug", "title", "initiative", "status", "visibility", "lifecycle"],
+  "additionalProperties": false
+}

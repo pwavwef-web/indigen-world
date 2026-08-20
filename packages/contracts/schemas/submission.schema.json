@@ -1,0 +1,117 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.indigen-world.org/v0/submission.schema.json",
+  "title": "Submission",
+  "description": "A creator's content submission to a campaign. Raw media stays private in Storage until an approval decision, which is a privileged server-side transition. Publication and AI-training permissions are separate and default to off.",
+  "type": "object",
+  "properties": {
+    "id": { "$ref": "common.schema.json#/$defs/identifier" },
+    "authUid": { "type": "string", "minLength": 1 },
+    "campaign": { "$ref": "common.schema.json#/$defs/reference" },
+    "creator": { "$ref": "common.schema.json#/$defs/reference" },
+    "status": { "$ref": "common.schema.json#/$defs/submissionStatus" },
+    "studioType": { "type": "string", "enum": ["writing", "video", "audio", "image", "translation"] },
+    "title": { "type": "string", "minLength": 1 },
+    "category": { "type": "string" },
+    "primaryLanguage": { "$ref": "common.schema.json#/$defs/languageCode" },
+    "dialect": { "type": "string" },
+    "description": { "type": "string" },
+    "body": { "type": "string" },
+    "tags": { "type": "array", "items": { "type": "string" } },
+    "targetAudience": { "type": "string" },
+    "sourceReferences": { "type": "string" },
+    "translationNotes": { "type": "string" },
+    "translation": {
+      "type": "object",
+      "properties": {
+        "sourceLanguage": { "$ref": "common.schema.json#/$defs/languageCode" },
+        "targetLanguage": { "$ref": "common.schema.json#/$defs/languageCode" },
+        "sourceContent": { "type": "string" },
+        "translatedContent": { "type": "string" },
+        "translatorNotes": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "englishSummary": { "type": "string" },
+    "culturalContext": { "type": "string" },
+    "caption": { "type": "string" },
+    "altText": { "type": "string" },
+    "media": {
+      "type": "object",
+      "properties": {
+        "storagePath": { "type": "string", "description": "creator-submissions/{uid}/{campaignId}/{submissionId}/original" },
+        "mimeType": { "type": "string" },
+        "sizeBytes": { "type": "integer", "minimum": 0 },
+        "mediaType": { "$ref": "common.schema.json#/$defs/mediaType" },
+        "thumbnailPath": { "oneOf": [{ "type": "string" }, { "type": "null" }] },
+        "captionsPath": { "oneOf": [{ "type": "string" }, { "type": "null" }] }
+      },
+      "additionalProperties": false
+    },
+    "externalPostUrl": { "oneOf": [{ "type": "string", "format": "uri" }, { "type": "null" }] },
+    "participants": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "role": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "disclosures": {
+      "type": "object",
+      "properties": {
+        "involvesMinors": { "type": "boolean" },
+        "usesThirdPartyMaterial": { "type": "boolean" },
+        "sourceInfo": { "type": "string" }
+      },
+      "required": ["involvesMinors", "usesThirdPartyMaterial"],
+      "additionalProperties": false
+    },
+    "attestations": {
+      "type": "object",
+      "description": "Creator confirmations required to enter. All must be true before SUBMITTED.",
+      "properties": {
+        "ownsOrHasRights": { "type": "boolean" },
+        "participantsConsented": { "type": "boolean" },
+        "guardianPermissionForMinors": { "type": "boolean" },
+        "noUnlawfulCopyright": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "permissions": {
+      "type": "object",
+      "description": "Separate, understandable permission choices. AI-training is optional, defaults false, and is never required to enter.",
+      "properties": {
+        "review": { "type": "boolean" },
+        "publication": { "type": "boolean" },
+        "promotion": { "type": "boolean" },
+        "aiTraining": { "type": "boolean", "default": false },
+        "consentVersion": { "type": "string" },
+        "recordedAt": { "oneOf": [{ "$ref": "common.schema.json#/$defs/isoTimestamp" }, { "type": "null" }] }
+      },
+      "required": ["review"],
+      "additionalProperties": false
+    },
+    "moderation": {
+      "type": "object",
+      "description": "Server-managed review outcome and revision tracking.",
+      "properties": {
+        "reviewer": { "oneOf": [{ "$ref": "common.schema.json#/$defs/reference" }, { "type": "null" }] },
+        "decidedAt": { "oneOf": [{ "$ref": "common.schema.json#/$defs/isoTimestamp" }, { "type": "null" }] },
+        "feedback": { "type": "string" },
+        "revisionDeadline": { "oneOf": [{ "$ref": "common.schema.json#/$defs/isoTimestamp" }, { "type": "null" }] },
+        "scores": { "type": "object", "additionalProperties": { "type": "number" } },
+        "publishedContent": { "oneOf": [{ "$ref": "common.schema.json#/$defs/reference" }, { "type": "null" }] }
+      },
+      "additionalProperties": false
+    },
+    "rewardEligible": { "type": "boolean" },
+    "schemaVersion": { "type": "integer", "minimum": 1 },
+    "lifecycle": { "$ref": "common.schema.json#/$defs/recordLifecycle" }
+  },
+  "required": ["id", "authUid", "campaign", "creator", "status", "title", "permissions", "disclosures", "lifecycle"],
+  "additionalProperties": false
+}

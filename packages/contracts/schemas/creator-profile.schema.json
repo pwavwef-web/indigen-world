@@ -1,0 +1,105 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.indigen-world.org/v0/creator-profile.schema.json",
+  "title": "CreatorProfile",
+  "description": "A founding creator's workspace profile. Public attribution fields are separated from private contact and administrative fields; Security Rules enforce which the owner may edit and which are server-managed. Fixtures must use fictional personal data only.",
+  "type": "object",
+  "properties": {
+    "id": { "$ref": "common.schema.json#/$defs/identifier" },
+    "authUid": { "type": "string", "minLength": 1 },
+    "reference": { "$ref": "common.schema.json#/$defs/creatorReference" },
+    "public": {
+      "type": "object",
+      "description": "Fields safe to attribute publicly once content is published.",
+      "properties": {
+        "displayName": { "type": "string", "minLength": 1 },
+        "username": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]{2,29}$" },
+        "isPublic": { "type": "boolean" },
+        "avatarUrl": { "oneOf": [{ "type": "string", "format": "uri" }, { "type": "null" }] },
+        "initials": { "type": "string", "maxLength": 4 },
+        "bio": { "type": "string", "maxLength": 600 },
+        "country": { "oneOf": [{ "$ref": "common.schema.json#/$defs/countryCode" }, { "type": "null" }] },
+        "region": { "type": "string" },
+        "community": { "type": "string" },
+        "languagesSpoken": { "type": "array", "items": { "type": "string" } },
+        "kasemProficiency": { "$ref": "common.schema.json#/$defs/kasemProficiency" },
+        "dialect": { "type": "string", "description": "Dialect/community variant slug from configuration." },
+        "canWriteKasem": { "type": "boolean" },
+        "canTranslateToEnglish": { "type": "boolean" },
+        "interests": { "type": "array", "items": { "type": "string" } },
+        "formats": { "type": "array", "items": { "type": "string" } },
+        "socialLinks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "platform": { "type": "string", "minLength": 1 },
+              "url": { "type": "string", "format": "uri" }
+            },
+            "required": ["platform", "url"],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": ["displayName"],
+      "additionalProperties": false
+    },
+    "contact": {
+      "type": "object",
+      "description": "Private contact information. Never exposed to the public app or other creators.",
+      "properties": {
+        "email": { "type": "string" },
+        "phone": { "type": "string", "description": "E.164 with country code." },
+        "preferredContactMethod": { "$ref": "common.schema.json#/$defs/contactMethod" },
+        "preferredLanguage": { "$ref": "common.schema.json#/$defs/languageCode" }
+      },
+      "additionalProperties": false
+    },
+    "fullName": { "type": "string", "maxLength": 160 },
+    "communityRelationship": { "type": "string" },
+    "culturalCommunities": { "type": "array", "items": { "type": "string" } },
+    "skills": { "type": "array", "items": { "type": "string" } },
+    "experience": { "type": "string", "maxLength": 2000 },
+    "motivation": { "type": "string", "maxLength": 2000 },
+    "equipment": { "type": "string", "maxLength": 1000 },
+    "locationPrivacy": {
+      "type": "string",
+      "enum": ["public", "region_only", "private"]
+    },
+    "ageConfirmed": { "type": "boolean" },
+    "isMinor": { "type": "boolean" },
+    "guardianConsentStatus": {
+      "type": "string",
+      "enum": ["not_required", "pending", "granted", "declined"]
+    },
+    "recordingAccess": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Self-reported filming/recording access (smartphone, camera, none, etc.)."
+    },
+    "availability": { "type": "string" },
+    "referralSource": { "type": "string" },
+    "notificationPreferences": {
+      "type": "object",
+      "properties": {
+        "email": { "type": "boolean" },
+        "inApp": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "profileCompletion": { "type": "integer", "minimum": 0, "maximum": 100 },
+    "status": {
+      "type": "string",
+      "description": "Mirror of the creator's account standing. Authoritative changes are server-managed.",
+      "enum": ["waitlisted", "active", "suspended", "withdrawn"]
+    },
+    "consentRefs": {
+      "type": "array",
+      "items": { "$ref": "common.schema.json#/$defs/reference" }
+    },
+    "schemaVersion": { "type": "integer", "minimum": 1 },
+    "lifecycle": { "$ref": "common.schema.json#/$defs/recordLifecycle" }
+  },
+  "required": ["id", "authUid", "public", "lifecycle"],
+  "additionalProperties": false
+}

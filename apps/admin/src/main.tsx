@@ -4,6 +4,8 @@ import '@indigen-world/design-tokens/tokens.css';
 import '@indigen-world/web-ui/styles.css';
 import App from './App';
 import './styles.css';
+import './creators/creators-admin.css';
+import './team-sites/team-sites.css';
 import './firebase';
 
 createRoot(document.getElementById('root')!).render(

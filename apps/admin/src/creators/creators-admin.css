@@ -1,0 +1,240 @@
+/* Styles for the admin Creators console. Reuses design tokens. */
+.muted { color: var(--text-soft); }
+.role-chip {
+  margin-left: 8px;
+  background: var(--indigo);
+  color: #fff;
+  border-radius: 999px;
+  padding: 2px 9px;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.topnav {
+  display: flex;
+  gap: 4px;
+  padding: 0 24px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+.topnav__link {
+  border: none;
+  background: none;
+  padding: 12px 16px;
+  cursor: pointer;
+  color: var(--text-soft);
+  font-size: 0.95rem;
+  border-bottom: 2px solid transparent;
+}
+.topnav__link.is-active {
+  color: var(--indigo-deep);
+  border-bottom-color: var(--terracotta);
+  font-weight: 600;
+}
+
+.creators-admin {
+  display: grid;
+  gap: 18px;
+}
+.subtabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 8px;
+}
+.subtab {
+  border: 1px solid transparent;
+  background: none;
+  padding: 8px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--text-soft);
+  font-size: 0.9rem;
+}
+.subtab.is-active {
+  background: var(--plaster-cream);
+  color: var(--indigo-deep);
+  border-color: var(--border);
+  font-weight: 600;
+}
+
+.admin-flash {
+  background: #e9f6ee;
+  border: 1px solid #bfe3cd;
+  color: #14663d;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 0.9rem;
+}
+
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 14px;
+}
+.metric {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 18px;
+  display: grid;
+  gap: 4px;
+}
+.metric__value {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--indigo-deep);
+}
+.metric__label {
+  font-size: 0.8rem;
+  color: var(--text-soft);
+}
+
+.tab-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.filter {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 0.85rem;
+  color: var(--text-soft);
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.admin-table th,
+.admin-table td {
+  text-align: left;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+.admin-table th {
+  background: var(--plaster-cream);
+  font-size: 0.74rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-soft);
+}
+.admin-table select {
+  padding: 5px 8px;
+}
+
+.badge2 {
+  display: inline-block;
+  background: #eef0f4;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 2px 10px;
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--text-soft);
+}
+.flag { color: var(--warning); }
+
+.row-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.row-actions button,
+button.primary {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: 8px;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-size: 0.82rem;
+  color: var(--text);
+}
+.row-actions button:hover { background: var(--plaster-cream); }
+.row-actions button.danger { color: var(--danger); border-color: #eac3c3; }
+button.primary {
+  background: var(--indigo);
+  color: #fff;
+  border-color: var(--indigo);
+  padding: 9px 16px;
+  margin-top: 8px;
+}
+
+.admin-form {
+  margin-top: 24px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 18px;
+  background: var(--surface);
+  display: grid;
+  gap: 12px;
+}
+.admin-form h3 { margin: 0; }
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+@media (max-width: 560px) { .form-row { grid-template-columns: 1fr; } }
+.admin-form label,
+label.stack {
+  display: grid;
+  gap: 4px;
+  font-size: 0.85rem;
+  color: var(--text-soft);
+}
+label.stack { margin-bottom: 12px; }
+.admin-form input,
+.admin-form textarea,
+label.stack input,
+label.stack textarea {
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font: inherit;
+  color: var(--text);
+}
+
+.review-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+}
+.review-card {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  padding: 16px;
+  display: grid;
+  gap: 12px;
+}
+.review-card header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.review-card dl {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  font-size: 0.85rem;
+}
+.review-card dl > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+.review-card dt { color: var(--text-soft); }
+.review-card dd { margin: 0; text-align: right; }

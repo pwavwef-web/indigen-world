@@ -1,0 +1,51 @@
+{
+  "id": "kasem-creator-challenge",
+  "slug": "kasem-creator-challenge",
+  "title": "Kasem Creator Challenge",
+  "initiative": "Project Kasena",
+  "language": { "collection": "languages", "id": "kasem" },
+  "community": "Kasena",
+  "description": "The founding creator campaign for Kasem-language storytelling and culture.",
+  "brief": "Create original Kasem-language content celebrating everyday life, storytelling and culture.",
+  "categories": ["storytelling", "comedy", "education"],
+  "eligibility": "Open to creators aged 18+ or with guardian consent.",
+  "geographies": [],
+  "status": "WAITLIST_OPEN",
+  "prizeTiers": [
+    { "label": "Grand prize", "amount": 0, "currency": "GHS", "count": 1 }
+  ],
+  "totalPrizeCommitment": 0,
+  "currency": "GHS",
+  "maxEntriesPerCreator": 3,
+  "timeline": {
+    "waitlistOpensAt": "2026-08-01T00:00:00Z",
+    "submissionsOpenAt": null,
+    "submissionsCloseAt": null,
+    "revisionDeadlineAt": null,
+    "judgingFrom": null,
+    "winnersAnnouncedAt": null
+  },
+  "fileRequirements": {
+    "maxFileBytes": 524288000,
+    "acceptedMimeTypes": ["video/mp4", "audio/mpeg", "image/jpeg"],
+    "minDurationSeconds": 0,
+    "maxDurationSeconds": 300
+  },
+  "judgingRubric": [
+    { "key": "language", "label": "Kasem-language quality", "weight": 1 },
+    { "key": "creativity", "label": "Creativity", "weight": 1 }
+  ],
+  "consentRequirements": ["review", "publication"],
+  "termsVersion": "creator-terms-2026-08",
+  "faqs": [
+    { "question": "Is joining free?", "answer": "Yes. Joining the founding creators programme is always free." }
+  ],
+  "sponsor": "Indigen World",
+  "visibility": "public",
+  "schemaVersion": 1,
+  "lifecycle": {
+    "createdAt": "2026-08-01T00:00:00Z",
+    "updatedAt": "2026-08-01T00:00:00Z",
+    "version": 1
+  }
+}

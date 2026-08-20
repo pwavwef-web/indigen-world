@@ -3,7 +3,9 @@ rules_version = '2';
 // Indigen World Firestore Security Rules.
 //
 // Model:
-//   * Roles are carried as the custom auth claim `role` ∈ {contributor, validator, admin}.
+    //   * Roles are carried as the custom auth claim `role`. The current model
+    //     accepts {creator, reviewer, admin, super_admin} while preserving the
+    //     earlier {contributor, validator, admin} claims for existing accounts.
 //     Everyday users (learners) sign in with no role and may read public content.
 //   * Contributor documents are keyed by the auth uid, so a governance.contributor.id
 //     that equals request.auth.uid identifies the owner of a content record.
@@ -22,19 +24,63 @@ service cloud.firestore {
       return request.auth != null;
     }
     function role() {
-      return isSignedIn() ? request.auth.token.role : null;
+      return isSignedIn() ? request.auth.token.get('role', null) : null;
     }
     function isAdmin() {
-      return role() == 'admin';
+      return role() == 'admin' || role() == 'super_admin' || (isSignedIn() && request.auth.token.get('superAdmin', false) == true);
     }
     function isValidator() {
-      return role() == 'validator' || isAdmin();
+      return role() == 'validator' || role() == 'reviewer' || isAdmin();
     }
     function isContributor() {
       return role() == 'contributor' || isValidator();
     }
     function isOwner(uid) {
       return isSignedIn() && request.auth.uid == uid;
+    }
+    // Staff = anyone who can moderate (validators + admins). Reviewers of creator
+    // submissions and applications are staff.
+    function isStaff() {
+      return isValidator();
+    }
+    // Finance access is carried as dedicated claims, orthogonal to role, so an
+    // ordinary admin does NOT automatically see payout detail (separation of
+    // duties). Only a finance user or a super-admin qualifies.
+    function isFinance() {
+      return isSignedIn() && (request.auth.token.get('finance', false) == true || request.auth.token.get('superAdmin', false) == true);
+    }
+
+    function membershipPath(uid) {
+      return /databases/$(database)/documents/creatorMemberships/$(uid);
+    }
+
+    function hasApprovedCreatorClaim(uid) {
+      return isOwner(uid)
+        && request.auth.token.get('creatorStatus', '') == 'approved'
+        && request.auth.token.get('creatorRoles', []) is list
+        && 'creator' in request.auth.token.get('creatorRoles', []);
+    }
+
+    function hasApprovedCreatorMembership(uid) {
+      return isOwner(uid)
+        && exists(membershipPath(uid))
+        && get(membershipPath(uid)).data.status == 'approved'
+        && 'creator' in get(membershipPath(uid)).data.roles;
+    }
+
+    function isApprovedCreator(uid) {
+      return hasApprovedCreatorClaim(uid) || hasApprovedCreatorMembership(uid) || isStaff();
+    }
+
+    function isBlockedCreator(uid) {
+      return isOwner(uid)
+        && (
+          request.auth.token.get('creatorStatus', '') in ['suspended', 'revoked', 'rejected']
+          || (
+            exists(membershipPath(uid))
+            && get(membershipPath(uid)).data.status in ['suspended', 'revoked', 'rejected']
+          )
+        );
     }
 
     function publicationLicenceAllowed(licence) {
@@ -70,6 +116,80 @@ service cloud.firestore {
         && data.lifecycle.updatedAt is string
         && data.lifecycle.version is int
         && data.lifecycle.version >= 1;
+    }
+
+    function validShortText(value, max) {
+      return value is string && value.size() <= max;
+    }
+
+    function validTextFieldMap(fields) {
+      return fields is map
+        && fields.keys().hasOnly([
+          'fullName', 'displayName', 'roleTitle', 'teamCompany', 'email',
+          'phone', 'location', 'sitePurpose', 'audience', 'visitorAction',
+          'siteName', 'tagline', 'brandColors', 'preferredStyle',
+          'inspirationLinks', 'shortBio', 'services', 'projects',
+          'testimonials', 'achievements', 'logoAvailable',
+          'profilePhotoAvailable', 'mediaNotes', 'socialLinks', 'bookingLink',
+          'paymentLink', 'portfolioLinks', 'contactFields',
+          'submissionDestination', 'extraNotes', 'exclusions', 'deadline'
+        ])
+        && fields.keys().hasAll([
+          'fullName', 'email', 'sitePurpose', 'audience', 'visitorAction',
+          'siteName', 'shortBio'
+        ])
+        && validShortText(fields.fullName, 160)
+        && validShortText(fields.displayName, 160)
+        && validShortText(fields.roleTitle, 160)
+        && validShortText(fields.teamCompany, 160)
+        && validShortText(fields.email, 180)
+        && validShortText(fields.phone, 80)
+        && validShortText(fields.location, 160)
+        && validShortText(fields.sitePurpose, 1600)
+        && validShortText(fields.audience, 1600)
+        && validShortText(fields.visitorAction, 1600)
+        && validShortText(fields.siteName, 180)
+        && validShortText(fields.tagline, 280)
+        && validShortText(fields.brandColors, 500)
+        && validShortText(fields.preferredStyle, 500)
+        && validShortText(fields.inspirationLinks, 1600)
+        && validShortText(fields.shortBio, 2400)
+        && validShortText(fields.services, 2400)
+        && validShortText(fields.projects, 2400)
+        && validShortText(fields.testimonials, 2400)
+        && validShortText(fields.achievements, 1600)
+        && validShortText(fields.logoAvailable, 80)
+        && validShortText(fields.profilePhotoAvailable, 80)
+        && validShortText(fields.mediaNotes, 1600)
+        && validShortText(fields.socialLinks, 1600)
+        && validShortText(fields.bookingLink, 500)
+        && validShortText(fields.paymentLink, 500)
+        && validShortText(fields.portfolioLinks, 1600)
+        && validShortText(fields.contactFields, 1200)
+        && validShortText(fields.submissionDestination, 500)
+        && validShortText(fields.extraNotes, 2400)
+        && validShortText(fields.exclusions, 1600)
+        && validShortText(fields.deadline, 160);
+    }
+
+    function validTeamSiteRequest(data) {
+      return data.keys().hasOnly(['formVersion', 'status', 'submittedAt', 'fields', 'desiredPages', 'features'])
+        && data.formVersion == 1
+        && data.status == 'new'
+        && validShortText(data.submittedAt, 40)
+        && validTextFieldMap(data.fields)
+        && data.fields.fullName.size() > 0
+        && data.fields.email.size() > 0
+        && data.fields.sitePurpose.size() > 0
+        && data.fields.audience.size() > 0
+        && data.fields.visitorAction.size() > 0
+        && data.fields.siteName.size() > 0
+        && data.fields.shortBio.size() > 0
+        && data.desiredPages is list
+        && data.desiredPages.size() > 0
+        && data.desiredPages.size() <= 12
+        && data.features is list
+        && data.features.size() <= 16;
     }
 
     function submissionReady(data) {
@@ -214,6 +334,167 @@ service cloud.firestore {
     // ---- Audit log: append-only, server-authored, admin-readable ------------
     match /auditLogs/{logId} {
       allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    // ======================================================================
+    // Creator system (TribeStudio founding creators)
+    // ======================================================================
+
+    // ---- Platform configuration: public-read, admin-managed -----------------
+    // Keeps dialects, categories, guidelines and the WhatsApp URL out of the
+    // frontend. Guests read; only admins write.
+    match /platformConfiguration/{configId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ---- Campaigns: public campaigns are guest-readable, admin-managed -------
+    // Submission availability is derived from `status`; admins move the lifecycle
+    // so submissions open with no client redeploy.
+    match /campaigns/{campaignId} {
+      allow read: if resource.data.visibility == 'public' || isStaff();
+      allow create, update: if isAdmin() && request.resource.data.id == campaignId;
+      allow delete: if false;
+    }
+
+    // ---- Creator profiles: self-managed public + contact fields -------------
+    // Owners may edit descriptive fields; reference, status and consent history
+    // are server-managed and cannot be self-set.
+    match /creatorProfiles/{creatorId} {
+      allow read: if isOwner(creatorId) || isStaff();
+      allow create: if isAdmin() || (
+        isOwner(creatorId)
+        && request.resource.data.id == creatorId
+        && request.resource.data.authUid == request.auth.uid
+        && request.resource.data.get('status', 'waitlisted') == 'waitlisted'
+        && lifecycleIsValid(request.resource.data)
+      );
+      allow update: if isAdmin() || (
+        isOwner(creatorId)
+        && !isBlockedCreator(creatorId)
+        && request.resource.data.authUid == resource.data.authUid
+        && request.resource.data.id == resource.data.id
+        && request.resource.data.get('reference', '') == resource.data.get('reference', '')
+        && request.resource.data.get('status', 'waitlisted') == resource.data.get('status', 'waitlisted')
+        && request.resource.data.get('consentRefs', []) == resource.data.get('consentRefs', [])
+        && request.resource.data.public.get('username', '') == resource.data.public.get('username', '')
+        && request.resource.data.lifecycle.version == resource.data.lifecycle.version + 1
+      );
+      allow delete: if isAdmin();
+    }
+
+    // ---- Creator memberships: server-owned approval and assignment records --
+    // Applicants and creators may read their own standing, but cannot mutate
+    // status, roles, languages, campaigns, permissions or admin decision fields.
+    match /creatorMemberships/{creatorId} {
+      allow read: if isOwner(creatorId) || isStaff();
+      allow write: if false;
+    }
+
+    match /creatorUsernames/{username} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // ---- Creator applications: created + decided server-side ----------------
+    // Registration runs through the submitCreatorApplication function (dedupe,
+    // reference number, atomic profile + notification). Owners and staff read;
+    // no client may write, so status transitions stay privileged.
+    match /creatorApplications/{applicationId} {
+      allow read: if isStaff() || (
+        isSignedIn() && resource.data.authUid == request.auth.uid
+      );
+      allow write: if false;
+    }
+
+    // ---- Submissions: owner-managed drafts; moderation is server-only -------
+    // Owners create/edit their own drafts and (re)submit. Raw media lives in
+    // Storage and stays private until a server-side approval decision. Owners
+    // may never set moderation state, approve, schedule or publish.
+    match /submissions/{submissionId} {
+      allow read: if isStaff() || (
+        isSignedIn() && resource.data.authUid == request.auth.uid
+      );
+      allow create: if isSignedIn()
+        && isApprovedCreator(request.auth.uid)
+        && request.resource.data.id == submissionId
+        && request.resource.data.authUid == request.auth.uid
+        && request.resource.data.creator.id == request.auth.uid
+        && request.resource.data.status in ['DRAFT', 'SUBMITTED']
+        && request.resource.data.permissions.review == true
+        && request.resource.data.get('moderation.publishedContent', null) == null
+        && lifecycleIsValid(request.resource.data);
+      allow update: if isSignedIn()
+        && isApprovedCreator(request.auth.uid)
+        && resource.data.authUid == request.auth.uid
+        && request.resource.data.authUid == resource.data.authUid
+        && resource.data.status in ['DRAFT', 'NEEDS_REVISION']
+        && request.resource.data.status in ['DRAFT', 'SUBMITTED', 'RESUBMITTED', 'WITHDRAWN']
+        // Moderation outcome fields are frozen to their prior values.
+        && request.resource.data.get('moderation', {}) == resource.data.get('moderation', {})
+        && request.resource.data.get('rewardEligible', false) == resource.data.get('rewardEligible', false)
+        && request.resource.data.lifecycle.version == resource.data.lifecycle.version + 1;
+      allow delete: if false;
+    }
+
+    // ---- Published content: public read of published records, server-write ---
+    // The only collection the mobile app consumes. Created / mutated exclusively
+    // by the trusted publication workflow.
+    match /publishedContent/{contentId} {
+      allow read: if resource.data.publicationStatus == 'published' || isStaff();
+      allow write: if false;
+    }
+
+    // ---- Notifications: owner reads own; owner may only flip `read` ----------
+    match /notifications/{notificationId} {
+      allow read: if isStaff() || (
+        isSignedIn() && resource.data.authUid == request.auth.uid
+      );
+      allow create: if false;
+      allow update: if isSignedIn()
+        && resource.data.authUid == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read', 'lifecycle']);
+      allow delete: if false;
+    }
+
+    // ---- Creator consent ledger: server-authored, immutable -----------------
+    match /creatorConsents/{consentId} {
+      allow read: if isStaff() || (
+        isSignedIn() && resource.data.get('subject.id', '') == request.auth.uid
+      );
+      allow write: if false;
+    }
+
+    // ---- Support requests: owner creates, staff resolves --------------------
+    match /supportRequests/{requestId} {
+      allow read: if isStaff() || (
+        isSignedIn() && resource.data.authUid == request.auth.uid
+      );
+      allow create: if isSignedIn()
+        && request.resource.data.authUid == request.auth.uid
+        && request.resource.data.get('status', 'open') == 'open';
+      allow update, delete: if isStaff();
+    }
+
+    // ---- Communications: admin-managed announcements and delivery logs -------
+    match /communications/{communicationId} {
+      allow read: if isStaff();
+      allow create, update: if isAdmin();
+      allow delete: if false;
+    }
+
+    // ---- Team site intake: public submit, staff review ----------------------
+    match /teamSiteRequests/{requestId} {
+      allow create: if validTeamSiteRequest(request.resource.data);
+      allow read: if isStaff();
+      allow update, delete: if false;
+    }
+
+    // ---- Payouts: restricted to finance / super-admin, server-write ---------
+    // Payout detail is masked in the UI and never client-writable.
+    match /payouts/{payoutId} {
+      allow read: if isFinance();
       allow write: if false;
     }
 

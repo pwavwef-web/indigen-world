@@ -5,3 +5,8 @@ initializeApp();
 
 export { decideReview } from './validation.js';
 export { setUserRole } from './identity.js';
+export {
+  submitCreatorApplication,
+  decideCreatorApplication,
+  decideSubmission,
+} from './creators.js';

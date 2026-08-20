@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.indigen-world.org/v0/creator-application.schema.json",
+  "title": "CreatorApplication",
+  "description": "A founding-creator application. Created by the applicant (status SUBMITTED); status transitions after that are privileged and performed server-side. No Mobile Money, bank or identity-document data is collected at the waitlist stage.",
+  "type": "object",
+  "properties": {
+    "id": { "$ref": "common.schema.json#/$defs/identifier" },
+    "authUid": { "type": "string", "minLength": 1 },
+    "reference": { "$ref": "common.schema.json#/$defs/creatorReference" },
+    "campaign": {
+      "oneOf": [
+        { "$ref": "common.schema.json#/$defs/reference" },
+        { "type": "null" }
+      ]
+    },
+    "profile": {
+      "oneOf": [
+        { "$ref": "common.schema.json#/$defs/reference" },
+        { "type": "null" }
+      ]
+    },
+    "status": { "$ref": "common.schema.json#/$defs/creatorApplicationStatus" },
+    "dedupeKeys": {
+      "type": "object",
+      "description": "Lowercased, normalised identity keys used to prevent duplicate applications.",
+      "properties": {
+        "email": { "type": "string" },
+        "phone": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "snapshot": {
+      "type": "object",
+      "description": "Point-in-time copy of the answers given, for review even if the profile later changes.",
+      "properties": {
+        "displayName": { "type": "string" },
+        "country": { "type": "string" },
+        "region": { "type": "string" },
+        "kasemProficiency": { "$ref": "common.schema.json#/$defs/kasemProficiency" },
+        "dialect": { "type": "string" },
+        "interests": { "type": "array", "items": { "type": "string" } },
+        "formats": { "type": "array", "items": { "type": "string" } },
+        "referralSource": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "consent": {
+      "type": "object",
+      "description": "Registration-time consents. Content-use and AI-training permissions are NOT collected here; they are requested per submission.",
+      "properties": {
+        "termsAccepted": { "type": "boolean" },
+        "privacyAccepted": { "type": "boolean" },
+        "communicationsAccepted": { "type": "boolean" },
+        "accuracyConfirmed": { "type": "boolean" },
+        "termsVersion": { "type": "string" },
+        "acceptedAt": { "$ref": "common.schema.json#/$defs/isoTimestamp" }
+      },
+      "required": ["termsAccepted", "privacyAccepted", "accuracyConfirmed", "termsVersion", "acceptedAt"],
+      "additionalProperties": false
+    },
+    "review": {
+      "type": "object",
+      "description": "Server-managed review outcome. Internal notes live in a separate admin-only field set.",
+      "properties": {
+        "decidedBy": { "oneOf": [{ "$ref": "common.schema.json#/$defs/reference" }, { "type": "null" }] },
+        "decidedAt": { "oneOf": [{ "$ref": "common.schema.json#/$defs/isoTimestamp" }, { "type": "null" }] },
+        "reason": { "type": "string" },
+        "tags": { "type": "array", "items": { "type": "string" } }
+      },
+      "additionalProperties": false
+    },
+    "flaggedForManualReview": { "type": "boolean" },
+    "schemaVersion": { "type": "integer", "minimum": 1 },
+    "lifecycle": { "$ref": "common.schema.json#/$defs/recordLifecycle" }
+  },
+  "required": ["id", "authUid", "status", "consent", "lifecycle"],
+  "additionalProperties": false
+}

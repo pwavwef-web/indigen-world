@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.indigen-world.org/v0/published-content.schema.json",
+  "title": "PublishedContent",
+  "description": "The stable, mobile-app-facing contract for approved content. Created only by the trusted publication workflow from an APPROVED submission. Never contains raw submission media paths, private contact data, internal reviews, notes or payout data.",
+  "type": "object",
+  "properties": {
+    "id": { "$ref": "common.schema.json#/$defs/identifier" },
+    "submission": { "$ref": "common.schema.json#/$defs/reference" },
+    "campaign": { "$ref": "common.schema.json#/$defs/reference" },
+    "creatorAttribution": {
+      "type": "object",
+      "description": "Public attribution only — display name and optional avatar, never contact details.",
+      "properties": {
+        "creatorId": { "$ref": "common.schema.json#/$defs/identifier" },
+        "displayName": { "type": "string", "minLength": 1 },
+        "avatarUrl": { "oneOf": [{ "type": "string", "format": "uri" }, { "type": "null" }] }
+      },
+      "required": ["creatorId", "displayName"],
+      "additionalProperties": false
+    },
+    "language": { "$ref": "common.schema.json#/$defs/languageCode" },
+    "dialect": { "type": "string" },
+    "category": { "type": "string" },
+    "title": { "type": "string", "minLength": 1 },
+    "description": { "type": "string" },
+    "englishSummary": { "type": "string" },
+    "mediaUrl": { "type": "string", "description": "Signed or CDN delivery reference for approved media." },
+    "thumbnailUrl": { "oneOf": [{ "type": "string" }, { "type": "null" }] },
+    "captionsUrl": { "oneOf": [{ "type": "string" }, { "type": "null" }] },
+    "culturalNotes": { "type": "string" },
+    "ageRating": { "type": "string", "enum": ["all", "7+", "13+", "16+", "18+"] },
+    "tags": { "type": "array", "items": { "type": "string" } },
+    "publicationStatus": { "$ref": "common.schema.json#/$defs/publicationStatus" },
+    "publishedAt": { "oneOf": [{ "$ref": "common.schema.json#/$defs/isoTimestamp" }, { "type": "null" }] },
+    "licenceDisplay": { "type": "string", "description": "Human-readable rights/licence line for display." },
+    "correctionState": {
+      "type": "string",
+      "enum": ["none", "corrected", "takedown_requested", "removed"]
+    },
+    "schemaVersion": { "type": "integer", "minimum": 1 },
+    "lifecycle": { "$ref": "common.schema.json#/$defs/recordLifecycle" }
+  },
+  "required": ["id", "submission", "campaign", "creatorAttribution", "title", "publicationStatus", "lifecycle"],
+  "additionalProperties": false
+}

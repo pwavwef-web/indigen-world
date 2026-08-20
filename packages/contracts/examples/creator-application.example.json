@@ -1,0 +1,40 @@
+{
+  "id": "app-ama",
+  "authUid": "creator-ama",
+  "reference": "KCC-2026-0001",
+  "campaign": { "collection": "campaigns", "id": "kasem-creator-challenge" },
+  "profile": { "collection": "creatorProfiles", "id": "creator-ama" },
+  "status": "SUBMITTED",
+  "dedupeKeys": { "email": "ama@example.com", "phone": "+233200000000" },
+  "snapshot": {
+    "displayName": "Ama the Storyteller",
+    "country": "GH",
+    "region": "Navrongo",
+    "kasemProficiency": "native",
+    "dialect": "navrongo",
+    "interests": ["storytelling", "culture"],
+    "formats": ["video"],
+    "referralSource": "WhatsApp"
+  },
+  "consent": {
+    "termsAccepted": true,
+    "privacyAccepted": true,
+    "communicationsAccepted": true,
+    "accuracyConfirmed": true,
+    "termsVersion": "creator-terms-2026-08",
+    "acceptedAt": "2026-08-02T00:00:00Z"
+  },
+  "review": {
+    "decidedBy": null,
+    "decidedAt": null,
+    "reason": "",
+    "tags": []
+  },
+  "flaggedForManualReview": false,
+  "schemaVersion": 1,
+  "lifecycle": {
+    "createdAt": "2026-08-02T00:00:00Z",
+    "updatedAt": "2026-08-02T00:00:00Z",
+    "version": 1
+  }
+}

@@ -14,6 +14,9 @@
       "types": "./index.d.ts",
       "default": "./index.mjs"
     },
+    "./creator-models": {
+      "types": "./creator-models.d.ts"
+    },
     "./schemas/*.json": "./schemas/*.json",
     "./examples/*.json": "./examples/*.json",
     "./package.json": "./package.json"
@@ -21,6 +24,7 @@
   "files": [
     "index.mjs",
     "index.d.ts",
+    "creator-models.d.ts",
     "schemas",
     "examples"
   ],

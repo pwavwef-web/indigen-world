@@ -1,9 +1,79 @@
 rules_version = '2';
 
+// Indigen World Storage Security Rules.
+//
+// Raw creator submission media is PRIVATE: only the owner and staff (validators/
+// admins) may read it, and it never becomes public on upload. Approved public
+// media is served from a separate, world-readable path that only trusted
+// server-side code (Admin SDK, which bypasses these rules) may write.
 service firebase.storage {
   match /b/{bucket}/o {
-    // Deny by default until media categories, ownership, consent,
-    // cultural permissions, file limits, and malware controls are defined.
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    function role() {
+      return isSignedIn() ? request.auth.token.get('role', null) : null;
+    }
+    function isStaff() {
+      return role() == 'validator'
+        || role() == 'reviewer'
+        || role() == 'admin'
+        || role() == 'super_admin'
+        || (isSignedIn() && request.auth.token.get('superAdmin', false) == true);
+    }
+    function isApprovedCreator(uid) {
+      return isSignedIn()
+        && request.auth.uid == uid
+        && request.auth.token.get('creatorStatus', '') == 'approved'
+        && request.auth.token.get('creatorRoles', []) is list
+        && 'creator' in request.auth.token.get('creatorRoles', []);
+    }
+    function isBlockedCreator() {
+      return isSignedIn() && request.auth.token.get('creatorStatus', '') in ['suspended', 'revoked', 'rejected'];
+    }
+    // 500 MB ceiling; per-campaign limits are enforced additionally server-side.
+    function withinSizeLimit() {
+      return request.resource.size < 500 * 1024 * 1024;
+    }
+    function allowedType() {
+      return request.resource.contentType.matches('image/.*')
+        || request.resource.contentType.matches('audio/.*')
+        || request.resource.contentType.matches('video/.*')
+        || request.resource.contentType == 'application/pdf';
+    }
+
+    // ---- Raw creator submissions: private, owner-writable -------------------
+    // creator-submissions/{uid}/{campaignId}/{submissionId}/{fileName}
+    match /creator-submissions/{uid}/{campaignId}/{submissionId}/{fileName} {
+      allow read: if isSignedIn() && (request.auth.uid == uid || isStaff());
+      allow write: if isSignedIn()
+        && request.auth.uid == uid
+        && isApprovedCreator(uid)
+        && withinSizeLimit()
+        && allowedType();
+      allow delete: if isSignedIn() && ((request.auth.uid == uid && isApprovedCreator(uid)) || isStaff());
+    }
+
+    // ---- Creator profile avatars: owner-writable, world-readable ------------
+    match /creator-avatars/{uid}/{fileName} {
+      allow read: if true;
+      allow write: if isSignedIn()
+        && request.auth.uid == uid
+        && !isBlockedCreator()
+        && request.resource.size < 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+      allow delete: if isSignedIn() && request.auth.uid == uid && !isBlockedCreator();
+    }
+
+    // ---- Approved public media: world-readable, server-written only ---------
+    // Populated by the publication workflow from approved submissions.
+    match /published-media/{contentId}/{fileName} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // ---- Default deny -------------------------------------------------------
     match /{allPaths=**} {
       allow read, write: if false;
     }

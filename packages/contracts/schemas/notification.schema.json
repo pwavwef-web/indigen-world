@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.indigen-world.org/v0/notification.schema.json",
+  "title": "Notification",
+  "description": "An in-app notification addressed to a single recipient. Delivery of email is handled by existing notification infrastructure; WhatsApp Channel updates remain external and opt-in.",
+  "type": "object",
+  "properties": {
+    "id": { "$ref": "common.schema.json#/$defs/identifier" },
+    "recipient": { "$ref": "common.schema.json#/$defs/reference" },
+    "authUid": { "type": "string", "minLength": 1 },
+    "type": {
+      "type": "string",
+      "enum": [
+        "application_update",
+        "campaign_opening",
+        "submission_deadline",
+        "review_decision",
+        "revision_request",
+        "publication_notice",
+        "winner_announcement",
+        "payment_update",
+        "policy_change",
+        "announcement"
+      ]
+    },
+    "title": { "type": "string", "minLength": 1 },
+    "body": { "type": "string" },
+    "link": { "type": "string" },
+    "read": { "type": "boolean" },
+    "channels": {
+      "type": "array",
+      "items": { "type": "string", "enum": ["in_app", "email"] }
+    },
+    "schemaVersion": { "type": "integer", "minimum": 1 },
+    "lifecycle": { "$ref": "common.schema.json#/$defs/recordLifecycle" }
+  },
+  "required": ["id", "recipient", "authUid", "type", "title", "read", "lifecycle"],
+  "additionalProperties": false
+}

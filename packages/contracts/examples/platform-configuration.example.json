@@ -1,0 +1,61 @@
+{
+  "id": "creators",
+  "whatsappChannelUrl": "https://whatsapp.com/channel/0029Vb8v3p49MF8yJiLMzH2r",
+  "supportEmail": "creators@indigen.world",
+  "supportUrl": "/studio/help",
+  "dialects": [
+    { "slug": "navrongo", "label": "Navrongo" },
+    { "slug": "paga", "label": "Paga" },
+    { "slug": "chiana", "label": "Chiana" },
+    { "slug": "other", "label": "Other" },
+    { "slug": "not-sure", "label": "Not sure" }
+  ],
+  "contentCategories": [
+    { "slug": "storytelling", "label": "Storytelling" },
+    { "slug": "comedy", "label": "Comedy" },
+    { "slug": "education", "label": "Education" },
+    { "slug": "language-lessons", "label": "Kasem language lessons" },
+    { "slug": "music", "label": "Music" },
+    { "slug": "poetry", "label": "Poetry" },
+    { "slug": "culture", "label": "Cultural explanations" },
+    { "slug": "everyday-life", "label": "Everyday life" }
+  ],
+  "contentFormats": ["Short video", "Long video", "Audio", "Image", "Written"],
+  "languages": [
+    { "code": "xsm", "label": "Kasem" },
+    { "code": "en", "label": "English" }
+  ],
+  "rejectionReasons": [
+    "Not original work",
+    "Copyright concerns",
+    "Missing consent",
+    "Off-brief",
+    "Quality below threshold"
+  ],
+  "reviewCriteria": [
+    { "key": "language", "label": "Kasem-language quality" },
+    { "key": "creativity", "label": "Creativity" },
+    { "key": "cultural", "label": "Cultural value" },
+    { "key": "originality", "label": "Originality" },
+    { "key": "technical", "label": "Technical quality" }
+  ],
+  "mediaRestrictions": {
+    "maxFileBytes": 524288000,
+    "acceptedMimeTypes": ["video/mp4", "audio/mpeg", "image/jpeg", "image/png"]
+  },
+  "guidelines": [
+    { "heading": "Eligible content", "body": "Original Kasem-language content across the listed categories." },
+    { "heading": "Originality requirements", "body": "Content must be your own or used with permission." }
+  ],
+  "faqs": [
+    { "question": "Who may join?", "answer": "Anyone with a connection to Kasem language or culture." }
+  ],
+  "termsVersion": "creator-terms-2026-08",
+  "privacyVersion": "privacy-2026-08",
+  "schemaVersion": 1,
+  "lifecycle": {
+    "createdAt": "2026-08-01T00:00:00Z",
+    "updatedAt": "2026-08-01T00:00:00Z",
+    "version": 1
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "id": "creator-ama",
+  "authUid": "creator-ama",
+  "reference": "KCC-2026-0001",
+  "public": {
+    "displayName": "Ama the Storyteller",
+    "avatarUrl": null,
+    "initials": "AS",
+    "bio": "Sharing Kasem folktales for a new generation.",
+    "country": "GH",
+    "region": "Navrongo",
+    "community": "Kasena",
+    "languagesSpoken": ["Kasem", "English"],
+    "kasemProficiency": "native",
+    "dialect": "navrongo",
+    "canWriteKasem": true,
+    "canTranslateToEnglish": true,
+    "interests": ["storytelling", "culture"],
+    "formats": ["video", "audio"],
+    "socialLinks": [{ "platform": "Instagram", "url": "https://example.com/ama" }]
+  },
+  "contact": {
+    "email": "ama@example.com",
+    "phone": "+233200000000",
+    "preferredContactMethod": "whatsapp",
+    "preferredLanguage": "en"
+  },
+  "communityRelationship": "Born and raised in the community.",
+  "ageConfirmed": true,
+  "isMinor": false,
+  "guardianConsentStatus": "not_required",
+  "recordingAccess": ["smartphone"],
+  "availability": "Weekends",
+  "referralSource": "WhatsApp",
+  "notificationPreferences": { "email": true, "inApp": true },
+  "profileCompletion": 100,
+  "status": "waitlisted",
+  "consentRefs": [],
+  "schemaVersion": 1,
+  "lifecycle": {
+    "createdAt": "2026-08-02T00:00:00Z",
+    "updatedAt": "2026-08-02T00:00:00Z",
+    "version": 1
+  }
+}

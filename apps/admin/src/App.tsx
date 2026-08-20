@@ -1,14 +1,11 @@
-import { useEffect, useState } from 'react';
-import {
-  GoogleAuthProvider,
-  onAuthStateChanged,
-  signInWithPopup,
-  signOut,
-  type User,
-} from 'firebase/auth';
+import { useState } from 'react';
+import { GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/auth';
 import { enums, schemas } from '@indigen-world/contracts';
 import { Button } from '@indigen-world/web-ui';
 import { auth } from './firebase';
+import { isValidator, useAdminAuth } from './creators/data';
+import { CreatorsAdmin } from './creators/CreatorsAdmin';
+import { TeamSiteIntakePage, TeamSiteRequestsAdmin } from './team-sites/TeamSiteIntake';
 
 const provider = new GoogleAuthProvider();
 
@@ -23,28 +20,69 @@ const statusLabels: Record<string, string> = {
   retired: 'Retired',
 };
 
-// Administrative domains this console will own. These are operational areas,
-// distinct from TribeStudio's creator and contributor workflows.
 const adminDomains = [
   ['Roles & access', 'Assign and audit role claims for contributors, validators and staff.'],
+  ['Creator management', 'Applications, campaigns, submissions, published content and consent for TribeStudio creators.'],
   ['Validation oversight', 'Monitor validator queues, escalations and quality across language cells.'],
   ['Moderation', 'Review reported content and enforce cultural-permission and consent policy.'],
   ['Campaigns & rewards', 'Oversee bounties, reward settlement and contributor-points integrity.'],
   ['Audit & accountability', 'Inspect the append-only audit log of privileged actions.'],
-  ['Reporting & exports', 'Generate operational reports and approved, permission-safe exports.'],
 ] as const;
 
-function App() {
-  const [user, setUser] = useState<User | null>(null);
-  const [ready, setReady] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+type View = 'console' | 'creators' | 'teamSites';
 
-  useEffect(() => {
-    return onAuthStateChanged(auth, (next) => {
-      setUser(next);
-      setReady(true);
-    });
-  }, []);
+function ConsoleHome() {
+  const entities = Object.entries(schemas);
+  return (
+    <>
+      <section className="panel panel--notice">
+        <h1>Administration console</h1>
+        <p>
+          The internal admin app for the Indigen World ecosystem — role and access management, creator
+          management, validation oversight, moderation, reward integrity and audit. It is separate from{' '}
+          <strong>TribeStudio</strong>, the workspace for contributors and creators.
+        </p>
+      </section>
+
+      <section className="panel">
+        <h2>Administrative domains</h2>
+        <ul className="entity-grid">
+          {adminDomains.map(([title, body]) => (
+            <li key={title} className="entity-card"><strong>{title}</strong><p>{body}</p></li>
+          ))}
+        </ul>
+      </section>
+
+      <section className="panel">
+        <h2>Validation lifecycle</h2>
+        <ol className="pipeline">
+          {(enums.validationStatus as string[]).map((status) => (
+            <li key={status} className={`pipeline__step pipeline__step--${status}`}>{statusLabels[status] ?? status}</li>
+          ))}
+        </ol>
+      </section>
+
+      <section className="panel">
+        <h2>Shared contract entities</h2>
+        <p className="panel__hint">{entities.length} entities from <code>@indigen-world/contracts</code>.</p>
+        <ul className="entity-grid">
+          {entities.map(([key, schema]) => (
+            <li key={key} className="entity-card">
+              <strong>{(schema as { title?: string }).title ?? key}</strong>
+              <p>{(schema as { description?: string }).description ?? ''}</p>
+            </li>
+          ))}
+        </ul>
+      </section>
+    </>
+  );
+}
+
+function App() {
+  const { user, role, ready } = useAdminAuth();
+  const [view, setView] = useState<View>('console');
+  const [error, setError] = useState<string | null>(null);
+  const isTeamSiteIntake = window.location.pathname === '/team-site-intake';
 
   const handleSignIn = async () => {
     setError(null);
@@ -54,7 +92,6 @@ function App() {
       setError(err instanceof Error ? err.message : 'Sign-in failed.');
     }
   };
-
   const handleSignOut = async () => {
     setError(null);
     try {
@@ -64,7 +101,9 @@ function App() {
     }
   };
 
-  const entities = Object.entries(schemas);
+  if (isTeamSiteIntake) {
+    return <TeamSiteIntakePage />;
+  }
 
   return (
     <div className="shell">
@@ -85,10 +124,11 @@ function App() {
         <div className="topbar__account">
           {ready && user ? (
             <>
-              <span className="account-name">{user.displayName ?? user.email}</span>
-              <Button variant="ghost" onClick={handleSignOut}>
-                Sign out
-              </Button>
+              <span className="account-name">
+                {user.displayName ?? user.email}
+                {role ? <span className="role-chip">{role}</span> : null}
+              </span>
+              <Button variant="ghost" onClick={handleSignOut}>Sign out</Button>
             </>
           ) : (
             <Button variant="primary" onClick={handleSignIn} disabled={!ready}>
@@ -98,64 +138,44 @@ function App() {
         </div>
       </header>
 
+      {ready && user ? (
+        <nav className="topnav">
+          <button type="button" className={view === 'console' ? 'topnav__link is-active' : 'topnav__link'} onClick={() => setView('console')}>Console</button>
+          <button type="button" className={view === 'creators' ? 'topnav__link is-active' : 'topnav__link'} onClick={() => setView('creators')}>Creators</button>
+          <button type="button" className={view === 'teamSites' ? 'topnav__link is-active' : 'topnav__link'} onClick={() => setView('teamSites')}>Team sites</button>
+        </nav>
+      ) : null}
+
       <main id="main-content" className="content">
-        <section className="panel panel--notice">
-          <h1>Administration console scaffold</h1>
-          <p>
-            This is the internal admin app for the Indigen World ecosystem — role and access
-            management, validation oversight, moderation, reward integrity and audit. It is separate
-            from <strong>TribeStudio</strong>, the workspace for contributors and content creators.
-          </p>
-          <p className="notice-line">
-            Authentication is wired. Role claims, data access and privileged operations arrive with
-            the Firebase data layer (Phase 2); Firestore is <strong>deny-all by default</strong>{' '}
-            until per-collection rules and emulator tests are approved.
-          </p>
-          {error ? <p className="error-line">{error}</p> : null}
-        </section>
-
-        <section className="panel">
-          <h2>Administrative domains</h2>
-          <p className="panel__hint">Operational areas this console will own.</p>
-          <ul className="entity-grid">
-            {adminDomains.map(([title, body]) => (
-              <li key={title} className="entity-card">
-                <strong>{title}</strong>
-                <p>{body}</p>
-              </li>
-            ))}
-          </ul>
-        </section>
-
-        <section className="panel">
-          <h2>Validation lifecycle</h2>
-          <p className="panel__hint">
-            The status pipeline every content record moves through, read from the shared contracts.
-          </p>
-          <ol className="pipeline">
-            {(enums.validationStatus as string[]).map((status) => (
-              <li key={status} className={`pipeline__step pipeline__step--${status}`}>
-                {statusLabels[status] ?? status}
-              </li>
-            ))}
-          </ol>
-        </section>
-
-        <section className="panel">
-          <h2>Shared contract entities</h2>
-          <p className="panel__hint">
-            {entities.length} entities from <code>@indigen-world/contracts</code>. The admin console,
-            TribeStudio, the mobile app and Functions all build against these shapes.
-          </p>
-          <ul className="entity-grid">
-            {entities.map(([key, schema]) => (
-              <li key={key} className="entity-card">
-                <strong>{(schema as { title?: string }).title ?? key}</strong>
-                <p>{(schema as { description?: string }).description ?? ''}</p>
-              </li>
-            ))}
-          </ul>
-        </section>
+        {error ? <p className="error-line">{error}</p> : null}
+        {!ready ? (
+          <p className="muted">Loading…</p>
+        ) : !user ? (
+          <section className="panel panel--notice">
+            <h1>Sign in required</h1>
+            <p>Sign in with an authorised staff account to manage the Indigen World ecosystem.</p>
+          </section>
+        ) : view === 'teamSites' ? (
+          isValidator(role) ? (
+            <TeamSiteRequestsAdmin />
+          ) : (
+            <section className="panel panel--notice">
+              <h1>Staff access required</h1>
+              <p>Your account needs a validator or admin role to review team site responses.</p>
+            </section>
+          )
+        ) : view === 'creators' ? (
+          isValidator(role) ? (
+            <CreatorsAdmin role={role} />
+          ) : (
+            <section className="panel panel--notice">
+              <h1>Staff access required</h1>
+              <p>Your account needs a validator or admin role to manage creators.</p>
+            </section>
+          )
+        ) : (
+          <ConsoleHome />
+        )}
       </main>
 
       <footer className="footer">

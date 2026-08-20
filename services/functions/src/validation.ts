@@ -28,7 +28,9 @@ const PUBLICATION_LICENCES = new Set([
   'cc_by_nc',
   'public_domain',
 ]);
-const ENFORCE_APP_CHECK = process.env.FUNCTIONS_EMULATOR !== 'true';
+// App Check enforcement is opt-in (see creators.ts): enable via ENFORCE_APP_CHECK=true
+// on the deployed functions once App Check is configured for the web apps.
+const ENFORCE_APP_CHECK = process.env.ENFORCE_APP_CHECK === 'true';
 
 let contentValidators: Map<string, ValidateFunction> | undefined;
 
@@ -64,6 +66,7 @@ const DECISION_TO_STATUS: Record<string, string> = {
 export const decideReview = onCall({
   enforceAppCheck: ENFORCE_APP_CHECK,
   consumeAppCheckToken: ENFORCE_APP_CHECK,
+  invoker: 'public',
 }, async (req) => {
   const uid = requireAuth(req);
   const actorRole = requireRole(req, 'validator');

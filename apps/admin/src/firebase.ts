@@ -1,7 +1,9 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { connectAuthEmulator, getAuth } from 'firebase/auth';
+import { connectFirestoreEmulator, getFirestore } from 'firebase/firestore';
+import { connectFunctionsEmulator, getFunctions } from 'firebase/functions';
 import { getAnalytics, isSupported, type Analytics } from 'firebase/analytics';
+import { initializeAppCheck, ReCaptchaEnterpriseProvider } from 'firebase/app-check';
 
 // Firebase configuration for the Indigen World Admin console (Firebase Hosting
 // site: indigen-admin), inside the shared project-kassena-7e026 project.
@@ -21,10 +23,30 @@ export const firebaseConfig = {
 export const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
+export const functions = getFunctions(app);
+const usingEmulators = import.meta.env.VITE_USE_EMULATORS === 'true';
+
+// Callable Functions (role assignment, application and submission decisions)
+// enforce App Check outside the emulator. Configure the same reCAPTCHA Enterprise
+// web key used by TribeStudio; the key is a public site identifier.
+const appCheckSiteKey = import.meta.env.VITE_RECAPTCHA_ENTERPRISE_SITE_KEY;
+if (!usingEmulators && typeof appCheckSiteKey === 'string' && appCheckSiteKey.length > 0) {
+  initializeAppCheck(app, {
+    provider: new ReCaptchaEnterpriseProvider(appCheckSiteKey),
+    isTokenAutoRefreshEnabled: true,
+  });
+}
+
+// Opt-in local emulator wiring for development and integration tests.
+if (usingEmulators) {
+  connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true });
+  connectFirestoreEmulator(db, '127.0.0.1', 8080);
+  connectFunctionsEmulator(functions, '127.0.0.1', 5001);
+}
 
 // Analytics is only initialised in environments that support it (browser, not SSR).
 export let analytics: Analytics | null = null;
-if (typeof window !== 'undefined') {
+if (typeof window !== 'undefined' && !usingEmulators) {
   void isSupported().then((supported) => {
     if (supported) analytics = getAnalytics(app);
   });

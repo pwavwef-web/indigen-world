@@ -4,23 +4,23 @@
   "version": "0.1.0",
   "type": "module",
   "description": "Trusted backend (Firebase Functions) for the Indigen World ecosystem.",
-  "main": "lib/index.js",
+  "main": "lib/bundle.mjs",
   "engines": {
     "node": "22"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && esbuild lib/index.js --bundle --platform=node --format=esm --target=node22 --outfile=lib/bundle.mjs --external:firebase-admin --external:firebase-functions --external:ajv --external:ajv/* --external:ajv-formats",
     "typecheck": "tsc --noEmit",
     "serve": "npm run build && firebase emulators:start --only functions"
   },
   "dependencies": {
-    "@indigen-world/contracts": "*",
     "ajv": "^8.17.1",
     "ajv-formats": "^3.0.1",
     "firebase-admin": "^14.2.0",
     "firebase-functions": "^7.3.2"
   },
   "devDependencies": {
+    "esbuild": "^0.24.2",
     "typescript": "^5.7.2"
   }
 }

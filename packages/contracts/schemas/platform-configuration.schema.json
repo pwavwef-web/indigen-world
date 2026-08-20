@@ -1,0 +1,109 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.indigen-world.org/v0/platform-configuration.schema.json",
+  "title": "PlatformConfiguration",
+  "description": "Publicly-readable, admin-managed configuration that keeps dialects, categories, media limits, guidelines and the WhatsApp Channel URL out of the frontend code. A single document keyed 'creators' backs the creator system.",
+  "type": "object",
+  "properties": {
+    "id": { "$ref": "common.schema.json#/$defs/identifier" },
+    "whatsappChannelUrl": { "type": "string", "format": "uri" },
+    "supportEmail": { "type": "string" },
+    "supportUrl": { "type": "string" },
+    "dialects": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "slug": { "$ref": "common.schema.json#/$defs/slug" },
+          "label": { "type": "string", "minLength": 1 }
+        },
+        "required": ["slug", "label"],
+        "additionalProperties": false
+      }
+    },
+    "contentCategories": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "slug": { "$ref": "common.schema.json#/$defs/slug" },
+          "label": { "type": "string", "minLength": 1 },
+          "description": { "type": "string" }
+        },
+        "required": ["slug", "label"],
+        "additionalProperties": false
+      }
+    },
+    "contentFormats": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "languages": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "code": { "$ref": "common.schema.json#/$defs/languageCode" },
+          "label": { "type": "string", "minLength": 1 }
+        },
+        "required": ["code", "label"],
+        "additionalProperties": false
+      }
+    },
+    "rejectionReasons": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "reviewCriteria": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "key": { "type": "string", "minLength": 1 },
+          "label": { "type": "string", "minLength": 1 }
+        },
+        "required": ["key", "label"],
+        "additionalProperties": false
+      }
+    },
+    "mediaRestrictions": {
+      "type": "object",
+      "properties": {
+        "maxFileBytes": { "type": "integer", "minimum": 1 },
+        "acceptedMimeTypes": { "type": "array", "items": { "type": "string" } }
+      },
+      "additionalProperties": false
+    },
+    "guidelines": {
+      "type": "array",
+      "description": "CMS-style guideline sections rendered on the public guidelines page.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "heading": { "type": "string", "minLength": 1 },
+          "body": { "type": "string", "minLength": 1 }
+        },
+        "required": ["heading", "body"],
+        "additionalProperties": false
+      }
+    },
+    "faqs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "question": { "type": "string", "minLength": 1 },
+          "answer": { "type": "string", "minLength": 1 }
+        },
+        "required": ["question", "answer"],
+        "additionalProperties": false
+      }
+    },
+    "termsVersion": { "type": "string" },
+    "privacyVersion": { "type": "string" },
+    "schemaVersion": { "type": "integer", "minimum": 1 },
+    "lifecycle": { "$ref": "common.schema.json#/$defs/recordLifecycle" }
+  },
+  "required": ["id", "whatsappChannelUrl", "lifecycle"],
+  "additionalProperties": false
+}

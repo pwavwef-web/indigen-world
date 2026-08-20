@@ -25,6 +25,14 @@ export const contributor: JsonSchema;
 export const validator: JsonSchema;
 export const review: JsonSchema;
 export const auditLog: JsonSchema;
+export const campaign: JsonSchema;
+export const creatorProfile: JsonSchema;
+export const creatorMembership: JsonSchema;
+export const creatorApplication: JsonSchema;
+export const submission: JsonSchema;
+export const publishedContent: JsonSchema;
+export const notification: JsonSchema;
+export const platformConfiguration: JsonSchema;
 
 /** Entity schemas keyed by camelCase entity name (excludes shared common definitions). */
 export const schemas: Record<string, JsonSchema>;
@@ -39,4 +47,12 @@ export const enums: {
   licence: string[];
   culturalPermissionTier: string[];
   mediaType: string[];
+  campaignStatus: string[];
+  creatorApplicationStatus: string[];
+  submissionStatus: string[];
+  paymentStatus: string[];
+  kasemProficiency: string[];
+  contactMethod: string[];
+  publicationStatus: string[];
+  creatorConsentScope: string[];
 };

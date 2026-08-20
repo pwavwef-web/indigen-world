@@ -1,11 +1,20 @@
 import { HttpsError, type CallableRequest } from 'firebase-functions/v2/https';
 
-export type Role = 'contributor' | 'validator' | 'admin';
+export type Role =
+  | 'creator'
+  | 'reviewer'
+  | 'admin'
+  | 'super_admin'
+  | 'contributor'
+  | 'validator';
 
 const ROLE_INHERITANCE: Record<Role, readonly Role[]> = {
-  contributor: ['contributor', 'validator', 'admin'],
-  validator: ['validator', 'admin'],
-  admin: ['admin'],
+  creator: ['creator', 'reviewer', 'admin', 'super_admin', 'contributor', 'validator'],
+  reviewer: ['reviewer', 'admin', 'super_admin', 'validator'],
+  admin: ['admin', 'super_admin'],
+  super_admin: ['super_admin'],
+  contributor: ['contributor', 'validator', 'admin', 'super_admin', 'creator', 'reviewer'],
+  validator: ['validator', 'admin', 'super_admin', 'reviewer'],
 };
 
 export function requireAuth(req: CallableRequest<unknown>): string {

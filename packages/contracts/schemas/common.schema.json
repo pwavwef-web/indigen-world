@@ -97,6 +97,90 @@
       "type": "string",
       "enum": ["image", "audio", "video", "document"]
     },
+    "campaignStatus": {
+      "type": "string",
+      "description": "Lifecycle of a creator campaign. The interface reacts to this value; submission availability is derived from it, never hardcoded in the client.",
+      "enum": [
+        "DRAFT",
+        "WAITLIST_OPEN",
+        "WAITLIST_CLOSED",
+        "SUBMISSIONS_OPEN",
+        "SUBMISSIONS_CLOSED",
+        "JUDGING",
+        "COMPLETED",
+        "ARCHIVED"
+      ]
+    },
+    "creatorApplicationStatus": {
+      "type": "string",
+      "description": "Lifecycle of a founding-creator application through onboarding review.",
+      "enum": [
+        "DRAFT",
+        "SUBMITTED",
+        "UNDER_REVIEW",
+        "NEEDS_INFO",
+        "WAITLISTED",
+        "APPROVED",
+        "REJECTED",
+        "SUSPENDED",
+        "WITHDRAWN"
+      ]
+    },
+    "submissionStatus": {
+      "type": "string",
+      "description": "Lifecycle of a creator content submission through moderation and publication.",
+      "enum": [
+        "DRAFT",
+        "SUBMITTED",
+        "UNDER_REVIEW",
+        "NEEDS_REVISION",
+        "RESUBMITTED",
+        "APPROVED",
+        "SCHEDULED",
+        "PUBLISHED",
+        "REJECTED",
+        "WITHDRAWN",
+        "ARCHIVED"
+      ]
+    },
+    "paymentStatus": {
+      "type": "string",
+      "description": "Lifecycle of a reward payout. Payout detail lives in a restricted collection.",
+      "enum": [
+        "NOT_ELIGIBLE",
+        "PENDING_VERIFICATION",
+        "APPROVED",
+        "PROCESSING",
+        "PAID",
+        "FAILED",
+        "DISPUTED",
+        "CANCELLED"
+      ]
+    },
+    "kasemProficiency": {
+      "type": "string",
+      "description": "Self-reported Kasem-language proficiency.",
+      "enum": ["native", "advanced", "intermediate", "learning"]
+    },
+    "contactMethod": {
+      "type": "string",
+      "enum": ["whatsapp", "phone", "email", "sms"]
+    },
+    "publicationStatus": {
+      "type": "string",
+      "description": "Visibility of an approved published-content record consumed by the mobile app.",
+      "enum": ["scheduled", "published", "unpublished", "archived", "correction", "takedown"]
+    },
+    "creatorConsentScope": {
+      "type": "string",
+      "description": "A grantable permission scope on a creator submission. Publication, promotion and AI-training are always separate, opt-in decisions.",
+      "enum": ["review", "publication", "promotion", "ai_training"]
+    },
+    "creatorReference": {
+      "type": "string",
+      "description": "Human-readable creator/application reference number, e.g. KCC-2026-0001.",
+      "pattern": "^[A-Z]{2,6}-[0-9]{4}-[0-9]{3,6}$"
+    },
     "governanceMetadata": {
       "type": "object",
       "description": "Community-governance metadata that must travel with every content record. See docs/governance/data-safety.md.",

@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.indigen-world.org/v0/creator-membership.schema.json",
+  "title": "CreatorMembership",
+  "description": "Server-owned membership and authorization record for TribeStudio creators. Applicants and creators never write status, roles, assignments or permissions directly.",
+  "type": "object",
+  "properties": {
+    "userId": { "type": "string", "minLength": 1 },
+    "applicationId": { "type": "string", "minLength": 1 },
+    "status": {
+      "type": "string",
+      "enum": ["pending", "waitlisted", "approved", "rejected", "suspended", "revoked"]
+    },
+    "roles": {
+      "type": "array",
+      "items": { "type": "string", "enum": ["creator", "reviewer", "admin", "super_admin"] },
+      "uniqueItems": true
+    },
+    "assignedLanguages": { "type": "array", "items": { "type": "string" } },
+    "assignedCommunities": { "type": "array", "items": { "type": "string" } },
+    "assignedCampaigns": { "type": "array", "items": { "type": "string" } },
+    "permissions": { "type": "array", "items": { "type": "string" } },
+    "approvedAt": { "oneOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }] },
+    "approvedBy": { "oneOf": [{ "type": "string" }, { "type": "null" }] },
+    "suspendedAt": { "oneOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }] },
+    "suspensionReason": { "type": "string" },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "updatedAt": { "type": "string", "format": "date-time" }
+  },
+  "required": [
+    "userId",
+    "applicationId",
+    "status",
+    "roles",
+    "assignedLanguages",
+    "assignedCommunities",
+    "assignedCampaigns",
+    "permissions",
+    "createdAt",
+    "updatedAt"
+  ],
+  "additionalProperties": false
+}

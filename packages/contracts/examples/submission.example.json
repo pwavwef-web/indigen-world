@@ -1,0 +1,58 @@
+{
+  "id": "sub-ama-1",
+  "authUid": "creator-ama",
+  "campaign": { "collection": "campaigns", "id": "kasem-creator-challenge" },
+  "creator": { "collection": "creatorProfiles", "id": "creator-ama" },
+  "status": "DRAFT",
+  "title": "The Clever Hare",
+  "category": "storytelling",
+  "primaryLanguage": "xsm",
+  "dialect": "navrongo",
+  "description": "A retelling of a classic Kasem folktale.",
+  "englishSummary": "A hare outwits a lion using cleverness.",
+  "culturalContext": "Told to children to teach wit over strength.",
+  "media": {
+    "storagePath": "creator-submissions/creator-ama/kasem-creator-challenge/sub-ama-1/original",
+    "mimeType": "video/mp4",
+    "sizeBytes": 10485760,
+    "mediaType": "video",
+    "thumbnailPath": null,
+    "captionsPath": null
+  },
+  "externalPostUrl": null,
+  "participants": [],
+  "disclosures": {
+    "involvesMinors": false,
+    "usesThirdPartyMaterial": false,
+    "sourceInfo": ""
+  },
+  "attestations": {
+    "ownsOrHasRights": true,
+    "participantsConsented": true,
+    "guardianPermissionForMinors": true,
+    "noUnlawfulCopyright": true
+  },
+  "permissions": {
+    "review": true,
+    "publication": true,
+    "promotion": false,
+    "aiTraining": false,
+    "consentVersion": "creator-terms-2026-08",
+    "recordedAt": "2026-08-10T00:00:00Z"
+  },
+  "moderation": {
+    "reviewer": null,
+    "decidedAt": null,
+    "feedback": "",
+    "revisionDeadline": null,
+    "scores": {},
+    "publishedContent": null
+  },
+  "rewardEligible": false,
+  "schemaVersion": 1,
+  "lifecycle": {
+    "createdAt": "2026-08-10T00:00:00Z",
+    "updatedAt": "2026-08-10T00:00:00Z",
+    "version": 1
+  }
+}
