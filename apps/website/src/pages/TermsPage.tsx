@@ -3,6 +3,12 @@
  *
  * Plain-language terms of use — same placeholder-legal-copy pattern as
  * PrivacyPage, and equally absent from the uploaded template.
+ *
+ * The website is the ecosystem's canonical legal home, so these terms
+ * cover all three user-facing products: this website, the Indigen World
+ * mobile app (Indigen), and TribeStudio. Product-specific sections set
+ * out the rules that apply once you move from reading the site to using
+ * the app or contributing through the workspace.
  */
 import { useDocumentMeta } from "../lib/useDocumentMeta";
 import { ROUTES_BY_PATH } from "../content/navigation";
@@ -24,12 +30,47 @@ export function TermsPage() {
 
       <section className="section section--white">
         <div className="container legal-copy">
+          <h2>What these terms cover</h2>
+          <p>
+            Indigen World delivers three user-facing products: this public website, the Indigen
+            World mobile app (Indigen), and TribeStudio for creators, contributors and validators.
+            These terms apply across all three. Sections below add the rules specific to using the
+            app and contributing through TribeStudio.
+          </p>
+
           <h2>Using this site</h2>
           <p>
             This website introduces Indigen World's mission, ecosystem and team, and provides ways
             to get in touch or express interest in contributing. It is informational — it is not
             itself a language-learning tool, dictionary or translator. Descriptions of Project
             Kasena tools on this site are plans, not a live product experience.
+          </p>
+
+          <h2>Using the Indigen World mobile app</h2>
+          <p>
+            The mobile app is an everyday consumer app for exploring, learning, saving and
+            contributing cultural and language content, beginning with the Kasem language cell. Some
+            surfaces are feature-gated and may be unavailable or clearly labelled as previews. When
+            you post in the community, comment, or attribute Explore content, you are responsible
+            for what you share and must hold the rights and permissions to share it. Do not upload
+            restricted, sacred or third-party material you are not permitted to submit.
+          </p>
+          <p>
+            Rewards and points shown against contributions are provisional: they remain pending
+            until a trusted reviewer approves the underlying contribution, and approval is not
+            guaranteed. Dictionary content marked as synthetic is sample data, not authoritative
+            language reference.
+          </p>
+
+          <h2>Contributing through TribeStudio</h2>
+          <p>
+            TribeStudio is a role-based workspace for creators, contributors, cultural custodians
+            and validators. Access depends on the role assigned to your account, and privileged
+            actions such as validation decisions are subject to review and audit. When you submit
+            language or cultural content, you must provide accurate dialect, source, consent,
+            licence and cultural-permission information, and you confirm you are entitled to
+            contribute it under those terms. Validators must apply review decisions in good faith;
+            all decisions are recorded.
           </p>
 
           <h2>Accuracy of information</h2>
@@ -39,11 +80,13 @@ export function TermsPage() {
             treated as current results.
           </p>
 
-          <h2>Intellectual property</h2>
+          <h2>Intellectual property and cultural permissions</h2>
           <p>
             Website, programme, language and cultural materials may carry different copyright,
             licence, attribution and cultural-permission terms. Do not reuse material unless the
-            applicable terms have been made clear and permit that use.
+            applicable terms have been made clear and permit that use. Contributed content stays
+            governed by the consent and permission metadata recorded with it, across the app and
+            TribeStudio.
           </p>
 
           <h2>No guarantees</h2>
