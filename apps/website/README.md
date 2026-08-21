@@ -15,8 +15,9 @@ copy apps\website\.env.example apps\website\.env.local
 npm run dev --workspace @indigen-world/website
 ```
 
-The site renders without Firebase configuration. With no reviewed forms endpoint, the forms show
-an honest service-unavailable state instead of pretending a message was delivered.
+The site renders without Firebase configuration. In production, Firebase Hosting routes
+`/api/public-forms` to the reviewed, rate-limited public form function. Set the endpoint variable
+only when the forms service is hosted separately (or when testing it from Vite locally).
 
 ## Checks and production build
 
@@ -33,7 +34,7 @@ uses real History API routes and Firebase Hosting's existing catch-all rewrite.
 | Variable | Purpose |
 | --- | --- |
 | `VITE_SITE_URL` | Canonical production origin used for route metadata. |
-| `VITE_PUBLIC_FORMS_ENDPOINT` | Reviewed, rate-limited Firebase HTTPS Function for public forms. |
+| `VITE_PUBLIC_FORMS_ENDPOINT` | Optional override for the reviewed public forms endpoint; defaults to `/api/public-forms`. |
 | `VITE_ANALYTICS_ENABLED` | Enables privacy-safe analytics only when set to `true` at build time. |
 | `VITE_FIREBASE_*` | Firebase web and measurement configuration used by analytics when enabled. |
 
@@ -85,8 +86,8 @@ Before public launch, the project manager still needs to supply or approve:
 
 - the production Indigen World master logo/favicon and social-preview artwork;
 - public social profile URLs and any editorial photography with permission and attribution;
-- final legal copy and an unsubscribe route;
-- the Firebase forms endpoint and production environment values;
+- final legal copy and the newsletter delivery provider's unsubscribe route;
+- production environment values and newsletter delivery-provider integration;
 - a staging review, route screenshots and Lighthouse results.
 
 Until those are approved, the site uses restrained CSS artwork, omits social links and marks legal

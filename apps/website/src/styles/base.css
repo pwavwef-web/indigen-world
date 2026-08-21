@@ -47,6 +47,11 @@ svg {
   display: block;
 }
 
+img {
+  max-width: 100%;
+  height: auto;
+}
+
 p,
 h1,
 h2,
@@ -80,15 +85,33 @@ h3 {
 p {
   color: var(--muted);
   line-height: 1.65;
+  text-wrap: pretty;
+}
+
+h1,
+h2,
+h3 {
+  overflow-wrap: break-word;
+  text-wrap: balance;
+}
+
+p,
+li,
+label,
+a,
+button {
+  overflow-wrap: break-word;
 }
 
 .container {
   width: var(--container);
   margin-inline: auto;
+  min-width: 0;
 }
 
 .site-shell {
   overflow: clip;
+  min-width: 0;
 }
 
 .text-center {

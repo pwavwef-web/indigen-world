@@ -10,6 +10,9 @@
   display: grid;
   gap: var(--space-4);
 }
+.form-section > * {
+  min-width: 0;
+}
 
 /* Home page closing CTA band — carried over from the template's
    contact-section styling, reused there as a "get involved" prompt
@@ -46,6 +49,7 @@
   flex-direction: column;
   gap: 10px;
   align-items: flex-start;
+  width: 100%;
 }
 
 .contact-alt {
@@ -66,12 +70,19 @@
   padding: var(--space-4);
   border-radius: var(--radius-lg);
   background: var(--sand);
+  min-width: 0;
 }
 .waitlist-band h3 {
   margin-bottom: 4px;
 }
 .waitlist-band > div > p {
   margin: 0;
+}
+.waitlist-band > * {
+  min-width: 0;
+}
+.waitlist-band .newsletter-form {
+  width: 100%;
 }
 
 @media (min-width: 900px) {
@@ -88,6 +99,10 @@
   .contact-card > div:first-child {
     max-width: 56ch;
   }
+  .contact-card__actions {
+    width: auto;
+    flex: 0 0 auto;
+  }
   .waitlist-band {
     flex-direction: row;
     align-items: center;
@@ -96,5 +111,8 @@
   }
   .waitlist-band > div {
     max-width: 44ch;
+  }
+  .waitlist-band .newsletter-form {
+    flex: 1 1 560px;
   }
 }

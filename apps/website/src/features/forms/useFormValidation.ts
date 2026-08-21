@@ -2,7 +2,7 @@
  * src/features/forms/useFormValidation.ts
  *
  * One generic hook powers every form on the site (Contact, Get
- * Involved, Waitlist) — none of which existed in the uploaded
+ * Involved, Newsletter) — none of which existed in the uploaded
  * template (it only had a `mailto:` link in its contact section). The
  * hook is generic over `T extends Record<string, string>`, so each
  * form's field names are type-checked at every call site without this
@@ -33,6 +33,7 @@ interface UseFormValidationArgs<T extends object> {
   fields: Partial<Record<keyof T, FieldConfig>>;
   onSubmit: (values: T) => Promise<void>;
   formName: PublicFormName;
+  successMessage?: string;
 }
 
 interface UseFormValidationResult<T extends object> {
@@ -58,6 +59,7 @@ export function useFormValidation<T extends object>({
   fields,
   onSubmit,
   formName,
+  successMessage = "Thanks — we've received this and will follow up soon.",
 }: UseFormValidationArgs<T>): UseFormValidationResult<T> {
   const [values, setValues] = useState<T>(initialValues);
   const [errors, setErrors] = useState<Partial<Record<keyof T, string>>>({});
@@ -114,7 +116,7 @@ export function useFormValidation<T extends object>({
         setErrors({});
         hasStarted.current = false;
         trackEvent(ANALYTICS_EVENTS.formSubmissionSuccess, { form_name: formName });
-        if (formName === "waitlist") {
+        if (formName === "newsletter") {
           trackEvent(ANALYTICS_EVENTS.newsletterOptIn, { form_name: formName });
         }
       })
@@ -136,7 +138,7 @@ export function useFormValidation<T extends object>({
     status === "submitting"
       ? "Sending…"
       : status === "success"
-        ? "Thanks — we've received this and will follow up soon."
+        ? successMessage
         : status === "error" && failureCode === "unavailable"
           ? "Online submissions are not connected yet. Please try again after the service is enabled."
           : status === "error" && failureCode !== "validation"

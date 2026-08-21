@@ -67,7 +67,7 @@ Reusable language-cell behaviour should remain generic. Kasem-specific dialects,
 
 ## Ownership
 
-- Website: Francis Onai
+- Website: Francis E. Onai
 - TribeStudio: Chinedum Okwonko Udeaja
 - Mobile: Andy Anim
 - Project management and cross-product consistency: Francis Pwavwe

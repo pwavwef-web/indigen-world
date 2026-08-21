@@ -33,6 +33,7 @@ export interface EcosystemProduct {
   audience: string;
   status: ProjectStatus;
   owner: string;
+  ownerLabel?: "Lead" | "Owner";
   /** In-app route to link to, if this product has its own page. */
   href?: string;
   ctaLabel?: string;

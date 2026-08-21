@@ -19,7 +19,7 @@ export function PrivacyPage() {
 
   return (
     <>
-      <section className="page-hero">
+      <section className="page-hero page-hero--legal">
         <div className="container">
           <SectionHeading eyebrow="Legal" title="Privacy notice" light as="h1" />
         </div>
@@ -29,16 +29,17 @@ export function PrivacyPage() {
         <div className="container legal-copy">
           <h2>What we collect</h2>
           <p>
-            When you use a form on this site — Contact, Get Involved, or the waitlist — we
+            When you use a form on this site — Contact, Get Involved, or the Venacula newsletter — we
             collect only the fields shown on that form: your name, contact details, and the
             message or note you provide.
           </p>
 
           <h2>How we use it</h2>
           <p>
-            Submissions are used solely to respond to you and route your request to the right
-            person on the team. We do not sell this information, and we do not publish form
-            responses.
+            Contact and Get Involved submissions are used to respond to you and route your request.
+            If you subscribe to Venacula, we use your email only to send the newsletter and related
+            Indigen World updates. We do not sell this information or publish form responses. Every
+            newsletter email will include a way to unsubscribe.
           </p>
 
           <h2>What we don't collect here</h2>

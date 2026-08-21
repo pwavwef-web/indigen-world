@@ -2,7 +2,7 @@
  * src/styles/forms.css
  *
  * Styles for FormField and the three forms (Contact, Get Involved,
- * Waitlist). Inputs are full-width by default with a 44px minimum
+ * Newsletter). Inputs are full-width by default with a 44px minimum
  * touch target, matching the mobile-first accessibility baseline used
  * throughout the rest of the site.
  */
@@ -11,7 +11,13 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
+  width: 100%;
   max-width: 560px;
+  min-width: 0;
+}
+
+.field {
+  min-width: 0;
 }
 
 .field label {
@@ -37,6 +43,11 @@
 .field textarea {
   min-height: 120px;
   resize: vertical;
+}
+.field input,
+.field select,
+.field textarea {
+  max-width: 100%;
 }
 .field input:focus,
 .field select:focus,
@@ -85,23 +96,52 @@
   color: var(--muted);
 }
 
-.waitlist-form__row {
+.newsletter-form__row {
   display: flex;
   flex-direction: column;
   gap: 10px;
   align-items: stretch;
 }
-.waitlist-form__row .field {
+.newsletter-form__row .field {
   flex: 1;
   min-width: 0;
 }
+.newsletter-form__row .button {
+  flex: 0 0 auto;
+}
+
+.consent-field label {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  color: var(--ink);
+  font-size: 0.84rem;
+  line-height: 1.45;
+  cursor: pointer;
+}
+.consent-field input {
+  width: 18px;
+  height: 18px;
+  margin: 2px 0 0;
+  flex: 0 0 auto;
+  accent-color: var(--indigo-900);
+}
+.consent-field .field__error {
+  margin-bottom: 0;
+}
 
 @media (min-width: 700px) {
-  .waitlist-form__row {
+  .newsletter-form__row {
     flex-direction: row;
     align-items: flex-end;
   }
-  .waitlist-form__row .button {
+  .newsletter-form__row .button {
     width: auto;
+  }
+}
+
+@media (min-width: 640px) {
+  .form > .button {
+    align-self: flex-start;
   }
 }

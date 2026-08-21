@@ -49,7 +49,7 @@ export function ProductCard({ product, index = 0 }: { product: EcosystemProduct;
           <dd>{product.audience}</dd>
         </div>
         <div>
-          <dt>Owner</dt>
+          <dt>{product.ownerLabel ?? "Owner"}</dt>
           <dd>{product.owner}</dd>
         </div>
       </dl>

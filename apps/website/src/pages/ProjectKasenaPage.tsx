@@ -38,7 +38,7 @@ export function ProjectKasenaPage() {
 
   return (
     <>
-      <section className="page-hero">
+      <section className="page-hero page-hero--kasena">
         <div className="container kasena-grid">
           <div className="kasena-copy">
             <SectionHeading

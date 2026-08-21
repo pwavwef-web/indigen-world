@@ -31,7 +31,7 @@ const sourceFiles = [
   "src/components/Footer.tsx",
   "src/features/forms/ContactForm.tsx",
   "src/features/forms/GetInvolvedForm.tsx",
-  "src/features/forms/WaitlistForm.tsx",
+  "src/features/forms/NewsletterForm.tsx",
 ].map(read).join("\n");
 
 assert.ok(!sourceFiles.includes("console.log"), "public journeys do not log visitor data");
@@ -39,5 +39,7 @@ assert.ok(!sourceFiles.includes("pwavwef@gmail.com"), "personal email is not exp
 assert.ok(!read("src/app/router.tsx").includes("hashchange"), "page routing does not use URL fragments");
 assert.match(read("index.html"), /href="#main-content"/, "skip link is present");
 assert.match(read("src/lib/forms.ts"), /VITE_PUBLIC_FORMS_ENDPOINT/, "forms use the reviewed endpoint boundary");
+assert.match(sourceFiles, /Venacula/, "the Venacula newsletter signup is visible on the site");
+assert.match(read("src/features/forms/NewsletterForm.tsx"), /consent/, "newsletter signup records explicit consent");
 
 console.log(`Validated ${routes.length} public routes and core privacy/safety invariants.`);

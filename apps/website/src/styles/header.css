@@ -45,6 +45,7 @@
   display: flex;
   flex-direction: column;
   line-height: 1.2;
+  min-width: 0;
 }
 .brand__text strong {
   font-size: 0.98rem;
@@ -90,6 +91,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
+  flex: 0 0 auto;
 }
 
 .header-cta {
@@ -106,6 +108,7 @@
   background: transparent;
   color: white;
   cursor: pointer;
+  flex: 0 0 auto;
 }
 
 /* Mobile nav: an in-flow collapsible panel, open by default rendering
@@ -125,6 +128,8 @@
 }
 .mobile-nav nav {
   min-height: 0;
+  max-height: calc(100dvh - 68px);
+  overflow-y: auto;
   display: grid;
   padding-top: 8px;
   padding-bottom: 18px;
@@ -138,6 +143,8 @@
   color: rgba(255, 255, 255, 0.78);
   font-size: 14px;
   font-weight: 700;
+  gap: var(--space-2);
+  min-width: 0;
 }
 
 @media (min-width: 660px) {

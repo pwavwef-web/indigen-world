@@ -8,12 +8,21 @@
  */
 import { Link } from "../app/router";
 import { BrandMark } from "./BrandMark";
+import { NewsletterForm } from "../features/forms/NewsletterForm";
 
 export function Footer() {
   const currentYear = new Date().getFullYear();
 
   return (
     <footer className="site-footer">
+      <div className="container footer-newsletter">
+        <div className="footer-newsletter__intro">
+          <p className="eyebrow">Venacula</p>
+          <h2>Culture, language and ideas worth carrying forward.</h2>
+          <p>Subscribe to the Indigen World newsletter for occasional stories and project updates.</p>
+        </div>
+        <NewsletterForm />
+      </div>
       <div className="container site-footer__top">
         <div className="footer-brand">
           <Link className="brand brand--footer" to="home" aria-label="Back to top">

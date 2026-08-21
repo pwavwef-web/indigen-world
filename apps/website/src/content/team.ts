@@ -9,7 +9,7 @@ import type { TeamMember } from "../lib/types";
 
 export const TEAM_MEMBERS: TeamMember[] = [
   { name: "Francis Pwavwe", role: "Project Manager" },
-  { name: "Francis Onai", role: "Public Website Lead" },
+  { name: "Francis E. Onai", role: "Public Website Lead" },
   { name: "Chinedum Okwonko Udeaja", role: "TribeStudio Lead" },
   { name: "Andy Anim", role: "Native Mobile App Lead" },
 ];

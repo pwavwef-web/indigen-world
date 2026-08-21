@@ -17,9 +17,13 @@
   border-radius: 999px;
   font-weight: 700;
   font-size: 0.92rem;
+  line-height: 1.25;
+  text-align: center;
+  white-space: normal;
   border: 2px solid transparent;
   cursor: pointer;
   min-height: 44px;
+  max-width: 100%;
   transition: transform var(--motion-duration) var(--motion-ease), background var(--motion-duration)
     var(--motion-ease), border-color var(--motion-duration) var(--motion-ease);
 }
@@ -33,7 +37,11 @@
   transform: none;
 }
 .button svg {
+  flex: 0 0 auto;
   transition: transform var(--motion-duration) var(--motion-ease);
+}
+.button > span {
+  min-width: 0;
 }
 .button:hover svg,
 .button:focus-visible svg {

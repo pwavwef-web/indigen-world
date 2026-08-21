@@ -28,7 +28,7 @@ export function EcosystemPage() {
 
   return (
     <>
-      <section className="page-hero">
+      <section className="page-hero page-hero--ecosystem">
         <div className="container">
           <SectionHeading
             eyebrow="One ecosystem, several products"

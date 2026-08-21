@@ -22,6 +22,7 @@
   flex-direction: column;
   justify-content: flex-end;
   overflow: hidden;
+  min-width: 0;
 }
 .vision-card__number {
   font-size: 2.4rem;

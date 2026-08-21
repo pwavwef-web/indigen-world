@@ -41,7 +41,7 @@ See [`docs/architecture/repository-structure.md`](docs/architecture/repository-s
 | Area | Lead |
 |---|---|
 | Project management and cross-product consistency | Francis Pwavwe |
-| Indigen World website | Francis Onai |
+| Indigen World website | Francis E. Onai |
 | TribeStudio | Chinedum Okwonko Udeaja |
 | Indigen World mobile app | Andy Anim |
 | Firebase, shared contracts, and AI infrastructure | Shared technical ownership with explicit reviewers |
@@ -73,6 +73,30 @@ Read:
 ## Local configuration
 
 Never commit production secrets. Copy `.firebaserc.example` to `.firebaserc` locally and use Firebase Secret Manager or approved environment-variable workflows for sensitive values.
+
+## Run the public website locally
+
+Install [Node.js 22.12 or newer](https://nodejs.org/), then run these commands from the repository root:
+
+```bash
+npm install
+npm run dev --workspace @indigen-world/website
+```
+
+Keep the terminal running while you use the website.
+
+### Desktop
+
+Open the `Local` address printed by Vite, normally [http://localhost:5173](http://localhost:5173), in your desktop browser.
+
+### Mobile
+
+1. Connect the phone and development computer to the same Wi-Fi network.
+2. Start the website with the command above.
+3. On the phone, open the `Network` address printed by Vite, for example `http://192.168.1.20:5173`.
+4. If prompted by the computer's firewall, allow Node.js to communicate on the private network.
+
+The network address varies by computer and network. Mobile access works only while the development server is running and the phone can reach the computer on the local network.
 
 ## Licence status
 

@@ -46,6 +46,7 @@
 
 .hero__content {
   max-width: 620px;
+  min-width: 0;
 }
 
 .status-pill {
@@ -97,6 +98,7 @@
   flex-direction: column;
   gap: 12px;
   margin-bottom: var(--space-3);
+  align-items: stretch;
 }
 
 .hero__trust-row {
@@ -109,6 +111,10 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  min-width: 0;
+}
+.hero__trust-row svg {
+  flex: 0 0 auto;
 }
 
 /* Hero visual: mobile-first stacked card list. */
@@ -172,6 +178,9 @@
   color: white;
   font-size: 0.92rem;
 }
+.floating-card > div {
+  min-width: 0;
+}
 
 .language-chip {
   display: none;
@@ -190,6 +199,7 @@
   .hero__actions {
     flex-direction: row;
     flex-wrap: wrap;
+    align-items: center;
   }
   .hero__trust-row {
     grid-auto-flow: column;

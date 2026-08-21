@@ -1,4 +1,4 @@
-export type PublicFormName = "contact" | "get-involved" | "waitlist";
+export type PublicFormName = "contact" | "get-involved" | "newsletter";
 
 export interface PublicFormPayloads {
   contact: {
@@ -15,9 +15,10 @@ export interface PublicFormPayloads {
     route: string;
     note: string;
   };
-  waitlist: {
+  newsletter: {
     email: string;
     country: string;
+    consent: string;
   };
 }
 
@@ -37,8 +38,7 @@ export async function submitPublicForm<Name extends PublicFormName>(
   form: Name,
   payload: PublicFormPayloads[Name]
 ): Promise<void> {
-  const endpoint = import.meta.env.VITE_PUBLIC_FORMS_ENDPOINT?.trim();
-  if (!endpoint) throw new FormServiceError("unavailable");
+  const endpoint = import.meta.env.VITE_PUBLIC_FORMS_ENDPOINT?.trim() || "/api/public-forms";
 
   try {
     const response = await fetch(endpoint, {
@@ -47,7 +47,16 @@ export async function submitPublicForm<Name extends PublicFormName>(
       body: JSON.stringify({ form, payload }),
     });
 
-    if (!response.ok) throw new FormServiceError("rejected");
+    const result: unknown = await response.json().catch(() => null);
+    if (
+      !response.ok ||
+      typeof result !== "object" ||
+      result === null ||
+      !("accepted" in result) ||
+      result.accepted !== true
+    ) {
+      throw new FormServiceError("rejected");
+    }
   } catch (error) {
     if (error instanceof FormServiceError) throw error;
     throw new FormServiceError("network");

@@ -12,7 +12,7 @@
 ## Product leads
 
 - Project management and cross-product consistency: Francis Pwavwe
-- Website: Francis Onai
+- Website: Francis E. Onai
 - TribeStudio: Chinedum Okwonko Udeaja
 - Mobile: Andy Anim
 

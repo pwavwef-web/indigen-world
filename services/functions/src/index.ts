@@ -5,6 +5,7 @@ initializeApp();
 
 export { decideReview } from './validation.js';
 export { setUserRole } from './identity.js';
+export { publicForms } from './public-forms.js';
 export {
   submitCreatorApplication,
   decideCreatorApplication,

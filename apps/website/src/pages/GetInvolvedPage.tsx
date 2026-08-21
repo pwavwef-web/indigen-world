@@ -6,14 +6,14 @@
  * contact section. The brief's sitemap lists Get Involved as its own
  * P0 page distinct from Contact, so this adds a dedicated one: the
  * audience breakdown, the main interest form, and a lightweight
- * waitlist option for people not ready to commit yet.
+ * newsletter option for people who want to keep up with the work.
  */
 import { useDocumentMeta } from "../lib/useDocumentMeta";
 import { useRevealOnScroll } from "../lib/useRevealOnScroll";
 import { ROUTES_BY_PATH } from "../content/navigation";
 import { SectionHeading } from "../components/SectionHeading";
 import { GetInvolvedForm } from "../features/forms/GetInvolvedForm";
-import { WaitlistForm } from "../features/forms/WaitlistForm";
+import { NewsletterForm } from "../features/forms/NewsletterForm";
 import { Icon } from "../components/Icon";
 
 const route = ROUTES_BY_PATH["get-involved"];
@@ -42,7 +42,7 @@ export function GetInvolvedPage() {
 
   return (
     <>
-      <section className="page-hero">
+      <section className="page-hero page-hero--involved">
         <div className="container">
           <SectionHeading
             eyebrow="Get involved"
@@ -86,11 +86,11 @@ export function GetInvolvedPage() {
       <section className="section section--white">
         <div className="container waitlist-band" data-reveal>
           <div>
-            <p className="eyebrow">Not ready yet?</p>
-            <h3>Join the waitlist instead.</h3>
-            <p>Leave your email to hear about verified milestones as they happen — no commitment required.</p>
+            <p className="eyebrow">The Venacula newsletter</p>
+            <h3>Keep culture in the conversation.</h3>
+            <p>Get occasional stories and verified milestones from across Indigen World.</p>
           </div>
-          <WaitlistForm />
+          <NewsletterForm />
         </div>
       </section>
     </>

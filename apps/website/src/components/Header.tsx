@@ -1,7 +1,7 @@
 /**
  * src/components/Header.tsx
  *
- * Site header: brand, compact primary nav, "Partner with us" CTA, and the
+ * Site header: brand, compact primary nav, "Get involved" CTA, and the
  * mobile menu. The uploaded template's mobile nav used a neat
  * `grid-template-rows: 0fr -> 1fr` collapse animation instead of the
  * more common `position: fixed` overlay — that's kept as-is here
@@ -59,7 +59,7 @@ export function Header() {
 
         <div className="site-header__actions">
           <Link className="header-cta" to="get-involved">
-            Partner with us
+            Get involved
           </Link>
           <button
             className="menu-button"
@@ -88,7 +88,7 @@ export function Header() {
             </Link>
           ))}
           <Link to="get-involved" onClick={() => setMenuOpen(false)}>
-            Partner with us
+            Get involved
             <Icon name="arrow" size={18} />
           </Link>
         </nav>

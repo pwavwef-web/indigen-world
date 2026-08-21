@@ -16,7 +16,7 @@ export function TermsPage() {
 
   return (
     <>
-      <section className="page-hero">
+      <section className="page-hero page-hero--legal">
         <div className="container">
           <SectionHeading eyebrow="Legal" title="Terms of use" light as="h1" />
         </div>

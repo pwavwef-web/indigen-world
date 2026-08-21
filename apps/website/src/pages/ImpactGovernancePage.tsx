@@ -23,7 +23,7 @@ export function ImpactGovernancePage() {
 
   return (
     <>
-      <section className="page-hero">
+      <section className="page-hero page-hero--governance">
         <div className="container">
           <SectionHeading
             eyebrow="Cultural governance"

@@ -1,5 +1,11 @@
 # Firebase Functions
 
+The `publicForms` HTTPS function is the same-origin intake used by the public website. It validates
+and rate-limits contact, involvement and Venacula newsletter submissions. Newsletter subscribers
+are deduplicated by a SHA-256 email key and stored in the server-only `newsletterSubscribers`
+collection with their consent version and timestamps. Firebase Hosting exposes it at
+`/api/public-forms`; clients do not write these collections directly.
+
 This service contains trusted backend execution shared by the Indigen World website, TribeStudio, and mobile app.
 
 ## Responsibilities

@@ -55,8 +55,12 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
+  flex-wrap: wrap;
   gap: 10px;
   margin-bottom: var(--space-3);
+}
+.module-preview__header > * {
+  min-width: 0;
 }
 /* .eyebrow defaults to inline-flex (so an eyebrow can sit flush above
    a heading with no gap), but here it's followed by a sibling <strong>

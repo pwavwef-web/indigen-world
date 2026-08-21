@@ -17,7 +17,7 @@ export function ContactPage() {
 
   return (
     <>
-      <section className="page-hero">
+      <section className="page-hero page-hero--contact">
         <div className="container">
           <SectionHeading
             eyebrow="Partners, educators, funders & cultural custodians"

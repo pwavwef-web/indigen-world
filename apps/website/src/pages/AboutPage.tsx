@@ -22,7 +22,7 @@ export function AboutPage() {
 
   return (
     <>
-      <section className="page-hero">
+      <section className="page-hero page-hero--about">
         <div className="container">
           <SectionHeading
             eyebrow="Why Indigen World"
