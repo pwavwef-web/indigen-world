@@ -53,17 +53,30 @@ export function ProductCard({ product, index = 0 }: { product: EcosystemProduct;
           <dd>{product.owner}</dd>
         </div>
       </dl>
-      {product.href !== undefined && (
-        <Link
-          to={product.href}
-          className="card-link"
-          onClick={() =>
-            trackEvent(ANALYTICS_EVENTS.ecosystemProductClick, { product: product.id })
-          }
-        >
-          {product.ctaLabel ?? "Explore the project"} <Icon name="arrow" size={17} />
-        </Link>
-      )}
+      {product.href !== undefined &&
+        (product.external ? (
+          <a
+            href={product.href}
+            className="card-link"
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={() =>
+              trackEvent(ANALYTICS_EVENTS.ecosystemProductClick, { product: product.id })
+            }
+          >
+            {product.ctaLabel ?? "Explore the project"} <Icon name="arrow" size={17} />
+          </a>
+        ) : (
+          <Link
+            to={product.href}
+            className="card-link"
+            onClick={() =>
+              trackEvent(ANALYTICS_EVENTS.ecosystemProductClick, { product: product.id })
+            }
+          >
+            {product.ctaLabel ?? "Explore the project"} <Icon name="arrow" size={17} />
+          </Link>
+        ))}
     </article>
   );
 }

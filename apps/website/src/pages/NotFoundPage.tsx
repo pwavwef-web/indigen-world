@@ -10,7 +10,7 @@ import { useDocumentMeta } from "../lib/useDocumentMeta";
 import { Button } from "../components/Button";
 
 export function NotFoundPage() {
-  useDocumentMeta("Page not found", "The page you're looking for doesn't exist.");
+  useDocumentMeta("Page not found", "The page you're looking for doesn't exist.", { noindex: true });
 
   return (
     <section className="section section--white not-found">

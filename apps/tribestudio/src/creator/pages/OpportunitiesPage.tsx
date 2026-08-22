@@ -2,19 +2,24 @@ import { useEffect, useState } from 'react';
 import type { Campaign } from '@indigen-world/contracts/creator-models';
 import { Link } from '../../router';
 import { fetchPublicCampaigns, submissionsOpen } from '../data';
-import { CAMPAIGN_STATUS_LABELS, EmptyState, Skeleton, StatusPill } from '../components';
+import { CAMPAIGN_STATUS_LABELS, EmptyState, LoadError, Skeleton, StatusPill, useReloadable } from '../components';
 
 export function OpportunitiesPage() {
+  const { reloadKey, failed, setFailed, retry } = useReloadable();
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    void fetchPublicCampaigns().then((list) => {
-      setCampaigns(list);
-      setLoading(false);
-    });
-  }, []);
+    let active = true;
+    setFailed(false);
+    setLoading(true);
+    void fetchPublicCampaigns()
+      .then((list) => { if (!active) return; setCampaigns(list); setLoading(false); })
+      .catch(() => { if (active) { setFailed(true); setLoading(false); } });
+    return () => { active = false; };
+  }, [reloadKey, setFailed]);
 
+  if (failed) return <div className="page"><h1>Opportunities</h1><LoadError onRetry={retry} /></div>;
   if (loading) return <div className="page"><h1>Opportunities</h1><Skeleton lines={5} /></div>;
 
   return (

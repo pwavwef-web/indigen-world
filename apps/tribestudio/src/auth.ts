@@ -44,31 +44,44 @@ export function useAuth(): AuthState {
   const [ready, setReady] = useState(false);
 
   const applyToken = async (next: User, force = false) => {
-    const token = await getIdTokenResult(next, force);
-    const claimed = token.claims.role;
-    setRole(
-      claimed === 'contributor'
-        || claimed === 'validator'
-        || claimed === 'creator'
-        || claimed === 'reviewer'
-        || claimed === 'admin'
-        || claimed === 'super_admin'
-        ? claimed
-        : null,
-    );
-    setCreatorStatus(typeof token.claims.creatorStatus === 'string' ? token.claims.creatorStatus : null);
+    // A claims fetch is a network round-trip that can fail (offline, token
+    // refresh 5xx). Degrade to no-role rather than letting the rejection
+    // propagate and strand the whole app on its loading state.
+    try {
+      const token = await getIdTokenResult(next, force);
+      const claimed = token.claims.role;
+      setRole(
+        claimed === 'contributor'
+          || claimed === 'validator'
+          || claimed === 'creator'
+          || claimed === 'reviewer'
+          || claimed === 'admin'
+          || claimed === 'super_admin'
+          ? claimed
+          : null,
+      );
+      setCreatorStatus(typeof token.claims.creatorStatus === 'string' ? token.claims.creatorStatus : null);
+    } catch {
+      setRole(null);
+      setCreatorStatus(null);
+    }
   };
 
   useEffect(() => {
     return onAuthStateChanged(auth, async (next) => {
       setUser(next);
-      if (next) {
-        await applyToken(next);
-      } else {
-        setRole(null);
-        setCreatorStatus(null);
+      try {
+        if (next) {
+          await applyToken(next);
+        } else {
+          setRole(null);
+          setCreatorStatus(null);
+        }
+      } finally {
+        // Always resolve readiness so a transient failure never leaves the
+        // app stuck on "Loading…".
+        setReady(true);
       }
-      setReady(true);
     });
   }, []);
 

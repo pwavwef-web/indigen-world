@@ -11,6 +11,7 @@ import { Suspense, useEffect, useRef } from "react";
 import { useRoute, scrollToTop } from "./app/router";
 import { Header } from "./components/Header";
 import { Footer } from "./components/Footer";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 import { PAGE_COMPONENTS, NotFoundPage } from "./pages";
 
 export function App() {
@@ -32,9 +33,11 @@ export function App() {
     <div className="site-shell">
       <Header />
       <main id="main-content" tabIndex={-1}>
-        <Suspense fallback={<div className="route-loading" role="status">Loading page…</div>}>
-          <PageComponent />
-        </Suspense>
+        <ErrorBoundary resetKey={path}>
+          <Suspense fallback={<div className="route-loading" role="status">Loading page…</div>}>
+            <PageComponent />
+          </Suspense>
+        </ErrorBoundary>
       </main>
       <Footer />
     </div>

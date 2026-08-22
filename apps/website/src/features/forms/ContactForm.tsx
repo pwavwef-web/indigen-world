@@ -101,11 +101,9 @@ export function ContactForm() {
         request. Do not include restricted cultural knowledge or information about minors.
       </p>
 
-      {statusMessage && (
-        <p className={`form-status form-status--${status}`} role="status">
-          {statusMessage}
-        </p>
-      )}
+      <p className={`form-status form-status--${status}`} role="status" aria-live="polite">
+        {statusMessage}
+      </p>
     </form>
   );
 }

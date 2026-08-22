@@ -1,28 +1,36 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { Suspense, lazy, useEffect, useRef, useState, type ComponentType, type ReactNode } from 'react';
 import type { CreatorApplication, CreatorMembership, CreatorProfile } from '@indigen-world/contracts/creator-models';
 import { Link, RouterProvider, matchRoute, useRoute } from './router';
 import { signIn, useAuth } from './auth';
+import { ErrorBoundary } from './ErrorBoundary';
 import { CreatorProvider } from './creator/CreatorProvider';
 import { PublicLayout } from './creator/PublicLayout';
 import { StudioLayout } from './creator/StudioLayout';
-import { LexiconWorkspace } from './workspace/LexiconWorkspace';
-import { LandingPage } from './creator/pages/LandingPage';
-import { JoinPage } from './creator/pages/JoinPage';
-import { SuccessPage } from './creator/pages/SuccessPage';
-import { GuidelinesPage } from './creator/pages/GuidelinesPage';
-import { FaqPage } from './creator/pages/FaqPage';
-import { DashboardPage } from './creator/pages/DashboardPage';
-import { ProfilePage } from './creator/pages/ProfilePage';
-import { OpportunitiesPage } from './creator/pages/OpportunitiesPage';
-import { OpportunityDetailPage } from './creator/pages/OpportunityDetailPage';
-import { SubmissionsPage } from './creator/pages/SubmissionsPage';
-import { SubmissionNewPage } from './creator/pages/SubmissionNewPage';
-import { SubmissionDetailPage } from './creator/pages/SubmissionDetailPage';
-import { NotificationsPage } from './creator/pages/NotificationsPage';
-import { HelpPage } from './creator/pages/HelpPage';
 import { fetchMyApplications, fetchMyMembership, fetchMyProfile } from './creator/data';
 import { StatusPill, WhatsAppCard } from './creator/components';
 import { useConfig } from './creator/CreatorProvider';
+
+// Route-based code-splitting: each page (and the heavy Lexicon workspace) loads
+// as its own chunk behind the <Suspense> boundaries in the layouts, so the
+// public landing route no longer ships the entire studio up front.
+const named = <T extends Record<string, unknown>>(loader: () => Promise<T>, key: keyof T) =>
+  lazy(() => loader().then((m) => ({ default: m[key] as ComponentType })));
+
+const LexiconWorkspace = named(() => import('./workspace/LexiconWorkspace'), 'LexiconWorkspace');
+const LandingPage = named(() => import('./creator/pages/LandingPage'), 'LandingPage');
+const JoinPage = named(() => import('./creator/pages/JoinPage'), 'JoinPage');
+const SuccessPage = named(() => import('./creator/pages/SuccessPage'), 'SuccessPage');
+const GuidelinesPage = named(() => import('./creator/pages/GuidelinesPage'), 'GuidelinesPage');
+const FaqPage = named(() => import('./creator/pages/FaqPage'), 'FaqPage');
+const DashboardPage = named(() => import('./creator/pages/DashboardPage'), 'DashboardPage');
+const ProfilePage = named(() => import('./creator/pages/ProfilePage'), 'ProfilePage');
+const OpportunitiesPage = named(() => import('./creator/pages/OpportunitiesPage'), 'OpportunitiesPage');
+const OpportunityDetailPage = named(() => import('./creator/pages/OpportunityDetailPage'), 'OpportunityDetailPage');
+const SubmissionsPage = named(() => import('./creator/pages/SubmissionsPage'), 'SubmissionsPage');
+const SubmissionNewPage = named(() => import('./creator/pages/SubmissionNewPage'), 'SubmissionNewPage');
+const SubmissionDetailPage = named(() => import('./creator/pages/SubmissionDetailPage'), 'SubmissionDetailPage');
+const NotificationsPage = named(() => import('./creator/pages/NotificationsPage'), 'NotificationsPage');
+const HelpPage = named(() => import('./creator/pages/HelpPage'), 'HelpPage');
 
 function BrandMark() {
   return (
@@ -101,8 +109,13 @@ function ApplicationStatusGate({ children, path }: { children: ReactNode; path: 
   }
 
   const application = applications[0] ?? null;
-  const status = membership?.status ?? application?.status ?? profile?.status ?? 'not_started';
-  const blocked = ['rejected', 'suspended', 'revoked', 'REJECTED', 'SUSPENDED'].includes(status);
+  // Membership status is lowercase, application status is UPPERCASE, and profile
+  // status is lowercase — normalize once so no blocked state slips through the
+  // case mismatch (previously WITHDRAWN/REVOKED were misclassified as active).
+  const status = String(
+    membership?.status ?? application?.status ?? profile?.status ?? 'not_started',
+  ).toUpperCase();
+  const blocked = ['REJECTED', 'SUSPENDED', 'REVOKED', 'WITHDRAWN'].includes(status);
 
   if (!blocked && profile && path === '/studio/profile') {
     return (
@@ -194,6 +207,17 @@ function renderStudio(path: string) {
 function Routed() {
   const { path } = useRoute();
   const { user, ready } = useAuth();
+  const hasMounted = useRef(false);
+
+  // Move keyboard/screen-reader focus to the main region on route change so
+  // navigation is announced and the skip link lands somewhere focusable.
+  useEffect(() => {
+    if (hasMounted.current) {
+      document.getElementById('main-content')?.focus();
+    } else {
+      hasMounted.current = true;
+    }
+  }, [path]);
 
   // ---- Public creator surfaces (no authentication required) ----
   if (path === '/' || path === '/creators') return <PublicLayout><LandingPage /></PublicLayout>;
@@ -208,7 +232,13 @@ function Routed() {
   if (isStudio || isWorkspace) {
     if (!ready) return <div className="loading">Loading…</div>;
     if (!user) return <SignInGate />;
-    if (isWorkspace) return <LexiconWorkspace />;
+    if (isWorkspace) {
+      return (
+        <Suspense fallback={<div className="loading">Loading…</div>}>
+          <LexiconWorkspace />
+        </Suspense>
+      );
+    }
     return (
       <ApplicationStatusGate path={path}>
         <StudioLayout>{renderStudio(path)}</StudioLayout>
@@ -221,11 +251,13 @@ function Routed() {
 
 function App() {
   return (
-    <RouterProvider>
-      <CreatorProvider>
-        <Routed />
-      </CreatorProvider>
-    </RouterProvider>
+    <ErrorBoundary>
+      <RouterProvider>
+        <CreatorProvider>
+          <Routed />
+        </CreatorProvider>
+      </RouterProvider>
+    </ErrorBoundary>
   );
 }
 

@@ -35,6 +35,14 @@ if (!usingEmulators && typeof appCheckSiteKey === 'string' && appCheckSiteKey.le
     provider: new ReCaptchaEnterpriseProvider(appCheckSiteKey),
     isTokenAutoRefreshEnabled: true,
   });
+} else if (!usingEmulators) {
+  // Fail loudly at boot: without App Check, every privileged callable
+  // (decideCreatorApplication, decideSubmission, …) is rejected server-side,
+  // which would otherwise surface only as opaque "action failed" errors.
+  console.warn(
+    '[admin] VITE_RECAPTCHA_ENTERPRISE_SITE_KEY is missing — App Check is disabled. ' +
+      'Callable Functions enforce App Check in deployed environments and will reject requests.',
+  );
 }
 
 // Opt-in local emulator wiring for development and integration tests.

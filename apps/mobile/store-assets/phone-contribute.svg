@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1920" viewBox="0 0 1080 1920">
+  <rect width="1080" height="1920" fill="#F7F3E8"/>
+  <text x="62" y="70" fill="#1E2522" font-family="Arial, sans-serif" font-size="32" font-weight="700">9:41</text>
+  <g fill="#1E2522"><rect x="900" y="43" width="38" height="22" rx="5"/><rect x="948" y="38" width="55" height="28" rx="7"/><rect x="1008" y="46" width="10" height="12" rx="3"/></g>
+  <text x="60" y="150" fill="#B65A3A" font-family="Arial, sans-serif" font-size="25" font-weight="800" letter-spacing="3">CONTRIBUTE</text>
+  <text x="60" y="215" fill="#1E2522" font-family="Arial, sans-serif" font-size="54" font-weight="800">Share what you know.</text>
+  <text x="60" y="262" fill="#58615D" font-family="Arial, sans-serif" font-size="27">Your draft stays on this phone until you choose to submit.</text>
+  <rect x="60" y="310" width="960" height="132" rx="26" fill="#F4E7E1"/>
+  <path d="M110 342l25 10v26c0 18-10 31-25 39-15-8-25-21-25-39v-26z" fill="none" stroke="#B65A3A" stroke-width="6"/>
+  <text x="165" y="355" fill="#1E2522" font-family="Arial, sans-serif" font-size="24" font-weight="700">Contributions are reviewed by appointed validators.</text>
+  <text x="165" y="391" fill="#1E2522" font-family="Arial, sans-serif" font-size="24" font-weight="700">Points are awarded only after approval.</text>
+  <g font-family="Arial, sans-serif">
+    <rect x="60" y="485" width="960" height="112" rx="24" fill="#FFFFFF" stroke="#D8D2C6" stroke-width="3"/><text x="98" y="525" fill="#58615D" font-size="21">English or source text</text><text x="98" y="567" fill="#9A9F9C" font-size="26">Enter the word or phrase</text>
+    <rect x="60" y="625" width="960" height="112" rx="24" fill="#FFFFFF" stroke="#D8D2C6" stroke-width="3"/><text x="98" y="665" fill="#58615D" font-size="21">Kasem text</text><text x="98" y="707" fill="#9A9F9C" font-size="26">Preserve spelling and diacritics</text>
+    <rect x="60" y="765" width="960" height="112" rx="24" fill="#FFFFFF" stroke="#D8D2C6" stroke-width="3"/><text x="98" y="807" fill="#58615D" font-size="21">Dialect or region</text><text x="976" y="835" fill="#58615D" font-size="34">⌄</text>
+    <rect x="60" y="905" width="960" height="112" rx="24" fill="#FFFFFF" stroke="#D8D2C6" stroke-width="3"/><text x="98" y="947" fill="#58615D" font-size="21">Part of speech</text><text x="976" y="975" fill="#58615D" font-size="34">⌄</text>
+    <rect x="60" y="1045" width="960" height="112" rx="24" fill="#FFFFFF" stroke="#D8D2C6" stroke-width="3"/><text x="98" y="1087" fill="#58615D" font-size="21">How do you know this?</text><text x="976" y="1115" fill="#58615D" font-size="34">⌄</text>
+    <rect x="60" y="1185" width="960" height="160" rx="24" fill="#FFFFFF" stroke="#D8D2C6" stroke-width="3"/><text x="98" y="1227" fill="#58615D" font-size="21">Context or example (optional)</text><text x="98" y="1271" fill="#9A9F9C" font-size="25">Add usage, attribution, or helpful context</text>
+    <rect x="70" y="1381" width="42" height="42" rx="6" fill="#FFFFFF" stroke="#0B3D2E" stroke-width="4"/><text x="138" y="1412" fill="#1E2522" font-size="26" font-weight="700">I can share this for community review.</text>
+    <text x="138" y="1450" fill="#58615D" font-size="21">Do not submit private, sacred, disputed, or unapproved material.</text>
+    <rect x="60" y="1495" width="960" height="76" rx="20" fill="#0B3D2E"/><text x="540" y="1544" fill="#FFFFFF" font-size="26" font-weight="800" text-anchor="middle">Submit for review</text>
+    <rect x="60" y="1590" width="960" height="76" rx="20" fill="none" stroke="#0B3D2E" stroke-width="3"/><text x="540" y="1639" fill="#0B3D2E" font-size="26" font-weight="800" text-anchor="middle">Save draft on this phone</text>
+  </g>
+  <rect y="1710" width="1080" height="210" fill="#0B3D2E"/>
+  <g font-family="Arial, sans-serif" font-size="19" font-weight="700" text-anchor="middle">
+    <text x="108" y="1790" fill="#FFFFFF" opacity=".62">▶</text><text x="108" y="1840" fill="#FFFFFF" opacity=".62">Explore</text>
+    <text x="324" y="1790" fill="#FFFFFF" opacity=".62">□</text><text x="324" y="1840" fill="#FFFFFF" opacity=".62">Community</text>
+    <text x="540" y="1790" fill="#FFFFFF" opacity=".62">▰</text><text x="540" y="1840" fill="#FFFFFF" opacity=".62">Learn</text>
+    <rect x="690" y="1746" width="132" height="72" rx="36" fill="#D89B1D" opacity=".2"/><text x="756" y="1792" fill="#D89B1D">＋</text><text x="756" y="1840" fill="#D89B1D">Contribute</text>
+    <text x="972" y="1790" fill="#FFFFFF" opacity=".62">○</text><text x="972" y="1840" fill="#FFFFFF" opacity=".62">You</text>
+  </g>
+</svg>

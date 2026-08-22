@@ -39,7 +39,10 @@ export function SubmissionNewPage() {
   const { config, whatsappUrl } = useConfig();
   const { navigate } = useRoute();
   const campaignId = useQueryParam('campaign') ?? '';
-  const submissionId = useRef(newSubmissionId());
+  // Lazy-init so a fresh submission id is generated once, not on every render.
+  const submissionIdRef = useRef<string>('');
+  if (!submissionIdRef.current) submissionIdRef.current = newSubmissionId();
+  const submissionId = submissionIdRef;
 
   const [campaign, setCampaign] = useState<Campaign | null>(null);
   const [loading, setLoading] = useState(true);
@@ -85,11 +88,20 @@ export function SubmissionNewPage() {
 
   useEffect(() => {
     if (!campaignId) { setLoading(false); return; }
-    void fetchCampaign(campaignId).then((c) => {
-      setCampaign(c);
-      setLoading(false);
-      trackEvent('submission_started', { campaign: c?.slug ?? campaignId });
-    });
+    let active = true;
+    void fetchCampaign(campaignId)
+      .then((c) => {
+        if (!active) return;
+        setCampaign(c);
+        setLoading(false);
+        trackEvent('submission_started', { campaign: c?.slug ?? campaignId });
+      })
+      .catch(() => {
+        // Fall through to the "Campaign not found" state rather than hanging
+        // on the loading placeholder.
+        if (active) { setCampaign(null); setLoading(false); }
+      });
+    return () => { active = false; };
   }, [campaignId]);
 
   const mediaLimits = config?.mediaRestrictions ?? campaign?.fileRequirements;

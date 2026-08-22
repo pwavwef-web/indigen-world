@@ -17,7 +17,6 @@ export type IconName =
   | "menu"
   | "mobile"
   | "shield"
-  | "spark"
   | "studio"
   | "x";
 
@@ -99,14 +98,6 @@ export function Icon({ name, size = 22 }: { name: IconName; size?: number }) {
         <svg {...shared}>
           <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" />
           <path d="m9 12 2 2 4-4" />
-        </svg>
-      );
-    case "spark":
-      return (
-        <svg {...shared}>
-          <path d="m12 3-1.5 4.5L6 9l4.5 1.5L12 15l1.5-4.5L18 9l-4.5-1.5z" />
-          <path d="m19 15-.75 2.25L16 18l2.25.75L19 21l.75-2.25L22 18l-2.25-.75z" />
-          <path d="m5 14-.75 2.25L2 17l2.25.75L5 20l.75-2.25L8 17l-2.25-.75z" />
         </svg>
       );
     case "studio":

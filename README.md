@@ -23,6 +23,7 @@ indigen-world/
 │   └── mobile/
 ├── services/
 │   ├── functions/
+│   ├── api/              # Planned bounded DigitalOcean API
 │   └── ai/
 ├── packages/
 │   ├── contracts/
@@ -52,14 +53,14 @@ GitHub usernames for product leads should be added to `.github/CODEOWNERS` once 
 
 - **Kasem first, reusable by design.** Project Kasena proves the language-cell model before new language communities are added.
 - **Community governance is infrastructure.** Every relevant record must preserve source, contributor, validation, dialect, consent, licence, and cultural-permission metadata.
-- **Firebase is the shared platform.** Firebase Authentication, Firestore, Cloud Storage, Functions, Hosting, App Check, and Remote Config are the default services unless an architecture decision record states otherwise.
+- **Firebase is the authority; DigitalOcean is a bounded extension.** Firebase Authentication, Firestore, Cloud Storage, Functions, Hosting, App Check, and Remote Config remain authoritative. A planned DigitalOcean API may host explicitly assigned HTTP, AI, media, webhook, and worker workloads under [ADR 0002](docs/decisions/0002-adopt-firebase-authority-with-digitalocean-api.md).
 - **AI remains provider-independent.** Apps call controlled backend services; model credentials and provider-specific logic must never live in clients.
 - **Low-bandwidth and offline use matter.** Web and mobile experiences must account for constrained networks and older devices.
 - **No raw community corpus in Git.** The repository stores schemas, synthetic fixtures, migrations, and approved public samples only.
 
 ## Development status
 
-The repository currently contains the approved architecture scaffold. Product implementation should be added inside the relevant application or service folder without changing the product boundaries casually.
+The website, TribeStudio, admin console and Flutter mobile app are all implemented and building, backed by shared Firebase security rules, typed contracts and Cloud Functions. Current work is production hardening and iteration rather than scaffolding. Add product implementation inside the relevant application or service folder without changing the product boundaries casually. `services/api` (the bounded DigitalOcean API) is planned and not yet present in the tree.
 
 ## Before contributing
 
@@ -97,6 +98,23 @@ Open the `Local` address printed by Vite, normally [http://localhost:5173](http:
 4. If prompted by the computer's firewall, allow Node.js to communicate on the private network.
 
 The network address varies by computer and network. Mobile access works only while the development server is running and the phone can reach the computer on the local network.
+
+## Run the mobile app (Flutter)
+
+The mobile app in `apps/mobile` targets a pinned Flutter toolchain — **Flutter 3.47.0 (Dart ≥ 3.13)**, recorded in [`apps/mobile/.fvmrc`](apps/mobile/.fvmrc) and enforced in CI. Its build also depends on Dart ≥ 3.12 via the `freezed` code generator, so an older stable Flutter cannot resolve dependencies.
+
+The pinned version is not always the latest stable on your machine, so use [FVM](https://fvm.app/) to install and select it:
+
+```bash
+dart pub global activate fvm
+cd apps/mobile
+fvm install 3.47.0
+fvm use 3.47.0
+fvm flutter pub get
+fvm flutter run --dart-define=APP_ENV=development
+```
+
+Run analysis, tests and code generation through FVM too, e.g. `fvm flutter analyze`, `fvm flutter test`, and `fvm dart run build_runner build`. Native Firebase config files (`google-services.json`, `GoogleService-Info.plist`) are gitignored and must come from the secure developer/CI configuration path, not the repository.
 
 ## Licence status
 

@@ -154,7 +154,7 @@ export function HomePage() {
           <SectionHeading
             eyebrow="One connected ecosystem"
             title="Different doors. One cultural future."
-            body="Project Kasena, TribeStudio, the mobile experience and shared data infrastructure each have a clear job — and an honest status."
+            body="TribeStudio, the mobile experience, Project Kasena and shared data infrastructure each have a clear job — and an honest status."
           />
           <div className="product-grid">
             {HOME_ECOSYSTEM_HIGHLIGHTS.map((product, index) => (

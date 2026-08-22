@@ -7,5 +7,16 @@ export default defineConfig({
     target: 'es2022',
     sourcemap: false,
     cssCodeSplit: true,
+    rollupOptions: {
+      output: {
+        // Keep the Firebase SDK in its own long-lived, cacheable chunk.
+        manualChunks(id) {
+          if (id.includes('node_modules/firebase') || id.includes('node_modules/@firebase')) {
+            return 'firebase';
+          }
+          return undefined;
+        },
+      },
+    },
   },
 });

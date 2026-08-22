@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { Suspense, type ReactNode } from 'react';
 import { Link } from '../router';
 import { signIn, useAuth } from '../auth';
 
@@ -50,7 +50,9 @@ export function PublicLayout({ children }: { children: ReactNode }) {
           )}
         </nav>
       </header>
-      <main id="main-content">{children}</main>
+      <main id="main-content" tabIndex={-1}>
+        <Suspense fallback={<div className="loading">Loading…</div>}>{children}</Suspense>
+      </main>
       <footer className="public__footer">
         <div className="brand">
           <BrandMark />

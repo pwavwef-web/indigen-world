@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-label="Indigen World — Culture belongs in the future">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#142543"/>
+      <stop offset="1" stop-color="#1e365d"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#d6a52b"/>
+      <stop offset="1" stop-color="#b65a3a"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="630" fill="url(#bg)"/>
+
+  <!-- Kente-inspired corner motif -->
+  <g opacity="0.16" stroke="#d6a52b" stroke-width="2" fill="none">
+    <path d="M980 0 1200 220 M1040 0 1200 160 M1100 0 1200 100"/>
+    <path d="M0 630 220 410 M0 570 160 410 M0 510 100 410"/>
+  </g>
+
+  <!-- Emblem -->
+  <g transform="translate(96 232)" fill="none" stroke="url(#accent)" stroke-width="9" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M18 92V44l34-18 34 18v48"/>
+    <path d="M36 86V56m18 30V46m18 40V56"/>
+    <circle cx="52" cy="26" r="8" fill="#d6a52b" stroke="none"/>
+  </g>
+
+  <text x="232" y="292" font-family="'Segoe UI', system-ui, -apple-system, sans-serif" font-size="30" letter-spacing="6" fill="#d6a52b" font-weight="700">INDIGEN WORLD</text>
+  <text x="230" y="392" font-family="'Segoe UI', system-ui, -apple-system, sans-serif" font-size="76" fill="#fffdfa" font-weight="800">Culture belongs</text>
+  <text x="230" y="474" font-family="'Segoe UI', system-ui, -apple-system, sans-serif" font-size="76" fill="#fffdfa" font-weight="800">in the future.</text>
+
+  <text x="232" y="556" font-family="'Segoe UI', system-ui, -apple-system, sans-serif" font-size="26" fill="#c9d2e0" font-weight="500">A community-governed cultural technology ecosystem</text>
+</svg>

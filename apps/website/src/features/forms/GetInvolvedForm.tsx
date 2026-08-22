@@ -126,11 +126,9 @@ export function GetInvolvedForm() {
         restricted knowledge, detailed cultural records, or information about minors here.
       </p>
 
-      {statusMessage && (
-        <p className={`form-status form-status--${status}`} role="status">
-          {statusMessage}
-        </p>
-      )}
+      <p className={`form-status form-status--${status}`} role="status" aria-live="polite">
+        {statusMessage}
+      </p>
     </form>
   );
 }

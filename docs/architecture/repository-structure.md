@@ -11,9 +11,11 @@ indigen-world/
 │   └── mobile/           # Flutter app for everyday users
 ├── services/
 │   ├── functions/        # Firebase Functions and trusted backend operations
+│   ├── api/              # Planned bounded API and workers on DigitalOcean
 │   └── ai/               # Provider-independent AI adapters and evaluations
 ├── packages/
 │   ├── contracts/        # Shared schemas and API contracts
+│   ├── backend-core/     # Planned pure authorization, transition and audit policy
 │   ├── design-tokens/    # Platform-neutral design decisions
 │   └── web-ui/           # Stable React components shared by the web apps
 ├── firebase/             # Rules, indexes and emulator tests
@@ -35,13 +37,22 @@ apps ───────────────┐
                     ├──> packages/contracts
 services/functions ─┘
 
+apps ─────────────────────> services/api over authenticated HTTPS
+services/api ─────────────> packages/contracts
+
 apps/website ───────┐
 apps/tribestudio ───┴──> packages/design-tokens + packages/web-ui
 apps/mobile ───────────> packages/design-tokens concepts + contracts
 services/functions ────> services/ai
+services/api ───────────> services/ai
+services/functions ─┐
+                    ├──> packages/backend-core (when a shared policy use case exists)
+services/api ───────┘
 ```
 
 Applications must not depend directly on another application. Shared behaviour belongs in a package or service only after its boundary is understood.
+
+`services/api` and `packages/backend-core` are reserved by [ADR 0002](../decisions/0002-adopt-firebase-authority-with-digitalocean-api.md). They should be created only with the first implemented cross-runtime use case; empty scaffolds are not required.
 
 ## Product Kasena placement
 

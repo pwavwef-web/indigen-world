@@ -4,7 +4,7 @@ import { Link, useRoute, matchRoute } from '../../router';
 import { trackEvent } from '../../analytics';
 import { useConfig } from '../CreatorProvider';
 import { fetchCampaign, submissionsOpen } from '../data';
-import { CAMPAIGN_STATUS_LABELS, Skeleton, StatusPill, WhatsAppCard } from '../components';
+import { CAMPAIGN_STATUS_LABELS, LoadError, Skeleton, StatusPill, useReloadable, WhatsAppCard } from '../components';
 
 function formatDate(iso?: string | null): string {
   if (!iso) return 'To be announced';
@@ -20,18 +20,27 @@ export function OpportunityDetailPage() {
   const { whatsappUrl } = useConfig();
   const params = matchRoute('/studio/opportunities/:id', path);
   const id = params?.id;
+  const { reloadKey, failed, setFailed, retry } = useReloadable();
   const [campaign, setCampaign] = useState<Campaign | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!id) return;
-    void fetchCampaign(id).then((c) => {
-      setCampaign(c);
-      setLoading(false);
-      if (c) trackEvent('campaign_viewed', { campaign: c.slug });
-    });
-  }, [id]);
+    let active = true;
+    setFailed(false);
+    setLoading(true);
+    void fetchCampaign(id)
+      .then((c) => {
+        if (!active) return;
+        setCampaign(c);
+        setLoading(false);
+        if (c) trackEvent('campaign_viewed', { campaign: c.slug });
+      })
+      .catch(() => { if (active) { setFailed(true); setLoading(false); } });
+    return () => { active = false; };
+  }, [id, reloadKey, setFailed]);
 
+  if (failed) return <div className="page"><LoadError onRetry={retry} /></div>;
   if (loading) return <div className="page"><Skeleton lines={8} /></div>;
   if (!campaign) {
     return (

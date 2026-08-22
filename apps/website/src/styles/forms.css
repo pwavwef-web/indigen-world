@@ -77,6 +77,11 @@
   font-size: 0.88rem;
   font-weight: 600;
 }
+/* The status region stays mounted so its aria-live announcement is reliable;
+   when there is no message it collapses instead of leaving an empty box. */
+.form-status:empty {
+  display: none;
+}
 .form-status--success {
   background: rgba(31, 91, 58, 0.1);
   color: var(--green);

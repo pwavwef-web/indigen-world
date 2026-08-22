@@ -1,7 +1,6 @@
 /** Lightweight History API router for the site's fixed public routes. */
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import type { AnchorHTMLAttributes, MouseEvent, ReactNode } from "react";
-import { ROUTES_BY_PATH } from "../content/navigation";
 
 const DEFAULT_PATH = "home";
 
@@ -64,10 +63,6 @@ export function useRoute(): RouteContextValue {
     throw new Error("useRoute() must be used inside a <RouterProvider>");
   }
   return ctx;
-}
-
-export function isKnownRoute(path: string): boolean {
-  return path in ROUTES_BY_PATH;
 }
 
 type LinkProps = Omit<AnchorHTMLAttributes<HTMLAnchorElement>, "href"> & {

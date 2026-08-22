@@ -6,7 +6,7 @@ import { useAuth } from '../../auth';
 import { trackEvent } from '../../analytics';
 import { useConfig } from '../CreatorProvider';
 import { fetchMyProfile, updateMyProfile } from '../data';
-import { Field, Skeleton } from '../components';
+import { Field, LoadError, Skeleton, useReloadable } from '../components';
 
 function toggle(list: string[], value: string): string[] {
   return list.includes(value) ? list.filter((v) => v !== value) : [...list, value];
@@ -15,6 +15,7 @@ function toggle(list: string[], value: string): string[] {
 export function ProfilePage() {
   const { user } = useAuth();
   const { config } = useConfig();
+  const { reloadKey, failed, setFailed, retry } = useReloadable();
   const [profile, setProfile] = useState<CreatorProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -43,7 +44,11 @@ export function ProfilePage() {
 
   useEffect(() => {
     if (!user) return;
+    let active = true;
+    setFailed(false);
+    setLoading(true);
     void fetchMyProfile(user.uid).then((p) => {
+      if (!active) return;
       setProfile(p);
       if (p) {
         setBio(p.public.bio ?? '');
@@ -67,8 +72,11 @@ export function ProfilePage() {
         setInAppPref(p.notificationPreferences?.inApp ?? true);
       }
       setLoading(false);
+    }).catch(() => {
+      if (active) { setFailed(true); setLoading(false); }
     });
-  }, [user]);
+    return () => { active = false; };
+  }, [user, reloadKey, setFailed]);
 
   const save = async () => {
     if (!user || !profile) return;
@@ -105,6 +113,10 @@ export function ProfilePage() {
       setSaving(false);
     }
   };
+
+  if (failed) {
+    return <div className="page"><h1>Your profile</h1><LoadError onRetry={retry} /></div>;
+  }
 
   if (loading) {
     return <div className="page"><h1>Your profile</h1><Skeleton lines={8} /></div>;

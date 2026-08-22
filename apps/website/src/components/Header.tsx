@@ -5,7 +5,7 @@
  * mobile menu. The uploaded template's mobile nav used a neat
  * `grid-template-rows: 0fr -> 1fr` collapse animation instead of the
  * more common `position: fixed` overlay — that's kept as-is here
- * (see .mobile-nav in styles/layout.css), since it sidesteps the
+ * (see .mobile-nav in styles/header.css), since it sidesteps the
  * fixed-position/backdrop-filter containing-block bug entirely and is
  * a nicer effect besides.
  *
@@ -74,7 +74,11 @@ export function Header() {
         </div>
       </div>
 
-      <div id="mobile-navigation" className={`mobile-nav${menuOpen ? " mobile-nav--open" : ""}`}>
+      <div
+        id="mobile-navigation"
+        className={`mobile-nav${menuOpen ? " mobile-nav--open" : ""}`}
+        inert={!menuOpen}
+      >
         <nav className="container" aria-label="Mobile navigation">
           {NAV_ROUTES.map((route) => (
             <Link

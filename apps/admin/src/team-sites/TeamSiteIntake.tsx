@@ -107,12 +107,14 @@ function TextInput({
   onChange,
   multiline = false,
   required = false,
+  type = 'text',
 }: {
   name: keyof TeamSiteRequest['fields'];
   value: string;
   onChange: (name: keyof TeamSiteRequest['fields'], value: string) => void;
   multiline?: boolean;
   required?: boolean;
+  type?: string;
 }) {
   const id = `team-site-${name}`;
   return (
@@ -124,7 +126,7 @@ function TextInput({
       {multiline ? (
         <textarea id={id} value={value} onChange={(e) => onChange(name, e.target.value)} rows={4} required={required} />
       ) : (
-        <input id={id} value={value} onChange={(e) => onChange(name, e.target.value)} required={required} />
+        <input id={id} type={type} value={value} onChange={(e) => onChange(name, e.target.value)} required={required} />
       )}
     </label>
   );
@@ -228,8 +230,8 @@ export function TeamSiteIntakePage() {
               <TextInput name="displayName" value={fields.displayName} onChange={updateField} />
               <TextInput name="roleTitle" value={fields.roleTitle} onChange={updateField} />
               <TextInput name="teamCompany" value={fields.teamCompany} onChange={updateField} />
-              <TextInput name="email" value={fields.email} onChange={updateField} required />
-              <TextInput name="phone" value={fields.phone} onChange={updateField} />
+              <TextInput name="email" value={fields.email} onChange={updateField} type="email" required />
+              <TextInput name="phone" value={fields.phone} onChange={updateField} type="tel" />
               <TextInput name="location" value={fields.location} onChange={updateField} />
             </div>
           </section>
@@ -336,9 +338,19 @@ export function TeamSiteRequestsAdmin() {
                 <tr
                   key={request.id}
                   className={selected?.id === request.id ? 'is-selected' : ''}
-                  onClick={() => setSelected(request)}
                 >
-                  <td>{formatDate(request.submittedAt)}</td>
+                  <td>
+                    {/* Real button so the row is keyboard- and screen-reader-operable,
+                        not mouse-only. aria-pressed reflects the current selection. */}
+                    <button
+                      type="button"
+                      className="row-select"
+                      aria-pressed={selected?.id === request.id}
+                      onClick={() => setSelected(request)}
+                    >
+                      {formatDate(request.submittedAt)}
+                    </button>
+                  </td>
                   <td>{request.fields.fullName || request.fields.displayName || '-'}</td>
                   <td>{request.fields.siteName || '-'}</td>
                   <td>{request.fields.sitePurpose || '-'}</td>

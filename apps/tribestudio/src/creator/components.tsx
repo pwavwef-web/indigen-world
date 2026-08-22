@@ -1,3 +1,4 @@
+import { useCallback, useState } from 'react';
 import type { ReactNode } from 'react';
 import { trackEvent } from '../analytics';
 import { WHATSAPP_CHANNEL_URL } from './data';
@@ -114,6 +115,46 @@ export function EmptyState({ title, body, action }: { title: string; body?: stri
 
 export function Callout({ tone = 'info', children }: { tone?: 'info' | 'warn' | 'ok'; children: ReactNode }) {
   return <div className={`callout callout--${tone}`}>{children}</div>;
+}
+
+/**
+ * Inline error state for a failed data load, with a retry affordance. Pair
+ * with useReloadable() so a permission-denied / offline / missing-index read
+ * shows a recoverable message instead of an infinite skeleton.
+ */
+export function LoadError({
+  onRetry,
+  title = 'We couldn’t load this',
+}: {
+  onRetry: () => void;
+  title?: string;
+}) {
+  return (
+    <div className="load-error" role="alert">
+      <h2>{title}</h2>
+      <p className="muted">
+        Something went wrong reaching the workspace. Check your connection and try again.
+      </p>
+      <button type="button" className="button button--primary" onClick={onRetry}>
+        Try again
+      </button>
+    </div>
+  );
+}
+
+/**
+ * Small helper for reloadable data screens. `reloadKey` goes in the effect's
+ * dependency array; `retry()` clears the error and bumps the key to re-run the
+ * load; `setFailed(true)` in a `.catch` flags the failure.
+ */
+export function useReloadable() {
+  const [reloadKey, setReloadKey] = useState(0);
+  const [failed, setFailed] = useState(false);
+  const retry = useCallback(() => {
+    setFailed(false);
+    setReloadKey((k) => k + 1);
+  }, []);
+  return { reloadKey, failed, setFailed, retry };
 }
 
 export function Skeleton({ lines = 3 }: { lines?: number }) {

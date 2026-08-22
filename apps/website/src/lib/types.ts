@@ -36,6 +36,9 @@ export interface EcosystemProduct {
   ownerLabel?: "Lead" | "Owner";
   /** In-app route to link to, if this product has its own page. */
   href?: string;
+  /** When true, `href` is a full external URL opened in a new tab
+   *  (e.g. a separately-hosted product), not an in-app route. */
+  external?: boolean;
   ctaLabel?: string;
 }
 

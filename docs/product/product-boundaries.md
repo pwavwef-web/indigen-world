@@ -70,6 +70,10 @@ Owns trusted execution and shared capabilities:
 
 AI infrastructure is not evidence that a production Kasem model is active. Product copy must distinguish prototypes, third-party model assistance, retrieval systems, and genuinely trained language models.
 
+### DigitalOcean API boundary
+
+A bounded custom API may run on DigitalOcean for long-lived HTTP APIs, AI/provider orchestration, media processing, webhooks, and assigned background work. It extends rather than replaces Firebase authority: clients retain Firebase identity, existing governed records remain authoritative in Firestore, and custom API mutations must apply the same role, consent, cultural-permission, validation, and audit rules as Firebase Functions. See [ADR 0002](../decisions/0002-adopt-firebase-authority-with-digitalocean-api.md).
+
 ## Project Kasena
 
 Project Kasena is the flagship Kasem-language programme. It supplies the first language cell and preserves the strongest existing requirements:

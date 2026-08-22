@@ -2,21 +2,29 @@ import { useEffect, useState } from 'react';
 import type { Submission } from '@indigen-world/contracts/creator-models';
 import { Link, matchRoute, useRoute } from '../../router';
 import { fetchSubmission } from '../data';
-import { Skeleton, StatusPill, SUBMISSION_STATUS_LABELS } from '../components';
+import { LoadError, Skeleton, StatusPill, SUBMISSION_STATUS_LABELS, useReloadable } from '../components';
 
 const WITHDRAWABLE = new Set(['DRAFT', 'SUBMITTED', 'NEEDS_REVISION', 'RESUBMITTED', 'UNDER_REVIEW']);
 
 export function SubmissionDetailPage() {
   const { path } = useRoute();
   const id = matchRoute('/studio/submissions/:id', path)?.id;
+  const { reloadKey, failed, setFailed, retry } = useReloadable();
   const [sub, setSub] = useState<Submission | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!id) return;
-    void fetchSubmission(id).then((s) => { setSub(s); setLoading(false); });
-  }, [id]);
+    let active = true;
+    setFailed(false);
+    setLoading(true);
+    void fetchSubmission(id)
+      .then((s) => { if (!active) return; setSub(s); setLoading(false); })
+      .catch(() => { if (active) { setFailed(true); setLoading(false); } });
+    return () => { active = false; };
+  }, [id, reloadKey, setFailed]);
 
+  if (failed) return <div className="page"><LoadError onRetry={retry} /></div>;
   if (loading) return <div className="page"><Skeleton lines={6} /></div>;
   if (!sub) return <div className="page"><h1>Submission not found</h1><Link to="/studio/submissions" className="button button--ghost-dark">Back</Link></div>;
 

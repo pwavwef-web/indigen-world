@@ -41,17 +41,23 @@ export function useAdminAuth(): AdminAuthState {
         setState({ user: null, role: null, finance: false, ready: true });
         return;
       }
-      const token = await getIdTokenResult(user);
-      const claimed = token.claims.role;
-      const role = claimed === 'contributor'
-        || claimed === 'validator'
-        || claimed === 'creator'
-        || claimed === 'reviewer'
-        || claimed === 'admin'
-        || claimed === 'super_admin'
-        ? claimed
-        : null;
-      setState({ user, role, finance: token.claims.finance === true, ready: true });
+      try {
+        const token = await getIdTokenResult(user);
+        const claimed = token.claims.role;
+        const role = claimed === 'contributor'
+          || claimed === 'validator'
+          || claimed === 'creator'
+          || claimed === 'reviewer'
+          || claimed === 'admin'
+          || claimed === 'super_admin'
+          ? claimed
+          : null;
+        setState({ user, role, finance: token.claims.finance === true, ready: true });
+      } catch {
+        // A transient token-refresh failure must not wedge the console on
+        // "Loading…" forever — render the shell with no role rather than hang.
+        setState({ user, role: null, finance: false, ready: true });
+      }
     });
   }, []);
   return state;

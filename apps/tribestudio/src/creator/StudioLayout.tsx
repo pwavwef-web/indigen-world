@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { Suspense, type ReactNode } from 'react';
 import { Link, useRoute } from '../router';
 import { canContribute, signOutUser, useAuth } from '../auth';
 
@@ -67,8 +67,8 @@ export function StudioLayout({ children }: { children: ReactNode }) {
           </button>
         </div>
       </aside>
-      <main id="main-content" className="studio__main">
-        {children}
+      <main id="main-content" className="studio__main" tabIndex={-1}>
+        <Suspense fallback={<div className="loading">Loading…</div>}>{children}</Suspense>
       </main>
     </div>
   );

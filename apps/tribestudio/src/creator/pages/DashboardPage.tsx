@@ -20,15 +20,18 @@ import {
 import {
   APPLICATION_STATUS_LABELS,
   CAMPAIGN_STATUS_LABELS,
+  LoadError,
   Skeleton,
   StatusPill,
   SUBMISSION_STATUS_LABELS,
+  useReloadable,
   WhatsAppCard,
 } from '../components';
 
 export function DashboardPage() {
   const { user } = useAuth();
   const { whatsappUrl } = useConfig();
+  const { reloadKey, failed, setFailed, retry } = useReloadable();
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<CreatorProfile | null>(null);
   const [applications, setApplications] = useState<CreatorApplication[]>([]);
@@ -39,25 +42,43 @@ export function DashboardPage() {
   useEffect(() => {
     if (!user) return;
     let active = true;
+    setFailed(false);
+    setLoading(true);
     void Promise.all([
       fetchMyProfile(user.uid),
       fetchMyApplications(user.uid),
       fetchPublicCampaigns(),
       fetchMySubmissions(user.uid),
       fetchMyNotifications(user.uid),
-    ]).then(([p, a, c, s, n]) => {
-      if (!active) return;
-      setProfile(p);
-      setApplications(a);
-      setCampaigns(c);
-      setSubmissions(s);
-      setNotifications(n);
-      setLoading(false);
-    });
+    ])
+      .then(([p, a, c, s, n]) => {
+        if (!active) return;
+        setProfile(p);
+        setApplications(a);
+        setCampaigns(c);
+        setSubmissions(s);
+        setNotifications(n);
+        setLoading(false);
+      })
+      .catch(() => {
+        if (active) {
+          setFailed(true);
+          setLoading(false);
+        }
+      });
     return () => {
       active = false;
     };
-  }, [user]);
+  }, [user, reloadKey, setFailed]);
+
+  if (failed) {
+    return (
+      <div className="page">
+        <h1>Welcome back</h1>
+        <LoadError onRetry={retry} title="We couldn’t load your dashboard" />
+      </div>
+    );
+  }
 
   if (loading) {
     return (

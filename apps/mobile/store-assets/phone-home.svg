@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1920" viewBox="0 0 1080 1920">
+  <rect width="1080" height="1920" fill="#F7F3E8"/>
+  <text x="62" y="70" fill="#1E2522" font-family="Arial, sans-serif" font-size="32" font-weight="700">9:41</text>
+  <g fill="#1E2522"><rect x="900" y="43" width="38" height="22" rx="5"/><rect x="948" y="38" width="55" height="28" rx="7"/><rect x="1008" y="46" width="10" height="12" rx="3"/></g>
+  <text x="60" y="150" fill="#B65A3A" font-family="Arial, sans-serif" font-size="25" font-weight="800" letter-spacing="3">INDIGEN WORLD</text>
+  <text x="60" y="215" fill="#1E2522" font-family="Arial, sans-serif" font-size="54" font-weight="800">Kasem, close at hand.</text>
+  <text x="60" y="262" fill="#58615D" font-family="Arial, sans-serif" font-size="27">Project Kasena · your language cell starts here</text>
+  <circle cx="985" cy="176" r="44" fill="#E2DDD0"/><path d="M985 152c-15 0-25 11-25 27v15l-8 9h66l-8-9v-15c0-16-10-27-25-27zm-10 58h20" fill="none" stroke="#0B3D2E" stroke-width="7" stroke-linecap="round"/>
+  <rect x="60" y="305" width="960" height="112" rx="24" fill="#FFFDF8" stroke="#D89B1D" stroke-width="3"/>
+  <circle cx="112" cy="361" r="24" fill="#D89B1D"/><text x="103" y="371" fill="#0B3D2E" font-family="Arial, sans-serif" font-size="28" font-weight="900">i</text>
+  <text x="154" y="348" fill="#1E2522" font-family="Arial, sans-serif" font-size="25" font-weight="700">Demo dictionary</text>
+  <text x="154" y="383" fill="#58615D" font-family="Arial, sans-serif" font-size="22">Synthetic entries are clearly labelled until community-approved packs arrive.</text>
+  <rect x="60" y="452" width="960" height="92" rx="26" fill="#FFFFFF" stroke="#D8D2C6" stroke-width="3"/>
+  <circle cx="111" cy="498" r="20" fill="none" stroke="#58615D" stroke-width="6"/><path d="M125 514l18 18" stroke="#58615D" stroke-width="6" stroke-linecap="round"/>
+  <text x="168" y="510" fill="#58615D" font-family="Arial, sans-serif" font-size="27">Search English or Kasem</text>
+  <rect x="60" y="573" width="315" height="48" rx="24" fill="#155B43"/><text x="92" y="606" fill="#FFFFFF" font-family="Arial, sans-serif" font-size="18" font-weight="800">AVAILABLE OFFLINE</text>
+  <rect x="392" y="573" width="278" height="48" rx="24" fill="#B65A3A"/><text x="420" y="606" fill="#FFFFFF" font-family="Arial, sans-serif" font-size="18" font-weight="800">ENGLISH ⇄ KASEM</text>
+  <rect x="60" y="658" width="960" height="350" rx="38" fill="#0B3D2E"/>
+  <circle cx="106" cy="716" r="19" fill="#D89B1D"/><text x="144" y="725" fill="#D89B1D" font-family="Arial, sans-serif" font-size="22" font-weight="800" letter-spacing="2">TODAY’S WORD · DEMO</text>
+  <text x="105" y="820" fill="#FFFFFF" font-family="Arial, sans-serif" font-size="43" font-weight="800">Kasem greeting · demo</text>
+  <text x="105" y="870" fill="#FFFFFF" opacity=".8" font-family="Arial, sans-serif" font-size="28">Hello · synthetic placeholder</text>
+  <rect x="105" y="916" width="240" height="62" rx="19" fill="#FFF8E7"/><text x="150" y="956" fill="#0B3D2E" font-family="Arial, sans-serif" font-size="24" font-weight="800">Open entry  →</text>
+  <text x="60" y="1080" fill="#1E2522" font-family="Arial, sans-serif" font-size="34" font-weight="800">Explore the demo dictionary</text>
+  <rect x="60" y="1120" width="960" height="160" rx="28" fill="#FFFFFF" stroke="#E2DDD0" stroke-width="2"/>
+  <rect x="86" y="1154" width="92" height="92" rx="24" fill="#F4E7E1"/><path d="M112 1180h40v50h-40zM132 1180v50" fill="none" stroke="#B65A3A" stroke-width="5"/>
+  <text x="210" y="1175" fill="#1E2522" font-family="Arial, sans-serif" font-size="29" font-weight="800">Kasem word for water · demo</text>
+  <text x="210" y="1215" fill="#58615D" font-family="Arial, sans-serif" font-size="23">Water · synthetic placeholder</text>
+  <text x="210" y="1252" fill="#155B43" font-family="Arial, sans-serif" font-size="19" font-weight="800">NOUN · PAGA · DEMO METADATA</text>
+  <text x="970" y="1212" fill="#58615D" font-family="Arial, sans-serif" font-size="44">›</text>
+  <rect x="60" y="1302" width="960" height="160" rx="28" fill="#FFFFFF" stroke="#E2DDD0" stroke-width="2"/>
+  <rect x="86" y="1336" width="92" height="92" rx="24" fill="#F4E7E1"/><path d="M112 1362h40v50h-40zM132 1362v50" fill="none" stroke="#B65A3A" stroke-width="5"/>
+  <text x="210" y="1357" fill="#1E2522" font-family="Arial, sans-serif" font-size="29" font-weight="800">Kasem word for family · demo</text>
+  <text x="210" y="1397" fill="#58615D" font-family="Arial, sans-serif" font-size="23">Family · synthetic placeholder</text>
+  <text x="210" y="1434" fill="#155B43" font-family="Arial, sans-serif" font-size="19" font-weight="800">NOUN · NAVRONGO · DEMO METADATA</text>
+  <text x="970" y="1394" fill="#58615D" font-family="Arial, sans-serif" font-size="44">›</text>
+  <rect y="1710" width="1080" height="210" fill="#0B3D2E"/>
+  <g font-family="Arial, sans-serif" font-size="19" font-weight="700" text-anchor="middle">
+    <text x="108" y="1790" fill="#FFFFFF" opacity=".62">▶</text><text x="108" y="1840" fill="#FFFFFF" opacity=".62">Explore</text>
+    <text x="324" y="1790" fill="#FFFFFF" opacity=".62">□</text><text x="324" y="1840" fill="#FFFFFF" opacity=".62">Community</text>
+    <rect x="474" y="1746" width="132" height="72" rx="36" fill="#D89B1D" opacity=".2"/><text x="540" y="1792" fill="#D89B1D">▰</text><text x="540" y="1840" fill="#D89B1D">Learn</text>
+    <text x="756" y="1790" fill="#FFFFFF" opacity=".62">＋</text><text x="756" y="1840" fill="#FFFFFF" opacity=".62">Contribute</text>
+    <text x="972" y="1790" fill="#FFFFFF" opacity=".62">○</text><text x="972" y="1840" fill="#FFFFFF" opacity=".62">You</text>
+  </g>
+</svg>

@@ -135,6 +135,50 @@ button {
   transform: translateY(0);
 }
 
+/*
+ * Reveal-on-scroll (powered by src/lib/useRevealOnScroll.ts, which adds
+ * `.is-visible` as elements enter the viewport). The hidden starting state
+ * lives inside `no-preference` only, so reduced-motion users — and the hook's
+ * own reduced-motion branch — never depend on JS to reveal content. Because
+ * this is a client-rendered app, JS is required to paint any content at all,
+ * so gating the reveal on JS is not a content-visibility regression.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  [data-reveal] {
+    opacity: 0;
+    transform: translateY(14px);
+    transition:
+      opacity var(--motion-duration) var(--motion-ease),
+      transform var(--motion-duration) var(--motion-ease);
+    will-change: opacity, transform;
+  }
+  [data-reveal].is-visible {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Route-level Suspense fallback and error-boundary states. */
+.route-loading,
+.route-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: 50vh;
+  padding: var(--space-5) var(--space-2);
+  text-align: center;
+  color: var(--muted);
+}
+.route-error h1 {
+  font-size: 1.7rem;
+  color: var(--indigo-900);
+}
+.route-error p {
+  max-width: 42ch;
+}
+
 @media (min-width: 640px) {
   h1 {
     font-size: 3.2rem;

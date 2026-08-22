@@ -82,11 +82,9 @@ export function NewsletterForm() {
       <p className="form-notice">
         Occasional stories and verified project updates from Indigen World. Unsubscribe at any time.
       </p>
-      {statusMessage && (
-        <p className={`form-status form-status--${status}`} role="status" aria-live="polite">
-          {statusMessage}
-        </p>
-      )}
+      <p className={`form-status form-status--${status}`} role="status" aria-live="polite">
+        {statusMessage}
+      </p>
     </form>
   );
 }

@@ -47,6 +47,15 @@ export async function submitPublicForm<Name extends PublicFormName>(
       body: JSON.stringify({ form, payload }),
     });
 
+    // When the reviewed endpoint is not deployed yet, the SPA host rewrites
+    // the request to index.html (HTML, often 404). Report that honestly as
+    // "unavailable" rather than as a generic rejection, so people are told
+    // online submissions are not connected yet instead of "try again".
+    const contentType = response.headers.get("content-type") ?? "";
+    if (response.status === 404 || !contentType.includes("application/json")) {
+      throw new FormServiceError("unavailable");
+    }
+
     const result: unknown = await response.json().catch(() => null);
     if (
       !response.ok ||

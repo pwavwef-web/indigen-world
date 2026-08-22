@@ -20,14 +20,16 @@ const statusLabels: Record<string, string> = {
   retired: 'Retired',
 };
 
-const adminDomains = [
-  ['Roles & access', 'Assign and audit role claims for contributors, validators and staff.'],
-  ['Creator management', 'Applications, campaigns, submissions, published content and consent for TribeStudio creators.'],
-  ['Validation oversight', 'Monitor validator queues, escalations and quality across language cells.'],
-  ['Moderation', 'Review reported content and enforce cultural-permission and consent policy.'],
-  ['Campaigns & rewards', 'Oversee bounties, reward settlement and contributor-points integrity.'],
-  ['Audit & accountability', 'Inspect the append-only audit log of privileged actions.'],
-] as const;
+// `planned: true` marks domains whose console UI is not built yet, so the home
+// screen doesn't imply capabilities operators can't actually reach here.
+const adminDomains: { title: string; body: string; planned?: boolean }[] = [
+  { title: 'Roles & access', body: 'Assign and audit role claims for contributors, validators and staff.', planned: true },
+  { title: 'Creator management', body: 'Applications, campaigns, submissions, published content and consent for TribeStudio creators.' },
+  { title: 'Validation oversight', body: 'Monitor validator queues, escalations and quality across language cells.' },
+  { title: 'Moderation', body: 'Review reported content and enforce cultural-permission and consent policy.', planned: true },
+  { title: 'Campaigns & rewards', body: 'Oversee bounties, reward settlement and contributor-points integrity.', planned: true },
+  { title: 'Audit & accountability', body: 'Inspect the append-only audit log of privileged actions.', planned: true },
+];
 
 type View = 'console' | 'creators' | 'teamSites';
 
@@ -47,8 +49,14 @@ function ConsoleHome() {
       <section className="panel">
         <h2>Administrative domains</h2>
         <ul className="entity-grid">
-          {adminDomains.map(([title, body]) => (
-            <li key={title} className="entity-card"><strong>{title}</strong><p>{body}</p></li>
+          {adminDomains.map((domain) => (
+            <li key={domain.title} className="entity-card">
+              <strong>
+                {domain.title}
+                {domain.planned ? <span className="tag tag--planned">Planned</span> : null}
+              </strong>
+              <p>{domain.body}</p>
+            </li>
           ))}
         </ul>
       </section>

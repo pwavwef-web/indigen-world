@@ -3,23 +3,32 @@ import type { Campaign, Submission } from '@indigen-world/contracts/creator-mode
 import { Link } from '../../router';
 import { useAuth } from '../../auth';
 import { fetchMySubmissions, fetchPublicCampaigns, submissionsOpen } from '../data';
-import { EmptyState, Skeleton, StatusPill, SUBMISSION_STATUS_LABELS } from '../components';
+import { EmptyState, LoadError, Skeleton, StatusPill, SUBMISSION_STATUS_LABELS, useReloadable } from '../components';
 
 export function SubmissionsPage() {
   const { user } = useAuth();
+  const { reloadKey, failed, setFailed, retry } = useReloadable();
   const [subs, setSubs] = useState<Submission[]>([]);
   const [openCampaign, setOpenCampaign] = useState<Campaign | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!user) return;
-    void Promise.all([fetchMySubmissions(user.uid), fetchPublicCampaigns()]).then(([s, c]) => {
-      setSubs(s);
-      setOpenCampaign(c.find(submissionsOpen) ?? null);
-      setLoading(false);
-    });
-  }, [user]);
+    let active = true;
+    setFailed(false);
+    setLoading(true);
+    void Promise.all([fetchMySubmissions(user.uid), fetchPublicCampaigns()])
+      .then(([s, c]) => {
+        if (!active) return;
+        setSubs(s);
+        setOpenCampaign(c.find(submissionsOpen) ?? null);
+        setLoading(false);
+      })
+      .catch(() => { if (active) { setFailed(true); setLoading(false); } });
+    return () => { active = false; };
+  }, [user, reloadKey, setFailed]);
 
+  if (failed) return <div className="page"><h1>Submissions</h1><LoadError onRetry={retry} /></div>;
   if (loading) return <div className="page"><h1>Submissions</h1><Skeleton lines={5} /></div>;
 
   return (

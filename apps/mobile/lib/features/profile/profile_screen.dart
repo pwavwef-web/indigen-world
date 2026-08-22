@@ -171,24 +171,34 @@ class ProfileScreen extends ConsumerWidget {
   }
 
   void _showPrivacy(BuildContext context) {
+    // Keep this copy accurate per environment: production builds enable
+    // Analytics, Crashlytics, Performance and Messaging (see FirebaseBootstrap),
+    // so a blanket "nothing is active" claim would be false in release.
+    final isProduction = appEnvironment == AppEnvironment.production;
+    final description = isProduction
+        ? 'Saved words and contribution drafts stay on this device. This production build uses '
+            'Firebase analytics, crash reporting and performance monitoring to improve the app. '
+            'Cloud sync of your saved content is not enabled.'
+        : 'Saved words and contribution drafts stay on this device. No analytics, crash reporting, '
+            'cloud sync, or production data connection is active in this $appEnvironmentName build.';
     showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
-      builder: (context) => const SafeArea(
+      builder: (context) => SafeArea(
         child: Padding(
-          padding: EdgeInsets.fromLTRB(24, 0, 24, 30),
+          padding: const EdgeInsets.fromLTRB(24, 0, 24, 30),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
+              const Text(
                 'Privacy in this build',
                 style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
               ),
-              SizedBox(height: 12),
+              const SizedBox(height: 12),
               Text(
-                'Saved words and contribution drafts remain on this device. No sign-in, analytics, crash reporting, cloud sync, or production data connection is active in this debug build.',
-                style: TextStyle(fontSize: 16, height: 1.5),
+                description,
+                style: const TextStyle(fontSize: 16, height: 1.5),
               ),
             ],
           ),

@@ -35,11 +35,20 @@ export function LandingPage() {
   useEffect(() => {
     trackEvent('creator_landing_viewed');
     let active = true;
-    void fetchPublicCampaigns().then((list) => {
-      if (!active) return;
-      setCampaign(list[0] ?? null);
-      setLoading(false);
-    });
+    void fetchPublicCampaigns()
+      .then((list) => {
+        if (!active) return;
+        setCampaign(list[0] ?? null);
+        setLoading(false);
+      })
+      .catch(() => {
+        // Public marketing page: a failed campaign read degrades to the
+        // "no campaigns announced" state rather than blocking the page.
+        if (active) {
+          setCampaign(null);
+          setLoading(false);
+        }
+      });
     return () => {
       active = false;
     };

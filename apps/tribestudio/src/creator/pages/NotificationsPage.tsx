@@ -2,17 +2,24 @@ import { useEffect, useState } from 'react';
 import type { CreatorNotification } from '@indigen-world/contracts/creator-models';
 import { useAuth } from '../../auth';
 import { fetchMyNotifications, markNotificationRead } from '../data';
-import { EmptyState, Skeleton, WhatsAppCard } from '../components';
+import { EmptyState, LoadError, Skeleton, useReloadable, WhatsAppCard } from '../components';
 
 export function NotificationsPage() {
   const { user } = useAuth();
+  const { reloadKey, failed, setFailed, retry } = useReloadable();
   const [items, setItems] = useState<CreatorNotification[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!user) return;
-    void fetchMyNotifications(user.uid).then((n) => { setItems(n); setLoading(false); });
-  }, [user]);
+    let active = true;
+    setFailed(false);
+    setLoading(true);
+    void fetchMyNotifications(user.uid)
+      .then((n) => { if (!active) return; setItems(n); setLoading(false); })
+      .catch(() => { if (active) { setFailed(true); setLoading(false); } });
+    return () => { active = false; };
+  }, [user, reloadKey, setFailed]);
 
   const markRead = async (n: CreatorNotification) => {
     if (n.read) return;
@@ -20,6 +27,7 @@ export function NotificationsPage() {
     setItems((cur) => cur.map((x) => (x.id === n.id ? { ...x, read: true } : x)));
   };
 
+  if (failed) return <div className="page"><h1>Notifications</h1><LoadError onRetry={retry} /></div>;
   if (loading) return <div className="page"><h1>Notifications</h1><Skeleton lines={5} /></div>;
 
   return (
