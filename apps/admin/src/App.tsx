@@ -3,9 +3,10 @@ import { GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/auth';
 import { enums, schemas } from '@indigen-world/contracts';
 import { Button } from '@indigen-world/web-ui';
 import { auth } from './firebase';
-import { isValidator, useAdminAuth } from './creators/data';
+import { isAdmin, isValidator, useAdminAuth } from './creators/data';
 import { CreatorsAdmin } from './creators/CreatorsAdmin';
 import { TeamSiteIntakePage, TeamSiteRequestsAdmin } from './team-sites/TeamSiteIntake';
+import { MessagingAdmin } from './messaging/MessagingAdmin';
 
 const provider = new GoogleAuthProvider();
 
@@ -31,7 +32,7 @@ const adminDomains: { title: string; body: string; planned?: boolean }[] = [
   { title: 'Audit & accountability', body: 'Inspect the append-only audit log of privileged actions.', planned: true },
 ];
 
-type View = 'console' | 'creators' | 'teamSites';
+type View = 'console' | 'creators' | 'teamSites' | 'messaging';
 
 function ConsoleHome() {
   const entities = Object.entries(schemas);
@@ -151,6 +152,7 @@ function App() {
           <button type="button" className={view === 'console' ? 'topnav__link is-active' : 'topnav__link'} onClick={() => setView('console')}>Console</button>
           <button type="button" className={view === 'creators' ? 'topnav__link is-active' : 'topnav__link'} onClick={() => setView('creators')}>Creators</button>
           <button type="button" className={view === 'teamSites' ? 'topnav__link is-active' : 'topnav__link'} onClick={() => setView('teamSites')}>Team sites</button>
+          <button type="button" className={view === 'messaging' ? 'topnav__link is-active' : 'topnav__link'} onClick={() => setView('messaging')}>Messaging</button>
         </nav>
       ) : null}
 
@@ -179,6 +181,15 @@ function App() {
             <section className="panel panel--notice">
               <h1>Staff access required</h1>
               <p>Your account needs a validator or admin role to manage creators.</p>
+            </section>
+          )
+        ) : view === 'messaging' ? (
+          isAdmin(role) ? (
+            <MessagingAdmin />
+          ) : (
+            <section className="panel panel--notice">
+              <h1>Admin access required</h1>
+              <p>Your account needs an admin role to view the SMS balance and send test messages.</p>
             </section>
           )
         ) : (

@@ -3,6 +3,14 @@ import { FieldValue, getFirestore } from 'firebase-admin/firestore';
 import { logger } from 'firebase-functions';
 import { HttpsError, onRequest } from 'firebase-functions/v2/https';
 import { consumeRateLimit } from './rate-limit.js';
+import { SMTP_PASSWORD, sendMail, teamInbox } from './email.js';
+import {
+  contactAcknowledgement,
+  contactTeamAlert,
+  involvementAcknowledgement,
+  involvementTeamAlert,
+  newsletterWelcome,
+} from './email-templates.js';
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const CONSENT_VERSION = 'venacula-newsletter-2026-08';
@@ -35,7 +43,7 @@ function validEmail(value: string): boolean {
  * Firestore's default-deny client rules.
  */
 export const publicForms = onRequest(
-  { cors: true, invoker: 'public', region: 'us-central1', timeoutSeconds: 15 },
+  { cors: true, invoker: 'public', region: 'us-central1', timeoutSeconds: 15, secrets: [SMTP_PASSWORD] },
   async (req, res) => {
     if (req.method !== 'POST') {
       res.set('Allow', 'POST').status(405).json({ error: 'method-not-allowed' });
@@ -77,7 +85,7 @@ export const publicForms = onRequest(
         }
 
         const subscriberRef = db.collection('newsletterSubscribers').doc(fingerprint(subscriberEmail));
-        await db.runTransaction(async (tx) => {
+        const isNewSubscriber = await db.runTransaction(async (tx) => {
           const existing = await tx.get(subscriberRef);
           tx.set(subscriberRef, {
             id: subscriberRef.id,
@@ -93,7 +101,14 @@ export const publicForms = onRequest(
             ...(existing.exists ? {} : { subscribedAt: FieldValue.serverTimestamp() }),
             updatedAt: FieldValue.serverTimestamp(),
           }, { merge: true });
+          return !existing.exists;
         });
+
+        // Welcome only genuinely new subscribers so re-subscribing never spams.
+        if (isNewSubscriber) {
+          const welcome = newsletterWelcome();
+          await sendMail({ to: subscriberEmail, subject: welcome.subject, html: welcome.html, text: welcome.text });
+        }
 
         // Duplicate subscriptions intentionally receive the same response so
         // this endpoint does not disclose whether an address is already stored.
@@ -119,6 +134,15 @@ export const publicForms = onRequest(
           status: 'new',
           receivedAt: FieldValue.serverTimestamp(),
         });
+
+        // Best-effort: alert the team (reply-to the sender) and acknowledge the sender.
+        const teamAlert = contactTeamAlert({ name, email: contactEmail, subject, message });
+        const ack = contactAcknowledgement({ name, subject });
+        await Promise.all([
+          sendMail({ to: teamInbox(), subject: teamAlert.subject, html: teamAlert.html, text: teamAlert.text, replyTo: contactEmail }),
+          sendMail({ to: contactEmail, subject: ack.subject, html: ack.html, text: ack.text }),
+        ]);
+
         res.status(200).json({ accepted: true });
         return;
       }
@@ -143,6 +167,26 @@ export const publicForms = onRequest(
           status: 'new',
           receivedAt: FieldValue.serverTimestamp(),
         });
+
+        // Best-effort: always alert the team; acknowledge the person only when
+        // the contact they left is an email address (it may be a phone number).
+        const contactIsEmail = validEmail(contact.toLowerCase());
+        const teamAlert = involvementTeamAlert({ name, contact, country, organisation, route, note });
+        const sends = [
+          sendMail({
+            to: teamInbox(),
+            subject: teamAlert.subject,
+            html: teamAlert.html,
+            text: teamAlert.text,
+            replyTo: contactIsEmail ? contact : undefined,
+          }),
+        ];
+        if (contactIsEmail) {
+          const ack = involvementAcknowledgement({ name, route });
+          sends.push(sendMail({ to: contact, subject: ack.subject, html: ack.html, text: ack.text }));
+        }
+        await Promise.all(sends);
+
         res.status(200).json({ accepted: true });
         return;
       }

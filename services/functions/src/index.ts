@@ -11,3 +11,5 @@ export {
   decideCreatorApplication,
   decideSubmission,
 } from './creators.js';
+export { onNotificationCreated } from './notifications.js';
+export { smsBalance, sendTestSms } from './messaging-admin.js';

@@ -2,6 +2,7 @@
 .env
 .env.*
 !.env.example
+.secret.local
 .firebaserc
 *service-account*.json
 firebase-adminsdk-*.json

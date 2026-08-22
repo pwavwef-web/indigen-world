@@ -471,6 +471,9 @@ export const decideCreatorApplication = onCall(
         updatedAt: now,
       }, { merge: true });
 
+      // Terminal account decisions are high priority: they also go out by SMS
+      // (the onNotificationCreated trigger sends it when a phone is on file).
+      const highPriority = ['APPROVE', 'REJECT', 'SUSPEND', 'REVOKE'].includes(decision);
       tx.set(notificationRef, {
         id: notificationRef.id,
         recipient: { collection: 'creatorProfiles', id: applicantUid },
@@ -480,7 +483,8 @@ export const decideCreatorApplication = onCall(
         body: reason || `Your application status is now ${newStatus}.`,
         link: '/studio',
         read: false,
-        channels: ['in_app', 'email'],
+        channels: highPriority ? ['in_app', 'email', 'sms'] : ['in_app', 'email'],
+        priority: highPriority ? 'high' : 'normal',
         schemaVersion: 1,
         lifecycle: { createdAt: now, updatedAt: now, version: 1 },
       });
