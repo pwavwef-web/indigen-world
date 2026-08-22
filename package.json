@@ -19,7 +19,7 @@
   ],
   "scripts": {
     "build": "npm run --workspaces --if-present build",
-    "typecheck": "npm run --workspaces --if-present typecheck",
+    "typecheck": "npm run build:web-ui && npm run --workspaces --if-present typecheck",
     "test": "npm run test:contracts && npm run test:rules && npm run test:storage-rules && npm run test:e2e",
     "seed": "firebase emulators:exec --project demo-indigen-world --only firestore \"node firebase/seed/seed.mjs\"",
     "audit:prod": "npm audit --omit=dev --audit-level=high",
