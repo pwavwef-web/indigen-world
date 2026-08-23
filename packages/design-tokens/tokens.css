@@ -1,32 +1,145 @@
 /*
  * Indigen World design tokens as CSS custom properties.
- * Generated intent: single source of the palette used by the web apps.
- * Values mirror ./colors.json (provisional until brand approval).
+ * Unified design token foundation for Website, TribeStudio, Admin, and Web-UI.
  */
 :root {
-  /* Brand */
+  /* Brand Master Palette */
   --indigo: #1e365d;
   --indigo-deep: #101c36;
+  --indigo-dark: #0f1a2d;
+  --indigo-light: #2c4b80;
   --terracotta: #b65a3a;
+  --terracotta-dark: #9a492e;
+  --terracotta-glow: rgba(182, 90, 58, 0.25);
   --gold: #c58a00;
+  --gold-soft: #f0d99c;
+  --gold-glow: rgba(197, 138, 0, 0.22);
   --savannah-green: #1f5a3a;
+  --savannah-green-light: #2a7a4e;
   --plaster-cream: #fff8e7;
+  --sand: #f1eada;
 
-  /* Semantic surfaces & text */
+  /* Default (Light) Semantic Surfaces & Text */
   --bg: #fffdf8;
+  --bg-translucent: rgba(255, 253, 248, 0.85);
   --surface: #ffffff;
+  --surface-elevated: #faf7f0;
+  --surface-translucent: rgba(255, 255, 255, 0.75);
   --text: #172033;
   --text-soft: #4c5568;
+  --text-muted: #7a8293;
   --border: #d8d2c6;
+  --border-subtle: rgba(30, 54, 93, 0.12);
   --success: #1f6b45;
+  --success-surface: #e4f2ea;
   --warning: #9a6700;
+  --warning-surface: #fbf0dc;
   --danger: #a12a2a;
+  --danger-surface: #f6e7e7;
   --focus: #1e5e9c;
 
-  /* Shape */
-  --radius: 12px;
-  --radius-lg: 16px;
+  /* Elevation & Shadows */
+  --shadow-sm: 0 2px 6px rgba(20, 37, 67, 0.05);
+  --shadow-md: 0 10px 28px rgba(20, 37, 67, 0.09);
+  --shadow-lg: 0 24px 60px rgba(20, 37, 67, 0.14);
+  --shadow-glow: 0 0 32px var(--gold-glow);
 
-  /* Type */
-  --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  /* Shape & Radius */
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius: 12px;
+  --radius-lg: 18px;
+  --radius-xl: 26px;
+  --radius-full: 9999px;
+
+  /* Typography */
+  --font-sans: "Noto Sans Variable", "Noto Sans", system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-heading: "Noto Sans Variable", "Noto Sans", system-ui, -apple-system, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+  /* Motion */
+  --motion-fast: 160ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  --motion-normal: 260ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  --motion-spring: 420ms cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* Dark Theme */
+[data-theme="dark"],
+body.theme-dark {
+  --bg: #0d1524;
+  --bg-translucent: rgba(13, 21, 36, 0.88);
+  --surface: #142036;
+  --surface-elevated: #1c2b47;
+  --surface-translucent: rgba(20, 32, 54, 0.78);
+  --text: #f5f7fa;
+  --text-soft: #bac4d6;
+  --text-muted: #7d8b9f;
+  --border: #283a5a;
+  --border-subtle: rgba(255, 255, 255, 0.12);
+  --success: #34a853;
+  --success-surface: rgba(52, 168, 83, 0.15);
+  --warning: #fbc02d;
+  --warning-surface: rgba(251, 192, 45, 0.15);
+  --danger: #ea4335;
+  --danger-surface: rgba(234, 67, 53, 0.15);
+  --focus: #4285f4;
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 12px 32px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 28px 70px rgba(0, 0, 0, 0.55);
+}
+
+/* Sepia / Reading Theme */
+[data-theme="sepia"],
+body.theme-sepia {
+  --bg: #f5ede0;
+  --bg-translucent: rgba(245, 237, 224, 0.88);
+  --surface: #fbf5eb;
+  --surface-elevated: #efe5d5;
+  --surface-translucent: rgba(251, 245, 235, 0.78);
+  --text: #2c221a;
+  --text-soft: #5e4f42;
+  --text-muted: #8d7a6a;
+  --border: #dccdbd;
+  --border-subtle: rgba(70, 50, 30, 0.12);
+}
+
+/* High-Contrast Accessibility Theme */
+[data-theme="high-contrast"],
+body.theme-high-contrast {
+  --bg: #000000;
+  --surface: #111111;
+  --surface-elevated: #222222;
+  --text: #ffffff;
+  --text-soft: #ffff00;
+  --text-muted: #00ffff;
+  --border: #ffffff;
+  --border-subtle: #ffffff;
+  --focus: #ffff00;
+}
+
+/* Cultural Motif Utilities */
+.iw-pattern-gurunsi {
+  background-image: radial-gradient(var(--border-subtle) 1.5px, transparent 1.5px),
+                    linear-gradient(45deg, transparent 48%, var(--border-subtle) 48%, var(--border-subtle) 52%, transparent 52%);
+  background-size: 24px 24px, 48px 48px;
+}
+
+.iw-pattern-kente {
+  background-image: repeating-linear-gradient(45deg, var(--gold-glow) 0, var(--gold-glow) 2px, transparent 0, transparent 16px),
+                    repeating-linear-gradient(-45deg, var(--terracotta-glow) 0, var(--terracotta-glow) 2px, transparent 0, transparent 16px);
+}
+
+.iw-glass-card {
+  background: var(--surface-translucent);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  transition: transform var(--motion-normal), box-shadow var(--motion-normal);
+}
+
+.iw-glass-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
 }

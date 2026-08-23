@@ -92,6 +92,83 @@ export async function sendSms(input: { to: string; message: string }): Promise<S
   }
 }
 
+/**
+ * Format a wall-clock instant into Arkesel's expected `scheduled_date` string,
+ * `YYYY-MM-DD hh:mm AM/PM` (e.g. `2026-08-25 07:00 AM`). Arkesel operates on
+ * Ghana time (UTC±0), so we read the UTC components directly — the admin picks
+ * a Ghana local time and gets exactly that.
+ */
+export function formatArkeselSchedule(date: Date): string {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const y = date.getUTCFullYear();
+  const mo = pad(date.getUTCMonth() + 1);
+  const d = pad(date.getUTCDate());
+  const h24 = date.getUTCHours();
+  const meridiem = h24 < 12 ? 'AM' : 'PM';
+  const h12 = pad(((h24 + 11) % 12) + 1); // 0→12, 13→01
+  const mi = pad(date.getUTCMinutes());
+  return `${y}-${mo}-${d} ${h12}:${mi} ${meridiem}`;
+}
+
+export interface BulkSmsResult {
+  ok: boolean;
+  /** Message ids returned by Arkesel (one per recipient, when available). */
+  ids: string[];
+  error?: string;
+}
+
+/**
+ * Send one Arkesel request to many recipients, optionally scheduled and/or in
+ * sandbox mode. Recipients must already be normalised (`normalizeGhanaPhone`).
+ * Never throws — returns `{ ok:false }` on any failure so a broadcast loop can
+ * record and continue. Sandbox sends are simulated by Arkesel and not billed.
+ */
+export async function sendBulkSms(input: {
+  recipients: string[];
+  message: string;
+  scheduledDate?: string;
+  sandbox?: boolean;
+}): Promise<BulkSmsResult> {
+  const recipients = Array.from(new Set(input.recipients.map(normalizeGhanaPhone).filter(Boolean)));
+  if (recipients.length === 0) return { ok: false, ids: [], error: 'invalid-recipient' };
+  if (!isSmsConfigured()) {
+    logger.info('Bulk SMS skipped: Arkesel is not configured');
+    return { ok: false, ids: [], error: 'not-configured' };
+  }
+  try {
+    const body: Record<string, unknown> = {
+      sender: sender(),
+      message: input.message,
+      recipients,
+    };
+    if (input.scheduledDate) body.scheduled_date = input.scheduledDate;
+    if (input.sandbox) body.sandbox = true;
+
+    const response = await fetch(`${BASE_URL}/api/v2/sms/send`, {
+      method: 'POST',
+      headers: { 'api-key': apiKey(), 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const payload = (await response.json().catch(() => ({}))) as {
+      status?: string;
+      data?: Array<{ id?: string }>;
+      message?: string;
+    };
+    if (!response.ok || payload.status !== 'success') {
+      logger.error('Bulk SMS send failed', { httpStatus: response.status, apiStatus: payload.status });
+      return { ok: false, ids: [], error: payload.message || `http-${response.status}` };
+    }
+    const ids = Array.isArray(payload.data)
+      ? payload.data.map((d) => d?.id).filter((id): id is string => typeof id === 'string')
+      : [];
+    logger.info('Bulk SMS sent', { count: recipients.length, scheduled: Boolean(input.scheduledDate) });
+    return { ok: true, ids };
+  } catch (error) {
+    logger.error('Bulk SMS send threw', { errorType: error instanceof Error ? error.name : 'unknown' });
+    return { ok: false, ids: [], error: 'network' };
+  }
+}
+
 export interface SmsBalance {
   smsBalance: number | null;
   mainBalance: string | null;

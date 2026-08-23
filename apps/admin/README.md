@@ -40,6 +40,11 @@ npm run build:admin      # from the repo root
 
 ## Deploy
 
+Served by the `indigen-admin` Hosting site; production custom domain
+`admin.indigenworld.com`. See
+[`docs/architecture/hosting-and-domains.md`](../../docs/architecture/hosting-and-domains.md) for the
+full site/domain map.
+
 ```bash
 firebase deploy --only hosting:indigen-admin
 ```

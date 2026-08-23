@@ -1155,3 +1155,281 @@ a.button {
   outline: 3px solid var(--focus);
   outline-offset: 2px;
 }
+
+/* ==========================================================================
+   Gamification & Badges
+   ========================================================================== */
+.page__head--spread {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.head-greeting {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.head-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.gamification-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 20px 24px;
+  border-radius: var(--radius-lg, 16px);
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+.gamification-banner__left {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex: 1;
+  min-width: 280px;
+}
+.level-badge {
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--gold), var(--terracotta));
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 4px 14px var(--gold-glow);
+}
+.level-badge span { font-size: 0.62rem; font-weight: 700; letter-spacing: 0.05em; opacity: 0.9; }
+.level-badge strong { font-size: 1.4rem; line-height: 1; font-weight: 800; }
+.level-info { flex: 1; }
+.level-info h3 { margin: 0 0 4px; font-size: 1.15rem; }
+
+.gamification-banner__badges {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.badge-icon {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  background: var(--surface-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius, 12px);
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: transform var(--motion-fast);
+}
+.badge-icon:hover { transform: translateY(-2px); }
+.badge-icon.is-unlocked { border-color: var(--gold); background: rgba(197, 138, 0, 0.08); }
+.badge-icon.is-locked { opacity: 0.45; filter: grayscale(1); }
+.badge-icon span { font-size: 1.5rem; }
+.badge-icon small { font-size: 0.72rem; font-weight: 600; color: var(--text-soft); }
+
+.badge-modal-content {
+  text-align: center;
+  padding: 10px;
+}
+.badge-modal-icon {
+  font-size: 3.5rem;
+  margin-bottom: 12px;
+}
+.badge-modal-status {
+  margin-top: 18px;
+}
+
+/* Shortcuts */
+.creation-shortcuts {
+  margin: 28px 0;
+}
+.shortcuts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+  margin-top: 12px;
+}
+.shortcut-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius, 12px);
+  text-decoration: none;
+  color: var(--text);
+  transition: all var(--motion-fast);
+}
+.shortcut-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--terracotta);
+  box-shadow: var(--shadow-sm);
+}
+.shortcut-card__icon {
+  font-size: 1.8rem;
+}
+.shortcut-card strong {
+  display: block;
+  font-size: 0.95rem;
+  color: var(--text);
+}
+
+/* Bounty Tracker */
+.camp-bounty-box {
+  margin: 14px 0;
+  padding: 12px 14px;
+  background: rgba(30, 54, 93, 0.04);
+  border-radius: var(--radius-sm, 8px);
+}
+.camp-bounty-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+.gold-text {
+  color: var(--gold);
+}
+
+/* Voice Recorder Studio */
+.voice-studio-card {
+  padding: 18px 20px;
+  margin-bottom: 20px;
+  border-left: 4px solid var(--terracotta);
+}
+.voice-studio-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.voice-icon {
+  font-size: 1.6rem;
+}
+.voice-recorder__controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.recording-pulse {
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: var(--danger);
+  animation: pulse-red 1s infinite alternate;
+}
+@keyframes pulse-red { from { opacity: 0.6; } to { opacity: 1; } }
+.audio-preview-player {
+  width: 100%;
+  max-width: 380px;
+  margin-top: 8px;
+}
+.or-divider {
+  text-align: center;
+  position: relative;
+  margin: 20px 0;
+}
+.or-divider::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: var(--border-subtle);
+}
+.or-divider span {
+  position: relative;
+  background: var(--surface);
+  padding: 0 12px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  letter-spacing: 0.06em;
+}
+
+/* Review Dual Diff */
+.review-queue-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.list__item--card {
+  padding: 20px;
+  border-radius: var(--radius, 12px);
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+}
+.review-entry-main {
+  flex: 1;
+}
+.review-entry-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.headword-text {
+  font-size: 1.3rem;
+  color: var(--indigo);
+}
+.pos-badge {
+  font-size: 0.75rem;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: var(--surface-elevated);
+  color: var(--text-soft);
+}
+.tier-tag {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  text-transform: uppercase;
+}
+.tier-tag--public { background: #e4f2ea; color: var(--success); }
+.tier-tag--community_only { background: #e6eefb; color: var(--indigo); }
+.tier-tag--restricted { background: #fbf0dc; color: #8a5a00; }
+.tier-tag--sacred_restricted { background: #f6e7e7; color: var(--danger); }
+
+.dual-diff-box {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  padding: 14px;
+  background: rgba(30, 54, 93, 0.04);
+  border-radius: var(--radius-sm, 8px);
+  margin: 12px 0;
+}
+.diff-label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--text-muted);
+  display: block;
+  margin-bottom: 2px;
+}
+.review-action-box {
+  min-width: 260px;
+  max-width: 320px;
+}
+.decision-btn-group {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+.button--approve { background: var(--success); color: #fff; border-color: transparent; }
+.button--warn { background: var(--warning); color: #fff; border-color: transparent; }
+.button--reject { background: var(--danger); color: #fff; border-color: transparent; }
+

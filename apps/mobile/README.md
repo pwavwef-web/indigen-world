@@ -10,7 +10,8 @@ The assigned native-app folder is `apps/mobile`. Native work must be developed o
 
 - Animated cultural launch where artefacts and Ghana-inspired motifs assemble the Indigen World name
 - Six-destination shell: Explore, Learn, Collection, Community, Contribute, and You
-- Explore-first vertical reel previews with likes, comments, saves, attribution, and rights-aware media fallbacks
+- Explore-first vertical reels that stream real published TribeStudio content (video + image) from Firestore `publishedContent`, with likes, comments, saves, attribution, and a curated preview fallback before anything is published
+- Real accounts: Google sign-in and guest mode, layered over the guest-first experience (public learning still works signed out)
 - Kasem-only community preview with local posts, media attachments, threaded replies, and a language pledge
 - Interactive Kasem lesson path with daily quests, XP, answer feedback, and guest-first dictionary access
 - Filterable cultural collection for symbols, attributed places, songs, oral traditions, history, and culture
@@ -122,6 +123,10 @@ flutter run --flavor development --dart-define=APP_ENV=development --dart-define
 ```
 
 If Android reports a client configuration error, confirm the running flavor's package ID, the signing key's SHA-1/SHA-256 registrations, and the web OAuth client in that flavor's `google-services.json`. If Firebase reports `operation-not-allowed`, enable the Google provider in Firebase Authentication.
+
+### Explore feed (published TribeStudio content)
+
+The Explore reels stream the guest-readable `publishedContent` collection (`publicationStatus == 'published'`, newest first), which is written only by the trusted publication workflow in `services/functions`. On a `PUBLISH` decision that workflow now copies the approved file into the world-readable `published-media/{contentId}/` Storage path and records a stable `mediaUrl`/`mediaType`, so real videos and images play in the app. Until content is published, the feed shows a clearly-labelled curated preview.
 
 ## Build
 

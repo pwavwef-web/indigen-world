@@ -22,7 +22,7 @@ class IndigenWorldApp extends ConsumerWidget {
     );
 
     return MaterialApp.router(
-      title: 'Indigen World',
+      title: 'Indigen',
       onGenerateTitle: (context) => AppLocalizations.of(context).appTitle,
       debugShowCheckedModeBanner: false,
       theme: buildIndigenTheme(),

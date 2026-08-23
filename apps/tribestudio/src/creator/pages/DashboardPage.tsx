@@ -6,6 +6,7 @@ import type {
   CreatorProfile,
   Submission,
 } from '@indigen-world/contracts/creator-models';
+import { ProgressBar, StreakBadge, Badge, Modal } from '@indigen-world/web-ui';
 import { Link } from '../../router';
 import { useAuth } from '../../auth';
 import { useConfig } from '../CreatorProvider';
@@ -28,6 +29,15 @@ import {
   WhatsAppCard,
 } from '../components';
 
+interface MilestoneBadge {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  unlocked: boolean;
+  tier: 'bronze' | 'silver' | 'gold';
+}
+
 export function DashboardPage() {
   const { user } = useAuth();
   const { whatsappUrl } = useConfig();
@@ -38,6 +48,7 @@ export function DashboardPage() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [notifications, setNotifications] = useState<CreatorNotification[]>([]);
+  const [selectedBadge, setSelectedBadge] = useState<MilestoneBadge | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -93,14 +104,65 @@ export function DashboardPage() {
   const anyOpen = campaigns.some(submissionsOpen);
   const completion = profile?.profileCompletion ?? (profile ? 60 : 0);
 
+  // Gamification stats calculation
+  const validatedCount = submissions.filter((s) => s.status === 'APPROVED').length;
+  const totalSubmissions = submissions.length;
+  const xpPoints = totalSubmissions * 50 + validatedCount * 150;
+  const currentLevel = Math.floor(xpPoints / 300) + 1;
+  const nextLevelXp = currentLevel * 300;
+  const currentLevelProgress = xpPoints % 300;
+
+  const BADGES: MilestoneBadge[] = [
+    {
+      id: 'founding-voice',
+      name: 'Founding Voice',
+      description: 'Applied and accepted into the Indigen World Founding Creator cohort.',
+      icon: '🎙️',
+      unlocked: application?.status === 'APPROVED' || !!profile,
+      tier: 'gold',
+    },
+    {
+      id: 'first-entry',
+      name: 'Pioneer Contributor',
+      description: 'Submitted your first cultural narrative or lexical recording.',
+      icon: '📜',
+      unlocked: totalSubmissions >= 1,
+      tier: 'bronze',
+    },
+    {
+      id: 'kasem-scholar',
+      name: 'Kasem Wordsmith',
+      description: 'Contributed 5 or more validated linguistic entries.',
+      icon: '🏺',
+      unlocked: validatedCount >= 5,
+      tier: 'silver',
+    },
+    {
+      id: 'guardian-culture',
+      name: 'Dialect Guardian',
+      description: 'Earned 500+ XP in language preservation activities.',
+      icon: '🛡️',
+      unlocked: xpPoints >= 500,
+      tier: 'gold',
+    },
+  ];
+
   return (
     <div className="page">
-      <header className="page__head">
+      <header className="page__head page__head--spread">
         <div>
-          <h1>Welcome, {profile?.public.displayName ?? user?.displayName ?? 'creator'}</h1>
-          <p className="muted">Your founding-creator workspace.</p>
+          <div className="head-greeting">
+            <h1>Welcome, {profile?.public.displayName ?? user?.displayName ?? 'creator'}</h1>
+            <StreakBadge count={5} label="Day Streak" />
+          </div>
+          <p className="muted">Your founding-creator workspace &amp; cultural portfolio.</p>
         </div>
-        {profile?.reference ? <span className="ref-chip">{profile.reference}</span> : null}
+        <div className="head-actions">
+          {profile?.reference ? <span className="ref-chip">{profile.reference}</span> : null}
+          <Link to="/workspace" className="button button--ghost-dark button--small">
+            ✍ Lexicon Studio
+          </Link>
+        </div>
       </header>
 
       {!profile ? (
@@ -111,6 +173,36 @@ export function DashboardPage() {
         </div>
       ) : null}
 
+      {/* Gamification Level & XP Progress Banner */}
+      <section className="gamification-banner iw-glass-card">
+        <div className="gamification-banner__left">
+          <div className="level-badge">
+            <span>LVL</span>
+            <strong>{currentLevel}</strong>
+          </div>
+          <div className="level-info">
+            <h3>{currentLevel === 1 ? 'Apprentice Storyteller' : currentLevel === 2 ? 'Kasem Wordsmith' : 'Master Custodian'}</h3>
+            <p className="tiny muted">{xpPoints} total XP earned • {nextLevelXp - currentLevelProgress} XP to Level {currentLevel + 1}</p>
+            <ProgressBar value={currentLevelProgress} max={300} tone="terracotta" />
+          </div>
+        </div>
+        <div className="gamification-banner__badges">
+          {BADGES.map((b) => (
+            <button
+              key={b.id}
+              type="button"
+              className={`badge-icon ${b.unlocked ? 'is-unlocked' : 'is-locked'}`}
+              title={`${b.name} (${b.unlocked ? 'Unlocked' : 'Locked'})`}
+              onClick={() => setSelectedBadge(b)}
+            >
+              <span>{b.icon}</span>
+              <small>{b.name}</small>
+            </button>
+          ))}
+        </div>
+      </section>
+
+      {/* Stat Tiles */}
       <div className="tiles">
         <div className="tile">
           <span className="tile__label">Application status</span>
@@ -134,10 +226,38 @@ export function DashboardPage() {
           <span className="tile__value">{submissions.length}</span>
         </div>
         <div className="tile">
-          <span className="tile__label">Account</span>
-          <span className="tile__value">{user?.emailVerified ? 'Verified' : 'Unverified'}</span>
+          <span className="tile__label">Validated Material</span>
+          <span className="tile__value">{validatedCount}</span>
         </div>
       </div>
+
+      {/* Quick Creation Suite */}
+      <section className="creation-shortcuts">
+        <h2>Quick Creation Tools</h2>
+        <div className="shortcuts-grid">
+          <Link to="/workspace" className="shortcut-card">
+            <span className="shortcut-card__icon">🎙️</span>
+            <div>
+              <strong>Record Kasem Headword</strong>
+              <p className="tiny muted">Voice pronunciation with dialect tags</p>
+            </div>
+          </Link>
+          <Link to="/studio/opportunities" className="shortcut-card">
+            <span className="shortcut-card__icon">📖</span>
+            <div>
+              <strong>Folklore &amp; Proverbs</strong>
+              <p className="tiny muted">Bilingual cultural storytelling</p>
+            </div>
+          </Link>
+          <Link to="/studio/profile" className="shortcut-card">
+            <span className="shortcut-card__icon">🛡️</span>
+            <div>
+              <strong>Cultural Portfolio</strong>
+              <p className="tiny muted">Manage permissions &amp; credentials</p>
+            </div>
+          </Link>
+        </div>
+      </section>
 
       {!anyOpen ? (
         <div className="prep-state">
@@ -214,7 +334,31 @@ export function DashboardPage() {
         </section>
       ) : null}
 
+      {/* Badge Detail Modal */}
+      <Modal
+        isOpen={!!selectedBadge}
+        onClose={() => setSelectedBadge(null)}
+        title="Milestone Achievement"
+        size="small"
+      >
+        {selectedBadge ? (
+          <div className="badge-modal-content">
+            <div className="badge-modal-icon">{selectedBadge.icon}</div>
+            <h3>{selectedBadge.name}</h3>
+            <p>{selectedBadge.description}</p>
+            <div className="badge-modal-status">
+              {selectedBadge.unlocked ? (
+                <Badge tone="success">✓ Unlocked</Badge>
+              ) : (
+                <Badge tone="neutral">🔒 In Progress</Badge>
+              )}
+            </div>
+          </div>
+        ) : null}
+      </Modal>
+
       <WhatsAppCard url={whatsappUrl} />
     </div>
   );
 }
+

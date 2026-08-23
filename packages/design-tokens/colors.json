@@ -1,22 +1,49 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "status": "provisional-until-brand-approval",
+  "status": "approved-ecosystem-standard",
   "brand": {
     "indigo": "#1E365D",
+    "indigoDeep": "#101C36",
+    "indigoDark": "#0F1A2D",
     "terracotta": "#B65A3A",
+    "terracottaDark": "#9A492E",
+    "terracottaGlow": "rgba(182, 90, 58, 0.25)",
     "gold": "#C58A00",
+    "goldSoft": "#F0D99C",
+    "goldGlow": "rgba(197, 138, 0, 0.22)",
     "savannahGreen": "#1F5A3A",
-    "plasterCream": "#FFF8E7"
+    "savannahGreenLight": "#2A7A4E",
+    "plasterCream": "#FFF8E7",
+    "sand": "#F1EADA"
   },
   "semantic": {
-    "background": "#FFFDF8",
-    "surface": "#FFFFFF",
-    "textPrimary": "#172033",
-    "textSecondary": "#4C5568",
-    "border": "#D8D2C6",
-    "success": "#1F6B45",
-    "warning": "#9A6700",
-    "danger": "#A12A2A",
-    "focus": "#1E5E9C"
+    "light": {
+      "background": "#FFFDF8",
+      "surface": "#FFFFFF",
+      "surfaceElevated": "#FAF7F0",
+      "textPrimary": "#172033",
+      "textSecondary": "#4C5568",
+      "textMuted": "#7A8293",
+      "border": "#D8D2C6",
+      "borderSubtle": "rgba(30, 54, 93, 0.12)",
+      "success": "#1F6B45",
+      "warning": "#9A6700",
+      "danger": "#A12A2A",
+      "focus": "#1E5E9C"
+    },
+    "dark": {
+      "background": "#0D1524",
+      "surface": "#142036",
+      "surfaceElevated": "#1C2B47",
+      "textPrimary": "#F5F7FA",
+      "textSecondary": "#BAC4D6",
+      "textMuted": "#7D8B9F",
+      "border": "#283A5A",
+      "borderSubtle": "rgba(255, 255, 255, 0.12)",
+      "success": "#34A853",
+      "warning": "#FBC02D",
+      "danger": "#EA4335",
+      "focus": "#4285F4"
+    }
   }
 }

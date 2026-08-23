@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import {
   addDoc,
   collection,
+  deleteDoc,
   doc,
   getDoc,
   getDocs,
@@ -123,6 +124,10 @@ export async function createTeamSiteRequest(input: TeamSiteRequestInput): Promis
 export async function fetchTeamSiteRequests(): Promise<TeamSiteRequest[]> {
   const snap = await getDocs(query(collection(db, 'teamSiteRequests'), orderBy('submittedAt', 'desc'), limit(200)));
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as TeamSiteRequest);
+}
+
+export async function deleteTeamSiteRequest(id: string): Promise<void> {
+  await deleteDoc(doc(db, 'teamSiteRequests', id));
 }
 
 // ---------------------------------------------------------------------------

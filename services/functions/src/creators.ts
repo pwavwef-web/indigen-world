@@ -1,6 +1,8 @@
+import { randomUUID } from 'node:crypto';
 import { HttpsError, onCall } from 'firebase-functions/v2/https';
 import { getAuth } from 'firebase-admin/auth';
 import { FieldValue, getFirestore } from 'firebase-admin/firestore';
+import { getStorage } from 'firebase-admin/storage';
 import { requireAuth, requireRole } from './auth.js';
 import { consumeRateLimit } from './rate-limit.js';
 
@@ -568,7 +570,21 @@ export const decideSubmission = onCall(
     const auditRef = db.collection('auditLogs').doc();
     const notificationRef = db.collection('notifications').doc();
 
-    return db.runTransaction(async (tx) => {
+    // Captured inside the transaction; the approved media is copied to the
+    // world-readable path AFTER the transaction commits (Storage I/O cannot run
+    // inside a Firestore transaction). Null unless this is a fresh publish that
+    // still needs its public media URL.
+    let mediaToPublish:
+      | {
+          contentId: string;
+          storagePath: string;
+          mimeType: string;
+          mediaType: string;
+          thumbnailPath: string | null;
+        }
+      | null = null;
+
+    const result = await db.runTransaction(async (tx) => {
       const snap = await tx.get(submissionRef);
       if (!snap.exists) {
         throw new HttpsError('not-found', 'Submission not found.');
@@ -621,7 +637,8 @@ export const decideSubmission = onCall(
           description: submission.description ?? '',
           englishSummary: submission.englishSummary ?? '',
           mediaUrl: existingPub.exists ? existingPub.get('mediaUrl') : '',
-          thumbnailUrl: null,
+          mediaType: submission.media?.mediaType ?? null,
+          thumbnailUrl: existingPub.exists ? existingPub.get('thumbnailUrl') ?? null : null,
           captionsUrl: null,
           culturalNotes: submission.culturalContext ?? '',
           ageRating: submission.disclosures?.involvesMinors ? '13+' : 'all',
@@ -637,6 +654,21 @@ export const decideSubmission = onCall(
         };
         tx.set(publishedRef, publishedDoc);
         moderationUpdate['moderation.publishedContent'] = { collection: 'publishedContent', id: publishedRef.id };
+
+        // Only a PUBLISH makes media world-readable, and only when there is a
+        // stored file whose public URL has not been minted yet. Idempotent:
+        // re-publishing already-linked media is skipped.
+        const storagePath: string = submission.media?.storagePath ?? '';
+        const alreadyPublic: string = existingPub.exists ? (existingPub.get('mediaUrl') ?? '') : '';
+        if (decision === 'PUBLISH' && storagePath && !alreadyPublic) {
+          mediaToPublish = {
+            contentId: publishedRef.id,
+            storagePath,
+            mimeType: submission.media?.mimeType ?? 'application/octet-stream',
+            mediaType: submission.media?.mediaType ?? 'video',
+            thumbnailPath: submission.media?.thumbnailPath ?? null,
+          };
+        }
       }
 
       tx.update(submissionRef, moderationUpdate);
@@ -671,5 +703,83 @@ export const decideSubmission = onCall(
 
       return { submissionId, previousStatus, newStatus };
     });
+
+    // Post-commit: copy the approved file into the world-readable published-media
+    // path and write its public URL onto the publishedContent record. Failure
+    // here never fails the decision — the URL is filled in on the next publish
+    // (the workflow is idempotent), so publication is not blocked by media I/O.
+    if (mediaToPublish) {
+      try {
+        await finalisePublishedMedia(publishedRef, mediaToPublish);
+      } catch (error) {
+        console.error(`finalisePublishedMedia failed for ${submissionId}`, error);
+      }
+    }
+
+    return result;
   },
 );
+
+type StorageBucket = ReturnType<ReturnType<typeof getStorage>['bucket']>;
+
+/**
+ * Copies an approved submission file (and thumbnail, if present) from the
+ * private submission path into the world-readable `published-media/{id}/` path,
+ * mints a stable Firebase download URL for each, and records them on the
+ * publishedContent document so the mobile Explore feed can play them.
+ */
+async function finalisePublishedMedia(
+  publishedRef: FirebaseFirestore.DocumentReference,
+  info: {
+    contentId: string;
+    storagePath: string;
+    mimeType: string;
+    mediaType: string;
+    thumbnailPath: string | null;
+  },
+): Promise<void> {
+  const bucket = getStorage().bucket();
+  const source = bucket.file(info.storagePath);
+  const [exists] = await source.exists();
+  if (!exists) return;
+
+  const mediaDest = `published-media/${info.contentId}/original`;
+  await source.copy(bucket.file(mediaDest));
+  const mediaUrl = await mintDownloadUrl(bucket, mediaDest, info.mimeType);
+
+  let thumbnailUrl: string | null = null;
+  if (info.thumbnailPath) {
+    const thumbSource = bucket.file(info.thumbnailPath);
+    const [thumbExists] = await thumbSource.exists();
+    if (thumbExists) {
+      const thumbDest = `published-media/${info.contentId}/thumbnail`;
+      await thumbSource.copy(bucket.file(thumbDest));
+      thumbnailUrl = await mintDownloadUrl(bucket, thumbDest, 'image/jpeg');
+    }
+  }
+
+  await publishedRef.update({
+    mediaUrl,
+    mediaType: info.mediaType,
+    ...(thumbnailUrl ? { thumbnailUrl } : {}),
+    'lifecycle.updatedAt': nowIso(),
+    'lifecycle.version': FieldValue.increment(1),
+  });
+}
+
+/** Sets a download token on a file and returns its stable public download URL. */
+async function mintDownloadUrl(
+  bucket: StorageBucket,
+  path: string,
+  contentType: string,
+): Promise<string> {
+  const token = randomUUID();
+  await bucket.file(path).setMetadata({
+    contentType,
+    metadata: { firebaseStorageDownloadTokens: token },
+  });
+  return (
+    `https://firebasestorage.googleapis.com/v0/b/${bucket.name}` +
+    `/o/${encodeURIComponent(path)}?alt=media&token=${token}`
+  );
+}

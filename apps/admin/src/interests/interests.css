@@ -1,0 +1,354 @@
+/* ==========================================================================
+   Get Involved / Interests Intake Admin Styles
+   ========================================================================== */
+
+.interests-admin {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Metric summary cards */
+.interests-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px;
+}
+
+.interest-metric-card {
+  background: var(--surface-elevated, #faf7f0);
+  border: 1px solid var(--border);
+  border-radius: var(--radius, 12px);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.interest-metric-card .metric-val {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--indigo, #1e365d);
+  line-height: 1.1;
+}
+
+.interest-metric-card .metric-lbl {
+  font-size: 0.82rem;
+  color: var(--text-soft, #5f6c82);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 600;
+}
+
+.interest-metric-card--highlight {
+  border-color: var(--gold, #d99a26);
+  background: #fdfaf0;
+}
+
+.interest-metric-card--highlight .metric-val {
+  color: #b3740a;
+}
+
+/* Filters & Toolbar */
+.interests-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: var(--surface, #fff);
+  border: 1px solid var(--border);
+  border-radius: var(--radius, 12px);
+  padding: 14px 18px;
+}
+
+.interests-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.interests-search-input {
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.85rem;
+  min-width: 220px;
+  background: #fff;
+}
+
+.interests-search-input:focus {
+  outline: 2px solid var(--indigo);
+  border-color: transparent;
+}
+
+.interests-select {
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.85rem;
+  background: #fff;
+  color: var(--text);
+}
+
+.interests-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Badges */
+.route-badge {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  white-space: nowrap;
+  background: #eef2f8;
+  color: #1e365d;
+  border: 1px solid #c9d8eb;
+}
+
+.route-badge--contributor {
+  background: #e8f3ee;
+  color: #1b633e;
+  border-color: #badfcb;
+}
+
+.route-badge--validator {
+  background: #fdf3e2;
+  color: #925400;
+  border-color: #f7d49b;
+}
+
+.route-badge--researcher {
+  background: #f3ebf9;
+  color: #612794;
+  border-color: #dec5f4;
+}
+
+.route-badge--school {
+  background: #e6f6fc;
+  color: #0b698c;
+  border-color: #aae0f3;
+}
+
+.route-badge--sponsor {
+  background: #fcf4eb;
+  color: #994709;
+  border-color: #f4cfab;
+}
+
+.route-badge--volunteer {
+  background: #eef1f6;
+  color: #3b4d66;
+  border-color: #ccd7e6;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.status-badge--new {
+  background: #fde8e8;
+  color: #c53030;
+  border: 1px solid #feb2b2;
+}
+
+.status-badge--contacted {
+  background: #ebf8ff;
+  color: #2b6cb0;
+  border: 1px solid #bee3f8;
+}
+
+.status-badge--in_progress {
+  background: #fefcbf;
+  color: #975a16;
+  border: 1px solid #faf089;
+}
+
+.status-badge--resolved {
+  background: #c6f6d5;
+  color: #22543d;
+  border: 1px solid #9ae6b4;
+}
+
+.status-badge--archived {
+  background: #edf2f7;
+  color: #718096;
+  border: 1px solid #e2e8f0;
+}
+
+/* Contact link styling */
+.contact-link {
+  color: var(--indigo, #1e365d);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.contact-link:hover {
+  text-decoration: underline;
+}
+
+.note-snippet {
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-soft);
+  font-size: 0.82rem;
+}
+
+/* Modal styling */
+.interest-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(16, 28, 54, 0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+  backdrop-filter: blur(2px);
+}
+
+.interest-modal {
+  background: var(--surface, #fff);
+  border-radius: var(--radius, 14px);
+  width: min(720px, 100%);
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+}
+
+.interest-modal__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border);
+  background: #fbfaf6;
+}
+
+.interest-modal__head h3 {
+  margin: 0 0 4px;
+  font-size: 1.3rem;
+  color: var(--indigo);
+}
+
+.interest-modal__meta {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--text-soft);
+}
+
+.interest-modal__close {
+  background: none;
+  border: 0;
+  font-size: 1.6rem;
+  line-height: 1;
+  color: var(--text-soft);
+  cursor: pointer;
+  padding: 0 4px;
+}
+
+.interest-modal__close:hover {
+  color: var(--text);
+}
+
+.interest-modal__body {
+  padding: 22px 24px;
+  overflow-y: auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.interest-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  background: #fbfaf6;
+  padding: 16px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+.interest-detail-item dt {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  font-weight: 700;
+  color: var(--text-soft);
+  margin-bottom: 4px;
+}
+
+.interest-detail-item dd {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--text);
+  word-break: break-word;
+}
+
+.interest-note-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.interest-note-section h4 {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--indigo);
+}
+
+.interest-note-box {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px;
+  font-size: 0.92rem;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  color: var(--text);
+}
+
+.interest-status-updater {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  background: #eef3fc;
+  border: 1px solid #c7d8f5;
+  border-radius: 8px;
+  flex-wrap: wrap;
+}
+
+.interest-modal__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  border-top: 1px solid var(--border);
+  background: #fbfaf6;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.interest-modal__foot-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}

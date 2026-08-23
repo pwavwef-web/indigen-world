@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { trackEvent } from '../analytics';
 import { WHATSAPP_CHANNEL_URL } from './data';
@@ -193,3 +193,101 @@ export function Field({
     </div>
   );
 }
+
+/** In-Browser Voice Recorder for indigenous language & oral story recording */
+export function VoiceRecorder({ onAudioReady }: { onAudioReady: (file: File) => void }) {
+  const [recording, setRecording] = useState(false);
+  const [seconds, setSeconds] = useState(0);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+  const timerRef = useRef<number | null>(null);
+
+  const startRecording = async () => {
+    setError(null);
+    setAudioUrl(null);
+    chunksRef.current = [];
+    try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('Microphone recording is not supported in this browser.');
+      }
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = recorder;
+
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) chunksRef.current.push(e.data);
+      };
+
+      recorder.onstop = () => {
+        const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
+        const url = URL.createObjectURL(blob);
+        setAudioUrl(url);
+        const audioFile = new File([blob], `kasem-recording-${Date.now()}.webm`, {
+          type: 'audio/webm',
+        });
+        onAudioReady(audioFile);
+        stream.getTracks().forEach((track) => track.stop());
+      };
+
+      recorder.start(200);
+      setRecording(true);
+      setSeconds(0);
+      timerRef.current = window.setInterval(() => {
+        setSeconds((s) => s + 1);
+      }, 1000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not access microphone.');
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && recording) {
+      mediaRecorderRef.current.stop();
+      setRecording(false);
+      if (timerRef.current) clearInterval(timerRef.current);
+    }
+  };
+
+  const formatTime = (secs: number) => {
+    const mins = Math.floor(secs / 60);
+    const remainder = secs % 60;
+    return `${String(mins).padStart(2, '0')}:${String(remainder).padStart(2, '0')}`;
+  };
+
+  return (
+    <div className="voice-recorder">
+      <div className="voice-recorder__controls">
+        {!recording ? (
+          <button
+            type="button"
+            className="button button--primary button--small record-btn"
+            onClick={() => void startRecording()}
+          >
+            🔴 Start Recording
+          </button>
+        ) : (
+          <button
+            type="button"
+            className="button button--danger button--small stop-btn"
+            onClick={stopRecording}
+          >
+            ⏹ Stop Recording ({formatTime(seconds)})
+          </button>
+        )}
+        {recording && <span className="recording-pulse">Recording live audio…</span>}
+      </div>
+
+      {error && <p className="field__error">{error}</p>}
+
+      {audioUrl && (
+        <div className="voice-recorder__preview">
+          <p className="tiny muted">✓ Audio captured successfully. Play preview:</p>
+          <audio controls src={audioUrl} className="audio-preview-player" />
+        </div>
+      )}
+    </div>
+  );
+}
+

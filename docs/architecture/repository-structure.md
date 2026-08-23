@@ -52,6 +52,8 @@ services/api ───────┘
 
 Applications must not depend directly on another application. Shared behaviour belongs in a package or service only after its boundary is understood.
 
+Each web app is deployed to its own Firebase Hosting site with its own production custom domain. See [`hosting-and-domains.md`](hosting-and-domains.md) for the authoritative site → app → domain map and deploy commands.
+
 `services/api` and `packages/backend-core` are reserved by [ADR 0002](../decisions/0002-adopt-firebase-authority-with-digitalocean-api.md). They should be created only with the first implemented cross-runtime use case; empty scaffolds are not required.
 
 ## Product Kasena placement

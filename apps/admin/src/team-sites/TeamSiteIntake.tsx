@@ -1,6 +1,7 @@
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import {
   createTeamSiteRequest,
+  deleteTeamSiteRequest,
   fetchTeamSiteRequests,
   type TeamSiteRequest,
   type TeamSiteRequestInput,
@@ -299,23 +300,186 @@ function formatDate(value: string) {
   return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
 }
 
+/** Flatten a request into ordered [label, value] rows used by the detail view and both exports. */
+function requestRows(request: TeamSiteRequest): [string, string][] {
+  const rows: [string, string][] = [['Submitted', formatDate(request.submittedAt)], ['Status', request.status]];
+  for (const [key, value] of Object.entries(request.fields)) {
+    rows.push([fieldLabels[key as keyof TeamSiteRequest['fields']], value || '-']);
+  }
+  rows.push(['Pages needed', request.desiredPages.join(', ') || '-']);
+  rows.push(['Extra features', request.features.join(', ') || '-']);
+  return rows;
+}
+
+/** Safe, human-readable base filename for a downloaded response. */
+function exportFileBase(request: TeamSiteRequest): string {
+  const name = request.fields.siteName || request.fields.fullName || request.fields.displayName || 'response';
+  const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 48) || 'response';
+  return `team-site-${slug}`;
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function triggerDownload(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  // Give the browser a tick to start the download before revoking the URL.
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+/** Export a single response as an Excel-openable spreadsheet (HTML table with the .xls Excel MIME type). */
+function exportResponseExcel(request: TeamSiteRequest) {
+  const title = request.fields.siteName || 'Team site response';
+  const body = requestRows(request)
+    .map(([label, value]) => `<tr><th style="text-align:left">${escapeHtml(label)}</th><td>${escapeHtml(value)}</td></tr>`)
+    .join('');
+  const html =
+    `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">` +
+    `<head><meta charset="utf-8" /></head>` +
+    `<body><table border="1"><thead><tr><th colspan="2">${escapeHtml(title)}</th></tr>` +
+    `<tr><th>Field</th><th>Response</th></tr></thead><tbody>${body}</tbody></table></body></html>`;
+  triggerDownload(new Blob([html], { type: 'application/vnd.ms-excel' }), `${exportFileBase(request)}.xls`);
+}
+
+/** Export a single response as PDF by opening a styled print window and letting the browser save to PDF. */
+function exportResponsePdf(request: TeamSiteRequest) {
+  const title = request.fields.siteName || 'Team site response';
+  const body = requestRows(request)
+    .map(([label, value]) => `<tr><th>${escapeHtml(label)}</th><td>${escapeHtml(value)}</td></tr>`)
+    .join('');
+  const html =
+    `<!doctype html><html><head><meta charset="utf-8" /><title>${escapeHtml(exportFileBase(request))}</title>` +
+    `<style>` +
+    `body{font-family:Arial,Helvetica,sans-serif;color:#15233f;margin:32px;}` +
+    `h1{font-size:20px;margin:0 0 4px;}` +
+    `.meta{color:#6b7280;font-size:12px;margin:0 0 20px;}` +
+    `table{width:100%;border-collapse:collapse;}` +
+    `th,td{border:1px solid #d9d4c6;padding:8px 10px;font-size:12px;vertical-align:top;text-align:left;}` +
+    `th{width:32%;background:#f6eddb;color:#15233f;}` +
+    `td{white-space:pre-wrap;overflow-wrap:anywhere;}` +
+    `@media print{body{margin:12mm;}}` +
+    `</style></head><body>` +
+    `<h1>${escapeHtml(title)}</h1>` +
+    `<p class="meta">Indigen World team site response &middot; submitted ${escapeHtml(formatDate(request.submittedAt))}</p>` +
+    `<table><tbody>${body}</tbody></table>` +
+    `<script>window.onload=function(){window.focus();window.print();};<\/script>` +
+    `</body></html>`;
+  const win = window.open('', '_blank', 'noopener,noreferrer,width=900,height=700');
+  if (!win) {
+    alert('Please allow pop-ups for this site to export the response as PDF.');
+    return;
+  }
+  win.document.open();
+  win.document.write(html);
+  win.document.close();
+}
+
+function ResponseModal({
+  request,
+  onClose,
+  onDelete,
+}: {
+  request: TeamSiteRequest;
+  onClose: () => void;
+  onDelete: (request: TeamSiteRequest) => void;
+}) {
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  return (
+    <div className="response-modal-backdrop" role="presentation" onClick={onClose}>
+      <div
+        className="response-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="response-modal-title"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <header className="response-modal__head">
+          <div>
+            <h3 id="response-modal-title">{request.fields.siteName || 'Untitled site'}</h3>
+            <p className="response-modal__meta">
+              {request.fields.fullName || request.fields.displayName || 'Unknown'} &middot; {formatDate(request.submittedAt)}
+            </p>
+          </div>
+          <button type="button" className="response-modal__close" aria-label="Close" onClick={onClose}>
+            &times;
+          </button>
+        </header>
+
+        <div className="response-modal__body">
+          <dl>
+            {requestRows(request)
+              .filter(([label]) => label !== 'Submitted' && label !== 'Status')
+              .map(([label, value]) => (
+                <div key={label}>
+                  <dt>{label}</dt>
+                  <dd>{value}</dd>
+                </div>
+              ))}
+          </dl>
+        </div>
+
+        <footer className="response-modal__foot">
+          <div className="response-modal__actions">
+            <button type="button" onClick={() => exportResponseExcel(request)}>Export Excel</button>
+            <button type="button" onClick={() => exportResponsePdf(request)}>Export PDF</button>
+          </div>
+          <div className="response-modal__actions">
+            <button type="button" className="btn-danger" onClick={() => onDelete(request)}>Delete</button>
+            <button type="button" className="btn-ghost" onClick={onClose}>Close</button>
+          </div>
+        </footer>
+      </div>
+    </div>
+  );
+}
+
 export function TeamSiteRequestsAdmin() {
   const [rows, setRows] = useState<TeamSiteRequest[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selected, setSelected] = useState<TeamSiteRequest | null>(null);
+  const [active, setActive] = useState<TeamSiteRequest | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const load = () => {
     setLoading(true);
     void fetchTeamSiteRequests()
-      .then((requests) => {
-        setRows(requests);
-        setSelected((current) => current ?? requests[0] ?? null);
-      })
+      .then((requests) => setRows(requests))
       .catch(() => undefined)
       .finally(() => setLoading(false));
   };
 
   useEffect(load, []);
+
+  const handleDelete = useCallback(async (request: TeamSiteRequest) => {
+    if (!window.confirm('Delete this response permanently? This cannot be undone.')) return;
+    setDeleting(true);
+    try {
+      await deleteTeamSiteRequest(request.id);
+      setRows((current) => current.filter((row) => row.id !== request.id));
+      setActive(null);
+    } catch {
+      alert('Could not delete the response. Please try again.');
+    } finally {
+      setDeleting(false);
+    }
+  }, []);
 
   return (
     <div className="team-sites-admin">
@@ -328,63 +492,36 @@ export function TeamSiteRequestsAdmin() {
       </div>
 
       {loading ? <p className="muted">Loading responses...</p> : rows.length === 0 ? <p className="muted">No team site responses yet.</p> : (
-        <div className="request-layout">
-          <table className="admin-table">
-            <thead>
-              <tr><th>Submitted</th><th>Name</th><th>Site</th><th>Purpose</th></tr>
-            </thead>
-            <tbody>
-              {rows.map((request) => (
-                <tr
-                  key={request.id}
-                  className={selected?.id === request.id ? 'is-selected' : ''}
-                >
-                  <td>
-                    {/* Real button so the row is keyboard- and screen-reader-operable,
-                        not mouse-only. aria-pressed reflects the current selection. */}
-                    <button
-                      type="button"
-                      className="row-select"
-                      aria-pressed={selected?.id === request.id}
-                      onClick={() => setSelected(request)}
-                    >
-                      {formatDate(request.submittedAt)}
-                    </button>
-                  </td>
-                  <td>{request.fields.fullName || request.fields.displayName || '-'}</td>
-                  <td>{request.fields.siteName || '-'}</td>
-                  <td>{request.fields.sitePurpose || '-'}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-
-          {selected ? (
-            <article className="request-detail">
-              <header>
-                <h3>{selected.fields.siteName || 'Untitled site'}</h3>
-                <span>{selected.status}</span>
-              </header>
-              <dl>
-                {Object.entries(selected.fields).map(([key, value]) => (
-                  <div key={key}>
-                    <dt>{fieldLabels[key as keyof TeamSiteRequest['fields']]}</dt>
-                    <dd>{value || '-'}</dd>
-                  </div>
-                ))}
-                <div>
-                  <dt>Pages needed</dt>
-                  <dd>{selected.desiredPages.join(', ') || '-'}</dd>
-                </div>
-                <div>
-                  <dt>Extra features</dt>
-                  <dd>{selected.features.join(', ') || '-'}</dd>
-                </div>
-              </dl>
-            </article>
-          ) : null}
-        </div>
+        <table className="admin-table">
+          <thead>
+            <tr><th>Submitted</th><th>Name</th><th>Site</th><th>Purpose</th></tr>
+          </thead>
+          <tbody>
+            {rows.map((request) => (
+              <tr key={request.id} className={active?.id === request.id ? 'is-selected' : ''}>
+                <td>
+                  {/* Real button so the row is keyboard- and screen-reader-operable,
+                      not mouse-only. It opens the response in a modal dialog. */}
+                  <button type="button" className="row-select" onClick={() => setActive(request)}>
+                    {formatDate(request.submittedAt)}
+                  </button>
+                </td>
+                <td>{request.fields.fullName || request.fields.displayName || '-'}</td>
+                <td>{request.fields.siteName || '-'}</td>
+                <td>{request.fields.sitePurpose || '-'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       )}
+
+      {active ? (
+        <ResponseModal
+          request={active}
+          onClose={() => (deleting ? undefined : setActive(null))}
+          onDelete={(request) => void handleDelete(request)}
+        />
+      ) : null}
     </div>
   );
 }

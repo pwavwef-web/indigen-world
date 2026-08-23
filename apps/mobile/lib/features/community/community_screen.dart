@@ -35,13 +35,10 @@ class _CommunityScreenState extends State<CommunityScreen> {
     child: CustomScrollView(
       key: const PageStorageKey('community-scroll'),
       slivers: [
-        const SliverToBoxAdapter(child: _CommunityHero()),
         SliverPadding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 110),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 110),
           sliver: SliverList.list(
             children: [
-              const _PreviewNotice(),
-              const SizedBox(height: 14),
               _CommunityPulse(
                 onTap: (name) => _showMessage(
                   context,
@@ -527,90 +524,6 @@ class _PulseDotState extends State<_PulseDot>
   Widget build(BuildContext context) => FadeTransition(
     opacity: Tween(begin: 0.35, end: 1.0).animate(_controller),
     child: const Icon(Icons.circle, size: 8, color: BrandColors.savannahGreen),
-  );
-}
-
-class _CommunityHero extends StatelessWidget {
-  const _CommunityHero();
-
-  @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.fromLTRB(20, 22, 20, 18),
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Row(
-                children: [
-                  Icon(Icons.circle, size: 9, color: BrandColors.savannahGreen),
-                  SizedBox(width: 7),
-                  Text(
-                    'KASEM-ONLY SPACE',
-                    style: TextStyle(
-                      color: BrandColors.terracotta,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 1.1,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'A room where Kasem never has to translate itself.',
-                style: Theme.of(context).textTheme.headlineMedium
-                    ?.copyWith(height: 1.02),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Share a thought, photo or reel. Reply and keep the conversation moving—in Kasem.',
-                style: TextStyle(color: BrandColors.mutedInk, height: 1.4),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(width: 12),
-        const AnimatedCulturalSymbol(
-          glyph: '✣',
-          label: 'TOGETHER',
-          color: BrandColors.terracotta,
-        ),
-      ],
-    ),
-  );
-}
-
-class _PreviewNotice extends StatelessWidget {
-  const _PreviewNotice();
-
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(14),
-    decoration: BoxDecoration(
-      color: BrandColors.kenteGold.withValues(alpha: 0.12),
-      borderRadius: BorderRadius.circular(16),
-      border: Border.all(color: BrandColors.kenteGold.withValues(alpha: 0.4)),
-    ),
-    child: const Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(Icons.science_outlined, color: BrandColors.heritageGreen),
-        SizedBox(width: 10),
-        Expanded(
-          child: Text(
-            'Community UI preview: sample phrases and media demonstrate the flow; they are not a validated Kasem corpus or live public posts.',
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              height: 1.35,
-            ),
-          ),
-        ),
-      ],
-    ),
   );
 }
 

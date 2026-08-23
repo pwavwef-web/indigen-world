@@ -246,3 +246,32 @@ test('a contributor profile cannot be created with points, nor escalate its own 
     updateDoc(doc(db(contrib), 'contributors/contrib3'), { roles: ['admin'] }),
   );
 });
+
+test('public form submissions can be read and updated by staff, deleted by admin, but not accessed by guests or contributors', async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(doc(db(ctx), 'publicFormSubmissions/sub1'), {
+      id: 'sub1',
+      form: 'get-involved',
+      payload: { name: 'Interest Candidate', contact: 'test@example.com', route: 'Technical volunteer' },
+      status: 'new',
+    });
+  });
+
+  const anon = env.unauthenticatedContext();
+  const contrib = env.authenticatedContext('contrib1', { role: 'contributor' });
+  const validator = env.authenticatedContext('val1', { role: 'validator' });
+  const admin = env.authenticatedContext('admin1', { role: 'admin' });
+
+  // Anonymous and ordinary contributors cannot read or write directly
+  await assertFails(getDoc(doc(db(anon), 'publicFormSubmissions/sub1')));
+  await assertFails(getDoc(doc(db(contrib), 'publicFormSubmissions/sub1')));
+  await assertFails(setDoc(doc(db(anon), 'publicFormSubmissions/sub2'), { status: 'new' }));
+
+  // Staff (validator) can read and update status
+  await assertSucceeds(getDoc(doc(db(validator), 'publicFormSubmissions/sub1')));
+  await assertSucceeds(updateDoc(doc(db(validator), 'publicFormSubmissions/sub1'), { status: 'contacted' }));
+
+  // Admin can delete
+  await assertSucceeds(getDoc(doc(db(admin), 'publicFormSubmissions/sub1')));
+});
+

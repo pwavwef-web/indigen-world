@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Heritage green (BrandColors.heritageGreen) used behind the launch logo. -->
+    <color name="splash_background">#FF0B3D2E</color>
+</resources>

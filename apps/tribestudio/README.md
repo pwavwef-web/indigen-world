@@ -49,6 +49,11 @@ the supported environment variable names; never put private credentials there.
 
 ## Deploy
 
+Served by the `tribestudio` Hosting site; production custom domain
+`tribestudio.indigenworld.com`. See
+[`docs/architecture/hosting-and-domains.md`](../../docs/architecture/hosting-and-domains.md) for the
+full site/domain map.
+
 ```bash
 firebase deploy --only hosting:tribestudio
 ```

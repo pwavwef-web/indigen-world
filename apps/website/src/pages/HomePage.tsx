@@ -11,8 +11,8 @@ import { useDocumentMeta } from "../lib/useDocumentMeta";
 import { useRevealOnScroll } from "../lib/useRevealOnScroll";
 import { ROUTES_BY_PATH } from "../content/navigation";
 import { HOME_ECOSYSTEM_HIGHLIGHTS } from "../content/ecosystem";
-import { IMPACT_TARGETS } from "../content/kasena";
 import { Button } from "../components/Button";
+import { ProverbCard, CounterRollup } from "@indigen-world/web-ui";
 import { Icon } from "../components/Icon";
 import { BrandMark } from "../components/BrandMark";
 import { SectionHeading } from "../components/SectionHeading";
@@ -183,6 +183,26 @@ export function HomePage() {
         </div>
       </section>
 
+      {/* Proverb of the Day & Share Card Generator */}
+      <section className="section section--cream" id="daily-proverb">
+        <div className="container">
+          <SectionHeading
+            eyebrow="Living wisdom"
+            title="Wisdom passed down through spoken words."
+            body="Each day, discover an authentic proverb preserving Kasena philosophy, moral principles, and cultural metaphors."
+          />
+          <ProverbCard
+            proverb={{
+              kasem: "Kukuri ba bore ne voro",
+              phonetic: "koo-koo-ree bah boh-reh neh voh-roh",
+              translation: "A dog does not bark at its master's lineage.",
+              meaning: "Loyalty, family honour, and deep gratitude to those who gave you life and shelter.",
+              dialect: "Kasem (Paga & Navrongo)",
+            }}
+          />
+        </div>
+      </section>
+
       <section className="section section--cream" id="how-it-works">
         <div className="container">
           <SectionHeading
@@ -230,12 +250,22 @@ export function HomePage() {
             Figures below describe the Project Kasena MVP ambition, not completed results.
           </p>
           <div className="impact-grid">
-            {IMPACT_TARGETS.map((target) => (
-              <article key={target.label} data-reveal>
-                <strong>{target.figure}</strong>
-                <span>{target.label}</span>
-              </article>
-            ))}
+            <article data-reveal>
+              <strong><CounterRollup target={5000} suffix="+" /></strong>
+              <span>Validated dictionary entries</span>
+            </article>
+            <article data-reveal>
+              <strong><CounterRollup target={1000} suffix="+" /></strong>
+              <span>Kasem–English sentence pairs</span>
+            </article>
+            <article data-reveal>
+              <strong><CounterRollup target={200} suffix="+" /></strong>
+              <span>Active community contributors</span>
+            </article>
+            <article data-reveal>
+              <strong><CounterRollup target={30} suffix="+" /></strong>
+              <span>Elders &amp; qualified validators</span>
+            </article>
           </div>
           <div className="section-cta" data-reveal>
             <Button to="impact-governance" variant="secondary">

@@ -122,12 +122,33 @@ function ApplicationsTab({ role, notify }: { role: AdminRole; notify: (m: string
   const [rows, setRows] = useState<CreatorApplication[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   const load = useCallback(() => {
     setLoading(true);
-    void fetchApplications(status).then((r) => { setRows(r); setLoading(false); }).catch(() => setLoading(false));
+    setSelectedIds(new Set());
+    void fetchApplications(status)
+      .then((r) => { setRows(r); setLoading(false); })
+      .catch(() => setLoading(false));
   }, [status]);
   useEffect(load, [load]);
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === rows.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(rows.map((r) => r.id)));
+    }
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   const decide = async (app: CreatorApplication, decision: string, needReason: boolean) => {
     if (!isAdmin(role)) { notify('Admin access required.'); return; }
@@ -150,10 +171,35 @@ function ApplicationsTab({ role, notify }: { role: AdminRole; notify: (m: string
     }
   };
 
+  const runBatchAction = async (decision: string) => {
+    if (!isAdmin(role)) { notify('Admin access required.'); return; }
+    if (selectedIds.size === 0) return;
+    const confirmed = window.confirm(`Apply ${decision} to all ${selectedIds.size} selected applications?`);
+    if (!confirmed) return;
+
+    setBusy('batch');
+    let successCount = 0;
+    try {
+      for (const id of selectedIds) {
+        await decideApplication(id, decision, `Batch ${decision} processed by admin.`);
+        successCount++;
+      }
+      notify(`Batch ${decision} applied to ${successCount} applications.`);
+      load();
+    } catch (err) {
+      notify(`Batch action interrupted: ${err instanceof Error ? err.message : 'Error'}`);
+    } finally {
+      setBusy(null);
+    }
+  };
+
   return (
     <div>
       <div className="tab-head">
-        <h2>Creator applications</h2>
+        <div>
+          <h2>Creator applications &amp; Intake</h2>
+          <p className="tiny muted">Select multiple applications for batch review and approval.</p>
+        </div>
         <label className="filter">
           Status
           <select value={status} onChange={(e) => setStatus(e.target.value)}>
@@ -162,24 +208,85 @@ function ApplicationsTab({ role, notify }: { role: AdminRole; notify: (m: string
           </select>
         </label>
       </div>
+
+      {/* Batch Action Toolbar */}
+      {selectedIds.size > 0 && (
+        <div className="batch-toolbar">
+          <span><strong>{selectedIds.size}</strong> application(s) selected</span>
+          <div className="batch-actions">
+            <button
+              type="button"
+              className="button button--small button--approve"
+              disabled={busy === 'batch'}
+              onClick={() => void runBatchAction('APPROVE')}
+            >
+              ✓ Batch Approve ({selectedIds.size})
+            </button>
+            <button
+              type="button"
+              className="button button--small"
+              disabled={busy === 'batch'}
+              onClick={() => void runBatchAction('WAITLIST')}
+            >
+              ⏳ Batch Waitlist ({selectedIds.size})
+            </button>
+            <button
+              type="button"
+              className="button button--small danger"
+              disabled={busy === 'batch'}
+              onClick={() => void runBatchAction('REJECT')}
+            >
+              ✕ Batch Reject ({selectedIds.size})
+            </button>
+          </div>
+        </div>
+      )}
+
       {loading ? <p className="muted">Loading…</p> : rows.length === 0 ? <p className="muted">No applications.</p> : (
         <table className="admin-table">
-          <thead><tr><th>Reference</th><th>Name</th><th>Location</th><th>Status</th><th>Actions</th></tr></thead>
+          <thead>
+            <tr>
+              <th style={{ width: '36px' }}>
+                <input
+                  type="checkbox"
+                  checked={selectedIds.size === rows.length && rows.length > 0}
+                  onChange={toggleSelectAll}
+                  aria-label="Select all applications"
+                />
+              </th>
+              <th>Reference</th>
+              <th>Name</th>
+              <th>Location</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
           <tbody>
-            {rows.map((a) => (
-              <tr key={a.id}>
-                <td>{a.reference ?? '—'}{a.flaggedForManualReview ? <span className="flag" title="Flagged for manual review"> ⚑</span> : null}</td>
-                <td>{(a.snapshot?.displayName as string) ?? '—'}</td>
-                <td>{[(a.snapshot?.region as string), (a.snapshot?.country as string)].filter(Boolean).join(', ') || '—'}</td>
-                <td><span className="badge2">{a.status}</span></td>
-                <td className="row-actions">
-                  <button type="button" disabled={busy === a.id} onClick={() => void decide(a, 'APPROVE', false)}>Approve</button>
-                  <button type="button" disabled={busy === a.id} onClick={() => void decide(a, 'WAITLIST', false)}>Waitlist</button>
-                  <button type="button" disabled={busy === a.id} onClick={() => void decide(a, 'REQUEST_INFO', true)}>Request info</button>
-                  <button type="button" className="danger" disabled={busy === a.id} onClick={() => void decide(a, 'REJECT', true)}>Reject</button>
-                </td>
-              </tr>
-            ))}
+            {rows.map((a) => {
+              const isSelected = selectedIds.has(a.id);
+              return (
+                <tr key={a.id} className={isSelected ? 'is-selected' : ''}>
+                  <td>
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={() => toggleSelect(a.id)}
+                      aria-label={`Select application ${a.reference}`}
+                    />
+                  </td>
+                  <td>{a.reference ?? '—'}{a.flaggedForManualReview ? <span className="flag" title="Flagged for manual review"> ⚑</span> : null}</td>
+                  <td>{(a.snapshot?.displayName as string) ?? '—'}</td>
+                  <td>{[(a.snapshot?.region as string), (a.snapshot?.country as string)].filter(Boolean).join(', ') || '—'}</td>
+                  <td><span className="badge2">{a.status}</span></td>
+                  <td className="row-actions">
+                    <button type="button" disabled={busy === a.id} onClick={() => void decide(a, 'APPROVE', false)}>Approve</button>
+                    <button type="button" disabled={busy === a.id} onClick={() => void decide(a, 'WAITLIST', false)}>Waitlist</button>
+                    <button type="button" disabled={busy === a.id} onClick={() => void decide(a, 'REQUEST_INFO', true)}>Request info</button>
+                    <button type="button" className="danger" disabled={busy === a.id} onClick={() => void decide(a, 'REJECT', true)}>Reject</button>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       )}

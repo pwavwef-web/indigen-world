@@ -12,7 +12,7 @@ import {
   uploadSubmissionMedia,
   type SubmissionDraftInput,
 } from '../data';
-import { Field, Stepper, WhatsAppCard } from '../components';
+import { Field, Stepper, VoiceRecorder, WhatsAppCard } from '../components';
 
 const STEPS = ['Details', 'Media', 'Permissions', 'Review'];
 
@@ -277,22 +277,24 @@ export function SubmissionNewPage() {
             </Field>
             <Field label="Short description" htmlFor="desc"><textarea id="desc" value={description} onChange={(e) => setDescription(e.target.value)} /></Field>
             <Field label="Tags" htmlFor="tags" hint="Comma-separated.">
-              <input id="tags" value={tags} onChange={(e) => setTags(e.target.value)} placeholder="folktale, greeting, market" />
+              <input id="tags" value={tags} onChange={(e) => setTags(e.target.value)} placeholder="folktale, greeting, market, elder-story" />
             </Field>
             <Field label="Target audience" htmlFor="audience">
-              <input id="audience" value={targetAudience} onChange={(e) => setTargetAudience(e.target.value)} placeholder="Children, learners, general community…" />
+              <input id="audience" value={targetAudience} onChange={(e) => setTargetAudience(e.target.value)} placeholder="Children, learners, diaspora families, researchers…" />
             </Field>
             {studioType === 'writing' ? (
               <>
-                <Field label="Body" htmlFor="body">
-                  <textarea id="body" value={body} onChange={(e) => setBody(e.target.value)} />
+                <Field label="Folklore Narrative &amp; Story Body" htmlFor="body" hint="For oral histories, include original Kasem lines or structured paragraphs.">
+                  <textarea id="body" rows={8} value={body} onChange={(e) => setBody(e.target.value)} placeholder="Write or paste your cultural story, folklore, or proverbs here…" />
                 </Field>
-                <Field label="Sources and references" htmlFor="sources">
-                  <textarea id="sources" value={sourceReferences} onChange={(e) => setSourceReferences(e.target.value)} />
-                </Field>
-                <Field label="Translation notes" htmlFor="translationNotes">
-                  <textarea id="translationNotes" value={translationNotes} onChange={(e) => setTranslationNotes(e.target.value)} />
-                </Field>
+                <div className="field-row">
+                  <Field label="Proverb / Wisdom breakdown (optional)" htmlFor="sources">
+                    <textarea id="sources" value={sourceReferences} onChange={(e) => setSourceReferences(e.target.value)} placeholder="E.g. Traditional context from Paga elder lineage..." />
+                  </Field>
+                  <Field label="Linguistic &amp; Dialect Notes" htmlFor="translationNotes">
+                    <textarea id="translationNotes" value={translationNotes} onChange={(e) => setTranslationNotes(e.target.value)} placeholder="Notes on tonal inflections, rare words, or community-specific idioms..." />
+                  </Field>
+                </div>
               </>
             ) : null}
             {studioType === 'translation' ? (
@@ -312,20 +314,20 @@ export function SubmissionNewPage() {
                   </Field>
                 </div>
                 <div className="field-row field-row--wide">
-                  <Field label="Source content" htmlFor="sourceContent">
-                    <textarea id="sourceContent" value={sourceContent} onChange={(e) => setSourceContent(e.target.value)} />
+                  <Field label="Original Kasem / Source Text" htmlFor="sourceContent">
+                    <textarea id="sourceContent" rows={6} value={sourceContent} onChange={(e) => setSourceContent(e.target.value)} placeholder="Original sentences or oral transcription..." />
                   </Field>
-                  <Field label="Translation" htmlFor="translatedContent">
-                    <textarea id="translatedContent" value={translatedContent} onChange={(e) => setTranslatedContent(e.target.value)} />
+                  <Field label="English Translation" htmlFor="translatedContent">
+                    <textarea id="translatedContent" rows={6} value={translatedContent} onChange={(e) => setTranslatedContent(e.target.value)} placeholder="Accurate contextual translation..." />
                   </Field>
                 </div>
-                <Field label="Translator notes" htmlFor="translatorNotes">
-                  <textarea id="translatorNotes" value={translatorNotes} onChange={(e) => setTranslatorNotes(e.target.value)} />
+                <Field label="Translator &amp; Cultural Notes" htmlFor="translatorNotes">
+                  <textarea id="translatorNotes" value={translatorNotes} onChange={(e) => setTranslatorNotes(e.target.value)} placeholder="Explain word nuances or cultural metaphors..." />
                 </Field>
               </>
             ) : null}
-            <Field label="English translation or summary" htmlFor="es"><textarea id="es" value={englishSummary} onChange={(e) => setEnglishSummary(e.target.value)} /></Field>
-            <Field label="Cultural context or explanation" htmlFor="cc"><textarea id="cc" value={culturalContext} onChange={(e) => setCulturalContext(e.target.value)} /></Field>
+            <Field label="English translation or summary" htmlFor="es"><textarea id="es" value={englishSummary} onChange={(e) => setEnglishSummary(e.target.value)} placeholder="Summary in English for community members and researchers" /></Field>
+            <Field label="Cultural context or explanation" htmlFor="cc"><textarea id="cc" value={culturalContext} onChange={(e) => setCulturalContext(e.target.value)} placeholder="Historical background, ceremonial relevance, or lineage background" /></Field>
             {studioType === 'image' ? (
               <>
                 <Field label="Caption" htmlFor="caption">
@@ -341,10 +343,22 @@ export function SubmissionNewPage() {
 
         {step === 1 ? (
           <section>
-            <h2>Media</h2>
-            {studioType === 'writing' || studioType === 'translation' ? (
-              <div className="callout callout--info">Media is optional for this studio. You can attach a reference file or continue without uploading.</div>
-            ) : null}
+            <h2>Media &amp; Voice Recording Studio</h2>
+
+            {/* In-Browser Voice Recording Studio */}
+            <div className="voice-studio-card iw-glass-card">
+              <div className="voice-studio-head">
+                <span className="voice-icon">🎙️</span>
+                <div>
+                  <strong>In-Browser Audio &amp; Voice Recorder</strong>
+                  <p className="tiny muted">Record oral stories, pronunciations, or songs directly from your microphone.</p>
+                </div>
+              </div>
+              <VoiceRecorder onAudioReady={(file) => void handleFile(file)} />
+            </div>
+
+            <div className="or-divider"><span>OR UPLOAD MEDIA FILE</span></div>
+
             <Field label="Original media file" hint={mediaLimits?.acceptedMimeTypes?.length ? `Accepted: ${mediaLimits.acceptedMimeTypes.join(', ')}` : 'Video, audio, image or document.'}>
               <input type="file" onChange={(e) => void handleFile(e.target.files?.[0])} />
             </Field>

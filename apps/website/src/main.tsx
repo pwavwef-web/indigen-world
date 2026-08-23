@@ -26,3 +26,10 @@ createRoot(rootElement).render(
     </RouterProvider>
   </StrictMode>
 );
+
+// Register Service Worker for offline PWA support and low-bandwidth caching
+if (typeof window !== "undefined" && "serviceWorker" in navigator && import.meta.env.PROD) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js").catch(() => {});
+  });
+}

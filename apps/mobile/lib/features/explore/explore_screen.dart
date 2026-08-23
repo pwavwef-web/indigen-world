@@ -1,107 +1,166 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
+import 'package:indigen_world_mobile/features/explore/published_content.dart';
+import 'package:video_player/video_player.dart';
 
-class ExploreScreen extends StatefulWidget {
+class ExploreScreen extends ConsumerStatefulWidget {
   const ExploreScreen({super.key});
 
   @override
-  State<ExploreScreen> createState() => _ExploreScreenState();
+  ConsumerState<ExploreScreen> createState() => _ExploreScreenState();
 }
 
-class _ExploreScreenState extends State<ExploreScreen> {
+class _ExploreScreenState extends ConsumerState<ExploreScreen> {
   final _liked = <int>{};
   final _saved = <int>{};
   var _activeIndex = 0;
   var _playing = true;
-  var _followingFeed = false;
 
   @override
-  Widget build(BuildContext context) => AnnotatedRegion<SystemUiOverlayStyle>(
-    value: SystemUiOverlayStyle.light,
-    child: ColoredBox(
-      color: const Color(0xFF070A09),
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          PageView.builder(
-            key: const PageStorageKey('explore-reels'),
-            scrollDirection: Axis.vertical,
-            itemCount: _reels.length,
-            onPageChanged: (index) => setState(() {
-              _activeIndex = index;
-              _playing = true;
-            }),
-            itemBuilder: (context, index) {
-              final reel = _reels[index];
-              return _ReelCard(
-                reel: reel,
-                isActive: index == _activeIndex,
-                isPlaying: index == _activeIndex && _playing,
-                liked: _liked.contains(index),
-                saved: _saved.contains(index),
-                onTogglePlayback: () => setState(() => _playing = !_playing),
-                onLike: () => setState(() {
-                  _liked.contains(index)
-                      ? _liked.remove(index)
-                      : _liked.add(index);
-                }),
-                onSave: () => setState(() {
-                  _saved.contains(index)
-                      ? _saved.remove(index)
-                      : _saved.add(index);
-                }),
-                onComments: () => _openComments(context, reel),
-                onShare: () => _showMessage(
-                  context,
-                  'Sharing unlocks when approved public reel links are connected.',
-                ),
-              );
-            },
-          ),
-          SafeArea(
-            bottom: false,
-            child: _ExploreHeader(
-              following: _followingFeed,
-              onChanged: (value) => setState(() => _followingFeed = value),
+  Widget build(BuildContext context) {
+    final publishedReels = ref.watch(publishedReelsProvider).asData?.value;
+    // Show real, published TribeStudio content when any exists; otherwise fall
+    // back to the curated preview so the feed is never empty.
+    final live = publishedReels != null && publishedReels.isNotEmpty;
+    final reels = live
+        ? publishedReels.map(_reelFromPublished).toList(growable: false)
+        : _previewReels;
+    // Keep the active index valid if the live feed shrinks between builds.
+    final activeIndex = _activeIndex.clamp(0, reels.length - 1);
+
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.light,
+      child: ColoredBox(
+        color: const Color(0xFF070A09),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            PageView.builder(
+              key: PageStorageKey('explore-reels-${live ? 'live' : 'preview'}'),
+              scrollDirection: Axis.vertical,
+              itemCount: reels.length,
+              onPageChanged: (index) => setState(() {
+                _activeIndex = index;
+                _playing = true;
+              }),
+              itemBuilder: (context, index) {
+                final reel = reels[index];
+                return _ReelCard(
+                  reel: reel,
+                  isActive: index == activeIndex,
+                  isPlaying: index == activeIndex && _playing,
+                  liked: _liked.contains(index),
+                  saved: _saved.contains(index),
+                  onTogglePlayback: () => setState(() => _playing = !_playing),
+                  onLike: () => setState(() {
+                    _liked.contains(index)
+                        ? _liked.remove(index)
+                        : _liked.add(index);
+                  }),
+                  onSave: () => setState(() {
+                    _saved.contains(index)
+                        ? _saved.remove(index)
+                        : _saved.add(index);
+                  }),
+                  onComments: () => _openComments(context, reel),
+                  onShare: () => _showMessage(
+                    context,
+                    'Sharing unlocks when approved public reel links are connected.',
+                  ),
+                );
+              },
             ),
-          ),
-          Positioned(
-            left: 18,
-            right: 18,
-            bottom: 10,
-            child: IgnorePointer(
-              child: Row(
-                children: [
-                  Expanded(
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(999),
-                      child: LinearProgressIndicator(
-                        value: (_activeIndex + 1) / _reels.length,
-                        minHeight: 2,
-                        backgroundColor: Colors.white24,
-                        color: BrandColors.kenteGold,
+            const Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: SafeArea(bottom: false, child: _ExploreHeader()),
+            ),
+            Positioned(
+              left: 18,
+              right: 18,
+              bottom: 10,
+              child: IgnorePointer(
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(999),
+                        child: LinearProgressIndicator(
+                          value: (activeIndex + 1) / reels.length,
+                          minHeight: 2,
+                          backgroundColor: Colors.white24,
+                          color: BrandColors.kenteGold,
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 10),
-                  Text(
-                    '${_activeIndex + 1}/${_reels.length}',
-                    style: const TextStyle(
-                      color: Colors.white70,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w800,
+                    const SizedBox(width: 10),
+                    Text(
+                      '${activeIndex + 1}/${reels.length}',
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
-    ),
-  );
+    );
+  }
+
+  _Reel _reelFromPublished(PublishedReel p) {
+    final caption = p.description.trim().isNotEmpty
+        ? p.description.trim()
+        : p.englishSummary.trim();
+    final where = [
+      p.dialect,
+      p.language,
+    ].where((value) => value.trim().isNotEmpty).join(' · ');
+    final label = p.category.trim().isNotEmpty
+        ? '${p.category.trim().toUpperCase()}${where.isNotEmpty ? ' · $where' : ''}'
+        : (where.isNotEmpty
+              ? where.toUpperCase()
+              : 'PUBLISHED ON INDIGEN WORLD');
+    return _Reel(
+      imageUrl: p.posterUrl ?? '',
+      videoUrl: p.videoUrl,
+      avatarUrl: p.creatorAvatarUrl,
+      isLive: true,
+      label: label,
+      title: p.title,
+      creator: p.creatorName,
+      initials: _initialsFor(p.creatorName),
+      caption: caption,
+      sound: p.category.trim().isNotEmpty ? p.category.trim() : 'Cultural reel',
+      credit: p.licenceDisplay.trim().isNotEmpty
+          ? p.licenceDisplay.trim()
+          : 'Published with permission · Indigen World',
+      likes: 0,
+      comments: 0,
+    );
+  }
+
+  static String _initialsFor(String name) {
+    final parts = name
+        .trim()
+        .split(RegExp(r'\s+'))
+        .where((part) => part.isNotEmpty)
+        .toList();
+    if (parts.isEmpty) return 'IW';
+    if (parts.length == 1) {
+      return parts.first.characters.take(2).toString().toUpperCase();
+    }
+    return (parts.first.characters.first + parts[1].characters.first)
+        .toUpperCase();
+  }
 
   Future<void> _openComments(BuildContext context, _Reel reel) async {
     final replyController = TextEditingController();
@@ -120,47 +179,60 @@ class _ExploreScreenState extends State<ExploreScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              '${reel.comments} community replies',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 4),
-            const Text(
-              'Kasem-only conversation preview · sample copy is not validated guidance.',
-              style: TextStyle(color: BrandColors.mutedInk, fontSize: 12),
-            ),
-            const SizedBox(height: 18),
-            const _Comment(author: 'Amina', text: 'Ko gara.'),
-            const _Comment(author: 'Nyaaba', text: 'De N lei.'),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: replyController,
-                    decoration: const InputDecoration(
-                      hintText: 'Reply in Kasem…',
-                      isDense: true,
-                    ),
+          children: reel.isLive
+              ? [
+                  Text(
+                    'Comments',
+                    style: Theme.of(context).textTheme.titleLarge,
                   ),
-                ),
-                const SizedBox(width: 8),
-                IconButton.filled(
-                  tooltip: 'Add reply',
-                  onPressed: () {
-                    if (replyController.text.trim().isEmpty) return;
-                    Navigator.pop(context);
-                    _showMessage(
-                      context,
-                      'Your local Kasem reply was added to this preview.',
-                    );
-                  },
-                  icon: const Icon(Icons.arrow_upward_rounded),
-                ),
-              ],
-            ),
-          ],
+                  const SizedBox(height: 4),
+                  const Text(
+                    'Community replies open when messaging is enabled for published reels.',
+                    style: TextStyle(color: BrandColors.mutedInk, fontSize: 12),
+                  ),
+                  const SizedBox(height: 18),
+                ]
+              : [
+                  Text(
+                    '${reel.comments} community replies',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'Kasem-only conversation preview · sample copy is not validated guidance.',
+                    style: TextStyle(color: BrandColors.mutedInk, fontSize: 12),
+                  ),
+                  const SizedBox(height: 18),
+                  const _Comment(author: 'Amina', text: 'Ko gara.'),
+                  const _Comment(author: 'Nyaaba', text: 'De N lei.'),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: replyController,
+                          decoration: const InputDecoration(
+                            hintText: 'Reply in Kasem…',
+                            isDense: true,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      IconButton.filled(
+                        tooltip: 'Add reply',
+                        onPressed: () {
+                          if (replyController.text.trim().isEmpty) return;
+                          Navigator.pop(context);
+                          _showMessage(
+                            context,
+                            'Your local Kasem reply was added to this preview.',
+                          );
+                        },
+                        icon: const Icon(Icons.arrow_upward_rounded),
+                      ),
+                    ],
+                  ),
+                ],
         ),
       ),
     );
@@ -168,136 +240,78 @@ class _ExploreScreenState extends State<ExploreScreen> {
   }
 
   void _showMessage(BuildContext context, String message) {
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 }
 
 class _ExploreHeader extends StatelessWidget {
-  const _ExploreHeader({required this.following, required this.onChanged});
-
-  final bool following;
-  final ValueChanged<bool> onChanged;
+  const _ExploreHeader();
 
   @override
-  Widget build(BuildContext context) => SizedBox(
-    height: 58,
-    child: Stack(
-      alignment: Alignment.topCenter,
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+    child: Row(
       children: [
-        Positioned(
-          left: 14,
-          top: 8,
-          child: Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              color: Colors.black.withValues(alpha: 0.34),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.white24),
-            ),
-            child: const Icon(
-              Icons.public_rounded,
-              color: BrandColors.kenteGold,
-              size: 20,
-            ),
+        Container(
+          width: 34,
+          height: 34,
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.3),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.white24),
+          ),
+          child: const Icon(
+            Icons.public_rounded,
+            color: BrandColors.kenteGold,
+            size: 20,
           ),
         ),
-        Positioned(
-          top: 5,
-          child: Container(
-            padding: const EdgeInsets.fromLTRB(6, 3, 6, 4),
-            decoration: BoxDecoration(
-              color: Colors.black.withValues(alpha: 0.28),
-              borderRadius: BorderRadius.circular(999),
-              border: Border.all(color: Colors.white12),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _FeedTab(
-                  label: 'Following',
-                  selected: following,
-                  onTap: () => onChanged(true),
-                ),
-                _FeedTab(
-                  label: 'For you',
-                  selected: !following,
-                  onTap: () => onChanged(false),
-                ),
-              ],
-            ),
+        const SizedBox(width: 9),
+        const Text(
+          'INDIGEN WORLD',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 11,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 1.5,
+            shadows: [Shadow(blurRadius: 14, color: Colors.black)],
           ),
         ),
-        Positioned(
-          right: 14,
-          top: 8,
-          child: IconButton(
-            tooltip: 'Search cultural reels',
-            onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text(
-                  'Reel search connects with the approved public feed.',
-                ),
-              ),
-            ),
-            style: IconButton.styleFrom(
-              backgroundColor: Colors.black.withValues(alpha: 0.34),
-              foregroundColor: Colors.white,
-              side: const BorderSide(color: Colors.white24),
-            ),
-            icon: const Icon(Icons.search_rounded, size: 20),
+        const Spacer(),
+        const Text(
+          'Following',
+          style: TextStyle(
+            color: Colors.white60,
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
           ),
         ),
-      ],
-    ),
-  );
-}
-
-class _FeedTab extends StatelessWidget {
-  const _FeedTab({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) => Material(
-    color: selected ? Colors.white.withValues(alpha: 0.14) : Colors.transparent,
-    borderRadius: BorderRadius.circular(999),
-    child: InkWell(
-      borderRadius: BorderRadius.circular(999),
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-        child: Column(
+        const SizedBox(width: 18),
+        const Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              label,
+              'For you',
               style: TextStyle(
-                color: selected ? Colors.white : Colors.white60,
+                color: Colors.white,
                 fontSize: 12,
-                fontWeight: selected ? FontWeight.w900 : FontWeight.w700,
+                fontWeight: FontWeight.w900,
               ),
             ),
-            const SizedBox(height: 3),
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 180),
-              width: selected ? 22 : 0,
-              height: 2,
-              decoration: BoxDecoration(
+            SizedBox(height: 5),
+            SizedBox(
+              width: 22,
+              child: Divider(
+                height: 2,
+                thickness: 2,
                 color: BrandColors.kenteGold,
-                borderRadius: BorderRadius.circular(999),
               ),
             ),
           ],
         ),
-      ),
+      ],
     ),
   );
 }
@@ -335,20 +349,7 @@ class _ReelCard extends StatelessWidget {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          TweenAnimationBuilder<double>(
-            key: ValueKey('${reel.imageUrl}-$isActive'),
-            duration: const Duration(seconds: 12),
-            tween: Tween(begin: 1, end: isActive ? 1.08 : 1),
-            builder: (context, scale, child) =>
-                Transform.scale(scale: scale, child: child),
-            child: CachedNetworkImage(
-              imageUrl: reel.imageUrl,
-              fit: BoxFit.cover,
-              alignment: reel.alignment,
-              placeholder: (context, url) => const _ReelPlaceholder(),
-              errorWidget: (context, url, error) => const _ReelPlaceholder(),
-            ),
-          ),
+          _ReelBackground(reel: reel, isActive: isActive, isPlaying: isPlaying),
           const DecoratedBox(
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -451,7 +452,10 @@ class _ReelCard extends StatelessWidget {
             bottom: 44,
             child: Column(
               children: [
-                _CreatorAvatar(initials: reel.initials),
+                _CreatorAvatar(
+                  initials: reel.initials,
+                  avatarUrl: reel.avatarUrl,
+                ),
                 const SizedBox(height: 13),
                 _ReelAction(
                   icon: liked
@@ -486,6 +490,149 @@ class _ReelCard extends StatelessWidget {
       ),
     ),
   );
+}
+
+/// The reel background: a slow "Ken Burns" poster for image reels, or an
+/// autoplaying, looping video for video reels while they are the active page.
+class _ReelBackground extends StatelessWidget {
+  const _ReelBackground({
+    required this.reel,
+    required this.isActive,
+    required this.isPlaying,
+  });
+
+  final _Reel reel;
+  final bool isActive;
+  final bool isPlaying;
+
+  @override
+  Widget build(BuildContext context) {
+    final poster = _poster();
+    final videoUrl = reel.videoUrl;
+    if (videoUrl != null && isActive) {
+      return _ReelVideo(url: videoUrl, isPlaying: isPlaying, poster: poster);
+    }
+    return poster;
+  }
+
+  Widget _poster() {
+    final Widget image = reel.imageUrl.isEmpty
+        ? const _ReelPlaceholder()
+        : CachedNetworkImage(
+            imageUrl: reel.imageUrl,
+            fit: BoxFit.cover,
+            alignment: reel.alignment,
+            placeholder: (context, url) => const _ReelPlaceholder(),
+            errorWidget: (context, url, error) => const _ReelPlaceholder(),
+          );
+    return TweenAnimationBuilder<double>(
+      key: ValueKey('${reel.imageUrl}-$isActive'),
+      duration: const Duration(seconds: 12),
+      tween: Tween(begin: 1, end: isActive ? 1.08 : 1),
+      builder: (context, scale, child) =>
+          Transform.scale(scale: scale, child: child),
+      child: image,
+    );
+  }
+}
+
+/// Plays a published video reel, covering the frame. Falls back to the poster
+/// until the controller initialises, and on any playback error.
+class _ReelVideo extends StatefulWidget {
+  const _ReelVideo({
+    required this.url,
+    required this.isPlaying,
+    required this.poster,
+  });
+
+  final String url;
+  final bool isPlaying;
+  final Widget poster;
+
+  @override
+  State<_ReelVideo> createState() => _ReelVideoState();
+}
+
+class _ReelVideoState extends State<_ReelVideo> {
+  VideoPlayerController? _controller;
+  bool _ready = false;
+  bool _failed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _initialise();
+  }
+
+  Future<void> _initialise() async {
+    final controller = VideoPlayerController.networkUrl(Uri.parse(widget.url));
+    _controller = controller;
+    try {
+      await controller.initialize();
+      await controller.setLooping(true);
+      await controller.setVolume(1);
+      if (!mounted) {
+        await controller.dispose();
+        return;
+      }
+      setState(() => _ready = true);
+      _syncPlayback();
+    } on Object {
+      if (mounted) setState(() => _failed = true);
+    }
+  }
+
+  void _syncPlayback() {
+    final controller = _controller;
+    if (controller == null || !_ready) return;
+    if (widget.isPlaying) {
+      controller.play();
+    } else {
+      controller.pause();
+    }
+  }
+
+  @override
+  void didUpdateWidget(_ReelVideo oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.url != widget.url) {
+      _controller?.dispose();
+      _controller = null;
+      _ready = false;
+      _failed = false;
+      _initialise();
+    } else if (oldWidget.isPlaying != widget.isPlaying) {
+      _syncPlayback();
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = _controller;
+    if (_failed || !_ready || controller == null) {
+      return widget.poster;
+    }
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        widget.poster,
+        FittedBox(
+          fit: BoxFit.cover,
+          child: SizedBox(
+            width: controller.value.size.width,
+            height: controller.value.size.height,
+            child: VideoPlayer(controller),
+          ),
+        ),
+      ],
+    );
+  }
 }
 
 class _PreviewPill extends StatelessWidget {
@@ -562,9 +709,10 @@ class _ReelAction extends StatelessWidget {
 }
 
 class _CreatorAvatar extends StatelessWidget {
-  const _CreatorAvatar({required this.initials});
+  const _CreatorAvatar({required this.initials, this.avatarUrl});
 
   final String initials;
+  final String? avatarUrl;
 
   @override
   Widget build(BuildContext context) => Stack(
@@ -574,21 +722,19 @@ class _CreatorAvatar extends StatelessWidget {
       Container(
         width: 48,
         height: 48,
+        clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
           color: BrandColors.heritageGreen,
           shape: BoxShape.circle,
           border: Border.all(color: Colors.white, width: 2),
         ),
-        child: Center(
-          child: Text(
-            initials,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 12,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-        ),
+        child: avatarUrl != null && avatarUrl!.isNotEmpty
+            ? CachedNetworkImage(
+                imageUrl: avatarUrl!,
+                fit: BoxFit.cover,
+                errorWidget: (context, url, error) => _initials(),
+              )
+            : _initials(),
       ),
       Positioned(
         bottom: -7,
@@ -607,6 +753,17 @@ class _CreatorAvatar extends StatelessWidget {
         ),
       ),
     ],
+  );
+
+  Widget _initials() => Center(
+    child: Text(
+      initials,
+      style: const TextStyle(
+        color: Colors.white,
+        fontSize: 12,
+        fontWeight: FontWeight.w900,
+      ),
+    ),
   );
 }
 
@@ -686,6 +843,9 @@ class _Reel {
     required this.likes,
     required this.comments,
     this.alignment = Alignment.center,
+    this.videoUrl,
+    this.avatarUrl,
+    this.isLive = false,
   });
 
   final String imageUrl;
@@ -699,14 +859,25 @@ class _Reel {
   final int likes;
   final int comments;
   final Alignment alignment;
+
+  /// Playable video URL for published video reels; null for image reels.
+  final String? videoUrl;
+
+  /// Creator avatar image for published reels; null for the curated preview.
+  final String? avatarUrl;
+
+  /// True when this reel is real published content (vs. the curated preview),
+  /// which changes copy such as the comments sheet.
+  final bool isLive;
 }
 
 String _shortCount(int value) =>
     value >= 1000 ? '${(value / 1000).toStringAsFixed(1)}K' : '$value';
 
-const _reels = [
+const _previewReels = [
   _Reel(
-    imageUrl: 'https://images.unsplash.com/photo-1660675133223-c293889b9fb8?auto=format&fit=crop&q=82&w=1200',
+    imageUrl:
+        'https://images.unsplash.com/photo-1660675133223-c293889b9fb8?auto=format&fit=crop&q=82&w=1200',
     label: 'REEL PREVIEW · NORTHERN GHANA',
     title: 'Every rhythm remembers.',
     creator: '@afi.dances',
@@ -718,7 +889,8 @@ const _reels = [
     comments: 426,
   ),
   _Reel(
-    imageUrl: 'https://images.unsplash.com/photo-1515921560173-3633830cb11a?auto=format&fit=crop&q=82&w=1200',
+    imageUrl:
+        'https://images.unsplash.com/photo-1515921560173-3633830cb11a?auto=format&fit=crop&q=82&w=1200',
     label: 'PHOTO REEL · COMMUNITY',
     title: 'The circle makes room for everyone.',
     creator: '@kasena.collective',
@@ -730,7 +902,8 @@ const _reels = [
     comments: 218,
   ),
   _Reel(
-    imageUrl: 'https://images.unsplash.com/photo-1757169917348-b4f790e4dc85?auto=format&fit=crop&q=82&w=1200',
+    imageUrl:
+        'https://images.unsplash.com/photo-1757169917348-b4f790e4dc85?auto=format&fit=crop&q=82&w=1200',
     label: 'STORY REEL · CAPE COAST',
     title: 'What we wear can speak.',
     creator: '@heritage.in.motion',

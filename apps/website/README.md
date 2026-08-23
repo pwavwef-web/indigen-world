@@ -73,8 +73,14 @@ The repository `firebase.json` serves `apps/website/dist` and rewrites unknown p
 
 ```bash
 npm run check --workspace @indigen-world/website
-firebase deploy --only hosting:website
+firebase deploy --only hosting:indigen-world
 ```
+
+This app is served by the `indigen-world` Hosting site. Its production custom domains are
+`indigenworld.com` (apex), `www.indigenworld.com` (redirects to the apex) and
+`kasem.indigenworld.com` (Project Kasena entry point). See
+[`docs/architecture/hosting-and-domains.md`](../../docs/architecture/hosting-and-domains.md) for the
+full site/domain map.
 
 Use the reviewed Firebase project/site mapping supplied by the project manager. To roll back,
 select the preceding release in Firebase Hosting release history and verify the same core routes.

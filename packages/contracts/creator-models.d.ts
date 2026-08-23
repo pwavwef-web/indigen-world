@@ -327,6 +327,7 @@ export interface PublishedContent {
   description?: string;
   englishSummary?: string;
   mediaUrl?: string;
+  mediaType?: 'image' | 'audio' | 'video' | 'document' | null;
   thumbnailUrl?: string | null;
   captionsUrl?: string | null;
   culturalNotes?: string;

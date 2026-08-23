@@ -12,4 +12,12 @@ export {
   decideSubmission,
 } from './creators.js';
 export { onNotificationCreated } from './notifications.js';
-export { smsBalance, sendTestSms } from './messaging-admin.js';
+export {
+  smsBalance,
+  sendTestSms,
+  sendSmsCampaign,
+  listSmsCampaigns,
+  saveSmsContactGroup,
+  listSmsContactGroups,
+  deleteSmsContactGroup,
+} from './messaging-admin.js';

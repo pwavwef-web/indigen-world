@@ -38,7 +38,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         slivers: [
           SliverToBoxAdapter(
             child: BrandHeader(
-              eyebrow: 'Indigen World',
+              eyebrow: 'Indigen',
               title: 'Kasem, close at hand.',
               subtitle: 'Project Kasena · your language cell starts here',
               trailing: IconButton.filledTonal(

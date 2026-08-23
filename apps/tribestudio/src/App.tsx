@@ -1,5 +1,6 @@
 import { Suspense, lazy, useEffect, useRef, useState, type ComponentType, type ReactNode } from 'react';
 import type { CreatorApplication, CreatorMembership, CreatorProfile } from '@indigen-world/contracts/creator-models';
+import { ToastProvider } from '@indigen-world/web-ui';
 import { Link, RouterProvider, matchRoute, useRoute } from './router';
 import { signIn, useAuth } from './auth';
 import { ErrorBoundary } from './ErrorBoundary';
@@ -252,11 +253,13 @@ function Routed() {
 function App() {
   return (
     <ErrorBoundary>
-      <RouterProvider>
-        <CreatorProvider>
-          <Routed />
-        </CreatorProvider>
-      </RouterProvider>
+      <ToastProvider>
+        <RouterProvider>
+          <CreatorProvider>
+            <Routed />
+          </CreatorProvider>
+        </RouterProvider>
+      </ToastProvider>
     </ErrorBoundary>
   );
 }

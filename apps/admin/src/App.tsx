@@ -1,97 +1,39 @@
-import { useState } from 'react';
+import { useState, type MouseEvent } from 'react';
 import { GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/auth';
-import { enums, schemas } from '@indigen-world/contracts';
 import { Button } from '@indigen-world/web-ui';
 import { auth } from './firebase';
-import { isAdmin, isValidator, useAdminAuth } from './creators/data';
-import { CreatorsAdmin } from './creators/CreatorsAdmin';
-import { TeamSiteIntakePage, TeamSiteRequestsAdmin } from './team-sites/TeamSiteIntake';
-import { MessagingAdmin } from './messaging/MessagingAdmin';
+import { useAdminAuth } from './creators/data';
+import { TeamSiteIntakePage } from './team-sites/TeamSiteIntake';
+import { SCREENS, screenForPath } from './navigation';
+import { useRouter } from './router';
 
 const provider = new GoogleAuthProvider();
 
-// Human-readable labels for the contract's validation lifecycle.
-const statusLabels: Record<string, string> = {
-  draft: 'Draft',
-  submitted: 'Submitted',
-  in_review: 'In review',
-  needs_changes: 'Needs changes',
-  validated: 'Validated',
-  rejected: 'Rejected',
-  retired: 'Retired',
-};
-
-// `planned: true` marks domains whose console UI is not built yet, so the home
-// screen doesn't imply capabilities operators can't actually reach here.
-const adminDomains: { title: string; body: string; planned?: boolean }[] = [
-  { title: 'Roles & access', body: 'Assign and audit role claims for contributors, validators and staff.', planned: true },
-  { title: 'Creator management', body: 'Applications, campaigns, submissions, published content and consent for TribeStudio creators.' },
-  { title: 'Validation oversight', body: 'Monitor validator queues, escalations and quality across language cells.' },
-  { title: 'Moderation', body: 'Review reported content and enforce cultural-permission and consent policy.', planned: true },
-  { title: 'Campaigns & rewards', body: 'Oversee bounties, reward settlement and contributor-points integrity.', planned: true },
-  { title: 'Audit & accountability', body: 'Inspect the append-only audit log of privileged actions.', planned: true },
-];
-
-type View = 'console' | 'creators' | 'teamSites' | 'messaging';
-
-function ConsoleHome() {
-  const entities = Object.entries(schemas);
+/** A full-panel notice used for the sign-in gate and per-screen access denials. */
+function Notice({ title, body }: { title: string; body: string }) {
   return (
-    <>
-      <section className="panel panel--notice">
-        <h1>Administration console</h1>
-        <p>
-          The internal admin app for the Indigen World ecosystem — role and access management, creator
-          management, validation oversight, moderation, reward integrity and audit. It is separate from{' '}
-          <strong>TribeStudio</strong>, the workspace for contributors and creators.
-        </p>
-      </section>
-
-      <section className="panel">
-        <h2>Administrative domains</h2>
-        <ul className="entity-grid">
-          {adminDomains.map((domain) => (
-            <li key={domain.title} className="entity-card">
-              <strong>
-                {domain.title}
-                {domain.planned ? <span className="tag tag--planned">Planned</span> : null}
-              </strong>
-              <p>{domain.body}</p>
-            </li>
-          ))}
-        </ul>
-      </section>
-
-      <section className="panel">
-        <h2>Validation lifecycle</h2>
-        <ol className="pipeline">
-          {(enums.validationStatus as string[]).map((status) => (
-            <li key={status} className={`pipeline__step pipeline__step--${status}`}>{statusLabels[status] ?? status}</li>
-          ))}
-        </ol>
-      </section>
-
-      <section className="panel">
-        <h2>Shared contract entities</h2>
-        <p className="panel__hint">{entities.length} entities from <code>@indigen-world/contracts</code>.</p>
-        <ul className="entity-grid">
-          {entities.map(([key, schema]) => (
-            <li key={key} className="entity-card">
-              <strong>{(schema as { title?: string }).title ?? key}</strong>
-              <p>{(schema as { description?: string }).description ?? ''}</p>
-            </li>
-          ))}
-        </ul>
-      </section>
-    </>
+    <section className="panel panel--notice">
+      <h1>{title}</h1>
+      <p>{body}</p>
+    </section>
   );
 }
 
+/**
+ * Application shell: brand header, account controls, the top navigation, the
+ * breadcrumb trail, and the routed content region. Each screen has a real URL
+ * (see `navigation.tsx`) so it is deep-linkable and survives a refresh; this
+ * component only frames and routes them.
+ */
 function App() {
   const { user, role, ready } = useAdminAuth();
-  const [view, setView] = useState<View>('console');
+  const { pathname, navigate } = useRouter();
   const [error, setError] = useState<string | null>(null);
-  const isTeamSiteIntake = window.location.pathname === '/team-site-intake';
+
+  // Standalone public intake page, rendered outside the authenticated shell.
+  if (window.location.pathname === '/team-site-intake') {
+    return <TeamSiteIntakePage />;
+  }
 
   const handleSignIn = async () => {
     setError(null);
@@ -110,9 +52,16 @@ function App() {
     }
   };
 
-  if (isTeamSiteIntake) {
-    return <TeamSiteIntakePage />;
-  }
+  // Intercept in-app link clicks for client-side navigation, while leaving
+  // modified clicks (new tab, etc.) to the browser.
+  const linkHandler = (to: string) => (event: MouseEvent) => {
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
+    event.preventDefault();
+    navigate(to);
+  };
+
+  const activeScreen = screenForPath(pathname);
+  const canAccessActive = !activeScreen.canAccess || activeScreen.canAccess(role);
 
   return (
     <div className="shell">
@@ -148,12 +97,31 @@ function App() {
       </header>
 
       {ready && user ? (
-        <nav className="topnav">
-          <button type="button" className={view === 'console' ? 'topnav__link is-active' : 'topnav__link'} onClick={() => setView('console')}>Console</button>
-          <button type="button" className={view === 'creators' ? 'topnav__link is-active' : 'topnav__link'} onClick={() => setView('creators')}>Creators</button>
-          <button type="button" className={view === 'teamSites' ? 'topnav__link is-active' : 'topnav__link'} onClick={() => setView('teamSites')}>Team sites</button>
-          <button type="button" className={view === 'messaging' ? 'topnav__link is-active' : 'topnav__link'} onClick={() => setView('messaging')}>Messaging</button>
-        </nav>
+        <>
+          <nav className="topnav" aria-label="Primary">
+            {SCREENS.map((screen) => (
+              <a
+                key={screen.id}
+                href={screen.path}
+                className={activeScreen.id === screen.id ? 'topnav__link is-active' : 'topnav__link'}
+                aria-current={activeScreen.id === screen.id ? 'page' : undefined}
+                onClick={linkHandler(screen.path)}
+              >
+                {screen.label}
+              </a>
+            ))}
+          </nav>
+
+          <nav className="breadcrumbs" aria-label="Breadcrumb">
+            <a href="/" onClick={linkHandler('/')} className="crumb">Admin console</a>
+            {activeScreen.id !== 'console' ? (
+              <>
+                <span className="crumb-sep" aria-hidden="true">›</span>
+                <span className="crumb crumb--current" aria-current="page">{activeScreen.label}</span>
+              </>
+            ) : null}
+          </nav>
+        </>
       ) : null}
 
       <main id="main-content" className="content">
@@ -161,39 +129,17 @@ function App() {
         {!ready ? (
           <p className="muted">Loading…</p>
         ) : !user ? (
-          <section className="panel panel--notice">
-            <h1>Sign in required</h1>
-            <p>Sign in with an authorised staff account to manage the Indigen World ecosystem.</p>
-          </section>
-        ) : view === 'teamSites' ? (
-          isValidator(role) ? (
-            <TeamSiteRequestsAdmin />
-          ) : (
-            <section className="panel panel--notice">
-              <h1>Staff access required</h1>
-              <p>Your account needs a validator or admin role to review team site responses.</p>
-            </section>
-          )
-        ) : view === 'creators' ? (
-          isValidator(role) ? (
-            <CreatorsAdmin role={role} />
-          ) : (
-            <section className="panel panel--notice">
-              <h1>Staff access required</h1>
-              <p>Your account needs a validator or admin role to manage creators.</p>
-            </section>
-          )
-        ) : view === 'messaging' ? (
-          isAdmin(role) ? (
-            <MessagingAdmin />
-          ) : (
-            <section className="panel panel--notice">
-              <h1>Admin access required</h1>
-              <p>Your account needs an admin role to view the SMS balance and send test messages.</p>
-            </section>
-          )
+          <Notice
+            title="Sign in required"
+            body="Sign in with an authorised staff account to manage the Indigen World ecosystem."
+          />
+        ) : canAccessActive ? (
+          activeScreen.render({ role })
         ) : (
-          <ConsoleHome />
+          <Notice
+            title={activeScreen.deny?.title ?? 'Access required'}
+            body={activeScreen.deny?.body ?? 'Your account does not have access to this screen.'}
+          />
         )}
       </main>
 

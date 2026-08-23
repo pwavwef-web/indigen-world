@@ -1,0 +1,133 @@
+/* Messaging console: composer, contact groups, campaign history.
+   Reuses the shared admin tokens/classes; only the extras live here. */
+.messaging-admin {
+  display: grid;
+  gap: 20px;
+}
+
+/* Audience segmented control */
+.seg-toggle {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  background: var(--plaster-cream, #f3efe6);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  width: fit-content;
+}
+.seg {
+  border: 1px solid transparent;
+  background: none;
+  padding: 7px 14px;
+  border-radius: 7px;
+  cursor: pointer;
+  font-size: 0.88rem;
+  color: var(--text-soft);
+}
+.seg.is-active {
+  background: var(--surface);
+  border-color: var(--border);
+  color: var(--indigo-deep);
+  font-weight: 600;
+}
+
+.broadcast-note {
+  margin: 0;
+  padding: 10px 14px;
+  border-left: 3px solid var(--gold);
+  background: #fbf6e9;
+  border-radius: 8px;
+  font-size: 0.86rem;
+  color: var(--text);
+}
+
+/* Parsed-recipient chips */
+.chip-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.chip {
+  display: inline-block;
+  border-radius: 999px;
+  padding: 3px 11px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  border: 1px solid var(--border);
+}
+.chip--ok {
+  background: #e6f4ec;
+  color: #14663d;
+  border-color: #bfe3cd;
+}
+.chip--bad {
+  background: #fbeaea;
+  color: var(--danger);
+  border-color: #eac3c3;
+  cursor: help;
+}
+.small {
+  font-size: 0.8rem;
+}
+
+.group-load {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  color: var(--text-soft);
+}
+.group-load select {
+  padding: 5px 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font: inherit;
+}
+
+.inline-check {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.88rem;
+  color: var(--text);
+}
+.inline-check input {
+  width: auto;
+}
+
+/* Two-click send confirmation */
+.confirm-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 8px;
+  padding: 12px 14px;
+  border: 1px solid #eac3c3;
+  background: #fbeaea;
+  border-radius: 10px;
+  font-size: 0.88rem;
+  color: var(--text);
+}
+.confirm-actions {
+  display: flex;
+  gap: 8px;
+}
+.confirm-actions button {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: 8px;
+  padding: 8px 14px;
+  cursor: pointer;
+  font-size: 0.84rem;
+  margin: 0;
+}
+
+/* Campaign status pills */
+.badge2.status-scheduled { background: #eaf0fb; color: var(--indigo); border-color: #c6d5f0; }
+.badge2.status-partial { background: #fdf3e2; color: #8a5a12; border-color: #efd7a8; }
+.badge2.status-failed { background: #fbeaea; color: var(--danger); border-color: #eac3c3; }
+.badge2.status-sent { background: #e6f4ec; color: #14663d; border-color: #bfe3cd; }

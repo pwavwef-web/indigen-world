@@ -14,7 +14,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { after, before, test } from 'node:test';
 import { assertFails, assertSucceeds, initializeTestEnvironment } from '@firebase/rules-unit-testing';
-import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
+import { deleteDoc, doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 
 const PROJECT_ID = 'demo-indigen-world';
 const host = '127.0.0.1';
@@ -285,4 +285,11 @@ test('team site intake is public-create and staff-readable only', async () => {
 test('team site intake rejects unexpected fields', async () => {
   const anon = env.unauthenticatedContext();
   await assertFails(setDoc(doc(db(anon), 'teamSiteRequests/bad-request'), teamSiteRequestDoc({ adminOnly: true })));
+});
+
+test('team site intake delete is admin-only', async () => {
+  const validator = env.authenticatedContext('val1', { role: 'validator' });
+  const admin = env.authenticatedContext('admin1', { role: 'admin' });
+  await assertFails(deleteDoc(doc(db(validator), 'teamSiteRequests/requestA')));
+  await assertSucceeds(deleteDoc(doc(db(admin), 'teamSiteRequests/requestA')));
 });

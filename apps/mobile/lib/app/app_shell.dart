@@ -9,7 +9,9 @@ import 'package:indigen_world_mobile/features/learn/learn_screen.dart';
 import 'package:indigen_world_mobile/features/profile/profile_screen.dart';
 
 class AppShell extends StatefulWidget {
-  const AppShell({super.key});
+  const AppShell({super.key, this.initialIndex = 3});
+
+  final int initialIndex;
 
   @override
   State<AppShell> createState() => _AppShellState();
@@ -17,7 +19,7 @@ class AppShell extends StatefulWidget {
 
 class _AppShellState extends State<AppShell>
     with SingleTickerProviderStateMixin {
-  int _selectedIndex = 0;
+  late int _selectedIndex;
   late final AnimationController _transitionController;
   late final Animation<double> _fadeAnimation;
   late final Animation<Offset> _slideAnimation;
@@ -34,6 +36,7 @@ class _AppShellState extends State<AppShell>
   @override
   void initState() {
     super.initState();
+    _selectedIndex = widget.initialIndex;
     _transitionController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 320),

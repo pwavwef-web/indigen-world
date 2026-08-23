@@ -29,6 +29,8 @@ import { Button } from "../components/Button";
 import { Icon } from "../components/Icon";
 import { SectionHeading } from "../components/SectionHeading";
 import { StatusBadge } from "../components/StatusBadge";
+import { DialectMap } from "../components/DialectMap";
+import { KasemStarterKit } from "../components/KasemStarterKit";
 
 const route = ROUTES_BY_PATH["project-kasena"];
 
@@ -80,6 +82,30 @@ export function ProjectKasenaPage() {
               — this page describes what's planned rather than demonstrating a working version.
             </p>
           </div>
+        </div>
+      </section>
+
+      {/* Interactive Dialect Map */}
+      <section className="section section--white" id="dialect-map">
+        <div className="container">
+          <SectionHeading
+            eyebrow="Dialect Diversity"
+            title="Across Northern Ghana and Southern Burkina Faso."
+            body="Project Kasena documents Eastern, Western, and cross-border Northern variations without flattening their unique phonetic nuances."
+          />
+          <DialectMap />
+        </div>
+      </section>
+
+      {/* Multilingual Phrasebook Starter Kit */}
+      <section className="section section--cream" id="starter-kit">
+        <div className="container">
+          <SectionHeading
+            eyebrow="Interactive Preview"
+            title="Everyday Kasem language at your fingertips."
+            body="Preview foundational expressions and phonetics prepared by our community elders and teachers."
+          />
+          <KasemStarterKit />
         </div>
       </section>
 

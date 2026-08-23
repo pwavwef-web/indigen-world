@@ -24,8 +24,7 @@ export function Header() {
   const { path } = useRoute();
   const [menuOpen, setMenuOpen] = useState(false);
 
-  // Close the mobile menu on route change, and on Escape — both
-  // carried over from the template's original behaviour.
+  // Close the mobile menu on route change, and on Escape
   useEffect(() => {
     setMenuOpen(false);
   }, [path]);

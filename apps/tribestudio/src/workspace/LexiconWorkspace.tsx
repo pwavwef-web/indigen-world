@@ -297,6 +297,8 @@ function ReviewTab({ flash }: { flash: (kind: 'ok' | 'err', text: string) => voi
   const [busyId, setBusyId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [notes, setNotes] = useState<Record<string, string>>({});
+  const [filterTier, setFilterTier] = useState<string>('all');
+  const [inspectingId, setInspectingId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -318,7 +320,7 @@ function ReviewTab({ flash }: { flash: (kind: 'ok' | 'err', text: string) => voi
     try {
       const reason = notes[id]?.trim() ?? '';
       const res = await decideReview(id, decision, reason, decision === 'needs_changes' ? [reason] : []);
-      flash('ok', `Recorded: ${res.newStatus}.`);
+      flash('ok', `Recorded decision: ${res.newStatus}.`);
       await load();
     } catch (err) {
       flash('err', err instanceof Error ? err.message : 'Decision failed.');
@@ -327,35 +329,135 @@ function ReviewTab({ flash }: { flash: (kind: 'ok' | 'err', text: string) => voi
     }
   };
 
+  const filteredQueue = queue.filter(
+    (e) => filterTier === 'all' || e.governance.culturalPermissionTier === filterTier,
+  );
+
   return (
     <section className="panel">
-      <h2>Validation queue</h2>
-      <p className="panel__hint">Submitted entries awaiting a validator decision.</p>
+      <div className="panel__head panel__head--spread">
+        <div>
+          <h2>Elder &amp; Custodian Validation Queue</h2>
+          <p className="panel__hint">Review submitted lexical entries for dialect fidelity, orthography, and cultural permission.</p>
+        </div>
+        <div className="queue-filter">
+          <label htmlFor="tier-filter" className="tiny">Filter by tier:</label>
+          <select
+            id="tier-filter"
+            value={filterTier}
+            onChange={(e) => setFilterTier(e.target.value)}
+          >
+            <option value="all">All Tiers ({queue.length})</option>
+            {TIERS.map((t) => (
+              <option key={t} value={t}>
+                {TIER_LABELS[t] ?? t}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
       {loading ? (
-        <p className="notice">Loading…</p>
-      ) : queue.length === 0 ? (
-        <p className="notice">The queue is empty.</p>
+        <p className="notice">Loading validation queue…</p>
+      ) : filteredQueue.length === 0 ? (
+        <p className="notice">The validation queue is clear. No entries awaiting review.</p>
       ) : (
-        <ul className="list">
-          {queue.map((e) => (
-            <li key={e.id} className="list__item">
-              <div>
-                <strong>{e.headword}</strong>
-                <span className="muted"> · {e.partOfSpeech}</span>
-                <p className="muted">{e.senses[0]?.definition}</p>
-                <p className="tiny">
-                  {TIER_LABELS[e.governance.culturalPermissionTier] ?? e.governance.culturalPermissionTier} · contributor {e.governance.contributor.id}
-                </p>
-              </div>
-              <div className="list__side list__side--stack">
-                <label htmlFor={`review-${e.id}`} className="tiny">Required review reason</label>
-                <textarea id={`review-${e.id}`} value={notes[e.id] ?? ''} minLength={10} maxLength={2000} onChange={(event) => setNotes((current) => ({ ...current, [e.id]: event.target.value }))} />
-                <button type="button" className="button button--small button--approve" disabled={busyId === e.id || (notes[e.id]?.trim().length ?? 0) < 10} onClick={() => void decide(e.id, 'approved')}>Approve</button>
-                <button type="button" className="button button--small" disabled={busyId === e.id || (notes[e.id]?.trim().length ?? 0) < 10} onClick={() => void decide(e.id, 'needs_changes')}>Needs changes</button>
-                <button type="button" className="button button--small button--reject" disabled={busyId === e.id || (notes[e.id]?.trim().length ?? 0) < 10} onClick={() => void decide(e.id, 'rejected')}>Reject</button>
-              </div>
-            </li>
-          ))}
+        <ul className="list review-queue-list">
+          {filteredQueue.map((e) => {
+            const isInspecting = inspectingId === e.id;
+
+            return (
+              <li key={e.id} className="list__item list__item--card iw-glass-card">
+                <div className="review-entry-main">
+                  <div className="review-entry-head">
+                    <strong className="headword-text">{e.headword}</strong>
+                    <span className="pos-badge">{e.partOfSpeech}</span>
+                    <span className={`tier-tag tier-tag--${e.governance.culturalPermissionTier}`}>
+                      {TIER_LABELS[e.governance.culturalPermissionTier] ?? e.governance.culturalPermissionTier}
+                    </span>
+                  </div>
+
+                  <p className="definition-text">{e.senses[0]?.definition}</p>
+
+                  {/* Dual-Diff / Detailed Inspection Drawer */}
+                  {isInspecting && (
+                    <div className="dual-diff-box">
+                      <div className="diff-col">
+                        <span className="diff-label">English Translation</span>
+                        <p>{e.senses[0]?.translations?.[0]?.text || '—'}</p>
+                      </div>
+                      <div className="diff-col">
+                        <span className="diff-label">Example Usage in Kasem</span>
+                        <p>{e.senses[0]?.examples?.[0] || '—'}</p>
+                      </div>
+                      <div className="diff-col">
+                        <span className="diff-label">Contributor &amp; Consent</span>
+                        <p className="tiny">
+                          ID: {e.governance.contributor.id} • Consent: {e.governance.consentStatus}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="review-meta-row">
+                    <button
+                      type="button"
+                      className="button button--ghost button--small inspect-toggle"
+                      onClick={() => setInspectingId(isInspecting ? null : e.id)}
+                    >
+                      {isInspecting ? '▲ Hide Full Context' : '▼ Inspect Full Linguistic Details'}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="list__side list__side--stack review-action-box">
+                  <label htmlFor={`review-${e.id}`} className="tiny">
+                    Custodian Review Notes * (min 10 chars)
+                  </label>
+                  <textarea
+                    id={`review-${e.id}`}
+                    value={notes[e.id] ?? ''}
+                    minLength={10}
+                    maxLength={2000}
+                    placeholder="Provide constructive feedback, tone correction, or approval rationale..."
+                    onChange={(event) =>
+                      setNotes((current) => ({ ...current, [e.id]: event.target.value }))
+                    }
+                  />
+
+                  <div className="decision-btn-group">
+                    <button
+                      type="button"
+                      className="button button--small button--approve"
+                      disabled={busyId === e.id || (notes[e.id]?.trim().length ?? 0) < 10}
+                      onClick={() => void decide(e.id, 'approved')}
+                      title="Shortcut: Approve (A)"
+                    >
+                      ✓ Approve
+                    </button>
+                    <button
+                      type="button"
+                      className="button button--small button--warn"
+                      disabled={busyId === e.id || (notes[e.id]?.trim().length ?? 0) < 10}
+                      onClick={() => void decide(e.id, 'needs_changes')}
+                      title="Shortcut: Request Changes (N)"
+                    >
+                      ✎ Needs Changes
+                    </button>
+                    <button
+                      type="button"
+                      className="button button--small button--reject"
+                      disabled={busyId === e.id || (notes[e.id]?.trim().length ?? 0) < 10}
+                      onClick={() => void decide(e.id, 'rejected')}
+                      title="Shortcut: Reject (R)"
+                    >
+                      ✕ Reject
+                    </button>
+                  </div>
+                </div>
+              </li>
+            );
+          })}
         </ul>
       )}
     </section>

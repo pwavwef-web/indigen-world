@@ -30,6 +30,12 @@ void main() {
     await tester.pump(const Duration(milliseconds: 3300));
     await tester.pump(const Duration(milliseconds: 300));
 
+    expect(find.text('COMMUNITY PULSE'), findsOneWidget);
+    expect(find.text('Make a Kasem post'), findsOneWidget);
+
+    await tester.tap(find.text('Explore'));
+    await tester.pump(const Duration(milliseconds: 400));
+
     expect(find.text('For you'), findsOneWidget);
     expect(find.text('Every rhythm remembers.'), findsOneWidget);
     expect(find.text('Explore'), findsOneWidget);
@@ -77,19 +83,18 @@ void main() {
     await tester.tap(find.text('Community'));
     await tester.pump(const Duration(milliseconds: 400));
 
-    expect(
-      find.text('A room where Kasem never has to translate itself.'),
-      findsOneWidget,
-    );
-    expect(find.text('KASEM-ONLY SPACE'), findsOneWidget);
+    expect(find.text('COMMUNITY PULSE'), findsOneWidget);
+    expect(find.text('Make a Kasem post'), findsOneWidget);
 
     await tester.enterText(
       find.byKey(const Key('community-composer')),
       'De zaanem. Ko gara.',
     );
-    await tester.drag(find.byType(CustomScrollView), const Offset(0, -320));
-    await tester.pump(const Duration(milliseconds: 300));
+    await tester.ensureVisible(
+      find.text('I confirm this post is written in Kasem.'),
+    );
     await tester.tap(find.text('I confirm this post is written in Kasem.'));
+    await tester.ensureVisible(find.byKey(const Key('community-publish')));
     await tester.tap(find.byKey(const Key('community-publish')));
     await tester.pump(const Duration(milliseconds: 400));
 
@@ -123,6 +128,6 @@ void main() {
     await tester.pump(const Duration(milliseconds: 400));
 
     expect(find.text('Guest learner'), findsOneWidget);
-    expect(find.text('Continue with Google'), findsOneWidget);
+    expect(find.text('Sign in or create an account'), findsOneWidget);
   });
 }
