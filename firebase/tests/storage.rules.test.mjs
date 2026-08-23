@@ -101,3 +101,65 @@ test('blocked creators cannot update avatars while normal profile avatars are pu
   const guest = await clientFor('guest-storage', null);
   await getBytes(ref(guest, avatarPath));
 });
+
+// ── Community feed media ────────────────────────────────────────────────────
+
+test('community post media is owner-writable and world-readable', async () => {
+  const author = await clientFor('community-author-storage', 'community-author');
+  const path = 'community-media/community-author/post-1/0_photo.png';
+  await uploadBytes(ref(author, path), imageBytes(), { contentType: 'image/png' });
+
+  // The community feed is public, so anyone can read what was posted to it.
+  const guest = await clientFor('community-guest-storage', null);
+  await getBytes(ref(guest, path));
+});
+
+test('one member cannot write into another member media prefix', async () => {
+  const stranger = await clientFor('community-stranger-storage', 'community-stranger');
+  await assert.rejects(
+    uploadBytes(
+      ref(stranger, 'community-media/community-author/post-1/0_overwrite.png'),
+      imageBytes(),
+      { contentType: 'image/png' },
+    ),
+  );
+});
+
+test('guests cannot upload community media at all', async () => {
+  const guest = await clientFor('community-anon-storage', null);
+  await assert.rejects(
+    uploadBytes(
+      ref(guest, 'community-media/community-anon/post-1/0_photo.png'),
+      imageBytes(),
+      { contentType: 'image/png' },
+    ),
+  );
+});
+
+test('community post media rejects content types that are not image or video', async () => {
+  const author = await clientFor('community-doc-storage', 'community-doc');
+  await assert.rejects(
+    uploadBytes(
+      ref(author, 'community-media/community-doc/post-1/0_notes.pdf'),
+      new Blob(['%PDF'], { type: 'application/pdf' }),
+      { contentType: 'application/pdf' },
+    ),
+  );
+});
+
+test('community avatars and banners are owner-writable and public-readable', async () => {
+  const owner = await clientFor('community-avatar-storage', 'community-avatar-owner');
+  const avatarPath = 'community-avatars/community-avatar-owner/avatar.png';
+  const bannerPath = 'community-banners/community-avatar-owner/banner.png';
+  await uploadBytes(ref(owner, avatarPath), imageBytes(), { contentType: 'image/png' });
+  await uploadBytes(ref(owner, bannerPath), imageBytes(), { contentType: 'image/png' });
+
+  const guest = await clientFor('community-avatar-guest-storage', null);
+  await getBytes(ref(guest, avatarPath));
+  await getBytes(ref(guest, bannerPath));
+
+  const stranger = await clientFor('community-avatar-stranger-storage', 'someone-else');
+  await assert.rejects(
+    uploadBytes(ref(stranger, avatarPath), imageBytes(), { contentType: 'image/png' }),
+  );
+});

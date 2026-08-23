@@ -30,7 +30,7 @@ void main() {
     expect(find.text('Guest learner'), findsOneWidget);
 
     final signInButton = find.text('Sign in or create an account');
-    await tester.drag(find.byType(ListView), const Offset(0, -300));
+    await tester.scrollUntilVisible(signInButton, 200);
     await tester.pumpAndSettle();
     await tester.tap(signInButton);
     await tester.pumpAndSettle();

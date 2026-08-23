@@ -9,10 +9,11 @@ The assigned native-app folder is `apps/mobile`. Native work must be developed o
 ## What the beta includes
 
 - Animated cultural launch where artefacts and Ghana-inspired motifs assemble the Indigen World name
-- Six-destination shell: Explore, Learn, Collection, Community, Contribute, and You
+- Five-destination glass shell: Explore, Learn, Collection, Community and Contribute, on a floating frosted rail with a stretching highlighter pill and drag-to-switch. The account moved out of the rail into a profile orb pinned to the top-right corner of every tab
 - Explore-first vertical reels that stream real published TribeStudio content (video + image) from Firestore `publishedContent`, with likes, comments, saves, attribution, and a curated preview fallback before anything is published
 - Real accounts: Google sign-in and guest mode, layered over the guest-first experience (public learning still works signed out)
-- Kasem-only community preview with local posts, media attachments, threaded replies, and a language pledge
+- Kasem-only community feed backed by Firestore and Storage: public handles and profiles, posting with photo and video attachments, For you / Following feeds, threaded replies, appreciations, private saves, follows, member search, reporting, and a language pledge on every post
+- Settings with account and community controls, community announcements, privacy, terms, guidelines, support requests, and licences (content licences, community post terms, and the open-source notices)
 - Interactive Kasem lesson path with daily quests, XP, answer feedback, and guest-first dictionary access
 - Filterable cultural collection for symbols, attributed places, songs, oral traditions, history, and culture
 - Clearly labelled synthetic dictionary fixtures (no unapproved language data in Git)
@@ -52,6 +53,8 @@ apps/mobile/
 │   │   ├── contribute/
 │   │   ├── rewards/
 │   │   ├── explore/
+│   │   ├── community/        # feed, composer, profiles, people, data layer
+│   │   ├── settings/         # settings, policies, licences
 │   │   ├── notifications/
 │   │   ├── profile/
 │   │   └── onboarding/
@@ -107,7 +110,7 @@ Enable Auth providers, deploy rules/indexes, and register App Check debug/releas
 
 ### Google Sign-In
 
-Google authentication is exposed from **You → Continue with Google**. The app exchanges the Google ID token for a Firebase credential, observes `FirebaseAuth.authStateChanges()`, restores the session after restart, and signs out of both Firebase and Google.
+Google authentication is exposed from the top-right profile orb → **Continue with Google**. The app exchanges the Google ID token for a Firebase credential, observes `FirebaseAuth.authStateChanges()`, restores the session after restart, and signs out of both Firebase and Google.
 
 Before testing against the shared Firebase project:
 
@@ -127,6 +130,56 @@ If Android reports a client configuration error, confirm the running flavor's pa
 ### Explore feed (published TribeStudio content)
 
 The Explore reels stream the guest-readable `publishedContent` collection (`publicationStatus == 'published'`, newest first), which is written only by the trusted publication workflow in `services/functions`. On a `PUBLISH` decision that workflow now copies the approved file into the world-readable `published-media/{contentId}/` Storage path and records a stable `mediaUrl`/`mediaType`, so real videos and images play in the app. Until content is published, the feed shows a clearly-labelled curated preview.
+
+### Community feed
+
+The Community tab is a live Firestore + Storage surface, not a local preview.
+Everything is flat and edge-keyed so each screen is a single indexed read and no
+member ever needs write access to another member's documents:
+
+| Collection | Contents | Who writes |
+| --- | --- | --- |
+| `communityProfiles/{uid}` | public handle, name, photo, cover, bio, location, dialect | the owner |
+| `communityUsernames/{username}` | `{ uid }` — handle uniqueness registry | create-only, by the claimant |
+| `communityPosts/{postId}` | post or reply (`parentId`, `isReply`), text, media, counters | the author |
+| `communityLikes/{uid}_{postId}` | appreciation edge | the member appreciating |
+| `communityBookmarks/{uid}_{postId}` | private save | the owner only |
+| `communityFollows/{from}_{to}` | follow edge | the follower |
+| `communityReports/{reportId}` | moderation queue | any member; staff read |
+
+Follower, following and post totals come from Firestore aggregate `count()`
+queries rather than denormalised counters, so no cross-user counter writes are
+needed. The two exceptions — `likeCount` and `replyCount` on a post — are
+constrained in rules to a single-step change, and a like additionally has to be
+backed by the matching `communityLikes` edge created or removed in the same
+commit. `firebase/tests/community.rules.test.mjs` covers those constraints.
+
+Media lives under three world-readable, owner-writable Storage prefixes:
+`community-media/{uid}/{postId}/`, `community-avatars/{uid}/` and
+`community-banners/{uid}/`. Photos are resized to 1920px on the longest edge
+before upload and capped at 12 MB; videos are capped at 3 minutes and 128 MB.
+
+Before the feed works against the shared cloud project:
+
+1. Enable **Storage** in the Firebase console for `project-kassena-7e026`.
+2. Deploy the rules and indexes from the repository root:
+
+   ```powershell
+   firebase deploy --only firestore:rules,firestore:indexes,storage --project project-kassena-7e026
+   ```
+
+3. Confirm the eight new composite indexes in `firebase/firestore.indexes.json`
+   finish building — the feed, profile tabs and follow lists all need them.
+
+Signed-out visitors can read the feed; posting, appreciating, saving and
+following prompt for sign-in and then for a one-time handle claim.
+
+### Licences
+
+**Settings → Licences** carries three things: the content licences a
+contribution can be published under (kept in step with
+`publicationLicenceAllowed` in `firebase/firestore.rules`), the terms that apply
+to community posts, and Flutter's generated open-source licence page.
 
 ## Build
 

@@ -105,6 +105,7 @@ class BrandHeader extends StatelessWidget {
     required this.title,
     this.subtitle,
     this.trailing,
+    this.reserveTopRight = false,
     super.key,
   });
 
@@ -113,9 +114,13 @@ class BrandHeader extends StatelessWidget {
   final String? subtitle;
   final Widget? trailing;
 
+  /// Adds a right inset so the heading clears the shell's floating profile
+  /// orb. Only shell tabs need it; pushed routes have their own app bar.
+  final bool reserveTopRight;
+
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.fromLTRB(20, 18, 20, 16),
+    padding: EdgeInsets.fromLTRB(20, 18, reserveTopRight ? 62 : 20, 16),
     child: Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

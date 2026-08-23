@@ -512,6 +512,172 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // ======================================================================
+    // Community feed (mobile "Community" tab)
+    // ======================================================================
+    //
+    // Flat, edge-document model so every client query is a single indexed read
+    // and no member ever needs write access to another member's documents:
+    //
+    //   communityProfiles/{uid}                — public identity, owner-written
+    //   communityUsernames/{username}          — handle uniqueness registry
+    //   communityPosts/{postId}                — posts and replies (parentId)
+    //   communityLikes/{uid}_{postId}          — like edges, owner-written
+    //   communityBookmarks/{uid}_{postId}      — private saves, owner-only
+    //   communityFollows/{from}_{to}           — follow edges, follower-written
+    //   communityReports/{reportId}            — moderation queue
+    //
+    // Follower / following / post totals are computed with aggregate count()
+    // queries on the client, so there are no cross-user counter writes. The one
+    // exception is likeCount and replyCount on a post, which are constrained
+    // below to a single-step change backed by a real edge document.
+
+    function communityOwnsEdge(edgeId, uid, otherId) {
+      return edgeId == uid + '_' + otherId;
+    }
+
+    function validCommunityText(value, max) {
+      return value is string && value.size() <= max;
+    }
+
+    function communityLikePath(postId) {
+      return /databases/$(database)/documents/communityLikes/$(request.auth.uid + '_' + postId);
+    }
+
+    // A member may change likeCount by exactly one step, and only when the
+    // matching like edge is created or removed in the same commit.
+    function communityLikeDelta(postId) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likeCount'])
+        && (
+          (request.resource.data.likeCount == resource.data.likeCount + 1
+            && !exists(communityLikePath(postId))
+            && existsAfter(communityLikePath(postId)))
+          || (request.resource.data.likeCount == resource.data.likeCount - 1
+            && exists(communityLikePath(postId))
+            && !existsAfter(communityLikePath(postId)))
+        );
+    }
+
+    // Reply totals move one step at a time. The reply document id is not known
+    // to this rule, so the constraint is the single-step change itself.
+    function communityReplyDelta() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['replyCount'])
+        && (
+          request.resource.data.replyCount == resource.data.replyCount + 1
+          || request.resource.data.replyCount == resource.data.replyCount - 1
+        );
+    }
+
+    match /communityProfiles/{uid} {
+      // Public so guests can read the feed before signing in.
+      allow read: if true;
+      allow create: if isOwner(uid)
+        && request.resource.data.uid == uid
+        && request.resource.data.username is string
+        && request.resource.data.username.matches('^[a-z][a-z0-9_]{2,19}$')
+        && validCommunityText(request.resource.data.displayName, 80)
+        && request.resource.data.displayName.size() > 0
+        && validCommunityText(request.resource.data.get('bio', ''), 300)
+        && validCommunityText(request.resource.data.get('location', ''), 80)
+        && validCommunityText(request.resource.data.get('dialect', ''), 80)
+        && request.resource.data.get('isVerified', false) == false;
+      // Handle, uid and verification are frozen after creation.
+      allow update: if isAdmin() || (
+        isOwner(uid)
+        && request.resource.data.uid == resource.data.uid
+        && request.resource.data.username == resource.data.username
+        && request.resource.data.get('isVerified', false) == resource.data.get('isVerified', false)
+        && validCommunityText(request.resource.data.displayName, 80)
+        && request.resource.data.displayName.size() > 0
+        && validCommunityText(request.resource.data.get('bio', ''), 300)
+        && validCommunityText(request.resource.data.get('location', ''), 80)
+        && validCommunityText(request.resource.data.get('dialect', ''), 80)
+      );
+      allow delete: if isAdmin();
+    }
+
+    match /communityUsernames/{username} {
+      allow read: if true;
+      // Create-only: an existing document makes the handle unavailable, which
+      // is what enforces uniqueness.
+      allow create: if isSignedIn() && request.resource.data.uid == request.auth.uid;
+      allow update: if false;
+      allow delete: if isAdmin();
+    }
+
+    match /communityPosts/{postId} {
+      allow read: if true;
+      allow create: if isSignedIn()
+        && request.resource.data.authorId == request.auth.uid
+        && exists(/databases/$(database)/documents/communityProfiles/$(request.auth.uid))
+        && validCommunityText(request.resource.data.text, 500)
+        && request.resource.data.likeCount == 0
+        && request.resource.data.replyCount == 0
+        && request.resource.data.media is list
+        && request.resource.data.media.size() <= 4
+        && (request.resource.data.parentId == null
+          || request.resource.data.parentId is string);
+      // The author may edit their own body text; anyone signed in may move a
+      // counter by one step under the constraints above.
+      allow update: if (
+        isSignedIn()
+        && resource.data.authorId == request.auth.uid
+        && request.resource.data.authorId == resource.data.authorId
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text', 'editedAt'])
+        && validCommunityText(request.resource.data.text, 500)
+      ) || (
+        isSignedIn() && communityLikeDelta(postId)
+      ) || (
+        isSignedIn() && communityReplyDelta()
+      ) || isStaff();
+      allow delete: if isSignedIn()
+        && (resource.data.authorId == request.auth.uid || isStaff());
+    }
+
+    match /communityLikes/{likeId} {
+      // Public so the feed can show who appreciated a post.
+      allow read: if true;
+      allow create: if isSignedIn()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.postId is string
+        && communityOwnsEdge(likeId, request.auth.uid, request.resource.data.postId);
+      allow update: if false;
+      allow delete: if isSignedIn() && resource.data.uid == request.auth.uid;
+    }
+
+    match /communityBookmarks/{bookmarkId} {
+      // Saves are private to their owner.
+      allow read: if isSignedIn() && resource.data.uid == request.auth.uid;
+      allow create: if isSignedIn()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.postId is string
+        && communityOwnsEdge(bookmarkId, request.auth.uid, request.resource.data.postId);
+      allow update: if false;
+      allow delete: if isSignedIn() && resource.data.uid == request.auth.uid;
+    }
+
+    match /communityFollows/{followId} {
+      allow read: if true;
+      allow create: if isSignedIn()
+        && request.resource.data.followerId == request.auth.uid
+        && request.resource.data.followingId is string
+        && request.resource.data.followingId != request.auth.uid
+        && communityOwnsEdge(followId, request.auth.uid, request.resource.data.followingId);
+      allow update: if false;
+      allow delete: if isSignedIn() && resource.data.followerId == request.auth.uid;
+    }
+
+    match /communityReports/{reportId} {
+      allow read: if isStaff();
+      allow create: if isSignedIn()
+        && request.resource.data.reporterId == request.auth.uid
+        && request.resource.data.postId is string
+        && validCommunityText(request.resource.data.reason, 300)
+        && request.resource.data.get('status', 'open') == 'open';
+      allow update: if isStaff();
+      allow delete: if isAdmin();
+    }
+
     // ---- Default deny -------------------------------------------------------
     match /{document=**} {
       allow read, write: if false;
