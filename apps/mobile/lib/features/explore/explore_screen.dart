@@ -240,9 +240,8 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
   }
 
   void _showMessage(BuildContext context, String message) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
   }
 }
 
@@ -251,7 +250,7 @@ class _ExploreHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+    padding: const EdgeInsets.fromLTRB(16, 10, 58, 0),
     child: Row(
       children: [
         Container(
@@ -876,8 +875,7 @@ String _shortCount(int value) =>
 
 const _previewReels = [
   _Reel(
-    imageUrl:
-        'https://images.unsplash.com/photo-1660675133223-c293889b9fb8?auto=format&fit=crop&q=82&w=1200',
+    imageUrl: 'https://images.unsplash.com/photo-1660675133223-c293889b9fb8?auto=format&fit=crop&q=82&w=1200',
     label: 'REEL PREVIEW · NORTHERN GHANA',
     title: 'Every rhythm remembers.',
     creator: '@afi.dances',
@@ -889,8 +887,7 @@ const _previewReels = [
     comments: 426,
   ),
   _Reel(
-    imageUrl:
-        'https://images.unsplash.com/photo-1515921560173-3633830cb11a?auto=format&fit=crop&q=82&w=1200',
+    imageUrl: 'https://images.unsplash.com/photo-1515921560173-3633830cb11a?auto=format&fit=crop&q=82&w=1200',
     label: 'PHOTO REEL · COMMUNITY',
     title: 'The circle makes room for everyone.',
     creator: '@kasena.collective',
@@ -902,8 +899,7 @@ const _previewReels = [
     comments: 218,
   ),
   _Reel(
-    imageUrl:
-        'https://images.unsplash.com/photo-1757169917348-b4f790e4dc85?auto=format&fit=crop&q=82&w=1200',
+    imageUrl: 'https://images.unsplash.com/photo-1757169917348-b4f790e4dc85?auto=format&fit=crop&q=82&w=1200',
     label: 'STORY REEL · CAPE COAST',
     title: 'What we wear can speak.',
     creator: '@heritage.in.motion',

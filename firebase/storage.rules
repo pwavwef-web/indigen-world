@@ -73,6 +73,41 @@ service firebase.storage {
       allow write: if false;
     }
 
+    // ---- Community feed media: world-readable, owner-writable --------------
+    // Photos and short videos attached to community posts. Public because the
+    // feed itself is public; writes are limited to the poster's own prefix so
+    // one member can never overwrite another's media.
+    function communityImageOk() {
+      return request.resource.size < 12 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
+    function communityPostMediaOk() {
+      return (request.resource.contentType.matches('image/.*')
+          && request.resource.size < 12 * 1024 * 1024)
+        || (request.resource.contentType.matches('video/.*')
+          && request.resource.size < 128 * 1024 * 1024);
+    }
+
+    match /community-media/{uid}/{postId}/{fileName} {
+      allow read: if true;
+      allow write: if isSignedIn()
+        && request.auth.uid == uid
+        && communityPostMediaOk();
+      allow delete: if isSignedIn() && (request.auth.uid == uid || isStaff());
+    }
+
+    match /community-avatars/{uid}/{fileName} {
+      allow read: if true;
+      allow write: if isSignedIn() && request.auth.uid == uid && communityImageOk();
+      allow delete: if isSignedIn() && (request.auth.uid == uid || isStaff());
+    }
+
+    match /community-banners/{uid}/{fileName} {
+      allow read: if true;
+      allow write: if isSignedIn() && request.auth.uid == uid && communityImageOk();
+      allow delete: if isSignedIn() && (request.auth.uid == uid || isStaff());
+    }
+
     // ---- Default deny -------------------------------------------------------
     match /{allPaths=**} {
       allow read, write: if false;

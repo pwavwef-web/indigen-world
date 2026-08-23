@@ -6,6 +6,11 @@ import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/data/repositories.dart';
 import 'package:indigen_world_mobile/features/auth/auth_repository.dart';
 import 'package:indigen_world_mobile/features/auth/sign_in_sheet.dart';
+import 'package:indigen_world_mobile/features/community/community_profile_screen.dart';
+import 'package:indigen_world_mobile/features/community/community_setup_screen.dart';
+import 'package:indigen_world_mobile/features/community/data/community_providers.dart';
+import 'package:indigen_world_mobile/features/community/saved_posts_screen.dart';
+import 'package:indigen_world_mobile/features/settings/settings_screen.dart';
 import 'package:indigen_world_mobile/shared/app_widgets.dart';
 
 class ProfileScreen extends ConsumerWidget {
@@ -18,6 +23,10 @@ class ProfileScreen extends ConsumerWidget {
     final contributionCount =
         ref.watch(contributionsProvider).asData?.value.length ?? 0;
     final user = ref.watch(authStateProvider).asData?.value;
+    final communityProfile = ref
+        .watch(myCommunityProfileProvider)
+        .asData
+        ?.value;
     final signedIn = user != null;
     final displayName = user?.displayName?.trim();
     final nameText = signedIn
@@ -114,6 +123,29 @@ class ProfileScreen extends ConsumerWidget {
                   child: Column(
                     children: [
                       _SettingsTile(
+                        icon: Icons.groups_outlined,
+                        title: communityProfile == null
+                            ? 'Join the community feed'
+                            : 'Your community profile',
+                        subtitle: communityProfile == null
+                            ? 'Choose a handle to post, follow and reply'
+                            : '${communityProfile.handle} · posts, followers '
+                                  'and saves',
+                        onTap: () => _openCommunity(context, ref),
+                      ),
+                      const Divider(height: 1, indent: 62),
+                      _SettingsTile(
+                        icon: Icons.bookmark_border_rounded,
+                        title: 'Saved posts',
+                        subtitle: 'Community posts you kept for later',
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (context) => const SavedPostsScreen(),
+                          ),
+                        ),
+                      ),
+                      const Divider(height: 1, indent: 62),
+                      _SettingsTile(
                         icon: Icons.download_outlined,
                         title: 'Offline downloads',
                         subtitle: 'No approved content packs installed',
@@ -124,30 +156,15 @@ class ProfileScreen extends ConsumerWidget {
                       ),
                       const Divider(height: 1, indent: 62),
                       _SettingsTile(
-                        icon: Icons.notifications_none_rounded,
-                        title: 'Notification choices',
-                        subtitle: 'Disabled until messaging is configured',
-                        onTap: () => _showMessage(
-                          context,
-                          'Notification preferences require Firebase Messaging.',
-                        ),
-                      ),
-                      const Divider(height: 1, indent: 62),
-                      _SettingsTile(
-                        icon: Icons.privacy_tip_outlined,
-                        title: 'Privacy and community data',
-                        subtitle: 'Know what is stored and why',
-                        onTap: () => _showPrivacy(context),
-                      ),
-                      const Divider(height: 1, indent: 62),
-                      _SettingsTile(
-                        icon: Icons.help_outline_rounded,
-                        title: 'Support',
+                        icon: Icons.settings_outlined,
+                        title: 'Settings',
                         subtitle:
-                            'Project-approved contact will be supplied remotely',
-                        onTap: () => _showMessage(
-                          context,
-                          'Support contact is intentionally not hard-coded.',
+                            'Account, notifications, privacy, licences and '
+                            'support',
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (context) => const SettingsScreen(),
+                          ),
                         ),
                       ),
                     ],
@@ -212,29 +229,20 @@ class ProfileScreen extends ConsumerWidget {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
   }
 
-  void _showPrivacy(BuildContext context) {
-    showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      builder: (context) => const SafeArea(
-        child: Padding(
-          padding: EdgeInsets.fromLTRB(24, 0, 24, 30),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Privacy in this build',
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
-              ),
-              SizedBox(height: 12),
-              Text(
-                'Saved words and contribution drafts remain on this device. No sign-in, analytics, crash reporting, cloud sync, or production data connection is active in this debug build.',
-                style: TextStyle(fontSize: 16, height: 1.5),
-              ),
-            ],
-          ),
-        ),
+  /// Opens the community identity: setup when there is no handle yet,
+  /// otherwise the member's own community profile.
+  void _openCommunity(BuildContext context, WidgetRef ref) {
+    final profile = ref.read(myCommunityProfileProvider).asData?.value;
+    final uid = ref.read(currentUidProvider);
+    if (uid == null) {
+      _signIn(context);
+      return;
+    }
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (context) => profile == null
+            ? const CommunitySetupScreen()
+            : CommunityProfileScreen(uid: uid),
       ),
     );
   }

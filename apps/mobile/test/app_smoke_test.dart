@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:indigen_world_mobile/app/indigen_world_app.dart';
 import 'package:indigen_world_mobile/data/local/app_database.dart';
+import 'package:indigen_world_mobile/shared/frosted_nav_bar.dart';
+import 'package:indigen_world_mobile/shared/profile_orb.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
@@ -36,7 +38,7 @@ void main() {
     await tester.tap(find.text('Explore'));
     await tester.pump(const Duration(milliseconds: 400));
 
-    expect(find.text('For you'), findsOneWidget);
+    expect(find.text('For you'), findsWidgets);
     expect(find.text('Every rhythm remembers.'), findsOneWidget);
     expect(find.text('Explore'), findsOneWidget);
 
@@ -85,47 +87,36 @@ void main() {
 
     expect(find.text('COMMUNITY PULSE'), findsOneWidget);
     expect(find.text('Make a Kasem post'), findsOneWidget);
+    expect(find.text('For you'), findsWidgets);
+    expect(find.text('Following'), findsWidgets);
 
-    await tester.enterText(
-      find.byKey(const Key('community-composer')),
-      'De zaanem. Ko gara.',
-    );
-    await tester.ensureVisible(
-      find.text('I confirm this post is written in Kasem.'),
-    );
-    await tester.tap(find.text('I confirm this post is written in Kasem.'));
-    await tester.ensureVisible(find.byKey(const Key('community-publish')));
-    await tester.tap(find.byKey(const Key('community-publish')));
+    // The feed reads Firestore, which is unavailable in tests
+    // (firebaseReadyProvider defaults to false), so it renders its empty state
+    // and composing tells the member a connection is needed rather than
+    // pretending to publish.
+    expect(find.text('No posts yet'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('community-compose-bar')));
+    await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));
 
-    await tester.scrollUntilVisible(
-      find.text('De zaanem. Ko gara.'),
-      180,
-      scrollable: find
-          .descendant(
-            of: find.byKey(const PageStorageKey('community-scroll')),
-            matching: find.byType(Scrollable),
-          )
-          .first,
-    );
-
-    expect(find.text('You'), findsWidgets);
-    expect(find.text('De zaanem. Ko gara.'), findsOneWidget);
     expect(
-      tester
-          .widget<TextField>(find.byKey(const Key('community-composer')))
-          .controller
-          ?.text,
-      isEmpty,
+      find.textContaining('The community needs a connection'),
+      findsOneWidget,
     );
 
-    await tester.tap(
+    // Account moved out of the bottom rail and into the top-right orb.
+    expect(
       find.descendant(
-        of: find.byType(NavigationBar),
+        of: find.byType(FrostedNavBar),
         matching: find.text('You'),
       ),
+      findsNothing,
     );
-    await tester.pump(const Duration(milliseconds: 400));
+
+    await tester.tap(find.byType(ProfileOrb));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
 
     expect(find.text('Guest learner'), findsOneWidget);
     expect(find.text('Sign in or create an account'), findsOneWidget);

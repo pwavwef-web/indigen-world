@@ -208,7 +208,7 @@ class _CollectionHero extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-    margin: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+    margin: const EdgeInsets.fromLTRB(16, 52, 16, 14),
     height: 204,
     decoration: BoxDecoration(
       borderRadius: BorderRadius.circular(28),

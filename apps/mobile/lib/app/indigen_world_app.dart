@@ -16,8 +16,8 @@ class IndigenWorldApp extends ConsumerWidget {
       const SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
         statusBarIconBrightness: Brightness.dark,
-        systemNavigationBarColor: BrandColors.heritageGreen,
-        systemNavigationBarIconBrightness: Brightness.light,
+        systemNavigationBarColor: BrandColors.plasterCream,
+        systemNavigationBarIconBrightness: Brightness.dark,
       ),
     );
 

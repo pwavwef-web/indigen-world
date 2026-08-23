@@ -9,11 +9,15 @@ class ContributeScreen extends ConsumerStatefulWidget {
   const ContributeScreen({
     this.initialSource = '',
     this.relatedEntryId,
+    this.reserveTopRight = false,
     super.key,
   });
 
   final String initialSource;
   final String? relatedEntryId;
+
+  /// Set when hosted as a shell tab, so the heading clears the profile orb.
+  final bool reserveTopRight;
 
   @override
   ConsumerState<ContributeScreen> createState() => _ContributeScreenState();
@@ -51,6 +55,7 @@ class _ContributeScreenState extends ConsumerState<ContributeScreen> {
       padding: const EdgeInsets.only(bottom: 110),
       children: [
         BrandHeader(
+          reserveTopRight: widget.reserveTopRight,
           eyebrow: 'Contribute',
           title: widget.relatedEntryId == null
               ? 'Share what you know.'

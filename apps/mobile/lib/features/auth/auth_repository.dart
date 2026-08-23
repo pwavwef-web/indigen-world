@@ -62,9 +62,7 @@ class AuthRepository {
   Future<UserCredential> signInWithGoogle() => _guarded(() async {
     final GoogleSignInAccount account = await _googleSignIn.authenticate();
     final String? idToken = account.authentication.idToken;
-    final credential = GoogleAuthProvider.credential(
-      idToken: idToken,
-    );
+    final credential = GoogleAuthProvider.credential(idToken: idToken);
     return _auth.signInWithCredential(credential);
   });
 

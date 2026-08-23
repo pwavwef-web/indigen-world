@@ -1,0 +1,110 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:indigen_world_mobile/app/app_theme.dart';
+import 'package:indigen_world_mobile/features/settings/licences_screen.dart';
+import 'package:indigen_world_mobile/features/settings/policy_screen.dart';
+
+void main() {
+  Widget wrap(Widget child) =>
+      MaterialApp(theme: buildIndigenTheme(), home: child);
+
+  testWidgets('lists every content licence the rules accept', (tester) async {
+    await tester.pumpWidget(wrap(const LicencesScreen()));
+    await tester.pump();
+
+    expect(find.text('Licences'), findsOneWidget);
+    expect(find.text('CONTENT LICENCES'), findsOneWidget);
+
+    for (final licence in contentLicences) {
+      await tester.scrollUntilVisible(find.text(licence.name), 160);
+      await tester.pump();
+      expect(
+        find.text(licence.name),
+        findsOneWidget,
+        reason: 'missing ${licence.code}',
+      );
+      expect(find.text(licence.code), findsOneWidget);
+    }
+  });
+
+  testWidgets('the catalogue matches publicationLicenceAllowed in the rules', (
+    tester,
+  ) async {
+    // firebase/firestore.rules: publicationLicenceAllowed(licence)
+    expect(contentLicences.map((licence) => licence.code).toList(), const [
+      'community_restricted',
+      'cc_by',
+      'cc_by_sa',
+      'cc_by_nc',
+      'public_domain',
+    ]);
+    // Every licence states both what it permits and what it requires.
+    for (final licence in contentLicences) {
+      expect(licence.permissions, isNotEmpty, reason: licence.code);
+      expect(licence.conditions, isNotEmpty, reason: licence.code);
+      expect(licence.summary, isNotEmpty, reason: licence.code);
+    }
+  });
+
+  testWidgets('community post terms and open-source notices are reachable', (
+    tester,
+  ) async {
+    await tester.pumpWidget(wrap(const LicencesScreen()));
+    await tester.pump();
+
+    await tester.scrollUntilVisible(find.text('COMMUNITY POSTS'), 200);
+    await tester.pump();
+    expect(find.text('Posts you write'), findsOneWidget);
+    expect(
+      find.textContaining('You keep ownership of what you post'),
+      findsOneWidget,
+    );
+
+    await tester.scrollUntilVisible(find.text('Open-source licences'), 200);
+    await tester.pump();
+    await tester.tap(find.text('Open-source licences'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+
+    expect(find.byType(LicensePage), findsOneWidget);
+  });
+
+  group('PolicyScreen', () {
+    testWidgets('privacy explains what leaves the device', (tester) async {
+      await tester.pumpWidget(
+        wrap(const PolicyScreen(document: PolicyDocument.privacy)),
+      );
+      await tester.pump();
+
+      expect(find.text('Privacy and community data'), findsOneWidget);
+      expect(find.text('What stays on your device'), findsOneWidget);
+      expect(find.text('What your account stores'), findsOneWidget);
+    });
+
+    testWidgets('terms cover ownership and restricted cultural material', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        wrap(const PolicyScreen(document: PolicyDocument.terms)),
+      );
+      await tester.pump();
+
+      expect(find.text('Terms of use'), findsOneWidget);
+      expect(find.text('What you post'), findsOneWidget);
+      await tester.scrollUntilVisible(find.text('Cultural material'), 160);
+      await tester.pump();
+      expect(find.text('Cultural material'), findsOneWidget);
+    });
+
+    testWidgets('guidelines put Kasem first', (tester) async {
+      await tester.pumpWidget(
+        wrap(const PolicyScreen(document: PolicyDocument.guidelines)),
+      );
+      await tester.pump();
+
+      expect(find.text('Community guidelines'), findsOneWidget);
+      expect(find.text('Kasem first'), findsOneWidget);
+      expect(find.text('Learners are welcome'), findsOneWidget);
+    });
+  });
+}

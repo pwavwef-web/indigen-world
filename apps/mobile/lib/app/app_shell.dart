@@ -6,7 +6,8 @@ import 'package:indigen_world_mobile/features/community/community_screen.dart';
 import 'package:indigen_world_mobile/features/contribute/contribute_screen.dart';
 import 'package:indigen_world_mobile/features/explore/explore_screen.dart';
 import 'package:indigen_world_mobile/features/learn/learn_screen.dart';
-import 'package:indigen_world_mobile/features/profile/profile_screen.dart';
+import 'package:indigen_world_mobile/shared/frosted_nav_bar.dart';
+import 'package:indigen_world_mobile/shared/profile_orb.dart';
 
 class AppShell extends StatefulWidget {
   const AppShell({super.key, this.initialIndex = 3});
@@ -24,19 +25,48 @@ class _AppShellState extends State<AppShell>
   late final Animation<double> _fadeAnimation;
   late final Animation<Offset> _slideAnimation;
 
+  /// Account lives in the top-right orb now, so the rail carries only the five
+  /// content destinations.
   static const _screens = <Widget>[
     ExploreScreen(),
     LearnScreen(),
     CollectionScreen(),
     CommunityScreen(),
-    ContributeScreen(),
-    ProfileScreen(),
+    ContributeScreen(reserveTopRight: true),
+  ];
+
+  static const _destinations = <FrostedNavBarItem>[
+    FrostedNavBarItem(
+      icon: Icons.play_circle_outline_rounded,
+      selectedIcon: Icons.play_circle_fill_rounded,
+      label: 'Explore',
+    ),
+    FrostedNavBarItem(
+      icon: Icons.school_outlined,
+      selectedIcon: Icons.school_rounded,
+      label: 'Learn',
+    ),
+    FrostedNavBarItem(
+      icon: Icons.collections_bookmark_outlined,
+      selectedIcon: Icons.collections_bookmark_rounded,
+      label: 'Collection',
+    ),
+    FrostedNavBarItem(
+      icon: Icons.forum_outlined,
+      selectedIcon: Icons.forum_rounded,
+      label: 'Community',
+    ),
+    FrostedNavBarItem(
+      icon: Icons.add_circle_outline_rounded,
+      selectedIcon: Icons.add_circle_rounded,
+      label: 'Contribute',
+    ),
   ];
 
   @override
   void initState() {
     super.initState();
-    _selectedIndex = widget.initialIndex;
+    _selectedIndex = widget.initialIndex.clamp(0, _screens.length - 1);
     _transitionController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 320),
@@ -66,68 +96,45 @@ class _AppShellState extends State<AppShell>
   }
 
   @override
-  Widget build(BuildContext context) => AnnotatedRegion<SystemUiOverlayStyle>(
-    value: _selectedIndex == 0
-        ? SystemUiOverlayStyle.light
-        : const SystemUiOverlayStyle(
-            statusBarColor: Colors.transparent,
-            statusBarIconBrightness: Brightness.dark,
-            systemNavigationBarColor: BrandColors.heritageGreen,
-            systemNavigationBarIconBrightness: Brightness.light,
-          ),
-    child: Scaffold(
-      body: Stack(
-        children: [
-          if (_selectedIndex != 0)
-            const Positioned.fill(child: _AmbientMotifs()),
-          FadeTransition(
-            opacity: _fadeAnimation,
-            child: SlideTransition(
-              position: _slideAnimation,
-              child: IndexedStack(index: _selectedIndex, children: _screens),
+  Widget build(BuildContext context) {
+    final onExplore = _selectedIndex == 0;
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: onExplore
+          ? SystemUiOverlayStyle.light
+          : const SystemUiOverlayStyle(
+              statusBarColor: Colors.transparent,
+              statusBarIconBrightness: Brightness.dark,
+              systemNavigationBarColor: BrandColors.plasterCream,
+              systemNavigationBarIconBrightness: Brightness.dark,
             ),
-          ),
-        ],
+      child: Scaffold(
+        // The glass rail floats over the content rather than sitting under it.
+        extendBody: true,
+        body: Stack(
+          children: [
+            if (!onExplore) const Positioned.fill(child: _AmbientMotifs()),
+            FadeTransition(
+              opacity: _fadeAnimation,
+              child: SlideTransition(
+                position: _slideAnimation,
+                child: IndexedStack(index: _selectedIndex, children: _screens),
+              ),
+            ),
+            Positioned(
+              top: MediaQuery.paddingOf(context).top + 6,
+              right: kProfileOrbInset,
+              child: ProfileOrb(onDark: onExplore),
+            ),
+          ],
+        ),
+        bottomNavigationBar: FrostedNavBar(
+          currentIndex: _selectedIndex,
+          onTap: _selectDestination,
+          items: _destinations,
+        ),
       ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _selectedIndex,
-        onDestinationSelected: _selectDestination,
-        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.play_circle_outline_rounded),
-            selectedIcon: Icon(Icons.play_circle_fill_rounded),
-            label: 'Explore',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.school_outlined),
-            selectedIcon: Icon(Icons.school_rounded),
-            label: 'Learn',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.collections_bookmark_outlined),
-            selectedIcon: Icon(Icons.collections_bookmark_rounded),
-            label: 'Collection',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.forum_outlined),
-            selectedIcon: Icon(Icons.forum_rounded),
-            label: 'Community',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.add_circle_outline_rounded),
-            selectedIcon: Icon(Icons.add_circle_rounded),
-            label: 'Contribute',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.person_outline_rounded),
-            selectedIcon: Icon(Icons.person_rounded),
-            label: 'You',
-          ),
-        ],
-      ),
-    ),
-  );
+    );
+  }
 }
 
 class _AmbientMotifs extends StatelessWidget {
