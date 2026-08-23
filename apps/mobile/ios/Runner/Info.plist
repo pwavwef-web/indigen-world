@@ -16,6 +16,19 @@
 	<string>6.0</string>
 	<key>CFBundleName</key>
 	<string>$(APP_DISPLAY_NAME)</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.111428711822-t4q61l3s2i1gfr1ms8v2kd1corndnh13</string>
+				<string>com.googleusercontent.apps.111428711822-lsjpbk9lhhis2pb4oh1te94mgunu5bsu</string>
+				<string>com.googleusercontent.apps.111428711822-cjbl1qsp59klm352f7drivr9t48d2p95</string>
+			</array>
+		</dict>
+	</array>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>

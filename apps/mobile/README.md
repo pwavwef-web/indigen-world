@@ -103,6 +103,25 @@ flutterfire configure --project=project-kassena-7e026 --platforms=android,ios --
 
 Enable Auth providers, deploy rules/indexes, and register App Check debug/release credentials in the Firebase console before cloud acceptance testing.
 
+### Google Sign-In
+
+Google authentication is exposed from **You → Continue with Google**. The app exchanges the Google ID token for a Firebase credential, observes `FirebaseAuth.authStateChanges()`, restores the session after restart, and signs out of both Firebase and Google.
+
+Before testing against the shared Firebase project:
+
+1. In **Firebase Console → Authentication → Sign-in method**, enable **Google**, choose the project support email, and save.
+2. Register the SHA-1 and SHA-256 fingerprints for every Android signing key against all app IDs that key can build. For the current workspace debug key, confirm SHA-1 `E5:ED:F4:48:25:B2:53:21:A8:7D:0A:DA:69:84:94:BA:61:ED:5A:19` and SHA-256 `5F:70:98:37:33:CF:F0:9A:65:3A:17:BC:E3:5C:5E:FE:F6:3A:D4:D1:97:FE:A8:CF:40:3E:56:3E:F0:8D:A3:E8` are registered for the development, staging, and production Android app registrations. Play App Signing and CI/release keys must be registered separately when they are created.
+3. Download fresh flavor configs after changing SHA fingerprints. Keep them in `android/app/src/development`, `android/app/src/staging`, and `android/app/src/production`; these native files are intentionally ignored by Git.
+4. Keep each iOS flavor's OAuth client ID in its generated `firebase_options_<environment>.dart`. `ios/Runner/Info.plist` already contains the callback URL schemes for all three registered iOS apps.
+
+Development uses the Firebase Auth emulator by default. To perform a real Google/Firebase cloud acceptance test, run:
+
+```powershell
+flutter run --flavor development --dart-define=APP_ENV=development --dart-define=USE_FIREBASE_EMULATORS=false
+```
+
+If Android reports a client configuration error, confirm the running flavor's package ID, the signing key's SHA-1/SHA-256 registrations, and the web OAuth client in that flavor's `google-services.json`. If Firebase reports `operation-not-allowed`, enable the Google provider in Firebase Authentication.
+
 ## Build
 
 Run commands from `apps/mobile` (prefix Flutter commands with `fvm` when using FVM):

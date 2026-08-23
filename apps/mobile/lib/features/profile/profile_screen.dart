@@ -1,8 +1,10 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/app_config.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/data/repositories.dart';
+import 'package:indigen_world_mobile/features/auth/google_firebase_auth_service.dart';
 import 'package:indigen_world_mobile/shared/app_widgets.dart';
 
 class ProfileScreen extends ConsumerWidget {
@@ -14,62 +16,28 @@ class ProfileScreen extends ConsumerWidget {
         ref.watch(savedEntryIdsProvider).asData?.value.length ?? 0;
     final contributionCount =
         ref.watch(contributionsProvider).asData?.value.length ?? 0;
+    final authState = ref.watch(authStateProvider);
+    final user = authState.asData?.value;
 
     return ScreenContainer(
       child: ListView(
         key: const PageStorageKey('profile-scroll'),
         padding: const EdgeInsets.only(bottom: 110),
         children: [
-          const BrandHeader(
+          BrandHeader(
             eyebrow: 'You',
-            title: 'Your space.',
-            subtitle: 'Guest mode keeps public learning useful before sign-in.',
+            title: user?.displayName?.trim().isNotEmpty == true
+                ? 'Welcome, ${user!.displayName!.trim().split(' ').first}.'
+                : 'Your space.',
+            subtitle: user == null
+                ? 'Guest mode keeps public learning useful before sign-in.'
+                : 'Your Google account keeps your Indigen World identity connected.',
           ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Column(
               children: [
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 60,
-                          height: 60,
-                          decoration: const BoxDecoration(
-                            color: BrandColors.heritageGreen,
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.person_outline_rounded,
-                            color: Colors.white,
-                            size: 32,
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Guest learner',
-                                style: Theme.of(context).textTheme.titleLarge,
-                              ),
-                              const SizedBox(height: 4),
-                              Text('Kasem · $appEnvironment environment'),
-                            ],
-                          ),
-                        ),
-                        const StatusPill(
-                          icon: Icons.lock_outline,
-                          label: 'LOCAL',
-                          color: BrandColors.savannahGreen,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+                _AccountCard(user: user),
                 const SizedBox(height: 16),
                 Row(
                   children: [
@@ -147,16 +115,9 @@ class ProfileScreen extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton.icon(
-                    onPressed: () => _showMessage(
-                      context,
-                      'Authentication connects after development Firebase credentials are supplied.',
-                    ),
-                    icon: const Icon(Icons.login_rounded),
-                    label: const Text('Sign in or link an account'),
-                  ),
+                _AuthActionButton(
+                  signedIn: user != null,
+                  resolvingAuthState: authState.isLoading,
                 ),
               ],
             ),
@@ -187,7 +148,7 @@ class ProfileScreen extends ConsumerWidget {
               ),
               SizedBox(height: 12),
               Text(
-                'Saved words and contribution drafts remain on this device. No sign-in, analytics, crash reporting, cloud sync, or production data connection is active in this debug build.',
+                'Saved words and contribution drafts remain on this device. Signing in shares your Google identity with Firebase Authentication; it does not upload local drafts or saved words. Production analytics and crash reporting remain disabled in non-production builds.',
                 style: TextStyle(fontSize: 16, height: 1.5),
               ),
             ],
@@ -196,6 +157,156 @@ class ProfileScreen extends ConsumerWidget {
       ),
     );
   }
+}
+
+class _AccountCard extends StatelessWidget {
+  const _AccountCard({required this.user});
+
+  final User? user;
+
+  @override
+  Widget build(BuildContext context) {
+    final signedIn = user != null;
+    final photoUrl = user?.photoURL;
+    final displayName = user?.displayName?.trim();
+    final primaryLabel = displayName?.isNotEmpty == true
+        ? displayName!
+        : signedIn
+        ? 'Indigen World member'
+        : 'Guest learner';
+    final secondaryLabel = signedIn
+        ? user?.email ?? 'Google account connected'
+        : 'Kasem · $appEnvironment environment';
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Row(
+          children: [
+            CircleAvatar(
+              radius: 30,
+              backgroundColor: BrandColors.heritageGreen,
+              foregroundImage: photoUrl == null ? null : NetworkImage(photoUrl),
+              child: Icon(
+                signedIn ? Icons.person_rounded : Icons.person_outline_rounded,
+                color: Colors.white,
+                size: 32,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    primaryLabel,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    secondaryLabel,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 10),
+            StatusPill(
+              icon: signedIn ? Icons.cloud_done_outlined : Icons.lock_outline,
+              label: signedIn ? 'CONNECTED' : 'LOCAL',
+              color: signedIn
+                  ? BrandColors.heritageGreen
+                  : BrandColors.savannahGreen,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _AuthActionButton extends ConsumerStatefulWidget {
+  const _AuthActionButton({
+    required this.signedIn,
+    required this.resolvingAuthState,
+  });
+
+  final bool signedIn;
+  final bool resolvingAuthState;
+
+  @override
+  ConsumerState<_AuthActionButton> createState() => _AuthActionButtonState();
+}
+
+class _AuthActionButtonState extends ConsumerState<_AuthActionButton> {
+  bool _busy = false;
+
+  Future<void> _runAuthAction() async {
+    if (_busy) return;
+    setState(() => _busy = true);
+
+    try {
+      final authService = ref.read(googleFirebaseAuthServiceProvider);
+      if (widget.signedIn) {
+        await authService.signOut();
+      } else {
+        await authService.signIn();
+      }
+    } on AuthFailure catch (failure) {
+      if (!failure.wasCancelled && mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(failure.message)));
+      }
+    } on Object {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Authentication failed. Please try again.'),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final disabled = _busy || widget.resolvingAuthState;
+    return SizedBox(
+      width: double.infinity,
+      child: widget.signedIn
+          ? OutlinedButton.icon(
+              key: const Key('google-sign-out'),
+              onPressed: disabled ? null : _runAuthAction,
+              icon: _busy
+                  ? const _AuthProgressIndicator()
+                  : const Icon(Icons.logout_rounded),
+              label: const Text('Sign out'),
+            )
+          : FilledButton.icon(
+              key: const Key('google-sign-in'),
+              onPressed: disabled ? null : _runAuthAction,
+              icon: _busy
+                  ? const _AuthProgressIndicator()
+                  : const Icon(Icons.g_mobiledata_rounded, size: 28),
+              label: Text(_busy ? 'Connecting…' : 'Continue with Google'),
+            ),
+    );
+  }
+}
+
+class _AuthProgressIndicator extends StatelessWidget {
+  const _AuthProgressIndicator();
+
+  @override
+  Widget build(BuildContext context) => const SizedBox.square(
+    dimension: 18,
+    child: CircularProgressIndicator(strokeWidth: 2),
+  );
 }
 
 class _StatCard extends StatelessWidget {

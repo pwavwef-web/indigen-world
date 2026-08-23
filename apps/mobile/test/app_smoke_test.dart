@@ -74,5 +74,11 @@ void main() {
 
     expect(find.text('Kasem word for water · demo'), findsOneWidget);
     expect(find.text('1 local match'), findsOneWidget);
+
+    await tester.tap(find.text('You'));
+    await tester.pump(const Duration(milliseconds: 400));
+
+    expect(find.text('Guest learner'), findsOneWidget);
+    expect(find.text('Continue with Google'), findsOneWidget);
   });
 }
