@@ -1,7 +1,22 @@
+import java.util.Properties
+import java.io.FileInputStream
+
 plugins {
     id("com.android.application")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
+}
+
+// Release signing is driven by a gitignored android/key.properties file so no
+// keystore or password ever lands in the repo. When it is absent (most local
+// dev, and CI without secrets) release builds fall back to the debug key, which
+// is fine for `flutter run` but is NOT accepted by Play — create key.properties
+// before building the upload bundle. See docs/product/tester-readiness-runbook.md.
+val keystoreProperties = Properties()
+val keystorePropertiesFile = rootProject.file("key.properties")
+val hasReleaseSigning = keystorePropertiesFile.exists()
+if (hasReleaseSigning) {
+    keystoreProperties.load(FileInputStream(keystorePropertiesFile))
 }
 
 val hasFirebaseConfig = file("src").walkTopDown().any { it.name == "google-services.json" }
@@ -36,23 +51,46 @@ android {
         versionName = flutter.versionName
     }
 
+    signingConfigs {
+        if (hasReleaseSigning) {
+            create("release") {
+                keyAlias = keystoreProperties["keyAlias"] as String
+                keyPassword = keystoreProperties["keyPassword"] as String
+                storeFile = keystoreProperties["storeFile"]?.let { file(it) }
+                storePassword = keystoreProperties["storePassword"] as String
+            }
+        }
+    }
+
+    buildTypes {
+        getByName("release") {
+            // Use the upload keystore when configured; otherwise fall back to the
+            // debug key so local release builds still run (Play will reject those).
+            signingConfig = if (hasReleaseSigning) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
+        }
+    }
+
     flavorDimensions += "environment"
     productFlavors {
         create("development") {
             dimension = "environment"
             applicationIdSuffix = ".dev"
             versionNameSuffix = "-dev"
-            resValue("string", "app_name", "Indigen World")
+            resValue("string", "app_name", "Indigen")
         }
         create("staging") {
             dimension = "environment"
             applicationIdSuffix = ".staging"
             versionNameSuffix = "-staging"
-            resValue("string", "app_name", "Indigen World")
+            resValue("string", "app_name", "Indigen")
         }
         create("production") {
             dimension = "environment"
-            resValue("string", "app_name", "Indigen World")
+            resValue("string", "app_name", "Indigen")
         }
     }
 }

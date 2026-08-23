@@ -325,12 +325,15 @@ class _ContributeScreenState extends ConsumerState<ContributeScreen> {
         ),
         title: Text(
           status == ContributionStatus.queued
-              ? 'Saved in the submission queue'
+              ? 'Saved on this phone'
               : 'Draft saved on this phone',
         ),
         content: Text(
           status == ContributionStatus.queued
-              ? 'It will submit once the trusted backend is configured. Up to 10 points remain pending until validator approval.'
+              ? 'Your contribution is saved on this device. During the current test, '
+                    'publishing goes through TribeStudio on the web — approved creators '
+                    'post there and their work appears here in Explore. Nothing has been '
+                    'uploaded from this phone yet.'
               : 'Nothing has been uploaded. You can continue editing when you return.',
         ),
         actions: [
