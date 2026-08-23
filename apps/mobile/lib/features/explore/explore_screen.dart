@@ -15,6 +15,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
   final _saved = <int>{};
   var _activeIndex = 0;
   var _playing = true;
+  var _followingFeed = false;
 
   @override
   Widget build(BuildContext context) => AnnotatedRegion<SystemUiOverlayStyle>(
@@ -59,7 +60,13 @@ class _ExploreScreenState extends State<ExploreScreen> {
               );
             },
           ),
-          const SafeArea(bottom: false, child: _ExploreHeader()),
+          SafeArea(
+            bottom: false,
+            child: _ExploreHeader(
+              following: _followingFeed,
+              onChanged: (value) => setState(() => _followingFeed = value),
+            ),
+          ),
           Positioned(
             left: 18,
             right: 18,
@@ -167,71 +174,130 @@ class _ExploreScreenState extends State<ExploreScreen> {
 }
 
 class _ExploreHeader extends StatelessWidget {
-  const _ExploreHeader();
+  const _ExploreHeader({required this.following, required this.onChanged});
+
+  final bool following;
+  final ValueChanged<bool> onChanged;
 
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
-    child: Row(
+  Widget build(BuildContext context) => SizedBox(
+    height: 58,
+    child: Stack(
+      alignment: Alignment.topCenter,
       children: [
-        Container(
-          width: 34,
-          height: 34,
-          decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: 0.3),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.white24),
-          ),
-          child: const Icon(
-            Icons.public_rounded,
-            color: BrandColors.kenteGold,
-            size: 20,
-          ),
-        ),
-        const SizedBox(width: 9),
-        const Text(
-          'INDIGEN WORLD',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 11,
-            fontWeight: FontWeight.w900,
-            letterSpacing: 1.5,
-            shadows: [Shadow(blurRadius: 14, color: Colors.black)],
+        Positioned(
+          left: 14,
+          top: 8,
+          child: Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.34),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.white24),
+            ),
+            child: const Icon(
+              Icons.public_rounded,
+              color: BrandColors.kenteGold,
+              size: 20,
+            ),
           ),
         ),
-        const Spacer(),
-        const Text(
-          'Following',
-          style: TextStyle(
-            color: Colors.white60,
-            fontSize: 12,
-            fontWeight: FontWeight.w700,
+        Positioned(
+          top: 5,
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(6, 3, 6, 4),
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.28),
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(color: Colors.white12),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _FeedTab(
+                  label: 'Following',
+                  selected: following,
+                  onTap: () => onChanged(true),
+                ),
+                _FeedTab(
+                  label: 'For you',
+                  selected: !following,
+                  onTap: () => onChanged(false),
+                ),
+              ],
+            ),
           ),
         ),
-        const SizedBox(width: 18),
-        const Column(
+        Positioned(
+          right: 14,
+          top: 8,
+          child: IconButton(
+            tooltip: 'Search cultural reels',
+            onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                  'Reel search connects with the approved public feed.',
+                ),
+              ),
+            ),
+            style: IconButton.styleFrom(
+              backgroundColor: Colors.black.withValues(alpha: 0.34),
+              foregroundColor: Colors.white,
+              side: const BorderSide(color: Colors.white24),
+            ),
+            icon: const Icon(Icons.search_rounded, size: 20),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+class _FeedTab extends StatelessWidget {
+  const _FeedTab({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Material(
+    color: selected ? Colors.white.withValues(alpha: 0.14) : Colors.transparent,
+    borderRadius: BorderRadius.circular(999),
+    child: InkWell(
+      borderRadius: BorderRadius.circular(999),
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+        child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              'For you',
+              label,
               style: TextStyle(
-                color: Colors.white,
+                color: selected ? Colors.white : Colors.white60,
                 fontSize: 12,
-                fontWeight: FontWeight.w900,
+                fontWeight: selected ? FontWeight.w900 : FontWeight.w700,
               ),
             ),
-            SizedBox(height: 5),
-            SizedBox(
-              width: 22,
-              child: Divider(
-                height: 2,
-                thickness: 2,
+            const SizedBox(height: 3),
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
+              width: selected ? 22 : 0,
+              height: 2,
+              decoration: BoxDecoration(
                 color: BrandColors.kenteGold,
+                borderRadius: BorderRadius.circular(999),
               ),
             ),
           ],
         ),
-      ],
+      ),
     ),
   );
 }

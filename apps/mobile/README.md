@@ -9,16 +9,17 @@ The assigned native-app folder is `apps/mobile`. Native work must be developed o
 ## What the beta includes
 
 - Animated cultural launch where artefacts and Ghana-inspired motifs assemble the Indigen World name
-- Five-destination shell: Explore, Community, Learn, Contribute, and You
+- Six-destination shell: Explore, Learn, Collection, Community, Contribute, and You
 - Explore-first vertical reel previews with likes, comments, saves, attribution, and rights-aware media fallbacks
 - Kasem-only community preview with local posts, media attachments, threaded replies, and a language pledge
-- Guest-first local dictionary search and entry details
+- Interactive Kasem lesson path with daily quests, XP, answer feedback, and guest-first dictionary access
+- Filterable cultural collection for symbols, attributed places, songs, oral traditions, history, and culture
 - Clearly labelled synthetic dictionary fixtures (no unapproved language data in Git)
 - Saved words stored on the device
 - Guided contribution and correction form
 - Durable local drafts and an explicit offline submission queue
 - Transparent review/points copy: rewards remain pending until trusted approval
-- Feature-gated learning, culture, marketplace, voice, and AI surfaces
+- Rights-aware gates for unapproved recordings, cultural meanings, marketplace, voice, and AI surfaces
 - Accessibility-conscious tap targets, semantics, contrast, and large-text support
 
 Development is offline-first and routes Firebase traffic to the Emulator Suite by default. Production telemetry is disabled outside the production flavor. Validator services and reward settlement are not faked.

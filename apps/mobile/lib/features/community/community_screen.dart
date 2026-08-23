@@ -15,7 +15,14 @@ class _CommunityScreenState extends State<CommunityScreen> {
   final _posts = <_CommunityPost>[..._starterPosts];
   final _appreciated = <int>{};
   var _kasemConfirmed = false;
+  var _feedFilter = 0;
   _PostAttachment? _attachment;
+
+  Iterable<_CommunityPost> get _visiblePosts => switch (_feedFilter) {
+    1 => _posts.where((post) => post.attachment != null),
+    2 => _posts.where((post) => post.attachment == null),
+    _ => _posts,
+  };
 
   @override
   void dispose() {
@@ -35,11 +42,18 @@ class _CommunityScreenState extends State<CommunityScreen> {
             children: [
               const _PreviewNotice(),
               const SizedBox(height: 14),
+              _CommunityPulse(
+                onTap: (name) => _showMessage(
+                  context,
+                  '$name\'s story preview opens when approved story media is available.',
+                ),
+              ),
+              const SizedBox(height: 14),
               _buildComposer(context),
               const SizedBox(height: 22),
-              const Row(
+              Row(
                 children: [
-                  Expanded(
+                  const Expanded(
                     child: Text(
                       'LATEST CONVERSATIONS',
                       style: TextStyle(
@@ -50,18 +64,56 @@ class _CommunityScreenState extends State<CommunityScreen> {
                       ),
                     ),
                   ),
-                  Text(
-                    'KASEM ONLY',
-                    style: TextStyle(
-                      color: BrandColors.terracotta,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w900,
+                  PopupMenuButton<int>(
+                    tooltip: 'Filter conversations',
+                    initialValue: _feedFilter,
+                    onSelected: (value) => setState(() => _feedFilter = value),
+                    itemBuilder: (context) => const [
+                      PopupMenuItem(value: 0, child: Text('All conversations')),
+                      PopupMenuItem(
+                        value: 1,
+                        child: Text('Photo & reel posts'),
+                      ),
+                      PopupMenuItem(value: 2, child: Text('Text posts')),
+                    ],
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 7,
+                      ),
+                      decoration: BoxDecoration(
+                        color: BrandColors.terracotta.withValues(alpha: 0.09),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.tune_rounded,
+                            color: BrandColors.terracotta,
+                            size: 15,
+                          ),
+                          const SizedBox(width: 5),
+                          Text(
+                            switch (_feedFilter) {
+                              1 => 'MEDIA',
+                              2 => 'TEXT',
+                              _ => 'ALL',
+                            },
+                            style: const TextStyle(
+                              color: BrandColors.terracotta,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 10),
-              for (final post in _posts) ...[
+              for (final post in _visiblePosts) ...[
                 _CommunityPostCard(
                   post: post,
                   appreciated: _appreciated.contains(post.id),
@@ -349,6 +401,133 @@ class _CommunityScreenState extends State<CommunityScreen> {
     ScaffoldMessenger.of(context)
         .showSnackBar(SnackBar(content: Text(message)));
   }
+}
+
+class _CommunityPulse extends StatelessWidget {
+  const _CommunityPulse({required this.onTap});
+
+  final ValueChanged<String> onTap;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.fromLTRB(14, 13, 8, 13),
+    decoration: BoxDecoration(
+      gradient: LinearGradient(
+        colors: [
+          BrandColors.heritageGreen.withValues(alpha: 0.08),
+          BrandColors.kenteGold.withValues(alpha: 0.09),
+        ],
+      ),
+      borderRadius: BorderRadius.circular(20),
+      border: Border.all(
+        color: BrandColors.heritageGreen.withValues(alpha: 0.1),
+      ),
+    ),
+    child: Row(
+      children: [
+        const Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                _PulseDot(),
+                SizedBox(width: 6),
+                Text(
+                  'COMMUNITY PULSE',
+                  style: TextStyle(
+                    color: BrandColors.heritageGreen,
+                    fontSize: 9,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 0.8,
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 4),
+            Text(
+              'Fresh stories',
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900),
+            ),
+          ],
+        ),
+        const SizedBox(width: 13),
+        Expanded(
+          child: SizedBox(
+            height: 58,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: _communityFaces.length,
+              separatorBuilder: (_, _) => const SizedBox(width: 9),
+              itemBuilder: (context, index) {
+                final face = _communityFaces[index];
+                return Tooltip(
+                  message: face.$1,
+                  child: InkWell(
+                    customBorder: const CircleBorder(),
+                    onTap: () => onTap(face.$1),
+                    child: Container(
+                      width: 54,
+                      padding: const EdgeInsets.all(3),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: LinearGradient(
+                          colors: [face.$3, BrandColors.kenteGold],
+                        ),
+                      ),
+                      child: CircleAvatar(
+                        backgroundColor: BrandColors.surface,
+                        child: Text(
+                          face.$2,
+                          style: const TextStyle(
+                            color: BrandColors.heritageGreen,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+class _PulseDot extends StatefulWidget {
+  const _PulseDot();
+
+  @override
+  State<_PulseDot> createState() => _PulseDotState();
+}
+
+class _PulseDotState extends State<_PulseDot>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 950),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => FadeTransition(
+    opacity: Tween(begin: 0.35, end: 1.0).animate(_controller),
+    child: const Icon(Icons.circle, size: 8, color: BrandColors.savannahGreen),
+  );
 }
 
 class _CommunityHero extends StatelessWidget {
@@ -798,4 +977,11 @@ const _starterPosts = [
     ),
     replies: [_CommunityReply(author: 'Community', text: 'Mbesem.')],
   ),
+];
+
+const _communityFaces = [
+  ('Amina', 'AA', BrandColors.terracotta),
+  ('Nyaaba', 'NA', BrandColors.savannahGreen),
+  ('Project Kasena', 'PK', BrandColors.heritageGreen),
+  ('Awine', 'AW', Color(0xFF735C25)),
 ];

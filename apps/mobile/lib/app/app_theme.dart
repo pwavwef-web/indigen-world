@@ -87,14 +87,14 @@ ThemeData buildIndigenTheme() {
       labelStyle: const TextStyle(color: BrandColors.mutedInk),
     ),
     navigationBarTheme: NavigationBarThemeData(
-      height: 74,
+      height: 72,
       backgroundColor: BrandColors.heritageGreen,
       indicatorColor: BrandColors.kenteGold.withValues(alpha: 0.2),
       iconTheme: WidgetStateProperty.resolveWith((states) {
         final selected = states.contains(WidgetState.selected);
         return IconThemeData(
           color: selected ? BrandColors.kenteGold : Colors.white60,
-          size: selected ? 27 : 24,
+          size: selected ? 25 : 22,
         );
       }),
       labelTextStyle: WidgetStateProperty.resolveWith(
@@ -102,7 +102,7 @@ ThemeData buildIndigenTheme() {
           color: states.contains(WidgetState.selected)
               ? BrandColors.kenteGold
               : Colors.white60,
-          fontSize: 10,
+          fontSize: 9,
           fontWeight: FontWeight.w800,
         ),
       ),

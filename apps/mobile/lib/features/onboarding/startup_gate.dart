@@ -114,6 +114,7 @@ class _LaunchScreenState extends State<_LaunchScreen>
             fit: StackFit.expand,
             children: [
               const _LaunchPattern(),
+              _LivingEmblem(progress: artifactProgress, reveal: brandProgress),
               for (final artifact in _launchArtifacts)
                 _ArtifactFlight(artifact: artifact, progress: artifactProgress),
               SafeArea(
@@ -125,6 +126,17 @@ class _LaunchScreenState extends State<_LaunchScreen>
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
+                          const Text(
+                            'PROJECT KASENA  ·  HOME OF KASEM',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: Colors.white54,
+                              fontSize: 8,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 1.4,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
                           Text(
                             'LANGUAGE  ·  STORY  ·  RHYTHM  ·  IDENTITY',
                             textAlign: TextAlign.center,
@@ -204,6 +216,69 @@ class _LaunchScreenState extends State<_LaunchScreen>
           ),
         );
       },
+    ),
+  );
+}
+
+class _LivingEmblem extends StatelessWidget {
+  const _LivingEmblem({required this.progress, required this.reveal});
+
+  final double progress;
+  final double reveal;
+
+  @override
+  Widget build(BuildContext context) => Center(
+    child: Opacity(
+      opacity: 0.08 + (reveal * 0.12),
+      child: Transform.rotate(
+        angle: progress * 1.4,
+        child: Transform.scale(
+          scale: 0.78 + (progress * 0.25),
+          child: SizedBox.square(
+            dimension: 310,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                Container(
+                  width: 300,
+                  height: 300,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: BrandColors.kenteGold),
+                  ),
+                ),
+                Transform.rotate(
+                  angle: -progress * 2.6,
+                  child: Container(
+                    width: 245,
+                    height: 245,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(62),
+                      border: Border.all(color: Colors.white),
+                    ),
+                  ),
+                ),
+                Container(
+                  width: 182,
+                  height: 182,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: BrandColors.terracotta, width: 2),
+                  ),
+                ),
+                const Text(
+                  '✣',
+                  style: TextStyle(
+                    color: BrandColors.kenteGold,
+                    fontSize: 86,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     ),
   );
 }

@@ -15,7 +15,7 @@ void main() {
 
   tearDown(() => database.close());
 
-  testWidgets('guest lands on reels, joins community, and can still learn', (
+  testWidgets('guest explores, completes a lesson, and opens collection', (
     tester,
   ) async {
     SharedPreferences.setMockInitialValues({
@@ -33,6 +33,46 @@ void main() {
     expect(find.text('For you'), findsOneWidget);
     expect(find.text('Every rhythm remembers.'), findsOneWidget);
     expect(find.text('Explore'), findsOneWidget);
+
+    await tester.tap(find.text('Learn'));
+    await tester.pump(const Duration(milliseconds: 400));
+
+    expect(find.text('KASEM LEARNING PATH'), findsOneWidget);
+    expect(find.text('Speak your first words.'), findsOneWidget);
+    expect(find.text("TODAY'S QUEST"), findsOneWidget);
+
+    await tester.tap(find.text('Complete 3 quick lessons'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.text('Choose the greeting'), findsOneWidget);
+
+    await tester.ensureVisible(find.text('De zaanem'));
+    await tester.tap(find.text('De zaanem'));
+    await tester.pump();
+    await tester.ensureVisible(find.text('Check answer'));
+    await tester.tap(find.text('Check answer'));
+    await tester.pump(const Duration(milliseconds: 250));
+    expect(find.textContaining('Beautiful!'), findsOneWidget);
+
+    await tester.ensureVisible(find.text('Collect 15 XP'));
+    await tester.pump();
+    await tester.tap(find.text('Collect 15 XP'));
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.text('15 XP'), findsOneWidget);
+
+    await tester.tap(find.text('Collection'));
+    await tester.pump(const Duration(milliseconds: 400));
+
+    expect(find.text('THE KASENA COLLECTION'), findsOneWidget);
+    expect(find.text('Kasena visual language'), findsOneWidget);
+
+    await tester.tap(find.text('Places'));
+    await tester.pump(const Duration(milliseconds: 250));
+    expect(find.text('Paga Crocodile Pond'), findsOneWidget);
+
+    await tester.tap(find.text('Songs'));
+    await tester.pump(const Duration(milliseconds: 250));
+    expect(find.text('Songs & sounds'), findsOneWidget);
 
     await tester.tap(find.text('Community'));
     await tester.pump(const Duration(milliseconds: 400));
@@ -53,6 +93,17 @@ void main() {
     await tester.tap(find.byKey(const Key('community-publish')));
     await tester.pump(const Duration(milliseconds: 400));
 
+    await tester.scrollUntilVisible(
+      find.text('De zaanem. Ko gara.'),
+      180,
+      scrollable: find
+          .descendant(
+            of: find.byKey(const PageStorageKey('community-scroll')),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
+
     expect(find.text('You'), findsWidgets);
     expect(find.text('De zaanem. Ko gara.'), findsOneWidget);
     expect(
@@ -63,19 +114,12 @@ void main() {
       isEmpty,
     );
 
-    await tester.tap(find.text('Learn'));
-    await tester.pump(const Duration(milliseconds: 400));
-
-    expect(find.text('Kasem, close at hand.'), findsOneWidget);
-    expect(find.text('AVAILABLE OFFLINE'), findsOneWidget);
-
-    await tester.enterText(find.byType(TextField), 'water');
-    await tester.pump();
-
-    expect(find.text('Kasem word for water · demo'), findsOneWidget);
-    expect(find.text('1 local match'), findsOneWidget);
-
-    await tester.tap(find.text('You'));
+    await tester.tap(
+      find.descendant(
+        of: find.byType(NavigationBar),
+        matching: find.text('You'),
+      ),
+    );
     await tester.pump(const Duration(milliseconds: 400));
 
     expect(find.text('Guest learner'), findsOneWidget);
