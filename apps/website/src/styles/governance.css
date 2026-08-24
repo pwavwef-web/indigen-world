@@ -84,6 +84,17 @@
   font-size: 0.86rem;
   color: var(--muted);
 }
+.impact-grid .target-badge {
+  align-self: flex-start;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: rgba(182, 90, 58, 0.12);
+  color: var(--terracotta-dark);
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
 
 .team-list {
   display: grid;

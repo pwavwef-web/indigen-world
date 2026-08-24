@@ -83,7 +83,7 @@ export function DialectMap() {
       <div className="dialect-map-header">
         <div>
           <span className="iw-eyebrow">✦ Interactive Geography &amp; Dialect Cells</span>
-          <h3>Project Kasena Regional Map</h3>
+          <h3>Venacula Regional Map</h3>
         </div>
         <Badge tone="cultural">Northern Ghana &amp; Southern Burkina Faso</Badge>
       </div>

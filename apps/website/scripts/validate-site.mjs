@@ -22,9 +22,12 @@ const app = read("src/App.tsx");
 const notFound = read("src/pages/NotFoundPage.tsx");
 const headerStyles = read("src/styles/header.css");
 const sitemap = read("public/sitemap.xml");
+const ecosystemPage = read("src/pages/EcosystemPage.tsx");
+const homePage = read("src/pages/HomePage.tsx");
+const venaculaPage = read("src/pages/ProjectKasenaPage.tsx");
 for (const [route, page] of routes) {
   assert.ok(pageIndex.includes(`./${page.replace(".tsx", "")}`), `${page} is lazy-loaded`);
-  assert.ok(sitemap.includes(`https://indigen-world.web.app${route}`), `${route} is in sitemap.xml`);
+  assert.ok(sitemap.includes(`https://indigenworld.com${route}`), `${route} is in sitemap.xml`);
 }
 
 const sourceFiles = [
@@ -40,7 +43,20 @@ const sourceFiles = [
 assert.ok(!sourceFiles.includes("console.log"), "public journeys do not log visitor data");
 assert.ok(!sourceFiles.includes("pwavwef@gmail.com"), "personal email is not exposed in the public client");
 assert.ok(!read("src/app/router.tsx").includes("hashchange"), "page routing does not use URL fragments");
-assert.match(read("index.html"), /href="#main-content"/, "skip link is present");
+assert.match(app, /href="#main-content"/, "skip link is present in the styled app shell");
+assert.ok(app.indexOf('href="#main-content"') < app.indexOf("<Header />"), "skip link is the first keyboard destination");
+assert.ok(app.indexOf("<Header />") < app.indexOf("<Suspense") && app.indexOf("<Suspense") < app.indexOf("<Footer />"), "route loading stays inside the persistent site shell");
+assert.match(read("src/styles/base.css"), /\.skip-link\s*\{[\s\S]*?translateY\(-150%\)/, "skip link is hidden until focused");
+assert.match(read("src/styles/base.css"), /\.skip-link:focus\s*\{[\s\S]*?translateY\(0\)/, "focused skip link is visible");
+assert.match(read("src/lib/routeLoading.ts"), /ROUTE_LOADER_DELAY_MS = 100/, "loader uses a short grace period");
+assert.match(read("src/lib/routeLoading.ts"), /ROUTE_LOADER_MIN_VISIBLE_MS = 1_100/, "branded loader remains visible long enough to register");
+assert.match(ecosystemPage, /"mobile-app", "project-kasena"/, "learner filtering uses canonical product IDs");
+assert.match(ecosystemPage, /aria-pressed=\{audience === key\}/, "audience filters expose their selected state");
+assert.ok(!homePage.includes("ProverbCard"), "unapproved cultural expressions are not presented as public content");
+assert.ok(!venaculaPage.includes("KasemStarterKit"), "the public site does not simulate a learning product");
+assert.ok(!venaculaPage.includes("DialectMap"), "the public site does not publish unapproved dialect samples");
+assert.match(read("index.html"), /https:\/\/indigenworld\.com\//, "static metadata uses the primary domain");
+assert.match(read("public/robots.txt"), /https:\/\/indigenworld\.com\/sitemap\.xml/, "robots points to the primary sitemap");
 assert.match(read("src/lib/forms.ts"), /VITE_PUBLIC_FORMS_ENDPOINT/, "forms use the reviewed endpoint boundary");
 assert.match(sourceFiles, /Venacula/, "the Venacula newsletter signup is visible on the site");
 assert.match(read("src/features/forms/NewsletterForm.tsx"), /consent/, "newsletter signup records explicit consent");

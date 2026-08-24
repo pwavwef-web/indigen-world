@@ -1,7 +1,7 @@
 /**
  * src/content/kasena.ts
  *
- * Content specific to the Project Kasena and Impact & Governance
+ * Content specific to the Venacula and Impact & Governance
  * pages: the honestly-labelled MVP impact targets, the three-phase
  * roadmap, and the flagship feature list. Carried over from the
  * uploaded template's inline JSX, now separated as data.
@@ -70,7 +70,7 @@ export const KASENA_STEWARDSHIP_STEPS = [
  *  version of this page had an interactive (if clearly-labelled
  *  "Illustrative") translation widget; even well-labelled, a working
  *  dictionary/translator UI is exactly the kind of tool the brief says
- *  belongs to Project Kasena's own product, not this marketing site.
+ *  belongs to Venacula's own product, not this marketing site.
  *  This static list replaces it. */
 export const MODULE_PREVIEW_POINTS = [
   "English ↔ Kasem word and phrase lookup",

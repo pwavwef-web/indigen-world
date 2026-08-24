@@ -8,7 +8,7 @@
  * This is the single biggest structural change from the uploaded
  * template: the template was one scrolling page with `<a href="#vision">`
  * anchor links into sections. The brief's sitemap calls for distinct
- * pages (Home, About, Ecosystem, Project Kasena, Impact & Governance,
+ * pages (Home, About, Ecosystem, Venacula, Impact & Governance,
  * Get Involved, Contact, Privacy, Terms) — so this file backs a
  * real router (see src/app/router.tsx) instead of scroll anchors.
  */
@@ -38,10 +38,10 @@ export const ROUTES: AppRoute[] = [
   },
   {
     path: "project-kasena",
-    navLabel: "Project Kasena",
-    title: "Project Kasena",
+    navLabel: "Venacula",
+    title: "Venacula",
     description:
-      "Project Kasena is Indigen World's flagship language cell, proving community-validated language preservation with Kasem before expanding further.",
+      "Venacula is Indigen World's flagship language cell, proving community-validated language preservation with Kasem before expanding further.",
   },
   {
     path: "impact-governance",

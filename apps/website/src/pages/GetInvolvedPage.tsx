@@ -27,7 +27,7 @@ const AUDIENCES = [
   {
     icon: "book" as const,
     title: "Schools & researchers",
-    body: "Bring Project Kasena into a classroom, or explore a research collaboration.",
+    body: "Bring Venacula into a classroom, or explore a research collaboration.",
   },
   {
     icon: "globe" as const,
@@ -86,7 +86,7 @@ export function GetInvolvedPage() {
       <section className="section section--white">
         <div className="container waitlist-band" data-reveal>
           <div>
-            <p className="eyebrow">The Venacula newsletter</p>
+            <p className="eyebrow">Venacula · The Indigen World newsletter</p>
             <h3>Keep culture in the conversation.</h3>
             <p>Get occasional stories and verified milestones from across Indigen World.</p>
           </div>

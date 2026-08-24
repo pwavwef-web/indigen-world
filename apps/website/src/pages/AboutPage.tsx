@@ -106,7 +106,7 @@ export function AboutPage() {
         <div className="container">
           <SectionHeading
             eyebrow="Core team"
-            title="Clear ownership across the ecosystem."
+            title="Working together across the ecosystem."
             body="Product leads work inside shared standards so the website, TribeStudio, mobile app and backend do not become four unrelated products wearing the same logo."
           />
           <div className="team-list team-list--about">
@@ -132,11 +132,11 @@ export function AboutPage() {
           <SectionHeading
             eyebrow="Starting point"
             title="Why Kasem, why now."
-            body="Indigen World's first deep commitment is to Kasem, the language of the Kasena people of Northern Ghana, through Project Kasena. Starting with one language lets us build the validation, consent and attribution model properly — a foundation other language communities can eventually build on."
+            body="Indigen World's first deep commitment is to Kasem, the language of the Kasena people of Northern Ghana, through Venacula. Starting with one language lets us build the validation, consent and attribution model properly — a foundation other language communities can eventually build on."
           />
           <div data-reveal>
             <Button to="project-kasena" variant="secondary">
-              Read about Project Kasena
+              Read about Venacula
             </Button>
           </div>
         </div>

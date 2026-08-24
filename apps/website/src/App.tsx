@@ -4,6 +4,7 @@ import { useRoute, scrollToTop } from "./app/router";
 import { Header } from "./components/Header";
 import { Footer } from "./components/Footer";
 import { ErrorBoundary } from "./components/ErrorBoundary";
+import { RouteLoader } from "./components/RouteLoader";
 import { PAGE_COMPONENTS, NotFoundPage } from "./pages";
 
 export function App() {
@@ -36,11 +37,12 @@ export function App() {
 
   return (
     <ToastProvider>
+      <a className="skip-link" href="#main-content">Skip to main content</a>
       <div className="site-shell">
         <Header />
         <main id="main-content" tabIndex={-1}>
           <ErrorBoundary resetKey={path}>
-            <Suspense fallback={<div className="route-loading" role="status">Loading page…</div>}>
+            <Suspense fallback={<RouteLoader />}>
               <PageComponent />
             </Suspense>
           </ErrorBoundary>
@@ -60,7 +62,7 @@ export function App() {
               <li><kbd>?</kbd><span>Toggle keyboard shortcuts cheatsheet</span></li>
               <li><kbd>Tab</kbd><span>Navigate interactive elements in order</span></li>
               <li><kbd>Esc</kbd><span>Dismiss modals, drawers, or mobile menus</span></li>
-              <li><kbd>Space / Enter</kbd><span>Trigger audio playback &amp; buttons</span></li>
+              <li><kbd>Space / Enter</kbd><span>Activate focused buttons and links</span></li>
             </ul>
           </div>
         </Modal>

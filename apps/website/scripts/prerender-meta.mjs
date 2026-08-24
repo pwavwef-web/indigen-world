@@ -21,7 +21,7 @@ import { resolve, dirname } from "node:path";
 const root = resolve(import.meta.dirname, "..");
 const distIndex = resolve(root, "dist/index.html");
 
-const siteOrigin = (process.env.VITE_SITE_URL || "https://indigen-world.web.app").replace(/\/+$/, "");
+const siteOrigin = (process.env.VITE_SITE_URL || "https://indigenworld.com").replace(/\/+$/, "");
 
 const HOME_TITLE = "Indigen World — Culture belongs in the future";
 

@@ -171,12 +171,120 @@ button {
   text-align: center;
   color: var(--muted);
 }
+.route-loading--pending {
+  visibility: hidden;
+}
 .route-error h1 {
   font-size: 1.7rem;
   color: var(--indigo-900);
 }
 .route-error p {
   max-width: 42ch;
+}
+
+.route-loader__visual {
+  position: relative;
+  display: grid;
+  width: 92px;
+  height: 92px;
+  place-items: center;
+}
+
+.route-loader__ring {
+  position: absolute;
+  inset: 0;
+  border: 2px solid var(--line);
+  border-top-color: var(--gold);
+  border-right-color: var(--terracotta);
+  border-radius: 50%;
+  animation: route-loader-spin 1.4s linear infinite;
+}
+
+.route-loader__visual .brand-mark {
+  position: relative;
+  z-index: 1;
+  display: block;
+  animation: route-loader-breathe 1.4s var(--motion-ease) infinite alternate;
+}
+
+.route-loader__visual .brand-mark svg {
+  width: 52px;
+  height: 52px;
+}
+
+.route-loader__visual .brand-mark__line {
+  stroke: var(--indigo-900);
+}
+
+.route-loader__visual .brand-mark__frame,
+.route-loader__visual .brand-mark__line {
+  stroke-dasharray: 90;
+  stroke-dashoffset: 90;
+  animation: route-loader-draw 1.4s var(--motion-ease) infinite alternate;
+}
+
+.route-loader__visual .brand-mark__sun {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: route-loader-sun 700ms var(--motion-ease) infinite alternate;
+}
+
+.route-loader__label {
+  color: var(--indigo-900);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  animation: route-loader-label 1.4s var(--motion-ease) infinite alternate;
+}
+
+@keyframes route-loader-spin {
+  to {
+    transform: rotate(1turn);
+  }
+}
+
+@keyframes route-loader-breathe {
+  to {
+    transform: scale(1.06);
+  }
+}
+
+@keyframes route-loader-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes route-loader-sun {
+  to {
+    transform: scale(1.3);
+  }
+}
+
+@keyframes route-loader-label {
+  from {
+    opacity: 0.55;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .route-loader__ring,
+  .route-loader__visual .brand-mark,
+  .route-loader__visual .brand-mark__frame,
+  .route-loader__visual .brand-mark__line,
+  .route-loader__visual .brand-mark__sun,
+  .route-loader__label {
+    animation: none;
+  }
+
+  .route-loader__visual .brand-mark__frame,
+  .route-loader__visual .brand-mark__line {
+    stroke-dashoffset: 0;
+  }
 }
 
 @media (min-width: 640px) {

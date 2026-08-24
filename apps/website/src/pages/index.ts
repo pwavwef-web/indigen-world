@@ -8,33 +8,46 @@
  */
 import { lazy } from "react";
 import type { ComponentType, LazyExoticComponent } from "react";
+import { withRouteLoadingTiming } from "../lib/routeLoading";
 
 type LazyPage = LazyExoticComponent<ComponentType>;
 
 export const PAGE_COMPONENTS: Record<string, LazyPage> = {
-  home: lazy(() => import("./HomePage").then(({ HomePage }) => ({ default: HomePage }))),
-  about: lazy(() => import("./AboutPage").then(({ AboutPage }) => ({ default: AboutPage }))),
+  home: lazy(() =>
+    withRouteLoadingTiming(import("./HomePage")).then(({ HomePage }) => ({ default: HomePage }))
+  ),
+  about: lazy(() =>
+    withRouteLoadingTiming(import("./AboutPage")).then(({ AboutPage }) => ({ default: AboutPage }))
+  ),
   ecosystem: lazy(() =>
-    import("./EcosystemPage").then(({ EcosystemPage }) => ({ default: EcosystemPage }))
+    withRouteLoadingTiming(import("./EcosystemPage")).then(({ EcosystemPage }) => ({
+      default: EcosystemPage,
+    }))
   ),
   "project-kasena": lazy(() =>
-    import("./ProjectKasenaPage").then(({ ProjectKasenaPage }) => ({ default: ProjectKasenaPage }))
+    withRouteLoadingTiming(import("./ProjectKasenaPage")).then(({ ProjectKasenaPage }) => ({
+      default: ProjectKasenaPage,
+    }))
   ),
   "impact-governance": lazy(() =>
-    import("./ImpactGovernancePage").then(({ ImpactGovernancePage }) => ({
+    withRouteLoadingTiming(import("./ImpactGovernancePage")).then(({ ImpactGovernancePage }) => ({
       default: ImpactGovernancePage,
     }))
   ),
   "get-involved": lazy(() =>
-    import("./GetInvolvedPage").then(({ GetInvolvedPage }) => ({ default: GetInvolvedPage }))
+    withRouteLoadingTiming(import("./GetInvolvedPage")).then(({ GetInvolvedPage }) => ({
+      default: GetInvolvedPage,
+    }))
   ),
   contact: lazy(() =>
-    import("./ContactPage").then(({ ContactPage }) => ({ default: ContactPage }))
+    withRouteLoadingTiming(import("./ContactPage")).then(({ ContactPage }) => ({ default: ContactPage }))
   ),
   privacy: lazy(() =>
-    import("./PrivacyPage").then(({ PrivacyPage }) => ({ default: PrivacyPage }))
+    withRouteLoadingTiming(import("./PrivacyPage")).then(({ PrivacyPage }) => ({ default: PrivacyPage }))
   ),
-  terms: lazy(() => import("./TermsPage").then(({ TermsPage }) => ({ default: TermsPage }))),
+  terms: lazy(() =>
+    withRouteLoadingTiming(import("./TermsPage")).then(({ TermsPage }) => ({ default: TermsPage }))
+  ),
 };
 
 export { NotFoundPage } from "./NotFoundPage";

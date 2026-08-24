@@ -3,7 +3,7 @@
  *
  * Landing page: hero, belief strip, ecosystem highlights, a Project
  * Kasena spotlight (trimmed — the full translation demo and roadmap
- * live on the dedicated Project Kasena page), an honestly-labelled
+ * live on the dedicated Venacula page), an honestly-labelled
  * progress snapshot, and a closing CTA. Adapted from the top portion
  * of the uploaded template's single-page App.tsx.
  */
@@ -11,8 +11,8 @@ import { useDocumentMeta } from "../lib/useDocumentMeta";
 import { useRevealOnScroll } from "../lib/useRevealOnScroll";
 import { ROUTES_BY_PATH } from "../content/navigation";
 import { HOME_ECOSYSTEM_HIGHLIGHTS } from "../content/ecosystem";
+import { IMPACT_TARGETS } from "../content/kasena";
 import { Button } from "../components/Button";
-import { ProverbCard, CounterRollup } from "@indigen-world/web-ui";
 import { Icon } from "../components/Icon";
 import { BrandMark } from "../components/BrandMark";
 import { SectionHeading } from "../components/SectionHeading";
@@ -94,7 +94,7 @@ export function HomePage() {
               </span>
               <div>
                 <small>Language cell 01</small>
-                <strong>Project Kasena</strong>
+                <strong>Venacula</strong>
               </div>
             </div>
             <div className="floating-card floating-card--creator">
@@ -154,7 +154,7 @@ export function HomePage() {
           <SectionHeading
             eyebrow="One connected ecosystem"
             title="Different doors. One cultural future."
-            body="TribeStudio, the mobile experience, Project Kasena and shared data infrastructure each have a clear job — and an honest status."
+            body="TribeStudio, the mobile experience, Venacula and shared data infrastructure each have a clear job — and an honest status."
           />
           <div className="product-grid">
             {HOME_ECOSYSTEM_HIGHLIGHTS.map((product, index) => (
@@ -173,33 +173,13 @@ export function HomePage() {
         <div className="container kasena-spotlight">
           <SectionHeading
             eyebrow="Flagship programme"
-            title="Project Kasena starts with one language—deeply."
+            title="Venacula starts with one language—deeply."
             body="Indigen World's first language cell and intended model for community-validated language preservation. It begins with Kasem and is building foundations for future text and voice research."
             light
           />
           <Button to="project-kasena" variant="secondary">
-            Explore Project Kasena
+            Explore Venacula
           </Button>
-        </div>
-      </section>
-
-      {/* Proverb of the Day & Share Card Generator */}
-      <section className="section section--cream" id="daily-proverb">
-        <div className="container">
-          <SectionHeading
-            eyebrow="Living wisdom"
-            title="Wisdom passed down through spoken words."
-            body="Each day, discover an authentic proverb preserving Kasena philosophy, moral principles, and cultural metaphors."
-          />
-          <ProverbCard
-            proverb={{
-              kasem: "Kukuri ba bore ne voro",
-              phonetic: "koo-koo-ree bah boh-reh neh voh-roh",
-              translation: "A dog does not bark at its master's lineage.",
-              meaning: "Loyalty, family honour, and deep gratitude to those who gave you life and shelter.",
-              dialect: "Kasem (Paga & Navrongo)",
-            }}
-          />
         </div>
       </section>
 
@@ -247,25 +227,16 @@ export function HomePage() {
             body="Our first milestones focus on a working product, trusted validation and a useful language dataset—not vanity features."
           />
           <p className="target-label" data-reveal>
-            Figures below describe the Project Kasena MVP ambition, not completed results.
+            Figures below describe the Venacula MVP ambition, not completed results.
           </p>
           <div className="impact-grid">
-            <article data-reveal>
-              <strong><CounterRollup target={5000} suffix="+" /></strong>
-              <span>Validated dictionary entries</span>
-            </article>
-            <article data-reveal>
-              <strong><CounterRollup target={1000} suffix="+" /></strong>
-              <span>Kasem–English sentence pairs</span>
-            </article>
-            <article data-reveal>
-              <strong><CounterRollup target={200} suffix="+" /></strong>
-              <span>Active community contributors</span>
-            </article>
-            <article data-reveal>
-              <strong><CounterRollup target={30} suffix="+" /></strong>
-              <span>Elders &amp; qualified validators</span>
-            </article>
+            {IMPACT_TARGETS.map((target) => (
+              <article key={target.label} data-reveal>
+                <span className="target-badge">Target</span>
+                <strong>{target.figure}</strong>
+                <span>{target.label}</span>
+              </article>
+            ))}
           </div>
           <div className="section-cta" data-reveal>
             <Button to="impact-governance" variant="secondary">

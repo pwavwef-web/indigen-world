@@ -9,7 +9,7 @@
 
 /**
  * The four honest-labelling states used on every product/status badge
- * (Ecosystem cards, Project Kasena status, Home progress cards).
+ * (Ecosystem cards, Venacula status, Home progress cards).
  * A union of string literals rather than `string` — TypeScript refuses
  * to compile a typo'd status like "live " or "Live", which is exactly
  * the brief's "never present planned features as live" rule enforced

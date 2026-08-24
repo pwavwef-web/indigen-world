@@ -203,6 +203,27 @@
   background: linear-gradient(90deg, rgba(214, 165, 43, 0.16), transparent);
 }
 
+.mobile-nav a.mobile-nav__cta {
+  margin-top: 14px;
+  padding: 14px 16px;
+  border: 1px solid var(--gold);
+  border-radius: var(--radius-sm);
+  background: var(--gold);
+  color: var(--indigo-950);
+  box-shadow: 0 10px 24px rgba(214, 165, 43, 0.18);
+}
+
+.mobile-nav a.mobile-nav__cta:hover,
+.mobile-nav a.mobile-nav__cta:focus-visible {
+  background: var(--gold-soft);
+  border-color: var(--gold-soft);
+}
+
+.mobile-nav a.mobile-nav__cta[aria-current="page"] {
+  outline: 2px solid var(--cream);
+  outline-offset: 2px;
+}
+
 @media (min-width: 660px) {
   .brand__text small {
     display: block;

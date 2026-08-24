@@ -29,8 +29,6 @@ import { Button } from "../components/Button";
 import { Icon } from "../components/Icon";
 import { SectionHeading } from "../components/SectionHeading";
 import { StatusBadge } from "../components/StatusBadge";
-import { DialectMap } from "../components/DialectMap";
-import { KasemStarterKit } from "../components/KasemStarterKit";
 
 const route = ROUTES_BY_PATH["project-kasena"];
 
@@ -45,8 +43,8 @@ export function ProjectKasenaPage() {
           <div className="kasena-copy">
             <SectionHeading
               eyebrow="Flagship programme"
-              title="Project Kasena starts with one language—deeply."
-              body="Project Kasena is Indigen World's flagship Kasem initiative and intended model for community-validated language preservation. It is building foundations for future text and voice research without presenting a finished translator."
+              title="Venacula starts with one language—deeply."
+              body="Venacula is Indigen World's flagship Kasem initiative and intended model for community-validated language preservation. It is building foundations for future text and voice research without presenting a finished translator."
               light
               as="h1"
             />
@@ -68,7 +66,7 @@ export function ProjectKasenaPage() {
                 <p className="eyebrow">Kasem module</p>
                 <strong>Dictionary &amp; translator</strong>
               </div>
-              <StatusBadge status="planned" />
+              <StatusBadge status="in-development" />
             </div>
             <ul className="module-preview__list">
               {MODULE_PREVIEW_POINTS.map((point) => (
@@ -78,34 +76,10 @@ export function ProjectKasenaPage() {
               ))}
             </ul>
             <p className="module-preview__note">
-              This module isn't built yet. It will live as its own product experience once ready
-              — this page describes what's planned rather than demonstrating a working version.
+              This module is in development and will live as its own product experience once ready
+              — this page describes the work underway rather than presenting a finished version.
             </p>
           </div>
-        </div>
-      </section>
-
-      {/* Interactive Dialect Map */}
-      <section className="section section--white" id="dialect-map">
-        <div className="container">
-          <SectionHeading
-            eyebrow="Dialect Diversity"
-            title="Across Northern Ghana and Southern Burkina Faso."
-            body="Project Kasena documents Eastern, Western, and cross-border Northern variations without flattening their unique phonetic nuances."
-          />
-          <DialectMap />
-        </div>
-      </section>
-
-      {/* Multilingual Phrasebook Starter Kit */}
-      <section className="section section--cream" id="starter-kit">
-        <div className="container">
-          <SectionHeading
-            eyebrow="Interactive Preview"
-            title="Everyday Kasem language at your fingertips."
-            body="Preview foundational expressions and phonetics prepared by our community elders and teachers."
-          />
-          <KasemStarterKit />
         </div>
       </section>
 
@@ -114,7 +88,7 @@ export function ProjectKasenaPage() {
           <SectionHeading
             eyebrow="Community validation"
             title="A record is not publishable simply because it was submitted."
-            body="Project Kasena is designed around dialect respect, qualified review and permissions that travel with each record."
+            body="Venacula is designed around dialect respect, qualified review and permissions that travel with each record."
           />
           <ol className="process-list" data-reveal>
             {KASENA_STEWARDSHIP_STEPS.map((step, index) => (
@@ -149,8 +123,8 @@ export function ProjectKasenaPage() {
         <div className="container">
           <SectionHeading
             eyebrow="Getting the names right"
-            title="Kasem, Kasena, Project Kasena."
-            body="Kasem is the language. Kasena refers to the people and community it belongs to. Project Kasena is Indigen World's initiative built to serve that community — they aren't interchangeable, and we're careful to keep the distinction clear everywhere on this site."
+            title="Kasem, Kasena, Venacula."
+            body="Kasem is the language. Kasena refers to the people and community it belongs to. Venacula is Indigen World's initiative built to serve that community — they aren't interchangeable, and we're careful to keep the distinction clear everywhere on this site."
           />
         </div>
       </section>

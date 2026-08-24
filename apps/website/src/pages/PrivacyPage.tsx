@@ -44,7 +44,7 @@ export function PrivacyPage() {
 
           <h2>This website</h2>
           <p>
-            When you use a form on this site — Contact, Get Involved, or the Venacula newsletter — we
+            When you use a form on this site — Contact, Get Involved, or Venacula, the Indigen World newsletter — we
             collect only the fields shown on that form: your name, contact details, and the
             message or note you provide.
           </p>

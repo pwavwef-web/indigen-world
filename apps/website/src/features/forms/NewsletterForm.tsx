@@ -33,7 +33,7 @@ export function NewsletterForm() {
       },
       onSubmit: subscribe,
       formName: "newsletter",
-      successMessage: "Welcome to Venacula — you're on the list.",
+      successMessage: "Welcome to Venacula, the Indigen World newsletter — you're on the list.",
     });
 
   return (
@@ -70,7 +70,7 @@ export function NewsletterForm() {
             aria-invalid={Boolean(errors.consent)}
             aria-describedby={errors.consent ? `${id}-consent-error` : undefined}
           />
-          <span>I agree to receive the Venacula newsletter by email.</span>
+          <span>I agree to receive Venacula, the Indigen World newsletter, by email.</span>
         </label>
         {errors.consent && (
           <p className="field__error" id={`${id}-consent-error`}>

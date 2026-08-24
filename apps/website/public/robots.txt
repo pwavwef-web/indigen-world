@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://indigen-world.web.app/sitemap.xml
+Sitemap: https://indigenworld.com/sitemap.xml

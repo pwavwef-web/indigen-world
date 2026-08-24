@@ -90,7 +90,12 @@ export function Header() {
               <Icon name="arrow" size={18} />
             </Link>
           ))}
-          <Link to="get-involved" onClick={() => setMenuOpen(false)}>
+          <Link
+            className="mobile-nav__cta"
+            to="get-involved"
+            aria-current={path === "get-involved" ? "page" : undefined}
+            onClick={() => setMenuOpen(false)}
+          >
             Get involved
             <Icon name="arrow" size={18} />
           </Link>

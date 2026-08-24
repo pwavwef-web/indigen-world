@@ -17,7 +17,7 @@ export function Footer() {
     <footer className="site-footer">
       <div className="container footer-newsletter">
         <div className="footer-newsletter__intro">
-          <p className="eyebrow">Venacula</p>
+          <p className="eyebrow">Venacula · The Indigen World newsletter</p>
           <h2>Culture, language and ideas worth carrying forward.</h2>
           <p>Subscribe to the Indigen World newsletter for occasional stories and project updates.</p>
         </div>
@@ -42,7 +42,7 @@ export function Footer() {
             <strong>Explore</strong>
             <Link to="about">About</Link>
             <Link to="ecosystem">Ecosystem</Link>
-            <Link to="project-kasena">Project Kasena</Link>
+            <Link to="project-kasena">Venacula</Link>
           </div>
           <div>
             <strong>Principles</strong>
@@ -60,7 +60,7 @@ export function Footer() {
       </div>
       <div className="container site-footer__bottom">
         <p>© {currentYear} Indigen World. Cultural materials may carry distinct permissions.</p>
-        <p>Project Kasena is an Indigen World programme.</p>
+        <p>Venacula is an Indigen World programme.</p>
       </div>
     </footer>
   );

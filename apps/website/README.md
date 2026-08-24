@@ -1,7 +1,7 @@
 # Indigen World public website
 
 The public website is Indigen World's discovery, trust and participation layer. It explains the
-ecosystem, positions Project Kasena as the flagship Kasem-language initiative, labels unfinished
+ecosystem, positions Venacula as the flagship Kasem-language initiative, labels unfinished
 work honestly, and routes visitors to an appropriate next step. Product tools, validators,
 datasets and backend workflows remain outside this app.
 
@@ -45,19 +45,18 @@ client.
 
 ## MVP routes
 
-- `/` — mission, ecosystem, Project Kasena, operating model, audiences, verified status and CTA
-- `/about` — problem, mission, principles and Kasem-first starting point
+- `/` — mission, ecosystem, Venacula, operating model, audiences, verified status and CTA
+- `/about` — problem, mission, approved team roster, principles and Kasem-first starting point
 - `/ecosystem` — product audiences, owners, status and boundaries
 - `/project-kasena` — Kasem/Kasena distinction, validation model and planned roadmap
 - `/impact-governance` — permissions, cultural-data stewardship and labelled targets
 - `/get-involved` — contributor, validator, school, research, diaspora, sponsor and volunteer routes
-- `/team` — approved names, public roles and workstream ownership only
 - `/contact` — privacy-aware general, publication, correction and takedown route
 - `/privacy` and `/terms` — plain-language implementation summaries pending legal approval
 
 ## Updating content
 
-Editable product, status, team, principle and Project Kasena copy lives under `src/content/`.
+Editable product, status, team, principle and Venacula copy lives under `src/content/`.
 Navigation and route metadata live in `src/content/navigation.ts`. Page layouts live under
 `src/pages/`; shared UI is under `src/components/`; form behavior is under `src/features/forms/`.
 The privacy-safe analytics vocabulary is documented in `src/lib/analytics.ts`.
@@ -78,7 +77,7 @@ firebase deploy --only hosting:indigen-world
 
 This app is served by the `indigen-world` Hosting site. Its production custom domains are
 `indigenworld.com` (apex), `www.indigenworld.com` (redirects to the apex) and
-`kasem.indigenworld.com` (Project Kasena entry point). See
+`kasem.indigenworld.com` (Venacula entry point). See
 [`docs/architecture/hosting-and-domains.md`](../../docs/architecture/hosting-and-domains.md) for the
 full site/domain map.
 
@@ -97,5 +96,5 @@ Before public launch, the project manager still needs to supply or approve:
 - a staging review, route screenshots and Lighthouse results.
 
 Until those are approved, the site uses restrained CSS artwork, omits social links and marks legal
-copy as an implementation summary. Update `public/sitemap.xml`, `public/robots.txt` and
-`VITE_SITE_URL` together if a custom production domain replaces the Firebase Hosting domain.
+copy as an implementation summary. Keep `public/sitemap.xml`, `public/robots.txt` and
+`VITE_SITE_URL` aligned with the primary `indigenworld.com` production domain.

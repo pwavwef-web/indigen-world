@@ -14,6 +14,13 @@ const BACKEND = ECOSYSTEM_PRODUCTS.find((product) => product.id === "backend")!;
 
 type AudienceFilter = "all" | "creators" | "learners" | "researchers" | "custodians";
 
+const PRODUCT_IDS_BY_AUDIENCE: Record<Exclude<AudienceFilter, "all">, readonly string[]> = {
+  creators: ["tribestudio", "public-website"],
+  learners: ["mobile-app", "project-kasena"],
+  researchers: ["project-kasena", "public-website"],
+  custodians: ["tribestudio", "project-kasena"],
+};
+
 export function EcosystemPage() {
   useDocumentMeta(route.title, route.description);
   useRevealOnScroll(route.path);
@@ -22,11 +29,7 @@ export function EcosystemPage() {
 
   const filteredProducts = GRID_PRODUCTS.filter((p) => {
     if (audience === "all") return true;
-    if (audience === "creators") return p.id === "tribestudio" || p.id === "website";
-    if (audience === "learners") return p.id === "mobile" || p.id === "kasena";
-    if (audience === "researchers") return p.id === "kasena" || p.id === "website";
-    if (audience === "custodians") return p.id === "tribestudio" || p.id === "kasena";
-    return true;
+    return PRODUCT_IDS_BY_AUDIENCE[audience].includes(p.id);
   });
 
   return (
@@ -47,8 +50,8 @@ export function EcosystemPage() {
         <div className="container">
           {/* Interactive Audience Filter Matrix */}
           <div className="ecosystem-filter-bar" data-reveal>
-            <span className="filter-label">Filter by Audience &amp; Role:</span>
-            <div className="filter-pills">
+            <span className="filter-label" id="ecosystem-filter-label">Filter by Audience &amp; Role:</span>
+            <div className="filter-pills" role="group" aria-labelledby="ecosystem-filter-label">
               {(
                 [
                   ["all", "✦ All Doors"],
@@ -62,19 +65,29 @@ export function EcosystemPage() {
                   key={key}
                   type="button"
                   className={`filter-pill ${audience === key ? "is-active" : ""}`}
+                  aria-pressed={audience === key}
                   onClick={() => setAudience(key)}
                 >
                   {label}
                 </button>
               ))}
             </div>
+            <p className="filter-results" role="status" aria-live="polite">
+              Showing {filteredProducts.length} {filteredProducts.length === 1 ? "product" : "products"}.
+            </p>
           </div>
 
-          <div className="product-grid">
-            {filteredProducts.map((product, index) => (
-              <ProductCard key={product.id} product={product} index={index} />
-            ))}
-          </div>
+          {filteredProducts.length > 0 ? (
+            <div className="product-grid" id="ecosystem-product-grid">
+              {filteredProducts.map((product, index) => (
+                <ProductCard key={product.id} product={product} index={index} />
+              ))}
+            </div>
+          ) : (
+            <p className="filter-empty" role="status">
+              No products currently match this audience.
+            </p>
+          )}
 
           {/* Ecosystem Architecture Dataflow Visualizer */}
           <div className="ecosystem-dataflow iw-glass-card" data-reveal>
