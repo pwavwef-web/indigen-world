@@ -1,0 +1,791 @@
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:indigen_world_mobile/core/brand.dart';
+import 'package:indigen_world_mobile/domain/dictionary_entry.dart';
+import 'package:indigen_world_mobile/features/collection/collection_data.dart';
+import 'package:indigen_world_mobile/features/contribute/contribute_screen.dart';
+import 'package:indigen_world_mobile/features/dictionary/entry_detail_screen.dart';
+import 'package:indigen_world_mobile/features/explore/published_content.dart';
+import 'package:indigen_world_mobile/shared/app_widgets.dart';
+import 'package:video_player/video_player.dart';
+
+class MusicCollectionScreen extends ConsumerWidget {
+  const MusicCollectionScreen({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) =>
+      PublishedCollectionScreen(
+        kind: CollectionKind.music,
+        items: ref.watch(musicCollectionProvider),
+        onRetry: () => ref.invalidate(musicCollectionProvider),
+      );
+}
+
+class LiteratureCollectionScreen extends ConsumerWidget {
+  const LiteratureCollectionScreen({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) =>
+      PublishedCollectionScreen(
+        kind: CollectionKind.literature,
+        items: ref.watch(literatureCollectionProvider),
+        onRetry: () => ref.invalidate(literatureCollectionProvider),
+      );
+}
+
+class AudiobookCollectionScreen extends ConsumerWidget {
+  const AudiobookCollectionScreen({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) =>
+      PublishedCollectionScreen(
+        kind: CollectionKind.audiobooks,
+        items: ref.watch(audiobookCollectionProvider),
+        onRetry: () => ref.invalidate(audiobookCollectionProvider),
+      );
+}
+
+class DictionaryCollectionScreen extends ConsumerStatefulWidget {
+  const DictionaryCollectionScreen({super.key});
+
+  @override
+  ConsumerState<DictionaryCollectionScreen> createState() =>
+      _DictionaryCollectionScreenState();
+}
+
+class _DictionaryCollectionScreenState
+    extends ConsumerState<DictionaryCollectionScreen> {
+  final _searchController = TextEditingController();
+  String _query = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final entries = ref.watch(publishedDictionaryEntriesProvider);
+    return Scaffold(
+      appBar: AppBar(title: const Text('Kasem dictionary')),
+      body: ScreenContainer(
+        child: RefreshIndicator(
+          onRefresh: () async {
+            ref.invalidate(publishedDictionaryEntriesProvider);
+            await ref.read(publishedDictionaryEntriesProvider.future);
+          },
+          child: CustomScrollView(
+            slivers: [
+              const SliverToBoxAdapter(
+                child: BrandHeader(
+                  eyebrow: 'Collection · Dictionary',
+                  title: 'Words with a living context.',
+                  subtitle: 'Published entries sync from the Project Kasena community dictionary.',
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+                  child: TextField(
+                    controller: _searchController,
+                    onChanged: (value) => setState(() => _query = value),
+                    decoration: InputDecoration(
+                      hintText: 'Search Kasem, English, or dialect',
+                      prefixIcon: const Icon(Icons.search_rounded),
+                      suffixIcon: _query.isEmpty
+                          ? null
+                          : IconButton(
+                              tooltip: 'Clear search',
+                              onPressed: () {
+                                _searchController.clear();
+                                setState(() => _query = '');
+                              },
+                              icon: const Icon(Icons.close_rounded),
+                            ),
+                    ),
+                  ),
+                ),
+              ),
+              entries.when(
+                loading: () => const SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Center(child: CircularProgressIndicator()),
+                ),
+                error: (_, _) => SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: _CollectionLoadError(
+                    onRetry: () =>
+                        ref.invalidate(publishedDictionaryEntriesProvider),
+                  ),
+                ),
+                data: (allEntries) {
+                  final query = _query.trim().toLowerCase();
+                  final visible = query.isEmpty
+                      ? allEntries
+                      : allEntries
+                            .where((entry) => entry.matches(query))
+                            .toList(growable: false);
+                  if (visible.isEmpty) {
+                    return SliverFillRemaining(
+                      hasScrollBody: false,
+                      child: _CollectionEmptyState(
+                        kind: CollectionKind.dictionary,
+                        searching: query.isNotEmpty,
+                      ),
+                    );
+                  }
+                  return SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 40),
+                    sliver: SliverList.separated(
+                      itemCount: visible.length,
+                      separatorBuilder: (_, _) => const SizedBox(height: 10),
+                      itemBuilder: (context, index) =>
+                          _DictionaryCard(entry: visible[index]),
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class PublishedCollectionScreen extends StatelessWidget {
+  const PublishedCollectionScreen({
+    required this.kind,
+    required this.items,
+    required this.onRetry,
+    super.key,
+  });
+
+  final CollectionKind kind;
+  final AsyncValue<List<PublishedReel>> items;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: Text(kind.label)),
+    body: ScreenContainer(
+      child: CustomScrollView(
+        slivers: [
+          SliverToBoxAdapter(
+            child: BrandHeader(
+              eyebrow: 'Collection · ${kind.label}',
+              title: _title,
+              subtitle: _subtitle,
+            ),
+          ),
+          items.when(
+            loading: () => const SliverFillRemaining(
+              hasScrollBody: false,
+              child: Center(child: CircularProgressIndicator()),
+            ),
+            error: (_, _) => SliverFillRemaining(
+              hasScrollBody: false,
+              child: _CollectionLoadError(onRetry: onRetry),
+            ),
+            data: (entries) {
+              if (entries.isEmpty) {
+                return SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: _CollectionEmptyState(kind: kind),
+                );
+              }
+              return SliverPadding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 42),
+                sliver: SliverList.separated(
+                  itemCount: entries.length,
+                  separatorBuilder: (_, _) => const SizedBox(height: 14),
+                  itemBuilder: (context, index) => _PublishedCollectionCard(
+                    item: entries[index],
+                    kind: kind,
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+    ),
+  );
+
+  String get _title => switch (kind) {
+    CollectionKind.music => 'Hear the rhythm of home.',
+    CollectionKind.literature => 'Stories that remember.',
+    CollectionKind.audiobooks => 'Listen, learn, and carry it forward.',
+    CollectionKind.dictionary => 'Words with a living context.',
+  };
+
+  String get _subtitle => switch (kind) {
+    CollectionKind.music =>
+      'Community-published songs and recordings, ready to stream.',
+    CollectionKind.literature =>
+      'Published stories, poetry, and oral histories from approved creators.',
+    CollectionKind.audiobooks =>
+      'Long-form readings and narrated works, published with permission.',
+    CollectionKind.dictionary =>
+      'Published Kasem entries from the Project Kasena dictionary.',
+  };
+}
+
+class _DictionaryCard extends StatelessWidget {
+  const _DictionaryCard({required this.entry});
+
+  final DictionaryEntry entry;
+
+  @override
+  Widget build(BuildContext context) => Card(
+    child: InkWell(
+      borderRadius: BorderRadius.circular(20),
+      onTap: () => Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (context) =>
+              EntryDetailScreen(entryId: entry.id, entry: entry),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(17),
+        child: Row(
+          children: [
+            Container(
+              width: 50,
+              height: 50,
+              decoration: BoxDecoration(
+                color: BrandColors.heritageGreen.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: const Icon(
+                Icons.translate_rounded,
+                color: BrandColors.heritageGreen,
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    entry.headword,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    entry.translation,
+                    style: const TextStyle(color: BrandColors.mutedInk),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    '${entry.partOfSpeech} · ${entry.dialect}',
+                    style: const TextStyle(
+                      color: BrandColors.terracotta,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right_rounded),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+class _PublishedCollectionCard extends StatelessWidget {
+  const _PublishedCollectionCard({required this.item, required this.kind});
+
+  final PublishedReel item;
+  final CollectionKind kind;
+
+  @override
+  Widget build(BuildContext context) => Card(
+    clipBehavior: Clip.antiAlias,
+    child: InkWell(
+      onTap: () => Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (context) =>
+              CollectionItemDetailScreen(item: item, kind: kind),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          AspectRatio(
+            aspectRatio: 16 / 8,
+            child: item.posterUrl == null
+                ? _MediaFallback(kind: kind)
+                : CachedNetworkImage(
+                    imageUrl: item.posterUrl!,
+                    fit: BoxFit.cover,
+                    placeholder: (_, _) => _MediaFallback(kind: kind),
+                    errorWidget: (_, _, _) => _MediaFallback(kind: kind),
+                  ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(17),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        item.category.isEmpty
+                            ? kind.label.toUpperCase()
+                            : item.category.toUpperCase(),
+                        style: const TextStyle(
+                          color: BrandColors.terracotta,
+                          fontSize: 9,
+                          letterSpacing: 1,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      const SizedBox(height: 5),
+                      Text(
+                        item.title,
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                      const SizedBox(height: 5),
+                      Text(
+                        item.description.isEmpty
+                            ? 'Published by ${item.creatorName}'
+                            : item.description,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(color: BrandColors.mutedInk),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Icon(
+                  kind == CollectionKind.literature
+                      ? Icons.arrow_forward_rounded
+                      : Icons.play_circle_fill_rounded,
+                  color: BrandColors.heritageGreen,
+                  size: 34,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+class CollectionItemDetailScreen extends StatelessWidget {
+  const CollectionItemDetailScreen({
+    required this.item,
+    required this.kind,
+    super.key,
+  });
+
+  final PublishedReel item;
+  final CollectionKind kind;
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: Text(kind.label)),
+    body: ScreenContainer(
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 42),
+        children: [
+          _CollectionMedia(item: item, kind: kind),
+          const SizedBox(height: 22),
+          Text(
+            item.category.isEmpty
+                ? 'PUBLISHED ${kind.label.toUpperCase()}'
+                : item.category.toUpperCase(),
+            style: const TextStyle(
+              color: BrandColors.terracotta,
+              fontWeight: FontWeight.w900,
+              fontSize: 10,
+              letterSpacing: 1.1,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(item.title, style: Theme.of(context).textTheme.headlineMedium),
+          const SizedBox(height: 8),
+          Text(
+            'By ${item.creatorName}',
+            style: const TextStyle(
+              color: BrandColors.savannahGreen,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          if (item.description.isNotEmpty) ...[
+            const SizedBox(height: 22),
+            _DetailBlock(title: 'About', body: item.description),
+          ],
+          if (item.body.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            _DetailBlock(title: _bodyTitle, body: item.body),
+          ],
+          if (item.englishSummary.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            _DetailBlock(title: 'English summary', body: item.englishSummary),
+          ],
+          if (item.culturalNotes.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            _DetailBlock(title: 'Cultural context', body: item.culturalNotes),
+          ],
+          const SizedBox(height: 12),
+          _DetailBlock(
+            title: 'Publication and rights',
+            body: item.licenceDisplay.isEmpty
+                ? 'Published with permission through Indigen World.'
+                : item.licenceDisplay,
+          ),
+        ],
+      ),
+    ),
+  );
+
+  String get _bodyTitle => switch (kind) {
+    CollectionKind.music => 'Lyrics or transcript',
+    CollectionKind.literature => 'The work',
+    CollectionKind.audiobooks => 'Transcript or text',
+    CollectionKind.dictionary => 'Entry',
+  };
+}
+
+class _CollectionMedia extends StatefulWidget {
+  const _CollectionMedia({required this.item, required this.kind});
+
+  final PublishedReel item;
+  final CollectionKind kind;
+
+  @override
+  State<_CollectionMedia> createState() => _CollectionMediaState();
+}
+
+class _CollectionMediaState extends State<_CollectionMedia> {
+  VideoPlayerController? _controller;
+  Future<void>? _initializing;
+
+  bool get _canPlay {
+    final type = widget.item.mediaType?.toLowerCase() ?? '';
+    return widget.item.mediaUrl != null &&
+        (type.contains('audio') || type.contains('video'));
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    if (_canPlay) {
+      final controller = VideoPlayerController.networkUrl(
+        Uri.parse(widget.item.mediaUrl!),
+      );
+      _controller = controller;
+      _initializing = controller.initialize();
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = _controller;
+    if (controller == null) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(26),
+        child: AspectRatio(
+          aspectRatio: 16 / 10,
+          child: widget.item.posterUrl == null
+              ? _MediaFallback(kind: widget.kind)
+              : CachedNetworkImage(
+                  imageUrl: widget.item.posterUrl!,
+                  fit: BoxFit.cover,
+                  errorWidget: (_, _, _) => _MediaFallback(kind: widget.kind),
+                ),
+        ),
+      );
+    }
+    return FutureBuilder<void>(
+      future: _initializing,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return const SizedBox(
+            height: 220,
+            child: Center(child: CircularProgressIndicator()),
+          );
+        }
+        if (snapshot.hasError) {
+          return _PlaybackUnavailable(kind: widget.kind);
+        }
+        return AnimatedBuilder(
+          animation: controller,
+          builder: (context, _) {
+            final value = controller.value;
+            final duration = value.duration.inMilliseconds;
+            final position = value.position.inMilliseconds.clamp(0, duration);
+            final isVideo =
+                widget.item.mediaType?.toLowerCase().contains('video') ?? false;
+            return Container(
+              clipBehavior: Clip.antiAlias,
+              decoration: BoxDecoration(
+                color: BrandColors.heritageGreen,
+                borderRadius: BorderRadius.circular(26),
+              ),
+              child: Column(
+                children: [
+                  AspectRatio(
+                    aspectRatio: isVideo && value.aspectRatio > 0
+                        ? value.aspectRatio
+                        : 16 / 8,
+                    child: isVideo
+                        ? VideoPlayer(controller)
+                        : _MediaFallback(kind: widget.kind),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(14, 6, 14, 10),
+                    child: Row(
+                      children: [
+                        IconButton.filledTonal(
+                          tooltip: value.isPlaying ? 'Pause' : 'Play',
+                          onPressed: () => value.isPlaying
+                              ? controller.pause()
+                              : controller.play(),
+                          icon: Icon(
+                            value.isPlaying
+                                ? Icons.pause_rounded
+                                : Icons.play_arrow_rounded,
+                          ),
+                        ),
+                        Expanded(
+                          child: Slider(
+                            value: duration == 0 ? 0 : position.toDouble(),
+                            max: duration == 0 ? 1 : duration.toDouble(),
+                            onChanged: duration == 0
+                                ? null
+                                : (next) => controller.seekTo(
+                                    Duration(milliseconds: next.round()),
+                                  ),
+                          ),
+                        ),
+                        Text(
+                          _durationLabel(value.position),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+}
+
+class _MediaFallback extends StatelessWidget {
+  const _MediaFallback({required this.kind});
+
+  final CollectionKind kind;
+
+  @override
+  Widget build(BuildContext context) => DecoratedBox(
+    decoration: const BoxDecoration(
+      gradient: LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [BrandColors.heritageGreen, BrandColors.savannahGreen],
+      ),
+    ),
+    child: Center(
+      child: Icon(
+        switch (kind) {
+          CollectionKind.music => Icons.graphic_eq_rounded,
+          CollectionKind.dictionary => Icons.translate_rounded,
+          CollectionKind.literature => Icons.auto_stories_rounded,
+          CollectionKind.audiobooks => Icons.headphones_rounded,
+        },
+        color: BrandColors.kenteGold,
+        size: 58,
+      ),
+    ),
+  );
+}
+
+class _PlaybackUnavailable extends StatelessWidget {
+  const _PlaybackUnavailable({required this.kind});
+
+  final CollectionKind kind;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    height: 210,
+    padding: const EdgeInsets.all(24),
+    decoration: BoxDecoration(
+      color: BrandColors.heritageGreen,
+      borderRadius: BorderRadius.circular(26),
+    ),
+    child: Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(
+          kind == CollectionKind.music
+              ? Icons.music_off_rounded
+              : Icons.headset_off_rounded,
+          color: BrandColors.kenteGold,
+          size: 42,
+        ),
+        const SizedBox(height: 10),
+        const Text(
+          'This recording could not be streamed right now.',
+          textAlign: TextAlign.center,
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+        ),
+      ],
+    ),
+  );
+}
+
+class _DetailBlock extends StatelessWidget {
+  const _DetailBlock({required this.title, required this.body});
+
+  final String title;
+  final String body;
+
+  @override
+  Widget build(BuildContext context) => Card(
+    child: Padding(
+      padding: const EdgeInsets.all(18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 8),
+          SelectableText(body, style: const TextStyle(height: 1.5)),
+        ],
+      ),
+    ),
+  );
+}
+
+class _CollectionEmptyState extends StatelessWidget {
+  const _CollectionEmptyState({required this.kind, this.searching = false});
+
+  final CollectionKind kind;
+  final bool searching;
+
+  @override
+  Widget build(BuildContext context) => Center(
+    child: Padding(
+      padding: const EdgeInsets.fromLTRB(28, 24, 28, 80),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 78,
+            height: 78,
+            decoration: BoxDecoration(
+              color: BrandColors.heritageGreen.withValues(alpha: 0.09),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              searching ? Icons.search_off_rounded : Icons.eco_outlined,
+              size: 38,
+              color: BrandColors.heritageGreen,
+            ),
+          ),
+          const SizedBox(height: 18),
+          Text(
+            searching
+                ? 'No matching words yet'
+                : '${kind.label} is ready for its first published piece',
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            searching ? 'Try another spelling, English word, or dialect.' : 'Approved community contributions will appear here automatically.',
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: BrandColors.mutedInk, height: 1.4),
+          ),
+          if (!searching) ...[
+            const SizedBox(height: 18),
+            FilledButton.icon(
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (context) =>
+                      ContributeScreen(initialKind: kind, standalone: true),
+                ),
+              ),
+              icon: const Icon(Icons.add_rounded),
+              label: Text('Contribute ${kind.contributionLabel}'),
+            ),
+          ],
+        ],
+      ),
+    ),
+  );
+}
+
+class _CollectionLoadError extends StatelessWidget {
+  const _CollectionLoadError({this.onRetry});
+
+  final VoidCallback? onRetry;
+
+  @override
+  Widget build(BuildContext context) => Center(
+    child: Padding(
+      padding: const EdgeInsets.all(28),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(
+            Icons.cloud_off_rounded,
+            size: 44,
+            color: BrandColors.terracotta,
+          ),
+          const SizedBox(height: 14),
+          Text(
+            'The collection could not be refreshed.',
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
+          const SizedBox(height: 7),
+          const Text(
+            'Check your connection and try again. Previously saved content may still appear offline.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: BrandColors.mutedInk),
+          ),
+          if (onRetry != null) ...[
+            const SizedBox(height: 16),
+            OutlinedButton.icon(
+              onPressed: onRetry,
+              icon: const Icon(Icons.refresh_rounded),
+              label: const Text('Try again'),
+            ),
+          ],
+        ],
+      ),
+    ),
+  );
+}
+
+String _durationLabel(Duration duration) {
+  final minutes = duration.inMinutes;
+  final seconds = duration.inSeconds.remainder(60).toString().padLeft(2, '0');
+  return '$minutes:$seconds';
+}

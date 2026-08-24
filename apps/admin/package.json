@@ -10,7 +10,9 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "typecheck": "tsc -b --pretty false"
+    "typecheck": "tsc -b --pretty false",
+    "test": "node ./scripts/validate-admin.mjs",
+    "check": "npm run typecheck && npm test && npm run build"
   },
   "dependencies": {
     "@indigen-world/contracts": "*",

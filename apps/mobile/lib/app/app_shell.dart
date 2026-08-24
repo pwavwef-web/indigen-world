@@ -34,6 +34,7 @@ class AppShell extends ConsumerStatefulWidget {
 class _AppShellState extends ConsumerState<AppShell>
     with SingleTickerProviderStateMixin {
   late int _selectedIndex;
+  late int _lastNonExploreIndex;
   late final AnimationController _transitionController;
   late final Animation<double> _fadeAnimation;
   late final Animation<Offset> _slideAnimation;
@@ -54,6 +55,9 @@ class _AppShellState extends ConsumerState<AppShell>
   void initState() {
     super.initState();
     _selectedIndex = widget.initialIndex.clamp(0, _screens.length - 1);
+    _lastNonExploreIndex = _selectedIndex == _exploreIndex
+        ? kCommunityTabIndex
+        : _selectedIndex;
     _transitionController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 320),
@@ -77,9 +81,19 @@ class _AppShellState extends ConsumerState<AppShell>
 
   void _selectDestination(int index) {
     if (index == _selectedIndex) return;
-    setState(() => _selectedIndex = index);
+    setState(() {
+      if (_selectedIndex != _exploreIndex) {
+        _lastNonExploreIndex = _selectedIndex;
+      }
+      _selectedIndex = index;
+    });
     _transitionController.forward(from: 0);
     HapticFeedback.selectionClick();
+  }
+
+  void _returnFromExplore() {
+    if (_selectedIndex != _exploreIndex) return;
+    _selectDestination(_lastNonExploreIndex);
   }
 
   @override
@@ -127,48 +141,64 @@ class _AppShellState extends ConsumerState<AppShell>
       ),
     ];
 
-    return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: onExplore
-          ? SystemUiOverlayStyle.light
-          : const SystemUiOverlayStyle(
-              statusBarColor: Colors.transparent,
-              statusBarIconBrightness: Brightness.dark,
-              systemNavigationBarColor: BrandColors.plasterCream,
-              systemNavigationBarIconBrightness: Brightness.dark,
-            ),
-      child: Scaffold(
-        // The glass rail floats over the content rather than sitting under it.
-        extendBody: true,
-        body: Stack(
-          children: [
-            if (!onExplore) const Positioned.fill(child: _AmbientMotifs()),
-            FadeTransition(
-              opacity: _fadeAnimation,
-              child: SlideTransition(
-                position: _slideAnimation,
-                child: IndexedStack(index: _selectedIndex, children: _screens),
+    return PopScope<void>(
+      // Explore is deliberately immersive. Its first back gesture restores the
+      // tab the member came from instead of closing the app.
+      canPop: !onExplore,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop && onExplore) _returnFromExplore();
+      },
+      child: AnnotatedRegion<SystemUiOverlayStyle>(
+        value: onExplore
+            ? SystemUiOverlayStyle.light
+            : const SystemUiOverlayStyle(
+                statusBarColor: Colors.transparent,
+                statusBarIconBrightness: Brightness.dark,
+                systemNavigationBarColor: BrandColors.plasterCream,
+                systemNavigationBarIconBrightness: Brightness.dark,
               ),
-            ),
-            Positioned(
-              top: MediaQuery.paddingOf(context).top + 6,
-              right: kProfileOrbInset,
-              child: ProfileOrb(onDark: onExplore),
-            ),
-            // Just above the floating rail, centred. Every screen owns its own
-            // top-left heading, so a banner up there would land on top of one;
-            // down here the only neighbour is the rail itself.
-            Positioned(
-              left: 16,
-              right: 16,
-              bottom: kFrostedNavBarReservedSpace + 6,
-              child: Center(child: ConnectionBanner(onDark: onExplore)),
-            ),
-          ],
-        ),
-        bottomNavigationBar: FrostedNavBar(
-          currentIndex: _selectedIndex,
-          onTap: _selectDestination,
-          items: destinations,
+        child: Scaffold(
+          // The glass rail floats over the content rather than sitting under it.
+          extendBody: true,
+          body: Stack(
+            children: [
+              if (!onExplore) const Positioned.fill(child: _AmbientMotifs()),
+              FadeTransition(
+                opacity: _fadeAnimation,
+                child: SlideTransition(
+                  position: _slideAnimation,
+                  child: IndexedStack(
+                    index: _selectedIndex,
+                    children: _screens,
+                  ),
+                ),
+              ),
+              Positioned(
+                top: MediaQuery.paddingOf(context).top + 6,
+                right: kProfileOrbInset,
+                child: ProfileOrb(onDark: onExplore),
+              ),
+              // On Explore the rail is absent, so the connection state moves
+              // down into the freed safe area without covering reel controls.
+              Positioned(
+                left: 16,
+                right: 16,
+                bottom: onExplore
+                    ? MediaQuery.paddingOf(context).bottom + 28
+                    : kFrostedNavBarReservedSpace + 6,
+                child: Center(child: ConnectionBanner(onDark: onExplore)),
+              ),
+            ],
+          ),
+          // Full-bleed reels should feel like a destination, not a tab with
+          // chrome painted over it. Native back is the way home from Explore.
+          bottomNavigationBar: onExplore
+              ? null
+              : FrostedNavBar(
+                  currentIndex: _selectedIndex,
+                  onTap: _selectDestination,
+                  items: destinations,
+                ),
         ),
       ),
     );

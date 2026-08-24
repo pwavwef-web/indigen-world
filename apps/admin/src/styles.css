@@ -10,7 +10,10 @@
 
 body {
   margin: 0;
-  background: var(--bg);
+  background:
+    radial-gradient(circle at 8% 2%, rgba(197, 138, 0, 0.1), transparent 28rem),
+    radial-gradient(circle at 92% 16%, rgba(30, 54, 93, 0.12), transparent 32rem),
+    var(--bg);
 }
 
 .skip-link {
@@ -20,7 +23,7 @@ body {
 .skip-link:focus {
   left: 12px;
   top: 12px;
-  z-index: 10;
+  z-index: 1000;
   background: var(--surface);
   padding: 8px 12px;
   border-radius: 8px;
@@ -32,13 +35,32 @@ body {
   flex-direction: column;
 }
 
+.admin-header {
+  position: sticky;
+  z-index: 100;
+  top: 10px;
+  width: min(1180px, calc(100% - 24px));
+  margin: 10px auto 0;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 22px;
+  background:
+    linear-gradient(115deg, rgba(255, 255, 255, 0.12), transparent 48%),
+    rgba(16, 28, 54, 0.84);
+  box-shadow:
+    0 20px 52px rgba(16, 28, 54, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  -webkit-backdrop-filter: blur(24px) saturate(155%);
+  backdrop-filter: blur(24px) saturate(155%);
+}
+
 .topbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 14px 24px;
-  background: var(--indigo-deep);
+  padding: 13px 18px;
+  background: transparent;
   color: #fff;
 }
 
@@ -75,14 +97,91 @@ body {
   gap: 12px;
 }
 .account-name {
-  font-size: 0.9rem;
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  font-size: 0.82rem;
   color: #dfe5f0;
+}
+.account-name strong {
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.account-orb {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 38px;
+  height: 38px;
+  overflow: hidden;
+  border: 1px solid rgba(240, 217, 156, 0.42);
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(197, 138, 0, 0.42), rgba(182, 90, 58, 0.52));
+  box-shadow: 0 0 24px rgba(197, 138, 0, 0.16);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+.account-orb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.account-name .role-chip {
+  justify-self: start;
+  margin-left: 0;
+  border: 1px solid rgba(240, 217, 156, 0.24);
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--gold-soft);
+}
+.admin-header .iw-button--ghost {
+  border-color: rgba(255, 255, 255, 0.18);
 }
 
 /* Nav items are anchors (real URLs) styled like the former buttons. */
 a.topnav__link {
   display: inline-block;
   text-decoration: none;
+}
+
+.topnav {
+  display: flex;
+  gap: 4px;
+  padding: 7px 10px 9px;
+  overflow-x: auto;
+  border-top: 1px solid rgba(255, 255, 255, 0.09);
+  background: rgba(4, 12, 27, 0.14);
+  scrollbar-width: thin;
+}
+.topnav__link {
+  flex: 0 0 auto;
+  padding: 9px 14px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.88rem;
+  transition:
+    color var(--motion-fast),
+    background var(--motion-fast),
+    border-color var(--motion-fast),
+    box-shadow var(--motion-fast);
+}
+.topnav__link:hover,
+.topnav__link:focus-visible {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+}
+.topnav__link.is-active {
+  border-color: rgba(240, 217, 156, 0.26);
+  background: linear-gradient(135deg, rgba(197, 138, 0, 0.2), rgba(255, 255, 255, 0.08));
+  box-shadow:
+    0 0 24px rgba(197, 138, 0, 0.13),
+    inset 0 -1px 0 rgba(240, 217, 156, 0.42);
+  color: #fff;
+  font-weight: 700;
 }
 
 /* Breadcrumb trail below the primary nav. */
@@ -219,6 +318,133 @@ code {
   color: var(--text-soft);
   font-size: 0.82rem;
   border-top: 1px solid var(--border);
+}
+
+/* Explicit unknown-route state. */
+.admin-not-found {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  max-width: 800px;
+  margin: clamp(18px, 5vh, 58px) auto;
+  padding: clamp(32px, 7vw, 68px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: clamp(24px, 4vw, 38px);
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.045)),
+    var(--indigo-deep);
+  box-shadow: 0 28px 70px rgba(16, 28, 54, 0.22);
+  color: #fff;
+  text-align: center;
+}
+.admin-not-found__halo {
+  position: absolute;
+  z-index: -1;
+  width: 380px;
+  aspect-ratio: 1;
+  right: -170px;
+  bottom: -210px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(197, 138, 0, 0.34), transparent 68%);
+}
+.admin-not-found__code {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: rgba(255, 255, 255, 0.94);
+  font-size: clamp(4.5rem, 16vw, 8rem);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.08em;
+}
+.admin-not-found__orb {
+  display: grid;
+  place-items: center;
+  width: clamp(70px, 14vw, 106px);
+  aspect-ratio: 1;
+  border: 1px solid rgba(240, 217, 156, 0.38);
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 24%, rgba(255, 255, 255, 0.2), rgba(197, 138, 0, 0.11));
+  box-shadow: 0 0 42px rgba(197, 138, 0, 0.22);
+  color: var(--gold-soft);
+  font-size: clamp(0.9rem, 3vw, 1.35rem);
+  letter-spacing: 0.08em;
+}
+.admin-not-found__eyebrow {
+  margin: 18px 0 8px;
+  color: var(--gold-soft) !important;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.admin-not-found h1 {
+  margin: 0 0 10px;
+  font-size: clamp(1.8rem, 5vw, 3rem);
+}
+.admin-not-found > p:not(.admin-not-found__eyebrow) {
+  max-width: 54ch;
+  margin: 0 auto;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.65;
+}
+.admin-not-found__action {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 24px;
+  padding: 11px 18px;
+  border: 1px solid rgba(240, 217, 156, 0.34);
+  border-radius: 999px;
+  background: linear-gradient(135deg, rgba(197, 138, 0, 0.3), rgba(182, 90, 58, 0.24));
+  box-shadow: 0 0 28px rgba(197, 138, 0, 0.14);
+  color: #fff;
+  font-weight: 700;
+  text-decoration: none;
+}
+.admin-not-found__action:hover,
+.admin-not-found__action:focus-visible {
+  background: linear-gradient(135deg, rgba(197, 138, 0, 0.44), rgba(182, 90, 58, 0.32));
+  transform: translateY(-1px);
+}
+
+@media (max-width: 640px) {
+  .admin-header {
+    top: 6px;
+    width: calc(100% - 12px);
+    margin-top: 6px;
+    border-radius: 18px;
+  }
+  .topbar {
+    padding: 10px 12px;
+  }
+  .brand__text small,
+  .account-name {
+    display: none;
+  }
+  .topbar__account {
+    gap: 8px;
+  }
+  .breadcrumbs {
+    padding-inline: 16px;
+  }
+  .content {
+    padding-inline: 16px;
+  }
+}
+
+@supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  .admin-header {
+    background: rgba(16, 28, 54, 0.98);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .topnav__link,
+  .admin-not-found__action {
+    transition: none;
+  }
 }
 
 /* "Planned" tag on console domains that have no implemented UI yet. */

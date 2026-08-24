@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
-import 'package:indigen_world_mobile/features/home/home_screen.dart';
+import 'package:indigen_world_mobile/features/collection/collection_detail_screens.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_fab.dart';
 import 'package:indigen_world_mobile/shared/app_widgets.dart';
 import 'package:indigen_world_mobile/shared/frosted_nav_bar.dart';
@@ -58,6 +58,11 @@ class _LearnScreenState extends State<LearnScreen> {
               completed: _completedLessons.length,
               onTap: () => _openLesson(_nextLesson),
             ),
+            const SizedBox(height: 14),
+            _LearningMomentumCard(
+              completed: _completedLessons.length,
+              total: _lessons.length,
+            ),
             const SizedBox(height: 26),
             const _UnitBanner(
               unit: 'UNIT 1',
@@ -108,10 +113,7 @@ class _LearnScreenState extends State<LearnScreen> {
   void _openDictionary() {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (context) => Scaffold(
-          appBar: AppBar(title: const Text('Kasem dictionary')),
-          body: const HomeScreen(),
-        ),
+        builder: (context) => const DictionaryCollectionScreen(),
       ),
     );
   }
@@ -126,15 +128,14 @@ class _LearnScreenState extends State<LearnScreen> {
       );
       return;
     }
-    final completed = await showModalBottomSheet<bool>(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      backgroundColor: BrandColors.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+    final completed = await Navigator.of(context).push<bool>(
+      MaterialPageRoute<bool>(
+        builder: (context) => _LessonScreen(
+          lesson: _lessons[index],
+          lessonNumber: index + 1,
+          lessonCount: _lessons.length,
+        ),
       ),
-      builder: (context) => _LessonPlayer(lesson: _lessons[index]),
     );
     if (completed == true && mounted) {
       HapticFeedback.heavyImpact();
@@ -419,6 +420,98 @@ class _DailyQuestCard extends StatelessWidget {
   }
 }
 
+class _LearningMomentumCard extends StatelessWidget {
+  const _LearningMomentumCard({required this.completed, required this.total});
+
+  final int completed;
+  final int total;
+
+  @override
+  Widget build(BuildContext context) {
+    final progress = total == 0 ? 0.0 : (completed / total).clamp(0.0, 1.0);
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 15),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            Colors.white.withValues(alpha: 0.92),
+            BrandColors.kenteGold.withValues(alpha: 0.08),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(19),
+        border: Border.all(
+          color: BrandColors.kenteGold.withValues(alpha: 0.28),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  color: BrandColors.heritageGreen.withValues(alpha: 0.09),
+                  borderRadius: BorderRadius.circular(11),
+                ),
+                child: const Icon(
+                  Icons.insights_rounded,
+                  size: 19,
+                  color: BrandColors.heritageGreen,
+                ),
+              ),
+              const SizedBox(width: 11),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'YOUR MOMENTUM',
+                      style: TextStyle(
+                        color: BrandColors.terracotta,
+                        fontSize: 9,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 1.1,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      completed == 0
+                          ? 'Your first milestone is ready'
+                          : '$completed of $total lessons complete',
+                      style: const TextStyle(fontWeight: FontWeight.w800),
+                    ),
+                  ],
+                ),
+              ),
+              Text(
+                '${(progress * 100).round()}%',
+                style: const TextStyle(
+                  color: BrandColors.heritageGreen,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(999),
+            child: LinearProgressIndicator(
+              value: progress,
+              minHeight: 7,
+              color: BrandColors.kenteGold,
+              backgroundColor: BrandColors.heritageGreen.withValues(
+                alpha: 0.08,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _UnitBanner extends StatelessWidget {
   const _UnitBanner({
     required this.unit,
@@ -689,160 +782,408 @@ class _LockedUnitPreview extends StatelessWidget {
   );
 }
 
-class _LessonPlayer extends StatefulWidget {
-  const _LessonPlayer({required this.lesson});
+class _LessonScreen extends StatefulWidget {
+  const _LessonScreen({
+    required this.lesson,
+    required this.lessonNumber,
+    required this.lessonCount,
+  });
 
   final _Lesson lesson;
+  final int lessonNumber;
+  final int lessonCount;
 
   @override
-  State<_LessonPlayer> createState() => _LessonPlayerState();
+  State<_LessonScreen> createState() => _LessonScreenState();
 }
 
-class _LessonPlayerState extends State<_LessonPlayer> {
+class _LessonScreenState extends State<_LessonScreen> {
   int? _selected;
   var _checked = false;
 
   bool get _correct => _selected == widget.lesson.correctAnswer;
 
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: EdgeInsets.fromLTRB(
-      22,
-      12,
-      22,
-      22 + MediaQuery.viewInsetsOf(context).bottom,
+  Widget build(BuildContext context) => AnnotatedRegion<SystemUiOverlayStyle>(
+    value: const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.dark,
+      systemNavigationBarColor: BrandColors.plasterCream,
+      systemNavigationBarIconBrightness: Brightness.dark,
     ),
-    child: SizedBox(
-      height: MediaQuery.sizeOf(context).height * 0.82,
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              children: [
-                IconButton(
-                  onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.close_rounded),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(999),
-                    child: const LinearProgressIndicator(
-                      value: 1,
-                      minHeight: 9,
-                      color: BrandColors.savannahGreen,
-                      backgroundColor: BrandColors.divider,
+    child: Scaffold(
+      backgroundColor: BrandColors.plasterCream,
+      body: Stack(
+        children: [
+          const Positioned.fill(child: _LessonAtmosphere()),
+          SafeArea(
+            bottom: false,
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 720),
+                child: Column(
+                  children: [
+                    _LessonTopBar(
+                      current: widget.lessonNumber,
+                      total: widget.lessonCount,
+                      onClose: () => Navigator.pop(context),
                     ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                const Icon(Icons.favorite_rounded, color: Color(0xFFE75555)),
-                const SizedBox(width: 4),
-                const Text('5', style: TextStyle(fontWeight: FontWeight.w900)),
-              ],
-            ),
-            const SizedBox(height: 26),
-            Text(
-              widget.lesson.prompt,
-              style: Theme.of(context).textTheme.headlineMedium
-                  ?.copyWith(height: 1.08),
-            ),
-            const SizedBox(height: 9),
-            Text(
-              widget.lesson.support,
-              style: const TextStyle(color: BrandColors.mutedInk, fontSize: 15),
-            ),
-            const SizedBox(height: 22),
-            for (
-              var index = 0;
-              index < widget.lesson.answers.length;
-              index++
-            ) ...[
-              _AnswerTile(
-                index: index,
-                answer: widget.lesson.answers[index],
-                selected: _selected == index,
-                checked: _checked,
-                correct: index == widget.lesson.correctAnswer,
-                onTap: _checked
-                    ? null
-                    : () => setState(() => _selected = index),
-              ),
-              const SizedBox(height: 10),
-            ],
-            AnimatedSwitcher(
-              duration: const Duration(milliseconds: 220),
-              child: !_checked
-                  ? const SizedBox(height: 2)
-                  : Container(
-                      key: ValueKey(_correct),
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color:
-                            (_correct
-                                    ? BrandColors.savannahGreen
-                                    : BrandColors.terracotta)
-                                .withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(15),
-                      ),
-                      child: Text(
-                        _correct
-                            ? 'Beautiful! ${widget.lesson.explanation}'
-                            : 'Almost. ${widget.lesson.explanation}',
-                        style: TextStyle(
-                          color: _correct
-                              ? BrandColors.savannahGreen
-                              : BrandColors.terracotta,
-                          fontWeight: FontWeight.w800,
+                    Expanded(
+                      child: SingleChildScrollView(
+                        key: PageStorageKey(
+                          'lesson-${widget.lessonNumber}-scroll',
+                        ),
+                        padding: const EdgeInsets.fromLTRB(20, 8, 20, 132),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            _LessonHero(lesson: widget.lesson),
+                            const SizedBox(height: 24),
+                            const Text(
+                              'QUICK PRACTICE',
+                              style: TextStyle(
+                                color: BrandColors.terracotta,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 1.2,
+                              ),
+                            ),
+                            const SizedBox(height: 7),
+                            Text(
+                              widget.lesson.prompt,
+                              style: Theme.of(context).textTheme.headlineMedium
+                                  ?.copyWith(height: 1.08),
+                            ),
+                            const SizedBox(height: 9),
+                            Text(
+                              widget.lesson.support,
+                              style: const TextStyle(
+                                color: BrandColors.mutedInk,
+                                fontSize: 15,
+                              ),
+                            ),
+                            const SizedBox(height: 22),
+                            for (
+                              var index = 0;
+                              index < widget.lesson.answers.length;
+                              index++
+                            ) ...[
+                              _AnswerTile(
+                                index: index,
+                                answer: widget.lesson.answers[index],
+                                selected: _selected == index,
+                                checked: _checked,
+                                correct: index == widget.lesson.correctAnswer,
+                                onTap: _checked
+                                    ? null
+                                    : () => setState(() => _selected = index),
+                              ),
+                              const SizedBox(height: 10),
+                            ],
+                            AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 220),
+                              child: !_checked
+                                  ? const SizedBox(height: 2)
+                                  : _LessonFeedback(
+                                      correct: _correct,
+                                      explanation: widget.lesson.explanation,
+                                    ),
+                            ),
+                            const SizedBox(height: 14),
+                            const Text(
+                              'Learning preview · phrases await community language validation.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: BrandColors.mutedInk,
+                                fontSize: 10,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
-            ),
-            const SizedBox(height: 16),
-            FilledButton(
-              style: FilledButton.styleFrom(
-                backgroundColor: _checked && _correct
-                    ? BrandColors.savannahGreen
-                    : BrandColors.heritageGreen,
-              ),
-              onPressed: _selected == null
-                  ? null
-                  : () {
-                      if (!_checked) {
-                        HapticFeedback.selectionClick();
-                        setState(() => _checked = true);
-                        return;
-                      }
-                      if (_correct) {
-                        Navigator.pop(context, true);
-                      } else {
-                        setState(() {
-                          _checked = false;
-                          _selected = null;
-                        });
-                      }
-                    },
-              child: Text(
-                !_checked
-                    ? 'Check answer'
-                    : _correct
-                    ? 'Collect ${widget.lesson.xp} XP'
-                    : 'Try again',
+                  ],
+                ),
               ),
             ),
-            const SizedBox(height: 8),
-            const Text(
-              'Learning preview · phrases await community language validation.',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: BrandColors.mutedInk, fontSize: 10),
-            ),
-          ],
+          ),
+        ],
+      ),
+      bottomNavigationBar: SafeArea(
+        minimum: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+        child: FilledButton.icon(
+          key: const Key('lesson-primary-action'),
+          style: FilledButton.styleFrom(
+            backgroundColor: _checked && _correct
+                ? BrandColors.savannahGreen
+                : BrandColors.heritageGreen,
+          ),
+          onPressed: _selected == null ? null : _advance,
+          icon: Icon(
+            _checked && _correct
+                ? Icons.stars_rounded
+                : Icons.arrow_forward_rounded,
+          ),
+          label: Text(
+            !_checked
+                ? 'Check answer'
+                : _correct
+                ? 'Collect ${widget.lesson.xp} XP'
+                : 'Try again',
+          ),
         ),
       ),
     ),
   );
+
+  void _advance() {
+    if (!_checked) {
+      HapticFeedback.selectionClick();
+      setState(() => _checked = true);
+      return;
+    }
+    if (_correct) {
+      HapticFeedback.mediumImpact();
+      Navigator.pop(context, true);
+      return;
+    }
+    setState(() {
+      _checked = false;
+      _selected = null;
+    });
+  }
+}
+
+class _LessonAtmosphere extends StatelessWidget {
+  const _LessonAtmosphere();
+
+  @override
+  Widget build(BuildContext context) => IgnorePointer(
+    child: DecoratedBox(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFFFFFCF2), BrandColors.plasterCream],
+        ),
+      ),
+      child: Stack(
+        children: [
+          Positioned(
+            right: -70,
+            top: 90,
+            child: Container(
+              width: 190,
+              height: 190,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: BrandColors.kenteGold.withValues(alpha: 0.08),
+              ),
+            ),
+          ),
+          const Positioned(
+            left: -24,
+            bottom: 130,
+            child: Opacity(
+              opacity: 0.045,
+              child: Text(
+                '✣',
+                style: TextStyle(
+                  color: BrandColors.heritageGreen,
+                  fontSize: 130,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+class _LessonTopBar extends StatelessWidget {
+  const _LessonTopBar({
+    required this.current,
+    required this.total,
+    required this.onClose,
+  });
+
+  final int current;
+  final int total;
+  final VoidCallback onClose;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.fromLTRB(12, 8, 16, 8),
+    child: Row(
+      children: [
+        IconButton.filledTonal(
+          tooltip: 'Close lesson',
+          onPressed: onClose,
+          icon: const Icon(Icons.close_rounded),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'LESSON $current OF $total',
+                style: const TextStyle(
+                  color: BrandColors.mutedInk,
+                  fontSize: 9,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1,
+                ),
+              ),
+              const SizedBox(height: 6),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(999),
+                child: LinearProgressIndicator(
+                  value: current / total,
+                  minHeight: 7,
+                  color: BrandColors.kenteGold,
+                  backgroundColor: BrandColors.heritageGreen.withValues(
+                    alpha: 0.1,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 13),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.78),
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(color: BrandColors.divider),
+          ),
+          child: const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.favorite_rounded, color: Color(0xFFE75555), size: 17),
+              SizedBox(width: 4),
+              Text('5', style: TextStyle(fontWeight: FontWeight.w900)),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+class _LessonHero extends StatelessWidget {
+  const _LessonHero({required this.lesson});
+
+  final _Lesson lesson;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.all(20),
+    decoration: BoxDecoration(
+      borderRadius: BorderRadius.circular(25),
+      gradient: const LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [BrandColors.heritageGreen, BrandColors.savannahGreen],
+      ),
+      boxShadow: const [
+        BoxShadow(
+          color: Color(0x2B0B3D2E),
+          blurRadius: 24,
+          offset: Offset(0, 12),
+        ),
+      ],
+    ),
+    child: Row(
+      children: [
+        Container(
+          width: 58,
+          height: 58,
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: Colors.white24),
+          ),
+          child: Icon(lesson.icon, color: BrandColors.kenteGold, size: 29),
+        ),
+        const SizedBox(width: 15),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'TODAY\'S STEP',
+                style: TextStyle(
+                  color: BrandColors.kenteGold,
+                  fontSize: 9,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.1,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                lesson.title,
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 5),
+              Text(
+                '${lesson.minutes} min · ${lesson.xp} XP',
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.72),
+                  fontWeight: FontWeight.w700,
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+class _LessonFeedback extends StatelessWidget {
+  const _LessonFeedback({required this.correct, required this.explanation});
+
+  final bool correct;
+  final String explanation;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = correct ? BrandColors.savannahGreen : BrandColors.terracotta;
+    return Container(
+      key: ValueKey(correct),
+      padding: const EdgeInsets.all(15),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(17),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            correct ? Icons.auto_awesome_rounded : Icons.refresh_rounded,
+            color: color,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              correct ? 'Beautiful! $explanation' : 'Almost. $explanation',
+              style: TextStyle(color: color, fontWeight: FontWeight.w800),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _AnswerTile extends StatelessWidget {

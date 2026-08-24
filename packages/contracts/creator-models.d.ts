@@ -52,6 +52,7 @@ export type SubmissionStatus =
   | 'ARCHIVED';
 
 export type ContentStudioType = 'writing' | 'video' | 'audio' | 'image' | 'translation';
+export type CollectionKind = 'music' | 'dictionary' | 'literature' | 'audiobooks';
 
 export type PaymentStatus =
   | 'NOT_ELIGIBLE'
@@ -250,6 +251,12 @@ export interface Submission {
   studioType?: ContentStudioType;
   title: string;
   category?: string;
+  collectionKind?: CollectionKind;
+  collectionContribution?: Reference | null;
+  relatedEntryId?: string | null;
+  format?: string;
+  kasemExample?: string;
+  englishExample?: string;
   primaryLanguage?: string;
   dialect?: string;
   description?: string;
@@ -314,7 +321,7 @@ export interface Submission {
 export interface PublishedContent {
   id: string;
   submission: Reference;
-  campaign: Reference;
+  campaign: Reference | null;
   creatorAttribution: {
     creatorId: string;
     displayName: string;
@@ -323,8 +330,10 @@ export interface PublishedContent {
   language?: string;
   dialect?: string;
   category?: string;
+  collectionKind?: CollectionKind | null;
   title: string;
   description?: string;
+  body?: string;
   englishSummary?: string;
   mediaUrl?: string;
   mediaType?: 'image' | 'audio' | 'video' | 'document' | null;
@@ -336,6 +345,8 @@ export interface PublishedContent {
   publicationStatus: PublicationStatus;
   publishedAt?: string | null;
   licenceDisplay?: string;
+  sourceAttribution?: string;
+  publicationRoute?: 'open' | 'reviewed' | 'collection_review';
   correctionState?: 'none' | 'corrected' | 'takedown_requested' | 'removed';
   schemaVersion?: number;
   lifecycle: RecordLifecycle;

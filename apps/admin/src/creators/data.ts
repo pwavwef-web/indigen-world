@@ -192,7 +192,9 @@ export async function updateCampaign(id: string, patch: Partial<Campaign>): Prom
 // Submissions / review queue
 // ---------------------------------------------------------------------------
 
-const REVIEW_STATES = ['SUBMITTED', 'RESUBMITTED', 'UNDER_REVIEW'];
+// Keep approved and published work visible so publication remains an explicit,
+// reversible lifecycle step in the same review workspace.
+const REVIEW_STATES = ['SUBMITTED', 'RESUBMITTED', 'UNDER_REVIEW', 'APPROVED', 'PUBLISHED'];
 
 export async function fetchReviewQueue(): Promise<Submission[]> {
   const snap = await getDocs(query(collection(db, 'submissions'), where('status', 'in', REVIEW_STATES)));

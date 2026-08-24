@@ -6,6 +6,7 @@ import { useAdminAuth } from './creators/data';
 import { TeamSiteIntakePage } from './team-sites/TeamSiteIntake';
 import { SCREENS, screenForPath } from './navigation';
 import { useRouter } from './router';
+import { AdminNotFoundPage } from './NotFoundPage';
 
 const provider = new GoogleAuthProvider();
 
@@ -61,72 +62,90 @@ function App() {
   };
 
   const activeScreen = screenForPath(pathname);
-  const canAccessActive = !activeScreen.canAccess || activeScreen.canAccess(role);
+  const canAccessActive = activeScreen
+    ? !activeScreen.canAccess || activeScreen.canAccess(role)
+    : false;
+  const accountLabel = user?.displayName ?? user?.email ?? 'Admin user';
+  const accountInitials = accountLabel
+    .split(/[\s@._-]+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join('') || 'IW';
 
   return (
     <div className="shell">
-      <header className="topbar">
-        <div className="brand">
-          <span className="brand__mark" aria-hidden="true">
-            <svg viewBox="0 0 64 64">
-              <path d="M15 47V23l17-9 17 9v24" />
-              <path d="M24 44V29m8 15V24m8 20V29" />
-              <circle cx="32" cy="14" r="4" />
-            </svg>
-          </span>
-          <span className="brand__text">
-            <strong>Indigen World</strong>
-            <small>Admin console</small>
-          </span>
+      <header className="admin-header">
+        <div className="topbar">
+          <div className="brand">
+            <span className="brand__mark" aria-hidden="true">
+              <svg viewBox="0 0 64 64">
+                <path d="M15 47V23l17-9 17 9v24" />
+                <path d="M24 44V29m8 15V24m8 20V29" />
+                <circle cx="32" cy="14" r="4" />
+              </svg>
+            </span>
+            <span className="brand__text">
+              <strong>Indigen World</strong>
+              <small>Admin console</small>
+            </span>
+          </div>
+          <div className="topbar__account">
+            {ready && user ? (
+              <>
+                <span className="account-orb" aria-hidden="true">
+                  {user.photoURL ? <img src={user.photoURL} alt="" referrerPolicy="no-referrer" /> : accountInitials}
+                </span>
+                <span className="account-name">
+                  <strong>{accountLabel}</strong>
+                  {role ? <span className="role-chip">{role}</span> : null}
+                </span>
+                <Button variant="ghost" onClick={handleSignOut}>Sign out</Button>
+              </>
+            ) : (
+              <Button variant="primary" onClick={handleSignIn} disabled={!ready}>
+                {ready ? 'Sign in with Google' : 'Loading…'}
+              </Button>
+            )}
+          </div>
         </div>
-        <div className="topbar__account">
-          {ready && user ? (
-            <>
-              <span className="account-name">
-                {user.displayName ?? user.email}
-                {role ? <span className="role-chip">{role}</span> : null}
-              </span>
-              <Button variant="ghost" onClick={handleSignOut}>Sign out</Button>
-            </>
-          ) : (
-            <Button variant="primary" onClick={handleSignIn} disabled={!ready}>
-              {ready ? 'Sign in with Google' : 'Loading…'}
-            </Button>
-          )}
-        </div>
-      </header>
 
-      {ready && user ? (
-        <>
+        {ready && user ? (
           <nav className="topnav" aria-label="Primary">
             {SCREENS.map((screen) => (
               <a
                 key={screen.id}
                 href={screen.path}
-                className={activeScreen.id === screen.id ? 'topnav__link is-active' : 'topnav__link'}
-                aria-current={activeScreen.id === screen.id ? 'page' : undefined}
+                className={activeScreen?.id === screen.id ? 'topnav__link is-active' : 'topnav__link'}
+                aria-current={activeScreen?.id === screen.id ? 'page' : undefined}
                 onClick={linkHandler(screen.path)}
               >
                 {screen.label}
               </a>
             ))}
           </nav>
+        ) : null}
+      </header>
 
-          <nav className="breadcrumbs" aria-label="Breadcrumb">
-            <a href="/" onClick={linkHandler('/')} className="crumb">Admin console</a>
-            {activeScreen.id !== 'console' ? (
-              <>
-                <span className="crumb-sep" aria-hidden="true">›</span>
-                <span className="crumb crumb--current" aria-current="page">{activeScreen.label}</span>
-              </>
-            ) : null}
-          </nav>
-        </>
+      {(ready && user) || !activeScreen ? (
+        <nav className="breadcrumbs" aria-label="Breadcrumb">
+          <a href="/" onClick={linkHandler('/')} className="crumb">Admin console</a>
+          {activeScreen?.id !== 'console' ? (
+            <>
+              <span className="crumb-sep" aria-hidden="true">›</span>
+              <span className="crumb crumb--current" aria-current="page">
+                {activeScreen?.label ?? 'Page not found'}
+              </span>
+            </>
+          ) : null}
+        </nav>
       ) : null}
 
       <main id="main-content" className="content">
         {error ? <p className="error-line">{error}</p> : null}
-        {!ready ? (
+        {!activeScreen ? (
+          <AdminNotFoundPage onGoHome={linkHandler('/')} />
+        ) : !ready ? (
           <p className="muted">Loading…</p>
         ) : !user ? (
           <Notice

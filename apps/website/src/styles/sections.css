@@ -269,11 +269,170 @@
 }
 
 .not-found {
-  padding: 160px 0 var(--space-6);
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  min-height: min(820px, 100svh);
+  padding: 132px 0 var(--space-6);
+  background:
+    linear-gradient(145deg, rgba(20, 37, 67, 0.98), rgba(30, 54, 93, 0.94)),
+    var(--indigo-950);
+  color: white;
+}
+.not-found::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  opacity: 0.28;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+  background-size: 44px 44px;
+  -webkit-mask-image: radial-gradient(circle at center, #000, transparent 78%);
+  mask-image: radial-gradient(circle at center, #000, transparent 78%);
+}
+.not-found__glow {
+  position: absolute;
+  z-index: -1;
+  width: 360px;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  filter: blur(8px);
+  pointer-events: none;
+}
+.not-found__glow--one {
+  top: 5%;
+  left: -170px;
+  background: radial-gradient(circle, rgba(182, 90, 58, 0.34), transparent 68%);
+}
+.not-found__glow--two {
+  right: -180px;
+  bottom: -80px;
+  background: radial-gradient(circle, rgba(214, 165, 43, 0.3), transparent 68%);
+}
+.not-found__layout {
+  display: grid;
+  gap: 18px;
+  max-width: 880px;
+}
+.not-found__card,
+.not-found__routes {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.11), rgba(255, 255, 255, 0.045));
+  box-shadow:
+    0 30px 80px rgba(6, 15, 31, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  -webkit-backdrop-filter: blur(22px) saturate(140%);
+  backdrop-filter: blur(22px) saturate(140%);
+}
+.not-found__card {
+  padding: clamp(28px, 6vw, 58px);
+  border-radius: clamp(24px, 5vw, 38px);
+  text-align: center;
+}
+.not-found__code {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(4px, 2vw, 18px);
+  margin-bottom: 10px;
+  color: rgba(255, 255, 255, 0.92);
+  font-size: clamp(4rem, 18vw, 8.4rem);
+  font-weight: 800;
+  line-height: 0.92;
+  letter-spacing: -0.08em;
+}
+.not-found__mark {
+  display: grid;
+  place-items: center;
+  width: clamp(72px, 16vw, 116px);
+  aspect-ratio: 1;
+  border: 1px solid rgba(240, 217, 156, 0.34);
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 25%, rgba(255, 255, 255, 0.18), rgba(214, 165, 43, 0.08));
+  box-shadow:
+    0 0 46px rgba(214, 165, 43, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+.not-found__mark .brand-mark--compact svg {
+  width: clamp(46px, 10vw, 68px);
+  height: clamp(46px, 10vw, 68px);
+}
+.not-found .eyebrow {
+  color: var(--gold-soft);
+}
+.not-found h1 {
+  margin-bottom: 12px;
+  color: white;
+  font-size: clamp(2rem, 5vw, 3.25rem);
 }
 .not-found__body {
   max-width: 52ch;
   margin: 0 auto var(--space-3);
+  color: rgba(255, 255, 255, 0.72);
+}
+.not-found__actions {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 10px;
+}
+.not-found__routes {
+  display: grid;
+  gap: 1px;
+  padding: 8px;
+  border-radius: 24px;
+}
+.not-found__route {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 13px;
+  padding: 14px;
+  border-radius: 16px;
+  color: rgba(255, 255, 255, 0.74);
+  text-align: left;
+  transition:
+    color var(--motion-duration) var(--motion-ease),
+    background var(--motion-duration) var(--motion-ease),
+    transform var(--motion-duration) var(--motion-ease);
+}
+.not-found__route:hover,
+.not-found__route:focus-visible {
+  color: white;
+  background: rgba(255, 255, 255, 0.09);
+  transform: translateY(-1px);
+}
+.not-found__route > svg:first-child {
+  color: var(--gold-soft);
+}
+.not-found__route span {
+  display: grid;
+  min-width: 0;
+}
+.not-found__route strong {
+  color: white;
+}
+.not-found__route small {
+  margin-top: 2px;
+  color: rgba(255, 255, 255, 0.56);
+}
+
+@media (min-width: 640px) {
+  .not-found__actions {
+    flex-direction: row;
+  }
+  .not-found__routes {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .not-found__route {
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: start;
+  }
+  .not-found__route > svg:last-child {
+    display: none;
+  }
 }
 
 .target-label {

@@ -136,21 +136,73 @@ export function ProfilePage() {
   const dialects = config?.dialects ?? [];
   const categories = config?.contentCategories ?? [];
   const contentFormats = config?.contentFormats ?? [];
+  const previewInitials = profile.public.initials
+    ?? profile.public.displayName.slice(0, 2).toUpperCase();
+  const completionSignals: Array<string | number | boolean> = [
+    bio.trim(),
+    region.trim(),
+    dialect,
+    interests.length,
+    skills.length,
+    experience.trim(),
+    phone.trim(),
+    availability.trim(),
+  ];
+  if (contentFormats.length > 0) completionSignals.push(formats.length);
+  const profileCompletion = Math.round(
+    (completionSignals.filter(Boolean).length / completionSignals.length) * 100,
+  );
+  const previewMeta = [region, dialect].filter(Boolean).join(' · ') || 'Kasena community';
 
   return (
-    <div className="page">
-      <header className="page__head">
-        <div>
-          <h1>Your profile</h1>
-          <p className="muted">Public information is shown once your content is published. Private details are visible only to you and staff.</p>
+    <div className="page page--profile">
+      <header className="profile-hero">
+        <div className="profile-hero__glow" aria-hidden="true" />
+        <div className="profile-hero__identity">
+          <div className="profile-avatar" aria-hidden="true">
+            {user?.photoURL ? <img src={user.photoURL} alt="" referrerPolicy="no-referrer" /> : previewInitials}
+          </div>
+          <div>
+            <p className="profile-eyebrow">Creator identity</p>
+            <h1>{profile.public.displayName}</h1>
+            <p className="profile-hero__handle">
+              {profile.public.username ? `@${profile.public.username}` : 'Username pending'}
+              <span aria-hidden="true">·</span>
+              <span>{profile.status ?? 'waitlisted'}</span>
+            </p>
+          </div>
         </div>
-        <span className="ref-chip">{profile.reference}</span>
+        <div className="profile-hero__progress">
+          <div className="profile-hero__progress-head">
+            <span>Profile strength</span>
+            <strong>{profileCompletion}%</strong>
+          </div>
+          <div className="profile-progress" role="progressbar" aria-label="Profile completion" aria-valuemin={0} aria-valuemax={100} aria-valuenow={profileCompletion}>
+            <span style={{ width: `${profileCompletion}%` }} />
+          </div>
+          <small>Complete your details to help reviewers and communities understand your work.</small>
+        </div>
+        <span className="ref-chip profile-hero__reference">{profile.reference}</span>
       </header>
 
-      <div className="cols">
-        <div>
-          <section className="panel">
-            <h2>Public profile <span className="tag tag--public">Public</span></h2>
+      <nav className="profile-nav" aria-label="Profile sections">
+        <a href="#profile-public">Public identity</a>
+        <a href="#profile-creator">Creator focus</a>
+        <a href="#profile-contact">Contact</a>
+        <a href="#profile-preferences">Preferences</a>
+      </nav>
+
+      <div className="profile-layout">
+        <div className="profile-form">
+          <section className="panel profile-section" id="profile-public">
+            <div className="profile-section__head">
+              <span className="profile-section__index" aria-hidden="true">01</span>
+              <div>
+                <p className="profile-eyebrow">Visible attribution</p>
+                <h2>Public identity <span className="tag tag--public">Public</span></h2>
+                <p>Shape how your name, language background, and community appear beside published work.</p>
+              </div>
+            </div>
             <Field label="Display name" hint="Set at registration; contact support to change.">
               <input value={profile.public.displayName} disabled />
             </Field>
@@ -194,6 +246,17 @@ export function ProfilePage() {
                 </select>
               </Field>
             </div>
+          </section>
+
+          <section className="panel profile-section" id="profile-creator">
+            <div className="profile-section__head">
+              <span className="profile-section__index" aria-hidden="true">02</span>
+              <div>
+                <p className="profile-eyebrow">Creative practice</p>
+                <h2>Creator focus</h2>
+                <p>Tell the team what you know, what you make, and which opportunities fit you best.</p>
+              </div>
+            </div>
             <Field label="Interests">
               <div className="chips">
                 {categories.map((c) => (
@@ -226,10 +289,25 @@ export function ProfilePage() {
             <Field label="Motivation" htmlFor="motivation">
               <textarea id="motivation" value={motivation} onChange={(e) => setMotivation(e.target.value)} />
             </Field>
+            <div className="field-row">
+              <Field label="Availability" htmlFor="avail">
+                <input id="avail" value={availability} onChange={(e) => setAvailability(e.target.value)} />
+              </Field>
+              <Field label="Equipment" htmlFor="equipment">
+                <input id="equipment" value={equipment} onChange={(e) => setEquipment(e.target.value)} />
+              </Field>
+            </div>
           </section>
 
-          <section className="panel">
-            <h2>Contact information <span className="tag tag--private">Private</span></h2>
+          <section className="panel profile-section" id="profile-contact">
+            <div className="profile-section__head">
+              <span className="profile-section__index" aria-hidden="true">03</span>
+              <div>
+                <p className="profile-eyebrow">Protected details</p>
+                <h2>Contact information <span className="tag tag--private">Private</span></h2>
+                <p>Used only for programme communication and support from authorised staff.</p>
+              </div>
+            </div>
             <Field label="Email">
               <input value={profile.contact?.email ?? user?.email ?? ''} disabled />
             </Field>
@@ -243,43 +321,55 @@ export function ProfilePage() {
                 </select>
               </Field>
             </div>
-            <Field label="Availability" htmlFor="avail">
-              <input id="avail" value={availability} onChange={(e) => setAvailability(e.target.value)} />
-            </Field>
-            <Field label="Equipment" htmlFor="equipment">
-              <input id="equipment" value={equipment} onChange={(e) => setEquipment(e.target.value)} />
-            </Field>
           </section>
 
-          <section className="panel">
-            <h2>Communication preferences</h2>
+          <section className="panel profile-section" id="profile-preferences">
+            <div className="profile-section__head">
+              <span className="profile-section__index" aria-hidden="true">04</span>
+              <div>
+                <p className="profile-eyebrow">Stay connected</p>
+                <h2>Communication preferences</h2>
+                <p>Choose which first-party programme updates should reach you.</p>
+              </div>
+            </div>
             <label className="checkbox"><input type="checkbox" checked={inAppPref} onChange={(e) => setInAppPref(e.target.checked)} /> In-app notifications</label>
             <label className="checkbox"><input type="checkbox" checked={emailPref} onChange={(e) => setEmailPref(e.target.checked)} /> Email notifications</label>
             <p className="tiny">WhatsApp Channel updates are external and opt-in.</p>
           </section>
-
-          <div className="page__actions">
-            <button type="button" className="button button--primary" onClick={() => void save()} disabled={saving}>
-              {saving ? 'Saving…' : 'Save profile'}
-            </button>
-            {toast ? <span className="save-toast" role="status">{toast}</span> : null}
-          </div>
         </div>
 
-        <aside>
-          <section className="panel panel--preview">
-            <h2>Public attribution preview</h2>
-            <p className="tiny">How you’ll appear in the Indigen World mobile app.</p>
-            <div className="attrib">
-              <div className="attrib__avatar" aria-hidden="true">{profile.public.initials ?? profile.public.displayName.slice(0, 2).toUpperCase()}</div>
+        <aside className="profile-sidebar">
+          <section className="panel panel--preview profile-preview">
+            <div className="profile-preview__cover" aria-hidden="true" />
+            <div className="profile-preview__head">
+              <div>
+                <p className="profile-eyebrow">Live preview</p>
+                <h2>Public attribution</h2>
+              </div>
+              <span className={isPublic ? 'profile-visibility is-public' : 'profile-visibility'}>
+                {isPublic ? 'Public' : 'Private'}
+              </span>
+            </div>
+            <div className="profile-preview__identity">
+              <div className="attrib__avatar" aria-hidden="true">
+                {user?.photoURL ? <img src={user.photoURL} alt="" referrerPolicy="no-referrer" /> : previewInitials}
+              </div>
               <div>
                 <strong>{profile.public.displayName}</strong>
-                <p className="muted">{[region, dialect].filter(Boolean).join(' · ') || 'Kasena community'}</p>
+                <small>{profile.public.username ? `@${profile.public.username}` : 'Creator'}</small>
               </div>
             </div>
+            <p className="profile-preview__meta">{previewMeta}</p>
+            <p className="profile-preview__bio">{bio.trim() || 'Your short bio will appear here once you add it.'}</p>
+            {interests.length > 0 ? (
+              <div className="profile-preview__chips">
+                {interests.slice(0, 3).map((interest) => <span key={interest}>{interest}</span>)}
+              </div>
+            ) : null}
+            <p className="tiny">This is how attribution can appear in the Indigen World mobile app.</p>
           </section>
 
-          <section className="panel">
+          <section className="panel profile-side-card">
             <h2>Consent history <span className="tag tag--private">Private</span></h2>
             <ul className="mini-list">
               <li><span>Registration terms</span><span className="muted">accepted</span></li>
@@ -288,12 +378,26 @@ export function ProfilePage() {
             </ul>
           </section>
 
-          <section className="panel">
+          <section className="panel profile-side-card">
             <h2>Account &amp; security</h2>
-            <p className="tiny">Signed in as {user?.email}.</p>
-            <p className="tiny">Account status: {profile.status ?? 'waitlisted'}</p>
+            <dl className="profile-security">
+              <div><dt>Signed in as</dt><dd>{user?.email}</dd></div>
+              <div><dt>Account status</dt><dd>{profile.status ?? 'waitlisted'}</dd></div>
+              <div><dt>Creator reference</dt><dd>{profile.reference}</dd></div>
+            </dl>
           </section>
         </aside>
+      </div>
+
+      <div className="profile-savebar">
+        <div>
+          <strong>Keep your creator identity current</strong>
+          <span>Changes stay private until you save them.</span>
+        </div>
+        <button type="button" className="button button--primary" onClick={() => void save()} disabled={saving}>
+          {saving ? 'Saving…' : 'Save profile'}
+        </button>
+        {toast ? <span className="save-toast" role="status">{toast}</span> : null}
       </div>
     </div>
   );

@@ -174,6 +174,57 @@ test('a guest can read a public campaign but not an internal one', async () => {
   await assertFails(getDoc(doc(db(anon), 'campaigns/internal-draft')));
 });
 
+test('the collection-contributions campaign is backend-owned while admins can manage ordinary campaigns', async () => {
+  const admin = env.authenticatedContext('admin1', { role: 'admin' });
+  const reservedCampaign = {
+    id: 'collection-contributions',
+    slug: 'collection-contributions',
+    title: 'Collection contributions',
+    initiative: 'Project Kasena',
+    status: 'OPEN',
+    visibility: 'internal',
+    lifecycle: life,
+  };
+
+  // Even an admin client cannot create this routing record.
+  await assertFails(setDoc(
+    doc(db(admin), 'campaigns/collection-contributions'),
+    reservedCampaign,
+  ));
+
+  // Trusted server code can provision it because Admin SDK writes bypass rules.
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(
+      doc(ctx.firestore(), 'campaigns/collection-contributions'),
+      reservedCampaign,
+    );
+  });
+
+  // Once provisioned, it remains immutable from every client, admins included.
+  await assertFails(updateDoc(
+    doc(db(admin), 'campaigns/collection-contributions'),
+    { title: 'Client-controlled collection routing' },
+  ));
+
+  const ordinaryCampaign = {
+    id: 'admin-managed',
+    slug: 'admin-managed',
+    title: 'Admin managed',
+    initiative: 'Project Kasena',
+    status: 'DRAFT',
+    visibility: 'internal',
+    lifecycle: life,
+  };
+  await assertSucceeds(setDoc(
+    doc(db(admin), 'campaigns/admin-managed'),
+    ordinaryCampaign,
+  ));
+  await assertSucceeds(updateDoc(
+    doc(db(admin), 'campaigns/admin-managed'),
+    { title: 'Admin managed update' },
+  ));
+});
+
 test('platform configuration is public-read, admin-write only', async () => {
   const anon = env.unauthenticatedContext();
   const creator = env.authenticatedContext('creatorA');

@@ -1,9 +1,13 @@
 import { HttpsError, onCall } from 'firebase-functions/v2/https';
 import { getAuth } from 'firebase-admin/auth';
-import { FieldValue, getFirestore } from 'firebase-admin/firestore';
+import { FieldValue, getFirestore, type DocumentReference } from 'firebase-admin/firestore';
 import { requireAuth, requireRole } from './auth.js';
 import { finalisePublishedMedia } from './published-media.js';
 import { consumeRateLimit } from './rate-limit.js';
+import {
+  buildPublishedContentDocument,
+  collectionKindForSubmission,
+} from './publication.js';
 
 // App Check enforcement is opt-in: set ENFORCE_APP_CHECK=true on the deployed
 // functions once App Check (reCAPTCHA Enterprise) is configured for the web apps.
@@ -529,6 +533,7 @@ const SUBMISSION_DECISIONS: Record<string, string> = {
   APPROVE: 'APPROVED',
   REQUEST_REVISION: 'NEEDS_REVISION',
   REJECT: 'REJECTED',
+  ARCHIVE: 'ARCHIVED',
   PUBLISH: 'PUBLISHED',
   UNPUBLISH: 'APPROVED',
   ESCALATE_LINGUISTIC: 'UNDER_REVIEW',
@@ -566,6 +571,7 @@ export const decideSubmission = onCall(
     const db = getFirestore();
     const submissionRef = db.collection('submissions').doc(submissionId);
     const publishedRef = db.collection('publishedContent').doc(`pub_${submissionId}`);
+    const dictionaryRef = db.collection('dictionaryEntries').doc(`collection_${submissionId}`);
     const auditRef = db.collection('auditLogs').doc();
     const notificationRef = db.collection('notifications').doc();
 
@@ -589,8 +595,58 @@ export const decideSubmission = onCall(
         throw new HttpsError('not-found', 'Submission not found.');
       }
       const submission = snap.data() as Record<string, any>;
+      const collectionKind = collectionKindForSubmission(submission);
+      const contributionPointer = submission.collectionContribution;
+      let contributionId = '';
+      let contributionRef: DocumentReference | null = null;
+      let contribution: Record<string, any> | null = null;
+      if (contributionPointer != null) {
+        if (typeof contributionPointer !== 'object'
+          || contributionPointer.collection !== 'collectionContributions'
+          || typeof contributionPointer.id !== 'string'
+          || !contributionPointer.id.trim()) {
+          throw new HttpsError('failed-precondition', 'Collection contribution link is invalid.');
+        }
+        contributionId = contributionPointer.id.trim();
+        contributionRef = db.collection('collectionContributions').doc(contributionId);
+        const contributionSnap = await tx.get(contributionRef);
+        if (!contributionSnap.exists) {
+          throw new HttpsError('failed-precondition', 'Linked collection contribution was not found.');
+        }
+        contribution = contributionSnap.data() as Record<string, any>;
+        if (submission.id !== submissionId
+          || contribution.id !== contributionId
+          || contribution.authUid !== submission.authUid
+          || contribution.submissionId !== submissionId) {
+          throw new HttpsError('failed-precondition', 'Collection contribution ownership or submission link is inconsistent.');
+        }
+        if (!collectionKind || contribution.collectionKind !== collectionKind) {
+          throw new HttpsError('failed-precondition', 'Collection contribution kind is inconsistent.');
+        }
+      }
+      const isDictionaryContribution = collectionKind === 'dictionary' && contribution != null;
       if (submission.authUid === uid) {
         throw new HttpsError('permission-denied', 'Reviewers cannot decide on their own submissions.');
+      }
+      if (contribution
+        && (submission.status === 'WITHDRAWN' || contribution.status === 'withdrawn')) {
+        throw new HttpsError(
+          'failed-precondition',
+          'A withdrawn Collection contribution is terminal and cannot be reviewed again.',
+        );
+      }
+      if (decision === 'REQUEST_REVISION' && contribution) {
+        throw new HttpsError(
+          'failed-precondition',
+          'Collection contributions cannot be sent for revision; approve, reject, or archive them.',
+        );
+      }
+      if (decision === 'ARCHIVE'
+        && (submission.status !== 'APPROVED' || submission.permissions?.publication === true)) {
+        throw new HttpsError(
+          'failed-precondition',
+          'Only approved work without publication permission can be archived.',
+        );
       }
       // Publishing is idempotent: re-publishing already-published content is a
       // harmless no-op that rewrites the same publishedContent record.
@@ -599,6 +655,9 @@ export const decideSubmission = onCall(
       }
       if (decision === 'PUBLISH' && submission.permissions?.publication !== true) {
         throw new HttpsError('failed-precondition', 'The creator has not granted publication permission.');
+      }
+      if (decision === 'UNPUBLISH' && submission.status !== 'PUBLISHED') {
+        throw new HttpsError('failed-precondition', 'Only published content can be unpublished.');
       }
 
       const previousStatus = submission.status;
@@ -617,60 +676,100 @@ export const decideSubmission = onCall(
 
       // ---- Publication workflow (idempotent) ----
       if (decision === 'APPROVE' || decision === 'PUBLISH' || decision === 'UNPUBLISH') {
-        const existingPub = await tx.get(publishedRef);
         const creatorId: string = submission.creator?.id ?? submission.authUid;
         const profileSnap = await tx.get(db.collection('creatorProfiles').doc(creatorId));
-        const displayName = profileSnap.get('public.displayName') ?? 'Indigen World creator';
+        const displayName = profileSnap.get('public.displayName') ?? 'Indigen World contributor';
         const avatarUrl = profileSnap.get('public.avatarUrl') ?? null;
         const publicationStatus = decision === 'PUBLISH' ? 'published' : 'unpublished';
 
-        const publishedDoc = {
-          id: publishedRef.id,
-          submission: { collection: 'submissions', id: submissionId },
-          campaign: submission.campaign,
-          creatorAttribution: { creatorId, displayName, avatarUrl },
-          language: submission.primaryLanguage ?? 'xsm',
-          dialect: submission.dialect ?? '',
-          category: submission.category ?? '',
-          title: submission.title,
-          description: submission.description ?? '',
-          englishSummary: submission.englishSummary ?? '',
-          mediaUrl: existingPub.exists ? existingPub.get('mediaUrl') : '',
-          mediaType: submission.media?.mediaType ?? null,
-          thumbnailUrl: existingPub.exists ? existingPub.get('thumbnailUrl') ?? null : null,
-          captionsUrl: null,
-          culturalNotes: submission.culturalContext ?? '',
-          ageRating: submission.disclosures?.involvesMinors ? '13+' : 'all',
-          tags: [],
-          publicationStatus,
-          publishedAt: publicationStatus === 'published' ? now : (existingPub.exists ? existingPub.get('publishedAt') ?? null : null),
-          licenceDisplay: `© ${displayName} · Published with permission by Indigen World`,
-          correctionState: 'none',
-          schemaVersion: 1,
-          lifecycle: existingPub.exists
-            ? { createdAt: existingPub.get('lifecycle.createdAt') ?? now, updatedAt: now, version: (existingPub.get('lifecycle.version') ?? 1) + 1 }
-            : { createdAt: now, updatedAt: now, version: 1 },
-        };
-        tx.set(publishedRef, publishedDoc);
-        moderationUpdate['moderation.publishedContent'] = { collection: 'publishedContent', id: publishedRef.id };
-
-        // Only a PUBLISH makes media world-readable, and only when there is a
-        // stored file whose public URL has not been minted yet. Idempotent:
-        // re-publishing already-linked media is skipped.
-        const storagePath: string = submission.media?.storagePath ?? '';
-        const alreadyPublic: string = existingPub.exists ? (existingPub.get('mediaUrl') ?? '') : '';
-        if (decision === 'PUBLISH' && storagePath && !alreadyPublic) {
-          mediaToPublish = {
-            contentId: publishedRef.id,
-            storagePath,
-            mimeType: submission.media?.mimeType ?? 'application/octet-stream',
-            mediaType: submission.media?.mediaType ?? 'video',
-            thumbnailPath: submission.media?.thumbnailPath ?? null,
+        if (isDictionaryContribution) {
+          const existingDictionary = await tx.get(dictionaryRef);
+          if (decision === 'PUBLISH') {
+            tx.set(dictionaryRef, {
+              id: dictionaryRef.id,
+              kasemText: asString(submission.body, 12_000).trim(),
+              englishText: asString(submission.title, 180).trim(),
+              kasemExample: asString(submission.kasemExample, 4000).trim(),
+              englishExample: asString(submission.englishExample, 4000).trim(),
+              partOfSpeech: asString(submission.format, 80).trim(),
+              dialect: asString(submission.dialect, 80).trim(),
+              category: 'Community vocabulary',
+              source: asString(submission.sourceReferences, 1200).trim(),
+              contributorId: creatorId,
+              sourceContribution: { collection: 'collectionContributions', id: contributionId },
+              relatedEntryId: submission.relatedEntryId ?? null,
+              isPublished: true,
+              approvedAt: FieldValue.serverTimestamp(),
+              approvedBy: uid,
+              createdAt: existingDictionary.exists
+                ? (existingDictionary.get('createdAt') ?? FieldValue.serverTimestamp())
+                : FieldValue.serverTimestamp(),
+              updatedAt: FieldValue.serverTimestamp(),
+              schemaVersion: 1,
+            });
+            moderationUpdate['moderation.publishedContent'] = {
+              collection: 'dictionaryEntries',
+              id: dictionaryRef.id,
+            };
+          } else if (decision === 'UNPUBLISH' && existingDictionary.exists) {
+            tx.update(dictionaryRef, {
+              isPublished: false,
+              updatedAt: FieldValue.serverTimestamp(),
+            });
+          }
+        } else {
+          const existingPub = await tx.get(publishedRef);
+          const publishedDoc = buildPublishedContentDocument({
+            submissionId,
+            publishedId: publishedRef.id,
+            submission,
+            existing: existingPub.data() ?? null,
+            creatorId,
+            displayName,
+            avatarUrl,
+            publicationStatus,
+            now,
+          });
+          tx.set(publishedRef, publishedDoc);
+          moderationUpdate['moderation.publishedContent'] = {
+            collection: 'publishedContent',
+            id: publishedRef.id,
           };
+
+          // Only a PUBLISH makes uploaded media world-readable. An approved
+          // external recording URL is already public and needs no Storage copy.
+          const storagePath: string = submission.media?.storagePath ?? '';
+          const alreadyPublic: string = existingPub.exists ? (existingPub.get('mediaUrl') ?? '') : '';
+          const externalMediaUrl = asString(submission.externalPostUrl, 2000).trim();
+          if (decision === 'PUBLISH' && storagePath && !alreadyPublic && !externalMediaUrl) {
+            mediaToPublish = {
+              contentId: publishedRef.id,
+              storagePath,
+              mimeType: submission.media?.mimeType ?? 'application/octet-stream',
+              mediaType: submission.media?.mediaType ?? 'video',
+              thumbnailPath: submission.media?.thumbnailPath ?? null,
+            };
+          }
         }
       }
 
       tx.update(submissionRef, moderationUpdate);
+      if (contributionRef) {
+        const contributionUpdate: Record<string, unknown> = {
+          status: newStatus.toLowerCase(),
+          reviewDecision: decision,
+          reviewFeedback: feedback,
+          reviewedBy: uid,
+          reviewedAt: FieldValue.serverTimestamp(),
+          updatedAt: FieldValue.serverTimestamp(),
+        };
+        if (decision === 'PUBLISH') {
+          contributionUpdate.publicationTarget = isDictionaryContribution
+            ? { collection: 'dictionaryEntries', id: dictionaryRef.id }
+            : { collection: 'publishedContent', id: publishedRef.id };
+        }
+        tx.update(contributionRef, contributionUpdate);
+      }
 
       const escalationTag = decision.startsWith('ESCALATE') || decision === 'FLAG_RIGHTS' ? decision : null;
       tx.set(notificationRef, {
@@ -680,7 +779,7 @@ export const decideSubmission = onCall(
         type: decision === 'REQUEST_REVISION' ? 'revision_request' : decision === 'PUBLISH' ? 'publication_notice' : 'review_decision',
         title: `Submission ${newStatus.toLowerCase().replace('_', ' ')}`,
         body: feedback || `Your submission "${submission.title}" is now ${newStatus}.`,
-        link: `/studio/submissions/${submissionId}`,
+        link: contributionRef ? '/contribute' : `/studio/submissions/${submissionId}`,
         read: false,
         channels: ['in_app', 'email'],
         schemaVersion: 1,

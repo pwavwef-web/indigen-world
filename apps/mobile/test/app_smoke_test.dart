@@ -57,9 +57,16 @@ void main() {
     // passing the curated preview off as community work.
     expect(find.text('PREVIEW'), findsOneWidget);
     expect(find.text('Every rhythm remembers.'), findsOneWidget);
-    expect(find.text('Explore'), findsOneWidget);
+    // Explore is full-bleed: the shell rail disappears until native back
+    // returns to the exact tab the member came from.
+    expect(find.byType(FrostedNavBar), findsNothing);
     // Context, not a share button that cannot share anything yet.
     expect(find.text('Context'), findsOneWidget);
+
+    await tester.binding.handlePopRoute();
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.text('COMMUNITY PULSE'), findsOneWidget);
+    expect(find.byType(FrostedNavBar), findsOneWidget);
 
     await tester.tap(find.text('Learn'));
     await tester.pump(const Duration(milliseconds: 400));
@@ -71,6 +78,9 @@ void main() {
     await tester.tap(find.text('Complete 3 quick lessons'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));
+    expect(find.text('LESSON 1 OF 4'), findsOneWidget);
+    expect(find.byKey(const Key('lesson-primary-action')), findsOneWidget);
+    expect(find.byType(BottomSheet), findsNothing);
     expect(find.text('Choose the greeting'), findsOneWidget);
 
     await tester.ensureVisible(find.text('De zaanem'));
@@ -91,15 +101,26 @@ void main() {
     await tester.pump(const Duration(milliseconds: 400));
 
     expect(find.text('THE KASENA COLLECTION'), findsOneWidget);
-    expect(find.text('Kasena visual language'), findsOneWidget);
-
-    await tester.tap(find.text('Places'));
-    await tester.pump(const Duration(milliseconds: 250));
-    expect(find.text('Paga Crocodile Pond'), findsOneWidget);
-
-    await tester.tap(find.text('Songs'));
-    await tester.pump(const Duration(milliseconds: 250));
-    expect(find.text('Songs & sounds'), findsOneWidget);
+    expect(find.text('Music'), findsOneWidget);
+    expect(find.text('Dictionary'), findsOneWidget);
+    final collectionScroll = find.descendant(
+      of: find.byKey(const PageStorageKey('collection-overview-scroll')),
+      matching: find.byType(Scrollable),
+    );
+    await tester.scrollUntilVisible(
+      find.text('Literature'),
+      180,
+      scrollable: collectionScroll,
+    );
+    await tester.pump(const Duration(milliseconds: 200));
+    expect(find.text('Literature'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('Audiobooks'),
+      180,
+      scrollable: collectionScroll,
+    );
+    await tester.pump(const Duration(milliseconds: 200));
+    expect(find.text('Audiobooks'), findsOneWidget);
 
     await tester.tap(find.text('Community'));
     await tester.pump(const Duration(milliseconds: 400));

@@ -47,10 +47,7 @@ class ProfileOrb extends ConsumerWidget {
               HapticFeedback.selectionClick();
               Navigator.of(context).push(
                 MaterialPageRoute<void>(
-                  builder: (context) => Scaffold(
-                    appBar: AppBar(title: const Text('You')),
-                    body: const ProfileScreen(),
-                  ),
+                  builder: (context) => const ProfileScreen(),
                 ),
               );
             },

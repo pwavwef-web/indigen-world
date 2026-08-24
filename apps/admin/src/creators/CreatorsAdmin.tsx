@@ -490,24 +490,50 @@ function ReviewTab({ notify }: { notify: (m: string) => void }) {
     }
   };
 
+  const isCollectionContribution = (submission: Submission) =>
+    submission.collectionContribution?.collection === 'collectionContributions'
+    || Boolean(submission.collectionKind);
+
+  const contentDetails = (content: string, label: string) => {
+    const preview = content.length > 140 ? `${content.slice(0, 140).trimEnd()}…` : content;
+    return (
+      <details className="review-content-details">
+        <summary aria-label={`Open full ${label.toLowerCase()}`}>{preview}</summary>
+        <div className="review-content-details__full">{content}</div>
+      </details>
+    );
+  };
+
   return (
     <div>
       <h2>Review queue</h2>
-      <p className="muted">Approval creates a controlled published-content record; publishing is idempotent and server-side.</p>
+      <p className="muted">Campaign and mobile Collection contributions meet here. Approved work stays visible until it is published or archived, and published work can be unpublished here.</p>
       {loading ? <p className="muted">Loading…</p> : rows.length === 0 ? <p className="muted">The queue is empty.</p> : (
         <div className="review-cards">
           {rows.map((s) => (
             <article key={s.id} className="review-card">
               <header>
                 <strong>{s.title}</strong>
-                <span className="badge2">{s.status}</span>
+                <span>
+                  {s.collectionKind ? <span className="badge2 badge2--collection">{s.collectionKind}</span> : null}
+                  <span className="badge2">{s.status}</span>
+                </span>
               </header>
               <dl>
                 <div><dt>Category</dt><dd>{s.category || '—'}</dd></div>
+                {s.format ? <div><dt>Format</dt><dd>{s.format}</dd></div> : null}
                 <div><dt>Studio</dt><dd>{s.studioType || '—'}</dd></div>
                 <div><dt>Dialect</dt><dd>{s.dialect || '—'}</dd></div>
-                {s.body ? <div><dt>Body</dt><dd>{s.body.slice(0, 240)}{s.body.length > 240 ? '…' : ''}</dd></div> : null}
-                {s.translation?.translatedContent ? <div><dt>Translation</dt><dd>{s.translation.translatedContent.slice(0, 240)}{s.translation.translatedContent.length > 240 ? '…' : ''}</dd></div> : null}
+                {s.body ? <div className="review-card__content"><dt>Body</dt><dd>{contentDetails(s.body, 'body')}</dd></div> : null}
+                {s.sourceReferences ? <div><dt>Source / attribution</dt><dd>{s.sourceReferences}</dd></div> : null}
+                {s.externalPostUrl ? (
+                  <div>
+                    <dt>Recording</dt>
+                    <dd><a href={s.externalPostUrl} target="_blank" rel="noreferrer">Open submitted link ↗</a></dd>
+                  </div>
+                ) : null}
+                {s.translationNotes ? <div><dt>Reviewer context</dt><dd>{s.translationNotes}</dd></div> : null}
+                {s.translation?.translatedContent ? <div className="review-card__content"><dt>Translation</dt><dd>{contentDetails(s.translation.translatedContent, 'translation')}</dd></div> : null}
                 <div><dt>English summary</dt><dd>{s.englishSummary || '—'}</dd></div>
                 <div><dt>Minors</dt><dd>{s.disclosures?.involvesMinors ? 'Yes' : 'No'}</dd></div>
                 <div><dt>Third-party material</dt><dd>{s.disclosures?.usesThirdPartyMaterial ? 'Yes' : 'No'}</dd></div>
@@ -515,10 +541,44 @@ function ReviewTab({ notify }: { notify: (m: string) => void }) {
                 <div><dt>AI training</dt><dd>{s.permissions?.aiTraining ? 'Granted' : 'Off'}</dd></div>
               </dl>
               <div className="row-actions">
-                <button type="button" disabled={busy === s.id} onClick={() => void decide(s, 'APPROVE', false)}>Approve</button>
-                <button type="button" disabled={busy === s.id} onClick={() => void decide(s, 'REQUEST_REVISION', true)}>Request revision</button>
-                <button type="button" className="danger" disabled={busy === s.id} onClick={() => void decide(s, 'REJECT', true)}>Reject</button>
-                <button type="button" disabled={busy === s.id} onClick={() => void decide(s, 'PUBLISH', false)}>Publish</button>
+                {s.status === 'PUBLISHED' ? (
+                  <button
+                    type="button"
+                    className="danger"
+                    disabled={busy === s.id}
+                    onClick={() => void decide(s, 'UNPUBLISH', false)}
+                  >
+                    Unpublish
+                  </button>
+                ) : s.status !== 'APPROVED' ? (
+                  <>
+                    <button type="button" disabled={busy === s.id} onClick={() => void decide(s, 'APPROVE', false)}>Approve</button>
+                    {!isCollectionContribution(s) ? (
+                      <button type="button" disabled={busy === s.id} onClick={() => void decide(s, 'REQUEST_REVISION', true)}>Request revision</button>
+                    ) : null}
+                    <button type="button" className="danger" disabled={busy === s.id} onClick={() => void decide(s, 'REJECT', true)}>Reject</button>
+                  </>
+                ) : s.permissions?.publication === true ? (
+                  <button
+                    type="button"
+                    className="button--publish"
+                    disabled={busy === s.id}
+                    title="Publish this approved work"
+                    onClick={() => void decide(s, 'PUBLISH', false)}
+                  >
+                    Publish to Collection
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="button--archive"
+                    disabled={busy === s.id}
+                    title="Archive approved work that cannot be published without contributor permission"
+                    onClick={() => void decide(s, 'ARCHIVE', false)}
+                  >
+                    Archive
+                  </button>
+                )}
               </div>
             </article>
           ))}

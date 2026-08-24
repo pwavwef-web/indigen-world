@@ -97,6 +97,11 @@
       "type": "string",
       "enum": ["image", "audio", "video", "document"]
     },
+    "collectionKind": {
+      "type": "string",
+      "description": "Canonical destination in the mobile Collection library.",
+      "enum": ["music", "dictionary", "literature", "audiobooks"]
+    },
     "campaignStatus": {
       "type": "string",
       "description": "Lifecycle of a creator campaign. The interface reacts to this value; submission availability is derived from it, never hardcoded in the client.",

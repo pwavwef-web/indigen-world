@@ -47,6 +47,7 @@ export const enums: {
   licence: string[];
   culturalPermissionTier: string[];
   mediaType: string[];
+  collectionKind: string[];
   campaignStatus: string[];
   creatorApplicationStatus: string[];
   submissionStatus: string[];

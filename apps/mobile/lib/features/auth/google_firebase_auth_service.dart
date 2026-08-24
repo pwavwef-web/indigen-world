@@ -55,9 +55,14 @@ class GoogleFirebaseAuthService {
       }
 
       final credential = GoogleAuthProvider.credential(idToken: idToken);
-      return await auth.signInWithCredential(credential);
+      final result = await auth.signInWithCredential(credential);
+      verifyFirebaseSession(
+        credentialUid: result.user?.uid,
+        currentUid: auth.currentUser?.uid,
+      );
+      return result;
     } on GoogleSignInException catch (error) {
-      throw _googleFailure(error);
+      throw googleSignInFailure(error);
     } on FirebaseAuthException catch (error) {
       throw firebaseAuthFailure(error);
     }
@@ -119,34 +124,65 @@ class GoogleFirebaseAuthService {
       rethrow;
     }
   }
+}
 
-  AuthFailure _googleFailure(GoogleSignInException error) {
-    return switch (error.code) {
-      GoogleSignInExceptionCode.canceled ||
-      GoogleSignInExceptionCode.interrupted => const AuthFailure(
-        AuthFailureKind.cancelled,
-        'Google Sign-In was cancelled.',
-      ),
-      GoogleSignInExceptionCode.clientConfigurationError ||
-      GoogleSignInExceptionCode.providerConfigurationError => const AuthFailure(
-        AuthFailureKind.configuration,
-        'Google Sign-In is not configured for this app build. Check its package ID and signing certificate.',
-      ),
-      GoogleSignInExceptionCode.uiUnavailable => const AuthFailure(
-        AuthFailureKind.unavailable,
-        'Google Sign-In cannot open right now. Return to the app and try again.',
-      ),
-      GoogleSignInExceptionCode.userMismatch => const AuthFailure(
-        AuthFailureKind.accountConflict,
-        'A different Google account is already active. Sign out and try again.',
-      ),
-      GoogleSignInExceptionCode.unknownError => AuthFailure(
-        AuthFailureKind.unknown,
-        error.description ?? 'Google Sign-In failed. Please try again.',
-      ),
-    };
+/// Confirms that the completed Firebase call also installed the same account
+/// as the process-wide current user. The profile UI listens to `currentUser`,
+/// so closing the sign-in sheet before this invariant holds would look exactly
+/// like a successful account selection that immediately signed itself out.
+@visibleForTesting
+void verifyFirebaseSession({
+  required String? credentialUid,
+  required String? currentUid,
+}) {
+  if (credentialUid == null ||
+      credentialUid.isEmpty ||
+      currentUid == null ||
+      currentUid.isEmpty ||
+      credentialUid != currentUid) {
+    throw const AuthFailure(
+      AuthFailureKind.unavailable,
+      'Google returned your account, but sign-in did not finish. Please try again.',
+    );
   }
 }
+
+/// Converts provider outcomes into UI-safe failures.
+///
+/// Only an explicit dismissal is silent. Android may report `interrupted`
+/// after the account chooser when the activity is recreated or the provider
+/// flow is disrupted; treating that as a cancellation previously made the
+/// button appear to do nothing.
+@visibleForTesting
+AuthFailure googleSignInFailure(
+  GoogleSignInException error,
+) => switch (error.code) {
+  GoogleSignInExceptionCode.canceled => const AuthFailure(
+    AuthFailureKind.cancelled,
+    'Google Sign-In was cancelled.',
+  ),
+  GoogleSignInExceptionCode.interrupted => const AuthFailure(
+    AuthFailureKind.unavailable,
+    'Google Sign-In was interrupted. Please try again.',
+  ),
+  GoogleSignInExceptionCode.clientConfigurationError ||
+  GoogleSignInExceptionCode.providerConfigurationError => const AuthFailure(
+    AuthFailureKind.configuration,
+    'Google Sign-In is not configured for this app build. Check its package ID and signing certificate.',
+  ),
+  GoogleSignInExceptionCode.uiUnavailable => const AuthFailure(
+    AuthFailureKind.unavailable,
+    'Google Sign-In cannot open right now. Return to the app and try again.',
+  ),
+  GoogleSignInExceptionCode.userMismatch => const AuthFailure(
+    AuthFailureKind.accountConflict,
+    'A different Google account is already active. Sign out and try again.',
+  ),
+  GoogleSignInExceptionCode.unknownError => AuthFailure(
+    AuthFailureKind.unknown,
+    error.description ?? 'Google Sign-In failed. Please try again.',
+  ),
+};
 
 /// Maps a [FirebaseAuthException] to the sentence a member should read.
 ///

@@ -3,6 +3,7 @@ import { logger } from 'firebase-functions';
 import { onDocumentWritten } from 'firebase-functions/v2/firestore';
 import { finalisePublishedMedia, type PublishableMedia } from './published-media.js';
 import { writeCommunityNotification } from './community-notifications.js';
+import { buildPublishedContentDocument } from './publication.js';
 
 /**
  * Open publishing from TribeStudio.
@@ -64,22 +65,46 @@ export const onSubmissionWritten = onDocumentWritten(
 
     // Campaign entries keep the reviewed path.
     if (isCampaignSubmission(submission.campaign)) return;
-    if (typeof status !== 'string' || !READY_STATUSES.has(status)) return;
-
-    // Publishing is what the creator asked for; without that permission the
-    // piece stays private no matter which route it took here.
-    if (submission.permissions?.publication !== true) return;
-
     const authUid = submission.authUid;
     if (typeof authUid !== 'string' || !authUid) return;
 
     const db = getFirestore();
     const publishedRef = db.collection('publishedContent').doc(`pub_${submissionId}`);
+
+    // Withdrawing an ordinary open post is a consent revocation, not merely a
+    // private submission-state change. Remove its deterministic public record
+    // in the same trigger invocation so Explore cannot retain stale content.
+    if (status === 'WITHDRAWN') {
+      const existing = await publishedRef.get();
+      if (!existing.exists) return;
+      if (existing.get('submission.collection') !== 'submissions'
+        || existing.get('submission.id') !== submissionId) {
+        logger.error('Open withdrawal found an inconsistent publication target', { submissionId });
+        return;
+      }
+      const now = nowIso();
+      await publishedRef.update({
+        publicationStatus: 'unpublished',
+        correctionState: 'removed',
+        'lifecycle.updatedAt': now,
+        'lifecycle.version': FieldValue.increment(1),
+      });
+      return;
+    }
+
+    if (typeof status !== 'string' || !READY_STATUSES.has(status)) return;
+
+    // Publishing is what the creator asked for; without that permission the
+    // piece stays private no matter which route it took here.
+    if (submission.permissions?.publication !== true) return;
     const existing = await publishedRef.get();
 
     // Idempotent: an at-least-once trigger, or a creator editing an already
     // published piece, rewrites the same record instead of making a second one.
     const alreadyPublic: string = existing.exists ? (existing.get('mediaUrl') ?? '') : '';
+    const externalMediaUrl = typeof submission.externalPostUrl === 'string'
+      ? submission.externalPostUrl.trim()
+      : '';
     const now = nowIso();
 
     const creatorId: string = submission.creator?.id ?? authUid;
@@ -87,42 +112,18 @@ export const onSubmissionWritten = onDocumentWritten(
     const displayName = profile.get('public.displayName') ?? 'Indigen World creator';
     const avatarUrl = profile.get('public.avatarUrl') ?? null;
 
-    await publishedRef.set({
-      id: publishedRef.id,
-      submission: { collection: 'submissions', id: submissionId },
-      campaign: null,
-      creatorAttribution: { creatorId, displayName, avatarUrl },
-      language: submission.primaryLanguage ?? 'xsm',
-      dialect: submission.dialect ?? '',
-      category: submission.category ?? '',
-      title: submission.title ?? 'Untitled',
-      description: submission.description ?? '',
-      englishSummary: submission.englishSummary ?? '',
-      mediaUrl: alreadyPublic,
-      mediaType: submission.media?.mediaType ?? null,
-      thumbnailUrl: existing.exists ? (existing.get('thumbnailUrl') ?? null) : null,
-      captionsUrl: null,
-      culturalNotes: submission.culturalContext ?? '',
-      ageRating: submission.disclosures?.involvesMinors ? '13+' : 'all',
-      tags: Array.isArray(submission.tags) ? submission.tags.slice(0, 20) : [],
+    await publishedRef.set(buildPublishedContentDocument({
+      submissionId,
+      publishedId: publishedRef.id,
+      submission: { ...submission, campaign: null },
+      existing: existing.data() ?? null,
+      creatorId,
+      displayName,
+      avatarUrl,
       publicationStatus: 'published',
-      // Keep the original publication moment across later edits, so an edit
-      // does not shove an old piece back to the top of the feed.
-      publishedAt: existing.exists ? (existing.get('publishedAt') ?? now) : now,
-      licenceDisplay: `© ${displayName} · Published on Indigen World`,
-      correctionState: 'none',
-      // Records how this reached the public feed, so moderation and analytics
-      // can tell an open post from a reviewed campaign entry.
       publicationRoute: 'open',
-      schemaVersion: 1,
-      lifecycle: existing.exists
-        ? {
-          createdAt: existing.get('lifecycle.createdAt') ?? now,
-          updatedAt: now,
-          version: (existing.get('lifecycle.version') ?? 1) + 1,
-        }
-        : { createdAt: now, updatedAt: now, version: 1 },
-    });
+      now,
+    }));
 
     await after.ref.update({
       status: 'PUBLISHED',
@@ -135,7 +136,7 @@ export const onSubmissionWritten = onDocumentWritten(
     // Storage I/O runs after the documents land, and its failure is survivable:
     // the record is already public and the next write fills the URL in.
     const storagePath: string = submission.media?.storagePath ?? '';
-    if (storagePath && !alreadyPublic) {
+    if (storagePath && !alreadyPublic && !externalMediaUrl) {
       const media: PublishableMedia = {
         contentId: publishedRef.id,
         storagePath,

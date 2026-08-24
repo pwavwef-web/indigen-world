@@ -6,9 +6,13 @@
   "status": "DRAFT",
   "title": "The Clever Hare",
   "category": "storytelling",
+  "collectionKind": "literature",
+  "collectionContribution": null,
+  "format": "Folktale",
   "primaryLanguage": "xsm",
   "dialect": "navrongo",
   "description": "A retelling of a classic Kasem folktale.",
+  "body": "A long-form Kasem and English retelling of the clever hare story.",
   "englishSummary": "A hare outwits a lion using cleverness.",
   "culturalContext": "Told to children to teach wit over strength.",
   "media": {

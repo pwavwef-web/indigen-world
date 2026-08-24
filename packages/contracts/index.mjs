@@ -84,6 +84,7 @@ export const enums = {
   licence: defs.licence.enum,
   culturalPermissionTier: defs.culturalPermissionTier.enum,
   mediaType: defs.mediaType.enum,
+  collectionKind: defs.collectionKind.enum,
   campaignStatus: defs.campaignStatus.enum,
   creatorApplicationStatus: defs.creatorApplicationStatus.enum,
   submissionStatus: defs.submissionStatus.enum,

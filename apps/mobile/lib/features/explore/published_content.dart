@@ -15,6 +15,7 @@ class PublishedReel {
     this.mediaUrl,
     this.thumbnailUrl,
     this.mediaType,
+    this.body = '',
     this.description = '',
     this.englishSummary = '',
     this.culturalNotes = '',
@@ -38,6 +39,8 @@ class PublishedReel {
   /// 'video' | 'image' | 'audio' | 'document', when known.
   final String? mediaType;
 
+  /// The submitted work itself: literature text, lyrics, or a transcript.
+  final String body;
   final String description;
   final String englishSummary;
   final String culturalNotes;
@@ -47,12 +50,15 @@ class PublishedReel {
   final String licenceDisplay;
   final String? publishedAt;
 
-  bool get isVideo => mediaType == 'video';
+  bool get isVideo => mediaType?.toLowerCase() == 'video';
+  bool get isImage => mediaType?.toLowerCase() == 'image';
 
   /// Still image to show as the reel background / video poster.
   String? get posterUrl {
     if (thumbnailUrl != null && thumbnailUrl!.isNotEmpty) return thumbnailUrl;
-    if (!isVideo && mediaUrl != null && mediaUrl!.isNotEmpty) return mediaUrl;
+    // Never hand an audio or document URL to an image decoder. Those files can
+    // be large and will always fail to render as artwork.
+    if (isImage && mediaUrl != null && mediaUrl!.isNotEmpty) return mediaUrl;
     return null;
   }
 
@@ -62,32 +68,48 @@ class PublishedReel {
 
   static PublishedReel fromDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
     final data = doc.data() ?? const <String, dynamic>{};
-    final attribution =
-        (data['creatorAttribution'] as Map<String, dynamic>?) ??
-        const <String, dynamic>{};
+    final rawAttribution = data['creatorAttribution'];
+    final attribution = rawAttribution is Map
+        ? Map<String, dynamic>.from(rawAttribution)
+        : const <String, dynamic>{};
     return PublishedReel(
-      id: (data['id'] as String?) ?? doc.id,
-      title: (data['title'] as String?)?.trim().isNotEmpty ?? false
-          ? (data['title'] as String).trim()
-          : 'Untitled',
-      creatorName:
-          (attribution['displayName'] as String?)?.trim().isNotEmpty ?? false
-          ? (attribution['displayName'] as String).trim()
-          : 'Indigen World creator',
-      creatorAvatarUrl: attribution['avatarUrl'] as String?,
-      mediaUrl: data['mediaUrl'] as String?,
-      thumbnailUrl: data['thumbnailUrl'] as String?,
-      mediaType: data['mediaType'] as String?,
-      description: (data['description'] as String?) ?? '',
-      englishSummary: (data['englishSummary'] as String?) ?? '',
-      culturalNotes: (data['culturalNotes'] as String?) ?? '',
-      category: (data['category'] as String?) ?? '',
-      language: (data['language'] as String?) ?? '',
-      dialect: (data['dialect'] as String?) ?? '',
-      licenceDisplay: (data['licenceDisplay'] as String?) ?? '',
-      publishedAt: data['publishedAt'] as String?,
+      id: _text(data['id'], fallback: doc.id),
+      title: _text(data['title'], fallback: 'Untitled'),
+      creatorName: _text(
+        attribution['displayName'],
+        fallback: 'Indigen World creator',
+      ),
+      creatorAvatarUrl: _nullableText(attribution['avatarUrl']),
+      mediaUrl: _nullableText(data['mediaUrl']),
+      thumbnailUrl: _nullableText(data['thumbnailUrl']),
+      mediaType: _nullableText(data['mediaType']),
+      body: _text(data['body']),
+      description: _text(data['description']),
+      englishSummary: _text(data['englishSummary']),
+      culturalNotes: _text(data['culturalNotes']),
+      category: _text(data['category']),
+      language: _text(data['language']),
+      dialect: _text(data['dialect']),
+      licenceDisplay: _text(data['licenceDisplay']),
+      publishedAt: _dateText(data['publishedAt']),
     );
   }
+}
+
+String _text(Object? value, {String fallback = ''}) {
+  if (value is String && value.trim().isNotEmpty) return value.trim();
+  if (value is num) return value.toString();
+  return fallback;
+}
+
+String? _nullableText(Object? value) {
+  final text = _text(value);
+  return text.isEmpty ? null : text;
+}
+
+String? _dateText(Object? value) {
+  if (value is Timestamp) return value.toDate().toUtc().toIso8601String();
+  return _nullableText(value);
 }
 
 /// Reads published creator content for the public Explore feed. Guests are
@@ -116,6 +138,20 @@ class PublishedContentRepository {
     (snapshot) =>
         snapshot.docs.map(PublishedReel.fromDoc).toList(growable: false),
   );
+
+  /// A complete Collection channel, independent of Explore's newest-30 feed.
+  Stream<List<PublishedReel>> watchCollection(String collectionKind) =>
+      _firestore
+          .collection('publishedContent')
+          .where('publicationStatus', isEqualTo: 'published')
+          .where('collectionKind', isEqualTo: collectionKind)
+          .orderBy('publishedAt', descending: true)
+          .snapshots()
+          .map(
+            (snapshot) => snapshot.docs
+                .map(PublishedReel.fromDoc)
+                .toList(growable: false),
+          );
 }
 
 final publishedContentRepositoryProvider =

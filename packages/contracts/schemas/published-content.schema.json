@@ -7,7 +7,7 @@
   "properties": {
     "id": { "$ref": "common.schema.json#/$defs/identifier" },
     "submission": { "$ref": "common.schema.json#/$defs/reference" },
-    "campaign": { "$ref": "common.schema.json#/$defs/reference" },
+    "campaign": { "oneOf": [{ "$ref": "common.schema.json#/$defs/reference" }, { "type": "null" }] },
     "creatorAttribution": {
       "type": "object",
       "description": "Public attribution only — display name and optional avatar, never contact details.",
@@ -22,10 +22,18 @@
     "language": { "$ref": "common.schema.json#/$defs/languageCode" },
     "dialect": { "type": "string" },
     "category": { "type": "string" },
+    "collectionKind": {
+      "oneOf": [{ "$ref": "common.schema.json#/$defs/collectionKind" }, { "type": "null" }]
+    },
     "title": { "type": "string", "minLength": 1 },
     "description": { "type": "string" },
+    "body": {
+      "type": "string",
+      "description": "Approved long-form text. Kept separately so literature is never reduced to a short summary."
+    },
     "englishSummary": { "type": "string" },
     "mediaUrl": { "type": "string", "description": "Signed or CDN delivery reference for approved media." },
+    "mediaType": { "oneOf": [{ "$ref": "common.schema.json#/$defs/mediaType" }, { "type": "null" }] },
     "thumbnailUrl": { "oneOf": [{ "type": "string" }, { "type": "null" }] },
     "captionsUrl": { "oneOf": [{ "type": "string" }, { "type": "null" }] },
     "culturalNotes": { "type": "string" },
@@ -34,6 +42,11 @@
     "publicationStatus": { "$ref": "common.schema.json#/$defs/publicationStatus" },
     "publishedAt": { "oneOf": [{ "$ref": "common.schema.json#/$defs/isoTimestamp" }, { "type": "null" }] },
     "licenceDisplay": { "type": "string", "description": "Human-readable rights/licence line for display." },
+    "sourceAttribution": { "type": "string", "description": "Public source or authorship line supplied with the approved work." },
+    "publicationRoute": {
+      "type": "string",
+      "enum": ["open", "reviewed", "collection_review"]
+    },
     "correctionState": {
       "type": "string",
       "enum": ["none", "corrected", "takedown_requested", "removed"]

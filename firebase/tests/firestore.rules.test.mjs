@@ -85,6 +85,19 @@ before(async () => {
     await setDoc(doc(db, 'languages/kasem'), { code: 'xsm', name: 'Kasem' });
     await setDoc(doc(db, 'reviews/r1'), { target: { collection: 'lexicalEntries', id: 'x' }, decision: 'approved' });
     await setDoc(doc(db, 'auditLogs/a1'), { actor: { collection: 'validators', id: 'v1' }, action: 'content.validate' });
+    await setDoc(doc(db, 'dictionaryEntries/published-word'), {
+      kasemText: 'Konkwolo', englishText: 'Bottle', isPublished: true,
+    });
+    await setDoc(doc(db, 'dictionaryEntries/private-word'), {
+      kasemText: 'Draft', englishText: 'Draft', isPublished: false,
+    });
+    await setDoc(doc(db, 'collectionContributions/contribution-owned'), {
+      id: 'contribution-owned',
+      authUid: 'member-collection',
+      collectionKind: 'dictionary',
+      title: 'Bottle',
+      status: 'SUBMITTED',
+    });
   });
 });
 
@@ -217,6 +230,46 @@ test('registry languages are public-read but admin-write only', async () => {
   await assertSucceeds(getDoc(doc(db(anon), 'languages/kasem')));
   await assertFails(setDoc(doc(db(contrib), 'languages/rogue'), { code: 'zz' }));
   await assertSucceeds(setDoc(doc(db(admin), 'languages/new-cell'), { code: 'aa', name: 'Test' }));
+});
+
+test('only published legacy dictionary rows are publicly readable', async () => {
+  const anon = env.unauthenticatedContext();
+  const validator = env.authenticatedContext('val-dictionary', { role: 'validator' });
+  await assertSucceeds(getDoc(doc(db(anon), 'dictionaryEntries/published-word')));
+  await assertFails(getDoc(doc(db(anon), 'dictionaryEntries/private-word')));
+  await assertSucceeds(getDoc(doc(db(validator), 'dictionaryEntries/private-word')));
+});
+
+test('callable-created Collection contributions are private to their owner and staff', async () => {
+  const anon = env.unauthenticatedContext();
+  const owner = env.authenticatedContext('member-collection');
+  const stranger = env.authenticatedContext('member-guarded');
+  const validator = env.authenticatedContext('val-collection', { role: 'validator' });
+  const path = 'collectionContributions/contribution-owned';
+  await assertFails(getDoc(doc(db(anon), path)));
+  await assertFails(getDoc(doc(db(stranger), path)));
+  await assertSucceeds(getDoc(doc(db(owner), path)));
+  await assertSucceeds(getDoc(doc(db(validator), path)));
+});
+
+test('Collection contribution writes must go through the callable bridge', async () => {
+  const member = env.authenticatedContext('member-collection');
+  const validator = env.authenticatedContext('val-collection', { role: 'validator' });
+  const forged = {
+    id: 'direct-write',
+    authUid: 'member-collection',
+    collectionKind: 'dictionary',
+    title: 'Unsafe direct write',
+    status: 'SUBMITTED',
+  };
+  await assertFails(
+    setDoc(doc(db(member), 'collectionContributions/direct-write'), forged),
+  );
+  await assertFails(
+    updateDoc(doc(db(validator), 'collectionContributions/contribution-owned'), {
+      status: 'PUBLISHED',
+    }),
+  );
 });
 
 test('a contributor profile cannot be created with points, nor escalate its own role', async () => {

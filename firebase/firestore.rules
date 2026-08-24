@@ -296,6 +296,14 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // Legacy Project Kasena dictionary used by the mobile Collection. The app
+    // deliberately queries `isPublished == true`, so drafts and approved-but-
+    // not-yet-published rows remain private to staff.
+    match /dictionaryEntries/{entryId} {
+      allow read: if resource.data.get('isPublished', false) == true || isStaff();
+      allow write: if false;
+    }
+
     // ---- Contributors: self-managed profile, no privilege escalation -------
     match /contributors/{contributorId} {
       allow read: if isOwner(contributorId) || isValidator();
@@ -361,10 +369,14 @@ service cloud.firestore {
 
     // ---- Campaigns: public campaigns are guest-readable, admin-managed -------
     // Submission availability is derived from `status`; admins move the lifecycle
-    // so submissions open with no client redeploy.
+    // so submissions open with no client redeploy. The collection-contributions
+    // campaign is a backend-owned routing record and may never be client-mutated,
+    // including by an admin client.
     match /campaigns/{campaignId} {
       allow read: if resource.data.visibility == 'public' || isStaff();
-      allow create, update: if isAdmin() && request.resource.data.id == campaignId;
+      allow create, update: if campaignId != 'collection-contributions'
+        && isAdmin()
+        && request.resource.data.id == campaignId;
       allow delete: if false;
     }
 
@@ -471,6 +483,17 @@ service cloud.firestore {
     // by the trusted publication workflow.
     match /publishedContent/{contentId} {
       allow read: if resource.data.publicationStatus == 'published' || isStaff();
+      allow write: if false;
+    }
+
+    // Mobile contributions for the four Collection destinations. The callable
+    // submitCollectionContribution function validates consent and atomically
+    // creates both this private status record and its canonical review
+    // submission. No client may bypass that bridge or mutate review state.
+    match /collectionContributions/{contributionId} {
+      allow read: if isStaff() || (
+        isSignedIn() && resource.data.authUid == request.auth.uid
+      );
       allow write: if false;
     }
 

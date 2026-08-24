@@ -20,6 +20,13 @@ function isActive(path: string, to: string): boolean {
 export function StudioLayout({ children }: { children: ReactNode }) {
   const { path } = useRoute();
   const { user, role } = useAuth();
+  const accountLabel = user?.displayName ?? user?.email ?? 'Creator';
+  const accountInitials = accountLabel
+    .split(/[\s@._-]+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join('') || 'TS';
 
   return (
     <div className="studio">
@@ -61,7 +68,13 @@ export function StudioLayout({ children }: { children: ReactNode }) {
           ) : null}
         </nav>
         <div className="studio__account">
-          <span className="studio__user">{user?.displayName ?? user?.email}</span>
+          <span className="studio__account-orb" aria-hidden="true">
+            {user?.photoURL ? <img src={user.photoURL} alt="" referrerPolicy="no-referrer" /> : accountInitials}
+          </span>
+          <span className="studio__account-copy">
+            <strong className="studio__user">{accountLabel}</strong>
+            <small>{role ? `${role} workspace` : 'Creator workspace'}</small>
+          </span>
           <button type="button" className="button button--ghost-dark button--small" onClick={() => void signOutUser()}>
             Sign out
           </button>

@@ -13,6 +13,15 @@
     "studioType": { "type": "string", "enum": ["writing", "video", "audio", "image", "translation"] },
     "title": { "type": "string", "minLength": 1 },
     "category": { "type": "string" },
+    "collectionKind": { "$ref": "common.schema.json#/$defs/collectionKind" },
+    "collectionContribution": {
+      "oneOf": [{ "$ref": "common.schema.json#/$defs/reference" }, { "type": "null" }],
+      "description": "Mobile Collection queue record that originated this submission, when applicable."
+    },
+    "relatedEntryId": { "oneOf": [{ "type": "string" }, { "type": "null" }] },
+    "format": { "type": "string" },
+    "kasemExample": { "type": "string" },
+    "englishExample": { "type": "string" },
     "primaryLanguage": { "$ref": "common.schema.json#/$defs/languageCode" },
     "dialect": { "type": "string" },
     "description": { "type": "string" },

@@ -19,7 +19,12 @@ if (hasReleaseSigning) {
     keystoreProperties.load(FileInputStream(keystorePropertiesFile))
 }
 
-val hasFirebaseConfig = file("src").walkTopDown().any { it.name == "google-services.json" }
+// Support both the standard app-level config and flavor-specific configs.
+// The release runbook uses android/app/google-services.json, while local
+// development normally keeps one under src/<flavor>/.
+val hasFirebaseConfig =
+    file("google-services.json").exists() ||
+        file("src").walkTopDown().any { it.name == "google-services.json" }
 if (hasFirebaseConfig) {
     apply(plugin = "com.google.gms.google-services")
     apply(plugin = "com.google.firebase.firebase-perf")

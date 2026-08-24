@@ -1,5 +1,5 @@
 import { Suspense, type ReactNode } from 'react';
-import { Link } from '../router';
+import { Link, useRoute } from '../router';
 import { signIn, useAuth } from '../auth';
 
 function BrandMark() {
@@ -23,6 +23,15 @@ const NAV = [
 /** Chrome for the public, co-branded founding-creator marketing pages. */
 export function PublicLayout({ children }: { children: ReactNode }) {
   const { user, ready } = useAuth();
+  const { path } = useRoute();
+
+  const isActive = (to: string) => {
+    if (to === '/creators') {
+      return path === '/' || path === '/creators' || path.startsWith('/creators/join');
+    }
+    return path === to;
+  };
+
   return (
     <div className="public">
       <header className="public__bar">
@@ -35,7 +44,12 @@ export function PublicLayout({ children }: { children: ReactNode }) {
         </Link>
         <nav className="public__nav" aria-label="Primary">
           {NAV.map((item) => (
-            <Link key={item.to} to={item.to}>
+            <Link
+              key={item.to}
+              to={item.to}
+              className={isActive(item.to) ? 'is-active' : undefined}
+              aria-current={isActive(item.to) ? 'page' : undefined}
+            >
               {item.label}
             </Link>
           ))}

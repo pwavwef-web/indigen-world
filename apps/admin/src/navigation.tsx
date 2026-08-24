@@ -96,9 +96,10 @@ export const SCREENS: AdminScreen[] = [
   },
 ];
 
-/** The screen whose `path` matches the given pathname, falling back to the
- * console. Trailing slashes are ignored so `/messaging/` resolves too. */
-export function screenForPath(pathname: string): AdminScreen {
+/** The screen whose `path` matches the given pathname. Unknown paths return
+ * null so the shell can render an explicit 404 instead of a misleading console
+ * fallback. Trailing slashes are ignored so `/messaging/` resolves too. */
+export function screenForPath(pathname: string): AdminScreen | null {
   const normalized = pathname.replace(/\/+$/, '') || '/';
-  return SCREENS.find((screen) => screen.path === normalized) ?? SCREENS[0];
+  return SCREENS.find((screen) => screen.path === normalized) ?? null;
 }

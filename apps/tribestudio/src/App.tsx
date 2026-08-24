@@ -4,6 +4,7 @@ import { ToastProvider } from '@indigen-world/web-ui';
 import { RouterProvider, matchRoute, useRoute } from './router';
 import { signIn, useAuth } from './auth';
 import { ErrorBoundary } from './ErrorBoundary';
+import { NotFoundPage } from './NotFoundPage';
 import { CreatorProvider } from './creator/CreatorProvider';
 import { PublicLayout } from './creator/PublicLayout';
 import { StudioLayout } from './creator/StudioLayout';
@@ -56,15 +57,6 @@ function SignInGate() {
           Sign in with Google
         </button>
       </div>
-    </div>
-  );
-}
-
-function NotFound() {
-  return (
-    <div className="page">
-      <h1>Page not found</h1>
-      <p className="muted">The page you’re looking for doesn’t exist.</p>
     </div>
   );
 }
@@ -207,7 +199,7 @@ function renderStudio(path: string) {
   if (matchRoute('/studio/submissions/:id', path)) return <SubmissionDetailPage />;
   if (path === '/studio/notifications') return <NotificationsPage />;
   if (path === '/studio/help') return <HelpPage />;
-  return <NotFound />;
+  return <NotFoundPage variant="studio" />;
 }
 
 function Routed() {
@@ -252,7 +244,7 @@ function Routed() {
     );
   }
 
-  return <PublicLayout><NotFound /></PublicLayout>;
+  return <PublicLayout><NotFoundPage /></PublicLayout>;
 }
 
 function App() {

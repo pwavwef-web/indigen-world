@@ -3,28 +3,60 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/data/repositories.dart';
+import 'package:indigen_world_mobile/domain/dictionary_entry.dart';
+import 'package:indigen_world_mobile/features/collection/collection_data.dart';
 import 'package:indigen_world_mobile/shared/app_widgets.dart';
 
 class EntryDetailScreen extends ConsumerWidget {
-  const EntryDetailScreen({required this.entryId, super.key});
+  const EntryDetailScreen({required this.entryId, this.entry, super.key});
 
   final String entryId;
+  final DictionaryEntry? entry;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final entry = ref.watch(dictionaryRepositoryProvider).findById(entryId);
-    if (entry == null) {
+    final bundledEntry =
+        entry ?? ref.watch(dictionaryRepositoryProvider).findById(entryId);
+    final liveEntry = bundledEntry == null
+        ? ref.watch(publishedDictionaryEntryProvider(entryId))
+        : const AsyncData<DictionaryEntry?>(null);
+    final resolvedEntry = bundledEntry ?? liveEntry.asData?.value;
+    if (resolvedEntry == null && liveEntry.isLoading) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Opening entry')),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+    if (resolvedEntry == null) {
       return Scaffold(
         appBar: AppBar(title: const Text('Entry unavailable')),
-        body: const Center(
-          child: Text('This entry is not in the current pack.'),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'This published entry could not be loaded.',
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 14),
+                OutlinedButton.icon(
+                  onPressed: () =>
+                      ref.invalidate(publishedDictionaryEntryProvider(entryId)),
+                  icon: const Icon(Icons.refresh_rounded),
+                  label: const Text('Try again'),
+                ),
+              ],
+            ),
+          ),
         ),
       );
     }
 
     final savedIds =
         ref.watch(savedEntryIdsProvider).asData?.value ?? const <String>{};
-    final isSaved = savedIds.contains(entry.id);
+    final isSaved = savedIds.contains(resolvedEntry.id);
 
     return Scaffold(
       appBar: AppBar(
@@ -35,7 +67,7 @@ class EntryDetailScreen extends ConsumerWidget {
             onPressed: () async {
               final saved = await ref
                   .read(savedEntryRepositoryProvider)
-                  .toggle(entry.id);
+                  .toggle(resolvedEntry.id);
               ref.invalidate(savedEntryIdsProvider);
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -59,18 +91,22 @@ class EntryDetailScreen extends ConsumerWidget {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 40),
           children: [
-            const DemoDataNotice(),
-            const SizedBox(height: 20),
+            if (resolvedEntry.isSynthetic) ...[
+              const DemoDataNotice(),
+              const SizedBox(height: 20),
+            ],
             Row(
               children: [
-                const StatusPill(
+                StatusPill(
                   icon: Icons.verified_outlined,
-                  label: 'DEMO PROJECTION',
+                  label: resolvedEntry.isSynthetic
+                      ? 'DEMO PROJECTION'
+                      : 'PUBLISHED ENTRY',
                   color: BrandColors.savannahGreen,
                 ),
                 const Spacer(),
                 Text(
-                  entry.partOfSpeech,
+                  resolvedEntry.partOfSpeech,
                   style: const TextStyle(
                     color: BrandColors.mutedInk,
                     fontWeight: FontWeight.w700,
@@ -80,12 +116,12 @@ class EntryDetailScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 18),
             Text(
-              entry.headword,
+              resolvedEntry.headword,
               style: Theme.of(context).textTheme.headlineLarge,
             ),
             const SizedBox(height: 8),
             Text(
-              entry.translation,
+              resolvedEntry.translation,
               style: Theme.of(context).textTheme.titleLarge
                   ?.copyWith(color: BrandColors.terracotta),
             ),
@@ -96,7 +132,7 @@ class EntryDetailScreen extends ConsumerWidget {
               children: [
                 Chip(
                   avatar: const Icon(Icons.location_on_outlined, size: 18),
-                  label: Text(entry.dialect),
+                  label: Text(resolvedEntry.dialect),
                 ),
                 const Chip(
                   avatar: Icon(Icons.language_rounded, size: 18),
@@ -108,7 +144,7 @@ class EntryDetailScreen extends ConsumerWidget {
             _DetailCard(
               icon: Icons.volume_up_outlined,
               title: 'Pronunciation',
-              body: entry.pronunciation,
+              body: resolvedEntry.pronunciation,
               trailing: IconButton.filledTonal(
                 tooltip: 'Audio unavailable',
                 onPressed: () => _showAudioNotice(context),
@@ -119,26 +155,27 @@ class EntryDetailScreen extends ConsumerWidget {
             _DetailCard(
               icon: Icons.chat_bubble_outline_rounded,
               title: 'Example',
-              body: '${entry.example}\n${entry.exampleTranslation}',
+              body:
+                  '${resolvedEntry.example}\n${resolvedEntry.exampleTranslation}',
             ),
-            if (entry.culturalNote != null) ...[
+            if (resolvedEntry.culturalNote != null) ...[
               const SizedBox(height: 12),
               _DetailCard(
                 icon: Icons.auto_stories_outlined,
                 title: 'Cultural context',
-                body: entry.culturalNote!,
+                body: resolvedEntry.culturalNote!,
               ),
             ],
             const SizedBox(height: 12),
             _DetailCard(
               icon: Icons.gavel_outlined,
               title: 'Source and rights',
-              body: '${entry.attribution}\nMobile channel · development only',
+              body: resolvedEntry.attribution,
             ),
             const SizedBox(height: 24),
             OutlinedButton.icon(
               onPressed: () => context.push(
-                '/contribute?source=${Uri.encodeQueryComponent(entry.translation)}&entryId=${entry.id}',
+                '/contribute?source=${Uri.encodeQueryComponent(resolvedEntry.translation)}&entryId=${resolvedEntry.id}',
               ),
               icon: const Icon(Icons.edit_outlined),
               label: const Text('Suggest a correction'),

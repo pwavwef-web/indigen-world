@@ -14,6 +14,14 @@ import { test } from 'node:test';
 import { mentionedHandles } from '../../services/functions/lib/community-notifications.js';
 import { isCampaignSubmission } from '../../services/functions/lib/open-publishing.js';
 import { normaliseTurns, replyFromGemini, vertexEndpoint } from '../../services/functions/lib/kawuri.js';
+import {
+  buildPublishedContentDocument,
+  canonicalCollectionKind,
+} from '../../services/functions/lib/publication.js';
+import {
+  buildCollectionSubmissionDocument,
+  parseCollectionContributionInput,
+} from '../../services/functions/lib/collection-contributions.js';
 
 // ── Mentions ────────────────────────────────────────────────────────────────
 
@@ -67,6 +75,137 @@ test('isCampaignSubmission treats every "no campaign" shape as open', () => {
   assert.equal(isCampaignSubmission(null), false);
   assert.equal(isCampaignSubmission(undefined), false);
   assert.equal(isCampaignSubmission({ id: 7 }), false);
+});
+
+// ── Collection contribution publication ────────────────────────────────────
+
+const collectionInput = (overrides = {}) => ({
+  collectionKind: 'literature',
+  title: 'The Baobab Promise',
+  body: 'A complete long-form story that must survive review and publication.',
+  format: 'Folktale',
+  dialect: 'Navrongo',
+  source: 'Community storyteller',
+  mediaUrl: '',
+  notes: 'Check the spelling with a Navrongo reviewer.',
+  relatedEntryId: null,
+  involvesMinors: false,
+  usesThirdPartyMaterial: false,
+  participantConsentConfirmed: true,
+  rightsConfirmed: true,
+  publicationPermission: true,
+  ...overrides,
+});
+
+test('collection contribution maps to a reviewed canonical submission', () => {
+  const parsed = parseCollectionContributionInput(collectionInput());
+  const submission = buildCollectionSubmissionDocument(
+    'collection-1',
+    'member-1',
+    parsed,
+    '2026-08-24T00:00:00.000Z',
+  );
+  assert.equal(submission.status, 'SUBMITTED');
+  assert.equal(submission.collectionKind, 'literature');
+  assert.equal(submission.body, parsed.body);
+  assert.deepEqual(submission.campaign, {
+    collection: 'campaigns',
+    id: 'collection-contributions',
+  });
+  assert.equal(submission.permissions.publication, true);
+  assert.equal(submission.disclosures.involvesMinors, false);
+  assert.equal(submission.disclosures.usesThirdPartyMaterial, false);
+  assert.equal(submission.attestations.participantsConsented, true);
+});
+
+test('collection governance answers are explicit and participant consent is required', () => {
+  for (const key of ['involvesMinors', 'usesThirdPartyMaterial', 'participantConsentConfirmed']) {
+    const input = collectionInput();
+    delete input[key];
+    assert.throws(
+      () => parseCollectionContributionInput(input),
+      (error) => error?.code === 'invalid-argument',
+      `${key} must not silently default`,
+    );
+  }
+  assert.throws(
+    () => parseCollectionContributionInput(collectionInput({ participantConsentConfirmed: false })),
+    (error) => error?.code === 'failed-precondition',
+  );
+});
+
+test('Dictionary examples survive the canonical submission projection', () => {
+  const parsed = parseCollectionContributionInput(collectionInput({
+    collectionKind: 'dictionary',
+    kasemExample: 'Amo dole kokwolo.',
+    englishExample: 'I threw the bottle away.',
+  }));
+  const submission = buildCollectionSubmissionDocument(
+    'collection-dictionary',
+    'member-dictionary',
+    parsed,
+    '2026-08-24T00:00:00.000Z',
+  );
+  assert.equal(submission.kasemExample, 'Amo dole kokwolo.');
+  assert.equal(submission.englishExample, 'I threw the bottle away.');
+});
+
+test('publication keeps Literature body and maps it into the current mobile description', () => {
+  const parsed = parseCollectionContributionInput(collectionInput());
+  const submission = buildCollectionSubmissionDocument(
+    'collection-2',
+    'member-2',
+    parsed,
+    '2026-08-24T00:00:00.000Z',
+  );
+  const published = buildPublishedContentDocument({
+    submissionId: 'collection-2',
+    publishedId: 'pub_collection-2',
+    submission,
+    creatorId: 'member-2',
+    displayName: 'Community contributor',
+    avatarUrl: null,
+    publicationStatus: 'published',
+    now: '2026-08-24T01:00:00.000Z',
+  });
+  assert.equal(published.collectionKind, 'literature');
+  assert.equal(published.body, parsed.body);
+  assert.equal(published.description, parsed.body);
+  assert.equal(published.publicationRoute, 'collection_review');
+});
+
+test('Audiobooks retain an approved external recording and infer audio media', () => {
+  const parsed = parseCollectionContributionInput(collectionInput({
+    collectionKind: 'audiobooks',
+    mediaUrl: 'https://media.example.org/story.mp3',
+  }));
+  const submission = buildCollectionSubmissionDocument(
+    'collection-3',
+    'member-3',
+    parsed,
+    '2026-08-24T00:00:00.000Z',
+  );
+  const published = buildPublishedContentDocument({
+    submissionId: 'collection-3',
+    publishedId: 'pub_collection-3',
+    submission,
+    creatorId: 'member-3',
+    displayName: 'Community contributor',
+    avatarUrl: null,
+    publicationStatus: 'published',
+    now: '2026-08-24T01:00:00.000Z',
+  });
+  assert.equal(published.collectionKind, 'audiobooks');
+  assert.equal(published.mediaType, 'audio');
+  assert.equal(published.mediaUrl, 'https://media.example.org/story.mp3');
+});
+
+test('collection aliases resolve while unknown categories stay unclassified', () => {
+  assert.equal(canonicalCollectionKind('oral-reading'), 'audiobooks');
+  assert.equal(canonicalCollectionKind('audio'), 'audiobooks');
+  assert.equal(canonicalCollectionKind('narration'), 'audiobooks');
+  assert.equal(canonicalCollectionKind('storytelling'), 'literature');
+  assert.equal(canonicalCollectionKind('festival'), null);
 });
 
 // ── Kawuri ──────────────────────────────────────────────────────────────────

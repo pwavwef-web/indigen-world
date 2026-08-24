@@ -18,6 +18,9 @@ const routes = [
 ];
 
 const pageIndex = read("src/pages/index.ts");
+const app = read("src/App.tsx");
+const notFound = read("src/pages/NotFoundPage.tsx");
+const headerStyles = read("src/styles/header.css");
 const sitemap = read("public/sitemap.xml");
 for (const [route, page] of routes) {
   assert.ok(pageIndex.includes(`./${page.replace(".tsx", "")}`), `${page} is lazy-loaded`);
@@ -41,5 +44,9 @@ assert.match(read("index.html"), /href="#main-content"/, "skip link is present")
 assert.match(read("src/lib/forms.ts"), /VITE_PUBLIC_FORMS_ENDPOINT/, "forms use the reviewed endpoint boundary");
 assert.match(sourceFiles, /Venacula/, "the Venacula newsletter signup is visible on the site");
 assert.match(read("src/features/forms/NewsletterForm.tsx"), /consent/, "newsletter signup records explicit consent");
+assert.match(app, /PAGE_COMPONENTS\[path\]\s*\?\?\s*NotFoundPage/, "unknown routes render the 404 page");
+assert.match(notFound, /noindex:\s*true/, "the 404 route is excluded from indexing");
+assert.match(notFound, /aria-label="Error 404"/, "the 404 state has an explicit accessible error code");
+assert.match(headerStyles, /backdrop-filter:\s*blur/, "the primary navigation retains its glass treatment");
 
 console.log(`Validated ${routes.length} public routes and core privacy/safety invariants.`);

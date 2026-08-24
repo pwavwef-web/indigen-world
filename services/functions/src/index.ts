@@ -19,6 +19,10 @@ export {
   onCommunityNotificationCreated,
 } from './community-notifications.js';
 export { onSubmissionWritten } from './open-publishing.js';
+export {
+  submitCollectionContribution,
+  withdrawCollectionContribution,
+} from './collection-contributions.js';
 export { kawuriChat } from './kawuri.js';
 export {
   smsBalance,

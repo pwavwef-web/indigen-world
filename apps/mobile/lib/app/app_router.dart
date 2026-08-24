@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:indigen_world_mobile/features/collection/collection_data.dart';
 import 'package:indigen_world_mobile/features/community/post_detail_screen.dart';
 import 'package:indigen_world_mobile/features/contribute/contribute_screen.dart';
 import 'package:indigen_world_mobile/features/dictionary/entry_detail_screen.dart';
@@ -34,12 +35,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/contribute',
-        builder: (context, state) => Scaffold(
-          appBar: AppBar(title: const Text('Contribution')),
-          body: ContributeScreen(
-            initialSource: state.uri.queryParameters['source'] ?? '',
-            relatedEntryId: state.uri.queryParameters['entryId'],
-          ),
+        builder: (context, state) => ContributeScreen(
+          initialSource: state.uri.queryParameters['source'] ?? '',
+          relatedEntryId: state.uri.queryParameters['entryId'],
+          initialKind: _collectionKind(state.uri.queryParameters['category']),
+          standalone: true,
         ),
       ),
     ],
@@ -56,3 +56,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   ref.onDispose(router.dispose);
   return router;
 });
+
+CollectionKind _collectionKind(String? value) => switch (value) {
+  'music' => CollectionKind.music,
+  'literature' => CollectionKind.literature,
+  'audiobook' || 'audiobooks' => CollectionKind.audiobooks,
+  _ => CollectionKind.dictionary,
+};

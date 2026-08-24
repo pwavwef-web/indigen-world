@@ -18,6 +18,11 @@ const root = resolve(import.meta.dirname, '..');
 const read = (path) => readFileSync(resolve(root, path), 'utf8');
 
 const app = read('src/App.tsx');
+const notFound = read('src/NotFoundPage.tsx');
+const publicLayout = read('src/creator/PublicLayout.tsx');
+const studioLayout = read('src/creator/StudioLayout.tsx');
+const profilePage = read('src/creator/pages/ProfilePage.tsx');
+const creatorStyles = read('src/creator/creator.css');
 
 // Route-based code-splitting: pages must be lazy-loaded, not statically imported.
 const LAZY_PAGES = [
@@ -36,6 +41,15 @@ for (const page of LAZY_PAGES) {
 }
 assert.match(app, /<Suspense/, 'App uses a Suspense boundary for lazy routes');
 assert.match(app, /<ErrorBoundary>/, 'App is wrapped in an ErrorBoundary');
+assert.match(app, /<NotFoundPage variant="studio"/, 'unknown studio routes render the branded 404 page');
+assert.match(app, /<PublicLayout><NotFoundPage/, 'unknown public routes render the branded 404 page');
+assert.match(notFound, /aria-label="Error 404"/, 'the not-found page exposes an accessible 404 code');
+assert.match(publicLayout, /aria-current=/, 'public navigation exposes its active route');
+assert.match(studioLayout, /aria-current=/, 'studio navigation exposes its active route');
+assert.match(creatorStyles, /backdrop-filter:\s*blur/, 'navigation retains its glass treatment');
+assert.match(profilePage, /className="profile-hero"/, 'profile has a clear identity hero');
+assert.match(profilePage, /aria-label="Profile sections"/, 'profile has section navigation');
+assert.match(profilePage, /className="profile-savebar"/, 'profile has a persistent save surface');
 
 // Governance: AI-training permission is off by default in the submission wizard.
 const wizard = read('src/creator/pages/SubmissionNewPage.tsx');
