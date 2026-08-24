@@ -9,16 +9,29 @@ import 'package:indigen_world_mobile/features/community/widgets/community_post_c
 import 'package:indigen_world_mobile/features/community/widgets/people_widgets.dart';
 
 /// A post and its reply thread.
-class PostDetailScreen extends ConsumerWidget {
+class PostDetailScreen extends ConsumerStatefulWidget {
   const PostDetailScreen({required this.postId, super.key});
 
   final String postId;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<PostDetailScreen> createState() => _PostDetailScreenState();
+}
+
+class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
+  var _viewTracked = false;
+
+  @override
+  Widget build(BuildContext context) {
     final actions = CommunityActions(ref);
-    final postState = ref.watch(postProvider(postId));
+    final postState = ref.watch(postProvider(widget.postId));
     final post = postState.asData?.value;
+    if (post != null && !_viewTracked) {
+      _viewTracked = true;
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => actions.trackView(post),
+      );
+    }
 
     return Scaffold(
       appBar: AppBar(title: const Text('Conversation')),
@@ -62,6 +75,12 @@ class _Thread extends ConsumerWidget {
     final likes = ref.watch(myLikesProvider).asData?.value ?? const <String>{};
     final saved =
         ref.watch(myBookmarksProvider).asData?.value ?? const <String>{};
+    final reposts =
+        ref.watch(myRepostsProvider).asData?.value ?? const <String>{};
+    final pollVotes =
+        ref.watch(myPollVotesProvider).asData?.value ??
+        const <String, String>{};
+    final currentUid = ref.watch(currentUidProvider);
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
@@ -70,8 +89,24 @@ class _Thread extends ConsumerWidget {
           post: post,
           liked: likes.contains(post.id),
           saved: saved.contains(post.id),
+          reposted: reposts.contains(post.id),
+          votedOptionId: pollVotes[post.id],
           onLike: () => actions.toggleLike(context, post),
+          onRepost: () => actions.toggleRepost(context, post),
+          onQuote: () => actions.quote(context, post),
           onSave: () => actions.toggleSave(context, post),
+          onShare: () => actions.share(context, post),
+          onViews: currentUid == post.authorId
+              ? () => actions.openEngagement(context, post)
+              : null,
+          onVote: (optionId) => actions.vote(context, post, optionId),
+          onPollVotes: currentUid == post.authorId && post.hasPoll
+              ? () => actions.openEngagement(
+                  context,
+                  post,
+                  initialKind: CommunityEngagementKind.pollVotes,
+                )
+              : null,
           onReply: () => actions.reply(context, post),
           onMore: () => actions.showPostMenu(
             context,
@@ -84,7 +119,16 @@ class _Thread extends ConsumerWidget {
               builder: (context) => CommunityProfileScreen(uid: post.authorId),
             ),
           ),
+          onOpenQuoted: post.quotedPostId == null
+              ? null
+              : () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (context) =>
+                        PostDetailScreen(postId: post.quotedPostId!),
+                  ),
+                ),
           onOpenHandle: (handle) => actions.openHandle(context, handle),
+          onOpenLink: (url) => actions.openLink(context, url),
         ),
         const SizedBox(height: 20),
         Row(
@@ -119,6 +163,9 @@ class _Thread extends ConsumerWidget {
                   reply: reply,
                   liked: likes.contains(reply.id),
                   saved: saved.contains(reply.id),
+                  reposted: reposts.contains(reply.id),
+                  votedOptionId: pollVotes[reply.id],
+                  isOwner: currentUid == reply.authorId,
                   actions: actions,
                 ),
               ),
@@ -151,12 +198,18 @@ class _ThreadedReply extends StatelessWidget {
     required this.reply,
     required this.liked,
     required this.saved,
+    required this.reposted,
+    required this.votedOptionId,
+    required this.isOwner,
     required this.actions,
   });
 
   final CommunityPost reply;
   final bool liked;
   final bool saved;
+  final bool reposted;
+  final String? votedOptionId;
+  final bool isOwner;
   final CommunityActions actions;
 
   @override
@@ -169,9 +222,23 @@ class _ThreadedReply extends StatelessWidget {
       post: reply,
       liked: liked,
       saved: saved,
+      reposted: reposted,
+      votedOptionId: votedOptionId,
       compact: true,
       onLike: () => actions.toggleLike(context, reply),
+      onRepost: () => actions.toggleRepost(context, reply),
+      onQuote: () => actions.quote(context, reply),
       onSave: () => actions.toggleSave(context, reply),
+      onShare: () => actions.share(context, reply),
+      onViews: isOwner ? () => actions.openEngagement(context, reply) : null,
+      onVote: (optionId) => actions.vote(context, reply, optionId),
+      onPollVotes: isOwner && reply.hasPoll
+          ? () => actions.openEngagement(
+              context,
+              reply,
+              initialKind: CommunityEngagementKind.pollVotes,
+            )
+          : null,
       onReply: () => actions.reply(context, reply),
       onMore: () => actions.showPostMenu(context, reply),
       onOpen: () => Navigator.of(context).push(
@@ -184,7 +251,16 @@ class _ThreadedReply extends StatelessWidget {
           builder: (context) => CommunityProfileScreen(uid: reply.authorId),
         ),
       ),
+      onOpenQuoted: reply.quotedPostId == null
+          ? null
+          : () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (context) =>
+                    PostDetailScreen(postId: reply.quotedPostId!),
+              ),
+            ),
       onOpenHandle: (handle) => actions.openHandle(context, handle),
+      onOpenLink: (url) => actions.openLink(context, url),
     ),
   );
 }

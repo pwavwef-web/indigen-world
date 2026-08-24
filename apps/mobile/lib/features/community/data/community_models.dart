@@ -8,6 +8,7 @@ class CommunityMedia {
     this.storagePath = '',
     this.thumbnailUrl,
     this.aspectRatio = 4 / 3,
+    this.durationSeconds,
   });
 
   /// Public download URL of the uploaded file.
@@ -21,8 +22,10 @@ class CommunityMedia {
 
   final String? thumbnailUrl;
   final double aspectRatio;
+  final int? durationSeconds;
 
   bool get isVideo => type == 'video';
+  bool get isAudio => type == 'audio';
 
   static CommunityMedia? fromMap(Object? raw) {
     if (raw is! Map) return null;
@@ -31,7 +34,11 @@ class CommunityMedia {
     final ratio = raw['aspectRatio'];
     return CommunityMedia(
       url: url,
-      type: raw['type'] == 'video' ? 'video' : 'image',
+      type: switch (raw['type']) {
+        'video' => 'video',
+        'audio' => 'audio',
+        _ => 'image',
+      },
       storagePath: raw['storagePath'] is String
           ? raw['storagePath'] as String
           : '',
@@ -39,6 +46,9 @@ class CommunityMedia {
           ? raw['thumbnailUrl'] as String
           : null,
       aspectRatio: ratio is num && ratio > 0 ? ratio.toDouble() : 4 / 3,
+      durationSeconds: raw['durationSeconds'] is num
+          ? (raw['durationSeconds'] as num).toInt()
+          : null,
     );
   }
 
@@ -48,6 +58,84 @@ class CommunityMedia {
     'storagePath': storagePath,
     if (thumbnailUrl != null) 'thumbnailUrl': thumbnailUrl,
     'aspectRatio': aspectRatio,
+    if (durationSeconds != null) 'durationSeconds': durationSeconds,
+  };
+}
+
+/// One answer in a community poll.
+class CommunityPollOption {
+  const CommunityPollOption({
+    required this.id,
+    required this.text,
+    this.voteCount = 0,
+  });
+
+  final String id;
+  final String text;
+  final int voteCount;
+
+  static CommunityPollOption? fromMap(Object? raw) {
+    if (raw is! Map) return null;
+    final id = raw['id'];
+    final text = raw['text'];
+    if (id is! String || id.isEmpty || text is! String || text.trim().isEmpty) {
+      return null;
+    }
+    return CommunityPollOption(
+      id: id,
+      text: text.trim(),
+      voteCount: _asInt(raw['voteCount']),
+    );
+  }
+
+  Map<String, Object?> toMap() => {
+    'id': id,
+    'text': text,
+    'voteCount': voteCount,
+  };
+}
+
+/// Poll metadata embedded in a post. A member's selection lives in the private
+/// `communityPollVotes` edge collection rather than in this public object.
+class CommunityPoll {
+  const CommunityPoll({
+    required this.options,
+    required this.endsAt,
+    this.totalVotes = 0,
+  });
+
+  final List<CommunityPollOption> options;
+  final DateTime endsAt;
+  final int totalVotes;
+
+  bool get hasEnded => DateTime.now().isAfter(endsAt);
+
+  static CommunityPoll? fromMap(Object? raw) {
+    if (raw is! Map) return null;
+    final rawOptions = raw['options'];
+    final rawEndsAt = raw['endsAt'];
+    if (rawOptions is! List) return null;
+    final options = rawOptions
+        .map(CommunityPollOption.fromMap)
+        .whereType<CommunityPollOption>()
+        .toList(growable: false);
+    final endsAt = switch (rawEndsAt) {
+      final Timestamp value => value.toDate(),
+      final DateTime value => value,
+      _ => null,
+    };
+    if (options.length < 2 || endsAt == null) return null;
+    return CommunityPoll(
+      options: options,
+      endsAt: endsAt,
+      totalVotes: _asInt(raw['totalVotes']),
+    );
+  }
+
+  Map<String, Object?> toMap() => {
+    'options': options.map((option) => option.toMap()).toList(growable: false),
+    'endsAt': Timestamp.fromDate(endsAt),
+    'totalVotes': totalVotes,
   };
 }
 
@@ -124,8 +212,18 @@ class CommunityProfile {
           ? (data['displayName'] as String).trim()
           : 'Community member',
       bio: (data['bio'] as String?) ?? '',
-      avatarUrl: _nonEmpty(data['avatarUrl']),
-      bannerUrl: _nonEmpty(data['bannerUrl']),
+      avatarUrl: _firstNonEmpty(data, const [
+        'avatarUrl',
+        'photoUrl',
+        'photoURL',
+        'avatar',
+        'imageUrl',
+      ]),
+      bannerUrl: _firstNonEmpty(data, const [
+        'bannerUrl',
+        'coverUrl',
+        'coverPhotoUrl',
+      ]),
       location: (data['location'] as String?) ?? '',
       dialect: (data['dialect'] as String?) ?? '',
       isVerified: data['isVerified'] == true,
@@ -153,6 +251,7 @@ class CommunityProfile {
     'displayName': displayName,
     'username': username,
     'avatarUrl': avatarUrl,
+    'isVerified': isVerified,
   };
 }
 
@@ -167,12 +266,24 @@ class CommunityPost {
     required this.media,
     required this.likeCount,
     required this.replyCount,
+    this.repostCount = 0,
+    this.quoteCount = 0,
+    this.viewCount = 0,
     this.authorAvatarUrl,
+    this.authorVerified = false,
     this.parentId,
     this.rootId,
+    this.quotedPostId,
+    this.quotedPost,
+    this.poll,
     this.createdAt,
     this.kasemConfirmed = false,
     this.editedAt,
+    this.resharedById,
+    this.resharedByName,
+    this.resharedByUsername,
+    this.resharedByAvatarUrl,
+    this.resharedAt,
   });
 
   final String id;
@@ -180,10 +291,14 @@ class CommunityPost {
   final String authorName;
   final String authorUsername;
   final String? authorAvatarUrl;
+  final bool authorVerified;
   final String text;
   final List<CommunityMedia> media;
   final int likeCount;
   final int replyCount;
+  final int repostCount;
+  final int quoteCount;
+  final int viewCount;
 
   /// Null for a top-level post; the parent post id for a reply.
   final String? parentId;
@@ -191,12 +306,41 @@ class CommunityPost {
   /// The top-level post a reply belongs to (equals [id] for top-level posts).
   final String? rootId;
 
+  /// A quote is a normal post with its own text and engagement, plus this
+  /// immutable snapshot of the post it is responding to.
+  final String? quotedPostId;
+  final CommunityPost? quotedPost;
+  final CommunityPoll? poll;
+
   final DateTime? createdAt;
   final bool kasemConfirmed;
   final DateTime? editedAt;
 
+  /// Feed-only activity metadata, hydrated from `communityReposts`. It is not
+  /// part of the canonical post document and never changes ownership.
+  final String? resharedById;
+  final String? resharedByName;
+  final String? resharedByUsername;
+  final String? resharedByAvatarUrl;
+  final DateTime? resharedAt;
+
   bool get isReply => parentId != null;
   bool get hasMedia => media.isNotEmpty;
+  bool get isQuote => quotedPostId != null && quotedPost != null;
+  bool get hasPoll => poll != null;
+  bool get isResharedFeedItem => resharedById != null;
+  bool get isEdited => editedAt != null;
+  int get reshareAndQuoteCount => repostCount + quoteCount;
+  DateTime? get feedTimestamp => resharedAt ?? createdAt;
+
+  String? get firstLink {
+    final match = RegExp(
+      r'https?://[^\s<>()]+',
+      caseSensitive: false,
+    ).firstMatch(text);
+    if (match == null) return null;
+    return match.group(0)?.replaceFirst(RegExp(r'[.,!?;:]+$'), '');
+  }
 
   String get handle => '@$authorUsername';
 
@@ -210,19 +354,27 @@ class CommunityPost {
     return source.substring(0, source.length >= 2 ? 2 : 1).toUpperCase();
   }
 
-  static CommunityPost fromDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
-    final data = doc.data() ?? const <String, dynamic>{};
-    final author =
-        (data['author'] as Map<String, dynamic>?) ?? const <String, dynamic>{};
+  static CommunityPost fromDoc(DocumentSnapshot<Map<String, dynamic>> doc) =>
+      fromMap(doc.id, doc.data() ?? const <String, dynamic>{});
+
+  static CommunityPost fromMap(String id, Map<String, dynamic> data) {
+    final author = _stringMap(data['author']);
     final rawMedia = data['media'];
     return CommunityPost(
-      id: doc.id,
+      id: id,
       authorId: (data['authorId'] as String?) ?? '',
       authorName: (author['displayName'] as String?)?.trim().isNotEmpty ?? false
           ? (author['displayName'] as String).trim()
           : 'Community member',
       authorUsername: (author['username'] as String?) ?? 'member',
-      authorAvatarUrl: _nonEmpty(author['avatarUrl']),
+      authorAvatarUrl: _firstNonEmpty(author, const [
+        'avatarUrl',
+        'photoUrl',
+        'photoURL',
+        'avatar',
+        'imageUrl',
+      ]),
+      authorVerified: author['isVerified'] == true,
       text: (data['text'] as String?) ?? '',
       media: rawMedia is List
           ? rawMedia
@@ -232,13 +384,75 @@ class CommunityPost {
           : const <CommunityMedia>[],
       likeCount: _asInt(data['likeCount']),
       replyCount: _asInt(data['replyCount']),
+      repostCount: _asInt(data['repostCount']),
+      quoteCount: _asInt(data['quoteCount']),
+      viewCount: _asInt(data['viewCount']),
       parentId: _nonEmpty(data['parentId']),
       rootId: _nonEmpty(data['rootId']),
+      quotedPostId: _nonEmpty(data['quotedPostId']),
+      quotedPost: _communityPostFromNested(data['quotedPost']),
+      poll: CommunityPoll.fromMap(data['poll']),
       createdAt: (data['createdAt'] as Timestamp?)?.toDate(),
       kasemConfirmed: data['kasemConfirmed'] == true,
       editedAt: (data['editedAt'] as Timestamp?)?.toDate(),
     );
   }
+
+  CommunityPost withReshare({
+    required String uid,
+    required String displayName,
+    required String username,
+    required DateTime? createdAt,
+    String? avatarUrl,
+  }) => CommunityPost(
+    id: id,
+    authorId: authorId,
+    authorName: authorName,
+    authorUsername: authorUsername,
+    authorAvatarUrl: authorAvatarUrl,
+    authorVerified: authorVerified,
+    text: text,
+    media: media,
+    likeCount: likeCount,
+    replyCount: replyCount,
+    repostCount: repostCount,
+    quoteCount: quoteCount,
+    viewCount: viewCount,
+    parentId: parentId,
+    rootId: rootId,
+    quotedPostId: quotedPostId,
+    quotedPost: quotedPost,
+    poll: poll,
+    createdAt: this.createdAt,
+    kasemConfirmed: kasemConfirmed,
+    editedAt: editedAt,
+    resharedById: uid,
+    resharedByName: displayName,
+    resharedByUsername: username,
+    resharedByAvatarUrl: avatarUrl,
+    resharedAt: createdAt,
+  );
+
+  /// Immutable snapshot embedded in a quote post so the quote remains legible
+  /// if the source author later edits their profile or removes the source.
+  Map<String, Object?> toQuoteSnapshot() => {
+    'id': id,
+    'authorId': authorId,
+    'author': {
+      'displayName': authorName,
+      'username': authorUsername,
+      'avatarUrl': authorAvatarUrl,
+      'isVerified': authorVerified,
+    },
+    'text': text,
+    'media': media.map((item) => item.toMap()).toList(growable: false),
+    'likeCount': likeCount,
+    'replyCount': replyCount,
+    'repostCount': repostCount,
+    'quoteCount': quoteCount,
+    'viewCount': viewCount,
+    'createdAt': createdAt == null ? null : Timestamp.fromDate(createdAt!),
+  };
 }
 
 int _asInt(Object? value) => switch (value) {
@@ -249,6 +463,26 @@ int _asInt(Object? value) => switch (value) {
 
 String? _nonEmpty(Object? value) =>
     value is String && value.isNotEmpty ? value : null;
+
+Map<String, dynamic> _stringMap(Object? value) {
+  if (value is! Map) return const <String, dynamic>{};
+  return value.map((key, value) => MapEntry(key.toString(), value));
+}
+
+String? _firstNonEmpty(Map<String, dynamic> data, List<String> keys) {
+  for (final key in keys) {
+    final value = _nonEmpty(data[key]);
+    if (value != null) return value;
+  }
+  return null;
+}
+
+CommunityPost? _communityPostFromNested(Object? raw) {
+  final data = _stringMap(raw);
+  final id = _nonEmpty(data['id']);
+  if (id == null) return null;
+  return CommunityPost.fromMap(id, data);
+}
 
 /// Relative age label used across the feed — `NOW`, `12 MIN`, `3 HR`, `5 D`.
 String communityAgeLabel(DateTime? createdAt, {DateTime? now}) {

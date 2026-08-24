@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -18,12 +19,18 @@ class PendingUpload {
   const PendingUpload({
     required this.path,
     required this.isVideo,
+    this.isAudio = false,
     this.aspectRatio = 4 / 3,
+    this.durationSeconds,
   });
 
   final String path;
   final bool isVideo;
+  final bool isAudio;
   final double aspectRatio;
+  final int? durationSeconds;
+
+  String get mediaType => isAudio ? 'audio' : (isVideo ? 'video' : 'image');
 
   String get fileName => path.split(RegExp(r'[\\/]')).last;
 
@@ -41,7 +48,11 @@ class PendingUpload {
       'mov' => 'video/quicktime',
       'webm' => 'video/webm',
       'm4v' => 'video/x-m4v',
-      _ => isVideo ? 'video/mp4' : 'image/jpeg',
+      'm4a' => 'audio/mp4',
+      'aac' => 'audio/aac',
+      'mp3' => 'audio/mpeg',
+      'wav' => 'audio/wav',
+      _ => isAudio ? 'audio/mp4' : (isVideo ? 'video/mp4' : 'image/jpeg'),
     };
   }
 }
@@ -72,6 +83,7 @@ class CommunityRepository {
   static const maxMediaPerPost = 4;
   static const maxImageBytes = 12 * 1024 * 1024;
   static const maxVideoBytes = 128 * 1024 * 1024;
+  static const maxAudioBytes = 24 * 1024 * 1024;
   static const maxPostLength = 500;
 
   CollectionReference<Map<String, dynamic>> get _profiles =>
@@ -88,6 +100,20 @@ class CommunityRepository {
       _firestore.collection('communityFollows');
   CollectionReference<Map<String, dynamic>> get _reports =>
       _firestore.collection('communityReports');
+  CollectionReference<Map<String, dynamic>> get _reposts =>
+      _firestore.collection('communityReposts');
+  CollectionReference<Map<String, dynamic>> get _quotes =>
+      _firestore.collection('communityQuotes');
+  CollectionReference<Map<String, dynamic>> get _views =>
+      _firestore.collection('communityViews');
+  CollectionReference<Map<String, dynamic>> get _pollVotes =>
+      _firestore.collection('communityPollVotes');
+  CollectionReference<Map<String, dynamic>> get _hiddenPosts =>
+      _firestore.collection('communityHiddenPosts');
+  CollectionReference<Map<String, dynamic>> get _mutes =>
+      _firestore.collection('communityMutes');
+  CollectionReference<Map<String, dynamic>> get _blocks =>
+      _firestore.collection('communityBlocks');
 
   static String edgeId(String from, String to) => '${from}_$to';
 
@@ -241,12 +267,17 @@ class CommunityRepository {
 
   // ── Feed ──────────────────────────────────────────────────────────────────
 
-  Stream<List<CommunityPost>> watchFeed({int limit = feedPageSize}) => _posts
-      .where('isReply', isEqualTo: false)
-      .orderBy('createdAt', descending: true)
-      .limit(limit)
-      .snapshots()
-      .map(_mapPosts);
+  Stream<List<CommunityPost>> watchFeed({int limit = feedPageSize}) =>
+      _watchFeedWithReposts(
+        postQuery: _posts
+            .where('isReply', isEqualTo: false)
+            .orderBy('createdAt', descending: true)
+            .limit(limit),
+        repostQuery: _reposts
+            .orderBy('createdAt', descending: true)
+            .limit(limit),
+        limit: limit,
+      );
 
   /// Posts from the people [authorIds] follow. Firestore caps `whereIn` at 30
   /// values, so the caller passes the most recent follows.
@@ -255,13 +286,94 @@ class CommunityRepository {
     int limit = feedPageSize,
   }) {
     if (authorIds.isEmpty) return Stream.value(const <CommunityPost>[]);
-    return _posts
-        .where('authorId', whereIn: authorIds.take(30).toList(growable: false))
-        .where('isReply', isEqualTo: false)
-        .orderBy('createdAt', descending: true)
-        .limit(limit)
-        .snapshots()
-        .map(_mapPosts);
+    final ids = authorIds.take(30).toList(growable: false);
+    return _watchFeedWithReposts(
+      postQuery: _posts
+          .where('authorId', whereIn: ids)
+          .where('isReply', isEqualTo: false)
+          .orderBy('createdAt', descending: true)
+          .limit(limit),
+      repostQuery: _reposts
+          .where('reposterId', whereIn: ids)
+          .orderBy('createdAt', descending: true)
+          .limit(limit),
+      limit: limit,
+    );
+  }
+
+  /// Combines canonical posts and recent reshare edges into the same feed shape
+  /// SRC uses. A reshare never becomes a second post: likes, replies, views and
+  /// saves still target the original, while the activity label identifies the
+  /// member who brought it into the feed.
+  Stream<List<CommunityPost>> _watchFeedWithReposts({
+    required Query<Map<String, dynamic>> postQuery,
+    required Query<Map<String, dynamic>> repostQuery,
+    required int limit,
+  }) {
+    late final StreamController<List<CommunityPost>> controller;
+    StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? postSubscription;
+    StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? repostSubscription;
+    var posts = const <CommunityPost>[];
+    var reposts = const <_CommunityRepost>[];
+    var revision = 0;
+
+    Future<void> emit() async {
+      final currentRevision = ++revision;
+      final canonical = {for (final post in posts) post.id: post};
+      final missing = reposts
+          .map((edge) => edge.postId)
+          .where((id) => !canonical.containsKey(id))
+          .toSet()
+          .toList(growable: false);
+      if (missing.isNotEmpty) {
+        for (final post in await postsByIds(missing)) {
+          canonical[post.id] = post;
+        }
+      }
+      if (currentRevision != revision || controller.isClosed) return;
+
+      final combined = <CommunityPost>[...posts];
+      for (final edge in reposts) {
+        final post = canonical[edge.postId];
+        if (post == null) continue;
+        combined.add(
+          post.withReshare(
+            uid: edge.reposterId,
+            displayName: edge.displayName,
+            username: edge.username,
+            avatarUrl: edge.avatarUrl,
+            createdAt: edge.createdAt,
+          ),
+        );
+      }
+      combined.sort((left, right) {
+        final a = left.feedTimestamp ?? DateTime.fromMillisecondsSinceEpoch(0);
+        final b = right.feedTimestamp ?? DateTime.fromMillisecondsSinceEpoch(0);
+        return b.compareTo(a);
+      });
+      controller.add(combined.take(limit).toList(growable: false));
+    }
+
+    controller = StreamController<List<CommunityPost>>(
+      onListen: () {
+        postSubscription = postQuery.snapshots().listen((snapshot) {
+          posts = _mapPosts(snapshot);
+          unawaited(emit());
+        }, onError: controller.addError);
+        repostSubscription = repostQuery.snapshots().listen((snapshot) {
+          reposts = snapshot.docs
+              .map(_CommunityRepost.fromDoc)
+              .whereType<_CommunityRepost>()
+              .toList(growable: false);
+          unawaited(emit());
+        }, onError: controller.addError);
+      },
+      onCancel: () async {
+        await postSubscription?.cancel();
+        await repostSubscription?.cancel();
+      },
+    );
+    return controller.stream;
   }
 
   Stream<List<CommunityPost>> watchAuthorPosts(
@@ -347,12 +459,17 @@ class CommunityRepository {
     List<PendingUpload> attachments = const [],
     String? parentId,
     String? rootId,
+    CommunityPost? quoteTo,
+    CommunityPoll? poll,
     bool kasemConfirmed = false,
     void Function(double progress)? onUploadProgress,
   }) async {
     final body = text.trim();
-    if (body.isEmpty && attachments.isEmpty) {
-      throw const CommunityFailure('Write something or add a photo first.');
+    if (body.isEmpty &&
+        attachments.isEmpty &&
+        quoteTo == null &&
+        poll == null) {
+      throw const CommunityFailure('Write something or add media first.');
     }
     if (body.length > maxPostLength) {
       throw const CommunityFailure(
@@ -364,6 +481,27 @@ class CommunityRepository {
         'You can attach up to $maxMediaPerPost items.',
       );
     }
+    if (parentId != null && quoteTo != null) {
+      throw const CommunityFailure('A reply cannot also be a quote post.');
+    }
+    if (poll != null) {
+      if (poll.options.length < 2 || poll.options.length > 4) {
+        throw const CommunityFailure('Polls need between 2 and 4 choices.');
+      }
+      if (poll.options.any((option) => option.text.trim().isEmpty)) {
+        throw const CommunityFailure('Every poll choice needs text.');
+      }
+      if (!poll.endsAt.isAfter(DateTime.now())) {
+        throw const CommunityFailure('Choose a poll duration in the future.');
+      }
+    }
+
+    final quoteEdge = quoteTo == null
+        ? null
+        : _quotes.doc(edgeId(author.uid, quoteTo.id));
+    if (quoteEdge != null && (await quoteEdge.get()).exists) {
+      throw const CommunityFailure('You have already quoted this post.');
+    }
 
     final doc = _posts.doc();
     final media = await _uploadAttachments(
@@ -374,7 +512,7 @@ class CommunityRepository {
     );
 
     try {
-      await doc.set({
+      final data = <String, Object?>{
         'authorId': author.uid,
         'author': author.toAuthorStamp(),
         'text': body,
@@ -382,14 +520,36 @@ class CommunityRepository {
         'hasMedia': media.isNotEmpty,
         'likeCount': 0,
         'replyCount': 0,
+        'repostCount': 0,
+        'quoteCount': 0,
+        'viewCount': 0,
         'parentId': parentId,
         // Firestore cannot order by createdAt while filtering `parentId != null`,
         // so replies carry an explicit equality-filterable flag instead.
         'isReply': parentId != null,
         'rootId': rootId ?? parentId ?? doc.id,
+        'quotedPostId': quoteTo?.id,
+        'quotedPost': quoteTo?.toQuoteSnapshot(),
+        'poll': poll?.toMap(),
         'kasemConfirmed': kasemConfirmed,
         'createdAt': FieldValue.serverTimestamp(),
-      });
+      };
+      if (quoteTo == null) {
+        await doc.set(data);
+      } else {
+        final batch = _firestore.batch()
+          ..set(doc, data)
+          ..set(quoteEdge!, {
+            'uid': author.uid,
+            'sourcePostId': quoteTo.id,
+            'quotePostId': doc.id,
+            'createdAt': FieldValue.serverTimestamp(),
+          })
+          ..update(_posts.doc(quoteTo.id), {
+            'quoteCount': FieldValue.increment(1),
+          });
+        await batch.commit();
+      }
     } on FirebaseException catch (error) {
       // The document never landed — drop the orphaned uploads.
       await _deleteMedia(media);
@@ -411,17 +571,45 @@ class CommunityRepository {
   }
 
   Future<void> deletePost(CommunityPost post) async {
-    await _deleteMedia(post.media);
-    await _posts.doc(post.id).delete();
+    final batch = _firestore.batch()..delete(_posts.doc(post.id));
     if (post.parentId != null) {
-      try {
-        await _posts.doc(post.parentId!).update({
-          'replyCount': FieldValue.increment(-1),
+      batch.update(_posts.doc(post.parentId!), {
+        'replyCount': FieldValue.increment(-1),
+      });
+    }
+    if (post.quotedPostId != null) {
+      batch
+        ..delete(_quotes.doc(edgeId(post.authorId, post.quotedPostId!)))
+        ..update(_posts.doc(post.quotedPostId!), {
+          'quoteCount': FieldValue.increment(-1),
         });
+    }
+    try {
+      await batch.commit();
+    } on FirebaseException catch (error) {
+      // A source or parent may already be gone. The member must still be able
+      // to remove their own card, but only fall back to a plain delete after
+      // the atomic counter path failed.
+      try {
+        await _posts.doc(post.id).delete();
       } on FirebaseException {
-        // Parent already gone; nothing to decrement.
+        throw CommunityFailure(_storageMessage(error));
       }
     }
+    await _deleteMedia(post.media);
+  }
+
+  Future<void> editPost({required String postId, required String text}) async {
+    final body = text.trim();
+    if (body.length > maxPostLength) {
+      throw const CommunityFailure(
+        'Posts are limited to $maxPostLength characters.',
+      );
+    }
+    await _posts.doc(postId).update({
+      'text': body,
+      'editedAt': FieldValue.serverTimestamp(),
+    });
   }
 
   Future<void> reportPost({
@@ -454,17 +642,137 @@ class CommunityRepository {
     required bool liked,
   }) async {
     final edge = _likes.doc(edgeId(uid, postId));
+    final batch = _firestore.batch();
     if (liked) {
-      await edge.delete();
-      await _posts.doc(postId).update({'likeCount': FieldValue.increment(-1)});
+      batch
+        ..delete(edge)
+        ..update(_posts.doc(postId), {'likeCount': FieldValue.increment(-1)});
     } else {
-      await edge.set({
-        'uid': uid,
+      batch
+        ..set(edge, {
+          'uid': uid,
+          'postId': postId,
+          'createdAt': FieldValue.serverTimestamp(),
+        })
+        ..update(_posts.doc(postId), {'likeCount': FieldValue.increment(1)});
+    }
+    await batch.commit();
+  }
+
+  Stream<Set<String>> watchMyReposts(String uid) => _reposts
+      .where('reposterId', isEqualTo: uid)
+      .snapshots()
+      .map(
+        (snapshot) => snapshot.docs
+            .map((doc) => (doc.data()['postId'] as String?) ?? '')
+            .where((id) => id.isNotEmpty)
+            .toSet(),
+      );
+
+  Future<void> toggleRepost({
+    required CommunityProfile profile,
+    required String postId,
+    required bool reposted,
+  }) async {
+    final edge = _reposts.doc(edgeId(profile.uid, postId));
+    final batch = _firestore.batch();
+    if (reposted) {
+      batch
+        ..delete(edge)
+        ..update(_posts.doc(postId), {'repostCount': FieldValue.increment(-1)});
+    } else {
+      batch
+        ..set(edge, {
+          'reposterId': profile.uid,
+          'postId': postId,
+          'reposter': profile.toAuthorStamp(),
+          'createdAt': FieldValue.serverTimestamp(),
+        })
+        ..update(_posts.doc(postId), {'repostCount': FieldValue.increment(1)});
+    }
+    await batch.commit();
+  }
+
+  /// Records one unique signed-in viewer. The edge and public counter move in
+  /// the same commit, so retries and rebuilds cannot inflate the number.
+  Future<void> trackView({required String uid, required String postId}) async {
+    final edge = _views.doc(edgeId(uid, postId));
+    if ((await edge.get()).exists) return;
+    final batch = _firestore.batch()
+      ..set(edge, {
+        'viewerId': uid,
         'postId': postId,
         'createdAt': FieldValue.serverTimestamp(),
-      });
-      await _posts.doc(postId).update({'likeCount': FieldValue.increment(1)});
+      })
+      ..update(_posts.doc(postId), {'viewCount': FieldValue.increment(1)});
+    try {
+      await batch.commit();
+    } on FirebaseException catch (error) {
+      // A concurrent card/detail impression can win this race. If the edge now
+      // exists the view was counted correctly; otherwise surface the failure.
+      if (!(await edge.get()).exists) {
+        throw CommunityFailure(_storageMessage(error));
+      }
     }
+  }
+
+  Stream<Map<String, String>> watchMyPollVotes(String uid) => _pollVotes
+      .where('uid', isEqualTo: uid)
+      .snapshots()
+      .map(
+        (snapshot) => {
+          for (final doc in snapshot.docs)
+            if (doc.data()['postId'] is String &&
+                doc.data()['optionId'] is String)
+              doc.data()['postId'] as String: doc.data()['optionId'] as String,
+        },
+      );
+
+  Future<void> votePoll({
+    required String uid,
+    required String postId,
+    required String optionId,
+  }) => _pollVotes.doc(edgeId(uid, postId)).set({
+    'uid': uid,
+    'postId': postId,
+    'optionId': optionId,
+    'createdAt': FieldValue.serverTimestamp(),
+  });
+
+  Future<List<String>> viewerIds(String postId, {int limit = 300}) async {
+    final snapshot = await _views
+        .where('postId', isEqualTo: postId)
+        .orderBy('createdAt', descending: true)
+        .limit(limit)
+        .get();
+    return snapshot.docs
+        .map((doc) => (doc.data()['viewerId'] as String?) ?? '')
+        .where((id) => id.isNotEmpty)
+        .toList(growable: false);
+  }
+
+  Future<List<String>> likerIds(String postId, {int limit = 300}) async {
+    final snapshot = await _likes
+        .where('postId', isEqualTo: postId)
+        .orderBy('createdAt', descending: true)
+        .limit(limit)
+        .get();
+    return snapshot.docs
+        .map((doc) => (doc.data()['uid'] as String?) ?? '')
+        .where((id) => id.isNotEmpty)
+        .toList(growable: false);
+  }
+
+  Future<List<String>> pollVoterIds(String postId, {int limit = 300}) async {
+    final snapshot = await _pollVotes
+        .where('postId', isEqualTo: postId)
+        .orderBy('createdAt', descending: true)
+        .limit(limit)
+        .get();
+    return snapshot.docs
+        .map((doc) => (doc.data()['uid'] as String?) ?? '')
+        .where((id) => id.isNotEmpty)
+        .toList(growable: false);
   }
 
   /// Post ids [uid] has liked, newest first.
@@ -517,6 +825,64 @@ class CommunityRepository {
         .map((doc) => (doc.data()['postId'] as String?) ?? '')
         .where((id) => id.isNotEmpty)
         .toList(growable: false);
+  }
+
+  Stream<Set<String>> watchMyHiddenPosts(String uid) => _hiddenPosts
+      .where('uid', isEqualTo: uid)
+      .snapshots()
+      .map(
+        (snapshot) => snapshot.docs
+            .map((doc) => (doc.data()['postId'] as String?) ?? '')
+            .where((id) => id.isNotEmpty)
+            .toSet(),
+      );
+
+  Stream<Set<String>> watchMyMutes(String uid) => _mutes
+      .where('uid', isEqualTo: uid)
+      .snapshots()
+      .map(
+        (snapshot) => snapshot.docs
+            .map((doc) => (doc.data()['targetId'] as String?) ?? '')
+            .where((id) => id.isNotEmpty)
+            .toSet(),
+      );
+
+  Stream<Set<String>> watchMyBlocks(String uid) => _blocks
+      .where('uid', isEqualTo: uid)
+      .snapshots()
+      .map(
+        (snapshot) => snapshot.docs
+            .map((doc) => (doc.data()['targetId'] as String?) ?? '')
+            .where((id) => id.isNotEmpty)
+            .toSet(),
+      );
+
+  Future<void> hidePost({required String uid, required String postId}) =>
+      _hiddenPosts.doc(edgeId(uid, postId)).set({
+        'uid': uid,
+        'postId': postId,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+  Future<void> muteProfile({required String uid, required String targetId}) =>
+      _mutes.doc(edgeId(uid, targetId)).set({
+        'uid': uid,
+        'targetId': targetId,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+  Future<void> blockProfile({
+    required String uid,
+    required String targetId,
+  }) async {
+    final batch = _firestore.batch()
+      ..set(_blocks.doc(edgeId(uid, targetId)), {
+        'uid': uid,
+        'targetId': targetId,
+        'createdAt': FieldValue.serverTimestamp(),
+      })
+      ..delete(_follows.doc(edgeId(uid, targetId)));
+    await batch.commit();
   }
 
   /// The uids [uid] follows, most recently followed first.
@@ -669,10 +1035,14 @@ class CommunityRepository {
         final attachment = attachments[index];
         final file = File(attachment.path);
         final length = await file.length();
-        final ceiling = attachment.isVideo ? maxVideoBytes : maxImageBytes;
+        final ceiling = attachment.isAudio
+            ? maxAudioBytes
+            : (attachment.isVideo ? maxVideoBytes : maxImageBytes);
         if (length > ceiling) {
           throw CommunityFailure(
-            attachment.isVideo
+            attachment.isAudio
+                ? 'Voice notes need to be under 24 MB.'
+                : attachment.isVideo
                 ? 'Videos need to be under 128 MB.'
                 : 'Images need to be under 12 MB.',
           );
@@ -702,9 +1072,10 @@ class CommunityRepository {
         uploaded.add(
           CommunityMedia(
             url: await reference.getDownloadURL(),
-            type: attachment.isVideo ? 'video' : 'image',
+            type: attachment.mediaType,
             storagePath: reference.fullPath,
             aspectRatio: attachment.aspectRatio,
+            durationSeconds: attachment.durationSeconds,
           ),
         );
       }
@@ -743,4 +1114,51 @@ class CommunityRepository {
       'Network problem. Check your connection and try again.',
     _ => error.message ?? 'Something went wrong. Please try again.',
   };
+}
+
+class _CommunityRepost {
+  const _CommunityRepost({
+    required this.postId,
+    required this.reposterId,
+    required this.displayName,
+    required this.username,
+    this.avatarUrl,
+    this.createdAt,
+  });
+
+  final String postId;
+  final String reposterId;
+  final String displayName;
+  final String username;
+  final String? avatarUrl;
+  final DateTime? createdAt;
+
+  static _CommunityRepost? fromDoc(
+    QueryDocumentSnapshot<Map<String, dynamic>> doc,
+  ) {
+    final data = doc.data();
+    final postId = data['postId'];
+    final reposterId = data['reposterId'];
+    if (postId is! String || postId.isEmpty || reposterId is! String) {
+      return null;
+    }
+    final rawStamp = data['reposter'];
+    final stamp = rawStamp is Map ? rawStamp : const <String, Object?>{};
+    return _CommunityRepost(
+      postId: postId,
+      reposterId: reposterId,
+      displayName: stamp['displayName'] is String
+          ? stamp['displayName'] as String
+          : 'Community member',
+      username: stamp['username'] is String
+          ? stamp['username'] as String
+          : 'member',
+      avatarUrl:
+          stamp['avatarUrl'] is String &&
+              (stamp['avatarUrl'] as String).isNotEmpty
+          ? stamp['avatarUrl'] as String
+          : null,
+      createdAt: (data['createdAt'] as Timestamp?)?.toDate(),
+    );
+  }
 }

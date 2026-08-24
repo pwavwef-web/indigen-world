@@ -22,6 +22,7 @@ import {
   getDoc,
   increment,
   setDoc,
+  Timestamp,
   updateDoc,
   writeBatch,
 } from 'firebase/firestore';
@@ -57,6 +58,9 @@ function makePost(authorUid, overrides = {}) {
     hasMedia: false,
     likeCount: 0,
     replyCount: 0,
+    repostCount: 0,
+    quoteCount: 0,
+    viewCount: 0,
     parentId: null,
     isReply: false,
     rootId: 'post1',
@@ -218,6 +222,15 @@ test('a new post cannot arrive with counters or oversized media already set', as
     setDoc(doc(store, 'communityPosts/prefilled-replies'), makePost(AMINA, { replyCount: 5 })),
   );
   await assertFails(
+    setDoc(doc(store, 'communityPosts/prefilled-reposts'), makePost(AMINA, { repostCount: 5 })),
+  );
+  await assertFails(
+    setDoc(doc(store, 'communityPosts/prefilled-quotes'), makePost(AMINA, { quoteCount: 5 })),
+  );
+  await assertFails(
+    setDoc(doc(store, 'communityPosts/prefilled-views'), makePost(AMINA, { viewCount: 5 })),
+  );
+  await assertFails(
     setDoc(
       doc(store, 'communityPosts/too-much-media'),
       makePost(AMINA, {
@@ -342,6 +355,128 @@ test('reply totals move one step at a time', async () => {
   await assertFails(
     updateDoc(doc(db(nyaaba), 'communityPosts/repliable'), { replyCount: increment(9) }),
   );
+});
+
+// ── Reshares, quotes, views and polls ───────────────────────────────────────
+
+test('a reshare is an owned edge plus one counter step', async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(doc(db(ctx), 'communityPosts/reshareable'), makePost(AMINA));
+  });
+  const store = db(env.authenticatedContext(NYAABA));
+  const batch = writeBatch(store);
+  batch.set(doc(store, `communityReposts/${NYAABA}_reshareable`), {
+    reposterId: NYAABA,
+    postId: 'reshareable',
+    reposter: { displayName: 'Nyaaba', username: 'nyaaba', avatarUrl: null },
+  });
+  batch.update(doc(store, 'communityPosts/reshareable'), { repostCount: increment(1) });
+  await assertSucceeds(batch.commit());
+});
+
+test('a reshare counter cannot move without its deterministic edge', async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(doc(db(ctx), 'communityPosts/fake-reshare'), makePost(AMINA));
+  });
+  await assertFails(
+    updateDoc(doc(db(env.authenticatedContext(NYAABA)), 'communityPosts/fake-reshare'), {
+      repostCount: increment(1),
+    }),
+  );
+});
+
+test('a quote atomically creates its post and edge and updates the source', async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(doc(db(ctx), 'communityPosts/quoteable'), makePost(AMINA));
+  });
+  const store = db(env.authenticatedContext(NYAABA));
+  const batch = writeBatch(store);
+  batch.set(
+    doc(store, 'communityPosts/quote-post'),
+    makePost(NYAABA, {
+      rootId: 'quote-post',
+      text: 'N kana de.',
+      quotedPostId: 'quoteable',
+      quotedPost: makePost(AMINA),
+    }),
+  );
+  batch.set(doc(store, `communityQuotes/${NYAABA}_quoteable`), {
+    uid: NYAABA,
+    sourcePostId: 'quoteable',
+    quotePostId: 'quote-post',
+  });
+  batch.update(doc(store, 'communityPosts/quoteable'), { quoteCount: increment(1) });
+  await assertSucceeds(batch.commit());
+});
+
+test('one signed-in viewer creates one atomic view edge', async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(doc(db(ctx), 'communityPosts/viewable'), makePost(AMINA));
+  });
+  const viewer = env.authenticatedContext(NYAABA);
+  const store = db(viewer);
+  const batch = writeBatch(store);
+  batch.set(doc(store, `communityViews/${NYAABA}_viewable`), {
+    viewerId: NYAABA,
+    postId: 'viewable',
+  });
+  batch.update(doc(store, 'communityPosts/viewable'), { viewCount: increment(1) });
+  await assertSucceeds(batch.commit());
+
+  await assertSucceeds(getDoc(doc(store, `communityViews/${NYAABA}_viewable`)));
+  await assertSucceeds(
+    getDoc(doc(db(env.authenticatedContext(AMINA)), `communityViews/${NYAABA}_viewable`)),
+  );
+  await assertFails(
+    getDoc(doc(db(env.unauthenticatedContext()), `communityViews/${NYAABA}_viewable`)),
+  );
+});
+
+test('polls accept 2–4 choices and each member gets one immutable vote', async () => {
+  const aminaStore = db(env.authenticatedContext(AMINA));
+  const endsAt = Timestamp.fromMillis(Date.now() + 86_400_000);
+  await assertSucceeds(
+    setDoc(
+      doc(aminaStore, 'communityPosts/poll-post'),
+      makePost(AMINA, {
+        rootId: 'poll-post',
+        poll: {
+          options: [
+            { id: 'option_0', text: 'A', voteCount: 0 },
+            { id: 'option_1', text: 'B', voteCount: 0 },
+          ],
+          endsAt,
+          totalVotes: 0,
+        },
+      }),
+    ),
+  );
+  const voterStore = db(env.authenticatedContext(NYAABA));
+  const voteRef = doc(voterStore, `communityPollVotes/${NYAABA}_poll-post`);
+  await assertSucceeds(
+    setDoc(voteRef, { uid: NYAABA, postId: 'poll-post', optionId: 'option_0' }),
+  );
+  await assertFails(updateDoc(voteRef, { optionId: 'option_1' }));
+  await assertSucceeds(getDoc(voteRef));
+  await assertSucceeds(
+    getDoc(doc(aminaStore, `communityPollVotes/${NYAABA}_poll-post`)),
+  );
+});
+
+test('hide, mute and block edges are private and owned', async () => {
+  const owner = db(env.authenticatedContext(NYAABA));
+  const other = db(env.authenticatedContext(AMINA));
+  const edges = [
+    ['communityHiddenPosts', 'post1', { uid: NYAABA, postId: 'post1' }],
+    ['communityMutes', AMINA, { uid: NYAABA, targetId: AMINA }],
+    ['communityBlocks', AMINA, { uid: NYAABA, targetId: AMINA }],
+  ];
+  for (const [collection, target, data] of edges) {
+    const edge = `${NYAABA}_${target}`;
+    await assertSucceeds(setDoc(doc(owner, `${collection}/${edge}`), data));
+    await assertSucceeds(getDoc(doc(owner, `${collection}/${edge}`)));
+    await assertFails(getDoc(doc(other, `${collection}/${edge}`)));
+  }
 });
 
 // ── Follows ─────────────────────────────────────────────────────────────────

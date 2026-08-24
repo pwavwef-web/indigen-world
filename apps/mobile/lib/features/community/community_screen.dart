@@ -15,6 +15,7 @@ import 'package:indigen_world_mobile/features/notifications/data/notification_pr
 import 'package:indigen_world_mobile/features/notifications/notifications_screen.dart';
 import 'package:indigen_world_mobile/shared/app_widgets.dart';
 import 'package:indigen_world_mobile/shared/frosted_nav_bar.dart';
+import 'package:visibility_detector/visibility_detector.dart';
 
 /// The community tab: a live Firestore feed of Kasem posts with the pulse rail,
 /// composer, For you / Following switch and the full post interactions.
@@ -27,6 +28,25 @@ class CommunityScreen extends ConsumerStatefulWidget {
 
 class _CommunityScreenState extends ConsumerState<CommunityScreen> {
   var _tab = 0;
+  final _viewedPostIds = <String>{};
+
+  @override
+  void dispose() {
+    // Flushes and cancels VisibilityDetector's coalescing timer. Besides
+    // avoiding a delayed callback after navigation, this makes the final
+    // impression deterministic when the feed is removed quickly.
+    VisibilityDetectorController.instance.notifyNow();
+    super.dispose();
+  }
+
+  void _trackVisiblePost(
+    CommunityPost post,
+    double visibleFraction,
+    CommunityActions actions,
+  ) {
+    if (visibleFraction < 0.55 || !_viewedPostIds.add(post.id)) return;
+    actions.trackView(post);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -37,6 +57,12 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
     final likes = ref.watch(myLikesProvider).asData?.value ?? const <String>{};
     final saved =
         ref.watch(myBookmarksProvider).asData?.value ?? const <String>{};
+    final reposts =
+        ref.watch(myRepostsProvider).asData?.value ?? const <String>{};
+    final pollVotes =
+        ref.watch(myPollVotesProvider).asData?.value ??
+        const <String, String>{};
+    final currentUid = ref.watch(currentUidProvider);
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -59,7 +85,8 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
         child: RefreshIndicator(
           onRefresh: () async {
             ref
-              ..invalidate(communityFeedProvider)
+              ..invalidate(rawCommunityFeedProvider)
+              ..invalidate(rawFollowingFeedProvider)
               ..invalidate(followingIdsProvider)
               ..invalidate(suggestedProfilesProvider);
             await ref.read(suggestedProfilesProvider.future);
@@ -101,11 +128,22 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
                       itemCount: value.length,
                       separatorBuilder: (context, index) =>
                           const SizedBox(height: 12),
-                      itemBuilder: (context, index) => _FeedPost(
-                        post: value[index],
-                        liked: likes.contains(value[index].id),
-                        saved: saved.contains(value[index].id),
-                        actions: actions,
+                      itemBuilder: (context, index) => VisibilityDetector(
+                        key: Key('community-post-${value[index].id}-$index'),
+                        onVisibilityChanged: (info) => _trackVisiblePost(
+                          value[index],
+                          info.visibleFraction,
+                          actions,
+                        ),
+                        child: _FeedPost(
+                          post: value[index],
+                          liked: likes.contains(value[index].id),
+                          saved: saved.contains(value[index].id),
+                          reposted: reposts.contains(value[index].id),
+                          votedOptionId: pollVotes[value[index].id],
+                          isOwner: currentUid == value[index].authorId,
+                          actions: actions,
+                        ),
                       ),
                     ),
                   ),
@@ -126,12 +164,18 @@ class _FeedPost extends StatelessWidget {
     required this.post,
     required this.liked,
     required this.saved,
+    required this.reposted,
+    required this.votedOptionId,
+    required this.isOwner,
     required this.actions,
   });
 
   final CommunityPost post;
   final bool liked;
   final bool saved;
+  final bool reposted;
+  final String? votedOptionId;
+  final bool isOwner;
   final CommunityActions actions;
 
   @override
@@ -139,8 +183,22 @@ class _FeedPost extends StatelessWidget {
     post: post,
     liked: liked,
     saved: saved,
+    reposted: reposted,
+    votedOptionId: votedOptionId,
     onLike: () => actions.toggleLike(context, post),
+    onRepost: () => actions.toggleRepost(context, post),
+    onQuote: () => actions.quote(context, post),
     onSave: () => actions.toggleSave(context, post),
+    onShare: () => actions.share(context, post),
+    onViews: isOwner ? () => actions.openEngagement(context, post) : null,
+    onVote: (optionId) => actions.vote(context, post, optionId),
+    onPollVotes: isOwner && post.hasPoll
+        ? () => actions.openEngagement(
+            context,
+            post,
+            initialKind: CommunityEngagementKind.pollVotes,
+          )
+        : null,
     onReply: () => actions.reply(context, post),
     onMore: () => actions.showPostMenu(context, post),
     onOpen: () => Navigator.of(context).push(
@@ -153,7 +211,24 @@ class _FeedPost extends StatelessWidget {
         builder: (context) => CommunityProfileScreen(uid: post.authorId),
       ),
     ),
+    onOpenQuoted: post.quotedPostId == null
+        ? null
+        : () => Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (context) =>
+                  PostDetailScreen(postId: post.quotedPostId!),
+            ),
+          ),
+    onOpenResharer: post.resharedById == null
+        ? null
+        : () => Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (context) =>
+                  CommunityProfileScreen(uid: post.resharedById!),
+            ),
+          ),
     onOpenHandle: (handle) => actions.openHandle(context, handle),
+    onOpenLink: (url) => actions.openLink(context, url),
   );
 }
 

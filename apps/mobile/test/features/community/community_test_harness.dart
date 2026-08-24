@@ -16,23 +16,32 @@ class FakeCommunityRepository implements CommunityRepository {
     List<CommunityPost> posts = const [],
     Set<String> likedPostIds = const {},
     Set<String> savedPostIds = const {},
+    Set<String> repostedPostIds = const {},
+    Map<String, String> pollVotes = const {},
     List<String> following = const [],
   }) : _profiles = {for (final profile in profiles) profile.uid: profile},
        _posts = [...posts],
        _liked = {...likedPostIds},
        _saved = {...savedPostIds},
+       _reposted = {...repostedPostIds},
+       _pollVotes = {...pollVotes},
        _following = [...following];
 
   final Map<String, CommunityProfile> _profiles;
   final List<CommunityPost> _posts;
   final Set<String> _liked;
   final Set<String> _saved;
+  final Set<String> _reposted;
+  final Map<String, String> _pollVotes;
   final List<String> _following;
 
   /// Calls recorded for assertions.
   final toggledLikes = <String>[];
   final toggledSaves = <String>[];
   final toggledFollows = <String>[];
+  final toggledReposts = <String>[];
+  final recordedVotes = <(String, String)>[];
+  final trackedViews = <String>[];
 
   List<CommunityPost> get _topLevel =>
       _posts.where((post) => !post.isReply).toList(growable: false);
@@ -146,12 +155,32 @@ class FakeCommunityRepository implements CommunityRepository {
   Stream<Set<String>> watchMyBookmarks(String uid) => Stream.value(_saved);
 
   @override
+  Stream<Set<String>> watchMyReposts(String uid) => Stream.value(_reposted);
+
+  @override
+  Stream<Map<String, String>> watchMyPollVotes(String uid) =>
+      Stream.value(_pollVotes);
+
+  @override
+  Stream<Set<String>> watchMyHiddenPosts(String uid) => Stream.value(const {});
+
+  @override
+  Stream<Set<String>> watchMyMutes(String uid) => Stream.value(const {});
+
+  @override
+  Stream<Set<String>> watchMyBlocks(String uid) => Stream.value(const {});
+
+  @override
   Future<List<String>> likedPostIds(String uid, {int limit = 60}) async =>
       _liked.toList(growable: false);
 
   @override
   Future<List<String>> bookmarkedPostIds(String uid, {int limit = 60}) async =>
       _saved.toList(growable: false);
+
+  @override
+  Future<List<String>> pollVoterIds(String postId, {int limit = 300}) async =>
+      const [];
 
   @override
   Future<void> toggleLike({
@@ -171,6 +200,31 @@ class FakeCommunityRepository implements CommunityRepository {
   }) async {
     toggledSaves.add(postId);
     saved ? _saved.remove(postId) : _saved.add(postId);
+  }
+
+  @override
+  Future<void> toggleRepost({
+    required CommunityProfile profile,
+    required String postId,
+    required bool reposted,
+  }) async {
+    toggledReposts.add(postId);
+    reposted ? _reposted.remove(postId) : _reposted.add(postId);
+  }
+
+  @override
+  Future<void> votePoll({
+    required String uid,
+    required String postId,
+    required String optionId,
+  }) async {
+    recordedVotes.add((postId, optionId));
+    _pollVotes[postId] = optionId;
+  }
+
+  @override
+  Future<void> trackView({required String uid, required String postId}) async {
+    trackedViews.add(postId);
   }
 
   @override
@@ -213,6 +267,7 @@ CommunityProfile fakeProfile({
   String bio = 'Kasem speaker from Paga.',
   String location = 'Paga',
   String dialect = 'Paga',
+  String? avatarUrl,
 }) => CommunityProfile(
   uid: uid,
   username: username,
@@ -220,6 +275,7 @@ CommunityProfile fakeProfile({
   bio: bio,
   location: location,
   dialect: dialect,
+  avatarUrl: avatarUrl,
   createdAt: DateTime(2026, 8, 1),
 );
 
@@ -233,6 +289,11 @@ CommunityPost fakePost({
   List<CommunityMedia> media = const [],
   int likeCount = 3,
   int replyCount = 1,
+  int repostCount = 0,
+  int quoteCount = 0,
+  int viewCount = 0,
+  CommunityPost? quotedPost,
+  CommunityPoll? poll,
   String? parentId,
 }) => CommunityPost(
   id: id,
@@ -243,6 +304,12 @@ CommunityPost fakePost({
   media: media,
   likeCount: likeCount,
   replyCount: replyCount,
+  repostCount: repostCount,
+  quoteCount: quoteCount,
+  viewCount: viewCount,
+  quotedPostId: quotedPost?.id,
+  quotedPost: quotedPost,
+  poll: poll,
   parentId: parentId,
   rootId: parentId ?? id,
   createdAt: DateTime(2026, 8, 23, 11, 30),
@@ -262,6 +329,7 @@ Widget communityHarness({
     communityRepositoryProvider.overrideWithValue(repository),
     currentUidProvider.overrideWithValue(uid),
     currentDisplayNameProvider.overrideWithValue(profile?.displayName),
+    currentPhotoUrlProvider.overrideWithValue(profile?.avatarUrl),
     myCommunityProfileProvider.overrideWith(
       (ref) => Stream<CommunityProfile?>.value(profile),
     ),

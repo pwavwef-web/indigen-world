@@ -6,6 +6,7 @@ import 'package:indigen_world_mobile/features/community/data/community_models.da
 import 'package:indigen_world_mobile/features/community/people_screen.dart';
 import 'package:indigen_world_mobile/features/community/post_detail_screen.dart';
 import 'package:indigen_world_mobile/features/community/saved_posts_screen.dart';
+import 'package:indigen_world_mobile/features/community/widgets/community_avatar.dart';
 import 'package:indigen_world_mobile/features/community/widgets/community_post_card.dart';
 
 import 'community_test_harness.dart';
@@ -170,6 +171,84 @@ void main() {
 
     expect(find.byTooltip('Appreciated'), findsOneWidget);
     expect(find.byTooltip('Saved'), findsOneWidget);
+  });
+
+  testWidgets('old post stamps pick up the live profile photo', (tester) async {
+    final withPhoto = fakeProfile(
+      avatarUrl: 'https://example.test/profiles/amina.jpg',
+    );
+    final repository = FakeCommunityRepository(
+      profiles: [withPhoto],
+      posts: [fakePost()],
+    );
+
+    await pumpFeed(tester, repository, profile: withPhoto);
+
+    final avatars = tester.widgetList<CommunityAvatar>(
+      find.byType(CommunityAvatar),
+    );
+    expect(
+      avatars.any((avatar) => avatar.imageUrl == withPhoto.avatarUrl),
+      isTrue,
+    );
+  });
+
+  testWidgets('resharing writes through and quote opens a composer', (
+    tester,
+  ) async {
+    final repository = FakeCommunityRepository(
+      profiles: [amina],
+      posts: [fakePost(repostCount: 7, quoteCount: 3, viewCount: 22)],
+    );
+    await pumpFeed(tester, repository, profile: amina);
+
+    expect(find.text('10'), findsOneWidget);
+    expect(find.text('22'), findsOneWidget);
+    await tester.tap(find.byTooltip('Reshare or quote'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.tap(find.text('Reshare'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(repository.toggledReposts, ['post1']);
+
+    await tester.tap(find.byTooltip('Reshare or quote'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.tap(find.text('Quote post'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.text('QUOTING'), findsOneWidget);
+  });
+
+  testWidgets('a poll choice records one vote', (tester) async {
+    final poll = CommunityPoll(
+      options: const [
+        CommunityPollOption(id: 'paga', text: 'Choose Paga'),
+        CommunityPollOption(id: 'navrongo', text: 'Choose Navrongo'),
+      ],
+      endsAt: DateTime.now().add(const Duration(days: 1)),
+    );
+    final repository = FakeCommunityRepository(
+      profiles: [amina],
+      posts: [fakePost(poll: poll)],
+    );
+    await pumpFeed(tester, repository, profile: amina);
+
+    await tester.tap(find.text('Choose Paga'));
+    await tester.pump();
+    expect(repository.recordedVotes, [('post1', 'paga')]);
+  });
+
+  testWidgets('a visible post records one non-author view', (tester) async {
+    final repository = FakeCommunityRepository(
+      profiles: [amina, nyaaba],
+      posts: [fakePost()],
+    );
+    await pumpFeed(tester, repository, profile: nyaaba, uid: nyaaba.uid);
+    await tester.pump(const Duration(milliseconds: 600));
+
+    expect(repository.trackedViews, ['post1']);
   });
 
   testWidgets('tapping a post opens its conversation', (tester) async {

@@ -99,6 +99,7 @@ class _CommunitySetupScreenState extends ConsumerState<CommunitySetupScreen> {
         displayName: _nameController.text,
         bio: _bioController.text,
         location: _locationController.text,
+        avatarUrl: ref.read(currentPhotoUrlProvider),
       );
       if (!mounted) return;
       Navigator.of(context).pop(true);

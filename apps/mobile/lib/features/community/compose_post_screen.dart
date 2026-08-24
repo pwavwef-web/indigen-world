@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -10,16 +11,24 @@ import 'package:indigen_world_mobile/features/community/data/community_repositor
 import 'package:indigen_world_mobile/features/community/media_picker.dart';
 import 'package:indigen_world_mobile/features/community/widgets/community_avatar.dart';
 import 'package:indigen_world_mobile/features/community/widgets/people_widgets.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:record/record.dart';
 
 /// Full-screen composer for a new post or a reply.
 ///
 /// Attachments are staged locally and only uploaded when the member publishes,
 /// so backing out of the screen never leaves orphaned files in Storage.
 class ComposePostScreen extends ConsumerStatefulWidget {
-  const ComposePostScreen({this.replyTo, this.initialText = '', super.key});
+  const ComposePostScreen({
+    this.replyTo,
+    this.quoteTo,
+    this.initialText = '',
+    super.key,
+  });
 
   /// When set, the composer publishes a reply threaded under this post.
   final CommunityPost? replyTo;
+  final CommunityPost? quoteTo;
 
   /// Seeds the field — used when another screen sends somebody here with
   /// something to say, so they land on a draft rather than a blank page.
@@ -32,17 +41,90 @@ class ComposePostScreen extends ConsumerStatefulWidget {
 class _ComposePostScreenState extends ConsumerState<ComposePostScreen> {
   late final _controller = TextEditingController(text: widget.initialText);
   final _attachments = <PendingUpload>[];
+  final _pollOptions = [TextEditingController(), TextEditingController()];
+  final _recorder = AudioRecorder();
 
   var _kasemConfirmed = false;
   var _publishing = false;
+  var _showPoll = false;
+  var _pollDuration = const Duration(days: 1);
+  var _recording = false;
+  DateTime? _recordingStartedAt;
+  Timer? _recordingTicker;
   double? _progress;
 
   bool get _isReply => widget.replyTo != null;
+  bool get _isQuote => widget.quoteTo != null;
 
   @override
   void dispose() {
+    _recordingTicker?.cancel();
+    unawaited(_recorder.dispose());
     _controller.dispose();
+    for (final controller in _pollOptions) {
+      controller.dispose();
+    }
     super.dispose();
+  }
+
+  Future<void> _toggleRecording() async {
+    if (_publishing) return;
+    if (_recording) {
+      final startedAt = _recordingStartedAt;
+      final path = await _recorder.stop();
+      _recordingTicker?.cancel();
+      if (!mounted) return;
+      setState(() {
+        _recording = false;
+        _recordingStartedAt = null;
+        if (path != null) {
+          _attachments.add(
+            PendingUpload(
+              path: path,
+              isVideo: false,
+              isAudio: true,
+              durationSeconds: startedAt == null
+                  ? null
+                  : DateTime.now()
+                        .difference(startedAt)
+                        .inSeconds
+                        .clamp(1, 600)
+                        .toInt(),
+            ),
+          );
+        }
+      });
+      return;
+    }
+
+    if (_attachments.length >= CommunityRepository.maxMediaPerPost) {
+      showCommunityMessage(context, 'Remove an attachment before recording.');
+      return;
+    }
+    if (!await _recorder.hasPermission()) {
+      if (mounted) {
+        showCommunityMessage(
+          context,
+          'Microphone permission is needed for a voice note.',
+        );
+      }
+      return;
+    }
+    final directory = await getTemporaryDirectory();
+    final path =
+        '${directory.path}${Platform.pathSeparator}community_${DateTime.now().millisecondsSinceEpoch}.m4a';
+    await _recorder.start(
+      const RecordConfig(encoder: AudioEncoder.aacLc, bitRate: 96000),
+      path: path,
+    );
+    if (!mounted) return;
+    setState(() {
+      _recording = true;
+      _recordingStartedAt = DateTime.now();
+    });
+    _recordingTicker = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) setState(() {});
+    });
   }
 
   Future<void> _addMedia() async {
@@ -63,13 +145,20 @@ class _ComposePostScreenState extends ConsumerState<ComposePostScreen> {
   }
 
   Future<void> _publish() async {
+    if (_recording) {
+      await _toggleRecording();
+      if (!mounted) return;
+    }
     final profile = ref.read(myCommunityProfileProvider).asData?.value;
     final repository = ref.read(communityRepositoryProvider);
     if (profile == null || repository == null) {
       showCommunityMessage(context, 'Set up your community profile first.');
       return;
     }
-    if (_controller.text.trim().isEmpty && _attachments.isEmpty) {
+    if (_controller.text.trim().isEmpty &&
+        _attachments.isEmpty &&
+        !_showPoll &&
+        !_isQuote) {
       showCommunityMessage(context, 'Write something or add a photo first.');
       return;
     }
@@ -80,6 +169,26 @@ class _ComposePostScreenState extends ConsumerState<ComposePostScreen> {
       );
       return;
     }
+    final pollChoices = _pollOptions
+        .map((controller) => controller.text.trim())
+        .where((text) => text.isNotEmpty)
+        .toList(growable: false);
+    if (_showPoll && pollChoices.length < 2) {
+      showCommunityMessage(context, 'Add at least two poll choices.');
+      return;
+    }
+    final poll = _showPoll
+        ? CommunityPoll(
+            options: [
+              for (var index = 0; index < pollChoices.length; index++)
+                CommunityPollOption(
+                  id: 'option_$index',
+                  text: pollChoices[index],
+                ),
+            ],
+            endsAt: DateTime.now().add(_pollDuration),
+          )
+        : null;
 
     setState(() {
       _publishing = true;
@@ -93,6 +202,8 @@ class _ComposePostScreenState extends ConsumerState<ComposePostScreen> {
         attachments: _attachments,
         parentId: widget.replyTo?.id,
         rootId: widget.replyTo?.rootId ?? widget.replyTo?.id,
+        quoteTo: widget.quoteTo,
+        poll: poll,
         kasemConfirmed: _kasemConfirmed,
         onUploadProgress: (value) {
           if (mounted) setState(() => _progress = value);
@@ -125,7 +236,9 @@ class _ComposePostScreenState extends ConsumerState<ComposePostScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(_isReply ? 'Reply' : 'New post'),
+        title: Text(
+          _isReply ? 'Reply' : (_isQuote ? 'Quote post' : 'New post'),
+        ),
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 12),
@@ -157,6 +270,10 @@ class _ComposePostScreenState extends ConsumerState<ComposePostScreen> {
           children: [
             if (widget.replyTo case final parent?) ...[
               _ReplyContext(post: parent),
+              const SizedBox(height: 14),
+            ],
+            if (widget.quoteTo case final quoted?) ...[
+              _QuoteContext(post: quoted),
               const SizedBox(height: 14),
             ],
             Row(
@@ -199,6 +316,36 @@ class _ComposePostScreenState extends ConsumerState<ComposePostScreen> {
                     setState(() => _attachments.removeAt(index)),
               ),
             ],
+            if (_recording) ...[
+              const SizedBox(height: 14),
+              _RecordingBar(
+                elapsed: DateTime.now().difference(
+                  _recordingStartedAt ?? DateTime.now(),
+                ),
+                onStop: _toggleRecording,
+              ),
+            ],
+            if (_showPoll) ...[
+              const SizedBox(height: 14),
+              _PollComposer(
+                controllers: _pollOptions,
+                duration: _pollDuration,
+                onAdd: _pollOptions.length >= 4
+                    ? null
+                    : () => setState(
+                        () => _pollOptions.add(TextEditingController()),
+                      ),
+                onRemove: (index) {
+                  if (_pollOptions.length <= 2) return;
+                  final removed = _pollOptions.removeAt(index);
+                  removed.dispose();
+                  setState(() {});
+                },
+                onDurationChanged: (duration) =>
+                    setState(() => _pollDuration = duration),
+                onClose: () => setState(() => _showPoll = false),
+              ),
+            ],
             const SizedBox(height: 18),
             CheckboxListTile(
               contentPadding: EdgeInsets.zero,
@@ -228,6 +375,25 @@ class _ComposePostScreenState extends ConsumerState<ComposePostScreen> {
                   onPressed: _publishing ? null : _addMedia,
                   icon: const Icon(Icons.add_photo_alternate_outlined),
                 ),
+                const SizedBox(width: 6),
+                IconButton.filledTonal(
+                  tooltip: _recording ? 'Stop voice note' : 'Record voice note',
+                  onPressed: _publishing ? null : _toggleRecording,
+                  icon: Icon(
+                    _recording ? Icons.stop_rounded : Icons.mic_none_rounded,
+                    color: _recording ? BrandColors.terracotta : null,
+                  ),
+                ),
+                if (!_isReply && !_isQuote) ...[
+                  const SizedBox(width: 6),
+                  IconButton.filledTonal(
+                    tooltip: _showPoll ? 'Remove poll' : 'Add poll',
+                    onPressed: _publishing
+                        ? null
+                        : () => setState(() => _showPoll = !_showPoll),
+                    icon: const Icon(Icons.poll_outlined),
+                  ),
+                ],
                 const SizedBox(width: 8),
                 Text(
                   '${_attachments.length}/${CommunityRepository.maxMediaPerPost}',
@@ -330,7 +496,31 @@ class _AttachmentStrip extends StatelessWidget {
               child: SizedBox(
                 width: 128,
                 height: 128,
-                child: attachment.isVideo
+                child: attachment.isAudio
+                    ? const ColoredBox(
+                        color: BrandColors.heritageGreen,
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.graphic_eq_rounded,
+                              color: BrandColors.kenteGold,
+                              size: 42,
+                            ),
+                            SizedBox(height: 6),
+                            Text(
+                              'VOICE NOTE',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 0.7,
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    : attachment.isVideo
                     ? const ColoredBox(
                         color: BrandColors.heritageGreen,
                         child: Center(
@@ -367,6 +557,250 @@ class _AttachmentStrip extends StatelessWidget {
           ],
         );
       },
+    ),
+  );
+}
+
+class _QuoteContext extends StatelessWidget {
+  const _QuoteContext({required this.post});
+
+  final CommunityPost post;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.all(14),
+    decoration: BoxDecoration(
+      color: BrandColors.surface,
+      borderRadius: BorderRadius.circular(18),
+      border: Border.all(color: BrandColors.divider),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Row(
+          children: [
+            Icon(
+              Icons.format_quote_rounded,
+              size: 17,
+              color: BrandColors.terracotta,
+            ),
+            SizedBox(width: 5),
+            Text(
+              'QUOTING',
+              style: TextStyle(
+                color: BrandColors.terracotta,
+                fontSize: 10,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 0.8,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 9),
+        Row(
+          children: [
+            CommunityAvatar(
+              initials: post.initials,
+              imageUrl: post.authorAvatarUrl,
+              size: 30,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                '${post.authorName}  ${post.handle}',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+          ],
+        ),
+        if (post.text.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Text(
+            post.text,
+            maxLines: 4,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 13, height: 1.4),
+          ),
+        ],
+      ],
+    ),
+  );
+}
+
+class _RecordingBar extends StatelessWidget {
+  const _RecordingBar({required this.elapsed, required this.onStop});
+
+  final Duration elapsed;
+  final VoidCallback onStop;
+
+  @override
+  Widget build(BuildContext context) {
+    final seconds = elapsed.inSeconds.clamp(0, 599);
+    final label =
+        '${(seconds ~/ 60).toString().padLeft(2, '0')}:'
+        '${(seconds % 60).toString().padLeft(2, '0')}';
+    return Container(
+      padding: const EdgeInsets.fromLTRB(14, 10, 8, 10),
+      decoration: BoxDecoration(
+        color: BrandColors.terracotta.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: BrandColors.terracotta.withValues(alpha: 0.25),
+        ),
+      ),
+      child: Row(
+        children: [
+          const Icon(
+            Icons.fiber_manual_record_rounded,
+            color: BrandColors.terracotta,
+            size: 18,
+          ),
+          const SizedBox(width: 8),
+          const Expanded(
+            child: Text(
+              'Recording voice note',
+              style: TextStyle(fontWeight: FontWeight.w800),
+            ),
+          ),
+          Text(label, style: const TextStyle(fontWeight: FontWeight.w800)),
+          const SizedBox(width: 5),
+          IconButton.filled(
+            tooltip: 'Finish recording',
+            onPressed: onStop,
+            style: IconButton.styleFrom(
+              backgroundColor: BrandColors.terracotta,
+              foregroundColor: Colors.white,
+            ),
+            icon: const Icon(Icons.stop_rounded),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PollComposer extends StatelessWidget {
+  const _PollComposer({
+    required this.controllers,
+    required this.duration,
+    required this.onAdd,
+    required this.onRemove,
+    required this.onDurationChanged,
+    required this.onClose,
+  });
+
+  final List<TextEditingController> controllers;
+  final Duration duration;
+  final VoidCallback? onAdd;
+  final ValueChanged<int> onRemove;
+  final ValueChanged<Duration> onDurationChanged;
+  final VoidCallback onClose;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.all(14),
+    decoration: BoxDecoration(
+      color: BrandColors.heritageGreen.withValues(alpha: 0.05),
+      borderRadius: BorderRadius.circular(18),
+      border: Border.all(
+        color: BrandColors.heritageGreen.withValues(alpha: 0.15),
+      ),
+    ),
+    child: Column(
+      children: [
+        Row(
+          children: [
+            const Icon(Icons.poll_outlined, color: BrandColors.heritageGreen),
+            const SizedBox(width: 7),
+            const Expanded(
+              child: Text(
+                'COMMUNITY POLL',
+                style: TextStyle(
+                  color: BrandColors.heritageGreen,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 0.7,
+                ),
+              ),
+            ),
+            IconButton(
+              tooltip: 'Remove poll',
+              visualDensity: VisualDensity.compact,
+              onPressed: onClose,
+              icon: const Icon(Icons.close_rounded),
+            ),
+          ],
+        ),
+        for (var index = 0; index < controllers.length; index++) ...[
+          const SizedBox(height: 8),
+          TextField(
+            controller: controllers[index],
+            maxLength: 80,
+            textCapitalization: TextCapitalization.sentences,
+            decoration: InputDecoration(
+              hintText: 'Choice ${index + 1}',
+              counterText: '',
+              suffixIcon: controllers.length > 2
+                  ? IconButton(
+                      tooltip: 'Remove choice',
+                      onPressed: () => onRemove(index),
+                      icon: const Icon(Icons.remove_circle_outline_rounded),
+                    )
+                  : null,
+            ),
+          ),
+        ],
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            TextButton.icon(
+              onPressed: onAdd,
+              icon: const Icon(Icons.add_rounded),
+              label: const Text('Add choice'),
+            ),
+            const Spacer(),
+            const Text(
+              'Ends in',
+              style: TextStyle(
+                color: BrandColors.mutedInk,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(width: 8),
+            DropdownButton<Duration>(
+              value: duration,
+              underline: const SizedBox.shrink(),
+              onChanged: (value) {
+                if (value != null) onDurationChanged(value);
+              },
+              items: const [
+                DropdownMenuItem(
+                  value: Duration(hours: 1),
+                  child: Text('1 hour'),
+                ),
+                DropdownMenuItem(
+                  value: Duration(days: 1),
+                  child: Text('1 day'),
+                ),
+                DropdownMenuItem(
+                  value: Duration(days: 3),
+                  child: Text('3 days'),
+                ),
+                DropdownMenuItem(
+                  value: Duration(days: 7),
+                  child: Text('7 days'),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ],
     ),
   );
 }

@@ -175,7 +175,17 @@ test('guests cannot upload community media at all', async () => {
   );
 });
 
-test('community post media rejects content types that are not image or video', async () => {
+test('community voice notes are owner-writable and world-readable', async () => {
+  const author = await clientFor('community-audio-storage', 'community-audio');
+  const path = 'community-media/community-audio/post-1/0_voice.m4a';
+  await uploadBytes(ref(author, path), new Blob(['voice'], { type: 'audio/mp4' }), {
+    contentType: 'audio/mp4',
+  });
+  const guest = await clientFor('community-audio-guest-storage', null);
+  await getBytes(ref(guest, path));
+});
+
+test('community post media rejects unsupported content types', async () => {
   const author = await clientFor('community-doc-storage', 'community-doc');
   await assert.rejects(
     uploadBytes(

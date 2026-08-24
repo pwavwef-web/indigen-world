@@ -574,6 +574,10 @@ service cloud.firestore {
     //   communityUsernames/{username}          — handle uniqueness registry
     //   communityPosts/{postId}                — posts and replies (parentId)
     //   communityLikes/{uid}_{postId}          — like edges, owner-written
+    //   communityReposts/{uid}_{postId}        — feed reshare edges
+    //   communityQuotes/{uid}_{postId}         — quote-post edges
+    //   communityViews/{uid}_{postId}          — unique impressions
+    //   communityPollVotes/{uid}_{postId}      — immutable poll votes
     //   communityBookmarks/{uid}_{postId}      — private saves, owner-only
     //   communityFollows/{from}_{to}           — follow edges, follower-written
     //   communityReports/{reportId}            — moderation queue
@@ -593,6 +597,18 @@ service cloud.firestore {
 
     function communityLikePath(postId) {
       return /databases/$(database)/documents/communityLikes/$(request.auth.uid + '_' + postId);
+    }
+
+    function communityRepostPath(postId) {
+      return /databases/$(database)/documents/communityReposts/$(request.auth.uid + '_' + postId);
+    }
+
+    function communityQuotePath(postId) {
+      return /databases/$(database)/documents/communityQuotes/$(request.auth.uid + '_' + postId);
+    }
+
+    function communityViewPath(postId) {
+      return /databases/$(database)/documents/communityViews/$(request.auth.uid + '_' + postId);
     }
 
     // A member may change likeCount by exactly one step, and only when the
@@ -617,6 +633,37 @@ service cloud.firestore {
           request.resource.data.replyCount == resource.data.replyCount + 1
           || request.resource.data.replyCount == resource.data.replyCount - 1
         );
+    }
+
+    function communityRepostDelta(postId) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['repostCount'])
+        && (
+          (request.resource.data.repostCount == resource.data.get('repostCount', 0) + 1
+            && !exists(communityRepostPath(postId))
+            && existsAfter(communityRepostPath(postId)))
+          || (request.resource.data.repostCount == resource.data.get('repostCount', 0) - 1
+            && exists(communityRepostPath(postId))
+            && !existsAfter(communityRepostPath(postId)))
+        );
+    }
+
+    function communityQuoteDelta(postId) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['quoteCount'])
+        && (
+          (request.resource.data.quoteCount == resource.data.get('quoteCount', 0) + 1
+            && !exists(communityQuotePath(postId))
+            && existsAfter(communityQuotePath(postId)))
+          || (request.resource.data.quoteCount == resource.data.get('quoteCount', 0) - 1
+            && exists(communityQuotePath(postId))
+            && !existsAfter(communityQuotePath(postId)))
+        );
+    }
+
+    function communityViewDelta(postId) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewCount'])
+        && request.resource.data.viewCount == resource.data.get('viewCount', 0) + 1
+        && !exists(communityViewPath(postId))
+        && existsAfter(communityViewPath(postId));
     }
 
     match /communityProfiles/{uid} {
@@ -664,8 +711,20 @@ service cloud.firestore {
         && validCommunityText(request.resource.data.text, 500)
         && request.resource.data.likeCount == 0
         && request.resource.data.replyCount == 0
+        && request.resource.data.get('repostCount', 0) == 0
+        && request.resource.data.get('quoteCount', 0) == 0
+        && request.resource.data.get('viewCount', 0) == 0
         && request.resource.data.media is list
         && request.resource.data.media.size() <= 4
+        && (request.resource.data.get('quotedPostId', null) == null
+          || request.resource.data.quotedPostId is string)
+        && (request.resource.data.get('poll', null) == null
+          || (request.resource.data.poll is map
+            && request.resource.data.poll.options is list
+            && request.resource.data.poll.options.size() >= 2
+            && request.resource.data.poll.options.size() <= 4
+            && request.resource.data.poll.totalVotes == 0
+            && request.resource.data.poll.endsAt is timestamp))
         && (request.resource.data.parentId == null
           || request.resource.data.parentId is string);
       // The author may edit their own body text; anyone signed in may move a
@@ -680,6 +739,12 @@ service cloud.firestore {
         isSignedIn() && communityLikeDelta(postId)
       ) || (
         isSignedIn() && communityReplyDelta()
+      ) || (
+        isSignedIn() && communityRepostDelta(postId)
+      ) || (
+        isSignedIn() && communityQuoteDelta(postId)
+      ) || (
+        isSignedIn() && communityViewDelta(postId)
       ) || isStaff();
       allow delete: if isSignedIn()
         && (resource.data.authorId == request.auth.uid || isStaff());
@@ -696,6 +761,72 @@ service cloud.firestore {
       allow delete: if isSignedIn() && resource.data.uid == request.auth.uid;
     }
 
+    match /communityReposts/{repostId} {
+      allow read: if true;
+      allow create: if isSignedIn()
+        && request.resource.data.reposterId == request.auth.uid
+        && request.resource.data.postId is string
+        && communityOwnsEdge(repostId, request.auth.uid, request.resource.data.postId)
+        && exists(/databases/$(database)/documents/communityPosts/$(request.resource.data.postId))
+        && getAfter(/databases/$(database)/documents/communityPosts/$(request.resource.data.postId)).data.repostCount
+          == get(/databases/$(database)/documents/communityPosts/$(request.resource.data.postId)).data.get('repostCount', 0) + 1;
+      allow update: if false;
+      allow delete: if isSignedIn()
+        && resource.data.reposterId == request.auth.uid
+        && getAfter(/databases/$(database)/documents/communityPosts/$(resource.data.postId)).data.repostCount
+          == get(/databases/$(database)/documents/communityPosts/$(resource.data.postId)).data.get('repostCount', 0) - 1;
+    }
+
+    match /communityQuotes/{quoteId} {
+      allow read: if true;
+      allow create: if isSignedIn()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.sourcePostId is string
+        && request.resource.data.quotePostId is string
+        && communityOwnsEdge(quoteId, request.auth.uid, request.resource.data.sourcePostId)
+        && existsAfter(/databases/$(database)/documents/communityPosts/$(request.resource.data.quotePostId))
+        && getAfter(/databases/$(database)/documents/communityPosts/$(request.resource.data.quotePostId)).data.authorId == request.auth.uid
+        && getAfter(/databases/$(database)/documents/communityPosts/$(request.resource.data.quotePostId)).data.quotedPostId == request.resource.data.sourcePostId
+        && getAfter(/databases/$(database)/documents/communityPosts/$(request.resource.data.sourcePostId)).data.quoteCount
+          == get(/databases/$(database)/documents/communityPosts/$(request.resource.data.sourcePostId)).data.get('quoteCount', 0) + 1;
+      allow update: if false;
+      allow delete: if isSignedIn()
+        && resource.data.uid == request.auth.uid
+        && getAfter(/databases/$(database)/documents/communityPosts/$(resource.data.sourcePostId)).data.quoteCount
+          == get(/databases/$(database)/documents/communityPosts/$(resource.data.sourcePostId)).data.get('quoteCount', 0) - 1;
+    }
+
+    match /communityViews/{viewId} {
+      allow read: if isSignedIn() && (
+        resource.data.viewerId == request.auth.uid
+        || get(/databases/$(database)/documents/communityPosts/$(resource.data.postId)).data.authorId == request.auth.uid
+        || isStaff()
+      );
+      allow create: if isSignedIn()
+        && request.resource.data.viewerId == request.auth.uid
+        && request.resource.data.postId is string
+        && communityOwnsEdge(viewId, request.auth.uid, request.resource.data.postId)
+        && exists(/databases/$(database)/documents/communityPosts/$(request.resource.data.postId))
+        && getAfter(/databases/$(database)/documents/communityPosts/$(request.resource.data.postId)).data.viewCount
+          == get(/databases/$(database)/documents/communityPosts/$(request.resource.data.postId)).data.get('viewCount', 0) + 1;
+      allow update, delete: if false;
+    }
+
+    match /communityPollVotes/{voteId} {
+      allow read: if isSignedIn() && (
+        resource.data.uid == request.auth.uid
+        || get(/databases/$(database)/documents/communityPosts/$(resource.data.postId)).data.authorId == request.auth.uid
+        || isStaff()
+      );
+      allow create: if isSignedIn()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.postId is string
+        && request.resource.data.optionId is string
+        && communityOwnsEdge(voteId, request.auth.uid, request.resource.data.postId)
+        && exists(/databases/$(database)/documents/communityPosts/$(request.resource.data.postId));
+      allow update, delete: if false;
+    }
+
     match /communityBookmarks/{bookmarkId} {
       // Saves are private to their owner.
       allow read: if isSignedIn() && resource.data.uid == request.auth.uid;
@@ -703,6 +834,38 @@ service cloud.firestore {
         && request.resource.data.uid == request.auth.uid
         && request.resource.data.postId is string
         && communityOwnsEdge(bookmarkId, request.auth.uid, request.resource.data.postId);
+      allow update: if false;
+      allow delete: if isSignedIn() && resource.data.uid == request.auth.uid;
+    }
+
+    match /communityHiddenPosts/{edgeId} {
+      allow read: if isSignedIn() && resource.data.uid == request.auth.uid;
+      allow create: if isSignedIn()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.postId is string
+        && communityOwnsEdge(edgeId, request.auth.uid, request.resource.data.postId);
+      allow update: if false;
+      allow delete: if isSignedIn() && resource.data.uid == request.auth.uid;
+    }
+
+    match /communityMutes/{edgeId} {
+      allow read: if isSignedIn() && resource.data.uid == request.auth.uid;
+      allow create: if isSignedIn()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.targetId is string
+        && request.resource.data.targetId != request.auth.uid
+        && communityOwnsEdge(edgeId, request.auth.uid, request.resource.data.targetId);
+      allow update: if false;
+      allow delete: if isSignedIn() && resource.data.uid == request.auth.uid;
+    }
+
+    match /communityBlocks/{edgeId} {
+      allow read: if isSignedIn() && resource.data.uid == request.auth.uid;
+      allow create: if isSignedIn()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.targetId is string
+        && request.resource.data.targetId != request.auth.uid
+        && communityOwnsEdge(edgeId, request.auth.uid, request.resource.data.targetId);
       allow update: if false;
       allow delete: if isSignedIn() && resource.data.uid == request.auth.uid;
     }

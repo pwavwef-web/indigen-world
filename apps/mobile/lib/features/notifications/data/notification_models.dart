@@ -7,6 +7,8 @@ import 'package:indigen_world_mobile/core/brand.dart';
 /// silently misses an alert this build has not learned about yet.
 enum NotificationKind {
   like,
+  repost,
+  quote,
   reply,
   follow,
   mention,
@@ -16,6 +18,8 @@ enum NotificationKind {
 
   static NotificationKind parse(Object? raw) => switch (raw) {
     'like' => NotificationKind.like,
+    'repost' => NotificationKind.repost,
+    'quote' => NotificationKind.quote,
     'reply' => NotificationKind.reply,
     'follow' => NotificationKind.follow,
     'mention' => NotificationKind.mention,
@@ -26,6 +30,8 @@ enum NotificationKind {
 
   IconData get icon => switch (this) {
     NotificationKind.like => Icons.favorite_rounded,
+    NotificationKind.repost => Icons.repeat_rounded,
+    NotificationKind.quote => Icons.format_quote_rounded,
     NotificationKind.reply => Icons.mode_comment_rounded,
     NotificationKind.follow => Icons.person_add_alt_1_rounded,
     NotificationKind.mention => Icons.alternate_email_rounded,
@@ -36,6 +42,8 @@ enum NotificationKind {
 
   Color get accent => switch (this) {
     NotificationKind.like => BrandColors.terracotta,
+    NotificationKind.repost => BrandColors.savannahGreen,
+    NotificationKind.quote => BrandColors.kenteGold,
     NotificationKind.reply => BrandColors.savannahGreen,
     NotificationKind.follow => BrandColors.heritageGreen,
     NotificationKind.mention => BrandColors.kenteGold,

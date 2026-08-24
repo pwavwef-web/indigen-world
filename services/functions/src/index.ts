@@ -14,8 +14,10 @@ export {
 export { onNotificationCreated } from './notifications.js';
 export {
   onCommunityLikeCreated,
+  onCommunityRepostCreated,
   onCommunityFollowCreated,
   onCommunityPostCreated,
+  onCommunityPollVoteCreated,
   onCommunityNotificationCreated,
 } from './community-notifications.js';
 export { onSubmissionWritten } from './open-publishing.js';

@@ -86,7 +86,9 @@ service firebase.storage {
       return (request.resource.contentType.matches('image/.*')
           && request.resource.size < 12 * 1024 * 1024)
         || (request.resource.contentType.matches('video/.*')
-          && request.resource.size < 128 * 1024 * 1024);
+          && request.resource.size < 128 * 1024 * 1024)
+        || (request.resource.contentType.matches('audio/.*')
+          && request.resource.size < 24 * 1024 * 1024);
     }
 
     match /community-media/{uid}/{postId}/{fileName} {

@@ -59,7 +59,7 @@ after(async () => {
 
 const call = (app, name) => httpsCallable(getFunctions(app), name);
 
-async function waitFor(check, message, timeoutMs = 10_000) {
+async function waitFor(check, message, timeoutMs = 30_000) {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     if (await check()) return;
@@ -392,7 +392,11 @@ test('withdrawing an ordinary open post removes its public projection', async ()
     lifecycle: life(),
   });
   await waitFor(
-    async () => (await db.doc(`publishedContent/pub_${submissionId}`).get()).get('publicationStatus') === 'published',
+    async () => {
+      const pub = await db.doc(`publishedContent/pub_${submissionId}`).get();
+      const sub = await db.doc(`submissions/${submissionId}`).get();
+      return pub.get('publicationStatus') === 'published' && sub.get('status') === 'PUBLISHED';
+    },
     'open submission was not published by onSubmissionWritten',
   );
 

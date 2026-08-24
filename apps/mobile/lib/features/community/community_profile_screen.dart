@@ -472,6 +472,12 @@ class _ProfileTabContent extends ConsumerWidget {
     final likes = ref.watch(myLikesProvider).asData?.value ?? const <String>{};
     final saved =
         ref.watch(myBookmarksProvider).asData?.value ?? const <String>{};
+    final reposts =
+        ref.watch(myRepostsProvider).asData?.value ?? const <String>{};
+    final pollVotes =
+        ref.watch(myPollVotesProvider).asData?.value ??
+        const <String, String>{};
+    final currentUid = ref.watch(currentUidProvider);
 
     return switch (posts) {
       AsyncData(:final value) when value.isEmpty => ListView(
@@ -498,8 +504,24 @@ class _ProfileTabContent extends ConsumerWidget {
             post: post,
             liked: likes.contains(post.id),
             saved: saved.contains(post.id),
+            reposted: reposts.contains(post.id),
+            votedOptionId: pollVotes[post.id],
             onLike: () => actions.toggleLike(context, post),
+            onRepost: () => actions.toggleRepost(context, post),
+            onQuote: () => actions.quote(context, post),
             onSave: () => actions.toggleSave(context, post),
+            onShare: () => actions.share(context, post),
+            onViews: currentUid == post.authorId
+                ? () => actions.openEngagement(context, post)
+                : null,
+            onVote: (optionId) => actions.vote(context, post, optionId),
+            onPollVotes: currentUid == post.authorId && post.hasPoll
+                ? () => actions.openEngagement(
+                    context,
+                    post,
+                    initialKind: CommunityEngagementKind.pollVotes,
+                  )
+                : null,
             onReply: () => actions.reply(context, post),
             onMore: () => actions.showPostMenu(context, post),
             onOpen: () => Navigator.of(context).push(
@@ -507,7 +529,17 @@ class _ProfileTabContent extends ConsumerWidget {
                 builder: (context) => PostDetailScreen(postId: post.id),
               ),
             ),
+            onOpenQuoted: post.quotedPostId == null
+                ? null
+                : () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (context) =>
+                          PostDetailScreen(postId: post.quotedPostId!),
+                    ),
+                  ),
             onOpenAuthor: () {},
+            onOpenHandle: (handle) => actions.openHandle(context, handle),
+            onOpenLink: (url) => actions.openLink(context, url),
           );
         },
       ),

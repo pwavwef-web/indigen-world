@@ -163,6 +163,72 @@ void main() {
       expect(restored.storagePath, original.storagePath);
       expect(restored.aspectRatio, original.aspectRatio);
     });
+
+    test('voice notes retain their kind and duration', () {
+      final media = CommunityMedia.fromMap({
+        'url': 'https://example.test/voice.m4a',
+        'type': 'audio',
+        'durationSeconds': 42,
+      })!;
+      expect(media.isAudio, isTrue);
+      expect(media.isVideo, isFalse);
+      expect(media.durationSeconds, 42);
+      expect(media.toMap()['durationSeconds'], 42);
+    });
+  });
+
+  group('polls and quote posts', () {
+    test('a valid poll parses its choices and totals', () {
+      final poll = CommunityPoll.fromMap({
+        'options': [
+          {'id': 'one', 'text': 'Paga', 'voteCount': 3},
+          {'id': 'two', 'text': 'Navrongo', 'voteCount': 2},
+        ],
+        'endsAt': DateTime(2026, 8, 30),
+        'totalVotes': 5,
+      })!;
+      expect(poll.options, hasLength(2));
+      expect(poll.options.first.voteCount, 3);
+      expect(poll.totalVotes, 5);
+    });
+
+    test('posts expose every SRC-style count and nested quote', () {
+      final post = CommunityPost.fromMap('quote1', {
+        'authorId': 'u2',
+        'author': {'displayName': 'Nyaaba', 'username': 'nyaaba'},
+        'text': 'N kana de.',
+        'media': [],
+        'likeCount': 4,
+        'replyCount': 2,
+        'repostCount': 7,
+        'quoteCount': 3,
+        'viewCount': 81,
+        'quotedPostId': 'source1',
+        'quotedPost': {
+          'id': 'source1',
+          'authorId': 'u1',
+          'author': {'displayName': 'Amina', 'username': 'amina'},
+          'text': 'De zaanem.',
+          'media': [],
+          'likeCount': 1,
+          'replyCount': 0,
+        },
+      });
+      expect(post.isQuote, isTrue);
+      expect(post.quotedPost?.text, 'De zaanem.');
+      expect(post.reshareAndQuoteCount, 10);
+      expect(post.viewCount, 81);
+    });
+
+    test('the first safe web link is exposed for the preview card', () {
+      final post = CommunityPost.fromMap('link1', {
+        'authorId': 'u1',
+        'author': {'displayName': 'Amina', 'username': 'amina'},
+        'text': 'Read https://indigenworld.com/learn, then tell us.',
+        'media': [],
+      });
+      expect(post.firstLink, 'https://indigenworld.com/learn');
+    });
   });
 
   group('initials', () {
@@ -218,6 +284,14 @@ void main() {
       expect(
         const PendingUpload(path: '/tmp/capture', isVideo: false).contentType,
         'image/jpeg',
+      );
+      expect(
+        const PendingUpload(
+          path: '/tmp/voice.m4a',
+          isVideo: false,
+          isAudio: true,
+        ).contentType,
+        'audio/mp4',
       );
     });
 

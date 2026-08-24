@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/features/community/data/community_models.dart';
+import 'package:just_audio/just_audio.dart';
 import 'package:video_player/video_player.dart';
 
 /// The media block under a post body. One attachment fills the width; two or
@@ -18,6 +19,12 @@ class PostMediaView extends StatelessWidget {
 
     if (media.length == 1) {
       final item = media.first;
+      if (item.isAudio) {
+        return ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: SizedBox(height: 104, child: _AudioPlayerTile(item: item)),
+        );
+      }
       return ClipRRect(
         borderRadius: BorderRadius.circular(16),
         child: AspectRatio(
@@ -56,57 +63,218 @@ class _MediaTile extends StatelessWidget {
   final VoidCallback onOpen;
 
   @override
-  Widget build(BuildContext context) => GestureDetector(
-    onTap: onOpen,
-    child: Stack(
-      fit: StackFit.expand,
-      children: [
-        if (item.isVideo)
-          ColoredBox(
-            color: BrandColors.heritageGreen,
-            child: item.thumbnailUrl != null
-                ? CachedNetworkImage(
-                    imageUrl: item.thumbnailUrl!,
-                    fit: BoxFit.cover,
-                    errorWidget: (context, url, error) =>
-                        const SizedBox.shrink(),
-                  )
-                : const SizedBox.shrink(),
-          )
-        else
-          CachedNetworkImage(
-            imageUrl: item.url,
-            fit: BoxFit.cover,
-            placeholder: (context, url) =>
-                const ColoredBox(color: BrandColors.divider),
-            errorWidget: (context, url, error) => const ColoredBox(
-              color: BrandColors.divider,
+  Widget build(BuildContext context) {
+    if (item.isAudio) return _AudioPlayerTile(item: item, compact: true);
+    return GestureDetector(
+      onTap: onOpen,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          if (item.isVideo)
+            ColoredBox(
+              color: BrandColors.heritageGreen,
+              child: item.thumbnailUrl != null
+                  ? CachedNetworkImage(
+                      imageUrl: item.thumbnailUrl!,
+                      fit: BoxFit.cover,
+                      errorWidget: (context, url, error) =>
+                          const SizedBox.shrink(),
+                    )
+                  : const SizedBox.shrink(),
+            )
+          else
+            CachedNetworkImage(
+              imageUrl: item.url,
+              fit: BoxFit.cover,
+              placeholder: (context, url) =>
+                  const ColoredBox(color: BrandColors.divider),
+              errorWidget: (context, url, error) => const ColoredBox(
+                color: BrandColors.divider,
+                child: Icon(
+                  Icons.image_not_supported_outlined,
+                  color: BrandColors.mutedInk,
+                ),
+              ),
+            ),
+          if (item.isVideo) ...[
+            const DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Colors.transparent, Color(0x99000000)],
+                ),
+              ),
+            ),
+            const Center(
               child: Icon(
-                Icons.image_not_supported_outlined,
-                color: BrandColors.mutedInk,
+                Icons.play_circle_fill_rounded,
+                color: Colors.white,
+                size: 54,
               ),
             ),
-          ),
-        if (item.isVideo) ...[
-          const DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [Colors.transparent, Color(0x99000000)],
-              ),
+            const Positioned(
+              left: 8,
+              top: 8,
+              child: _MediaBadge(label: 'REEL'),
             ),
-          ),
-          const Center(
-            child: Icon(
-              Icons.play_circle_fill_rounded,
-              color: Colors.white,
-              size: 54,
-            ),
-          ),
-          const Positioned(left: 8, top: 8, child: _MediaBadge(label: 'REEL')),
+          ],
         ],
-      ],
+      ),
+    );
+  }
+}
+
+class _AudioPlayerTile extends StatefulWidget {
+  const _AudioPlayerTile({required this.item, this.compact = false});
+
+  final CommunityMedia item;
+  final bool compact;
+
+  @override
+  State<_AudioPlayerTile> createState() => _AudioPlayerTileState();
+}
+
+class _AudioPlayerTileState extends State<_AudioPlayerTile> {
+  late final AudioPlayer _player;
+  var _failed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _player = AudioPlayer();
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      await _player.setUrl(widget.item.url);
+    } on Object {
+      if (mounted) setState(() => _failed = true);
+    }
+  }
+
+  @override
+  void dispose() {
+    _player.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => ColoredBox(
+    color: BrandColors.heritageGreen,
+    child: Padding(
+      padding: EdgeInsets.symmetric(
+        horizontal: widget.compact ? 8 : 14,
+        vertical: 10,
+      ),
+      child: Row(
+        children: [
+          StreamBuilder<PlayerState>(
+            stream: _player.playerStateStream,
+            builder: (context, snapshot) {
+              final playing = snapshot.data?.playing ?? false;
+              final processing = snapshot.data?.processingState;
+              final loading =
+                  processing == ProcessingState.loading ||
+                  processing == ProcessingState.buffering;
+              return IconButton.filled(
+                tooltip: playing ? 'Pause voice note' : 'Play voice note',
+                onPressed: _failed || loading
+                    ? null
+                    : () => playing ? _player.pause() : _player.play(),
+                style: IconButton.styleFrom(
+                  backgroundColor: BrandColors.kenteGold,
+                  foregroundColor: BrandColors.ink,
+                ),
+                icon: loading
+                    ? const SizedBox.square(
+                        dimension: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : Icon(
+                        playing
+                            ? Icons.pause_rounded
+                            : Icons.play_arrow_rounded,
+                      ),
+              );
+            },
+          ),
+          SizedBox(width: widget.compact ? 4 : 10),
+          Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _failed ? 'Voice note unavailable' : 'VOICE NOTE',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 0.7,
+                  ),
+                ),
+                const SizedBox(height: 7),
+                StreamBuilder<Duration>(
+                  stream: _player.positionStream,
+                  builder: (context, positionSnapshot) =>
+                      StreamBuilder<Duration?>(
+                        stream: _player.durationStream,
+                        builder: (context, durationSnapshot) {
+                          final duration =
+                              durationSnapshot.data ??
+                              Duration(
+                                seconds: widget.item.durationSeconds ?? 0,
+                              );
+                          final position =
+                              positionSnapshot.data ?? Duration.zero;
+                          final total = duration.inMilliseconds;
+                          final progress = total <= 0
+                              ? 0.0
+                              : (position.inMilliseconds / total).clamp(
+                                  0.0,
+                                  1.0,
+                                );
+                          return LinearProgressIndicator(
+                            value: progress,
+                            minHeight: 4,
+                            borderRadius: BorderRadius.circular(999),
+                            backgroundColor: Colors.white24,
+                            color: BrandColors.kenteGold,
+                          );
+                        },
+                      ),
+                ),
+              ],
+            ),
+          ),
+          if (!widget.compact) ...[
+            const SizedBox(width: 9),
+            StreamBuilder<Duration>(
+              stream: _player.positionStream,
+              builder: (context, snapshot) {
+                final value = snapshot.data ?? Duration.zero;
+                final minutes = value.inMinutes.toString().padLeft(2, '0');
+                final seconds = (value.inSeconds % 60).toString().padLeft(
+                  2,
+                  '0',
+                );
+                return Text(
+                  '$minutes:$seconds',
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                  ),
+                );
+              },
+            ),
+          ],
+        ],
+      ),
     ),
   );
 }
@@ -175,6 +343,14 @@ class _MediaViewerPageState extends State<MediaViewerPage> {
       itemCount: widget.media.length,
       itemBuilder: (context, index) {
         final item = widget.media[index];
+        if (item.isAudio) {
+          return Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 560),
+              child: SizedBox(height: 112, child: _AudioPlayerTile(item: item)),
+            ),
+          );
+        }
         if (item.isVideo) return _VideoPlayerBox(url: item.url);
         return InteractiveViewer(
           minScale: 1,

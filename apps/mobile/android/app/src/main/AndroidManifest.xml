@@ -10,6 +10,9 @@
     <!-- Android 13+ requires an explicit runtime grant before any notification
          can be posted. Requested from the notifications centre. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <!-- Voice notes in Community use the microphone only while the member is
+         visibly recording from the composer. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
     <application
         android:allowBackup="false"
         android:label="@string/app_name"

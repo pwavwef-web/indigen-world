@@ -15,7 +15,7 @@ import { onDocumentCreated } from 'firebase-functions/v2/firestore';
  * Shape of `communityNotifications/{id}`:
  *
  *   recipientId  uid the alert belongs to
- *   type         like | reply | follow | mention | publication
+ *   type         like | repost | quote | reply | follow | mention | publication
  *   actor        { id, displayName, username, avatarUrl }  — who caused it
  *   title        the headline, already written for a human
  *   body         optional second line
@@ -68,7 +68,7 @@ async function actorFor(
 
 interface NotificationInput {
   recipientId: string;
-  type: 'like' | 'reply' | 'follow' | 'mention' | 'publication';
+  type: 'like' | 'repost' | 'quote' | 'reply' | 'follow' | 'mention' | 'publication';
   actor?: ActorStamp;
   title: string;
   body?: string;
@@ -153,6 +153,38 @@ export const onCommunityLikeCreated = onDocumentCreated(
 );
 
 // ---------------------------------------------------------------------------
+// Reshares
+// ---------------------------------------------------------------------------
+
+export const onCommunityRepostCreated = onDocumentCreated(
+  { document: 'communityReposts/{repostId}', region: REGION },
+  async (event) => {
+    const data = event.data?.data();
+    if (!data) return;
+    const reposterId = data.reposterId;
+    const postId = data.postId;
+    if (typeof reposterId !== 'string' || typeof postId !== 'string') return;
+
+    const db = getFirestore();
+    const post = await db.collection('communityPosts').doc(postId).get();
+    if (!post.exists) return;
+    const authorId = post.get('authorId');
+    if (typeof authorId !== 'string' || authorId === reposterId) return;
+
+    const actor = await actorFor(db, reposterId);
+    await writeCommunityNotification(db, {
+      id: `repost_${reposterId}_${postId}`,
+      recipientId: authorId,
+      type: 'repost',
+      actor,
+      title: `${actor.displayName} reshared your post`,
+      postId,
+      postPreview: preview(post.get('text')),
+    });
+  },
+);
+
+// ---------------------------------------------------------------------------
 // Follows
 // ---------------------------------------------------------------------------
 
@@ -214,6 +246,25 @@ export const onCommunityPostCreated = onDocumentCreated(
     // parent's author does not arrive twice.
     const alerted = new Set<string>([authorId]);
 
+    const quotedPostId = data.quotedPostId;
+    if (typeof quotedPostId === 'string' && quotedPostId) {
+      const source = await db.collection('communityPosts').doc(quotedPostId).get();
+      const sourceAuthor = source.get('authorId');
+      if (typeof sourceAuthor === 'string' && !alerted.has(sourceAuthor)) {
+        alerted.add(sourceAuthor);
+        await writeCommunityNotification(db, {
+          id: `quote_${postId}`,
+          recipientId: sourceAuthor,
+          type: 'quote',
+          actor,
+          title: `${actor.displayName} quoted your post`,
+          body: preview(text),
+          postId,
+          postPreview: preview(source.get('text')),
+        });
+      }
+    }
+
     const parentId = data.parentId;
     if (typeof parentId === 'string' && parentId) {
       const parent = await db.collection('communityPosts').doc(parentId).get();
@@ -256,6 +307,54 @@ export const onCommunityPostCreated = onDocumentCreated(
         postId,
       });
     }
+  },
+);
+
+// ---------------------------------------------------------------------------
+// Poll tallying
+// ---------------------------------------------------------------------------
+
+/**
+ * Tallies an immutable vote exactly once. `countedAt` is written inside the
+ * same transaction as the post total, so a retried event cannot count twice.
+ */
+export const onCommunityPollVoteCreated = onDocumentCreated(
+  { document: 'communityPollVotes/{voteId}', region: REGION },
+  async (event) => {
+    const initial = event.data;
+    if (!initial) return;
+    const db = getFirestore();
+    const voteRef = initial.ref;
+
+    await db.runTransaction(async (transaction) => {
+      const vote = await transaction.get(voteRef);
+      if (!vote.exists || vote.get('countedAt')) return;
+      const postId = vote.get('postId');
+      const optionId = vote.get('optionId');
+      if (typeof postId !== 'string' || typeof optionId !== 'string') return;
+
+      const postRef = db.collection('communityPosts').doc(postId);
+      const post = await transaction.get(postRef);
+      if (!post.exists) return;
+      const poll = post.get('poll');
+      if (!poll || typeof poll !== 'object' || !Array.isArray(poll.options)) return;
+      const options = poll.options.map((option: unknown) => {
+        if (!option || typeof option !== 'object') return option;
+        const record = option as Record<string, unknown>;
+        if (record.id !== optionId) return record;
+        const current = typeof record.voteCount === 'number' ? record.voteCount : 0;
+        return { ...record, voteCount: current + 1 };
+      });
+      if (!options.some((option: unknown) => (
+        option && typeof option === 'object' && (option as Record<string, unknown>).id === optionId
+      ))) return;
+
+      const currentTotal = typeof poll.totalVotes === 'number' ? poll.totalVotes : 0;
+      transaction.update(postRef, {
+        poll: { ...poll, options, totalVotes: currentTotal + 1 },
+      });
+      transaction.update(voteRef, { countedAt: FieldValue.serverTimestamp() });
+    });
   },
 );
 

@@ -19,7 +19,13 @@ class SavedPostsScreen extends ConsumerWidget {
     final likes = ref.watch(myLikesProvider).asData?.value ?? const <String>{};
     final saved =
         ref.watch(myBookmarksProvider).asData?.value ?? const <String>{};
-    final signedIn = ref.watch(currentUidProvider) != null;
+    final reposts =
+        ref.watch(myRepostsProvider).asData?.value ?? const <String>{};
+    final pollVotes =
+        ref.watch(myPollVotesProvider).asData?.value ??
+        const <String, String>{};
+    final currentUid = ref.watch(currentUidProvider);
+    final signedIn = currentUid != null;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Saved posts')),
@@ -48,11 +54,27 @@ class SavedPostsScreen extends ConsumerWidget {
                     post: post,
                     liked: likes.contains(post.id),
                     saved: saved.contains(post.id),
+                    reposted: reposts.contains(post.id),
+                    votedOptionId: pollVotes[post.id],
                     onLike: () => actions.toggleLike(context, post),
+                    onRepost: () => actions.toggleRepost(context, post),
+                    onQuote: () => actions.quote(context, post),
                     onSave: () async {
                       await actions.toggleSave(context, post);
                       ref.invalidate(savedPostsProvider);
                     },
+                    onShare: () => actions.share(context, post),
+                    onViews: currentUid == post.authorId
+                        ? () => actions.openEngagement(context, post)
+                        : null,
+                    onVote: (optionId) => actions.vote(context, post, optionId),
+                    onPollVotes: currentUid == post.authorId && post.hasPoll
+                        ? () => actions.openEngagement(
+                            context,
+                            post,
+                            initialKind: CommunityEngagementKind.pollVotes,
+                          )
+                        : null,
                     onReply: () => actions.reply(context, post),
                     onMore: () => actions.showPostMenu(context, post),
                     onOpen: () => Navigator.of(context).push(
@@ -66,6 +88,17 @@ class SavedPostsScreen extends ConsumerWidget {
                             CommunityProfileScreen(uid: post.authorId),
                       ),
                     ),
+                    onOpenQuoted: post.quotedPostId == null
+                        ? null
+                        : () => Navigator.of(context).push(
+                            MaterialPageRoute<void>(
+                              builder: (context) =>
+                                  PostDetailScreen(postId: post.quotedPostId!),
+                            ),
+                          ),
+                    onOpenHandle: (handle) =>
+                        actions.openHandle(context, handle),
+                    onOpenLink: (url) => actions.openLink(context, url),
                   );
                 },
               ),

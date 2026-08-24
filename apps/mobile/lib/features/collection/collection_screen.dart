@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/features/collection/collection_data.dart';
 import 'package:indigen_world_mobile/features/collection/collection_detail_screens.dart';
+import 'package:indigen_world_mobile/features/collection/widgets/collection_card_surface.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_fab.dart';
 import 'package:indigen_world_mobile/shared/app_widgets.dart';
 import 'package:indigen_world_mobile/shared/frosted_nav_bar.dart';
@@ -94,7 +95,7 @@ class CollectionScreen extends ConsumerWidget {
                             crossAxisCount: 2,
                             crossAxisSpacing: 12,
                             mainAxisSpacing: 12,
-                            childAspectRatio: 0.82,
+                            childAspectRatio: 0.74,
                           ),
                       delegate: SliverChildListDelegate.fixed(portals),
                     ),
@@ -247,7 +248,7 @@ class _FirebaseStatus extends StatelessWidget {
   );
 }
 
-class _CollectionPortalCard extends StatefulWidget {
+class _CollectionPortalCard extends StatelessWidget {
   const _CollectionPortalCard({
     required this.kind,
     required this.icon,
@@ -265,55 +266,70 @@ class _CollectionPortalCard extends StatefulWidget {
   final VoidCallback onTap;
 
   @override
-  State<_CollectionPortalCard> createState() => _CollectionPortalCardState();
-}
-
-class _CollectionPortalCardState extends State<_CollectionPortalCard> {
-  bool _pressed = false;
-
-  @override
-  Widget build(BuildContext context) => AnimatedScale(
-    duration: const Duration(milliseconds: 150),
-    scale: _pressed ? 0.97 : 1,
-    child: Card(
-      clipBehavior: Clip.antiAlias,
-      margin: EdgeInsets.zero,
-      child: InkWell(
-        onHighlightChanged: (value) => setState(() => _pressed = value),
-        onTap: widget.onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(16),
+  Widget build(BuildContext context) => CollectionCardSurface(
+    semanticLabel: '${kind.label} collection',
+    onTap: onTap,
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        AspectRatio(
+          aspectRatio: 4 / 3,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      color.withValues(alpha: 0.08),
+                      color.withValues(alpha: 0.2),
+                    ],
+                  ),
+                ),
+                child: Icon(icon, color: color, size: 58),
+              ),
+              Positioned(
+                top: 10,
+                right: 10,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 9,
+                    vertical: 5,
+                  ),
+                  decoration: BoxDecoration(
+                    color: BrandColors.heritageGreen,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    count == null ? '…' : '$count',
+                    style: const TextStyle(
+                      color: BrandColors.kenteGold,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.all(13),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  Container(
-                    width: 47,
-                    height: 47,
-                    decoration: BoxDecoration(
-                      color: widget.color.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(15),
-                    ),
-                    child: Icon(widget.icon, color: widget.color),
-                  ),
-                  const Spacer(),
-                  const Icon(
-                    Icons.north_east_rounded,
-                    color: BrandColors.mutedInk,
-                    size: 18,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 22),
               Text(
-                widget.kind.label,
-                style: Theme.of(context).textTheme.titleLarge,
+                kind.label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.titleMedium,
               ),
-              const SizedBox(height: 5),
+              const SizedBox(height: 4),
               Text(
-                widget.description,
-                maxLines: 2,
+                description,
+                maxLines: 3,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
                   color: BrandColors.mutedInk,
@@ -322,22 +338,34 @@ class _CollectionPortalCardState extends State<_CollectionPortalCard> {
                 ),
               ),
               const SizedBox(height: 10),
-              Text(
-                widget.count == null
-                    ? 'Loading…'
-                    : widget.count == 0
-                    ? 'Ready for contributions'
-                    : '${widget.count} published ${widget.count == 1 ? 'item' : 'items'}',
-                style: TextStyle(
-                  color: widget.color,
-                  fontSize: 10,
-                  fontWeight: FontWeight.w900,
-                ),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      count == null
+                          ? 'Loading…'
+                          : count == 0
+                          ? 'Open collection'
+                          : '$count published',
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: color,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                  const Icon(
+                    Icons.north_east_rounded,
+                    color: BrandColors.mutedInk,
+                    size: 16,
+                  ),
+                ],
               ),
             ],
           ),
         ),
-      ),
+      ],
     ),
   );
 }

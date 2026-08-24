@@ -104,5 +104,32 @@ void main() {
         'Ko gara.',
       );
     });
+
+    testWidgets('a web link is tappable without swallowing punctuation', (
+      tester,
+    ) async {
+      final opened = <String>[];
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: buildIndigenTheme(),
+          home: Scaffold(
+            body: PostText(
+              text: 'Read https://indigenworld.com/learn, then return.',
+              onOpenHandle: null,
+              onOpenLink: opened.add,
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      final span = tester.widget<Text>(find.byType(Text)).textSpan!;
+      span.visitChildren((child) {
+        final recognizer = child is TextSpan ? child.recognizer : null;
+        if (recognizer is TapGestureRecognizer) recognizer.onTap!();
+        return true;
+      });
+      expect(opened, ['https://indigenworld.com/learn']);
+    });
   });
 }

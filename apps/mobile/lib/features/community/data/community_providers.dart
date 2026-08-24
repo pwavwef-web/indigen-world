@@ -27,6 +27,13 @@ final currentDisplayNameProvider = Provider<String?>(
   (ref) => ref.watch(authStateProvider).asData?.value?.displayName,
 );
 
+/// Firebase Auth photos (Google/Apple/custom auth) seed a new community
+/// profile. Keeping this separate from the display-name provider also makes the
+/// setup flow straightforward to override in tests.
+final currentPhotoUrlProvider = Provider<String?>(
+  (ref) => ref.watch(authStateProvider).asData?.value?.photoURL,
+);
+
 /// The signed-in member's community profile. `null` means either a guest, or a
 /// signed-in member who has not chosen a handle yet — the community screen
 /// prompts for setup in the second case.
@@ -62,10 +69,34 @@ final profileCountsProvider =
 
 // ── Feeds ───────────────────────────────────────────────────────────────────
 
-final communityFeedProvider = StreamProvider<List<CommunityPost>>((ref) {
+final rawCommunityFeedProvider = StreamProvider<List<CommunityPost>>((ref) {
   final repository = ref.watch(communityRepositoryProvider);
   if (repository == null) return Stream.value(const <CommunityPost>[]);
   return repository.watchFeed();
+});
+
+final communityFeedProvider = Provider<AsyncValue<List<CommunityPost>>>((ref) {
+  final hidden =
+      ref.watch(myHiddenPostsProvider).asData?.value ?? const <String>{};
+  final muted =
+      ref.watch(myMutedProfilesProvider).asData?.value ?? const <String>{};
+  final blocked =
+      ref.watch(myBlockedProfilesProvider).asData?.value ?? const <String>{};
+  return ref
+      .watch(rawCommunityFeedProvider)
+      .whenData(
+        (posts) => posts
+            .where(
+              (post) =>
+                  !hidden.contains(post.id) &&
+                  !muted.contains(post.authorId) &&
+                  !blocked.contains(post.authorId) &&
+                  (post.resharedById == null ||
+                      (!muted.contains(post.resharedById) &&
+                          !blocked.contains(post.resharedById))),
+            )
+            .toList(growable: false),
+      );
 });
 
 /// The uids the signed-in member follows, most recent first.
@@ -76,13 +107,37 @@ final followingIdsProvider = StreamProvider<List<String>>((ref) {
   return repository.watchFollowing(uid);
 });
 
-final followingFeedProvider = StreamProvider<List<CommunityPost>>((ref) {
+final rawFollowingFeedProvider = StreamProvider<List<CommunityPost>>((ref) {
   final repository = ref.watch(communityRepositoryProvider);
   final following = ref.watch(followingIdsProvider).asData?.value;
   if (repository == null || following == null || following.isEmpty) {
     return Stream.value(const <CommunityPost>[]);
   }
   return repository.watchFollowingFeed(following);
+});
+
+final followingFeedProvider = Provider<AsyncValue<List<CommunityPost>>>((ref) {
+  final hidden =
+      ref.watch(myHiddenPostsProvider).asData?.value ?? const <String>{};
+  final muted =
+      ref.watch(myMutedProfilesProvider).asData?.value ?? const <String>{};
+  final blocked =
+      ref.watch(myBlockedProfilesProvider).asData?.value ?? const <String>{};
+  return ref
+      .watch(rawFollowingFeedProvider)
+      .whenData(
+        (posts) => posts
+            .where(
+              (post) =>
+                  !hidden.contains(post.id) &&
+                  !muted.contains(post.authorId) &&
+                  !blocked.contains(post.authorId) &&
+                  (post.resharedById == null ||
+                      (!muted.contains(post.resharedById) &&
+                          !blocked.contains(post.resharedById))),
+            )
+            .toList(growable: false),
+      );
 });
 
 final authorPostsProvider = StreamProvider.family<List<CommunityPost>, String>((
@@ -152,6 +207,65 @@ final myBookmarksProvider = StreamProvider<Set<String>>((ref) {
   if (repository == null || uid == null) return Stream.value(const <String>{});
   return repository.watchMyBookmarks(uid);
 });
+
+final myRepostsProvider = StreamProvider<Set<String>>((ref) {
+  final repository = ref.watch(communityRepositoryProvider);
+  final uid = ref.watch(currentUidProvider);
+  if (repository == null || uid == null) return Stream.value(const <String>{});
+  return repository.watchMyReposts(uid);
+});
+
+final myPollVotesProvider = StreamProvider<Map<String, String>>((ref) {
+  final repository = ref.watch(communityRepositoryProvider);
+  final uid = ref.watch(currentUidProvider);
+  if (repository == null || uid == null) {
+    return Stream.value(const <String, String>{});
+  }
+  return repository.watchMyPollVotes(uid);
+});
+
+final myHiddenPostsProvider = StreamProvider<Set<String>>((ref) {
+  final repository = ref.watch(communityRepositoryProvider);
+  final uid = ref.watch(currentUidProvider);
+  if (repository == null || uid == null) return Stream.value(const <String>{});
+  return repository.watchMyHiddenPosts(uid);
+});
+
+final myMutedProfilesProvider = StreamProvider<Set<String>>((ref) {
+  final repository = ref.watch(communityRepositoryProvider);
+  final uid = ref.watch(currentUidProvider);
+  if (repository == null || uid == null) return Stream.value(const <String>{});
+  return repository.watchMyMutes(uid);
+});
+
+final myBlockedProfilesProvider = StreamProvider<Set<String>>((ref) {
+  final repository = ref.watch(communityRepositoryProvider);
+  final uid = ref.watch(currentUidProvider);
+  if (repository == null || uid == null) return Stream.value(const <String>{});
+  return repository.watchMyBlocks(uid);
+});
+
+enum CommunityEngagementKind { views, appreciations, pollVotes }
+
+typedef CommunityEngagementRequest = ({
+  String postId,
+  CommunityEngagementKind kind,
+});
+
+final postEngagementProfilesProvider = FutureProvider.autoDispose
+    .family<List<CommunityProfile>, CommunityEngagementRequest>((
+      ref,
+      request,
+    ) async {
+      final repository = ref.watch(communityRepositoryProvider);
+      if (repository == null) return const <CommunityProfile>[];
+      final ids = request.kind == CommunityEngagementKind.views
+          ? await repository.viewerIds(request.postId)
+          : request.kind == CommunityEngagementKind.appreciations
+          ? await repository.likerIds(request.postId)
+          : await repository.pollVoterIds(request.postId);
+      return repository.profilesByIds(ids);
+    });
 
 final savedPostsProvider = FutureProvider<List<CommunityPost>>((ref) async {
   final repository = ref.watch(communityRepositoryProvider);

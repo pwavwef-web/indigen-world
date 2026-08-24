@@ -36,8 +36,14 @@ dependencies:
   intl: ^0.20.3
   json_annotation: ^4.12.0
   package_info_plus: ^9.0.0
+  path_provider: ^2.1.5
+  record: ^6.2.1
   shared_preferences: ^2.5.5
+  share_plus: ^10.1.4
+  url_launcher: ^6.3.2
+  just_audio: ^0.9.46
   video_player: ^2.9.2
+  visibility_detector: ^0.4.0+2
 
 dev_dependencies:
   integration_test:

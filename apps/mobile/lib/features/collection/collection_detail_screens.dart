@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/domain/dictionary_entry.dart';
 import 'package:indigen_world_mobile/features/collection/collection_data.dart';
+import 'package:indigen_world_mobile/features/collection/widgets/collection_card_surface.dart';
+import 'package:indigen_world_mobile/features/community/widgets/community_avatar.dart';
 import 'package:indigen_world_mobile/features/contribute/contribute_screen.dart';
 import 'package:indigen_world_mobile/features/dictionary/entry_detail_screen.dart';
 import 'package:indigen_world_mobile/features/explore/published_content.dart';
@@ -239,61 +241,57 @@ class _DictionaryCard extends StatelessWidget {
   final DictionaryEntry entry;
 
   @override
-  Widget build(BuildContext context) => Card(
-    child: InkWell(
-      borderRadius: BorderRadius.circular(20),
-      onTap: () => Navigator.of(context).push(
-        MaterialPageRoute<void>(
-          builder: (context) =>
-              EntryDetailScreen(entryId: entry.id, entry: entry),
-        ),
+  Widget build(BuildContext context) => CollectionCardSurface(
+    semanticLabel: '${entry.headword}, ${entry.translation}',
+    onTap: () => Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (context) =>
+            EntryDetailScreen(entryId: entry.id, entry: entry),
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(17),
-        child: Row(
-          children: [
-            Container(
-              width: 50,
-              height: 50,
-              decoration: BoxDecoration(
-                color: BrandColors.heritageGreen.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: const Icon(
-                Icons.translate_rounded,
-                color: BrandColors.heritageGreen,
-              ),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    entry.headword,
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    entry.translation,
-                    style: const TextStyle(color: BrandColors.mutedInk),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    '${entry.partOfSpeech} · ${entry.dialect}',
-                    style: const TextStyle(
-                      color: BrandColors.terracotta,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const Icon(Icons.chevron_right_rounded),
-          ],
+    ),
+    padding: const EdgeInsets.all(16),
+    child: Row(
+      children: [
+        Container(
+          width: 50,
+          height: 50,
+          decoration: BoxDecoration(
+            color: BrandColors.heritageGreen.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: const Icon(
+            Icons.translate_rounded,
+            color: BrandColors.heritageGreen,
+          ),
         ),
-      ),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                entry.headword,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 3),
+              Text(
+                entry.translation,
+                style: const TextStyle(color: BrandColors.mutedInk),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                '${entry.partOfSpeech} · ${entry.dialect}',
+                style: const TextStyle(
+                  color: BrandColors.terracotta,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const Icon(Icons.chevron_right_rounded),
+      ],
     ),
   );
 }
@@ -305,81 +303,168 @@ class _PublishedCollectionCard extends StatelessWidget {
   final CollectionKind kind;
 
   @override
-  Widget build(BuildContext context) => Card(
-    clipBehavior: Clip.antiAlias,
-    child: InkWell(
-      onTap: () => Navigator.of(context).push(
-        MaterialPageRoute<void>(
-          builder: (context) =>
-              CollectionItemDetailScreen(item: item, kind: kind),
-        ),
+  Widget build(BuildContext context) => CollectionCardSurface(
+    semanticLabel: '${item.title} by ${item.creatorName}',
+    onTap: () => Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (context) =>
+            CollectionItemDetailScreen(item: item, kind: kind),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          AspectRatio(
-            aspectRatio: 16 / 8,
-            child: item.posterUrl == null
-                ? _MediaFallback(kind: kind)
-                : CachedNetworkImage(
-                    imageUrl: item.posterUrl!,
-                    fit: BoxFit.cover,
-                    placeholder: (_, _) => _MediaFallback(kind: kind),
-                    errorWidget: (_, _, _) => _MediaFallback(kind: kind),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        AspectRatio(
+          aspectRatio: 4 / 3,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              item.posterUrl == null
+                  ? _MediaFallback(kind: kind)
+                  : CachedNetworkImage(
+                      imageUrl: item.posterUrl!,
+                      fit: BoxFit.cover,
+                      placeholder: (_, _) => _MediaFallback(kind: kind),
+                      errorWidget: (_, _, _) => _MediaFallback(kind: kind),
+                    ),
+              Positioned(
+                top: 10,
+                right: 10,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 9,
+                    vertical: 5,
                   ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(17),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  decoration: BoxDecoration(
+                    color: BrandColors.heritageGreen.withValues(alpha: 0.9),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
+                      Icon(
+                        kind == CollectionKind.literature
+                            ? Icons.menu_book_rounded
+                            : Icons.play_arrow_rounded,
+                        color: BrandColors.kenteGold,
+                        size: 14,
+                      ),
+                      const SizedBox(width: 4),
                       Text(
-                        item.category.isEmpty
-                            ? kind.label.toUpperCase()
-                            : item.category.toUpperCase(),
+                        (item.category.isEmpty ? kind.label : item.category)
+                            .toUpperCase(),
                         style: const TextStyle(
-                          color: BrandColors.terracotta,
+                          color: Colors.white,
                           fontSize: 9,
-                          letterSpacing: 1,
                           fontWeight: FontWeight.w900,
+                          letterSpacing: 0.5,
                         ),
-                      ),
-                      const SizedBox(height: 5),
-                      Text(
-                        item.title,
-                        style: Theme.of(context).textTheme.titleLarge,
-                      ),
-                      const SizedBox(height: 5),
-                      Text(
-                        item.description.isEmpty
-                            ? 'Published by ${item.creatorName}'
-                            : item.description,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(color: BrandColors.mutedInk),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(width: 10),
-                Icon(
-                  kind == CollectionKind.literature
-                      ? Icons.arrow_forward_rounded
-                      : Icons.play_circle_fill_rounded,
-                  color: BrandColors.heritageGreen,
+              ),
+              Positioned(
+                left: 10,
+                bottom: 10,
+                child: CommunityAvatar(
+                  initials: _creatorInitials,
+                  imageUrl: item.creatorAvatarUrl,
                   size: 34,
+                  ringed: true,
+                  ringColor: Colors.white,
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
-      ),
+        ),
+        Padding(
+          padding: const EdgeInsets.all(17),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'BY ${item.creatorName.toUpperCase()}',
+                      style: const TextStyle(
+                        color: BrandColors.terracotta,
+                        fontSize: 9,
+                        letterSpacing: 1,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      item.title,
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                    const SizedBox(height: 9),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.public_rounded,
+                          size: 14,
+                          color: BrandColors.mutedInk,
+                        ),
+                        const SizedBox(width: 5),
+                        Expanded(
+                          child: Text(
+                            [
+                              if (item.language.isNotEmpty) item.language,
+                              if (item.dialect.isNotEmpty) item.dialect,
+                              if (item.publishedAt != null) 'Published',
+                            ].join(' · '),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: BrandColors.mutedInk,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      item.description.isEmpty
+                          ? 'Published by ${item.creatorName}'
+                          : item.description,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(color: BrandColors.mutedInk),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 10),
+              Icon(
+                kind == CollectionKind.literature
+                    ? Icons.arrow_forward_rounded
+                    : Icons.play_circle_fill_rounded,
+                color: BrandColors.heritageGreen,
+                size: 34,
+              ),
+            ],
+          ),
+        ),
+      ],
     ),
   );
+
+  String get _creatorInitials {
+    final parts = item.creatorName
+        .trim()
+        .split(RegExp(r'\s+'))
+        .where((part) => part.isNotEmpty)
+        .toList(growable: false);
+    if (parts.isEmpty) return 'IW';
+    if (parts.length == 1) return parts.first.substring(0, 1).toUpperCase();
+    return '${parts.first[0]}${parts.last[0]}'.toUpperCase();
+  }
 }
 
 class CollectionItemDetailScreen extends StatelessWidget {
@@ -667,17 +752,15 @@ class _DetailBlock extends StatelessWidget {
   final String body;
 
   @override
-  Widget build(BuildContext context) => Card(
-    child: Padding(
-      padding: const EdgeInsets.all(18),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(title, style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 8),
-          SelectableText(body, style: const TextStyle(height: 1.5)),
-        ],
-      ),
+  Widget build(BuildContext context) => CollectionCardSurface(
+    padding: const EdgeInsets.all(18),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(title, style: Theme.of(context).textTheme.titleMedium),
+        const SizedBox(height: 8),
+        SelectableText(body, style: const TextStyle(height: 1.5)),
+      ],
     ),
   );
 }
