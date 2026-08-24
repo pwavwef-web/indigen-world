@@ -34,23 +34,20 @@ export function SubmissionsPage() {
   return (
     <div className="page">
       <header className="page__head">
-        <h1>Submissions</h1>
-        {openCampaign ? (
-          <Link to={`/studio/submissions/new?campaign=${openCampaign.id}`} className="button button--primary button--small">New submission</Link>
-        ) : null}
+        <h1>Your work</h1>
+        <div className="page__head-actions">
+          {openCampaign ? (
+            <Link to={`/studio/submissions/new?campaign=${openCampaign.id}`} className="button button--ghost-dark button--small">Enter campaign</Link>
+          ) : null}
+          <Link to="/studio/submissions/new" className="button button--primary button--small">New post</Link>
+        </div>
       </header>
 
-      {!openCampaign && subs.length === 0 ? (
+      {subs.length === 0 ? (
         <EmptyState
-          title="Submissions aren’t open yet"
-          body="When a campaign opens, you’ll be able to create and upload submissions here."
-          action={<Link to="/studio/opportunities" className="button button--ghost-dark">View opportunities</Link>}
-        />
-      ) : subs.length === 0 ? (
-        <EmptyState
-          title="No submissions yet"
-          body="Start your first entry for the open campaign."
-          action={<Link to={`/studio/submissions/new?campaign=${openCampaign?.id}`} className="button button--primary">Create submission</Link>}
+          title="Nothing published yet"
+          body="Post a video, a photo story, a recording or a piece of writing and it goes straight to the Explore feed — no queue, no approval. Campaigns are the exception: those are reviewed."
+          action={<Link to="/studio/submissions/new" className="button button--primary">Create your first post</Link>}
         />
       ) : (
         <table className="table">

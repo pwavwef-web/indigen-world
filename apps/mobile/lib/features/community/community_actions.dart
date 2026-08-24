@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
+import 'package:indigen_world_mobile/core/connectivity.dart';
 import 'package:indigen_world_mobile/features/auth/sign_in_sheet.dart';
+import 'package:indigen_world_mobile/features/community/community_profile_screen.dart';
 import 'package:indigen_world_mobile/features/community/community_setup_screen.dart';
 import 'package:indigen_world_mobile/features/community/compose_post_screen.dart';
 import 'package:indigen_world_mobile/features/community/data/community_models.dart';
@@ -24,9 +26,13 @@ class CommunityActions {
   Future<CommunityProfile?> requireProfile(BuildContext context) async {
     final repository = ref.read(communityRepositoryProvider);
     if (repository == null) {
+      // Say which of the two things is actually wrong. Telling somebody on full
+      // signal that they are offline gives them nothing to act on.
       showCommunityMessage(
         context,
-        'The community needs a connection. Try again when you are online.',
+        ref.read(connectionBlockProvider)?.message ??
+            'The community is not available right now. Please try again '
+                'shortly.',
       );
       return null;
     }
@@ -121,14 +127,43 @@ class CommunityActions {
     return published ?? false;
   }
 
-  /// Opens the composer for a new top-level post. Returns `true` when published.
-  Future<bool> compose(BuildContext context) async {
+  /// Opens the composer for a new top-level post, optionally pre-filled.
+  /// Returns `true` when published.
+  Future<bool> compose(BuildContext context, {String initialText = ''}) async {
     final profile = await requireProfile(context);
     if (profile == null || !context.mounted) return false;
     final published = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(builder: (context) => const ComposePostScreen()),
+      MaterialPageRoute(
+        builder: (context) => ComposePostScreen(initialText: initialText),
+      ),
     );
     return published ?? false;
+  }
+
+  /// Opens the member behind a mentioned `@handle`.
+  ///
+  /// Reading, unlike posting, needs no account — a guest who taps a mention
+  /// should land on that member's public profile, not on a sign-in prompt.
+  Future<void> openHandle(BuildContext context, String handle) async {
+    final repository = ref.read(communityRepositoryProvider);
+    if (repository == null) return;
+    try {
+      final profile = await repository.getProfileByUsername(handle);
+      if (!context.mounted) return;
+      if (profile == null) {
+        showCommunityMessage(context, 'No member goes by @$handle.');
+        return;
+      }
+      await Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (context) => CommunityProfileScreen(uid: profile.uid),
+        ),
+      );
+    } on Object {
+      if (context.mounted) {
+        showCommunityMessage(context, 'Could not open @$handle.');
+      }
+    }
   }
 
   /// The overflow sheet: save, report, and delete for your own posts.

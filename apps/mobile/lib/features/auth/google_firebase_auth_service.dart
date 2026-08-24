@@ -1,62 +1,38 @@
 import 'dart:async';
 
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:indigen_world_mobile/core/app_config.dart';
 import 'package:indigen_world_mobile/core/firebase_bootstrap.dart';
+import 'package:indigen_world_mobile/features/auth/auth_failure.dart';
+
+export 'package:indigen_world_mobile/features/auth/auth_failure.dart';
 
 const googleOAuthServerClientId =
     '111428711822-9gtghardubtkrdpajum11g6muntgg2v1.apps.googleusercontent.com';
 
-final firebaseAuthProvider = Provider<FirebaseAuth?>((ref) {
-  if (Firebase.apps.isEmpty) return null;
-  return FirebaseAuth.instance;
-});
-
-final authStateProvider = StreamProvider<User?>((ref) {
-  final auth = ref.watch(firebaseAuthProvider);
-  return auth?.authStateChanges() ?? Stream<User?>.value(null);
-});
-
-final googleFirebaseAuthServiceProvider = Provider<GoogleFirebaseAuthService>((
-  ref,
-) {
-  return GoogleFirebaseAuthService(
-    firebaseAuth: ref.watch(firebaseAuthProvider),
-  );
-});
-
-enum AuthFailureKind {
-  cancelled,
-  configuration,
-  network,
-  accountConflict,
-  unavailable,
-  unknown,
-}
-
-class AuthFailure implements Exception {
-  const AuthFailure(this.kind, this.message);
-
-  final AuthFailureKind kind;
-  final String message;
-
-  bool get wasCancelled => kind == AuthFailureKind.cancelled;
-
-  @override
-  String toString() => message;
-}
-
+/// Google Sign-In, bridged onto Firebase Auth.
+///
+/// `google_sign_in` 7.x requires [GoogleSignIn.initialize] before any
+/// `authenticate()` call, and needs the OAuth *server* client id to mint an id
+/// token Firebase will accept. Skipping either step fails at the platform
+/// channel with an opaque error that reads to a member as "something went
+/// wrong / you seem offline", so initialisation is centralised here and every
+/// Google sign-in in the app goes through this class.
 class GoogleFirebaseAuthService {
   GoogleFirebaseAuthService({required this.firebaseAuth});
 
   final FirebaseAuth? firebaseAuth;
   final GoogleSignIn _googleSignIn = GoogleSignIn.instance;
 
+  /// `initialize()` is process-wide and must run exactly once; a failed attempt
+  /// is cleared so the next sign-in retries rather than reusing a broken future
+  /// for the rest of the session.
   static Future<void>? _googleInitialization;
+
+  @visibleForTesting
+  static void resetInitializationForTesting() => _googleInitialization = null;
 
   Future<UserCredential> signIn() async {
     final auth = firebaseAuth;
@@ -83,34 +59,27 @@ class GoogleFirebaseAuthService {
     } on GoogleSignInException catch (error) {
       throw _googleFailure(error);
     } on FirebaseAuthException catch (error) {
-      throw _firebaseFailure(error);
+      throw firebaseAuthFailure(error);
     }
   }
 
   Future<void> signOut() async {
     final auth = firebaseAuth;
+    // No Firebase means no session to end, on either side.
     if (auth == null) return;
 
-    Object? firstError;
-    StackTrace? firstStackTrace;
-    try {
-      await auth.signOut();
-    } on Object catch (error, stackTrace) {
-      firstError = error;
-      firstStackTrace = stackTrace;
-    }
-
+    // Clearing the Google session too is what makes the next Google sign-in
+    // re-prompt for an account rather than silently reusing the last one. It is
+    // a courtesy, though, not the operation: if it fails the member is still
+    // signed out, so it must never turn a successful sign-out into an error.
     try {
       await _ensureGoogleInitialized();
       await _googleSignIn.signOut();
-    } on Object catch (error, stackTrace) {
-      firstError ??= error;
-      firstStackTrace ??= stackTrace;
+    } on Object catch (error) {
+      debugPrint('Google session could not be cleared (continuing): $error');
     }
 
-    if (firstError != null) {
-      Error.throwWithStackTrace(firstError, firstStackTrace!);
-    }
+    await auth.signOut();
   }
 
   Future<void> _ensureGoogleInitialized() {
@@ -135,10 +104,20 @@ class GoogleFirebaseAuthService {
       );
     }
 
-    return _googleInitialization ??= _googleSignIn.initialize(
-      clientId: iosClientId,
-      serverClientId: googleOAuthServerClientId,
-    );
+    return _googleInitialization ??= _initializeOnce(iosClientId);
+  }
+
+  Future<void> _initializeOnce(String? iosClientId) async {
+    try {
+      await _googleSignIn.initialize(
+        clientId: iosClientId,
+        serverClientId: googleOAuthServerClientId,
+      );
+    } on Object {
+      // Let the next attempt re-initialise instead of caching the failure.
+      _googleInitialization = null;
+      rethrow;
+    }
   }
 
   AuthFailure _googleFailure(GoogleSignInException error) {
@@ -167,33 +146,54 @@ class GoogleFirebaseAuthService {
       ),
     };
   }
+}
 
-  AuthFailure _firebaseFailure(FirebaseAuthException error) {
-    return switch (error.code) {
-      'operation-not-allowed' => const AuthFailure(
-        AuthFailureKind.configuration,
-        'Google Sign-In is not enabled for this Firebase project.',
-      ),
-      'account-exists-with-different-credential' => const AuthFailure(
-        AuthFailureKind.accountConflict,
-        'An account already exists with this email using another sign-in method.',
-      ),
-      'network-request-failed' => const AuthFailure(
-        AuthFailureKind.network,
-        'No connection to Firebase. Check your internet connection and try again.',
-      ),
-      'invalid-credential' => const AuthFailure(
-        AuthFailureKind.configuration,
-        'Firebase could not verify the Google account. Please try again.',
+/// Maps a [FirebaseAuthException] to the sentence a member should read.
+///
+/// Shared by every sign-in path — email, registration, password reset and
+/// Google — so the same code never produces two different explanations.
+AuthFailure firebaseAuthFailure(FirebaseAuthException error) =>
+    switch (error.code) {
+      'invalid-email' => const AuthFailure(
+        AuthFailureKind.credentials,
+        'That email address does not look right.',
       ),
       'user-disabled' => const AuthFailure(
         AuthFailureKind.unavailable,
-        'This account has been disabled. Contact support for help.',
+        'This account has been disabled. Contact the project team for help.',
+      ),
+      'user-not-found' ||
+      'wrong-password' ||
+      'invalid-credential' => const AuthFailure(
+        AuthFailureKind.credentials,
+        'Email or password is incorrect.',
+      ),
+      'email-already-in-use' => const AuthFailure(
+        AuthFailureKind.accountConflict,
+        'An account already exists for that email. Try signing in.',
+      ),
+      'account-exists-with-different-credential' => const AuthFailure(
+        AuthFailureKind.accountConflict,
+        'This email is already linked to a different sign-in method.',
+      ),
+      'weak-password' => const AuthFailure(
+        AuthFailureKind.credentials,
+        'Choose a stronger password (at least 6 characters).',
+      ),
+      'operation-not-allowed' => const AuthFailure(
+        AuthFailureKind.configuration,
+        'This sign-in method is not enabled yet. Please try another.',
+      ),
+      'network-request-failed' => const AuthFailure(
+        AuthFailureKind.network,
+        'Network error. Check your connection and try again.',
+      ),
+      'too-many-requests' => const AuthFailure(
+        AuthFailureKind.rateLimited,
+        'Too many attempts. Please wait a moment and try again.',
       ),
       _ => AuthFailure(
         AuthFailureKind.unknown,
-        error.message ?? 'Sign-in failed. Please try again.',
+        error.message ?? 'Authentication failed. Please try again.',
       ),
     };
-  }
-}

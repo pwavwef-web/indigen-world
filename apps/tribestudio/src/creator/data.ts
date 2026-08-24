@@ -90,6 +90,52 @@ export async function fetchMyMembership(uid: string): Promise<CreatorMembership 
   return snap.exists() ? (snap.data() as CreatorMembership) : null;
 }
 
+/**
+ * Makes sure a signed-in account has a creator profile, creating a minimal one
+ * if it does not.
+ *
+ * Open publishing means somebody can arrive at the studio and post without ever
+ * having applied to anything, but a submission still has to name a creator and
+ * a published piece still has to carry an attribution. This mints exactly that:
+ * a public display name and nothing else. Status stays `waitlisted` because
+ * that is what the security rules allow a client to self-assign — approval is
+ * still a decision only staff can make, and it still gates campaigns.
+ *
+ * Returns the existing profile untouched when there already is one, so this is
+ * safe to call on every studio entry.
+ */
+export async function ensureCreatorProfile(
+  uid: string,
+  displayName: string,
+  avatarUrl: string | null,
+): Promise<CreatorProfile | null> {
+  const existing = await fetchMyProfile(uid);
+  if (existing) return existing;
+
+  const now = new Date().toISOString();
+  const profile: CreatorProfile = {
+    id: uid,
+    authUid: uid,
+    public: {
+      displayName: displayName.trim() || 'Indigen World creator',
+      isPublic: true,
+      avatarUrl,
+    },
+    status: 'waitlisted',
+    schemaVersion: 1,
+    lifecycle: { createdAt: now, updatedAt: now, version: 1 },
+  };
+
+  try {
+    await setDoc(doc(db, 'creatorProfiles', uid), profile);
+    return profile;
+  } catch {
+    // A losing race against another tab, or a rules rejection. Either way the
+    // studio still opens; the submission form reports anything that blocks it.
+    return fetchMyProfile(uid);
+  }
+}
+
 /** Update editable profile fields; server-managed fields (status, reference, consentRefs) are untouched. */
 export async function updateMyProfile(
   uid: string,

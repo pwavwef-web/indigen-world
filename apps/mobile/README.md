@@ -119,17 +119,54 @@ Before testing against the shared Firebase project:
 3. Download fresh flavor configs after changing SHA fingerprints. Keep them in `android/app/src/development`, `android/app/src/staging`, and `android/app/src/production`; these native files are intentionally ignored by Git.
 4. Keep each iOS flavor's OAuth client ID in its generated `firebase_options_<environment>.dart`. `ios/Runner/Info.plist` already contains the callback URL schemes for all three registered iOS apps.
 
-Development uses the Firebase Auth emulator by default. To perform a real Google/Firebase cloud acceptance test, run:
+Every flavour talks to the real Firebase project unless you opt into the
+emulator suite. That default used to be the other way round, which silently
+pointed every debug build at `10.0.2.2` / `localhost` — a host no physical
+handset can reach — so the app looked permanently offline on a real device: no
+sign-in, no posting, empty feeds. To run against the emulators, ask for them:
 
 ```powershell
-flutter run --flavor development --dart-define=APP_ENV=development --dart-define=USE_FIREBASE_EMULATORS=false
+flutter run --flavor development --dart-define=APP_ENV=development --dart-define=USE_FIREBASE_EMULATORS=true
 ```
 
 If Android reports a client configuration error, confirm the running flavor's package ID, the signing key's SHA-1/SHA-256 registrations, and the web OAuth client in that flavor's `google-services.json`. If Firebase reports `operation-not-allowed`, enable the Google provider in Firebase Authentication.
 
 ### Explore feed (published TribeStudio content)
 
-The Explore reels stream the guest-readable `publishedContent` collection (`publicationStatus == 'published'`, newest first), which is written only by the trusted publication workflow in `services/functions`. On a `PUBLISH` decision that workflow now copies the approved file into the world-readable `published-media/{contentId}/` Storage path and records a stable `mediaUrl`/`mediaType`, so real videos and images play in the app. Until content is published, the feed shows a clearly-labelled curated preview.
+The Explore reels stream the guest-readable `publishedContent` collection (`publicationStatus == 'published'`, newest first), which is written only by the trusted backend in `services/functions`. Two routes write it:
+
+| Route | Who | Review | Function |
+| --- | --- | --- | --- |
+| Open post (no campaign) | any signed-in, non-suspended account | none — publishes on submit | `onSubmissionWritten` |
+| Campaign entry | approved creators only | reviewer decision required | `decideSubmission` |
+
+Both copy the approved file into the world-readable `published-media/{contentId}/` Storage path and record a stable `mediaUrl`/`mediaType`, so real videos and images play in the app; an open post additionally carries `publicationRoute: 'open'` so moderation and analytics can tell the two apart. Verification and approval are a *campaign* gate, not a publishing gate — the everyday case has to be as immediate as the language it is trying to keep alive. Moderation for open posts is reactive: reports and takedowns.
+
+Until anything is published, the feed shows a curated preview, labelled `PREVIEW` in the header so nobody mistakes it for community work. Saves and appreciations on a reel are stored on the device (`SavedEntryRecords`, under `reel:` / `reel-appreciated:` keys), so they survive a restart; there is no shared public tally yet, and the UI does not pretend otherwise.
+
+### Notifications
+
+`communityNotifications/{id}` is the member's alert centre, reachable from the bell on the Community tab and from **Settings → Notifications**. Rows are written **only** by Cloud Functions triggers — a like, a reply, a mention, a follow, a publication — and a client may do exactly one thing to its own rows: set `read`. Nothing in the app can forge an alert.
+
+| Trigger | Fires on | Notifies |
+| --- | --- | --- |
+| `onCommunityLikeCreated` | `communityLikes/{id}` | the post's author |
+| `onCommunityPostCreated` | `communityPosts/{id}` | the parent author (replies) and any `@handle` mentioned |
+| `onCommunityFollowCreated` | `communityFollows/{id}` | the member followed |
+| `onSubmissionWritten` | first publication of an open post | the creator |
+| `onCommunityNotificationCreated` | any new alert | pushes it to that member's devices |
+
+Push registrations live in `communityDevices/{fcmToken}` — keyed by the token so a refresh replaces the row rather than accumulating dead handsets, unreadable by anyone but its owner, and dropped on sign-out. Dead tokens are pruned as FCM reports them. Push is a convenience layer only: a device that refuses notifications, or has no Play Services, still gets the full centre from Firestore.
+
+### Kawuri
+
+The floating button on the **Learn** tab opens Kawuri, the in-app guide. It calls the `kawuriChat` callable, which runs on **Vertex AI** authenticated as the function's own service account — there is no API key anywhere in this repo or in Secret Manager. The project needs `aiplatform.googleapis.com` enabled and the runtime service account able to call it (`roles/aiplatform.user`).
+
+Until that is true the callable returns `{ configured: false }` rather than an error, and the app falls back to an on-device guide (`kawuri_offline_guide.dart`) — so a fresh checkout, the emulator suite and an internal-testing build all behave sensibly with no configuration at all. Fallback answers are labelled in the UI as coming from the phone.
+
+The system prompt, the rate limit and the model choice all stay server-side, which is the reason Kawuri is a callable rather than an on-device SDK call: a prompt shipped in the app binary can be read out of it, and a client-side model call cannot be rate-limited per member.
+
+Kawuri will not invent Kasem, in either mode. Language in this project is confirmed by appointed speakers before it counts as guidance, and a confident guess is worse than no answer, so a translation question is answered by pointing at the dictionary, the Community tab, or a contribution. Conversations are kept in shared preferences on the device, never uploaded.
 
 ### Community feed
 
@@ -200,15 +237,13 @@ Android output: `build/app/outputs/bundle/productionRelease/app-production-relea
 
 ## Emulator integration tests
 
-`development` uses Auth, Firestore, Functions, and Storage emulators by default (`10.0.2.2` on Android; `localhost` elsewhere). The root `firebase.json` owns shared backend paths and ports. With JDK 21 active and an Android emulator already running, execute this from the repository root:
+Pass `--dart-define=USE_FIREBASE_EMULATORS=true` to route Auth, Firestore, Functions and Storage at the local suite (`10.0.2.2` on Android; `localhost` elsewhere). The root `firebase.json` owns shared backend paths and ports. With JDK 21 active and an Android emulator already running, execute this from the repository root:
 
 ```powershell
-firebase emulators:exec --config firebase.json --project project-kassena-7e026 --only auth,firestore,storage "cd apps/mobile && flutter test integration_test/firebase_emulator_test.dart -d emulator-5554 --flavor development --dart-define=APP_ENV=development"
+firebase emulators:exec --config firebase.json --project project-kassena-7e026 --only auth,firestore,storage "cd apps/mobile && flutter test integration_test/firebase_emulator_test.dart -d emulator-5554 --flavor development --dart-define=APP_ENV=development --dart-define=USE_FIREBASE_EMULATORS=true"
 ```
 
 Functions traffic is already routed to emulator port 5001. Add `functions` to `--only` when the backend-owned `services/functions` runtime is implemented.
-
-Set `--dart-define=USE_FIREBASE_EMULATORS=false` only when deliberately testing development against the shared cloud project.
 
 ## CI gates
 

@@ -259,27 +259,32 @@ export function DashboardPage() {
         </div>
       </section>
 
-      {!anyOpen ? (
-        <div className="prep-state">
-          <h2>You’re all set — we’ll tell you when it opens</h2>
-          <p>
-            Your creator profile is ready. We’ll announce when the Kasem Creator Challenge opens for
-            submissions. In the meantime, polish your profile and read the guidelines.
-          </p>
-          <div className="prep-state__actions">
-            <Link to="/studio/profile" className="button button--primary">Complete your profile</Link>
-            <Link to="/creators/guidelines" className="button button--ghost-dark">Read the guidelines</Link>
-          </div>
+      <div className="prep-state">
+        <h2>Post whenever you have something</h2>
+        <p>
+          Anything you publish here goes straight to the Explore feed in the Indigen
+          World app, credited to you. No waiting list, no approval queue. What we do
+          ask is that the work is yours to share and that anyone in it agreed to be
+          in it.
+        </p>
+        <div className="prep-state__actions">
+          <Link to="/studio/submissions/new" className="button button--primary">New post</Link>
+          <Link to="/creators/guidelines" className="button button--ghost-dark">Read the guidelines</Link>
         </div>
-      ) : (
+      </div>
+
+      {anyOpen ? (
         <section className="panel">
           <div className="panel__head">
-            <h2>Submissions are open</h2>
+            <h2>A campaign is open</h2>
             <Link to="/studio/opportunities" className="button button--primary button--small">View opportunities</Link>
           </div>
-          <p className="muted">One or more campaigns are accepting entries now.</p>
+          <p className="muted">
+            Campaigns carry rewards, so entries are reviewed before they publish and are
+            open to approved creators.
+          </p>
         </section>
-      )}
+      ) : null}
 
       <div className="cols">
         <section className="panel">

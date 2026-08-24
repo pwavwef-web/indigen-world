@@ -3,6 +3,13 @@
          every build type. Declared here so release builds do not depend on
          library manifest-merge for INTERNET. -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- connectivity_plus reads the active network to decide whether an action
+         can reach Indigen World; without this the plugin reports "none" on some
+         OEM builds and the app looks permanently offline. -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+    <!-- Android 13+ requires an explicit runtime grant before any notification
+         can be posted. Requested from the notifications centre. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <application
         android:allowBackup="false"
         android:label="@string/app_name"
@@ -29,12 +36,24 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+            <!-- Lets a tapped push wake the app with its payload attached, which
+                 is what FirebaseMessaging.onMessageOpenedApp reads. -->
+            <intent-filter>
+                <action android:name="FLUTTER_NOTIFICATION_CLICK"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+            </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+        <!-- Community alerts land in their own channel so a member can mute
+             them from system settings without losing everything else. Must
+             match the channel id the fan-out function sends. -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="indigen_community"/>
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and

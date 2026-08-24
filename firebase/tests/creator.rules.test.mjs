@@ -24,11 +24,19 @@ const rulesPath = join(dirname(fileURLToPath(import.meta.url)), '..', 'firestore
 const life = { createdAt: '2026-08-01T00:00:00Z', updatedAt: '2026-08-01T00:00:00Z', version: 1 };
 const membershipLife = { createdAt: '2026-08-01T00:00:00Z', updatedAt: '2026-08-01T00:00:00Z' };
 
-function submissionDoc(uid, { id, status }) {
+/**
+ * A submission fixture.
+ *
+ * `campaignId` decides which of the two publication routes it takes: a real
+ * campaign id means the reviewed, approved-creators-only path, while 'open'
+ * (the default the studio writes for an everyday post) means anyone signed in
+ * may create it and it publishes without review.
+ */
+function submissionDoc(uid, { id, status, campaignId = 'kasem-creator-challenge' }) {
   return {
     id,
     authUid: uid,
-    campaign: { collection: 'campaigns', id: 'kasem-creator-challenge' },
+    campaign: { collection: 'campaigns', id: campaignId },
     creator: { collection: 'creatorProfiles', id: uid },
     status,
     title: 'A submission',
@@ -198,14 +206,54 @@ test('a creator can create their own draft but not one that is already approved'
   await assertFails(setDoc(doc(db(creatorA), 'submissions/cheat'), submissionDoc('creatorA', { id: 'cheat', status: 'APPROVED' })));
 });
 
-test('a pending applicant cannot create private studio submissions', async () => {
+test('a pending applicant cannot enter a campaign', async () => {
+  // Campaigns carry rewards and eligibility, so they stay approved-only.
   const pending = env.authenticatedContext('creatorPending');
   await assertFails(setDoc(doc(db(pending), 'submissions/pending-draft'), submissionDoc('creatorPending', { id: 'pending-draft', status: 'DRAFT' })));
+});
+
+test('anyone signed in can create an open post, campaign or no campaign', async () => {
+  // Publishing to Explore is open: waiting for approval to say anything at all
+  // was throttling the whole point of the platform.
+  const pending = env.authenticatedContext('creatorPending');
+  await assertSucceeds(setDoc(
+    doc(db(pending), 'submissions/open-draft'),
+    submissionDoc('creatorPending', { id: 'open-draft', status: 'DRAFT', campaignId: 'open' }),
+  ));
+  await assertSucceeds(setDoc(
+    doc(db(pending), 'submissions/open-submitted'),
+    submissionDoc('creatorPending', { id: 'open-submitted', status: 'SUBMITTED', campaignId: 'open' }),
+  ));
+});
+
+test('an open post still cannot be self-approved or self-published', async () => {
+  // Opening the gate must not hand clients the moderation fields behind it.
+  const pending = env.authenticatedContext('creatorPending');
+  await assertFails(setDoc(
+    doc(db(pending), 'submissions/open-cheat'),
+    submissionDoc('creatorPending', { id: 'open-cheat', status: 'APPROVED', campaignId: 'open' }),
+  ));
+  const forged = submissionDoc('creatorPending', { id: 'open-forge', status: 'SUBMITTED', campaignId: 'open' });
+  forged.moderation.publishedContent = { collection: 'publishedContent', id: 'x' };
+  await assertFails(setDoc(doc(db(pending), 'submissions/open-forge'), forged));
+});
+
+test('an open post cannot be created on somebody else behalf', async () => {
+  const pending = env.authenticatedContext('creatorPending');
+  await assertFails(setDoc(
+    doc(db(pending), 'submissions/open-impersonate'),
+    submissionDoc('creatorA', { id: 'open-impersonate', status: 'DRAFT', campaignId: 'open' }),
+  ));
 });
 
 test('a suspended creator immediately loses submission write access', async () => {
   const suspended = env.authenticatedContext('creatorSuspended');
   await assertFails(setDoc(doc(db(suspended), 'submissions/suspended-draft'), submissionDoc('creatorSuspended', { id: 'suspended-draft', status: 'DRAFT' })));
+  // Including the open route: a moderation outcome has to hold everywhere.
+  await assertFails(setDoc(
+    doc(db(suspended), 'submissions/suspended-open'),
+    submissionDoc('creatorSuspended', { id: 'suspended-open', status: 'DRAFT', campaignId: 'open' }),
+  ));
 });
 
 test('a creator cannot create a submission owned by someone else', async () => {

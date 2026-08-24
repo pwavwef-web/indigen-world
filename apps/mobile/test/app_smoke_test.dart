@@ -35,12 +35,31 @@ void main() {
     expect(find.text('COMMUNITY PULSE'), findsOneWidget);
     expect(find.text('Make a Kasem post'), findsOneWidget);
 
+    // Community is the centre destination — the app opens on it, and it is the
+    // third of the five slots.
+    final railLabels = tester
+        .widget<FrostedNavBar>(find.byType(FrostedNavBar))
+        .items
+        .map((item) => item.label)
+        .toList();
+    expect(railLabels, [
+      'Explore',
+      'Learn',
+      'Community',
+      'Collection',
+      'Contribute',
+    ]);
+
     await tester.tap(find.text('Explore'));
     await tester.pump(const Duration(milliseconds: 400));
 
-    expect(find.text('For you'), findsWidgets);
+    // Nothing is published in a test, so the feed says so plainly rather than
+    // passing the curated preview off as community work.
+    expect(find.text('PREVIEW'), findsOneWidget);
     expect(find.text('Every rhythm remembers.'), findsOneWidget);
     expect(find.text('Explore'), findsOneWidget);
+    // Context, not a share button that cannot share anything yet.
+    expect(find.text('Context'), findsOneWidget);
 
     await tester.tap(find.text('Learn'));
     await tester.pump(const Duration(milliseconds: 400));
@@ -92,8 +111,8 @@ void main() {
 
     // The feed reads Firestore, which is unavailable in tests
     // (firebaseReadyProvider defaults to false), so it renders its empty state
-    // and composing tells the member a connection is needed rather than
-    // pretending to publish.
+    // and composing names the real obstacle rather than pretending to publish
+    // — or blaming a connection that is fine.
     expect(find.text('No posts yet'), findsOneWidget);
 
     await tester.tap(find.byKey(const Key('community-compose-bar')));
@@ -101,7 +120,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 400));
 
     expect(
-      find.textContaining('The community needs a connection'),
+      find.textContaining('Indigen World could not be reached'),
       findsOneWidget,
     );
 

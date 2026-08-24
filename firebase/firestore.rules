@@ -72,6 +72,16 @@ service cloud.firestore {
       return hasApprovedCreatorClaim(uid) || hasApprovedCreatorMembership(uid) || isStaff();
     }
 
+    // A submission belongs to a campaign only when it names a real one. The
+    // studio writes an empty (or 'open') campaign id for an everyday post, so
+    // both shapes have to read as "not a campaign".
+    function isCampaignSubmission(data) {
+      return data.get('campaign', null) != null
+        && data.campaign.get('id', '') is string
+        && data.campaign.get('id', '') != ''
+        && data.campaign.get('id', '') != 'open';
+    }
+
     function isBlockedCreator(uid) {
       return isOwner(uid)
         && (
@@ -408,28 +418,46 @@ service cloud.firestore {
       allow write: if false;
     }
 
-    // ---- Submissions: owner-managed drafts; moderation is server-only -------
-    // Owners create/edit their own drafts and (re)submit. Raw media lives in
-    // Storage and stays private until a server-side approval decision. Owners
-    // may never set moderation state, approve, schedule or publish.
+    // ---- Submissions: owner-managed; approval is a campaign-only gate -------
+    // Two routes, deliberately different:
+    //
+    //   * An everyday post carries no campaign. Any signed-in account that is
+    //     not suspended may create and edit it, and the onSubmissionWritten
+    //     trigger publishes it straight to Explore. No verification, no queue —
+    //     what is asked instead is that the creator holds the rights and has
+    //     consent, which they attest in the form.
+    //   * A campaign entry carries a real campaign id. Those come with rewards
+    //     and eligibility, so they stay restricted to approved creators and
+    //     keep the reviewed publication path.
+    //
+    // Either way the owner may never set moderation state, approve, schedule or
+    // publish: those fields are written only by the trusted backend.
     match /submissions/{submissionId} {
       allow read: if isStaff() || (
         isSignedIn() && resource.data.authUid == request.auth.uid
       );
       allow create: if isSignedIn()
-        && isApprovedCreator(request.auth.uid)
+        && !isBlockedCreator(request.auth.uid)
+        && (!isCampaignSubmission(request.resource.data) || isApprovedCreator(request.auth.uid))
         && request.resource.data.id == submissionId
         && request.resource.data.authUid == request.auth.uid
         && request.resource.data.creator.id == request.auth.uid
         && request.resource.data.status in ['DRAFT', 'SUBMITTED']
-        && request.resource.data.permissions.review == true
-        && request.resource.data.get('moderation.publishedContent', null) == null
+        // Nested lookup has to go one hop at a time: Map.get() takes a key,
+        // not a dotted path, so the single-string form silently matched
+        // nothing and let a client stamp its own publication reference on a
+        // brand-new submission.
+        && request.resource.data.get('moderation', {}).get('publishedContent', null) == null
         && lifecycleIsValid(request.resource.data);
       allow update: if isSignedIn()
-        && isApprovedCreator(request.auth.uid)
+        && !isBlockedCreator(request.auth.uid)
+        && (!isCampaignSubmission(request.resource.data) || isApprovedCreator(request.auth.uid))
         && resource.data.authUid == request.auth.uid
         && request.resource.data.authUid == resource.data.authUid
-        && resource.data.status in ['DRAFT', 'NEEDS_REVISION']
+        // An open post stays editable after it is live; a campaign entry is
+        // frozen the moment it is submitted for review.
+        && resource.data.status in ['DRAFT', 'NEEDS_REVISION', 'PUBLISHED']
+        && (resource.data.status != 'PUBLISHED' || !isCampaignSubmission(resource.data))
         && request.resource.data.status in ['DRAFT', 'SUBMITTED', 'RESUBMITTED', 'WITHDRAWN']
         // Moderation outcome fields are frozen to their prior values.
         && request.resource.data.get('moderation', {}) == resource.data.get('moderation', {})
@@ -665,6 +693,36 @@ service cloud.firestore {
         && communityOwnsEdge(followId, request.auth.uid, request.resource.data.followingId);
       allow update: if false;
       allow delete: if isSignedIn() && resource.data.followerId == request.auth.uid;
+    }
+
+    // ---- Community notifications: server-authored, owner reads and marks ----
+    // Every row is written by a Cloud Functions trigger in response to
+    // something that actually happened (a like, a reply, a follow, a mention, a
+    // publication). A client may never create one — an alert is a channel
+    // straight to somebody's lock screen, and forging one must be impossible —
+    // and may only ever flip `read` on its own rows.
+    match /communityNotifications/{notificationId} {
+      allow read: if isSignedIn() && resource.data.recipientId == request.auth.uid;
+      allow create: if false;
+      allow update: if isSignedIn()
+        && resource.data.recipientId == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read'])
+        && request.resource.data.read is bool;
+      allow delete: if false;
+    }
+
+    // ---- Push registrations: one row per device, owned by one account -------
+    // Keyed by the FCM token itself, so a token refresh replaces the old row
+    // rather than accumulating dead devices, and a token can only ever be
+    // claimed by the account currently holding it. Nobody may read the
+    // collection: knowing another member's tokens is knowing how to reach their
+    // handset.
+    match /communityDevices/{token} {
+      allow read: if isSignedIn() && resource.data.uid == request.auth.uid;
+      allow create, update: if isSignedIn()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.token == token;
+      allow delete: if isSignedIn() && resource.data.uid == request.auth.uid;
     }
 
     match /communityReports/{reportId} {

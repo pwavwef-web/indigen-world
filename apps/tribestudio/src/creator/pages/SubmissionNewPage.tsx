@@ -34,11 +34,25 @@ function mediaTypeFor(mime: string): MediaType {
   return 'document';
 }
 
+/**
+ * Campaign id stored on an everyday post.
+ *
+ * Submissions have always carried a campaign reference, so open posts need
+ * *something* there. A sentinel keeps the document shape unchanged while the
+ * security rules and the publication trigger both read it as "not a campaign" —
+ * which is what routes it past review and straight to Explore.
+ */
+const OPEN_CAMPAIGN_ID = 'open';
+
 export function SubmissionNewPage() {
   const { user } = useAuth();
   const { config, whatsappUrl } = useConfig();
   const { navigate } = useRoute();
-  const campaignId = useQueryParam('campaign') ?? '';
+  const requestedCampaign = useQueryParam('campaign') ?? '';
+  // No campaign in the URL means this is an open post: anyone may publish it,
+  // it needs no verification, and nobody reviews it before it goes live.
+  const isOpenPost = requestedCampaign.trim() === '';
+  const campaignId = isOpenPost ? OPEN_CAMPAIGN_ID : requestedCampaign;
   // Lazy-init so a fresh submission id is generated once, not on every render.
   const submissionIdRef = useRef<string>('');
   if (!submissionIdRef.current) submissionIdRef.current = newSubmissionId();
@@ -78,7 +92,9 @@ export function SubmissionNewPage() {
   const [sourceInfo, setSourceInfo] = useState('');
   const [media, setMedia] = useState<Submission['media']>(undefined);
   const [permReview, setPermReview] = useState(true);
-  const [permPublish, setPermPublish] = useState(false);
+  // Publishing is the whole point of an open post, so it starts granted there
+  // and stays an explicit opt-in for campaign entries.
+  const [permPublish, setPermPublish] = useState(requestedCampaign.trim() === '');
   const [permPromo, setPermPromo] = useState(false);
   const [permAi, setPermAi] = useState(false);
   const [attRights, setAttRights] = useState(false);
@@ -87,7 +103,7 @@ export function SubmissionNewPage() {
   const [attCopyright, setAttCopyright] = useState(false);
 
   useEffect(() => {
-    if (!campaignId) { setLoading(false); return; }
+    if (isOpenPost) { setLoading(false); return; }
     let active = true;
     void fetchCampaign(campaignId)
       .then((c) => {
@@ -102,12 +118,22 @@ export function SubmissionNewPage() {
         if (active) { setCampaign(null); setLoading(false); }
       });
     return () => { active = false; };
-  }, [campaignId]);
+  }, [campaignId, isOpenPost]);
 
   const mediaLimits = config?.mediaRestrictions ?? campaign?.fileRequirements;
+  // An open post must never be blocked by a missing platform configuration:
+  // the category field is required to submit, so an empty list would make
+  // posting impossible on a project whose config document has not been seeded.
+  const FALLBACK_CATEGORIES = [
+    'storytelling', 'folklore', 'proverb', 'song', 'oral-history',
+    'language-lesson', 'craft', 'festival', 'everyday-life', 'other',
+  ];
+  const configuredCategories = (config?.contentCategories ?? []).map((c) => c.slug);
   const categories = campaign?.categories && campaign.categories.length > 0
     ? campaign.categories
-    : (config?.contentCategories ?? []).map((c) => c.slug);
+    : configuredCategories.length > 0
+      ? configuredCategories
+      : FALLBACK_CATEGORIES;
   const dialects = config?.dialects ?? [];
 
   const draftInput = useMemo<SubmissionDraftInput>(() => ({
@@ -141,12 +167,13 @@ export function SubmissionNewPage() {
 
   if (loading) return <div className="page"><p className="muted">Loading…</p></div>;
 
-  if (!campaign) {
+  if (!isOpenPost && !campaign) {
     return <div className="page"><h1>Campaign not found</h1><Link to="/studio/opportunities" className="button button--ghost-dark">Back</Link></div>;
   }
 
-  // Gate: submissions must be open for this campaign.
-  if (!submissionsOpen(campaign)) {
+  // Gate: a campaign only accepts entries while it is open. An open post has
+  // no such window — the feed is always accepting.
+  if (!isOpenPost && campaign && !submissionsOpen(campaign)) {
     return (
       <div className="page">
         <h1>Submissions are not open yet</h1>
@@ -203,8 +230,10 @@ export function SubmissionNewPage() {
     if (studioType === 'translation' && (sourceContent.trim().length < 10 || translatedContent.trim().length < 10)) return 'Add both source and translated content.';
     if (['video', 'audio', 'image'].includes(studioType) && !media && !externalPostUrl.trim()) return 'Upload media or provide a link to an existing public post.';
     if (studioType === 'image' && !altText.trim()) return 'Alternative text is required for visual submissions.';
-    if (!permReview) return 'Permission to review the submission is required to enter.';
+    if (isOpenPost && !permPublish) return 'Grant publication permission to post this publicly.';
+    if (!isOpenPost && !permReview) return 'Permission to review the submission is required to enter.';
     if (!attRights || !attCopyright) return 'Please confirm you have the rights to submit this content.';
+    if (!attParticipants) return 'Please confirm anyone featured has consented.';
     if (involvesMinors && !attGuardian) return 'Guardian permission is required when minors appear.';
     return null;
   };
@@ -217,7 +246,7 @@ export function SubmissionNewPage() {
     setError(null);
     try {
       await saveSubmission(draftInput, 'SUBMITTED');
-      trackEvent('submission_completed', { campaign: campaign.slug });
+      trackEvent('submission_completed', { campaign: campaign?.slug ?? OPEN_CAMPAIGN_ID });
       navigate(`/studio/submissions/${submissionId.current}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Submission failed. Your draft is saved.');
@@ -231,7 +260,21 @@ export function SubmissionNewPage() {
   return (
     <div className="page">
       <p className="breadcrumb"><Link to="/studio/submissions">Submissions</Link> / New</p>
-      <h1>New submission — {campaign.title}</h1>
+      <h1>{isOpenPost ? 'New post' : `New submission — ${campaign?.title ?? ''}`}</h1>
+      {isOpenPost ? (
+        <div className="callout callout--info">
+          <strong>This publishes straight to Explore.</strong> There is no queue and
+          no approval step — what you post is what people see. So the two things
+          that matter are yours to get right: you hold the rights to this work,
+          and anyone in it agreed to be in it. Anything reported gets reviewed
+          afterwards, and can be taken down.
+        </div>
+      ) : (
+        <div className="callout callout--info">
+          <strong>Campaign entry.</strong> Campaign submissions carry rewards, so
+          this one is reviewed before it is published.
+        </div>
+      )}
       <Stepper steps={STEPS} current={step} />
 
       <div className="join__card">
@@ -381,8 +424,14 @@ export function SubmissionNewPage() {
           <section>
             <h2>Permissions</h2>
             <p className="muted">Each permission is a separate, understandable choice.</p>
-            <label className="perm"><input type="checkbox" checked={permReview} onChange={(e) => setPermReview(e.target.checked)} /> <span><strong>Review</strong> — allow our team to review this submission. <em>(Required to enter.)</em></span></label>
-            <label className="perm"><input type="checkbox" checked={permPublish} onChange={(e) => setPermPublish(e.target.checked)} /> <span><strong>Publication</strong> — allow approved content to be published in Indigen World products.</span></label>
+            {isOpenPost ? (
+              <label className="perm"><input type="checkbox" checked={permPublish} onChange={(e) => setPermPublish(e.target.checked)} /> <span><strong>Publication</strong> — publish this to the Explore feed in Indigen World. <em>(Required to post.)</em></span></label>
+            ) : (
+              <>
+                <label className="perm"><input type="checkbox" checked={permReview} onChange={(e) => setPermReview(e.target.checked)} /> <span><strong>Review</strong> — allow our team to review this submission. <em>(Required to enter.)</em></span></label>
+                <label className="perm"><input type="checkbox" checked={permPublish} onChange={(e) => setPermPublish(e.target.checked)} /> <span><strong>Publication</strong> — allow approved content to be published in Indigen World products.</span></label>
+              </>
+            )}
             <label className="perm"><input type="checkbox" checked={permPromo} onChange={(e) => setPermPromo(e.target.checked)} /> <span><strong>Promotion</strong> — allow approved excerpts to be used for campaign promotion.</span></label>
             <label className="perm perm--ai"><input type="checkbox" checked={permAi} onChange={(e) => setPermAi(e.target.checked)} /> <span><strong>AI / machine-learning research</strong> — optional. Off by default and never required to enter.</span></label>
 
@@ -405,7 +454,11 @@ export function SubmissionNewPage() {
               <div><dt>Publication permission</dt><dd>{permPublish ? 'Granted' : 'Not granted'}</dd></div>
               <div><dt>AI-training permission</dt><dd>{permAi ? 'Granted' : 'Off (default)'}</dd></div>
             </dl>
-            <p className="tiny">Submitted content is not published automatically. It is reviewed first.</p>
+            <p className="tiny">
+              {isOpenPost
+                ? 'This goes live on Explore as soon as you post it, credited to you.'
+                : 'Submitted content is not published automatically. It is reviewed first.'}
+            </p>
           </section>
         ) : null}
 
@@ -418,7 +471,11 @@ export function SubmissionNewPage() {
             {step < 3 ? (
               <button type="button" className="button button--primary" onClick={next} disabled={saving || (uploadPct !== null && uploadPct < 100)}>Continue</button>
             ) : (
-              <button type="button" className="button button--primary" onClick={() => void submit()} disabled={saving}>{saving ? 'Submitting…' : 'Submit for review'}</button>
+              <button type="button" className="button button--primary" onClick={() => void submit()} disabled={saving}>
+                {saving
+                  ? (isOpenPost ? 'Publishing…' : 'Submitting…')
+                  : (isOpenPost ? 'Publish to Explore' : 'Submit for review')}
+              </button>
             )}
           </div>
         </div>

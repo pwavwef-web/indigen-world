@@ -11,6 +11,8 @@ import 'package:indigen_world_mobile/features/community/saved_posts_screen.dart'
 import 'package:indigen_world_mobile/features/community/widgets/community_avatar.dart';
 import 'package:indigen_world_mobile/features/community/widgets/community_post_card.dart';
 import 'package:indigen_world_mobile/features/community/widgets/people_widgets.dart';
+import 'package:indigen_world_mobile/features/notifications/data/notification_providers.dart';
+import 'package:indigen_world_mobile/features/notifications/notifications_screen.dart';
 import 'package:indigen_world_mobile/shared/app_widgets.dart';
 import 'package:indigen_world_mobile/shared/frosted_nav_bar.dart';
 
@@ -151,59 +153,139 @@ class _FeedPost extends StatelessWidget {
         builder: (context) => CommunityProfileScreen(uid: post.authorId),
       ),
     ),
+    onOpenHandle: (handle) => actions.openHandle(context, handle),
   );
 }
 
 // ── Header ──────────────────────────────────────────────────────────────────
 
-class _CommunityHeader extends StatelessWidget {
+class _CommunityHeader extends ConsumerWidget {
   const _CommunityHeader();
 
   @override
-  Widget build(BuildContext context) => Padding(
-    // Right inset keeps the title clear of the shell's profile orb.
-    padding: const EdgeInsets.fromLTRB(20, 18, 62, 4),
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'COMMUNITY',
-                style: TextStyle(
-                  color: BrandColors.terracotta,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 1.2,
+  Widget build(BuildContext context, WidgetRef ref) {
+    final unread =
+        ref.watch(unreadNotificationCountProvider).asData?.value ?? 0;
+    return Padding(
+      // Right inset keeps the title clear of the shell's profile orb.
+      padding: const EdgeInsets.fromLTRB(20, 18, 58, 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'COMMUNITY',
+                  style: TextStyle(
+                    color: BrandColors.terracotta,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1.2,
+                  ),
                 ),
+                const SizedBox(height: 5),
+                Text(
+                  'Speak together.',
+                  style: Theme.of(context).textTheme.headlineMedium,
+                ),
+              ],
+            ),
+          ),
+          _NotificationBell(unread: unread),
+          IconButton(
+            tooltip: 'Find people',
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (context) => const PeopleScreen(),
               ),
-              const SizedBox(height: 5),
-              Text(
-                'Speak together.',
-                style: Theme.of(context).textTheme.headlineMedium,
+            ),
+            icon: const Icon(Icons.search_rounded),
+          ),
+          IconButton(
+            tooltip: 'Saved posts',
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (context) => const SavedPostsScreen(),
               ),
+            ),
+            icon: const Icon(Icons.bookmark_border_rounded),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The bell, with an unread count that reads as a number up to 99 and then
+/// stops counting — past that the exact figure stops meaning anything.
+class _NotificationBell extends StatelessWidget {
+  const _NotificationBell({required this.unread});
+
+  final int unread;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    button: true,
+    label: unread > 0 ? 'Notifications, $unread unread' : 'Notifications',
+    excludeSemantics: true,
+    child: Tooltip(
+      message: 'Notifications',
+      child: InkWell(
+        customBorder: const CircleBorder(),
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (context) => const NotificationsScreen(),
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(8),
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Icon(
+                unread > 0
+                    ? Icons.notifications_rounded
+                    : Icons.notifications_none_rounded,
+                color: unread > 0
+                    ? BrandColors.heritageGreen
+                    : BrandColors.mutedInk,
+              ),
+              if (unread > 0)
+                Positioned(
+                  right: -5,
+                  top: -4,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 4,
+                      vertical: 1,
+                    ),
+                    constraints: const BoxConstraints(minWidth: 16),
+                    decoration: BoxDecoration(
+                      color: BrandColors.terracotta,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: BrandColors.plasterCream,
+                        width: 1.5,
+                      ),
+                    ),
+                    child: Text(
+                      unread > 99 ? '99+' : '$unread',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 9,
+                        fontWeight: FontWeight.w900,
+                        height: 1.25,
+                      ),
+                    ),
+                  ),
+                ),
             ],
           ),
         ),
-        IconButton(
-          tooltip: 'Find people',
-          onPressed: () => Navigator.of(context).push(
-            MaterialPageRoute<void>(builder: (context) => const PeopleScreen()),
-          ),
-          icon: const Icon(Icons.search_rounded),
-        ),
-        IconButton(
-          tooltip: 'Saved posts',
-          onPressed: () => Navigator.of(context).push(
-            MaterialPageRoute<void>(
-              builder: (context) => const SavedPostsScreen(),
-            ),
-          ),
-          icon: const Icon(Icons.bookmark_border_rounded),
-        ),
-      ],
+      ),
     ),
   );
 }

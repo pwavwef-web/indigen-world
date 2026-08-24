@@ -3,7 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
+import 'package:indigen_world_mobile/data/repositories.dart';
+import 'package:indigen_world_mobile/features/community/community_actions.dart';
 import 'package:indigen_world_mobile/features/explore/published_content.dart';
+import 'package:indigen_world_mobile/features/explore/reel_keeps.dart';
 import 'package:video_player/video_player.dart';
 
 class ExploreScreen extends ConsumerStatefulWidget {
@@ -14,8 +17,6 @@ class ExploreScreen extends ConsumerStatefulWidget {
 }
 
 class _ExploreScreenState extends ConsumerState<ExploreScreen> {
-  final _liked = <int>{};
-  final _saved = <int>{};
   var _activeIndex = 0;
   var _playing = true;
 
@@ -30,6 +31,12 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
         : _previewReels;
     // Keep the active index valid if the live feed shrinks between builds.
     final activeIndex = _activeIndex.clamp(0, reels.length - 1);
+    // Saves and appreciations live on the device, so they survive a restart
+    // instead of evaporating with the widget.
+    final saved =
+        ref.watch(savedReelIdsProvider).asData?.value ?? const <String>{};
+    final appreciated =
+        ref.watch(appreciatedReelIdsProvider).asData?.value ?? const <String>{};
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.light,
@@ -52,32 +59,21 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                   reel: reel,
                   isActive: index == activeIndex,
                   isPlaying: index == activeIndex && _playing,
-                  liked: _liked.contains(index),
-                  saved: _saved.contains(index),
+                  liked: appreciated.contains(reel.id),
+                  saved: saved.contains(reel.id),
                   onTogglePlayback: () => setState(() => _playing = !_playing),
-                  onLike: () => setState(() {
-                    _liked.contains(index)
-                        ? _liked.remove(index)
-                        : _liked.add(index);
-                  }),
-                  onSave: () => setState(() {
-                    _saved.contains(index)
-                        ? _saved.remove(index)
-                        : _saved.add(index);
-                  }),
+                  onLike: () => _toggleAppreciation(reel),
+                  onSave: () => _toggleSave(reel),
                   onComments: () => _openComments(context, reel),
-                  onShare: () => _showMessage(
-                    context,
-                    'Sharing unlocks when approved public reel links are connected.',
-                  ),
+                  onContext: () => _openContext(context, reel),
                 );
               },
             ),
-            const Positioned(
+            Positioned(
               top: 0,
               left: 0,
               right: 0,
-              child: SafeArea(bottom: false, child: _ExploreHeader()),
+              child: SafeArea(bottom: false, child: _ExploreHeader(live: live)),
             ),
             Positioned(
               left: 18,
@@ -116,6 +112,113 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
     );
   }
 
+  Future<void> _toggleSave(_Reel reel) async {
+    HapticFeedback.selectionClick();
+    final nowSaved = await ref.read(reelKeepsProvider).toggleSaved(reel.id);
+    ref.invalidate(savedEntryIdsProvider);
+    if (!mounted) return;
+    // Deliberately does not promise a list: saves are remembered on this
+    // device and shown by the reel's own state when you come back to it, and
+    // there is no saved-reels screen to send anyone to yet.
+    _showMessage(
+      context,
+      nowSaved ? 'Saved on this device.' : 'Removed from your saves.',
+    );
+  }
+
+  Future<void> _toggleAppreciation(_Reel reel) async {
+    HapticFeedback.lightImpact();
+    await ref.read(reelKeepsProvider).toggleAppreciated(reel.id);
+    ref.invalidate(savedEntryIdsProvider);
+  }
+
+  /// The context sheet: the English summary, cultural notes, where the piece
+  /// comes from and how it is licensed.
+  ///
+  /// This is the point of the whole feed. A reel without its context is just a
+  /// clip, and the licence line is what tells a viewer what they may do with
+  /// somebody else's cultural work.
+  Future<void> _openContext(BuildContext context, _Reel reel) {
+    return showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      backgroundColor: BrandColors.surface,
+      builder: (sheetContext) => SafeArea(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.sizeOf(sheetContext).height * 0.75,
+          ),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(22, 0, 22, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(reel.label, style: _sheetEyebrow),
+                const SizedBox(height: 8),
+                Text(
+                  reel.title,
+                  style: Theme.of(sheetContext).textTheme.headlineMedium,
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  reel.creator,
+                  style: const TextStyle(
+                    color: BrandColors.mutedInk,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                if (reel.caption.trim().isNotEmpty) ...[
+                  const SizedBox(height: 18),
+                  _ContextBlock(heading: 'About this', body: reel.caption),
+                ],
+                if (reel.englishSummary.trim().isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  _ContextBlock(
+                    heading: 'In English',
+                    body: reel.englishSummary,
+                  ),
+                ],
+                if (reel.culturalNotes.trim().isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  _ContextBlock(
+                    heading: 'Cultural context',
+                    body: reel.culturalNotes,
+                  ),
+                ],
+                const SizedBox(height: 20),
+                const Divider(color: BrandColors.divider),
+                const SizedBox(height: 12),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(
+                      Icons.copyright_rounded,
+                      size: 17,
+                      color: BrandColors.mutedInk,
+                    ),
+                    const SizedBox(width: 9),
+                    Expanded(
+                      child: Text(
+                        reel.credit,
+                        style: const TextStyle(
+                          color: BrandColors.mutedInk,
+                          fontSize: 12,
+                          height: 1.45,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   _Reel _reelFromPublished(PublishedReel p) {
     final caption = p.description.trim().isNotEmpty
         ? p.description.trim()
@@ -130,10 +233,13 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
               ? where.toUpperCase()
               : 'PUBLISHED ON INDIGEN WORLD');
     return _Reel(
+      id: p.id,
       imageUrl: p.posterUrl ?? '',
       videoUrl: p.videoUrl,
       avatarUrl: p.creatorAvatarUrl,
       isLive: true,
+      englishSummary: p.englishSummary,
+      culturalNotes: p.culturalNotes,
       label: label,
       title: p.title,
       creator: p.creatorName,
@@ -162,77 +268,117 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
         .toUpperCase();
   }
 
+  /// The reply sheet.
+  ///
+  /// Published reels have no comment thread of their own yet, so rather than
+  /// showing an empty one — or a promise that something will arrive later —
+  /// this hands the viewer straight to the Community tab with the reel already
+  /// quoted. The conversation happens where conversations already work.
   Future<void> _openComments(BuildContext context, _Reel reel) async {
+    if (!reel.isLive) {
+      await _openPreviewComments(context, reel);
+      return;
+    }
+
+    final start = await showModalBottomSheet<bool>(
+      context: context,
+      showDragHandle: true,
+      backgroundColor: BrandColors.surface,
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(22, 0, 22, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Say something about this',
+                style: Theme.of(sheetContext).textTheme.titleLarge,
+              ),
+              const SizedBox(height: 6),
+              const Text(
+                'Reels do not carry their own comment thread. Post about it in '
+                'the Community feed instead — that room stays in Kasem, and the '
+                'creator will see it.',
+                style: TextStyle(color: BrandColors.mutedInk, height: 1.45),
+              ),
+              const SizedBox(height: 18),
+              FilledButton.icon(
+                onPressed: () => Navigator.pop(sheetContext, true),
+                icon: const Icon(Icons.forum_rounded),
+                label: const Text('Post in Community'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (start != true || !context.mounted) return;
+
+    await CommunityActions(ref)
+        .compose(context, initialText: '${reel.title} — ${reel.creator}\n\n');
+  }
+
+  /// The curated preview keeps its illustrative sample thread, clearly labelled
+  /// as sample copy.
+  Future<void> _openPreviewComments(BuildContext context, _Reel reel) async {
     final replyController = TextEditingController();
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
       backgroundColor: BrandColors.surface,
-      builder: (context) => Padding(
+      builder: (sheetContext) => Padding(
         padding: EdgeInsets.fromLTRB(
           20,
           0,
           20,
-          18 + MediaQuery.viewInsetsOf(context).bottom,
+          18 + MediaQuery.viewInsetsOf(sheetContext).bottom,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: reel.isLive
-              ? [
-                  Text(
-                    'Comments',
-                    style: Theme.of(context).textTheme.titleLarge,
+          children: [
+            Text(
+              '${reel.comments} community replies',
+              style: Theme.of(sheetContext).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              'Kasem-only conversation preview · sample copy is not validated guidance.',
+              style: TextStyle(color: BrandColors.mutedInk, fontSize: 12),
+            ),
+            const SizedBox(height: 18),
+            const _Comment(author: 'Amina', text: 'Ko gara.'),
+            const _Comment(author: 'Nyaaba', text: 'De N lei.'),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: replyController,
+                    decoration: const InputDecoration(
+                      hintText: 'Reply in Kasem…',
+                      isDense: true,
+                    ),
                   ),
-                  const SizedBox(height: 4),
-                  const Text(
-                    'Community replies open when messaging is enabled for published reels.',
-                    style: TextStyle(color: BrandColors.mutedInk, fontSize: 12),
-                  ),
-                  const SizedBox(height: 18),
-                ]
-              : [
-                  Text(
-                    '${reel.comments} community replies',
-                    style: Theme.of(context).textTheme.titleLarge,
-                  ),
-                  const SizedBox(height: 4),
-                  const Text(
-                    'Kasem-only conversation preview · sample copy is not validated guidance.',
-                    style: TextStyle(color: BrandColors.mutedInk, fontSize: 12),
-                  ),
-                  const SizedBox(height: 18),
-                  const _Comment(author: 'Amina', text: 'Ko gara.'),
-                  const _Comment(author: 'Nyaaba', text: 'De N lei.'),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: replyController,
-                          decoration: const InputDecoration(
-                            hintText: 'Reply in Kasem…',
-                            isDense: true,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      IconButton.filled(
-                        tooltip: 'Add reply',
-                        onPressed: () {
-                          if (replyController.text.trim().isEmpty) return;
-                          Navigator.pop(context);
-                          _showMessage(
-                            context,
-                            'Your local Kasem reply was added to this preview.',
-                          );
-                        },
-                        icon: const Icon(Icons.arrow_upward_rounded),
-                      ),
-                    ],
-                  ),
-                ],
+                ),
+                const SizedBox(width: 8),
+                IconButton.filled(
+                  tooltip: 'Add reply',
+                  onPressed: () {
+                    if (replyController.text.trim().isEmpty) return;
+                    Navigator.pop(sheetContext);
+                    _showMessage(
+                      context,
+                      'Your local Kasem reply was added to this preview.',
+                    );
+                  },
+                  icon: const Icon(Icons.arrow_upward_rounded),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );
@@ -246,7 +392,12 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
 }
 
 class _ExploreHeader extends StatelessWidget {
-  const _ExploreHeader();
+  const _ExploreHeader({required this.live});
+
+  /// True when the feed is showing real published work rather than the curated
+  /// preview. Saying which one a viewer is looking at is the honest thing to
+  /// do — the preview is illustrative, not community content.
+  final bool live;
 
   @override
   Widget build(BuildContext context) => Padding(
@@ -279,39 +430,78 @@ class _ExploreHeader extends StatelessWidget {
           ),
         ),
         const Spacer(),
-        const Text(
-          'Following',
-          style: TextStyle(
-            color: Colors.white60,
-            fontSize: 12,
-            fontWeight: FontWeight.w700,
+        Container(
+          padding: const EdgeInsets.fromLTRB(10, 5, 12, 5),
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.34),
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(color: Colors.white24),
           ),
-        ),
-        const SizedBox(width: 18),
-        const Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'For you',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 12,
-                fontWeight: FontWeight.w900,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  color: live ? BrandColors.kenteGold : Colors.white54,
+                  shape: BoxShape.circle,
+                ),
+                child: const SizedBox(width: 6, height: 6),
               ),
-            ),
-            SizedBox(height: 5),
-            SizedBox(
-              width: 22,
-              child: Divider(
-                height: 2,
-                thickness: 2,
-                color: BrandColors.kenteGold,
+              const SizedBox(width: 7),
+              Text(
+                live ? 'PUBLISHED' : 'PREVIEW',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 9,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.1,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ],
     ),
+  );
+}
+
+const _sheetEyebrow = TextStyle(
+  color: BrandColors.terracotta,
+  fontSize: 10,
+  fontWeight: FontWeight.w900,
+  letterSpacing: 1.2,
+);
+
+/// One labelled paragraph in the context sheet.
+class _ContextBlock extends StatelessWidget {
+  const _ContextBlock({required this.heading, required this.body});
+
+  final String heading;
+  final String body;
+
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(
+        heading.toUpperCase(),
+        style: const TextStyle(
+          color: BrandColors.heritageGreen,
+          fontSize: 10,
+          fontWeight: FontWeight.w900,
+          letterSpacing: 1.1,
+        ),
+      ),
+      const SizedBox(height: 6),
+      Text(
+        body.trim(),
+        style: const TextStyle(
+          color: BrandColors.ink,
+          fontSize: 14.5,
+          height: 1.5,
+        ),
+      ),
+    ],
   );
 }
 
@@ -326,7 +516,7 @@ class _ReelCard extends StatelessWidget {
     required this.onLike,
     required this.onSave,
     required this.onComments,
-    required this.onShare,
+    required this.onContext,
   });
 
   final _Reel reel;
@@ -338,7 +528,7 @@ class _ReelCard extends StatelessWidget {
   final VoidCallback onLike;
   final VoidCallback onSave;
   final VoidCallback onComments;
-  final VoidCallback onShare;
+  final VoidCallback onContext;
 
   @override
   Widget build(BuildContext context) => Semantics(
@@ -454,19 +644,25 @@ class _ReelCard extends StatelessWidget {
                 _CreatorAvatar(
                   initials: reel.initials,
                   avatarUrl: reel.avatarUrl,
+                  // Following a creator is not wired to this feed yet, so the
+                  // published reels do not offer a button that would do
+                  // nothing.
+                  showAddBadge: !reel.isLive,
                 ),
                 const SizedBox(height: 13),
                 _ReelAction(
                   icon: liked
                       ? Icons.favorite_rounded
                       : Icons.favorite_border_rounded,
-                  label: _shortCount(reel.likes + (liked ? 1 : 0)),
+                  label: reel.isLive
+                      ? (liked ? 'Loved' : 'Love')
+                      : _shortCount(reel.likes + (liked ? 1 : 0)),
                   active: liked,
                   onTap: onLike,
                 ),
                 _ReelAction(
                   icon: Icons.chat_bubble_outline_rounded,
-                  label: '${reel.comments}',
+                  label: reel.isLive ? 'Discuss' : '${reel.comments}',
                   onTap: onComments,
                 ),
                 _ReelAction(
@@ -478,9 +674,9 @@ class _ReelCard extends StatelessWidget {
                   onTap: onSave,
                 ),
                 _ReelAction(
-                  icon: Icons.near_me_outlined,
-                  label: 'Share',
-                  onTap: onShare,
+                  icon: Icons.menu_book_outlined,
+                  label: 'Context',
+                  onTap: onContext,
                 ),
               ],
             ),
@@ -708,10 +904,15 @@ class _ReelAction extends StatelessWidget {
 }
 
 class _CreatorAvatar extends StatelessWidget {
-  const _CreatorAvatar({required this.initials, this.avatarUrl});
+  const _CreatorAvatar({
+    required this.initials,
+    this.avatarUrl,
+    this.showAddBadge = true,
+  });
 
   final String initials;
   final String? avatarUrl;
+  final bool showAddBadge;
 
   @override
   Widget build(BuildContext context) => Stack(
@@ -735,22 +936,23 @@ class _CreatorAvatar extends StatelessWidget {
               )
             : _initials(),
       ),
-      Positioned(
-        bottom: -7,
-        child: Container(
-          width: 19,
-          height: 19,
-          decoration: const BoxDecoration(
-            color: BrandColors.kenteGold,
-            shape: BoxShape.circle,
-          ),
-          child: const Icon(
-            Icons.add_rounded,
-            color: BrandColors.heritageGreen,
-            size: 15,
+      if (showAddBadge)
+        Positioned(
+          bottom: -7,
+          child: Container(
+            width: 19,
+            height: 19,
+            decoration: const BoxDecoration(
+              color: BrandColors.kenteGold,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.add_rounded,
+              color: BrandColors.heritageGreen,
+              size: 15,
+            ),
           ),
         ),
-      ),
     ],
   );
 
@@ -831,6 +1033,7 @@ class _ReelPlaceholder extends StatelessWidget {
 
 class _Reel {
   const _Reel({
+    required this.id,
     required this.imageUrl,
     required this.label,
     required this.title,
@@ -841,11 +1044,17 @@ class _Reel {
     required this.credit,
     required this.likes,
     required this.comments,
+    this.englishSummary = '',
+    this.culturalNotes = '',
     this.alignment = Alignment.center,
     this.videoUrl,
     this.avatarUrl,
     this.isLive = false,
   });
+
+  /// Stable across rebuilds, so a save stays attached to the piece rather than
+  /// to whatever happens to be at that scroll position.
+  final String id;
 
   final String imageUrl;
   final String label;
@@ -857,6 +1066,11 @@ class _Reel {
   final String credit;
   final int likes;
   final int comments;
+
+  /// The English summary and cultural notes shown in the context sheet.
+  final String englishSummary;
+  final String culturalNotes;
+
   final Alignment alignment;
 
   /// Playable video URL for published video reels; null for image reels.
@@ -875,6 +1089,7 @@ String _shortCount(int value) =>
 
 const _previewReels = [
   _Reel(
+    id: 'preview-rhythm',
     imageUrl: 'https://images.unsplash.com/photo-1660675133223-c293889b9fb8?auto=format&fit=crop&q=82&w=1200',
     label: 'REEL PREVIEW · NORTHERN GHANA',
     title: 'Every rhythm remembers.',
@@ -887,6 +1102,7 @@ const _previewReels = [
     comments: 426,
   ),
   _Reel(
+    id: 'preview-circle',
     imageUrl: 'https://images.unsplash.com/photo-1515921560173-3633830cb11a?auto=format&fit=crop&q=82&w=1200',
     label: 'PHOTO REEL · COMMUNITY',
     title: 'The circle makes room for everyone.',
@@ -899,6 +1115,7 @@ const _previewReels = [
     comments: 218,
   ),
   _Reel(
+    id: 'preview-cloth',
     imageUrl: 'https://images.unsplash.com/photo-1757169917348-b4f790e4dc85?auto=format&fit=crop&q=82&w=1200',
     label: 'STORY REEL · CAPE COAST',
     title: 'What we wear can speak.',

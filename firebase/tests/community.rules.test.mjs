@@ -89,6 +89,25 @@ before(async () => {
       uid: AMINA,
       postId: 'post1',
     });
+    // Notifications are server-authored, so the fixtures are written with rules
+    // disabled — exactly as the Cloud Functions trigger does in production.
+    await setDoc(doc(db, 'communityNotifications/notif-for-amina'), {
+      id: 'notif-for-amina',
+      recipientId: AMINA,
+      type: 'like',
+      actor: { id: NYAABA, displayName: 'Nyaaba Atanga', username: 'nyaaba', avatarUrl: null },
+      title: 'Nyaaba Atanga liked your post',
+      body: '',
+      postId: 'post1',
+      postPreview: 'De zaanem.',
+      route: null,
+      read: false,
+    });
+    await setDoc(doc(db, 'communityDevices/token-amina'), {
+      uid: AMINA,
+      token: 'token-amina',
+      platform: 'android',
+    });
   });
 });
 
@@ -399,4 +418,108 @@ test('members file reports as themselves; only staff read them', async () => {
 
   await assertFails(getDoc(doc(db(nyaaba), 'communityReports/report1')));
   await assertSucceeds(getDoc(doc(db(validator), 'communityReports/report1')));
+});
+
+// ── Notifications ───────────────────────────────────────────────────────────
+
+test('a member reads only their own notifications', async () => {
+  const owner = env.authenticatedContext(AMINA);
+  const other = env.authenticatedContext(NYAABA);
+  const anon = env.unauthenticatedContext();
+
+  await assertSucceeds(getDoc(doc(db(owner), 'communityNotifications/notif-for-amina')));
+  await assertFails(getDoc(doc(db(other), 'communityNotifications/notif-for-amina')));
+  await assertFails(getDoc(doc(db(anon), 'communityNotifications/notif-for-amina')));
+});
+
+test('nobody can forge a notification', async () => {
+  // An alert is a channel straight to somebody's lock screen. Only the trusted
+  // backend may open it.
+  const nyaaba = env.authenticatedContext(NYAABA);
+  await assertFails(setDoc(doc(db(nyaaba), 'communityNotifications/forged'), {
+    id: 'forged',
+    recipientId: AMINA,
+    type: 'like',
+    title: 'Tap here',
+    read: false,
+  }));
+
+  const amina = env.authenticatedContext(AMINA);
+  await assertFails(setDoc(doc(db(amina), 'communityNotifications/self-forged'), {
+    id: 'self-forged',
+    recipientId: AMINA,
+    type: 'like',
+    title: 'Tap here',
+    read: false,
+  }));
+});
+
+test('a member may mark their own notification read, and nothing else', async () => {
+  const owner = env.authenticatedContext(AMINA);
+  await assertSucceeds(updateDoc(doc(db(owner), 'communityNotifications/notif-for-amina'), {
+    read: true,
+  }));
+  // Rewriting the headline, or unrelated fields, is denied.
+  await assertFails(updateDoc(doc(db(owner), 'communityNotifications/notif-for-amina'), {
+    title: 'Something else entirely',
+  }));
+  await assertFails(updateDoc(doc(db(owner), 'communityNotifications/notif-for-amina'), {
+    read: false,
+    postId: 'post-liked',
+  }));
+});
+
+test('a member cannot mark somebody else notification read', async () => {
+  const other = env.authenticatedContext(NYAABA);
+  await assertFails(updateDoc(doc(db(other), 'communityNotifications/notif-for-amina'), {
+    read: true,
+  }));
+});
+
+test('notifications cannot be deleted by their recipient', async () => {
+  const owner = env.authenticatedContext(AMINA);
+  await assertFails(deleteDoc(doc(db(owner), 'communityNotifications/notif-for-amina')));
+});
+
+// ── Push registrations ──────────────────────────────────────────────────────
+
+test('a member registers a device under their own uid', async () => {
+  const owner = env.authenticatedContext(AMINA);
+  await assertSucceeds(setDoc(doc(db(owner), 'communityDevices/token-new'), {
+    uid: AMINA,
+    token: 'token-new',
+    platform: 'android',
+  }));
+});
+
+test('a device row cannot be claimed for another account', async () => {
+  const nyaaba = env.authenticatedContext(NYAABA);
+  await assertFails(setDoc(doc(db(nyaaba), 'communityDevices/token-steal'), {
+    uid: AMINA,
+    token: 'token-steal',
+    platform: 'android',
+  }));
+});
+
+test('a device row must be keyed by the token it carries', async () => {
+  // Otherwise one account could scatter rows the fan-out would still read.
+  const owner = env.authenticatedContext(AMINA);
+  await assertFails(setDoc(doc(db(owner), 'communityDevices/some-other-id'), {
+    uid: AMINA,
+    token: 'token-amina',
+    platform: 'android',
+  }));
+});
+
+test('nobody can read another member device tokens', async () => {
+  // Knowing somebody's tokens is knowing how to reach their handset.
+  const other = env.authenticatedContext(NYAABA);
+  const anon = env.unauthenticatedContext();
+  await assertFails(getDoc(doc(db(other), 'communityDevices/token-amina')));
+  await assertFails(getDoc(doc(db(anon), 'communityDevices/token-amina')));
+});
+
+test('a member can unregister their own device on sign-out', async () => {
+  const owner = env.authenticatedContext(AMINA);
+  await assertSucceeds(deleteDoc(doc(db(owner), 'communityDevices/token-new')));
 });

@@ -48,14 +48,16 @@ after(async () => {
 const bytes = () => new Blob(['ok'], { type: 'video/mp4' });
 const imageBytes = () => new Blob(['png'], { type: 'image/png' });
 
-test('only approved creators can write raw submission media', async () => {
-  const pending = await clientFor('pending-storage', 'pending-creator');
-  await assert.rejects(
-    uploadBytes(
-      ref(pending, 'creator-submissions/pending-creator/kasem/sub-1/original'),
-      bytes(),
-      { contentType: 'video/mp4' },
-    ),
+test('any signed-in account can upload raw media into its own prefix', async () => {
+  // Publishing to Explore no longer requires approval, so neither does staging
+  // the file. The path stays private to its owner and staff either way (see the
+  // next test), and only the server-side publication workflow can make a file
+  // world-readable.
+  const newcomer = await clientFor('pending-storage', 'pending-creator');
+  await uploadBytes(
+    ref(newcomer, 'creator-submissions/pending-creator/open/sub-1/original'),
+    bytes(),
+    { contentType: 'video/mp4' },
   );
 
   const approved = await clientFor('approved-storage', 'approved-creator', {
@@ -66,6 +68,43 @@ test('only approved creators can write raw submission media', async () => {
     ref(approved, 'creator-submissions/approved-creator/kasem/sub-1/original'),
     bytes(),
     { contentType: 'video/mp4' },
+  );
+});
+
+test('an anonymous visitor cannot upload raw media at all', async () => {
+  const anonymous = await clientFor('anon-storage', null);
+  await assert.rejects(
+    uploadBytes(
+      ref(anonymous, 'creator-submissions/somebody/open/sub-1/original'),
+      bytes(),
+      { contentType: 'video/mp4' },
+    ),
+  );
+});
+
+test('a signed-in account cannot upload into somebody else prefix', async () => {
+  const intruder = await clientFor('intruder-storage', 'intruder-creator');
+  await assert.rejects(
+    uploadBytes(
+      ref(intruder, 'creator-submissions/approved-creator/open/sub-9/original'),
+      bytes(),
+      { contentType: 'video/mp4' },
+    ),
+  );
+});
+
+test('a suspended creator cannot upload raw media', async () => {
+  // Moderation outcomes still hold: opening publication up must not open it up
+  // to accounts that were removed from it.
+  const suspended = await clientFor('suspended-storage', 'suspended-creator', {
+    creatorStatus: 'suspended',
+  });
+  await assert.rejects(
+    uploadBytes(
+      ref(suspended, 'creator-submissions/suspended-creator/open/sub-1/original'),
+      bytes(),
+      { contentType: 'video/mp4' },
+    ),
   );
 });
 

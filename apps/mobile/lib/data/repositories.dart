@@ -127,6 +127,21 @@ final contributionsProvider = FutureProvider<List<Contribution>>(
   (ref) => ref.watch(contributionRepositoryProvider).getAll(),
 );
 
+/// Every saved key on this device.
+///
+/// The table is shared: dictionary entries are stored under their plain id,
+/// while other surfaces namespace their keys (`reel:`, `reel-appreciated:`).
+/// Read this when you need the raw set; read [savedDictionaryEntryIdsProvider]
+/// when you mean saved *words*.
 final savedEntryIdsProvider = FutureProvider<Set<String>>(
   (ref) => ref.watch(savedEntryRepositoryProvider).getSavedIds(),
 );
+
+/// Saved dictionary entries only — anything a namespaced surface put in the
+/// same table is filtered out, so a count of "Saved words" stays honest.
+final savedDictionaryEntryIdsProvider = FutureProvider<Set<String>>((
+  ref,
+) async {
+  final ids = await ref.watch(savedEntryIdsProvider.future);
+  return ids.where((id) => !id.contains(':')).toSet();
+});

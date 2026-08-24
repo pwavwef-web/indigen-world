@@ -10,6 +10,7 @@ import 'package:indigen_world_mobile/features/community/community_profile_screen
 import 'package:indigen_world_mobile/features/community/community_setup_screen.dart';
 import 'package:indigen_world_mobile/features/community/data/community_providers.dart';
 import 'package:indigen_world_mobile/features/community/saved_posts_screen.dart';
+import 'package:indigen_world_mobile/features/notifications/push_messaging.dart';
 import 'package:indigen_world_mobile/features/settings/settings_screen.dart';
 import 'package:indigen_world_mobile/shared/app_widgets.dart';
 
@@ -19,7 +20,7 @@ class ProfileScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final savedCount =
-        ref.watch(savedEntryIdsProvider).asData?.value.length ?? 0;
+        ref.watch(savedDictionaryEntryIdsProvider).asData?.value.length ?? 0;
     final contributionCount =
         ref.watch(contributionsProvider).asData?.value.length ?? 0;
     final user = ref.watch(authStateProvider).asData?.value;
@@ -221,6 +222,9 @@ class ProfileScreen extends ConsumerWidget {
       ),
     );
     if (confirmed != true) return;
+    // Drop the push registration first, while the account is still signed in
+    // and the rules still allow deleting its own row.
+    await unregisterThisDevice(ref);
     await ref.read(authRepositoryProvider)?.signOut();
     if (context.mounted) _showMessage(context, 'Signed out.');
   }

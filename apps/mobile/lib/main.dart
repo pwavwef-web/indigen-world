@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/app/indigen_world_app.dart';
 import 'package:indigen_world_mobile/core/firebase_bootstrap.dart';
+import 'package:indigen_world_mobile/core/firebase_ready.dart';
 import 'package:indigen_world_mobile/data/local/app_database.dart';
 import 'package:indigen_world_mobile/data/local/legacy_preferences_migration.dart';
 
@@ -24,7 +25,14 @@ Future<void> main() async {
 
   runApp(
     ProviderScope(
-      overrides: [appDatabaseProvider.overrideWithValue(database)],
+      overrides: [
+        appDatabaseProvider.overrideWithValue(database),
+        // Without this the provider keeps its test-safe `false` default, and
+        // every Firebase-backed surface — sign-in, the community feed, posting,
+        // the Explore feed — behaves as though the device were offline no
+        // matter how good the connection is.
+        firebaseReadyProvider.overrideWithValue(firebaseReady),
+      ],
       child: const IndigenWorldApp(),
     ),
   );

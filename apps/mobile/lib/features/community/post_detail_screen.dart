@@ -84,6 +84,7 @@ class _Thread extends ConsumerWidget {
               builder: (context) => CommunityProfileScreen(uid: post.authorId),
             ),
           ),
+          onOpenHandle: (handle) => actions.openHandle(context, handle),
         ),
         const SizedBox(height: 20),
         Row(
@@ -183,6 +184,7 @@ class _ThreadedReply extends StatelessWidget {
           builder: (context) => CommunityProfileScreen(uid: reply.authorId),
         ),
       ),
+      onOpenHandle: (handle) => actions.openHandle(context, handle),
     ),
   );
 }

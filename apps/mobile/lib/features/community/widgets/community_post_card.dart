@@ -4,6 +4,7 @@ import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/features/community/data/community_models.dart';
 import 'package:indigen_world_mobile/features/community/widgets/community_avatar.dart';
 import 'package:indigen_world_mobile/features/community/widgets/post_media_view.dart';
+import 'package:indigen_world_mobile/features/community/widgets/post_text.dart';
 
 /// One post in the feed: author row, body, media, then the engagement bar.
 ///
@@ -20,6 +21,7 @@ class CommunityPostCard extends StatelessWidget {
     required this.onOpen,
     required this.onOpenAuthor,
     required this.onMore,
+    this.onOpenHandle,
     this.showThreadLine = false,
     this.compact = false,
     super.key,
@@ -34,6 +36,10 @@ class CommunityPostCard extends StatelessWidget {
   final VoidCallback onOpen;
   final VoidCallback onOpenAuthor;
   final VoidCallback onMore;
+
+  /// Called with a mentioned handle (no `@`) when one is tapped. Optional: the
+  /// mention still reads as a mention without it, it just does not open.
+  final ValueChanged<String>? onOpenHandle;
 
   /// Draws the vertical thread rail used for replies under a parent post.
   final bool showThreadLine;
@@ -106,13 +112,10 @@ class CommunityPostCard extends StatelessWidget {
             ),
             if (post.text.isNotEmpty) ...[
               const SizedBox(height: 10),
-              Text(
-                post.text,
-                style: TextStyle(
-                  fontSize: compact ? 15 : 16.5,
-                  height: 1.45,
-                  color: BrandColors.ink,
-                ),
+              PostText(
+                text: post.text,
+                fontSize: compact ? 15 : 16.5,
+                onOpenHandle: onOpenHandle,
               ),
             ],
             if (post.hasMedia) ...[

@@ -38,6 +38,13 @@ android/app/google-services.json
 # Firebase
 .firebase/
 functions/.runtimeconfig.json
+# Generated deploy manifest. `firebase deploy` normally discovers the functions
+# by booting the bundle on a local port and calling it over HTTP; where that
+# call cannot reach the loopback interface (some Windows setups), capturing the
+# same manifest to services/functions/functions.yaml makes the CLI read it
+# directly instead. It goes stale the moment a trigger changes, so it is never
+# committed — see docs/product/tester-readiness-runbook.md.
+services/functions/functions.yaml
 firebase-debug.log
 firestore-debug.log
 ui-debug.log

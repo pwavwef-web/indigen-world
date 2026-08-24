@@ -52,7 +52,8 @@ void main() {
       'Saved posts',
       'Community guidelines',
       'PREFERENCES',
-      'Community announcements',
+      'Notifications',
+      'Push alerts on this device',
       'PRIVACY AND DATA',
       'ABOUT',
       'Licences',
@@ -126,7 +127,7 @@ void main() {
     expect(find.text('Respect what is not public'), findsOneWidget);
   });
 
-  testWidgets('community announcements start off and need a connection', (
+  testWidgets('push alerts start off and name why they cannot be turned on', (
     tester,
   ) async {
     await pumpSettings(tester);
@@ -141,10 +142,11 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
 
-    // firebaseReadyProvider defaults to false in tests, so the toggle refuses
-    // rather than pretending to subscribe.
+    // firebaseReadyProvider defaults to false in tests, so the toggle refuses —
+    // and says which of the two possible reasons it is rather than blaming the
+    // member's connection.
     expect(
-      find.textContaining('Community alerts need a connection'),
+      find.textContaining('Indigen World could not be reached'),
       findsOneWidget,
     );
   });

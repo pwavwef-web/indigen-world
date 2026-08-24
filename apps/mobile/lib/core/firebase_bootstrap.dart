@@ -36,6 +36,16 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 class FirebaseBootstrap {
   const FirebaseBootstrap._();
 
+  /// Brings Firebase up for this launch and reports whether the app may use it.
+  ///
+  /// Only [Firebase.initializeApp] decides the answer. Everything after it —
+  /// analytics, Crashlytics, Performance, Messaging auto-init, Remote Config,
+  /// App Check — is a side service that is nice to have and is therefore
+  /// started best-effort, each in its own guard. Before, a single failure in
+  /// that block (an App Check activation on an unregistered debug device, a
+  /// Remote Config fetch timing out on a slow network) tore down the whole
+  /// result and the app fell back to its offline path: no sign-in, no posting,
+  /// empty feeds — even though Firestore and Auth were perfectly reachable.
   static Future<bool> initialize() async {
     try {
       if (Firebase.apps.isEmpty) {
@@ -43,57 +53,96 @@ class FirebaseBootstrap {
           options: firebaseOptionsFor(appEnvironment),
         );
       }
-
-      if (useFirebaseEmulators) {
-        await _connectEmulators();
-      }
-
-      final isProduction = appEnvironment == AppEnvironment.production;
-      await Future.wait([
-        FirebaseAnalytics.instance.setAnalyticsCollectionEnabled(isProduction),
-        FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(
-          isProduction,
-        ),
-        FirebasePerformance.instance.setPerformanceCollectionEnabled(
-          isProduction,
-        ),
-        FirebaseMessaging.instance.setAutoInitEnabled(isProduction),
-      ]);
-
-      await FirebaseRemoteConfig.instance.setDefaults(const {
-        'learning_enabled': false,
-        'bounties_enabled': false,
-        'marketplace_enabled': false,
-        'voice_enabled': false,
-        'ai_assistant_enabled': false,
-      });
-      await FirebaseRemoteConfig.instance.setConfigSettings(
-        RemoteConfigSettings(
-          fetchTimeout: const Duration(seconds: 10),
-          minimumFetchInterval: isProduction
-              ? const Duration(hours: 12)
-              : Duration.zero,
-        ),
-      );
-
-      if (!useFirebaseEmulators) {
-        await FirebaseAppCheck.instance.activate(
-          providerAndroid: isProduction
-              ? const AndroidPlayIntegrityProvider()
-              : const AndroidDebugProvider(),
-          providerApple: isProduction
-              ? const AppleAppAttestWithDeviceCheckFallbackProvider()
-              : const AppleDebugProvider(),
-        );
-      }
-
-      FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
-      return true;
     } on Object catch (error, stackTrace) {
-      debugPrint('Firebase bootstrap failed; continuing offline: $error');
+      debugPrint('Firebase core init failed; continuing offline: $error');
       debugPrintStack(stackTrace: stackTrace);
       return false;
     }
+
+    if (useFirebaseEmulators) {
+      // A failed emulator hookup must not look like a broken app: fall through
+      // to the real project rather than pretending Firebase is unavailable.
+      await _guard('emulators', _connectEmulators);
+    }
+
+    // Cache reads locally so a flaky connection shows the last known feed
+    // instead of an empty screen.
+    await _guard('firestore-settings', () async {
+      FirebaseFirestore.instance.settings = const Settings(
+        persistenceEnabled: true,
+        cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
+      );
+    });
+
+    final isProduction = appEnvironment == AppEnvironment.production;
+    await Future.wait([
+      _guard(
+        'analytics',
+        () => FirebaseAnalytics.instance.setAnalyticsCollectionEnabled(
+          isProduction,
+        ),
+      ),
+      _guard(
+        'crashlytics',
+        () => FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(
+          isProduction,
+        ),
+      ),
+      _guard(
+        'performance',
+        () => FirebasePerformance.instance.setPerformanceCollectionEnabled(
+          isProduction,
+        ),
+      ),
+      // Messaging auto-init is on in every environment now that in-app alerts
+      // are a shipped feature; without it no FCM token is ever minted.
+      _guard(
+        'messaging',
+        () => FirebaseMessaging.instance.setAutoInitEnabled(true),
+      ),
+      _guard('remote-config', _configureRemoteConfig),
+      if (!useFirebaseEmulators) _guard('app-check', _activateAppCheck),
+    ]);
+
+    _guardSync(
+      'messaging-background',
+      () => FirebaseMessaging.onBackgroundMessage(
+        firebaseMessagingBackgroundHandler,
+      ),
+    );
+
+    return true;
+  }
+
+  static Future<void> _configureRemoteConfig() async {
+    final isProduction = appEnvironment == AppEnvironment.production;
+    await FirebaseRemoteConfig.instance.setDefaults(const {
+      'learning_enabled': false,
+      'bounties_enabled': false,
+      'marketplace_enabled': false,
+      'voice_enabled': false,
+      'ai_assistant_enabled': false,
+    });
+    await FirebaseRemoteConfig.instance.setConfigSettings(
+      RemoteConfigSettings(
+        fetchTimeout: const Duration(seconds: 10),
+        minimumFetchInterval: isProduction
+            ? const Duration(hours: 12)
+            : Duration.zero,
+      ),
+    );
+  }
+
+  static Future<void> _activateAppCheck() async {
+    final isProduction = appEnvironment == AppEnvironment.production;
+    await FirebaseAppCheck.instance.activate(
+      providerAndroid: isProduction
+          ? const AndroidPlayIntegrityProvider()
+          : const AndroidDebugProvider(),
+      providerApple: isProduction
+          ? const AppleAppAttestWithDeviceCheckFallbackProvider()
+          : const AppleDebugProvider(),
+    );
   }
 
   static Future<void> _connectEmulators() async {
@@ -108,5 +157,22 @@ class FirebaseBootstrap {
     FirebaseFirestore.instance.useFirestoreEmulator(host, 8080);
     FirebaseFunctions.instance.useFunctionsEmulator(host, 5001);
     await FirebaseStorage.instance.useStorageEmulator(host, 9199);
+  }
+
+  /// Runs an optional start-up step, logging and swallowing any failure.
+  static Future<void> _guard(String step, Future<void> Function() run) async {
+    try {
+      await run();
+    } on Object catch (error) {
+      debugPrint('Firebase bootstrap step "$step" failed (continuing): $error');
+    }
+  }
+
+  static void _guardSync(String step, void Function() run) {
+    try {
+      run();
+    } on Object catch (error) {
+      debugPrint('Firebase bootstrap step "$step" failed (continuing): $error');
+    }
   }
 }

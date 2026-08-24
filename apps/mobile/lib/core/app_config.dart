@@ -34,11 +34,15 @@ AppEnvironment get appEnvironment => switch (appEnvironmentName) {
   ),
 };
 
-bool get useFirebaseEmulators {
-  if (_firebaseEmulatorOverride.isNotEmpty) {
-    return _firebaseEmulatorOverride.toLowerCase() == 'true';
-  }
-  return appEnvironment == AppEnvironment.development;
-}
+/// Whether this launch should talk to the local Firebase emulator suite.
+///
+/// Opt-in only. It used to default to `true` for the development flavour, which
+/// silently pointed every debug build at `localhost` / `10.0.2.2` — a host a
+/// real handset cannot reach — so the app looked permanently offline (no
+/// sign-in, no posting, empty feeds) on any device that was not an emulator
+/// running the suite. Emulator runs now pass
+/// `--dart-define=USE_FIREBASE_EMULATORS=true` explicitly.
+bool get useFirebaseEmulators =>
+    _firebaseEmulatorOverride.toLowerCase() == 'true';
 
 const developmentAppConfig = AppConfig();

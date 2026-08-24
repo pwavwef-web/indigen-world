@@ -1,67 +1,54 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/features/collection/collection_screen.dart';
 import 'package:indigen_world_mobile/features/community/community_screen.dart';
 import 'package:indigen_world_mobile/features/contribute/contribute_screen.dart';
 import 'package:indigen_world_mobile/features/explore/explore_screen.dart';
 import 'package:indigen_world_mobile/features/learn/learn_screen.dart';
+import 'package:indigen_world_mobile/features/notifications/data/notification_providers.dart';
+import 'package:indigen_world_mobile/features/notifications/push_messaging.dart';
+import 'package:indigen_world_mobile/shared/connection_banner.dart';
 import 'package:indigen_world_mobile/shared/frosted_nav_bar.dart';
 import 'package:indigen_world_mobile/shared/profile_orb.dart';
 
-class AppShell extends StatefulWidget {
-  const AppShell({super.key, this.initialIndex = 3});
+/// Index of the Community destination in the rail.
+///
+/// Community sits dead centre — it is the heart of the app, and the middle slot
+/// is the easiest one to reach with a thumb. Everything else is arranged
+/// around it: consume on the left (Explore, Learn), keep and give on the right
+/// (Collection, Contribute).
+const int kCommunityTabIndex = 2;
+
+class AppShell extends ConsumerStatefulWidget {
+  const AppShell({super.key, this.initialIndex = kCommunityTabIndex});
 
   final int initialIndex;
 
   @override
-  State<AppShell> createState() => _AppShellState();
+  ConsumerState<AppShell> createState() => _AppShellState();
 }
 
-class _AppShellState extends State<AppShell>
+class _AppShellState extends ConsumerState<AppShell>
     with SingleTickerProviderStateMixin {
   late int _selectedIndex;
   late final AnimationController _transitionController;
   late final Animation<double> _fadeAnimation;
   late final Animation<Offset> _slideAnimation;
 
-  /// Account lives in the top-right orb now, so the rail carries only the five
-  /// content destinations.
+  /// Account lives in the top-right orb, so the rail carries only the five
+  /// content destinations — with Community at the centre.
   static const _screens = <Widget>[
     ExploreScreen(),
     LearnScreen(),
-    CollectionScreen(),
     CommunityScreen(),
+    CollectionScreen(),
     ContributeScreen(reserveTopRight: true),
   ];
 
-  static const _destinations = <FrostedNavBarItem>[
-    FrostedNavBarItem(
-      icon: Icons.play_circle_outline_rounded,
-      selectedIcon: Icons.play_circle_fill_rounded,
-      label: 'Explore',
-    ),
-    FrostedNavBarItem(
-      icon: Icons.school_outlined,
-      selectedIcon: Icons.school_rounded,
-      label: 'Learn',
-    ),
-    FrostedNavBarItem(
-      icon: Icons.collections_bookmark_outlined,
-      selectedIcon: Icons.collections_bookmark_rounded,
-      label: 'Collection',
-    ),
-    FrostedNavBarItem(
-      icon: Icons.forum_outlined,
-      selectedIcon: Icons.forum_rounded,
-      label: 'Community',
-    ),
-    FrostedNavBarItem(
-      icon: Icons.add_circle_outline_rounded,
-      selectedIcon: Icons.add_circle_rounded,
-      label: 'Contribute',
-    ),
-  ];
+  static const _exploreIndex = 0;
 
   @override
   void initState() {
@@ -97,7 +84,49 @@ class _AppShellState extends State<AppShell>
 
   @override
   Widget build(BuildContext context) {
-    final onExplore = _selectedIndex == 0;
+    final onExplore = _selectedIndex == _exploreIndex;
+    // Registering the device for push is a shell-level concern: it has to run
+    // once the member is signed in, whichever tab they happen to be on.
+    ref.watch(pushRegistrationProvider);
+    // A tapped push may arrive before any route can consume it, so it is parked
+    // in a provider and routed from here once there is a router to route with.
+    ref.listen<String?>(pendingPushRouteProvider, (_, route) {
+      if (route == null) return;
+      final pending = ref.read(pendingPushRouteProvider.notifier).take();
+      if (pending != null) GoRouter.of(context).push(pending);
+    });
+    final unread =
+        ref.watch(unreadNotificationCountProvider).asData?.value ?? 0;
+
+    final destinations = <FrostedNavBarItem>[
+      const FrostedNavBarItem(
+        icon: Icons.play_circle_outline_rounded,
+        selectedIcon: Icons.play_circle_fill_rounded,
+        label: 'Explore',
+      ),
+      const FrostedNavBarItem(
+        icon: Icons.school_outlined,
+        selectedIcon: Icons.school_rounded,
+        label: 'Learn',
+      ),
+      FrostedNavBarItem(
+        icon: Icons.forum_outlined,
+        selectedIcon: Icons.forum_rounded,
+        label: 'Community',
+        badgeCount: unread,
+      ),
+      const FrostedNavBarItem(
+        icon: Icons.collections_bookmark_outlined,
+        selectedIcon: Icons.collections_bookmark_rounded,
+        label: 'Collection',
+      ),
+      const FrostedNavBarItem(
+        icon: Icons.add_circle_outline_rounded,
+        selectedIcon: Icons.add_circle_rounded,
+        label: 'Contribute',
+      ),
+    ];
+
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: onExplore
           ? SystemUiOverlayStyle.light
@@ -125,12 +154,21 @@ class _AppShellState extends State<AppShell>
               right: kProfileOrbInset,
               child: ProfileOrb(onDark: onExplore),
             ),
+            // Just above the floating rail, centred. Every screen owns its own
+            // top-left heading, so a banner up there would land on top of one;
+            // down here the only neighbour is the rail itself.
+            Positioned(
+              left: 16,
+              right: 16,
+              bottom: kFrostedNavBarReservedSpace + 6,
+              child: Center(child: ConnectionBanner(onDark: onExplore)),
+            ),
           ],
         ),
         bottomNavigationBar: FrostedNavBar(
           currentIndex: _selectedIndex,
           onTap: _selectDestination,
-          items: _destinations,
+          items: destinations,
         ),
       ),
     );

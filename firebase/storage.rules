@@ -22,13 +22,6 @@ service firebase.storage {
         || role() == 'super_admin'
         || (isSignedIn() && request.auth.token.get('superAdmin', false) == true);
     }
-    function isApprovedCreator(uid) {
-      return isSignedIn()
-        && request.auth.uid == uid
-        && request.auth.token.get('creatorStatus', '') == 'approved'
-        && request.auth.token.get('creatorRoles', []) is list
-        && 'creator' in request.auth.token.get('creatorRoles', []);
-    }
     function isBlockedCreator() {
       return isSignedIn() && request.auth.token.get('creatorStatus', '') in ['suspended', 'revoked', 'rejected'];
     }
@@ -45,14 +38,22 @@ service firebase.storage {
 
     // ---- Raw creator submissions: private, owner-writable -------------------
     // creator-submissions/{uid}/{campaignId}/{submissionId}/{fileName}
+    //
+    // Any signed-in account that is not suspended may upload into its OWN
+    // prefix, because publishing to Explore no longer requires verification.
+    // The approval gate that used to live here now sits where it belongs — on
+    // campaign submissions in firestore.rules — and this path stays private to
+    // its owner and staff regardless, so opening it exposes nothing: a file
+    // only becomes world-readable when the publication workflow copies it into
+    // published-media/, which no client can write.
     match /creator-submissions/{uid}/{campaignId}/{submissionId}/{fileName} {
       allow read: if isSignedIn() && (request.auth.uid == uid || isStaff());
       allow write: if isSignedIn()
         && request.auth.uid == uid
-        && isApprovedCreator(uid)
+        && !isBlockedCreator()
         && withinSizeLimit()
         && allowedType();
-      allow delete: if isSignedIn() && ((request.auth.uid == uid && isApprovedCreator(uid)) || isStaff());
+      allow delete: if isSignedIn() && ((request.auth.uid == uid && !isBlockedCreator()) || isStaff());
     }
 
     // ---- Creator profile avatars: owner-writable, world-readable ------------

@@ -1,13 +1,13 @@
 import { Suspense, lazy, useEffect, useRef, useState, type ComponentType, type ReactNode } from 'react';
 import type { CreatorApplication, CreatorMembership, CreatorProfile } from '@indigen-world/contracts/creator-models';
 import { ToastProvider } from '@indigen-world/web-ui';
-import { Link, RouterProvider, matchRoute, useRoute } from './router';
+import { RouterProvider, matchRoute, useRoute } from './router';
 import { signIn, useAuth } from './auth';
 import { ErrorBoundary } from './ErrorBoundary';
 import { CreatorProvider } from './creator/CreatorProvider';
 import { PublicLayout } from './creator/PublicLayout';
 import { StudioLayout } from './creator/StudioLayout';
-import { fetchMyApplications, fetchMyMembership, fetchMyProfile } from './creator/data';
+import { ensureCreatorProfile, fetchMyApplications, fetchMyMembership, fetchMyProfile } from './creator/data';
 import { StatusPill, WhatsAppCard } from './creator/components';
 import { useConfig } from './creator/CreatorProvider';
 
@@ -69,7 +69,18 @@ function NotFound() {
   );
 }
 
-function ApplicationStatusGate({ children, path }: { children: ReactNode; path: string }) {
+/**
+ * Guards the studio.
+ *
+ * The gate used to be "approved creators only", which locked everyday people
+ * out of publishing anything at all. Publishing to Explore is now open to any
+ * signed-in account: the studio opens for everybody, and approval means only
+ * what it should mean - eligibility for campaigns, which carry rewards.
+ *
+ * The one thing still turned away here is an account that has been suspended,
+ * revoked or rejected. That is a moderation outcome, and it has to hold.
+ */
+function ApplicationStatusGate({ children }: { children: ReactNode }) {
   const { user, creatorStatus, refreshToken } = useAuth();
   const { whatsappUrl } = useConfig();
   const [loading, setLoading] = useState(true);
@@ -101,40 +112,39 @@ function ApplicationStatusGate({ children, path }: { children: ReactNode; path: 
     };
   }, [user, creatorStatus, refreshToken]);
 
-  if (loading) {
-    return <div className="loading">Checking creator access…</div>;
-  }
-
-  if (membership?.status === 'approved') {
-    return <>{children}</>;
-  }
-
-  const application = applications[0] ?? null;
   // Membership status is lowercase, application status is UPPERCASE, and profile
-  // status is lowercase — normalize once so no blocked state slips through the
+  // status is lowercase - normalize once so no blocked state slips through the
   // case mismatch (previously WITHDRAWN/REVOKED were misclassified as active).
+  const application = applications[0] ?? null;
   const status = String(
     membership?.status ?? application?.status ?? profile?.status ?? 'not_started',
   ).toUpperCase();
   const blocked = ['REJECTED', 'SUSPENDED', 'REVOKED', 'WITHDRAWN'].includes(status);
 
-  if (!blocked && profile && path === '/studio/profile') {
-    return (
-      <PublicLayout>
-        <div className="status-screen status-screen--profile">
-          <section className="status-screen__panel">
-            <p className="hero__eyebrow">Application status</p>
-            <h1>Profile details</h1>
-            <p className="muted">
-              You can keep your permitted profile details current while your application is reviewed.
-              The private production studio opens only after approval.
-            </p>
-            <StatusPill status={String(status).toUpperCase()} labels={STATUS_LABELS} />
-          </section>
-          <ProfilePage />
-        </div>
-      </PublicLayout>
-    );
+  // Mint a minimal creator profile for anyone arriving without one, so their
+  // first post has something to attribute itself to. Runs after the initial
+  // read, and never for a blocked account.
+  useEffect(() => {
+    if (loading || blocked || !user || profile) return;
+    let active = true;
+    void ensureCreatorProfile(
+      user.uid,
+      user.displayName ?? user.email ?? '',
+      user.photoURL ?? null,
+    ).then((created) => {
+      if (active && created) setProfile(created);
+    });
+    return () => {
+      active = false;
+    };
+  }, [loading, blocked, user, profile]);
+
+  if (loading) {
+    return <div className="loading">Opening your studio...</div>;
+  }
+
+  if (!blocked) {
+    return <>{children}</>;
   }
 
   return (
@@ -142,15 +152,16 @@ function ApplicationStatusGate({ children, path }: { children: ReactNode; path: 
       <div className="status-screen">
         <section className="status-screen__panel">
           <p className="hero__eyebrow">Creator access</p>
-          <h1>{blocked ? 'Studio access is not available' : 'Your application is being reviewed'}</h1>
+          <h1>Studio access is not available</h1>
           <p className="muted">
-            Approved creators can enter the private TribeStudio workspace. Until then, you can review your
-            status, update permitted profile details and follow the official creator channel.
+            This account cannot publish to Indigen World at the moment. If you think that
+            is a mistake, reply on the official creator channel and the team will look
+            at it.
           </p>
           <dl className="success__meta">
             <div>
               <dt>Status</dt>
-              <dd><StatusPill status={String(status).toUpperCase()} labels={STATUS_LABELS} /></dd>
+              <dd><StatusPill status={status} labels={STATUS_LABELS} /></dd>
             </div>
             {application?.reference || profile?.reference ? (
               <div>
@@ -160,17 +171,11 @@ function ApplicationStatusGate({ children, path }: { children: ReactNode; path: 
             ) : null}
           </dl>
           <div className="success__actions">
-            {!application && !profile ? (
-              <Link to="/creators/join" className="button button--primary">Join the waitlist</Link>
-            ) : (
-              <Link to="/studio/profile" className="button button--ghost-dark">Update profile details</Link>
-            )}
             <button type="button" className="button button--ghost-dark" onClick={() => void refreshToken()}>
               Refresh access
             </button>
           </div>
           <WhatsAppCard url={whatsappUrl} compact />
-          <p className="tiny">Submitting the waitlist form does not automatically grant creator access.</p>
         </section>
       </div>
     </PublicLayout>
@@ -241,7 +246,7 @@ function Routed() {
       );
     }
     return (
-      <ApplicationStatusGate path={path}>
+      <ApplicationStatusGate>
         <StudioLayout>{renderStudio(path)}</StudioLayout>
       </ApplicationStatusGate>
     );

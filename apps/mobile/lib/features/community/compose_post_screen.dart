@@ -16,17 +16,21 @@ import 'package:indigen_world_mobile/features/community/widgets/people_widgets.d
 /// Attachments are staged locally and only uploaded when the member publishes,
 /// so backing out of the screen never leaves orphaned files in Storage.
 class ComposePostScreen extends ConsumerStatefulWidget {
-  const ComposePostScreen({this.replyTo, super.key});
+  const ComposePostScreen({this.replyTo, this.initialText = '', super.key});
 
   /// When set, the composer publishes a reply threaded under this post.
   final CommunityPost? replyTo;
+
+  /// Seeds the field — used when another screen sends somebody here with
+  /// something to say, so they land on a draft rather than a blank page.
+  final String initialText;
 
   @override
   ConsumerState<ComposePostScreen> createState() => _ComposePostScreenState();
 }
 
 class _ComposePostScreenState extends ConsumerState<ComposePostScreen> {
-  final _controller = TextEditingController();
+  late final _controller = TextEditingController(text: widget.initialText);
   final _attachments = <PendingUpload>[];
 
   var _kasemConfirmed = false;

@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/features/home/home_screen.dart';
+import 'package:indigen_world_mobile/features/kawuri/kawuri_fab.dart';
 import 'package:indigen_world_mobile/shared/app_widgets.dart';
+import 'package:indigen_world_mobile/shared/frosted_nav_bar.dart';
 
 class LearnScreen extends StatefulWidget {
   const LearnScreen({super.key});
@@ -25,64 +27,73 @@ class _LearnScreenState extends State<LearnScreen> {
   }
 
   @override
-  Widget build(BuildContext context) => ScreenContainer(
-    child: CustomScrollView(
-      key: const PageStorageKey('learn-path-scroll'),
-      slivers: [
-        SliverToBoxAdapter(
-          child: _LearnHeader(
-            xp: _xp,
-            completed: _completedLessons.length,
-            streakClaimed: _streakClaimed,
-            onClaimStreak: _claimStreak,
-            onOpenDictionary: _openDictionary,
-          ),
-        ),
-        SliverPadding(
-          padding: const EdgeInsets.fromLTRB(20, 6, 20, 120),
-          sliver: SliverList.list(
-            children: [
-              _DailyQuestCard(
-                completed: _completedLessons.length,
-                onTap: () => _openLesson(_nextLesson),
-              ),
-              const SizedBox(height: 26),
-              const _UnitBanner(
-                unit: 'UNIT 1',
-                title: 'Start a conversation',
-                subtitle: 'Greetings, introductions and everyday courtesy',
-                color: BrandColors.heritageGreen,
-              ),
-              const SizedBox(height: 18),
-              for (var index = 0; index < _lessons.length; index++) ...[
-                _LessonPathNode(
-                  lesson: _lessons[index],
-                  index: index,
-                  completed: _completedLessons.contains(index),
-                  unlocked: index <= _nextLesson,
-                  current: index == _nextLesson,
-                  onTap: () => _openLesson(index),
-                ),
-                if (index != _lessons.length - 1)
-                  _PathConnector(
-                    alignRight: index.isEven,
-                    active: index < _nextLesson,
-                  ),
-              ],
-              const SizedBox(height: 24),
-              const _UnitBanner(
-                unit: 'UNIT 2 · COMING NEXT',
-                title: 'People and places',
-                subtitle: 'Family, market, home and finding your way',
-                color: BrandColors.terracotta,
-              ),
-              const SizedBox(height: 14),
-              const _LockedUnitPreview(),
-            ],
-          ),
-        ),
-      ],
+  Widget build(BuildContext context) => Scaffold(
+    backgroundColor: Colors.transparent,
+    // Lifted clear of the shell's floating glass rail, which the body extends
+    // behind.
+    floatingActionButton: const Padding(
+      padding: EdgeInsets.only(bottom: kFrostedNavBarReservedSpace - 26),
+      child: KawuriFab(),
     ),
+    body: ScreenContainer(child: _path()),
+  );
+
+  Widget _path() => CustomScrollView(
+    key: const PageStorageKey('learn-path-scroll'),
+    slivers: [
+      SliverToBoxAdapter(
+        child: _LearnHeader(
+          xp: _xp,
+          completed: _completedLessons.length,
+          streakClaimed: _streakClaimed,
+          onClaimStreak: _claimStreak,
+          onOpenDictionary: _openDictionary,
+        ),
+      ),
+      SliverPadding(
+        padding: const EdgeInsets.fromLTRB(20, 6, 20, 120),
+        sliver: SliverList.list(
+          children: [
+            _DailyQuestCard(
+              completed: _completedLessons.length,
+              onTap: () => _openLesson(_nextLesson),
+            ),
+            const SizedBox(height: 26),
+            const _UnitBanner(
+              unit: 'UNIT 1',
+              title: 'Start a conversation',
+              subtitle: 'Greetings, introductions and everyday courtesy',
+              color: BrandColors.heritageGreen,
+            ),
+            const SizedBox(height: 18),
+            for (var index = 0; index < _lessons.length; index++) ...[
+              _LessonPathNode(
+                lesson: _lessons[index],
+                index: index,
+                completed: _completedLessons.contains(index),
+                unlocked: index <= _nextLesson,
+                current: index == _nextLesson,
+                onTap: () => _openLesson(index),
+              ),
+              if (index != _lessons.length - 1)
+                _PathConnector(
+                  alignRight: index.isEven,
+                  active: index < _nextLesson,
+                ),
+            ],
+            const SizedBox(height: 24),
+            const _UnitBanner(
+              unit: 'UNIT 2 · COMING NEXT',
+              title: 'People and places',
+              subtitle: 'Family, market, home and finding your way',
+              color: BrandColors.terracotta,
+            ),
+            const SizedBox(height: 14),
+            const _LockedUnitPreview(),
+          ],
+        ),
+      ),
+    ],
   );
 
   void _claimStreak() {

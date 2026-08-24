@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/app_config.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
+import 'package:indigen_world_mobile/core/connectivity.dart';
 import 'package:indigen_world_mobile/core/firebase_ready.dart';
 import 'package:indigen_world_mobile/features/auth/auth_repository.dart';
 import 'package:indigen_world_mobile/features/auth/sign_in_sheet.dart';
@@ -15,6 +16,8 @@ import 'package:indigen_world_mobile/features/community/data/community_providers
 import 'package:indigen_world_mobile/features/community/edit_community_profile_screen.dart';
 import 'package:indigen_world_mobile/features/community/people_screen.dart';
 import 'package:indigen_world_mobile/features/community/saved_posts_screen.dart';
+import 'package:indigen_world_mobile/features/notifications/notifications_screen.dart';
+import 'package:indigen_world_mobile/features/notifications/push_messaging.dart';
 import 'package:indigen_world_mobile/features/settings/licences_screen.dart';
 import 'package:indigen_world_mobile/features/settings/policy_screen.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -28,7 +31,11 @@ final appVersionProvider = FutureProvider<String>((ref) async {
 
 /// The FCM topic community announcements are broadcast on.
 const _communityTopic = 'community-updates';
-const _notificationsPreferenceKey = 'indigen_world_community_alerts_v1';
+
+/// Shared with the push layer so the toggle and the registration agree on what
+/// the member chose. Two copies of this key meant settings could show "on"
+/// while no device was ever registered.
+const _notificationsPreferenceKey = pushAlertsPreferenceKey;
 
 /// Everything about the account, the community identity, privacy and the
 /// legal record — including licences.
@@ -59,31 +66,36 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   Future<void> _setAlerts(bool enabled) async {
-    if (!ref.read(firebaseReadyProvider)) {
-      _message('Community alerts need a connection to Indigen World.');
+    final block = ref.read(connectionBlockProvider);
+    if (block != null) {
+      _message(block.message);
       return;
     }
     setState(() => _updatingAlerts = true);
     try {
+      // Permission, device registration and the stored preference all move
+      // together — see setPushAlerts.
+      final granted = await setPushAlerts(ref, enabled: enabled);
+
+      // The broadcast topic is separate from per-member alerts: it carries
+      // project announcements rather than anything about you.
       final messaging = FirebaseMessaging.instance;
-      if (enabled) {
-        final settings = await messaging.requestPermission();
-        if (settings.authorizationStatus == AuthorizationStatus.denied) {
-          if (mounted) setState(() => _updatingAlerts = false);
-          _message('Notifications are turned off in your device settings.');
-          return;
-        }
+      if (granted) {
         await messaging.subscribeToTopic(_communityTopic);
       } else {
         await messaging.unsubscribeFromTopic(_communityTopic);
       }
-      final preferences = await SharedPreferences.getInstance();
-      await preferences.setBool(_notificationsPreferenceKey, enabled);
+
       if (!mounted) return;
       setState(() {
-        _alertsEnabled = enabled;
+        _alertsEnabled = granted;
         _updatingAlerts = false;
       });
+      if (enabled && !granted) {
+        _message(
+          'Notifications are turned off for Indigen in your device settings.',
+        );
+      }
     } on Object {
       if (!mounted) return;
       setState(() => _updatingAlerts = false);
@@ -224,19 +236,30 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           const SizedBox(height: 9),
           _SettingsGroup(
             children: [
+              _SettingsRow(
+                icon: Icons.notifications_none_rounded,
+                title: 'Notifications',
+                subtitle: 'Likes, replies, follows, mentions and new releases',
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (context) => const NotificationsScreen(),
+                  ),
+                ),
+              ),
               SwitchListTile.adaptive(
                 secondary: const Icon(
-                  Icons.notifications_none_rounded,
+                  Icons.campaign_outlined,
                   color: BrandColors.heritageGreen,
                 ),
                 title: const Text(
-                  'Community announcements',
+                  'Push alerts on this device',
                   style: TextStyle(fontWeight: FontWeight.w700),
                 ),
                 subtitle: Text(
                   _alertsEnabled == null
                       ? 'Loading your choice…'
-                      : 'Project news and validated-content releases',
+                      : 'Alerts reach your lock screen. Everything still '
+                            'appears in the app either way.',
                 ),
                 value: _alertsEnabled ?? false,
                 onChanged: _alertsEnabled == null || _updatingAlerts
@@ -377,6 +400,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       ),
     );
     if (confirmed != true) return;
+    // Drop the push registration first, while the account is still signed in
+    // and the rules still allow deleting its own row.
+    await unregisterThisDevice(ref);
     await ref.read(authRepositoryProvider)?.signOut();
     if (mounted) _message('Signed out.');
   }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
+import 'package:indigen_world_mobile/core/connectivity.dart';
 import 'package:indigen_world_mobile/features/auth/auth_repository.dart';
 
 /// Opens the sign-in / create-account sheet. Resolves to `true` when the user
@@ -47,9 +48,13 @@ class _SignInSheetState extends ConsumerState<_SignInSheet> {
   Future<void> _run(Future<void> Function(AuthRepository repo) action) async {
     final repo = ref.read(authRepositoryProvider);
     if (repo == null) {
+      // Name the actual obstacle rather than blaming the connection: a member
+      // on full signal reading "you are offline" has no way to act on it.
+      final block = ref.read(connectionBlockProvider);
       setState(
-        () =>
-            _error = 'Sign-in is unavailable offline. Reconnect and try again.',
+        () => _error =
+            block?.message ??
+            'Sign-in is not available right now. Please try again shortly.',
       );
       return;
     }
@@ -63,6 +68,8 @@ class _SignInSheetState extends ConsumerState<_SignInSheet> {
     } on AuthCancelled {
       // User dismissed the provider flow — leave the sheet open, no error.
     } on AuthFailure catch (failure) {
+      // A dismissed account chooser is not a failure worth shouting about.
+      if (failure.wasCancelled) return;
       if (mounted) setState(() => _error = failure.message);
     } finally {
       if (mounted) setState(() => _busy = false);
