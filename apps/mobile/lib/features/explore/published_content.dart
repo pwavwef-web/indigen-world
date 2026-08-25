@@ -11,6 +11,7 @@ class PublishedReel {
     required this.id,
     required this.title,
     required this.creatorName,
+    this.creatorId = '',
     this.creatorAvatarUrl,
     this.mediaUrl,
     this.thumbnailUrl,
@@ -29,6 +30,13 @@ class PublishedReel {
   final String id;
   final String title;
   final String creatorName;
+
+  /// The creator's account id, carried on every published record by the
+  /// publication workflow. It is the same uid their community profile is keyed
+  /// by, which is what lets a viewer follow them or open their other work from
+  /// the reel they are watching.
+  final String creatorId;
+
   final String? creatorAvatarUrl;
 
   /// Public download URL of the approved media, or null while it is being
@@ -79,6 +87,7 @@ class PublishedReel {
         attribution['displayName'],
         fallback: 'Indigen World creator',
       ),
+      creatorId: _text(attribution['creatorId']),
       creatorAvatarUrl: _nullableText(attribution['avatarUrl']),
       mediaUrl: _nullableText(data['mediaUrl']),
       thumbnailUrl: _nullableText(data['thumbnailUrl']),
@@ -139,6 +148,49 @@ class PublishedContentRepository {
         snapshot.docs.map(PublishedReel.fromDoc).toList(growable: false),
   );
 
+  /// Everything one creator has published, newest first — the body of their
+  /// creator page.
+  Stream<List<PublishedReel>> watchCreatorWorks(String creatorId) => _firestore
+      .collection('publishedContent')
+      .where('publicationStatus', isEqualTo: 'published')
+      .where('creatorAttribution.creatorId', isEqualTo: creatorId)
+      .orderBy('publishedAt', descending: true)
+      .limit(60)
+      .snapshots()
+      .map(
+        (snapshot) =>
+            snapshot.docs.map(PublishedReel.fromDoc).toList(growable: false),
+      );
+
+  /// Published records by id, for the reels a member has kept.
+  Future<List<PublishedReel>> byIds(List<String> ids) async {
+    if (ids.isEmpty) return const [];
+    final chunks = <List<String>>[];
+    for (var index = 0; index < ids.length; index += 30) {
+      chunks.add(
+        ids.sublist(index, index + 30 > ids.length ? ids.length : index + 30),
+      );
+    }
+    final snapshots = await Future.wait(
+      chunks.map(
+        (chunk) => _firestore
+            .collection('publishedContent')
+            .where(FieldPath.documentId, whereIn: chunk)
+            .get(),
+      ),
+    );
+    final byId = <String, PublishedReel>{};
+    for (final snapshot in snapshots) {
+      for (final doc in snapshot.docs) {
+        byId[doc.id] = PublishedReel.fromDoc(doc);
+      }
+    }
+    return ids
+        .map((id) => byId[id])
+        .whereType<PublishedReel>()
+        .toList(growable: false);
+  }
+
   /// A complete Collection channel, independent of Explore's newest-30 feed.
   Stream<List<PublishedReel>> watchCollection(String collectionKind) =>
       _firestore
@@ -167,3 +219,14 @@ final publishedReelsProvider = StreamProvider<List<PublishedReel>>((ref) {
   if (repository == null) return Stream.value(const <PublishedReel>[]);
   return repository.watchFeed();
 });
+
+/// Everything one creator has published — the body of their creator page.
+final creatorWorksProvider = StreamProvider.family<List<PublishedReel>, String>(
+  (ref, creatorId) {
+    final repository = ref.watch(publishedContentRepositoryProvider);
+    if (repository == null || creatorId.isEmpty) {
+      return Stream.value(const <PublishedReel>[]);
+    }
+    return repository.watchCreatorWorks(creatorId);
+  },
+);

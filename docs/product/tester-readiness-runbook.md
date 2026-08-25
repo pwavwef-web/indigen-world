@@ -153,7 +153,7 @@ Build these on a machine with the pinned Flutter toolchain (see
 `apps/mobile/pubspec.yaml` for the Dart SDK constraint).
 
 1. **Native Firebase config:** download the Android `google-services.json` for
-   applicationId `world.indigen.mobile` from the Firebase console and place it at
+   applicationId `com.indigenworld.indigen` from the Firebase console and place it at
    `apps/mobile/android/app/google-services.json` (gitignored; the Gradle build
    auto-applies the plugin when present).
 2. **Upload keystore:** create one once and keep it safe.

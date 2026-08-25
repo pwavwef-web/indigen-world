@@ -90,7 +90,7 @@ class _EngagementList extends ConsumerWidget {
     final request = (postId: postId, kind: kind);
     final people = ref.watch(postEngagementProfilesProvider(request));
     return switch (people) {
-      AsyncData(:final value) when value.isEmpty => CommunityEmptyState(
+      AsyncValue(:final value?) when value.isEmpty => CommunityEmptyState(
         icon: switch (kind) {
           CommunityEngagementKind.views => Icons.visibility_outlined,
           CommunityEngagementKind.appreciations =>
@@ -106,7 +106,7 @@ class _EngagementList extends ConsumerWidget {
             ? 'Some older engagement predates the audience ledger.'
             : 'Engagement will appear here as the community responds.',
       ),
-      AsyncData(:final value) => ListView.separated(
+      AsyncValue(:final value?) => ListView.separated(
         padding: const EdgeInsets.fromLTRB(16, 14, 16, 32),
         itemCount: value.length,
         separatorBuilder: (_, _) => const Divider(height: 1),
@@ -122,7 +122,7 @@ class _EngagementList extends ConsumerWidget {
           );
         },
       ),
-      AsyncError() => const CommunityEmptyState(
+      AsyncValue(hasError: true) => const CommunityEmptyState(
         icon: Icons.cloud_off_rounded,
         title: 'Engagement unavailable',
         message: 'Check your connection and try again.',

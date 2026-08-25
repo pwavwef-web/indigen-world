@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
+import 'package:indigen_world_mobile/features/community/chat_screen.dart';
 import 'package:indigen_world_mobile/features/community/community_actions.dart';
 import 'package:indigen_world_mobile/features/community/data/community_models.dart';
 import 'package:indigen_world_mobile/features/community/data/community_providers.dart';
@@ -35,13 +36,14 @@ class _CommunityProfileScreenState
 
     return Scaffold(
       body: switch (profileState) {
-        AsyncData() when profile == null => const _MissingProfile(),
-        AsyncData() => _ProfileBody(
+        AsyncValue(hasValue: true) when profile == null =>
+          const _MissingProfile(),
+        AsyncValue(hasValue: true) => _ProfileBody(
           profile: profile!,
           tab: _tab,
           onTabChanged: (value) => setState(() => _tab = value),
         ),
-        AsyncError() => Scaffold(
+        AsyncValue(hasError: true) => Scaffold(
           appBar: AppBar(),
           body: const CommunityEmptyState(
             icon: Icons.cloud_off_rounded,
@@ -211,8 +213,22 @@ class _ProfileHeader extends ConsumerWidget {
                   icon: const Icon(Icons.edit_outlined, size: 16),
                   label: const Text('Edit profile'),
                 )
-              else
+              else ...[
+                // A profile you cannot write to is a wall of numbers. The
+                // message button is the one action that turns reading about
+                // somebody into talking to them.
+                IconButton.outlined(
+                  tooltip: 'Message ${profile.displayName}',
+                  onPressed: () => openChatWith(context, ref, profile),
+                  style: IconButton.styleFrom(
+                    minimumSize: const Size(44, 44),
+                    foregroundColor: BrandColors.heritageGreen,
+                  ),
+                  icon: const Icon(Icons.mail_outline_rounded, size: 19),
+                ),
+                const SizedBox(width: 8),
                 FollowButton(targetUid: profile.uid),
+              ],
             ],
           ),
           Transform.translate(
@@ -480,7 +496,7 @@ class _ProfileTabContent extends ConsumerWidget {
     final currentUid = ref.watch(currentUidProvider);
 
     return switch (posts) {
-      AsyncData(:final value) when value.isEmpty => ListView(
+      AsyncValue(:final value?) when value.isEmpty => ListView(
         children: [
           CommunityEmptyState(
             icon: Icons.inbox_outlined,
@@ -494,7 +510,7 @@ class _ProfileTabContent extends ConsumerWidget {
           ),
         ],
       ),
-      AsyncData(:final value) => ListView.separated(
+      AsyncValue(:final value?) => ListView.separated(
         padding: const EdgeInsets.fromLTRB(16, 14, 16, 40),
         itemCount: value.length,
         separatorBuilder: (context, index) => const SizedBox(height: 12),
@@ -543,7 +559,7 @@ class _ProfileTabContent extends ConsumerWidget {
           );
         },
       ),
-      AsyncError() => ListView(
+      AsyncValue(hasError: true) => ListView(
         children: const [
           CommunityEmptyState(
             icon: Icons.cloud_off_rounded,

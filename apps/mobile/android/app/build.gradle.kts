@@ -34,6 +34,7 @@ if (hasFirebaseConfig) {
 android {
     namespace = "world.indigen.mobile"
     compileSdk = flutter.compileSdkVersion
+    ndkVersion = "28.2.13676358"
 
     buildFeatures {
         resValues = true
@@ -95,6 +96,9 @@ android {
         }
         create("production") {
             dimension = "environment"
+            // Google Play created the production listing with this immutable ID.
+            // Keep the namespace and non-production flavor IDs unchanged.
+            applicationId = "com.indigenworld.indigen"
             resValue("string", "app_name", "Indigen")
         }
     }

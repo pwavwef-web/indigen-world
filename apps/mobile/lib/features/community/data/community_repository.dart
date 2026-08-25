@@ -3,7 +3,14 @@ import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/foundation.dart';
 import 'package:indigen_world_mobile/features/community/data/community_models.dart';
+
+/// Posts whose impression this session has already committed.
+///
+/// The repository is a `const` value handed out fresh by its provider, and the
+/// point of the set is to outlive any one instance.
+final Set<String> _countedCommunityViews = <String>{};
 
 /// A community action that failed for a reason worth showing the member.
 class CommunityFailure implements Exception {
@@ -14,6 +21,15 @@ class CommunityFailure implements Exception {
   String toString() => message;
 }
 
+/// Whether [error] is Firestore saying the community backend is not ready yet:
+/// a security rule that has not been deployed, or a query whose index has not
+/// been built. Both are ours to fix, and neither has anything to do with the
+/// member's connection — so nothing that reads this should tell them to check
+/// their signal.
+bool isCommunityBackendPending(Object error) =>
+    error is FirebaseException &&
+    (error.code == 'permission-denied' || error.code == 'failed-precondition');
+
 /// A staged attachment that has been chosen on the device but not uploaded yet.
 class PendingUpload {
   const PendingUpload({
@@ -22,6 +38,7 @@ class PendingUpload {
     this.isAudio = false,
     this.aspectRatio = 4 / 3,
     this.durationSeconds,
+    this.posterPath,
   });
 
   final String path;
@@ -29,6 +46,11 @@ class PendingUpload {
   final bool isAudio;
   final double aspectRatio;
   final int? durationSeconds;
+
+  /// A still frame written to a temporary file when the clip was chosen, to be
+  /// uploaded alongside it as the video's cover. Null when the device could not
+  /// decode one — the feed falls back to reading a frame off the clip itself.
+  final String? posterPath;
 
   String get mediaType => isAudio ? 'audio' : (isVideo ? 'video' : 'image');
 
@@ -305,6 +327,13 @@ class CommunityRepository {
   /// SRC uses. A reshare never becomes a second post: likes, replies, views and
   /// saves still target the original, while the activity label identifies the
   /// member who brought it into the feed.
+  ///
+  /// The two listeners are deliberately unequal. Posts are the product, so only
+  /// they may fail the stream — and only before a page has reached the screen,
+  /// because Firestore reconnects on its own and a reader would rather keep a
+  /// slightly stale feed than watch it be replaced by an error card. Reshares
+  /// are an enhancement laid over the top: if that collection is unreadable the
+  /// member still reads the feed and one line lands in the log.
   Stream<List<CommunityPost>> _watchFeedWithReposts({
     required Query<Map<String, dynamic>> postQuery,
     required Query<Map<String, dynamic>> repostQuery,
@@ -316,57 +345,109 @@ class CommunityRepository {
     var posts = const <CommunityPost>[];
     var reposts = const <_CommunityRepost>[];
     var revision = 0;
+    var postsArrived = false;
+    var deliveredPosts = false;
+    var reshareFailureLogged = false;
+
+    // The listener retries behind our back, so one line per stream is enough to
+    // name the cause; repeating it every attempt would only bury it.
+    void noteReshareFailure(Object error) {
+      if (reshareFailureLogged) return;
+      reshareFailureLogged = true;
+      debugPrint('Community reshares unavailable, showing posts only: $error');
+    }
 
     Future<void> emit() async {
+      // The posts listener defines the page. Emitting before its first snapshot
+      // would flash an empty feed at a member whose posts are milliseconds
+      // away.
+      if (!postsArrived) return;
       final currentRevision = ++revision;
-      final canonical = {for (final post in posts) post.id: post};
-      final missing = reposts
-          .map((edge) => edge.postId)
-          .where((id) => !canonical.containsKey(id))
-          .toSet()
-          .toList(growable: false);
-      if (missing.isNotEmpty) {
-        for (final post in await postsByIds(missing)) {
-          canonical[post.id] = post;
+      var combined = <CommunityPost>[...posts];
+      try {
+        final canonical = {for (final post in posts) post.id: post};
+        final missing = reposts
+            .map((edge) => edge.postId)
+            .where((id) => !canonical.containsKey(id))
+            .toSet()
+            .toList(growable: false);
+        if (missing.isNotEmpty) {
+          for (final post in await postsByIds(missing)) {
+            canonical[post.id] = post;
+          }
         }
+        for (final edge in reposts) {
+          final post = canonical[edge.postId];
+          if (post == null) continue;
+          combined.add(
+            post.withReshare(
+              uid: edge.reposterId,
+              displayName: edge.displayName,
+              username: edge.username,
+              avatarUrl: edge.avatarUrl,
+              createdAt: edge.createdAt,
+            ),
+          );
+        }
+        combined.sort((left, right) {
+          final a =
+              left.feedTimestamp ?? DateTime.fromMillisecondsSinceEpoch(0);
+          final b =
+              right.feedTimestamp ?? DateTime.fromMillisecondsSinceEpoch(0);
+          return b.compareTo(a);
+        });
+      } on Object catch (error) {
+        // This runs unawaited from the listeners, so a throw would escape as an
+        // unhandled async error. Resolving the reshared originals is the only
+        // thing in here that can fail: drop the reshares and deliver the posts
+        // we already hold.
+        noteReshareFailure(error);
+        combined = [...posts];
       }
       if (currentRevision != revision || controller.isClosed) return;
 
-      final combined = <CommunityPost>[...posts];
-      for (final edge in reposts) {
-        final post = canonical[edge.postId];
-        if (post == null) continue;
-        combined.add(
-          post.withReshare(
-            uid: edge.reposterId,
-            displayName: edge.displayName,
-            username: edge.username,
-            avatarUrl: edge.avatarUrl,
-            createdAt: edge.createdAt,
-          ),
-        );
-      }
-      combined.sort((left, right) {
-        final a = left.feedTimestamp ?? DateTime.fromMillisecondsSinceEpoch(0);
-        final b = right.feedTimestamp ?? DateTime.fromMillisecondsSinceEpoch(0);
-        return b.compareTo(a);
-      });
-      controller.add(combined.take(limit).toList(growable: false));
+      final page = combined.take(limit).toList(growable: false);
+      if (page.isNotEmpty) deliveredPosts = true;
+      controller.add(page);
     }
 
     controller = StreamController<List<CommunityPost>>(
       onListen: () {
-        postSubscription = postQuery.snapshots().listen((snapshot) {
-          posts = _mapPosts(snapshot);
-          unawaited(emit());
-        }, onError: controller.addError);
-        repostSubscription = repostQuery.snapshots().listen((snapshot) {
-          reposts = snapshot.docs
-              .map(_CommunityRepost.fromDoc)
-              .whereType<_CommunityRepost>()
-              .toList(growable: false);
-          unawaited(emit());
-        }, onError: controller.addError);
+        postSubscription = postQuery.snapshots().listen(
+          (snapshot) {
+            posts = _mapPosts(snapshot);
+            postsArrived = true;
+            unawaited(emit());
+          },
+          onError: (Object error) {
+            if (controller.isClosed) return;
+            if (deliveredPosts) {
+              // The screen never learns about this one, so the log is the only
+              // place it can be diagnosed.
+              debugPrint(
+                'Community feed listen failed, keeping the last page: $error',
+              );
+              return;
+            }
+            controller.addError(error);
+          },
+        );
+        repostSubscription = repostQuery.snapshots().listen(
+          (snapshot) {
+            reposts = snapshot.docs
+                .map(_CommunityRepost.fromDoc)
+                .whereType<_CommunityRepost>()
+                .toList(growable: false);
+            unawaited(emit());
+          },
+          onError: (Object error) {
+            // A reshare rule or index that is not in place yet must never take
+            // the feed down with it.
+            noteReshareFailure(error);
+            reposts = const [];
+            unawaited(emit());
+          },
+        );
       },
       onCancel: () async {
         await postSubscription?.cancel();
@@ -695,24 +776,41 @@ class CommunityRepository {
 
   /// Records one unique signed-in viewer. The edge and public counter move in
   /// the same commit, so retries and rebuilds cannot inflate the number.
-  Future<void> trackView({required String uid, required String postId}) async {
+  ///
+  /// A view is a number on a card, so nothing in here is worth interrupting a
+  /// reader for: every failure is swallowed. Returns `false` only when the
+  /// backend refused the write outright, which tells the caller it can stop
+  /// asking for the rest of the session.
+  Future<bool> trackView({required String uid, required String postId}) async {
+    // The card and the detail screen both report the same impression, and a
+    // scroll back up reports it again. Remembering what this session already
+    // counted keeps all of that off the network entirely.
+    if (!_countedCommunityViews.add(postId)) return true;
     final edge = _views.doc(edgeId(uid, postId));
-    if ((await edge.get()).exists) return;
-    final batch = _firestore.batch()
-      ..set(edge, {
-        'viewerId': uid,
-        'postId': postId,
-        'createdAt': FieldValue.serverTimestamp(),
-      })
-      ..update(_posts.doc(postId), {'viewCount': FieldValue.increment(1)});
     try {
-      await batch.commit();
-    } on FirebaseException catch (error) {
-      // A concurrent card/detail impression can win this race. If the edge now
-      // exists the view was counted correctly; otherwise surface the failure.
-      if (!(await edge.get()).exists) {
-        throw CommunityFailure(_storageMessage(error));
+      // An earlier session may already have counted this one. Reading the edge
+      // is only an optimisation: a rule that refuses to hand back a missing
+      // document must not stop us from writing the one that is missing, so a
+      // failure here falls through to the commit, which is the real check.
+      try {
+        if ((await edge.get()).exists) return true;
+      } on FirebaseException {
+        // Fall through and let the write decide.
       }
+      final batch = _firestore.batch()
+        ..set(edge, {
+          'viewerId': uid,
+          'postId': postId,
+          'createdAt': FieldValue.serverTimestamp(),
+        })
+        ..update(_posts.doc(postId), {'viewCount': FieldValue.increment(1)});
+      await batch.commit();
+      return true;
+    } on FirebaseException catch (error) {
+      // Losing the race, or a post deleted while it sat on screen, is worth no
+      // words at all — only an outright refusal is worth remembering.
+      _countedCommunityViews.remove(postId);
+      return !isCommunityBackendPending(error);
     }
   }
 
@@ -1030,9 +1128,16 @@ class CommunityRepository {
   }) async {
     if (attachments.isEmpty) return const [];
     final uploaded = <CommunityMedia>[];
+    // Poster frames are not [CommunityMedia] of their own, so they need their
+    // own list to be cleaned up if the post is rolled back.
+    final posters = <String>[];
+    // Which attachment the loop is on, so a failure can be reported in terms
+    // of the file that actually caused it rather than as "an upload failed".
+    PendingUpload? failing;
     try {
       for (var index = 0; index < attachments.length; index++) {
         final attachment = attachments[index];
+        failing = attachment;
         final file = File(attachment.path);
         final length = await file.length();
         final ceiling = attachment.isAudio
@@ -1069,11 +1174,19 @@ class CommunityRepository {
           );
         }
         await task;
+        final poster = await _uploadPoster(
+          attachment: attachment,
+          uid: uid,
+          postId: postId,
+          index: index,
+        );
+        if (poster != null) posters.add(poster.storagePath);
         uploaded.add(
           CommunityMedia(
             url: await reference.getDownloadURL(),
             type: attachment.mediaType,
             storagePath: reference.fullPath,
+            thumbnailUrl: poster?.url,
             aspectRatio: attachment.aspectRatio,
             durationSeconds: attachment.durationSeconds,
           ),
@@ -1081,20 +1194,73 @@ class CommunityRepository {
       }
     } on FirebaseException catch (error) {
       await _deleteMedia(uploaded);
-      throw CommunityFailure(_storageMessage(error));
+      await _deletePaths(posters);
+      final attachment = failing;
+      // The member gets a sentence they can act on; the log gets the three
+      // facts that identify the rule which refused the write.
+      debugPrint(
+        'Community upload refused (${error.code}): '
+        'type=${attachment?.contentType}, '
+        'path=community-media/$uid/$postId/, '
+        'message=${error.message}',
+      );
+      throw CommunityFailure(
+        attachment == null
+            ? _storageMessage(error)
+            : _uploadMessage(error, attachment),
+      );
     } on CommunityFailure {
       await _deleteMedia(uploaded);
+      await _deletePaths(posters);
       rethrow;
     }
     onProgress?.call(1);
     return uploaded;
   }
 
+  /// Uploads the still frame captured for a clip when it was chosen.
+  ///
+  /// A cover is decoration, so this never fails a post: without it the feed
+  /// falls back to opening the clip and reading a frame, which is what it did
+  /// before covers existed. Returns null whenever there is nothing to show.
+  Future<({String url, String storagePath})?> _uploadPoster({
+    required PendingUpload attachment,
+    required String uid,
+    required String postId,
+    required int index,
+  }) async {
+    final posterPath = attachment.posterPath;
+    if (!attachment.isVideo || posterPath == null) return null;
+    try {
+      final file = File(posterPath);
+      if (!await file.exists()) return null;
+      final reference = _storage.ref(
+        'community-media/$uid/$postId/${index}_poster.jpg',
+      );
+      await reference.putFile(
+        file,
+        SettableMetadata(contentType: 'image/jpeg'),
+      );
+      return (
+        url: await reference.getDownloadURL(),
+        storagePath: reference.fullPath,
+      );
+    } on Object {
+      return null;
+    }
+  }
+
   Future<void> _deleteMedia(List<CommunityMedia> media) async {
-    for (final item in media) {
-      if (item.storagePath.isEmpty) continue;
+    await _deletePaths([
+      for (final item in media)
+        if (item.storagePath.isNotEmpty) item.storagePath,
+    ]);
+  }
+
+  Future<void> _deletePaths(List<String> paths) async {
+    for (final path in paths) {
       try {
-        await _storage.ref(item.storagePath).delete();
+        await _storage.ref(path).delete();
       } on FirebaseException {
         // Already gone, or no longer ours to remove.
       }
@@ -1114,6 +1280,36 @@ class CommunityRepository {
       'Network problem. Check your connection and try again.',
     _ => error.message ?? 'Something went wrong. Please try again.',
   };
+
+  /// What to tell a member whose *attachment* was refused, as opposed to their
+  /// post.
+  ///
+  /// These two failures used to share one sentence, and it was the wrong one
+  /// for uploads. A refused voice note is a Storage rule that has not been
+  /// deployed — the member's community profile is fine, and sending them to go
+  /// and look at it is a wild goose chase they cannot end. Storage says
+  /// `unauthorized` where Firestore says `permission-denied`, so the two are
+  /// distinguishable; the media type is named because it is the part that
+  /// tells whoever reads the report which rule to look at.
+  String _uploadMessage(FirebaseException error, PendingUpload attachment) {
+    final kind = switch (attachment.mediaType) {
+      'audio' => 'Voice notes',
+      'video' => 'Videos',
+      _ => 'Photos',
+    };
+    return switch (error.code) {
+      'unauthorized' || 'permission-denied' =>
+        '$kind cannot be uploaded right now. This is a problem on our side, '
+            'not with your account — please report it and post without the '
+            'attachment for now.',
+      'unauthenticated' => 'Sign in to take part in the community.',
+      'canceled' => 'Upload cancelled.',
+      'quota-exceeded' => 'Storage is full. Please contact the project team.',
+      'unavailable' || 'network-request-failed' || 'retry-limit-exceeded' =>
+        'Network problem. Check your connection and try again.',
+      _ => error.message ?? 'That attachment could not be uploaded.',
+    };
+  }
 }
 
 class _CommunityRepost {

@@ -89,18 +89,19 @@ class _PeopleScreenState extends ConsumerState<PeopleScreen> {
             ),
           Expanded(
             child: switch (results) {
-              AsyncData(:final value) when value.isEmpty => CommunityEmptyState(
-                icon: searching
-                    ? Icons.person_search_outlined
-                    : Icons.groups_outlined,
-                title: searching ? 'No one found' : 'No members yet',
-                message: searching
-                    ? 'Try a different name or handle. Search matches the '
-                          'start of a name or handle.'
-                    : 'Members appear here as they join the community.',
-              ),
-              AsyncData(:final value) => _PeopleList(profiles: value),
-              AsyncError() => const CommunityEmptyState(
+              AsyncValue(:final value?) when value.isEmpty =>
+                CommunityEmptyState(
+                  icon: searching
+                      ? Icons.person_search_outlined
+                      : Icons.groups_outlined,
+                  title: searching ? 'No one found' : 'No members yet',
+                  message: searching
+                      ? 'Try a different name or handle. Search matches the '
+                            'start of a name or handle.'
+                      : 'Members appear here as they join the community.',
+                ),
+              AsyncValue(:final value?) => _PeopleList(profiles: value),
+              AsyncValue(hasError: true) => const CommunityEmptyState(
                 icon: Icons.cloud_off_rounded,
                 title: 'Search unavailable',
                 message: 'Check your connection and try again.',
@@ -137,7 +138,7 @@ class PeopleListScreen extends ConsumerWidget {
         ),
       ),
       body: switch (people) {
-        AsyncData(:final value) when value.isEmpty => CommunityEmptyState(
+        AsyncValue(:final value?) when value.isEmpty => CommunityEmptyState(
           icon: Icons.group_outlined,
           title: mode == PeopleListMode.followers
               ? 'No followers yet'
@@ -146,8 +147,8 @@ class PeopleListScreen extends ConsumerWidget {
               ? 'People who follow this member will be listed here.'
               : 'The people this member follows will be listed here.',
         ),
-        AsyncData(:final value) => _PeopleList(profiles: value),
-        AsyncError() => const CommunityEmptyState(
+        AsyncValue(:final value?) => _PeopleList(profiles: value),
+        AsyncValue(hasError: true) => const CommunityEmptyState(
           icon: Icons.cloud_off_rounded,
           title: 'Could not load',
           message: 'Check your connection and try again.',

@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
@@ -17,7 +19,8 @@ class CollectionScreen extends ConsumerWidget {
     final music = ref.watch(musicCollectionProvider);
     final literature = ref.watch(literatureCollectionProvider);
     final audiobooks = ref.watch(audiobookCollectionProvider);
-    final useSingleColumn = MediaQuery.textScalerOf(context).scale(1) > 1.1;
+    final textScale = MediaQuery.textScalerOf(context).scale(1);
+    final useSingleColumn = textScale > 1.1;
     final portals = <Widget>[
       _CollectionPortalCard(
         kind: CollectionKind.music,
@@ -89,15 +92,25 @@ class CollectionScreen extends ConsumerWidget {
                       separatorBuilder: (_, _) => const SizedBox(height: 12),
                       itemBuilder: (context, index) => portals[index],
                     )
-                  : SliverGrid(
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
-                            crossAxisSpacing: 12,
-                            mainAxisSpacing: 12,
-                            childAspectRatio: 0.74,
+                  // The tile height is measured, not guessed. A ratio of the
+                  // tile width re-decides how much room the caption gets every
+                  // time the device width or the text scale moves, and on a
+                  // 540-wide screen it decided seven pixels too few. Asking the
+                  // sliver how wide it actually is lets the height be stated in
+                  // logical pixels with the caption budgeted first.
+                  : SliverLayoutBuilder(
+                      builder: (context, constraints) => SliverGrid(
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          crossAxisSpacing: _portalGridGap,
+                          mainAxisSpacing: _portalGridGap,
+                          mainAxisExtent: _portalTileExtent(
+                            (constraints.crossAxisExtent - _portalGridGap) / 2,
+                            textScale,
                           ),
-                      delegate: SliverChildListDelegate.fixed(portals),
+                        ),
+                        delegate: SliverChildListDelegate.fixed(portals),
+                      ),
                     ),
             ),
             const SliverPadding(
@@ -269,101 +282,153 @@ class _CollectionPortalCard extends StatelessWidget {
   Widget build(BuildContext context) => CollectionCardSurface(
     semanticLabel: '${kind.label} collection',
     onTap: onTap,
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        AspectRatio(
-          aspectRatio: 4 / 3,
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      color.withValues(alpha: 0.08),
-                      color.withValues(alpha: 0.2),
-                    ],
-                  ),
-                ),
-                child: Icon(icon, color: color, size: 58),
-              ),
-              Positioned(
-                top: 10,
-                right: 10,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 9,
-                    vertical: 5,
-                  ),
-                  decoration: BoxDecoration(
-                    color: BrandColors.heritageGreen,
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Text(
-                    count == null ? '…' : '$count',
-                    style: const TextStyle(
-                      color: BrandColors.kenteGold,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                ),
-              ),
+    child: LayoutBuilder(
+      builder: (context, constraints) {
+        final artwork = _PortalArtwork(icon: icon, color: color, count: count);
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // The grid hands the card a tile of a stated height and the
+            // single-column fallback hands it none at all, so the card asks
+            // which it is rather than assuming. Given a height, the artwork
+            // takes whatever the caption leaves and the caption can never be
+            // pushed past the bottom edge; left free, the artwork keeps the
+            // 4:3 band the design was drawn around.
+            if (constraints.hasBoundedHeight)
+              Expanded(child: artwork)
+            else
+              AspectRatio(aspectRatio: 4 / 3, child: artwork),
+            _PortalCaption(
+              kind: kind,
+              color: color,
+              count: count,
+              description: description,
+            ),
+          ],
+        );
+      },
+    ),
+  );
+}
+
+class _PortalArtwork extends StatelessWidget {
+  const _PortalArtwork({
+    required this.icon,
+    required this.color,
+    required this.count,
+  });
+
+  final IconData icon;
+  final Color color;
+  final int? count;
+
+  @override
+  Widget build(BuildContext context) => Stack(
+    fit: StackFit.expand,
+    children: [
+      DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              color.withValues(alpha: 0.08),
+              color.withValues(alpha: 0.2),
             ],
           ),
         ),
-        Padding(
-          padding: const EdgeInsets.all(13),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                kind.label,
+        child: Icon(icon, color: color, size: 58),
+      ),
+      Positioned(
+        top: 10,
+        right: 10,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+          decoration: BoxDecoration(
+            color: BrandColors.heritageGreen,
+            borderRadius: BorderRadius.circular(999),
+          ),
+          child: Text(
+            count == null ? '…' : '$count',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: BrandColors.kenteGold,
+              fontSize: 11,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ),
+      ),
+    ],
+  );
+}
+
+/// The words under a portal's artwork. Every line here is capped, because this
+/// is the block whose height the tile is sized around: a title that wrapped or
+/// a fourth line of description would be height the artwork has already spent.
+class _PortalCaption extends StatelessWidget {
+  const _PortalCaption({
+    required this.kind,
+    required this.color,
+    required this.count,
+    required this.description,
+  });
+
+  final CollectionKind kind;
+  final Color color;
+  final int? count;
+  final String description;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.all(13),
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          kind.label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: Theme.of(context).textTheme.titleMedium,
+        ),
+        const SizedBox(height: 4),
+        Text(
+          description,
+          maxLines: 3,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            color: BrandColors.mutedInk,
+            fontSize: 11,
+            height: 1.3,
+          ),
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                count == null
+                    ? 'Loading…'
+                    : count == 0
+                    ? 'Open collection'
+                    : '$count published',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              const SizedBox(height: 4),
-              Text(
-                description,
-                maxLines: 3,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: BrandColors.mutedInk,
-                  fontSize: 11,
-                  height: 1.3,
+                style: TextStyle(
+                  color: color,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w900,
                 ),
               ),
-              const SizedBox(height: 10),
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      count == null
-                          ? 'Loading…'
-                          : count == 0
-                          ? 'Open collection'
-                          : '$count published',
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: color,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                  ),
-                  const Icon(
-                    Icons.north_east_rounded,
-                    color: BrandColors.mutedInk,
-                    size: 16,
-                  ),
-                ],
-              ),
-            ],
-          ),
+            ),
+            const Icon(
+              Icons.north_east_rounded,
+              color: BrandColors.mutedInk,
+              size: 16,
+            ),
+          ],
         ),
       ],
     ),
@@ -396,3 +461,24 @@ class _StewardshipNote extends StatelessWidget {
     ),
   );
 }
+
+/// The gap between portal tiles, shared by the grid delegate and the tile
+/// height arithmetic so the two can never drift apart.
+const _portalGridGap = 12.0;
+
+/// What a portal caption needs at the default text scale: 26 of padding, a
+/// 24px title line, 4, three 14.3px description lines, 10, and a footer row the
+/// 16px arrow holds open. That comes to 123; the rest is headroom for a font
+/// whose metrics run taller than the ones measured here.
+const _portalCaptionExtent = 132.0;
+
+/// The height of one portal tile, in logical pixels.
+///
+/// The caption is budgeted first and the artwork takes the remainder, which is
+/// the whole point: a caption sized against a tile whose height came from a
+/// width ratio is a caption that overflows the moment the device width or the
+/// text scale changes. The artwork asks for a 4:3 band on top of the caption
+/// but is never given so little that the glyph and the count badge crowd each
+/// other on a narrow phone.
+double _portalTileExtent(double tileWidth, double textScale) =>
+    _portalCaptionExtent * textScale + math.max(tileWidth * 3 / 4, 104.0);

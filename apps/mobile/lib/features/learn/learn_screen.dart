@@ -1,31 +1,23 @@
+import 'dart:ui' show PathMetric;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/features/collection/collection_detail_screens.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_fab.dart';
+import 'package:indigen_world_mobile/features/learn/learn_progress.dart';
 import 'package:indigen_world_mobile/shared/app_widgets.dart';
 import 'package:indigen_world_mobile/shared/frosted_nav_bar.dart';
 
-class LearnScreen extends StatefulWidget {
+class LearnScreen extends ConsumerStatefulWidget {
   const LearnScreen({super.key});
 
   @override
-  State<LearnScreen> createState() => _LearnScreenState();
+  ConsumerState<LearnScreen> createState() => _LearnScreenState();
 }
 
-class _LearnScreenState extends State<LearnScreen> {
-  final _completedLessons = <int>{};
-  var _streakClaimed = false;
-
-  int get _xp => _completedLessons.length * 15 + (_streakClaimed ? 5 : 0);
-
-  int get _nextLesson {
-    for (var index = 0; index < _lessons.length; index++) {
-      if (!_completedLessons.contains(index)) return index;
-    }
-    return _lessons.length - 1;
-  }
-
+class _LearnScreenState extends ConsumerState<LearnScreen> {
   @override
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: Colors.transparent,
@@ -38,73 +30,112 @@ class _LearnScreenState extends State<LearnScreen> {
     body: ScreenContainer(child: _path()),
   );
 
-  Widget _path() => CustomScrollView(
-    key: const PageStorageKey('learn-path-scroll'),
-    slivers: [
-      SliverToBoxAdapter(
-        child: _LearnHeader(
-          xp: _xp,
-          completed: _completedLessons.length,
-          streakClaimed: _streakClaimed,
-          onClaimStreak: _claimStreak,
-          onOpenDictionary: _openDictionary,
-        ),
-      ),
-      SliverPadding(
-        padding: const EdgeInsets.fromLTRB(20, 6, 20, 120),
-        sliver: SliverList.list(
-          children: [
-            _DailyQuestCard(
-              completed: _completedLessons.length,
-              onTap: () => _openLesson(_nextLesson),
-            ),
-            const SizedBox(height: 14),
-            _LearningMomentumCard(
-              completed: _completedLessons.length,
-              total: _lessons.length,
-            ),
-            const SizedBox(height: 26),
-            const _UnitBanner(
-              unit: 'UNIT 1',
-              title: 'Start a conversation',
-              subtitle: 'Greetings, introductions and everyday courtesy',
-              color: BrandColors.heritageGreen,
-            ),
-            const SizedBox(height: 18),
-            for (var index = 0; index < _lessons.length; index++) ...[
-              _LessonPathNode(
-                lesson: _lessons[index],
-                index: index,
-                completed: _completedLessons.contains(index),
-                unlocked: index <= _nextLesson,
-                current: index == _nextLesson,
-                onTap: () => _openLesson(index),
-              ),
-              if (index != _lessons.length - 1)
-                _PathConnector(
-                  alignRight: index.isEven,
-                  active: index < _nextLesson,
-                ),
-            ],
-            const SizedBox(height: 24),
-            const _UnitBanner(
-              unit: 'UNIT 2 · COMING NEXT',
-              title: 'People and places',
-              subtitle: 'Family, market, home and finding your way',
-              color: BrandColors.terracotta,
-            ),
-            const SizedBox(height: 14),
-            const _LockedUnitPreview(),
-          ],
-        ),
-      ),
-    ],
-  );
+  Widget _path() {
+    // Progress arrives from disk a frame or two after the screen does. An
+    // empty path beats a spinner here: the layout is identical either way, so
+    // the numbers fill themselves in rather than the whole tab blinking.
+    final progress =
+        ref.watch(learnProgressProvider).value ?? const LearnProgress();
+    final nextLesson = _nextLesson(progress);
+    final completed = _lessons
+        .where((lesson) => progress.hasCompleted(lesson.id))
+        .length;
 
-  void _claimStreak() {
-    if (_streakClaimed) return;
+    return CustomScrollView(
+      key: const PageStorageKey('learn-path-scroll'),
+      slivers: [
+        SliverToBoxAdapter(
+          child: _LearnHeader(
+            xp: progress.xp,
+            completed: completed,
+            streakClaimed: progress.sparkClaimedToday,
+            onClaimStreak: _claimStreak,
+            onOpenDictionary: _openDictionary,
+          ),
+        ),
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(20, 6, 20, 120),
+          sliver: SliverList.list(
+            children: [
+              _DailyQuestCard(
+                completed: completed,
+                onTap: () => _openLesson(nextLesson),
+              ),
+              const SizedBox(height: 14),
+              _LearningMomentumCard(
+                completed: completed,
+                total: _lessons.length,
+              ),
+              const SizedBox(height: 26),
+              const _UnitBanner(
+                unit: 'UNIT 1',
+                title: 'Start a conversation',
+                subtitle: 'Greetings, introductions and everyday courtesy',
+                color: BrandColors.heritageGreen,
+              ),
+              const SizedBox(height: 18),
+              for (var index = 0; index < _lessons.length; index++) ...[
+                _LessonPathNode(
+                  lesson: _lessons[index],
+                  index: index,
+                  completed: progress.hasCompleted(_lessons[index].id),
+                  unlocked: index <= nextLesson,
+                  current: index == nextLesson,
+                  onTap: () => _openLesson(index),
+                ),
+                if (index != _lessons.length - 1)
+                  _LessonRibbon(
+                    // Lessons alternate sides, so the segment always leaves the
+                    // side this lesson sits on and arrives at the other.
+                    startOnRight: index.isOdd,
+                    travelled: _travelled(progress, index),
+                    frontier: index + 1 == nextLesson,
+                  ),
+              ],
+              const SizedBox(height: 24),
+              const _UnitBanner(
+                unit: 'UNIT 2 · COMING NEXT',
+                title: 'People and places',
+                subtitle: 'Family, market, home and finding your way',
+                color: BrandColors.terracotta,
+              ),
+              const SizedBox(height: 14),
+              const _LockedUnitPreview(),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  int _nextLesson(LearnProgress progress) {
+    for (var index = 0; index < _lessons.length; index++) {
+      if (!progress.hasCompleted(_lessons[index].id)) return index;
+    }
+    return _lessons.length - 1;
+  }
+
+  /// How much of the ribbon below lesson [index] is gold.
+  ///
+  /// The segment that leads into the lesson the member is on stops part way,
+  /// so the trail visibly ends where they have actually got to rather than
+  /// running on ahead of them.
+  double _travelled(LearnProgress progress, int index) {
+    if (progress.hasCompleted(_lessons[index + 1].id)) return 1.0;
+    if (progress.hasCompleted(_lessons[index].id)) return 0.56;
+    return 0.0;
+  }
+
+  Future<void> _claimStreak() async {
+    final progress = ref.read(learnProgressProvider).value;
+    if (progress != null && progress.sparkClaimedToday) return;
     HapticFeedback.mediumImpact();
-    setState(() => _streakClaimed = true);
+    // The controller owns the calendar, so it has the final say on whether
+    // there was a spark left to claim today.
+    final claimed = await ref
+        .read(learnProgressProvider.notifier)
+        .claimStreak();
+    if (!claimed || !mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Daily spark claimed · +5 XP')),
     );
@@ -119,7 +150,9 @@ class _LearnScreenState extends State<LearnScreen> {
   }
 
   Future<void> _openLesson(int index) async {
-    if (index > _nextLesson) {
+    final progress =
+        ref.read(learnProgressProvider).value ?? const LearnProgress();
+    if (index > _nextLesson(progress)) {
       HapticFeedback.lightImpact();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -139,7 +172,9 @@ class _LearnScreenState extends State<LearnScreen> {
     );
     if (completed == true && mounted) {
       HapticFeedback.heavyImpact();
-      setState(() => _completedLessons.add(index));
+      await ref
+          .read(learnProgressProvider.notifier)
+          .completeLesson(_lessons[index].id);
     }
   }
 }
@@ -581,6 +616,12 @@ class _UnitBanner extends StatelessWidget {
   );
 }
 
+/// Size of a lesson button. The ribbon between two lessons reads its anchor
+/// off the width, so nudging the button never leaves the trail pointing at
+/// empty space beside it.
+const _lessonButtonWidth = 78.0;
+const _lessonButtonHeight = 72.0;
+
 class _LessonPathNode extends StatelessWidget {
   const _LessonPathNode({
     required this.lesson,
@@ -708,8 +749,8 @@ class _BouncyLessonButtonState extends State<_BouncyLessonButton> {
         duration: const Duration(milliseconds: 140),
         curve: Curves.easeOutBack,
         child: Container(
-          width: 78,
-          height: 72,
+          width: _lessonButtonWidth,
+          height: _lessonButtonHeight,
           decoration: BoxDecoration(
             color: color,
             shape: BoxShape.circle,
@@ -733,27 +774,222 @@ class _BouncyLessonButtonState extends State<_BouncyLessonButton> {
   }
 }
 
-class _PathConnector extends StatelessWidget {
-  const _PathConnector({required this.alignRight, required this.active});
+/// Vertical room one ribbon segment gets. A straight bar needed almost none;
+/// a curve needs enough height to be a curve rather than a kink.
+const _ribbonHeight = 64.0;
 
-  final bool alignRight;
-  final bool active;
+/// How far the ribbon swings past a lesson before crossing to the next one.
+/// Wide enough that four segments read as one winding trail, narrow enough
+/// that the curve never leaves its own box.
+const _ribbonBow = 26.0;
+
+/// Spacing of the beads threaded along the ribbon.
+const _ribbonBeadSpacing = 16.0;
+
+/// The trail between two lessons.
+///
+/// Lessons alternate sides of the page, and this is the ribbon that joins
+/// them: it leaves the bottom of one button, bows away from that side, then
+/// crosses and arrives at the top of the next. Consecutive segments bow
+/// opposite ways, so the whole unit spirals down the page as one path rather
+/// than a column of disconnected hops.
+class _LessonRibbon extends StatefulWidget {
+  const _LessonRibbon({
+    required this.startOnRight,
+    required this.travelled,
+    required this.frontier,
+  });
+
+  /// Side the lesson above sits on. The one below sits on the other.
+  final bool startOnRight;
+
+  /// How much of this segment the member has walked, 0 to 1.
+  final double travelled;
+
+  /// True for the single segment that leads into the lesson they are on now.
+  final bool frontier;
 
   @override
-  Widget build(BuildContext context) => Align(
-    alignment: alignRight
-        ? const Alignment(0.38, 0)
-        : const Alignment(-0.38, 0),
-    child: Container(
-      width: 4,
-      height: 34,
-      margin: const EdgeInsets.symmetric(vertical: 2),
-      decoration: BoxDecoration(
-        color: active ? BrandColors.kenteGold : BrandColors.divider,
-        borderRadius: BorderRadius.circular(999),
+  State<_LessonRibbon> createState() => _LessonRibbonState();
+}
+
+class _LessonRibbonState extends State<_LessonRibbon>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _breath = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 2600),
+  );
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _syncBreath();
+  }
+
+  @override
+  void didUpdateWidget(covariant _LessonRibbon oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.frontier != widget.frontier) _syncBreath();
+  }
+
+  @override
+  void dispose() {
+    _breath.dispose();
+    super.dispose();
+  }
+
+  /// Only the frontier breathes, and only when the member has not asked the
+  /// system to hold animation still. Everywhere else the ribbon is a still
+  /// drawing, which costs nothing to leave on screen.
+  void _syncBreath() {
+    final animate =
+        widget.frontier &&
+        !MediaQuery.disableAnimationsOf(context) &&
+        !MediaQuery.accessibleNavigationOf(context);
+    if (animate) {
+      if (!_breath.isAnimating) _breath.repeat(reverse: true);
+    } else if (_breath.isAnimating || _breath.value != 0) {
+      _breath
+        ..stop()
+        ..value = 0;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => ExcludeSemantics(
+    // Pure decoration. A screen reader should hear four lessons, not three
+    // descriptions of a squiggle between them.
+    child: RepaintBoundary(
+      child: AnimatedBuilder(
+        animation: _breath,
+        builder: (context, _) => CustomPaint(
+          size: const Size(double.infinity, _ribbonHeight),
+          painter: _LessonRibbonPainter(
+            startOnRight: widget.startOnRight,
+            travelled: widget.travelled,
+            glow: widget.frontier
+                ? Curves.easeInOut.transform(_breath.value)
+                : 0.0,
+          ),
+        ),
       ),
     ),
   );
+}
+
+class _LessonRibbonPainter extends CustomPainter {
+  const _LessonRibbonPainter({
+    required this.startOnRight,
+    required this.travelled,
+    required this.glow,
+  });
+
+  final bool startOnRight;
+  final double travelled;
+
+  /// Breath on the frontier segment, 0 when the trail is standing still.
+  final double glow;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    // The trail meets each button dead centre. Taking the anchor from the
+    // button width means the two cannot drift apart.
+    final anchor = _lessonButtonWidth / 2;
+    final startX = startOnRight ? size.width - anchor : anchor;
+    final endX = startOnRight ? anchor : size.width - anchor;
+    final outward = startOnRight ? _ribbonBow : -_ribbonBow;
+
+    final ribbon = Path()
+      ..moveTo(startX, 0)
+      ..cubicTo(
+        startX + outward,
+        size.height * 0.34,
+        endX - outward,
+        size.height * 0.66,
+        endX,
+        size.height,
+      );
+
+    // A wide, barely-there green underneath — the same warm shadow the cards
+    // carry, so the ribbon rests on the page instead of floating over it.
+    canvas.drawPath(
+      ribbon,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 12
+        ..strokeCap = StrokeCap.round
+        ..color = BrandColors.heritageGreen.withValues(alpha: 0.06),
+    );
+
+    final metric = ribbon.computeMetrics().first;
+    final walked = metric.length * travelled.clamp(0.0, 1.0);
+
+    final thread = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 4
+      ..strokeCap = StrokeCap.round;
+
+    if (walked < metric.length) {
+      canvas.drawPath(
+        metric.extractPath(walked, metric.length),
+        thread..color = BrandColors.divider,
+      );
+    }
+    if (walked > 0) {
+      final trail = metric.extractPath(0, walked);
+      if (glow > 0) {
+        canvas.drawPath(
+          trail,
+          Paint()
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 11
+            ..strokeCap = StrokeCap.round
+            ..color = BrandColors.kenteGold.withValues(
+              alpha: 0.1 + (glow * 0.22),
+            )
+            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4),
+        );
+      }
+      canvas.drawPath(trail, thread..color = BrandColors.kenteGold);
+    }
+
+    _paintBeads(canvas, metric, walked);
+  }
+
+  /// Beads are what turn a curve into a path somebody is walking. Each wears
+  /// the same white collar as the lesson buttons, so the trail and its stops
+  /// clearly belong to one another.
+  void _paintBeads(Canvas canvas, PathMetric metric, double walked) {
+    final bead = Paint();
+    final collar = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.6
+      ..color = Colors.white;
+
+    for (
+      var distance = _ribbonBeadSpacing;
+      distance < metric.length - 6;
+      distance += _ribbonBeadSpacing
+    ) {
+      final tangent = metric.getTangentForOffset(distance);
+      if (tangent == null) continue;
+      final reached = distance <= walked;
+      final radius = reached ? 3.4 : 2.7;
+      canvas
+        ..drawCircle(
+          tangent.position,
+          radius,
+          bead..color = reached ? BrandColors.kenteGold : BrandColors.divider,
+        )
+        ..drawCircle(tangent.position, radius, collar);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_LessonRibbonPainter oldDelegate) =>
+      oldDelegate.startOnRight != startOnRight ||
+      oldDelegate.travelled != travelled ||
+      oldDelegate.glow != glow;
 }
 
 class _LockedUnitPreview extends StatelessWidget {
@@ -1280,6 +1516,7 @@ class _AnswerTile extends StatelessWidget {
 
 class _Lesson {
   const _Lesson({
+    required this.id,
     required this.title,
     required this.icon,
     required this.minutes,
@@ -1290,6 +1527,13 @@ class _Lesson {
     required this.correctAnswer,
     required this.explanation,
   });
+
+  /// Stable slug this lesson is remembered by.
+  ///
+  /// Progress is stored against these rather than against list positions, so a
+  /// lesson added to the middle of the unit later cannot quietly hand somebody
+  /// credit for the one that moved into its place.
+  final String id;
 
   final String title;
   final IconData icon;
@@ -1304,6 +1548,7 @@ class _Lesson {
 
 const _lessons = [
   _Lesson(
+    id: 'unit1-say-hello',
     title: 'Say hello',
     icon: Icons.waving_hand_rounded,
     minutes: 2,
@@ -1316,6 +1561,7 @@ const _lessons = [
         '“De zaanem” is used here as the welcome phrase in this preview.',
   ),
   _Lesson(
+    id: 'unit1-listen-and-choose',
     title: 'Listen & choose',
     icon: Icons.headphones_rounded,
     minutes: 3,
@@ -1327,6 +1573,7 @@ const _lessons = [
     explanation: '“Ko gara” is the intended response for this practice card.',
   ),
   _Lesson(
+    id: 'unit1-build-a-phrase',
     title: 'Build a phrase',
     icon: Icons.extension_rounded,
     minutes: 3,
@@ -1338,6 +1585,7 @@ const _lessons = [
     explanation: 'The lesson pairs “De N lei” with the greeting exchange.',
   ),
   _Lesson(
+    id: 'unit1-conversation-check',
     title: 'Conversation check',
     icon: Icons.forum_rounded,
     minutes: 4,

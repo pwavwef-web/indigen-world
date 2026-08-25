@@ -75,3 +75,9 @@ production-backups/
 *.tmp
 *.temp
 *.bak
+__pycache__/
+*.py[cod]
+*$py.class
+*.aab
+*.apk
+apps/mobile/android/app/production/

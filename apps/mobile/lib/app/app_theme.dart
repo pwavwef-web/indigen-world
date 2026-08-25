@@ -1,6 +1,10 @@
 import 'package:flutter/cupertino.dart' show CupertinoPageTransitionsBuilder;
 import 'package:flutter/material.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
+import 'package:indigen_world_mobile/shared/frosted_nav_bar.dart'
+    show kFrostedNavBarReservedSpace;
+import 'package:indigen_world_mobile/shared/glass_popup.dart'
+    show kGlassPopupRadius;
 
 ThemeData buildIndigenTheme() {
   final colorScheme = ColorScheme.fromSeed(
@@ -185,11 +189,13 @@ ThemeData buildIndigenTheme() {
       iconColor: BrandColors.heritageGreen,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
     ),
-    // Floating, rounded and dark by default: a message that sits over the
-    // floating glass rail rather than fighting it for the bottom edge.
+    // Floating, rounded and dark glass: a message that sits over the floating
+    // nav rail rather than fighting it for the bottom edge. The inset clears
+    // the rail entirely, so even a SnackBar nobody has migrated to
+    // `showGlassToast` yet lands above it instead of behind it.
     snackBarTheme: SnackBarThemeData(
       behavior: SnackBarBehavior.floating,
-      backgroundColor: BrandColors.heritageGreen,
+      backgroundColor: BrandColors.heritageGreen.withValues(alpha: 0.94),
       contentTextStyle: const TextStyle(
         color: Colors.white,
         fontSize: 14,
@@ -197,10 +203,19 @@ ThemeData buildIndigenTheme() {
         height: 1.35,
       ),
       actionTextColor: BrandColors.kenteGold,
-      insetPadding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      elevation: 4,
+      insetPadding: const EdgeInsets.fromLTRB(
+        16,
+        8,
+        16,
+        kFrostedNavBarReservedSpace + 8,
+      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      elevation: 6,
     ),
+    // Still defined, because a few genuinely full-height flows — composing a
+    // post, picking media at length — are honestly sheets. New work should
+    // reach for `showGlassPopup` in lib/shared/glass_popup.dart instead: a
+    // centered glass card that does not compete with the nav rail.
     bottomSheetTheme: const BottomSheetThemeData(
       backgroundColor: BrandColors.surface,
       surfaceTintColor: Colors.transparent,
@@ -210,10 +225,19 @@ ThemeData buildIndigenTheme() {
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
     ),
+    // The glass popups paint their own frosted surface, so the Material
+    // dialog surface underneath them has to get out of the way — an opaque
+    // cream panel with an elevation tint behind a translucent card would show
+    // as a dull rectangle around the glass. Anything still built as a plain
+    // AlertDialog should move to `showGlassConfirm`.
     dialogTheme: DialogThemeData(
-      backgroundColor: BrandColors.surface,
+      backgroundColor: Colors.transparent,
       surfaceTintColor: Colors.transparent,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      shadowColor: Colors.transparent,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(kGlassPopupRadius),
+      ),
       titleTextStyle: const TextStyle(
         color: BrandColors.heritageGreen,
         fontSize: 20,

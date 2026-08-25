@@ -3,17 +3,22 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/core/connectivity.dart';
 import 'package:indigen_world_mobile/features/auth/auth_repository.dart';
+import 'package:indigen_world_mobile/shared/glass_popup.dart';
 
-/// Opens the sign-in / create-account sheet. Resolves to `true` when the user
+/// Opens the sign-in / create-account card. Resolves to `true` when the user
 /// finished signing in, `null`/`false` when they dismissed it.
-Future<bool?> showSignInSheet(BuildContext context) =>
-    showModalBottomSheet<bool>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      backgroundColor: BrandColors.surface,
-      builder: (_) => const _SignInSheet(),
-    );
+///
+/// Kept under its original name because five screens call it; only the
+/// presentation moved — from a bottom sheet clinging to the edge under the
+/// floating rail, to a centered glass card. The heading lives inside the body
+/// rather than in the popup header because it changes with the mode.
+Future<bool?> showSignInSheet(BuildContext context) => showGlassPopup<bool>(
+  context: context,
+  // The form scrolls itself, so the card must not wrap it in a second
+  // viewport — nesting two would hand the inner one unbounded height.
+  scrollable: false,
+  builder: (_) => const _SignInSheet(),
+);
 
 enum _Mode { signIn, register }
 
@@ -124,156 +129,150 @@ class _SignInSheetState extends ConsumerState<_SignInSheet> {
   }
 
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: EdgeInsets.fromLTRB(
-      24,
-      0,
-      24,
-      24 + MediaQuery.viewInsetsOf(context).bottom,
-    ),
-    child: SingleChildScrollView(
-      child: Form(
-        key: _formKey,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              _isRegister ? 'Create your account' : 'Welcome back',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              _isRegister
-                  ? 'Save words, contribute, and carry your learning across devices.'
-                  : 'Sign in to sync your saved words and contributions.',
-              style: const TextStyle(color: BrandColors.mutedInk, fontSize: 13),
-            ),
-            const SizedBox(height: 20),
-            if (_isRegister) ...[
-              TextFormField(
-                controller: _name,
-                textInputAction: TextInputAction.next,
-                textCapitalization: TextCapitalization.words,
-                decoration: const InputDecoration(
-                  labelText: 'Name',
-                  prefixIcon: Icon(Icons.person_outline_rounded),
-                ),
-                validator: (value) => (value == null || value.trim().isEmpty)
-                    ? 'Please enter your name'
-                    : null,
-              ),
-              const SizedBox(height: 12),
-            ],
+  // The glass card supplies the body padding and lifts itself clear of the
+  // keyboard, so neither is this widget's job any more.
+  Widget build(BuildContext context) => SingleChildScrollView(
+    child: Form(
+      key: _formKey,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            _isRegister ? 'Create your account' : 'Welcome back',
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            _isRegister
+                ? 'Save words, contribute, and carry your learning across devices.'
+                : 'Sign in to sync your saved words and contributions.',
+            style: const TextStyle(color: BrandColors.mutedInk, fontSize: 13),
+          ),
+          const SizedBox(height: 20),
+          if (_isRegister) ...[
             TextFormField(
-              controller: _email,
-              keyboardType: TextInputType.emailAddress,
+              controller: _name,
               textInputAction: TextInputAction.next,
-              autofillHints: const [AutofillHints.email],
+              textCapitalization: TextCapitalization.words,
               decoration: const InputDecoration(
-                labelText: 'Email',
-                prefixIcon: Icon(Icons.mail_outline_rounded),
+                labelText: 'Name',
+                prefixIcon: Icon(Icons.person_outline_rounded),
               ),
-              validator: (value) {
-                final text = value?.trim() ?? '';
-                if (text.isEmpty) return 'Please enter your email';
-                if (!text.contains('@') || !text.contains('.')) {
-                  return 'Enter a valid email address';
-                }
-                return null;
-              },
+              validator: (value) => (value == null || value.trim().isEmpty)
+                  ? 'Please enter your name'
+                  : null,
             ),
             const SizedBox(height: 12),
-            TextFormField(
-              controller: _password,
-              obscureText: _obscure,
-              textInputAction: TextInputAction.done,
-              autofillHints: const [AutofillHints.password],
-              onFieldSubmitted: (_) => _submitEmail(),
-              decoration: InputDecoration(
-                labelText: 'Password',
-                prefixIcon: const Icon(Icons.lock_outline_rounded),
-                suffixIcon: IconButton(
-                  tooltip: _obscure ? 'Show password' : 'Hide password',
-                  icon: Icon(
-                    _obscure
-                        ? Icons.visibility_outlined
-                        : Icons.visibility_off_outlined,
-                  ),
-                  onPressed: () => setState(() => _obscure = !_obscure),
-                ),
-              ),
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Please enter your password';
-                }
-                if (_isRegister && value.length < 6) {
-                  return 'Use at least 6 characters';
-                }
-                return null;
-              },
-            ),
-            if (!_isRegister)
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton(
-                  onPressed: _busy ? null : _forgotPassword,
-                  child: const Text('Forgot password?'),
-                ),
-              ),
-            if (_error != null) ...[
-              const SizedBox(height: 8),
-              _ErrorBanner(message: _error!),
-            ],
-            const SizedBox(height: 16),
-            FilledButton(
-              onPressed: _busy ? null : _submitEmail,
-              child: _busy
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : Text(_isRegister ? 'Create account' : 'Sign in'),
-            ),
-            const SizedBox(height: 16),
-            const Row(
-              children: [
-                Expanded(child: Divider()),
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 12),
-                  child: Text(
-                    'or',
-                    style: TextStyle(color: BrandColors.mutedInk),
-                  ),
-                ),
-                Expanded(child: Divider()),
-              ],
-            ),
-            const SizedBox(height: 16),
-            OutlinedButton.icon(
-              onPressed: _busy ? null : _google,
-              icon: const _GoogleGlyph(),
-              label: const Text('Continue with Google'),
-            ),
-            const SizedBox(height: 16),
-            Center(
-              child: TextButton(
-                onPressed: _busy
-                    ? null
-                    : () => setState(() {
-                        _mode = _isRegister ? _Mode.signIn : _Mode.register;
-                        _error = null;
-                      }),
-                child: Text(
-                  _isRegister
-                      ? 'Already have an account? Sign in'
-                      : 'New here? Create an account',
-                ),
-              ),
-            ),
           ],
-        ),
+          TextFormField(
+            controller: _email,
+            keyboardType: TextInputType.emailAddress,
+            textInputAction: TextInputAction.next,
+            autofillHints: const [AutofillHints.email],
+            decoration: const InputDecoration(
+              labelText: 'Email',
+              prefixIcon: Icon(Icons.mail_outline_rounded),
+            ),
+            validator: (value) {
+              final text = value?.trim() ?? '';
+              if (text.isEmpty) return 'Please enter your email';
+              if (!text.contains('@') || !text.contains('.')) {
+                return 'Enter a valid email address';
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: 12),
+          TextFormField(
+            controller: _password,
+            obscureText: _obscure,
+            textInputAction: TextInputAction.done,
+            autofillHints: const [AutofillHints.password],
+            onFieldSubmitted: (_) => _submitEmail(),
+            decoration: InputDecoration(
+              labelText: 'Password',
+              prefixIcon: const Icon(Icons.lock_outline_rounded),
+              suffixIcon: IconButton(
+                tooltip: _obscure ? 'Show password' : 'Hide password',
+                icon: Icon(
+                  _obscure
+                      ? Icons.visibility_outlined
+                      : Icons.visibility_off_outlined,
+                ),
+                onPressed: () => setState(() => _obscure = !_obscure),
+              ),
+            ),
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'Please enter your password';
+              }
+              if (_isRegister && value.length < 6) {
+                return 'Use at least 6 characters';
+              }
+              return null;
+            },
+          ),
+          if (!_isRegister)
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(
+                onPressed: _busy ? null : _forgotPassword,
+                child: const Text('Forgot password?'),
+              ),
+            ),
+          if (_error != null) ...[
+            const SizedBox(height: 8),
+            _ErrorBanner(message: _error!),
+          ],
+          const SizedBox(height: 16),
+          FilledButton(
+            onPressed: _busy ? null : _submitEmail,
+            child: _busy
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : Text(_isRegister ? 'Create account' : 'Sign in'),
+          ),
+          const SizedBox(height: 16),
+          const Row(
+            children: [
+              Expanded(child: Divider()),
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 12),
+                child: Text(
+                  'or',
+                  style: TextStyle(color: BrandColors.mutedInk),
+                ),
+              ),
+              Expanded(child: Divider()),
+            ],
+          ),
+          const SizedBox(height: 16),
+          OutlinedButton.icon(
+            onPressed: _busy ? null : _google,
+            icon: const _GoogleGlyph(),
+            label: const Text('Continue with Google'),
+          ),
+          const SizedBox(height: 16),
+          Center(
+            child: TextButton(
+              onPressed: _busy
+                  ? null
+                  : () => setState(() {
+                      _mode = _isRegister ? _Mode.signIn : _Mode.register;
+                      _error = null;
+                    }),
+              child: Text(
+                _isRegister
+                    ? 'Already have an account? Sign in'
+                    : 'New here? Create an account',
+              ),
+            ),
+          ),
+        ],
       ),
     ),
   );

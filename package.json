@@ -34,7 +34,7 @@
     "typecheck:tribestudio": "npm run typecheck --workspace @indigen-world/tribestudio",
     "typecheck:team-francis-pwavwe": "npm run typecheck --workspace @indigen-world/team-francis-pwavwe",
     "test:contracts": "npm test --workspace @indigen-world/contracts",
-    "test:rules": "firebase emulators:exec --project demo-indigen-world --only firestore \"node --test firebase/tests/firestore.rules.test.mjs firebase/tests/creator.rules.test.mjs firebase/tests/community.rules.test.mjs\"",
+    "test:rules": "firebase emulators:exec --project demo-indigen-world --only firestore \"node --test firebase/tests/firestore.rules.test.mjs firebase/tests/creator.rules.test.mjs firebase/tests/community.rules.test.mjs firebase/tests/reelsAndChats.rules.test.mjs\"",
     "test:storage-rules": "firebase emulators:exec --project demo-indigen-world --only auth,storage \"node --test firebase/tests/storage.rules.test.mjs\"",
     "test:e2e": "npm run build:functions && cross-env FUNCTIONS_DISCOVERY_TIMEOUT=120 firebase emulators:exec --project demo-indigen-world --only auth,firestore,functions \"node --test firebase/tests/decideReview.test.mjs firebase/tests/creatorFunctions.test.mjs firebase/tests/publicForms.test.mjs\"",
     "test:function-helpers": "npm run build:functions && node --test firebase/tests/functionHelpers.test.mjs"

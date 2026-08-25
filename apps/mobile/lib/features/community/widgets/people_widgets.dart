@@ -6,16 +6,17 @@ import 'package:indigen_world_mobile/features/community/data/community_models.da
 import 'package:indigen_world_mobile/features/community/data/community_providers.dart';
 import 'package:indigen_world_mobile/features/community/data/community_repository.dart';
 import 'package:indigen_world_mobile/features/community/widgets/community_avatar.dart';
+import 'package:indigen_world_mobile/shared/glass_popup.dart';
 
-/// Shows [message] on the nearest scaffold. Used for every community outcome
-/// so success and failure read the same way across screens.
-void showCommunityMessage(BuildContext context, String message) {
-  ScaffoldMessenger.of(context)
-    ..hideCurrentSnackBar()
-    ..showSnackBar(
-      SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
-    );
-}
+/// Shows [message] as a glass toast floating clear of the bottom edge. Used
+/// for every community outcome so success and failure read the same way across
+/// screens.
+///
+/// This is the single funnel the whole community section speaks through, so
+/// moving it off `ScaffoldMessenger` moves every one of those messages out from
+/// under the floating nav rail at once.
+void showCommunityMessage(BuildContext context, String message) =>
+    showGlassToast(context, message);
 
 /// Follow / Following toggle. Renders nothing for your own profile.
 class FollowButton extends ConsumerWidget {

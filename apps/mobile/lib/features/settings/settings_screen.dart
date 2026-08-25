@@ -20,6 +20,7 @@ import 'package:indigen_world_mobile/features/notifications/notifications_screen
 import 'package:indigen_world_mobile/features/notifications/push_messaging.dart';
 import 'package:indigen_world_mobile/features/settings/licences_screen.dart';
 import 'package:indigen_world_mobile/features/settings/policy_screen.dart';
+import 'package:indigen_world_mobile/shared/glass_popup.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -379,25 +380,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   Future<void> _signOut() async {
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showGlassConfirm(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Sign out?'),
-        content: const Text(
+      title: 'Sign out?',
+      message:
           'Public learning stays available in guest mode. You can sign back '
           'in anytime.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('Sign out'),
-          ),
-        ],
-      ),
+      confirmLabel: 'Sign out',
     );
     if (confirmed != true) return;
     // Drop the push registration first, while the account is still signed in
@@ -414,22 +403,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       _message('You need a connection to reset your password.');
       return;
     }
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showGlassConfirm(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Send a reset link?'),
-        content: Text('We will email a password reset link to $email.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('Send link'),
-          ),
-        ],
-      ),
+      title: 'Send a reset link?',
+      message: 'We will email a password reset link to $email.',
+      confirmLabel: 'Send link',
     );
     if (confirmed != true) return;
     try {
@@ -452,53 +430,36 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     }
 
     final controller = TextEditingController();
-    final sent = await showModalBottomSheet<bool>(
+    final sent = await showGlassPopup<bool>(
       context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      builder: (sheetContext) => Padding(
-        padding: EdgeInsets.fromLTRB(
-          20,
-          0,
-          20,
-          20 + MediaQuery.viewInsetsOf(sheetContext).bottom,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              'Contact support',
-              style: Theme.of(sheetContext).textTheme.titleLarge,
+      title: 'Contact support',
+      subtitle:
+          'Describe what you need. The project team sees your account so '
+          'they can reply.',
+      builder: (popupContext) => Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          TextField(
+            controller: controller,
+            autofocus: true,
+            minLines: 3,
+            maxLines: 6,
+            maxLength: 1200,
+            textCapitalization: TextCapitalization.sentences,
+            decoration: const InputDecoration(
+              hintText: 'What can we help with?',
             ),
-            const SizedBox(height: 6),
-            const Text(
-              'Describe what you need. The project team sees your account so '
-              'they can reply.',
-              style: TextStyle(color: BrandColors.mutedInk),
-            ),
-            const SizedBox(height: 14),
-            TextField(
-              controller: controller,
-              autofocus: true,
-              minLines: 3,
-              maxLines: 6,
-              maxLength: 1200,
-              textCapitalization: TextCapitalization.sentences,
-              decoration: const InputDecoration(
-                hintText: 'What can we help with?',
-              ),
-            ),
-            const SizedBox(height: 8),
-            FilledButton(
-              onPressed: () {
-                if (controller.text.trim().isEmpty) return;
-                Navigator.pop(sheetContext, true);
-              },
-              child: const Text('Send to the project team'),
-            ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 8),
+          FilledButton(
+            onPressed: () {
+              if (controller.text.trim().isEmpty) return;
+              Navigator.pop(popupContext, true);
+            },
+            child: const Text('Send to the project team'),
+          ),
+        ],
       ),
     );
 
@@ -523,29 +484,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   Future<void> _confirmDeletion() async {
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showGlassConfirm(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Delete your account?'),
-        content: const Text(
+      title: 'Delete your account?',
+      message:
           'Deletion removes your community profile, posts, saves and follows. '
           'Validated contributions you have already made to the language '
           'record stay, because they belong to the community — your name is '
           'removed from them on request.\n\n'
           'Deletion is carried out by the project team so the consent record '
           'stays auditable. Send the request and they will confirm by email.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('Request deletion'),
-          ),
-        ],
-      ),
+      confirmLabel: 'Request deletion',
+      isDestructive: true,
     );
     if (confirmed != true) return;
 

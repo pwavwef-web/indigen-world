@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_controller.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_models.dart';
+import 'package:indigen_world_mobile/shared/glass_popup.dart';
 
 /// Kawuri — the Indigen World guide.
 ///
@@ -120,23 +121,20 @@ class _KawuriScreenState extends ConsumerState<KawuriScreen> {
   Future<void> _openHistory() async {
     final sessions = ref.read(kawuriControllerProvider).history;
     if (sessions.isEmpty) {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          const SnackBar(
-            behavior: SnackBarBehavior.floating,
-            content: Text('Past conversations appear here once you start one.'),
-          ),
-        );
+      showGlassToast(
+        context,
+        'Past conversations appear here once you start one.',
+      );
       return;
     }
 
-    final chosen = await showModalBottomSheet<KawuriSession>(
+    final chosen = await showGlassPopup<KawuriSession>(
       context: context,
-      showDragHandle: true,
-      backgroundColor: const Color(0xFF0D2C23),
-      isScrollControlled: true,
-      builder: (sheetContext) => _HistorySheet(
+      title: 'Past conversations',
+      // The list scrolls itself, so the card must not wrap it in a second
+      // scroll view.
+      scrollable: false,
+      builder: (popupContext) => _HistoryList(
         sessions: sessions,
         onDelete: (session) =>
             ref.read(kawuriControllerProvider.notifier).deleteSession(session),
@@ -1075,102 +1073,80 @@ class _SendButton extends StatelessWidget {
 // History
 // ═══════════════════════════════════════════════════════════════════════════
 
-class _HistorySheet extends StatefulWidget {
-  const _HistorySheet({required this.sessions, required this.onDelete});
+/// The past conversations, inside the history popup.
+///
+/// The rows are ink on plaster rather than the screen's white-on-night: the
+/// card they sit on now is cut from the app's light glass, and Kawuri's own
+/// night palette would be invisible on it.
+class _HistoryList extends StatefulWidget {
+  const _HistoryList({required this.sessions, required this.onDelete});
 
   final List<KawuriSession> sessions;
   final ValueChanged<KawuriSession> onDelete;
 
   @override
-  State<_HistorySheet> createState() => _HistorySheetState();
+  State<_HistoryList> createState() => _HistoryListState();
 }
 
-class _HistorySheetState extends State<_HistorySheet> {
+class _HistoryListState extends State<_HistoryList> {
   late var _sessions = widget.sessions;
 
   @override
-  Widget build(BuildContext context) => SafeArea(
-    child: ConstrainedBox(
-      constraints: BoxConstraints(
-        maxHeight: MediaQuery.sizeOf(context).height * 0.7,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Padding(
-            padding: EdgeInsets.fromLTRB(22, 0, 22, 10),
-            child: Text(
-              'Past conversations',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 17,
-                fontWeight: FontWeight.w900,
-              ),
+  Widget build(BuildContext context) => ListView.separated(
+    // The card gives this a bounded height and its own padding, so the list
+    // only has to be as tall as its rows until it runs out of room.
+    shrinkWrap: true,
+    padding: EdgeInsets.zero,
+    itemCount: _sessions.length,
+    separatorBuilder: (context, index) => const SizedBox(height: 8),
+    itemBuilder: (context, index) {
+      final session = _sessions[index];
+      return Material(
+        color: BrandColors.heritageGreen.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(16),
+        child: ListTile(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          leading: const Icon(
+            Icons.forum_outlined,
+            color: BrandColors.terracotta,
+            size: 20,
+          ),
+          title: Text(
+            session.title,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: BrandColors.ink,
+              fontSize: 13.5,
+              fontWeight: FontWeight.w700,
             ),
           ),
-          Flexible(
-            child: ListView.separated(
-              shrinkWrap: true,
-              padding: const EdgeInsets.fromLTRB(14, 0, 14, 16),
-              itemCount: _sessions.length,
-              separatorBuilder: (context, index) => const SizedBox(height: 8),
-              itemBuilder: (context, index) {
-                final session = _sessions[index];
-                return Material(
-                  color: Colors.white.withValues(alpha: 0.07),
-                  borderRadius: BorderRadius.circular(16),
-                  child: ListTile(
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    leading: const Icon(
-                      Icons.forum_outlined,
-                      color: BrandColors.kenteGold,
-                      size: 20,
-                    ),
-                    title: Text(
-                      session.title,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 13.5,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    subtitle: Text(
-                      '${session.messages.length} messages',
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.5),
-                        fontSize: 11,
-                      ),
-                    ),
-                    trailing: IconButton(
-                      tooltip: 'Delete',
-                      onPressed: () {
-                        widget.onDelete(session);
-                        setState(
-                          () => _sessions = _sessions
-                              .where((item) => item.id != session.id)
-                              .toList(growable: false),
-                        );
-                      },
-                      icon: Icon(
-                        Icons.delete_outline_rounded,
-                        color: Colors.white.withValues(alpha: 0.6),
-                        size: 19,
-                      ),
-                    ),
-                    onTap: () => Navigator.pop(context, session),
-                  ),
-                );
-              },
+          subtitle: Text(
+            '${session.messages.length} messages',
+            style: const TextStyle(color: BrandColors.mutedInk, fontSize: 11),
+          ),
+          trailing: IconButton(
+            tooltip: 'Delete',
+            onPressed: () {
+              widget.onDelete(session);
+              setState(
+                () => _sessions = _sessions
+                    .where((item) => item.id != session.id)
+                    .toList(growable: false),
+              );
+            },
+            icon: const Icon(
+              Icons.delete_outline_rounded,
+              color: BrandColors.mutedInk,
+              size: 19,
             ),
           ),
-        ],
-      ),
-    ),
+          onTap: () => Navigator.pop(context, session),
+        ),
+      );
+    },
   );
 }
 

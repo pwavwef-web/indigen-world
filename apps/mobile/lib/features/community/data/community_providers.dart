@@ -75,6 +75,43 @@ final rawCommunityFeedProvider = StreamProvider<List<CommunityPost>>((ref) {
   return repository.watchFeed();
 });
 
+/// Applies a member's hide / mute / block lists to a feed without throwing away
+/// the state the feed arrived in.
+///
+/// `AsyncValue.whenData` cannot be used here, and that mattered: it maps
+/// anything that is not `AsyncData` to a *fresh* `AsyncLoading`, so a feed that
+/// had failed came out the other side as a plain loading state with its error
+/// erased. The screen then had nothing to show but the skeleton, and because
+/// Riverpod retries a failed provider the feed flickered between skeleton and
+/// error instead of settling on either.
+///
+/// Precedence is deliberate and matches what the screen wants: a page we
+/// already hold beats an error, and an error beats a spinner.
+AsyncValue<List<CommunityPost>> _visibleFeed(
+  AsyncValue<List<CommunityPost>> raw, {
+  required Set<String> hidden,
+  required Set<String> muted,
+  required Set<String> blocked,
+}) {
+  bool visible(CommunityPost post) =>
+      !hidden.contains(post.id) &&
+      !muted.contains(post.authorId) &&
+      !blocked.contains(post.authorId) &&
+      (post.resharedById == null ||
+          (!muted.contains(post.resharedById) &&
+              !blocked.contains(post.resharedById)));
+
+  final posts = raw.value;
+  if (posts != null) {
+    return AsyncData(posts.where(visible).toList(growable: false));
+  }
+  final error = raw.error;
+  if (error != null) {
+    return AsyncError(error, raw.stackTrace ?? StackTrace.empty);
+  }
+  return const AsyncLoading();
+}
+
 final communityFeedProvider = Provider<AsyncValue<List<CommunityPost>>>((ref) {
   final hidden =
       ref.watch(myHiddenPostsProvider).asData?.value ?? const <String>{};
@@ -82,21 +119,12 @@ final communityFeedProvider = Provider<AsyncValue<List<CommunityPost>>>((ref) {
       ref.watch(myMutedProfilesProvider).asData?.value ?? const <String>{};
   final blocked =
       ref.watch(myBlockedProfilesProvider).asData?.value ?? const <String>{};
-  return ref
-      .watch(rawCommunityFeedProvider)
-      .whenData(
-        (posts) => posts
-            .where(
-              (post) =>
-                  !hidden.contains(post.id) &&
-                  !muted.contains(post.authorId) &&
-                  !blocked.contains(post.authorId) &&
-                  (post.resharedById == null ||
-                      (!muted.contains(post.resharedById) &&
-                          !blocked.contains(post.resharedById))),
-            )
-            .toList(growable: false),
-      );
+  return _visibleFeed(
+    ref.watch(rawCommunityFeedProvider),
+    hidden: hidden,
+    muted: muted,
+    blocked: blocked,
+  );
 });
 
 /// The uids the signed-in member follows, most recent first.
@@ -123,21 +151,12 @@ final followingFeedProvider = Provider<AsyncValue<List<CommunityPost>>>((ref) {
       ref.watch(myMutedProfilesProvider).asData?.value ?? const <String>{};
   final blocked =
       ref.watch(myBlockedProfilesProvider).asData?.value ?? const <String>{};
-  return ref
-      .watch(rawFollowingFeedProvider)
-      .whenData(
-        (posts) => posts
-            .where(
-              (post) =>
-                  !hidden.contains(post.id) &&
-                  !muted.contains(post.authorId) &&
-                  !blocked.contains(post.authorId) &&
-                  (post.resharedById == null ||
-                      (!muted.contains(post.resharedById) &&
-                          !blocked.contains(post.resharedById))),
-            )
-            .toList(growable: false),
-      );
+  return _visibleFeed(
+    ref.watch(rawFollowingFeedProvider),
+    hidden: hidden,
+    muted: muted,
+    blocked: blocked,
+  );
 });
 
 final authorPostsProvider = StreamProvider.family<List<CommunityPost>, String>((

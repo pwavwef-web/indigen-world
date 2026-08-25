@@ -265,22 +265,32 @@ class _DictionaryCard extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 14),
+        // A Kasem headword can be long and a translation longer still, and the
+        // row between a 50px glyph and a chevron has only so much width. Each
+        // line ellipsises rather than growing the card into a paragraph; the
+        // entry screen is where the full text belongs.
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 entry.headword,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: Theme.of(context).textTheme.titleMedium,
               ),
               const SizedBox(height: 3),
               Text(
                 entry.translation,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
                 style: const TextStyle(color: BrandColors.mutedInk),
               ),
               const SizedBox(height: 6),
               Text(
                 '${entry.partOfSpeech} · ${entry.dialect}',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
                   color: BrandColors.terracotta,
                   fontSize: 11,
@@ -327,40 +337,52 @@ class _PublishedCollectionCard extends StatelessWidget {
                       placeholder: (_, _) => _MediaFallback(kind: kind),
                       errorWidget: (_, _, _) => _MediaFallback(kind: kind),
                     ),
+              // A category is whatever the studio typed, so the badge is
+              // bounded by the artwork rather than by the words inside it. It
+              // still hugs the top right corner, but it gives up characters
+              // before it gives up the edge of the card.
               Positioned(
                 top: 10,
+                left: 10,
                 right: 10,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 9,
-                    vertical: 5,
-                  ),
-                  decoration: BoxDecoration(
-                    color: BrandColors.heritageGreen.withValues(alpha: 0.9),
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        kind == CollectionKind.literature
-                            ? Icons.menu_book_rounded
-                            : Icons.play_arrow_rounded,
-                        color: BrandColors.kenteGold,
-                        size: 14,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        (item.category.isEmpty ? kind.label : item.category)
-                            .toUpperCase(),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 9,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 0.5,
+                child: Align(
+                  alignment: Alignment.topRight,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 9,
+                      vertical: 5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: BrandColors.heritageGreen.withValues(alpha: 0.9),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          kind == CollectionKind.literature
+                              ? Icons.menu_book_rounded
+                              : Icons.play_arrow_rounded,
+                          color: BrandColors.kenteGold,
+                          size: 14,
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 4),
+                        Flexible(
+                          child: Text(
+                            (item.category.isEmpty ? kind.label : item.category)
+                                .toUpperCase(),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 9,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -389,6 +411,8 @@ class _PublishedCollectionCard extends StatelessWidget {
                   children: [
                     Text(
                       'BY ${item.creatorName.toUpperCase()}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         color: BrandColors.terracotta,
                         fontSize: 9,
@@ -399,6 +423,8 @@ class _PublishedCollectionCard extends StatelessWidget {
                     const SizedBox(height: 5),
                     Text(
                       item.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.titleLarge,
                     ),
                     const SizedBox(height: 9),
@@ -718,7 +744,10 @@ class _PlaybackUnavailable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-    height: 210,
+    // 210 is the height this panel wants, not the height it is held to: at a
+    // large text scale the apology runs to three lines and a fixed box would
+    // simply cut them off.
+    constraints: const BoxConstraints(minHeight: 210),
     padding: const EdgeInsets.all(24),
     decoration: BoxDecoration(
       color: BrandColors.heritageGreen,

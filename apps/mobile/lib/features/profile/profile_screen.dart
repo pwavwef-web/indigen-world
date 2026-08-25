@@ -19,6 +19,7 @@ import 'package:indigen_world_mobile/features/contribute/collection_contribution
 import 'package:indigen_world_mobile/features/notifications/push_messaging.dart';
 import 'package:indigen_world_mobile/features/settings/settings_screen.dart';
 import 'package:indigen_world_mobile/shared/frosted_nav_bar.dart';
+import 'package:indigen_world_mobile/shared/glass_popup.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -175,24 +176,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   Future<void> _signOut() async {
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showGlassConfirm(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Sign out?'),
-        content: const Text(
-          'Public learning stays available in guest mode. You can sign back in anytime.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('Sign out'),
-          ),
-        ],
-      ),
+      title: 'Sign out?',
+      message: 'Public learning stays available in guest mode. You can sign back in anytime.',
+      confirmLabel: 'Sign out',
     );
     if (confirmed != true) return;
     await unregisterThisDevice(ref);

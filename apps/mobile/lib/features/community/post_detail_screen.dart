@@ -46,13 +46,14 @@ class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
               label: const Text('Reply'),
             ),
       body: switch (postState) {
-        AsyncData() when post == null => const CommunityEmptyState(
-          icon: Icons.search_off_rounded,
-          title: 'This post is gone',
-          message: 'It was deleted, or it is no longer visible to you.',
-        ),
-        AsyncData() => _Thread(post: post!, actions: actions),
-        AsyncError() => const CommunityEmptyState(
+        AsyncValue(hasValue: true) when post == null =>
+          const CommunityEmptyState(
+            icon: Icons.search_off_rounded,
+            title: 'This post is gone',
+            message: 'It was deleted, or it is no longer visible to you.',
+          ),
+        AsyncValue(hasValue: true) => _Thread(post: post!, actions: actions),
+        AsyncValue(hasError: true) => const CommunityEmptyState(
           icon: Icons.cloud_off_rounded,
           title: 'Could not open this post',
           message: 'Check your connection and try again.',
@@ -148,14 +149,14 @@ class _Thread extends ConsumerWidget {
         ),
         const SizedBox(height: 10),
         ...switch (replies) {
-          AsyncData(:final value) when value.isEmpty => const [
+          AsyncValue(:final value?) when value.isEmpty => const [
             CommunityEmptyState(
               icon: Icons.chat_bubble_outline_rounded,
               title: 'No replies yet',
               message: 'Keep the conversation in Kasem.',
             ),
           ],
-          AsyncData(:final value) => [
+          AsyncValue(:final value?) => [
             for (final reply in value)
               Padding(
                 padding: const EdgeInsets.only(left: 14, bottom: 10),
@@ -170,7 +171,7 @@ class _Thread extends ConsumerWidget {
                 ),
               ),
           ],
-          AsyncError() => const [
+          AsyncValue(hasError: true) => const [
             Padding(
               padding: EdgeInsets.symmetric(vertical: 24),
               child: Text(

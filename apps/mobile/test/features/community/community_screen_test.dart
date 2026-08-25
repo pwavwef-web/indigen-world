@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:indigen_world_mobile/features/community/community_profile_screen.dart';
@@ -356,6 +357,32 @@ void main() {
 
     expect(find.text('REEL'), findsOneWidget);
     expect(find.byIcon(Icons.play_circle_fill_rounded), findsOneWidget);
+  });
+
+  testWidgets('a refused feed offers a way back, not a dead end', (
+    tester,
+  ) async {
+    final repository = FakeCommunityRepository(
+      profiles: [amina],
+      posts: [fakePost()],
+      feedError: FirebaseException(
+        plugin: 'cloud_firestore',
+        code: 'permission-denied',
+        message: 'Missing or insufficient permissions.',
+      ),
+    );
+
+    await pumpFeed(tester, repository, profile: amina);
+
+    expect(find.text('The feed could not load'), findsOneWidget);
+    // A denied read is ours to fix, so the copy says so instead of sending a
+    // member on full signal to look at their connection.
+    expect(
+      find.textContaining('community service is still being set up'),
+      findsOneWidget,
+    );
+    expect(find.textContaining('Check your connection'), findsNothing);
+    expect(find.text('Try again'), findsOneWidget);
   });
 
   testWidgets('a guest sees the feed but is asked to sign in to appreciate', (

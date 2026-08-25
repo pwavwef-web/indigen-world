@@ -1,9 +1,13 @@
+import 'dart:io';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/features/community/data/community_repository.dart';
+import 'package:indigen_world_mobile/shared/glass_popup.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:video_player/video_player.dart';
+import 'package:video_thumbnail/video_thumbnail.dart';
 
 /// Device photo / video selection for the community composer.
 ///
@@ -64,7 +68,71 @@ class CommunityMediaPicker {
       maxDuration: maxVideoDuration,
     );
     if (file == null) return null;
-    return PendingUpload(path: file.path, isVideo: true, aspectRatio: 9 / 16);
+    final shape = await _videoShape(file.path);
+    return PendingUpload(
+      path: file.path,
+      isVideo: true,
+      aspectRatio: shape.aspectRatio,
+      durationSeconds: shape.durationSeconds,
+      posterPath: await _videoPoster(file.path),
+    );
+  }
+
+  /// Writes the clip's opening frame to a temporary JPEG, to be uploaded with
+  /// it as the post's cover.
+  ///
+  /// Doing this once at post time is what makes a cover cheap: every reader
+  /// afterwards fetches one small cached image instead of opening a video
+  /// decoder per tile just to look at a single frame.
+  ///
+  /// Returns null if the device cannot decode the clip. That is not worth
+  /// refusing an upload over — the feed still reads a frame off the video
+  /// itself, it just pays for it on every scroll.
+  Future<String?> _videoPoster(String path) async {
+    try {
+      final directory = await getTemporaryDirectory();
+      return await VideoThumbnail.thumbnailFile(
+        video: path,
+        thumbnailPath: directory.path,
+        imageFormat: ImageFormat.JPEG,
+        // Wide enough to stay sharp on a full-width card, small enough that it
+        // costs less than the first second of the video it stands in for.
+        maxWidth: 720,
+        quality: 78,
+        // Frame zero is black on a lot of phone recordings; a fifth of a second
+        // in is past that and still unmistakably the same shot.
+        timeMs: 200,
+      );
+    } on Object {
+      return null;
+    }
+  }
+
+  /// Reads a clip's real shape and length off the file before it is uploaded.
+  ///
+  /// Every video used to be stamped 9:16 on the assumption that a phone
+  /// records upright, which letterboxed every landscape clip in the feed. The
+  /// file already knows the answer, and asking it costs one short-lived
+  /// controller that never plays.
+  Future<({double aspectRatio, int? durationSeconds})> _videoShape(
+    String path,
+  ) async {
+    final controller = VideoPlayerController.file(File(path));
+    try {
+      await controller.initialize();
+      final ratio = controller.value.aspectRatio;
+      final duration = controller.value.duration;
+      return (
+        aspectRatio: ratio > 0 ? ratio.clamp(0.5, 1.95).toDouble() : 9 / 16,
+        durationSeconds: duration > Duration.zero ? duration.inSeconds : null,
+      );
+    } on Object {
+      // An unreadable header is not a reason to refuse the upload — the clip
+      // still plays, it just gets the upright default it always had.
+      return (aspectRatio: 9 / 16, durationSeconds: null);
+    } finally {
+      await controller.dispose();
+    }
   }
 
   /// Reads the real aspect ratio so the feed reserves the right space and
@@ -84,118 +152,57 @@ class CommunityMediaPicker {
   }
 }
 
-/// Bottom sheet offering camera / gallery for photos and videos. Returns the
-/// staged uploads, or an empty list when dismissed.
+/// Which of the four routes into the device the member chose.
+enum _MediaChoice { gallery, photo, video, reel }
+
+/// Centered glass card offering camera / gallery for photos and videos.
+/// Returns the staged uploads, or an empty list when dismissed.
 Future<List<PendingUpload>> showMediaPickerSheet(
   BuildContext context, {
   required int remainingSlots,
 }) async {
   const picker = CommunityMediaPicker();
 
-  final result = await showModalBottomSheet<List<PendingUpload>>(
+  // The card resolves on the tap and the device picker opens after it, rather
+  // than the system UI arriving over a modal that is still on screen.
+  final choice = await showGlassActionSheet<_MediaChoice>(
     context: context,
-    showDragHandle: true,
-    builder: (sheetContext) => SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 0, 12, 18),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Padding(
-              padding: EdgeInsets.fromLTRB(12, 0, 12, 10),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  'Add to your post',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
-                ),
-              ),
-            ),
-            _PickerOption(
-              icon: Icons.photo_library_outlined,
-              title: 'Photos from your gallery',
-              subtitle: 'Up to $remainingSlots more',
-              onTap: () async {
-                final picked = await picker.pickImages(limit: remainingSlots);
-                if (sheetContext.mounted) {
-                  Navigator.pop(sheetContext, picked);
-                }
-              },
-            ),
-            _PickerOption(
-              icon: Icons.photo_camera_outlined,
-              title: 'Take a photo',
-              subtitle: 'Use the camera',
-              onTap: () async {
-                final picked = await picker.pickImage(
-                  source: ImageSource.camera,
-                );
-                if (sheetContext.mounted) {
-                  Navigator.pop(sheetContext, [?picked]);
-                }
-              },
-            ),
-            _PickerOption(
-              icon: Icons.video_library_outlined,
-              title: 'Video or reel',
-              subtitle: 'Up to 3 minutes',
-              onTap: () async {
-                final picked = await picker.pickVideo(
-                  source: ImageSource.gallery,
-                );
-                if (sheetContext.mounted) {
-                  Navigator.pop(sheetContext, [?picked]);
-                }
-              },
-            ),
-            _PickerOption(
-              icon: Icons.videocam_outlined,
-              title: 'Record a reel',
-              subtitle: 'Use the camera',
-              onTap: () async {
-                final picked = await picker.pickVideo(
-                  source: ImageSource.camera,
-                );
-                if (sheetContext.mounted) {
-                  Navigator.pop(sheetContext, [?picked]);
-                }
-              },
-            ),
-          ],
-        ),
+    title: 'Add to your post',
+    actions: [
+      GlassAction(
+        value: _MediaChoice.gallery,
+        icon: Icons.photo_library_outlined,
+        label: 'Photos from your gallery',
+        description: 'Up to $remainingSlots more',
       ),
-    ),
-  );
-  return result ?? const <PendingUpload>[];
-}
-
-class _PickerOption extends StatelessWidget {
-  const _PickerOption({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final Future<void> Function() onTap;
-
-  @override
-  Widget build(BuildContext context) => ListTile(
-    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-    leading: Container(
-      width: 42,
-      height: 42,
-      decoration: BoxDecoration(
-        color: BrandColors.heritageGreen.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(12),
+      const GlassAction(
+        value: _MediaChoice.photo,
+        icon: Icons.photo_camera_outlined,
+        label: 'Take a photo',
+        description: 'Use the camera',
       ),
-      child: Icon(icon, color: BrandColors.heritageGreen, size: 21),
-    ),
-    title: Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
-    subtitle: Text(subtitle, style: const TextStyle(fontSize: 12)),
-    onTap: onTap,
+      const GlassAction(
+        value: _MediaChoice.video,
+        icon: Icons.video_library_outlined,
+        label: 'Video or reel',
+        description: 'Up to 3 minutes',
+      ),
+      const GlassAction(
+        value: _MediaChoice.reel,
+        icon: Icons.videocam_outlined,
+        label: 'Record a reel',
+        description: 'Use the camera',
+      ),
+    ],
   );
+
+  return switch (choice) {
+    null => const <PendingUpload>[],
+    _MediaChoice.gallery => await picker.pickImages(limit: remainingSlots),
+    _MediaChoice.photo => [?await picker.pickImage(source: ImageSource.camera)],
+    _MediaChoice.video => [
+      ?await picker.pickVideo(source: ImageSource.gallery),
+    ],
+    _MediaChoice.reel => [?await picker.pickVideo(source: ImageSource.camera)],
+  };
 }

@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/features/community/data/community_models.dart';
+import 'package:indigen_world_mobile/features/community/widgets/video_cover.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:video_player/video_player.dart';
 
@@ -71,17 +72,7 @@ class _MediaTile extends StatelessWidget {
         fit: StackFit.expand,
         children: [
           if (item.isVideo)
-            ColoredBox(
-              color: BrandColors.heritageGreen,
-              child: item.thumbnailUrl != null
-                  ? CachedNetworkImage(
-                      imageUrl: item.thumbnailUrl!,
-                      fit: BoxFit.cover,
-                      errorWidget: (context, url, error) =>
-                          const SizedBox.shrink(),
-                    )
-                  : const SizedBox.shrink(),
-            )
+            VideoCover(videoUrl: item.url, thumbnailUrl: item.thumbnailUrl)
           else
             CachedNetworkImage(
               imageUrl: item.url,

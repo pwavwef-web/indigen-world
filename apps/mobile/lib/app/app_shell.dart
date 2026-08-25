@@ -41,20 +41,26 @@ class _AppShellState extends ConsumerState<AppShell>
 
   /// Account lives in the top-right orb, so the rail carries only the five
   /// content destinations — with Community at the centre.
-  static const _screens = <Widget>[
-    ExploreScreen(),
-    LearnScreen(),
-    CommunityScreen(),
-    CollectionScreen(),
-    ContributeScreen(reserveTopRight: true),
-  ];
-
   static const _exploreIndex = 0;
+  static const _learnIndex = 1;
+  static const _collectionIndex = 3;
+  static const _contributeIndex = 4;
+  static const _destinationCount = 5;
+
+  /// The destinations the member has actually opened.
+  ///
+  /// A tab nobody has been to is never built, so nothing it owns — a video
+  /// decoder, an audio session, a stream subscription — can exist before
+  /// somebody has asked to see it. Once visited a destination stays in the
+  /// stack, which is what keeps scroll positions and half-finished work alive
+  /// across tab switches.
+  final _visited = <int>{};
 
   @override
   void initState() {
     super.initState();
-    _selectedIndex = widget.initialIndex.clamp(0, _screens.length - 1);
+    _selectedIndex = widget.initialIndex.clamp(0, _destinationCount - 1);
+    _visited.add(_selectedIndex);
     _lastNonExploreIndex = _selectedIndex == _exploreIndex
         ? kCommunityTabIndex
         : _selectedIndex;
@@ -86,6 +92,7 @@ class _AppShellState extends ConsumerState<AppShell>
         _lastNonExploreIndex = _selectedIndex;
       }
       _selectedIndex = index;
+      _visited.add(index);
     });
     _transitionController.forward(from: 0);
     HapticFeedback.selectionClick();
@@ -94,6 +101,25 @@ class _AppShellState extends ConsumerState<AppShell>
   void _returnFromExplore() {
     if (_selectedIndex != _exploreIndex) return;
     _selectDestination(_lastNonExploreIndex);
+  }
+
+  /// The destination at [index], or an empty slot if the member has never been
+  /// there.
+  ///
+  /// Explore is told outright whether it is the tab in front of the member.
+  /// It stays in the stack once visited so a return lands on the same reel,
+  /// but it is the one destination holding a video decoder and the audio
+  /// session, and neither may keep running behind another tab.
+  Widget _screenAt(int index) {
+    if (!_visited.contains(index)) return const SizedBox.shrink();
+    return switch (index) {
+      _exploreIndex => ExploreScreen(isActive: _selectedIndex == index),
+      _learnIndex => const LearnScreen(),
+      kCommunityTabIndex => const CommunityScreen(),
+      _collectionIndex => const CollectionScreen(),
+      _contributeIndex => const ContributeScreen(reserveTopRight: true),
+      _ => const SizedBox.shrink(),
+    };
   }
 
   @override
@@ -169,7 +195,10 @@ class _AppShellState extends ConsumerState<AppShell>
                   position: _slideAnimation,
                   child: IndexedStack(
                     index: _selectedIndex,
-                    children: _screens,
+                    children: [
+                      for (var index = 0; index < _destinationCount; index++)
+                        _screenAt(index),
+                    ],
                   ),
                 ),
               ),

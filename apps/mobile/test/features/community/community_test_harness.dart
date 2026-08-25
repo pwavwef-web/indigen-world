@@ -19,13 +19,15 @@ class FakeCommunityRepository implements CommunityRepository {
     Set<String> repostedPostIds = const {},
     Map<String, String> pollVotes = const {},
     List<String> following = const [],
+    Object? feedError,
   }) : _profiles = {for (final profile in profiles) profile.uid: profile},
        _posts = [...posts],
        _liked = {...likedPostIds},
        _saved = {...savedPostIds},
        _reposted = {...repostedPostIds},
        _pollVotes = {...pollVotes},
-       _following = [...following];
+       _following = [...following],
+       _feedError = feedError;
 
   final Map<String, CommunityProfile> _profiles;
   final List<CommunityPost> _posts;
@@ -34,6 +36,10 @@ class FakeCommunityRepository implements CommunityRepository {
   final Set<String> _reposted;
   final Map<String, String> _pollVotes;
   final List<String> _following;
+
+  /// When set, `watchFeed` fails with it instead of emitting — the feed as a
+  /// member meets it when a collection's rule has not been deployed.
+  final Object? _feedError;
 
   /// Calls recorded for assertions.
   final toggledLikes = <String>[];
@@ -47,8 +53,12 @@ class FakeCommunityRepository implements CommunityRepository {
       _posts.where((post) => !post.isReply).toList(growable: false);
 
   @override
-  Stream<List<CommunityPost>> watchFeed({int limit = 40}) =>
-      Stream.value(_topLevel);
+  Stream<List<CommunityPost>> watchFeed({int limit = 40}) {
+    final error = _feedError;
+    return error == null
+        ? Stream.value(_topLevel)
+        : Stream<List<CommunityPost>>.error(error);
+  }
 
   @override
   Stream<List<CommunityPost>> watchFollowingFeed(
@@ -223,8 +233,9 @@ class FakeCommunityRepository implements CommunityRepository {
   }
 
   @override
-  Future<void> trackView({required String uid, required String postId}) async {
+  Future<bool> trackView({required String uid, required String postId}) async {
     trackedViews.add(postId);
+    return true;
   }
 
   @override

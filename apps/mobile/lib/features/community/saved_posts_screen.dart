@@ -36,14 +36,14 @@ class SavedPostsScreen extends ConsumerWidget {
               message: 'Saved posts are private to your account.',
             )
           : switch (posts) {
-              AsyncData(:final value) when value.isEmpty =>
+              AsyncValue(:final value?) when value.isEmpty =>
                 const CommunityEmptyState(
                   icon: Icons.bookmark_border_rounded,
                   title: 'Nothing saved yet',
                   message:
                       'Tap the bookmark on any post to keep it here for later.',
                 ),
-              AsyncData(:final value) => ListView.separated(
+              AsyncValue(:final value?) => ListView.separated(
                 padding: const EdgeInsets.fromLTRB(16, 14, 16, 32),
                 itemCount: value.length,
                 separatorBuilder: (context, index) =>
@@ -102,7 +102,7 @@ class SavedPostsScreen extends ConsumerWidget {
                   );
                 },
               ),
-              AsyncError() => const CommunityEmptyState(
+              AsyncValue(hasError: true) => const CommunityEmptyState(
                 icon: Icons.cloud_off_rounded,
                 title: 'Could not load your saves',
                 message: 'Check your connection and try again.',

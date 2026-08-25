@@ -7,6 +7,8 @@ import 'package:indigen_world_mobile/features/community/data/community_providers
 import 'package:indigen_world_mobile/features/community/widgets/community_avatar.dart';
 import 'package:indigen_world_mobile/features/community/widgets/post_media_view.dart';
 import 'package:indigen_world_mobile/features/community/widgets/post_text.dart';
+import 'package:indigen_world_mobile/features/community/widgets/video_cover.dart';
+import 'package:indigen_world_mobile/shared/glass_popup.dart';
 
 /// One complete community post surface.
 ///
@@ -341,12 +343,20 @@ class QuotedPostPreview extends StatelessWidget {
                         ),
                       )
                     : post.media.first.isVideo
-                    ? const ColoredBox(
-                        color: BrandColors.nightGreen,
-                        child: Icon(
-                          Icons.play_circle_fill_rounded,
-                          color: Colors.white,
-                        ),
+                    ? Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          VideoCover(
+                            videoUrl: post.media.first.url,
+                            thumbnailUrl: post.media.first.thumbnailUrl,
+                          ),
+                          const Center(
+                            child: Icon(
+                              Icons.play_circle_fill_rounded,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ],
                       )
                     : Image.network(
                         post.media.first.url,
@@ -797,36 +807,22 @@ class _RepostButton extends StatelessWidget {
 
   Future<void> _showSheet(BuildContext context) async {
     HapticFeedback.selectionClick();
-    final choice = await showModalBottomSheet<String>(
+    final choice = await showGlassActionSheet<String>(
       context: context,
-      showDragHandle: true,
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: Icon(
-                Icons.repeat_rounded,
-                color: reposted
-                    ? BrandColors.savannahGreen
-                    : BrandColors.heritageGreen,
-              ),
-              title: Text(reposted ? 'Undo reshare' : 'Reshare'),
-              subtitle: const Text(
-                'Bring this post into your followers’ feed.',
-              ),
-              onTap: () => Navigator.pop(context, 'repost'),
-            ),
-            ListTile(
-              leading: const Icon(Icons.format_quote_rounded),
-              title: const Text('Quote post'),
-              subtitle: const Text('Add your own words above this post.'),
-              onTap: () => Navigator.pop(context, 'quote'),
-            ),
-            const SizedBox(height: 8),
-          ],
+      actions: [
+        GlassAction(
+          value: 'repost',
+          icon: Icons.repeat_rounded,
+          label: reposted ? 'Undo reshare' : 'Reshare',
+          description: 'Bring this post into your followers’ feed.',
         ),
-      ),
+        const GlassAction(
+          value: 'quote',
+          icon: Icons.format_quote_rounded,
+          label: 'Quote post',
+          description: 'Add your own words above this post.',
+        ),
+      ],
     );
     if (choice == 'repost') onRepost?.call();
     if (choice == 'quote') onQuote?.call();

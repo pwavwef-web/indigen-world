@@ -14,6 +14,7 @@ import 'package:indigen_world_mobile/features/community/widgets/people_widgets.d
 import 'package:indigen_world_mobile/features/notifications/data/notification_models.dart';
 import 'package:indigen_world_mobile/features/notifications/data/notification_providers.dart';
 import 'package:indigen_world_mobile/features/notifications/push_messaging.dart';
+import 'package:indigen_world_mobile/shared/glass_popup.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// The notifications centre: everything that happened to you, newest first,
@@ -61,13 +62,13 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
           : RefreshIndicator(
               onRefresh: () async => ref.invalidate(notificationFeedProvider),
               child: switch (feed) {
-                AsyncData(:final value) when value.isEmpty =>
+                AsyncValue(:final value?) when value.isEmpty =>
                   const _EmptyState(),
-                AsyncData(:final value) => _NotificationList(
+                AsyncValue(:final value?) => _NotificationList(
                   notifications: value,
                   onOpen: _open,
                 ),
-                AsyncError() => const _ErrorState(),
+                AsyncValue(hasError: true) => const _ErrorState(),
                 _ => const _LoadingState(),
               },
             ),
@@ -121,49 +122,38 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     final enabled = preferences.getBool(pushAlertsPreferenceKey) ?? false;
     if (!mounted) return;
 
-    final next = await showModalBottomSheet<bool>(
+    final next = await showGlassPopup<bool>(
       context: context,
-      showDragHandle: true,
-      backgroundColor: BrandColors.surface,
-      builder: (sheetContext) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 18),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
+      title: 'Push alerts',
+      builder: (popupContext) => Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Get a notification on this device when somebody replies to '
+            'you, follows you, or mentions you in Kasem. Everything still '
+            'appears here either way.',
+            style: TextStyle(color: BrandColors.mutedInk, height: 1.45),
+          ),
+          const SizedBox(height: 18),
+          Row(
             children: [
-              Text(
-                'Push alerts',
-                style: Theme.of(sheetContext).textTheme.titleLarge,
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => Navigator.pop(popupContext, false),
+                  child: const Text('Keep off'),
+                ),
               ),
-              const SizedBox(height: 6),
-              const Text(
-                'Get a notification on this device when somebody replies to '
-                'you, follows you, or mentions you in Kasem. Everything still '
-                'appears here either way.',
-                style: TextStyle(color: BrandColors.mutedInk, height: 1.45),
-              ),
-              const SizedBox(height: 18),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.pop(sheetContext, false),
-                      child: const Text('Keep off'),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: FilledButton(
-                      onPressed: () => Navigator.pop(sheetContext, true),
-                      child: Text(enabled ? 'Keep on' : 'Turn on'),
-                    ),
-                  ),
-                ],
+              const SizedBox(width: 12),
+              Expanded(
+                child: FilledButton(
+                  onPressed: () => Navigator.pop(popupContext, true),
+                  child: Text(enabled ? 'Keep on' : 'Turn on'),
+                ),
               ),
             ],
           ),
-        ),
+        ],
       ),
     );
     if (next == null || !mounted) return;

@@ -8,6 +8,7 @@ import 'package:indigen_world_mobile/features/contribute/collection_contribution
 import 'package:indigen_world_mobile/features/kawuri/kawuri_fab.dart';
 import 'package:indigen_world_mobile/shared/app_widgets.dart';
 import 'package:indigen_world_mobile/shared/frosted_nav_bar.dart';
+import 'package:indigen_world_mobile/shared/glass_popup.dart';
 
 class ContributeScreen extends ConsumerStatefulWidget {
   const ContributeScreen({
@@ -247,20 +248,27 @@ class _ContributeScreenState extends ConsumerState<ContributeScreen> {
         _format = null;
         _dialect = null;
       });
-      await showDialog<void>(
+      await showGlassPopup<void>(
         context: context,
-        builder: (dialogContext) => AlertDialog(
-          icon: const Icon(
-            Icons.cloud_done_rounded,
-            color: BrandColors.savannahGreen,
-          ),
-          title: const Text('Contribution received'),
-          content: Text(
-            'Your ${_kind.contributionLabel} is now in the review queue. You can follow its status below.',
-          ),
-          actions: [
+        title: 'Contribution received',
+        builder: (popupContext) => Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Icon(
+              Icons.cloud_done_rounded,
+              color: BrandColors.savannahGreen,
+              size: 34,
+            ),
+            const SizedBox(height: 14),
+            Text(
+              'Your ${_kind.contributionLabel} is now in the review queue. You can follow its status below.',
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: BrandColors.ink, height: 1.5),
+            ),
+            const SizedBox(height: 20),
             FilledButton(
-              onPressed: () => Navigator.pop(dialogContext),
+              onPressed: () => Navigator.pop(popupContext),
               child: const Text('Done'),
             ),
           ],
@@ -855,26 +863,15 @@ class _ContributionActivity extends ConsumerWidget {
     WidgetRef ref,
     CollectionContributionRecord item,
   ) async {
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showGlassConfirm(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Withdraw this contribution?'),
-        content: Text(
-          item.status.toLowerCase() == 'published'
-              ? 'This will remove the work from the public Collection and revoke publication permission.'
-              : 'This will remove the contribution from active review.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Keep it'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('Withdraw'),
-          ),
-        ],
-      ),
+      title: 'Withdraw this contribution?',
+      message: item.status.toLowerCase() == 'published'
+          ? 'This will remove the work from the public Collection and revoke publication permission.'
+          : 'This will remove the contribution from active review.',
+      cancelLabel: 'Keep it',
+      confirmLabel: 'Withdraw',
+      isDestructive: true,
     );
     if (confirmed != true || !context.mounted) return;
 

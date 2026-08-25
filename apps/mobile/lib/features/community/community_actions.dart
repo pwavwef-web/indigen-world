@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/core/connectivity.dart';
 import 'package:indigen_world_mobile/features/auth/sign_in_sheet.dart';
 import 'package:indigen_world_mobile/features/community/community_profile_screen.dart';
@@ -12,6 +11,7 @@ import 'package:indigen_world_mobile/features/community/data/community_providers
 import 'package:indigen_world_mobile/features/community/data/community_repository.dart';
 import 'package:indigen_world_mobile/features/community/post_engagement_screen.dart';
 import 'package:indigen_world_mobile/features/community/widgets/people_widgets.dart';
+import 'package:indigen_world_mobile/shared/glass_popup.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -65,6 +65,30 @@ class CommunityActions {
     );
     if (created != true) return null;
     return repository.getProfile(uid);
+  }
+
+  /// Ensures the member is signed in, and stops there.
+  ///
+  /// Deliberately weaker than [requireProfile]. Appreciating or keeping a reel
+  /// needs an account for the edge to belong to and nothing else — demanding
+  /// that somebody choose a public handle before they may tap a heart asks
+  /// them to make a permanent decision to perform a private one.
+  Future<String?> requireSignIn(BuildContext context) async {
+    final existing = ref.read(currentUidProvider);
+    if (existing != null) return existing;
+
+    if (ref.read(communityRepositoryProvider) == null) {
+      showCommunityMessage(
+        context,
+        ref.read(connectionBlockProvider)?.message ??
+            'That is not available right now. Please try again shortly.',
+      );
+      return null;
+    }
+
+    final signedIn = await showSignInSheet(context);
+    if (signedIn != true || !context.mounted) return null;
+    return _awaitUid();
   }
 
   /// `authStateChanges()` delivers asynchronously, so the uid can lag a
@@ -179,12 +203,23 @@ class CommunityActions {
     }
   }
 
+  /// Set once the backend refuses a view write outright — most often a security
+  /// rule that has not been deployed yet. Every later attempt this session
+  /// would be refused the same way, so we stop asking rather than spend a
+  /// rejected round trip on every card that scrolls past.
+  static var _viewTrackingRefused = false;
+
+  /// Records that a member read [post]. Impressions are telemetry: written
+  /// best-effort, never spoken about, and never allowed to interrupt the feed.
   Future<void> trackView(CommunityPost post) async {
+    if (_viewTrackingRefused) return;
     final uid = ref.read(currentUidProvider);
     final repository = ref.read(communityRepositoryProvider);
     if (uid == null || repository == null || post.authorId == uid) return;
     try {
-      await repository.trackView(uid: uid, postId: post.id);
+      if (!await repository.trackView(uid: uid, postId: post.id)) {
+        _viewTrackingRefused = true;
+      }
     } on Object {
       // View tracking is telemetry. It must never interrupt reading the feed.
     }
@@ -299,81 +334,64 @@ class CommunityActions {
     final saved =
         ref.read(myBookmarksProvider).asData?.value.contains(post.id) ?? false;
 
-    final choice = await showModalBottomSheet<String>(
+    final choice = await showGlassActionSheet<String>(
       context: context,
-      showDragHandle: true,
-      builder: (sheetContext) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: Icon(
-                saved
-                    ? Icons.bookmark_remove_outlined
-                    : Icons.bookmark_border_rounded,
-              ),
-              title: Text(saved ? 'Remove from saved' : 'Save post'),
-              onTap: () => Navigator.pop(sheetContext, 'save'),
-            ),
-            ListTile(
-              leading: const Icon(Icons.share_outlined),
-              title: const Text('Share post'),
-              onTap: () => Navigator.pop(sheetContext, 'share'),
-            ),
-            ListTile(
-              leading: const Icon(Icons.link_rounded),
-              title: const Text('Copy post link'),
-              onTap: () => Navigator.pop(sheetContext, 'copy'),
-            ),
-            if (isMine)
-              ListTile(
-                leading: const Icon(Icons.edit_outlined),
-                title: const Text('Edit post'),
-                onTap: () => Navigator.pop(sheetContext, 'edit'),
-              ),
-            if (!isMine)
-              ListTile(
-                leading: const Icon(Icons.visibility_off_outlined),
-                title: const Text('Not interested in this post'),
-                onTap: () => Navigator.pop(sheetContext, 'hide'),
-              ),
-            if (!isMine)
-              ListTile(
-                leading: const Icon(Icons.volume_off_outlined),
-                title: Text('Mute ${post.authorName}'),
-                onTap: () => Navigator.pop(sheetContext, 'mute'),
-              ),
-            if (!isMine)
-              ListTile(
-                leading: const Icon(
-                  Icons.block_rounded,
-                  color: BrandColors.terracotta,
-                ),
-                title: Text('Block ${post.authorName}'),
-                onTap: () => Navigator.pop(sheetContext, 'block'),
-              ),
-            if (!isMine)
-              ListTile(
-                leading: const Icon(
-                  Icons.flag_outlined,
-                  color: BrandColors.terracotta,
-                ),
-                title: const Text('Report to moderators'),
-                onTap: () => Navigator.pop(sheetContext, 'report'),
-              ),
-            if (isMine)
-              ListTile(
-                leading: const Icon(
-                  Icons.delete_outline_rounded,
-                  color: BrandColors.terracotta,
-                ),
-                title: const Text('Delete post'),
-                onTap: () => Navigator.pop(sheetContext, 'delete'),
-              ),
-            const SizedBox(height: 8),
-          ],
+      actions: [
+        GlassAction(
+          value: 'save',
+          icon: saved
+              ? Icons.bookmark_remove_outlined
+              : Icons.bookmark_border_rounded,
+          label: saved ? 'Remove from saved' : 'Save post',
         ),
-      ),
+        const GlassAction(
+          value: 'share',
+          icon: Icons.share_outlined,
+          label: 'Share post',
+        ),
+        const GlassAction(
+          value: 'copy',
+          icon: Icons.link_rounded,
+          label: 'Copy post link',
+        ),
+        if (isMine)
+          const GlassAction(
+            value: 'edit',
+            icon: Icons.edit_outlined,
+            label: 'Edit post',
+          ),
+        if (!isMine) ...[
+          const GlassAction(
+            value: 'hide',
+            icon: Icons.visibility_off_outlined,
+            label: 'Not interested in this post',
+          ),
+          GlassAction(
+            value: 'mute',
+            icon: Icons.volume_off_outlined,
+            label: 'Mute ${post.authorName}',
+          ),
+          GlassAction(
+            value: 'block',
+            icon: Icons.block_rounded,
+            label: 'Block ${post.authorName}',
+            isDestructive: true,
+          ),
+          const GlassAction(
+            value: 'report',
+            icon: Icons.flag_outlined,
+            label: 'Report to moderators',
+            isDestructive: true,
+          ),
+        ],
+        if (isMine)
+          const GlassAction(
+            value: 'delete',
+            icon: Icons.delete_outline_rounded,
+            label: 'Delete post',
+            isDestructive: true,
+          ),
+      ],
     );
 
     if (choice == null || !context.mounted) return;
@@ -404,26 +422,36 @@ class CommunityActions {
 
   Future<void> _edit(BuildContext context, CommunityPost post) async {
     final controller = TextEditingController(text: post.text);
-    final updated = await showDialog<String>(
+    // The glass card centres itself in whatever room the keyboard leaves, so
+    // an autofocused field stays in sight rather than sitting under it.
+    final updated = await showGlassPopup<String>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Edit post'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          minLines: 3,
-          maxLines: 8,
-          maxLength: CommunityRepository.maxPostLength,
-          decoration: const InputDecoration(hintText: 'Update your words'),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancel'),
+      title: 'Edit post',
+      builder: (popupContext) => Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          TextField(
+            controller: controller,
+            autofocus: true,
+            minLines: 3,
+            maxLines: 8,
+            maxLength: CommunityRepository.maxPostLength,
+            decoration: const InputDecoration(hintText: 'Update your words'),
           ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, controller.text),
-            child: const Text('Save changes'),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              TextButton(
+                onPressed: () => Navigator.pop(popupContext),
+                child: const Text('Cancel'),
+              ),
+              const SizedBox(width: 8),
+              FilledButton(
+                onPressed: () => Navigator.pop(popupContext, controller.text),
+                child: const Text('Save changes'),
+              ),
+            ],
           ),
         ],
       ),
@@ -474,25 +502,14 @@ class CommunityActions {
   }
 
   Future<void> _block(BuildContext context, CommunityPost post) async {
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showGlassConfirm(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text('Block ${post.authorName}?'),
-        content: const Text(
+      title: 'Block ${post.authorName}?',
+      message:
           'Their posts and reshares will disappear from your community feed. '
           'You will also stop following them.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('Block'),
-          ),
-        ],
-      ),
+      confirmLabel: 'Block',
+      isDestructive: true,
     );
     if (confirmed != true || !context.mounted) return;
     final profile = await requireProfile(context);
@@ -506,38 +523,19 @@ class CommunityActions {
     final profile = await requireProfile(context);
     if (profile == null || !context.mounted) return;
 
-    final reason = await showModalBottomSheet<String>(
+    final reason = await showGlassActionSheet<String>(
       context: context,
-      showDragHandle: true,
-      builder: (sheetContext) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Padding(
-              padding: EdgeInsets.fromLTRB(20, 0, 20, 10),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  'Why are you reporting this?',
-                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900),
-                ),
-              ),
-            ),
-            for (final option in const [
-              'Not written in Kasem',
-              'Disrespectful or abusive',
-              'Culturally inappropriate',
-              'Spam or advertising',
-              'Something else',
-            ])
-              ListTile(
-                title: Text(option),
-                onTap: () => Navigator.pop(sheetContext, option),
-              ),
-            const SizedBox(height: 8),
-          ],
-        ),
-      ),
+      title: 'Why are you reporting this?',
+      actions: [
+        for (final option in const [
+          'Not written in Kasem',
+          'Disrespectful or abusive',
+          'Culturally inappropriate',
+          'Spam or advertising',
+          'Something else',
+        ])
+          GlassAction(value: option, label: option),
+      ],
     );
     if (reason == null) return;
 
@@ -567,25 +565,14 @@ class CommunityActions {
     CommunityPost post, {
     VoidCallback? onDeleted,
   }) async {
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showGlassConfirm(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Delete this post?'),
-        content: const Text(
+      title: 'Delete this post?',
+      message:
           'The post and its media are removed for everyone. Replies people '
           'already wrote stay on their own profiles. This cannot be undone.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
+      confirmLabel: 'Delete',
+      isDestructive: true,
     );
     if (confirmed != true) return;
 

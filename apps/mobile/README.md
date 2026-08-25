@@ -92,7 +92,7 @@ These identifiers are durable contracts. **Do not rename them after any beta is 
 | --- | --- | --- | --- |
 | Development | `world.indigen.mobile.dev` | `world.indigen.mobile.dev` | Indigen World DEV |
 | Staging | `world.indigen.mobile.staging` | `world.indigen.mobile.staging` | Indigen World STAGING |
-| Production | `world.indigen.mobile` | `world.indigen.mobile` | Indigen World |
+| Production | `com.indigenworld.indigen` | `world.indigen.mobile` | Indigen World |
 
 ## Firebase
 
@@ -103,7 +103,7 @@ The checked-in `firebase_options_<environment>.dart` files are public client con
 ```powershell
 flutterfire configure --project=project-kassena-7e026 --platforms=android,ios --android-package-name=world.indigen.mobile.dev --ios-bundle-id=world.indigen.mobile.dev --out=lib/firebase_options_development.dart --android-out=android/app/src/development/google-services.json
 flutterfire configure --project=project-kassena-7e026 --platforms=android,ios --android-package-name=world.indigen.mobile.staging --ios-bundle-id=world.indigen.mobile.staging --out=lib/firebase_options_staging.dart --android-out=android/app/src/staging/google-services.json
-flutterfire configure --project=project-kassena-7e026 --platforms=android,ios --android-package-name=world.indigen.mobile --ios-bundle-id=world.indigen.mobile --out=lib/firebase_options_production.dart --android-out=android/app/src/production/google-services.json
+flutterfire configure --project=project-kassena-7e026 --platforms=android,ios --android-package-name=com.indigenworld.indigen --ios-bundle-id=world.indigen.mobile --out=lib/firebase_options_production.dart --android-out=android/app/src/production/google-services.json
 ```
 
 Enable Auth providers, deploy rules/indexes, and register App Check debug/release credentials in the Firebase console before cloud acceptance testing.

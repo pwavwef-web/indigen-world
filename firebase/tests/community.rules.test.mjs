@@ -415,6 +415,10 @@ test('one signed-in viewer creates one atomic view edge', async () => {
   });
   const viewer = env.authenticatedContext(NYAABA);
   const store = db(viewer);
+  // The client asks whether it has already counted this post before writing.
+  // A missing edge must read as absent rather than as a refusal, or no first
+  // impression is ever counted.
+  await assertSucceeds(getDoc(doc(store, `communityViews/${NYAABA}_viewable`)));
   const batch = writeBatch(store);
   batch.set(doc(store, `communityViews/${NYAABA}_viewable`), {
     viewerId: NYAABA,
@@ -453,6 +457,7 @@ test('polls accept 2–4 choices and each member gets one immutable vote', async
   );
   const voterStore = db(env.authenticatedContext(NYAABA));
   const voteRef = doc(voterStore, `communityPollVotes/${NYAABA}_poll-post`);
+  await assertSucceeds(getDoc(voteRef));
   await assertSucceeds(
     setDoc(voteRef, { uid: NYAABA, postId: 'poll-post', optionId: 'option_0' }),
   );

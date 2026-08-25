@@ -3,13 +3,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/features/community/community_actions.dart';
 import 'package:indigen_world_mobile/features/community/community_profile_screen.dart';
+import 'package:indigen_world_mobile/features/community/data/chat_providers.dart';
 import 'package:indigen_world_mobile/features/community/data/community_models.dart';
 import 'package:indigen_world_mobile/features/community/data/community_providers.dart';
+import 'package:indigen_world_mobile/features/community/data/community_repository.dart';
 import 'package:indigen_world_mobile/features/community/people_screen.dart';
 import 'package:indigen_world_mobile/features/community/post_detail_screen.dart';
 import 'package:indigen_world_mobile/features/community/saved_posts_screen.dart';
 import 'package:indigen_world_mobile/features/community/widgets/community_avatar.dart';
 import 'package:indigen_world_mobile/features/community/widgets/community_post_card.dart';
+import 'package:indigen_world_mobile/features/community/widgets/community_sidebar.dart';
 import 'package:indigen_world_mobile/features/community/widgets/people_widgets.dart';
 import 'package:indigen_world_mobile/features/notifications/data/notification_providers.dart';
 import 'package:indigen_world_mobile/features/notifications/notifications_screen.dart';
@@ -30,6 +33,12 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
   var _tab = 0;
   final _viewedPostIds = <String>{};
 
+  /// The community tab has no app bar of its own, so the hamburger sits in the
+  /// feed's own header and needs a handle on the Scaffold to open the drawer.
+  final _scaffoldKey = GlobalKey<ScaffoldState>();
+
+  Object? _loggedFeedFailure;
+
   @override
   void dispose() {
     // Flushes and cancels VisibilityDetector's coalescing timer. Besides
@@ -44,8 +53,20 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
     double visibleFraction,
     CommunityActions actions,
   ) {
+    // A post stays marked as seen even when its write fails. Impressions are
+    // telemetry, and a card that keeps drifting past the threshold must not
+    // turn a permanently refused write into an endless retry.
     if (visibleFraction < 0.55 || !_viewedPostIds.add(post.id)) return;
     actions.trackView(post);
+  }
+
+  /// The screen keeps its language calm, so the real Firestore code and message
+  /// go to the log instead — that is what turns "the feed could not load" into
+  /// a diagnosis in seconds. One line per distinct failure is enough.
+  void _noteFeedFailure(Object error) {
+    if (identical(_loggedFeedFailure, error)) return;
+    _loggedFeedFailure = error;
+    debugPrint('Community feed unavailable: $error');
   }
 
   @override
@@ -54,6 +75,7 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
     final feed = _tab == 0
         ? ref.watch(communityFeedProvider)
         : ref.watch(followingFeedProvider);
+    if (feed case AsyncError(:final error)) _noteFeedFailure(error);
     final likes = ref.watch(myLikesProvider).asData?.value ?? const <String>{};
     final saved =
         ref.watch(myBookmarksProvider).asData?.value ?? const <String>{};
@@ -65,7 +87,9 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
     final currentUid = ref.watch(currentUidProvider);
 
     return Scaffold(
+      key: _scaffoldKey,
       backgroundColor: Colors.transparent,
+      drawer: const CommunitySidebar(),
       // The shell extends its body behind the floating glass rail, so the FAB
       // is lifted clear of it.
       floatingActionButton: Padding(
@@ -96,7 +120,11 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
             // An empty or short feed still has to accept the refresh gesture.
             physics: const AlwaysScrollableScrollPhysics(),
             slivers: [
-              const SliverToBoxAdapter(child: _CommunityHeader()),
+              SliverToBoxAdapter(
+                child: _CommunityHeader(
+                  onOpenMenu: () => _scaffoldKey.currentState?.openDrawer(),
+                ),
+              ),
               const SliverToBoxAdapter(child: _CommunityPulse()),
               SliverToBoxAdapter(
                 child: Padding(
@@ -110,13 +138,21 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
                   onChanged: (value) => setState(() => _tab = value),
                 ),
               ),
+              // Matched on what the state HOLDS rather than on which class it
+              // is. Riverpod retries a failed provider, and while a retry is
+              // in flight the state is `AsyncLoading` *carrying* the error
+              // rather than `AsyncError` — so matching the class alone made
+              // the feed flash the skeleton back between attempts, and then
+              // the error, and then the skeleton again. A page we already have
+              // also outranks a reconnect: Firestore recovers on its own, and
+              // a reader would rather see slightly stale posts than a spinner.
               ...switch (feed) {
-                AsyncData(:final value) when value.isEmpty => [
+                AsyncValue(:final value?) when value.isEmpty => [
                   SliverToBoxAdapter(
                     child: _EmptyFeed(tab: _tab, actions: actions),
                   ),
                 ],
-                AsyncData(:final value) => [
+                AsyncValue(:final value?) => [
                   SliverPadding(
                     padding: const EdgeInsets.fromLTRB(
                       16,
@@ -148,7 +184,9 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
                     ),
                   ),
                 ],
-                AsyncError() => [const SliverToBoxAdapter(child: _FeedError())],
+                AsyncValue(:final error?) => [
+                  SliverToBoxAdapter(child: _FeedError(error: error)),
+                ],
                 _ => [const SliverToBoxAdapter(child: _FeedSkeleton())],
               },
             ],
@@ -235,40 +273,38 @@ class _FeedPost extends StatelessWidget {
 // ── Header ──────────────────────────────────────────────────────────────────
 
 class _CommunityHeader extends ConsumerWidget {
-  const _CommunityHeader();
+  const _CommunityHeader({required this.onOpenMenu});
+
+  final VoidCallback onOpenMenu;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final unread =
+    final unreadNotifications =
         ref.watch(unreadNotificationCountProvider).asData?.value ?? 0;
+    final unreadMessages = ref.watch(unreadChatCountProvider);
+    // One dot for anything waiting behind the menu, so the member can tell
+    // there is something in there without opening it to find out.
+    final menuHasWaiting = unreadNotifications + unreadMessages > 0;
+
     return Padding(
-      // Right inset keeps the title clear of the shell's profile orb.
-      padding: const EdgeInsets.fromLTRB(20, 18, 58, 4),
+      // Right inset keeps the header clear of the shell's profile orb.
+      padding: const EdgeInsets.fromLTRB(8, 14, 58, 4),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'COMMUNITY',
-                  style: TextStyle(
-                    color: BrandColors.terracotta,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 1.2,
-                  ),
-                ),
-                const SizedBox(height: 5),
-                Text(
-                  'Speak together.',
-                  style: Theme.of(context).textTheme.headlineMedium,
-                ),
-              ],
+          _MenuButton(onTap: onOpenMenu, hasWaiting: menuHasWaiting),
+          const SizedBox(width: 4),
+          const Expanded(
+            child: Text(
+              'COMMUNITY',
+              style: TextStyle(
+                color: BrandColors.terracotta,
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 1.2,
+              ),
             ),
           ),
-          _NotificationBell(unread: unread),
+          _NotificationBell(unread: unreadNotifications),
           IconButton(
             tooltip: 'Find people',
             onPressed: () => Navigator.of(context).push(
@@ -291,6 +327,56 @@ class _CommunityHeader extends ConsumerWidget {
       ),
     );
   }
+}
+
+/// The hamburger. Carries a dot rather than a number: the counts themselves
+/// belong on the rows inside, and a badge on a menu only has to answer whether
+/// it is worth opening.
+class _MenuButton extends StatelessWidget {
+  const _MenuButton({required this.onTap, required this.hasWaiting});
+
+  final VoidCallback onTap;
+  final bool hasWaiting;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    button: true,
+    label: hasWaiting ? 'Community menu, items waiting' : 'Community menu',
+    excludeSemantics: true,
+    child: Tooltip(
+      message: 'Menu',
+      child: InkWell(
+        customBorder: const CircleBorder(),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(10),
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              const Icon(Icons.menu_rounded, color: BrandColors.ink),
+              if (hasWaiting)
+                Positioned(
+                  right: -2,
+                  top: -2,
+                  child: Container(
+                    width: 9,
+                    height: 9,
+                    decoration: BoxDecoration(
+                      color: BrandColors.terracotta,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: BrandColors.plasterCream,
+                        width: 1.5,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
 }
 
 /// The bell, with an unread count that reads as a number up to 99 and then
@@ -666,16 +752,35 @@ class _EmptyFeed extends StatelessWidget {
         );
 }
 
-class _FeedError extends StatelessWidget {
-  const _FeedError();
+/// The feed's failure state, with a way out of it.
+///
+/// Firestore's own code says whose problem this is. A denied read or a query
+/// still waiting on its index means the community service is not fully set up,
+/// and telling somebody on full signal to check their connection only sends
+/// them looking in the wrong place.
+class _FeedError extends ConsumerWidget {
+  const _FeedError({required this.error});
+
+  final Object error;
 
   @override
-  Widget build(BuildContext context) => const CommunityEmptyState(
+  Widget build(BuildContext context, WidgetRef ref) => CommunityEmptyState(
     icon: Icons.cloud_off_rounded,
     title: 'The feed could not load',
-    message:
-        'Check your connection and pull down to try again. Posts you have '
-        'already seen stay available offline.',
+    message: isCommunityBackendPending(error)
+        ? 'The community service is still being set up. Nothing you posted is '
+              'lost. Please try again shortly.'
+        : 'Check your connection and try again. Posts you have already seen '
+              'stay available offline.',
+    action: FilledButton.icon(
+      onPressed: () {
+        ref
+          ..invalidate(rawCommunityFeedProvider)
+          ..invalidate(rawFollowingFeedProvider);
+      },
+      icon: const Icon(Icons.refresh_rounded),
+      label: const Text('Try again'),
+    ),
   );
 }
 
