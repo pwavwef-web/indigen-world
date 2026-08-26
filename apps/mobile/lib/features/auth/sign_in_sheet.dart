@@ -71,10 +71,12 @@ class _SignInSheetState extends ConsumerState<_SignInSheet> {
       await action(repo);
       if (mounted) Navigator.of(context).pop(true);
     } on AuthCancelled {
-      // User dismissed the provider flow — leave the sheet open, no error.
+      // Legacy callers can still deliberately dismiss a provider flow.
     } on AuthFailure catch (failure) {
-      // A dismissed account chooser is not a failure worth shouting about.
-      if (failure.wasCancelled) return;
+      // Android Credential Manager can report a real package/certificate
+      // configuration failure as `canceled` after an account was selected.
+      // Always surface the mapped result so the flow never appears to do
+      // nothing; provider details are recorded separately in Crashlytics.
       if (mounted) setState(() => _error = failure.message);
     } finally {
       if (mounted) setState(() => _busy = false);

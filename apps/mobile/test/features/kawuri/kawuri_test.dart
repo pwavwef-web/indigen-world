@@ -23,6 +23,7 @@ void main() {
       final answer = offlineGuideAnswer('How do I contribute a word?');
       expect(answer, contains('Contributing a word'));
       expect(answer, contains('Contribute tab'));
+      expect(answer, isNot(contains('points')));
     });
 
     test('never guesses at Kasem', () {
@@ -64,6 +65,7 @@ void main() {
       final answer = offlineGuideAnswer('How does Explore work?');
       expect(answer, contains('do not need to be verified'));
       expect(answer, contains('Campaigns are the exception'));
+      expect(answer, isNot(contains('rewards')));
     });
   });
 

@@ -46,8 +46,8 @@ const _entries = <_GuideEntry>[
         'they are happy for it to be public. Consent is part of the record, not '
         'a formality around it.\n'
         '\n'
-        'Your draft stays on your phone until you submit it, and points are '
-        'awarded only after a validator approves it.',
+        'Your draft stays on your phone until you submit it. It joins the '
+        'collection only after a validator approves it.',
   ),
   _GuideEntry(
     keywords: [
@@ -85,8 +85,8 @@ const _entries = <_GuideEntry>[
         'to hold the rights to what you post and to have the consent of anyone '
         'in it.\n'
         '\n'
-        'Campaigns are the exception. A campaign is a commissioned call with '
-        'rewards attached, so campaign entries are reviewed before they are '
+        'Campaigns are the exception. They are managed separately in '
+        'TribeStudio, so campaign entries are reviewed before they are '
         'published and are open to approved creators.',
   ),
   _GuideEntry(

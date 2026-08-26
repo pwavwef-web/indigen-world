@@ -19,15 +19,14 @@ class FakeCommunityRepository implements CommunityRepository {
     Set<String> repostedPostIds = const {},
     Map<String, String> pollVotes = const {},
     List<String> following = const [],
-    Object? feedError,
+    this.feedError,
   }) : _profiles = {for (final profile in profiles) profile.uid: profile},
        _posts = [...posts],
        _liked = {...likedPostIds},
        _saved = {...savedPostIds},
        _reposted = {...repostedPostIds},
        _pollVotes = {...pollVotes},
-       _following = [...following],
-       _feedError = feedError;
+       _following = [...following];
 
   final Map<String, CommunityProfile> _profiles;
   final List<CommunityPost> _posts;
@@ -39,7 +38,7 @@ class FakeCommunityRepository implements CommunityRepository {
 
   /// When set, `watchFeed` fails with it instead of emitting — the feed as a
   /// member meets it when a collection's rule has not been deployed.
-  final Object? _feedError;
+  final Object? feedError;
 
   /// Calls recorded for assertions.
   final toggledLikes = <String>[];
@@ -54,7 +53,7 @@ class FakeCommunityRepository implements CommunityRepository {
 
   @override
   Stream<List<CommunityPost>> watchFeed({int limit = 40}) {
-    final error = _feedError;
+    final error = feedError;
     return error == null
         ? Stream.value(_topLevel)
         : Stream<List<CommunityPost>>.error(error);

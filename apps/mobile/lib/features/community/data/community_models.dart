@@ -132,6 +132,32 @@ class CommunityPoll {
     );
   }
 
+  /// This poll with [optionId] guaranteed to show at least the one ballot we
+  /// know was cast.
+  ///
+  /// The authoritative tally lives on the post and is written by a Cloud
+  /// Function a moment after the ballot lands in `communityPollVotes`. Between
+  /// the tap and that write the post still carries its pre-vote totals, so a
+  /// member who has just voted would watch their own choice sit at 0% — which
+  /// reads as a vote that was thrown away. Taking the larger of the two keeps
+  /// the server figure the instant it catches up, and leaves every option the
+  /// member did not choose untouched.
+  CommunityPoll includingBallot(String? optionId) {
+    if (optionId == null) return this;
+    var adjusted = false;
+    final counted = options.map((option) {
+      if (option.id != optionId || option.voteCount > 0) return option;
+      adjusted = true;
+      return CommunityPollOption(id: option.id, text: option.text, voteCount: 1);
+    }).toList(growable: false);
+    if (!adjusted) return this;
+    return CommunityPoll(
+      options: counted,
+      endsAt: endsAt,
+      totalVotes: totalVotes < 1 ? 1 : totalVotes,
+    );
+  }
+
   Map<String, Object?> toMap() => {
     'options': options.map((option) => option.toMap()).toList(growable: false),
     'endsAt': Timestamp.fromDate(endsAt),

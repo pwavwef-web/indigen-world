@@ -66,6 +66,20 @@ sleep 10 && curl -s http://127.0.0.1:8791/__/functions.yaml   -o services/functi
 trigger changes — regenerate it after every functions change, or delete it and
 let discovery run normally on a machine where it works.
 
+**Check the manifest before you trust the deploy.** A stale manifest does not
+fail; it deploys the functions it lists and says nothing about the ones it does
+not. That is how `onCommunityPollVoteCreated` and `onCommunityRepostCreated`
+sat undeployed for a release — every poll tallied to 0% because the trigger
+that writes the totals had never reached the project. Compare the two lists
+before deploying, and expect them to match exactly:
+
+```bash
+node -p "Object.keys(JSON.parse(require('fs').readFileSync('services/functions/functions.yaml','utf8')).endpoints).sort()"
+```
+
+Every `export` in `services/functions/src/index.ts` must appear in that list.
+`firebase functions:list --project <project>` then shows what is actually live.
+
 Watch for two things on the first deploy after this round's changes:
 
 - The three new composite indexes (`communityNotifications` ×2,

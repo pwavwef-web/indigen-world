@@ -466,6 +466,9 @@ class CommunityPollCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Results are read from the member's own ballot as well as the server
+    // tally, so a vote cast a second ago is already visible in the bars.
+    final poll = this.poll.includingBallot(votedOptionId);
     final revealsResults = votedOptionId != null || poll.hasEnded;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

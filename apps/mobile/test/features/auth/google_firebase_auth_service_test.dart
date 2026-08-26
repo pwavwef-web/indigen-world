@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:indigen_world_mobile/features/auth/google_firebase_auth_service.dart';
@@ -30,7 +31,7 @@ void main() {
     await expectLater(service.signOut(), completes);
   });
 
-  test('only an explicit Google cancellation is silent', () {
+  test('distinguishes cancellation from interruption with retry text', () {
     final cancelled = googleSignInFailure(
       const GoogleSignInException(code: GoogleSignInExceptionCode.canceled),
     );
@@ -39,9 +40,30 @@ void main() {
     );
 
     expect(cancelled.wasCancelled, isTrue);
+    expect(cancelled.message, contains('try again'));
+    expect(cancelled.message, isNot(contains('GSI-')));
     expect(interrupted.wasCancelled, isFalse);
     expect(interrupted.kind, AuthFailureKind.unavailable);
     expect(interrupted.message, contains('try again'));
+  });
+
+  test('treats a closed browser tab as a cancellation, not a fault', () {
+    for (final code in ['web-context-canceled', 'user-cancelled', 'canceled']) {
+      final failure = hostedGoogleFlowFailure(
+        FirebaseAuthException(code: code),
+      );
+      expect(failure.wasCancelled, isTrue, reason: code);
+      expect(failure.message, contains('try again'));
+    }
+  });
+
+  test('a real browser-flow error keeps its own explanation', () {
+    final failure = hostedGoogleFlowFailure(
+      FirebaseAuthException(code: 'network-request-failed'),
+    );
+
+    expect(failure.kind, AuthFailureKind.network);
+    expect(failure.wasCancelled, isFalse);
   });
 
   test('accepts a matching completed Firebase session', () {

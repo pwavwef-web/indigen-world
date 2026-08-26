@@ -192,6 +192,38 @@ void main() {
       expect(poll.totalVotes, 5);
     });
 
+    test('a fresh ballot shows before the server tally catches up', () {
+      final poll = CommunityPoll.fromMap({
+        'options': [
+          {'id': 'one', 'text': 'Paga'},
+          {'id': 'two', 'text': 'Navrongo'},
+        ],
+        'endsAt': DateTime(2026, 8, 30),
+      })!;
+
+      final counted = poll.includingBallot('two');
+
+      expect(counted.totalVotes, 1);
+      expect(counted.options.firstWhere((o) => o.id == 'two').voteCount, 1);
+      // Only the chosen option moves.
+      expect(counted.options.firstWhere((o) => o.id == 'one').voteCount, 0);
+    });
+
+    test('a server tally that already counted the ballot is left alone', () {
+      final poll = CommunityPoll.fromMap({
+        'options': [
+          {'id': 'one', 'text': 'Paga', 'voteCount': 3},
+          {'id': 'two', 'text': 'Navrongo', 'voteCount': 2},
+        ],
+        'endsAt': DateTime(2026, 8, 30),
+        'totalVotes': 5,
+      })!;
+
+      expect(poll.includingBallot('two'), same(poll));
+      expect(poll.includingBallot(null), same(poll));
+      expect(poll.includingBallot('no-such-option'), same(poll));
+    });
+
     test('posts expose every SRC-style count and nested quote', () {
       final post = CommunityPost.fromMap('quote1', {
         'authorId': 'u2',
