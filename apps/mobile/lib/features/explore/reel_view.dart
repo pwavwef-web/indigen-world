@@ -5,7 +5,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/data/repositories.dart';
 import 'package:indigen_world_mobile/features/community/community_actions.dart';
+import 'package:indigen_world_mobile/features/community/community_profile_screen.dart';
+import 'package:indigen_world_mobile/features/community/data/community_models.dart';
 import 'package:indigen_world_mobile/features/community/data/community_providers.dart';
+import 'package:indigen_world_mobile/features/community/post_detail_screen.dart';
 import 'package:indigen_world_mobile/features/explore/creator_profile_screen.dart';
 import 'package:indigen_world_mobile/features/explore/published_content.dart';
 import 'package:indigen_world_mobile/features/explore/reel_comments_sheet.dart';
@@ -39,6 +42,7 @@ class Reel {
     this.videoUrl,
     this.avatarUrl,
     this.isLive = false,
+    this.communityPostId,
   });
 
   /// Stable across rebuilds, so an appreciation stays attached to the piece
@@ -76,9 +80,53 @@ class Reel {
   /// Creator avatar image; null falls back to initials.
   final String? avatarUrl;
 
-  /// True when this reel is real published content rather than the curated
-  /// preview, which changes both the copy and where its numbers come from.
+  /// True when this reel is real content rather than the curated preview,
+  /// which changes both the copy and where its numbers come from.
   final bool isLive;
+
+  /// The community post this reel *is*, when it came from the Community feed
+  /// rather than the publication workflow.
+  ///
+  /// A community video keeps one identity across both surfaces. Appreciating
+  /// it in Explore is the same like the Community feed shows, and its replies
+  /// are the thread members are already having — anything else would give one
+  /// video two sets of numbers and two conversations, neither of which is the
+  /// real one.
+  final String? communityPostId;
+
+  bool get isCommunity => communityPostId != null;
+
+  /// A community post as a reel.
+  ///
+  /// Only posts that actually carry a video reach here — see
+  /// [exploreFeedProvider] — so the video URL is present by construction and
+  /// the caller does not have to defend against a caption-only post arriving
+  /// in a video feed.
+  static Reel fromCommunityPost(CommunityPost post, CommunityMedia video) {
+    final caption = post.text.trim();
+    return Reel(
+      id: 'community:${post.id}',
+      communityPostId: post.id,
+      imageUrl: video.thumbnailUrl ?? '',
+      videoUrl: video.url,
+      avatarUrl: post.authorAvatarUrl,
+      creatorId: post.authorId,
+      isLive: true,
+      label: 'FROM THE COMMUNITY',
+      // A post has no title, and inventing one from its first line would put
+      // words in somebody's mouth. The caption carries the whole message.
+      title: caption.isEmpty ? 'A moment from the community' : caption,
+      creator: post.authorName,
+      initials: reelInitials(post.authorName),
+      caption: caption,
+      likes: post.likeCount,
+      comments: post.replyCount,
+      sound: 'Original sound',
+      credit: 'Posted by @${post.authorUsername} in Community',
+      englishSummary: '',
+      culturalNotes: '',
+    );
+  }
 
   static Reel fromPublished(PublishedReel published) {
     final caption = published.description.trim().isNotEmpty
@@ -211,7 +259,9 @@ class _ReelFeedViewState extends ConsumerState<ReelFeedView>
   Future<void> _trackActiveView() async {
     if (widget.reels.isEmpty || !widget.isActive) return;
     final reel = widget.reels[_clampedIndex];
-    if (!reel.isLive || !_trackedViews.add(reel.id)) return;
+    if (!reel.isLive || reel.isCommunity || !_trackedViews.add(reel.id)) {
+      return;
+    }
     final uid = ref.read(currentUidProvider);
     final repository = ref.read(reelEngagementRepositoryProvider);
     if (uid == null || repository == null) return;
@@ -249,6 +299,12 @@ class _ReelFeedViewState extends ConsumerState<ReelFeedView>
         ref.watch(myReelLikesProvider).asData?.value ?? const <String>{};
     final serverSaves =
         ref.watch(myReelSavesProvider).asData?.value ?? const <String>{};
+    // A community video is liked and saved as the post it is, so the state
+    // shown here is the same state its card shows in the Community feed.
+    final communityLikes =
+        ref.watch(myLikesProvider).asData?.value ?? const <String>{};
+    final communityBookmarks =
+        ref.watch(myBookmarksProvider).asData?.value ?? const <String>{};
     final localSaves =
         ref.watch(savedReelIdsProvider).asData?.value ?? const <String>{};
     final localLikes =
@@ -272,12 +328,18 @@ class _ReelFeedViewState extends ConsumerState<ReelFeedView>
             },
             itemBuilder: (context, index) {
               final reel = reels[index];
-              final liked = reel.isLive
-                  ? serverLikes.contains(reel.id)
-                  : localLikes.contains(reel.id);
-              final saved = reel.isLive
-                  ? serverSaves.contains(reel.id)
-                  : localSaves.contains(reel.id);
+              final liked = switch (reel) {
+                Reel(communityPostId: final postId?) =>
+                  communityLikes.contains(postId),
+                Reel(isLive: true) => serverLikes.contains(reel.id),
+                _ => localLikes.contains(reel.id),
+              };
+              final saved = switch (reel) {
+                Reel(communityPostId: final postId?) =>
+                  communityBookmarks.contains(postId),
+                Reel(isLive: true) => serverSaves.contains(reel.id),
+                _ => localSaves.contains(reel.id),
+              };
               return _ReelCard(
                 reel: reel,
                 isActive: index == activeIndex,
@@ -350,6 +412,27 @@ class _ReelFeedViewState extends ConsumerState<ReelFeedView>
       return;
     }
 
+    if (reel.communityPostId case final postId?) {
+      final uid = await CommunityActions(ref).requireSignIn(context);
+      final repository = ref.read(communityRepositoryProvider);
+      if (uid == null || repository == null) return;
+      try {
+        await repository.toggleBookmark(
+          uid: uid,
+          postId: postId,
+          saved: saved,
+        );
+        if (!mounted) return;
+        showGlassToast(
+          context,
+          saved ? 'Removed from your saved posts.' : 'Saved.',
+        );
+      } on Object {
+        if (mounted) showGlassToast(context, 'Could not update. Try again.');
+      }
+      return;
+    }
+
     final uid = await CommunityActions(ref).requireSignIn(context);
     final repository = ref.read(reelEngagementRepositoryProvider);
     if (uid == null || repository == null) return;
@@ -364,6 +447,17 @@ class _ReelFeedViewState extends ConsumerState<ReelFeedView>
 
   Future<void> _toggleAppreciation(Reel reel, {required bool liked}) async {
     HapticFeedback.lightImpact();
+    if (reel.communityPostId case final postId?) {
+      final uid = await CommunityActions(ref).requireSignIn(context);
+      final repository = ref.read(communityRepositoryProvider);
+      if (uid == null || repository == null) return;
+      try {
+        await repository.toggleLike(uid: uid, postId: postId, liked: liked);
+      } on Object {
+        if (mounted) showGlassToast(context, 'Could not update. Try again.');
+      }
+      return;
+    }
     if (!reel.isLive) {
       await ref.read(reelKeepsProvider).toggleAppreciated(reel.id);
       ref.invalidate(savedEntryIdsProvider);
@@ -382,6 +476,14 @@ class _ReelFeedViewState extends ConsumerState<ReelFeedView>
   }
 
   Future<void> _openCreator(BuildContext context, Reel reel) async {
+    if (reel.isCommunity && reel.creatorId.isNotEmpty) {
+      await Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (context) => CommunityProfileScreen(uid: reel.creatorId),
+        ),
+      );
+      return;
+    }
     if (reel.creatorId.isEmpty) {
       showGlassToast(context, 'This preview card has no creator page.');
       return;
@@ -398,6 +500,14 @@ class _ReelFeedViewState extends ConsumerState<ReelFeedView>
   }
 
   Future<void> _openComments(BuildContext context, Reel reel) async {
+    if (reel.communityPostId case final postId?) {
+      await Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (context) => PostDetailScreen(postId: postId),
+        ),
+      );
+      return;
+    }
     if (!reel.isLive) {
       await _openPreviewComments(context, reel);
       return;
@@ -621,7 +731,11 @@ class _ReelCard extends ConsumerWidget {
         ? reel.avatarUrl
         : memberProfile?.avatarUrl;
 
-    final counts = reel.isLive
+    // A community video counts where it lives: its appreciations and replies
+    // are the post's own, already denormalised onto it, so reading the reel
+    // engagement collections for one would show a permanent zero beside a
+    // conversation that is plainly happening.
+    final counts = reel.isLive && !reel.isCommunity
         ? (ref.watch(reelCountsProvider(reel.id)).asData?.value ??
               emptyReelCounts)
         : (likes: reel.likes, comments: reel.comments, views: 0);

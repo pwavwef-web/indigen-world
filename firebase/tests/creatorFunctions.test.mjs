@@ -323,6 +323,14 @@ test('approved Collection work without publication permission can be archived', 
     dialect: 'Paga',
     source: 'E2E singer',
     mediaUrl: '',
+    // A song is the recording. Contributing one without the audio no longer
+    // reaches the queue, so the fixture carries an uploaded file.
+    media: {
+      storagePath: 'creator-submissions/creator-e2e/collection-contributions/e2e/praise.mp3',
+      mimeType: 'audio/mpeg',
+      sizeBytes: 2048,
+      mediaType: 'audio',
+    },
     notes: '',
     relatedEntryId: null,
     involvesMinors: false,

@@ -119,7 +119,7 @@ test('collection contribution maps to a reviewed canonical submission', () => {
 });
 
 test('collection governance answers are explicit and participant consent is required', () => {
-  for (const key of ['involvesMinors', 'usesThirdPartyMaterial', 'participantConsentConfirmed']) {
+  for (const key of ['usesThirdPartyMaterial', 'participantConsentConfirmed']) {
     const input = collectionInput();
     delete input[key];
     assert.throws(
@@ -132,6 +132,65 @@ test('collection governance answers are explicit and participant consent is requ
     () => parseCollectionContributionInput(collectionInput({ participantConsentConfirmed: false })),
     (error) => error?.code === 'failed-precondition',
   );
+});
+
+test('an unasked minors question stays null rather than becoming a declared No', () => {
+  // The mobile forms only put the question where a person is the subject, so
+  // a reviewer has to be able to tell "nobody asked" from "they said no".
+  const input = collectionInput();
+  delete input.involvesMinors;
+  const parsed = parseCollectionContributionInput(input);
+  assert.equal(parsed.involvesMinors, null);
+  const submission = buildCollectionSubmissionDocument(
+    'collection-minors',
+    'member-1',
+    parsed,
+    '2026-08-24T00:00:00.000Z',
+  );
+  assert.equal(submission.disclosures.involvesMinors, null);
+  assert.equal(
+    parseCollectionContributionInput(collectionInput({ involvesMinors: true })).involvesMinors,
+    true,
+  );
+});
+
+test('an uploaded file must live in the calling member\'s own submission folder', () => {
+  const good = {
+    storagePath: 'creator-submissions/member-1/collection-contributions/abc/song.mp3',
+    mimeType: 'audio/mpeg',
+    sizeBytes: 4096,
+    mediaType: 'audio',
+  };
+  const parsed = parseCollectionContributionInput(
+    collectionInput({ collectionKind: 'music', format: 'Song', media: good }),
+    'member-1',
+  );
+  assert.equal(parsed.media.storagePath, good.storagePath);
+
+  // Storage rules stop a member writing into somebody else's prefix, but
+  // nothing stops them naming one here.
+  assert.throws(
+    () => parseCollectionContributionInput(
+      collectionInput({ collectionKind: 'music', format: 'Song', media: good }),
+      'member-2',
+    ),
+    (error) => error?.code === 'permission-denied',
+  );
+});
+
+test('a song or a narration cannot be submitted without its recording', () => {
+  for (const collectionKind of ['music', 'audiobooks']) {
+    assert.throws(
+      () => parseCollectionContributionInput(
+        collectionInput({ collectionKind, format: 'Song' }),
+        'member-1',
+      ),
+      (error) => error?.code === 'failed-precondition',
+      `${collectionKind} must carry its audio`,
+    );
+  }
+  // A written work may arrive as typed text alone.
+  assert.ok(parseCollectionContributionInput(collectionInput(), 'member-1'));
 });
 
 test('Dictionary examples survive the canonical submission projection', () => {

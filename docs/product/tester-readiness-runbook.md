@@ -82,9 +82,11 @@ Every `export` in `services/functions/src/index.ts` must appear in that list.
 
 Watch for two things on the first deploy after this round's changes:
 
-- The three new composite indexes (`communityNotifications` ×2,
-  `communityDevices`) have to finish building before the notifications centre
-  and its badge work. Check **Firestore → Indexes** in the console.
+- New composite indexes have to finish building before the surfaces that query
+  them work: `learnLessons`, `collectionApps`, `shopProducts` and `shopOrders`
+  (published/order and uid/status), plus `communityPosts` on `rootId` — which is
+  what lets Kawuri read the thread it has been mentioned in. Check
+  **Firestore → Indexes** in the console.
 - Every declared secret must already exist in Secret Manager or the whole
   functions deploy fails. That list is unchanged: `SMTP_PASSWORD` and
   `ARKESEL_API_KEY`. Kawuri deliberately adds none — it authenticates to Vertex
@@ -192,13 +194,63 @@ Build these on a machine with the pinned Flutter toolchain (see
 
    ```bash
    cd apps/mobile
-   fvm flutter build appbundle --flavor production \
+   flutter build appbundle --flavor production \
      --dart-define=APP_ENV=production
    ```
 
    Output: `build/app/outputs/bundle/productionRelease/app-production-release.aab`.
 5. **Play Console:** create the app, upload the AAB to **Internal testing**, add
    your testers' Google account emails, and share the opt-in link.
+
+### Google Sign-In: register every certificate, on every app
+
+Google Sign-In is granted to a **pair** — the package id *and* the signing
+certificate — and the Firebase project has to hold that exact pair. Miss one and
+both routes into an account fail, neither of them legibly: the native account
+sheet reports an ordinary cancellation, and Firebase's hosted fallback returns
+`invalid-cert-hash`, which the SDK renders as "there was an error while trying
+to get your package certificate hash". Nothing in either message names the
+certificate that was actually presented.
+
+There are more pairs than there look to be. Four flavours ship four package
+ids, and each can be signed three ways:
+
+| Certificate | Signs |
+| --- | --- |
+| Play app signing key | anything installed from Play — Play re-signs the AAB after upload |
+| Upload key (`upload-keystore.jks`) | a release APK built and sideloaded locally |
+| Each developer's `~/.android/debug.keystore` | every `flutter run` |
+
+Register **all** of them against **all four** Android apps. Read the Play
+certificate from Play Console → *Test and release* → *Setup* → *App integrity* →
+*App signing key certificate*, and a keystore's own with:
+
+```bash
+keytool -list -v -keystore <keystore> -alias <alias> | grep -E "SHA1:|SHA256:"
+```
+
+Then, per app id:
+
+```bash
+firebase apps:android:sha:list <appId> --project project-kassena-7e026
+firebase apps:android:sha:create <appId> <sha1-or-sha256> --project project-kassena-7e026
+```
+
+Verify against the endpoint the SDK itself calls — this is the check that
+actually decides, and it needs no device:
+
+```bash
+curl -s "https://identitytoolkit.googleapis.com/v1/projects?key=<androidApiKey>&androidPackageName=<package>&sha1Cert=<sha1>"
+```
+
+`authorizedDomains` back means the pair is registered; `INVALID_CERT_HASH`
+means it is not. Re-download `google-services.json` afterwards so the OAuth
+client list ships with the build.
+
+Since 0.1.1+8 the app also reports its own identity: **Settings → About → App
+signature** shows the package id and SHA-1 of the running build and copies both
+to the clipboard. That is the value to register, and on a Play install it is the
+only place it is readable.
 
 ---
 

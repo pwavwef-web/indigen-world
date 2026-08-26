@@ -532,10 +532,22 @@ function ReviewTab({ notify }: { notify: (m: string) => void }) {
                     <dd><a href={s.externalPostUrl} target="_blank" rel="noreferrer">Open submitted link ↗</a></dd>
                   </div>
                 ) : null}
+                {s.media?.storagePath ? (
+                  <div>
+                    <dt>Uploaded file</dt>
+                    <dd>
+                      {s.media.mediaType ?? 'file'} · {s.media.mimeType ?? 'unknown type'}
+                      <div className="muted">{s.media.storagePath}</div>
+                    </dd>
+                  </div>
+                ) : null}
                 {s.translationNotes ? <div><dt>Reviewer context</dt><dd>{s.translationNotes}</dd></div> : null}
                 {s.translation?.translatedContent ? <div className="review-card__content"><dt>Translation</dt><dd>{contentDetails(s.translation.translatedContent, 'translation')}</dd></div> : null}
                 <div><dt>English summary</dt><dd>{s.englishSummary || '—'}</dd></div>
-                <div><dt>Minors</dt><dd>{s.disclosures?.involvesMinors ? 'Yes' : 'No'}</dd></div>
+                {/* Null means the form never put the question — a dictionary
+                    word has no participants — which is not the same as a
+                    declared "no" and must not read like one. */}
+                <div><dt>Minors</dt><dd>{s.disclosures?.involvesMinors == null ? 'Not asked' : s.disclosures.involvesMinors ? 'Yes' : 'No'}</dd></div>
                 <div><dt>Third-party material</dt><dd>{s.disclosures?.usesThirdPartyMaterial ? 'Yes' : 'No'}</dd></div>
                 <div><dt>Publication permission</dt><dd>{s.permissions?.publication ? 'Granted' : 'No'}</dd></div>
                 <div><dt>AI training</dt><dd>{s.permissions?.aiTraining ? 'Granted' : 'Off'}</dd></div>

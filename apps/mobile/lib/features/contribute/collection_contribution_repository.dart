@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/firebase_ready.dart';
 import 'package:indigen_world_mobile/features/auth/auth_repository.dart';
 import 'package:indigen_world_mobile/features/collection/collection_data.dart';
+import 'package:indigen_world_mobile/features/contribute/contribution_upload.dart';
 
 class CollectionContributionRecord {
   const CollectionContributionRecord({
@@ -52,7 +53,7 @@ class CollectionContributionDraft {
     required this.format,
     required this.dialect,
     required this.source,
-    required this.mediaUrl,
+    required this.media,
     required this.notes,
     required this.publicationPermission,
     required this.involvesMinors,
@@ -69,10 +70,16 @@ class CollectionContributionDraft {
   final String format;
   final String dialect;
   final String source;
-  final String mediaUrl;
+
+  /// The uploaded song, narration or manuscript, when this kind carries one.
+  final UploadedContributionFile? media;
+
   final String notes;
   final bool publicationPermission;
-  final bool involvesMinors;
+
+  /// Null where the form never asked — a word has no participants, so an
+  /// answer would be invented rather than declared.
+  final bool? involvesMinors;
   final bool usesThirdPartyMaterial;
   final bool participantConsentConfirmed;
   final String kasemExample;
@@ -101,7 +108,9 @@ class CollectionContributionRepository {
       'format': draft.format.trim(),
       'dialect': draft.dialect.trim(),
       'source': draft.source.trim(),
-      'mediaUrl': draft.mediaUrl.trim(),
+      // The bytes went to Storage under the member's own prefix; the callable
+      // only ever sees where they landed.
+      'media': draft.media?.toMap(),
       'notes': draft.notes.trim(),
       'kasemExample': draft.kasemExample.trim(),
       'englishExample': draft.englishExample.trim(),

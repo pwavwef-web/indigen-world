@@ -3,8 +3,11 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
+import 'package:indigen_world_mobile/features/collection/apps_and_shop.dart';
+import 'package:indigen_world_mobile/features/collection/apps_screen.dart';
 import 'package:indigen_world_mobile/features/collection/collection_data.dart';
 import 'package:indigen_world_mobile/features/collection/collection_detail_screens.dart';
+import 'package:indigen_world_mobile/features/collection/shop_screen.dart';
 import 'package:indigen_world_mobile/features/collection/widgets/collection_card_surface.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_fab.dart';
 import 'package:indigen_world_mobile/shared/app_widgets.dart';
@@ -19,11 +22,13 @@ class CollectionScreen extends ConsumerWidget {
     final music = ref.watch(musicCollectionProvider);
     final literature = ref.watch(literatureCollectionProvider);
     final audiobooks = ref.watch(audiobookCollectionProvider);
+    final apps = ref.watch(directoryAppsProvider);
+    final shop = ref.watch(shopProductsProvider);
     final textScale = MediaQuery.textScalerOf(context).scale(1);
     final useSingleColumn = textScale > 1.1;
     final portals = <Widget>[
       _CollectionPortalCard(
-        kind: CollectionKind.music,
+        label: CollectionKind.music.label,
         icon: Icons.graphic_eq_rounded,
         color: BrandColors.terracotta,
         count: _count(music),
@@ -31,7 +36,7 @@ class CollectionScreen extends ConsumerWidget {
         onTap: () => _open(context, const MusicCollectionScreen()),
       ),
       _CollectionPortalCard(
-        kind: CollectionKind.dictionary,
+        label: CollectionKind.dictionary.label,
         icon: Icons.translate_rounded,
         color: BrandColors.heritageGreen,
         count: _count(dictionary),
@@ -39,7 +44,7 @@ class CollectionScreen extends ConsumerWidget {
         onTap: () => _open(context, const DictionaryCollectionScreen()),
       ),
       _CollectionPortalCard(
-        kind: CollectionKind.literature,
+        label: CollectionKind.literature.label,
         icon: Icons.auto_stories_rounded,
         color: BrandColors.savannahGreen,
         count: _count(literature),
@@ -47,12 +52,32 @@ class CollectionScreen extends ConsumerWidget {
         onTap: () => _open(context, const LiteratureCollectionScreen()),
       ),
       _CollectionPortalCard(
-        kind: CollectionKind.audiobooks,
+        label: CollectionKind.audiobooks.label,
         icon: Icons.headphones_rounded,
         color: const Color(0xFF735C25),
         count: _count(audiobooks),
         description: 'Narrated works for listening anywhere.',
         onTap: () => _open(context, const AudiobookCollectionScreen()),
+      ),
+      // Apps and Shop sit alongside the archive rather than inside it: one
+      // sends members out to software worth having, the other to things the
+      // project makes and sells. Neither is contributed to, which is why
+      // neither is a CollectionKind.
+      _CollectionPortalCard(
+        label: 'Apps',
+        icon: Icons.apps_rounded,
+        color: const Color(0xFF2F6F8F),
+        count: _count(apps),
+        description: 'Kasem apps, scripture and other Indigen releases.',
+        onTap: () => _open(context, const AppsCollectionScreen()),
+      ),
+      _CollectionPortalCard(
+        label: 'Shop',
+        icon: Icons.storefront_rounded,
+        color: const Color(0xFF8C3B2E),
+        count: _count(shop),
+        description: 'Souvenirs, books and shea butter from Kasena makers.',
+        onTap: () => _open(context, const ShopCollectionScreen()),
       ),
     ];
 
@@ -75,12 +100,16 @@ class CollectionScreen extends ConsumerWidget {
                       dictionary.isLoading ||
                       music.isLoading ||
                       literature.isLoading ||
-                      audiobooks.isLoading,
+                      audiobooks.isLoading ||
+                      apps.isLoading ||
+                      shop.isLoading,
                   hasError:
                       dictionary.hasError ||
                       music.hasError ||
                       literature.hasError ||
-                      audiobooks.hasError,
+                      audiobooks.hasError ||
+                      apps.hasError ||
+                      shop.hasError,
                 ),
               ),
             ),
@@ -263,7 +292,7 @@ class _FirebaseStatus extends StatelessWidget {
 
 class _CollectionPortalCard extends StatelessWidget {
   const _CollectionPortalCard({
-    required this.kind,
+    required this.label,
     required this.icon,
     required this.color,
     required this.count,
@@ -271,7 +300,7 @@ class _CollectionPortalCard extends StatelessWidget {
     required this.onTap,
   });
 
-  final CollectionKind kind;
+  final String label;
   final IconData icon;
   final Color color;
   final int? count;
@@ -280,7 +309,7 @@ class _CollectionPortalCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => CollectionCardSurface(
-    semanticLabel: '${kind.label} collection',
+    semanticLabel: '$label collection',
     onTap: onTap,
     child: LayoutBuilder(
       builder: (context, constraints) {
@@ -299,7 +328,7 @@ class _CollectionPortalCard extends StatelessWidget {
             else
               AspectRatio(aspectRatio: 4 / 3, child: artwork),
             _PortalCaption(
-              kind: kind,
+              label: label,
               color: color,
               count: count,
               description: description,
@@ -369,13 +398,13 @@ class _PortalArtwork extends StatelessWidget {
 /// a fourth line of description would be height the artwork has already spent.
 class _PortalCaption extends StatelessWidget {
   const _PortalCaption({
-    required this.kind,
+    required this.label,
     required this.color,
     required this.count,
     required this.description,
   });
 
-  final CollectionKind kind;
+  final String label;
   final Color color;
   final int? count;
   final String description;
@@ -388,7 +417,7 @@ class _PortalCaption extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          kind.label,
+          label,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: Theme.of(context).textTheme.titleMedium,

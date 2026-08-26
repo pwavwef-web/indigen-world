@@ -91,9 +91,17 @@ What you know about the app:
 If somebody asks something you genuinely cannot answer, say what you do not
 know, then name the one next step that would actually get them the answer.`;
 
-interface Turn {
+export interface Turn {
   role: 'user' | 'model';
   text: string;
+}
+
+/** What a model call produced, or why it produced nothing. */
+export interface KawuriAnswer {
+  /** False when Vertex AI is unreachable for this deployment rather than for
+   * this request — the caller should fall back rather than apologise. */
+  configured: boolean;
+  reply: string;
 }
 
 /** Validates and trims the conversation the client sent. */
@@ -173,6 +181,78 @@ export function vertexEndpoint(project: string): string {
   );
 }
 
+/**
+ * One turn of Kawuri, as a plain function.
+ *
+ * Extracted from the callable so the community trigger that answers an
+ * `@kawuri` mention speaks with exactly the same voice and the same
+ * guardrails. Two copies of a system instruction is two sets of rules about
+ * inventing Kasem words, and only one of them would get updated.
+ *
+ * [extraInstruction] is appended to the shared instruction — the trigger uses
+ * it to explain that the answer is a public reply in somebody's thread rather
+ * than a private chat.
+ */
+export async function askKawuri(
+  turns: Turn[],
+  extraInstruction?: string,
+): Promise<KawuriAnswer> {
+  if (turns.length === 0) return { configured: true, reply: '' };
+
+  const project = projectId();
+  if (!project) return { configured: false, reply: '' };
+
+  const instruction = extraInstruction
+    ? `${SYSTEM_INSTRUCTION}
+
+${extraInstruction}`
+    : SYSTEM_INSTRUCTION;
+
+  try {
+    const response = await fetch(vertexEndpoint(project), {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${await accessToken()}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: instruction }] },
+        contents: turns.map((turn) => ({ role: turn.role, parts: [{ text: turn.text }] })),
+        generationConfig: {
+          temperature: 0.7,
+          topP: 0.95,
+          maxOutputTokens: MAX_OUTPUT_TOKENS,
+        },
+      }),
+    });
+
+    if (!response.ok) {
+      // 403 here almost always means the Vertex AI API is not enabled, or the
+      // runtime service account lacks roles/aiplatform.user. Both are a
+      // deployment state rather than a fault the member caused, so hand back
+      // "not configured" and let the caller use its fallback.
+      if (response.status === 403 || response.status === 404) {
+        logger.warn('Vertex AI is not available to this deployment', {
+          status: response.status,
+          location: LOCATION,
+          model: MODEL,
+        });
+        return { configured: false, reply: '' };
+      }
+      // Log the status, never the member's question.
+      logger.error('Kawuri model call failed', { status: response.status });
+      return { configured: true, reply: '' };
+    }
+
+    return { configured: true, reply: replyFromGemini(await response.json()) };
+  } catch (error) {
+    logger.error('Kawuri request threw', {
+      errorType: error instanceof Error ? error.name : 'unknown',
+    });
+    return { configured: false, reply: '' };
+  }
+}
+
 export const kawuriChat = onCall(
   {
     enforceAppCheck: ENFORCE_APP_CHECK,
@@ -194,65 +274,17 @@ export const kawuriChat = onCall(
       throw new HttpsError('invalid-argument', 'Ask a question first.');
     }
 
-    const project = projectId();
-    if (!project) {
-      // No project on the runtime environment — the emulator without a project,
-      // typically. Not an error: the app has an on-device guide for this.
-      return { configured: false, reply: '' };
+    const answer = await askKawuri(turns);
+    if (!answer.configured) return answer;
+    if (!answer.reply) {
+      // A blocked or empty generation. Say so rather than returning silence.
+      return {
+        configured: true,
+        reply:
+          'I could not put an answer together for that one. Try asking it a '
+          + 'different way, or ask me something else.',
+      };
     }
-
-    try {
-      const response = await fetch(vertexEndpoint(project), {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${await accessToken()}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          systemInstruction: { parts: [{ text: SYSTEM_INSTRUCTION }] },
-          contents: turns.map((turn) => ({ role: turn.role, parts: [{ text: turn.text }] })),
-          generationConfig: {
-            temperature: 0.7,
-            topP: 0.95,
-            maxOutputTokens: MAX_OUTPUT_TOKENS,
-          },
-        }),
-      });
-
-      if (!response.ok) {
-        // 403 here almost always means the Vertex AI API is not enabled, or the
-        // runtime service account lacks roles/aiplatform.user. Both are a
-        // deployment state rather than a fault the member caused, so hand back
-        // "not configured" and let the app use its guide.
-        if (response.status === 403 || response.status === 404) {
-          logger.warn('Vertex AI is not available to this deployment', {
-            status: response.status,
-            location: LOCATION,
-            model: MODEL,
-          });
-          return { configured: false, reply: '' };
-        }
-        // Log the status, never the member's question.
-        logger.error('Kawuri model call failed', { status: response.status });
-        return { configured: true, reply: '' };
-      }
-
-      const reply = replyFromGemini(await response.json());
-      if (!reply) {
-        // A blocked or empty generation. Say so rather than returning silence.
-        return {
-          configured: true,
-          reply:
-            'I could not put an answer together for that one. Try asking it a '
-            + 'different way, or ask me something else.',
-        };
-      }
-      return { configured: true, reply };
-    } catch (error) {
-      logger.error('Kawuri request threw', {
-        errorType: error instanceof Error ? error.name : 'unknown',
-      });
-      return { configured: false, reply: '' };
-    }
+    return answer;
   },
 );

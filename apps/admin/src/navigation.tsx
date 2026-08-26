@@ -5,6 +5,8 @@ import { CreatorsAdmin } from './creators/CreatorsAdmin';
 import { TeamSiteRequestsAdmin } from './team-sites/TeamSiteIntake';
 import { MessagingAdmin } from './messaging/MessagingAdmin';
 import { InterestsAdmin } from './interests/InterestsAdmin';
+import { LearningAdmin } from './learning/LearningAdmin';
+import { CollectionAdmin } from './collection/CollectionAdmin';
 import { AuditLogViewer } from './console/AuditLogViewer';
 import { ExportManager } from './console/ExportManager';
 
@@ -21,7 +23,16 @@ import { ExportManager } from './console/ExportManager';
  * `canAccess` for a screen any signed-in user may open.
  */
 
-export type ViewId = 'console' | 'creators' | 'interests' | 'teamSites' | 'messaging' | 'audit' | 'exports';
+export type ViewId =
+  | 'console'
+  | 'creators'
+  | 'learning'
+  | 'collection'
+  | 'interests'
+  | 'teamSites'
+  | 'messaging'
+  | 'audit'
+  | 'exports';
 
 export interface AdminScreen {
   /** Stable identifier used for nav state and routing. */
@@ -53,6 +64,28 @@ export const SCREENS: AdminScreen[] = [
     canAccess: isValidator,
     deny: { title: 'Staff access required', body: 'Your account needs a validator or admin role to manage creators.' },
     render: ({ role }) => <CreatorsAdmin role={role} />,
+  },
+  {
+    id: 'learning',
+    path: '/learning',
+    label: 'Learning',
+    canAccess: isAdmin,
+    deny: {
+      title: 'Admin access required',
+      body: 'Your account needs an admin role to configure the Kasem learning path.',
+    },
+    render: () => <LearningAdmin />,
+  },
+  {
+    id: 'collection',
+    path: '/collection',
+    label: 'Collection',
+    canAccess: isAdmin,
+    deny: {
+      title: 'Admin access required',
+      body: 'Your account needs an admin role to manage the app directory and the shop.',
+    },
+    render: () => <CollectionAdmin />,
   },
   {
     id: 'interests',

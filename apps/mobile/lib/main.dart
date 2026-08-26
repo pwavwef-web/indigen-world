@@ -4,6 +4,7 @@ import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/app/indigen_world_app.dart';
+import 'package:indigen_world_mobile/core/app_signature.dart';
 import 'package:indigen_world_mobile/core/firebase_bootstrap.dart';
 import 'package:indigen_world_mobile/core/firebase_ready.dart';
 import 'package:indigen_world_mobile/data/local/app_database.dart';
@@ -13,6 +14,12 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final database = AppDatabase();
   await migrateLegacyPreferences(database);
+
+  // Read once, up front, so a sign-in failure can report which package id and
+  // signing certificate this build presented. Error reporting runs on a path
+  // that cannot wait for a platform channel, and this is the only place the
+  // answer is knowable at all on a Play-signed release.
+  await const AppSignatureReader().read();
 
   final firebaseReady = await FirebaseBootstrap.initialize();
   if (firebaseReady) {

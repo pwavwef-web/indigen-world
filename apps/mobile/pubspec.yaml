@@ -1,7 +1,7 @@
 name: indigen_world_mobile
 description: Offline-first mobile experience for Indigen World and Project Kasena.
 publish_to: none
-version: 0.1.0+7
+version: 0.1.1+8
 
 environment:
   sdk: ^3.13.0
@@ -23,6 +23,7 @@ dependencies:
   firebase_performance: ^0.11.4+6
   firebase_remote_config: ^6.5.6
   firebase_storage: ^13.4.6
+  file_picker: ^10.3.4
   flutter:
     sdk: flutter
   flutter_localizations:
@@ -36,6 +37,7 @@ dependencies:
   intl: ^0.20.3
   json_annotation: ^4.12.0
   package_info_plus: ^9.0.0
+  path: ^1.9.1
   path_provider: ^2.1.5
   record: ^6.2.1
   shared_preferences: ^2.5.5

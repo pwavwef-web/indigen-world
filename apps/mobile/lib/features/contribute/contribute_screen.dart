@@ -5,6 +5,7 @@ import 'package:indigen_world_mobile/features/auth/auth_repository.dart';
 import 'package:indigen_world_mobile/features/auth/sign_in_sheet.dart';
 import 'package:indigen_world_mobile/features/collection/collection_data.dart';
 import 'package:indigen_world_mobile/features/contribute/collection_contribution_repository.dart';
+import 'package:indigen_world_mobile/features/contribute/contribution_upload.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_fab.dart';
 import 'package:indigen_world_mobile/shared/app_widgets.dart';
 import 'package:indigen_world_mobile/shared/frosted_nav_bar.dart';
@@ -35,7 +36,6 @@ class _ContributeScreenState extends ConsumerState<ContributeScreen> {
   late final TextEditingController _titleController;
   final _bodyController = TextEditingController();
   final _sourceController = TextEditingController();
-  final _mediaController = TextEditingController();
   final _notesController = TextEditingController();
   final _kasemExampleController = TextEditingController();
   final _englishExampleController = TextEditingController();
@@ -46,10 +46,16 @@ class _ContributeScreenState extends ConsumerState<ContributeScreen> {
   bool _rightsConfirmed = false;
   bool _publicationPermission = false;
   bool _participantConsentConfirmed = false;
-  bool? _involvesMinors;
   bool? _usesThirdPartyMaterial;
   bool _saving = false;
   String? _submitError;
+
+  /// The song, narration or manuscript itself, chosen but not yet uploaded.
+  ///
+  /// Staged rather than uploaded on selection so that backing out of the form
+  /// never leaves a file nobody asked for sitting in Storage.
+  PickedContributionFile? _file;
+  double? _uploadProgress;
 
   @override
   void initState() {
@@ -63,7 +69,6 @@ class _ContributeScreenState extends ConsumerState<ContributeScreen> {
     _titleController.dispose();
     _bodyController.dispose();
     _sourceController.dispose();
-    _mediaController.dispose();
     _notesController.dispose();
     _kasemExampleController.dispose();
     _englishExampleController.dispose();
@@ -108,6 +113,7 @@ class _ContributeScreenState extends ConsumerState<ContributeScreen> {
                   onSelected: (kind) => setState(() {
                     _kind = kind;
                     _format = null;
+                    _file = null;
                     _submitError = null;
                   }),
                 ),
@@ -119,27 +125,27 @@ class _ContributeScreenState extends ConsumerState<ContributeScreen> {
                   titleController: _titleController,
                   bodyController: _bodyController,
                   sourceController: _sourceController,
-                  mediaController: _mediaController,
                   notesController: _notesController,
                   kasemExampleController: _kasemExampleController,
                   englishExampleController: _englishExampleController,
                   dialect: _dialect,
                   format: _format,
+                  file: _file,
+                  uploadProgress: _uploadProgress,
                   rightsConfirmed: _rightsConfirmed,
                   publicationPermission: _publicationPermission,
                   participantConsentConfirmed: _participantConsentConfirmed,
-                  involvesMinors: _involvesMinors,
                   usesThirdPartyMaterial: _usesThirdPartyMaterial,
                   onDialectChanged: (value) => setState(() => _dialect = value),
                   onFormatChanged: (value) => setState(() => _format = value),
+                  onPickFile: _pickFile,
+                  onClearFile: () => setState(() => _file = null),
                   onRightsChanged: (value) =>
                       setState(() => _rightsConfirmed = value),
                   onPublicationChanged: (value) =>
                       setState(() => _publicationPermission = value),
                   onParticipantConsentChanged: (value) =>
                       setState(() => _participantConsentConfirmed = value),
-                  onInvolvesMinorsChanged: (value) =>
-                      setState(() => _involvesMinors = value),
                   onThirdPartyMaterialChanged: (value) =>
                       setState(() => _usesThirdPartyMaterial = value),
                 ),
@@ -178,15 +184,37 @@ class _ContributeScreenState extends ConsumerState<ContributeScreen> {
     ),
   );
 
+  /// Chooses the file behind this contribution, if the kind carries one.
+  Future<void> _pickFile() async {
+    final kind = _uploadKindFor(_kind);
+    if (kind == null) return;
+    try {
+      final picked = await const ContributionUploader().pick(kind);
+      if (picked == null || !mounted) return;
+      setState(() {
+        _file = picked;
+        _submitError = null;
+      });
+    } on ContributionUploadFailure catch (failure) {
+      if (mounted) setState(() => _submitError = failure.message);
+    }
+  }
+
   Future<void> _submit() async {
     FocusScope.of(context).unfocus();
     final isValid = _formKey.currentState?.validate() ?? false;
-    if (!isValid || !_rightsConfirmed || !_participantConsentConfirmed) {
+    final needsFile = _requiresUpload(_kind) && _file == null;
+    if (!isValid ||
+        !_rightsConfirmed ||
+        !_participantConsentConfirmed ||
+        needsFile) {
       setState(() {
-        _submitError = !_rightsConfirmed
+        _submitError = needsFile
+            ? 'Upload the ${_uploadKindFor(_kind)?.label ?? 'file'} before submitting.'
+            : !_rightsConfirmed
             ? 'Confirm that you have permission to share this contribution.'
             : !_participantConsentConfirmed
-            ? 'Confirm participant consent, or that there are no other participants.'
+            ? 'Confirm consent, or that there are no other participants.'
             : 'Please review the highlighted fields.';
       });
       return;
@@ -209,8 +237,24 @@ class _ContributeScreenState extends ConsumerState<ContributeScreen> {
     setState(() {
       _saving = true;
       _submitError = null;
+      _uploadProgress = _file == null ? null : 0;
     });
     try {
+      // The file goes first and separately: it lands in the member's own
+      // private prefix, and the callable is handed the path rather than the
+      // bytes, so a 40 MB recording never has to fit through a function call.
+      UploadedContributionFile? uploaded;
+      final staged = _file;
+      if (staged != null) {
+        uploaded = await const ContributionUploader().upload(
+          uid: user.uid,
+          file: staged,
+          onProgress: (value) {
+            if (mounted) setState(() => _uploadProgress = value);
+          },
+        );
+      }
+
       await repository.submit(
         CollectionContributionDraft(
           kind: _kind,
@@ -219,11 +263,14 @@ class _ContributeScreenState extends ConsumerState<ContributeScreen> {
           format: _format ?? '',
           dialect: _dialect ?? '',
           source: _sourceController.text,
-          mediaUrl: _mediaController.text,
+          media: uploaded,
           notes: _notesController.text,
           publicationPermission: _publicationPermission,
-          involvesMinors: _involvesMinors!,
-          usesThirdPartyMaterial: _usesThirdPartyMaterial!,
+          // Only asked where a person is the subject of the work. Null means
+          // the question was not put, which a reviewer can tell apart from a
+          // declared "no".
+          involvesMinors: null,
+          usesThirdPartyMaterial: _usesThirdPartyMaterial ?? false,
           participantConsentConfirmed: _participantConsentConfirmed,
           kasemExample: _kasemExampleController.text,
           englishExample: _englishExampleController.text,
@@ -234,7 +281,6 @@ class _ContributeScreenState extends ConsumerState<ContributeScreen> {
       if (!mounted) return;
       _bodyController.clear();
       _sourceController.clear();
-      _mediaController.clear();
       _notesController.clear();
       _kasemExampleController.clear();
       _englishExampleController.clear();
@@ -243,10 +289,11 @@ class _ContributeScreenState extends ConsumerState<ContributeScreen> {
         _rightsConfirmed = false;
         _publicationPermission = false;
         _participantConsentConfirmed = false;
-        _involvesMinors = null;
         _usesThirdPartyMaterial = null;
         _format = null;
         _dialect = null;
+        _file = null;
+        _uploadProgress = null;
       });
       await showGlassPopup<void>(
         context: context,
@@ -274,6 +321,8 @@ class _ContributeScreenState extends ConsumerState<ContributeScreen> {
           ],
         ),
       );
+    } on ContributionUploadFailure catch (failure) {
+      if (mounted) setState(() => _submitError = failure.message);
     } on Object {
       if (mounted) {
         setState(() {
@@ -281,10 +330,30 @@ class _ContributeScreenState extends ConsumerState<ContributeScreen> {
         });
       }
     } finally {
-      if (mounted) setState(() => _saving = false);
+      if (mounted) {
+        setState(() {
+          _saving = false;
+          _uploadProgress = null;
+        });
+      }
     }
   }
 }
+
+/// The kind of file each contribution carries, or null where it carries none.
+///
+/// A song and a narration *are* recordings, so they cannot be described in
+/// prose alone. A written work may arrive as a manuscript or as typed text,
+/// so its upload is optional. A dictionary word is neither.
+ContributionMediaKind? _uploadKindFor(CollectionKind kind) => switch (kind) {
+  CollectionKind.music || CollectionKind.audiobooks =>
+    ContributionMediaKind.audio,
+  CollectionKind.literature => ContributionMediaKind.document,
+  CollectionKind.dictionary => null,
+};
+
+bool _requiresUpload(CollectionKind kind) =>
+    kind == CollectionKind.music || kind == CollectionKind.audiobooks;
 
 class _KindSelector extends StatelessWidget {
   const _KindSelector({required this.selected, required this.onSelected});
@@ -367,6 +436,16 @@ class _KindChoice extends StatelessWidget {
   );
 }
 
+/// The form for one kind of contribution.
+///
+/// There is no longer a single form with a couple of fields switched on and
+/// off. A song, a word, a written work and a narration are four different
+/// things to submit, and asking a member the same questions about all of them
+/// produced some that made no sense — most obviously whether a child was
+/// involved in *making a song*, which is what a consent pledge covers and a
+/// disclosure question does not. Each kind now asks only what it needs, in the
+/// order somebody would actually fill it in: what it is, the work itself, who
+/// it came from, then the permissions.
 class _ContributionFields extends StatelessWidget {
   const _ContributionFields({
     required this.formKey,
@@ -374,23 +453,24 @@ class _ContributionFields extends StatelessWidget {
     required this.titleController,
     required this.bodyController,
     required this.sourceController,
-    required this.mediaController,
     required this.notesController,
     required this.kasemExampleController,
     required this.englishExampleController,
     required this.dialect,
     required this.format,
+    required this.file,
+    required this.uploadProgress,
     required this.rightsConfirmed,
     required this.publicationPermission,
     required this.participantConsentConfirmed,
-    required this.involvesMinors,
     required this.usesThirdPartyMaterial,
     required this.onDialectChanged,
     required this.onFormatChanged,
+    required this.onPickFile,
+    required this.onClearFile,
     required this.onRightsChanged,
     required this.onPublicationChanged,
     required this.onParticipantConsentChanged,
-    required this.onInvolvesMinorsChanged,
     required this.onThirdPartyMaterialChanged,
     super.key,
   });
@@ -400,24 +480,27 @@ class _ContributionFields extends StatelessWidget {
   final TextEditingController titleController;
   final TextEditingController bodyController;
   final TextEditingController sourceController;
-  final TextEditingController mediaController;
   final TextEditingController notesController;
   final TextEditingController kasemExampleController;
   final TextEditingController englishExampleController;
   final String? dialect;
   final String? format;
+  final PickedContributionFile? file;
+  final double? uploadProgress;
   final bool rightsConfirmed;
   final bool publicationPermission;
   final bool participantConsentConfirmed;
-  final bool? involvesMinors;
   final bool? usesThirdPartyMaterial;
   final ValueChanged<String?> onDialectChanged;
   final ValueChanged<String?> onFormatChanged;
+  final VoidCallback onPickFile;
+  final VoidCallback onClearFile;
   final ValueChanged<bool> onRightsChanged;
   final ValueChanged<bool> onPublicationChanged;
   final ValueChanged<bool> onParticipantConsentChanged;
-  final ValueChanged<bool?> onInvolvesMinorsChanged;
   final ValueChanged<bool?> onThirdPartyMaterialChanged;
+
+  bool get _isDictionary => kind == CollectionKind.dictionary;
 
   @override
   Widget build(BuildContext context) => Form(
@@ -436,6 +519,37 @@ class _ContributionFields extends StatelessWidget {
           validator: _required,
         ),
         const SizedBox(height: 13),
+        DropdownButtonFormField<String>(
+          key: ValueKey('format-${kind.name}'),
+          initialValue: format,
+          decoration: InputDecoration(
+            labelText: _formatLabel,
+            prefixIcon: const Icon(Icons.category_outlined),
+          ),
+          items: [
+            for (final value in _formats)
+              DropdownMenuItem(value: value, child: Text(value)),
+          ],
+          onChanged: onFormatChanged,
+          validator: (value) => value == null ? 'Choose one option.' : null,
+        ),
+
+        // The work itself. For a recording that is the file; for everything
+        // else it is what the member writes.
+        if (_uploadKindFor(kind) case final uploadKind?) ...[
+          const SizedBox(height: 13),
+          _UploadField(
+            uploadKind: uploadKind,
+            required: _requiresUpload(kind),
+            file: file,
+            progress: uploadProgress,
+            title: _uploadTitle,
+            hint: _uploadHint,
+            onPick: onPickFile,
+            onClear: onClearFile,
+          ),
+        ],
+        const SizedBox(height: 13),
         TextFormField(
           controller: bodyController,
           minLines: kind == CollectionKind.literature ? 6 : 3,
@@ -449,7 +563,7 @@ class _ContributionFields extends StatelessWidget {
           ),
           validator: _required,
         ),
-        if (kind == CollectionKind.dictionary) ...[
+        if (_isDictionary) ...[
           const SizedBox(height: 13),
           TextFormField(
             controller: kasemExampleController,
@@ -475,21 +589,7 @@ class _ContributionFields extends StatelessWidget {
             ),
           ),
         ],
-        const SizedBox(height: 13),
-        DropdownButtonFormField<String>(
-          key: ValueKey('format-${kind.name}'),
-          initialValue: format,
-          decoration: InputDecoration(
-            labelText: _formatLabel,
-            prefixIcon: const Icon(Icons.category_outlined),
-          ),
-          items: [
-            for (final value in _formats)
-              DropdownMenuItem(value: value, child: Text(value)),
-          ],
-          onChanged: onFormatChanged,
-          validator: (value) => value == null ? 'Choose one option.' : null,
-        ),
+
         const SizedBox(height: 13),
         DropdownButtonFormField<String>(
           initialValue: dialect,
@@ -521,28 +621,6 @@ class _ContributionFields extends StatelessWidget {
           ),
           validator: _required,
         ),
-        if (kind == CollectionKind.music ||
-            kind == CollectionKind.audiobooks) ...[
-          const SizedBox(height: 13),
-          TextFormField(
-            controller: mediaController,
-            keyboardType: TextInputType.url,
-            decoration: const InputDecoration(
-              labelText: 'Recording link (optional)',
-              hintText: 'https://…',
-              prefixIcon: Icon(Icons.link_rounded),
-            ),
-            validator: (value) {
-              final text = value?.trim() ?? '';
-              if (text.isEmpty) return null;
-              final uri = Uri.tryParse(text);
-              return uri != null &&
-                      (uri.scheme == 'https' || uri.scheme == 'http')
-                  ? null
-                  : 'Enter a complete web link.';
-            },
-          ),
-        ],
         const SizedBox(height: 13),
         TextFormField(
           controller: notesController,
@@ -555,48 +633,40 @@ class _ContributionFields extends StatelessWidget {
             prefixIcon: Icon(Icons.fact_check_outlined),
           ),
         ),
-        const SizedBox(height: 13),
-        DropdownButtonFormField<bool>(
-          key: ValueKey('minors-$involvesMinors'),
-          initialValue: involvesMinors,
-          decoration: const InputDecoration(
-            labelText: 'Does this involve anyone under 18?',
-            prefixIcon: Icon(Icons.family_restroom_rounded),
+
+        // A word carries nobody else's work with it, so the borrowed-material
+        // question is only asked of the three kinds that can.
+        if (!_isDictionary) ...[
+          const SizedBox(height: 13),
+          DropdownButtonFormField<bool>(
+            key: ValueKey('third-party-$usesThirdPartyMaterial'),
+            initialValue: usesThirdPartyMaterial,
+            decoration: InputDecoration(
+              labelText: _thirdPartyLabel,
+              prefixIcon: const Icon(Icons.copyright_rounded),
+            ),
+            items: const [
+              DropdownMenuItem(value: false, child: Text('No')),
+              DropdownMenuItem(value: true, child: Text('Yes, with permission')),
+            ],
+            onChanged: onThirdPartyMaterialChanged,
+            validator: (value) => value == null ? 'Choose Yes or No.' : null,
           ),
-          items: const [
-            DropdownMenuItem(value: false, child: Text('No')),
-            DropdownMenuItem(value: true, child: Text('Yes')),
-          ],
-          onChanged: onInvolvesMinorsChanged,
-          validator: (value) => value == null ? 'Choose Yes or No.' : null,
-        ),
-        const SizedBox(height: 13),
-        DropdownButtonFormField<bool>(
-          key: ValueKey('third-party-$usesThirdPartyMaterial'),
-          initialValue: usesThirdPartyMaterial,
-          decoration: const InputDecoration(
-            labelText: 'Does this use someone else\'s material?',
-            prefixIcon: Icon(Icons.copyright_rounded),
-          ),
-          items: const [
-            DropdownMenuItem(value: false, child: Text('No')),
-            DropdownMenuItem(value: true, child: Text('Yes, with permission')),
-          ],
-          onChanged: onThirdPartyMaterialChanged,
-          validator: (value) => value == null ? 'Choose Yes or No.' : null,
-        ),
+        ],
         const SizedBox(height: 10),
         CheckboxListTile(
           contentPadding: EdgeInsets.zero,
           controlAffinity: ListTileControlAffinity.leading,
           value: participantConsentConfirmed,
           onChanged: (value) => onParticipantConsentChanged(value ?? false),
-          title: const Text(
-            'People named, quoted, or recorded have agreed—or there are no other participants.',
-            style: TextStyle(fontWeight: FontWeight.w700),
+          title: Text(
+            _consentTitle,
+            style: const TextStyle(fontWeight: FontWeight.w700),
           ),
           subtitle: const Text(
-            'Consent must cover community review and any publication permission selected below.',
+            'Consent must cover community review and any publication permission '
+            'selected below, and must come from a parent or guardian for anyone '
+            'under 18.',
           ),
         ),
         CheckboxListTile(
@@ -657,9 +727,24 @@ class _ContributionFields extends StatelessWidget {
     CollectionKind.dictionary => 'Preserve the spelling and diacritics',
     CollectionKind.music => 'Describe the sound, occasion, and meaning',
     CollectionKind.literature =>
-      'Enter the work or enough context to review it',
+      'Paste the work, or describe it if you attached the document',
     CollectionKind.audiobooks =>
       'Describe the work and what the recording contains',
+  };
+
+  String get _uploadTitle => switch (kind) {
+    CollectionKind.music => 'The recording',
+    CollectionKind.audiobooks => 'The narration',
+    _ => 'Manuscript (optional)',
+  };
+
+  String get _uploadHint => switch (kind) {
+    CollectionKind.music =>
+      'Upload the audio itself — MP3, M4A, WAV and other common formats.',
+    CollectionKind.audiobooks =>
+      'Upload the narrated audio — MP3, M4A, WAV and other common formats.',
+    _ =>
+      'Attach the full work as a PDF, Word document, or plain text if you have one.',
   };
 
   String get _formatLabel => switch (kind) {
@@ -701,6 +786,24 @@ class _ContributionFields extends StatelessWidget {
     ],
   };
 
+  String get _thirdPartyLabel => switch (kind) {
+    CollectionKind.music =>
+      'Does this include someone else\'s song, sample, or performance?',
+    CollectionKind.audiobooks => 'Is the text somebody else\'s work?',
+    _ => 'Does this use someone else\'s material?',
+  };
+
+  String get _consentTitle => switch (kind) {
+    CollectionKind.music =>
+      'Everyone heard on this recording has agreed to it being shared.',
+    CollectionKind.audiobooks =>
+      'The narrator and the author have agreed to this being shared.',
+    CollectionKind.literature =>
+      'Anyone named, quoted, or depicted has agreed—or there is nobody else in it.',
+    CollectionKind.dictionary =>
+      'Anyone whose knowledge this is has agreed to it being shared.',
+  };
+
   String get _sourceLabel => switch (kind) {
     CollectionKind.dictionary => 'How do you know this word?',
     CollectionKind.music => 'Artist, performer, or source',
@@ -714,6 +817,150 @@ class _ContributionFields extends StatelessWidget {
     CollectionKind.literature => 'Give clear authorship and attribution',
     CollectionKind.audiobooks => 'Name everyone whose permission is needed',
   };
+}
+
+/// The file attachment row: choose, review, replace, remove.
+///
+/// The file stays on the device until the form is submitted, which is why this
+/// shows a name and a size rather than a spinner — nothing is being uploaded
+/// yet, and pretending otherwise would make cancelling feel unsafe.
+class _UploadField extends StatelessWidget {
+  const _UploadField({
+    required this.uploadKind,
+    required this.required,
+    required this.file,
+    required this.progress,
+    required this.title,
+    required this.hint,
+    required this.onPick,
+    required this.onClear,
+  });
+
+  final ContributionMediaKind uploadKind;
+  final bool required;
+  final PickedContributionFile? file;
+  final double? progress;
+  final String title;
+  final String hint;
+  final VoidCallback onPick;
+  final VoidCallback onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    final chosen = file;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(15, 14, 15, 15),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.6),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: required && chosen == null
+              ? BrandColors.terracotta.withValues(alpha: 0.4)
+              : BrandColors.divider,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Icon(
+                uploadKind == ContributionMediaKind.audio
+                    ? Icons.audiotrack_rounded
+                    : Icons.description_rounded,
+                color: BrandColors.heritageGreen,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(fontWeight: FontWeight.w800),
+                ),
+              ),
+              if (required)
+                const Text(
+                  'REQUIRED',
+                  style: TextStyle(
+                    color: BrandColors.terracotta,
+                    fontSize: 9,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 0.8,
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 7),
+          Text(
+            hint,
+            style: const TextStyle(color: BrandColors.mutedInk, fontSize: 12),
+          ),
+          const SizedBox(height: 12),
+          if (chosen == null)
+            OutlinedButton.icon(
+              onPressed: onPick,
+              icon: const Icon(Icons.upload_file_rounded),
+              label: Text('Choose ${uploadKind.label}'),
+            )
+          else ...[
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        chosen.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                      Text(
+                        chosen.sizeLabel,
+                        style: const TextStyle(
+                          color: BrandColors.mutedInk,
+                          fontSize: 11.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  tooltip: 'Choose a different file',
+                  onPressed: onPick,
+                  icon: const Icon(Icons.swap_horiz_rounded),
+                ),
+                IconButton(
+                  tooltip: 'Remove',
+                  onPressed: onClear,
+                  icon: const Icon(Icons.close_rounded),
+                ),
+              ],
+            ),
+            if (progress != null) ...[
+              const SizedBox(height: 10),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(999),
+                child: LinearProgressIndicator(
+                  value: progress,
+                  minHeight: 6,
+                  backgroundColor: BrandColors.divider,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Uploading ${((progress ?? 0) * 100).round()}%',
+                style: const TextStyle(
+                  color: BrandColors.mutedInk,
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ],
+        ],
+      ),
+    );
+  }
 }
 
 class _ReviewPromise extends StatelessWidget {

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
-import 'package:indigen_world_mobile/features/explore/published_content.dart';
+import 'package:indigen_world_mobile/features/explore/explore_feed.dart';
 import 'package:indigen_world_mobile/features/explore/reel_view.dart';
 
 /// The reel feed: real published TribeStudio work when there is any, and a
@@ -25,13 +25,12 @@ class ExploreScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final publishedReels = ref.watch(publishedReelsProvider).asData?.value;
-    // Show real, published TribeStudio content when any exists; otherwise fall
-    // back to the curated preview so the feed is never empty.
-    final live = publishedReels != null && publishedReels.isNotEmpty;
-    final reels = live
-        ? publishedReels.map(Reel.fromPublished).toList(growable: false)
-        : _previewReels;
+    // Published TribeStudio work and community video, merged — see
+    // exploreFeedProvider. The curated preview stands in only while there is
+    // genuinely nothing else, so the feed is never empty on a first launch.
+    final feed = ref.watch(exploreFeedProvider);
+    final live = feed.isNotEmpty;
+    final reels = live ? feed : _previewReels;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.light,
@@ -48,9 +47,10 @@ class ExploreScreen extends ConsumerWidget {
 class _ExploreHeader extends StatelessWidget {
   const _ExploreHeader({required this.live});
 
-  /// True when the feed is showing real published work rather than the curated
-  /// preview. Saying which one a viewer is looking at is the honest thing to
-  /// do — the preview is illustrative, not community content.
+  /// True when the feed is showing real work — published pieces and community
+  /// video — rather than the curated preview. Saying which one a viewer is
+  /// looking at is the honest thing to do: the preview is illustrative, not
+  /// community content.
   final bool live;
 
   @override
@@ -103,7 +103,7 @@ class _ExploreHeader extends StatelessWidget {
               ),
               const SizedBox(width: 7),
               Text(
-                live ? 'PUBLISHED' : 'PREVIEW',
+                live ? 'LIVE' : 'PREVIEW',
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 9,

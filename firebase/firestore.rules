@@ -1057,6 +1057,84 @@ service cloud.firestore {
       }
     }
 
+    // ======================================================================
+    // LEARNING PATH
+    // ======================================================================
+
+    // ---- Lessons: public read of published lessons, admin-managed -----------
+    // The Kasem path used to be a constant compiled into the app, so adding a
+    // lesson meant shipping a release and every member below that version kept
+    // the old unit forever. Lessons live here now and the app treats its
+    // bundled set as a fallback for a first launch with no connection.
+    //
+    // Unpublished lessons are staff-only: a half-written question is a wrong
+    // answer waiting to be taught.
+    match /learnLessons/{lessonId} {
+      allow read: if resource.data.get('published', false) == true || isStaff();
+      allow create, update: if isAdmin()
+        && request.resource.data.title is string
+        && request.resource.data.title.size() > 0
+        && request.resource.data.questions is list
+        && request.resource.data.questions.size() > 0
+        && request.resource.data.questions.size() <= 20;
+      allow delete: if isAdmin();
+    }
+
+    // ---- Learning progress: one private row per member ----------------------
+    // Learning works signed out, so the device copy stays authoritative for a
+    // guest; this is what makes a finished unit survive a new phone once there
+    // is an account to attach it to. Nobody but the owner may read it — what
+    // somebody has and has not learned is theirs.
+    match /learnProgress/{uid} {
+      allow read: if isOwner(uid);
+      allow create, update: if isOwner(uid)
+        && request.resource.data.uid == uid
+        && request.resource.data.completedLessons is list
+        && request.resource.data.completedLessons.size() <= 2000
+        && request.resource.data.get('xp', 0) is int
+        && request.resource.data.get('xp', 0) >= 0
+        && request.resource.data.get('streakDays', 0) is int
+        && request.resource.data.get('streakDays', 0) >= 0;
+      allow delete: if isOwner(uid);
+    }
+
+    // ======================================================================
+    // COLLECTION: APPS AND SHOP
+    // ======================================================================
+
+    // ---- App directory: public read, admin-managed --------------------------
+    // Kasem apps, scripture apps and the other Indigen World releases, each a
+    // link out to a store. Guest-readable because Collection is.
+    match /collectionApps/{appId} {
+      allow read: if resource.data.get('published', false) == true || isStaff();
+      allow write: if isAdmin();
+    }
+
+    // ---- Shop catalogue: public read, admin-managed --------------------------
+    match /shopProducts/{productId} {
+      allow read: if resource.data.get('published', false) == true || isStaff();
+      allow write: if isAdmin();
+    }
+
+    // ---- Shop orders: a member places one, staff fulfil it ------------------
+    // No payment is taken in the app. An order is a request to buy, answered by
+    // a person — which is why the member may create one and then only read it,
+    // and why `status` is not theirs to move.
+    match /shopOrders/{orderId} {
+      allow read: if isStaff() || (isSignedIn() && resource.data.uid == request.auth.uid);
+      allow create: if isSignedIn()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.status == 'requested'
+        && request.resource.data.items is list
+        && request.resource.data.items.size() > 0
+        && request.resource.data.items.size() <= 30
+        && request.resource.data.contact is string
+        && request.resource.data.contact.size() > 0
+        && request.resource.data.contact.size() <= 400;
+      allow update: if isStaff();
+      allow delete: if false;
+    }
+
     // ---- Default deny -------------------------------------------------------
     match /{document=**} {
       allow read, write: if false;

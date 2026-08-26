@@ -548,7 +548,23 @@ String normaliseUsername(String raw) {
 }
 
 /// `null` when [username] is acceptable, otherwise the reason to show a user.
+/// Handles the platform speaks under, which no member may register.
+///
+/// `kawuri` is the assistant: a post naming it is answered by the backend, so
+/// a member holding the handle would be shouted over by a machine in their own
+/// replies.
+const reservedUsernames = {
+  'kawuri',
+  'indigen',
+  'indigenworld',
+  'admin',
+  'support',
+};
+
 String? validateUsername(String username) {
+  if (reservedUsernames.contains(username)) {
+    return 'That handle is reserved by Indigen World.';
+  }
   if (username.length < 3) return 'Handles need at least 3 characters.';
   if (username.length > 20) return 'Handles can be at most 20 characters.';
   if (!RegExp(r'^[a-z0-9_]+$').hasMatch(username)) {

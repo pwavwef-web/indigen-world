@@ -26,6 +26,7 @@ export {
   withdrawCollectionContribution,
 } from './collection-contributions.js';
 export { kawuriChat } from './kawuri.js';
+export { onCommunityKawuriMention } from './community-kawuri.js';
 export {
   smsBalance,
   sendTestSms,

@@ -29,11 +29,27 @@ service firebase.storage {
     function withinSizeLimit() {
       return request.resource.size < 500 * 1024 * 1024;
     }
+    // Documents joined images, audio and video when Literature contributions
+    // started arriving as manuscripts rather than pasted text. The list is
+    // explicit rather than a wildcard on application/*: that prefix also
+    // covers executables and archives, which have no business in a raw
+    // submission prefix a reviewer will open.
+    function allowedDocumentType() {
+      return request.resource.contentType in [
+        'application/pdf',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/rtf',
+        'application/epub+zip',
+        'text/plain',
+        'text/markdown'
+      ];
+    }
     function allowedType() {
       return request.resource.contentType.matches('image/.*')
         || request.resource.contentType.matches('audio/.*')
         || request.resource.contentType.matches('video/.*')
-        || request.resource.contentType == 'application/pdf';
+        || allowedDocumentType();
     }
 
     // ---- Raw creator submissions: private, owner-writable -------------------

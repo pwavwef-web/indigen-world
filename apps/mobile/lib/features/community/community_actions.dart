@@ -9,8 +9,10 @@ import 'package:indigen_world_mobile/features/community/compose_post_screen.dart
 import 'package:indigen_world_mobile/features/community/data/community_models.dart';
 import 'package:indigen_world_mobile/features/community/data/community_providers.dart';
 import 'package:indigen_world_mobile/features/community/data/community_repository.dart';
+import 'package:indigen_world_mobile/features/community/mentions.dart';
 import 'package:indigen_world_mobile/features/community/post_engagement_screen.dart';
 import 'package:indigen_world_mobile/features/community/widgets/people_widgets.dart';
+import 'package:indigen_world_mobile/features/kawuri/kawuri_screen.dart';
 import 'package:indigen_world_mobile/shared/glass_popup.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -302,6 +304,14 @@ class CommunityActions {
   /// Reading, unlike posting, needs no account — a guest who taps a mention
   /// should land on that member's public profile, not on a sign-in prompt.
   Future<void> openHandle(BuildContext context, String handle) async {
+    // The assistant has no member profile to open — it answers in threads
+    // rather than keeping a page — so its handle leads to the assistant.
+    if (handle.toLowerCase() == kawuriHandle) {
+      await Navigator.of(context).push(
+        MaterialPageRoute<void>(builder: (context) => const KawuriScreen()),
+      );
+      return;
+    }
     final repository = ref.read(communityRepositoryProvider);
     if (repository == null) return;
     try {

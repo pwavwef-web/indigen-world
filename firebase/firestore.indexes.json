@@ -4,306 +4,642 @@
       "collectionGroup": "lexicalEntries",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "governance.validationStatus", "order": "ASCENDING" },
-        { "fieldPath": "lifecycle.createdAt", "order": "ASCENDING" }
+        {
+          "fieldPath": "governance.validationStatus",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "lifecycle.createdAt",
+          "order": "ASCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "lexicalEntries",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "governance.language.id", "order": "ASCENDING" },
-        { "fieldPath": "governance.validationStatus", "order": "ASCENDING" },
-        { "fieldPath": "headword", "order": "ASCENDING" }
+        {
+          "fieldPath": "governance.language.id",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "governance.validationStatus",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "headword",
+          "order": "ASCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "sentencePairs",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "governance.validationStatus", "order": "ASCENDING" },
-        { "fieldPath": "lifecycle.createdAt", "order": "ASCENDING" }
+        {
+          "fieldPath": "governance.validationStatus",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "lifecycle.createdAt",
+          "order": "ASCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "sentencePairs",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "governance.language.id", "order": "ASCENDING" },
-        { "fieldPath": "governance.validationStatus", "order": "ASCENDING" },
-        { "fieldPath": "lifecycle.updatedAt", "order": "DESCENDING" }
+        {
+          "fieldPath": "governance.language.id",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "governance.validationStatus",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "lifecycle.updatedAt",
+          "order": "DESCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "reviews",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "target.id", "order": "ASCENDING" },
-        { "fieldPath": "decidedAt", "order": "DESCENDING" }
+        {
+          "fieldPath": "target.id",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "decidedAt",
+          "order": "DESCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "auditLogs",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "target.id", "order": "ASCENDING" },
-        { "fieldPath": "occurredAt", "order": "DESCENDING" }
+        {
+          "fieldPath": "target.id",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "occurredAt",
+          "order": "DESCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "auditLogs",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "actor.id", "order": "ASCENDING" },
-        { "fieldPath": "occurredAt", "order": "DESCENDING" }
+        {
+          "fieldPath": "actor.id",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "occurredAt",
+          "order": "DESCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "campaigns",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "visibility", "order": "ASCENDING" },
-        { "fieldPath": "status", "order": "ASCENDING" }
+        {
+          "fieldPath": "visibility",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "creatorApplications",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "status", "order": "ASCENDING" },
-        { "fieldPath": "lifecycle.createdAt", "order": "DESCENDING" }
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "lifecycle.createdAt",
+          "order": "DESCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "creatorApplications",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "campaign.id", "order": "ASCENDING" },
-        { "fieldPath": "status", "order": "ASCENDING" },
-        { "fieldPath": "lifecycle.createdAt", "order": "DESCENDING" }
+        {
+          "fieldPath": "campaign.id",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "lifecycle.createdAt",
+          "order": "DESCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "creatorApplications",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "authUid", "order": "ASCENDING" },
-        { "fieldPath": "lifecycle.createdAt", "order": "DESCENDING" }
+        {
+          "fieldPath": "authUid",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "lifecycle.createdAt",
+          "order": "DESCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "creatorMemberships",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "status", "order": "ASCENDING" },
-        { "fieldPath": "updatedAt", "order": "DESCENDING" }
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "updatedAt",
+          "order": "DESCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "submissions",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "authUid", "order": "ASCENDING" },
-        { "fieldPath": "lifecycle.updatedAt", "order": "DESCENDING" }
+        {
+          "fieldPath": "authUid",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "lifecycle.updatedAt",
+          "order": "DESCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "submissions",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "campaign.id", "order": "ASCENDING" },
-        { "fieldPath": "status", "order": "ASCENDING" },
-        { "fieldPath": "lifecycle.createdAt", "order": "ASCENDING" }
+        {
+          "fieldPath": "campaign.id",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "lifecycle.createdAt",
+          "order": "ASCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "submissions",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "status", "order": "ASCENDING" },
-        { "fieldPath": "lifecycle.createdAt", "order": "ASCENDING" }
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "lifecycle.createdAt",
+          "order": "ASCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "publishedContent",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "publicationStatus", "order": "ASCENDING" },
-        { "fieldPath": "publishedAt", "order": "DESCENDING" }
+        {
+          "fieldPath": "publicationStatus",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "publishedAt",
+          "order": "DESCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "publishedContent",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "publicationStatus", "order": "ASCENDING" },
-        { "fieldPath": "collectionKind", "order": "ASCENDING" },
-        { "fieldPath": "publishedAt", "order": "DESCENDING" }
+        {
+          "fieldPath": "publicationStatus",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "collectionKind",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "publishedAt",
+          "order": "DESCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "publishedContent",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "publicationStatus", "order": "ASCENDING" },
-        { "fieldPath": "campaign.id", "order": "ASCENDING" },
-        { "fieldPath": "publishedAt", "order": "DESCENDING" }
+        {
+          "fieldPath": "publicationStatus",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "campaign.id",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "publishedAt",
+          "order": "DESCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "notifications",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "authUid", "order": "ASCENDING" },
-        { "fieldPath": "lifecycle.createdAt", "order": "DESCENDING" }
+        {
+          "fieldPath": "authUid",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "lifecycle.createdAt",
+          "order": "DESCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "communityPosts",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "isReply", "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "DESCENDING" }
+        {
+          "fieldPath": "isReply",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "communityPosts",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "authorId", "order": "ASCENDING" },
-        { "fieldPath": "isReply", "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "DESCENDING" }
+        {
+          "fieldPath": "authorId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "isReply",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "communityPosts",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "authorId", "order": "ASCENDING" },
-        { "fieldPath": "hasMedia", "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "DESCENDING" }
+        {
+          "fieldPath": "authorId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "hasMedia",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "communityPosts",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "parentId", "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "ASCENDING" }
+        {
+          "fieldPath": "parentId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "ASCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "communityLikes",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "uid", "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "DESCENDING" }
+        {
+          "fieldPath": "uid",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "communityLikes",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "postId", "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "DESCENDING" }
+        {
+          "fieldPath": "postId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "communityReposts",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "reposterId", "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "DESCENDING" }
+        {
+          "fieldPath": "reposterId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "communityViews",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "postId", "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "DESCENDING" }
+        {
+          "fieldPath": "postId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "communityPollVotes",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "postId", "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "DESCENDING" }
+        {
+          "fieldPath": "postId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "communityBookmarks",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "uid", "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "DESCENDING" }
+        {
+          "fieldPath": "uid",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "communityFollows",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "followerId", "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "DESCENDING" }
+        {
+          "fieldPath": "followerId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "communityFollows",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "followingId", "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "DESCENDING" }
+        {
+          "fieldPath": "followingId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "communityNotifications",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "recipientId", "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "DESCENDING" }
+        {
+          "fieldPath": "recipientId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "communityNotifications",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "recipientId", "order": "ASCENDING" },
-        { "fieldPath": "read", "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "DESCENDING" }
+        {
+          "fieldPath": "recipientId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "read",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "communityDevices",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "uid", "order": "ASCENDING" },
-        { "fieldPath": "updatedAt", "order": "DESCENDING" }
+        {
+          "fieldPath": "uid",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "updatedAt",
+          "order": "DESCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "publishedContent",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "publicationStatus", "order": "ASCENDING" },
-        { "fieldPath": "creatorAttribution.creatorId", "order": "ASCENDING" },
-        { "fieldPath": "publishedAt", "order": "DESCENDING" }
+        {
+          "fieldPath": "publicationStatus",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "creatorAttribution.creatorId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "publishedAt",
+          "order": "DESCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "reelComments",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "reelId", "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "DESCENDING" }
+        {
+          "fieldPath": "reelId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "communityChats",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "participants", "arrayConfig": "CONTAINS" },
-        { "fieldPath": "lastMessageAt", "order": "DESCENDING" }
+        {
+          "fieldPath": "participants",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "lastMessageAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "communityPosts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "rootId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "learnLessons",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "published",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "order",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "collectionApps",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "published",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "order",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "shopProducts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "published",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "order",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "shopOrders",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "uid",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "shopOrders",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
       ]
     }
   ],

@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/app_config.dart';
+import 'package:indigen_world_mobile/core/app_signature.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/core/connectivity.dart';
 import 'package:indigen_world_mobile/core/firebase_ready.dart';
@@ -118,6 +119,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final signedIn = user != null;
     final profile = ref.watch(myCommunityProfileProvider).asData?.value;
     final version = ref.watch(appVersionProvider).asData?.value;
+    final signature = ref.watch(appSignatureProvider).asData?.value;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
@@ -350,6 +352,30 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         _message('Version copied.');
                       },
               ),
+              // The pair Google Sign-In is granted to. Unreadable anywhere
+              // else on a Play-signed release — Play mints the certificate
+              // after upload — and the only thing anybody needs when sign-in
+              // is refused for this build.
+              if (signature != null)
+                _SettingsRow(
+                  icon: Icons.fingerprint_rounded,
+                  title: 'App signature',
+                  subtitle:
+                      '${signature.packageName}\n'
+                      'SHA-1 ${AppSignature.formatted(signature.sha1) ?? 'unavailable'}',
+                  onTap: () {
+                    Clipboard.setData(
+                      ClipboardData(
+                        text:
+                            '${signature.packageName}\n'
+                            'SHA-1: ${AppSignature.formatted(signature.sha1) ?? 'unavailable'}\n'
+                            'SHA-256: ${AppSignature.formatted(signature.sha256) ?? 'unavailable'}\n'
+                            'Installed by: ${signature.installer ?? 'sideloaded'}',
+                      ),
+                    );
+                    _message('App signature copied.');
+                  },
+                ),
             ],
           ),
         ],

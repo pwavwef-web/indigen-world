@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/features/collection/collection_detail_screens.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_fab.dart';
+import 'package:indigen_world_mobile/features/learn/learn_content.dart';
 import 'package:indigen_world_mobile/features/learn/learn_progress.dart';
 import 'package:indigen_world_mobile/shared/app_widgets.dart';
 import 'package:indigen_world_mobile/shared/frosted_nav_bar.dart';
@@ -31,13 +32,15 @@ class _LearnScreenState extends ConsumerState<LearnScreen> {
   );
 
   Widget _path() {
-    // Progress arrives from disk a frame or two after the screen does. An
-    // empty path beats a spinner here: the layout is identical either way, so
-    // the numbers fill themselves in rather than the whole tab blinking.
+    // Progress arrives from disk a frame or two after the screen does, and the
+    // published path a moment after that. An empty path beats a spinner here:
+    // the layout is identical either way, so the numbers fill themselves in
+    // rather than the whole tab blinking.
     final progress =
         ref.watch(learnProgressProvider).value ?? const LearnProgress();
-    final nextLesson = _nextLesson(progress);
-    final completed = _lessons
+    final lessons = ref.watch(lessonPathProvider).value ?? bundledLessons;
+    final nextLesson = _nextLesson(progress, lessons);
+    final completed = lessons
         .where((lesson) => progress.hasCompleted(lesson.id))
         .length;
 
@@ -48,6 +51,7 @@ class _LearnScreenState extends ConsumerState<LearnScreen> {
           child: _LearnHeader(
             xp: progress.xp,
             completed: completed,
+            streakDays: progress.streakDays,
             streakClaimed: progress.sparkClaimedToday,
             onClaimStreak: _claimStreak,
             onOpenDictionary: _openDictionary,
@@ -64,42 +68,10 @@ class _LearnScreenState extends ConsumerState<LearnScreen> {
               const SizedBox(height: 14),
               _LearningMomentumCard(
                 completed: completed,
-                total: _lessons.length,
+                total: lessons.length,
               ),
-              const SizedBox(height: 26),
-              const _UnitBanner(
-                unit: 'UNIT 1',
-                title: 'Start a conversation',
-                subtitle: 'Greetings, introductions and everyday courtesy',
-                color: BrandColors.heritageGreen,
-              ),
-              const SizedBox(height: 18),
-              for (var index = 0; index < _lessons.length; index++) ...[
-                _LessonPathNode(
-                  lesson: _lessons[index],
-                  index: index,
-                  completed: progress.hasCompleted(_lessons[index].id),
-                  unlocked: index <= nextLesson,
-                  current: index == nextLesson,
-                  onTap: () => _openLesson(index),
-                ),
-                if (index != _lessons.length - 1)
-                  _LessonRibbon(
-                    // Lessons alternate sides, so the segment always leaves the
-                    // side this lesson sits on and arrives at the other.
-                    startOnRight: index.isOdd,
-                    travelled: _travelled(progress, index),
-                    frontier: index + 1 == nextLesson,
-                  ),
-              ],
+              ..._pathBody(progress, lessons, nextLesson),
               const SizedBox(height: 24),
-              const _UnitBanner(
-                unit: 'UNIT 2 · COMING NEXT',
-                title: 'People and places',
-                subtitle: 'Family, market, home and finding your way',
-                color: BrandColors.terracotta,
-              ),
-              const SizedBox(height: 14),
               const _LockedUnitPreview(),
             ],
           ),
@@ -108,11 +80,70 @@ class _LearnScreenState extends ConsumerState<LearnScreen> {
     );
   }
 
-  int _nextLesson(LearnProgress progress) {
-    for (var index = 0; index < _lessons.length; index++) {
-      if (!progress.hasCompleted(_lessons[index].id)) return index;
+  /// The winding trail itself: a banner wherever the unit changes, a node per
+  /// lesson, and a ribbon between two lessons that belong to the same unit.
+  ///
+  /// Units are read off the lessons rather than kept in a second collection,
+  /// so publishing a lesson into a new unit is one document rather than two
+  /// that can disagree about what the unit is called.
+  List<Widget> _pathBody(
+    LearnProgress progress,
+    List<Lesson> lessons,
+    int nextLesson,
+  ) {
+    final body = <Widget>[];
+    for (var index = 0; index < lessons.length; index++) {
+      final lesson = lessons[index];
+      final startsUnit =
+          index == 0 || lessons[index - 1].unitTitle != lesson.unitTitle;
+      if (startsUnit) {
+        body
+          ..add(const SizedBox(height: 26))
+          ..add(
+            _UnitBanner(
+              unit: 'UNIT ${lesson.unitOrder}',
+              title: lesson.unitTitle,
+              subtitle: lesson.unitSubtitle,
+              color: lesson.unitOrder.isOdd
+                  ? BrandColors.heritageGreen
+                  : BrandColors.terracotta,
+            ),
+          )
+          ..add(const SizedBox(height: 18));
+      }
+      body.add(
+        _LessonPathNode(
+          lesson: lesson,
+          index: index,
+          completed: progress.hasCompleted(lesson.id),
+          unlocked: index <= nextLesson,
+          current: index == nextLesson,
+          onTap: () => _openLesson(index),
+        ),
+      );
+      final continuesUnit =
+          index + 1 < lessons.length &&
+          lessons[index + 1].unitTitle == lesson.unitTitle;
+      if (continuesUnit) {
+        body.add(
+          _LessonRibbon(
+            // Lessons alternate sides, so the segment always leaves the side
+            // this lesson sits on and arrives at the other.
+            startOnRight: index.isOdd,
+            travelled: _travelled(progress, lessons, index),
+            frontier: index + 1 == nextLesson,
+          ),
+        );
+      }
     }
-    return _lessons.length - 1;
+    return body;
+  }
+
+  int _nextLesson(LearnProgress progress, List<Lesson> lessons) {
+    for (var index = 0; index < lessons.length; index++) {
+      if (!progress.hasCompleted(lessons[index].id)) return index;
+    }
+    return lessons.isEmpty ? 0 : lessons.length - 1;
   }
 
   /// How much of the ribbon below lesson [index] is gold.
@@ -120,9 +151,9 @@ class _LearnScreenState extends ConsumerState<LearnScreen> {
   /// The segment that leads into the lesson the member is on stops part way,
   /// so the trail visibly ends where they have actually got to rather than
   /// running on ahead of them.
-  double _travelled(LearnProgress progress, int index) {
-    if (progress.hasCompleted(_lessons[index + 1].id)) return 1.0;
-    if (progress.hasCompleted(_lessons[index].id)) return 0.56;
+  double _travelled(LearnProgress progress, List<Lesson> lessons, int index) {
+    if (progress.hasCompleted(lessons[index + 1].id)) return 1.0;
+    if (progress.hasCompleted(lessons[index].id)) return 0.56;
     return 0.0;
   }
 
@@ -137,7 +168,11 @@ class _LearnScreenState extends ConsumerState<LearnScreen> {
         .claimStreak();
     if (!claimed || !mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Daily spark claimed · +5 XP')),
+      const SnackBar(
+        content: Text(
+          'Daily spark claimed · +${LearnProgress.xpPerSpark} XP',
+        ),
+      ),
     );
   }
 
@@ -152,7 +187,9 @@ class _LearnScreenState extends ConsumerState<LearnScreen> {
   Future<void> _openLesson(int index) async {
     final progress =
         ref.read(learnProgressProvider).value ?? const LearnProgress();
-    if (index > _nextLesson(progress)) {
+    final lessons = ref.read(lessonPathProvider).value ?? bundledLessons;
+    if (lessons.isEmpty) return;
+    if (index > _nextLesson(progress, lessons)) {
       HapticFeedback.lightImpact();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -161,12 +198,13 @@ class _LearnScreenState extends ConsumerState<LearnScreen> {
       );
       return;
     }
+    final lesson = lessons[index];
     final completed = await Navigator.of(context).push<bool>(
       MaterialPageRoute<bool>(
         builder: (context) => _LessonScreen(
-          lesson: _lessons[index],
+          lesson: lesson,
           lessonNumber: index + 1,
-          lessonCount: _lessons.length,
+          lessonCount: lessons.length,
         ),
       ),
     );
@@ -174,15 +212,23 @@ class _LearnScreenState extends ConsumerState<LearnScreen> {
       HapticFeedback.heavyImpact();
       await ref
           .read(learnProgressProvider.notifier)
-          .completeLesson(_lessons[index].id);
+          .completeLesson(lesson.id, xp: lesson.xp);
     }
   }
 }
 
+/// The band across the top of the Learn tab.
+///
+/// Deliberately shallow. It used to open with a display-size headline and two
+/// paragraphs of encouragement, which pushed the first lesson below the fold —
+/// a learning path whose first act is scrolling past a welcome message. What
+/// stays is what changes: how much has been earned, whether the streak is
+/// alive, and the two things worth tapping.
 class _LearnHeader extends StatelessWidget {
   const _LearnHeader({
     required this.xp,
     required this.completed,
+    required this.streakDays,
     required this.streakClaimed,
     required this.onClaimStreak,
     required this.onOpenDictionary,
@@ -190,35 +236,39 @@ class _LearnHeader extends StatelessWidget {
 
   final int xp;
   final int completed;
+
+  /// Consecutive days the daily spark has been claimed.
+  final int streakDays;
+
   final bool streakClaimed;
   final VoidCallback onClaimStreak;
   final VoidCallback onOpenDictionary;
 
   @override
   Widget build(BuildContext context) => Container(
-    margin: const EdgeInsets.fromLTRB(16, 52, 16, 16),
-    padding: const EdgeInsets.fromLTRB(20, 18, 20, 22),
+    margin: const EdgeInsets.fromLTRB(16, 46, 16, 12),
+    padding: const EdgeInsets.fromLTRB(18, 13, 18, 15),
     decoration: BoxDecoration(
       color: BrandColors.heritageGreen,
-      borderRadius: BorderRadius.circular(28),
+      borderRadius: BorderRadius.circular(24),
       boxShadow: const [
         BoxShadow(
           color: Color(0x260B3D2E),
-          blurRadius: 24,
-          offset: Offset(0, 12),
+          blurRadius: 20,
+          offset: Offset(0, 10),
         ),
       ],
     ),
     child: Stack(
       children: [
         const Positioned(
-          right: -18,
-          bottom: -32,
+          right: -20,
+          bottom: -40,
           child: Opacity(
-            opacity: 0.09,
+            opacity: 0.08,
             child: Text(
               '✣',
-              style: TextStyle(fontSize: 140, color: Colors.white),
+              style: TextStyle(fontSize: 110, color: Colors.white),
             ),
           ),
         ),
@@ -227,41 +277,38 @@ class _LearnHeader extends StatelessWidget {
           children: [
             Row(
               children: [
-                const Expanded(
+                Expanded(
                   child: Text(
-                    'KASEM LEARNING PATH',
-                    style: TextStyle(
-                      color: BrandColors.kenteGold,
-                      fontSize: 11,
+                    completed == 0
+                        ? 'Speak your first words.'
+                        : 'You are building a rhythm.',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      color: Colors.white,
                       fontWeight: FontWeight.w900,
-                      letterSpacing: 1.25,
+                      height: 1.05,
                     ),
                   ),
                 ),
+                const SizedBox(width: 8),
                 _MetricPill(icon: Icons.bolt_rounded, label: '$xp XP'),
-                const SizedBox(width: 7),
-                const _MetricPill(
-                  icon: Icons.favorite_rounded,
-                  label: '5',
-                  color: Color(0xFFFF8A80),
+                const SizedBox(width: 6),
+                // Replaces a hard-coded five hearts that counted nothing and
+                // could not be lost. The streak is the number this screen
+                // actually keeps, and the one a daily habit is built on.
+                _MetricPill(
+                  icon: streakDays > 0
+                      ? Icons.local_fire_department_rounded
+                      : Icons.local_fire_department_outlined,
+                  label: '$streakDays',
+                  color: streakDays > 0
+                      ? const Color(0xFFFFA26B)
+                      : Colors.white54,
                 ),
               ],
             ),
-            const SizedBox(height: 18),
-            Text(
-              completed == 0
-                  ? 'Speak your first words.'
-                  : 'You are building a rhythm.',
-              style: Theme.of(context).textTheme.headlineMedium
-                  ?.copyWith(color: Colors.white, height: 1.02),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Short, joyful practice made for real moments—one step at a time.',
-              style: Theme.of(context).textTheme.bodyMedium
-                  ?.copyWith(color: Colors.white.withValues(alpha: 0.76)),
-            ),
-            const SizedBox(height: 18),
+            const SizedBox(height: 12),
             Row(
               children: [
                 Expanded(
@@ -269,14 +316,12 @@ class _LearnHeader extends StatelessWidget {
                     icon: streakClaimed
                         ? Icons.local_fire_department_rounded
                         : Icons.wb_sunny_outlined,
-                    label: streakClaimed
-                        ? 'Spark claimed'
-                        : 'Claim daily spark',
+                    label: streakClaimed ? 'Spark claimed' : 'Daily spark',
                     onTap: onClaimStreak,
                     active: streakClaimed,
                   ),
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: 9),
                 Expanded(
                   child: _HeaderAction(
                     icon: Icons.menu_book_rounded,
@@ -353,7 +398,7 @@ class _HeaderAction extends StatelessWidget {
       borderRadius: BorderRadius.circular(15),
       onTap: onTap,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -632,7 +677,7 @@ class _LessonPathNode extends StatelessWidget {
     required this.onTap,
   });
 
-  final _Lesson lesson;
+  final Lesson lesson;
   final int index;
   final bool completed;
   final bool unlocked;
@@ -1009,7 +1054,11 @@ class _LockedUnitPreview extends StatelessWidget {
         SizedBox(width: 12),
         Expanded(
           child: Text(
-            'Complete Unit 1 to open six new lessons and a story challenge.',
+            // Deliberately vague about what comes next: units are configured
+            // in the admin console now, so promising "six lessons and a story
+            // challenge" would be a claim this screen cannot keep.
+            'More units open as the project publishes them. Finish what is here '
+            'and check back.',
             style: TextStyle(fontWeight: FontWeight.w700),
           ),
         ),
@@ -1018,6 +1067,13 @@ class _LockedUnitPreview extends StatelessWidget {
   );
 }
 
+/// One lesson, worked through question by question.
+///
+/// A lesson used to be a single card, so "finish the lesson" and "get one
+/// answer right" were the same event and a wrong answer simply reset it. With
+/// several questions the two come apart: the member moves forward whether they
+/// got it right or not, the explanation does the teaching, and the score at the
+/// end says how it went. Nobody is held at a card they cannot pass.
 class _LessonScreen extends StatefulWidget {
   const _LessonScreen({
     required this.lesson,
@@ -1025,7 +1081,7 @@ class _LessonScreen extends StatefulWidget {
     required this.lessonCount,
   });
 
-  final _Lesson lesson;
+  final Lesson lesson;
   final int lessonNumber;
   final int lessonCount;
 
@@ -1034,10 +1090,19 @@ class _LessonScreen extends StatefulWidget {
 }
 
 class _LessonScreenState extends State<_LessonScreen> {
+  int _question = 0;
   int? _selected;
   var _checked = false;
+  var _correctCount = 0;
 
-  bool get _correct => _selected == widget.lesson.correctAnswer;
+  /// Whether this question has already counted towards the score. A member who
+  /// checks, reads the explanation and taps again must not be paid twice.
+  var _scored = false;
+
+  List<LessonQuestion> get _questions => widget.lesson.questions;
+  LessonQuestion get _current => _questions[_question];
+  bool get _correct => _selected == _current.correctAnswer;
+  bool get _isLast => _question == _questions.length - 1;
 
   @override
   Widget build(BuildContext context) => AnnotatedRegion<SystemUiOverlayStyle>(
@@ -1063,6 +1128,8 @@ class _LessonScreenState extends State<_LessonScreen> {
                     _LessonTopBar(
                       current: widget.lessonNumber,
                       total: widget.lessonCount,
+                      question: _question + 1,
+                      questionCount: _questions.length,
                       onClose: () => Navigator.pop(context),
                     ),
                     Expanded(
@@ -1076,9 +1143,11 @@ class _LessonScreenState extends State<_LessonScreen> {
                           children: [
                             _LessonHero(lesson: widget.lesson),
                             const SizedBox(height: 24),
-                            const Text(
-                              'QUICK PRACTICE',
-                              style: TextStyle(
+                            Text(
+                              _questions.length == 1
+                                  ? 'QUICK PRACTICE'
+                                  : 'QUESTION ${_question + 1} OF ${_questions.length}',
+                              style: const TextStyle(
                                 color: BrandColors.terracotta,
                                 fontSize: 10,
                                 fontWeight: FontWeight.w900,
@@ -1087,30 +1156,37 @@ class _LessonScreenState extends State<_LessonScreen> {
                             ),
                             const SizedBox(height: 7),
                             Text(
-                              widget.lesson.prompt,
+                              _current.prompt,
                               style: Theme.of(context).textTheme.headlineMedium
                                   ?.copyWith(height: 1.08),
                             ),
-                            const SizedBox(height: 9),
-                            Text(
-                              widget.lesson.support,
-                              style: const TextStyle(
-                                color: BrandColors.mutedInk,
-                                fontSize: 15,
+                            if (_current.support.isNotEmpty) ...[
+                              const SizedBox(height: 9),
+                              Text(
+                                _current.support,
+                                style: const TextStyle(
+                                  color: BrandColors.mutedInk,
+                                  fontSize: 15,
+                                ),
                               ),
-                            ),
+                            ],
                             const SizedBox(height: 22),
                             for (
                               var index = 0;
-                              index < widget.lesson.answers.length;
+                              index < _current.answers.length;
                               index++
                             ) ...[
                               _AnswerTile(
+                                // Keyed by question as well as position, so
+                                // moving to the next card rebuilds the tiles
+                                // rather than animating the previous answer's
+                                // colours into the new one.
+                                key: ValueKey('q${_question}_a$index'),
                                 index: index,
-                                answer: widget.lesson.answers[index],
+                                answer: _current.answers[index],
                                 selected: _selected == index,
                                 checked: _checked,
-                                correct: index == widget.lesson.correctAnswer,
+                                correct: index == _current.correctAnswer,
                                 onTap: _checked
                                     ? null
                                     : () => setState(() => _selected = index),
@@ -1123,7 +1199,7 @@ class _LessonScreenState extends State<_LessonScreen> {
                                   ? const SizedBox(height: 2)
                                   : _LessonFeedback(
                                       correct: _correct,
-                                      explanation: widget.lesson.explanation,
+                                      explanation: _current.explanation,
                                     ),
                             ),
                             const SizedBox(height: 14),
@@ -1157,36 +1233,49 @@ class _LessonScreenState extends State<_LessonScreen> {
           ),
           onPressed: _selected == null ? null : _advance,
           icon: Icon(
-            _checked && _correct
+            _checked && _isLast
                 ? Icons.stars_rounded
                 : Icons.arrow_forward_rounded,
           ),
-          label: Text(
-            !_checked
-                ? 'Check answer'
-                : _correct
-                ? 'Collect ${widget.lesson.xp} XP'
-                : 'Try again',
-          ),
+          label: Text(_actionLabel),
         ),
       ),
     ),
   );
 
+  /// What the one button at the bottom does next.
+  ///
+  /// The score is shown on the final button rather than in a results screen:
+  /// a lesson that ends by dismissing a modal is a lesson that ends twice.
+  String get _actionLabel {
+    if (!_checked) return 'Check answer';
+    if (!_isLast) return 'Next question';
+    if (_questions.length == 1) return 'Collect ${widget.lesson.xp} XP';
+    return '$_correctCount/${_questions.length} · Collect ${widget.lesson.xp} XP';
+  }
+
   void _advance() {
     if (!_checked) {
       HapticFeedback.selectionClick();
-      setState(() => _checked = true);
+      setState(() {
+        _checked = true;
+        if (!_scored && _correct) {
+          _correctCount++;
+          _scored = true;
+        }
+      });
       return;
     }
-    if (_correct) {
+    if (_isLast) {
       HapticFeedback.mediumImpact();
       Navigator.pop(context, true);
       return;
     }
     setState(() {
-      _checked = false;
+      _question++;
       _selected = null;
+      _checked = false;
+      _scored = false;
     });
   }
 }
@@ -1243,11 +1332,18 @@ class _LessonTopBar extends StatelessWidget {
   const _LessonTopBar({
     required this.current,
     required this.total,
+    required this.question,
+    required this.questionCount,
     required this.onClose,
   });
 
   final int current;
   final int total;
+
+  /// Which question of this lesson is on screen, and how many there are.
+  final int question;
+  final int questionCount;
+
   final VoidCallback onClose;
 
   @override
@@ -1278,7 +1374,11 @@ class _LessonTopBar extends StatelessWidget {
               ClipRRect(
                 borderRadius: BorderRadius.circular(999),
                 child: LinearProgressIndicator(
-                  value: current / total,
+                  // Fills across the questions inside this lesson, so the bar
+                  // moves while somebody is working rather than only when they
+                  // leave. It used to measure the lesson's place in the unit,
+                  // which the line above it already says.
+                  value: questionCount == 0 ? 0 : question / questionCount,
                   minHeight: 7,
                   color: BrandColors.kenteGold,
                   backgroundColor: BrandColors.heritageGreen.withValues(
@@ -1297,12 +1397,19 @@ class _LessonTopBar extends StatelessWidget {
             borderRadius: BorderRadius.circular(999),
             border: Border.all(color: BrandColors.divider),
           ),
-          child: const Row(
+          child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.favorite_rounded, color: Color(0xFFE75555), size: 17),
-              SizedBox(width: 4),
-              Text('5', style: TextStyle(fontWeight: FontWeight.w900)),
+              const Icon(
+                Icons.help_outline_rounded,
+                color: BrandColors.heritageGreen,
+                size: 17,
+              ),
+              const SizedBox(width: 4),
+              Text(
+                '$question/$questionCount',
+                style: const TextStyle(fontWeight: FontWeight.w900),
+              ),
             ],
           ),
         ),
@@ -1314,7 +1421,7 @@ class _LessonTopBar extends StatelessWidget {
 class _LessonHero extends StatelessWidget {
   const _LessonHero({required this.lesson});
 
-  final _Lesson lesson;
+  final Lesson lesson;
 
   @override
   Widget build(BuildContext context) => Container(
@@ -1425,6 +1532,7 @@ class _LessonFeedback extends StatelessWidget {
 class _AnswerTile extends StatelessWidget {
   const _AnswerTile({
     required this.index,
+    super.key,
     required this.answer,
     required this.selected,
     required this.checked,
@@ -1513,87 +1621,3 @@ class _AnswerTile extends StatelessWidget {
     );
   }
 }
-
-class _Lesson {
-  const _Lesson({
-    required this.id,
-    required this.title,
-    required this.icon,
-    required this.minutes,
-    required this.xp,
-    required this.prompt,
-    required this.support,
-    required this.answers,
-    required this.correctAnswer,
-    required this.explanation,
-  });
-
-  /// Stable slug this lesson is remembered by.
-  ///
-  /// Progress is stored against these rather than against list positions, so a
-  /// lesson added to the middle of the unit later cannot quietly hand somebody
-  /// credit for the one that moved into its place.
-  final String id;
-
-  final String title;
-  final IconData icon;
-  final int minutes;
-  final int xp;
-  final String prompt;
-  final String support;
-  final List<String> answers;
-  final int correctAnswer;
-  final String explanation;
-}
-
-const _lessons = [
-  _Lesson(
-    id: 'unit1-say-hello',
-    title: 'Say hello',
-    icon: Icons.waving_hand_rounded,
-    minutes: 2,
-    xp: 15,
-    prompt: 'Choose the greeting',
-    support: 'Which phrase would you use to welcome someone?',
-    answers: ['De zaanem', 'Ko gara', 'Mbesem'],
-    correctAnswer: 0,
-    explanation:
-        '“De zaanem” is used here as the welcome phrase in this preview.',
-  ),
-  _Lesson(
-    id: 'unit1-listen-and-choose',
-    title: 'Listen & choose',
-    icon: Icons.headphones_rounded,
-    minutes: 3,
-    xp: 15,
-    prompt: 'How are things?',
-    support: 'Pick the response shown in the community preview.',
-    answers: ['Ko gara', 'De zaanem', 'Afi'],
-    correctAnswer: 0,
-    explanation: '“Ko gara” is the intended response for this practice card.',
-  ),
-  _Lesson(
-    id: 'unit1-build-a-phrase',
-    title: 'Build a phrase',
-    icon: Icons.extension_rounded,
-    minutes: 3,
-    xp: 15,
-    prompt: 'Complete the exchange',
-    support: 'Choose the phrase that keeps the greeting going.',
-    answers: ['Mbesem', 'De N lei', 'Naba'],
-    correctAnswer: 1,
-    explanation: 'The lesson pairs “De N lei” with the greeting exchange.',
-  ),
-  _Lesson(
-    id: 'unit1-conversation-check',
-    title: 'Conversation check',
-    icon: Icons.forum_rounded,
-    minutes: 4,
-    xp: 15,
-    prompt: 'Finish the mini dialogue',
-    support: 'A friend says “De zaanem.” What do you choose?',
-    answers: ['Ko gara', 'Good night', 'Thank you'],
-    correctAnswer: 0,
-    explanation: 'You completed your first practice conversation.',
-  ),
-];

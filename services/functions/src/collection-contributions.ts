@@ -14,6 +14,14 @@ export const COLLECTION_CAMPAIGN_ID = 'collection-contributions';
 // App Check enforcement follows the other callable functions in this project.
 const ENFORCE_APP_CHECK = process.env.ENFORCE_APP_CHECK === 'true';
 
+/** A file the member uploaded into their own private submission prefix. */
+export interface CollectionContributionMedia {
+  storagePath: string;
+  mimeType: string;
+  sizeBytes: number;
+  mediaType: 'image' | 'audio' | 'video' | 'document';
+}
+
 export interface CollectionContributionInput {
   collectionKind: CollectionKind;
   title: string;
@@ -22,15 +30,67 @@ export interface CollectionContributionInput {
   dialect: string;
   source: string;
   mediaUrl: string;
+  media: CollectionContributionMedia | null;
   notes: string;
   relatedEntryId: string | null;
-  involvesMinors: boolean;
+  /**
+   * Whether anyone under 18 features in the work.
+   *
+   * Null where the question was not put. The mobile forms ask it only where a
+   * person is actually the subject, so a dictionary word or a song no longer
+   * carries an answer nobody was asked for — and a reviewer can tell an
+   * undeclared submission from one declared clear.
+   */
+  involvesMinors: boolean | null;
   usesThirdPartyMaterial: boolean;
   participantConsentConfirmed: boolean;
   kasemExample: string;
   englishExample: string;
   rightsConfirmed: true;
   publicationPermission: boolean;
+}
+
+/** Largest single upload accepted, matching the Storage rules' own ceiling. */
+const MAX_UPLOAD_BYTES = 500 * 1024 * 1024;
+
+const MEDIA_TYPES = ['image', 'audio', 'video', 'document'] as const;
+
+/**
+ * Validates the reference to an uploaded file.
+ *
+ * The path is checked against the caller's own prefix rather than trusted:
+ * Storage rules stop a member writing into somebody else's folder, but nothing
+ * stops them *naming* one here, and a submission that pointed a reviewer at
+ * another member's private upload would be a disclosure the rules never saw.
+ */
+export function parseContributionMedia(
+  raw: unknown,
+  uid: string,
+): CollectionContributionMedia | null {
+  if (raw == null) return null;
+  if (typeof raw !== 'object' || Array.isArray(raw)) {
+    throw new HttpsError('invalid-argument', 'media must be an object.');
+  }
+  const data = raw as Record<string, unknown>;
+  const storagePath = typeof data.storagePath === 'string' ? data.storagePath.trim() : '';
+  const expectedPrefix = `creator-submissions/${uid}/${COLLECTION_CAMPAIGN_ID}/`;
+  if (!storagePath.startsWith(expectedPrefix) || storagePath.includes('..')) {
+    throw new HttpsError('permission-denied', 'The uploaded file is not in your own submission folder.');
+  }
+  const mediaType = typeof data.mediaType === 'string' ? data.mediaType : '';
+  if (!(MEDIA_TYPES as readonly string[]).includes(mediaType)) {
+    throw new HttpsError('invalid-argument', 'mediaType must be image, audio, video, or document.');
+  }
+  const sizeBytes = typeof data.sizeBytes === 'number' ? Math.round(data.sizeBytes) : 0;
+  if (sizeBytes < 0 || sizeBytes > MAX_UPLOAD_BYTES) {
+    throw new HttpsError('invalid-argument', 'The uploaded file is too large.');
+  }
+  return {
+    storagePath,
+    mimeType: typeof data.mimeType === 'string' && data.mimeType ? data.mimeType : 'application/octet-stream',
+    sizeBytes,
+    mediaType: mediaType as CollectionContributionMedia['mediaType'],
+  };
 }
 
 function nowIso(): string {
@@ -62,7 +122,10 @@ function requiredBoolean(data: Record<string, unknown>, key: string): boolean {
   return value;
 }
 
-export function parseCollectionContributionInput(raw: unknown): CollectionContributionInput {
+export function parseCollectionContributionInput(
+  raw: unknown,
+  uid = '',
+): CollectionContributionInput {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
     throw new HttpsError('invalid-argument', 'Contribution details are required.');
   }
@@ -77,7 +140,10 @@ export function parseCollectionContributionInput(raw: unknown): CollectionContri
   if (typeof data.publicationPermission !== 'boolean') {
     throw new HttpsError('invalid-argument', 'Choose whether approved work may be published.');
   }
-  const involvesMinors = requiredBoolean(data, 'involvesMinors');
+  // Optional now: a form that never puts the question sends null rather than
+  // a manufactured "no".
+  const involvesMinors =
+    data.involvesMinors == null ? null : requiredBoolean(data, 'involvesMinors');
   const usesThirdPartyMaterial = requiredBoolean(data, 'usesThirdPartyMaterial');
   const participantConsentConfirmed = requiredBoolean(data, 'participantConsentConfirmed');
   if (!participantConsentConfirmed) {
@@ -101,6 +167,12 @@ export function parseCollectionContributionInput(raw: unknown): CollectionContri
   }
 
   const relatedEntryId = optionalText(data, 'relatedEntryId', 200) || null;
+  const media = parseContributionMedia(data.media, uid);
+  // A song or a narration is the recording. Accepting one without the file
+  // would put an empty item in the review queue that nobody can assess.
+  if (!media && !mediaUrl && (kind === 'music' || kind === 'audiobooks')) {
+    throw new HttpsError('failed-precondition', 'Upload the recording before submitting.');
+  }
   return {
     collectionKind: kind as CollectionKind,
     title: requiredText(data, 'title', 180),
@@ -109,6 +181,7 @@ export function parseCollectionContributionInput(raw: unknown): CollectionContri
     dialect: requiredText(data, 'dialect', 80),
     source: requiredText(data, 'source', 1200),
     mediaUrl,
+    media,
     notes: optionalText(data, 'notes', 4000),
     relatedEntryId,
     involvesMinors,
@@ -162,6 +235,21 @@ export function buildCollectionSubmissionDocument(
     englishSummary: input.collectionKind === 'dictionary' ? input.title : '',
     culturalContext: '',
     externalPostUrl: input.mediaUrl || null,
+    // Spread rather than a null field: Firestore rejects `undefined`, and a
+    // written `media: null` would make a text-only contribution look like one
+    // whose upload failed.
+    ...(input.media
+      ? {
+          media: {
+            storagePath: input.media.storagePath,
+            mimeType: input.media.mimeType,
+            sizeBytes: input.media.sizeBytes,
+            mediaType: input.media.mediaType,
+            thumbnailPath: null,
+            captionsPath: null,
+          },
+        }
+      : {}),
     participants: [],
     disclosures: {
       involvesMinors: input.involvesMinors,
@@ -209,7 +297,7 @@ export const submitCollectionContribution = onCall(
   async (req) => {
     const uid = requireAuth(req);
     await consumeRateLimit('submitCollectionContribution', uid, 10);
-    const input = parseCollectionContributionInput(req.data);
+    const input = parseCollectionContributionInput(req.data, uid);
     const db = getFirestore();
     const contributionRef = db.collection('collectionContributions').doc();
     const submissionRef = db.collection('submissions').doc(contributionRef.id);
@@ -252,6 +340,8 @@ export const submitCollectionContribution = onCall(
         dialect: input.dialect,
         source: input.source,
         mediaUrl: input.mediaUrl,
+        mediaStoragePath: input.media?.storagePath ?? null,
+        mediaType: input.media?.mediaType ?? null,
         notes: input.notes,
         relatedEntryId: input.relatedEntryId,
         involvesMinors: input.involvesMinors,

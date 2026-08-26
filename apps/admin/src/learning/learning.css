@@ -1,0 +1,157 @@
+/* Learning path editor: lesson tables and the question builder.
+   Reuses the shared admin tokens/classes; only the extras live here. */
+.learning-admin {
+  display: grid;
+  gap: 20px;
+}
+
+.learning-admin__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+/* Lesson tables, one per unit */
+.learning-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 12px;
+  font-size: 0.9rem;
+}
+.learning-table th {
+  text-align: left;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-soft);
+  border-bottom: 1px solid var(--border);
+  padding: 6px 10px 6px 0;
+}
+.learning-table td {
+  padding: 10px 10px 10px 0;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+.learning-table__id {
+  font-size: 0.72rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.learning-table__actions {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.learning-status {
+  display: inline-block;
+  border-radius: 999px;
+  padding: 3px 11px;
+  font-size: 0.74rem;
+  font-weight: 600;
+  border: 1px solid var(--border);
+}
+.learning-status--live {
+  background: #e6f4ec;
+  border-color: #b6ddc6;
+}
+.learning-status--draft {
+  background: var(--plaster-cream, #f3efe6);
+}
+
+/* Editor form */
+.learning-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+  margin-top: 12px;
+}
+.learning-grid label {
+  display: grid;
+  gap: 6px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-soft);
+}
+.learning-grid input,
+.learning-grid select {
+  font: inherit;
+  padding: 9px 11px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface);
+  color: var(--text);
+}
+.learning-grid__wide {
+  grid-column: 1 / -1;
+}
+.learning-checkbox {
+  display: flex !important;
+  align-items: center;
+  gap: 9px;
+  align-self: end;
+}
+.learning-checkbox input {
+  width: auto;
+}
+
+.learning-question__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* Answer rows: a radio marks the correct one, so the mark and the text it
+   belongs to always move together. */
+.learning-answers {
+  list-style: none;
+  margin: 10px 0 14px;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.learning-answers li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.learning-answers input[type='text'],
+.learning-answers li > input:not([type='radio']) {
+  flex: 1;
+  font: inherit;
+  padding: 9px 11px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface);
+  color: var(--text);
+}
+
+.learning-explanation {
+  display: grid;
+  gap: 6px;
+  margin-top: 14px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-soft);
+}
+.learning-explanation textarea {
+  font: inherit;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface);
+  color: var(--text);
+  resize: vertical;
+}
+
+/* What still stands between this lesson and being publishable. */
+.learning-problems {
+  margin: 0 0 12px;
+  padding: 12px 14px 12px 30px;
+  border-left: 3px solid var(--gold);
+  background: #fbf6e9;
+  border-radius: 8px;
+  font-size: 0.86rem;
+  color: var(--text);
+}

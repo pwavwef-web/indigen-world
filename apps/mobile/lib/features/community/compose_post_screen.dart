@@ -9,6 +9,7 @@ import 'package:indigen_world_mobile/features/community/data/community_models.da
 import 'package:indigen_world_mobile/features/community/data/community_providers.dart';
 import 'package:indigen_world_mobile/features/community/data/community_repository.dart';
 import 'package:indigen_world_mobile/features/community/media_picker.dart';
+import 'package:indigen_world_mobile/features/community/mentions.dart';
 import 'package:indigen_world_mobile/features/community/widgets/community_avatar.dart';
 import 'package:indigen_world_mobile/features/community/widgets/people_widgets.dart';
 import 'package:path_provider/path_provider.dart';
@@ -40,6 +41,9 @@ class ComposePostScreen extends ConsumerStatefulWidget {
 
 class _ComposePostScreenState extends ConsumerState<ComposePostScreen> {
   late final _controller = TextEditingController(text: widget.initialText);
+  // Watches the caret so an `@` being typed offers handles to complete —
+  // including Kawuri's, which answers in the thread.
+  late final _mentions = MentionComposerController(_controller);
   final _attachments = <PendingUpload>[];
   final _pollOptions = [TextEditingController(), TextEditingController()];
   final _recorder = AudioRecorder();
@@ -60,6 +64,7 @@ class _ComposePostScreenState extends ConsumerState<ComposePostScreen> {
   void dispose() {
     _recordingTicker?.cancel();
     unawaited(_recorder.dispose());
+    _mentions.dispose();
     _controller.dispose();
     for (final controller in _pollOptions) {
       controller.dispose();
@@ -307,6 +312,18 @@ class _ComposePostScreenState extends ConsumerState<ComposePostScreen> {
                   ),
                 ),
               ],
+            ),
+            AnimatedBuilder(
+              animation: _mentions,
+              builder: (context, _) => _mentions.query == null
+                  ? const SizedBox.shrink()
+                  : Padding(
+                      padding: const EdgeInsets.only(left: 56, top: 8),
+                      child: MentionSuggestions(
+                        query: _mentions.query,
+                        onSelected: _mentions.complete,
+                      ),
+                    ),
             ),
             if (_attachments.isNotEmpty) ...[
               const SizedBox(height: 14),
