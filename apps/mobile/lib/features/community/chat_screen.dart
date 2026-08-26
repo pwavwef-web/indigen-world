@@ -10,6 +10,7 @@ import 'package:indigen_world_mobile/features/community/data/community_models.da
 import 'package:indigen_world_mobile/features/community/data/community_providers.dart';
 import 'package:indigen_world_mobile/features/community/widgets/community_avatar.dart';
 import 'package:indigen_world_mobile/features/community/widgets/people_widgets.dart';
+import 'package:indigen_world_mobile/features/notifications/push_nudge.dart';
 import 'package:indigen_world_mobile/shared/glass_popup.dart';
 
 /// Opens the conversation with [profile], creating the thread on first use.
@@ -79,11 +80,18 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     super.initState();
     // Opening the thread is what marks it read. Doing it after the first frame
     // keeps the write off the path that has to paint.
-    WidgetsBinding.instance.addPostFrameCallback((_) => _markRead());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _markRead();
+      // Announce which conversation is on screen, so a push about this one is
+      // not drawn over the very message being read.
+      ref.read(activeChatThreadProvider.notifier).open(widget.threadId);
+    });
   }
 
   @override
   void dispose() {
+    ref.read(activeChatThreadProvider.notifier).close(widget.threadId);
     _controller.dispose();
     super.dispose();
   }
@@ -106,6 +114,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     }
 
     setState(() => _sending = true);
+    var sent = false;
     try {
       await repository.sendMessage(
         threadId: widget.threadId,
@@ -113,6 +122,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         recipientId: widget.otherUid,
         text: body,
       );
+      sent = true;
       if (!mounted) return;
       _controller.clear();
       HapticFeedback.lightImpact();
@@ -121,6 +131,15 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     } finally {
       if (mounted) setState(() => _sending = false);
     }
+
+    // Outside the catch on purpose. Anything that fails while asking about
+    // alerts is unrelated to whether the message went — reporting "Message not
+    // sent" for one that was would have somebody send it twice.
+    //
+    // The message is away; there is now somebody who might answer it and no way
+    // to be told when they do. A start-up decline gets exactly one second ask,
+    // and this is the moment it means something.
+    if (sent && mounted) await maybeOfferPushNudge(context, ref);
   }
 
   Future<void> _delete(ChatMessage message) async {

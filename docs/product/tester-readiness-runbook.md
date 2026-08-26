@@ -291,6 +291,60 @@ reviewing your own submission).
     on their lock screen if they turned push alerts on.
 11. Rules/functions regression still green: `npm test`.
 
+**Push permission and channels (new this round):**
+
+12. On a **clean install**, the primer appears as the last step of onboarding —
+    and, for a tester upgrading from an earlier build, once on first launch. Tap
+    **Not now** and confirm no Android permission dialog is shown: the grant has
+    to survive a decline, or the tester can never be asked again.
+13. Reinstall, tap **Turn on alerts**, accept the Android dialog, and confirm a
+    `communityDevices/{token}` row appears with your uid.
+14. Have the other account like your post while the app is **open**. The alert
+    must appear as a heads-up notification, not only as a badge — this is what
+    the foreground path and the channel importance are for.
+15. **Settings → Apps → Indigen → Notifications** should list two categories,
+    *Community activity* and *Messages*, both set to a level that makes sound. A
+    tester upgrading from an earlier build who sees a silent *Miscellaneous*
+    category instead has the retired `indigen_community` channel: confirm the
+    app deleted it and created `indigen_community_v2`. Channel importance cannot
+    be changed after creation, so this only ever gets fixed by a new channel id.
+
+**Direct messages:**
+
+16. Two accounts, both with alerts on. Send a message from one; the other should
+    get a lock-screen alert titled with the sender's name.
+17. Tap it from a **cold start** (swipe the app away first). It must open that
+    conversation, not the notifications centre — a message writes no row there.
+18. Send four messages in quick succession. Exactly **one** alert should arrive,
+    and it should show the latest message rather than stacking four rows.
+19. Read the conversation, then have the other account send again. That one
+    rings, because nothing was outstanding when it arrived.
+20. With the conversation **open on screen**, have the other account send. No
+    alert should be drawn — the message is already being read.
+21. Turn **Show message text in alerts** off in Settings and send again. The
+    alert should name the sender and say "Sent you a message", with no body.
+
+**Play rating prompt:**
+
+22. **Settings → Rate Indigen World** should open the Play listing for
+    `com.indigenworld.indigen`. This is the only rating path that can be
+    exercised on demand.
+23. The in-app review card itself **cannot be tested from `flutter run`**, or on
+    the dev and staging flavours at all — `isAvailable()` is false for
+    application IDs that are not on Play. It needs an internal-testing or
+    internal-app-sharing build.
+24. It also ships **disabled**. To exercise it, set `rating_prompt_enabled` to
+    `true` in **Remote Config**, and lower `rating_min_days` and
+    `rating_min_active_days` to `0` for the test — otherwise the gate needs a
+    week and three separate days of use before it will fire.
+25. Then finish a lesson, or submit a contribution, and expect the card after
+    the success sheet closes. **Expect it at most once.** Play discards requests
+    over quota in silence and reports nothing either way, so "no card appeared"
+    is not by itself a failure — check that
+    `indigen_world_rating_last_ask_v1` was written before concluding anything.
+26. Put `rating_prompt_enabled` back to `false` when you are done, unless the
+    round is meant to ship with it live.
+
 ---
 
 ## Tester-facing instructions (share with testers)

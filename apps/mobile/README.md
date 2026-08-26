@@ -155,8 +155,62 @@ Until anything is published, the feed shows a curated preview, labelled `PREVIEW
 | `onCommunityFollowCreated` | `communityFollows/{id}` | the member followed |
 | `onSubmissionWritten` | first publication of an open post | the creator |
 | `onCommunityNotificationCreated` | any new alert | pushes it to that member's devices |
+| `onChatMessageCreated` | `communityChats/{id}/messages/{id}` | pushes a direct message to the other participant (no centre row — see below) |
 
 Push registrations live in `communityDevices/{fcmToken}` — keyed by the token so a refresh replaces the row rather than accumulating dead handsets, unreadable by anyone but its owner, and dropped on sign-out. Dead tokens are pruned as FCM reports them. Push is a convenience layer only: a device that refuses notifications, or has no Play Services, still gets the full centre from Firestore.
+
+#### Asking for permission
+
+Android grants **one** notification prompt per install, and a reflexive "Deny" is permanent short of a trip through system settings. So the ask is made twice over, in the app's own words first:
+
+1. **The primer** (`notifications_primer.dart`) closes first-run onboarding, and appears once for members who onboarded before it existed — `StartupGate` gates on `indigen_world_push_primer_v1`, not on the onboarding flag. "Not now" deliberately does *not* reach the OS prompt, leaving the grant unspent for the settings toggle later. It is skipped entirely when Firebase failed to start, because no token could be minted from a yes.
+2. **One contextual re-ask** (`push_nudge.dart`), offered after a first direct message is sent and only once `indigen_world_push_declined_at_v1` is at least three days old. After that, Settings is the only path.
+
+`setPushAlerts` moves permission, the device registration, the `community-updates` topic and the stored preference together — the primer, the nudge and the settings toggle all go through it, so none of them can leave the switch saying something the backend disagrees with.
+
+#### Channels
+
+Two channels, both created at start-up by `local_alerts.dart`:
+
+| Channel | Carries |
+| --- | --- |
+| `indigen_community_v2` | replies, mentions, follows, reshares, new releases — the FCM default in the manifest |
+| `indigen_messages` | direct messages |
+
+They are separate so somebody can mute the like-and-follow traffic from system settings without also muting the person talking to them.
+
+**The `_v2` is load-bearing.** No build before it created the channel itself, so on any handset that had already received an alert Android auto-created `indigen_community` at default importance — silent, no heads-up — and a channel's importance can never be raised afterwards. Changing the id is the only migration there is; the retired channel is deleted on first run. If an id changes again it has to change in three places at once: `local_alerts.dart`, the `channelId` the function sends (`push.ts`), and — for the community channel — the manifest meta-data.
+
+A push that lands while somebody is looking at the app is delivered to `onMessage` and drawn by nobody, so `foregroundAlertsProvider` posts it locally. It is deliberately independent of the signed-in account: broadcast announcements reach guest devices through the topic.
+
+### Direct messages
+
+`onChatMessageCreated` pushes a private message to the other participant. It writes **no** `communityNotifications` row on purpose — a conversation belongs in the inbox, which already keeps its own unread count on the thread, and duplicating it would give one unread state two sources of truth.
+
+Four things stand between a message and somebody's lock screen:
+
+- **Mute.** `mutedBy` on the thread. Checked before the debounce, so a muted conversation never even stamps the quiet window.
+- **Debounce.** `shouldAlert` rings for the first message, then stays quiet for 45 seconds *while an earlier message is still unread* — four messages typed in a row are one thought. Claimed in a transaction, because a burst is exactly the case where two deliveries would otherwise both read the same stale `lastPushAt` and both ring.
+- **Previews.** `messagePreviews` on `communityDevices/{token}`, so an alert can say who wrote without saying what they said. It lives on the device, not the account: a private phone and a shared tablet want different answers.
+- **The open thread.** The fan-out cannot know which screen is in front of somebody, so the client drops a foreground push for the conversation `activeChatThreadProvider` says is already on screen.
+
+Both guards live in the rules as well as the code, because both participants can write the thread document — which would otherwise mean either of them could silence the other. `mutedBy` may only change by the caller's own uid, and `lastPushAt` is not client-writable at all.
+
+A message push carries only a thread id, so `/chat/:threadId` goes through `ChatThreadLoader`, which recovers the other member's name and face from the thread's own stamps before building `ChatScreen`. A payload with no usable thread id falls back to `/messages`, never to the alert centre — there is nothing there for it.
+
+### Rating
+
+The Play in-app review card, behind `rating_service.dart`. Three properties of that API drive the whole design, and each is easy to get wrong:
+
+- **Nothing may ask first.** Play forbids gating the card behind a question about how somebody feels — no "Enjoying Indigen? [Yes] [No]", and no button labelled *Rate us* that calls `requestReview`. The **Rate Indigen World** row in Settings is a different call, `openStoreListing`, which is allowed precisely because it leaves the app.
+- **There is no callback.** `requestReview` completes whether or not the card was drawn. The attempt is therefore recorded *before* the call — a failure that read as "did not happen" would ask again on the next lesson, and the one after that.
+- **The quota is small.** Roughly a handful per member per year, spent silently. Every mistimed ask costs one that cannot be recovered.
+
+So the ask is rationed by `shouldRequestReview` — 7 days since first launch, 3 distinct days of use, online, and (for a second ask) **both** a 120-day cooldown and a version the member has not already been asked about. It fires from a moment somebody has just finished something: a completed lesson, or an accepted contribution, after the success sheet has closed.
+
+Every threshold lives in Remote Config (`rating_prompt_enabled`, `rating_min_days`, `rating_min_active_days`, `rating_cooldown_days`) and **ships disabled**. It is the one feature here with no rollback, so being able to stop it without a release matters more than the convenience of a compile-time constant.
+
+Two things to know when testing it: `isAvailable()` is false on the dev and staging flavours, because those application IDs are not on Play — so the prompt cannot be exercised with `flutter run` at all, only from an internal-testing or app-sharing build.
 
 ### Kawuri
 

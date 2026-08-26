@@ -128,6 +128,10 @@ class _AppShellState extends ConsumerState<AppShell>
     // Registering the device for push is a shell-level concern: it has to run
     // once the member is signed in, whichever tab they happen to be on.
     ref.watch(pushRegistrationProvider);
+    // Drawing an alert that arrives mid-session is the same kind of concern,
+    // but it does not wait for an account: broadcast announcements reach a
+    // guest device through the topic.
+    ref.watch(foregroundAlertsProvider);
     // A tapped push may arrive before any route can consume it, so it is parked
     // in a provider and routed from here once there is a router to route with.
     ref.listen<String?>(pendingPushRouteProvider, (_, route) {

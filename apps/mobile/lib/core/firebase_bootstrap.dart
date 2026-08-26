@@ -11,6 +11,7 @@ import 'package:firebase_remote_config/firebase_remote_config.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
 import 'package:indigen_world_mobile/core/app_config.dart';
+import 'package:indigen_world_mobile/features/notifications/local_alerts.dart';
 import 'package:indigen_world_mobile/firebase_options_development.dart'
     as development;
 import 'package:indigen_world_mobile/firebase_options_production.dart'
@@ -100,6 +101,10 @@ class FirebaseBootstrap {
         'messaging',
         () => FirebaseMessaging.instance.setAutoInitEnabled(true),
       ),
+      // Before anything can be delivered. The first message to reach a device
+      // with no channel makes Android invent one, and the importance it picks
+      // is then permanent — see local_alerts.dart.
+      _guard('notification-channels', createNotificationChannels),
       _guard('remote-config', _configureRemoteConfig),
       if (!useFirebaseEmulators) _guard('app-check', _activateAppCheck),
     ]);
@@ -122,6 +127,14 @@ class FirebaseBootstrap {
       'marketplace_enabled': false,
       'voice_enabled': false,
       'ai_assistant_enabled': false,
+      // The Play review prompt ships dark. It is the one feature here with no
+      // rollback — a mistimed ask spends a quota slot that cannot be given
+      // back — so it is turned on from the console once the rest is stable,
+      // and can be turned off again without a release. See rating_service.dart.
+      'rating_prompt_enabled': false,
+      'rating_min_days': 7,
+      'rating_min_active_days': 3,
+      'rating_cooldown_days': 120,
     });
     await FirebaseRemoteConfig.instance.setConfigSettings(
       RemoteConfigSettings(

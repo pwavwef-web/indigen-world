@@ -73,14 +73,19 @@ class NotificationsRepository {
   /// Keyed by the FCM token itself, so a reinstall or token refresh replaces
   /// the old row instead of accumulating dead devices, and one token can never
   /// be claimed by two accounts at once.
+  /// [messagePreviews] rides on the device row rather than the account: a
+  /// member with a private phone and a shared tablet wants a different answer
+  /// on each, and the fan-out reads it per token when it addresses them.
   Future<void> registerDevice({
     required String uid,
     required String token,
     required String platform,
+    required bool messagePreviews,
   }) => _firestore.collection('communityDevices').doc(token).set({
     'uid': uid,
     'token': token,
     'platform': platform,
+    'messagePreviews': messagePreviews,
     'updatedAt': FieldValue.serverTimestamp(),
   });
 

@@ -1,7 +1,6 @@
 import 'dart:io' show Platform;
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -19,6 +18,7 @@ import 'package:indigen_world_mobile/features/community/people_screen.dart';
 import 'package:indigen_world_mobile/features/community/saved_posts_screen.dart';
 import 'package:indigen_world_mobile/features/notifications/notifications_screen.dart';
 import 'package:indigen_world_mobile/features/notifications/push_messaging.dart';
+import 'package:indigen_world_mobile/features/rating/rating_service.dart';
 import 'package:indigen_world_mobile/features/settings/licences_screen.dart';
 import 'package:indigen_world_mobile/features/settings/policy_screen.dart';
 import 'package:indigen_world_mobile/shared/glass_popup.dart';
@@ -30,9 +30,6 @@ final appVersionProvider = FutureProvider<String>((ref) async {
   final info = await PackageInfo.fromPlatform();
   return '${info.version} (${info.buildNumber})';
 });
-
-/// The FCM topic community announcements are broadcast on.
-const _communityTopic = 'community-updates';
 
 /// Shared with the push layer so the toggle and the registration agree on what
 /// the member chose. Two copies of this key meant settings could show "on"
@@ -51,6 +48,7 @@ class SettingsScreen extends ConsumerStatefulWidget {
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   bool? _alertsEnabled;
   var _updatingAlerts = false;
+  bool? _previewsEnabled;
 
   @override
   void initState() {
@@ -60,11 +58,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   Future<void> _loadPreferences() async {
     final preferences = await SharedPreferences.getInstance();
+    final previews = await messagePreviewsEnabled();
     if (!mounted) return;
-    setState(
-      () => _alertsEnabled =
-          preferences.getBool(_notificationsPreferenceKey) ?? false,
-    );
+    setState(() {
+      _alertsEnabled =
+          preferences.getBool(_notificationsPreferenceKey) ?? false;
+      _previewsEnabled = previews;
+    });
+  }
+
+  Future<void> _setPreviews(bool enabled) async {
+    setState(() => _previewsEnabled = enabled);
+    await setMessagePreviews(ref, enabled: enabled);
   }
 
   Future<void> _setAlerts(bool enabled) async {
@@ -75,18 +80,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     }
     setState(() => _updatingAlerts = true);
     try {
-      // Permission, device registration and the stored preference all move
-      // together — see setPushAlerts.
+      // Permission, device registration, the announcements topic and the
+      // stored preference all move together — see setPushAlerts.
       final granted = await setPushAlerts(ref, enabled: enabled);
-
-      // The broadcast topic is separate from per-member alerts: it carries
-      // project announcements rather than anything about you.
-      final messaging = FirebaseMessaging.instance;
-      if (granted) {
-        await messaging.subscribeToTopic(_communityTopic);
-      } else {
-        await messaging.unsubscribeFromTopic(_communityTopic);
-      }
 
       if (!mounted) return;
       setState(() {
@@ -269,6 +265,25 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     ? null
                     : _setAlerts,
               ),
+              // Only worth offering to somebody whose lock screen actually has
+              // something drawn on it.
+              if (_alertsEnabled ?? false)
+                SwitchListTile.adaptive(
+                  secondary: const Icon(
+                    Icons.visibility_outlined,
+                    color: BrandColors.heritageGreen,
+                  ),
+                  title: const Text(
+                    'Show message text in alerts',
+                    style: TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                  subtitle: const Text(
+                    'Off means an alert says who wrote, not what they said. '
+                    'This choice belongs to this device.',
+                  ),
+                  value: _previewsEnabled ?? true,
+                  onChanged: _previewsEnabled == null ? null : _setPreviews,
+                ),
             ],
           ),
           const SizedBox(height: 22),
@@ -322,6 +337,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     builder: (context) => const LicencesScreen(),
                   ),
                 ),
+              ),
+              // A deliberate, member-initiated path to the store. Distinct from
+              // the in-app review card, which Play forbids putting behind any
+              // button or question — see rating_service.dart.
+              const _SettingsRow(
+                icon: Icons.star_outline_rounded,
+                title: 'Rate Indigen World',
+                subtitle: 'Leave a review on Google Play',
+                onTap: openStoreListing,
               ),
               _SettingsRow(
                 icon: Icons.gavel_outlined,

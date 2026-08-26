@@ -4,10 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
+import 'package:indigen_world_mobile/core/connectivity.dart';
 import 'package:indigen_world_mobile/features/collection/collection_detail_screens.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_fab.dart';
 import 'package:indigen_world_mobile/features/learn/learn_content.dart';
 import 'package:indigen_world_mobile/features/learn/learn_progress.dart';
+import 'package:indigen_world_mobile/features/rating/rating_service.dart';
 import 'package:indigen_world_mobile/shared/app_widgets.dart';
 import 'package:indigen_world_mobile/shared/frosted_nav_bar.dart';
 
@@ -169,9 +171,7 @@ class _LearnScreenState extends ConsumerState<LearnScreen> {
     if (!claimed || !mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text(
-          'Daily spark claimed · +${LearnProgress.xpPerSpark} XP',
-        ),
+        content: Text('Daily spark claimed · +${LearnProgress.xpPerSpark} XP'),
       ),
     );
   }
@@ -213,6 +213,13 @@ class _LearnScreenState extends ConsumerState<LearnScreen> {
       await ref
           .read(learnProgressProvider.notifier)
           .completeLesson(lesson.id, xp: lesson.xp);
+      // A finished lesson is somebody at their most pleased with the app, and
+      // the sheet has already closed — so nothing is being interrupted. The
+      // ask is rationed inside; most of the time this does nothing at all.
+      if (!mounted) return;
+      await maybeRequestReview(
+        online: ref.read(connectionBlockProvider) == null,
+      );
     }
   }
 }

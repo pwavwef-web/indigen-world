@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
+import 'package:indigen_world_mobile/core/connectivity.dart';
 import 'package:indigen_world_mobile/features/auth/auth_repository.dart';
 import 'package:indigen_world_mobile/features/auth/sign_in_sheet.dart';
 import 'package:indigen_world_mobile/features/collection/collection_data.dart';
 import 'package:indigen_world_mobile/features/contribute/collection_contribution_repository.dart';
 import 'package:indigen_world_mobile/features/contribute/contribution_upload.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_fab.dart';
+import 'package:indigen_world_mobile/features/rating/rating_service.dart';
 import 'package:indigen_world_mobile/shared/app_widgets.dart';
 import 'package:indigen_world_mobile/shared/frosted_nav_bar.dart';
 import 'package:indigen_world_mobile/shared/glass_popup.dart';
@@ -239,6 +241,7 @@ class _ContributeScreenState extends ConsumerState<ContributeScreen> {
       _submitError = null;
       _uploadProgress = _file == null ? null : 0;
     });
+    var submitted = false;
     try {
       // The file goes first and separately: it lands in the member's own
       // private prefix, and the callable is handed the path rather than the
@@ -295,6 +298,7 @@ class _ContributeScreenState extends ConsumerState<ContributeScreen> {
         _file = null;
         _uploadProgress = null;
       });
+      submitted = true;
       await showGlassPopup<void>(
         context: context,
         title: 'Contribution received',
@@ -337,6 +341,20 @@ class _ContributeScreenState extends ConsumerState<ContributeScreen> {
         });
       }
     }
+
+    // Outside the catch on purpose: anything that fails while asking for a
+    // rating has nothing to do with whether the contribution went, and saying
+    // "not sent" about one that was would have somebody submit it twice.
+    //
+    // Giving something to the language record is the moment somebody is most
+    // glad they installed this. The receipt has already been dismissed, so the
+    // ask lands on a clear screen — and is rationed inside, so most of the time
+    // it does nothing.
+    if (submitted && mounted) {
+      await maybeRequestReview(
+        online: ref.read(connectionBlockProvider) == null,
+      );
+    }
   }
 }
 
@@ -346,8 +364,8 @@ class _ContributeScreenState extends ConsumerState<ContributeScreen> {
 /// prose alone. A written work may arrive as a manuscript or as typed text,
 /// so its upload is optional. A dictionary word is neither.
 ContributionMediaKind? _uploadKindFor(CollectionKind kind) => switch (kind) {
-  CollectionKind.music || CollectionKind.audiobooks =>
-    ContributionMediaKind.audio,
+  CollectionKind.music ||
+  CollectionKind.audiobooks => ContributionMediaKind.audio,
   CollectionKind.literature => ContributionMediaKind.document,
   CollectionKind.dictionary => null,
 };
@@ -647,7 +665,10 @@ class _ContributionFields extends StatelessWidget {
             ),
             items: const [
               DropdownMenuItem(value: false, child: Text('No')),
-              DropdownMenuItem(value: true, child: Text('Yes, with permission')),
+              DropdownMenuItem(
+                value: true,
+                child: Text('Yes, with permission'),
+              ),
             ],
             onChanged: onThirdPartyMaterialChanged,
             validator: (value) => value == null ? 'Choose Yes or No.' : null,
@@ -743,8 +764,7 @@ class _ContributionFields extends StatelessWidget {
       'Upload the audio itself — MP3, M4A, WAV and other common formats.',
     CollectionKind.audiobooks =>
       'Upload the narrated audio — MP3, M4A, WAV and other common formats.',
-    _ =>
-      'Attach the full work as a PDF, Word document, or plain text if you have one.',
+    _ => 'Attach the full work as a PDF, Word document, or plain text if you have one.',
   };
 
   String get _formatLabel => switch (kind) {
@@ -798,8 +818,7 @@ class _ContributionFields extends StatelessWidget {
       'Everyone heard on this recording has agreed to it being shared.',
     CollectionKind.audiobooks =>
       'The narrator and the author have agreed to this being shared.',
-    CollectionKind.literature =>
-      'Anyone named, quoted, or depicted has agreed—or there is nobody else in it.',
+    CollectionKind.literature => 'Anyone named, quoted, or depicted has agreed—or there is nobody else in it.',
     CollectionKind.dictionary =>
       'Anyone whose knowledge this is has agreed to it being shared.',
   };

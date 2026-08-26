@@ -20,6 +20,7 @@ export {
   onCommunityPollVoteCreated,
   onCommunityNotificationCreated,
 } from './community-notifications.js';
+export { onChatMessageCreated } from './chat-notifications.js';
 export { onSubmissionWritten } from './open-publishing.js';
 export {
   submitCollectionContribution,

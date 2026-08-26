@@ -12,6 +12,13 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
 import { mentionedHandles } from '../../services/functions/lib/community-notifications.js';
+import {
+  isMutedBy,
+  preview as messagePreview,
+  recipientOf,
+  senderName,
+  shouldAlert,
+} from '../../services/functions/lib/chat-notifications.js';
 import { isCampaignSubmission } from '../../services/functions/lib/open-publishing.js';
 import { normaliseTurns, replyFromGemini, vertexEndpoint } from '../../services/functions/lib/kawuri.js';
 import {
@@ -324,4 +331,82 @@ test('replyFromGemini pulls the answer out, and survives every empty shape', () 
   assert.equal(replyFromGemini({}), '');
   assert.equal(replyFromGemini(null), '');
   assert.equal(replyFromGemini('nonsense'), '');
+});
+
+// ── Direct-message alerts ───────────────────────────────────────────────────
+//
+// Every decision the message trigger makes before it reaches FCM. All of them
+// fail quietly: a wrong recipient sends somebody else's private message to the
+// wrong lock screen, and a wrong debounce either buzzes a phone once per word
+// typed or silently stops delivering altogether.
+
+test('recipientOf picks the other participant, and only when there is one', () => {
+  assert.equal(recipientOf(['amina', 'nyaaba'], 'amina'), 'nyaaba');
+  assert.equal(recipientOf(['amina', 'nyaaba'], 'nyaaba'), 'amina');
+  // A malformed thread must produce no alert rather than a misdirected one.
+  assert.equal(recipientOf(['amina'], 'amina'), null);
+  assert.equal(recipientOf(['a', 'b', 'c'], 'a'), null);
+  assert.equal(recipientOf(null, 'amina'), null);
+  assert.equal(recipientOf(['amina', 42], 'amina'), null);
+});
+
+test('isMutedBy only answers for the person who muted', () => {
+  assert.equal(isMutedBy(['amina'], 'amina'), true);
+  assert.equal(isMutedBy(['amina'], 'nyaaba'), false);
+  assert.equal(isMutedBy([], 'amina'), false);
+  assert.equal(isMutedBy(undefined, 'amina'), false);
+});
+
+test('shouldAlert rings for the first message in a quiet conversation', () => {
+  // Nothing was waiting, so this is news however recently the thread rang.
+  assert.equal(
+    shouldAlert({ outstanding: 1, lastPushAtMillis: 1_000, nowMillis: 1_100 }),
+    true,
+  );
+  assert.equal(
+    shouldAlert({ outstanding: undefined, lastPushAtMillis: null, nowMillis: 0 }),
+    true,
+  );
+});
+
+test('shouldAlert stays quiet for a burst', () => {
+  // Four messages typed in a row are one thought, and one buzz.
+  assert.equal(
+    shouldAlert({ outstanding: 2, lastPushAtMillis: 1_000, nowMillis: 2_000 }),
+    false,
+  );
+  assert.equal(
+    shouldAlert({ outstanding: 9, lastPushAtMillis: 1_000, nowMillis: 45_000 }),
+    false,
+  );
+});
+
+test('shouldAlert rings again once the quiet period has passed', () => {
+  // Still unread, but this is a new beat in the conversation rather than the
+  // tail of the last one.
+  assert.equal(
+    shouldAlert({ outstanding: 2, lastPushAtMillis: 1_000, nowMillis: 46_000 }),
+    true,
+  );
+  // A thread that has never rung has nothing to stay quiet about.
+  assert.equal(
+    shouldAlert({ outstanding: 5, lastPushAtMillis: null, nowMillis: 0 }),
+    true,
+  );
+});
+
+test('senderName falls back rather than titling an alert with nothing', () => {
+  const profiles = { amina: { displayName: 'Amina' }, blank: { displayName: '  ' } };
+  assert.equal(senderName(profiles, 'amina'), 'Amina');
+  assert.equal(senderName(profiles, 'blank'), 'A member');
+  assert.equal(senderName(profiles, 'missing'), 'A member');
+  assert.equal(senderName(undefined, 'amina'), 'A member');
+});
+
+test('messagePreview collapses whitespace and truncates long messages', () => {
+  // A message typed across several lines has to arrive as one lock-screen row.
+  assert.equal(messagePreview('  de   zaanem\n\nko gara '), 'de zaanem ko gara');
+  const long = 'a'.repeat(300);
+  assert.equal(messagePreview(long).length, 120);
+  assert.ok(messagePreview(long).endsWith('…'));
 });

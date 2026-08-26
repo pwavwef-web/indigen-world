@@ -651,6 +651,24 @@ test('a device row must be keyed by the token it carries', async () => {
   }));
 });
 
+test('a device may carry a lock-screen preview preference, if it is a bool', async () => {
+  // The fan-out reads this per token to decide whether a message body reaches
+  // the lock screen, so a string or a number there would quietly mean "yes".
+  const owner = env.authenticatedContext(AMINA);
+  await assertSucceeds(setDoc(doc(db(owner), 'communityDevices/token-new'), {
+    uid: AMINA,
+    token: 'token-new',
+    platform: 'android',
+    messagePreviews: false,
+  }));
+  await assertFails(setDoc(doc(db(owner), 'communityDevices/token-new'), {
+    uid: AMINA,
+    token: 'token-new',
+    platform: 'android',
+    messagePreviews: 'no',
+  }));
+});
+
 test('nobody can read another member device tokens', async () => {
   // Knowing somebody's tokens is knowing how to reach their handset.
   const other = env.authenticatedContext(NYAABA);

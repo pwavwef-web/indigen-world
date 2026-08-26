@@ -1,18 +1,32 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/app/app_shell.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
+import 'package:indigen_world_mobile/core/firebase_ready.dart';
+import 'package:indigen_world_mobile/features/notifications/push_messaging.dart';
+import 'package:indigen_world_mobile/features/onboarding/notifications_primer.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-class StartupGate extends StatefulWidget {
+/// What the gate is showing right now.
+///
+/// [notificationsPrimer] is reached from two directions: as the closing step of
+/// first-run onboarding, and — once — on the first launch of a build that has
+/// it for somebody who onboarded before it existed. Both go through the same
+/// screen, so there is one place where the one permission prompt an install
+/// gets can be spent.
+enum _Stage { loading, onboarding, notificationsPrimer, ready }
+
+class StartupGate extends ConsumerStatefulWidget {
   const StartupGate({super.key});
 
   @override
-  State<StartupGate> createState() => _StartupGateState();
+  ConsumerState<StartupGate> createState() => _StartupGateState();
 }
 
-class _StartupGateState extends State<StartupGate> {
+class _StartupGateState extends ConsumerState<StartupGate> {
   static const _onboardingKey = 'indigen_world_onboarding_complete_v1';
-  bool? _onboardingComplete;
+  var _stage = _Stage.loading;
+  var _primerPending = false;
   String _learningPath = 'Home community';
 
   @override
@@ -21,16 +35,34 @@ class _StartupGateState extends State<StartupGate> {
     _load();
   }
 
-  Future<void> _load() async {
-    final preferences = await SharedPreferences.getInstance();
-    await Future<void>.delayed(const Duration(milliseconds: 3100));
-    if (!mounted) return;
-    setState(
-      () => _onboardingComplete = preferences.getBool(_onboardingKey) ?? false,
-    );
+  /// Whether to ask about alerts at all this launch.
+  ///
+  /// Not when Firebase failed to come up: no token can be minted and no topic
+  /// joined, so the answer could not be acted on — and asking anyway would
+  /// spend the one prompt this install gets on a launch unable to honour it.
+  /// Left unspent, the primer simply arrives on a launch that can.
+  Future<bool> _needsPrimer() async {
+    if (!ref.read(firebaseReadyProvider)) return false;
+    return pushPrimerNeeded();
   }
 
-  Future<void> _finish() async {
+  Future<void> _load() async {
+    final preferences = await SharedPreferences.getInstance();
+    final onboardingComplete = preferences.getBool(_onboardingKey) ?? false;
+    final primerPending = await _needsPrimer();
+    await Future<void>.delayed(const Duration(milliseconds: 3100));
+    if (!mounted) return;
+    setState(() {
+      _primerPending = primerPending;
+      _stage = switch ((onboardingComplete, primerPending)) {
+        (false, _) => _Stage.onboarding,
+        (true, true) => _Stage.notificationsPrimer,
+        (true, false) => _Stage.ready,
+      };
+    });
+  }
+
+  Future<void> _finishOnboarding() async {
     final preferences = await SharedPreferences.getInstance();
     await preferences.setBool(_onboardingKey, true);
     await preferences.setString(
@@ -38,23 +70,27 @@ class _StartupGateState extends State<StartupGate> {
       _learningPath,
     );
     if (!mounted) return;
-    setState(() => _onboardingComplete = true);
+    setState(
+      () => _stage = _primerPending ? _Stage.notificationsPrimer : _Stage.ready,
+    );
+  }
+
+  void _finishPrimer() {
+    if (!mounted) return;
+    setState(() => _stage = _Stage.ready);
   }
 
   @override
-  Widget build(BuildContext context) {
-    if (_onboardingComplete == null) {
-      return const _LaunchScreen();
-    }
-    if (_onboardingComplete!) {
-      return const AppShell();
-    }
-    return _OnboardingScreen(
+  Widget build(BuildContext context) => switch (_stage) {
+    _Stage.loading => const _LaunchScreen(),
+    _Stage.onboarding => _OnboardingScreen(
       learningPath: _learningPath,
       onPathChanged: (value) => setState(() => _learningPath = value),
-      onContinue: _finish,
-    );
-  }
+      onContinue: _finishOnboarding,
+    ),
+    _Stage.notificationsPrimer => NotificationsPrimer(onDone: _finishPrimer),
+    _Stage.ready => const AppShell(),
+  };
 }
 
 class _LaunchScreen extends StatefulWidget {

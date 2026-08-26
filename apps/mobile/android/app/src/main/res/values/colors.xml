@@ -2,4 +2,7 @@
 <resources>
     <!-- Heritage green (BrandColors.heritageGreen) used behind the launch logo. -->
     <color name="splash_background">#FF0B3D2E</color>
+    <!-- Kente gold (BrandColors.kenteGold). Tints the notification icon, which
+         Android draws as a silhouette in whatever colour it is given. -->
+    <color name="notification_accent">#FFD89B1D</color>
 </resources>

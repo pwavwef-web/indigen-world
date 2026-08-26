@@ -314,6 +314,35 @@ test('a participant may move unread counts but never the participant list', asyn
   }));
 });
 
+test('a participant mutes themselves, never the other person', async () => {
+  // Both participants can write this document, so without a guard "mute" would
+  // be a way to silence somebody else's alerts about your own messages.
+  const nyaaba = env.authenticatedContext(NYAABA);
+  await assertSucceeds(updateDoc(doc(db(nyaaba), `communityChats/${THREAD}`), {
+    mutedBy: [NYAABA],
+  }));
+  await assertFails(updateDoc(doc(db(nyaaba), `communityChats/${THREAD}`), {
+    mutedBy: [NYAABA, AMINA],
+  }));
+  await assertFails(updateDoc(doc(db(nyaaba), `communityChats/${THREAD}`), {
+    mutedBy: [AMINA],
+  }));
+  // Unmuting yourself is the same move in reverse, and stays allowed.
+  await assertSucceeds(updateDoc(doc(db(nyaaba), `communityChats/${THREAD}`), {
+    mutedBy: [],
+  }));
+});
+
+test('a participant cannot forge the push debounce stamp', async () => {
+  // `lastPushAt` is how the fan-out decides a conversation is already ringing.
+  // A client that could write it could hold the quiet window open and stop the
+  // other person's follow-up messages from ever reaching them.
+  const nyaaba = env.authenticatedContext(NYAABA);
+  await assertFails(updateDoc(doc(db(nyaaba), `communityChats/${THREAD}`), {
+    lastPushAt: new Date(),
+  }));
+});
+
 test('an outsider cannot write to a thread or its messages', async () => {
   const awini = env.authenticatedContext(AWINI);
   await assertFails(updateDoc(doc(db(awini), `communityChats/${THREAD}`), {

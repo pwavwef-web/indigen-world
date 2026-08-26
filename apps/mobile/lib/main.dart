@@ -9,6 +9,7 @@ import 'package:indigen_world_mobile/core/firebase_bootstrap.dart';
 import 'package:indigen_world_mobile/core/firebase_ready.dart';
 import 'package:indigen_world_mobile/data/local/app_database.dart';
 import 'package:indigen_world_mobile/data/local/legacy_preferences_migration.dart';
+import 'package:indigen_world_mobile/features/rating/rating_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -20,6 +21,10 @@ Future<void> main() async {
   // that cannot wait for a platform channel, and this is the only place the
   // answer is knowable at all on a Play-signed release.
   await const AppSignatureReader().read();
+
+  // One line in the ledger the review prompt reads from. Counted per launch
+  // rather than per session so "three distinct days" means what it says.
+  await recordRatingActivity();
 
   final firebaseReady = await FirebaseBootstrap.initialize();
   if (firebaseReady) {
