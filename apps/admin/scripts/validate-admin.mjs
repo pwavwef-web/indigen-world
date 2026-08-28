@@ -9,11 +9,17 @@ const app = read('src/App.tsx');
 const navigation = read('src/navigation.tsx');
 const notFound = read('src/NotFoundPage.tsx');
 const styles = read('src/styles.css');
+const reports = read('src/reports/ReportsAdmin.tsx');
+const reportData = read('src/reports/data.ts');
 
 assert.match(navigation, /AdminScreen \| null/, 'unknown routes have an explicit nullable result');
 assert.match(navigation, /\?\? null/, 'unknown routes do not fall back to the console');
 assert.match(app, /<AdminNotFoundPage/, 'the shell renders the branded 404 page');
 assert.match(notFound, /aria-label="Error 404"/, 'the not-found page exposes an accessible 404 code');
 assert.match(styles, /backdrop-filter:\s*blur/, 'the admin navigation retains its glass treatment');
+assert.match(navigation, /path: '\/reports'/, 'community reports are reachable from admin navigation');
+assert.match(navigation, /<ReportsAdmin/, 'the reports route renders the moderation queue');
+assert.match(reportData, /collection\(db, 'communityReports'\)/, 'the moderation queue reads community reports');
+assert.match(reports, /setCommunityReportStatus/, 'admins can move reports through moderation statuses');
 
 console.log('Validated admin routing, 404 recovery, and navigation treatment.');

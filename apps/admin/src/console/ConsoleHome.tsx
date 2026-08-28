@@ -18,7 +18,7 @@ const adminDomains: { title: string; body: string; planned?: boolean }[] = [
   { title: 'Interests & Public Intake', body: 'Review and action submitted interests from the Get Involved form, volunteer requests and public inquiries.' },
   { title: 'Creator management', body: 'Applications, campaigns, submissions, published content and consent for TribeStudio creators.' },
   { title: 'Validation oversight', body: 'Monitor validator queues, escalations and quality across language cells.' },
-  { title: 'Moderation', body: 'Review reported content and enforce cultural-permission and consent policy.', planned: true },
+  { title: 'Moderation', body: 'Review reported content and track community reports through resolution.' },
   { title: 'Campaigns & rewards', body: 'Oversee bounties, reward settlement and contributor-points integrity.', planned: true },
   { title: 'Audit & accountability', body: 'Inspect the append-only audit log of privileged actions.', planned: true },
 ];

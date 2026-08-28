@@ -7,6 +7,7 @@ import { MessagingAdmin } from './messaging/MessagingAdmin';
 import { InterestsAdmin } from './interests/InterestsAdmin';
 import { LearningAdmin } from './learning/LearningAdmin';
 import { CollectionAdmin } from './collection/CollectionAdmin';
+import { ReportsAdmin } from './reports/ReportsAdmin';
 import { AuditLogViewer } from './console/AuditLogViewer';
 import { ExportManager } from './console/ExportManager';
 
@@ -28,6 +29,7 @@ export type ViewId =
   | 'creators'
   | 'learning'
   | 'collection'
+  | 'reports'
   | 'interests'
   | 'teamSites'
   | 'messaging'
@@ -86,6 +88,17 @@ export const SCREENS: AdminScreen[] = [
       body: 'Your account needs an admin role to manage the app directory and the shop.',
     },
     render: () => <CollectionAdmin />,
+  },
+  {
+    id: 'reports',
+    path: '/reports',
+    label: 'Reports',
+    canAccess: isAdmin,
+    deny: {
+      title: 'Admin access required',
+      body: 'Your account needs an admin role to review community reports.',
+    },
+    render: () => <ReportsAdmin />,
   },
   {
     id: 'interests',
