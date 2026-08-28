@@ -48,7 +48,7 @@ void main() {
     expect(find.text('Create your account'), findsOneWidget);
   });
 
-  testWidgets('profile has four polished, working destinations', (
+  testWidgets('profile has four working destinations, ending in adverts', (
     tester,
   ) async {
     await tester.pumpWidget(
@@ -63,10 +63,13 @@ void main() {
     expect(rail.items.map((item) => item.label).toList(), [
       'Overview',
       'Community',
-      'Saved',
+      'Adverts',
       'Settings',
     ]);
-    expect(find.text('Everything worth returning to.'), findsNothing);
+    // The saved library now hangs off the overview's own stat cards, so the
+    // third destination is free for advertising.
+    expect(find.text('Saved words'), findsWidgets);
+    expect(find.text('Reach the community.'), findsNothing);
 
     await tester.tap(
       find.descendant(
@@ -80,12 +83,12 @@ void main() {
     await tester.tap(
       find.descendant(
         of: find.byType(FrostedNavBar),
-        matching: find.text('Saved'),
+        matching: find.text('Adverts'),
       ),
     );
     await tester.pump(const Duration(milliseconds: 320));
-    expect(find.text('Everything worth returning to.'), findsOneWidget);
-    expect(find.text('Saved dictionary words'), findsOneWidget);
+    expect(find.text('Reach the community.'), findsOneWidget);
+    expect(find.text('Create an advert'), findsOneWidget);
 
     await tester.tap(
       find.descendant(

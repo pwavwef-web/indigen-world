@@ -1,0 +1,22 @@
+{
+  "ok": true,
+  "reviewed_by": "independent-final-visual-qa",
+  "directions": [
+    {"direction":"000","verdict":"pass","expected":"up","observed":"Both pupils and the lifted beak aim upward.","reason":"Unmistakable up cardinal."},
+    {"direction":"022.5","verdict":"pass","expected":"up-right","observed":"Beak and pupils shift screen-right while remaining raised.","reason":"Both diagonal axes read clearly."},
+    {"direction":"045","verdict":"pass","expected":"up-right","observed":"Rightward head turn combines with raised eyes and beak.","reason":"Clear upper-right quadrant."},
+    {"direction":"067.5","verdict":"pass","expected":"up-right","observed":"Strong screen-right profile retains an upward pupil and beak pitch.","reason":"Coherent step before right."},
+    {"direction":"090","verdict":"pass","expected":"right","observed":"Beak tip and visible pupil sit clearly right of head center.","reason":"Unmistakable right cardinal."},
+    {"direction":"112.5","verdict":"pass","expected":"down-right","observed":"Right profile remains while pupil and beak begin descending.","reason":"Both diagonal axes are visible."},
+    {"direction":"135","verdict":"pass","expected":"down-right","observed":"Head and beak point screen-right with eyes and beak lowered.","reason":"Clear lower-right quadrant."},
+    {"direction":"157.5","verdict":"pass","expected":"down-right","observed":"Residual right-facing beak combines with a deep downward gaze.","reason":"Continuous step before down."},
+    {"direction":"180","verdict":"pass","expected":"down","observed":"Both pupils and dipped beak aim toward the chest.","reason":"Unmistakable down cardinal."},
+    {"direction":"202.5","verdict":"pass","expected":"down-left","observed":"Beak and pupils begin shifting screen-left while the head remains lowered.","reason":"Both diagonal axes read in labeled loop context."},
+    {"direction":"225","verdict":"pass","expected":"down-left","observed":"Head and beak occupy screen-left while eyes remain lowered.","reason":"Clear lower-left quadrant."},
+    {"direction":"247.5","verdict":"warning","expected":"down-left","observed":"Strong screen-left profile has a subtle downward eye and beak pitch.","reason":"Blind vertical classification was ambiguous, but labeled normal-size review and ordered progression confirm down-left without reversal."},
+    {"direction":"270","verdict":"pass","expected":"left","observed":"Beak tip and visible pupil sit clearly left of head center.","reason":"Unmistakable left cardinal."},
+    {"direction":"292.5","verdict":"pass","expected":"up-left","observed":"Left profile remains while eye and beak pitch upward.","reason":"Both diagonal axes are visible."},
+    {"direction":"315","verdict":"pass","expected":"up-left","observed":"Beak and pupils point screen-left and upward.","reason":"Clear upper-left quadrant."},
+    {"direction":"337.5","verdict":"warning","expected":"up-left","observed":"Strong upward gaze retains a subtle screen-left beak and face bias.","reason":"Blind horizontal classification was ambiguous, but labeled normal-size review and loop closure confirm up-left without reversal."}
+  ]
+}

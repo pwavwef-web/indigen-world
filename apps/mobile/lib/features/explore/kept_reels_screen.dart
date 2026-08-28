@@ -8,6 +8,7 @@ import 'package:indigen_world_mobile/features/community/widgets/video_cover.dart
 import 'package:indigen_world_mobile/features/explore/published_content.dart';
 import 'package:indigen_world_mobile/features/explore/reel_engagement.dart';
 import 'package:indigen_world_mobile/features/explore/reel_view.dart';
+import 'package:indigen_world_mobile/shared/night_theme.dart';
 
 /// Everything the member has kept from Explore.
 ///
@@ -92,7 +93,10 @@ class _KeptTile extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) =>
+      NightTheme(child: Builder(builder: _build));
+
+  Widget _build(BuildContext context) {
     final poster = reel.posterUrl;
     final video = reel.videoUrl;
     return GestureDetector(

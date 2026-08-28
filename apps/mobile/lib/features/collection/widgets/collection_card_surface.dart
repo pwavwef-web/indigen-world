@@ -1,16 +1,19 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:indigen_world_mobile/core/brand.dart';
+import 'package:indigen_world_mobile/shared/glass_surface.dart';
 
-/// Shared Collection card shell based on SRC's listing and document cards:
-/// a quiet bordered surface, soft lift, large radius, clipped ink and tactile
-/// press scale. Collection content supplies the Indigen colours and imagery.
-class CollectionCardSurface extends StatefulWidget {
+/// Shared Collection card shell.
+///
+/// Kept as its own name because the Collection grid, the published lists and
+/// the dictionary all reach for it, but it is now a thin alias for the app's
+/// one glass card: a translucent pane with a lit edge, a warm lift and a
+/// tactile press. Collection content supplies the Indigen colours and imagery.
+class CollectionCardSurface extends StatelessWidget {
   const CollectionCardSurface({
     required this.child,
     this.onTap,
     this.padding = EdgeInsets.zero,
     this.semanticLabel,
+    this.accent,
     super.key,
   });
 
@@ -19,53 +22,21 @@ class CollectionCardSurface extends StatefulWidget {
   final EdgeInsetsGeometry padding;
   final String? semanticLabel;
 
-  @override
-  State<CollectionCardSurface> createState() => _CollectionCardSurfaceState();
-}
-
-class _CollectionCardSurfaceState extends State<CollectionCardSurface> {
-  var _pressed = false;
+  /// Tints the pane and blooms a halo in the collection's own colour.
+  final Color? accent;
 
   @override
-  Widget build(BuildContext context) => Semantics(
-    button: widget.onTap != null,
-    label: widget.semanticLabel,
-    child: AnimatedScale(
-      scale: _pressed ? 0.975 : 1,
-      duration: const Duration(milliseconds: 140),
-      curve: Curves.easeOut,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: BrandColors.divider),
-          boxShadow: [
-            BoxShadow(
-              color: BrandColors.ink.withValues(alpha: 0.06),
-              blurRadius: 12,
-              offset: const Offset(0, 3),
-            ),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(18),
-          child: Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onHighlightChanged: widget.onTap == null
-                  ? null
-                  : (value) => setState(() => _pressed = value),
-              onTap: widget.onTap == null
-                  ? null
-                  : () {
-                      HapticFeedback.lightImpact();
-                      widget.onTap!();
-                    },
-              child: Padding(padding: widget.padding, child: widget.child),
-            ),
-          ),
-        ),
-      ),
+  Widget build(BuildContext context) => ClipRRect(
+    // Portal artwork bleeds to the tile's edges, so the ink and the imagery
+    // both have to be cut to the same radius as the glass.
+    borderRadius: BorderRadius.circular(18),
+    child: GlassCard.listItem(
+      onTap: onTap,
+      accent: accent,
+      radius: 18,
+      padding: padding,
+      semanticLabel: semanticLabel,
+      child: child,
     ),
   );
 }

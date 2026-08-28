@@ -127,8 +127,8 @@ class _EngagementList extends ConsumerWidget {
         title: 'Engagement unavailable',
         message: 'Check your connection and try again.',
       ),
-      _ => const Center(
-        child: CircularProgressIndicator(color: BrandColors.heritageGreen),
+      _ => Center(
+        child: CircularProgressIndicator(color: context.brand.accent),
       ),
     };
   }

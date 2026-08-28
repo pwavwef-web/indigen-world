@@ -61,17 +61,17 @@ class _PostTextState extends State<PostText> {
     final body = TextStyle(
       fontSize: widget.fontSize,
       height: 1.45,
-      color: BrandColors.ink,
+      color: context.brand.ink,
     );
     final open = widget.onOpenHandle;
     final mention = body.copyWith(
-      color: BrandColors.savannahGreen,
+      color: context.brand.success,
       fontWeight: FontWeight.w800,
     );
     final link = body.copyWith(
-      color: BrandColors.savannahGreen,
+      color: context.brand.success,
       decoration: TextDecoration.underline,
-      decorationColor: BrandColors.savannahGreen,
+      decorationColor: context.brand.success,
       fontWeight: FontWeight.w700,
     );
 

@@ -24,6 +24,7 @@ void main() {
       'Dictionary',
       'Literature',
       'Audiobooks',
+      'Video',
     ]) {
       expect(find.text(label), findsOneWidget);
     }
@@ -33,22 +34,28 @@ void main() {
     expect(find.text('Kasem example (optional)'), findsOneWidget);
     expect(find.text('English example (optional)'), findsOneWidget);
 
+    // A dictionary word carries nobody else's work, so the borrowed-material
+    // question is not asked of it — but the consent and rights attestations
+    // are asked of every kind, and they are what has to survive the trim.
     final scrollable = find.byType(Scrollable).first;
     await tester.scrollUntilVisible(
-      find.text('Does this involve anyone under 18?'),
+      find.textContaining('has agreed to it being shared'),
       220,
       scrollable: scrollable,
     );
     await tester.pump();
 
-    expect(find.text('Does this involve anyone under 18?'), findsOneWidget);
-    expect(find.text("Does this use someone else's material?"), findsOneWidget);
+    expect(find.text("Does this use someone else's material?"), findsNothing);
     expect(
-      find.textContaining('People named, quoted, or recorded have agreed'),
+      find.textContaining('Anyone whose knowledge this is has agreed'),
       findsOneWidget,
     );
     expect(
-      find.textContaining('may publish this in the public Collection'),
+      find.text('I have permission to share this for community review.'),
+      findsOneWidget,
+    );
+    expect(
+      find.text('Indigen World may publish this if approved.'),
       findsOneWidget,
     );
     await tester.pump(const Duration(milliseconds: 500));
@@ -73,7 +80,9 @@ void main() {
       await tester.pump(const Duration(milliseconds: 220));
       expect(find.text('Song or recording title'), findsOneWidget);
       expect(find.text('Description and cultural context'), findsOneWidget);
-      expect(find.text('Recording link (optional)'), findsOneWidget);
+      // A song is its recording, so the form asks for the file itself.
+      expect(find.text('The recording'), findsOneWidget);
+      expect(find.text('Choose the audio'), findsOneWidget);
 
       await tester.ensureVisible(find.text('Literature'));
       await tester.tap(find.text('Literature'));
@@ -86,7 +95,14 @@ void main() {
       await tester.pump(const Duration(milliseconds: 220));
       expect(find.text('Audiobook title'), findsOneWidget);
       expect(find.text('Synopsis and narration details'), findsOneWidget);
-      expect(find.text('Recording link (optional)'), findsOneWidget);
+      expect(find.text('The narration'), findsOneWidget);
+
+      await tester.ensureVisible(find.text('Video'));
+      await tester.tap(find.text('Video'));
+      await tester.pump(const Duration(milliseconds: 220));
+      expect(find.text('Video title'), findsOneWidget);
+      expect(find.text('The footage'), findsOneWidget);
+      expect(find.text('Choose the video'), findsOneWidget);
       await tester.pump(const Duration(milliseconds: 500));
     },
   );

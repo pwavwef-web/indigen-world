@@ -9,6 +9,7 @@ import 'package:indigen_world_mobile/features/community/widgets/people_widgets.d
 import 'package:indigen_world_mobile/features/community/widgets/video_cover.dart';
 import 'package:indigen_world_mobile/features/explore/published_content.dart';
 import 'package:indigen_world_mobile/features/explore/reel_view.dart';
+import 'package:indigen_world_mobile/shared/night_theme.dart';
 
 /// Everything one creator has published, reached by tapping their face on a
 /// reel.
@@ -43,9 +44,9 @@ class CreatorProfileScreen extends ConsumerWidget {
     final avatarUrl = member?.avatarUrl ?? fallbackAvatarUrl;
 
     return Scaffold(
-      backgroundColor: BrandColors.plasterCream,
+      backgroundColor: context.brand.background,
       appBar: AppBar(
-        backgroundColor: BrandColors.plasterCream,
+        backgroundColor: context.brand.background,
         surfaceTintColor: Colors.transparent,
         title: Text(
           name,
@@ -85,10 +86,10 @@ class CreatorProfileScreen extends ConsumerWidget {
                         ),
                         if (member?.isVerified ?? false) ...[
                           const SizedBox(width: 5),
-                          const Icon(
+                          Icon(
                             Icons.verified_rounded,
                             size: 17,
-                            color: BrandColors.savannahGreen,
+                            color: context.brand.success,
                           ),
                         ],
                       ],
@@ -97,8 +98,8 @@ class CreatorProfileScreen extends ConsumerWidget {
                       const SizedBox(height: 2),
                       Text(
                         member.handle,
-                        style: const TextStyle(
-                          color: BrandColors.mutedInk,
+                        style: TextStyle(
+                          color: context.brand.mutedInk,
                           fontSize: 12.5,
                           fontWeight: FontWeight.w700,
                         ),
@@ -154,10 +155,10 @@ class CreatorProfileScreen extends ConsumerWidget {
             following: counts?.following,
           ),
           const SizedBox(height: 22),
-          const Text(
+          Text(
             'PUBLISHED WORK',
             style: TextStyle(
-              color: BrandColors.terracotta,
+              color: context.brand.terracotta,
               fontSize: 10,
               fontWeight: FontWeight.w900,
               letterSpacing: 1.2,
@@ -179,12 +180,10 @@ class CreatorProfileScreen extends ConsumerWidget {
               title: 'Work unavailable',
               message: 'Check your connection and try again.',
             ),
-            _ => const Padding(
-              padding: EdgeInsets.symmetric(vertical: 40),
+            _ => Padding(
+              padding: const EdgeInsets.symmetric(vertical: 40),
               child: Center(
-                child: CircularProgressIndicator(
-                  color: BrandColors.heritageGreen,
-                ),
+                child: CircularProgressIndicator(color: context.brand.accent),
               ),
             ),
           },
@@ -209,9 +208,9 @@ class _CreatorStats extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.symmetric(vertical: 14),
     decoration: BoxDecoration(
-      gradient: BrandGradients.parchment,
+      gradient: BrandGradients.parchment(context.brand),
       borderRadius: BorderRadius.circular(18),
-      border: Border.all(color: BrandColors.divider),
+      border: Border.all(color: context.brand.divider),
     ),
     child: Row(
       children: [
@@ -242,8 +241,8 @@ class _Stat extends StatelessWidget {
         const SizedBox(height: 2),
         Text(
           label.toUpperCase(),
-          style: const TextStyle(
-            color: BrandColors.mutedInk,
+          style: TextStyle(
+            color: context.brand.mutedInk,
             fontSize: 9.5,
             fontWeight: FontWeight.w800,
             letterSpacing: 0.8,
@@ -375,34 +374,36 @@ class _CreatorReelsScreen extends StatelessWidget {
   final String title;
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    backgroundColor: BrandColors.nightInk,
-    body: ReelFeedView(
-      reels: reels,
-      initialIndex: initialIndex,
-      header: Padding(
-        padding: const EdgeInsets.fromLTRB(6, 4, 16, 0),
-        child: Row(
-          children: [
-            IconButton(
-              tooltip: 'Back',
-              onPressed: () => Navigator.of(context).pop(),
-              icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
-            ),
-            Expanded(
-              child: Text(
-                title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w900,
-                  shadows: [Shadow(blurRadius: 14, color: Colors.black)],
+  Widget build(BuildContext context) => NightTheme(
+    child: Scaffold(
+      backgroundColor: BrandColors.nightInk,
+      body: ReelFeedView(
+        reels: reels,
+        initialIndex: initialIndex,
+        header: Padding(
+          padding: const EdgeInsets.fromLTRB(6, 4, 16, 0),
+          child: Row(
+            children: [
+              IconButton(
+                tooltip: 'Back',
+                onPressed: () => Navigator.of(context).pop(),
+                icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+              ),
+              Expanded(
+                child: Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    shadows: [Shadow(blurRadius: 14, color: Colors.black)],
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     ),

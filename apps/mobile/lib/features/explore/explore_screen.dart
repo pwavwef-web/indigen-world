@@ -2,8 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
+import 'package:indigen_world_mobile/features/auth/sign_in_sheet.dart';
+import 'package:indigen_world_mobile/features/community/community_setup_screen.dart';
+import 'package:indigen_world_mobile/features/community/data/community_providers.dart';
+import 'package:indigen_world_mobile/features/explore/create_reel_screen.dart';
 import 'package:indigen_world_mobile/features/explore/explore_feed.dart';
 import 'package:indigen_world_mobile/features/explore/reel_view.dart';
+import 'package:indigen_world_mobile/shared/night_theme.dart';
 
 /// The reel feed: real published TribeStudio work when there is any, and a
 /// clearly labelled curated preview when there is not.
@@ -24,7 +29,10 @@ class ExploreScreen extends ConsumerWidget {
   final bool isActive;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context, WidgetRef ref) =>
+      NightTheme(child: Builder(builder: (context) => _build(context, ref)));
+
+  Widget _build(BuildContext context, WidgetRef ref) {
     // Published TribeStudio work and community video, merged — see
     // exploreFeedProvider. The curated preview stands in only while there is
     // genuinely nothing else, so the feed is never empty on a first launch.
@@ -44,7 +52,7 @@ class ExploreScreen extends ConsumerWidget {
   }
 }
 
-class _ExploreHeader extends StatelessWidget {
+class _ExploreHeader extends ConsumerWidget {
   const _ExploreHeader({required this.live});
 
   /// True when the feed is showing real work — published pieces and community
@@ -53,8 +61,37 @@ class _ExploreHeader extends StatelessWidget {
   /// community content.
   final bool live;
 
+  /// Explore is the only surface in the app that is nothing but video, and it
+  /// had no way to add to it: every clip in here arrived through the Community
+  /// composer, which somebody looking at reels has no reason to know about.
+  Future<void> _createReel(BuildContext context, WidgetRef ref) async {
+    if (ref.read(currentUidProvider) == null) {
+      final signedIn = await showSignInSheet(context);
+      if (signedIn != true || !context.mounted) return;
+    }
+    // A reel is a community post, and a community post needs the handle it
+    // will be published under. Sending somebody to the recorder first and
+    // asking for a name afterwards would lose the clip.
+    if (ref.read(myCommunityProfileProvider).asData?.value == null) {
+      if (!context.mounted) return;
+      await Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (context) => const CommunitySetupScreen(),
+        ),
+      );
+      if (!context.mounted ||
+          ref.read(myCommunityProfileProvider).asData?.value == null) {
+        return;
+      }
+    }
+    if (!context.mounted) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute<bool>(builder: (context) => const CreateReelScreen()),
+    );
+  }
+
   @override
-  Widget build(BuildContext context) => Padding(
+  Widget build(BuildContext context, WidgetRef ref) => Padding(
     padding: const EdgeInsets.fromLTRB(16, 10, 58, 0),
     child: Row(
       children: [
@@ -66,9 +103,9 @@ class _ExploreHeader extends StatelessWidget {
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: Colors.white24),
           ),
-          child: const Icon(
+          child: Icon(
             Icons.public_rounded,
-            color: BrandColors.kenteGold,
+            color: context.brand.gold,
             size: 20,
           ),
         ),
@@ -84,6 +121,12 @@ class _ExploreHeader extends StatelessWidget {
           ),
         ),
         const Spacer(),
+        _GlassAction(
+          icon: Icons.add_rounded,
+          tooltip: 'Post a reel',
+          onTap: () => _createReel(context, ref),
+        ),
+        const SizedBox(width: 8),
         Container(
           padding: const EdgeInsets.fromLTRB(10, 5, 12, 5),
           decoration: BoxDecoration(
@@ -96,7 +139,7 @@ class _ExploreHeader extends StatelessWidget {
             children: [
               DecoratedBox(
                 decoration: BoxDecoration(
-                  color: live ? BrandColors.kenteGold : Colors.white54,
+                  color: live ? context.brand.gold : Colors.white54,
                   shape: BoxShape.circle,
                 ),
                 child: const SizedBox(width: 6, height: 6),
@@ -115,6 +158,42 @@ class _ExploreHeader extends StatelessWidget {
           ),
         ),
       ],
+    ),
+  );
+}
+
+/// A round, smoked-glass button for the reel chrome. The header sits over
+/// full-bleed video, so its controls need their own ground to stay legible on
+/// a bright frame.
+class _GlassAction extends StatelessWidget {
+  const _GlassAction({
+    required this.icon,
+    required this.tooltip,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Tooltip(
+    message: tooltip,
+    child: Semantics(
+      button: true,
+      label: tooltip,
+      child: Material(
+        color: Colors.black.withValues(alpha: 0.34),
+        shape: const CircleBorder(side: BorderSide(color: Colors.white24)),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(7),
+            child: Icon(icon, color: Colors.white, size: 20),
+          ),
+        ),
+      ),
     ),
   );
 }

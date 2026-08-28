@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:indigen_world_mobile/app/app_theme.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/features/collection/collection_screen.dart';
 import 'package:indigen_world_mobile/features/community/community_screen.dart';
@@ -10,6 +11,8 @@ import 'package:indigen_world_mobile/features/explore/explore_screen.dart';
 import 'package:indigen_world_mobile/features/learn/learn_screen.dart';
 import 'package:indigen_world_mobile/features/notifications/data/notification_providers.dart';
 import 'package:indigen_world_mobile/features/notifications/push_messaging.dart';
+import 'package:indigen_world_mobile/features/validate/data/review_queue.dart';
+import 'package:indigen_world_mobile/features/validate/validate_screen.dart';
 import 'package:indigen_world_mobile/shared/connection_banner.dart';
 import 'package:indigen_world_mobile/shared/frosted_nav_bar.dart';
 import 'package:indigen_world_mobile/shared/profile_orb.dart';
@@ -39,13 +42,18 @@ class _AppShellState extends ConsumerState<AppShell>
   late final Animation<double> _fadeAnimation;
   late final Animation<Offset> _slideAnimation;
 
-  /// Account lives in the top-right orb, so the rail carries only the five
-  /// content destinations — with Community at the centre.
+  /// Account lives in the top-right orb, so the rail carries only the content
+  /// destinations — with Community at the centre.
   static const _exploreIndex = 0;
   static const _learnIndex = 1;
   static const _collectionIndex = 3;
   static const _contributeIndex = 4;
-  static const _destinationCount = 5;
+
+  /// The validation desk. Present in the stack for everybody so the indices
+  /// above never shift, but only reachable — and only ever built — for an
+  /// account whose role claim can actually review.
+  static const _validateIndex = 5;
+  static const _destinationCount = 6;
 
   /// The destinations the member has actually opened.
   ///
@@ -118,6 +126,7 @@ class _AppShellState extends ConsumerState<AppShell>
       kCommunityTabIndex => const CommunityScreen(),
       _collectionIndex => const CollectionScreen(),
       _contributeIndex => const ContributeScreen(reserveTopRight: true),
+      _validateIndex => const ValidateScreen(reserveTopRight: true),
       _ => const SizedBox.shrink(),
     };
   }
@@ -128,6 +137,10 @@ class _AppShellState extends ConsumerState<AppShell>
     // Registering the device for push is a shell-level concern: it has to run
     // once the member is signed in, whichever tab they happen to be on.
     ref.watch(pushRegistrationProvider);
+    // Drawing an alert that arrives mid-session is the same kind of concern,
+    // but it does not wait for an account: broadcast announcements reach a
+    // guest device through the topic.
+    ref.watch(foregroundAlertsProvider);
     // A tapped push may arrive before any route can consume it, so it is parked
     // in a provider and routed from here once there is a router to route with.
     ref.listen<String?>(pendingPushRouteProvider, (_, route) {
@@ -137,6 +150,11 @@ class _AppShellState extends ConsumerState<AppShell>
     });
     final unread =
         ref.watch(unreadNotificationCountProvider).asData?.value ?? 0;
+
+    // Validation is staff work. The tab is drawn only for an account whose
+    // `role` claim the Security Rules and `decideSubmission` would actually
+    // accept — anybody else would get a queue made of permission errors.
+    final canValidate = ref.watch(isReviewerProvider);
 
     final destinations = <FrostedNavBarItem>[
       const FrostedNavBarItem(
@@ -165,7 +183,22 @@ class _AppShellState extends ConsumerState<AppShell>
         selectedIcon: Icons.add_circle_rounded,
         label: 'Contribute',
       ),
+      if (canValidate)
+        const FrostedNavBarItem(
+          icon: Icons.fact_check_outlined,
+          selectedIcon: Icons.fact_check_rounded,
+          label: 'Validate',
+        ),
     ];
+
+    // A validator who signs out mid-session must not be left sitting on a tab
+    // that no longer exists. Bounce them back to the heart of the app rather
+    // than letting the rail index run past its own item list.
+    if (!canValidate && _selectedIndex == _validateIndex) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _selectDestination(kCommunityTabIndex);
+      });
+    }
 
     return PopScope<void>(
       // Explore is deliberately immersive. Its first back gesture restores the
@@ -177,12 +210,7 @@ class _AppShellState extends ConsumerState<AppShell>
       child: AnnotatedRegion<SystemUiOverlayStyle>(
         value: onExplore
             ? SystemUiOverlayStyle.light
-            : const SystemUiOverlayStyle(
-                statusBarColor: Colors.transparent,
-                statusBarIconBrightness: Brightness.dark,
-                systemNavigationBarColor: BrandColors.plasterCream,
-                systemNavigationBarIconBrightness: Brightness.dark,
-              ),
+            : brandOverlayStyle(context.brand),
         child: Scaffold(
           // The glass rail floats over the content rather than sitting under it.
           extendBody: true,
@@ -249,23 +277,27 @@ class _AmbientMotifs extends StatelessWidget {
             tween: Tween(begin: -0.08, end: 0.08),
             builder: (context, angle, child) =>
                 Transform.rotate(angle: angle, child: child),
-            child: const Opacity(
-              opacity: 0.055,
+            // Ground texture, not ornament: the motifs are drawn in the
+            // page's own ink at an opacity that reads as paper grain. In the
+            // old palette they were a terracotta and a gold glyph, which on a
+            // pale ground were visible enough to be decoration.
+            child: Opacity(
+              opacity: context.brand.isDark ? 0.05 : 0.035,
               child: Text(
                 '✣',
-                style: TextStyle(fontSize: 132, color: BrandColors.terracotta),
+                style: TextStyle(fontSize: 132, color: context.brand.ink),
               ),
             ),
           ),
         ),
-        const Positioned(
+        Positioned(
           left: -20,
           bottom: 120,
           child: Opacity(
-            opacity: 0.045,
+            opacity: context.brand.isDark ? 0.045 : 0.03,
             child: Text(
               'Ƹ',
-              style: TextStyle(fontSize: 100, color: BrandColors.kenteGold),
+              style: TextStyle(fontSize: 100, color: context.brand.ink),
             ),
           ),
         ),

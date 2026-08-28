@@ -72,14 +72,14 @@ class _PeopleScreenState extends ConsumerState<PeopleScreen> {
             ),
           ),
           if (!searching)
-            const Padding(
-              padding: EdgeInsets.fromLTRB(20, 0, 20, 6),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 6),
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
                   'NEW IN THE COMMUNITY',
                   style: TextStyle(
-                    color: BrandColors.heritageGreen,
+                    color: context.brand.accent,
                     fontSize: 11,
                     fontWeight: FontWeight.w900,
                     letterSpacing: 1.2,

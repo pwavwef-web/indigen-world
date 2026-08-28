@@ -12,6 +12,13 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
 import { mentionedHandles } from '../../services/functions/lib/community-notifications.js';
+import {
+  isMutedBy,
+  preview as messagePreview,
+  recipientOf,
+  senderName,
+  shouldAlert,
+} from '../../services/functions/lib/chat-notifications.js';
 import { isCampaignSubmission } from '../../services/functions/lib/open-publishing.js';
 import { normaliseTurns, replyFromGemini, vertexEndpoint } from '../../services/functions/lib/kawuri.js';
 import {
@@ -22,6 +29,7 @@ import {
   buildCollectionSubmissionDocument,
   parseCollectionContributionInput,
 } from '../../services/functions/lib/collection-contributions.js';
+import { parseAdCampaignInput } from '../../services/functions/lib/ads.js';
 
 // ── Mentions ────────────────────────────────────────────────────────────────
 
@@ -324,4 +332,278 @@ test('replyFromGemini pulls the answer out, and survives every empty shape', () 
   assert.equal(replyFromGemini({}), '');
   assert.equal(replyFromGemini(null), '');
   assert.equal(replyFromGemini('nonsense'), '');
+});
+
+// ── Direct-message alerts ───────────────────────────────────────────────────
+//
+// Every decision the message trigger makes before it reaches FCM. All of them
+// fail quietly: a wrong recipient sends somebody else's private message to the
+// wrong lock screen, and a wrong debounce either buzzes a phone once per word
+// typed or silently stops delivering altogether.
+
+test('recipientOf picks the other participant, and only when there is one', () => {
+  assert.equal(recipientOf(['amina', 'nyaaba'], 'amina'), 'nyaaba');
+  assert.equal(recipientOf(['amina', 'nyaaba'], 'nyaaba'), 'amina');
+  // A malformed thread must produce no alert rather than a misdirected one.
+  assert.equal(recipientOf(['amina'], 'amina'), null);
+  assert.equal(recipientOf(['a', 'b', 'c'], 'a'), null);
+  assert.equal(recipientOf(null, 'amina'), null);
+  assert.equal(recipientOf(['amina', 42], 'amina'), null);
+});
+
+test('isMutedBy only answers for the person who muted', () => {
+  assert.equal(isMutedBy(['amina'], 'amina'), true);
+  assert.equal(isMutedBy(['amina'], 'nyaaba'), false);
+  assert.equal(isMutedBy([], 'amina'), false);
+  assert.equal(isMutedBy(undefined, 'amina'), false);
+});
+
+test('shouldAlert rings for the first message in a quiet conversation', () => {
+  // Nothing was waiting, so this is news however recently the thread rang.
+  assert.equal(
+    shouldAlert({ outstanding: 1, lastPushAtMillis: 1_000, nowMillis: 1_100 }),
+    true,
+  );
+  assert.equal(
+    shouldAlert({ outstanding: undefined, lastPushAtMillis: null, nowMillis: 0 }),
+    true,
+  );
+});
+
+test('shouldAlert stays quiet for a burst', () => {
+  // Four messages typed in a row are one thought, and one buzz.
+  assert.equal(
+    shouldAlert({ outstanding: 2, lastPushAtMillis: 1_000, nowMillis: 2_000 }),
+    false,
+  );
+  assert.equal(
+    shouldAlert({ outstanding: 9, lastPushAtMillis: 1_000, nowMillis: 45_000 }),
+    false,
+  );
+});
+
+test('shouldAlert rings again once the quiet period has passed', () => {
+  // Still unread, but this is a new beat in the conversation rather than the
+  // tail of the last one.
+  assert.equal(
+    shouldAlert({ outstanding: 2, lastPushAtMillis: 1_000, nowMillis: 46_000 }),
+    true,
+  );
+  // A thread that has never rung has nothing to stay quiet about.
+  assert.equal(
+    shouldAlert({ outstanding: 5, lastPushAtMillis: null, nowMillis: 0 }),
+    true,
+  );
+});
+
+test('senderName falls back rather than titling an alert with nothing', () => {
+  const profiles = { amina: { displayName: 'Amina' }, blank: { displayName: '  ' } };
+  assert.equal(senderName(profiles, 'amina'), 'Amina');
+  assert.equal(senderName(profiles, 'blank'), 'A member');
+  assert.equal(senderName(profiles, 'missing'), 'A member');
+  assert.equal(senderName(undefined, 'amina'), 'A member');
+});
+
+test('messagePreview collapses whitespace and truncates long messages', () => {
+  // A message typed across several lines has to arrive as one lock-screen row.
+  assert.equal(messagePreview('  de   zaanem\n\nko gara '), 'de zaanem ko gara');
+  const long = 'a'.repeat(300);
+  assert.equal(messagePreview(long).length, 120);
+  assert.ok(messagePreview(long).endsWith('…'));
+});
+
+// ── Advertising ─────────────────────────────────────────────────────────────
+//
+// Campaigns are the one thing in this backend that will eventually move money,
+// so what a phone is allowed to assert about one is the whole security story.
+
+function adInput(overrides = {}) {
+  return {
+    name: 'Shea butter, dry season',
+    objective: 'awareness',
+    headline: 'Pure shea from Paga',
+    body: 'Cold-pressed, unrefined, sold by the tin.',
+    ctaLabel: 'Ask for it',
+    placements: ['community'],
+    regions: ['Upper East'],
+    dailyBudgetPesewas: 2000,
+    durationDays: 7,
+    creative: {
+      storagePath: 'creator-submissions/advertiser-1/ad-campaigns/abc/shea.jpg',
+      mimeType: 'image/jpeg',
+      sizeBytes: 90_000,
+      mediaType: 'image',
+    },
+    ...overrides,
+  };
+}
+
+test('a campaign is priced by the server, never by the caller', () => {
+  // The client sends a daily budget and a duration. Everything with a currency
+  // symbol on it is computed here — a total a phone can choose is a total a
+  // phone can choose to be zero.
+  const parsed = parseAdCampaignInput(adInput({
+    subtotalPesewas: 1,
+    taxPesewas: 0,
+    totalBudgetPesewas: 1,
+  }), 'advertiser-1');
+
+  assert.equal(parsed.subtotalPesewas, 2000 * 7);
+  assert.equal(parsed.taxPesewas, Math.round(2000 * 7 * 0.06));
+  assert.equal(parsed.totalBudgetPesewas, parsed.subtotalPesewas + parsed.taxPesewas);
+});
+
+test('an advert creative must live in the caller own upload folder', () => {
+  assert.ok(parseAdCampaignInput(adInput(), 'advertiser-1'));
+
+  // Storage rules stop a member writing into somebody else's prefix, but
+  // nothing stops them naming one here — and a campaign that pointed a
+  // reviewer at another member's private upload would be a disclosure.
+  assert.throws(
+    () => parseAdCampaignInput(adInput(), 'advertiser-2'),
+    (error) => error?.code === 'permission-denied',
+  );
+
+  // And the Collection review prefix is not an advertising prefix.
+  assert.throws(
+    () => parseAdCampaignInput(adInput({
+      creative: {
+        storagePath: 'creator-submissions/advertiser-1/collection-contributions/abc/song.mp3',
+        mimeType: 'audio/mpeg',
+        sizeBytes: 10,
+        mediaType: 'image',
+      },
+    }), 'advertiser-1'),
+    (error) => error?.code === 'permission-denied',
+  );
+});
+
+test('a campaign cannot be submitted without a creative', () => {
+  assert.throws(
+    () => parseAdCampaignInput(adInput({ creative: null }), 'advertiser-1'),
+    (error) => error?.code === 'failed-precondition',
+  );
+});
+
+test('an advert creative is an image or a video, and nothing else', () => {
+  const video = parseAdCampaignInput(adInput({
+    creative: {
+      storagePath: 'creator-submissions/advertiser-1/ad-campaigns/abc/clip.mp4',
+      mimeType: 'video/mp4',
+      sizeBytes: 4_000_000,
+      mediaType: 'video',
+    },
+  }), 'advertiser-1');
+  assert.equal(video.creative.mediaType, 'video');
+
+  for (const mediaType of ['audio', 'document', '']) {
+    assert.throws(
+      () => parseAdCampaignInput(adInput({
+        creative: {
+          storagePath: 'creator-submissions/advertiser-1/ad-campaigns/abc/f',
+          mimeType: 'application/octet-stream',
+          sizeBytes: 10,
+          mediaType,
+        },
+      }), 'advertiser-1'),
+      (error) => error?.code === 'invalid-argument',
+      `${mediaType || 'empty'} is not an advert creative`,
+    );
+  }
+});
+
+test('budget and duration are held inside their stated bounds', () => {
+  for (const overrides of [
+    { dailyBudgetPesewas: 100 },     // under the floor
+    { dailyBudgetPesewas: 900_000 }, // over the ceiling
+    { durationDays: 0 },
+    { durationDays: 400 },
+    { dailyBudgetPesewas: 'lots' },
+  ]) {
+    assert.throws(
+      () => parseAdCampaignInput(adInput(overrides), 'advertiser-1'),
+      (error) => error?.code === 'invalid-argument',
+      JSON.stringify(overrides),
+    );
+  }
+});
+
+test('a link objective needs a real destination; the others carry none', () => {
+  assert.throws(
+    () => parseAdCampaignInput(adInput({ objective: 'visits' }), 'advertiser-1'),
+    (error) => error?.code === 'failed-precondition',
+  );
+  assert.throws(
+    () => parseAdCampaignInput(
+      adInput({ objective: 'visits', ctaUrl: 'javascript:alert(1)' }),
+      'advertiser-1',
+    ),
+    (error) => error?.code === 'invalid-argument',
+  );
+
+  const visits = parseAdCampaignInput(
+    adInput({ objective: 'visits', ctaUrl: 'https://shea.example/paga' }),
+    'advertiser-1',
+  );
+  assert.equal(visits.ctaUrl, 'https://shea.example/paga');
+
+  // A link on an awareness campaign is dropped rather than quietly served.
+  const awareness = parseAdCampaignInput(
+    adInput({ ctaUrl: 'https://shea.example/paga' }),
+    'advertiser-1',
+  );
+  assert.equal(awareness.ctaUrl, '');
+});
+
+test('placements are drawn from the surfaces that actually exist', () => {
+  assert.deepEqual(
+    parseAdCampaignInput(
+      adInput({ placements: ['community', 'explore', 'community'] }),
+      'advertiser-1',
+    ).placements,
+    ['community', 'explore'],
+  );
+  assert.throws(
+    () => parseAdCampaignInput(adInput({ placements: ['inbox'] }), 'advertiser-1'),
+    (error) => error?.code === 'invalid-argument',
+  );
+  assert.throws(
+    () => parseAdCampaignInput(adInput({ placements: [] }), 'advertiser-1'),
+    (error) => error?.code === 'invalid-argument',
+  );
+});
+
+// ── Video as a Collection kind ──────────────────────────────────────────────
+
+test('a video contribution is recognised and cannot arrive without its footage', () => {
+  assert.equal(canonicalCollectionKind('video'), 'video');
+  assert.equal(canonicalCollectionKind('Short Film'), 'video');
+  assert.equal(canonicalCollectionKind('documentary'), 'video');
+
+  assert.throws(
+    () => parseCollectionContributionInput(
+      collectionInput({ collectionKind: 'video', format: 'Documentary' }),
+      'member-1',
+    ),
+    (error) => error?.code === 'failed-precondition',
+  );
+
+  const parsed = parseCollectionContributionInput(collectionInput({
+    collectionKind: 'video',
+    format: 'Documentary',
+    media: {
+      storagePath: 'creator-submissions/member-1/collection-contributions/abc/harvest.mp4',
+      mimeType: 'video/mp4',
+      sizeBytes: 8_000_000,
+      mediaType: 'video',
+    },
+  }), 'member-1');
+  const submission = buildCollectionSubmissionDocument(
+    'collection-video',
+    'member-1',
+    parsed,
+    '2026-08-27T00:00:00.000Z',
+  );
+  assert.equal(submission.studioType, 'video');
+  assert.equal(submission.collectionKind, 'video');
 });

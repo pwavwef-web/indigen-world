@@ -497,6 +497,21 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // ---- Advertising campaigns: owner reads own, server writes everything ---
+    //
+    // A campaign is money. Its status, what it has been charged, whether it is
+    // paid and what it has earned in impressions are all decided server-side,
+    // so this collection is read-only to every client — including its owner.
+    // Creating, editing and cancelling all go through callables in ads.ts,
+    // which price the campaign themselves rather than believing a total that
+    // arrived from a phone.
+    match /adCampaigns/{campaignId} {
+      allow read: if isStaff() || (
+        isSignedIn() && resource.data.ownerUid == request.auth.uid
+      );
+      allow write: if false;
+    }
+
     // ---- Notifications: owner reads own; owner may only flip `read` ----------
     match /notifications/{notificationId} {
       allow read: if isStaff() || (
@@ -915,7 +930,12 @@ service cloud.firestore {
       allow read: if isSignedIn() && resource.data.uid == request.auth.uid;
       allow create, update: if isSignedIn()
         && request.resource.data.uid == request.auth.uid
-        && request.resource.data.token == token;
+        && request.resource.data.token == token
+        // Whether message bodies may be drawn on this handset's lock screen.
+        // Optional — rows written before the preference existed have no value,
+        // and the fan-out reads a missing value as "yes", which is what those
+        // devices were already doing.
+        && request.resource.data.get('messagePreviews', true) is bool;
       allow delete: if isSignedIn() && resource.data.uid == request.auth.uid;
     }
 
@@ -1035,9 +1055,28 @@ service cloud.firestore {
         && request.resource.data.participants[0] != request.resource.data.participants[1]
         && chatId == request.resource.data.participants[0]
             + '_' + request.resource.data.participants[1];
+      // Both participants may write this document — a sender has to raise the
+      // other side's unread count, and a reader has to clear their own. Two
+      // fields are carved out of that grant, because "the other person can
+      // write here" would otherwise mean "the other person can silence you".
+      //
+      //   mutedBy    muting is a decision about your own alerts. Take your own
+      //              uid out of the list before and the list after, and what
+      //              is left must match — which is exactly "you changed only
+      //              your own membership". Compared as sets because order and
+      //              duplicates carry no meaning here.
+      //   lastPushAt the fan-out's own debounce stamp. A client that could
+      //              forge it could hold the quiet window open and stop the
+      //              other person's follow-up messages from ever ringing.
       allow update: if isSignedIn()
         && request.auth.uid in resource.data.participants
-        && request.resource.data.participants == resource.data.participants;
+        && request.resource.data.participants == resource.data.participants
+        && request.resource.data.get('mutedBy', []).toSet()
+            .difference([request.auth.uid].toSet())
+            == resource.data.get('mutedBy', []).toSet()
+                .difference([request.auth.uid].toSet())
+        && !request.resource.data.diff(resource.data)
+            .affectedKeys().hasAny(['lastPushAt']);
       allow delete: if false;
 
       match /messages/{messageId} {

@@ -1,7 +1,6 @@
 import { FieldValue, getFirestore } from 'firebase-admin/firestore';
-import { getMessaging } from 'firebase-admin/messaging';
-import { logger } from 'firebase-functions';
 import { onDocumentCreated } from 'firebase-functions/v2/firestore';
+import { COMMUNITY_CHANNEL_ID, pushToUser } from './push.js';
 
 /**
  * Community notifications for the mobile app.
@@ -378,61 +377,21 @@ export const onCommunityNotificationCreated = onDocumentCreated(
     const recipientId = data.recipientId;
     if (typeof recipientId !== 'string' || !recipientId) return;
 
-    const db = getFirestore();
-    const devices = await db
-      .collection('communityDevices')
-      .where('uid', '==', recipientId)
-      .limit(20)
-      .get();
-    if (devices.empty) return;
-
-    const tokens = devices.docs
-      .map((doc) => doc.get('token'))
-      .filter((token): token is string => typeof token === 'string' && token.length > 0);
-    if (tokens.length === 0) return;
-
     const title = typeof data.title === 'string' ? data.title : 'Indigen World';
     const body = typeof data.body === 'string' && data.body ? data.body : (typeof data.postPreview === 'string' ? data.postPreview : '');
 
-    try {
-      const response = await getMessaging().sendEachForMulticast({
-        tokens,
-        notification: { title, body },
-        // The app routes on these; keep every value a string, which is all FCM
-        // data payloads carry.
-        data: {
-          type: String(data.type ?? 'announcement'),
-          notificationId: snap.id,
-          ...(typeof data.postId === 'string' && data.postId ? { postId: data.postId } : {}),
-          ...(typeof data.route === 'string' && data.route ? { route: data.route } : {}),
-        },
-        android: {
-          priority: 'high',
-          notification: { channelId: 'indigen_community', clickAction: 'FLUTTER_NOTIFICATION_CLICK' },
-        },
-        apns: { payload: { aps: { sound: 'default' } } },
-      });
-
-      const stale: string[] = [];
-      response.responses.forEach((result, index) => {
-        const code = result.error?.code;
-        if (code === 'messaging/registration-token-not-registered' || code === 'messaging/invalid-argument') {
-          stale.push(tokens[index]);
-        }
-      });
-      if (stale.length > 0) {
-        const batch = db.batch();
-        for (const token of stale) {
-          batch.delete(db.collection('communityDevices').doc(token));
-        }
-        await batch.commit();
-      }
-    } catch (error) {
-      // Push is the convenience layer; the in-app centre already has the row,
-      // so a delivery failure must never retry-loop the trigger.
-      logger.error('Community push fan-out failed', {
-        errorType: error instanceof Error ? error.name : 'unknown',
-      });
-    }
+    await pushToUser(getFirestore(), recipientId, {
+      title,
+      body,
+      channelId: COMMUNITY_CHANNEL_ID,
+      // The app routes on these; keep every value a string, which is all FCM
+      // data payloads carry.
+      data: {
+        type: String(data.type ?? 'announcement'),
+        notificationId: snap.id,
+        ...(typeof data.postId === 'string' && data.postId ? { postId: data.postId } : {}),
+        ...(typeof data.route === 'string' && data.route ? { route: data.route } : {}),
+      },
+    });
   },
 );

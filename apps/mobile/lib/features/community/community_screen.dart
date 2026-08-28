@@ -18,6 +18,7 @@ import 'package:indigen_world_mobile/features/notifications/data/notification_pr
 import 'package:indigen_world_mobile/features/notifications/notifications_screen.dart';
 import 'package:indigen_world_mobile/shared/app_widgets.dart';
 import 'package:indigen_world_mobile/shared/frosted_nav_bar.dart';
+import 'package:indigen_world_mobile/shared/glass_surface.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
 /// The community tab: a live Firestore feed of Kasem posts with the pulse rail,
@@ -100,8 +101,8 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
           heroTag: 'community-compose',
           tooltip: 'New Kasem post',
           onPressed: () => actions.compose(context),
-          backgroundColor: BrandColors.heritageGreen,
-          foregroundColor: BrandColors.kenteGold,
+          backgroundColor: context.brand.accentFill,
+          foregroundColor: context.brand.onAccentFill,
           child: const Icon(Icons.edit_rounded),
         ),
       ),
@@ -128,7 +129,7 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
               const SliverToBoxAdapter(child: _CommunityPulse()),
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
                   child: _ComposeBar(onTap: () => actions.compose(context)),
                 ),
               ),
@@ -153,17 +154,15 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
                   ),
                 ],
                 AsyncValue(:final value?) => [
+                  // Full-bleed rows: the feed is a single column of writing
+                  // separated by hairlines, so there is no gutter to inset
+                  // and no gap between one post and the next.
                   SliverPadding(
-                    padding: const EdgeInsets.fromLTRB(
-                      16,
-                      4,
-                      16,
-                      kFrostedNavBarReservedSpace + 60,
+                    padding: const EdgeInsets.only(
+                      bottom: kFrostedNavBarReservedSpace + 60,
                     ),
-                    sliver: SliverList.separated(
+                    sliver: SliverList.builder(
                       itemCount: value.length,
-                      separatorBuilder: (context, index) =>
-                          const SizedBox(height: 12),
                       itemBuilder: (context, index) => VisibilityDetector(
                         key: Key('community-post-${value[index].id}-$index'),
                         onVisibilityChanged: (info) => _trackVisiblePost(
@@ -293,14 +292,14 @@ class _CommunityHeader extends ConsumerWidget {
         children: [
           _MenuButton(onTap: onOpenMenu, hasWaiting: menuHasWaiting),
           const SizedBox(width: 4),
-          const Expanded(
+          Expanded(
             child: Text(
-              'COMMUNITY',
+              'Community',
               style: TextStyle(
-                color: BrandColors.terracotta,
-                fontSize: 12,
+                color: context.brand.ink,
+                fontSize: 19,
                 fontWeight: FontWeight.w800,
-                letterSpacing: 1.2,
+                letterSpacing: -0.4,
               ),
             ),
           ),
@@ -353,7 +352,7 @@ class _MenuButton extends StatelessWidget {
           child: Stack(
             clipBehavior: Clip.none,
             children: [
-              const Icon(Icons.menu_rounded, color: BrandColors.ink),
+              Icon(Icons.menu_rounded, color: context.brand.ink),
               if (hasWaiting)
                 Positioned(
                   right: -2,
@@ -362,10 +361,10 @@ class _MenuButton extends StatelessWidget {
                     width: 9,
                     height: 9,
                     decoration: BoxDecoration(
-                      color: BrandColors.terracotta,
+                      color: context.brand.terracotta,
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: BrandColors.plasterCream,
+                        color: context.brand.background,
                         width: 1.5,
                       ),
                     ),
@@ -410,8 +409,8 @@ class _NotificationBell extends StatelessWidget {
                     ? Icons.notifications_rounded
                     : Icons.notifications_none_rounded,
                 color: unread > 0
-                    ? BrandColors.heritageGreen
-                    : BrandColors.mutedInk,
+                    ? context.brand.accent
+                    : context.brand.mutedInk,
               ),
               if (unread > 0)
                 Positioned(
@@ -424,10 +423,10 @@ class _NotificationBell extends StatelessWidget {
                     ),
                     constraints: const BoxConstraints(minWidth: 16),
                     decoration: BoxDecoration(
-                      color: BrandColors.terracotta,
+                      color: context.brand.terracotta,
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
-                        color: BrandColors.plasterCream,
+                        color: context.brand.background,
                         width: 1.5,
                       ),
                     ),
@@ -469,93 +468,65 @@ class _CommunityPulse extends ConsumerWidget {
         .toList(growable: false);
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 6, 16, 0),
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(14, 13, 8, 13),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              BrandColors.heritageGreen.withValues(alpha: 0.08),
-              BrandColors.kenteGold.withValues(alpha: 0.09),
+      padding: const EdgeInsets.fromLTRB(16, 2, 8, 4),
+      child: Row(
+        children: [
+          Row(
+            children: [
+              const _PulseDot(),
+              const SizedBox(width: 7),
+              Text(
+                'New voices',
+                style: TextStyle(
+                  color: context.brand.ink,
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
             ],
           ),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: BrandColors.heritageGreen.withValues(alpha: 0.1),
-          ),
-        ),
-        child: Row(
-          children: [
-            const Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    _PulseDot(),
-                    SizedBox(width: 6),
-                    Text(
-                      'COMMUNITY PULSE',
-                      style: TextStyle(
-                        color: BrandColors.heritageGreen,
-                        fontSize: 9,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 0.8,
-                      ),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 4),
-                Text(
-                  'New voices',
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900),
-                ),
-              ],
-            ),
-            const SizedBox(width: 13),
-            Expanded(
-              child: SizedBox(
-                height: 58,
-                child: people.isEmpty
-                    ? const Center(
-                        child: Text(
-                          'Members appear here as they join.',
-                          style: TextStyle(
-                            color: BrandColors.mutedInk,
-                            fontSize: 11.5,
-                          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: SizedBox(
+              height: 58,
+              child: people.isEmpty
+                  ? Center(
+                      child: Text(
+                        'Nobody new yet.',
+                        style: TextStyle(
+                          color: context.brand.faintInk,
+                          fontSize: 12.5,
                         ),
-                      )
-                    : ListView.separated(
-                        scrollDirection: Axis.horizontal,
-                        itemCount: people.length,
-                        separatorBuilder: (context, index) =>
-                            const SizedBox(width: 9),
-                        itemBuilder: (context, index) {
-                          final profile = people[index];
-                          return Tooltip(
-                            message: profile.displayName,
-                            child: CommunityAvatar(
-                              initials: profile.initials,
-                              imageUrl: profile.avatarUrl,
-                              size: 48,
-                              ringed: true,
-                              ringColor: index.isEven
-                                  ? BrandColors.terracotta
-                                  : BrandColors.savannahGreen,
-                              onTap: () => Navigator.of(context).push(
-                                MaterialPageRoute<void>(
-                                  builder: (context) =>
-                                      CommunityProfileScreen(uid: profile.uid),
-                                ),
+                      ),
+                    )
+                  : ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: people.length,
+                      separatorBuilder: (context, index) =>
+                          const SizedBox(width: 9),
+                      itemBuilder: (context, index) {
+                        final profile = people[index];
+                        return Tooltip(
+                          message: profile.displayName,
+                          child: CommunityAvatar(
+                            initials: profile.initials,
+                            imageUrl: profile.avatarUrl,
+                            size: 46,
+                            ringed: true,
+                            ringColor: context.brand.border,
+                            onTap: () => Navigator.of(context).push(
+                              MaterialPageRoute<void>(
+                                builder: (context) =>
+                                    CommunityProfileScreen(uid: profile.uid),
                               ),
                             ),
-                          );
-                        },
-                      ),
-              ),
+                          ),
+                        );
+                      },
+                    ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -584,7 +555,7 @@ class _PulseDotState extends State<_PulseDot>
   @override
   Widget build(BuildContext context) => FadeTransition(
     opacity: Tween<double>(begin: 0.35, end: 1).animate(_controller),
-    child: const Icon(Icons.circle, size: 8, color: BrandColors.savannahGreen),
+    child: Icon(Icons.circle, size: 8, color: context.brand.success),
   );
 }
 
@@ -598,44 +569,41 @@ class _ComposeBar extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final profile = ref.watch(myCommunityProfileProvider).asData?.value;
-    return Card(
-      color: Colors.white,
+    final brand = context.brand;
+    return Material(
+      key: const Key('community-compose-bar'),
+      color: Colors.transparent,
       child: InkWell(
-        key: const Key('community-compose-bar'),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(999),
         onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(10, 8, 14, 8),
+          decoration: BoxDecoration(
+            color: brand.surfaceMuted,
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(color: brand.border),
+          ),
           child: Row(
             children: [
               CommunityAvatar(
                 initials: profile?.initials ?? '··',
                 imageUrl: profile?.avatarUrl,
-                size: 38,
+                size: 32,
               ),
-              const SizedBox(width: 12),
-              const Expanded(
+              const SizedBox(width: 11),
+              Expanded(
                 child: Text(
                   'Make a Kasem post',
                   style: TextStyle(
-                    color: BrandColors.mutedInk,
+                    color: brand.faintInk,
                     fontSize: 15,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
               ),
-              const Icon(
-                Icons.image_outlined,
-                color: BrandColors.heritageGreen,
-                size: 21,
-              ),
-              const SizedBox(width: 12),
-              const Icon(
-                Icons.videocam_outlined,
-                color: BrandColors.heritageGreen,
-                size: 21,
-              ),
-              const SizedBox(width: 4),
+              Icon(Icons.image_outlined, color: brand.mutedInk, size: 20),
+              const SizedBox(width: 14),
+              Icon(Icons.videocam_outlined, color: brand.mutedInk, size: 20),
             ],
           ),
         ),
@@ -654,27 +622,38 @@ class _FeedTabs extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.fromLTRB(16, 18, 16, 8),
-    child: Row(
-      children: [
-        _TabChip(
-          label: 'For you',
-          selected: selected == 0,
-          onTap: () => onChanged(0),
-        ),
-        const SizedBox(width: 8),
-        _TabChip(
-          label: 'Following',
-          selected: selected == 1,
-          onTap: () => onChanged(1),
-        ),
-      ],
+    padding: const EdgeInsets.only(top: 8),
+    child: DecoratedBox(
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: context.brand.divider)),
+      ),
+      child: Row(
+        children: [
+          _FeedTab(
+            label: 'For you',
+            selected: selected == 0,
+            onTap: () => onChanged(0),
+          ),
+          _FeedTab(
+            label: 'Following',
+            selected: selected == 1,
+            onTap: () => onChanged(1),
+          ),
+        ],
+      ),
     ),
   );
 }
 
-class _TabChip extends StatelessWidget {
-  const _TabChip({
+/// One half of the feed switch: a label with a short rule under it when it is
+/// the one being read.
+///
+/// This was a pair of filled pills. A pill is a *button*, and the switch
+/// between two halves of the same timeline is not something you press so much
+/// as somewhere you are — which is what an underline says and a filled
+/// capsule does not.
+class _FeedTab extends StatelessWidget {
+  const _FeedTab({
     required this.label,
     required this.selected,
     required this.onTap,
@@ -685,32 +664,44 @@ class _TabChip extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) => InkWell(
-    borderRadius: BorderRadius.circular(999),
-    onTap: onTap,
-    child: AnimatedContainer(
-      duration: const Duration(milliseconds: 220),
-      curve: Curves.easeOut,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
-      decoration: BoxDecoration(
-        color: selected
-            ? BrandColors.heritageGreen
-            : Colors.white.withValues(alpha: 0.7),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(
-          color: selected ? BrandColors.heritageGreen : BrandColors.divider,
+  Widget build(BuildContext context) {
+    final brand = context.brand;
+    return Expanded(
+      child: Semantics(
+        button: true,
+        selected: selected,
+        child: InkWell(
+          onTap: onTap,
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 13),
+                child: Text(
+                  label,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: selected ? brand.ink : brand.mutedInk,
+                    fontSize: 14.5,
+                    fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                  ),
+                ),
+              ),
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                curve: Curves.easeOut,
+                height: 3,
+                width: selected ? 58 : 0,
+                decoration: BoxDecoration(
+                  color: brand.accent,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: selected ? BrandColors.kenteGold : BrandColors.mutedInk,
-          fontSize: 12.5,
-          fontWeight: FontWeight.w900,
-        ),
-      ),
-    ),
-  );
+    );
+  }
 }
 
 // ── Placeholder states ──────────────────────────────────────────────────────
@@ -725,10 +716,7 @@ class _EmptyFeed extends StatelessWidget {
   Widget build(BuildContext context) => tab == 1
       ? CommunityEmptyState(
           icon: Icons.group_add_outlined,
-          title: 'Your Following feed is quiet',
-          message:
-              'Follow members whose Kasem you want to read and their posts '
-              'gather here.',
+          title: 'Nothing from the people you follow',
           action: FilledButton.icon(
             onPressed: () => Navigator.of(context).push(
               MaterialPageRoute<void>(
@@ -742,8 +730,6 @@ class _EmptyFeed extends StatelessWidget {
       : CommunityEmptyState(
           icon: Icons.forum_outlined,
           title: 'No posts yet',
-          message:
-              'This room stays in Kasem. Be the first to greet the community.',
           action: FilledButton.icon(
             onPressed: () => actions.compose(context),
             icon: const Icon(Icons.edit_rounded),
@@ -766,12 +752,9 @@ class _FeedError extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) => CommunityEmptyState(
     icon: Icons.cloud_off_rounded,
-    title: 'The feed could not load',
-    message: isCommunityBackendPending(error)
-        ? 'The community service is still being set up. Nothing you posted is '
-              'lost. Please try again shortly.'
-        : 'Check your connection and try again. Posts you have already seen '
-              'stay available offline.',
+    title: isCommunityBackendPending(error)
+        ? 'The community service is still starting up'
+        : 'The feed could not load',
     action: FilledButton.icon(
       onPressed: () {
         ref
@@ -788,21 +771,15 @@ class _FeedSkeleton extends StatelessWidget {
   const _FeedSkeleton();
 
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.fromLTRB(16, 6, 16, 24),
+  Widget build(BuildContext context) => const Padding(
+    padding: EdgeInsets.fromLTRB(16, 6, 16, 24),
     child: Column(
       children: [
-        for (var index = 0; index < 3; index++) ...[
-          Container(
-            height: 168,
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.6),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: BrandColors.divider),
-            ),
-          ),
-          const SizedBox(height: 12),
-        ],
+        GlassSkeleton(height: 168),
+        SizedBox(height: 12),
+        GlassSkeleton(height: 168),
+        SizedBox(height: 12),
+        GlassSkeleton(height: 168),
       ],
     ),
   );

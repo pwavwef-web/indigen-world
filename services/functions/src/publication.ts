@@ -5,6 +5,7 @@ export const COLLECTION_KINDS = [
   'dictionary',
   'literature',
   'audiobooks',
+  'video',
 ] as const;
 
 export type CollectionKind = (typeof COLLECTION_KINDS)[number];
@@ -44,6 +45,7 @@ export function canonicalCollectionKind(value: unknown): CollectionKind | null {
   }
   if (/(dictionary|lexical|vocabulary|word-entry)/.test(normalized)) return 'dictionary';
   if (/(music|song|instrumental)/.test(normalized)) return 'music';
+  if (/(video|film|reel|documentary|footage)/.test(normalized)) return 'video';
   if (/(literature|story|poetry|oral-history|written|book|folklore|proverb)/.test(normalized)) {
     return 'literature';
   }
@@ -60,6 +62,7 @@ function inferredMediaType(submission: JsonRecord, kind: CollectionKind | null):
   if (['image', 'audio', 'video', 'document'].includes(declared)) return declared;
   if (kind === 'music' || kind === 'audiobooks') return 'audio';
   if (kind === 'literature') return 'document';
+  if (kind === 'video') return 'video';
   return null;
 }
 

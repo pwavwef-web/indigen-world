@@ -9,6 +9,7 @@ import 'package:indigen_world_mobile/features/community/data/community_providers
 import 'package:indigen_world_mobile/features/community/widgets/community_avatar.dart';
 import 'package:indigen_world_mobile/features/explore/reel_engagement.dart';
 import 'package:indigen_world_mobile/shared/glass_popup.dart';
+import 'package:indigen_world_mobile/shared/night_theme.dart';
 
 /// Opens the reply thread for a published reel.
 ///
@@ -99,7 +100,10 @@ class _ReelCommentsSheetState extends ConsumerState<ReelCommentsSheet> {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) =>
+      NightTheme(child: Builder(builder: _build));
+
+  Widget _build(BuildContext context) {
     final comments = ref.watch(reelCommentsProvider(widget.reelId));
     final myUid = ref.watch(currentUidProvider);
     final insets = MediaQuery.viewInsetsOf(context).bottom;
@@ -112,9 +116,9 @@ class _ReelCommentsSheetState extends ConsumerState<ReelCommentsSheet> {
         minChildSize: 0.45,
         maxChildSize: 0.94,
         builder: (context, scrollController) => DecoratedBox(
-          decoration: const BoxDecoration(
-            color: BrandColors.surface,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
+          decoration: BoxDecoration(
+            color: context.brand.surface,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(26)),
           ),
           child: Column(
             children: [
@@ -123,7 +127,7 @@ class _ReelCommentsSheetState extends ConsumerState<ReelCommentsSheet> {
                 width: 42,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: BrandColors.divider,
+                  color: context.brand.divider,
                   borderRadius: BorderRadius.circular(999),
                 ),
               ),
@@ -132,10 +136,10 @@ class _ReelCommentsSheetState extends ConsumerState<ReelCommentsSheet> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'REPLIES',
                       style: TextStyle(
-                        color: BrandColors.terracotta,
+                        color: context.brand.terracotta,
                         fontSize: 10,
                         fontWeight: FontWeight.w900,
                         letterSpacing: 1.2,
@@ -154,22 +158,22 @@ class _ReelCommentsSheetState extends ConsumerState<ReelCommentsSheet> {
                   ],
                 ),
               ),
-              const Divider(height: 1, color: BrandColors.divider),
+              Divider(height: 1, color: context.brand.divider),
               Expanded(
                 child: switch (comments) {
                   AsyncValue(:final value?) when value.isEmpty => ListView(
                     controller: scrollController,
-                    children: const [
-                      SizedBox(height: 60),
+                    children: [
+                      const SizedBox(height: 60),
                       Center(
                         child: Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 40),
+                          padding: const EdgeInsets.symmetric(horizontal: 40),
                           child: Text(
                             'No replies yet. Say the first thing — in Kasem, '
                             'if you can.',
                             textAlign: TextAlign.center,
                             style: TextStyle(
-                              color: BrandColors.mutedInk,
+                              color: context.brand.mutedInk,
                               height: 1.5,
                             ),
                           ),
@@ -189,19 +193,19 @@ class _ReelCommentsSheetState extends ConsumerState<ReelCommentsSheet> {
                       onDelete: () => _delete(value[index]),
                     ),
                   ),
-                  AsyncValue(error: final _?) => const Center(
+                  AsyncValue(error: final _?) => Center(
                     child: Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 40),
+                      padding: const EdgeInsets.symmetric(horizontal: 40),
                       child: Text(
                         'Replies could not be loaded right now.',
                         textAlign: TextAlign.center,
-                        style: TextStyle(color: BrandColors.mutedInk),
+                        style: TextStyle(color: context.brand.mutedInk),
                       ),
                     ),
                   ),
-                  _ => const Center(
+                  _ => Center(
                     child: CircularProgressIndicator(
-                      color: BrandColors.heritageGreen,
+                      color: context.brand.accent,
                     ),
                   ),
                 },
@@ -232,15 +236,15 @@ class _ReelCommentsSheetState extends ConsumerState<ReelCommentsSheet> {
                         tooltip: 'Send reply',
                         onPressed: _sending ? null : _send,
                         style: IconButton.styleFrom(
-                          backgroundColor: BrandColors.heritageGreen,
-                          foregroundColor: BrandColors.kenteGold,
+                          backgroundColor: context.brand.accentFill,
+                          foregroundColor: context.brand.onAccentFill,
                         ),
                         icon: _sending
-                            ? const SizedBox.square(
+                            ? SizedBox.square(
                                 dimension: 18,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
-                                  color: BrandColors.kenteGold,
+                                  color: context.brand.gold,
                                 ),
                               )
                             : const Icon(Icons.arrow_upward_rounded),
@@ -295,8 +299,8 @@ class _CommentTile extends StatelessWidget {
               '${communityAgeLabel(comment.createdAt)}',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: BrandColors.mutedInk,
+              style: TextStyle(
+                color: context.brand.mutedInk,
                 fontSize: 10.5,
                 fontWeight: FontWeight.w800,
               ),
@@ -314,10 +318,10 @@ class _CommentTile extends StatelessWidget {
           tooltip: 'Delete reply',
           visualDensity: VisualDensity.compact,
           onPressed: onDelete,
-          icon: const Icon(
+          icon: Icon(
             Icons.delete_outline_rounded,
             size: 18,
-            color: BrandColors.mutedInk,
+            color: context.brand.mutedInk,
           ),
         ),
     ],

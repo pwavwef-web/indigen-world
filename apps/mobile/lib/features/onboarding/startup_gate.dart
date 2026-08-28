@@ -1,18 +1,33 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/app/app_shell.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
+import 'package:indigen_world_mobile/core/firebase_ready.dart';
+import 'package:indigen_world_mobile/features/notifications/push_messaging.dart';
+import 'package:indigen_world_mobile/features/onboarding/notifications_primer.dart';
+import 'package:indigen_world_mobile/shared/night_theme.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-class StartupGate extends StatefulWidget {
+/// What the gate is showing right now.
+///
+/// [notificationsPrimer] is reached from two directions: as the closing step of
+/// first-run onboarding, and — once — on the first launch of a build that has
+/// it for somebody who onboarded before it existed. Both go through the same
+/// screen, so there is one place where the one permission prompt an install
+/// gets can be spent.
+enum _Stage { loading, onboarding, notificationsPrimer, ready }
+
+class StartupGate extends ConsumerStatefulWidget {
   const StartupGate({super.key});
 
   @override
-  State<StartupGate> createState() => _StartupGateState();
+  ConsumerState<StartupGate> createState() => _StartupGateState();
 }
 
-class _StartupGateState extends State<StartupGate> {
+class _StartupGateState extends ConsumerState<StartupGate> {
   static const _onboardingKey = 'indigen_world_onboarding_complete_v1';
-  bool? _onboardingComplete;
+  var _stage = _Stage.loading;
+  var _primerPending = false;
   String _learningPath = 'Home community';
 
   @override
@@ -21,16 +36,34 @@ class _StartupGateState extends State<StartupGate> {
     _load();
   }
 
-  Future<void> _load() async {
-    final preferences = await SharedPreferences.getInstance();
-    await Future<void>.delayed(const Duration(milliseconds: 3100));
-    if (!mounted) return;
-    setState(
-      () => _onboardingComplete = preferences.getBool(_onboardingKey) ?? false,
-    );
+  /// Whether to ask about alerts at all this launch.
+  ///
+  /// Not when Firebase failed to come up: no token can be minted and no topic
+  /// joined, so the answer could not be acted on — and asking anyway would
+  /// spend the one prompt this install gets on a launch unable to honour it.
+  /// Left unspent, the primer simply arrives on a launch that can.
+  Future<bool> _needsPrimer() async {
+    if (!ref.read(firebaseReadyProvider)) return false;
+    return pushPrimerNeeded();
   }
 
-  Future<void> _finish() async {
+  Future<void> _load() async {
+    final preferences = await SharedPreferences.getInstance();
+    final onboardingComplete = preferences.getBool(_onboardingKey) ?? false;
+    final primerPending = await _needsPrimer();
+    await Future<void>.delayed(const Duration(milliseconds: 3100));
+    if (!mounted) return;
+    setState(() {
+      _primerPending = primerPending;
+      _stage = switch ((onboardingComplete, primerPending)) {
+        (false, _) => _Stage.onboarding,
+        (true, true) => _Stage.notificationsPrimer,
+        (true, false) => _Stage.ready,
+      };
+    });
+  }
+
+  Future<void> _finishOnboarding() async {
     final preferences = await SharedPreferences.getInstance();
     await preferences.setBool(_onboardingKey, true);
     await preferences.setString(
@@ -38,23 +71,29 @@ class _StartupGateState extends State<StartupGate> {
       _learningPath,
     );
     if (!mounted) return;
-    setState(() => _onboardingComplete = true);
+    setState(
+      () => _stage = _primerPending ? _Stage.notificationsPrimer : _Stage.ready,
+    );
+  }
+
+  void _finishPrimer() {
+    if (!mounted) return;
+    setState(() => _stage = _Stage.ready);
   }
 
   @override
-  Widget build(BuildContext context) {
-    if (_onboardingComplete == null) {
-      return const _LaunchScreen();
-    }
-    if (_onboardingComplete!) {
-      return const AppShell();
-    }
-    return _OnboardingScreen(
+  Widget build(BuildContext context) => switch (_stage) {
+    // The launch screen is the same night whatever the appearance choice —
+    // the brand arriving out of the dark is the point of it.
+    _Stage.loading => const NightTheme(child: _LaunchScreen()),
+    _Stage.onboarding => _OnboardingScreen(
       learningPath: _learningPath,
       onPathChanged: (value) => setState(() => _learningPath = value),
-      onContinue: _finish,
-    );
-  }
+      onContinue: _finishOnboarding,
+    ),
+    _Stage.notificationsPrimer => NotificationsPrimer(onDone: _finishPrimer),
+    _Stage.ready => const AppShell(),
+  };
 }
 
 class _LaunchScreen extends StatefulWidget {
@@ -141,9 +180,7 @@ class _LaunchScreenState extends State<_LaunchScreen>
                             'LANGUAGE  ·  STORY  ·  RHYTHM  ·  IDENTITY',
                             textAlign: TextAlign.center,
                             style: TextStyle(
-                              color: BrandColors.kenteGold.withValues(
-                                alpha: 0.9,
-                              ),
+                              color: context.brand.gold.withValues(alpha: 0.9),
                               fontSize: 9,
                               fontWeight: FontWeight.w900,
                               letterSpacing: 1.5,
@@ -205,9 +242,9 @@ class _LaunchScreenState extends State<_LaunchScreen>
                 bottom: 26,
                 child: Opacity(
                   opacity: taglineProgress,
-                  child: const LinearProgressIndicator(
+                  child: LinearProgressIndicator(
                     minHeight: 2,
-                    color: BrandColors.kenteGold,
+                    color: context.brand.gold,
                     backgroundColor: Colors.white12,
                   ),
                 ),
@@ -244,7 +281,7 @@ class _LivingEmblem extends StatelessWidget {
                   height: 300,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    border: Border.all(color: BrandColors.kenteGold),
+                    border: Border.all(color: context.brand.gold),
                   ),
                 ),
                 Transform.rotate(
@@ -263,13 +300,16 @@ class _LivingEmblem extends StatelessWidget {
                   height: 182,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    border: Border.all(color: BrandColors.terracotta, width: 2),
+                    border: Border.all(
+                      color: context.brand.terracotta,
+                      width: 2,
+                    ),
                   ),
                 ),
-                const Text(
+                Text(
                   '✣',
                   style: TextStyle(
-                    color: BrandColors.kenteGold,
+                    color: context.brand.gold,
                     fontSize: 86,
                     fontWeight: FontWeight.w900,
                   ),
@@ -287,14 +327,14 @@ class _LaunchPattern extends StatelessWidget {
   const _LaunchPattern();
 
   @override
-  Widget build(BuildContext context) => const Opacity(
+  Widget build(BuildContext context) => Opacity(
     opacity: 0.055,
     child: GridPaper(
-      color: BrandColors.kenteGold,
+      color: context.brand.gold,
       interval: 42,
       divisions: 2,
       subdivisions: 1,
-      child: SizedBox.expand(),
+      child: const SizedBox.expand(),
     ),
   );
 }
@@ -403,7 +443,7 @@ const _launchArtifacts = [
     label: 'COWRIE',
     start: Alignment(-0.94, 0.62),
     end: Alignment(-0.18, 0.08),
-    color: BrandColors.surface,
+    color: Color(0xFFFFFDF8),
     size: 46,
     rotation: 1.1,
   ),
@@ -430,7 +470,7 @@ const _launchArtifacts = [
     label: 'WEAVE',
     start: Alignment(0.74, 0.06),
     end: Alignment(0.08, -0.02),
-    color: BrandColors.surface,
+    color: Color(0xFFFFFDF8),
     size: 38,
     rotation: -0.5,
   ),
@@ -469,7 +509,7 @@ class _OnboardingScreen extends StatelessWidget {
               Text(
                 'Learn, search, and contribute through Project Kasena—the first language cell in Indigen World.',
                 style: Theme.of(context).textTheme.bodyLarge
-                    ?.copyWith(color: BrandColors.mutedInk),
+                    ?.copyWith(color: context.brand.mutedInk),
               ),
               const SizedBox(height: 28),
               Text(
@@ -510,10 +550,10 @@ class _OnboardingScreen extends StatelessWidget {
                 label: const Text('Start with Kasem'),
               ),
               const SizedBox(height: 12),
-              const Text(
+              Text(
                 'Public dictionary and learning content work without sign-in. You can choose an account later.',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: BrandColors.mutedInk, height: 1.4),
+                style: TextStyle(color: context.brand.mutedInk, height: 1.4),
               ),
             ],
           ),
@@ -533,12 +573,12 @@ class _BrandMark extends StatelessWidget {
     width: size,
     height: size,
     decoration: BoxDecoration(
-      color: BrandColors.kenteGold,
+      color: context.brand.gold,
       borderRadius: BorderRadius.circular(size * 0.28),
     ),
     child: Icon(
       Icons.public_rounded,
-      color: BrandColors.heritageGreen,
+      color: context.brand.accent,
       size: size * 0.58,
     ),
   );
@@ -562,7 +602,7 @@ class _PathOption extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Card(
     color: selected
-        ? BrandColors.heritageGreen.withValues(alpha: 0.08)
+        ? context.brand.accent.withValues(alpha: 0.08)
         : Colors.white,
     child: InkWell(
       borderRadius: BorderRadius.circular(20),
@@ -571,7 +611,7 @@ class _PathOption extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         child: Row(
           children: [
-            Icon(icon, color: BrandColors.heritageGreen),
+            Icon(icon, color: context.brand.accent),
             const SizedBox(width: 14),
             Expanded(
               child: Column(
@@ -581,14 +621,16 @@ class _PathOption extends StatelessWidget {
                   const SizedBox(height: 3),
                   Text(
                     description,
-                    style: const TextStyle(color: BrandColors.mutedInk),
+                    style: TextStyle(color: context.brand.mutedInk),
                   ),
                 ],
               ),
             ),
             Icon(
               selected ? Icons.radio_button_checked : Icons.radio_button_off,
-              color: selected ? BrandColors.terracotta : BrandColors.mutedInk,
+              color: selected
+                  ? context.brand.terracotta
+                  : context.brand.mutedInk,
             ),
           ],
         ),

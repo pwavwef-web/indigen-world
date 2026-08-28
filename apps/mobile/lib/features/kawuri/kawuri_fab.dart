@@ -99,21 +99,21 @@ class _KawuriFabState extends State<KawuriFab> with TickerProviderStateMixin {
                     ],
                   ),
                   border: Border.all(
-                    color: BrandColors.kenteGold.withValues(
+                    color: context.brand.gold.withValues(
                       alpha: 0.55 + 0.35 * _breathe.value,
                     ),
                     width: 1.4,
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: BrandColors.kenteGold.withValues(
+                      color: context.brand.gold.withValues(
                         alpha: 0.22 + 0.18 * _breathe.value,
                       ),
                       blurRadius: 16 + 12 * _breathe.value,
                       spreadRadius: 1 + 2 * _breathe.value,
                     ),
                     BoxShadow(
-                      color: BrandColors.heritageGreen.withValues(alpha: 0.3),
+                      color: context.brand.accent.withValues(alpha: 0.3),
                       blurRadius: 14,
                       offset: const Offset(0, 6),
                     ),

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/features/community/data/community_models.dart';
 import 'package:indigen_world_mobile/features/community/widgets/video_cover.dart';
+import 'package:indigen_world_mobile/shared/night_theme.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:video_player/video_player.dart';
 
@@ -78,12 +79,12 @@ class _MediaTile extends StatelessWidget {
               imageUrl: item.url,
               fit: BoxFit.cover,
               placeholder: (context, url) =>
-                  const ColoredBox(color: BrandColors.divider),
-              errorWidget: (context, url, error) => const ColoredBox(
-                color: BrandColors.divider,
+                  ColoredBox(color: context.brand.divider),
+              errorWidget: (context, url, error) => ColoredBox(
+                color: context.brand.divider,
                 child: Icon(
                   Icons.image_not_supported_outlined,
-                  color: BrandColors.mutedInk,
+                  color: context.brand.mutedInk,
                 ),
               ),
             ),
@@ -153,7 +154,7 @@ class _AudioPlayerTileState extends State<_AudioPlayerTile> {
 
   @override
   Widget build(BuildContext context) => ColoredBox(
-    color: BrandColors.heritageGreen,
+    color: context.brand.accent,
     child: Padding(
       padding: EdgeInsets.symmetric(
         horizontal: widget.compact ? 8 : 14,
@@ -175,8 +176,8 @@ class _AudioPlayerTileState extends State<_AudioPlayerTile> {
                     ? null
                     : () => playing ? _player.pause() : _player.play(),
                 style: IconButton.styleFrom(
-                  backgroundColor: BrandColors.kenteGold,
-                  foregroundColor: BrandColors.ink,
+                  backgroundColor: context.brand.gold,
+                  foregroundColor: context.brand.ink,
                 ),
                 icon: loading
                     ? const SizedBox.square(
@@ -234,7 +235,7 @@ class _AudioPlayerTileState extends State<_AudioPlayerTile> {
                             minHeight: 4,
                             borderRadius: BorderRadius.circular(999),
                             backgroundColor: Colors.white24,
-                            color: BrandColors.kenteGold,
+                            color: context.brand.gold,
                           );
                         },
                       ),
@@ -284,8 +285,8 @@ class _MediaBadge extends StatelessWidget {
     ),
     child: Text(
       label,
-      style: const TextStyle(
-        color: BrandColors.kenteGold,
+      style: TextStyle(
+        color: context.brand.gold,
         fontSize: 9,
         fontWeight: FontWeight.w900,
         letterSpacing: 0.6,
@@ -322,35 +323,43 @@ class _MediaViewerPageState extends State<MediaViewerPage> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    backgroundColor: Colors.black,
-    appBar: AppBar(
+  Widget build(BuildContext context) => NightTheme(
+    child: Scaffold(
       backgroundColor: Colors.black,
-      foregroundColor: Colors.white,
-      elevation: 0,
-    ),
-    body: PageView.builder(
-      controller: _controller,
-      itemCount: widget.media.length,
-      itemBuilder: (context, index) {
-        final item = widget.media[index];
-        if (item.isAudio) {
-          return Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 560),
-              child: SizedBox(height: 112, child: _AudioPlayerTile(item: item)),
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        foregroundColor: Colors.white,
+        elevation: 0,
+      ),
+      body: PageView.builder(
+        controller: _controller,
+        itemCount: widget.media.length,
+        itemBuilder: (context, index) {
+          final item = widget.media[index];
+          if (item.isAudio) {
+            return Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 560),
+                child: SizedBox(
+                  height: 112,
+                  child: _AudioPlayerTile(item: item),
+                ),
+              ),
+            );
+          }
+          if (item.isVideo) return _VideoPlayerBox(url: item.url);
+          return InteractiveViewer(
+            minScale: 1,
+            maxScale: 4,
+            child: Center(
+              child: CachedNetworkImage(
+                imageUrl: item.url,
+                fit: BoxFit.contain,
+              ),
             ),
           );
-        }
-        if (item.isVideo) return _VideoPlayerBox(url: item.url);
-        return InteractiveViewer(
-          minScale: 1,
-          maxScale: 4,
-          child: Center(
-            child: CachedNetworkImage(imageUrl: item.url, fit: BoxFit.contain),
-          ),
-        );
-      },
+        },
+      ),
     ),
   );
 }
@@ -410,8 +419,8 @@ class _VideoPlayerBoxState extends State<_VideoPlayerBox> {
     }
     final controller = _controller;
     if (controller == null) {
-      return const Center(
-        child: CircularProgressIndicator(color: BrandColors.kenteGold),
+      return Center(
+        child: CircularProgressIndicator(color: context.brand.gold),
       );
     }
     return Center(
@@ -432,8 +441,8 @@ class _VideoPlayerBoxState extends State<_VideoPlayerBox> {
           VideoProgressIndicator(
             controller,
             allowScrubbing: true,
-            colors: const VideoProgressColors(
-              playedColor: BrandColors.kenteGold,
+            colors: VideoProgressColors(
+              playedColor: context.brand.gold,
               bufferedColor: Colors.white30,
               backgroundColor: Colors.white12,
             ),

@@ -65,9 +65,6 @@ class _ShopCollectionScreenState extends ConsumerState<ShopCollectionScreen> {
                 child: BrandHeader(
                   eyebrow: 'Collection · Shop',
                   title: 'Carry a piece of home.',
-                  subtitle:
-                      'Souvenirs, books and shea butter from Kasena makers. '
-                      'Send a request and the project replies to arrange it.',
                 ),
               ),
               ...switch (products) {
@@ -165,10 +162,8 @@ class _ShopCollectionScreenState extends ConsumerState<ShopCollectionScreen> {
       context: context,
       title: 'Send your request',
       scrollable: false,
-      builder: (_) => _OrderRequestForm(
-        lines: lines,
-        defaultContact: user!.email ?? '',
-      ),
+      builder: (_) =>
+          _OrderRequestForm(lines: lines, defaultContact: user!.email ?? ''),
     );
     if (draft == null || !mounted) return;
 
@@ -183,17 +178,17 @@ class _ShopCollectionScreenState extends ConsumerState<ShopCollectionScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Icon(
+            Icon(
               Icons.mark_email_read_rounded,
-              color: BrandColors.savannahGreen,
+              color: context.brand.success,
               size: 34,
             ),
             const SizedBox(height: 14),
-            const Text(
+            Text(
               'Somebody from the project will reach you on the contact you '
               'left to confirm the price, payment and delivery.',
               textAlign: TextAlign.center,
-              style: TextStyle(color: BrandColors.ink, height: 1.5),
+              style: TextStyle(color: context.brand.ink, height: 1.5),
             ),
             const SizedBox(height: 20),
             FilledButton(
@@ -239,7 +234,10 @@ class _ProductCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(product.name, style: Theme.of(context).textTheme.titleMedium),
+              Text(
+                product.name,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
               if (product.summary.isNotEmpty) ...[
                 const SizedBox(height: 4),
                 Text(
@@ -251,8 +249,8 @@ class _ProductCard extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   product.maker,
-                  style: const TextStyle(
-                    color: BrandColors.mutedInk,
+                  style: TextStyle(
+                    color: context.brand.mutedInk,
                     fontSize: 11.5,
                   ),
                 ),
@@ -262,20 +260,20 @@ class _ProductCard extends StatelessWidget {
                 children: [
                   Text(
                     product.priceLabel,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontWeight: FontWeight.w900,
-                      color: BrandColors.heritageGreen,
+                      color: context.brand.accent,
                     ),
                   ),
                   const Spacer(),
                   if (!product.inStock)
-                    const Text(
+                    Text(
                       'OUT OF STOCK',
                       style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.w900,
                         letterSpacing: 0.6,
-                        color: BrandColors.terracotta,
+                        color: context.brand.terracotta,
                       ),
                     )
                   else
@@ -310,10 +308,10 @@ class _ProductCard extends StatelessWidget {
           const SizedBox(height: 14),
           Text(
             product.priceLabel,
-            style: const TextStyle(
+            style: TextStyle(
               fontWeight: FontWeight.w900,
               fontSize: 17,
-              color: BrandColors.heritageGreen,
+              color: context.brand.accent,
             ),
           ),
         ],
@@ -329,14 +327,14 @@ class _ProductImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const fallback = DecoratedBox(
+    final fallback = DecoratedBox(
       decoration: BoxDecoration(
-        color: Color(0x14A0522D),
-        borderRadius: BorderRadius.all(Radius.circular(15)),
+        color: context.brand.surfaceMuted,
+        borderRadius: const BorderRadius.all(Radius.circular(15)),
       ),
       child: Icon(
         Icons.local_mall_outlined,
-        color: BrandColors.terracotta,
+        color: context.brand.mutedInk,
         size: 26,
       ),
     );
@@ -470,10 +468,10 @@ class _OrderRequestFormState extends State<_OrderRequestForm> {
           ],
         ),
         const SizedBox(height: 6),
-        const Text(
+        Text(
           'Nothing is charged here. The project confirms the final price, '
           'payment and delivery with you.',
-          style: TextStyle(color: BrandColors.mutedInk, fontSize: 11.5),
+          style: TextStyle(color: context.brand.mutedInk, fontSize: 11.5),
         ),
         const SizedBox(height: 16),
         TextField(
@@ -500,8 +498,8 @@ class _OrderRequestFormState extends State<_OrderRequestForm> {
           const SizedBox(height: 10),
           Text(
             _error!,
-            style: const TextStyle(
-              color: BrandColors.terracotta,
+            style: TextStyle(
+              color: context.brand.terracotta,
               fontWeight: FontWeight.w700,
               fontSize: 12.5,
             ),
@@ -525,11 +523,7 @@ class _OrderRequestFormState extends State<_OrderRequestForm> {
     }
     Navigator.pop(
       context,
-      ShopOrderDraft(
-        lines: widget.lines,
-        contact: contact,
-        note: _note.text,
-      ),
+      ShopOrderDraft(lines: widget.lines, contact: contact, note: _note.text),
     );
   }
 }

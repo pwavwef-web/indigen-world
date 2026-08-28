@@ -313,9 +313,7 @@ class _GlassCard extends StatelessWidget {
                       SizedBox(
                         height: 1,
                         child: ColoredBox(
-                          color: BrandColors.heritageGreen.withValues(
-                            alpha: 0.08,
-                          ),
+                          color: context.brand.accent.withValues(alpha: 0.08),
                         ),
                       ),
                     ],
@@ -362,7 +360,7 @@ class _FrostedSurface extends StatelessWidget {
       // a shadow nobody ever sees.
       decoration: BoxDecoration(
         borderRadius: _shape,
-        boxShadow: BrandShadows.lifted,
+        boxShadow: BrandShadows.lifted(context.brand),
       ),
       child: ClipRRect(
         borderRadius: _shape,
@@ -371,35 +369,11 @@ class _FrostedSurface extends StatelessWidget {
           child: DecoratedBox(
             decoration: BoxDecoration(
               borderRadius: _shape,
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Colors.white.withValues(alpha: 0.72),
-                  BrandColors.plasterCream.withValues(alpha: 0.62),
-                  Colors.white.withValues(alpha: 0.68),
-                ],
-                stops: const [0, 0.58, 1],
-              ),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.55)),
+              color: context.brand.surfaceElevated.withValues(alpha: 0.94),
+              border: Border.all(color: context.brand.border),
             ),
             child: DecoratedBox(
-              // A sheen down the top edge, the same trick the nav rail's pill
-              // uses to look like a lit surface rather than a flat translucent
-              // rectangle.
-              decoration: BoxDecoration(
-                borderRadius: _shape,
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.white.withValues(alpha: 0.3),
-                    Colors.transparent,
-                    BrandColors.heritageGreen.withValues(alpha: 0.05),
-                  ],
-                  stops: const [0, 0.4, 1],
-                ),
-              ),
+              decoration: BoxDecoration(borderRadius: _shape),
               // Transparent Material so ink, default text styles and icon
               // themes work on a card that paints its own background.
               child: Material(type: MaterialType.transparency, child: child),
@@ -427,8 +401,8 @@ class _GlassHeader extends StatelessWidget {
         if (title != null)
           Text(
             title!,
-            style: const TextStyle(
-              color: BrandColors.heritageGreen,
+            style: TextStyle(
+              color: context.brand.accent,
               fontSize: 19,
               fontWeight: FontWeight.w900,
               letterSpacing: -0.3,
@@ -439,8 +413,8 @@ class _GlassHeader extends StatelessWidget {
           if (title != null) const SizedBox(height: 6),
           Text(
             subtitle!,
-            style: const TextStyle(
-              color: BrandColors.mutedInk,
+            style: TextStyle(
+              color: context.brand.mutedInk,
               fontSize: 14,
               height: 1.4,
             ),
@@ -465,13 +439,13 @@ class _GlassActionRow<T> extends StatelessWidget {
   Widget build(BuildContext context) {
     final accent = action.isDestructive
         ? Theme.of(context).colorScheme.error
-        : BrandColors.heritageGreen;
+        : context.brand.accent;
 
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(18),
-      splashColor: BrandColors.kenteGold.withValues(alpha: 0.16),
-      highlightColor: Colors.white.withValues(alpha: 0.4),
+      splashColor: context.brand.accent.withValues(alpha: 0.1),
+      highlightColor: context.brand.ink.withValues(alpha: 0.05),
       child: ConstrainedBox(
         // Comfortably past the 48dp minimum, because these rows are the whole
         // reason the popup exists.
@@ -492,7 +466,9 @@ class _GlassActionRow<T> extends StatelessWidget {
                     Text(
                       action.label,
                       style: TextStyle(
-                        color: action.isDestructive ? accent : BrandColors.ink,
+                        color: action.isDestructive
+                            ? accent
+                            : context.brand.ink,
                         fontSize: 15.5,
                         fontWeight: FontWeight.w700,
                         height: 1.25,
@@ -502,8 +478,8 @@ class _GlassActionRow<T> extends StatelessWidget {
                       const SizedBox(height: 3),
                       Text(
                         action.description!,
-                        style: const TextStyle(
-                          color: BrandColors.mutedInk,
+                        style: TextStyle(
+                          color: context.brand.mutedInk,
                           fontSize: 13,
                           height: 1.3,
                         ),
@@ -547,8 +523,8 @@ class _GlassConfirmBody extends StatelessWidget {
       children: [
         Text(
           message,
-          style: const TextStyle(
-            color: BrandColors.ink,
+          style: TextStyle(
+            color: context.brand.ink,
             fontSize: 15,
             height: 1.45,
           ),
@@ -561,7 +537,7 @@ class _GlassConfirmBody extends StatelessWidget {
                 onPressed: () => Navigator.of(context).pop(false),
                 style: TextButton.styleFrom(
                   minimumSize: const Size(0, 50),
-                  foregroundColor: BrandColors.mutedInk,
+                  foregroundColor: context.brand.mutedInk,
                 ),
                 child: Text(cancelLabel, overflow: TextOverflow.ellipsis),
               ),
@@ -725,32 +701,23 @@ class _GlassToastState extends State<_GlassToast>
                     child: DecoratedBox(
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(20),
-                        boxShadow: BrandShadows.lifted,
+                        boxShadow: BrandShadows.lifted(context.brand),
                       ),
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(20),
                         child: BackdropFilter(
                           filter: _blur,
                           child: DecoratedBox(
-                            // Dark glass rather than plaster: a toast has to
-                            // read over the cream tabs and over Explore's
-                            // near-black ground with the same fill.
+                            // One dark slab in both themes: a toast has to
+                            // read over the light tabs, over the dark ones and
+                            // over Explore's near-black ground with the same
+                            // fill, so it does not follow the palette.
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(20),
-                              gradient: LinearGradient(
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                                colors: [
-                                  BrandColors.heritageGreen.withValues(
-                                    alpha: 0.92,
-                                  ),
-                                  BrandColors.nightGreen.withValues(
-                                    alpha: 0.88,
-                                  ),
-                                ],
-                              ),
+                              color: const Color(0xFF232826)
+                                  .withValues(alpha: 0.96),
                               border: Border.all(
-                                color: Colors.white.withValues(alpha: 0.18),
+                                color: Colors.white.withValues(alpha: 0.1),
                               ),
                             ),
                             child: Material(
@@ -767,7 +734,7 @@ class _GlassToastState extends State<_GlassToast>
                                       Icon(
                                         widget.icon,
                                         size: 19,
-                                        color: BrandColors.kenteGold,
+                                        color: const Color(0xFF8FD3B6),
                                       ),
                                       const SizedBox(width: 11),
                                     ],

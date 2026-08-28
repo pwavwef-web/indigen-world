@@ -54,10 +54,26 @@
             android:value="2" />
         <!-- Community alerts land in their own channel so a member can mute
              them from system settings without losing everything else. Must
-             match the channel id the fan-out function sends. -->
+             match the channel id the fan-out function sends, and the channel
+             the app creates at start-up (notification_channels.dart).
+
+             The `_v2` suffix is load-bearing. No build before this one created
+             the channel itself, so on any handset that had already received an
+             alert Android auto-created `indigen_community` at *default*
+             importance — silent, no heads-up — and a channel's importance
+             cannot be raised after it exists. A new id is the only way to give
+             those devices the channel they should have had. -->
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_channel_id"
-            android:value="indigen_community"/>
+            android:value="indigen_community_v2"/>
+        <!-- Without these a backgrounded push draws the launcher icon, which
+             Android silhouettes into a white square. -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/ic_notification"/>
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_color"
+            android:resource="@color/notification_accent"/>
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and

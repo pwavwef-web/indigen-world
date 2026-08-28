@@ -78,18 +78,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ),
                 ),
                 const SizedBox(height: 10),
-                const Row(
+                Row(
                   children: [
                     StatusPill(
                       icon: Icons.offline_bolt_outlined,
                       label: 'AVAILABLE OFFLINE',
-                      color: BrandColors.savannahGreen,
+                      color: context.brand.success,
                     ),
-                    SizedBox(width: 8),
+                    const SizedBox(width: 8),
                     StatusPill(
                       icon: Icons.translate_rounded,
                       label: 'ENGLISH ⇄ KASEM',
-                      color: BrandColors.terracotta,
+                      color: context.brand.terracotta,
                     ),
                   ],
                 ),
@@ -143,20 +143,20 @@ class _DailyCard extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.all(20),
     decoration: BoxDecoration(
-      color: BrandColors.heritageGreen,
+      color: context.brand.accent,
       borderRadius: BorderRadius.circular(24),
     ),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Row(
+        Row(
           children: [
-            Icon(Icons.wb_sunny_outlined, color: BrandColors.kenteGold),
-            SizedBox(width: 8),
+            Icon(Icons.wb_sunny_outlined, color: context.brand.gold),
+            const SizedBox(width: 8),
             Text(
               'TODAY’S WORD · DEMO',
               style: TextStyle(
-                color: BrandColors.kenteGold,
+                color: context.brand.gold,
                 fontWeight: FontWeight.w800,
                 letterSpacing: 1,
               ),
@@ -205,12 +205,12 @@ class _DictionaryResultCard extends StatelessWidget {
               height: 48,
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                color: BrandColors.terracotta.withValues(alpha: 0.12),
+                color: context.brand.terracotta.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(15),
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.menu_book_outlined,
-                color: BrandColors.terracotta,
+                color: context.brand.terracotta,
               ),
             ),
             const SizedBox(width: 14),
@@ -225,13 +225,13 @@ class _DictionaryResultCard extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     entry.translation,
-                    style: const TextStyle(color: BrandColors.mutedInk),
+                    style: TextStyle(color: context.brand.mutedInk),
                   ),
                   const SizedBox(height: 7),
                   Text(
                     '${entry.partOfSpeech} · ${entry.dialect}',
-                    style: const TextStyle(
-                      color: BrandColors.savannahGreen,
+                    style: TextStyle(
+                      color: context.brand.success,
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
                     ),
@@ -288,14 +288,14 @@ class _SearchHint extends StatelessWidget {
   const _SearchHint();
 
   @override
-  Widget build(BuildContext context) => const Card(
+  Widget build(BuildContext context) => Card(
     child: Padding(
-      padding: EdgeInsets.all(18),
+      padding: const EdgeInsets.all(18),
       child: Row(
         children: [
-          Icon(Icons.keyboard_outlined, color: BrandColors.heritageGreen),
-          SizedBox(width: 12),
-          Expanded(
+          Icon(Icons.keyboard_outlined, color: context.brand.accent),
+          const SizedBox(width: 12),
+          const Expanded(
             child: Text(
               'Enter at least two characters to search this device pack.',
             ),

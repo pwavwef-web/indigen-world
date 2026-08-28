@@ -48,6 +48,18 @@ class AudiobookCollectionScreen extends ConsumerWidget {
       );
 }
 
+class VideoCollectionScreen extends ConsumerWidget {
+  const VideoCollectionScreen({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) =>
+      PublishedCollectionScreen(
+        kind: CollectionKind.video,
+        items: ref.watch(videoCollectionProvider),
+        onRetry: () => ref.invalidate(videoCollectionProvider),
+      );
+}
+
 class DictionaryCollectionScreen extends ConsumerStatefulWidget {
   const DictionaryCollectionScreen({super.key});
 
@@ -84,7 +96,6 @@ class _DictionaryCollectionScreenState
                 child: BrandHeader(
                   eyebrow: 'Collection · Dictionary',
                   title: 'Words with a living context.',
-                  subtitle: 'Published entries sync from the Project Kasena community dictionary.',
                 ),
               ),
               SliverToBoxAdapter(
@@ -179,7 +190,6 @@ class PublishedCollectionScreen extends StatelessWidget {
             child: BrandHeader(
               eyebrow: 'Collection · ${kind.label}',
               title: _title,
-              subtitle: _subtitle,
             ),
           ),
           items.when(
@@ -221,17 +231,7 @@ class PublishedCollectionScreen extends StatelessWidget {
     CollectionKind.literature => 'Stories that remember.',
     CollectionKind.audiobooks => 'Listen, learn, and carry it forward.',
     CollectionKind.dictionary => 'Words with a living context.',
-  };
-
-  String get _subtitle => switch (kind) {
-    CollectionKind.music =>
-      'Community-published songs and recordings, ready to stream.',
-    CollectionKind.literature =>
-      'Published stories, poetry, and oral histories from approved creators.',
-    CollectionKind.audiobooks =>
-      'Long-form readings and narrated works, published with permission.',
-    CollectionKind.dictionary =>
-      'Published Kasem entries from the Project Kasena dictionary.',
+    CollectionKind.video => 'Watch it as it happened.',
   };
 }
 
@@ -256,12 +256,12 @@ class _DictionaryCard extends StatelessWidget {
           width: 50,
           height: 50,
           decoration: BoxDecoration(
-            color: BrandColors.heritageGreen.withValues(alpha: 0.1),
+            color: context.brand.accent.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(16),
           ),
-          child: const Icon(
+          child: Icon(
             Icons.translate_rounded,
-            color: BrandColors.heritageGreen,
+            color: context.brand.accent,
           ),
         ),
         const SizedBox(width: 14),
@@ -284,15 +284,15 @@ class _DictionaryCard extends StatelessWidget {
                 entry.translation,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(color: BrandColors.mutedInk),
+                style: TextStyle(color: context.brand.mutedInk),
               ),
               const SizedBox(height: 6),
               Text(
                 '${entry.partOfSpeech} · ${entry.dialect}',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: BrandColors.terracotta,
+                style: TextStyle(
+                  color: context.brand.terracotta,
                   fontSize: 11,
                   fontWeight: FontWeight.w800,
                 ),
@@ -353,7 +353,7 @@ class _PublishedCollectionCard extends StatelessWidget {
                       vertical: 5,
                     ),
                     decoration: BoxDecoration(
-                      color: BrandColors.heritageGreen.withValues(alpha: 0.9),
+                      color: context.brand.accent.withValues(alpha: 0.9),
                       borderRadius: BorderRadius.circular(999),
                     ),
                     child: Row(
@@ -363,7 +363,7 @@ class _PublishedCollectionCard extends StatelessWidget {
                           kind == CollectionKind.literature
                               ? Icons.menu_book_rounded
                               : Icons.play_arrow_rounded,
-                          color: BrandColors.kenteGold,
+                          color: context.brand.gold,
                           size: 14,
                         ),
                         const SizedBox(width: 4),
@@ -413,8 +413,8 @@ class _PublishedCollectionCard extends StatelessWidget {
                       'BY ${item.creatorName.toUpperCase()}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: BrandColors.terracotta,
+                      style: TextStyle(
+                        color: context.brand.terracotta,
                         fontSize: 9,
                         letterSpacing: 1,
                         fontWeight: FontWeight.w900,
@@ -430,10 +430,10 @@ class _PublishedCollectionCard extends StatelessWidget {
                     const SizedBox(height: 9),
                     Row(
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.public_rounded,
                           size: 14,
-                          color: BrandColors.mutedInk,
+                          color: context.brand.mutedInk,
                         ),
                         const SizedBox(width: 5),
                         Expanded(
@@ -445,8 +445,8 @@ class _PublishedCollectionCard extends StatelessWidget {
                             ].join(' · '),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: BrandColors.mutedInk,
+                            style: TextStyle(
+                              color: context.brand.mutedInk,
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
                             ),
@@ -461,7 +461,7 @@ class _PublishedCollectionCard extends StatelessWidget {
                           : item.description,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(color: BrandColors.mutedInk),
+                      style: TextStyle(color: context.brand.mutedInk),
                     ),
                   ],
                 ),
@@ -471,7 +471,7 @@ class _PublishedCollectionCard extends StatelessWidget {
                 kind == CollectionKind.literature
                     ? Icons.arrow_forward_rounded
                     : Icons.play_circle_fill_rounded,
-                color: BrandColors.heritageGreen,
+                color: context.brand.accent,
                 size: 34,
               ),
             ],
@@ -516,8 +516,8 @@ class CollectionItemDetailScreen extends StatelessWidget {
             item.category.isEmpty
                 ? 'PUBLISHED ${kind.label.toUpperCase()}'
                 : item.category.toUpperCase(),
-            style: const TextStyle(
-              color: BrandColors.terracotta,
+            style: TextStyle(
+              color: context.brand.terracotta,
               fontWeight: FontWeight.w900,
               fontSize: 10,
               letterSpacing: 1.1,
@@ -528,8 +528,8 @@ class CollectionItemDetailScreen extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             'By ${item.creatorName}',
-            style: const TextStyle(
-              color: BrandColors.savannahGreen,
+            style: TextStyle(
+              color: context.brand.success,
               fontWeight: FontWeight.w800,
             ),
           ),
@@ -566,6 +566,7 @@ class CollectionItemDetailScreen extends StatelessWidget {
     CollectionKind.literature => 'The work',
     CollectionKind.audiobooks => 'Transcript or text',
     CollectionKind.dictionary => 'Entry',
+    CollectionKind.video => 'Transcript or notes',
   };
 }
 
@@ -648,7 +649,7 @@ class _CollectionMediaState extends State<_CollectionMedia> {
             return Container(
               clipBehavior: Clip.antiAlias,
               decoration: BoxDecoration(
-                color: BrandColors.heritageGreen,
+                color: context.brand.accent,
                 borderRadius: BorderRadius.circular(26),
               ),
               child: Column(
@@ -729,8 +730,9 @@ class _MediaFallback extends StatelessWidget {
           CollectionKind.dictionary => Icons.translate_rounded,
           CollectionKind.literature => Icons.auto_stories_rounded,
           CollectionKind.audiobooks => Icons.headphones_rounded,
+          CollectionKind.video => Icons.movie_creation_rounded,
         },
-        color: BrandColors.kenteGold,
+        color: context.brand.gold,
         size: 58,
       ),
     ),
@@ -750,7 +752,7 @@ class _PlaybackUnavailable extends StatelessWidget {
     constraints: const BoxConstraints(minHeight: 210),
     padding: const EdgeInsets.all(24),
     decoration: BoxDecoration(
-      color: BrandColors.heritageGreen,
+      color: context.brand.accent,
       borderRadius: BorderRadius.circular(26),
     ),
     child: Column(
@@ -760,7 +762,7 @@ class _PlaybackUnavailable extends StatelessWidget {
           kind == CollectionKind.music
               ? Icons.music_off_rounded
               : Icons.headset_off_rounded,
-          color: BrandColors.kenteGold,
+          color: context.brand.gold,
           size: 42,
         ),
         const SizedBox(height: 10),
@@ -811,13 +813,13 @@ class _CollectionEmptyState extends StatelessWidget {
             width: 78,
             height: 78,
             decoration: BoxDecoration(
-              color: BrandColors.heritageGreen.withValues(alpha: 0.09),
+              color: context.brand.accent.withValues(alpha: 0.09),
               shape: BoxShape.circle,
             ),
             child: Icon(
               searching ? Icons.search_off_rounded : Icons.eco_outlined,
               size: 38,
-              color: BrandColors.heritageGreen,
+              color: context.brand.accent,
             ),
           ),
           const SizedBox(height: 18),
@@ -828,12 +830,14 @@ class _CollectionEmptyState extends StatelessWidget {
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.titleLarge,
           ),
-          const SizedBox(height: 8),
-          Text(
-            searching ? 'Try another spelling, English word, or dialect.' : 'Approved community contributions will appear here automatically.',
-            textAlign: TextAlign.center,
-            style: const TextStyle(color: BrandColors.mutedInk, height: 1.4),
-          ),
+          if (searching) ...[
+            const SizedBox(height: 8),
+            Text(
+              'Try another spelling, English word, or dialect.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: context.brand.mutedInk, height: 1.4),
+            ),
+          ],
           if (!searching) ...[
             const SizedBox(height: 18),
             FilledButton.icon(
@@ -865,22 +869,16 @@ class _CollectionLoadError extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(
+          Icon(
             Icons.cloud_off_rounded,
             size: 44,
-            color: BrandColors.terracotta,
+            color: context.brand.terracotta,
           ),
           const SizedBox(height: 14),
           Text(
             'The collection could not be refreshed.',
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.titleLarge,
-          ),
-          const SizedBox(height: 7),
-          const Text(
-            'Check your connection and try again. Previously saved content may still appear offline.',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: BrandColors.mutedInk),
           ),
           if (onRetry != null) ...[
             const SizedBox(height: 16),

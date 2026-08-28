@@ -4,7 +4,7 @@ import 'package:indigen_world_mobile/core/firebase_ready.dart';
 import 'package:indigen_world_mobile/domain/dictionary_entry.dart';
 import 'package:indigen_world_mobile/features/explore/published_content.dart';
 
-enum CollectionKind { music, dictionary, literature, audiobooks }
+enum CollectionKind { music, dictionary, literature, audiobooks, video }
 
 extension CollectionKindCopy on CollectionKind {
   String get label => switch (this) {
@@ -12,6 +12,7 @@ extension CollectionKindCopy on CollectionKind {
     CollectionKind.dictionary => 'Dictionary',
     CollectionKind.literature => 'Literature',
     CollectionKind.audiobooks => 'Audiobooks',
+    CollectionKind.video => 'Video',
   };
 
   String get contributionLabel => switch (this) {
@@ -19,6 +20,7 @@ extension CollectionKindCopy on CollectionKind {
     CollectionKind.dictionary => 'a dictionary entry',
     CollectionKind.literature => 'a story or written work',
     CollectionKind.audiobooks => 'an audiobook or oral reading',
+    CollectionKind.video => 'a video or film',
   };
 }
 
@@ -99,6 +101,10 @@ final literatureCollectionProvider = StreamProvider<List<PublishedReel>>(
 
 final audiobookCollectionProvider = StreamProvider<List<PublishedReel>>(
   (ref) => _watchCollection(ref, CollectionKind.audiobooks),
+);
+
+final videoCollectionProvider = StreamProvider<List<PublishedReel>>(
+  (ref) => _watchCollection(ref, CollectionKind.video),
 );
 
 DictionaryEntry? _dictionaryEntryFromDoc(

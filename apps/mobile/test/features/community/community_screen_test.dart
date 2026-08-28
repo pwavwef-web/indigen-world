@@ -56,7 +56,7 @@ void main() {
 
     await pumpFeed(tester, repository, profile: amina);
 
-    expect(find.text('COMMUNITY PULSE'), findsOneWidget);
+    expect(find.text('New voices'), findsOneWidget);
     expect(find.text('Make a Kasem post'), findsOneWidget);
     expect(find.text('De zaanem. Ko gara.'), findsOneWidget);
     expect(find.text('Amo wora a zamese Kasem mo.'), findsOneWidget);
@@ -107,7 +107,7 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
 
-    expect(find.text('Your Following feed is quiet'), findsOneWidget);
+    expect(find.text('Nothing from the people you follow'), findsOneWidget);
 
     await tester.tap(find.text('Find people'));
     await tester.pump();
@@ -271,7 +271,7 @@ void main() {
 
     expect(find.byType(PostDetailScreen), findsOneWidget);
     expect(find.text('Conversation'), findsOneWidget);
-    expect(find.text('1 REPLY'), findsOneWidget);
+    expect(find.text('1 reply'), findsOneWidget);
     expect(find.text('Ko gara.'), findsOneWidget);
   });
 
@@ -374,13 +374,13 @@ void main() {
 
     await pumpFeed(tester, repository, profile: amina);
 
-    expect(find.text('The feed could not load'), findsOneWidget);
     // A denied read is ours to fix, so the copy says so instead of sending a
     // member on full signal to look at their connection.
     expect(
-      find.textContaining('community service is still being set up'),
+      find.text('The community service is still starting up'),
       findsOneWidget,
     );
+    expect(find.text('The feed could not load'), findsNothing);
     expect(find.textContaining('Check your connection'), findsNothing);
     expect(find.text('Try again'), findsOneWidget);
   });

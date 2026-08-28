@@ -93,7 +93,7 @@ class _ProfileBody extends ConsumerWidget {
         SliverAppBar(
           pinned: true,
           expandedHeight: 116,
-          backgroundColor: BrandColors.plasterCream,
+          backgroundColor: context.brand.background,
           surfaceTintColor: Colors.transparent,
           title: Text(
             profile.displayName,
@@ -182,9 +182,9 @@ class _ProfileHeader extends ConsumerWidget {
                 offset: const Offset(0, -22),
                 child: Container(
                   padding: const EdgeInsets.all(3),
-                  decoration: const BoxDecoration(
+                  decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: BrandColors.plasterCream,
+                    color: context.brand.background,
                   ),
                   child: CommunityAvatar(
                     initials: profile.initials,
@@ -222,7 +222,7 @@ class _ProfileHeader extends ConsumerWidget {
                   onPressed: () => openChatWith(context, ref, profile),
                   style: IconButton.styleFrom(
                     minimumSize: const Size(44, 44),
-                    foregroundColor: BrandColors.heritageGreen,
+                    foregroundColor: context.brand.accent,
                   ),
                   icon: const Icon(Icons.mail_outline_rounded, size: 19),
                 ),
@@ -248,10 +248,10 @@ class _ProfileHeader extends ConsumerWidget {
                     ),
                     if (profile.isVerified) ...[
                       const SizedBox(width: 6),
-                      const Icon(
+                      Icon(
                         Icons.verified_rounded,
                         size: 18,
-                        color: BrandColors.savannahGreen,
+                        color: context.brand.success,
                       ),
                     ],
                   ],
@@ -259,8 +259,8 @@ class _ProfileHeader extends ConsumerWidget {
                 const SizedBox(height: 2),
                 Text(
                   profile.handle,
-                  style: const TextStyle(
-                    color: BrandColors.mutedInk,
+                  style: TextStyle(
+                    color: context.brand.mutedInk,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -347,18 +347,18 @@ class StatusPillChip extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
     decoration: BoxDecoration(
-      color: BrandColors.heritageGreen.withValues(alpha: 0.07),
+      color: context.brand.accent.withValues(alpha: 0.07),
       borderRadius: BorderRadius.circular(999),
     ),
     child: Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 14, color: BrandColors.heritageGreen),
+        Icon(icon, size: 14, color: context.brand.accent),
         const SizedBox(width: 6),
         Text(
           label,
-          style: const TextStyle(
-            color: BrandColors.heritageGreen,
+          style: TextStyle(
+            color: context.brand.accent,
             fontSize: 11.5,
             fontWeight: FontWeight.w800,
           ),
@@ -390,17 +390,17 @@ class _CountChip extends StatelessWidget {
         children: [
           Text(
             value == null ? '—' : communityCountLabel(value!),
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w900,
-              color: BrandColors.ink,
+              color: context.brand.ink,
             ),
           ),
           const SizedBox(width: 5),
           Text(
             label,
-            style: const TextStyle(
-              color: BrandColors.mutedInk,
+            style: TextStyle(
+              color: context.brand.mutedInk,
               fontSize: 12.5,
               fontWeight: FontWeight.w600,
             ),
@@ -421,8 +421,8 @@ class _ProfileTabs extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => DecoratedBox(
-    decoration: const BoxDecoration(
-      border: Border(bottom: BorderSide(color: BrandColors.divider)),
+    decoration: BoxDecoration(
+      border: Border(bottom: BorderSide(color: context.brand.divider)),
     ),
     child: Row(
       children: [
@@ -442,8 +442,8 @@ class _ProfileTabs extends StatelessWidget {
                             ? FontWeight.w900
                             : FontWeight.w600,
                         color: selected == index
-                            ? BrandColors.heritageGreen
-                            : BrandColors.mutedInk,
+                            ? context.brand.accent
+                            : context.brand.mutedInk,
                       ),
                     ),
                     const SizedBox(height: 7),
@@ -452,7 +452,7 @@ class _ProfileTabs extends StatelessWidget {
                       height: 3,
                       width: selected == index ? 26 : 0,
                       decoration: BoxDecoration(
-                        color: BrandColors.kenteGold,
+                        color: context.brand.gold,
                         borderRadius: BorderRadius.circular(999),
                       ),
                     ),
@@ -510,10 +510,9 @@ class _ProfileTabContent extends ConsumerWidget {
           ),
         ],
       ),
-      AsyncValue(:final value?) => ListView.separated(
-        padding: const EdgeInsets.fromLTRB(16, 14, 16, 40),
+      AsyncValue(:final value?) => ListView.builder(
+        padding: const EdgeInsets.only(bottom: 40),
         itemCount: value.length,
-        separatorBuilder: (context, index) => const SizedBox(height: 12),
         itemBuilder: (context, index) {
           final post = value[index];
           return CommunityPostCard(

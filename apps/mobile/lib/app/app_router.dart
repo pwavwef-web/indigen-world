@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:indigen_world_mobile/features/ads/ads_screen.dart';
 import 'package:indigen_world_mobile/features/collection/collection_data.dart';
+import 'package:indigen_world_mobile/features/community/chat_thread_loader.dart';
+import 'package:indigen_world_mobile/features/community/messages_screen.dart';
 import 'package:indigen_world_mobile/features/community/post_detail_screen.dart';
 import 'package:indigen_world_mobile/features/contribute/contribute_screen.dart';
 import 'package:indigen_world_mobile/features/dictionary/entry_detail_screen.dart';
@@ -28,6 +31,22 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/post/:postId',
         builder: (context, state) =>
             PostDetailScreen(postId: state.pathParameters['postId']!),
+      ),
+      GoRoute(
+        path: '/messages',
+        builder: (context, state) => const MessagesScreen(),
+      ),
+      // A message push carries only the thread id, so the screen's other half
+      // is recovered from the thread document first.
+      GoRoute(
+        path: '/chat/:threadId',
+        builder: (context, state) =>
+            ChatThreadLoader(threadId: state.pathParameters['threadId']!),
+      ),
+      // Where an advertising notification lands.
+      GoRoute(
+        path: '/ads',
+        builder: (context, state) => const AdsScreen(standalone: true),
       ),
       GoRoute(
         path: '/kawuri',
@@ -61,5 +80,6 @@ CollectionKind _collectionKind(String? value) => switch (value) {
   'music' => CollectionKind.music,
   'literature' => CollectionKind.literature,
   'audiobook' || 'audiobooks' => CollectionKind.audiobooks,
+  'video' || 'film' => CollectionKind.video,
   _ => CollectionKind.dictionary,
 };

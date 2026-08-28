@@ -12,9 +12,19 @@ import 'package:indigen_world_mobile/shared/glass_popup.dart';
 
 /// One complete community post surface.
 ///
-/// The structure follows the mature SRC social card — activity context,
-/// identity, every content type, and a six-part action bar — while retaining
-/// Indigen's parchment, heritage green, kente gold and Kasem terminology.
+/// ── Why this is not a card ──────────────────────────────────────────────
+/// It used to be: a tinted pane with a lit edge, a warm lift and a gold or
+/// green halo bloomed underneath it. Twenty of those scrolling past turned a
+/// page of writing into a row of glowing boxes, and the loudest thing on the
+/// screen was the container rather than what somebody had written in it.
+///
+/// So the feed follows the shape that every text-first social product has
+/// converged on for the same reason — a full-bleed row, a hairline underneath
+/// it, and nothing else. The only colour on a resting post is the writing;
+/// everything the reader can *do* stays grey until they have done it, and then
+/// exactly one glyph lights up. Media, polls and quotes get a hairline box of
+/// their own so they read as attachments to the post rather than as cards
+/// inside a card.
 class CommunityPostCard extends ConsumerWidget {
   const CommunityPostCard({
     required this.post,
@@ -39,6 +49,7 @@ class CommunityPostCard extends ConsumerWidget {
     this.onOpenLink,
     this.onPollVotes,
     this.showThreadLine = false,
+    this.showDivider = true,
     this.compact = false,
     super.key,
   });
@@ -64,11 +75,21 @@ class CommunityPostCard extends ConsumerWidget {
   final ValueChanged<String>? onOpenHandle;
   final ValueChanged<String>? onOpenLink;
   final VoidCallback? onPollVotes;
+
+  /// Draws the vertical rule from this post's avatar down to the next one, for
+  /// a reply that continues a thread.
   final bool showThreadLine;
+
+  /// The hairline that separates one post from the next. Off for the last row
+  /// of a list that already ends in one.
+  final bool showDivider;
+
   final bool compact;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final brand = context.brand;
+
     // Author stamps make the feed cheap and offline-capable; the live profile
     // makes later avatar/name changes visible immediately. This dual lookup is
     // also what repairs older cards whose stamp never carried a photo URL.
@@ -82,155 +103,230 @@ class CommunityPostCard extends ConsumerWidget {
     final authorInitials = liveAuthor?.initials ?? post.initials;
     final authorVerified = liveAuthor?.isVerified ?? post.authorVerified;
 
-    return Card(
-      color: Theme.of(context).colorScheme.surface,
-      clipBehavior: Clip.antiAlias,
+    final avatarSize = compact ? 34.0 : 42.0;
+    final gutter = compact ? 10.0 : 12.0;
+
+    return Material(
+      color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(20),
         onTap: onOpen,
-        child: Padding(
-          padding: EdgeInsets.all(compact ? 13 : 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (post.isResharedFeedItem) ...[
-                _ActivityLabel(
-                  name: post.resharedByName ?? 'A community member',
-                  onTap: onOpenResharer,
-                ),
-                const SizedBox(height: 8),
-              ],
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  CommunityAvatar(
-                    initials: authorInitials,
-                    imageUrl: authorAvatar,
-                    size: compact ? 36 : 44,
-                    onTap: onOpenAuthor,
+        splashFactory: NoSplash.splashFactory,
+        highlightColor: brand.ink.withValues(alpha: 0.03),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            border: showDivider
+                ? Border(bottom: BorderSide(color: brand.divider))
+                : null,
+          ),
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(16, compact ? 10 : 13, 12, 4),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (post.isResharedFeedItem) ...[
+                  Padding(
+                    padding: EdgeInsets.only(left: avatarSize + gutter),
+                    child: _ActivityLabel(
+                      name: post.resharedByName ?? 'A community member',
+                      onTap: onOpenResharer,
+                    ),
                   ),
-                  const SizedBox(width: 11),
-                  Expanded(
-                    child: GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onTap: onOpenAuthor,
+                  const SizedBox(height: 6),
+                ],
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Column(
+                      children: [
+                        CommunityAvatar(
+                          initials: authorInitials,
+                          imageUrl: authorAvatar,
+                          size: avatarSize,
+                          onTap: onOpenAuthor,
+                        ),
+                        if (showThreadLine)
+                          Expanded(
+                            child: Container(
+                              width: 2,
+                              margin: const EdgeInsets.only(top: 6),
+                              color: brand.divider,
+                            ),
+                          ),
+                      ],
+                    ),
+                    SizedBox(width: gutter),
+                    Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
-                            children: [
-                              Flexible(
-                                child: Text(
-                                  authorName,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    fontSize: 13.5,
-                                    fontWeight: FontWeight.w900,
-                                    color: BrandColors.ink,
+                          _PostByline(
+                            name: authorName,
+                            handle: authorHandle,
+                            verified: authorVerified,
+                            age: communityAgeLabel(post.createdAt),
+                            edited: post.isEdited,
+                            compact: compact,
+                            onOpenAuthor: onOpenAuthor,
+                            onMore: onMore,
+                          ),
+                          if (post.text.isNotEmpty) ...[
+                            const SizedBox(height: 3),
+                            PostText(
+                              text: post.text,
+                              fontSize: compact ? 14.5 : 15.5,
+                              onOpenHandle: onOpenHandle,
+                              onOpenLink: onOpenLink,
+                            ),
+                          ],
+                          if (post.firstLink case final link?) ...[
+                            const SizedBox(height: 10),
+                            CommunityLinkPreview(
+                              url: link,
+                              onTap: onOpenLink == null
+                                  ? null
+                                  : () => onOpenLink!(link),
+                            ),
+                          ],
+                          if (post.hasMedia) ...[
+                            const SizedBox(height: 10),
+                            PostMediaView(
+                              media: post.media,
+                              onOpen: (index) => Navigator.of(context).push(
+                                MaterialPageRoute<void>(
+                                  builder: (context) => MediaViewerPage(
+                                    media: post.media,
+                                    initialIndex: index,
                                   ),
                                 ),
                               ),
-                              if (authorVerified) ...[
-                                const SizedBox(width: 4),
-                                const Icon(
-                                  Icons.verified_rounded,
-                                  size: 15,
-                                  color: BrandColors.savannahGreen,
-                                ),
-                              ],
-                            ],
-                          ),
-                          const SizedBox(height: 1),
-                          Text(
-                            '$authorHandle · ${communityAgeLabel(post.createdAt)}${post.isEdited ? ' · EDITED' : ''}',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: BrandColors.mutedInk,
-                              fontSize: 10.5,
-                              fontWeight: FontWeight.w600,
                             ),
+                          ],
+                          if (post.poll case final poll?) ...[
+                            const SizedBox(height: 10),
+                            CommunityPollCard(
+                              poll: poll,
+                              votedOptionId: votedOptionId,
+                              onVote: onVote,
+                              onViewVotes: onPollVotes,
+                            ),
+                          ],
+                          if (post.quotedPost case final quoted?) ...[
+                            const SizedBox(height: 10),
+                            QuotedPostPreview(
+                              post: quoted,
+                              onTap: onOpenQuoted ?? onOpen,
+                            ),
+                          ],
+                          const SizedBox(height: 2),
+                          PostActionBar(
+                            replyCount: post.replyCount,
+                            repostCount: post.reshareAndQuoteCount,
+                            likeCount: post.likeCount,
+                            viewCount: post.viewCount,
+                            liked: liked,
+                            reposted: reposted,
+                            saved: saved,
+                            onReply: onReply,
+                            onRepost: onRepost,
+                            onQuote: onQuote,
+                            onLike: onLike,
+                            onViews: onViews,
+                            onSave: onSave,
+                            onShare: onShare,
                           ),
                         ],
                       ),
                     ),
-                  ),
-                  IconButton(
-                    tooltip: 'More',
-                    visualDensity: VisualDensity.compact,
-                    onPressed: onMore,
-                    icon: const Icon(
-                      Icons.keyboard_arrow_down_rounded,
-                      color: BrandColors.mutedInk,
-                    ),
-                  ),
-                ],
-              ),
-              if (post.text.isNotEmpty) ...[
-                const SizedBox(height: 10),
-                PostText(
-                  text: post.text,
-                  fontSize: compact ? 15 : 16.5,
-                  onOpenHandle: onOpenHandle,
-                  onOpenLink: onOpenLink,
+                  ],
                 ),
               ],
-              if (post.firstLink case final link?) ...[
-                const SizedBox(height: 10),
-                CommunityLinkPreview(
-                  url: link,
-                  onTap: onOpenLink == null ? null : () => onOpenLink!(link),
-                ),
-              ],
-              if (post.hasMedia) ...[
-                const SizedBox(height: 12),
-                PostMediaView(
-                  media: post.media,
-                  onOpen: (index) => Navigator.of(context).push(
-                    MaterialPageRoute<void>(
-                      builder: (context) => MediaViewerPage(
-                        media: post.media,
-                        initialIndex: index,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-              if (post.poll case final poll?) ...[
-                const SizedBox(height: 12),
-                CommunityPollCard(
-                  poll: poll,
-                  votedOptionId: votedOptionId,
-                  onVote: onVote,
-                  onViewVotes: onPollVotes,
-                ),
-              ],
-              if (post.quotedPost case final quoted?) ...[
-                const SizedBox(height: 12),
-                QuotedPostPreview(post: quoted, onTap: onOpenQuoted ?? onOpen),
-              ],
-              const SizedBox(height: 8),
-              PostActionBar(
-                replyCount: post.replyCount,
-                repostCount: post.reshareAndQuoteCount,
-                likeCount: post.likeCount,
-                viewCount: post.viewCount,
-                liked: liked,
-                reposted: reposted,
-                saved: saved,
-                onReply: onReply,
-                onRepost: onRepost,
-                onQuote: onQuote,
-                onLike: onLike,
-                onViews: onViews,
-                onSave: onSave,
-                onShare: onShare,
-              ),
-            ],
+            ),
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Name · handle · age, on one line, with the overflow menu at the end.
+///
+/// One line rather than the stacked name-over-handle block it used to be: the
+/// second line was pure chrome repeated down the whole feed, and collapsing it
+/// buys every post a line of its actual writing.
+class _PostByline extends StatelessWidget {
+  const _PostByline({
+    required this.name,
+    required this.handle,
+    required this.verified,
+    required this.age,
+    required this.edited,
+    required this.compact,
+    required this.onOpenAuthor,
+    required this.onMore,
+  });
+
+  final String name;
+  final String handle;
+  final bool verified;
+  final String age;
+  final bool edited;
+  final bool compact;
+  final VoidCallback onOpenAuthor;
+  final VoidCallback onMore;
+
+  @override
+  Widget build(BuildContext context) {
+    final brand = context.brand;
+    final size = compact ? 13.5 : 14.5;
+    return Row(
+      children: [
+        Expanded(
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: onOpenAuthor,
+            child: Row(
+              children: [
+                Flexible(
+                  child: Text(
+                    name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: size,
+                      fontWeight: FontWeight.w700,
+                      color: brand.ink,
+                      letterSpacing: -0.1,
+                    ),
+                  ),
+                ),
+                if (verified) ...[
+                  const SizedBox(width: 3),
+                  Icon(Icons.verified_rounded, size: size, color: brand.accent),
+                ],
+                const SizedBox(width: 5),
+                Flexible(
+                  child: Text(
+                    '$handle · $age${edited ? ' · edited' : ''}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: brand.mutedInk,
+                      fontSize: size - 0.5,
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        _IconTap(
+          icon: Icons.more_horiz_rounded,
+          tooltip: 'More',
+          size: 18,
+          onTap: onMore,
+        ),
+      ],
     );
   }
 }
@@ -242,36 +338,35 @@ class _ActivityLabel extends StatelessWidget {
   final VoidCallback? onTap;
 
   @override
-  Widget build(BuildContext context) => InkWell(
-    borderRadius: BorderRadius.circular(999),
-    onTap: onTap,
-    child: Padding(
-      padding: const EdgeInsets.only(left: 50, right: 8, top: 2, bottom: 2),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(
-            Icons.repeat_rounded,
-            size: 14,
-            color: BrandColors.savannahGreen,
-          ),
-          const SizedBox(width: 6),
-          Flexible(
-            child: Text(
-              '$name reshared',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: BrandColors.mutedInk,
-                fontSize: 11,
-                fontWeight: FontWeight.w800,
+  Widget build(BuildContext context) {
+    final brand = context.brand;
+    return InkWell(
+      borderRadius: BorderRadius.circular(6),
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 2),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.repeat_rounded, size: 13, color: brand.faintInk),
+            const SizedBox(width: 6),
+            Flexible(
+              child: Text(
+                '$name reshared',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: brand.faintInk,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 /// Compact immutable source shown inside a quote post.
@@ -282,95 +377,114 @@ class QuotedPostPreview extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) => InkWell(
-    borderRadius: BorderRadius.circular(16),
-    onTap: onTap,
-    child: Ink(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: BrandColors.plasterCream.withValues(alpha: 0.7),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: BrandColors.heritageGreen.withValues(alpha: 0.18),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              CommunityAvatar(
-                initials: post.initials,
-                imageUrl: post.authorAvatarUrl,
-                size: 28,
-              ),
-              const SizedBox(width: 8),
-              Flexible(
-                child: Text(
-                  '${post.authorName}  ${post.handle} · ${communityAgeLabel(post.createdAt)}',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: BrandColors.mutedInk,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ),
-            ],
+  Widget build(BuildContext context) {
+    final brand = context.brand;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.all(11),
+          decoration: BoxDecoration(
+            border: Border.all(color: brand.border),
+            borderRadius: BorderRadius.circular(14),
           ),
-          if (post.text.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            Text(
-              post.text,
-              maxLines: 5,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 13.5, height: 1.4),
-            ),
-          ],
-          if (post.media.isNotEmpty) ...[
-            const SizedBox(height: 9),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: AspectRatio(
-                aspectRatio: 16 / 8,
-                child: post.media.first.isAudio
-                    ? const ColoredBox(
-                        color: BrandColors.heritageGreen,
-                        child: Icon(
-                          Icons.graphic_eq_rounded,
-                          color: BrandColors.kenteGold,
-                        ),
-                      )
-                    : post.media.first.isVideo
-                    ? Stack(
-                        fit: StackFit.expand,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  CommunityAvatar(
+                    initials: post.initials,
+                    imageUrl: post.authorAvatarUrl,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 7),
+                  Flexible(
+                    child: Text.rich(
+                      TextSpan(
                         children: [
-                          VideoCover(
-                            videoUrl: post.media.first.url,
-                            thumbnailUrl: post.media.first.thumbnailUrl,
-                          ),
-                          const Center(
-                            child: Icon(
-                              Icons.play_circle_fill_rounded,
-                              color: Colors.white,
+                          TextSpan(
+                            text: post.authorName,
+                            style: TextStyle(
+                              color: brand.ink,
+                              fontWeight: FontWeight.w700,
                             ),
                           ),
+                          TextSpan(
+                            text:
+                                '  ${post.handle} · '
+                                '${communityAgeLabel(post.createdAt)}',
+                            style: TextStyle(color: brand.mutedInk),
+                          ),
                         ],
-                      )
-                    : Image.network(
-                        post.media.first.url,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, _, _) =>
-                            const ColoredBox(color: BrandColors.divider),
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 13),
+                    ),
+                  ),
+                ],
               ),
-            ),
-          ],
-        ],
+              if (post.text.isNotEmpty) ...[
+                const SizedBox(height: 6),
+                Text(
+                  post.text,
+                  maxLines: 5,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 13.5,
+                    height: 1.4,
+                    color: brand.ink,
+                  ),
+                ),
+              ],
+              if (post.media.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: AspectRatio(
+                    aspectRatio: 16 / 8,
+                    child: post.media.first.isAudio
+                        ? ColoredBox(
+                            color: brand.surfaceMuted,
+                            child: Icon(
+                              Icons.graphic_eq_rounded,
+                              color: brand.mutedInk,
+                            ),
+                          )
+                        : post.media.first.isVideo
+                        ? Stack(
+                            fit: StackFit.expand,
+                            children: [
+                              VideoCover(
+                                videoUrl: post.media.first.url,
+                                thumbnailUrl: post.media.first.thumbnailUrl,
+                              ),
+                              const Center(
+                                child: Icon(
+                                  Icons.play_circle_fill_rounded,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ],
+                          )
+                        : Image.network(
+                            post.media.first.url,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, _, _) =>
+                                ColoredBox(color: brand.surfaceMuted),
+                          ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 class CommunityLinkPreview extends StatelessWidget {
@@ -381,68 +495,70 @@ class CommunityLinkPreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final brand = context.brand;
     final uri = Uri.tryParse(url);
     final host = uri?.host.replaceFirst(RegExp(r'^www\.'), '') ?? url;
     return Semantics(
       button: onTap != null,
       label: 'Open link to $host',
-      child: InkWell(
-        borderRadius: BorderRadius.circular(15),
-        onTap: onTap,
-        child: Ink(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            gradient: BrandGradients.parchment,
-            borderRadius: BorderRadius.circular(15),
-            border: Border.all(color: BrandColors.divider),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: BrandColors.heritageGreen.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(14),
+          onTap: onTap,
+          child: Container(
+            padding: const EdgeInsets.all(11),
+            decoration: BoxDecoration(
+              border: Border.all(color: brand.border),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 34,
+                  height: 34,
+                  decoration: BoxDecoration(
+                    color: brand.surfaceMuted,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(
+                    Icons.link_rounded,
+                    size: 17,
+                    color: brand.mutedInk,
+                  ),
                 ),
-                child: const Icon(
-                  Icons.link_rounded,
-                  color: BrandColors.heritageGreen,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      host.isEmpty ? 'External link' : host,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w900,
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        host.isEmpty ? 'External link' : host,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: brand.ink,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      url,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: BrandColors.mutedInk,
-                        fontSize: 10.5,
+                      const SizedBox(height: 1),
+                      Text(
+                        url,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(color: brand.faintInk, fontSize: 11),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-              const Icon(
-                Icons.open_in_new_rounded,
-                color: BrandColors.mutedInk,
-                size: 18,
-              ),
-            ],
+                Icon(
+                  Icons.open_in_new_rounded,
+                  color: brand.faintInk,
+                  size: 16,
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -466,6 +582,7 @@ class CommunityPollCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final brand = context.brand;
     // Results are read from the member's own ballot as well as the server
     // tally, so a vote cast a second ago is already visible in the bars.
     final poll = this.poll.includingBallot(votedOptionId);
@@ -482,24 +599,21 @@ class CommunityPollCard extends StatelessWidget {
             enabled: !poll.hasEnded && votedOptionId == null && onVote != null,
             onTap: () => onVote?.call(option.id),
           ),
-          const SizedBox(height: 7),
+          const SizedBox(height: 6),
         ],
         InkWell(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(6),
           onTap: onViewVotes,
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 3),
             child: Text(
-              '${communityCountLabel(poll.totalVotes)} ${poll.totalVotes == 1 ? 'vote' : 'votes'} · ${poll.hasEnded ? 'Poll ended' : 'Ends ${communityAgeFutureLabel(poll.endsAt)}'}',
+              '${communityCountLabel(poll.totalVotes)} '
+              '${poll.totalVotes == 1 ? 'vote' : 'votes'} · '
+              '${poll.hasEnded ? 'Poll ended' : 'Ends ${communityAgeFutureLabel(poll.endsAt)}'}',
               style: TextStyle(
-                color: onViewVotes == null
-                    ? BrandColors.mutedInk
-                    : BrandColors.heritageGreen,
-                fontSize: 10.5,
-                fontWeight: FontWeight.w700,
-                decoration: onViewVotes == null
-                    ? null
-                    : TextDecoration.underline,
+                color: onViewVotes == null ? brand.faintInk : brand.accent,
+                fontSize: 11.5,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ),
@@ -528,6 +642,7 @@ class _PollOption extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final brand = context.brand;
     final fraction = totalVotes == 0 ? 0.0 : option.voteCount / totalVotes;
     final percentage = (fraction * 100).round();
     return Semantics(
@@ -537,7 +652,7 @@ class _PollOption extends StatelessWidget {
           ? '${option.text}, $percentage percent'
           : option.text,
       child: InkWell(
-        borderRadius: BorderRadius.circular(13),
+        borderRadius: BorderRadius.circular(999),
         onTap: enabled
             ? () {
                 HapticFeedback.selectionClick();
@@ -545,14 +660,12 @@ class _PollOption extends StatelessWidget {
               }
             : null,
         child: Container(
-          height: 42,
+          height: 38,
           clipBehavior: Clip.antiAlias,
           decoration: BoxDecoration(
-            color: BrandColors.plasterCream.withValues(alpha: 0.7),
-            borderRadius: BorderRadius.circular(13),
-            border: Border.all(
-              color: selected ? BrandColors.heritageGreen : BrandColors.divider,
-            ),
+            color: revealsResults ? brand.surfaceMuted : Colors.transparent,
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(color: selected ? brand.accent : brand.border),
           ),
           child: Stack(
             fit: StackFit.expand,
@@ -562,43 +675,44 @@ class _PollOption extends StatelessWidget {
                   alignment: Alignment.centerLeft,
                   widthFactor: fraction.clamp(0, 1),
                   child: ColoredBox(
-                    color:
-                        (selected
-                                ? BrandColors.kenteGold
-                                : BrandColors.heritageGreen)
-                            .withValues(alpha: 0.18),
+                    color: brand.accent.withValues(
+                      alpha: selected ? 0.22 : 0.11,
+                    ),
                   ),
                 ),
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
+                padding: const EdgeInsets.symmetric(horizontal: 14),
                 child: Row(
                   children: [
                     if (selected) ...[
-                      const Icon(
+                      Icon(
                         Icons.check_circle_rounded,
-                        size: 16,
-                        color: BrandColors.heritageGreen,
+                        size: 15,
+                        color: brand.accent,
                       ),
-                      const SizedBox(width: 7),
+                      const SizedBox(width: 6),
                     ],
                     Expanded(
                       child: Text(
                         option.text,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 12.5,
-                          fontWeight: FontWeight.w800,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: selected
+                              ? FontWeight.w700
+                              : FontWeight.w600,
+                          color: brand.ink,
                         ),
                       ),
                     ),
                     if (revealsResults)
                       Text(
                         '$percentage%',
-                        style: const TextStyle(
-                          color: BrandColors.heritageGreen,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w900,
+                        style: TextStyle(
+                          color: brand.mutedInk,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
                   ],
@@ -621,6 +735,10 @@ String communityAgeFutureLabel(DateTime endsAt) {
 }
 
 /// Reply · Reshare/quote · Appreciate · Views · Save · Share.
+///
+/// Every glyph is [BrandPalette.mutedInk] until it means something. Colour on
+/// this row is a *state*, not decoration: exactly one icon lights up, and only
+/// because the reader made it.
 class PostActionBar extends StatelessWidget {
   const PostActionBar({
     required this.replyCount,
@@ -658,62 +776,66 @@ class PostActionBar extends StatelessWidget {
   String _label(int count) => count > 0 ? communityCountLabel(count) : '';
 
   @override
-  Widget build(BuildContext context) => Row(
-    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-    children: [
-      _ActionButton(
-        icon: Icons.chat_bubble_outline_rounded,
-        label: _label(replyCount),
-        tooltip: 'Reply',
-        onTap: onReply,
-      ),
-      _RepostButton(
-        count: _label(repostCount),
-        reposted: reposted,
-        onRepost: onRepost,
-        onQuote: onQuote,
-      ),
-      _LikeButton(liked: liked, count: likeCount, onTap: onLike),
-      _ActionButton(
-        icon: Icons.visibility_outlined,
-        label: _label(viewCount),
-        tooltip: onViews == null ? 'Views' : 'View engagement',
-        color: onViews == null
-            ? BrandColors.mutedInk
-            : BrandColors.heritageGreen,
-        onTap: onViews,
-      ),
-      _ActionButton(
-        icon: saved ? Icons.bookmark_rounded : Icons.bookmark_border_rounded,
-        label: '',
-        tooltip: saved ? 'Saved' : 'Save',
-        color: saved ? BrandColors.heritageGreen : BrandColors.mutedInk,
-        onTap: onSave,
-      ),
-      _ActionButton(
-        icon: Icons.share_outlined,
-        label: '',
-        tooltip: 'Share',
-        onTap: onShare,
-      ),
-    ],
-  );
+  Widget build(BuildContext context) {
+    final brand = context.brand;
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        _ActionButton(
+          icon: Icons.mode_comment_outlined,
+          label: _label(replyCount),
+          tooltip: 'Reply',
+          onTap: onReply,
+        ),
+        _RepostButton(
+          count: _label(repostCount),
+          reposted: reposted,
+          onRepost: onRepost,
+          onQuote: onQuote,
+        ),
+        _LikeButton(liked: liked, count: likeCount, onTap: onLike),
+        _ActionButton(
+          icon: Icons.bar_chart_rounded,
+          label: _label(viewCount),
+          tooltip: onViews == null ? 'Views' : 'View engagement',
+          onTap: onViews,
+        ),
+        _ActionButton(
+          icon: saved ? Icons.bookmark_rounded : Icons.bookmark_border_rounded,
+          label: '',
+          tooltip: saved ? 'Saved' : 'Save',
+          color: saved ? brand.accent : null,
+          onTap: onSave,
+        ),
+        _ActionButton(
+          icon: Icons.ios_share_rounded,
+          label: '',
+          tooltip: 'Share',
+          onTap: onShare,
+        ),
+      ],
+    );
+  }
 }
 
+/// The one tap target shape on the action row: a round ink well big enough for
+/// a thumb, with an optional count sitting beside the glyph.
 class _ActionButton extends StatefulWidget {
   const _ActionButton({
     required this.icon,
     required this.label,
     required this.tooltip,
     required this.onTap,
-    this.color = BrandColors.mutedInk,
+    this.color,
   });
 
   final IconData icon;
   final String label;
   final String tooltip;
   final VoidCallback? onTap;
-  final Color color;
+
+  /// Defaults to [BrandPalette.mutedInk] — the resting state.
+  final Color? color;
 
   @override
   State<_ActionButton> createState() => _ActionButtonState();
@@ -732,33 +854,37 @@ class _ActionButtonState extends State<_ActionButton> {
   }
 
   @override
-  Widget build(BuildContext context) => Tooltip(
-    message: widget.tooltip,
-    child: InkWell(
-      borderRadius: BorderRadius.circular(999),
-      onTap: widget.onTap == null ? null : _tap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 7),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(widget.icon, size: 18, color: widget.color),
-            if (widget.label.isNotEmpty) ...[
-              const SizedBox(width: 4),
-              Text(
-                widget.label,
-                style: TextStyle(
-                  color: widget.color,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
+  Widget build(BuildContext context) {
+    final brand = context.brand;
+    final color = widget.color ?? brand.mutedInk;
+    return Tooltip(
+      message: widget.tooltip,
+      child: InkResponse(
+        radius: 22,
+        onTap: widget.onTap == null ? null : _tap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(widget.icon, size: 17, color: color),
+              if (widget.label.isNotEmpty) ...[
+                const SizedBox(width: 5),
+                Text(
+                  widget.label,
+                  style: TextStyle(
+                    color: color,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
-              ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 class _RepostButton extends StatelessWidget {
@@ -776,28 +902,29 @@ class _RepostButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = reposted ? BrandColors.savannahGreen : BrandColors.mutedInk;
+    final brand = context.brand;
+    final color = reposted ? brand.repost : brand.mutedInk;
     return Tooltip(
       message: reposted ? 'Reshared' : 'Reshare or quote',
-      child: InkWell(
-        borderRadius: BorderRadius.circular(999),
+      child: InkResponse(
+        radius: 22,
         onTap: onRepost == null && onQuote == null
             ? null
             : () => _showSheet(context),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 7),
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.repeat_rounded, size: 18, color: color),
+              Icon(Icons.repeat_rounded, size: 17, color: color),
               if (count.isNotEmpty) ...[
-                const SizedBox(width: 4),
+                const SizedBox(width: 5),
                 Text(
                   count,
                   style: TextStyle(
                     color: color,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
               ],
@@ -817,13 +944,11 @@ class _RepostButton extends StatelessWidget {
           value: 'repost',
           icon: Icons.repeat_rounded,
           label: reposted ? 'Undo reshare' : 'Reshare',
-          description: 'Bring this post into your followers’ feed.',
         ),
         const GlassAction(
           value: 'quote',
           icon: Icons.format_quote_rounded,
           label: 'Quote post',
-          description: 'Add your own words above this post.',
         ),
       ],
     );
@@ -878,18 +1003,19 @@ class _LikeButtonState extends State<_LikeButton>
 
   @override
   Widget build(BuildContext context) {
-    final color = widget.liked ? BrandColors.terracotta : BrandColors.mutedInk;
+    final brand = context.brand;
+    final color = widget.liked ? brand.like : brand.mutedInk;
     return Tooltip(
       message: widget.liked ? 'Appreciated' : 'Appreciate',
-      child: InkWell(
-        borderRadius: BorderRadius.circular(999),
+      child: InkResponse(
+        radius: 22,
         onTap: () {
           HapticFeedback.lightImpact();
           if (!widget.liked) _controller.forward(from: 0);
           widget.onTap();
         },
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 7),
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -899,18 +1025,18 @@ class _LikeButtonState extends State<_LikeButton>
                   widget.liked
                       ? Icons.favorite_rounded
                       : Icons.favorite_border_rounded,
-                  size: 18,
+                  size: 17,
                   color: color,
                 ),
               ),
               if (widget.count > 0) ...[
-                const SizedBox(width: 4),
+                const SizedBox(width: 5),
                 Text(
                   communityCountLabel(widget.count),
                   style: TextStyle(
                     color: color,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
               ],
@@ -920,4 +1046,33 @@ class _LikeButtonState extends State<_LikeButton>
       ),
     );
   }
+}
+
+/// A bare icon tap target — used where an [IconButton]'s 48px box would push
+/// the row it sits in out of alignment.
+class _IconTap extends StatelessWidget {
+  const _IconTap({
+    required this.icon,
+    required this.tooltip,
+    required this.onTap,
+    this.size = 20,
+  });
+
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback onTap;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) => Tooltip(
+    message: tooltip,
+    child: InkResponse(
+      radius: 20,
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.all(6),
+        child: Icon(icon, size: size, color: context.brand.faintInk),
+      ),
+    ),
+  );
 }

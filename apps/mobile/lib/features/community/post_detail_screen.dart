@@ -40,8 +40,8 @@ class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
           : FloatingActionButton.extended(
               heroTag: 'post-reply',
               onPressed: () => actions.reply(context, post),
-              backgroundColor: BrandColors.heritageGreen,
-              foregroundColor: BrandColors.kenteGold,
+              backgroundColor: context.brand.accentFill,
+              foregroundColor: context.brand.onAccentFill,
               icon: const Icon(Icons.reply_rounded),
               label: const Text('Reply'),
             ),
@@ -84,7 +84,9 @@ class _Thread extends ConsumerWidget {
     final currentUid = ref.watch(currentUidProvider);
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
+      // Full-bleed, like the feed: the post rows draw their own gutter and
+      // their own hairline, so the list adds neither.
+      padding: const EdgeInsets.only(bottom: 96),
       children: [
         CommunityPostCard(
           post: post,
@@ -131,23 +133,17 @@ class _Thread extends ConsumerWidget {
           onOpenHandle: (handle) => actions.openHandle(context, handle),
           onOpenLink: (url) => actions.openLink(context, url),
         ),
-        const SizedBox(height: 20),
-        Row(
-          children: [
-            Text(
-              post.replyCount == 1 ? '1 REPLY' : '${post.replyCount} REPLIES',
-              style: const TextStyle(
-                color: BrandColors.heritageGreen,
-                fontSize: 11,
-                fontWeight: FontWeight.w900,
-                letterSpacing: 1.2,
-              ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 6),
+          child: Text(
+            post.replyCount == 1 ? '1 reply' : '${post.replyCount} replies',
+            style: TextStyle(
+              color: context.brand.mutedInk,
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
             ),
-            const SizedBox(width: 10),
-            const Expanded(child: Divider()),
-          ],
+          ),
         ),
-        const SizedBox(height: 10),
         ...switch (replies) {
           AsyncValue(:final value?) when value.isEmpty => const [
             CommunityEmptyState(
@@ -158,26 +154,23 @@ class _Thread extends ConsumerWidget {
           ],
           AsyncValue(:final value?) => [
             for (final reply in value)
-              Padding(
-                padding: const EdgeInsets.only(left: 14, bottom: 10),
-                child: _ThreadedReply(
-                  reply: reply,
-                  liked: likes.contains(reply.id),
-                  saved: saved.contains(reply.id),
-                  reposted: reposts.contains(reply.id),
-                  votedOptionId: pollVotes[reply.id],
-                  isOwner: currentUid == reply.authorId,
-                  actions: actions,
-                ),
+              _ThreadedReply(
+                reply: reply,
+                liked: likes.contains(reply.id),
+                saved: saved.contains(reply.id),
+                reposted: reposts.contains(reply.id),
+                votedOptionId: pollVotes[reply.id],
+                isOwner: currentUid == reply.authorId,
+                actions: actions,
               ),
           ],
-          AsyncValue(hasError: true) => const [
+          AsyncValue(hasError: true) => [
             Padding(
-              padding: EdgeInsets.symmetric(vertical: 24),
+              padding: const EdgeInsets.symmetric(vertical: 24),
               child: Text(
                 'Replies could not load.',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: BrandColors.mutedInk),
+                style: TextStyle(color: context.brand.mutedInk),
               ),
             ),
           ],
@@ -193,7 +186,11 @@ class _Thread extends ConsumerWidget {
   }
 }
 
-/// A reply, drawn against the kente-gold thread rail.
+/// A reply.
+///
+/// Indented under the post it answers and separated by the same hairline as
+/// everything else — the gold rail it used to hang off was the brightest thing
+/// on a screen whose subject is a conversation.
 class _ThreadedReply extends StatelessWidget {
   const _ThreadedReply({
     required this.reply,
@@ -214,11 +211,8 @@ class _ThreadedReply extends StatelessWidget {
   final CommunityActions actions;
 
   @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.only(left: 12),
-    decoration: const BoxDecoration(
-      border: Border(left: BorderSide(color: BrandColors.kenteGold, width: 2)),
-    ),
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(left: 20),
     child: CommunityPostCard(
       post: reply,
       liked: liked,

@@ -10,6 +10,7 @@ import 'package:indigen_world_mobile/features/community/data/community_models.da
 import 'package:indigen_world_mobile/features/community/data/community_providers.dart';
 import 'package:indigen_world_mobile/features/community/widgets/community_avatar.dart';
 import 'package:indigen_world_mobile/features/community/widgets/people_widgets.dart';
+import 'package:indigen_world_mobile/features/notifications/push_nudge.dart';
 import 'package:indigen_world_mobile/shared/glass_popup.dart';
 
 /// Opens the conversation with [profile], creating the thread on first use.
@@ -79,11 +80,18 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     super.initState();
     // Opening the thread is what marks it read. Doing it after the first frame
     // keeps the write off the path that has to paint.
-    WidgetsBinding.instance.addPostFrameCallback((_) => _markRead());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _markRead();
+      // Announce which conversation is on screen, so a push about this one is
+      // not drawn over the very message being read.
+      ref.read(activeChatThreadProvider.notifier).open(widget.threadId);
+    });
   }
 
   @override
   void dispose() {
+    ref.read(activeChatThreadProvider.notifier).close(widget.threadId);
     _controller.dispose();
     super.dispose();
   }
@@ -106,6 +114,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     }
 
     setState(() => _sending = true);
+    var sent = false;
     try {
       await repository.sendMessage(
         threadId: widget.threadId,
@@ -113,6 +122,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         recipientId: widget.otherUid,
         text: body,
       );
+      sent = true;
       if (!mounted) return;
       _controller.clear();
       HapticFeedback.lightImpact();
@@ -121,6 +131,15 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     } finally {
       if (mounted) setState(() => _sending = false);
     }
+
+    // Outside the catch on purpose. Anything that fails while asking about
+    // alerts is unrelated to whether the message went — reporting "Message not
+    // sent" for one that was would have somebody send it twice.
+    //
+    // The message is away; there is now somebody who might answer it and no way
+    // to be told when they do. A start-up decline gets exactly one second ask,
+    // and this is the moment it means something.
+    if (sent && mounted) await maybeOfferPushNudge(context, ref);
   }
 
   Future<void> _delete(ChatMessage message) async {
@@ -254,15 +273,15 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                     tooltip: 'Send',
                     onPressed: _sending ? null : _send,
                     style: IconButton.styleFrom(
-                      backgroundColor: BrandColors.heritageGreen,
-                      foregroundColor: BrandColors.kenteGold,
+                      backgroundColor: context.brand.accentFill,
+                      foregroundColor: context.brand.onAccentFill,
                     ),
                     icon: _sending
-                        ? const SizedBox.square(
+                        ? SizedBox.square(
                             dimension: 18,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              color: BrandColors.kenteGold,
+                              color: context.brand.gold,
                             ),
                           )
                         : const Icon(Icons.send_rounded),
@@ -310,7 +329,7 @@ class _MessageBubble extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.fromLTRB(13, 9, 13, 7),
               decoration: BoxDecoration(
-                color: mine ? BrandColors.heritageGreen : BrandColors.surface,
+                color: mine ? context.brand.accent : context.brand.surface,
                 borderRadius: BorderRadius.only(
                   topLeft: const Radius.circular(16),
                   topRight: const Radius.circular(16),
@@ -318,7 +337,7 @@ class _MessageBubble extends StatelessWidget {
                   bottomRight: Radius.circular(mine ? 4 : 16),
                 ),
                 border: Border.all(
-                  color: mine ? Colors.transparent : BrandColors.divider,
+                  color: mine ? Colors.transparent : context.brand.divider,
                 ),
               ),
               child: Column(
@@ -329,7 +348,7 @@ class _MessageBubble extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 15,
                       height: 1.35,
-                      color: mine ? Colors.white : BrandColors.ink,
+                      color: mine ? Colors.white : context.brand.ink,
                     ),
                   ),
                   const SizedBox(height: 3),
@@ -339,7 +358,7 @@ class _MessageBubble extends StatelessWidget {
                       fontSize: 8.5,
                       fontWeight: FontWeight.w800,
                       letterSpacing: 0.5,
-                      color: mine ? Colors.white54 : BrandColors.mutedInk,
+                      color: mine ? Colors.white54 : context.brand.mutedInk,
                     ),
                   ),
                 ],

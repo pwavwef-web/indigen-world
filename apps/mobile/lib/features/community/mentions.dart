@@ -56,10 +56,11 @@ class MentionQuery {
       final char = text[index];
       if (char == '@') {
         // `a@b` is an address, not a mention.
-        if (index > 0 && RegExp(r'[\w@]').hasMatch(text[index - 1])) return null;
-        final term = String.fromCharCodes(
-          buffer.toString().codeUnits.reversed,
-        ).toLowerCase();
+        if (index > 0 && RegExp(r'[\w@]').hasMatch(text[index - 1])) {
+          return null;
+        }
+        final term = String.fromCharCodes(buffer.toString().codeUnits.reversed)
+            .toLowerCase();
         if (term.length > 20) return null;
         return MentionQuery(start: index, end: cursor, term: term);
       }
@@ -86,11 +87,8 @@ class MentionQuery {
 /// Kawuri leads whenever the fragment is a prefix of its handle, because
 /// summoning the assistant is the one suggestion that is never in the member
 /// list and would otherwise be undiscoverable.
-final mentionSuggestionsProvider =
-    FutureProvider.autoDispose.family<List<CommunityProfile>, String>((
-      ref,
-      term,
-    ) async {
+final mentionSuggestionsProvider = FutureProvider.autoDispose
+    .family<List<CommunityProfile>, String>((ref, term) async {
       final suggestions = <CommunityProfile>[
         if (kawuriHandle.startsWith(term)) kawuriProfile,
       ];
@@ -143,7 +141,7 @@ class MentionSuggestions extends ConsumerWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: BrandColors.divider),
+        border: Border.all(color: context.brand.divider),
         boxShadow: const [
           BoxShadow(
             color: Color(0x14000000),
@@ -158,7 +156,7 @@ class MentionSuggestions extends ConsumerWidget {
         padding: EdgeInsets.zero,
         itemCount: suggestions.length,
         separatorBuilder: (_, _) =>
-            const Divider(height: 1, color: BrandColors.divider),
+            Divider(height: 1, color: context.brand.divider),
         itemBuilder: (context, index) {
           final profile = suggestions[index];
           final isAssistant = profile.username == kawuriHandle;
@@ -168,14 +166,14 @@ class MentionSuggestions extends ConsumerWidget {
                 ? Container(
                     width: 34,
                     height: 34,
-                    decoration: const BoxDecoration(
-                      color: BrandColors.heritageGreen,
+                    decoration: BoxDecoration(
+                      color: context.brand.accent,
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.auto_awesome_rounded,
                       size: 17,
-                      color: BrandColors.kenteGold,
+                      color: context.brand.gold,
                     ),
                   )
                 : CommunityAvatar(
@@ -194,16 +192,18 @@ class MentionSuggestions extends ConsumerWidget {
                 ),
                 if (profile.isVerified) ...[
                   const SizedBox(width: 4),
-                  const Icon(
+                  Icon(
                     Icons.verified_rounded,
                     size: 14,
-                    color: BrandColors.heritageGreen,
+                    color: context.brand.accent,
                   ),
                 ],
               ],
             ),
             subtitle: Text(
-              isAssistant ? '${profile.handle} · ask the guide' : profile.handle,
+              isAssistant
+                  ? '${profile.handle} · ask the guide'
+                  : profile.handle,
               overflow: TextOverflow.ellipsis,
             ),
             onTap: () {

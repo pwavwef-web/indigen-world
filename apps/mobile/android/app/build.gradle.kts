@@ -41,6 +41,11 @@ android {
     }
 
     compileOptions {
+        // flutter_local_notifications needs this to back-port the java.time
+        // APIs it uses onto older Android versions. Required whether or not the
+        // app schedules anything — without it the build fails at AAR metadata
+        // checking, not at runtime.
+        isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
@@ -102,6 +107,12 @@ android {
             resValue("string", "app_name", "Indigen")
         }
     }
+}
+
+dependencies {
+    // Pairs with isCoreLibraryDesugaringEnabled above. Version tracked by
+    // flutter_local_notifications; see its README if the plugin is upgraded.
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 }
 
 kotlin {

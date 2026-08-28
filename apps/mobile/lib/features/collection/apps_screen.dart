@@ -33,9 +33,6 @@ class AppsCollectionScreen extends ConsumerWidget {
                 child: BrandHeader(
                   eyebrow: 'Collection · Apps',
                   title: 'Kasem on every screen.',
-                  subtitle:
-                      'Kasem apps, scripture, and the rest of Indigen World — '
-                      'each one opens in its own store.',
                 ),
               ),
               ...switch (apps) {
@@ -108,15 +105,12 @@ class _AppCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  app.name,
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
+                Text(app.name, style: Theme.of(context).textTheme.titleMedium),
                 if (app.developer.isNotEmpty)
                   Text(
                     app.developer,
-                    style: const TextStyle(
-                      color: BrandColors.mutedInk,
+                    style: TextStyle(
+                      color: context.brand.mutedInk,
                       fontSize: 12,
                     ),
                   ),
@@ -137,8 +131,8 @@ class _AppCard extends StatelessWidget {
                     if (link != null)
                       Text(
                         _storeLabel(app),
-                        style: const TextStyle(
-                          color: BrandColors.heritageGreen,
+                        style: TextStyle(
+                          color: context.brand.accent,
                           fontSize: 11.5,
                           fontWeight: FontWeight.w900,
                         ),
@@ -148,10 +142,10 @@ class _AppCard extends StatelessWidget {
               ],
             ),
           ),
-          const Icon(
+          Icon(
             Icons.open_in_new_rounded,
             size: 18,
-            color: BrandColors.mutedInk,
+            color: context.brand.mutedInk,
           ),
         ],
       ),
@@ -189,14 +183,14 @@ class _AppIcon extends StatelessWidget {
   Widget build(BuildContext context) {
     final fallback = DecoratedBox(
       decoration: BoxDecoration(
-        color: BrandColors.heritageGreen.withValues(alpha: 0.1),
+        color: context.brand.accent.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(15),
       ),
       child: Center(
         child: Text(
           name.isEmpty ? '·' : name.characters.first.toUpperCase(),
-          style: const TextStyle(
-            color: BrandColors.heritageGreen,
+          style: TextStyle(
+            color: context.brand.accent,
             fontWeight: FontWeight.w900,
             fontSize: 22,
           ),
@@ -229,7 +223,7 @@ class _Tag extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
     decoration: BoxDecoration(
-      color: BrandColors.kenteGold.withValues(alpha: 0.16),
+      color: context.brand.gold.withValues(alpha: 0.16),
       borderRadius: BorderRadius.circular(999),
     ),
     child: Text(
@@ -262,14 +256,14 @@ class _CataloguePlaceholder extends StatelessWidget {
     child: Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Icon(icon, size: 44, color: BrandColors.mutedInk),
+        Icon(icon, size: 44, color: context.brand.mutedInk),
         const SizedBox(height: 14),
         Text(title, style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 7),
         Text(
           body,
           textAlign: TextAlign.center,
-          style: const TextStyle(color: BrandColors.mutedInk, height: 1.5),
+          style: TextStyle(color: context.brand.mutedInk, height: 1.5),
         ),
       ],
     ),

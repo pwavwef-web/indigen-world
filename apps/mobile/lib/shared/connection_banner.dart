@@ -41,12 +41,12 @@ class ConnectionBanner extends ConsumerWidget {
                     decoration: BoxDecoration(
                       color: onDark
                           ? Colors.black.withValues(alpha: 0.55)
-                          : BrandColors.terracotta.withValues(alpha: 0.13),
+                          : context.brand.terracotta.withValues(alpha: 0.13),
                       borderRadius: BorderRadius.circular(999),
                       border: Border.all(
                         color: onDark
                             ? Colors.white24
-                            : BrandColors.terracotta.withValues(alpha: 0.4),
+                            : context.brand.terracotta.withValues(alpha: 0.4),
                       ),
                     ),
                     child: Row(
@@ -58,8 +58,8 @@ class ConnectionBanner extends ConsumerWidget {
                               : Icons.cloud_sync_outlined,
                           size: 14,
                           color: onDark
-                              ? BrandColors.kenteGold
-                              : BrandColors.terracotta,
+                              ? context.brand.gold
+                              : context.brand.terracotta,
                         ),
                         const SizedBox(width: 7),
                         Flexible(
@@ -70,7 +70,7 @@ class ConnectionBanner extends ConsumerWidget {
                             style: TextStyle(
                               color: onDark
                                   ? Colors.white
-                                  : BrandColors.terracotta,
+                                  : context.brand.terracotta,
                               fontSize: 10.5,
                               fontWeight: FontWeight.w900,
                               letterSpacing: 0.3,

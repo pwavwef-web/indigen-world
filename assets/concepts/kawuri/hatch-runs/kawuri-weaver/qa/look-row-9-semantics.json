@@ -1,0 +1,17 @@
+{
+  "ok": true,
+  "registered_row": "qa/look-row-9-registered.png",
+  "post_registration_edge_check": "pass",
+  "continuity": "pass",
+  "continuity_reason": "The eyes and beak progress clockwise from up through screen-right toward down-right in even steps while the feet, baseline, volume, crest, wings, chest mark, and identity remain continuous.",
+  "directions": [
+    {"direction": "000", "verdict": "pass", "expected": "up", "observed": "both eyes and beak aim upward", "reason": "clear approved up pose family"},
+    {"direction": "022.5", "verdict": "pass", "expected": "up-right", "observed": "eyes lead slightly right while the beak remains lifted", "reason": "first even clockwise step from up"},
+    {"direction": "045", "verdict": "pass", "expected": "up-right", "observed": "head and beak turn farther right while keeping an upward axis", "reason": "readable upper-right quadrant"},
+    {"direction": "067.5", "verdict": "pass", "expected": "up-right", "observed": "rightward profile dominates with a remaining upward eye cue", "reason": "one step before the right cardinal"},
+    {"direction": "090", "verdict": "pass", "expected": "right", "observed": "beak tip and visible pupil sit clearly right of head center", "reason": "unmistakable screen-right cardinal"},
+    {"direction": "112.5", "verdict": "pass", "expected": "down-right", "observed": "right profile remains while eye and beak pitch begin to descend", "reason": "first even step below right"},
+    {"direction": "135", "verdict": "pass", "expected": "down-right", "observed": "eyes and beak aim visibly into the lower-right quadrant", "reason": "coherent diagonal continuation"},
+    {"direction": "157.5", "verdict": "pass", "expected": "down-right", "observed": "beak and eyes dip farther while retaining the right-facing side", "reason": "one continuous step before the down cardinal"}
+  ]
+}

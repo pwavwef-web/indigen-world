@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
+import 'package:indigen_world_mobile/shared/glass_surface.dart';
 
 class ScreenContainer extends StatelessWidget {
   const ScreenContainer({required this.child, super.key});
@@ -23,14 +24,16 @@ class AnimatedCulturalSymbol extends StatefulWidget {
   const AnimatedCulturalSymbol({
     required this.glyph,
     required this.label,
-    this.color = BrandColors.kenteGold,
+    this.color,
     this.size = 58,
     super.key,
   });
 
   final String glyph;
   final String label;
-  final Color color;
+
+  /// Defaults to the palette's gold.
+  final Color? color;
   final double size;
 
   @override
@@ -57,46 +60,49 @@ class _AnimatedCulturalSymbolState extends State<AnimatedCulturalSymbol>
   }
 
   @override
-  Widget build(BuildContext context) => Semantics(
-    label: '${widget.label} cultural motif',
-    child: Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        RotationTransition(
-          turns: Tween(begin: 0.0, end: 1.0).animate(_controller),
-          child: Container(
-            width: widget.size,
-            height: widget.size,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: widget.color.withValues(alpha: 0.45)),
-              color: widget.color.withValues(alpha: 0.08),
-            ),
-            child: Center(
-              child: Text(
-                widget.glyph,
-                style: TextStyle(
-                  color: widget.color,
-                  fontSize: widget.size * 0.55,
-                  fontWeight: FontWeight.w700,
+  Widget build(BuildContext context) {
+    final color = widget.color ?? context.brand.gold;
+    return Semantics(
+      label: '${widget.label} cultural motif',
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          RotationTransition(
+            turns: Tween(begin: 0.0, end: 1.0).animate(_controller),
+            child: Container(
+              width: widget.size,
+              height: widget.size,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: color.withValues(alpha: 0.35)),
+                color: color.withValues(alpha: 0.07),
+              ),
+              child: Center(
+                child: Text(
+                  widget.glyph,
+                  style: TextStyle(
+                    color: color,
+                    fontSize: widget.size * 0.55,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
             ),
           ),
-        ),
-        const SizedBox(height: 5),
-        Text(
-          widget.label,
-          style: TextStyle(
-            color: widget.color,
-            fontSize: 7,
-            fontWeight: FontWeight.w900,
-            letterSpacing: 0.8,
+          const SizedBox(height: 5),
+          Text(
+            widget.label,
+            style: TextStyle(
+              color: color,
+              fontSize: 7,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.8,
+            ),
           ),
-        ),
-      ],
-    ),
-  );
+        ],
+      ),
+    );
+  }
 }
 
 class BrandHeader extends StatelessWidget {
@@ -128,23 +134,26 @@ class BrandHeader extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Set in the same muted ink as every other piece of supporting
+              // text. A coloured eyebrow over every heading in the app meant
+              // the accent was carrying no information at all.
               Text(
                 eyebrow.toUpperCase(),
-                style: const TextStyle(
-                  color: BrandColors.terracotta,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 1.2,
+                style: TextStyle(
+                  color: context.brand.mutedInk,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1.1,
                 ),
               ),
-              const SizedBox(height: 5),
+              const SizedBox(height: 6),
               Text(title, style: Theme.of(context).textTheme.headlineMedium),
               if (subtitle != null) ...[
                 const SizedBox(height: 6),
                 Text(
                   subtitle!,
                   style: Theme.of(context).textTheme.bodyMedium
-                      ?.copyWith(color: BrandColors.mutedInk),
+                      ?.copyWith(color: context.brand.mutedInk),
                 ),
               ],
             ],
@@ -177,22 +186,16 @@ class DemoDataNotice extends StatelessWidget {
   const DemoDataNotice({super.key});
 
   @override
-  Widget build(BuildContext context) => Container(
+  Widget build(BuildContext context) => GlassSurface(
     padding: const EdgeInsets.all(14),
-    decoration: BoxDecoration(
-      color: BrandColors.kenteGold.withValues(alpha: 0.12),
-      borderRadius: BorderRadius.circular(16),
-      border: Border.all(color: BrandColors.kenteGold.withValues(alpha: 0.45)),
-    ),
-    child: const Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    child: Row(
       children: [
-        Icon(Icons.science_outlined, color: BrandColors.heritageGreen),
-        SizedBox(width: 12),
-        Expanded(
+        Icon(Icons.science_outlined, color: context.brand.mutedInk),
+        const SizedBox(width: 12),
+        const Expanded(
           child: Text(
-            'Development build: dictionary records are synthetic fixtures, not validated Kasem guidance.',
-            style: TextStyle(fontWeight: FontWeight.w600, height: 1.35),
+            'Development build · sample data',
+            style: TextStyle(fontWeight: FontWeight.w700),
           ),
         ),
       ],
@@ -241,63 +244,52 @@ class FeatureLockedCard extends StatelessWidget {
   const FeatureLockedCard({
     required this.icon,
     required this.title,
-    required this.description,
     required this.gate,
+    this.description,
     super.key,
   });
 
   final IconData icon;
   final String title;
-  final String description;
+
+  /// One short line on why it is locked, or nothing. It used to be a required
+  /// paragraph, which is how a card that exists to say "not yet" ended up being
+  /// the tallest thing on the screen.
+  final String? description;
+
   final String gate;
 
   @override
-  Widget build(BuildContext context) => Card(
-    child: Padding(
-      padding: const EdgeInsets.all(18),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 46,
-            height: 46,
-            decoration: BoxDecoration(
-              color: BrandColors.heritageGreen.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Icon(icon, color: BrandColors.heritageGreen),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        title,
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                    ),
-                    StatusPill(
-                      icon: Icons.lock_outline,
-                      label: gate,
-                      color: BrandColors.mutedInk,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
+  Widget build(BuildContext context) => GlassCard(
+    padding: const EdgeInsets.all(16),
+    child: Row(
+      children: [
+        GlassIconPlate(icon: icon, size: 46),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: Theme.of(context).textTheme.titleMedium),
+              if (description != null && description!.isNotEmpty) ...[
+                const SizedBox(height: 4),
                 Text(
-                  description,
-                  style: Theme.of(context).textTheme.bodyMedium
-                      ?.copyWith(color: BrandColors.mutedInk),
+                  description!,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(color: context.brand.mutedInk, fontSize: 12),
                 ),
               ],
-            ),
+            ],
           ),
-        ],
-      ),
+        ),
+        const SizedBox(width: 10),
+        StatusPill(
+          icon: Icons.lock_outline_rounded,
+          label: gate,
+          color: context.brand.mutedInk,
+        ),
+      ],
     ),
   );
 }

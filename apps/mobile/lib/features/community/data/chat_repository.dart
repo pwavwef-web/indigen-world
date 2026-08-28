@@ -81,11 +81,14 @@ class ChatThread {
 
   bool get hasUnread => unreadCount > 0;
 
+  /// Reads a thread from any snapshot — an inbox row or a single document
+  /// fetched by id, which is all a deep link from a push has to go on.
   static ChatThread? fromDoc(
-    QueryDocumentSnapshot<Map<String, dynamic>> doc,
+    DocumentSnapshot<Map<String, dynamic>> doc,
     String myUid,
   ) {
     final data = doc.data();
+    if (data == null) return null;
     final rawParticipants = data['participants'];
     if (rawParticipants is! List) return null;
     final participants = rawParticipants.whereType<String>().toList();
@@ -265,6 +268,25 @@ class ChatRepository {
 
   /// Clears this member's unread count. Best-effort: a failed clear costs a
   /// badge that is one conversation stale, never a lost message.
+  /// Loads one conversation by id.
+  ///
+  /// A push carries a thread id and nothing else, so the name and face the
+  /// screen needs have to be recovered from the thread's own stamps. Returns
+  /// null when the thread is gone or the reader is not part of it — the rules
+  /// refuse the read in that case, and a refusal is the same answer as absent.
+  Future<ChatThread?> loadThread({
+    required String threadId,
+    required String uid,
+  }) async {
+    try {
+      final doc = await _chats.doc(threadId).get();
+      if (!doc.exists) return null;
+      return ChatThread.fromDoc(doc, uid);
+    } on FirebaseException {
+      return null;
+    }
+  }
+
   Future<void> markRead({required String threadId, required String uid}) async {
     try {
       await _chats.doc(threadId).update({'unread.$uid': 0});

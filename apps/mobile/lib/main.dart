@@ -7,8 +7,10 @@ import 'package:indigen_world_mobile/app/indigen_world_app.dart';
 import 'package:indigen_world_mobile/core/app_signature.dart';
 import 'package:indigen_world_mobile/core/firebase_bootstrap.dart';
 import 'package:indigen_world_mobile/core/firebase_ready.dart';
+import 'package:indigen_world_mobile/core/theme_mode.dart';
 import 'package:indigen_world_mobile/data/local/app_database.dart';
 import 'package:indigen_world_mobile/data/local/legacy_preferences_migration.dart';
+import 'package:indigen_world_mobile/features/rating/rating_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -20,6 +22,14 @@ Future<void> main() async {
   // that cannot wait for a platform channel, and this is the only place the
   // answer is knowable at all on a Play-signed release.
   await const AppSignatureReader().read();
+
+  // One line in the ledger the review prompt reads from. Counted per launch
+  // rather than per session so "three distinct days" means what it says.
+  await recordRatingActivity();
+
+  // Read before the first frame. Resolving the appearance choice afterwards
+  // would show every member who chose dark a white flash on the way to it.
+  final themeMode = await readStoredThemeMode();
 
   final firebaseReady = await FirebaseBootstrap.initialize();
   if (firebaseReady) {
@@ -39,8 +49,21 @@ Future<void> main() async {
         // the Explore feed — behaves as though the device were offline no
         // matter how good the connection is.
         firebaseReadyProvider.overrideWithValue(firebaseReady),
+        themeModeProvider.overrideWith(
+          () => _StoredThemeModeController(themeMode),
+        ),
       ],
       child: const IndigenWorldApp(),
     ),
   );
+}
+
+/// The controller seeded with the choice read before the first frame.
+class _StoredThemeModeController extends ThemeModeController {
+  _StoredThemeModeController(this._initial);
+
+  final ThemeMode _initial;
+
+  @override
+  ThemeMode build() => _initial;
 }

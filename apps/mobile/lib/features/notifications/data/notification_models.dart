@@ -40,16 +40,20 @@ enum NotificationKind {
     NotificationKind.announcement => Icons.campaign_rounded,
   };
 
-  Color get accent => switch (this) {
-    NotificationKind.like => BrandColors.terracotta,
-    NotificationKind.repost => BrandColors.savannahGreen,
-    NotificationKind.quote => BrandColors.kenteGold,
-    NotificationKind.reply => BrandColors.savannahGreen,
-    NotificationKind.follow => BrandColors.heritageGreen,
-    NotificationKind.mention => BrandColors.kenteGold,
-    NotificationKind.post => BrandColors.savannahGreen,
-    NotificationKind.publication => BrandColors.kenteGold,
-    NotificationKind.announcement => BrandColors.heritageGreen,
+  /// The mark this kind wears, resolved for [brand].
+  ///
+  /// A notification kind is data, so it has no context to read a palette from;
+  /// the row drawing it hands one in.
+  Color accent(BrandPalette brand) => switch (this) {
+    NotificationKind.like => brand.like,
+    NotificationKind.repost => brand.repost,
+    NotificationKind.quote => brand.gold,
+    NotificationKind.reply => brand.accent,
+    NotificationKind.follow => brand.accent,
+    NotificationKind.mention => brand.gold,
+    NotificationKind.post => brand.accent,
+    NotificationKind.publication => brand.gold,
+    NotificationKind.announcement => brand.terracotta,
   };
 }
 

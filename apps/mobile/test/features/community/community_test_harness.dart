@@ -334,6 +334,7 @@ Widget communityHarness({
   required FakeCommunityRepository repository,
   String? uid = 'amina-uid',
   CommunityProfile? profile,
+  ThemeData? theme,
 }) => ProviderScope(
   overrides: [
     communityRepositoryProvider.overrideWithValue(repository),
@@ -344,5 +345,5 @@ Widget communityHarness({
       (ref) => Stream<CommunityProfile?>.value(profile),
     ),
   ],
-  child: MaterialApp(theme: buildIndigenTheme(), home: child),
+  child: MaterialApp(theme: theme ?? buildIndigenTheme(), home: child),
 );

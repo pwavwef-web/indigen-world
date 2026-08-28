@@ -63,12 +63,12 @@ class ProfileOrb extends ConsumerWidget {
                 border: Border.all(
                   color: onDark
                       ? Colors.white38
-                      : BrandColors.kenteGold.withValues(alpha: 0.55),
+                      : context.brand.gold.withValues(alpha: 0.55),
                   width: 1.2,
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: BrandColors.heritageGreen.withValues(alpha: 0.18),
+                    color: context.brand.accent.withValues(alpha: 0.18),
                     blurRadius: 12,
                     offset: const Offset(0, 4),
                   ),
@@ -79,11 +79,12 @@ class ProfileOrb extends ConsumerWidget {
                     ? CachedNetworkImage(
                         imageUrl: photoUrl,
                         fit: BoxFit.cover,
-                        placeholder: (context, url) => _fallback(initial),
+                        placeholder: (context, url) =>
+                            _fallback(context, initial),
                         errorWidget: (context, url, error) =>
-                            _fallback(initial),
+                            _fallback(context, initial),
                       )
-                    : _fallback(initial),
+                    : _fallback(context, initial),
               ),
             ),
           ),
@@ -92,8 +93,8 @@ class ProfileOrb extends ConsumerWidget {
     );
   }
 
-  Widget _fallback(String? initial) => ColoredBox(
-    color: BrandColors.heritageGreen,
+  Widget _fallback(BuildContext context, String? initial) => ColoredBox(
+    color: context.brand.accentFill,
     child: Center(
       child: initial != null
           ? Text(
