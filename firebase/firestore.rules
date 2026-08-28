@@ -497,6 +497,21 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // ---- Advertising campaigns: owner reads own, server writes everything ---
+    //
+    // A campaign is money. Its status, what it has been charged, whether it is
+    // paid and what it has earned in impressions are all decided server-side,
+    // so this collection is read-only to every client — including its owner.
+    // Creating, editing and cancelling all go through callables in ads.ts,
+    // which price the campaign themselves rather than believing a total that
+    // arrived from a phone.
+    match /adCampaigns/{campaignId} {
+      allow read: if isStaff() || (
+        isSignedIn() && resource.data.ownerUid == request.auth.uid
+      );
+      allow write: if false;
+    }
+
     // ---- Notifications: owner reads own; owner may only flip `read` ----------
     match /notifications/{notificationId} {
       allow read: if isStaff() || (

@@ -132,7 +132,10 @@ export function parseCollectionContributionInput(
   const data = raw as Record<string, unknown>;
   const kind = data.collectionKind;
   if (typeof kind !== 'string' || !(COLLECTION_KINDS as readonly string[]).includes(kind)) {
-    throw new HttpsError('invalid-argument', 'collectionKind must be music, dictionary, literature, or audiobooks.');
+    throw new HttpsError(
+      'invalid-argument',
+      `collectionKind must be one of: ${COLLECTION_KINDS.join(', ')}.`,
+    );
   }
   if (data.rightsConfirmed !== true) {
     throw new HttpsError('failed-precondition', 'Permission to share this work for community review is required.');
@@ -168,9 +171,10 @@ export function parseCollectionContributionInput(
 
   const relatedEntryId = optionalText(data, 'relatedEntryId', 200) || null;
   const media = parseContributionMedia(data.media, uid);
-  // A song or a narration is the recording. Accepting one without the file
-  // would put an empty item in the review queue that nobody can assess.
-  if (!media && !mediaUrl && (kind === 'music' || kind === 'audiobooks')) {
+  // A song, a narration or a film *is* its recording. Accepting one without
+  // the file would put an empty item in the review queue that nobody can
+  // assess.
+  if (!media && !mediaUrl && (kind === 'music' || kind === 'audiobooks' || kind === 'video')) {
     throw new HttpsError('failed-precondition', 'Upload the recording before submitting.');
   }
   return {
@@ -194,9 +198,10 @@ export function parseCollectionContributionInput(
   };
 }
 
-function studioTypeFor(kind: CollectionKind): 'writing' | 'audio' | 'translation' {
+function studioTypeFor(kind: CollectionKind): 'writing' | 'audio' | 'translation' | 'video' {
   if (kind === 'music' || kind === 'audiobooks') return 'audio';
   if (kind === 'dictionary') return 'translation';
+  if (kind === 'video') return 'video';
   return 'writing';
 }
 

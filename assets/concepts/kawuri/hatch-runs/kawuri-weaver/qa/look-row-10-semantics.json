@@ -1,0 +1,17 @@
+{
+  "ok": true,
+  "assembled_atlas": "final/spritesheet-extended.webp",
+  "post_registration_edge_check": "pass",
+  "continuity": "pass_with_reviewed_metric_warnings",
+  "continuity_reason": "The down-to-left-to-up-left sequence advances without reversal, identity change, scale pop, broken attachment, or baseline jump. Reported transparent-hole rows are visible natural gaps between toes, feet, wing tips, and tail feathers rather than holes through a filled body. The larger 337.5-to-000 alpha-area and center metrics reflect the natural change from a narrower three-quarter pose to the wider frontal up cardinal; the feet/lower-body anchor stays visually stable.",
+  "directions": [
+    {"direction": "180", "verdict": "pass", "expected": "down", "observed": "both eyes and beak aim toward the chest", "reason": "unmistakable approved down cardinal"},
+    {"direction": "202.5", "verdict": "pass", "expected": "down-left", "observed": "eyes and beak begin moving left while remaining pitched down", "reason": "first even clockwise step after down"},
+    {"direction": "225", "verdict": "pass", "expected": "down-left", "observed": "head and beak occupy the lower-left quadrant", "reason": "coherent down-left diagonal"},
+    {"direction": "247.5", "verdict": "pass", "expected": "down-left", "observed": "left profile strengthens while the eyes retain a downward cue", "reason": "one step before the left cardinal"},
+    {"direction": "270", "verdict": "pass", "expected": "left", "observed": "beak tip and visible pupil sit clearly left of head center", "reason": "unmistakable screen-left cardinal"},
+    {"direction": "292.5", "verdict": "pass", "expected": "up-left", "observed": "left profile remains while eye and beak pitch begin to rise", "reason": "first even step above left"},
+    {"direction": "315", "verdict": "pass", "expected": "up-left", "observed": "eyes and beak aim into the upper-left quadrant", "reason": "coherent up-left diagonal"},
+    {"direction": "337.5", "verdict": "pass", "expected": "up-left", "observed": "beak and eyes rise farther while retaining a leftward axis", "reason": "one continuous step before frontal up"}
+  ]
+}

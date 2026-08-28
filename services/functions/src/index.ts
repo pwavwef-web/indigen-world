@@ -26,6 +26,11 @@ export {
   submitCollectionContribution,
   withdrawCollectionContribution,
 } from './collection-contributions.js';
+export {
+  submitAdCampaign,
+  updateAdCampaign,
+  cancelAdCampaign,
+} from './ads.js';
 export { kawuriChat } from './kawuri.js';
 export { onCommunityKawuriMention } from './community-kawuri.js';
 export {

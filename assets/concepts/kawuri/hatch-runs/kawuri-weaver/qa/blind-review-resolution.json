@@ -1,0 +1,19 @@
+{
+  "decision": "accept",
+  "severity": "minor",
+  "reviewed_by": "parent",
+  "failed_checks": [
+    "horizontal-1 B: 337.5 horizontal axis classified ambiguous by blind majority",
+    "vertical-7 A: 247.5 vertical axis classified ambiguous by blind majority"
+  ],
+  "evidence": {
+    "labeled_review": "Independent normal-size review confirms 337.5 as up-left and 247.5 as down-left in the ordered clockwise loop.",
+    "cardinals": "000, 090, 180, and 270 are unmistakable and all hard blind gates pass.",
+    "continuity": "The ordered loop has no visible reversal, semantic discontinuity, identity change, snap, or scale pop.",
+    "deterministic_validation": "direction-blind-validation.json and validation-extended.json both report ok true."
+  },
+  "accepted_warnings": [
+    "247.5 has subtle vertical pitch at normal pet size.",
+    "337.5 has subtle horizontal bias near the up cardinal."
+  ]
+}

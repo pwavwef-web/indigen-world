@@ -19,7 +19,8 @@ import 'package:path/path.dart' as p;
 enum ContributionMediaKind {
   audio,
   document,
-  image;
+  image,
+  video;
 
   /// Extensions offered in the system picker.
   ///
@@ -48,12 +49,17 @@ enum ContributionMediaKind {
       'epub',
     ],
     ContributionMediaKind.image => const ['jpg', 'jpeg', 'png', 'webp'],
+    // Kept to the containers phones actually produce and Storage will accept.
+    // A member who picks an .mkv here finds out now rather than after twenty
+    // minutes of upload on a rural connection.
+    ContributionMediaKind.video => const ['mp4', 'mov', 'm4v', 'webm', '3gp'],
   };
 
   String get label => switch (this) {
     ContributionMediaKind.audio => 'audio file',
     ContributionMediaKind.document => 'document',
     ContributionMediaKind.image => 'image',
+    ContributionMediaKind.video => 'video',
   };
 
   /// The `mediaType` the review pipeline stores alongside the file.
@@ -61,6 +67,7 @@ enum ContributionMediaKind {
     ContributionMediaKind.audio => 'audio',
     ContributionMediaKind.document => 'document',
     ContributionMediaKind.image => 'image',
+    ContributionMediaKind.video => 'video',
   };
 }
 
@@ -102,8 +109,7 @@ class PickedContributionFile {
       'amr' => 'audio/amr',
       'pdf' => 'application/pdf',
       'doc' => 'application/msword',
-      'docx' =>
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       'rtf' => 'application/rtf',
       'epub' => 'application/epub+zip',
       'txt' => 'text/plain',
@@ -111,6 +117,11 @@ class PickedContributionFile {
       'png' => 'image/png',
       'webp' => 'image/webp',
       'jpg' || 'jpeg' => 'image/jpeg',
+      'mp4' => 'video/mp4',
+      'mov' => 'video/quicktime',
+      'm4v' => 'video/x-m4v',
+      'webm' => 'video/webm',
+      '3gp' => 'video/3gpp',
       _ => 'application/octet-stream',
     };
   }
@@ -149,11 +160,20 @@ class ContributionUploadFailure implements Exception {
 
 /// Chooses and uploads the file behind a contribution.
 class ContributionUploader {
-  const ContributionUploader();
+  const ContributionUploader({this.campaignId = collectionCampaignId});
 
   /// The campaign every mobile Collection contribution belongs to. Also the
   /// second path segment Storage rules and the callable both check.
-  static const campaignId = 'collection-contributions';
+  static const collectionCampaignId = 'collection-contributions';
+
+  /// Where an advertiser's creative lands. A separate second segment keeps ad
+  /// artwork out of the Collection review prefix, so a reviewer opening the
+  /// contribution queue never finds a billboard in it. The Storage rules treat
+  /// the segment as a wildcard and keep both private to their owner either way.
+  static const adCampaignId = 'ad-campaigns';
+
+  /// Which of those prefixes this uploader writes into.
+  final String campaignId;
 
   /// Ceiling on one upload. Well under the Storage rules' 500 MB so a member
   /// on a slow connection is stopped by a sentence rather than by a refused
@@ -219,16 +239,14 @@ class ContributionUploader {
         mediaType: file.kind.mediaType,
       );
     } on FirebaseException catch (error) {
-      throw ContributionUploadFailure(
-        switch (error.code) {
-          'unauthorized' =>
-            'That file type cannot be uploaded. Try a common ${file.kind.label} format.',
-          'canceled' => 'The upload was cancelled.',
-          _ =>
-            'The ${file.kind.label} did not finish uploading. '
-                'Check your connection and try again.',
-        },
-      );
+      throw ContributionUploadFailure(switch (error.code) {
+        'unauthorized' =>
+          'That file type cannot be uploaded. Try a common ${file.kind.label} format.',
+        'canceled' => 'The upload was cancelled.',
+        _ =>
+          'The ${file.kind.label} did not finish uploading. '
+              'Check your connection and try again.',
+      });
     }
   }
 

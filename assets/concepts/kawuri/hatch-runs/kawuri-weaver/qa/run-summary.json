@@ -1,0 +1,19 @@
+{
+  "ok": true,
+  "spriteVersionNumber": 2,
+  "run_dir": "C:\\Users\\DELL\\Desktop\\indigen-world\\assets\\concepts\\kawuri\\hatch-runs\\kawuri-weaver",
+  "spritesheet": "C:\\Users\\DELL\\Desktop\\indigen-world\\assets\\concepts\\kawuri\\hatch-runs\\kawuri-weaver\\final\\spritesheet-extended.webp",
+  "validation": "C:\\Users\\DELL\\Desktop\\indigen-world\\assets\\concepts\\kawuri\\hatch-runs\\kawuri-weaver\\final\\validation-extended.json",
+  "chroma_despill": "C:\\Users\\DELL\\Desktop\\indigen-world\\assets\\concepts\\kawuri\\hatch-runs\\kawuri-weaver\\qa\\chroma-despill-extended.json",
+  "contact_sheet": "C:\\Users\\DELL\\Desktop\\indigen-world\\assets\\concepts\\kawuri\\hatch-runs\\kawuri-weaver\\qa\\contact-sheet-extended.png",
+  "direction_sheet": "C:\\Users\\DELL\\Desktop\\indigen-world\\assets\\concepts\\kawuri\\hatch-runs\\kawuri-weaver\\qa\\look-directions.png",
+  "direction_semantics": "C:\\Users\\DELL\\Desktop\\indigen-world\\assets\\concepts\\kawuri\\hatch-runs\\kawuri-weaver\\qa\\direction-semantics.json",
+  "blind_direction_validation": "C:\\Users\\DELL\\Desktop\\indigen-world\\assets\\concepts\\kawuri\\hatch-runs\\kawuri-weaver\\qa\\direction-blind-validation.json",
+  "blind_review_resolution": "C:\\Users\\DELL\\Desktop\\indigen-world\\assets\\concepts\\kawuri\\hatch-runs\\kawuri-weaver\\qa\\blind-review-resolution.json",
+  "continuity": "C:\\Users\\DELL\\Desktop\\indigen-world\\assets\\concepts\\kawuri\\hatch-runs\\kawuri-weaver\\qa\\look-continuity.json",
+  "review": "C:\\Users\\DELL\\Desktop\\indigen-world\\assets\\concepts\\kawuri\\hatch-runs\\kawuri-weaver\\qa\\review.json",
+  "package": "C:\\Users\\DELL\\.codex\\pets\\kawuri-weaver",
+  "app_assets": "C:\\Users\\DELL\\Desktop\\indigen-world\\apps\\mobile\\assets\\characters\\kawuri",
+  "avatar": "C:\\Users\\DELL\\Desktop\\indigen-world\\apps\\mobile\\assets\\characters\\kawuri\\avatar.png",
+  "celebration_frames": "C:\\Users\\DELL\\Desktop\\indigen-world\\apps\\mobile\\assets\\characters\\kawuri\\celebrate"
+}
