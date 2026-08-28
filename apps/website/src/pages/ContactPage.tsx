@@ -34,10 +34,26 @@ export function ContactPage() {
           <div data-reveal>
             <ContactForm />
           </div>
-          <p className="contact-alt">
-            Publication, correction and takedown requests can use this same route. Please choose
-            the closest subject and avoid including private cultural records in the message.
-          </p>
+          <aside className="contact-guidance" data-reveal aria-labelledby="contact-next-steps">
+            <p className="eyebrow">After you send</p>
+            <h2 id="contact-next-steps">What happens next</h2>
+            <p>
+              We aim to acknowledge general enquiries within five working days. Publication,
+              correction and takedown reviews may take longer when community or rights-holder
+              consultation is needed.
+            </p>
+            <p>
+              If the form is unavailable, email{" "}
+              <a className="contact-email" href="mailto:hi@indigenworld.com">
+                hi@indigenworld.com
+              </a>
+              . For a correction or takedown, use that wording in the subject line.
+            </p>
+            <p className="contact-alt">
+              Please do not include private cultural records, restricted knowledge, or information
+              about minors in either channel.
+            </p>
+          </aside>
         </div>
       </section>
     </>

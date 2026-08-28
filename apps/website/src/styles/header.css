@@ -174,8 +174,16 @@
 .mobile-nav nav {
   min-height: 0;
   max-height: calc(100dvh - 68px);
-  overflow-y: auto;
+  overflow-y: hidden;
   display: grid;
+  padding-top: 0;
+  padding-bottom: 0;
+  transition:
+    padding-top var(--motion-duration) var(--motion-ease),
+    padding-bottom var(--motion-duration) var(--motion-ease);
+}
+.mobile-nav--open nav {
+  overflow-y: auto;
   padding-top: 8px;
   padding-bottom: 18px;
 }

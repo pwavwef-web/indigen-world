@@ -2,8 +2,8 @@
  * src/styles/contact.css
  *
  * Layout for the Contact and Get Involved pages: the form-section
- * wrapper (heading + form side by side once there's room), the
- * waitlist band, and the contact page's mailto fallback line.
+ * wrapper (heading + form side by side once there's room) and the
+ * contact page's guidance and email fallback.
  */
 
 .form-section {
@@ -53,36 +53,29 @@
 }
 
 .contact-alt {
-  margin-top: var(--space-3);
+  margin: 0;
   font-size: 0.92rem;
   color: var(--muted);
+}
+.contact-guidance {
+  padding: var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--cream);
+}
+.contact-guidance h2 {
+  margin-bottom: var(--space-2);
+  color: var(--indigo-900);
+  font-size: 1.45rem;
+}
+.contact-guidance > p:not(.eyebrow):not(:last-child) {
+  margin-bottom: var(--space-2);
 }
 .contact-email {
   font-weight: 700;
   color: var(--indigo-900);
   text-decoration: underline;
-}
-
-.waitlist-band {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  padding: var(--space-4);
-  border-radius: var(--radius-lg);
-  background: var(--sand);
-  min-width: 0;
-}
-.waitlist-band h3 {
-  margin-bottom: 4px;
-}
-.waitlist-band > div > p {
-  margin: 0;
-}
-.waitlist-band > * {
-  min-width: 0;
-}
-.waitlist-band .newsletter-form {
-  width: 100%;
+  text-underline-offset: 3px;
 }
 
 @media (min-width: 900px) {
@@ -102,17 +95,5 @@
   .contact-card__actions {
     width: auto;
     flex: 0 0 auto;
-  }
-  .waitlist-band {
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--space-4);
-  }
-  .waitlist-band > div {
-    max-width: 44ch;
-  }
-  .waitlist-band .newsletter-form {
-    flex: 1 1 560px;
   }
 }

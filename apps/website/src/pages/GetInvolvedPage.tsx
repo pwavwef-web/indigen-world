@@ -5,15 +5,14 @@
  * template's only "get involved" mechanism was a mailto: button in the
  * contact section. The brief's sitemap lists Get Involved as its own
  * P0 page distinct from Contact, so this adds a dedicated one: the
- * audience breakdown, the main interest form, and a lightweight
- * newsletter option for people who want to keep up with the work.
+ * audience breakdown and the main interest form. Newsletter signup stays
+ * in the global footer so the page keeps one clear conversion journey.
  */
 import { useDocumentMeta } from "../lib/useDocumentMeta";
 import { useRevealOnScroll } from "../lib/useRevealOnScroll";
 import { ROUTES_BY_PATH } from "../content/navigation";
 import { SectionHeading } from "../components/SectionHeading";
 import { GetInvolvedForm } from "../features/forms/GetInvolvedForm";
-import { NewsletterForm } from "../features/forms/NewsletterForm";
 import { Icon } from "../components/Icon";
 
 const route = ROUTES_BY_PATH["get-involved"];
@@ -83,16 +82,6 @@ export function GetInvolvedPage() {
         </div>
       </section>
 
-      <section className="section section--white">
-        <div className="container waitlist-band" data-reveal>
-          <div>
-            <p className="eyebrow">Venacula · The Indigen World newsletter</p>
-            <h3>Keep culture in the conversation.</h3>
-            <p>Get occasional stories and verified milestones from across Indigen World.</p>
-          </div>
-          <NewsletterForm />
-        </div>
-      </section>
     </>
   );
 }

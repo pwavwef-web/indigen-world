@@ -34,6 +34,7 @@ interface UseFormValidationArgs<T extends object> {
   onSubmit: (values: T) => Promise<void>;
   formName: PublicFormName;
   successMessage?: string;
+  unavailableMessage?: string;
 }
 
 interface UseFormValidationResult<T extends object> {
@@ -60,6 +61,7 @@ export function useFormValidation<T extends object>({
   onSubmit,
   formName,
   successMessage = "Thanks — we've received this and will follow up soon.",
+  unavailableMessage = "Online submissions are not connected yet. Please try again after the service is enabled.",
 }: UseFormValidationArgs<T>): UseFormValidationResult<T> {
   const [values, setValues] = useState<T>(initialValues);
   const [errors, setErrors] = useState<Partial<Record<keyof T, string>>>({});
@@ -140,7 +142,7 @@ export function useFormValidation<T extends object>({
       : status === "success"
         ? successMessage
         : status === "error" && failureCode === "unavailable"
-          ? "Online submissions are not connected yet. Please try again after the service is enabled."
+          ? unavailableMessage
           : status === "error" && failureCode !== "validation"
             ? "We couldn't send this just now. Please try again."
             : status === "error"

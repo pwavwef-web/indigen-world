@@ -55,6 +55,8 @@ export function GetInvolvedForm() {
       },
       onSubmit: submitGetInvolvedForm,
       formName: "get-involved",
+      unavailableMessage:
+        "Online submissions are unavailable right now. Email hi@indigenworld.com instead.",
     });
 
   return (

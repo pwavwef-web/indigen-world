@@ -43,6 +43,8 @@ export function ContactForm() {
       },
       onSubmit: submitContactForm,
       formName: "contact",
+      unavailableMessage:
+        "Online submissions are unavailable right now. Email hi@indigenworld.com instead.",
     });
 
   return (
