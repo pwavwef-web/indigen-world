@@ -126,10 +126,10 @@ class _CommunitySetupScreenState extends ConsumerState<CommunitySetupScreen> {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 40),
           children: [
-            const Text(
+            Text(
               'Choose the name and handle the community will know you by. Your '
               'handle is public and cannot be changed later.',
-              style: TextStyle(color: BrandColors.mutedInk, height: 1.5),
+              style: TextStyle(color: context.brand.mutedInk, height: 1.5),
             ),
             const SizedBox(height: 22),
             TextFormField(
@@ -162,13 +162,13 @@ class _CommunitySetupScreenState extends ConsumerState<CommunitySetupScreen> {
                         ),
                       )
                     : switch (_handleAvailable) {
-                        true => const Icon(
+                        true => Icon(
                           Icons.check_circle_rounded,
-                          color: BrandColors.savannahGreen,
+                          color: context.brand.success,
                         ),
-                        false => const Icon(
+                        false => Icon(
                           Icons.error_outline_rounded,
-                          color: BrandColors.terracotta,
+                          color: context.brand.terracotta,
                         ),
                         null => null,
                       },
@@ -188,8 +188,8 @@ class _CommunitySetupScreenState extends ConsumerState<CommunitySetupScreen> {
               const SizedBox(height: 8),
               Text(
                 'You will appear as @$handle',
-                style: const TextStyle(
-                  color: BrandColors.heritageGreen,
+                style: TextStyle(
+                  color: context.brand.accent,
                   fontWeight: FontWeight.w700,
                   fontSize: 12.5,
                 ),

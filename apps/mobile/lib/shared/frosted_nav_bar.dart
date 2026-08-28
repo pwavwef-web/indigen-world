@@ -12,9 +12,12 @@ import 'package:indigen_world_mobile/core/brand.dart';
 /// a highlighter pill that stretches between destinations, wiggles on landing
 /// and can be dragged directly with a finger.
 ///
-/// The motion is deliberately expressive; the palette stays Indigen — heritage
-/// green ink, kente gold accents, warm plaster glass — so it reads as this
-/// project rather than a generic frosted control.
+/// The motion is deliberately expressive; the colour is not. The rail is the
+/// palette's own bar tone behind a blur, and the travelling pill is a wash of
+/// the accent — no gold bloom, no white-on-white gradient stack. A control
+/// that is on screen the entire time somebody uses the app is the last thing
+/// that should be competing for their eye, and the movement already says
+/// everything the glow was saying.
 /// ─────────────────────────────────────────────────────────────────────────────
 
 // ── Tunables ────────────────────────────────────────────────────────────────
@@ -65,8 +68,6 @@ class _FrostedNavBarState extends State<FrostedNavBar>
     with TickerProviderStateMixin {
   late final AnimationController _slideController;
   late final AnimationController _wiggleController;
-  late final AnimationController _glowController;
-  late final Animation<double> _glowAnimation;
 
   int _previousIndex = 0;
   bool _isDragging = false;
@@ -84,14 +85,6 @@ class _FrostedNavBarState extends State<FrostedNavBar>
     _wiggleController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 500),
-    );
-    _glowController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 3000),
-    )..repeat(reverse: true);
-    _glowAnimation = CurvedAnimation(
-      parent: _glowController,
-      curve: Curves.easeInOut,
     );
     _slideController.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
@@ -114,7 +107,6 @@ class _FrostedNavBarState extends State<FrostedNavBar>
   void dispose() {
     _slideController.dispose();
     _wiggleController.dispose();
-    _glowController.dispose();
     super.dispose();
   }
 
@@ -166,7 +158,6 @@ class _FrostedNavBarState extends State<FrostedNavBar>
                     onTap: widget.onTap,
                     slideController: _slideController,
                     wiggleController: _wiggleController,
-                    glowAnimation: _glowAnimation,
                     isDragging: _isDragging,
                     dragOffset: _dragOffset,
                     dragStartIndex: _dragStartIndex,
@@ -194,7 +185,6 @@ class _GlassRail extends StatelessWidget {
     required this.onTap,
     required this.slideController,
     required this.wiggleController,
-    required this.glowAnimation,
     required this.isDragging,
     required this.dragOffset,
     required this.dragStartIndex,
@@ -207,7 +197,6 @@ class _GlassRail extends StatelessWidget {
   final ValueChanged<int> onTap;
   final AnimationController slideController;
   final AnimationController wiggleController;
-  final Animation<double> glowAnimation;
   final bool isDragging;
   final double dragOffset;
   final int dragStartIndex;
@@ -231,27 +220,17 @@ class _GlassRail extends StatelessWidget {
                 child: DecoratedBox(
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(40),
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        Colors.white.withValues(alpha: 0.62),
-                        BrandColors.plasterCream.withValues(alpha: 0.44),
-                        Colors.white.withValues(alpha: 0.54),
-                      ],
-                      stops: const [0, 0.55, 1],
+                    color: context.brand.bar.withValues(
+                      alpha: context.brand.isDark ? 0.86 : 0.78,
                     ),
-                    border: Border.all(
-                      color: BrandColors.heritageGreen.withValues(alpha: 0.16),
-                      width: 0.9,
-                    ),
+                    border: Border.all(color: context.brand.border),
                     boxShadow: [
                       BoxShadow(
-                        color: BrandColors.heritageGreen.withValues(
-                          alpha: 0.14,
+                        color: context.brand.shadow.withValues(
+                          alpha: context.brand.isDark ? 0.45 : 0.08,
                         ),
-                        blurRadius: 26,
-                        offset: const Offset(0, 10),
+                        blurRadius: 22,
+                        offset: const Offset(0, 8),
                       ),
                     ],
                   ),
@@ -265,7 +244,6 @@ class _GlassRail extends StatelessWidget {
         _ExpandingPill(
           slideController: slideController,
           wiggleController: wiggleController,
-          glowAnimation: glowAnimation,
           currentIndex: currentIndex,
           previousIndex: previousIndex,
           slotWidth: slotWidth,
@@ -302,7 +280,6 @@ class _ExpandingPill extends StatelessWidget {
   const _ExpandingPill({
     required this.slideController,
     required this.wiggleController,
-    required this.glowAnimation,
     required this.currentIndex,
     required this.previousIndex,
     required this.slotWidth,
@@ -313,7 +290,6 @@ class _ExpandingPill extends StatelessWidget {
 
   final AnimationController slideController;
   final AnimationController wiggleController;
-  final Animation<double> glowAnimation;
   final int currentIndex;
   final int previousIndex;
   final double slotWidth;
@@ -334,11 +310,7 @@ class _ExpandingPill extends StatelessWidget {
     final baseRestWidth = slotWidth * _restWidth;
 
     return AnimatedBuilder(
-      animation: Listenable.merge([
-        slideController,
-        wiggleController,
-        glowAnimation,
-      ]),
+      animation: Listenable.merge([slideController, wiggleController]),
       builder: (context, _) {
         final t = slideController.value;
         final wiggle = wiggleController.value;
@@ -424,7 +396,6 @@ class _ExpandingPill extends StatelessWidget {
         final movement = isDragging
             ? (dragOffset.abs() / slotWidth).clamp(0.0, 1.0)
             : sin(pi * t);
-        final glow = glowAnimation.value;
 
         return Positioned(
           left: pillCenterX - currentWidth / 2,
@@ -441,61 +412,22 @@ class _ExpandingPill extends StatelessWidget {
                     height: currentHeight,
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(radius),
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          Colors.white.withValues(
-                            alpha: 0.88 + 0.06 * glow + 0.06 * movement,
-                          ),
-                          BrandColors.kenteGold.withValues(
-                            alpha: 0.16 + 0.06 * glow + 0.10 * movement,
-                          ),
-                          Colors.white.withValues(
-                            alpha: 0.74 + 0.05 * glow + 0.08 * movement,
-                          ),
-                        ],
-                        stops: const [0, 0.5, 1],
+                      // The pill deepens slightly as it travels and settles
+                      // back — the movement is the emphasis, not a halo.
+                      color: context.brand.accent.withValues(
+                        alpha:
+                            (context.brand.isDark ? 0.16 : 0.09) +
+                            0.05 * movement,
                       ),
                       border: Border.all(
-                        color: BrandColors.kenteGold.withValues(
-                          alpha: 0.34 + 0.18 * glow,
+                        color: context.brand.accent.withValues(
+                          alpha: 0.2 + 0.1 * movement,
                         ),
                       ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: BrandColors.kenteGold.withValues(
-                            alpha: 0.14 + 0.10 * movement + 0.05 * glow,
-                          ),
-                          blurRadius: 22 + (16 * movement),
-                          spreadRadius: 1 + (5 * movement),
-                        ),
-                        BoxShadow(
-                          color: BrandColors.heritageGreen.withValues(
-                            alpha: 0.10,
-                          ),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
                     ),
                     child: Transform.scale(
                       scale: contentScale,
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(radius),
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [
-                              Colors.white.withValues(alpha: 0.34),
-                              Colors.transparent,
-                              BrandColors.heritageGreen.withValues(alpha: 0.04),
-                            ],
-                            stops: const [0, 0.42, 1],
-                          ),
-                        ),
-                      ),
+                      child: const SizedBox.expand(),
                     ),
                   ),
                 ),
@@ -555,8 +487,8 @@ class _GlassNavItemState extends State<_GlassNavItem>
   @override
   Widget build(BuildContext context) {
     final color = widget.isSelected
-        ? BrandColors.heritageGreen
-        : BrandColors.mutedInk;
+        ? context.brand.accent
+        : context.brand.mutedInk;
 
     // `excludeSemantics` keeps the child Text from contributing a second copy
     // of the label, which would otherwise be announced twice.
@@ -622,7 +554,7 @@ class _GlassNavItemState extends State<_GlassNavItem>
                             ),
                             constraints: const BoxConstraints(minWidth: 16),
                             decoration: BoxDecoration(
-                              color: BrandColors.terracotta,
+                              color: context.brand.terracotta,
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(
@@ -640,7 +572,7 @@ class _GlassNavItemState extends State<_GlassNavItem>
                           ),
                         )
                       else if (widget.item.showIndicatorDot)
-                        const Positioned(
+                        Positioned(
                           right: -3,
                           top: -2,
                           child: SizedBox(
@@ -648,7 +580,7 @@ class _GlassNavItemState extends State<_GlassNavItem>
                             height: 8,
                             child: DecoratedBox(
                               decoration: BoxDecoration(
-                                color: BrandColors.kenteGold,
+                                color: context.brand.accent,
                                 shape: BoxShape.circle,
                               ),
                             ),

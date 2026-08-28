@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/app/app_router.dart';
 import 'package:indigen_world_mobile/app/app_theme.dart';
-import 'package:indigen_world_mobile/core/brand.dart';
+import 'package:indigen_world_mobile/core/theme_mode.dart';
 import 'package:indigen_world_mobile/l10n/app_localizations.dart';
 
 class IndigenWorldApp extends ConsumerWidget {
@@ -12,25 +12,31 @@ class IndigenWorldApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(appRouterProvider);
-    SystemChrome.setSystemUIOverlayStyle(
-      const SystemUiOverlayStyle(
-        statusBarColor: Colors.transparent,
-        statusBarIconBrightness: Brightness.dark,
-        systemNavigationBarColor: BrandColors.plasterCream,
-        systemNavigationBarIconBrightness: Brightness.dark,
-      ),
-    );
+    final themeMode = ref.watch(themeModeProvider);
+
+    // Which theme the member is actually about to read in. `ThemeMode.system`
+    // has to be resolved here rather than left to MaterialApp, because the
+    // system bars and the ground behind the router are painted outside it.
+    final brightness = switch (themeMode) {
+      ThemeMode.light => Brightness.light,
+      ThemeMode.dark => Brightness.dark,
+      ThemeMode.system => MediaQuery.platformBrightnessOf(context),
+    };
+    final brand = brandPaletteFor(brightness);
+    SystemChrome.setSystemUIOverlayStyle(brandOverlayStyle(brand));
 
     return MaterialApp.router(
       title: 'Indigen',
       onGenerateTitle: (context) => AppLocalizations.of(context).appTitle,
       debugShowCheckedModeBanner: false,
       theme: buildIndigenTheme(),
+      darkTheme: buildIndigenDarkTheme(),
+      themeMode: themeMode,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       routerConfig: router,
       builder: (context, child) => ColoredBox(
-        color: BrandColors.plasterCream,
+        color: brand.background,
         child: MediaQuery(
           data: MediaQuery.of(context).copyWith(
             textScaler: MediaQuery.textScalerOf(context)

@@ -32,7 +32,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 3300));
     await tester.pump(const Duration(milliseconds: 300));
 
-    expect(find.text('COMMUNITY PULSE'), findsOneWidget);
+    expect(find.text('New voices'), findsOneWidget);
     expect(find.text('Make a Kasem post'), findsOneWidget);
 
     // Community is the centre destination — the app opens on it, and it is the
@@ -65,13 +65,12 @@ void main() {
 
     await tester.binding.handlePopRoute();
     await tester.pump(const Duration(milliseconds: 400));
-    expect(find.text('COMMUNITY PULSE'), findsOneWidget);
+    expect(find.text('New voices'), findsOneWidget);
     expect(find.byType(FrostedNavBar), findsOneWidget);
 
     await tester.tap(find.text('Learn'));
     await tester.pump(const Duration(milliseconds: 400));
 
-    expect(find.text('KASEM LEARNING PATH'), findsOneWidget);
     expect(find.text('Speak your first words.'), findsOneWidget);
     expect(find.text("TODAY'S QUEST"), findsOneWidget);
 
@@ -125,7 +124,7 @@ void main() {
     await tester.tap(find.text('Community'));
     await tester.pump(const Duration(milliseconds: 400));
 
-    expect(find.text('COMMUNITY PULSE'), findsOneWidget);
+    expect(find.text('New voices'), findsOneWidget);
     expect(find.text('Make a Kasem post'), findsOneWidget);
     expect(find.text('For you'), findsWidgets);
     expect(find.text('Following'), findsWidgets);

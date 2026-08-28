@@ -117,8 +117,8 @@ class _ThreadTile extends StatelessWidget {
           const SizedBox(width: 6),
           Text(
             communityAgeLabel(thread.lastMessageAt),
-            style: const TextStyle(
-              color: BrandColors.mutedInk,
+            style: TextStyle(
+              color: context.brand.mutedInk,
               fontSize: 10,
               fontWeight: FontWeight.w700,
             ),
@@ -133,7 +133,9 @@ class _ThreadTile extends StatelessWidget {
           overflow: TextOverflow.ellipsis,
           style: TextStyle(
             fontSize: 12.5,
-            color: thread.hasUnread ? BrandColors.ink : BrandColors.mutedInk,
+            color: thread.hasUnread
+                ? context.brand.ink
+                : context.brand.mutedInk,
             fontWeight: thread.hasUnread ? FontWeight.w800 : FontWeight.w500,
           ),
         ),
@@ -143,7 +145,7 @@ class _ThreadTile extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
               constraints: const BoxConstraints(minWidth: 22),
               decoration: BoxDecoration(
-                color: BrandColors.terracotta,
+                color: context.brand.terracotta,
                 borderRadius: BorderRadius.circular(999),
               ),
               child: Text(

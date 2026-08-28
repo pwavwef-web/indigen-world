@@ -65,12 +65,12 @@ class CommunitySidebar extends ConsumerWidget {
           // Material ancestor. Behind an opaque box those ripples land where
           // nobody can see them, so every tap in the drawer would feel dead.
           child: Material(
-            color: BrandColors.plasterCream.withValues(alpha: 0.94),
+            color: context.brand.background.withValues(alpha: 0.94),
             child: DecoratedBox(
               decoration: BoxDecoration(
                 border: Border(
                   right: BorderSide(
-                    color: BrandColors.heritageGreen.withValues(alpha: 0.12),
+                    color: context.brand.accent.withValues(alpha: 0.12),
                   ),
                 ),
               ),
@@ -88,7 +88,7 @@ class CommunitySidebar extends ConsumerWidget {
                               (context) => CommunityProfileScreen(uid: uid),
                             ),
                     ),
-                    const Divider(height: 1, color: BrandColors.divider),
+                    Divider(height: 1, color: context.brand.divider),
                     Expanded(
                       child: ListView(
                         padding: const EdgeInsets.symmetric(vertical: 6),
@@ -182,9 +182,9 @@ class CommunitySidebar extends ConsumerWidget {
                                 go((context) => const SettingsScreen()),
                           ),
                           const SizedBox(height: 6),
-                          const Divider(
+                          Divider(
                             height: 1,
-                            color: BrandColors.divider,
+                            color: context.brand.divider,
                             indent: 18,
                             endIndent: 18,
                           ),
@@ -288,8 +288,8 @@ class _SidebarIdentity extends StatelessWidget {
                         profile?.handle ?? 'Sign in to take part',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: BrandColors.mutedInk,
+                        style: TextStyle(
+                          color: context.brand.mutedInk,
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
                         ),
@@ -336,8 +336,8 @@ class _MiniCount extends StatelessWidget {
         const SizedBox(height: 1),
         Text(
           label.toUpperCase(),
-          style: const TextStyle(
-            color: BrandColors.mutedInk,
+          style: TextStyle(
+            color: context.brand.mutedInk,
             fontSize: 8.5,
             fontWeight: FontWeight.w800,
             letterSpacing: 0.7,
@@ -358,8 +358,8 @@ class _SidebarSection extends StatelessWidget {
     padding: const EdgeInsets.fromLTRB(20, 16, 20, 6),
     child: Text(
       label,
-      style: const TextStyle(
-        color: BrandColors.terracotta,
+      style: TextStyle(
+        color: context.brand.terracotta,
         fontSize: 9.5,
         fontWeight: FontWeight.w900,
         letterSpacing: 1.2,
@@ -388,8 +388,8 @@ class _SidebarItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tint = isDestructive
-        ? BrandColors.terracotta
-        : BrandColors.heritageGreen;
+        ? context.brand.terracotta
+        : context.brand.accent;
     return ListTile(
       enabled: onTap != null,
       onTap: onTap == null
@@ -419,7 +419,7 @@ class _SidebarItem extends StatelessWidget {
               style: TextStyle(
                 fontSize: 14.5,
                 fontWeight: FontWeight.w800,
-                color: isDestructive ? BrandColors.terracotta : null,
+                color: isDestructive ? context.brand.terracotta : null,
               ),
             ),
           ),
@@ -429,7 +429,7 @@ class _SidebarItem extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
               constraints: const BoxConstraints(minWidth: 21),
               decoration: BoxDecoration(
-                color: BrandColors.terracotta,
+                color: context.brand.terracotta,
                 borderRadius: BorderRadius.circular(999),
               ),
               child: Text(
@@ -453,10 +453,7 @@ class _SidebarItem extends StatelessWidget {
                 description!,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: BrandColors.mutedInk,
-                  fontSize: 11.5,
-                ),
+                style: TextStyle(color: context.brand.mutedInk, fontSize: 11.5),
               ),
             ),
     );

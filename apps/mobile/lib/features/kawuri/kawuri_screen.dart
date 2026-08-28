@@ -8,6 +8,7 @@ import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_controller.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_models.dart';
 import 'package:indigen_world_mobile/shared/glass_popup.dart';
+import 'package:indigen_world_mobile/shared/night_theme.dart';
 
 /// Kawuri — the Indigen World guide.
 ///
@@ -59,7 +60,10 @@ class _KawuriScreenState extends ConsumerState<KawuriScreen> {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) =>
+      NightTheme(child: Builder(builder: _build));
+
+  Widget _build(BuildContext context) {
     final state = ref.watch(kawuriControllerProvider);
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
@@ -598,7 +602,7 @@ class _MessageBubble extends StatelessWidget {
               TextButton.icon(
                 onPressed: onRetry,
                 style: TextButton.styleFrom(
-                  foregroundColor: BrandColors.kenteGold,
+                  foregroundColor: context.brand.onAccentFill,
                   padding: const EdgeInsets.symmetric(horizontal: 8),
                   minimumSize: const Size(0, 32),
                   visualDensity: VisualDensity.compact,
@@ -724,12 +728,12 @@ class KawuriText extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         for (var index = 0; index < lines.length; index++)
-          _line(lines[index], isFirst: index == 0),
+          _line(context.brand, lines[index], isFirst: index == 0),
       ],
     );
   }
 
-  Widget _line(String raw, {required bool isFirst}) {
+  Widget _line(BrandPalette brand, String raw, {required bool isFirst}) {
     final line = raw.trimRight();
     if (line.trim().isEmpty) return const SizedBox(height: 9);
 
@@ -737,10 +741,10 @@ class KawuriText extends StatelessWidget {
     final numbered = RegExp(r'^\s*(\d+)[.)]\s+(.*)$').firstMatch(line);
 
     if (bullet != null) {
-      return _hanging('•', bullet.group(1) ?? '');
+      return _hanging(brand, '•', bullet.group(1) ?? '');
     }
     if (numbered != null) {
-      return _hanging('${numbered.group(1)}.', numbered.group(2) ?? '');
+      return _hanging(brand, '${numbered.group(1)}.', numbered.group(2) ?? '');
     }
 
     // A short opening line with no sentence-ending punctuation is a heading.
@@ -755,7 +759,7 @@ class KawuriText extends StatelessWidget {
       child: Text(
         _stripEmphasis(line),
         style: TextStyle(
-          color: BrandColors.ink,
+          color: brand.ink,
           fontSize: looksLikeHeading ? 15 : 14.5,
           height: 1.5,
           fontWeight: looksLikeHeading ? FontWeight.w900 : FontWeight.w500,
@@ -764,7 +768,7 @@ class KawuriText extends StatelessWidget {
     );
   }
 
-  Widget _hanging(String marker, String body) => Padding(
+  Widget _hanging(BrandPalette brand, String marker, String body) => Padding(
     padding: const EdgeInsets.only(bottom: 4),
     child: Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -784,8 +788,8 @@ class KawuriText extends StatelessWidget {
         Expanded(
           child: Text(
             _stripEmphasis(body),
-            style: const TextStyle(
-              color: BrandColors.ink,
+            style: TextStyle(
+              color: brand.ink,
               fontSize: 14.5,
               height: 1.5,
               fontWeight: FontWeight.w500,
@@ -874,12 +878,12 @@ class _ThinkingBubbleState extends State<_ThinkingBubble>
                                         2 *
                                         math.pi,
                                   )),
-                  child: const DecoratedBox(
+                  child: DecoratedBox(
                     decoration: BoxDecoration(
-                      color: BrandColors.heritageGreen,
+                      color: context.brand.accent,
                       shape: BoxShape.circle,
                     ),
-                    child: SizedBox(width: 7, height: 7),
+                    child: const SizedBox(width: 7, height: 7),
                   ),
                 ),
               ],
@@ -1102,7 +1106,7 @@ class _HistoryListState extends State<_HistoryList> {
     itemBuilder: (context, index) {
       final session = _sessions[index];
       return Material(
-        color: BrandColors.heritageGreen.withValues(alpha: 0.06),
+        color: context.brand.accent.withValues(alpha: 0.06),
         borderRadius: BorderRadius.circular(16),
         child: ListTile(
           shape: RoundedRectangleBorder(
@@ -1117,15 +1121,15 @@ class _HistoryListState extends State<_HistoryList> {
             session.title,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: BrandColors.ink,
+            style: TextStyle(
+              color: context.brand.ink,
               fontSize: 13.5,
               fontWeight: FontWeight.w700,
             ),
           ),
           subtitle: Text(
             '${session.messages.length} messages',
-            style: const TextStyle(color: BrandColors.mutedInk, fontSize: 11),
+            style: TextStyle(color: context.brand.mutedInk, fontSize: 11),
           ),
           trailing: IconButton(
             tooltip: 'Delete',
@@ -1137,9 +1141,9 @@ class _HistoryListState extends State<_HistoryList> {
                     .toList(growable: false),
               );
             },
-            icon: const Icon(
+            icon: Icon(
               Icons.delete_outline_rounded,
-              color: BrandColors.mutedInk,
+              color: context.brand.mutedInk,
               size: 19,
             ),
           ),

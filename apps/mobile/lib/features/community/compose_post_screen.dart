@@ -264,7 +264,7 @@ class _ComposePostScreenState extends ConsumerState<ComposePostScreen> {
                 child: LinearProgressIndicator(
                   value: _progress,
                   minHeight: 3,
-                  backgroundColor: BrandColors.divider,
+                  backgroundColor: context.brand.divider,
                 ),
               )
             : null,
@@ -398,7 +398,7 @@ class _ComposePostScreenState extends ConsumerState<ComposePostScreen> {
                   onPressed: _publishing ? null : _toggleRecording,
                   icon: Icon(
                     _recording ? Icons.stop_rounded : Icons.mic_none_rounded,
-                    color: _recording ? BrandColors.terracotta : null,
+                    color: _recording ? context.brand.terracotta : null,
                   ),
                 ),
                 if (!_isReply && !_isQuote) ...[
@@ -414,8 +414,8 @@ class _ComposePostScreenState extends ConsumerState<ComposePostScreen> {
                 const SizedBox(width: 8),
                 Text(
                   '${_attachments.length}/${CommunityRepository.maxMediaPerPost}',
-                  style: const TextStyle(
-                    color: BrandColors.mutedInk,
+                  style: TextStyle(
+                    color: context.brand.mutedInk,
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
                   ),
@@ -425,8 +425,8 @@ class _ComposePostScreenState extends ConsumerState<ComposePostScreen> {
                   '$length/${CommunityRepository.maxPostLength}',
                   style: TextStyle(
                     color: length > CommunityRepository.maxPostLength - 40
-                        ? BrandColors.terracotta
-                        : BrandColors.mutedInk,
+                        ? context.brand.terracotta
+                        : context.brand.mutedInk,
                     fontSize: 12,
                     fontWeight: FontWeight.w800,
                   ),
@@ -449,11 +449,9 @@ class _ReplyContext extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.all(13),
     decoration: BoxDecoration(
-      color: BrandColors.heritageGreen.withValues(alpha: 0.05),
+      color: context.brand.accent.withValues(alpha: 0.05),
       borderRadius: BorderRadius.circular(16),
-      border: Border.all(
-        color: BrandColors.heritageGreen.withValues(alpha: 0.12),
-      ),
+      border: Border.all(color: context.brand.accent.withValues(alpha: 0.12)),
     ),
     child: Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -470,8 +468,8 @@ class _ReplyContext extends StatelessWidget {
             children: [
               Text(
                 'Replying to ${post.handle}',
-                style: const TextStyle(
-                  color: BrandColors.heritageGreen,
+                style: TextStyle(
+                  color: context.brand.accent,
                   fontSize: 11,
                   fontWeight: FontWeight.w900,
                 ),
@@ -514,18 +512,18 @@ class _AttachmentStrip extends StatelessWidget {
                 width: 128,
                 height: 128,
                 child: attachment.isAudio
-                    ? const ColoredBox(
-                        color: BrandColors.heritageGreen,
+                    ? ColoredBox(
+                        color: context.brand.accent,
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Icon(
                               Icons.graphic_eq_rounded,
-                              color: BrandColors.kenteGold,
+                              color: context.brand.gold,
                               size: 42,
                             ),
-                            SizedBox(height: 6),
-                            Text(
+                            const SizedBox(height: 6),
+                            const Text(
                               'VOICE NOTE',
                               style: TextStyle(
                                 color: Colors.white,
@@ -538,9 +536,9 @@ class _AttachmentStrip extends StatelessWidget {
                         ),
                       )
                     : attachment.isVideo
-                    ? const ColoredBox(
-                        color: BrandColors.heritageGreen,
-                        child: Center(
+                    ? ColoredBox(
+                        color: context.brand.accent,
+                        child: const Center(
                           child: Icon(
                             Icons.play_circle_fill_rounded,
                             color: Colors.white,
@@ -552,7 +550,7 @@ class _AttachmentStrip extends StatelessWidget {
                         File(attachment.path),
                         fit: BoxFit.cover,
                         errorBuilder: (context, error, stack) =>
-                            const ColoredBox(color: BrandColors.divider),
+                            ColoredBox(color: context.brand.divider),
                       ),
               ),
             ),
@@ -587,25 +585,25 @@ class _QuoteContext extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.all(14),
     decoration: BoxDecoration(
-      color: BrandColors.surface,
+      color: context.brand.surface,
       borderRadius: BorderRadius.circular(18),
-      border: Border.all(color: BrandColors.divider),
+      border: Border.all(color: context.brand.divider),
     ),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Row(
+        Row(
           children: [
             Icon(
               Icons.format_quote_rounded,
               size: 17,
-              color: BrandColors.terracotta,
+              color: context.brand.terracotta,
             ),
-            SizedBox(width: 5),
+            const SizedBox(width: 5),
             Text(
               'QUOTING',
               style: TextStyle(
-                color: BrandColors.terracotta,
+                color: context.brand.terracotta,
                 fontSize: 10,
                 fontWeight: FontWeight.w900,
                 letterSpacing: 0.8,
@@ -664,17 +662,17 @@ class _RecordingBar extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(14, 10, 8, 10),
       decoration: BoxDecoration(
-        color: BrandColors.terracotta.withValues(alpha: 0.08),
+        color: context.brand.terracotta.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: BrandColors.terracotta.withValues(alpha: 0.25),
+          color: context.brand.terracotta.withValues(alpha: 0.25),
         ),
       ),
       child: Row(
         children: [
-          const Icon(
+          Icon(
             Icons.fiber_manual_record_rounded,
-            color: BrandColors.terracotta,
+            color: context.brand.terracotta,
             size: 18,
           ),
           const SizedBox(width: 8),
@@ -690,7 +688,7 @@ class _RecordingBar extends StatelessWidget {
             tooltip: 'Finish recording',
             onPressed: onStop,
             style: IconButton.styleFrom(
-              backgroundColor: BrandColors.terracotta,
+              backgroundColor: context.brand.terracotta,
               foregroundColor: Colors.white,
             ),
             icon: const Icon(Icons.stop_rounded),
@@ -722,23 +720,21 @@ class _PollComposer extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.all(14),
     decoration: BoxDecoration(
-      color: BrandColors.heritageGreen.withValues(alpha: 0.05),
+      color: context.brand.accent.withValues(alpha: 0.05),
       borderRadius: BorderRadius.circular(18),
-      border: Border.all(
-        color: BrandColors.heritageGreen.withValues(alpha: 0.15),
-      ),
+      border: Border.all(color: context.brand.accent.withValues(alpha: 0.15)),
     ),
     child: Column(
       children: [
         Row(
           children: [
-            const Icon(Icons.poll_outlined, color: BrandColors.heritageGreen),
+            Icon(Icons.poll_outlined, color: context.brand.accent),
             const SizedBox(width: 7),
-            const Expanded(
+            Expanded(
               child: Text(
                 'COMMUNITY POLL',
                 style: TextStyle(
-                  color: BrandColors.heritageGreen,
+                  color: context.brand.accent,
                   fontSize: 11,
                   fontWeight: FontWeight.w900,
                   letterSpacing: 0.7,
@@ -781,10 +777,10 @@ class _PollComposer extends StatelessWidget {
               label: const Text('Add choice'),
             ),
             const Spacer(),
-            const Text(
+            Text(
               'Ends in',
               style: TextStyle(
-                color: BrandColors.mutedInk,
+                color: context.brand.mutedInk,
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
               ),

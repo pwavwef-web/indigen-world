@@ -258,9 +258,9 @@ class _CoverPicker extends StatelessWidget {
             onTap: onPickAvatar,
             child: Container(
               padding: const EdgeInsets.all(3),
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: BrandColors.plasterCream,
+                color: context.brand.background,
               ),
               child: Stack(
                 alignment: Alignment.center,

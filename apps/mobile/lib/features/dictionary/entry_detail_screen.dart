@@ -102,13 +102,13 @@ class EntryDetailScreen extends ConsumerWidget {
                   label: resolvedEntry.isSynthetic
                       ? 'DEMO PROJECTION'
                       : 'PUBLISHED ENTRY',
-                  color: BrandColors.savannahGreen,
+                  color: context.brand.success,
                 ),
                 const Spacer(),
                 Text(
                   resolvedEntry.partOfSpeech,
-                  style: const TextStyle(
-                    color: BrandColors.mutedInk,
+                  style: TextStyle(
+                    color: context.brand.mutedInk,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -123,7 +123,7 @@ class EntryDetailScreen extends ConsumerWidget {
             Text(
               resolvedEntry.translation,
               style: Theme.of(context).textTheme.titleLarge
-                  ?.copyWith(color: BrandColors.terracotta),
+                  ?.copyWith(color: context.brand.terracotta),
             ),
             const SizedBox(height: 16),
             Wrap(
@@ -217,7 +217,7 @@ class _DetailCard extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: BrandColors.heritageGreen),
+          Icon(icon, color: context.brand.accent),
           const SizedBox(width: 14),
           Expanded(
             child: Column(

@@ -68,7 +68,7 @@ class _NotificationsPrimerState extends ConsumerState<NotificationsPrimer> {
               Text(
                 'Indigen can tell you the moment something reaches you.',
                 style: Theme.of(context).textTheme.bodyLarge
-                    ?.copyWith(color: BrandColors.mutedInk),
+                    ?.copyWith(color: context.brand.mutedInk),
               ),
               const SizedBox(height: 26),
               for (final item in const [
@@ -109,11 +109,11 @@ class _NotificationsPrimerState extends ConsumerState<NotificationsPrimer> {
                 child: const Text('Not now'),
               ),
               const SizedBox(height: 10),
-              const Text(
+              Text(
                 'Everything still appears in the app either way. You can '
                 'change this any time in Settings.',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: BrandColors.mutedInk, height: 1.4),
+                style: TextStyle(color: context.brand.mutedInk, height: 1.4),
               ),
             ],
           ),
@@ -133,12 +133,12 @@ class _PrimerMark extends StatelessWidget {
       width: 70,
       height: 70,
       decoration: BoxDecoration(
-        color: BrandColors.kenteGold,
+        color: context.brand.gold,
         borderRadius: BorderRadius.circular(70 * 0.28),
       ),
-      child: const Icon(
+      child: Icon(
         Icons.notifications_none_rounded,
-        color: BrandColors.heritageGreen,
+        color: context.brand.accent,
         size: 70 * 0.58,
       ),
     ),
@@ -162,7 +162,7 @@ class _PrimerPoint extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       child: Row(
         children: [
-          Icon(icon, color: BrandColors.heritageGreen),
+          Icon(icon, color: context.brand.accent),
           const SizedBox(width: 14),
           Expanded(
             child: Column(
@@ -172,7 +172,7 @@ class _PrimerPoint extends StatelessWidget {
                 const SizedBox(height: 3),
                 Text(
                   description,
-                  style: const TextStyle(color: BrandColors.mutedInk),
+                  style: TextStyle(color: context.brand.mutedInk),
                 ),
               ],
             ),

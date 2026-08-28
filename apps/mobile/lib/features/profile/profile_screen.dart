@@ -7,9 +7,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/app_config.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/data/repositories.dart';
+import 'package:indigen_world_mobile/features/ads/ads_screen.dart';
 import 'package:indigen_world_mobile/features/auth/auth_repository.dart';
 import 'package:indigen_world_mobile/features/auth/sign_in_sheet.dart';
-import 'package:indigen_world_mobile/features/collection/collection_detail_screens.dart';
 import 'package:indigen_world_mobile/features/community/community_profile_screen.dart';
 import 'package:indigen_world_mobile/features/community/community_setup_screen.dart';
 import 'package:indigen_world_mobile/features/community/data/community_models.dart';
@@ -17,9 +17,12 @@ import 'package:indigen_world_mobile/features/community/data/community_providers
 import 'package:indigen_world_mobile/features/community/saved_posts_screen.dart';
 import 'package:indigen_world_mobile/features/contribute/collection_contribution_repository.dart';
 import 'package:indigen_world_mobile/features/notifications/push_messaging.dart';
+import 'package:indigen_world_mobile/features/profile/my_contributions_screen.dart';
+import 'package:indigen_world_mobile/features/profile/saved_words_screen.dart';
 import 'package:indigen_world_mobile/features/settings/settings_screen.dart';
 import 'package:indigen_world_mobile/shared/frosted_nav_bar.dart';
 import 'package:indigen_world_mobile/shared/glass_popup.dart';
+import 'package:indigen_world_mobile/shared/glass_surface.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -31,7 +34,7 @@ class ProfileScreen extends ConsumerStatefulWidget {
 class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   var _selectedIndex = 0;
 
-  static const _titles = ['Overview', 'Community', 'Saved', 'Settings'];
+  static const _titles = ['Overview', 'Community', 'Adverts', 'Settings'];
 
   static const _destinations = <FrostedNavBarItem>[
     FrostedNavBarItem(
@@ -45,9 +48,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       label: 'Community',
     ),
     FrostedNavBarItem(
-      icon: Icons.bookmark_border_rounded,
-      selectedIcon: Icons.bookmark_rounded,
-      label: 'Saved',
+      icon: Icons.campaign_outlined,
+      selectedIcon: Icons.campaign_rounded,
+      label: 'Adverts',
     ),
     FrostedNavBarItem(
       icon: Icons.tune_outlined,
@@ -60,8 +63,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   Widget build(BuildContext context) {
     final savedCount =
         ref.watch(savedDictionaryEntryIdsProvider).asData?.value.length ?? 0;
-    final contributionCount =
-        ref.watch(myCollectionContributionsProvider).asData?.value.length ?? 0;
+    final contributions =
+        ref.watch(myCollectionContributionsProvider).asData?.value ??
+        const <CollectionContributionRecord>[];
+    final contributionCount = contributions.length;
+    // Counted rather than stubbed at zero: a member who has had work approved
+    // and sees "0 Approved" on their own profile has been told the project
+    // lost it.
+    final approvedCount = contributions.where(isApprovedContribution).length;
     final user = ref.watch(authStateProvider).asData?.value;
     final communityProfile = ref
         .watch(myCommunityProfileProvider)
@@ -72,18 +81,19 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       communityProfile: communityProfile,
       savedCount: savedCount,
       contributionCount: contributionCount,
+      approvedCount: approvedCount,
     );
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: const SystemUiOverlayStyle(
+      value: SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
         statusBarIconBrightness: Brightness.dark,
-        systemNavigationBarColor: BrandColors.plasterCream,
+        systemNavigationBarColor: context.brand.background,
         systemNavigationBarIconBrightness: Brightness.dark,
       ),
       child: Scaffold(
         extendBody: true,
-        backgroundColor: BrandColors.plasterCream,
+        backgroundColor: context.brand.background,
         body: Stack(
           children: [
             const Positioned.fill(child: _ProfileBackdrop()),
@@ -143,6 +153,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       key: const ValueKey('profile-overview'),
       data: data,
       onAccountAction: data.signedIn ? _openCommunity : _signIn,
+      onOpenSavedWords: _openSavedWords,
+      onOpenContributions: _openContributions,
+      onOpenApproved: _openApproved,
     ),
     1 => _CommunityTab(
       key: const ValueKey('profile-community'),
@@ -150,15 +163,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       onOpenCommunity: _openCommunity,
       onOpenSavedPosts: _openSavedPosts,
     ),
-    2 => _SavedTab(
-      key: const ValueKey('profile-saved'),
-      data: data,
-      onOpenDictionary: _openDictionary,
-      onOpenSavedPosts: _openSavedPosts,
-      onOpenOffline: () => _showMessage(
-        'No approved content packs are installed on this device yet.',
-      ),
-    ),
+    2 => const AdsScreen(key: ValueKey('profile-ads')),
     _ => _SettingsTab(
       key: const ValueKey('profile-settings'),
       data: data,
@@ -179,7 +184,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final confirmed = await showGlassConfirm(
       context: context,
       title: 'Sign out?',
-      message: 'Public learning stays available in guest mode. You can sign back in anytime.',
+      message: 'Public learning stays available in guest mode.',
       confirmLabel: 'Sign out',
     );
     if (confirmed != true) return;
@@ -210,10 +215,24 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
-  void _openDictionary() {
+  void _openSavedWords() {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(builder: (context) => const SavedWordsScreen()),
+    );
+  }
+
+  void _openContributions() {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (context) => const DictionaryCollectionScreen(),
+        builder: (context) => const MyContributionsScreen(),
+      ),
+    );
+  }
+
+  void _openApproved() {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (context) => const MyContributionsScreen(approvedOnly: true),
       ),
     );
   }
@@ -235,12 +254,14 @@ class _ProfileViewData {
     required this.communityProfile,
     required this.savedCount,
     required this.contributionCount,
+    required this.approvedCount,
   });
 
   final User? user;
   final CommunityProfile? communityProfile;
   final int savedCount;
   final int contributionCount;
+  final int approvedCount;
 
   bool get signedIn => user != null;
 
@@ -263,11 +284,11 @@ class _ProfileBackdrop extends StatelessWidget {
   @override
   Widget build(BuildContext context) => IgnorePointer(
     child: DecoratedBox(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFFFFFCF3), BrandColors.plasterCream],
+          colors: [const Color(0xFFFFFCF3), context.brand.background],
         ),
       ),
       child: Stack(
@@ -277,7 +298,7 @@ class _ProfileBackdrop extends StatelessWidget {
             top: 80,
             child: _GlowOrb(
               size: 220,
-              color: BrandColors.kenteGold.withValues(alpha: 0.1),
+              color: context.brand.gold.withValues(alpha: 0.1),
             ),
           ),
           Positioned(
@@ -285,10 +306,10 @@ class _ProfileBackdrop extends StatelessWidget {
             bottom: 110,
             child: _GlowOrb(
               size: 240,
-              color: BrandColors.heritageGreen.withValues(alpha: 0.08),
+              color: context.brand.accent.withValues(alpha: 0.08),
             ),
           ),
-          const Positioned(
+          Positioned(
             right: 20,
             bottom: 170,
             child: Opacity(
@@ -296,7 +317,7 @@ class _ProfileBackdrop extends StatelessWidget {
               child: Text(
                 '✣',
                 style: TextStyle(
-                  color: BrandColors.terracotta,
+                  color: context.brand.terracotta,
                   fontSize: 118,
                   fontWeight: FontWeight.w900,
                 ),
@@ -342,14 +363,16 @@ class _ProfileTopBar extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.fromLTRB(6, 6, 14, 6),
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.6),
+            color: context.brand.surface.withValues(alpha: 0.86),
             borderRadius: BorderRadius.circular(22),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.82)),
-            boxShadow: const [
+            border: Border.all(color: context.brand.border),
+            boxShadow: [
               BoxShadow(
-                color: Color(0x120B3D2E),
+                color: context.brand.shadow.withValues(
+                  alpha: context.brand.isDark ? 0.4 : 0.07,
+                ),
                 blurRadius: 18,
-                offset: Offset(0, 8),
+                offset: const Offset(0, 8),
               ),
             ],
           ),
@@ -365,10 +388,10 @@ class _ProfileTopBar extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'YOUR SPACE',
                       style: TextStyle(
-                        color: BrandColors.terracotta,
+                        color: context.brand.terracotta,
                         fontSize: 8,
                         fontWeight: FontWeight.w900,
                         letterSpacing: 1.3,
@@ -376,8 +399,8 @@ class _ProfileTopBar extends StatelessWidget {
                     ),
                     Text(
                       title,
-                      style: const TextStyle(
-                        color: BrandColors.heritageGreen,
+                      style: TextStyle(
+                        color: context.brand.accent,
                         fontSize: 18,
                         fontWeight: FontWeight.w900,
                       ),
@@ -397,9 +420,9 @@ class _ProfileTopBar extends StatelessWidget {
                   ),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.auto_awesome_rounded,
-                  color: BrandColors.kenteGold,
+                  color: context.brand.gold,
                   size: 18,
                 ),
               ),
@@ -415,11 +438,17 @@ class _OverviewTab extends StatelessWidget {
   const _OverviewTab({
     required this.data,
     required this.onAccountAction,
+    required this.onOpenSavedWords,
+    required this.onOpenContributions,
+    required this.onOpenApproved,
     super.key,
   });
 
   final _ProfileViewData data;
   final VoidCallback onAccountAction;
+  final VoidCallback onOpenSavedWords;
+  final VoidCallback onOpenContributions;
+  final VoidCallback onOpenApproved;
 
   @override
   Widget build(BuildContext context) => ListView(
@@ -440,7 +469,8 @@ class _OverviewTab extends StatelessWidget {
               icon: Icons.bookmark_rounded,
               value: '${data.savedCount}',
               label: 'Saved words',
-              color: BrandColors.terracotta,
+              color: context.brand.terracotta,
+              onTap: onOpenSavedWords,
             ),
           ),
           const SizedBox(width: 10),
@@ -449,16 +479,18 @@ class _OverviewTab extends StatelessWidget {
               icon: Icons.outbox_rounded,
               value: '${data.contributionCount}',
               label: 'Contributions',
-              color: BrandColors.savannahGreen,
+              color: context.brand.success,
+              onTap: onOpenContributions,
             ),
           ),
           const SizedBox(width: 10),
-          const Expanded(
+          Expanded(
             child: _StatCard(
               icon: Icons.stars_rounded,
-              value: '0',
+              value: '${data.approvedCount}',
               label: 'Approved',
-              color: BrandColors.kenteGold,
+              color: context.brand.gold,
+              onTap: onOpenApproved,
             ),
           ),
         ],
@@ -479,15 +511,7 @@ class _OverviewTab extends StatelessWidget {
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 7),
-            Text(
-              data.signedIn
-                  ? data.communityProfile == null
-                        ? 'Set up a handle to post, reply, follow people and make your contributions recognisable.'
-                        : 'Open your public profile to review your posts, followers and saved community moments.'
-                  : 'Sign in to sync your account, community identity and future approved contributions.',
-              style: const TextStyle(color: BrandColors.mutedInk),
-            ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 14),
             FilledButton.icon(
               onPressed: onAccountAction,
               icon: Icon(
@@ -503,6 +527,20 @@ class _OverviewTab extends StatelessWidget {
             ),
           ],
         ),
+      ),
+      const SizedBox(height: 14),
+      _ActionTile(
+        icon: Icons.menu_book_rounded,
+        title: 'Saved words',
+        subtitle: '${data.savedCount} kept on this device',
+        onTap: onOpenSavedWords,
+      ),
+      const SizedBox(height: 10),
+      _ActionTile(
+        icon: Icons.outbox_rounded,
+        title: 'Your contributions',
+        subtitle: '${data.contributionCount} sent for review',
+        onTap: onOpenContributions,
       ),
     ],
   );
@@ -536,7 +574,6 @@ class _CommunityTab extends StatelessWidget {
           icon: Icons.diversity_3_rounded,
           eyebrow: 'COMMUNITY IDENTITY',
           title: 'Be known. Stay connected.',
-          subtitle: 'Your public Kasem community profile is separate from private account details.',
         ),
         const SizedBox(height: 14),
         _GlassPanel(
@@ -560,8 +597,8 @@ class _CommunityTab extends StatelessWidget {
                               const SizedBox(height: 2),
                               Text(
                                 profile.handle,
-                                style: const TextStyle(
-                                  color: BrandColors.terracotta,
+                                style: TextStyle(
+                                  color: context.brand.terracotta,
                                   fontWeight: FontWeight.w800,
                                 ),
                               ),
@@ -569,9 +606,9 @@ class _CommunityTab extends StatelessWidget {
                           ),
                         ),
                         if (profile.isVerified)
-                          const Icon(
+                          Icon(
                             Icons.verified_rounded,
-                            color: BrandColors.savannahGreen,
+                            color: context.brand.success,
                           ),
                       ],
                     ),
@@ -612,73 +649,12 @@ class _CommunityTab extends StatelessWidget {
         _ActionTile(
           icon: Icons.bookmarks_rounded,
           title: 'Saved community posts',
-          subtitle: 'Return to the conversations you kept for later',
+          subtitle: 'Conversations you kept',
           onTap: onOpenSavedPosts,
         ),
       ],
     );
   }
-}
-
-class _SavedTab extends StatelessWidget {
-  const _SavedTab({
-    required this.data,
-    required this.onOpenDictionary,
-    required this.onOpenSavedPosts,
-    required this.onOpenOffline,
-    super.key,
-  });
-
-  final _ProfileViewData data;
-  final VoidCallback onOpenDictionary;
-  final VoidCallback onOpenSavedPosts;
-  final VoidCallback onOpenOffline;
-
-  @override
-  Widget build(BuildContext context) => ListView(
-    key: const PageStorageKey('profile-saved-scroll'),
-    padding: const EdgeInsets.fromLTRB(
-      18,
-      8,
-      18,
-      kFrostedNavBarReservedSpace + 28,
-    ),
-    children: [
-      const _TabIntro(
-        icon: Icons.collections_bookmark_rounded,
-        eyebrow: 'YOUR LIBRARY',
-        title: 'Everything worth returning to.',
-        subtitle: 'Saved words and community posts stay close, even when you move between experiences.',
-      ),
-      const SizedBox(height: 14),
-      _SavedCollectionCard(
-        icon: Icons.menu_book_rounded,
-        count: '${data.savedCount}',
-        title: 'Saved dictionary words',
-        subtitle: 'Browse the words you have kept on this device',
-        color: BrandColors.terracotta,
-        onTap: onOpenDictionary,
-      ),
-      const SizedBox(height: 12),
-      _SavedCollectionCard(
-        icon: Icons.forum_rounded,
-        count: '•',
-        title: 'Saved community posts',
-        subtitle: 'Revisit stories, replies and useful conversations',
-        color: BrandColors.savannahGreen,
-        onTap: onOpenSavedPosts,
-      ),
-      const SizedBox(height: 12),
-      _SavedCollectionCard(
-        icon: Icons.offline_pin_rounded,
-        count: '0',
-        title: 'Offline content packs',
-        subtitle: 'Approved downloads will appear here when available',
-        color: BrandColors.kenteGold,
-        onTap: onOpenOffline,
-      ),
-    ],
-  );
 }
 
 class _SettingsTab extends StatelessWidget {
@@ -709,13 +685,12 @@ class _SettingsTab extends StatelessWidget {
         icon: Icons.shield_moon_rounded,
         eyebrow: 'CONTROL CENTRE',
         title: 'Private by design.',
-        subtitle: 'Manage your account, notifications, community identity, privacy and licences.',
       ),
       const SizedBox(height: 14),
       _ActionTile(
         icon: Icons.tune_rounded,
         title: 'App settings',
-        subtitle: 'Notifications, privacy, licences and support',
+        subtitle: 'Notifications, privacy, licences',
         onTap: onOpenSettings,
       ),
       const SizedBox(height: 10),
@@ -725,8 +700,8 @@ class _SettingsTab extends StatelessWidget {
             ? 'Community profile setup'
             : 'Manage community profile',
         subtitle: data.communityProfile == null
-            ? 'Choose a public handle and display name'
-            : '${data.communityProfile!.handle} · public identity',
+            ? 'Choose a public handle'
+            : data.communityProfile!.handle,
         onTap: onOpenCommunity,
       ),
       const SizedBox(height: 14),
@@ -743,9 +718,9 @@ class _SettingsTab extends StatelessWidget {
             const SizedBox(height: 6),
             Text(
               data.signedIn
-                  ? data.user?.email ?? 'Your Firebase account is active.'
-                  : 'Public learning remains available. Sign in when you want your account to travel with you.',
-              style: const TextStyle(color: BrandColors.mutedInk),
+                  ? data.user?.email ?? 'Account active'
+                  : 'Public learning stays open.',
+              style: TextStyle(color: context.brand.mutedInk),
             ),
             const SizedBox(height: 16),
             SizedBox(
@@ -829,8 +804,8 @@ class _ProfileHero extends StatelessWidget {
                     children: [
                       Text(
                         data.signedIn ? 'WELCOME BACK' : 'WELCOME, EXPLORER',
-                        style: const TextStyle(
-                          color: BrandColors.kenteGold,
+                        style: TextStyle(
+                          color: context.brand.gold,
                           fontSize: 9,
                           fontWeight: FontWeight.w900,
                           letterSpacing: 1.15,
@@ -874,7 +849,7 @@ class _ProfileHero extends StatelessWidget {
                     data.signedIn
                         ? Icons.verified_user_rounded
                         : Icons.lock_outline_rounded,
-                    color: BrandColors.kenteGold,
+                    color: context.brand.gold,
                     size: 18,
                   ),
                   const SizedBox(width: 8),
@@ -927,14 +902,14 @@ class _ProfileAvatar extends StatelessWidget {
         ),
         boxShadow: [
           BoxShadow(
-            color: BrandColors.kenteGold.withValues(alpha: 0.25),
+            color: context.brand.gold.withValues(alpha: 0.25),
             blurRadius: 18,
           ),
         ],
       ),
       child: ClipOval(
         child: ColoredBox(
-          color: BrandColors.savannahGreen,
+          color: context.brand.success,
           child: photoUrl != null && photoUrl.isNotEmpty
               ? Image.network(
                   photoUrl,
@@ -961,33 +936,35 @@ class _ProfileAvatar extends StatelessWidget {
   );
 }
 
+/// One of the three counts across the top of the overview.
+///
+/// Each one is now a door: a number nobody can act on is decoration, and
+/// "Saved words: 12" with no way to see the twelve words is the clearest
+/// example of that in the app.
 class _StatCard extends StatelessWidget {
   const _StatCard({
     required this.icon,
     required this.value,
     required this.label,
     required this.color,
+    this.onTap,
   });
 
   final IconData icon;
   final String value;
   final String label;
   final Color color;
+  final VoidCallback? onTap;
 
   @override
-  Widget build(BuildContext context) => _GlassPanel(
+  Widget build(BuildContext context) => GlassCard(
+    onTap: onTap,
+    accent: color,
+    semanticLabel: '$label, $value',
     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 14),
     child: Column(
       children: [
-        Container(
-          width: 34,
-          height: 34,
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.12),
-            borderRadius: BorderRadius.circular(11),
-          ),
-          child: Icon(icon, color: color, size: 19),
-        ),
+        GlassIconPlate(icon: icon, color: color, size: 34),
         const SizedBox(height: 8),
         Text(value, style: Theme.of(context).textTheme.titleLarge),
         const SizedBox(height: 2),
@@ -996,7 +973,7 @@ class _StatCard extends StatelessWidget {
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           textAlign: TextAlign.center,
-          style: const TextStyle(color: BrandColors.mutedInk, fontSize: 9),
+          style: TextStyle(color: context.brand.mutedInk, fontSize: 9),
         ),
       ],
     ),
@@ -1008,13 +985,11 @@ class _TabIntro extends StatelessWidget {
     required this.icon,
     required this.eyebrow,
     required this.title,
-    required this.subtitle,
   });
 
   final IconData icon;
   final String eyebrow;
   final String title;
-  final String subtitle;
 
   @override
   Widget build(BuildContext context) => Container(
@@ -1046,7 +1021,7 @@ class _TabIntro extends StatelessWidget {
             borderRadius: BorderRadius.circular(16),
             border: Border.all(color: Colors.white12),
           ),
-          child: Icon(icon, color: BrandColors.kenteGold),
+          child: Icon(icon, color: context.brand.gold),
         ),
         const SizedBox(width: 14),
         Expanded(
@@ -1055,8 +1030,8 @@ class _TabIntro extends StatelessWidget {
             children: [
               Text(
                 eyebrow,
-                style: const TextStyle(
-                  color: BrandColors.kenteGold,
+                style: TextStyle(
+                  color: context.brand.gold,
                   fontSize: 9,
                   fontWeight: FontWeight.w900,
                   letterSpacing: 1.1,
@@ -1070,15 +1045,6 @@ class _TabIntro extends StatelessWidget {
                   fontWeight: FontWeight.w900,
                 ),
               ),
-              const SizedBox(height: 5),
-              Text(
-                subtitle,
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.7),
-                  fontSize: 12,
-                  height: 1.35,
-                ),
-              ),
             ],
           ),
         ),
@@ -1087,38 +1053,16 @@ class _TabIntro extends StatelessWidget {
   );
 }
 
+/// The profile's own panel, now a thin alias for the app's glass so this
+/// screen and the community feed are made of the same material.
 class _GlassPanel extends StatelessWidget {
-  const _GlassPanel({
-    required this.child,
-    this.padding = const EdgeInsets.all(18),
-  });
+  const _GlassPanel({required this.child});
 
   final Widget child;
-  final EdgeInsetsGeometry padding;
 
   @override
-  Widget build(BuildContext context) => ClipRRect(
-    borderRadius: BorderRadius.circular(21),
-    child: BackdropFilter(
-      filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-      child: Container(
-        padding: padding,
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.68),
-          borderRadius: BorderRadius.circular(21),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.86)),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x100B3D2E),
-              blurRadius: 18,
-              offset: Offset(0, 8),
-            ),
-          ],
-        ),
-        child: child,
-      ),
-    ),
-  );
+  Widget build(BuildContext context) =>
+      GlassSurface(padding: const EdgeInsets.all(18), child: child);
 }
 
 class _Eyebrow extends StatelessWidget {
@@ -1129,8 +1073,8 @@ class _Eyebrow extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Text(
     text,
-    style: const TextStyle(
-      color: BrandColors.terracotta,
+    style: TextStyle(
+      color: context.brand.terracotta,
       fontSize: 9,
       fontWeight: FontWeight.w900,
       letterSpacing: 1.1,
@@ -1151,12 +1095,12 @@ class _EmptyIdentity extends StatelessWidget {
         width: 64,
         height: 64,
         decoration: BoxDecoration(
-          color: BrandColors.kenteGold.withValues(alpha: 0.12),
+          color: context.brand.gold.withValues(alpha: 0.12),
           shape: BoxShape.circle,
         ),
-        child: const Icon(
+        child: Icon(
           Icons.person_add_alt_1_rounded,
-          color: BrandColors.heritageGreen,
+          color: context.brand.accent,
           size: 30,
         ),
       ),
@@ -1167,13 +1111,6 @@ class _EmptyIdentity extends StatelessWidget {
         style: Theme.of(context).textTheme.titleLarge,
       ),
       const SizedBox(height: 7),
-      Text(
-        signedIn
-            ? 'Choose a handle and display name before your first community post.'
-            : 'Sign in, then choose the handle the community will know you by.',
-        textAlign: TextAlign.center,
-        style: const TextStyle(color: BrandColors.mutedInk),
-      ),
       const SizedBox(height: 16),
       FilledButton.icon(
         onPressed: onOpen,
@@ -1199,9 +1136,9 @@ class _CommunityAvatar extends StatelessWidget {
     height: 58,
     clipBehavior: Clip.antiAlias,
     decoration: BoxDecoration(
-      color: BrandColors.heritageGreen,
+      color: context.brand.accent,
       shape: BoxShape.circle,
-      border: Border.all(color: BrandColors.kenteGold, width: 2),
+      border: Border.all(color: context.brand.gold, width: 2),
     ),
     child: profile.avatarUrl != null && profile.avatarUrl!.isNotEmpty
         ? Image.network(
@@ -1234,13 +1171,13 @@ class _InfoPill extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
     decoration: BoxDecoration(
-      color: BrandColors.heritageGreen.withValues(alpha: 0.07),
+      color: context.brand.accent.withValues(alpha: 0.07),
       borderRadius: BorderRadius.circular(999),
     ),
     child: Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, color: BrandColors.heritageGreen, size: 15),
+        Icon(icon, color: context.brand.accent, size: 15),
         const SizedBox(width: 5),
         Text(
           label,
@@ -1265,101 +1202,6 @@ class _ActionTile extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) => _GlassPanel(
-    padding: EdgeInsets.zero,
-    child: Material(
-      color: Colors.transparent,
-      child: ListTile(
-        minVerticalPadding: 14,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
-        leading: Container(
-          width: 44,
-          height: 44,
-          decoration: BoxDecoration(
-            color: BrandColors.heritageGreen.withValues(alpha: 0.09),
-            borderRadius: BorderRadius.circular(14),
-          ),
-          child: Icon(icon, color: BrandColors.heritageGreen),
-        ),
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
-        subtitle: Text(subtitle),
-        trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16),
-        onTap: onTap,
-      ),
-    ),
-  );
-}
-
-class _SavedCollectionCard extends StatelessWidget {
-  const _SavedCollectionCard({
-    required this.icon,
-    required this.count,
-    required this.title,
-    required this.subtitle,
-    required this.color,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String count;
-  final String title;
-  final String subtitle;
-  final Color color;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) => _GlassPanel(
-    padding: EdgeInsets.zero,
-    child: Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(21),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              Container(
-                width: 52,
-                height: 52,
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Icon(icon, color: color),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(title, style: Theme.of(context).textTheme.titleMedium),
-                    const SizedBox(height: 3),
-                    Text(
-                      subtitle,
-                      style: const TextStyle(
-                        color: BrandColors.mutedInk,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 10),
-              Text(
-                count,
-                style: TextStyle(
-                  color: color,
-                  fontSize: 22,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-              const SizedBox(width: 5),
-              const Icon(Icons.chevron_right_rounded),
-            ],
-          ),
-        ),
-      ),
-    ),
-  );
+  Widget build(BuildContext context) =>
+      GlassRow(icon: icon, title: title, detail: subtitle, onTap: onTap);
 }

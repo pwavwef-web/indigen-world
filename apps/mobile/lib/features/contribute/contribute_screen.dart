@@ -12,6 +12,7 @@ import 'package:indigen_world_mobile/features/rating/rating_service.dart';
 import 'package:indigen_world_mobile/shared/app_widgets.dart';
 import 'package:indigen_world_mobile/shared/frosted_nav_bar.dart';
 import 'package:indigen_world_mobile/shared/glass_popup.dart';
+import 'package:indigen_world_mobile/shared/glass_surface.dart';
 
 class ContributeScreen extends ConsumerStatefulWidget {
   const ContributeScreen({
@@ -96,15 +97,12 @@ class _ContributeScreenState extends ConsumerState<ContributeScreen> {
             title: widget.relatedEntryId == null
                 ? 'Add to the living collection.'
                 : 'Suggest a correction.',
-            subtitle: 'Choose where your knowledge belongs, then send it securely for community review.',
           ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const _ReviewPromise(),
-                const SizedBox(height: 22),
                 Text(
                   'What are you contributing?',
                   style: Theme.of(context).textTheme.titleLarge,
@@ -119,7 +117,7 @@ class _ContributeScreenState extends ConsumerState<ContributeScreen> {
                     _submitError = null;
                   }),
                 ),
-                const SizedBox(height: 22),
+                const SizedBox(height: 14),
                 _ContributionFields(
                   key: ValueKey(_kind),
                   formKey: _formKey,
@@ -169,10 +167,10 @@ class _ContributeScreenState extends ConsumerState<ContributeScreen> {
                   ),
                 ),
                 const SizedBox(height: 9),
-                const Text(
-                  'Submitting does not publish immediately. Reviewers check rights, consent, accuracy, and cultural context first.',
+                Text(
+                  'Reviewed before it is published.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: BrandColors.mutedInk, fontSize: 10),
+                  style: TextStyle(color: context.brand.mutedInk, fontSize: 11),
                 ),
                 const SizedBox(height: 28),
                 const SectionTitle(title: 'Your submissions'),
@@ -306,16 +304,16 @@ class _ContributeScreenState extends ConsumerState<ContributeScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Icon(
+            Icon(
               Icons.cloud_done_rounded,
-              color: BrandColors.savannahGreen,
+              color: context.brand.success,
               size: 34,
             ),
             const SizedBox(height: 14),
             Text(
               'Your ${_kind.contributionLabel} is now in the review queue. You can follow its status below.',
               textAlign: TextAlign.center,
-              style: const TextStyle(color: BrandColors.ink, height: 1.5),
+              style: TextStyle(color: context.brand.ink, height: 1.5),
             ),
             const SizedBox(height: 20),
             FilledButton(
@@ -367,11 +365,14 @@ ContributionMediaKind? _uploadKindFor(CollectionKind kind) => switch (kind) {
   CollectionKind.music ||
   CollectionKind.audiobooks => ContributionMediaKind.audio,
   CollectionKind.literature => ContributionMediaKind.document,
+  CollectionKind.video => ContributionMediaKind.video,
   CollectionKind.dictionary => null,
 };
 
 bool _requiresUpload(CollectionKind kind) =>
-    kind == CollectionKind.music || kind == CollectionKind.audiobooks;
+    kind == CollectionKind.music ||
+    kind == CollectionKind.audiobooks ||
+    kind == CollectionKind.video;
 
 class _KindSelector extends StatelessWidget {
   const _KindSelector({required this.selected, required this.onSelected});
@@ -380,13 +381,20 @@ class _KindSelector extends StatelessWidget {
   final ValueChanged<CollectionKind> onSelected;
 
   @override
-  Widget build(BuildContext context) => GridView.count(
-    crossAxisCount: 2,
+  Widget build(BuildContext context) => GridView(
     shrinkWrap: true,
     physics: const NeverScrollableScrollPhysics(),
-    mainAxisSpacing: 10,
-    crossAxisSpacing: 10,
-    childAspectRatio: 2.25,
+    padding: EdgeInsets.zero,
+    // `mainAxisExtent` rather than `childAspectRatio`: the tile is as tall as
+    // an icon and a word, on a narrow phone and on a tablet alike. A ratio
+    // would grow it with the screen and leave the dead band underneath that
+    // used to separate this picker from the first field.
+    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+      crossAxisCount: 2,
+      mainAxisSpacing: 10,
+      crossAxisSpacing: 10,
+      mainAxisExtent: 54,
+    ),
     children: [
       for (final kind in CollectionKind.values)
         _KindChoice(
@@ -410,48 +418,73 @@ class _KindChoice extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) => Material(
-    color: selected
-        ? BrandColors.heritageGreen
-        : Colors.white.withValues(alpha: 0.7),
-    borderRadius: BorderRadius.circular(17),
-    child: InkWell(
-      borderRadius: BorderRadius.circular(17),
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 12),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(17),
-          border: Border.all(
-            color: selected ? BrandColors.kenteGold : BrandColors.divider,
-            width: selected ? 1.5 : 1,
+  Widget build(BuildContext context) {
+    final content = Row(
+      children: [
+        Icon(
+          _kindIcon(kind),
+          color: selected ? context.brand.gold : context.brand.terracotta,
+          size: 20,
+        ),
+        const SizedBox(width: 8),
+        Flexible(
+          child: Text(
+            kind.label,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: selected ? Colors.white : context.brand.ink,
+              fontWeight: FontWeight.w800,
+              fontSize: 12,
+            ),
           ),
         ),
-        child: Row(
-          children: [
-            Icon(
-              _kindIcon(kind),
-              color: selected ? BrandColors.kenteGold : BrandColors.terracotta,
-              size: 21,
-            ),
-            const SizedBox(width: 8),
-            Flexible(
-              child: Text(
-                kind.label,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: selected ? Colors.white : BrandColors.ink,
-                  fontWeight: FontWeight.w800,
-                  fontSize: 12,
-                ),
+      ],
+    );
+
+    if (!selected) {
+      return GlassCard(
+        onTap: onTap,
+        blur: false,
+        radius: 17,
+        lifted: false,
+        padding: const EdgeInsets.symmetric(horizontal: 13),
+        semanticLabel: kind.label,
+        child: content,
+      );
+    }
+    return Semantics(
+      button: true,
+      selected: true,
+      label: kind.label,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(17),
+          onTap: onTap,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 13),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [BrandColors.heritageGreen, BrandColors.savannahGreen],
               ),
+              borderRadius: BorderRadius.circular(17),
+              boxShadow: [
+                BoxShadow(
+                  color: context.brand.gold.withValues(alpha: 0.3),
+                  blurRadius: 16,
+                  spreadRadius: -4,
+                  offset: const Offset(0, 5),
+                ),
+              ],
             ),
-          ],
+            child: content,
+          ),
         ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 /// The form for one kind of contribution.
@@ -685,9 +718,8 @@ class _ContributionFields extends StatelessWidget {
             style: const TextStyle(fontWeight: FontWeight.w700),
           ),
           subtitle: const Text(
-            'Consent must cover community review and any publication permission '
-            'selected below, and must come from a parent or guardian for anyone '
-            'under 18.',
+            'A parent or guardian consents for anyone under 18.',
+            style: TextStyle(fontSize: 12),
           ),
         ),
         CheckboxListTile(
@@ -700,7 +732,8 @@ class _ContributionFields extends StatelessWidget {
             style: TextStyle(fontWeight: FontWeight.w700),
           ),
           subtitle: const Text(
-            'Do not submit private, sacred, disputed, copyrighted, or unapproved material.',
+            'Nothing private, sacred, disputed or copyrighted.',
+            style: TextStyle(fontSize: 12),
           ),
         ),
         CheckboxListTile(
@@ -709,12 +742,10 @@ class _ContributionFields extends StatelessWidget {
           value: publicationPermission,
           onChanged: (value) => onPublicationChanged(value ?? false),
           title: const Text(
-            'If approved, Indigen World may publish this in the public Collection.',
+            'Indigen World may publish this if approved.',
             style: TextStyle(fontWeight: FontWeight.w700),
           ),
-          subtitle: const Text(
-            'Optional. Review permission does not automatically grant publication permission.',
-          ),
+          subtitle: const Text('Optional.', style: TextStyle(fontSize: 12)),
         ),
       ],
     ),
@@ -728,6 +759,7 @@ class _ContributionFields extends StatelessWidget {
     CollectionKind.music => 'Song or recording title',
     CollectionKind.literature => 'Work title',
     CollectionKind.audiobooks => 'Audiobook title',
+    CollectionKind.video => 'Video title',
   };
 
   String get _titleHint => switch (kind) {
@@ -735,6 +767,7 @@ class _ContributionFields extends StatelessWidget {
     CollectionKind.music => 'Name this piece',
     CollectionKind.literature => 'Name the story, poem, or work',
     CollectionKind.audiobooks => 'Name the narrated work',
+    CollectionKind.video => 'Name this film or clip',
   };
 
   String get _bodyLabel => switch (kind) {
@@ -742,6 +775,7 @@ class _ContributionFields extends StatelessWidget {
     CollectionKind.music => 'Description and cultural context',
     CollectionKind.literature => 'Text, excerpt, or synopsis',
     CollectionKind.audiobooks => 'Synopsis and narration details',
+    CollectionKind.video => 'What is happening, and why it matters',
   };
 
   String get _bodyHint => switch (kind) {
@@ -751,20 +785,22 @@ class _ContributionFields extends StatelessWidget {
       'Paste the work, or describe it if you attached the document',
     CollectionKind.audiobooks =>
       'Describe the work and what the recording contains',
+    CollectionKind.video =>
+      'Describe the occasion, the place, and who is in it',
   };
 
   String get _uploadTitle => switch (kind) {
     CollectionKind.music => 'The recording',
     CollectionKind.audiobooks => 'The narration',
+    CollectionKind.video => 'The footage',
     _ => 'Manuscript (optional)',
   };
 
   String get _uploadHint => switch (kind) {
-    CollectionKind.music =>
-      'Upload the audio itself — MP3, M4A, WAV and other common formats.',
-    CollectionKind.audiobooks =>
-      'Upload the narrated audio — MP3, M4A, WAV and other common formats.',
-    _ => 'Attach the full work as a PDF, Word document, or plain text if you have one.',
+    CollectionKind.music => 'Choose the audio',
+    CollectionKind.audiobooks => 'Choose the narration',
+    CollectionKind.video => 'Choose the video',
+    _ => 'Attach a document',
   };
 
   String get _formatLabel => switch (kind) {
@@ -772,6 +808,7 @@ class _ContributionFields extends StatelessWidget {
     CollectionKind.music => 'Music type',
     CollectionKind.literature => 'Literature type',
     CollectionKind.audiobooks => 'Audio work type',
+    CollectionKind.video => 'Video type',
   };
 
   List<String> get _formats => switch (kind) {
@@ -804,12 +841,21 @@ class _ContributionFields extends StatelessWidget {
       'Serial narration',
       'Other',
     ],
+    CollectionKind.video => const [
+      'Documentary',
+      'Performance',
+      'Ceremony',
+      'Interview',
+      'Short film',
+      'Other',
+    ],
   };
 
   String get _thirdPartyLabel => switch (kind) {
     CollectionKind.music =>
       'Does this include someone else\'s song, sample, or performance?',
     CollectionKind.audiobooks => 'Is the text somebody else\'s work?',
+    CollectionKind.video => 'Is any of this footage or music somebody else\'s?',
     _ => 'Does this use someone else\'s material?',
   };
 
@@ -821,6 +867,7 @@ class _ContributionFields extends StatelessWidget {
     CollectionKind.literature => 'Anyone named, quoted, or depicted has agreed—or there is nobody else in it.',
     CollectionKind.dictionary =>
       'Anyone whose knowledge this is has agreed to it being shared.',
+    CollectionKind.video => 'Everyone filmed has agreed to this being shared.',
   };
 
   String get _sourceLabel => switch (kind) {
@@ -828,6 +875,7 @@ class _ContributionFields extends StatelessWidget {
     CollectionKind.music => 'Artist, performer, or source',
     CollectionKind.literature => 'Author, storyteller, or source',
     CollectionKind.audiobooks => 'Author and narrator',
+    CollectionKind.video => 'Who filmed it, and who appears',
   };
 
   String get _sourceHint => switch (kind) {
@@ -835,6 +883,7 @@ class _ContributionFields extends StatelessWidget {
     CollectionKind.music => 'Name the rights holder and performers',
     CollectionKind.literature => 'Give clear authorship and attribution',
     CollectionKind.audiobooks => 'Name everyone whose permission is needed',
+    CollectionKind.video => 'Name everyone whose permission is needed',
   };
 }
 
@@ -867,17 +916,12 @@ class _UploadField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final chosen = file;
-    return Container(
+    return GlassSurface(
+      blur: false,
+      radius: 18,
+      lifted: false,
+      accent: required && chosen == null ? context.brand.terracotta : null,
       padding: const EdgeInsets.fromLTRB(15, 14, 15, 15),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.6),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: required && chosen == null
-              ? BrandColors.terracotta.withValues(alpha: 0.4)
-              : BrandColors.divider,
-        ),
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -887,7 +931,7 @@ class _UploadField extends StatelessWidget {
                 uploadKind == ContributionMediaKind.audio
                     ? Icons.audiotrack_rounded
                     : Icons.description_rounded,
-                color: BrandColors.heritageGreen,
+                color: context.brand.accent,
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -897,10 +941,10 @@ class _UploadField extends StatelessWidget {
                 ),
               ),
               if (required)
-                const Text(
+                Text(
                   'REQUIRED',
                   style: TextStyle(
-                    color: BrandColors.terracotta,
+                    color: context.brand.terracotta,
                     fontSize: 9,
                     fontWeight: FontWeight.w900,
                     letterSpacing: 0.8,
@@ -908,17 +952,12 @@ class _UploadField extends StatelessWidget {
                 ),
             ],
           ),
-          const SizedBox(height: 7),
-          Text(
-            hint,
-            style: const TextStyle(color: BrandColors.mutedInk, fontSize: 12),
-          ),
           const SizedBox(height: 12),
           if (chosen == null)
             OutlinedButton.icon(
               onPressed: onPick,
               icon: const Icon(Icons.upload_file_rounded),
-              label: Text('Choose ${uploadKind.label}'),
+              label: Text(hint),
             )
           else ...[
             Row(
@@ -935,8 +974,8 @@ class _UploadField extends StatelessWidget {
                       ),
                       Text(
                         chosen.sizeLabel,
-                        style: const TextStyle(
-                          color: BrandColors.mutedInk,
+                        style: TextStyle(
+                          color: context.brand.mutedInk,
                           fontSize: 11.5,
                         ),
                       ),
@@ -962,14 +1001,14 @@ class _UploadField extends StatelessWidget {
                 child: LinearProgressIndicator(
                   value: progress,
                   minHeight: 6,
-                  backgroundColor: BrandColors.divider,
+                  backgroundColor: context.brand.divider,
                 ),
               ),
               const SizedBox(height: 6),
               Text(
                 'Uploading ${((progress ?? 0) * 100).round()}%',
-                style: const TextStyle(
-                  color: BrandColors.mutedInk,
+                style: TextStyle(
+                  color: context.brand.mutedInk,
                   fontSize: 11.5,
                   fontWeight: FontWeight.w700,
                 ),
@@ -980,40 +1019,6 @@ class _UploadField extends StatelessWidget {
       ),
     );
   }
-}
-
-class _ReviewPromise extends StatelessWidget {
-  const _ReviewPromise();
-
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(16),
-    decoration: BoxDecoration(
-      gradient: LinearGradient(
-        colors: [
-          BrandColors.heritageGreen.withValues(alpha: 0.1),
-          BrandColors.kenteGold.withValues(alpha: 0.1),
-        ],
-      ),
-      borderRadius: BorderRadius.circular(20),
-      border: Border.all(
-        color: BrandColors.heritageGreen.withValues(alpha: 0.14),
-      ),
-    ),
-    child: const Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(Icons.shield_outlined, color: BrandColors.heritageGreen),
-        SizedBox(width: 12),
-        Expanded(
-          child: Text(
-            'Your submission is private to you and reviewers until it is approved and deliberately published.',
-            style: TextStyle(fontWeight: FontWeight.w700, height: 1.4),
-          ),
-        ),
-      ],
-    ),
-  );
 }
 
 class _ContributionActivity extends ConsumerWidget {
@@ -1058,9 +1063,9 @@ class _ContributionActivity extends ConsumerWidget {
                               vertical: 5,
                             ),
                             leading: CircleAvatar(
-                              backgroundColor: BrandColors.heritageGreen
+                              backgroundColor: context.brand.accentFill
                                   .withValues(alpha: 0.1),
-                              foregroundColor: BrandColors.heritageGreen,
+                              foregroundColor: context.brand.accent,
                               child: Icon(_kindIcon(item.kind)),
                             ),
                             title: Text(
@@ -1083,8 +1088,8 @@ class _ContributionActivity extends ConsumerWidget {
                               padding: const EdgeInsets.fromLTRB(12, 0, 8, 8),
                               child: Text(
                                 'Reviewer note: ${item.reviewFeedback}',
-                                style: const TextStyle(
-                                  color: BrandColors.mutedInk,
+                                style: TextStyle(
+                                  color: context.brand.mutedInk,
                                   fontSize: 12,
                                   fontWeight: FontWeight.w700,
                                 ),
@@ -1170,16 +1175,14 @@ class _ActivityEmpty extends StatelessWidget {
   final String message;
 
   @override
-  Widget build(BuildContext context) => Card(
-    child: Padding(
-      padding: const EdgeInsets.all(18),
-      child: Row(
-        children: [
-          Icon(icon, color: BrandColors.terracotta),
-          const SizedBox(width: 12),
-          Expanded(child: Text(message)),
-        ],
-      ),
+  Widget build(BuildContext context) => GlassCard(
+    padding: const EdgeInsets.all(18),
+    child: Row(
+      children: [
+        Icon(icon, color: context.brand.terracotta),
+        const SizedBox(width: 12),
+        Expanded(child: Text(message)),
+      ],
     ),
   );
 }
@@ -1193,13 +1196,15 @@ class _SubmitError extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.all(13),
     decoration: BoxDecoration(
-      color: BrandColors.terracotta.withValues(alpha: 0.09),
+      color: context.brand.terracotta.withValues(alpha: 0.09),
       borderRadius: BorderRadius.circular(15),
-      border: Border.all(color: BrandColors.terracotta.withValues(alpha: 0.35)),
+      border: Border.all(
+        color: context.brand.terracotta.withValues(alpha: 0.35),
+      ),
     ),
     child: Row(
       children: [
-        const Icon(Icons.error_outline_rounded, color: BrandColors.terracotta),
+        Icon(Icons.error_outline_rounded, color: context.brand.terracotta),
         const SizedBox(width: 10),
         Expanded(child: Text(message)),
       ],
@@ -1212,6 +1217,7 @@ IconData _kindIcon(CollectionKind kind) => switch (kind) {
   CollectionKind.dictionary => Icons.translate_rounded,
   CollectionKind.literature => Icons.auto_stories_rounded,
   CollectionKind.audiobooks => Icons.headphones_rounded,
+  CollectionKind.video => Icons.movie_creation_rounded,
 };
 
 String _statusLabel(String status) => switch (status.toLowerCase()) {

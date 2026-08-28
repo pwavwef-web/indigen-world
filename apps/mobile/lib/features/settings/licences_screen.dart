@@ -89,11 +89,11 @@ class LicencesScreen extends StatelessWidget {
     body: ListView(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 40),
       children: [
-        const Text(
+        Text(
           'Every contribution carries a licence chosen by the person who '
           'shared it and the community it belongs to. Nothing is published '
           'without recorded consent and a licence.',
-          style: TextStyle(color: BrandColors.mutedInk, height: 1.5),
+          style: TextStyle(color: context.brand.mutedInk, height: 1.5),
         ),
         const SizedBox(height: 22),
         const _SectionLabel('CONTENT LICENCES'),
@@ -124,12 +124,12 @@ class LicencesScreen extends StatelessWidget {
                   style: TextStyle(height: 1.5),
                 ),
                 const SizedBox(height: 12),
-                const Text(
+                Text(
                   'Community posts are not automatically added to the '
                   'validated language record. Material only enters the '
                   'dictionary through the contribution flow, where a licence '
                   'and consent are recorded explicitly.',
-                  style: TextStyle(height: 1.5, color: BrandColors.mutedInk),
+                  style: TextStyle(height: 1.5, color: context.brand.mutedInk),
                 ),
               ],
             ),
@@ -141,10 +141,7 @@ class LicencesScreen extends StatelessWidget {
         Card(
           child: ListTile(
             minVerticalPadding: 14,
-            leading: const Icon(
-              Icons.code_rounded,
-              color: BrandColors.heritageGreen,
-            ),
+            leading: Icon(Icons.code_rounded, color: context.brand.accent),
             title: const Text(
               'Open-source licences',
               style: TextStyle(fontWeight: FontWeight.w700),
@@ -175,8 +172,8 @@ class _SectionLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Text(
     label,
-    style: const TextStyle(
-      color: BrandColors.heritageGreen,
+    style: TextStyle(
+      color: context.brand.accent,
       fontSize: 11,
       fontWeight: FontWeight.w900,
       letterSpacing: 1.2,
@@ -200,8 +197,8 @@ class _LicenceCard extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             licence.code,
-            style: const TextStyle(
-              color: BrandColors.mutedInk,
+            style: TextStyle(
+              color: context.brand.mutedInk,
               fontSize: 11,
               fontWeight: FontWeight.w700,
               letterSpacing: 0.4,
@@ -217,13 +214,13 @@ class _LicenceCard extends StatelessWidget {
               for (final permission in licence.permissions)
                 _Tag(
                   label: permission,
-                  color: BrandColors.savannahGreen,
+                  color: context.brand.success,
                   icon: Icons.check_rounded,
                 ),
               for (final condition in licence.conditions)
                 _Tag(
                   label: condition,
-                  color: BrandColors.terracotta,
+                  color: context.brand.terracotta,
                   icon: Icons.priority_high_rounded,
                 ),
             ],

@@ -9,6 +9,7 @@ import 'package:indigen_world_mobile/core/app_signature.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/core/connectivity.dart';
 import 'package:indigen_world_mobile/core/firebase_ready.dart';
+import 'package:indigen_world_mobile/core/theme_mode.dart';
 import 'package:indigen_world_mobile/features/auth/auth_repository.dart';
 import 'package:indigen_world_mobile/features/auth/sign_in_sheet.dart';
 import 'package:indigen_world_mobile/features/community/community_setup_screen.dart';
@@ -115,6 +116,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final signedIn = user != null;
     final profile = ref.watch(myCommunityProfileProvider).asData?.value;
     final version = ref.watch(appVersionProvider).asData?.value;
+    final themeMode = ref.watch(themeModeProvider);
     final signature = ref.watch(appSignatureProvider).asData?.value;
 
     return Scaffold(
@@ -126,10 +128,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           Card(
             child: ListTile(
               minVerticalPadding: 16,
-              leading: const Icon(
+              leading: Icon(
                 Icons.account_circle_outlined,
                 size: 34,
-                color: BrandColors.heritageGreen,
+                color: context.brand.accent,
               ),
               title: Text(
                 profile?.displayName ??
@@ -236,9 +238,20 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           _SettingsGroup(
             children: [
               _SettingsRow(
+                icon: themeModeIcon(themeMode),
+                title: 'Appearance',
+                subtitle: switch (themeMode) {
+                  ThemeMode.system =>
+                    'Match device — light by day, dark by night',
+                  ThemeMode.light => 'Light — warm paper and deep green',
+                  ThemeMode.dark => 'Dark — charcoal with a green undertone',
+                },
+                onTap: _chooseAppearance,
+              ),
+              _SettingsRow(
                 icon: Icons.notifications_none_rounded,
                 title: 'Notifications',
-                subtitle: 'Likes, replies, follows, mentions and new releases',
+                subtitle: 'Likes, replies, follows, mentions',
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute<void>(
                     builder: (context) => const NotificationsScreen(),
@@ -246,9 +259,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
               ),
               SwitchListTile.adaptive(
-                secondary: const Icon(
+                secondary: Icon(
                   Icons.campaign_outlined,
-                  color: BrandColors.heritageGreen,
+                  color: context.brand.accent,
                 ),
                 title: const Text(
                   'Push alerts on this device',
@@ -269,9 +282,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               // something drawn on it.
               if (_alertsEnabled ?? false)
                 SwitchListTile.adaptive(
-                  secondary: const Icon(
+                  secondary: Icon(
                     Icons.visibility_outlined,
-                    color: BrandColors.heritageGreen,
+                    color: context.brand.accent,
                   ),
                   title: const Text(
                     'Show message text in alerts',
@@ -307,7 +320,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               _SettingsRow(
                 icon: Icons.support_agent_outlined,
                 title: 'Contact support',
-                subtitle: 'Reach the project team about your account or data',
+                subtitle: 'Reach the project team',
                 onTap: _openSupport,
               ),
               _SettingsRow(
@@ -329,9 +342,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               _SettingsRow(
                 icon: Icons.description_outlined,
                 title: 'Licences',
-                subtitle:
-                    'Content licences, community post terms and open-source '
-                    'notices',
+                subtitle: 'Licences and open-source notices',
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute<void>(
                     builder: (context) => const LicencesScreen(),
@@ -350,7 +361,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               _SettingsRow(
                 icon: Icons.gavel_outlined,
                 title: 'Terms of use',
-                subtitle: 'The agreement between you and Indigen World',
+                subtitle: 'Your agreement with Indigen World',
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute<void>(
                     builder: (context) =>
@@ -405,6 +416,36 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ],
       ),
     );
+  }
+
+  /// The appearance choice, offered as three plain rows.
+  ///
+  /// A switch would only cover two of the three states, and "match device" is
+  /// the one most people want — a phone that goes dark at dusk should take the
+  /// app with it.
+  Future<void> _chooseAppearance() async {
+    final current = ref.read(themeModeProvider);
+    final choice = await showGlassActionSheet<ThemeMode>(
+      context: context,
+      title: 'Appearance',
+      actions: [
+        for (final mode in ThemeMode.values)
+          GlassAction(
+            value: mode,
+            icon: mode == current
+                ? Icons.check_circle_rounded
+                : themeModeIcon(mode),
+            label: themeModeLabel(mode),
+            description: switch (mode) {
+              ThemeMode.system => 'Follow the phone light and dark setting',
+              ThemeMode.light => 'Always light',
+              ThemeMode.dark => 'Always dark',
+            },
+          ),
+      ],
+    );
+    if (choice == null) return;
+    await ref.read(themeModeProvider.notifier).setMode(choice);
   }
 
   void _openCommunityProfile() {
@@ -581,11 +622,13 @@ class _SectionLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Text(
     label,
-    style: const TextStyle(
-      color: BrandColors.heritageGreen,
+    style: TextStyle(
+      // Muted, not accented. A green stamp over every group turned the section
+      // headings into the loudest thing on a screen that is mostly reading.
+      color: context.brand.mutedInk,
       fontSize: 11,
-      fontWeight: FontWeight.w900,
-      letterSpacing: 1.2,
+      fontWeight: FontWeight.w700,
+      letterSpacing: 1.1,
     ),
   );
 }
@@ -627,9 +670,7 @@ class _SettingsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = destructive
-        ? BrandColors.terracotta
-        : BrandColors.heritageGreen;
+    final color = destructive ? context.brand.terracotta : context.brand.accent;
     return ListTile(
       enabled: enabled && onTap != null,
       minVerticalPadding: 12,
@@ -638,7 +679,7 @@ class _SettingsRow extends StatelessWidget {
         title,
         style: TextStyle(
           fontWeight: FontWeight.w700,
-          color: destructive ? BrandColors.terracotta : null,
+          color: destructive ? context.brand.terracotta : null,
         ),
       ),
       subtitle: Text(subtitle),

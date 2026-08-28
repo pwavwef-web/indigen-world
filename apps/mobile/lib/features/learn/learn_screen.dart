@@ -107,8 +107,8 @@ class _LearnScreenState extends ConsumerState<LearnScreen> {
               title: lesson.unitTitle,
               subtitle: lesson.unitSubtitle,
               color: lesson.unitOrder.isOdd
-                  ? BrandColors.heritageGreen
-                  : BrandColors.terracotta,
+                  ? context.brand.accent
+                  : context.brand.terracotta,
             ),
           )
           ..add(const SizedBox(height: 18));
@@ -256,7 +256,7 @@ class _LearnHeader extends StatelessWidget {
     margin: const EdgeInsets.fromLTRB(16, 46, 16, 12),
     padding: const EdgeInsets.fromLTRB(18, 13, 18, 15),
     decoration: BoxDecoration(
-      color: BrandColors.heritageGreen,
+      color: context.brand.accent,
       borderRadius: BorderRadius.circular(24),
       boxShadow: const [
         BoxShadow(
@@ -398,7 +398,7 @@ class _HeaderAction extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Material(
     color: active
-        ? BrandColors.kenteGold.withValues(alpha: 0.24)
+        ? context.brand.gold.withValues(alpha: 0.24)
         : Colors.white.withValues(alpha: 0.09),
     borderRadius: BorderRadius.circular(15),
     child: InkWell(
@@ -409,7 +409,7 @@ class _HeaderAction extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: BrandColors.kenteGold, size: 19),
+            Icon(icon, color: context.brand.gold, size: 19),
             const SizedBox(width: 7),
             Flexible(
               child: Text(
@@ -455,13 +455,13 @@ class _DailyQuestCard extends StatelessWidget {
                       value: progress,
                       strokeWidth: 7,
                       strokeCap: StrokeCap.round,
-                      color: BrandColors.kenteGold,
-                      backgroundColor: BrandColors.divider,
+                      color: context.brand.gold,
+                      backgroundColor: context.brand.divider,
                     ),
                   ),
-                  const Icon(
+                  Icon(
                     Icons.emoji_events_rounded,
-                    color: BrandColors.terracotta,
+                    color: context.brand.terracotta,
                   ),
                 ],
               ),
@@ -470,10 +470,10 @@ class _DailyQuestCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'TODAY\'S QUEST',
                       style: TextStyle(
-                        color: BrandColors.terracotta,
+                        color: context.brand.terracotta,
                         fontSize: 10,
                         fontWeight: FontWeight.w900,
                         letterSpacing: 1,
@@ -487,18 +487,15 @@ class _DailyQuestCard extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(
                       '${completed.clamp(0, 3)} of 3 · Tap to continue',
-                      style: const TextStyle(
-                        color: BrandColors.mutedInk,
+                      style: TextStyle(
+                        color: context.brand.mutedInk,
                         fontSize: 12,
                       ),
                     ),
                   ],
                 ),
               ),
-              const Icon(
-                Icons.arrow_forward_rounded,
-                color: BrandColors.heritageGreen,
-              ),
+              Icon(Icons.arrow_forward_rounded, color: context.brand.accent),
             ],
           ),
         ),
@@ -519,16 +516,9 @@ class _LearningMomentumCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 15),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            Colors.white.withValues(alpha: 0.92),
-            BrandColors.kenteGold.withValues(alpha: 0.08),
-          ],
-        ),
+        color: context.brand.surface,
         borderRadius: BorderRadius.circular(19),
-        border: Border.all(
-          color: BrandColors.kenteGold.withValues(alpha: 0.28),
-        ),
+        border: Border.all(color: context.brand.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -539,13 +529,13 @@ class _LearningMomentumCard extends StatelessWidget {
                 width: 34,
                 height: 34,
                 decoration: BoxDecoration(
-                  color: BrandColors.heritageGreen.withValues(alpha: 0.09),
+                  color: context.brand.accent.withValues(alpha: 0.09),
                   borderRadius: BorderRadius.circular(11),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.insights_rounded,
                   size: 19,
-                  color: BrandColors.heritageGreen,
+                  color: context.brand.accent,
                 ),
               ),
               const SizedBox(width: 11),
@@ -553,10 +543,10 @@ class _LearningMomentumCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'YOUR MOMENTUM',
                       style: TextStyle(
-                        color: BrandColors.terracotta,
+                        color: context.brand.terracotta,
                         fontSize: 9,
                         fontWeight: FontWeight.w900,
                         letterSpacing: 1.1,
@@ -574,8 +564,8 @@ class _LearningMomentumCard extends StatelessWidget {
               ),
               Text(
                 '${(progress * 100).round()}%',
-                style: const TextStyle(
-                  color: BrandColors.heritageGreen,
+                style: TextStyle(
+                  color: context.brand.accent,
                   fontWeight: FontWeight.w900,
                 ),
               ),
@@ -587,10 +577,8 @@ class _LearningMomentumCard extends StatelessWidget {
             child: LinearProgressIndicator(
               value: progress,
               minHeight: 7,
-              color: BrandColors.kenteGold,
-              backgroundColor: BrandColors.heritageGreen.withValues(
-                alpha: 0.08,
-              ),
+              color: context.brand.gold,
+              backgroundColor: context.brand.accentFill.withValues(alpha: 0.08),
             ),
           ),
         ],
@@ -628,9 +616,9 @@ class _UnitBanner extends StatelessWidget {
             color: Colors.white12,
             borderRadius: BorderRadius.circular(14),
           ),
-          child: const Icon(
+          child: Icon(
             Icons.record_voice_over_rounded,
-            color: BrandColors.kenteGold,
+            color: context.brand.gold,
           ),
         ),
         const SizedBox(width: 13),
@@ -640,8 +628,8 @@ class _UnitBanner extends StatelessWidget {
             children: [
               Text(
                 unit,
-                style: const TextStyle(
-                  color: BrandColors.kenteGold,
+                style: TextStyle(
+                  color: context.brand.gold,
                   fontSize: 9,
                   fontWeight: FontWeight.w900,
                   letterSpacing: 1.1,
@@ -727,8 +715,8 @@ class _LessonPathNode extends StatelessWidget {
                       : 'LESSON ${index + 1}',
                   style: TextStyle(
                     color: current
-                        ? BrandColors.terracotta
-                        : BrandColors.mutedInk,
+                        ? context.brand.terracotta
+                        : context.brand.mutedInk,
                     fontSize: 9,
                     fontWeight: FontWeight.w900,
                     letterSpacing: 0.9,
@@ -742,10 +730,7 @@ class _LessonPathNode extends StatelessWidget {
                 ),
                 Text(
                   '${lesson.minutes} min · ${lesson.xp} XP',
-                  style: const TextStyle(
-                    color: BrandColors.mutedInk,
-                    fontSize: 11,
-                  ),
+                  style: TextStyle(color: context.brand.mutedInk, fontSize: 11),
                 ),
               ],
             ),
@@ -781,9 +766,9 @@ class _BouncyLessonButtonState extends State<_BouncyLessonButton> {
   @override
   Widget build(BuildContext context) {
     final color = widget.completed
-        ? BrandColors.kenteGold
+        ? context.brand.gold
         : widget.unlocked
-        ? BrandColors.heritageGreen
+        ? context.brand.accent
         : const Color(0xFFC8C6BE);
     return GestureDetector(
       onTapDown: (_) => setState(() => _pressed = true),
@@ -806,7 +791,7 @@ class _BouncyLessonButtonState extends State<_BouncyLessonButton> {
           decoration: BoxDecoration(
             color: color,
             shape: BoxShape.circle,
-            border: Border.all(color: Colors.white, width: 5),
+            border: Border.all(color: context.brand.background, width: 5),
             boxShadow: [
               BoxShadow(
                 color: color.withValues(alpha: 0.35),
@@ -817,7 +802,7 @@ class _BouncyLessonButtonState extends State<_BouncyLessonButton> {
           ),
           child: Icon(
             widget.icon,
-            color: widget.completed ? BrandColors.heritageGreen : Colors.white,
+            color: widget.completed ? context.brand.accent : Colors.white,
             size: 31,
           ),
         ),
@@ -917,6 +902,7 @@ class _LessonRibbonState extends State<_LessonRibbon>
         builder: (context, _) => CustomPaint(
           size: const Size(double.infinity, _ribbonHeight),
           painter: _LessonRibbonPainter(
+            brand: context.brand,
             startOnRight: widget.startOnRight,
             travelled: widget.travelled,
             glow: widget.frontier
@@ -931,10 +917,16 @@ class _LessonRibbonState extends State<_LessonRibbon>
 
 class _LessonRibbonPainter extends CustomPainter {
   const _LessonRibbonPainter({
+    required this.brand,
     required this.startOnRight,
     required this.travelled,
     required this.glow,
   });
+
+  /// A painter has no context of its own, so the palette comes in with the
+  /// rest of the paint data — and takes part in [shouldRepaint], or the
+  /// trail would keep its daylight grey after a switch to dark.
+  final BrandPalette brand;
 
   final bool startOnRight;
   final double travelled;
@@ -970,7 +962,7 @@ class _LessonRibbonPainter extends CustomPainter {
         ..style = PaintingStyle.stroke
         ..strokeWidth = 12
         ..strokeCap = StrokeCap.round
-        ..color = BrandColors.heritageGreen.withValues(alpha: 0.06),
+        ..color = brand.shadow.withValues(alpha: brand.isDark ? 0.5 : 0.06),
     );
 
     final metric = ribbon.computeMetrics().first;
@@ -984,7 +976,7 @@ class _LessonRibbonPainter extends CustomPainter {
     if (walked < metric.length) {
       canvas.drawPath(
         metric.extractPath(walked, metric.length),
-        thread..color = BrandColors.divider,
+        thread..color = brand.divider,
       );
     }
     if (walked > 0) {
@@ -996,13 +988,11 @@ class _LessonRibbonPainter extends CustomPainter {
             ..style = PaintingStyle.stroke
             ..strokeWidth = 11
             ..strokeCap = StrokeCap.round
-            ..color = BrandColors.kenteGold.withValues(
-              alpha: 0.1 + (glow * 0.22),
-            )
+            ..color = brand.gold.withValues(alpha: 0.1 + (glow * 0.22))
             ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4),
         );
       }
-      canvas.drawPath(trail, thread..color = BrandColors.kenteGold);
+      canvas.drawPath(trail, thread..color = brand.gold);
     }
 
     _paintBeads(canvas, metric, walked);
@@ -1016,7 +1006,7 @@ class _LessonRibbonPainter extends CustomPainter {
     final collar = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.6
-      ..color = Colors.white;
+      ..color = brand.background;
 
     for (
       var distance = _ribbonBeadSpacing;
@@ -1031,7 +1021,7 @@ class _LessonRibbonPainter extends CustomPainter {
         ..drawCircle(
           tangent.position,
           radius,
-          bead..color = reached ? BrandColors.kenteGold : BrandColors.divider,
+          bead..color = reached ? brand.gold : brand.divider,
         )
         ..drawCircle(tangent.position, radius, collar);
     }
@@ -1039,6 +1029,7 @@ class _LessonRibbonPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_LessonRibbonPainter oldDelegate) =>
+      oldDelegate.brand != brand ||
       oldDelegate.startOnRight != startOnRight ||
       oldDelegate.travelled != travelled ||
       oldDelegate.glow != glow;
@@ -1051,15 +1042,15 @@ class _LockedUnitPreview extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.all(18),
     decoration: BoxDecoration(
-      color: Colors.white.withValues(alpha: 0.55),
+      color: context.brand.surface,
       borderRadius: BorderRadius.circular(20),
-      border: Border.all(color: BrandColors.divider),
+      border: Border.all(color: context.brand.border),
     ),
-    child: const Row(
+    child: Row(
       children: [
-        Icon(Icons.lock_clock_rounded, color: BrandColors.mutedInk),
-        SizedBox(width: 12),
-        Expanded(
+        Icon(Icons.lock_clock_rounded, color: context.brand.mutedInk),
+        const SizedBox(width: 12),
+        const Expanded(
           child: Text(
             // Deliberately vague about what comes next: units are configured
             // in the admin console now, so promising "six lessons and a story
@@ -1113,14 +1104,14 @@ class _LessonScreenState extends State<_LessonScreen> {
 
   @override
   Widget build(BuildContext context) => AnnotatedRegion<SystemUiOverlayStyle>(
-    value: const SystemUiOverlayStyle(
+    value: SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
       statusBarIconBrightness: Brightness.dark,
-      systemNavigationBarColor: BrandColors.plasterCream,
+      systemNavigationBarColor: context.brand.background,
       systemNavigationBarIconBrightness: Brightness.dark,
     ),
     child: Scaffold(
-      backgroundColor: BrandColors.plasterCream,
+      backgroundColor: context.brand.background,
       body: Stack(
         children: [
           const Positioned.fill(child: _LessonAtmosphere()),
@@ -1154,8 +1145,8 @@ class _LessonScreenState extends State<_LessonScreen> {
                               _questions.length == 1
                                   ? 'QUICK PRACTICE'
                                   : 'QUESTION ${_question + 1} OF ${_questions.length}',
-                              style: const TextStyle(
-                                color: BrandColors.terracotta,
+                              style: TextStyle(
+                                color: context.brand.terracotta,
                                 fontSize: 10,
                                 fontWeight: FontWeight.w900,
                                 letterSpacing: 1.2,
@@ -1171,8 +1162,8 @@ class _LessonScreenState extends State<_LessonScreen> {
                               const SizedBox(height: 9),
                               Text(
                                 _current.support,
-                                style: const TextStyle(
-                                  color: BrandColors.mutedInk,
+                                style: TextStyle(
+                                  color: context.brand.mutedInk,
                                   fontSize: 15,
                                 ),
                               ),
@@ -1210,11 +1201,11 @@ class _LessonScreenState extends State<_LessonScreen> {
                                     ),
                             ),
                             const SizedBox(height: 14),
-                            const Text(
+                            Text(
                               'Learning preview · phrases await community language validation.',
                               textAlign: TextAlign.center,
                               style: TextStyle(
-                                color: BrandColors.mutedInk,
+                                color: context.brand.mutedInk,
                                 fontSize: 10,
                               ),
                             ),
@@ -1235,8 +1226,8 @@ class _LessonScreenState extends State<_LessonScreen> {
           key: const Key('lesson-primary-action'),
           style: FilledButton.styleFrom(
             backgroundColor: _checked && _correct
-                ? BrandColors.savannahGreen
-                : BrandColors.heritageGreen,
+                ? context.brand.success
+                : context.brand.accent,
           ),
           onPressed: _selected == null ? null : _advance,
           icon: Icon(
@@ -1293,11 +1284,11 @@ class _LessonAtmosphere extends StatelessWidget {
   @override
   Widget build(BuildContext context) => IgnorePointer(
     child: DecoratedBox(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFFFFFCF2), BrandColors.plasterCream],
+          colors: [const Color(0xFFFFFCF2), context.brand.background],
         ),
       ),
       child: Stack(
@@ -1310,11 +1301,11 @@ class _LessonAtmosphere extends StatelessWidget {
               height: 190,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: BrandColors.kenteGold.withValues(alpha: 0.08),
+                color: context.brand.gold.withValues(alpha: 0.08),
               ),
             ),
           ),
-          const Positioned(
+          Positioned(
             left: -24,
             bottom: 130,
             child: Opacity(
@@ -1322,7 +1313,7 @@ class _LessonAtmosphere extends StatelessWidget {
               child: Text(
                 '✣',
                 style: TextStyle(
-                  color: BrandColors.heritageGreen,
+                  color: context.brand.accent,
                   fontSize: 130,
                   fontWeight: FontWeight.w900,
                 ),
@@ -1370,8 +1361,8 @@ class _LessonTopBar extends StatelessWidget {
             children: [
               Text(
                 'LESSON $current OF $total',
-                style: const TextStyle(
-                  color: BrandColors.mutedInk,
+                style: TextStyle(
+                  color: context.brand.mutedInk,
                   fontSize: 9,
                   fontWeight: FontWeight.w900,
                   letterSpacing: 1,
@@ -1387,8 +1378,8 @@ class _LessonTopBar extends StatelessWidget {
                   // which the line above it already says.
                   value: questionCount == 0 ? 0 : question / questionCount,
                   minHeight: 7,
-                  color: BrandColors.kenteGold,
-                  backgroundColor: BrandColors.heritageGreen.withValues(
+                  color: context.brand.gold,
+                  backgroundColor: context.brand.accentFill.withValues(
                     alpha: 0.1,
                   ),
                 ),
@@ -1400,16 +1391,16 @@ class _LessonTopBar extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.78),
+            color: context.brand.surface,
             borderRadius: BorderRadius.circular(999),
-            border: Border.all(color: BrandColors.divider),
+            border: Border.all(color: context.brand.border),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(
+              Icon(
                 Icons.help_outline_rounded,
-                color: BrandColors.heritageGreen,
+                color: context.brand.accent,
                 size: 17,
               ),
               const SizedBox(width: 4),
@@ -1458,17 +1449,17 @@ class _LessonHero extends StatelessWidget {
             borderRadius: BorderRadius.circular(18),
             border: Border.all(color: Colors.white24),
           ),
-          child: Icon(lesson.icon, color: BrandColors.kenteGold, size: 29),
+          child: Icon(lesson.icon, color: context.brand.gold, size: 29),
         ),
         const SizedBox(width: 15),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
+              Text(
                 'TODAY\'S STEP',
                 style: TextStyle(
-                  color: BrandColors.kenteGold,
+                  color: context.brand.gold,
                   fontSize: 9,
                   fontWeight: FontWeight.w900,
                   letterSpacing: 1.1,
@@ -1507,7 +1498,7 @@ class _LessonFeedback extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = correct ? BrandColors.savannahGreen : BrandColors.terracotta;
+    final color = correct ? context.brand.success : context.brand.terracotta;
     return Container(
       key: ValueKey(correct),
       padding: const EdgeInsets.all(15),
@@ -1559,18 +1550,18 @@ class _AnswerTile extends StatelessWidget {
     final revealCorrect = checked && correct;
     final revealWrong = checked && selected && !correct;
     final borderColor = revealCorrect
-        ? BrandColors.savannahGreen
+        ? context.brand.success
         : revealWrong
-        ? BrandColors.terracotta
+        ? context.brand.terracotta
         : selected
-        ? BrandColors.kenteGold
-        : BrandColors.divider;
+        ? context.brand.gold
+        : context.brand.divider;
     return Material(
       color: revealCorrect
-          ? BrandColors.savannahGreen.withValues(alpha: 0.08)
+          ? context.brand.success.withValues(alpha: 0.08)
           : revealWrong
-          ? BrandColors.terracotta.withValues(alpha: 0.08)
-          : Colors.white,
+          ? context.brand.terracotta.withValues(alpha: 0.08)
+          : context.brand.surface,
       borderRadius: BorderRadius.circular(17),
       child: InkWell(
         borderRadius: BorderRadius.circular(17),
@@ -1615,12 +1606,9 @@ class _AnswerTile extends StatelessWidget {
                 ),
               ),
               if (revealCorrect)
-                const Icon(
-                  Icons.check_circle_rounded,
-                  color: BrandColors.savannahGreen,
-                ),
+                Icon(Icons.check_circle_rounded, color: context.brand.success),
               if (revealWrong)
-                const Icon(Icons.cancel_rounded, color: BrandColors.terracotta),
+                Icon(Icons.cancel_rounded, color: context.brand.terracotta),
             ],
           ),
         ),

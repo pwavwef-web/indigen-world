@@ -3,15 +3,16 @@ import 'package:flutter/material.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
 
 /// Circular member avatar: remote photo when there is one, brand-coloured
-/// initials when there is not. [ringed] adds the kente-gold story ring used on
-/// the community pulse rail.
+/// initials when there is not. [ringed] adds the thin ring used on the
+/// community pulse rail — a hairline in the page's own border colour rather
+/// than the two-tone gold gradient it used to be.
 class CommunityAvatar extends StatelessWidget {
   const CommunityAvatar({
     required this.initials,
     this.imageUrl,
     this.size = 44,
     this.ringed = false,
-    this.ringColor = BrandColors.terracotta,
+    this.ringColor,
     this.onTap,
     super.key,
   });
@@ -20,7 +21,9 @@ class CommunityAvatar extends StatelessWidget {
   final String? imageUrl;
   final double size;
   final bool ringed;
-  final Color ringColor;
+
+  /// Defaults to the palette hairline.
+  final Color? ringColor;
   final VoidCallback? onTap;
 
   @override
@@ -29,8 +32,8 @@ class CommunityAvatar extends StatelessWidget {
       width: size,
       height: size,
       clipBehavior: Clip.antiAlias,
-      decoration: const BoxDecoration(
-        color: BrandColors.heritageGreen,
+      decoration: BoxDecoration(
+        color: context.brand.accentFill,
         shape: BoxShape.circle,
       ),
       child: imageUrl != null && imageUrl!.isNotEmpty
@@ -45,20 +48,15 @@ class CommunityAvatar extends StatelessWidget {
 
     final wrapped = ringed
         ? Container(
-            padding: const EdgeInsets.all(2.5),
+            padding: const EdgeInsets.all(2),
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              gradient: LinearGradient(
-                colors: [ringColor, BrandColors.kenteGold],
+              border: Border.all(
+                color: ringColor ?? context.brand.border,
+                width: 1.5,
               ),
             ),
-            child: DecoratedBox(
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                color: BrandColors.surface,
-              ),
-              child: Padding(padding: const EdgeInsets.all(1.5), child: avatar),
-            ),
+            child: avatar,
           )
         : avatar;
 

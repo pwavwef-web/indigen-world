@@ -5,6 +5,7 @@ import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/core/firebase_ready.dart';
 import 'package:indigen_world_mobile/features/notifications/push_messaging.dart';
 import 'package:indigen_world_mobile/features/onboarding/notifications_primer.dart';
+import 'package:indigen_world_mobile/shared/night_theme.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// What the gate is showing right now.
@@ -82,7 +83,9 @@ class _StartupGateState extends ConsumerState<StartupGate> {
 
   @override
   Widget build(BuildContext context) => switch (_stage) {
-    _Stage.loading => const _LaunchScreen(),
+    // The launch screen is the same night whatever the appearance choice —
+    // the brand arriving out of the dark is the point of it.
+    _Stage.loading => const NightTheme(child: _LaunchScreen()),
     _Stage.onboarding => _OnboardingScreen(
       learningPath: _learningPath,
       onPathChanged: (value) => setState(() => _learningPath = value),
@@ -177,9 +180,7 @@ class _LaunchScreenState extends State<_LaunchScreen>
                             'LANGUAGE  ·  STORY  ·  RHYTHM  ·  IDENTITY',
                             textAlign: TextAlign.center,
                             style: TextStyle(
-                              color: BrandColors.kenteGold.withValues(
-                                alpha: 0.9,
-                              ),
+                              color: context.brand.gold.withValues(alpha: 0.9),
                               fontSize: 9,
                               fontWeight: FontWeight.w900,
                               letterSpacing: 1.5,
@@ -241,9 +242,9 @@ class _LaunchScreenState extends State<_LaunchScreen>
                 bottom: 26,
                 child: Opacity(
                   opacity: taglineProgress,
-                  child: const LinearProgressIndicator(
+                  child: LinearProgressIndicator(
                     minHeight: 2,
-                    color: BrandColors.kenteGold,
+                    color: context.brand.gold,
                     backgroundColor: Colors.white12,
                   ),
                 ),
@@ -280,7 +281,7 @@ class _LivingEmblem extends StatelessWidget {
                   height: 300,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    border: Border.all(color: BrandColors.kenteGold),
+                    border: Border.all(color: context.brand.gold),
                   ),
                 ),
                 Transform.rotate(
@@ -299,13 +300,16 @@ class _LivingEmblem extends StatelessWidget {
                   height: 182,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    border: Border.all(color: BrandColors.terracotta, width: 2),
+                    border: Border.all(
+                      color: context.brand.terracotta,
+                      width: 2,
+                    ),
                   ),
                 ),
-                const Text(
+                Text(
                   '✣',
                   style: TextStyle(
-                    color: BrandColors.kenteGold,
+                    color: context.brand.gold,
                     fontSize: 86,
                     fontWeight: FontWeight.w900,
                   ),
@@ -323,14 +327,14 @@ class _LaunchPattern extends StatelessWidget {
   const _LaunchPattern();
 
   @override
-  Widget build(BuildContext context) => const Opacity(
+  Widget build(BuildContext context) => Opacity(
     opacity: 0.055,
     child: GridPaper(
-      color: BrandColors.kenteGold,
+      color: context.brand.gold,
       interval: 42,
       divisions: 2,
       subdivisions: 1,
-      child: SizedBox.expand(),
+      child: const SizedBox.expand(),
     ),
   );
 }
@@ -439,7 +443,7 @@ const _launchArtifacts = [
     label: 'COWRIE',
     start: Alignment(-0.94, 0.62),
     end: Alignment(-0.18, 0.08),
-    color: BrandColors.surface,
+    color: Color(0xFFFFFDF8),
     size: 46,
     rotation: 1.1,
   ),
@@ -466,7 +470,7 @@ const _launchArtifacts = [
     label: 'WEAVE',
     start: Alignment(0.74, 0.06),
     end: Alignment(0.08, -0.02),
-    color: BrandColors.surface,
+    color: Color(0xFFFFFDF8),
     size: 38,
     rotation: -0.5,
   ),
@@ -505,7 +509,7 @@ class _OnboardingScreen extends StatelessWidget {
               Text(
                 'Learn, search, and contribute through Project Kasena—the first language cell in Indigen World.',
                 style: Theme.of(context).textTheme.bodyLarge
-                    ?.copyWith(color: BrandColors.mutedInk),
+                    ?.copyWith(color: context.brand.mutedInk),
               ),
               const SizedBox(height: 28),
               Text(
@@ -546,10 +550,10 @@ class _OnboardingScreen extends StatelessWidget {
                 label: const Text('Start with Kasem'),
               ),
               const SizedBox(height: 12),
-              const Text(
+              Text(
                 'Public dictionary and learning content work without sign-in. You can choose an account later.',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: BrandColors.mutedInk, height: 1.4),
+                style: TextStyle(color: context.brand.mutedInk, height: 1.4),
               ),
             ],
           ),
@@ -569,12 +573,12 @@ class _BrandMark extends StatelessWidget {
     width: size,
     height: size,
     decoration: BoxDecoration(
-      color: BrandColors.kenteGold,
+      color: context.brand.gold,
       borderRadius: BorderRadius.circular(size * 0.28),
     ),
     child: Icon(
       Icons.public_rounded,
-      color: BrandColors.heritageGreen,
+      color: context.brand.accent,
       size: size * 0.58,
     ),
   );
@@ -598,7 +602,7 @@ class _PathOption extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Card(
     color: selected
-        ? BrandColors.heritageGreen.withValues(alpha: 0.08)
+        ? context.brand.accent.withValues(alpha: 0.08)
         : Colors.white,
     child: InkWell(
       borderRadius: BorderRadius.circular(20),
@@ -607,7 +611,7 @@ class _PathOption extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         child: Row(
           children: [
-            Icon(icon, color: BrandColors.heritageGreen),
+            Icon(icon, color: context.brand.accent),
             const SizedBox(width: 14),
             Expanded(
               child: Column(
@@ -617,14 +621,16 @@ class _PathOption extends StatelessWidget {
                   const SizedBox(height: 3),
                   Text(
                     description,
-                    style: const TextStyle(color: BrandColors.mutedInk),
+                    style: TextStyle(color: context.brand.mutedInk),
                   ),
                 ],
               ),
             ),
             Icon(
               selected ? Icons.radio_button_checked : Icons.radio_button_off,
-              color: selected ? BrandColors.terracotta : BrandColors.mutedInk,
+              color: selected
+                  ? context.brand.terracotta
+                  : context.brand.mutedInk,
             ),
           ],
         ),

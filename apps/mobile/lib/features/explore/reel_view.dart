@@ -329,8 +329,9 @@ class _ReelFeedViewState extends ConsumerState<ReelFeedView>
             itemBuilder: (context, index) {
               final reel = reels[index];
               final liked = switch (reel) {
-                Reel(communityPostId: final postId?) =>
-                  communityLikes.contains(postId),
+                Reel(communityPostId: final postId?) => communityLikes.contains(
+                  postId,
+                ),
                 Reel(isLive: true) => serverLikes.contains(reel.id),
                 _ => localLikes.contains(reel.id),
               };
@@ -377,7 +378,7 @@ class _ReelFeedViewState extends ConsumerState<ReelFeedView>
                         value: (activeIndex + 1) / reels.length,
                         minHeight: 2,
                         backgroundColor: Colors.white24,
-                        color: BrandColors.kenteGold,
+                        color: context.brand.gold,
                       ),
                     ),
                   ),
@@ -417,11 +418,7 @@ class _ReelFeedViewState extends ConsumerState<ReelFeedView>
       final repository = ref.read(communityRepositoryProvider);
       if (uid == null || repository == null) return;
       try {
-        await repository.toggleBookmark(
-          uid: uid,
-          postId: postId,
-          saved: saved,
-        );
+        await repository.toggleBookmark(uid: uid, postId: postId, saved: saved);
         if (!mounted) return;
         showGlassToast(
           context,
@@ -538,8 +535,8 @@ class _ReelFeedViewState extends ConsumerState<ReelFeedView>
           const SizedBox(height: 6),
           Text(
             reel.creator,
-            style: const TextStyle(
-              color: BrandColors.mutedInk,
+            style: TextStyle(
+              color: context.brand.mutedInk,
               fontWeight: FontWeight.w800,
             ),
           ),
@@ -559,22 +556,22 @@ class _ReelFeedViewState extends ConsumerState<ReelFeedView>
             ),
           ],
           const SizedBox(height: 20),
-          const Divider(color: BrandColors.divider),
+          Divider(color: context.brand.divider),
           const SizedBox(height: 12),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(
+              Icon(
                 Icons.copyright_rounded,
                 size: 17,
-                color: BrandColors.mutedInk,
+                color: context.brand.mutedInk,
               ),
               const SizedBox(width: 9),
               Expanded(
                 child: Text(
                   reel.credit,
-                  style: const TextStyle(
-                    color: BrandColors.mutedInk,
+                  style: TextStyle(
+                    color: context.brand.mutedInk,
                     fontSize: 12,
                     height: 1.45,
                   ),
@@ -594,9 +591,7 @@ class _ReelFeedViewState extends ConsumerState<ReelFeedView>
     await showGlassPopup<void>(
       context: context,
       title: '${reel.comments} community replies',
-      subtitle:
-          'Kasem-only conversation preview · sample copy is not validated '
-          'guidance.',
+      subtitle: 'Preview · sample copy',
       builder: (popupContext) => Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -638,9 +633,9 @@ class _ReelFeedViewState extends ConsumerState<ReelFeedView>
 }
 
 const kReelSheetEyebrow = TextStyle(
-  color: BrandColors.terracotta,
+  color: Color(0xFFCE7D60),
   fontSize: 10,
-  fontWeight: FontWeight.w900,
+  fontWeight: FontWeight.w800,
   letterSpacing: 1.2,
 );
 
@@ -661,8 +656,8 @@ class ReelContextBlock extends StatelessWidget {
     children: [
       Text(
         heading.toUpperCase(),
-        style: const TextStyle(
-          color: BrandColors.heritageGreen,
+        style: TextStyle(
+          color: context.brand.accent,
           fontSize: 10,
           fontWeight: FontWeight.w900,
           letterSpacing: 1.1,
@@ -671,11 +666,7 @@ class ReelContextBlock extends StatelessWidget {
       const SizedBox(height: 6),
       Text(
         body.trim(),
-        style: const TextStyle(
-          color: BrandColors.ink,
-          fontSize: 14.5,
-          height: 1.5,
-        ),
+        style: TextStyle(color: context.brand.ink, fontSize: 14.5, height: 1.5),
       ),
     ],
   );
@@ -1127,8 +1118,8 @@ class _PreviewPill extends StatelessWidget {
     ),
     child: Text(
       label,
-      style: const TextStyle(
-        color: BrandColors.kenteGold,
+      style: TextStyle(
+        color: context.brand.gold,
         fontSize: 9,
         fontWeight: FontWeight.w900,
         letterSpacing: 1.1,
@@ -1162,9 +1153,9 @@ class _ReelAction extends StatelessWidget {
           onPressed: onTap,
           style: IconButton.styleFrom(
             backgroundColor: active
-                ? BrandColors.terracotta
+                ? context.brand.terracotta
                 : Colors.black.withValues(alpha: 0.36),
-            foregroundColor: active ? BrandColors.kenteGold : Colors.white,
+            foregroundColor: active ? context.brand.gold : Colors.white,
             side: const BorderSide(color: Colors.white24),
           ),
           icon: AnimatedScale(
@@ -1211,7 +1202,7 @@ class ReelCreatorAvatar extends StatelessWidget {
           height: 48,
           clipBehavior: Clip.antiAlias,
           decoration: BoxDecoration(
-            color: BrandColors.heritageGreen,
+            color: context.brand.accent,
             shape: BoxShape.circle,
             border: Border.all(color: Colors.white, width: 2),
           ),
@@ -1230,13 +1221,13 @@ class ReelCreatorAvatar extends StatelessWidget {
             child: Container(
               width: 19,
               height: 19,
-              decoration: const BoxDecoration(
-                color: BrandColors.kenteGold,
+              decoration: BoxDecoration(
+                color: context.brand.gold,
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.person_rounded,
-                color: BrandColors.heritageGreen,
+                color: context.brand.accent,
                 size: 13,
               ),
             ),
@@ -1285,7 +1276,7 @@ class _PreviewComment extends StatelessWidget {
       children: [
         CircleAvatar(
           radius: 18,
-          backgroundColor: BrandColors.heritageGreen,
+          backgroundColor: context.brand.accentFill,
           child: Text(
             author.characters.first,
             style: const TextStyle(color: Colors.white),

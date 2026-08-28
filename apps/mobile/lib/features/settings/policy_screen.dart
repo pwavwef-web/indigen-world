@@ -42,10 +42,10 @@ class PolicyScreen extends StatelessWidget {
               const SizedBox(height: 8),
               Text(
                 section.body,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 15,
                   height: 1.55,
-                  color: BrandColors.ink,
+                  color: context.brand.ink,
                 ),
               ),
             ],

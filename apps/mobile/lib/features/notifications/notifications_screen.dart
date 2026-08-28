@@ -40,7 +40,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
         ref.watch(unreadNotificationCountProvider).asData?.value ?? 0;
 
     return Scaffold(
-      backgroundColor: BrandColors.plasterCream,
+      backgroundColor: context.brand.background,
       appBar: AppBar(
         title: const Text('Notifications'),
         actions: [
@@ -129,11 +129,11 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Get a notification on this device when somebody replies to '
             'you, follows you, or mentions you in Kasem. Everything still '
             'appears here either way.',
-            style: TextStyle(color: BrandColors.mutedInk, height: 1.45),
+            style: TextStyle(color: context.brand.mutedInk, height: 1.45),
           ),
           const SizedBox(height: 18),
           Row(
@@ -215,8 +215,8 @@ class _BucketHeading extends StatelessWidget {
       children: [
         Text(
           label.toUpperCase(),
-          style: const TextStyle(
-            color: BrandColors.terracotta,
+          style: TextStyle(
+            color: context.brand.terracotta,
             fontSize: 10.5,
             fontWeight: FontWeight.w900,
             letterSpacing: 1.3,
@@ -225,14 +225,14 @@ class _BucketHeading extends StatelessWidget {
         const SizedBox(width: 8),
         Text(
           '$count',
-          style: const TextStyle(
-            color: BrandColors.mutedInk,
+          style: TextStyle(
+            color: context.brand.mutedInk,
             fontSize: 10.5,
             fontWeight: FontWeight.w800,
           ),
         ),
         const SizedBox(width: 10),
-        const Expanded(child: Divider(color: BrandColors.divider, height: 1)),
+        Expanded(child: Divider(color: context.brand.divider, height: 1)),
       ],
     ),
   );
@@ -247,7 +247,7 @@ class _NotificationRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final unread = !notification.read;
-    final accent = notification.kind.accent;
+    final accent = notification.kind.accent(context.brand);
 
     return Semantics(
       button: true,
@@ -256,7 +256,7 @@ class _NotificationRow extends StatelessWidget {
           : '${notification.title}. ${notification.body}',
       excludeSemantics: true,
       child: Material(
-        color: unread ? Colors.white : Colors.white.withValues(alpha: 0.62),
+        color: unread ? context.brand.surface : context.brand.surfaceMuted,
         borderRadius: BorderRadius.circular(18),
         child: InkWell(
           borderRadius: BorderRadius.circular(18),
@@ -267,15 +267,15 @@ class _NotificationRow extends StatelessWidget {
               border: Border.all(
                 color: unread
                     ? accent.withValues(alpha: 0.34)
-                    : BrandColors.divider,
+                    : context.brand.divider,
               ),
               gradient: unread
                   ? LinearGradient(
                       begin: Alignment.centerLeft,
                       end: Alignment.centerRight,
                       colors: [
-                        accent.withValues(alpha: 0.08),
-                        Colors.white.withValues(alpha: 0),
+                        accent.withValues(alpha: 0.07),
+                        Colors.transparent,
                       ],
                     )
                   : null,
@@ -299,7 +299,7 @@ class _NotificationRow extends StatelessWidget {
                             fontWeight: unread
                                 ? FontWeight.w800
                                 : FontWeight.w600,
-                            color: BrandColors.ink,
+                            color: context.brand.ink,
                           ),
                         ),
                         if (notification.body.trim().isNotEmpty) ...[
@@ -308,8 +308,8 @@ class _NotificationRow extends StatelessWidget {
                             notification.body.trim(),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: BrandColors.mutedInk,
+                            style: TextStyle(
+                              color: context.brand.mutedInk,
                               fontSize: 13,
                               height: 1.35,
                             ),
@@ -328,8 +328,8 @@ class _NotificationRow extends StatelessWidget {
                     children: [
                       Text(
                         communityAgeLabel(notification.createdAt),
-                        style: const TextStyle(
-                          color: BrandColors.mutedInk,
+                        style: TextStyle(
+                          color: context.brand.mutedInk,
                           fontSize: 9.5,
                           fontWeight: FontWeight.w900,
                           letterSpacing: 0.4,
@@ -384,7 +384,7 @@ class _ActorMark extends StatelessWidget {
             decoration: BoxDecoration(
               color: accent,
               shape: BoxShape.circle,
-              border: Border.all(color: BrandColors.plasterCream, width: 2),
+              border: Border.all(color: context.brand.background, width: 2),
             ),
             child: Icon(notification.kind.icon, size: 11, color: Colors.white),
           ),
@@ -403,18 +403,16 @@ class _PostPreview extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.fromLTRB(11, 9, 11, 9),
     decoration: BoxDecoration(
-      color: BrandColors.plasterCream.withValues(alpha: 0.8),
+      color: context.brand.background.withValues(alpha: 0.8),
       borderRadius: BorderRadius.circular(12),
-      border: const Border(
-        left: BorderSide(color: BrandColors.kenteGold, width: 2.5),
-      ),
+      border: Border(left: BorderSide(color: context.brand.gold, width: 2.5)),
     ),
     child: Text(
       text,
       maxLines: 2,
       overflow: TextOverflow.ellipsis,
-      style: const TextStyle(
-        color: BrandColors.ink,
+      style: TextStyle(
+        color: context.brand.ink,
         fontSize: 12.5,
         height: 1.35,
         fontStyle: FontStyle.italic,
@@ -498,9 +496,9 @@ class _LoadingState extends StatelessWidget {
         Container(
           height: 78,
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.6),
+            color: context.brand.surfaceMuted,
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: BrandColors.divider),
+            border: Border.all(color: context.brand.border),
           ),
         ),
         const SizedBox(height: 10),

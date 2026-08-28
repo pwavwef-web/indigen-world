@@ -7,6 +7,7 @@ import 'package:indigen_world_mobile/features/community/data/community_providers
 import 'package:indigen_world_mobile/features/community/data/community_repository.dart';
 import 'package:indigen_world_mobile/features/community/widgets/community_avatar.dart';
 import 'package:indigen_world_mobile/shared/glass_popup.dart';
+import 'package:indigen_world_mobile/shared/glass_surface.dart';
 
 /// Shows [message] as a glass toast floating clear of the bottom edge. Used
 /// for every community outcome so success and failure read the same way across
@@ -122,11 +123,7 @@ class ProfileTile extends StatelessWidget {
         ),
         if (profile.isVerified) ...[
           const SizedBox(width: 4),
-          const Icon(
-            Icons.verified_rounded,
-            size: 14,
-            color: BrandColors.savannahGreen,
-          ),
+          Icon(Icons.verified_rounded, size: 14, color: context.brand.success),
         ],
       ],
     ),
@@ -135,8 +132,8 @@ class ProfileTile extends StatelessWidget {
       children: [
         Text(
           profile.handle,
-          style: const TextStyle(
-            color: BrandColors.mutedInk,
+          style: TextStyle(
+            color: context.brand.mutedInk,
             fontSize: 11.5,
             fontWeight: FontWeight.w600,
           ),
@@ -157,44 +154,53 @@ class ProfileTile extends StatelessWidget {
 }
 
 /// Empty-state block used by every list in the community section.
+///
+/// [message] is deliberately optional and, where it survives at all, is one
+/// line. A screen with nothing on it does not become more useful by explaining
+/// itself at length; it becomes more useful by offering the way out.
 class CommunityEmptyState extends StatelessWidget {
   const CommunityEmptyState({
     required this.icon,
     required this.title,
-    required this.message,
+    this.message,
     this.action,
     super.key,
   });
 
   final IconData icon;
   final String title;
-  final String message;
+  final String? message;
   final Widget? action;
 
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 48),
-    child: Column(
-      children: [
-        Container(
-          width: 64,
-          height: 64,
-          decoration: BoxDecoration(
-            color: BrandColors.heritageGreen.withValues(alpha: 0.08),
-            shape: BoxShape.circle,
+    padding: const EdgeInsets.fromLTRB(20, 34, 20, 34),
+    child: GlassSurface(
+      padding: const EdgeInsets.fromLTRB(22, 26, 22, 24),
+      child: Column(
+        children: [
+          GlassIconPlate(icon: icon, size: 56),
+          const SizedBox(height: 14),
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.titleMedium,
           ),
-          child: Icon(icon, color: BrandColors.heritageGreen, size: 28),
-        ),
-        const SizedBox(height: 16),
-        Text(title, style: Theme.of(context).textTheme.titleLarge),
-        const SizedBox(height: 8),
-        Text(
-          message,
-          textAlign: TextAlign.center,
-          style: const TextStyle(color: BrandColors.mutedInk, height: 1.45),
-        ),
-        if (action != null) ...[const SizedBox(height: 18), action!],
-      ],
+          if (message != null && message!.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text(
+              message!,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: context.brand.mutedInk,
+                fontSize: 12.5,
+                height: 1.4,
+              ),
+            ),
+          ],
+          if (action != null) ...[const SizedBox(height: 18), action!],
+        ],
+      ),
     ),
   );
 }

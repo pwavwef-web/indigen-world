@@ -149,7 +149,7 @@ class _SignInSheetState extends ConsumerState<_SignInSheet> {
             _isRegister
                 ? 'Save words, contribute, and carry your learning across devices.'
                 : 'Sign in to sync your saved words and contributions.',
-            style: const TextStyle(color: BrandColors.mutedInk, fontSize: 13),
+            style: TextStyle(color: context.brand.mutedInk, fontSize: 13),
           ),
           const SizedBox(height: 20),
           if (_isRegister) ...[
@@ -239,17 +239,17 @@ class _SignInSheetState extends ConsumerState<_SignInSheet> {
                 : Text(_isRegister ? 'Create account' : 'Sign in'),
           ),
           const SizedBox(height: 16),
-          const Row(
+          Row(
             children: [
-              Expanded(child: Divider()),
+              const Expanded(child: Divider()),
               Padding(
-                padding: EdgeInsets.symmetric(horizontal: 12),
+                padding: const EdgeInsets.symmetric(horizontal: 12),
                 child: Text(
                   'or',
-                  style: TextStyle(color: BrandColors.mutedInk),
+                  style: TextStyle(color: context.brand.mutedInk),
                 ),
               ),
-              Expanded(child: Divider()),
+              const Expanded(child: Divider()),
             ],
           ),
           const SizedBox(height: 16),
@@ -289,24 +289,24 @@ class _ErrorBanner extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.all(12),
     decoration: BoxDecoration(
-      color: BrandColors.terracotta.withValues(alpha: 0.1),
+      color: context.brand.terracotta.withValues(alpha: 0.1),
       borderRadius: BorderRadius.circular(12),
-      border: Border.all(color: BrandColors.terracotta.withValues(alpha: 0.4)),
+      border: Border.all(color: context.brand.terracotta.withValues(alpha: 0.4)),
     ),
     child: Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Icon(
+        Icon(
           Icons.error_outline_rounded,
-          color: BrandColors.terracotta,
+          color: context.brand.terracotta,
           size: 20,
         ),
         const SizedBox(width: 10),
         Expanded(
           child: Text(
             message,
-            style: const TextStyle(
-              color: BrandColors.terracotta,
+            style: TextStyle(
+              color: context.brand.terracotta,
               fontWeight: FontWeight.w600,
               height: 1.3,
             ),

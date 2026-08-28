@@ -43,11 +43,9 @@ class SavedPostsScreen extends ConsumerWidget {
                   message:
                       'Tap the bookmark on any post to keep it here for later.',
                 ),
-              AsyncValue(:final value?) => ListView.separated(
-                padding: const EdgeInsets.fromLTRB(16, 14, 16, 32),
+              AsyncValue(:final value?) => ListView.builder(
+                padding: const EdgeInsets.only(bottom: 32),
                 itemCount: value.length,
-                separatorBuilder: (context, index) =>
-                    const SizedBox(height: 12),
                 itemBuilder: (context, index) {
                   final post = value[index];
                   return CommunityPostCard(

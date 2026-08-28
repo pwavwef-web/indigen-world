@@ -12,6 +12,7 @@ import 'package:indigen_world_mobile/features/collection/widgets/collection_card
 import 'package:indigen_world_mobile/features/kawuri/kawuri_fab.dart';
 import 'package:indigen_world_mobile/shared/app_widgets.dart';
 import 'package:indigen_world_mobile/shared/frosted_nav_bar.dart';
+import 'package:indigen_world_mobile/shared/glass_surface.dart';
 
 class CollectionScreen extends ConsumerWidget {
   const CollectionScreen({super.key});
@@ -22,6 +23,7 @@ class CollectionScreen extends ConsumerWidget {
     final music = ref.watch(musicCollectionProvider);
     final literature = ref.watch(literatureCollectionProvider);
     final audiobooks = ref.watch(audiobookCollectionProvider);
+    final video = ref.watch(videoCollectionProvider);
     final apps = ref.watch(directoryAppsProvider);
     final shop = ref.watch(shopProductsProvider);
     final textScale = MediaQuery.textScalerOf(context).scale(1);
@@ -30,25 +32,22 @@ class CollectionScreen extends ConsumerWidget {
       _CollectionPortalCard(
         label: CollectionKind.music.label,
         icon: Icons.graphic_eq_rounded,
-        color: BrandColors.terracotta,
+        color: context.brand.terracotta,
         count: _count(music),
-        description: 'Songs, instruments, and community sound.',
         onTap: () => _open(context, const MusicCollectionScreen()),
       ),
       _CollectionPortalCard(
         label: CollectionKind.dictionary.label,
         icon: Icons.translate_rounded,
-        color: BrandColors.heritageGreen,
+        color: context.brand.accent,
         count: _count(dictionary),
-        description: 'Kasem words, meanings, and examples.',
         onTap: () => _open(context, const DictionaryCollectionScreen()),
       ),
       _CollectionPortalCard(
         label: CollectionKind.literature.label,
         icon: Icons.auto_stories_rounded,
-        color: BrandColors.savannahGreen,
+        color: context.brand.success,
         count: _count(literature),
-        description: 'Stories, poetry, and living histories.',
         onTap: () => _open(context, const LiteratureCollectionScreen()),
       ),
       _CollectionPortalCard(
@@ -56,8 +55,14 @@ class CollectionScreen extends ConsumerWidget {
         icon: Icons.headphones_rounded,
         color: const Color(0xFF735C25),
         count: _count(audiobooks),
-        description: 'Narrated works for listening anywhere.',
         onTap: () => _open(context, const AudiobookCollectionScreen()),
+      ),
+      _CollectionPortalCard(
+        label: CollectionKind.video.label,
+        icon: Icons.movie_creation_rounded,
+        color: const Color(0xFF4A4E8C),
+        count: _count(video),
+        onTap: () => _open(context, const VideoCollectionScreen()),
       ),
       // Apps and Shop sit alongside the archive rather than inside it: one
       // sends members out to software worth having, the other to things the
@@ -68,7 +73,6 @@ class CollectionScreen extends ConsumerWidget {
         icon: Icons.apps_rounded,
         color: const Color(0xFF2F6F8F),
         count: _count(apps),
-        description: 'Kasem apps, scripture and other Indigen releases.',
         onTap: () => _open(context, const AppsCollectionScreen()),
       ),
       _CollectionPortalCard(
@@ -76,7 +80,6 @@ class CollectionScreen extends ConsumerWidget {
         icon: Icons.storefront_rounded,
         color: const Color(0xFF8C3B2E),
         count: _count(shop),
-        description: 'Souvenirs, books and shea butter from Kasena makers.',
         onTap: () => _open(context, const ShopCollectionScreen()),
       ),
     ];
@@ -101,6 +104,7 @@ class CollectionScreen extends ConsumerWidget {
                       music.isLoading ||
                       literature.isLoading ||
                       audiobooks.isLoading ||
+                      video.isLoading ||
                       apps.isLoading ||
                       shop.isLoading,
                   hasError:
@@ -108,6 +112,7 @@ class CollectionScreen extends ConsumerWidget {
                       music.hasError ||
                       literature.hasError ||
                       audiobooks.hasError ||
+                      video.hasError ||
                       apps.hasError ||
                       shop.hasError,
                 ),
@@ -177,9 +182,11 @@ class _CollectionHero extends StatelessWidget {
       ),
       boxShadow: [
         BoxShadow(
-          color: BrandColors.heritageGreen.withValues(alpha: 0.25),
-          blurRadius: 30,
-          offset: const Offset(0, 14),
+          color: context.brand.shadow.withValues(
+            alpha: context.brand.isDark ? 0.45 : 0.14,
+          ),
+          blurRadius: 24,
+          offset: const Offset(0, 10),
         ),
       ],
     ),
@@ -196,18 +203,18 @@ class _CollectionHero extends StatelessWidget {
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Row(
+            Row(
               children: [
                 Icon(
                   Icons.collections_bookmark_rounded,
-                  color: BrandColors.kenteGold,
+                  color: context.brand.gold,
                   size: 18,
                 ),
-                SizedBox(width: 8),
+                const SizedBox(width: 8),
                 Text(
                   'THE KASENA COLLECTION',
                   style: TextStyle(
-                    color: BrandColors.kenteGold,
+                    color: context.brand.gold,
                     fontWeight: FontWeight.w900,
                     fontSize: 10,
                     letterSpacing: 1.25,
@@ -225,13 +232,6 @@ class _CollectionHero extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 9),
-            Text(
-              'Choose a collection to explore work published by the community.',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Colors.white.withValues(alpha: 0.76),
-                height: 1.4,
-              ),
-            ),
           ],
         ),
       ],
@@ -246,19 +246,12 @@ class _FirebaseStatus extends StatelessWidget {
   final bool hasError;
 
   @override
-  Widget build(BuildContext context) => Container(
+  Widget build(BuildContext context) => GlassSurface(
+    blur: false,
+    radius: 16,
+    lifted: false,
+    accent: hasError ? context.brand.terracotta : null,
     padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 10),
-    decoration: BoxDecoration(
-      color: hasError
-          ? BrandColors.terracotta.withValues(alpha: 0.08)
-          : Colors.white.withValues(alpha: 0.64),
-      borderRadius: BorderRadius.circular(16),
-      border: Border.all(
-        color: hasError
-            ? BrandColors.terracotta.withValues(alpha: 0.28)
-            : BrandColors.heritageGreen.withValues(alpha: 0.12),
-      ),
-    ),
     child: Row(
       children: [
         if (loading)
@@ -270,18 +263,16 @@ class _FirebaseStatus extends StatelessWidget {
           Icon(
             hasError ? Icons.cloud_off_rounded : Icons.cloud_done_rounded,
             size: 18,
-            color: hasError
-                ? BrandColors.terracotta
-                : BrandColors.savannahGreen,
+            color: hasError ? context.brand.terracotta : context.brand.success,
           ),
         const SizedBox(width: 9),
         Expanded(
           child: Text(
             loading
-                ? 'Refreshing the community library…'
+                ? 'Refreshing…'
                 : hasError
-                ? 'Some collections could not refresh. Open one to retry.'
-                : 'Live community library · published entries only',
+                ? 'Some collections could not refresh'
+                : 'Live · published only',
             style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
           ),
         ),
@@ -296,7 +287,6 @@ class _CollectionPortalCard extends StatelessWidget {
     required this.icon,
     required this.color,
     required this.count,
-    required this.description,
     required this.onTap,
   });
 
@@ -304,7 +294,6 @@ class _CollectionPortalCard extends StatelessWidget {
   final IconData icon;
   final Color color;
   final int? count;
-  final String description;
   final VoidCallback onTap;
 
   @override
@@ -327,12 +316,7 @@ class _CollectionPortalCard extends StatelessWidget {
               Expanded(child: artwork)
             else
               AspectRatio(aspectRatio: 4 / 3, child: artwork),
-            _PortalCaption(
-              label: label,
-              color: color,
-              count: count,
-              description: description,
-            ),
+            _PortalCaption(label: label, color: color, count: count),
           ],
         );
       },
@@ -361,8 +345,8 @@ class _PortalArtwork extends StatelessWidget {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              color.withValues(alpha: 0.08),
-              color.withValues(alpha: 0.2),
+              color.withValues(alpha: 0.05),
+              color.withValues(alpha: 0.11),
             ],
           ),
         ),
@@ -374,17 +358,18 @@ class _PortalArtwork extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
           decoration: BoxDecoration(
-            color: BrandColors.heritageGreen,
+            color: context.brand.surface.withValues(alpha: 0.9),
             borderRadius: BorderRadius.circular(999),
+            border: Border.all(color: context.brand.border),
           ),
           child: Text(
             count == null ? '…' : '$count',
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: BrandColors.kenteGold,
+            style: TextStyle(
+              color: context.brand.mutedInk,
               fontSize: 11,
-              fontWeight: FontWeight.w900,
+              fontWeight: FontWeight.w700,
             ),
           ),
         ),
@@ -393,21 +378,21 @@ class _PortalArtwork extends StatelessWidget {
   );
 }
 
-/// The words under a portal's artwork. Every line here is capped, because this
-/// is the block whose height the tile is sized around: a title that wrapped or
-/// a fourth line of description would be height the artwork has already spent.
+/// The words under a portal's artwork: the name and how much is in there.
+///
+/// Every line is capped, because this is the block whose height the tile is
+/// sized around — a title that wrapped would be height the artwork has already
+/// spent.
 class _PortalCaption extends StatelessWidget {
   const _PortalCaption({
     required this.label,
     required this.color,
     required this.count,
-    required this.description,
   });
 
   final String label;
   final Color color;
   final int? count;
-  final String description;
 
   @override
   Widget build(BuildContext context) => Padding(
@@ -422,18 +407,7 @@ class _PortalCaption extends StatelessWidget {
           overflow: TextOverflow.ellipsis,
           style: Theme.of(context).textTheme.titleMedium,
         ),
-        const SizedBox(height: 4),
-        Text(
-          description,
-          maxLines: 3,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(
-            color: BrandColors.mutedInk,
-            fontSize: 11,
-            height: 1.3,
-          ),
-        ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 6),
         Row(
           children: [
             Expanded(
@@ -452,9 +426,9 @@ class _PortalCaption extends StatelessWidget {
                 ),
               ),
             ),
-            const Icon(
+            Icon(
               Icons.north_east_rounded,
-              color: BrandColors.mutedInk,
+              color: context.brand.mutedInk,
               size: 16,
             ),
           ],
@@ -468,22 +442,16 @@ class _StewardshipNote extends StatelessWidget {
   const _StewardshipNote();
 
   @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(17),
-    decoration: BoxDecoration(
-      color: BrandColors.kenteGold.withValues(alpha: 0.1),
-      borderRadius: BorderRadius.circular(22),
-      border: Border.all(color: BrandColors.kenteGold.withValues(alpha: 0.28)),
-    ),
-    child: const Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+  Widget build(BuildContext context) => GlassSurface(
+    padding: const EdgeInsets.all(15),
+    child: Row(
       children: [
-        Icon(Icons.verified_user_outlined, color: BrandColors.heritageGreen),
-        SizedBox(width: 12),
-        Expanded(
+        Icon(Icons.verified_user_outlined, color: context.brand.accent),
+        const SizedBox(width: 12),
+        const Expanded(
           child: Text(
-            'Only work marked for publication appears here. Rights, consent, and cultural review remain part of every contribution.',
-            style: TextStyle(fontWeight: FontWeight.w700, height: 1.4),
+            'Published with permission.',
+            style: TextStyle(fontWeight: FontWeight.w700),
           ),
         ),
       ],
@@ -496,10 +464,13 @@ class _StewardshipNote extends StatelessWidget {
 const _portalGridGap = 12.0;
 
 /// What a portal caption needs at the default text scale: 26 of padding, a
-/// 24px title line, 4, three 14.3px description lines, 10, and a footer row the
-/// 16px arrow holds open. That comes to 123; the rest is headroom for a font
-/// whose metrics run taller than the ones measured here.
-const _portalCaptionExtent = 132.0;
+/// 24px title line, 6, and a footer row the 16px arrow holds open. That comes
+/// to 72; the rest is headroom for a font whose metrics run taller than the
+/// ones measured here.
+///
+/// It used to be 132, because three lines of description sat in the middle of
+/// it. Dropping the description gave every tile 56px back.
+const _portalCaptionExtent = 80.0;
 
 /// The height of one portal tile, in logical pixels.
 ///
