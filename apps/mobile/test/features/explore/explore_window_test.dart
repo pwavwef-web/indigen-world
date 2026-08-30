@@ -10,8 +10,7 @@ void main() {
   setUp(() => container = ProviderContainer());
   tearDown(() => container.dispose());
 
-  ExploreWindow notifier() =>
-      container.read(exploreWindowProvider.notifier);
+  ExploreWindow notifier() => container.read(exploreWindowProvider.notifier);
 
   group('ExploreWindow', () {
     test('starts at one page', () {

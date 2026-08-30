@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:indigen_world_mobile/features/contribute/contribute_screen.dart';
+import 'package:indigen_world_mobile/l10n/app_localizations.dart';
 
 void main() {
   testWidgets('offers every collection type and explicit consent controls', (
@@ -14,7 +15,11 @@ void main() {
 
     await tester.pumpWidget(
       const ProviderScope(
-        child: MaterialApp(home: ContributeScreen(standalone: true)),
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: ContributeScreen(standalone: true),
+        ),
       ),
     );
     await tester.pump(const Duration(milliseconds: 400));
@@ -71,7 +76,11 @@ void main() {
 
       await tester.pumpWidget(
         const ProviderScope(
-          child: MaterialApp(home: ContributeScreen(standalone: true)),
+          child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: ContributeScreen(standalone: true),
+          ),
         ),
       );
       await tester.pump(const Duration(milliseconds: 400));

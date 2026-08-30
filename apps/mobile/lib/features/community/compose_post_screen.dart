@@ -11,6 +11,7 @@ import 'package:indigen_world_mobile/features/community/data/community_repositor
 import 'package:indigen_world_mobile/features/community/media_picker.dart';
 import 'package:indigen_world_mobile/features/community/mentions.dart';
 import 'package:indigen_world_mobile/features/community/widgets/community_avatar.dart';
+import 'package:indigen_world_mobile/features/community/widgets/kasem_key_bar.dart';
 import 'package:indigen_world_mobile/features/community/widgets/people_widgets.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
@@ -70,6 +71,34 @@ class _ComposePostScreenState extends ConsumerState<ComposePostScreen> {
       controller.dispose();
     }
     super.dispose();
+  }
+
+  /// Puts one Kasem glyph in at the caret.
+  ///
+  /// Written out by hand rather than left to the keyboard, because there is no
+  /// Kasem keyboard to leave it to. Replacing the selection rather than always
+  /// appending is what makes it behave like a key: type over a wrong letter and
+  /// the right one takes its place.
+  void _insertGlyph(String glyph) {
+    if (_publishing) return;
+    final text = _controller.text;
+    final selection = _controller.selection;
+    // An unfocused field reports an invalid selection; that means the end.
+    final start = selection.start < 0 ? text.length : selection.start;
+    final end = selection.end < 0 ? text.length : selection.end;
+    if (start == end &&
+        text.characters.length >= CommunityRepository.maxPostLength) {
+      return;
+    }
+    final next = text.replaceRange(start, end, glyph);
+    _controller.value = TextEditingValue(
+      text: next,
+      selection: TextSelection.collapsed(offset: start + glyph.length),
+    );
+    HapticFeedback.selectionClick();
+    // A programmatic edit does not fire `onChanged`, and the character counter
+    // at the bottom of the composer is reading that.
+    setState(() {});
   }
 
   Future<void> _toggleRecording() async {
@@ -284,6 +313,9 @@ class _ComposePostScreenState extends ConsumerState<ComposePostScreen> {
               )
             : null,
       ),
+      // Sits on top of the keyboard the way a keyboard's own accessory row
+      // would, because for this language there is no keyboard to put it in.
+      bottomNavigationBar: KasemKeyBar(onInsert: _insertGlyph),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),

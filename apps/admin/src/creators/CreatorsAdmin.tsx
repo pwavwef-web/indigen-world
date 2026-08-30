@@ -7,6 +7,7 @@ import type {
   Submission,
 } from '@indigen-world/contracts/creator-models';
 import { enums } from '@indigen-world/contracts';
+import { auth } from '../firebase';
 import {
   createCampaign,
   decideApplication,
@@ -19,16 +20,23 @@ import {
   fetchReviewQueue,
   isAdmin,
   saveConfig,
+  fetchCommunityMembers,
+  setMemberVerifiedKind,
   updateCampaign,
+  VERIFIED_KIND_LABELS,
+  VERIFIED_KINDS,
   type AdminRole,
+  type CommunityMemberRow,
+  type VerifiedKind,
 } from './data';
 
-type Tab = 'overview' | 'applications' | 'creators' | 'campaigns' | 'review' | 'config' | 'audit';
+type Tab = 'overview' | 'applications' | 'creators' | 'members' | 'campaigns' | 'review' | 'config' | 'audit';
 
 const TABS: [Tab, string][] = [
   ['overview', 'Overview'],
   ['applications', 'Applications'],
   ['creators', 'Creators'],
+  ['members', 'Members'],
   ['campaigns', 'Campaigns'],
   ['review', 'Review queue'],
   ['config', 'Configuration'],
@@ -58,6 +66,7 @@ export function CreatorsAdmin({ role }: { role: AdminRole }) {
       {tab === 'overview' ? <OverviewTab /> : null}
       {tab === 'applications' ? <ApplicationsTab role={role} notify={notify} /> : null}
       {tab === 'creators' ? <CreatorsDirectoryTab role={role} notify={notify} /> : null}
+      {tab === 'members' ? <MembersTab role={role} notify={notify} /> : null}
       {tab === 'campaigns' ? <CampaignsTab role={role} notify={notify} /> : null}
       {tab === 'review' ? <ReviewTab notify={notify} /> : null}
       {tab === 'config' && isAdmin(role) ? <ConfigTab notify={notify} /> : null}
@@ -296,6 +305,116 @@ function ApplicationsTab({ role, notify }: { role: AdminRole; notify: (m: string
 
 // ---------------------------------------------------------------------------
 
+/**
+ * Community members, and the mark beside their names.
+ *
+ * Two columns matter here and they answer different questions. **Mark** is what
+ * staff grant — the project, a custodian of the language, a published creator.
+ * **Phone** is what the member proved for themselves, and a granted mark shows
+ * nothing in the app until it is there. Both are on screen together so that
+ * "why has their badge not appeared" is answered by looking rather than asking.
+ */
+function MembersTab({ role, notify }: { role: AdminRole; notify: (m: string) => void }) {
+  const [rows, setRows] = useState<CommunityMemberRow[]>([]);
+  const [handle, setHandle] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState<string | null>(null);
+
+  const load = useCallback((search: string) => {
+    setLoading(true);
+    void fetchCommunityMembers(search)
+      .then((r) => { setRows(r); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, []);
+  useEffect(() => load(''), [load]);
+
+  const grant = async (row: CommunityMemberRow, kind: VerifiedKind) => {
+    if (!isAdmin(role)) { notify('Admin access required.'); return; }
+    const actorUid = auth.currentUser?.uid;
+    if (!actorUid) { notify('Sign in again.'); return; }
+    if (kind === 'project' && !window.confirm(`Mark @${row.username} as the project itself?`)) return;
+    setBusy(row.uid);
+    try {
+      await setMemberVerifiedKind(row.uid, kind, actorUid);
+      setRows((current) => current.map((r) => (r.uid === row.uid ? { ...r, verifiedKind: kind } : r)));
+      notify(kind ? `@${row.username} is now ${VERIFIED_KIND_LABELS[kind].toLowerCase()}.` : `Mark cleared for @${row.username}.`);
+    } catch (err) {
+      notify(err instanceof Error ? err.message : 'Could not change the mark.');
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  return (
+    <section className="panel">
+      <h2>Members</h2>
+      <p className="muted">
+        A mark is granted here; the phone number behind it is not. Only the project&rsquo;s own accounts
+        show a mark without one — everybody else&rsquo;s waits until they have verified a number.
+      </p>
+      <form
+        className="row"
+        onSubmit={(event) => { event.preventDefault(); load(handle); }}
+      >
+        <input
+          value={handle}
+          onChange={(e) => setHandle(e.target.value)}
+          placeholder="Find a handle, e.g. amina_paga"
+          aria-label="Find a member by handle"
+        />
+        <button type="submit">Search</button>
+        {handle ? (
+          <button type="button" onClick={() => { setHandle(''); load(''); }}>Clear</button>
+        ) : null}
+      </form>
+
+      {loading ? <p className="muted">Loading…</p> : null}
+      {!loading && rows.length === 0 ? <p className="muted">No members matched.</p> : null}
+      {!loading && rows.length > 0 ? (
+        <table className="collection-table">
+          <thead>
+            <tr><th>Member</th><th>Phone</th><th>Mark</th></tr>
+          </thead>
+          <tbody>
+            {rows.map((row) => (
+              <tr key={row.uid}>
+                <td>
+                  <strong>{row.displayName}</strong>
+                  <br />
+                  <small className="muted">@{row.username}</small>
+                </td>
+                <td>
+                  {row.phoneVerified
+                    ? <span>Verified</span>
+                    : <span className="muted">Not verified</span>}
+                  {!row.phoneVerified && row.verifiedKind && row.verifiedKind !== 'project' ? (
+                    <>
+                      <br />
+                      <small className="muted">Mark is pending</small>
+                    </>
+                  ) : null}
+                </td>
+                <td>
+                  <select
+                    value={row.verifiedKind}
+                    disabled={busy === row.uid || !isAdmin(role)}
+                    aria-label={`Mark for @${row.username}`}
+                    onChange={(e) => void grant(row, e.target.value as VerifiedKind)}
+                  >
+                    {VERIFIED_KINDS.map((kind) => (
+                      <option key={kind || 'none'} value={kind}>{VERIFIED_KIND_LABELS[kind]}</option>
+                    ))}
+                  </select>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      ) : null}
+    </section>
+  );
+}
+
 function CreatorsDirectoryTab({ role, notify }: { role: AdminRole; notify: (m: string) => void }) {
   const [rows, setRows] = useState<CreatorMembership[]>([]);
   const [loading, setLoading] = useState(true);
@@ -368,7 +487,7 @@ function CampaignsTab({ role, notify }: { role: AdminRole; notify: (m: string) =
   const [loading, setLoading] = useState(true);
   const [title, setTitle] = useState('');
   const [slug, setSlug] = useState('');
-  const [initiative, setInitiative] = useState('Project Kasena');
+  const [initiative, setInitiative] = useState('Project Kassena');
   const [description, setDescription] = useState('');
 
   const load = useCallback(() => {

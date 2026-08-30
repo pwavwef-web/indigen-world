@@ -7,6 +7,7 @@ import 'package:indigen_world_mobile/features/community/data/community_providers
 import 'package:indigen_world_mobile/features/community/widgets/community_avatar.dart';
 import 'package:indigen_world_mobile/features/community/widgets/post_media_view.dart';
 import 'package:indigen_world_mobile/features/community/widgets/post_text.dart';
+import 'package:indigen_world_mobile/features/community/widgets/verified_badge.dart';
 import 'package:indigen_world_mobile/features/community/widgets/video_cover.dart';
 import 'package:indigen_world_mobile/shared/glass_popup.dart';
 
@@ -101,7 +102,7 @@ class CommunityPostCard extends ConsumerWidget {
     final authorHandle = liveAuthor?.handle ?? post.handle;
     final authorAvatar = liveAuthor?.avatarUrl ?? post.authorAvatarUrl;
     final authorInitials = liveAuthor?.initials ?? post.initials;
-    final authorVerified = liveAuthor?.isVerified ?? post.authorVerified;
+    final authorMark = liveAuthor?.mark ?? post.authorMark;
 
     final avatarSize = compact ? 34.0 : 42.0;
     final gutter = compact ? 10.0 : 12.0;
@@ -156,6 +157,8 @@ class CommunityPostCard extends ConsumerWidget {
                             CommunityAvatar(
                               initials: authorInitials,
                               imageUrl: authorAvatar,
+                              username: liveAuthor?.username ??
+                                  post.authorUsername,
                               size: avatarSize,
                               onTap: onOpenAuthor,
                             ),
@@ -167,7 +170,7 @@ class CommunityPostCard extends ConsumerWidget {
                                   _PostByline(
                                     name: authorName,
                                     handle: authorHandle,
-                                    verified: authorVerified,
+                                    mark: authorMark,
                                     age: communityAgeLabel(post.createdAt),
                                     edited: post.isEdited,
                                     compact: compact,
@@ -213,13 +216,17 @@ class CommunityPostCard extends ConsumerWidget {
                             padding: const EdgeInsets.only(right: 4),
                             child: PostMediaView(
                               media: post.media,
-                              onOpen: (index) => Navigator.of(context).push(
-                                MaterialPageRoute<void>(
-                                  builder: (context) => MediaViewerPage(
-                                    media: post.media,
-                                    initialIndex: index,
-                                  ),
-                                ),
+                              // The viewer can appreciate, reply to and share
+                              // the post the picture came from, so somebody
+                              // who opened it to look properly never has to
+                              // close it again to say anything.
+                              actions: MediaPostActions(
+                                postId: post.id,
+                                likeCount: post.likeCount,
+                                replyCount: post.replyCount,
+                                onLike: onLike,
+                                onReply: onReply,
+                                onShare: onShare,
                               ),
                             ),
                           ),
@@ -287,7 +294,7 @@ class _PostByline extends StatelessWidget {
   const _PostByline({
     required this.name,
     required this.handle,
-    required this.verified,
+    required this.mark,
     required this.age,
     required this.edited,
     required this.compact,
@@ -297,7 +304,7 @@ class _PostByline extends StatelessWidget {
 
   final String name;
   final String handle;
-  final bool verified;
+  final VerifiedMark mark;
   final String age;
   final bool edited;
   final bool compact;
@@ -329,9 +336,9 @@ class _PostByline extends StatelessWidget {
                     ),
                   ),
                 ),
-                if (verified) ...[
+                if (mark != VerifiedMark.none) ...[
                   const SizedBox(width: 3),
-                  Icon(Icons.verified_rounded, size: size, color: brand.accent),
+                  VerifiedBadge(mark: mark, size: size),
                 ],
                 const SizedBox(width: 5),
                 Flexible(
@@ -428,6 +435,7 @@ class QuotedPostPreview extends StatelessWidget {
                   CommunityAvatar(
                     initials: post.initials,
                     imageUrl: post.authorAvatarUrl,
+                    username: post.authorUsername,
                     size: 20,
                   ),
                   const SizedBox(width: 7),

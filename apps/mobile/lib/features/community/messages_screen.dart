@@ -99,6 +99,7 @@ class _ThreadTile extends StatelessWidget {
       leading: CommunityAvatar(
         initials: thread.other.initials,
         imageUrl: thread.other.avatarUrl,
+        username: thread.other.username,
         size: 46,
       ),
       title: Row(

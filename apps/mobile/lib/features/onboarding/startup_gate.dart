@@ -5,6 +5,7 @@ import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/core/firebase_ready.dart';
 import 'package:indigen_world_mobile/features/notifications/push_messaging.dart';
 import 'package:indigen_world_mobile/features/onboarding/notifications_primer.dart';
+import 'package:indigen_world_mobile/l10n/app_localizations.dart';
 import 'package:indigen_world_mobile/shared/night_theme.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -488,79 +489,90 @@ class _OnboardingScreen extends StatelessWidget {
   final VoidCallback onContinue;
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    body: SafeArea(
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 620),
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(24, 36, 24, 32),
-            children: [
-              const Align(
-                alignment: Alignment.centerLeft,
-                child: _BrandMark(size: 70),
-              ),
-              const SizedBox(height: 28),
-              Text(
-                'Language lives\nwith people.',
-                style: Theme.of(context).textTheme.headlineLarge,
-              ),
-              const SizedBox(height: 14),
-              Text(
-                'Learn, search, and contribute through Project Kasena—the first language cell in Indigen World.',
-                style: Theme.of(context).textTheme.bodyLarge
-                    ?.copyWith(color: context.brand.mutedInk),
-              ),
-              const SizedBox(height: 28),
-              Text(
-                'What brings you here?',
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-              const SizedBox(height: 12),
-              for (final option in const [
-                (
-                  'Home community',
-                  Icons.home_outlined,
-                  'Stay close to language used around you.',
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Scaffold(
+      body: SafeArea(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 620),
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(24, 36, 24, 32),
+              children: [
+                const Align(
+                  alignment: Alignment.centerLeft,
+                  child: _BrandMark(size: 70),
                 ),
-                (
-                  'Diaspora',
-                  Icons.flight_outlined,
-                  'Reconnect and practise from wherever you are.',
+                const SizedBox(height: 28),
+                Text(
+                  l10n.onboardingTitle,
+                  style: Theme.of(context).textTheme.headlineLarge,
                 ),
-                (
-                  'Visitor or learner',
-                  Icons.explore_outlined,
-                  'Learn respectfully with context and attribution.',
+                const SizedBox(height: 14),
+                Text(
+                  l10n.onboardingBody,
+                  style: Theme.of(context).textTheme.bodyLarge
+                      ?.copyWith(color: context.brand.mutedInk),
                 ),
-              ]) ...[
-                _PathOption(
-                  value: option.$1,
-                  icon: option.$2,
-                  description: option.$3,
-                  selected: learningPath == option.$1,
-                  onTap: () => onPathChanged(option.$1),
+                const SizedBox(height: 28),
+                Text(
+                  l10n.onboardingQuestion,
+                  style: Theme.of(context).textTheme.titleLarge,
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 12),
+                // The first element of each record is *stored*, so it stays in
+                // English whatever the screen is read in. A preference written in
+                // French and later compared against an English constant is a
+                // setting that silently forgets itself.
+                for (final option in [
+                  (
+                    'Home community',
+                    Icons.home_outlined,
+                    l10n.onboardingHome,
+                    l10n.onboardingHomeBody,
+                  ),
+                  (
+                    'Diaspora',
+                    Icons.flight_outlined,
+                    l10n.onboardingDiaspora,
+                    l10n.onboardingDiasporaBody,
+                  ),
+                  (
+                    'Visitor or learner',
+                    Icons.explore_outlined,
+                    l10n.onboardingVisitor,
+                    l10n.onboardingVisitorBody,
+                  ),
+                ]) ...[
+                  _PathOption(
+                    value: option.$1,
+                    icon: option.$2,
+                    label: option.$3,
+                    description: option.$4,
+                    selected: learningPath == option.$1,
+                    onTap: () => onPathChanged(option.$1),
+                  ),
+                  const SizedBox(height: 10),
+                ],
+                const SizedBox(height: 20),
+                FilledButton.icon(
+                  onPressed: onContinue,
+                  icon: const Icon(Icons.arrow_forward_rounded),
+                  label: Text(l10n.onboardingStart),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  l10n.onboardingGuestNote,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: context.brand.mutedInk, height: 1.4),
+                ),
               ],
-              const SizedBox(height: 20),
-              FilledButton.icon(
-                onPressed: onContinue,
-                icon: const Icon(Icons.arrow_forward_rounded),
-                label: const Text('Start with Kasem'),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                'Public dictionary and learning content work without sign-in. You can choose an account later.',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: context.brand.mutedInk, height: 1.4),
-              ),
-            ],
+            ),
           ),
         ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 class _BrandMark extends StatelessWidget {
@@ -588,13 +600,20 @@ class _PathOption extends StatelessWidget {
   const _PathOption({
     required this.value,
     required this.icon,
+    required this.label,
     required this.description,
     required this.selected,
     required this.onTap,
   });
 
+  /// The stored answer, always in English.
   final String value;
+
   final IconData icon;
+
+  /// What the member reads.
+  final String label;
+
   final String description;
   final bool selected;
   final VoidCallback onTap;
@@ -617,7 +636,7 @@ class _PathOption extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(value, style: Theme.of(context).textTheme.titleMedium),
+                  Text(label, style: Theme.of(context).textTheme.titleMedium),
                   const SizedBox(height: 3),
                   Text(
                     description,

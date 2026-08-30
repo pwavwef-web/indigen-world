@@ -5,6 +5,11 @@ initializeApp();
 
 export { decideReview } from './validation.js';
 export { setUserRole } from './identity.js';
+export {
+  startPhoneVerification,
+  confirmPhoneVerification,
+} from './phone-verification.js';
+export { claimKasemHandle } from './kasem-handle.js';
 export { publicForms } from './public-forms.js';
 export {
   submitCreatorApplication,

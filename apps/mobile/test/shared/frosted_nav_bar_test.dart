@@ -3,6 +3,7 @@ import 'dart:ui' show Tristate;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:indigen_world_mobile/app/app_theme.dart';
+import 'package:indigen_world_mobile/l10n/app_localizations.dart';
 import 'package:indigen_world_mobile/shared/frosted_nav_bar.dart';
 
 void main() {
@@ -38,6 +39,9 @@ void main() {
     int? tapped;
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+
         theme: buildIndigenTheme(),
         home: Scaffold(
           body: const SizedBox.expand(),
@@ -100,6 +104,9 @@ void main() {
     int? tapped;
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+
         theme: buildIndigenTheme(),
         home: Scaffold(
           body: const SizedBox.expand(),
@@ -125,6 +132,9 @@ void main() {
     int? tapped;
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+
         theme: buildIndigenTheme(),
         home: Scaffold(
           body: const SizedBox.expand(),

@@ -10,7 +10,7 @@ Different asset classes may require different treatment:
 - Documentation and specifications
 - Indigen World brand assets
 - TribeStudio product assets
-- Project Kasena programme assets
+- Project Kassena programme assets
 - Kasem lexical and sentence data
 - Cultural expressions, stories, proverbs, oral histories, symbols, images, and audio
 - Third-party libraries, fonts, photographs, datasets, and model outputs

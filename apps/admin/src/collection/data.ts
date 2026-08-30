@@ -285,6 +285,168 @@ export async function deleteProduct(id: string): Promise<void> {
   await deleteDoc(doc(db, 'shopProducts', id));
 }
 
+/* ------------------------------------------------------- Kassena heroes */
+
+export const HERO_FIELDS = [
+  'Chief',
+  'Elder',
+  'Linguist',
+  'Musician',
+  'Writer',
+  'Educator',
+  'Athlete',
+  'Other',
+] as const;
+
+export interface KasemHero {
+  id: string;
+  name: string;
+  /** A praise name, a title, a stage name - whatever else they are known by. */
+  alsoKnownAs: string;
+  /**
+   * Free text rather than dates. Much of what is known is approximate, and a
+   * date picker would force somebody to invent precision.
+   */
+  era: string;
+  field: string;
+  summary: string;
+  story: string;
+  birthplace: string;
+  portraitUrl: string;
+  /** Where the account came from, so a claim can be checked. */
+  sourceUrl: string;
+  order: number;
+  published: boolean;
+}
+
+export async function listHeroes(): Promise<KasemHero[]> {
+  const snapshot = await getDocs(query(collection(db, 'kasemHeroes'), orderBy('order')));
+  return snapshot.docs.map((entry) => {
+    const data = entry.data() as Partial<KasemHero>;
+    return {
+      id: entry.id,
+      name: data.name ?? '',
+      alsoKnownAs: data.alsoKnownAs ?? '',
+      era: data.era ?? '',
+      field: data.field ?? 'Other',
+      summary: data.summary ?? '',
+      story: data.story ?? '',
+      birthplace: data.birthplace ?? '',
+      portraitUrl: data.portraitUrl ?? '',
+      sourceUrl: data.sourceUrl ?? '',
+      order: typeof data.order === 'number' ? data.order : 0,
+      published: data.published === true,
+    };
+  });
+}
+
+export async function saveHero(hero: KasemHero, id: string): Promise<void> {
+  await setDoc(
+    doc(db, 'kasemHeroes', id),
+    {
+      id,
+      name: hero.name.trim(),
+      alsoKnownAs: hero.alsoKnownAs.trim(),
+      era: hero.era.trim(),
+      field: hero.field,
+      summary: hero.summary.trim(),
+      story: hero.story.trim(),
+      birthplace: hero.birthplace.trim(),
+      portraitUrl: hero.portraitUrl.trim(),
+      sourceUrl: hero.sourceUrl.trim(),
+      order: hero.order,
+      published: hero.published,
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true },
+  );
+}
+
+export async function deleteHero(id: string): Promise<void> {
+  await deleteDoc(doc(db, 'kasemHeroes', id));
+}
+
+/* -------------------------------------------------------- Kassena names */
+
+export const NAME_KINDS = ['given', 'clan', 'place'] as const;
+export type NameKind = (typeof NAME_KINDS)[number];
+
+export interface KasemNameEntry {
+  id: string;
+  /** As it is properly written. */
+  name: string;
+  /** The folded form a handle can hold. Derived, never typed. */
+  ascii: string;
+  meaning: string;
+  kind: NameKind;
+  order: number;
+  published: boolean;
+}
+
+/**
+ * The ASCII a handle can hold, from a name written properly.
+ *
+ * Written here and **stored** on the document, so the mobile client and the
+ * handle-claim callable both read the same string instead of each deriving one.
+ * If they derived their own and disagreed by a single letter, somebody would
+ * claim a name and then not get the ring for it.
+ */
+export function foldKasemToAscii(raw: string): string {
+  return Array.from(raw.toLowerCase().normalize('NFD'))
+    .map((char) => {
+      const code = char.codePointAt(0) ?? 0;
+      if (code === 0x025b || code === 0x0259 || code === 0x0246) return 'e';
+      if (code === 0x0254) return 'o';
+      if (code === 0x014b) return 'ng';
+      if (code === 0x028b) return 'v';
+      if (code === 0x0269 || code === 0x026a) return 'i';
+      if (code >= 0x0300 && code <= 0x036f) return '';
+      return char;
+    })
+    .join('')
+    .replace(/[^a-z0-9_]/g, '');
+}
+
+export async function listKasemNames(): Promise<KasemNameEntry[]> {
+  const snapshot = await getDocs(query(collection(db, 'kasemNames'), orderBy('order')));
+  return snapshot.docs.map((entry) => {
+    const data = entry.data() as Partial<KasemNameEntry>;
+    const name = data.name ?? '';
+    return {
+      id: entry.id,
+      name,
+      ascii: data.ascii || foldKasemToAscii(name),
+      meaning: data.meaning ?? '',
+      kind: (NAME_KINDS as readonly string[]).includes(String(data.kind))
+        ? (data.kind as NameKind)
+        : 'given',
+      order: typeof data.order === 'number' ? data.order : 0,
+      published: data.published === true,
+    };
+  });
+}
+
+export async function saveKasemName(entry: KasemNameEntry, id: string): Promise<void> {
+  await setDoc(
+    doc(db, 'kasemNames', id),
+    {
+      id,
+      name: entry.name.trim(),
+      ascii: foldKasemToAscii(entry.name),
+      meaning: entry.meaning.trim(),
+      kind: entry.kind,
+      order: entry.order,
+      published: entry.published,
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true },
+  );
+}
+
+export async function deleteKasemName(id: string): Promise<void> {
+  await deleteDoc(doc(db, 'kasemNames', id));
+}
+
 /* ----------------------------------------------------------------- Orders */
 
 export async function listOrders(): Promise<ShopOrder[]> {

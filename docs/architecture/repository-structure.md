@@ -56,9 +56,9 @@ Each web app is deployed to its own Firebase Hosting site with its own productio
 
 `services/api` and `packages/backend-core` are reserved by [ADR 0002](../decisions/0002-adopt-firebase-authority-with-digitalocean-api.md). They should be created only with the first implemented cross-runtime use case; empty scaffolds are not required.
 
-## Product Kasena placement
+## Product Kassena placement
 
-Project Kasena is a programme and the first Kasem language cell, not a fourth application. Its implementation should appear inside the relevant products and services:
+Project Kassena is a programme and the first Kasem language cell, not a fourth application. Its implementation should appear inside the relevant products and services:
 
 ```text
 apps/website/src/programmes/project-kasena/

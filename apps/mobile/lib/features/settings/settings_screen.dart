@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io' show Platform;
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -5,23 +6,31 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/app_config.dart';
+import 'package:indigen_world_mobile/core/app_locale.dart';
 import 'package:indigen_world_mobile/core/app_signature.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/core/connectivity.dart';
 import 'package:indigen_world_mobile/core/firebase_ready.dart';
+import 'package:indigen_world_mobile/core/media_preferences.dart';
 import 'package:indigen_world_mobile/core/theme_mode.dart';
 import 'package:indigen_world_mobile/features/auth/auth_repository.dart';
 import 'package:indigen_world_mobile/features/auth/sign_in_sheet.dart';
+import 'package:indigen_world_mobile/features/community/claim_kasem_name_screen.dart';
 import 'package:indigen_world_mobile/features/community/community_setup_screen.dart';
+import 'package:indigen_world_mobile/features/community/data/community_models.dart';
 import 'package:indigen_world_mobile/features/community/data/community_providers.dart';
+import 'package:indigen_world_mobile/features/community/data/kasem_names.dart';
 import 'package:indigen_world_mobile/features/community/edit_community_profile_screen.dart';
 import 'package:indigen_world_mobile/features/community/people_screen.dart';
+import 'package:indigen_world_mobile/features/community/phone_verification_screen.dart';
 import 'package:indigen_world_mobile/features/community/saved_posts_screen.dart';
+import 'package:indigen_world_mobile/features/community/widgets/verified_badge.dart';
 import 'package:indigen_world_mobile/features/notifications/notifications_screen.dart';
 import 'package:indigen_world_mobile/features/notifications/push_messaging.dart';
 import 'package:indigen_world_mobile/features/rating/rating_service.dart';
 import 'package:indigen_world_mobile/features/settings/licences_screen.dart';
 import 'package:indigen_world_mobile/features/settings/policy_screen.dart';
+import 'package:indigen_world_mobile/l10n/app_localizations.dart';
 import 'package:indigen_world_mobile/shared/glass_popup.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -117,6 +126,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final profile = ref.watch(myCommunityProfileProvider).asData?.value;
     final version = ref.watch(appVersionProvider).asData?.value;
     final themeMode = ref.watch(themeModeProvider);
+    final locale = ref.watch(localeProvider);
+    final l10n = AppLocalizations.of(context);
     final signature = ref.watch(appSignatureProvider).asData?.value;
 
     return Scaffold(
@@ -170,6 +181,43 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     ? 'Choose the handle the community knows you by'
                     : 'Name, photo, cover, bio and dialect',
                 onTap: _openCommunityProfile,
+              ),
+              // Offered only while it is still there to take, and only to
+              // somebody who has not already got the ring — a row that says
+              // "take a Kassena name" to a member called Nyaaba is noise.
+              if (profile != null &&
+                  profile.canClaimKasemName &&
+                  !isKasemHandle(
+                    profile.username,
+                    ref.watch(kasemHandleSetProvider),
+                  ))
+                _SettingsRow(
+                  icon: Icons.workspace_premium_outlined,
+                  title: 'Take a Kassena name',
+                  subtitle: 'One change, and your picture gets the kente ring',
+                  onTap: () => _claimKasemName(profile),
+                ),
+              // Verification sits in Account rather than Preferences: it is
+              // about who this account is, not how it behaves.
+              _SettingsRow(
+                icon: profile?.phoneVerified ?? false
+                    ? Icons.verified_user_rounded
+                    : Icons.phone_iphone_rounded,
+                title: profile?.phoneVerified ?? false
+                    ? 'Number verified'
+                    : 'Verify your number',
+                subtitle: switch (profile) {
+                  null => 'Set up your community profile first',
+                  final it when it.phoneVerified =>
+                    VerifiedBadge.label(it.mark),
+                  // A granted kind that is waiting on a phone is explained
+                  // rather than left as a badge that never appeared.
+                  final it when it.hasPendingVerification =>
+                    'Your ${VerifiedBadge.label(VerifiedMark.fromKind(it.verifiedKind)).toLowerCase()} mark is waiting on this',
+                  _ => 'Show the community somebody real is here',
+                },
+                enabled: signedIn && profile != null && !(profile.phoneVerified),
+                onTap: _verifyPhone,
               ),
               _SettingsRow(
                 icon: Icons.lock_outline_rounded,
@@ -233,20 +281,44 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           const SizedBox(height: 22),
 
           // ── Preferences ──────────────────────────────────────────────
-          const _SectionLabel('PREFERENCES'),
+          _SectionLabel(l10n.settingsPreferences),
           const SizedBox(height: 9),
           _SettingsGroup(
             children: [
+              // First in the group, because it decides what every other row on
+              // this screen is written in.
+              _SettingsRow(
+                icon: Icons.translate_rounded,
+                title: l10n.settingsLanguage,
+                subtitle: locale == null
+                    ? l10n.settingsLanguageMatchDevice
+                    : languageEndonym(locale),
+                onTap: _chooseLanguage,
+              ),
               _SettingsRow(
                 icon: themeModeIcon(themeMode),
-                title: 'Appearance',
+                title: l10n.settingsAppearance,
                 subtitle: switch (themeMode) {
-                  ThemeMode.system =>
-                    'Match device — light by day, dark by night',
-                  ThemeMode.light => 'Light — warm paper and deep green',
-                  ThemeMode.dark => 'Dark — charcoal with a green undertone',
+                  ThemeMode.system => l10n.settingsAppearanceSystem,
+                  ThemeMode.light => l10n.settingsAppearanceLight,
+                  ThemeMode.dark => l10n.settingsAppearanceDark,
                 },
                 onTap: _chooseAppearance,
+              ),
+              SwitchListTile.adaptive(
+                secondary: Icon(
+                  Icons.play_circle_outline_rounded,
+                  color: context.brand.accent,
+                ),
+                title: Text(
+                  l10n.settingsAutoplayTitle,
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+                subtitle: Text(l10n.settingsAutoplayBody),
+                value: ref.watch(videoAutoplayProvider),
+                onChanged: (value) => unawaited(
+                  ref.read(videoAutoplayProvider.notifier).set(value),
+                ),
               ),
               _SettingsRow(
                 icon: Icons.notifications_none_rounded,
@@ -423,11 +495,49 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   /// A switch would only cover two of the three states, and "match device" is
   /// the one most people want — a phone that goes dark at dusk should take the
   /// app with it.
+  /// The reading language.
+  ///
+  /// "Match my device" leads, and is what almost everybody stays on — the list
+  /// exists for the member whose phone language and reading language differ,
+  /// which in a diaspora is a very ordinary thing to be.
+  Future<void> _chooseLanguage() async {
+    final l10n = AppLocalizations.of(context);
+    final current = ref.read(localeProvider);
+    final choice = await showGlassActionSheet<String>(
+      context: context,
+      title: l10n.settingsLanguage,
+      actions: [
+        GlassAction(
+          value: '',
+          icon: current == null
+              ? Icons.check_circle_rounded
+              : Icons.smartphone_rounded,
+          label: l10n.settingsLanguageMatchDevice,
+          description: l10n.settingsLanguageSubtitle,
+        ),
+        for (final locale in supportedAppLocales)
+          GlassAction(
+            value: locale.languageCode,
+            icon: current?.languageCode == locale.languageCode
+                ? Icons.check_circle_rounded
+                : Icons.translate_rounded,
+            // Named in itself, so somebody who cannot read the list can still
+            // find their own language in it.
+            label: languageEndonym(locale),
+          ),
+      ],
+    );
+    if (choice == null) return;
+    await ref
+        .read(localeProvider.notifier)
+        .setLocale(choice.isEmpty ? null : Locale(choice));
+  }
+
   Future<void> _chooseAppearance() async {
     final current = ref.read(themeModeProvider);
     final choice = await showGlassActionSheet<ThemeMode>(
       context: context,
-      title: 'Appearance',
+      title: AppLocalizations.of(context).settingsAppearance,
       actions: [
         for (final mode in ThemeMode.values)
           GlassAction(
@@ -446,6 +556,38 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
     if (choice == null) return;
     await ref.read(themeModeProvider.notifier).setMode(choice);
+  }
+
+  Future<void> _claimKasemName(CommunityProfile profile) async {
+    final block = ref.read(connectionBlockProvider);
+    if (block != null) {
+      _message(block.message);
+      return;
+    }
+    final claimed = await Navigator.of(context).push<bool>(
+      MaterialPageRoute<bool>(
+        builder: (context) => ClaimKasemNameScreen(profile: profile),
+      ),
+    );
+    if ((claimed ?? false) && mounted) {
+      _message('Your name is yours. Wear it well.');
+    }
+  }
+
+  Future<void> _verifyPhone() async {
+    final block = ref.read(connectionBlockProvider);
+    if (block != null) {
+      _message(block.message);
+      return;
+    }
+    final verified = await Navigator.of(context).push<bool>(
+      MaterialPageRoute<bool>(
+        builder: (context) => const PhoneVerificationScreen(),
+      ),
+    );
+    if ((verified ?? false) && mounted) {
+      _message('Your number is verified.');
+    }
   }
 
   void _openCommunityProfile() {

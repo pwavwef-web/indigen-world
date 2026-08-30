@@ -16,6 +16,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:indigen_world_mobile/app/app_theme.dart';
 import 'package:indigen_world_mobile/features/contribute/contribute_screen.dart';
+import 'package:indigen_world_mobile/l10n/app_localizations.dart';
 
 /// The distance, in logical pixels, between the bottom of the type picker and
 /// the top of the first input field.
@@ -28,6 +29,9 @@ Future<double> _gapAfterPicker(WidgetTester tester, Size size) async {
   await tester.pumpWidget(
     ProviderScope(
       child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+
         theme: buildIndigenTheme(),
         home: const ContributeScreen(standalone: true),
       ),
@@ -87,6 +91,9 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+
           theme: buildIndigenTheme(),
           home: const ContributeScreen(standalone: true),
         ),

@@ -2,7 +2,7 @@
  * src/pages/HomePage.tsx
  *
  * Landing page: hero, belief strip, ecosystem highlights, a Project
- * Kasena spotlight (trimmed — the full translation demo and roadmap
+ * Kassena spotlight (trimmed — the full translation demo and roadmap
  * live on the dedicated Venacula page), an honestly-labelled
  * progress snapshot, and a closing CTA. Adapted from the top portion
  * of the uploaded template's single-page App.tsx.

@@ -374,8 +374,8 @@ export function JoinPage() {
             <Field label="Languages you speak" htmlFor="langs" hint="Comma-separated, e.g. Kasem, English">
               <input id="langs" value={form.languagesSpoken} onChange={(e) => update('languagesSpoken', e.target.value)} placeholder="Kasem, English" />
             </Field>
-            <Field label="Cultural community or communities represented" htmlFor="communities" hint="Comma-separated, e.g. Kasena, Navrongo">
-              <input id="communities" value={form.culturalCommunities} onChange={(e) => update('culturalCommunities', e.target.value)} placeholder="Kasena" />
+            <Field label="Cultural community or communities represented" htmlFor="communities" hint="Comma-separated, e.g. Kassena, Navrongo">
+              <input id="communities" value={form.culturalCommunities} onChange={(e) => update('culturalCommunities', e.target.value)} placeholder="Kassena" />
             </Field>
             <Field label="Kasem proficiency" htmlFor="prof" error={errors.kasemProficiency}>
               <select id="prof" value={form.kasemProficiency} onChange={(e) => update('kasemProficiency', e.target.value)}>

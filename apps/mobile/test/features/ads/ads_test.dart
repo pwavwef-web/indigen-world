@@ -12,18 +12,21 @@ import 'package:indigen_world_mobile/app/app_theme.dart';
 import 'package:indigen_world_mobile/features/ads/ads_screen.dart';
 import 'package:indigen_world_mobile/features/ads/create_ad_screen.dart';
 import 'package:indigen_world_mobile/features/ads/data/ad_campaign.dart';
+import 'package:indigen_world_mobile/l10n/app_localizations.dart';
 
 Widget _host(Widget child) => ProviderScope(
-  child: MaterialApp(theme: buildIndigenTheme(), home: child),
+  child: MaterialApp(
+    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    supportedLocales: AppLocalizations.supportedLocales,
+    theme: buildIndigenTheme(),
+    home: child,
+  ),
 );
 
 void main() {
   group('cost', () {
     test('a campaign costs its daily budget times its days, plus tax', () {
-      const cost = AdCostBreakdown(
-        dailyBudgetPesewas: 2000,
-        durationDays: 7,
-      );
+      const cost = AdCostBreakdown(dailyBudgetPesewas: 2000, durationDays: 7);
       expect(cost.subtotalPesewas, 14000);
       expect(cost.taxPesewas, 840);
       expect(cost.totalPesewas, 14840);
@@ -38,11 +41,11 @@ void main() {
     });
 
     test('the reach estimate is a range, and low is below high', () {
-      const cost = AdCostBreakdown(
-        dailyBudgetPesewas: 2000,
-        durationDays: 7,
+      const cost = AdCostBreakdown(dailyBudgetPesewas: 2000, durationDays: 7);
+      expect(
+        cost.estimatedImpressionsLow,
+        lessThan(cost.estimatedImpressionsHigh),
       );
-      expect(cost.estimatedImpressionsLow, lessThan(cost.estimatedImpressionsHigh));
       expect(cost.estimatedImpressionsLow, greaterThan(0));
     });
   });
@@ -130,10 +133,7 @@ void main() {
 
       // Validated on the way out of each step, so nobody fills in six screens
       // and is then told the first one was wrong.
-      expect(
-        find.textContaining('Give the campaign a name'),
-        findsOneWidget,
-      );
+      expect(find.textContaining('Give the campaign a name'), findsOneWidget);
       expect(find.text('What do you want from this?'), findsOneWidget);
       await tester.pump(const Duration(milliseconds: 400));
     });
@@ -162,10 +162,7 @@ void main() {
       // An advert without a creative is a blank rectangle somebody paid for.
       await tester.tap(find.text('Next'));
       await tester.pump(const Duration(milliseconds: 300));
-      expect(
-        find.textContaining('Add the image or video'),
-        findsOneWidget,
-      );
+      expect(find.textContaining('Add the image or video'), findsOneWidget);
       await tester.pump(const Duration(milliseconds: 400));
     });
 
@@ -178,7 +175,10 @@ void main() {
             body: Padding(
               padding: EdgeInsets.all(16),
               child: AdCostCard(
-                cost: AdCostBreakdown(dailyBudgetPesewas: 2000, durationDays: 7),
+                cost: AdCostBreakdown(
+                  dailyBudgetPesewas: 2000,
+                  durationDays: 7,
+                ),
               ),
             ),
           ),

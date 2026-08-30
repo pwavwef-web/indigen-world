@@ -43,7 +43,7 @@ export function TermsPage() {
             This website introduces Indigen World's mission, ecosystem and team, and provides ways
             to get in touch or express interest in contributing. It is informational — it is not
             itself a language-learning tool, dictionary or translator. Descriptions of Project
-            Kasena tools on this site are plans, not a live product experience.
+            Kassena tools on this site are plans, not a live product experience.
           </p>
 
           <h2>Using the Indigen World mobile app</h2>

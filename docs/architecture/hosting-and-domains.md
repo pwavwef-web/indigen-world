@@ -12,7 +12,7 @@ All sites live in the shared Firebase project **`project-kassena-7e026`**.
 
 | Hosting site | App | Default domain | Production custom domain(s) | Deploy command |
 | --- | --- | --- | --- | --- |
-| `indigen-world` | `apps/website` | `indigen-world.web.app` | `indigenworld.com` (apex, primary) · `www.indigenworld.com` (redirect → apex) · `kasem.indigenworld.com` (Project Kasena entry point) | `firebase deploy --only hosting:indigen-world` |
+| `indigen-world` | `apps/website` | `indigen-world.web.app` | `indigenworld.com` (apex, primary) · `www.indigenworld.com` (redirect → apex) · `kasem.indigenworld.com` (Project Kassena entry point) | `firebase deploy --only hosting:indigen-world` |
 | `indigen-admin` | `apps/admin` | `indigen-admin.web.app` | `admin.indigenworld.com` | `firebase deploy --only hosting:indigen-admin` |
 | `tribestudio` | `apps/tribestudio` | `tribestudio.web.app` | `tribestudio.indigenworld.com` | `firebase deploy --only hosting:tribestudio` |
 

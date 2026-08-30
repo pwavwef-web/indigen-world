@@ -16,7 +16,7 @@ assets/
 ## Rules
 
 - Indigen World is the primary ecosystem brand.
-- The existing Project Kasena logo is a programme logo, not the Indigen World corporate logo.
+- The existing Project Kassena logo is a programme logo, not the Indigen World corporate logo.
 - Store source, transparent, monochrome, favicon, social-avatar, and export variants with descriptive names.
 - Record ownership, creator, licence, approval status, and date for every non-trivial asset.
 - Do not commit unlicensed photographs, fonts, stock graphics, or community images without documented permission.

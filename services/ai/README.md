@@ -21,9 +21,9 @@ This directory contains the provider-independent AI layer for Indigen World. It 
 - Model output is never equivalent to elder, teacher, linguist, or cultural-custodian validation.
 - Health, legal, civic, and other high-impact translations require specialised review and clear disclaimers.
 
-## Project Kasena
+## Project Kassena
 
-Project Kasena supplies the first approved language-cell requirements and evaluation framework for Kasem. Kasem-specific assets should remain distinguishable from reusable platform logic and must preserve dialect and validation metadata.
+Project Kassena supplies the first approved language-cell requirements and evaluation framework for Kasem. Kasem-specific assets should remain distinguishable from reusable platform logic and must preserve dialect and validation metadata.
 
 Suggested subdirectories when implementation begins:
 

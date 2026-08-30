@@ -3,10 +3,15 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:indigen_world_mobile/app/app_theme.dart';
 import 'package:indigen_world_mobile/features/settings/licences_screen.dart';
 import 'package:indigen_world_mobile/features/settings/policy_screen.dart';
+import 'package:indigen_world_mobile/l10n/app_localizations.dart';
 
 void main() {
-  Widget wrap(Widget child) =>
-      MaterialApp(theme: buildIndigenTheme(), home: child);
+  Widget wrap(Widget child) => MaterialApp(
+    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    supportedLocales: AppLocalizations.supportedLocales,
+    theme: buildIndigenTheme(),
+    home: child,
+  );
 
   testWidgets('lists every content licence the rules accept', (tester) async {
     await tester.pumpWidget(wrap(const LicencesScreen()));

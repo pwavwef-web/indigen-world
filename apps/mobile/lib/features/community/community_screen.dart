@@ -1,5 +1,10 @@
+import 'dart:async';
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:indigen_world_mobile/app/app_shell.dart';
 import 'package:indigen_world_mobile/app/shell_chrome.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/features/community/community_actions.dart';
@@ -17,6 +22,7 @@ import 'package:indigen_world_mobile/features/community/widgets/community_sideba
 import 'package:indigen_world_mobile/features/community/widgets/people_widgets.dart';
 import 'package:indigen_world_mobile/features/notifications/data/notification_providers.dart';
 import 'package:indigen_world_mobile/features/notifications/notifications_screen.dart';
+import 'package:indigen_world_mobile/l10n/app_localizations.dart';
 import 'package:indigen_world_mobile/shared/app_widgets.dart';
 import 'package:indigen_world_mobile/shared/frosted_nav_bar.dart';
 import 'package:indigen_world_mobile/shared/glass_surface.dart';
@@ -31,9 +37,38 @@ class CommunityScreen extends ConsumerStatefulWidget {
   ConsumerState<CommunityScreen> createState() => _CommunityScreenState();
 }
 
+/// How tall the pinned header is when the whole of it is showing: the title
+/// row, and the For you / Following switch under it.
+const double _headerRowHeight = 54;
+const double _feedTabsHeight = 48;
+const double kCommunityHeaderHeight = _headerRowHeight + _feedTabsHeight;
+
 class _CommunityScreenState extends ConsumerState<CommunityScreen> {
   var _tab = 0;
   final _viewedPostIds = <String>{};
+
+  /// The feed's own scroll, so the header and the rail can be brought back and
+  /// the top of the timeline can be returned to.
+  final _scroll = ScrollController();
+
+  /// Posts the reader has already been shown.
+  ///
+  /// Everything newer than [_anchor] that is not in here is *held*: it exists,
+  /// it is counted on the pill at the top of the screen, and it is not spliced
+  /// into the list under the reader's thumb. A feed that inserts rows above the
+  /// viewport moves the paragraph somebody is halfway through, which is the one
+  /// thing a live timeline must never do.
+  final _knownIds = <String>{};
+
+  /// When the top of the feed was last taken as read.
+  DateTime? _anchor;
+
+  /// The last list the provider handed over, so the pill has something to adopt
+  /// when it is tapped.
+  List<CommunityPost> _latestFeed = const [];
+
+  /// How many posts are being held above the line right now.
+  var _pending = 0;
 
   /// Where the feed was when the current drag direction started.
   ///
@@ -58,7 +93,102 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
     // avoiding a delayed callback after navigation, this makes the final
     // impression deterministic when the feed is removed quickly.
     VisibilityDetectorController.instance.notifyNow();
+    _scroll.dispose();
     super.dispose();
+  }
+
+  /// Separates what the reader is being shown from what has arrived behind
+  /// their back.
+  ///
+  /// Anything older than the anchor flows straight through, which is what keeps
+  /// a widening page of older posts working; only rows that would land *above*
+  /// where they are reading are held for the pill.
+  ///
+  /// Runs during build and sets [_pending] as it goes; nothing here needs a
+  /// rebuild, because the list it returns is the one being built from.
+  List<CommunityPost> _split(List<CommunityPost> incoming) {
+    _latestFeed = incoming;
+    final anchor = _anchor;
+    if (anchor == null) {
+      // The first page anybody sees is never held back.
+      _adopt(incoming);
+      _pending = 0;
+      return incoming;
+    }
+    final held = <String>{};
+    for (final post in incoming) {
+      final createdAt = post.createdAt;
+      if (createdAt == null || _knownIds.contains(post.id)) continue;
+      if (createdAt.isAfter(anchor)) held.add(post.id);
+    }
+    _pending = held.length;
+    if (held.isEmpty) {
+      // Nothing new above the line, so anything that arrived below it — an
+      // older page, a reply count that moved — is simply taken as read.
+      _knownIds.addAll(incoming.map((post) => post.id));
+      return incoming;
+    }
+    return incoming
+        .where((post) => !held.contains(post.id))
+        .toList(growable: false);
+  }
+
+  /// Marks everything in [posts] as shown and moves the line to the top of it.
+  void _adopt(List<CommunityPost> posts) {
+    _knownIds
+      ..clear()
+      ..addAll(posts.map((post) => post.id));
+    if (posts.isNotEmpty) {
+      _anchor = posts.first.createdAt ?? DateTime.now();
+    }
+  }
+
+  /// Folds in whatever is being held, on a frame where saying so is legal.
+  ///
+  /// Most scroll notifications arrive between frames, where this is an ordinary
+  /// state change. A few — a position corrected while the viewport is being
+  /// laid out — arrive during the frame itself, and rebuilding then is an error
+  /// rather than a late repaint. Those wait for the end of the same frame.
+  void _adoptPending() {
+    if (_pending == 0) return;
+    if (SchedulerBinding.instance.schedulerPhase ==
+        SchedulerPhase.persistentCallbacks) {
+      SchedulerBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _pending > 0) setState(() => _adopt(_latestFeed));
+      });
+      return;
+    }
+    setState(() => _adopt(_latestFeed));
+  }
+
+  /// Back to the top, with anything that arrived while the reader was away
+  /// folded in on the way.
+  Future<void> _flyHome() async {
+    setState(() => _adopt(_latestFeed));
+    ref.read(shellChromeVisibilityProvider.notifier).reveal();
+    if (!_scroll.hasClients) return;
+    // A fling from three screens down takes long enough to feel like a
+    // malfunction, so a very long journey starts most of the way home.
+    if (_scroll.offset > 2600) _scroll.jumpTo(1200);
+    _lastScrollOffset = 0;
+    await _scroll.animateTo(
+      0,
+      duration: const Duration(milliseconds: 420),
+      curve: Curves.easeOutCubic,
+    );
+  }
+
+  void _switchTab(int tab) {
+    if (tab == _tab) return;
+    setState(() {
+      _tab = tab;
+      // The other half of the timeline has its own line to draw.
+      _anchor = null;
+      _knownIds.clear();
+    });
+    ref.read(shellChromeVisibilityProvider.notifier).reveal();
+    if (_scroll.hasClients) _scroll.jumpTo(0);
+    _lastScrollOffset = 0;
   }
 
   /// Hides the composer and the rail while the member reads on, and brings both
@@ -82,6 +212,9 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
     if (offset <= 0) {
       _lastScrollOffset = offset;
       chrome.set(true);
+      // Somebody who has scrolled all the way back up has asked for the new
+      // posts as plainly as tapping the pill would have.
+      _adoptPending();
       return false;
     }
 
@@ -117,6 +250,14 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    // Tapping Community while already on Community means the same thing here
+    // as it does in every other feed anybody has used.
+    ref.listen<TabReselect>(tabReselectProvider, (previous, next) {
+      if (next.index != kCommunityTabIndex) return;
+      if (previous?.tick == next.tick) return;
+      unawaited(_flyHome());
+    });
     final actions = CommunityActions(ref);
     final feed = _tab == 0
         ? ref.watch(communityFeedProvider)
@@ -132,6 +273,9 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
         const <String, String>{};
     final currentUid = ref.watch(currentUidProvider);
     final chromeVisible = ref.watch(shellChromeVisibilityProvider);
+    // Held back or shown, decided once — including for an empty feed, which
+    // still has to clear a pill left over from the page before it.
+    final shown = feed.value == null ? null : _split(feed.value!);
 
     return Scaffold(
       key: _scaffoldKey,
@@ -156,7 +300,7 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
               ignoring: !chromeVisible,
               child: FloatingActionButton(
                 heroTag: 'community-compose',
-                tooltip: 'New Kasem post',
+                tooltip: l10n.communityNewPost,
                 onPressed: () => actions.compose(context),
                 backgroundColor: context.brand.accentFill,
                 foregroundColor: context.brand.onAccentFill,
@@ -169,94 +313,163 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
       body: ScreenContainer(
         child: NotificationListener<ScrollNotification>(
           onNotification: _handleFeedScroll,
-          child: RefreshIndicator(
-            onRefresh: () async {
-              ref
-                ..invalidate(rawCommunityFeedProvider)
-                ..invalidate(rawFollowingFeedProvider)
-                ..invalidate(followingIdsProvider)
-                ..invalidate(suggestedProfilesProvider);
-              await ref.read(suggestedProfilesProvider.future);
-            },
-            child: CustomScrollView(
-              key: const PageStorageKey('community-scroll'),
-              // An empty or short feed still has to accept the refresh gesture.
-              physics: const AlwaysScrollableScrollPhysics(),
-              slivers: [
-                SliverToBoxAdapter(
-                  child: _CommunityHeader(
-                    onOpenMenu: () => _scaffoldKey.currentState?.openDrawer(),
-                  ),
-                ),
-                const SliverToBoxAdapter(child: _CommunityPulse()),
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                    child: _ComposeBar(onTap: () => actions.compose(context)),
-                  ),
-                ),
-                SliverToBoxAdapter(
-                  child: _FeedTabs(
-                    selected: _tab,
-                    onChanged: (value) => setState(() => _tab = value),
-                  ),
-                ),
-                // Matched on what the state HOLDS rather than on which class it
-                // is. Riverpod retries a failed provider, and while a retry is
-                // in flight the state is `AsyncLoading` *carrying* the error
-                // rather than `AsyncError` — so matching the class alone made
-                // the feed flash the skeleton back between attempts, and then
-                // the error, and then the skeleton again. A page we already have
-                // also outranks a reconnect: Firestore recovers on its own, and
-                // a reader would rather see slightly stale posts than a spinner.
-                ...switch (feed) {
-                  AsyncValue(:final value?) when value.isEmpty => [
-                    SliverToBoxAdapter(
-                      child: _EmptyFeed(tab: _tab, actions: actions),
+          child: Stack(
+            children: [
+              RefreshIndicator(
+                // The spinner belongs under the header rather than behind it.
+                edgeOffset: kCommunityHeaderHeight,
+                onRefresh: () async {
+                  ref
+                    ..invalidate(rawCommunityFeedProvider)
+                    ..invalidate(rawFollowingFeedProvider)
+                    ..invalidate(followingIdsProvider)
+                    ..invalidate(suggestedProfilesProvider);
+                  await ref.read(suggestedProfilesProvider.future);
+                  // A pull to refresh is a request for everything, including
+                  // whatever was being held back.
+                  if (mounted) setState(() => _adopt(_latestFeed));
+                },
+                child: CustomScrollView(
+                  key: const PageStorageKey('community-scroll'),
+                  controller: _scroll,
+                  // An empty or short feed still has to accept the refresh
+                  // gesture.
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  slivers: [
+                    // The header floats over the feed rather than travelling
+                    // with it, so this is the room it needs to sit in.
+                    const SliverToBoxAdapter(
+                      child: SizedBox(height: kCommunityHeaderHeight),
                     ),
-                  ],
-                  AsyncValue(:final value?) => [
-                    // Full-bleed rows: the feed is a single column of writing
-                    // separated by hairlines, so there is no gutter to inset
-                    // and no gap between one post and the next.
-                    SliverPadding(
-                      padding: const EdgeInsets.only(
-                        bottom: kFrostedNavBarReservedSpace + 60,
-                      ),
-                      sliver: SliverList.builder(
-                        itemCount: value.length,
-                        itemBuilder: (context, index) => VisibilityDetector(
-                          key: Key('community-post-${value[index].id}-$index'),
-                          onVisibilityChanged: (info) => _trackVisiblePost(
-                            value[index],
-                            info.visibleFraction,
-                            actions,
-                          ),
-                          child: _FeedPost(
-                            post: value[index],
-                            liked: likes.contains(value[index].id),
-                            saved: saved.contains(value[index].id),
-                            reposted: reposts.contains(value[index].id),
-                            votedOptionId: pollVotes[value[index].id],
-                            isOwner: currentUid == value[index].authorId,
-                            actions: actions,
-                          ),
+                    const SliverToBoxAdapter(child: _CommunityPulse()),
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                        child: _ComposeBar(
+                          onTap: () => actions.compose(context),
                         ),
                       ),
                     ),
+                    // Matched on what the state HOLDS rather than on which
+                    // class it is. Riverpod retries a failed provider, and
+                    // while a retry is in flight the state is `AsyncLoading`
+                    // *carrying* the error rather than `AsyncError` — so
+                    // matching the class alone made the feed flash the skeleton
+                    // back between attempts, and then the error, and then the
+                    // skeleton again. A page we already have also outranks a
+                    // reconnect: Firestore recovers on its own, and a reader
+                    // would rather see slightly stale posts than a spinner.
+                    ...switch ((feed, shown)) {
+                      (_, final posts?) when posts.isEmpty => [
+                        SliverToBoxAdapter(
+                          child: _EmptyFeed(tab: _tab, actions: actions),
+                        ),
+                      ],
+                      (_, final posts?) => [
+                        // Full-bleed rows: the feed is a single column of
+                        // writing separated by hairlines, so there is no gutter
+                        // to inset and no gap between one post and the next.
+                        SliverPadding(
+                          padding: const EdgeInsets.only(
+                            bottom: kFrostedNavBarReservedSpace + 60,
+                          ),
+                          sliver: _FeedList(
+                            posts: posts,
+                            likes: likes,
+                            saved: saved,
+                            reposts: reposts,
+                            pollVotes: pollVotes,
+                            currentUid: currentUid,
+                            actions: actions,
+                            onSeen: _trackVisiblePost,
+                          ),
+                        ),
+                      ],
+                      (AsyncValue(:final error?), _) => [
+                        SliverToBoxAdapter(child: _FeedError(error: error)),
+                      ],
+                      _ => [const SliverToBoxAdapter(child: _FeedSkeleton())],
+                    },
                   ],
-                  AsyncValue(:final error?) => [
-                    SliverToBoxAdapter(child: _FeedError(error: error)),
-                  ],
-                  _ => [const SliverToBoxAdapter(child: _FeedSkeleton())],
-                },
-              ],
-            ),
+                ),
+              ),
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: _PinnedCommunityHeader(
+                  tab: _tab,
+                  onChangeTab: _switchTab,
+                  onOpenMenu: () => _scaffoldKey.currentState?.openDrawer(),
+                ),
+              ),
+              // The pill rides just under the header, wherever the header
+              // happens to have got to.
+              Positioned(
+                top: chromeVisible
+                    ? kCommunityHeaderHeight + 10
+                    : _feedTabsHeight + 10,
+                left: 0,
+                right: 0,
+                child: Center(
+                  child: _NewPostsPill(count: _pending, onTap: _flyHome),
+                ),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
+}
+
+/// The timeline itself.
+///
+/// Pulled out of [CommunityScreen.build] so the list of posts is one widget
+/// with one job, rather than forty lines of builder nested six levels inside a
+/// switch inside a sliver list.
+class _FeedList extends StatelessWidget {
+  const _FeedList({
+    required this.posts,
+    required this.likes,
+    required this.saved,
+    required this.reposts,
+    required this.pollVotes,
+    required this.currentUid,
+    required this.actions,
+    required this.onSeen,
+  });
+
+  final List<CommunityPost> posts;
+  final Set<String> likes;
+  final Set<String> saved;
+  final Set<String> reposts;
+  final Map<String, String> pollVotes;
+  final String? currentUid;
+  final CommunityActions actions;
+  final void Function(CommunityPost, double, CommunityActions) onSeen;
+
+  @override
+  Widget build(BuildContext context) => SliverList.builder(
+    itemCount: posts.length,
+    itemBuilder: (context, index) {
+      final post = posts[index];
+      return VisibilityDetector(
+        key: Key('community-post-${post.id}-$index'),
+        onVisibilityChanged: (info) =>
+            onSeen(post, info.visibleFraction, actions),
+        child: _FeedPost(
+          post: post,
+          liked: likes.contains(post.id),
+          saved: saved.contains(post.id),
+          reposted: reposts.contains(post.id),
+          votedOptionId: pollVotes[post.id],
+          isOwner: currentUid == post.authorId,
+          actions: actions,
+        ),
+      );
+    },
+  );
 }
 
 class _FeedPost extends StatelessWidget {
@@ -334,6 +547,146 @@ class _FeedPost extends StatelessWidget {
 
 // ── Header ──────────────────────────────────────────────────────────────────
 
+/// The community tab's header, pinned to the top of the screen.
+///
+/// It used to be the first row of the feed, which meant the way back to the
+/// menu, the bell, member search and the saved posts was three screens of
+/// scrolling away the moment somebody started reading. The rail and the
+/// composer had already solved this — they leave when a reader moves on and
+/// come back the instant they turn around — and the header now answers to the
+/// same flag, so the whole of the app's furniture behaves as one thing.
+///
+/// The For you / Following switch is the exception, and deliberately so: it is
+/// not chrome, it is *where you are*, and a timeline that can be scrolled far
+/// enough to forget which half of it you are reading is a timeline with a hole
+/// in it. So the title row slides up out of the frame and the switch stays,
+/// which is exactly the arrangement every timeline of this shape has landed on.
+class _PinnedCommunityHeader extends ConsumerWidget {
+  const _PinnedCommunityHeader({
+    required this.tab,
+    required this.onChangeTab,
+    required this.onOpenMenu,
+  });
+
+  final int tab;
+  final ValueChanged<int> onChangeTab;
+  final VoidCallback onOpenMenu;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final visible = ref.watch(shellChromeVisibilityProvider);
+    final brand = context.brand;
+
+    return ClipRect(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 240),
+        curve: Curves.easeOutCubic,
+        height: visible ? kCommunityHeaderHeight : _feedTabsHeight,
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              // Translucent rather than solid: the point of pinning it is that
+              // the feed keeps running underneath, and a reader should be able
+              // to see that it does.
+              color: brand.background.withValues(alpha: 0.86),
+              border: Border(bottom: BorderSide(color: brand.divider)),
+            ),
+            // The column keeps its full height whatever the box around it is
+            // doing, so shrinking the box takes the title row up under the
+            // status bar instead of squashing it.
+            child: OverflowBox(
+              alignment: Alignment.bottomCenter,
+              minHeight: kCommunityHeaderHeight,
+              maxHeight: kCommunityHeaderHeight,
+              child: Column(
+                children: [
+                  SizedBox(
+                    height: _headerRowHeight,
+                    child: _CommunityHeader(onOpenMenu: onOpenMenu),
+                  ),
+                  SizedBox(
+                    height: _feedTabsHeight,
+                    child: _FeedTabs(selected: tab, onChanged: onChangeTab),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The count of posts that arrived while somebody was reading.
+///
+/// A live timeline has two bad options and one good one. It can splice new
+/// posts in above the viewport, which moves the sentence being read; it can
+/// drop them silently, which makes the feed feel dead; or it can hold them and
+/// say so. This is the third.
+class _NewPostsPill extends StatelessWidget {
+  const _NewPostsPill({required this.count, required this.onTap});
+
+  final int count;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final brand = context.brand;
+    final l10n = AppLocalizations.of(context);
+    return AnimatedSlide(
+      offset: count > 0 ? Offset.zero : const Offset(0, -1.8),
+      duration: const Duration(milliseconds: 260),
+      curve: Curves.easeOutBack,
+      child: AnimatedOpacity(
+        opacity: count > 0 ? 1 : 0,
+        duration: const Duration(milliseconds: 180),
+        child: IgnorePointer(
+          ignoring: count == 0,
+          child: Semantics(
+            button: true,
+            label: l10n.communityNewPostsSemantics(count),
+            excludeSemantics: true,
+            child: Material(
+              color: brand.accentFill,
+              borderRadius: BorderRadius.circular(999),
+              elevation: 3,
+              shadowColor: brand.shadow.withValues(alpha: 0.4),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(999),
+                onTap: onTap,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(14, 8, 16, 8),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.arrow_upward_rounded,
+                        size: 15,
+                        color: brand.onAccentFill,
+                      ),
+                      const SizedBox(width: 7),
+                      Text(
+                        l10n.communityNewPostsPill(count),
+                        style: TextStyle(
+                          color: brand.onAccentFill,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _CommunityHeader extends ConsumerWidget {
   const _CommunityHeader({required this.onOpenMenu});
 
@@ -344,20 +697,25 @@ class _CommunityHeader extends ConsumerWidget {
     final unreadNotifications =
         ref.watch(unreadNotificationCountProvider).asData?.value ?? 0;
     final unreadMessages = ref.watch(unreadChatCountProvider);
+    final l10n = AppLocalizations.of(context);
     // One dot for anything waiting behind the menu, so the member can tell
     // there is something in there without opening it to find out.
     final menuHasWaiting = unreadNotifications + unreadMessages > 0;
 
     return Padding(
       // Right inset keeps the header clear of the shell's profile orb.
-      padding: const EdgeInsets.fromLTRB(8, 14, 58, 4),
+      padding: const EdgeInsets.fromLTRB(8, 4, 54, 4),
       child: Row(
         children: [
           _MenuButton(onTap: onOpenMenu, hasWaiting: menuHasWaiting),
           const SizedBox(width: 4),
           Expanded(
             child: Text(
-              'Community',
+              l10n.communityTitle,
+              // The row has a fixed height now, so a title that wrapped at a
+              // large text scale would push its own baseline out of it.
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 color: context.brand.ink,
                 fontSize: 19,
@@ -367,28 +725,55 @@ class _CommunityHeader extends ConsumerWidget {
             ),
           ),
           _NotificationBell(unread: unreadNotifications),
-          IconButton(
-            tooltip: 'Find people',
-            onPressed: () => Navigator.of(context).push(
+          _HeaderIcon(
+            icon: Icons.search_rounded,
+            tooltip: l10n.communityFindPeople,
+            onTap: () => Navigator.of(context).push(
               MaterialPageRoute<void>(
                 builder: (context) => const PeopleScreen(),
               ),
             ),
-            icon: const Icon(Icons.search_rounded),
           ),
-          IconButton(
-            tooltip: 'Saved posts',
-            onPressed: () => Navigator.of(context).push(
+          _HeaderIcon(
+            icon: Icons.bookmark_border_rounded,
+            tooltip: l10n.communitySavedPosts,
+            onTap: () => Navigator.of(context).push(
               MaterialPageRoute<void>(
                 builder: (context) => const SavedPostsScreen(),
               ),
             ),
-            icon: const Icon(Icons.bookmark_border_rounded),
           ),
         ],
       ),
     );
   }
+}
+
+/// A header action.
+///
+/// A plain [IconButton] insists on a 48px box, and four of them stacked into a
+/// row that now has a fixed height pushed the title off its own baseline. This
+/// keeps the 44px target the guidelines actually ask for and no more.
+class _HeaderIcon extends StatelessWidget {
+  const _HeaderIcon({
+    required this.icon,
+    required this.tooltip,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => IconButton(
+    tooltip: tooltip,
+    onPressed: onTap,
+    padding: EdgeInsets.zero,
+    constraints: const BoxConstraints.tightFor(width: 44, height: 44),
+    iconSize: 21,
+    icon: Icon(icon),
+  );
 }
 
 /// The hamburger. Carries a dot rather than a number: the counts themselves
@@ -401,44 +786,47 @@ class _MenuButton extends StatelessWidget {
   final bool hasWaiting;
 
   @override
-  Widget build(BuildContext context) => Semantics(
-    button: true,
-    label: hasWaiting ? 'Community menu, items waiting' : 'Community menu',
-    excludeSemantics: true,
-    child: Tooltip(
-      message: 'Menu',
-      child: InkWell(
-        customBorder: const CircleBorder(),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(10),
-          child: Stack(
-            clipBehavior: Clip.none,
-            children: [
-              Icon(Icons.menu_rounded, color: context.brand.ink),
-              if (hasWaiting)
-                Positioned(
-                  right: -2,
-                  top: -2,
-                  child: Container(
-                    width: 9,
-                    height: 9,
-                    decoration: BoxDecoration(
-                      color: context.brand.terracotta,
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: context.brand.background,
-                        width: 1.5,
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Semantics(
+      button: true,
+      label: hasWaiting ? l10n.communityMenuWaiting : l10n.communityMenu,
+      excludeSemantics: true,
+      child: Tooltip(
+        message: 'Menu',
+        child: InkWell(
+          customBorder: const CircleBorder(),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(10),
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Icon(Icons.menu_rounded, color: context.brand.ink),
+                if (hasWaiting)
+                  Positioned(
+                    right: -2,
+                    top: -2,
+                    child: Container(
+                      width: 9,
+                      height: 9,
+                      decoration: BoxDecoration(
+                        color: context.brand.terracotta,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: context.brand.background,
+                          width: 1.5,
+                        ),
                       ),
                     ),
                   ),
-                ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 /// The bell, with an unread count that reads as a number up to 99 and then
@@ -449,68 +837,73 @@ class _NotificationBell extends StatelessWidget {
   final int unread;
 
   @override
-  Widget build(BuildContext context) => Semantics(
-    button: true,
-    label: unread > 0 ? 'Notifications, $unread unread' : 'Notifications',
-    excludeSemantics: true,
-    child: Tooltip(
-      message: 'Notifications',
-      child: InkWell(
-        customBorder: const CircleBorder(),
-        onTap: () => Navigator.of(context).push(
-          MaterialPageRoute<void>(
-            builder: (context) => const NotificationsScreen(),
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Semantics(
+      button: true,
+      label: unread > 0
+          ? l10n.communityNotificationsUnread(unread)
+          : l10n.communityNotifications,
+      excludeSemantics: true,
+      child: Tooltip(
+        message: l10n.communityNotifications,
+        child: InkWell(
+          customBorder: const CircleBorder(),
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (context) => const NotificationsScreen(),
+            ),
           ),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(8),
-          child: Stack(
-            clipBehavior: Clip.none,
-            children: [
-              Icon(
-                unread > 0
-                    ? Icons.notifications_rounded
-                    : Icons.notifications_none_rounded,
-                color: unread > 0
-                    ? context.brand.accent
-                    : context.brand.mutedInk,
-              ),
-              if (unread > 0)
-                Positioned(
-                  right: -5,
-                  top: -4,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 4,
-                      vertical: 1,
-                    ),
-                    constraints: const BoxConstraints(minWidth: 16),
-                    decoration: BoxDecoration(
-                      color: context.brand.terracotta,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: context.brand.background,
-                        width: 1.5,
+          child: Padding(
+            padding: const EdgeInsets.all(8),
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Icon(
+                  unread > 0
+                      ? Icons.notifications_rounded
+                      : Icons.notifications_none_rounded,
+                  color: unread > 0
+                      ? context.brand.accent
+                      : context.brand.mutedInk,
+                ),
+                if (unread > 0)
+                  Positioned(
+                    right: -5,
+                    top: -4,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 4,
+                        vertical: 1,
                       ),
-                    ),
-                    child: Text(
-                      unread > 99 ? '99+' : '$unread',
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 9,
-                        fontWeight: FontWeight.w900,
-                        height: 1.25,
+                      constraints: const BoxConstraints(minWidth: 16),
+                      decoration: BoxDecoration(
+                        color: context.brand.terracotta,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: context.brand.background,
+                          width: 1.5,
+                        ),
+                      ),
+                      child: Text(
+                        unread > 99 ? '99+' : '$unread',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 9,
+                          fontWeight: FontWeight.w900,
+                          height: 1.25,
+                        ),
                       ),
                     ),
                   ),
-                ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 // ── Pulse rail ──────────────────────────────────────────────────────────────
@@ -529,6 +922,7 @@ class _CommunityPulse extends ConsumerWidget {
     final people = suggested
         .where((profile) => profile.uid != myUid)
         .toList(growable: false);
+    final l10n = AppLocalizations.of(context);
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 2, 8, 4),
@@ -539,7 +933,7 @@ class _CommunityPulse extends ConsumerWidget {
               const _PulseDot(),
               const SizedBox(width: 7),
               Text(
-                'New voices',
+                l10n.communityNewVoices,
                 style: TextStyle(
                   color: context.brand.ink,
                   fontSize: 13.5,
@@ -555,7 +949,7 @@ class _CommunityPulse extends ConsumerWidget {
               child: people.isEmpty
                   ? Center(
                       child: Text(
-                        'Nobody new yet.',
+                        l10n.communityNobodyNew,
                         style: TextStyle(
                           color: context.brand.faintInk,
                           fontSize: 12.5,
@@ -574,6 +968,7 @@ class _CommunityPulse extends ConsumerWidget {
                           child: CommunityAvatar(
                             initials: profile.initials,
                             imageUrl: profile.avatarUrl,
+                            username: profile.username,
                             size: 46,
                             ringed: true,
                             ringColor: context.brand.border,
@@ -633,6 +1028,7 @@ class _ComposeBar extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final profile = ref.watch(myCommunityProfileProvider).asData?.value;
     final brand = context.brand;
+    final l10n = AppLocalizations.of(context);
     return Material(
       key: const Key('community-compose-bar'),
       color: Colors.transparent,
@@ -651,12 +1047,13 @@ class _ComposeBar extends ConsumerWidget {
               CommunityAvatar(
                 initials: profile?.initials ?? '··',
                 imageUrl: profile?.avatarUrl,
+                username: profile?.username,
                 size: 32,
               ),
               const SizedBox(width: 11),
               Expanded(
                 child: Text(
-                  'Make a Kasem post',
+                  l10n.communityCompose,
                   style: TextStyle(
                     color: brand.faintInk,
                     fontSize: 15,
@@ -684,28 +1081,23 @@ class _FeedTabs extends StatelessWidget {
   final ValueChanged<int> onChanged;
 
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(top: 8),
-    child: DecoratedBox(
-      decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: context.brand.divider)),
-      ),
-      child: Row(
-        children: [
-          _FeedTab(
-            label: 'For you',
-            selected: selected == 0,
-            onTap: () => onChanged(0),
-          ),
-          _FeedTab(
-            label: 'Following',
-            selected: selected == 1,
-            onTap: () => onChanged(1),
-          ),
-        ],
-      ),
-    ),
-  );
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Row(
+      children: [
+        _FeedTab(
+          label: l10n.communityForYou,
+          selected: selected == 0,
+          onTap: () => onChanged(0),
+        ),
+        _FeedTab(
+          label: l10n.communityFollowing,
+          selected: selected == 1,
+          onTap: () => onChanged(1),
+        ),
+      ],
+    );
+  }
 }
 
 /// One half of the feed switch: a label with a short rule under it when it is
@@ -736,16 +1128,18 @@ class _FeedTab extends StatelessWidget {
         child: InkWell(
           onTap: onTap,
           child: Column(
+            mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 13),
-                child: Text(
-                  label,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: selected ? brand.ink : brand.mutedInk,
-                    fontSize: 14.5,
-                    fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+              Expanded(
+                child: Center(
+                  child: Text(
+                    label,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: selected ? brand.ink : brand.mutedInk,
+                      fontSize: 14.5,
+                      fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                    ),
                   ),
                 ),
               ),
@@ -776,29 +1170,32 @@ class _EmptyFeed extends StatelessWidget {
   final CommunityActions actions;
 
   @override
-  Widget build(BuildContext context) => tab == 1
-      ? CommunityEmptyState(
-          icon: Icons.group_add_outlined,
-          title: 'Nothing from the people you follow',
-          action: FilledButton.icon(
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute<void>(
-                builder: (context) => const PeopleScreen(),
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return tab == 1
+        ? CommunityEmptyState(
+            icon: Icons.group_add_outlined,
+            title: l10n.communityEmptyFollowing,
+            action: FilledButton.icon(
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (context) => const PeopleScreen(),
+                ),
               ),
+              icon: const Icon(Icons.person_search_rounded),
+              label: Text(l10n.communityFindPeople),
             ),
-            icon: const Icon(Icons.person_search_rounded),
-            label: const Text('Find people'),
-          ),
-        )
-      : CommunityEmptyState(
-          icon: Icons.forum_outlined,
-          title: 'No posts yet',
-          action: FilledButton.icon(
-            onPressed: () => actions.compose(context),
-            icon: const Icon(Icons.edit_rounded),
-            label: const Text('Make the first post'),
-          ),
-        );
+          )
+        : CommunityEmptyState(
+            icon: Icons.forum_outlined,
+            title: l10n.communityEmptyFeed,
+            action: FilledButton.icon(
+              onPressed: () => actions.compose(context),
+              icon: const Icon(Icons.edit_rounded),
+              label: Text(l10n.communityFirstPost),
+            ),
+          );
+  }
 }
 
 /// The feed's failure state, with a way out of it.
@@ -813,21 +1210,24 @@ class _FeedError extends ConsumerWidget {
   final Object error;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) => CommunityEmptyState(
-    icon: Icons.cloud_off_rounded,
-    title: isCommunityBackendPending(error)
-        ? 'The community service is still starting up'
-        : 'The feed could not load',
-    action: FilledButton.icon(
-      onPressed: () {
-        ref
-          ..invalidate(rawCommunityFeedProvider)
-          ..invalidate(rawFollowingFeedProvider);
-      },
-      icon: const Icon(Icons.refresh_rounded),
-      label: const Text('Try again'),
-    ),
-  );
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    return CommunityEmptyState(
+      icon: Icons.cloud_off_rounded,
+      title: isCommunityBackendPending(error)
+          ? l10n.communityBackendPending
+          : l10n.communityFeedFailed,
+      action: FilledButton.icon(
+        onPressed: () {
+          ref
+            ..invalidate(rawCommunityFeedProvider)
+            ..invalidate(rawFollowingFeedProvider);
+        },
+        icon: const Icon(Icons.refresh_rounded),
+        label: Text(l10n.communityTryAgain),
+      ),
+    );
+  }
 }
 
 class _FeedSkeleton extends StatelessWidget {

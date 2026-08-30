@@ -7,7 +7,7 @@ import 'package:indigen_world_mobile/features/collection/widgets/collection_card
 import 'package:indigen_world_mobile/shared/app_widgets.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-/// Collection → Apps: the other software worth having on a Kasena phone.
+/// Collection → Apps: the other software worth having on a Kassena phone.
 ///
 /// Every card is a link out to a store, not something installed from here.
 /// The directory is admin-curated, so an empty list means nobody has listed

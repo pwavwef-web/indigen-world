@@ -123,8 +123,8 @@ export function ProjectKasenaPage() {
         <div className="container">
           <SectionHeading
             eyebrow="Getting the names right"
-            title="Kasem, Kasena, Venacula."
-            body="Kasem is the language. Kasena refers to the people and community it belongs to. Venacula is Indigen World's initiative built to serve that community — they aren't interchangeable, and we're careful to keep the distinction clear everywhere on this site."
+            title="Kasem, Kassena, Venacula."
+            body="Kasem is the language. Kassena refers to the people and community it belongs to. Venacula is Indigen World's initiative built to serve that community — they aren't interchangeable, and we're careful to keep the distinction clear everywhere on this site."
           />
         </div>
       </section>

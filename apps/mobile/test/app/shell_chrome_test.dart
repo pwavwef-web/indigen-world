@@ -14,6 +14,7 @@ import 'package:indigen_world_mobile/app/app_shell.dart';
 import 'package:indigen_world_mobile/app/app_theme.dart';
 import 'package:indigen_world_mobile/app/shell_chrome.dart';
 import 'package:indigen_world_mobile/data/local/app_database.dart';
+import 'package:indigen_world_mobile/l10n/app_localizations.dart';
 import 'package:indigen_world_mobile/shared/frosted_nav_bar.dart';
 
 /// How far off its resting place the rail has slid.
@@ -60,7 +61,12 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [appDatabaseProvider.overrideWithValue(database)],
-        child: MaterialApp(theme: buildIndigenTheme(), home: const AppShell()),
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          theme: buildIndigenTheme(),
+          home: const AppShell(),
+        ),
       ),
     );
     await tester.pump(const Duration(milliseconds: 500));

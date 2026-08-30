@@ -20,6 +20,7 @@ import 'package:indigen_world_mobile/data/local/app_database.dart';
 import 'package:indigen_world_mobile/features/contribute/contribute_screen.dart';
 import 'package:indigen_world_mobile/features/validate/data/review_queue.dart';
 import 'package:indigen_world_mobile/features/validate/validate_screen.dart';
+import 'package:indigen_world_mobile/l10n/app_localizations.dart';
 import 'package:indigen_world_mobile/shared/frosted_nav_bar.dart';
 
 ReviewItem _item({
@@ -49,14 +50,22 @@ ReviewItem _item({
 
 void main() {
   group('who may review', () {
-    test('the reviewer roles match the ones the rules and functions accept', () {
-      // Mirrors isValidator() in firestore.rules and requireRole(_, 'validator')
-      // in services/functions/src/auth.ts. If these drift, the app shows a queue
-      // the backend refuses to serve.
-      expect(kReviewerRoles, {'validator', 'reviewer', 'admin', 'super_admin'});
-      expect(kReviewerRoles.contains('creator'), isFalse);
-      expect(kReviewerRoles.contains('contributor'), isFalse);
-    });
+    test(
+      'the reviewer roles match the ones the rules and functions accept',
+      () {
+        // Mirrors isValidator() in firestore.rules and requireRole(_, 'validator')
+        // in services/functions/src/auth.ts. If these drift, the app shows a queue
+        // the backend refuses to serve.
+        expect(kReviewerRoles, {
+          'validator',
+          'reviewer',
+          'admin',
+          'super_admin',
+        });
+        expect(kReviewerRoles.contains('creator'), isFalse);
+        expect(kReviewerRoles.contains('contributor'), isFalse);
+      },
+    );
   });
 
   group('which decisions are offered', () {
@@ -80,7 +89,10 @@ void main() {
 
     test('publishing is offered only where permission was granted', () {
       expect(
-        _item(status: 'APPROVED', publicationPermission: true).availableDecisions,
+        _item(
+          status: 'APPROVED',
+          publicationPermission: true,
+        ).availableDecisions,
         contains(ReviewDecision.publish),
       );
       // Approved but not for publication: the contributor said no, and the
@@ -112,6 +124,9 @@ void main() {
         ProviderScope(
           overrides: [userRoleProvider.overrideWith((ref) async => null)],
           child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+
             theme: buildIndigenTheme(),
             home: const ValidateScreen(),
           ),
@@ -133,6 +148,9 @@ void main() {
             userRoleProvider.overrideWith((ref) async => 'validator'),
           ],
           child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+
             theme: buildIndigenTheme(),
             home: const ValidateScreen(),
           ),
@@ -168,6 +186,9 @@ void main() {
             userRoleProvider.overrideWith((ref) async => 'validator'),
           ],
           child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+
             theme: buildIndigenTheme(),
             home: const ValidateScreen(),
           ),
@@ -203,7 +224,12 @@ void main() {
             appDatabaseProvider.overrideWithValue(database),
             userRoleProvider.overrideWith((ref) async => role),
           ],
-          child: MaterialApp(theme: buildIndigenTheme(), home: const AppShell()),
+          child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            theme: buildIndigenTheme(),
+            home: const AppShell(),
+          ),
         ),
       );
       await tester.pump(const Duration(milliseconds: 500));
@@ -256,6 +282,9 @@ void main() {
             userRoleProvider.overrideWith((ref) async => role),
           ],
           child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+
             theme: buildIndigenTheme(),
             home: const ContributeScreen(),
           ),

@@ -16,7 +16,7 @@ const PHRASES: Phrase[] = [
     kasem: "Nia pe yogo",
     phonetic: "nee-ah peh yoh-goh",
     english: "Good morning / Peace be with you",
-    context: "Universal respectful morning greeting across Eastern & Western Kasena.",
+    context: "Universal respectful morning greeting across Eastern & Western Kassena.",
     category: "greetings",
   },
   {

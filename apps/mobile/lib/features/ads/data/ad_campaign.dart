@@ -45,7 +45,7 @@ enum AdPlacement {
 }
 
 /// What the advertiser is trying to get out of it. Kept short and concrete —
-/// three things a small Kasena business actually wants, not a taxonomy.
+/// three things a small Kassena business actually wants, not a taxonomy.
 enum AdObjective {
   awareness,
   visits,

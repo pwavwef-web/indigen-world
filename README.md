@@ -8,7 +8,7 @@ It delivers three user-facing products:
 2. **TribeStudio** — the creator, contributor, validator, campaign, analytics, and administration workspace.
 3. **Indigen World Mobile** — the Flutter app for everyday users to explore, learn, save, contribute, and earn rewards.
 
-A shared Firebase and provider-independent AI infrastructure supports the ecosystem. **Project Kasena is Indigen World’s flagship Kasem-language programme** and the first implementation of its reusable language-cell model.
+A shared Firebase and provider-independent AI infrastructure supports the ecosystem. **Project Kassena is Indigen World’s flagship Kasem-language programme** and the first implementation of its reusable language-cell model.
 
 ## Repository model
 
@@ -51,7 +51,7 @@ GitHub usernames for product leads should be added to `.github/CODEOWNERS` once 
 
 ## Architectural principles
 
-- **Kasem first, reusable by design.** Project Kasena proves the language-cell model before new language communities are added.
+- **Kasem first, reusable by design.** Project Kassena proves the language-cell model before new language communities are added.
 - **Community governance is infrastructure.** Every relevant record must preserve source, contributor, validation, dialect, consent, licence, and cultural-permission metadata.
 - **Firebase is the authority; DigitalOcean is a bounded extension.** Firebase Authentication, Firestore, Cloud Storage, Functions, Hosting, App Check, and Remote Config remain authoritative. A planned DigitalOcean API may host explicitly assigned HTTP, AI, media, webhook, and worker workloads under [ADR 0002](docs/decisions/0002-adopt-firebase-authority-with-digitalocean-api.md).
 - **AI remains provider-independent.** Apps call controlled backend services; model credentials and provider-specific logic must never live in clients.

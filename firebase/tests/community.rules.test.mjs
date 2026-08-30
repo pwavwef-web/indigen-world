@@ -45,6 +45,8 @@ function makeProfile(uid, username, overrides = {}) {
     location: '',
     dialect: '',
     isVerified: false,
+    verifiedKind: '',
+    phoneVerified: false,
     ...overrides,
   };
 }
@@ -163,6 +165,55 @@ test('malformed handles and self-granted verification are rejected', async () =>
   await assertFails(
     setDoc(doc(store, 'communityProfiles/handle-uid'), makeProfile('handle-uid', 'valid_one', { isVerified: true })),
   );
+});
+
+test('verification is granted, never claimed', async () => {
+  const newcomer = env.authenticatedContext('claimant-uid');
+  const store = db(newcomer);
+
+  // Not on the way in...
+  await assertFails(
+    setDoc(doc(store, 'communityProfiles/claimant-uid'), makeProfile('claimant-uid', 'claimant', { verifiedKind: 'elder' })),
+  );
+  await assertFails(
+    setDoc(doc(store, 'communityProfiles/claimant-uid'), makeProfile('claimant-uid', 'claimant', { phoneVerified: true })),
+  );
+  await assertSucceeds(
+    setDoc(doc(store, 'communityProfiles/claimant-uid'), makeProfile('claimant-uid', 'claimant')),
+  );
+});
+
+test('and cannot be given to yourself afterwards', async () => {
+  const amina = db(env.authenticatedContext(AMINA));
+
+  // The mark staff grant.
+  await assertFails(
+    setDoc(doc(amina, `communityProfiles/${AMINA}`), makeProfile(AMINA, 'amina_paga', { verifiedKind: 'project' })),
+  );
+  // The half the member is supposed to earn by answering an SMS. Only the
+  // verification callable may set it, and that runs with admin credentials.
+  await assertFails(
+    setDoc(doc(amina, `communityProfiles/${AMINA}`), makeProfile(AMINA, 'amina_paga', { phoneVerified: true })),
+  );
+  // Everything a member legitimately owns still moves.
+  await assertSucceeds(
+    setDoc(doc(amina, `communityProfiles/${AMINA}`), makeProfile(AMINA, 'amina_paga', { bio: 'Learning every day.' })),
+  );
+});
+
+test('the codes behind a verification belong to nobody', async () => {
+  const amina = db(env.authenticatedContext(AMINA));
+  const anon = db(env.unauthenticatedContext());
+
+  // A client that could read this could answer its own challenge; one that
+  // could write it could mark itself verified. Both callables bypass rules.
+  await assertFails(getDoc(doc(amina, `phoneVerifications/${AMINA}`)));
+  await assertFails(setDoc(doc(amina, `phoneVerifications/${AMINA}`), { codeHash: 'x' }));
+  await assertFails(getDoc(doc(anon, 'phoneVerifications/anybody')));
+  // And the record of which numbers are spoken for is not a lookup service for
+  // asking whether a given number is on the platform.
+  await assertFails(getDoc(doc(amina, 'verifiedPhones/somefingerprint')));
+  await assertFails(setDoc(doc(amina, 'verifiedPhones/somefingerprint'), { uid: AMINA }));
 });
 
 test('a handle cannot be taken twice', async () => {

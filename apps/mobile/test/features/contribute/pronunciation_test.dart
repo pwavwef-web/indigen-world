@@ -12,6 +12,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:indigen_world_mobile/features/collection/collection_data.dart';
 import 'package:indigen_world_mobile/features/contribute/contribute_screen.dart';
 import 'package:indigen_world_mobile/features/dictionary/entry_detail_screen.dart';
+import 'package:indigen_world_mobile/l10n/app_localizations.dart';
 
 void main() {
   group('the contribute form', () {
@@ -23,7 +24,11 @@ void main() {
 
       await tester.pumpWidget(
         const ProviderScope(
-          child: MaterialApp(home: ContributeScreen(standalone: true)),
+          child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: ContributeScreen(standalone: true),
+          ),
         ),
       );
       await tester.pump(const Duration(milliseconds: 400));
@@ -89,7 +94,12 @@ void main() {
     ) async {
       await tester.pumpWidget(
         const MaterialApp(
-          home: Scaffold(body: Center(child: PronunciationButton(audioUrl: ''))),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+
+          home: Scaffold(
+            body: Center(child: PronunciationButton(audioUrl: '')),
+          ),
         ),
       );
       await tester.pump();

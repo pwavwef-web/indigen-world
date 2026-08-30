@@ -6,6 +6,7 @@ import 'package:indigen_world_mobile/features/community/data/community_models.da
 import 'package:indigen_world_mobile/features/community/data/community_providers.dart';
 import 'package:indigen_world_mobile/features/community/data/community_repository.dart';
 import 'package:indigen_world_mobile/features/community/widgets/community_avatar.dart';
+import 'package:indigen_world_mobile/features/community/widgets/verified_badge.dart';
 import 'package:indigen_world_mobile/shared/glass_popup.dart';
 import 'package:indigen_world_mobile/shared/glass_surface.dart';
 
@@ -109,6 +110,7 @@ class ProfileTile extends StatelessWidget {
     leading: CommunityAvatar(
       initials: profile.initials,
       imageUrl: profile.avatarUrl,
+      username: profile.username,
       onTap: onTap,
     ),
     title: Row(
@@ -121,9 +123,9 @@ class ProfileTile extends StatelessWidget {
             style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14),
           ),
         ),
-        if (profile.isVerified) ...[
+        if (profile.mark != VerifiedMark.none) ...[
           const SizedBox(width: 4),
-          Icon(Icons.verified_rounded, size: 14, color: context.brand.success),
+          VerifiedBadge(mark: profile.mark, explainOnTap: false),
         ],
       ],
     ),

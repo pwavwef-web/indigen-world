@@ -87,10 +87,7 @@ void main() {
 
   group('AdCampaign payment state', () {
     test('reads the states the payment flow can leave behind', () {
-      expect(
-        _campaign(status: AdCampaignStatus.inReview).isPaid,
-        isTrue,
-      );
+      expect(_campaign(status: AdCampaignStatus.inReview).isPaid, isTrue);
       expect(
         _campaign(
           status: AdCampaignStatus.pendingPayment,

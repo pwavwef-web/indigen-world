@@ -14,7 +14,7 @@ import 'package:indigen_world_mobile/features/contribute/contribution_upload.dar
 import 'package:indigen_world_mobile/shared/glass_popup.dart';
 import 'package:indigen_world_mobile/shared/glass_surface.dart';
 
-/// The regions an advertiser can ask for. Kasena country first, then the rest
+/// The regions an advertiser can ask for. Kassena country first, then the rest
 /// of Ghana, then everyone — the order somebody here would actually think in.
 const _kRegions = [
   'Navrongo',

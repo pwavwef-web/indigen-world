@@ -1,6 +1,6 @@
-# Project Kasena: Kasem Language Cell
+# Project Kassena: Kasem Language Cell
 
-Project Kasena is Indigen World’s flagship Kasem-language programme and the first implementation of the reusable language-cell model.
+Project Kassena is Indigen World’s flagship Kasem-language programme and the first implementation of the reusable language-cell model.
 
 ## Scope
 

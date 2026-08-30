@@ -6,6 +6,7 @@ import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/features/community/data/community_models.dart';
 import 'package:indigen_world_mobile/features/community/data/community_providers.dart';
 import 'package:indigen_world_mobile/features/community/data/community_repository.dart';
+import 'package:indigen_world_mobile/features/community/widgets/kasem_name_panel.dart';
 import 'package:indigen_world_mobile/features/community/widgets/people_widgets.dart';
 
 /// One-time handle claim. A signed-in member needs a `communityProfiles` record
@@ -82,6 +83,16 @@ class _CommunitySetupScreenState extends ConsumerState<CommunitySetupScreen> {
     });
   }
 
+  /// Puts a chosen name in the handle field and checks it is free.
+  void _takeName(String ascii) {
+    _handleController.text = ascii;
+    _handleController.selection = TextSelection.collapsed(
+      offset: ascii.length,
+    );
+    setState(() {});
+    _scheduleHandleCheck(ascii);
+  }
+
   Future<void> _submit() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
     final repository = ref.read(communityRepositoryProvider);
@@ -124,6 +135,10 @@ class _CommunitySetupScreenState extends ConsumerState<CommunitySetupScreen> {
       body: Form(
         key: _formKey,
         child: ListView(
+          // Named so it keeps its place across a rebuild, and so a test can say
+          // which of the two scrollables on this screen it means — the panel's
+          // row of names is the other one.
+          key: const PageStorageKey('community-setup-scroll'),
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 40),
           children: [
             Text(
@@ -142,6 +157,14 @@ class _CommunitySetupScreenState extends ConsumerState<CommunitySetupScreen> {
               validator: (value) => (value ?? '').trim().isEmpty
                   ? 'Add the name the community will see.'
                   : null,
+            ),
+            const SizedBox(height: 16),
+            // Above the field, not below it: somebody who has already typed a
+            // handle is far less likely to change it than somebody who has not
+            // typed anything yet.
+            KasemNamePanel(
+              currentHandle: _handleController.text,
+              onPick: _takeName,
             ),
             const SizedBox(height: 16),
             TextFormField(
@@ -204,7 +227,7 @@ class _CommunitySetupScreenState extends ConsumerState<CommunitySetupScreen> {
               textCapitalization: TextCapitalization.sentences,
               decoration: const InputDecoration(
                 labelText: 'About you',
-                hintText: 'Your connection to Kasem and the Kasena community',
+                hintText: 'Your connection to Kasem and the Kassena community',
                 alignLabelWithHint: true,
               ),
             ),

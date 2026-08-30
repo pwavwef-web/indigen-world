@@ -16,6 +16,7 @@ import 'package:indigen_world_mobile/features/community/community_setup_screen.d
 import 'package:indigen_world_mobile/features/community/data/community_models.dart';
 import 'package:indigen_world_mobile/features/community/data/community_providers.dart';
 import 'package:indigen_world_mobile/features/community/saved_posts_screen.dart';
+import 'package:indigen_world_mobile/features/community/widgets/verified_badge.dart';
 import 'package:indigen_world_mobile/features/contribute/collection_contribution_repository.dart';
 import 'package:indigen_world_mobile/features/notifications/push_messaging.dart';
 import 'package:indigen_world_mobile/features/profile/my_contributions_screen.dart';
@@ -602,11 +603,8 @@ class _CommunityTab extends StatelessWidget {
                             ],
                           ),
                         ),
-                        if (profile.isVerified)
-                          Icon(
-                            Icons.verified_rounded,
-                            color: context.brand.success,
-                          ),
+                        if (profile.mark != VerifiedMark.none)
+                          VerifiedBadge(mark: profile.mark, size: 20),
                       ],
                     ),
                     if (profile.bio.trim().isNotEmpty) ...[

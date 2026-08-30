@@ -1,6 +1,6 @@
 # Indigen World Mobile
 
-Android-first Flutter client for everyday Indigen World users. Project Kasena is the first language cell; the code and public copy keep the wider product language-neutral.
+Android-first Flutter client for everyday Indigen World users. Project Kassena is the first language cell; the code and public copy keep the wider product language-neutral.
 
 ## Repository boundary
 

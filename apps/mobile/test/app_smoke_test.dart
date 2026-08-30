@@ -87,13 +87,14 @@ void main() {
     );
     await tester.pump(const Duration(milliseconds: 400));
 
-    expect(find.text('Speak your first words.'), findsOneWidget);
-    // The quest and the momentum summary are header buttons that open a card,
-    // not two full-width panels the first lesson has to be scrolled past.
-    expect(find.text("Today's quest"), findsOneWidget);
-    expect(find.text('Momentum'), findsOneWidget);
+    // Learn opens on the trail itself: a strip of numbers pinned to the top,
+    // and the first unit's banner stuck under it. The quest and the momentum
+    // summary live in that strip rather than in a lid the first lesson has to
+    // be scrolled past.
+    expect(find.text('UNIT 1'), findsOneWidget);
+    expect(find.text('0/3'), findsOneWidget);
 
-    await tester.tap(find.text("Today's quest"));
+    await tester.tap(find.text('0/3'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));
     expect(find.text('Complete 3 quick lessons'), findsOneWidget);
@@ -118,8 +119,18 @@ void main() {
     await tester.ensureVisible(find.text('Collect 15 XP'));
     await tester.pump();
     await tester.tap(find.text('Collect 15 XP'));
-    await tester.pump(const Duration(milliseconds: 400));
-    expect(find.text('15 XP'), findsOneWidget);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 600));
+
+    // A finished lesson gets a screen of its own rather than a snackbar
+    // sliding out of the bottom of a scrolling path.
+    expect(find.text('Perfect lesson!'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('lesson-complete-continue')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 600));
+
+    // And the XP it paid is on the strip at the top, where it stays.
+    expect(find.text('15'), findsWidgets);
 
     await tester.tap(
       find.descendant(
@@ -129,7 +140,7 @@ void main() {
     );
     await tester.pump(const Duration(milliseconds: 400));
 
-    expect(find.text('THE KASENA COLLECTION'), findsOneWidget);
+    expect(find.text('THE KASSENA COLLECTION'), findsOneWidget);
     expect(find.text('Music'), findsOneWidget);
     expect(find.text('Dictionary'), findsOneWidget);
     final collectionScroll = find.descendant(

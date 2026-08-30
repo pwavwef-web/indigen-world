@@ -318,7 +318,7 @@ export const submitCollectionContribution = onCall(
           id: COLLECTION_CAMPAIGN_ID,
           slug: COLLECTION_CAMPAIGN_ID,
           title: 'Community Collection contributions',
-          initiative: 'Project Kasena',
+          initiative: 'Project Kassena',
           description: 'Mobile contributions for Music, Dictionary, Literature, and Audiobooks.',
           brief: 'Community-supplied cultural knowledge reviewed before publication.',
           categories: [...COLLECTION_KINDS],

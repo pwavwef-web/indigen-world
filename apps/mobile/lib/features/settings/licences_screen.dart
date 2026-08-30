@@ -154,7 +154,7 @@ class LicencesScreen extends StatelessWidget {
               context: context,
               applicationName: 'Indigen World',
               applicationLegalese:
-                  '© Indigen World · Project Kasena. Community content remains '
+                  '© Indigen World · Project Kassena. Community content remains '
                   'the property of the communities that shared it.',
             ),
           ),

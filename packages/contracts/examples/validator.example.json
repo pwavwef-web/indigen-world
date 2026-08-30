@@ -5,7 +5,7 @@
   "credentials": [
     {
       "type": "elder",
-      "description": "Recognised Kasem-language elder for the Kasena community.",
+      "description": "Recognised Kasem-language elder for the Kassena community.",
       "verifiedBy": { "collection": "communities", "id": "kasena-community" }
     }
   ],

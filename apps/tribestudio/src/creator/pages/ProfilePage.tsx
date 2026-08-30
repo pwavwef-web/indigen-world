@@ -152,7 +152,7 @@ export function ProfilePage() {
   const profileCompletion = Math.round(
     (completionSignals.filter(Boolean).length / completionSignals.length) * 100,
   );
-  const previewMeta = [region, dialect].filter(Boolean).join(' · ') || 'Kasena community';
+  const previewMeta = [region, dialect].filter(Boolean).join(' · ') || 'Kassena community';
 
   return (
     <div className="page page--profile">

@@ -111,8 +111,8 @@ before(async () => {
   await env.withSecurityRulesDisabled(async (ctx) => {
     const db = ctx.firestore();
     await setDoc(doc(db, 'platformConfiguration/creators'), { id: 'creators', whatsappChannelUrl: 'https://example.com', lifecycle: life });
-    await setDoc(doc(db, 'campaigns/public-open'), { id: 'public-open', slug: 'public-open', title: 'Open', initiative: 'Project Kasena', status: 'WAITLIST_OPEN', visibility: 'public', lifecycle: life });
-    await setDoc(doc(db, 'campaigns/internal-draft'), { id: 'internal-draft', slug: 'internal-draft', title: 'Draft', initiative: 'Project Kasena', status: 'DRAFT', visibility: 'internal', lifecycle: life });
+    await setDoc(doc(db, 'campaigns/public-open'), { id: 'public-open', slug: 'public-open', title: 'Open', initiative: 'Project Kassena', status: 'WAITLIST_OPEN', visibility: 'public', lifecycle: life });
+    await setDoc(doc(db, 'campaigns/internal-draft'), { id: 'internal-draft', slug: 'internal-draft', title: 'Draft', initiative: 'Project Kassena', status: 'DRAFT', visibility: 'internal', lifecycle: life });
     await setDoc(doc(db, 'submissions/subA'), submissionDoc('creatorA', { id: 'subA', status: 'SUBMITTED' }));
     await setDoc(doc(db, 'submissions/subA-draft'), submissionDoc('creatorA', { id: 'subA-draft', status: 'DRAFT' }));
     await setDoc(doc(db, 'submissions/subB'), submissionDoc('creatorB', { id: 'subB', status: 'SUBMITTED' }));
@@ -122,7 +122,7 @@ before(async () => {
       status: 'approved',
       roles: ['creator'],
       assignedLanguages: ['xsm'],
-      assignedCommunities: ['Kasena'],
+      assignedCommunities: ['Kassena'],
       assignedCampaigns: ['kasem-creator-challenge'],
       permissions: ['profile:write', 'submission:write'],
       approvedAt: '2026-08-01T00:00:00Z',
@@ -180,7 +180,7 @@ test('the collection-contributions campaign is backend-owned while admins can ma
     id: 'collection-contributions',
     slug: 'collection-contributions',
     title: 'Collection contributions',
-    initiative: 'Project Kasena',
+    initiative: 'Project Kassena',
     status: 'OPEN',
     visibility: 'internal',
     lifecycle: life,
@@ -210,7 +210,7 @@ test('the collection-contributions campaign is backend-owned while admins can ma
     id: 'admin-managed',
     slug: 'admin-managed',
     title: 'Admin managed',
-    initiative: 'Project Kasena',
+    initiative: 'Project Kassena',
     status: 'DRAFT',
     visibility: 'internal',
     lifecycle: life,

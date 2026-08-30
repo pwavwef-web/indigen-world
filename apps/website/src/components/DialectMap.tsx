@@ -25,7 +25,7 @@ const REGIONS: DialectRegion[] = [
     greeting: "Nia pe yogo",
     greetingTranslation: "Good morning / Peace be with you",
     description:
-      "Core urban hub and major cultural center for Kasena tradition, research partnerships, and dialect documentation.",
+      "Core urban hub and major cultural center for Kassena tradition, research partnerships, and dialect documentation.",
     coordinates: { x: 48, y: 55 },
   },
   {

@@ -14,6 +14,7 @@ import 'package:indigen_world_mobile/features/community/community_profile_screen
 import 'package:indigen_world_mobile/features/community/data/community_models.dart';
 import 'package:indigen_world_mobile/features/community/data/community_providers.dart';
 import 'package:indigen_world_mobile/features/community/widgets/community_avatar.dart';
+import 'package:indigen_world_mobile/l10n/app_localizations.dart';
 
 const _profile = CommunityProfile(
   uid: 'member-1',
@@ -26,11 +27,13 @@ Future<void> _pumpProfile(WidgetTester tester) async {
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
-        communityProfileProvider(
-          _profile.uid,
-        ).overrideWith((ref) => Stream.value(_profile)),
+        communityProfileProvider(_profile.uid)
+            .overrideWith((ref) => Stream.value(_profile)),
       ],
       child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+
         theme: buildIndigenTheme(),
         home: const CommunityProfileScreen(uid: 'member-1'),
       ),

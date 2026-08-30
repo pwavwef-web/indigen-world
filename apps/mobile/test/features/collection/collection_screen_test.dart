@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:indigen_world_mobile/app/app_theme.dart';
 import 'package:indigen_world_mobile/features/collection/collection_screen.dart';
+import 'package:indigen_world_mobile/l10n/app_localizations.dart';
 
 void main() {
   testWidgets(
@@ -11,6 +12,9 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+
             theme: buildIndigenTheme(),
             home: const CollectionScreen(),
           ),
@@ -66,6 +70,9 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+
             theme: buildIndigenTheme(),
             builder: (context, child) => MediaQuery(
               data: MediaQuery.of(context)

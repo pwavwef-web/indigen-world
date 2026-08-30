@@ -12,6 +12,7 @@ import 'package:indigen_world_mobile/features/community/post_detail_screen.dart'
 import 'package:indigen_world_mobile/features/community/widgets/community_avatar.dart';
 import 'package:indigen_world_mobile/features/community/widgets/community_post_card.dart';
 import 'package:indigen_world_mobile/features/community/widgets/people_widgets.dart';
+import 'package:indigen_world_mobile/features/community/widgets/verified_badge.dart';
 
 /// A member's community profile: cover, identity, counts and their posts,
 /// replies, media and appreciated posts.
@@ -185,6 +186,7 @@ class _HeaderAvatar extends StatelessWidget {
         child: CommunityAvatar(
           initials: profile.initials,
           imageUrl: profile.avatarUrl,
+          username: profile.username,
           size: _kAvatarBox - 6,
         ),
       ),
@@ -313,13 +315,9 @@ class _ProfileHeader extends ConsumerWidget {
                         style: Theme.of(context).textTheme.headlineMedium,
                       ),
                     ),
-                    if (profile.isVerified) ...[
+                    if (profile.mark != VerifiedMark.none) ...[
                       const SizedBox(width: 6),
-                      Icon(
-                        Icons.verified_rounded,
-                        size: 18,
-                        color: context.brand.success,
-                      ),
+                      VerifiedBadge(mark: profile.mark, size: 18),
                     ],
                   ],
                 ),

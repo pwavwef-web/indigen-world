@@ -24,7 +24,7 @@ extension CollectionKindCopy on CollectionKind {
   };
 }
 
-/// Reads the legacy Project Kasena dictionary collection shown in Firebase.
+/// Reads the legacy Project Kassena dictionary collection shown in Firebase.
 ///
 /// Only explicitly published rows are requested. Sorting happens on-device so
 /// this remains a single-field query and does not require a composite index.
@@ -167,7 +167,7 @@ DictionaryEntry? dictionaryEntryFromData(String id, Map<String, dynamic> data) {
       'attribution',
       'source',
       'contributorName',
-    ], fallback: 'Project Kasena community dictionary'),
+    ], fallback: 'Project Kassena community dictionary'),
     isSynthetic: false,
   );
 }

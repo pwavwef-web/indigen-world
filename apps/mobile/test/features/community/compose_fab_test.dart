@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:indigen_world_mobile/app/app_theme.dart';
 import 'package:indigen_world_mobile/features/community/community_screen.dart';
+import 'package:indigen_world_mobile/l10n/app_localizations.dart';
 
 /// How far off its resting place the composer has slid.
 double _fabSlide(WidgetTester tester) => tester
@@ -43,6 +44,9 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+
           theme: buildIndigenTheme(),
           home: const CommunityScreen(),
         ),
@@ -57,18 +61,17 @@ void main() {
     expect(_fabSlide(tester), 0);
   });
 
-  testWidgets(
-    'reading on hides the composer, and turning back brings it out',
-    (tester) async {
-      await pumpCommunity(tester);
+  testWidgets('reading on hides the composer, and turning back brings it out', (
+    tester,
+  ) async {
+    await pumpCommunity(tester);
 
-      await scrollTo(tester, 240);
-      expect(_fabSlide(tester), greaterThan(0));
+    await scrollTo(tester, 240);
+    expect(_fabSlide(tester), greaterThan(0));
 
-      await scrollTo(tester, 120);
-      expect(_fabSlide(tester), 0);
-    },
-  );
+    await scrollTo(tester, 120);
+    expect(_fabSlide(tester), 0);
+  });
 
   testWidgets('a nudge too small to be a scroll is ignored', (tester) async {
     await pumpCommunity(tester);
@@ -82,9 +85,7 @@ void main() {
     expect(_fabSlide(tester), greaterThan(0));
   });
 
-  testWidgets('the top of the feed always offers the composer', (
-    tester,
-  ) async {
+  testWidgets('the top of the feed always offers the composer', (tester) async {
     await pumpCommunity(tester);
 
     await scrollTo(tester, 500);

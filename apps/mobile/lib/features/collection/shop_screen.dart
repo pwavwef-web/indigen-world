@@ -11,7 +11,7 @@ import 'package:indigen_world_mobile/features/collection/widgets/collection_card
 import 'package:indigen_world_mobile/shared/app_widgets.dart';
 import 'package:indigen_world_mobile/shared/glass_popup.dart';
 
-/// Collection → Shop: Kasena souvenirs, books, shea butter and craft.
+/// Collection → Shop: Kassena souvenirs, books, shea butter and craft.
 ///
 /// The shop takes no payment. A member picks what they want and sends a
 /// request; somebody from the project answers on the contact they left and

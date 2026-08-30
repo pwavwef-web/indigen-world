@@ -44,7 +44,7 @@ export function ConsoleHome() {
         <div className="analytics-grid">
           <div className="analytics-card">
             <h3>Submission Velocity</h3>
-            <p className="tiny muted">Weekly submissions across Project Kasena</p>
+            <p className="tiny muted">Weekly submissions across Project Kassena</p>
             <div className="mini-chart">
               <svg viewBox="0 0 200 60" className="sparkline-svg">
                 <polyline

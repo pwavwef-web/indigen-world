@@ -4,6 +4,7 @@ import 'package:indigen_world_mobile/features/community/widgets/video_cover.dart
 import 'package:indigen_world_mobile/features/explore/published_content.dart';
 import 'package:indigen_world_mobile/features/explore/reel_engagement.dart';
 import 'package:indigen_world_mobile/features/explore/reel_view.dart';
+import 'package:indigen_world_mobile/l10n/app_localizations.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
 void main() {
@@ -114,6 +115,9 @@ void main() {
     ) async {
       await tester.pumpWidget(
         const MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+
           home: SizedBox(
             width: 200,
             height: 200,
@@ -136,6 +140,9 @@ void main() {
     ) async {
       await tester.pumpWidget(
         const MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+
           home: SizedBox(
             width: 200,
             height: 200,

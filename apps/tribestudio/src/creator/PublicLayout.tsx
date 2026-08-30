@@ -39,7 +39,7 @@ export function PublicLayout({ children }: { children: ReactNode }) {
           <BrandMark />
           <span className="brand__text">
             <strong>Indigen World Creators</strong>
-            <small>Project Kasena · TribeStudio</small>
+            <small>Project Kassena · TribeStudio</small>
           </span>
         </Link>
         <nav className="public__nav" aria-label="Primary">
@@ -80,7 +80,7 @@ export function PublicLayout({ children }: { children: ReactNode }) {
           <Link to="/creators/guidelines">Guidelines</Link>
           <Link to="/creators/faq">FAQ</Link>
         </nav>
-        <p className="public__copy">© {new Date().getFullYear()} Indigen World · Project Kasena</p>
+        <p className="public__copy">© {new Date().getFullYear()} Indigen World · Project Kassena</p>
       </footer>
     </div>
   );

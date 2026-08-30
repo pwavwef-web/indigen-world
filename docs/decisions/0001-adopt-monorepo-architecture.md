@@ -24,7 +24,7 @@ Use one product-oriented monorepo with these primary areas:
 - `assets`
 - `docs`
 
-Project Kasena is implemented as the first language cell across the products and services, not as a separate top-level application.
+Project Kassena is implemented as the first language cell across the products and services, not as a separate top-level application.
 
 ## Consequences
 

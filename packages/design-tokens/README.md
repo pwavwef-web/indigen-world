@@ -24,7 +24,7 @@ The admin console and TribeStudio load this file, so the palette lives in one pl
 
 ## Brand architecture
 
-Indigen World is the primary ecosystem brand. TribeStudio and Project Kasena may have product or programme accents, but they must remain recognisably related to the umbrella system.
+Indigen World is the primary ecosystem brand. TribeStudio and Project Kassena may have product or programme accents, but they must remain recognisably related to the umbrella system.
 
 ## Accessibility
 

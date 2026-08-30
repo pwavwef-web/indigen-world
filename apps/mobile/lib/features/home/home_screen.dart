@@ -40,7 +40,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             child: BrandHeader(
               eyebrow: 'Indigen',
               title: 'Kasem, close at hand.',
-              subtitle: 'Project Kasena · your language cell starts here',
+              subtitle: 'Project Kassena · your language cell starts here',
               trailing: IconButton.filledTonal(
                 tooltip: 'Notifications',
                 onPressed: () => _showUnavailable(context),

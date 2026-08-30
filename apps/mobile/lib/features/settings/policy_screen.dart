@@ -111,7 +111,7 @@ const _termsSections = <_PolicySection>[
   _PolicySection(
     'Who this agreement is between',
     'These terms cover your use of the Indigen World mobile app, run by the '
-        'Indigen World project together with the Kasena communities whose '
+        'Indigen World project together with the Kassena communities whose '
         'language and culture the app carries.',
   ),
   _PolicySection(

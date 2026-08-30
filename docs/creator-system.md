@@ -1,7 +1,7 @@
 # Indigen World Founding Creators System
 
 The first layer of TribeStudio's permanent creator-management infrastructure. It
-currently backs the **Kasem Creator Challenge** under **Project Kasena**, but the
+currently backs the **Kasem Creator Challenge** under **Project Kassena**, but the
 data model, rules and functions are campaign- and language-agnostic and reusable
 for future Indigen World languages and communities.
 

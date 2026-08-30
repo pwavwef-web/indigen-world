@@ -11,7 +11,7 @@
     "initiative": {
       "type": "string",
       "minLength": 1,
-      "description": "Programme or initiative, e.g. 'Project Kasena'."
+      "description": "Programme or initiative, e.g. 'Project Kassena'."
     },
     "language": {
       "oneOf": [

@@ -9,7 +9,10 @@ import 'package:indigen_world_mobile/features/collection/collection_data.dart';
 import 'package:indigen_world_mobile/features/collection/collection_detail_screens.dart';
 import 'package:indigen_world_mobile/features/collection/shop_screen.dart';
 import 'package:indigen_world_mobile/features/collection/widgets/collection_card_surface.dart';
+import 'package:indigen_world_mobile/features/heroes/heroes_data.dart';
+import 'package:indigen_world_mobile/features/heroes/heroes_screen.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_fab.dart';
+import 'package:indigen_world_mobile/l10n/app_localizations.dart';
 import 'package:indigen_world_mobile/shared/app_widgets.dart';
 import 'package:indigen_world_mobile/shared/frosted_nav_bar.dart';
 import 'package:indigen_world_mobile/shared/glass_surface.dart';
@@ -23,34 +26,36 @@ class CollectionScreen extends ConsumerWidget {
     final music = ref.watch(musicCollectionProvider);
     final literature = ref.watch(literatureCollectionProvider);
     final audiobooks = ref.watch(audiobookCollectionProvider);
+    final l10n = AppLocalizations.of(context);
+    final heroes = ref.watch(kasemHeroesProvider);
     final apps = ref.watch(directoryAppsProvider);
     final shop = ref.watch(shopProductsProvider);
     final textScale = MediaQuery.textScalerOf(context).scale(1);
     final useSingleColumn = textScale > 1.1;
     final portals = <Widget>[
       _CollectionPortalCard(
-        label: CollectionKind.music.label,
+        label: l10n.collectionMusic,
         icon: Icons.graphic_eq_rounded,
         color: context.brand.terracotta,
         count: _count(music),
         onTap: () => _open(context, const MusicCollectionScreen()),
       ),
       _CollectionPortalCard(
-        label: CollectionKind.dictionary.label,
+        label: l10n.collectionDictionary,
         icon: Icons.translate_rounded,
         color: context.brand.accent,
         count: _count(dictionary),
         onTap: () => _open(context, const DictionaryCollectionScreen()),
       ),
       _CollectionPortalCard(
-        label: CollectionKind.literature.label,
+        label: l10n.collectionLiterature,
         icon: Icons.auto_stories_rounded,
         color: context.brand.success,
         count: _count(literature),
         onTap: () => _open(context, const LiteratureCollectionScreen()),
       ),
       _CollectionPortalCard(
-        label: CollectionKind.audiobooks.label,
+        label: l10n.collectionAudiobooks,
         icon: Icons.headphones_rounded,
         color: const Color(0xFF735C25),
         count: _count(audiobooks),
@@ -64,15 +69,24 @@ class CollectionScreen extends ConsumerWidget {
       // sends members out to software worth having, the other to things the
       // project makes and sells. Neither is contributed to, which is why
       // neither is a CollectionKind.
+      // The people, beside the work. An archive of a language that never says
+      // who spoke it is a dictionary rather than a heritage.
       _CollectionPortalCard(
-        label: 'Apps',
+        label: l10n.collectionHeroes,
+        icon: Icons.stars_rounded,
+        color: context.brand.gold,
+        count: _count(heroes),
+        onTap: () => _open(context, const HeroesCollectionScreen()),
+      ),
+      _CollectionPortalCard(
+        label: l10n.collectionApps,
         icon: Icons.apps_rounded,
         color: const Color(0xFF2F6F8F),
         count: _count(apps),
         onTap: () => _open(context, const AppsCollectionScreen()),
       ),
       _CollectionPortalCard(
-        label: 'Shop',
+        label: l10n.collectionShop,
         icon: Icons.storefront_rounded,
         color: const Color(0xFF8C3B2E),
         count: _count(shop),
@@ -100,6 +114,7 @@ class CollectionScreen extends ConsumerWidget {
                       music.isLoading ||
                       literature.isLoading ||
                       audiobooks.isLoading ||
+                      heroes.isLoading ||
                       apps.isLoading ||
                       shop.isLoading,
                   hasError:
@@ -107,6 +122,7 @@ class CollectionScreen extends ConsumerWidget {
                       music.hasError ||
                       literature.hasError ||
                       audiobooks.hasError ||
+                      heroes.hasError ||
                       apps.hasError ||
                       shop.hasError,
                 ),
@@ -171,13 +187,13 @@ class _CollectionHero extends StatelessWidget {
   const _CollectionHero();
 
   @override
-  Widget build(BuildContext context) => const Padding(
-    padding: EdgeInsets.only(top: 22),
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(top: 22),
     child: BrandHeader(
       // A shell tab, so the heading has to clear the floating profile orb.
       reserveTopRight: true,
-      eyebrow: 'The Kasena Collection',
-      title: 'Knowledge, kept alive.',
+      eyebrow: AppLocalizations.of(context).collectionEyebrow,
+      title: AppLocalizations.of(context).collectionTitle,
     ),
   );
 }

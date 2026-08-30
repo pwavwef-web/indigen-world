@@ -118,6 +118,27 @@ before(async () => {
       priceMinor: 4500,
       currency: 'GHS',
     });
+    await setDoc(doc(db, 'kasemHeroes/awe-atanga'), {
+      id: 'awe-atanga',
+      name: 'Awe Atanga',
+      field: 'Chief',
+      published: true,
+      order: 1,
+    });
+    await setDoc(doc(db, 'kasemHeroes/unpublished'), {
+      id: 'unpublished',
+      name: 'Still being written',
+      published: false,
+      order: 2,
+    });
+    await setDoc(doc(db, 'kasemNames/nyaaba'), {
+      id: 'nyaaba',
+      name: 'Nyaaba',
+      ascii: 'nyaaba',
+      kind: 'given',
+      published: true,
+      order: 1,
+    });
     await setDoc(doc(db, 'shopOrders/order-1'), makeOrder(LEARNER));
   });
 });
@@ -214,6 +235,36 @@ test('the app directory and shop are guest-readable, admin-written', async () =>
   await assertSucceeds(getDoc(doc(db(anon), 'shopProducts/shea-250')));
   await assertFails(setDoc(doc(db(learner), 'shopProducts/forged'), { name: 'Forged', published: true }));
   await assertSucceeds(setDoc(doc(db(admin), 'shopProducts/forged'), { name: 'Forged', published: true }));
+});
+
+test('the heroes and the names are guest-readable, admin-written', async () => {
+  const anon = env.unauthenticatedContext();
+  const learner = env.authenticatedContext(LEARNER);
+  const admin = env.authenticatedContext(ADMIN.sub, { role: ADMIN.role });
+
+  // Both are read by guests: Collection and the Learn card are open to
+  // somebody who has not signed in, and so is the ring on a byline.
+  await assertSucceeds(getDoc(doc(db(anon), 'kasemHeroes/awe-atanga')));
+  await assertSucceeds(getDoc(doc(db(anon), 'kasemNames/nyaaba')));
+
+  // An account somebody is still writing is not published yet.
+  await assertFails(getDoc(doc(db(anon), 'kasemHeroes/unpublished')));
+
+  // Nobody contributes here from the app. A claim about who somebody was is
+  // not something to crowd-source, and a name list anybody could add to is a
+  // ring anybody could award themselves.
+  await assertFails(
+    setDoc(doc(db(learner), 'kasemHeroes/forged'), { name: 'Me', published: true }),
+  );
+  await assertFails(
+    setDoc(doc(db(learner), 'kasemNames/forged'), { name: 'Me', ascii: 'me', published: true }),
+  );
+  await assertSucceeds(
+    setDoc(doc(db(admin), 'kasemHeroes/forged'), { name: 'Real', published: true }),
+  );
+  await assertSucceeds(
+    setDoc(doc(db(admin), 'kasemNames/awine'), { name: 'Awine', ascii: 'awine', published: true }),
+  );
 });
 
 // ── Orders ──────────────────────────────────────────────────────────────────

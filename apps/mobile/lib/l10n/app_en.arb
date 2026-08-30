@@ -1,4 +1,269 @@
 {
   "@@locale": "en",
-  "appTitle": "Indigen"
+  "appTitle": "Indigen",
+  "@appTitle": {
+    "description": "The app's name. Not translated — it is a brand."
+  },
+  "settingsPreferences": "PREFERENCES",
+  "@settingsPreferences": {
+    "description": "Section heading above the appearance, language and notification choices."
+  },
+  "settingsLanguage": "Language",
+  "@settingsLanguage": {
+    "description": "Settings row that opens the reading-language chooser."
+  },
+  "settingsLanguageMatchDevice": "Match my device",
+  "@settingsLanguageMatchDevice": {
+    "description": "The default language choice: whatever the phone is set to."
+  },
+  "settingsLanguageSubtitle": "The language the app reads in",
+  "@settingsLanguageSubtitle": {
+    "description": "Supporting line under the Language row when the device language is being followed."
+  },
+  "settingsAppearance": "Appearance",
+  "settingsAppearanceSystem": "Match device — light by day, dark by night",
+  "settingsAppearanceLight": "Light — warm paper and deep green",
+  "settingsAppearanceDark": "Dark — charcoal with a green undertone",
+  "settingsAutoplayTitle": "Play videos automatically",
+  "settingsAutoplayBody": "Clips in the community feed start themselves, silently. Off saves data on a metered connection — tap any clip to watch it.",
+  "navExplore": "Explore",
+  "navLearn": "Learn",
+  "navCommunity": "Community",
+  "navCollection": "Collection",
+  "navContribute": "Contribute",
+  "@navExplore": {
+    "description": "The five destinations in the bottom rail. Kept short — they sit under an icon in a 9.5px label."
+  },
+  "onboardingTitle": "Language lives\nwith people.",
+  "@onboardingTitle": {
+    "description": "The first line anybody reads. The line break is deliberate."
+  },
+  "onboardingBody": "Learn, search, and contribute through Project Kassena — the first language cell in Indigen World.",
+  "onboardingQuestion": "What brings you here?",
+  "onboardingHome": "Home community",
+  "onboardingHomeBody": "Stay close to language used around you.",
+  "onboardingDiaspora": "Diaspora",
+  "onboardingDiasporaBody": "Reconnect and practise from wherever you are.",
+  "onboardingVisitor": "Visitor or learner",
+  "onboardingVisitorBody": "Learn respectfully with context and attribution.",
+  "onboardingStart": "Start with Kasem",
+  "onboardingGuestNote": "Public dictionary and learning content work without sign-in. You can choose an account later.",
+  "communityTitle": "Community",
+  "communityMenu": "Community menu",
+  "communityMenuWaiting": "Community menu, items waiting",
+  "communityNotifications": "Notifications",
+  "communityNotificationsUnread": "Notifications, {count} unread",
+  "@communityNotificationsUnread": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "communityFindPeople": "Find people",
+  "communitySavedPosts": "Saved posts",
+  "communityNewPost": "New Kasem post",
+  "communityCompose": "Make a Kasem post",
+  "communityNewVoices": "New voices",
+  "communityNobodyNew": "Nobody new yet.",
+  "communityForYou": "For you",
+  "communityFollowing": "Following",
+  "communityNewPostsPill": "{count, plural, =1{1 new post} other{{count} new posts}}",
+  "@communityNewPostsPill": {
+    "description": "The pill at the top of the feed counting posts held back while somebody reads.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "communityNewPostsSemantics": "{count, plural, =1{1 new post, go to the top} other{{count} new posts, go to the top}}",
+  "@communityNewPostsSemantics": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "communityEmptyFollowing": "Nothing from the people you follow",
+  "communityEmptyFeed": "No posts yet",
+  "communityFirstPost": "Make the first post",
+  "communityBackendPending": "The community service is still starting up",
+  "communityFeedFailed": "The feed could not load",
+  "communityTryAgain": "Try again",
+  "learnDictionary": "Dictionary",
+  "learnStreakClaimed": "Streak, {days} days, claimed today",
+  "@learnStreakClaimed": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "learnDailySpark": "Daily spark, {days} day streak",
+  "@learnDailySpark": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "learnXpSemantics": "{xp} experience points",
+  "@learnXpSemantics": {
+    "placeholders": {
+      "xp": {
+        "type": "int"
+      }
+    }
+  },
+  "learnQuestSemantics": "Today’s quest, {done} of 3",
+  "@learnQuestSemantics": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      }
+    }
+  },
+  "learnSparkClaimed": "Daily spark claimed · +{xp} XP",
+  "@learnSparkClaimed": {
+    "placeholders": {
+      "xp": {
+        "type": "int"
+      }
+    }
+  },
+  "learnLockedAbove": "Finish the lesson above to unlock this one.",
+  "learnUnitNumber": "UNIT {order}",
+  "@learnUnitNumber": {
+    "placeholders": {
+      "order": {
+        "type": "int"
+      }
+    }
+  },
+  "learnWordOfTheDay": "WORD OF THE DAY",
+  "learnHeroOfTheWeek": "HERO OF THE WEEK",
+  "learnStart": "START",
+  "learnUnitComplete": "UNIT COMPLETE",
+  "learnUnitTrophy": "UNIT TROPHY",
+  "learnUnitCompleteSemantics": "{unit} complete",
+  "@learnUnitCompleteSemantics": {
+    "placeholders": {
+      "unit": {
+        "type": "String"
+      }
+    }
+  },
+  "learnUnitTrophySemantics": "Finish {unit} to open what is at the end of it",
+  "@learnUnitTrophySemantics": {
+    "placeholders": {
+      "unit": {
+        "type": "String"
+      }
+    }
+  },
+  "learnNodeSemantics": "Lesson {number} of {total}, {title}, {state}",
+  "@learnNodeSemantics": {
+    "placeholders": {
+      "number": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      },
+      "title": {
+        "type": "String"
+      },
+      "state": {
+        "type": "String"
+      }
+    }
+  },
+  "learnStateCompleted": "completed",
+  "learnStateReady": "ready",
+  "learnStateLocked": "locked",
+  "learnBubbleCompleted": "COMPLETED · LESSON {number} OF {total}",
+  "@learnBubbleCompleted": {
+    "placeholders": {
+      "number": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "learnBubbleLesson": "LESSON {number} OF {total}",
+  "@learnBubbleLesson": {
+    "placeholders": {
+      "number": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "learnBubbleLocked": "LOCKED",
+  "learnBubbleMinutes": "{minutes} min · {xp} XP",
+  "@learnBubbleMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      },
+      "xp": {
+        "type": "int"
+      }
+    }
+  },
+  "learnBubbleLockedBody": "Finish the lesson above to open this one.",
+  "learnBubblePractise": "PRACTISE AGAIN",
+  "learnBubbleStart": "START · +{xp} XP",
+  "@learnBubbleStart": {
+    "placeholders": {
+      "xp": {
+        "type": "int"
+      }
+    }
+  },
+  "learnQuestTitle": "Today’s quest",
+  "learnQuestSubtitle": "Complete 3 quick lessons",
+  "learnMomentumTitle": "Your momentum",
+  "learnMomentumUnpublished": "The path is still being published",
+  "learnMomentumProgress": "{done} of {total} lessons complete",
+  "@learnMomentumProgress": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "learnPerfectLesson": "Perfect lesson!",
+  "learnLessonComplete": "Lesson complete!",
+  "learnXpEarned": "XP EARNED",
+  "learnTotalXp": "TOTAL XP",
+  "learnAnswersRight": "ANSWERS RIGHT",
+  "learnStreakDayOne": "Day one of your streak.",
+  "learnStreakDays": "{days} days in a row.",
+  "@learnStreakDays": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "learnContinue": "CONTINUE",
+  "collectionEyebrow": "The Kassena Collection",
+  "collectionMusic": "Music",
+  "collectionDictionary": "Dictionary",
+  "collectionLiterature": "Literature",
+  "collectionAudiobooks": "Audiobooks",
+  "collectionVideo": "Video",
+  "collectionHeroes": "Heroes",
+  "collectionApps": "Apps",
+  "collectionShop": "Shop",
+  "collectionTitle": "Knowledge, kept alive."
 }

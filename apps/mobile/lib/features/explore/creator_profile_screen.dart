@@ -3,9 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/features/community/community_profile_screen.dart';
+import 'package:indigen_world_mobile/features/community/data/community_models.dart';
 import 'package:indigen_world_mobile/features/community/data/community_providers.dart';
 import 'package:indigen_world_mobile/features/community/widgets/community_avatar.dart';
 import 'package:indigen_world_mobile/features/community/widgets/people_widgets.dart';
+import 'package:indigen_world_mobile/features/community/widgets/verified_badge.dart';
 import 'package:indigen_world_mobile/features/community/widgets/video_cover.dart';
 import 'package:indigen_world_mobile/features/explore/published_content.dart';
 import 'package:indigen_world_mobile/features/explore/reel_view.dart';
@@ -84,13 +86,10 @@ class CreatorProfileScreen extends ConsumerWidget {
                             ),
                           ),
                         ),
-                        if (member?.isVerified ?? false) ...[
+                        if (member != null &&
+                            member.mark != VerifiedMark.none) ...[
                           const SizedBox(width: 5),
-                          Icon(
-                            Icons.verified_rounded,
-                            size: 17,
-                            color: context.brand.success,
-                          ),
+                          VerifiedBadge(mark: member.mark, size: 17),
                         ],
                       ],
                     ),

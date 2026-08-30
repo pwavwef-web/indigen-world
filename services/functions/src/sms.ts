@@ -54,6 +54,39 @@ export function normalizeGhanaPhone(raw: string): string {
   return /^233\d{9}$/.test(digits) ? digits : '';
 }
 
+/**
+ * Normalise to bare E.164 digits for **any** country, not just Ghana.
+ *
+ * `normalizeGhanaPhone` exists for the notification paths, where every
+ * recipient is a Ghanaian creator or reviewer and a bare `0244…` is what people
+ * actually type. Phone verification cannot assume that: a large part of who
+ * this is for lives in Burkina Faso and across a francophone diaspora, and
+ * rejecting `+33…` would lock out exactly the members the French translation
+ * was written for.
+ *
+ * No number-plan library is pulled in for this. Instead the rule is stated
+ * plainly and the caller is told when it is not met: a local `0…` shorthand is
+ * only understood for [defaultCountry], and anything else must carry its own
+ * country code as `+CC` or `00CC`. Returns `''` when the value cannot be turned
+ * into a plausible MSISDN.
+ */
+export function normalizeMsisdn(raw: string, defaultCountry = '233'): string {
+  let digits = String(raw).replace(/[^\d+]/g, '');
+  if (digits.startsWith('+')) digits = digits.slice(1);
+  else if (digits.startsWith('00')) digits = digits.slice(2);
+  else if (digits.startsWith('0')) digits = `${defaultCountry}${digits.slice(1)}`;
+  else if (!digits.startsWith(defaultCountry)) {
+    // Bare digits with no trunk prefix and no country code. Only the default
+    // country's national length is guessed at; everything else is refused
+    // rather than silently sent to the wrong country.
+    if (digits.length === 9) digits = `${defaultCountry}${digits}`;
+    else return '';
+  }
+  // E.164 allows at most 15 digits, and nothing shorter than 8 is a mobile
+  // number anywhere.
+  return /^\d{8,15}$/.test(digits) ? digits : '';
+}
+
 export interface SmsResult {
   ok: boolean;
   id?: string;
@@ -64,6 +97,20 @@ export interface SmsResult {
 export async function sendSms(input: { to: string; message: string }): Promise<SmsResult> {
   const recipient = normalizeGhanaPhone(input.to);
   if (!recipient) return { ok: false, error: 'invalid-recipient' };
+  return sendSmsToMsisdn(recipient, input.message);
+}
+
+/**
+ * Send to a number that has already been normalised, wherever it is.
+ *
+ * Split out of [sendSms] so phone verification can reach a Burkinabè or French
+ * number without [sendSms]'s Ghana-only normalisation refusing it first.
+ * Delivery outside Ghana depends on Arkesel's international routing and costs
+ * more per message — worth confirming with them before this is switched on for
+ * a new country.
+ */
+export async function sendSmsToMsisdn(recipient: string, message: string): Promise<SmsResult> {
+  if (!recipient) return { ok: false, error: 'invalid-recipient' };
   if (!isSmsConfigured()) {
     logger.info('SMS skipped: Arkesel is not configured');
     return { ok: false, error: 'not-configured' };
@@ -72,7 +119,7 @@ export async function sendSms(input: { to: string; message: string }): Promise<S
     const response = await fetch(`${BASE_URL}/api/v2/sms/send`, {
       method: 'POST',
       headers: { 'api-key': apiKey(), 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sender: sender(), message: input.message, recipients: [recipient] }),
+      body: JSON.stringify({ sender: sender(), message, recipients: [recipient] }),
     });
     const payload = (await response.json().catch(() => ({}))) as {
       status?: string;

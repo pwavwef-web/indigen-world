@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Extract the legacy Project Kasena DOCX review pack for archival comparison.
+"""Extract the legacy Project Kassena DOCX review pack for archival comparison.
 
 The canonical 1,000+ entry import is built by
 ``extract-kassena-pdf-dictionary.py``. This legacy extractor writes a separate
@@ -158,21 +158,21 @@ def display_pos(pos: str) -> str:
 
 def dialect_from_variety(variety: str, source: str) -> str:
     if "Internal Ghana" in variety:
-        return "Ghana / Project Kasena"
+        return "Ghana / Project Kassena"
     if "Project" in variety:
-        return "Project Kasena example"
+        return "Project Kassena example"
     if "animal" in variety.lower():
         return "Tiébélé / Burkina animal list"
     if "Tiébélé" in variety or "BF/" in variety:
         return "Tiébélé / Burkina reference"
     if source.startswith("PK-"):
-        return "Project Kasena"
+        return "Project Kassena"
     return variety or "Kasem"
 
 
 def orthography_profile(variety: str) -> str:
     if "Internal Ghana" in variety or "Project" in variety:
-        return "Ghana / Project Kasena draft"
+        return "Ghana / Project Kassena draft"
     if "Tiébélé" in variety or "BF/" in variety:
         return "Burkina / Tiébélé reference"
     return "Unknown"

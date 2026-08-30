@@ -4,6 +4,7 @@ import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/app/indigen_world_app.dart';
+import 'package:indigen_world_mobile/core/app_locale.dart';
 import 'package:indigen_world_mobile/core/app_signature.dart';
 import 'package:indigen_world_mobile/core/firebase_bootstrap.dart';
 import 'package:indigen_world_mobile/core/firebase_ready.dart';
@@ -28,8 +29,11 @@ Future<void> main() async {
   await recordRatingActivity();
 
   // Read before the first frame. Resolving the appearance choice afterwards
-  // would show every member who chose dark a white flash on the way to it.
+  // would show every member who chose dark a white flash on the way to it, and
+  // resolving the reading language afterwards would show a French member an
+  // English screen on the way to their own.
   final themeMode = await readStoredThemeMode();
+  final locale = await readStoredLocale();
 
   final firebaseReady = await FirebaseBootstrap.initialize();
   if (firebaseReady) {
@@ -52,6 +56,7 @@ Future<void> main() async {
         themeModeProvider.overrideWith(
           () => _StoredThemeModeController(themeMode),
         ),
+        localeProvider.overrideWith(() => _StoredLocaleController(locale)),
       ],
       child: const IndigenWorldApp(),
     ),
@@ -66,4 +71,15 @@ class _StoredThemeModeController extends ThemeModeController {
 
   @override
   ThemeMode build() => _initial;
+}
+
+/// The same, for the reading language. `null` means the device decides, which
+/// is what almost every member will be on.
+class _StoredLocaleController extends LocaleController {
+  _StoredLocaleController(this._initial);
+
+  final Locale? _initial;
+
+  @override
+  Locale? build() => _initial;
 }

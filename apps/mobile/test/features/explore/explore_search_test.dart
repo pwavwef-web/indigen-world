@@ -45,10 +45,9 @@ void main() {
     });
 
     test('matches across the title, the creator and the caption', () {
-      expect(
-        searchReels([drumming, weaving], 'drum').map((reel) => reel.id),
-        ['a'],
-      );
+      expect(searchReels([drumming, weaving], 'drum').map((reel) => reel.id), [
+        'a',
+      ]);
       expect(
         searchReels([drumming, weaving], 'heritage').map((reel) => reel.id),
         ['b'],
@@ -69,19 +68,19 @@ void main() {
     test('a title match outranks one buried in the caption', () {
       final titled = _reel(id: 'titled', title: 'Kasem songs');
       final captioned = _reel(id: 'captioned', caption: 'sung in Kasem');
-      expect(
-        searchReels([captioned, titled], 'kasem').map((reel) => reel.id),
-        ['titled', 'captioned'],
-      );
+      expect(searchReels([captioned, titled], 'kasem').map((reel) => reel.id), [
+        'titled',
+        'captioned',
+      ]);
     });
 
     test('a live reel outranks the curated preview on an equal match', () {
       final live = _reel(id: 'live', title: 'Kasem songs');
       final preview = _reel(id: 'preview', title: 'Kasem songs', isLive: false);
-      expect(
-        searchReels([preview, live], 'kasem').map((reel) => reel.id),
-        ['live', 'preview'],
-      );
+      expect(searchReels([preview, live], 'kasem').map((reel) => reel.id), [
+        'live',
+        'preview',
+      ]);
     });
   });
 

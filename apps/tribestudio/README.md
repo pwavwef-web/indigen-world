@@ -58,6 +58,6 @@ full site/domain map.
 firebase deploy --only hosting:tribestudio
 ```
 
-## Project Kasena
+## Project Kassena
 
-The first language cell in TribeStudio is Kasem through Project Kasena. Its dictionary, sentence, dialect, contribution and validator workflows should be implemented as a reusable language-cell pattern rather than hard-coded as the whole platform.
+The first language cell in TribeStudio is Kasem through Project Kassena. Its dictionary, sentence, dialect, contribution and validator workflows should be implemented as a reusable language-cell pattern rather than hard-coded as the whole platform.

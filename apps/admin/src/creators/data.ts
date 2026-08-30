@@ -154,6 +154,93 @@ export async function fetchCreatorMemberships(): Promise<CreatorMembership[]> {
 }
 
 // ---------------------------------------------------------------------------
+// Community members and their verification
+// ---------------------------------------------------------------------------
+
+/**
+ * The kinds staff can grant. `member` is not here on purpose: it is what a
+ * verified phone number earns, and nobody hands it out.
+ */
+export const VERIFIED_KINDS = ['', 'creator', 'elder', 'project'] as const;
+export type VerifiedKind = (typeof VERIFIED_KINDS)[number];
+
+export const VERIFIED_KIND_LABELS: Record<VerifiedKind, string> = {
+  '': 'No mark',
+  creator: 'Published creator',
+  elder: 'Language custodian',
+  project: 'Project account',
+};
+
+export interface CommunityMemberRow {
+  uid: string;
+  username: string;
+  displayName: string;
+  verifiedKind: VerifiedKind;
+  phoneVerified: boolean;
+}
+
+function asVerifiedKind(value: unknown): VerifiedKind {
+  return (VERIFIED_KINDS as readonly string[]).includes(String(value))
+    ? (value as VerifiedKind)
+    : '';
+}
+
+/**
+ * Community profiles, newest first, optionally narrowed by handle.
+ *
+ * The search is an exact handle match rather than a prefix scan: handles are
+ * unique and staff granting a badge already know whose it is, so the useful
+ * query is "show me this person" and not "show me everyone starting with a".
+ */
+export async function fetchCommunityMembers(handle?: string): Promise<CommunityMemberRow[]> {
+  const trimmed = (handle ?? '').trim().toLowerCase().replace(/^@/, '');
+  const base = collection(db, 'communityProfiles');
+  const snap = await getDocs(
+    trimmed
+      ? query(base, where('username', '==', trimmed), limit(20))
+      : query(base, orderBy('createdAt', 'desc'), limit(100)),
+  );
+  return snap.docs.map((d) => {
+    const data = d.data() as Record<string, unknown>;
+    return {
+      uid: d.id,
+      username: String(data.username ?? d.id),
+      displayName: String(data.displayName ?? 'Community member'),
+      // A profile written before verification had kinds carries only the old
+      // boolean, and nothing in the app could ever set it — so one that is true
+      // was marked by hand, which means the project.
+      verifiedKind: data.verifiedKind === undefined && data.isVerified === true
+        ? 'project'
+        : asVerifiedKind(data.verifiedKind),
+      phoneVerified: data.phoneVerified === true,
+    };
+  });
+}
+
+/**
+ * Grants or clears a member's mark.
+ *
+ * The rules already allow an admin to write `communityProfiles`, so this needs
+ * no callable — but it does need an audit entry, because handing somebody the
+ * standing of a language custodian is exactly the kind of decision that should
+ * be answerable later.
+ */
+export async function setMemberVerifiedKind(
+  uid: string,
+  kind: VerifiedKind,
+  actorUid: string,
+): Promise<void> {
+  await updateDoc(doc(db, 'communityProfiles', uid), { verifiedKind: kind });
+  await addDoc(collection(db, 'auditLogs'), {
+    action: 'community.verifiedKind',
+    actorUid,
+    targetUid: uid,
+    detail: kind || 'cleared',
+    createdAt: new Date().toISOString(),
+  });
+}
+
+// ---------------------------------------------------------------------------
 // Campaigns
 // ---------------------------------------------------------------------------
 

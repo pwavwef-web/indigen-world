@@ -149,13 +149,23 @@ const _entries = <_GuideEntry>[
         'either way.',
   ),
   _GuideEntry(
-    keywords: ['kasena', 'kasem', 'who are', 'culture', 'people', 'paga'],
+    // Both spellings stay in the list. These match what somebody *types*, and
+    // the single-s form is what they will have seen everywhere else for years.
+    keywords: [
+      'kassena',
+      'kasena',
+      'kasem',
+      'who are',
+      'culture',
+      'people',
+      'paga',
+    ],
     answer:
-        'The Kasena and Kasem\n'
+        'The Kassena and Kasem\n'
         '\n'
-        'Kasem is the language of the Kasena people of the Upper East Region of '
+        'Kasem is the language of the Kassena people of the Upper East Region of '
         'Ghana and southern Burkina Faso — Navrongo, Paga, Chiana and the towns '
-        'around them. Project Kasena is the first language cell in Indigen '
+        'around them. Project Kassena is the first language cell in Indigen '
         'World, which is why this app starts here.\n'
         '\n'
         'For anything specific in the language, I would rather point you at a '
@@ -221,12 +231,12 @@ const _translationRefusal =
     'it. That is exactly how this grows.';
 
 const _capabilities =
-    'I am Kawuri — your guide through Indigen World and Kasena culture.\n'
+    'I am Kawuri — your guide through Indigen World and Kassena culture.\n'
     '\n'
     'Right now I can help with:\n'
     '• Contributing a word well, and recording elders respectfully\n'
     '• How Community, Explore, Learn and your Collection work\n'
     '• Getting the app connected again when it will not\n'
-    '• Who the Kasena are and where Kasem is spoken\n'
+    '• Who the Kassena are and where Kasem is spoken\n'
     '\n'
     'Ask me any of those, or reconnect and ask me anything at all.';

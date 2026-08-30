@@ -1,8 +1,10 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:indigen_world_mobile/app/app_theme.dart';
 import 'package:indigen_world_mobile/features/community/widgets/post_text.dart';
+import 'package:indigen_world_mobile/l10n/app_localizations.dart';
 
 void main() {
   group('mentionPattern', () {
@@ -36,12 +38,17 @@ void main() {
   group('PostText', () {
     testWidgets('renders the whole body, mentions included', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
-          theme: buildIndigenTheme(),
-          home: const Scaffold(
-            body: PostText(
-              text: 'De zaanem @nyaaba, ko gara.',
-              onOpenHandle: null,
+        ProviderScope(
+          child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+
+            theme: buildIndigenTheme(),
+            home: const Scaffold(
+              body: PostText(
+                text: 'De zaanem @nyaaba, ko gara.',
+                onOpenHandle: null,
+              ),
             ),
           ),
         ),
@@ -57,12 +64,17 @@ void main() {
     ) async {
       final tapped = <String>[];
       await tester.pumpWidget(
-        MaterialApp(
-          theme: buildIndigenTheme(),
-          home: Scaffold(
-            body: PostText(
-              text: 'Ask @Nyaaba about it',
-              onOpenHandle: tapped.add,
+        ProviderScope(
+          child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+
+            theme: buildIndigenTheme(),
+            home: Scaffold(
+              body: PostText(
+                text: 'Ask @Nyaaba about it',
+                onOpenHandle: tapped.add,
+              ),
             ),
           ),
         ),
@@ -90,10 +102,15 @@ void main() {
       tester,
     ) async {
       await tester.pumpWidget(
-        MaterialApp(
-          theme: buildIndigenTheme(),
-          home: const Scaffold(
-            body: PostText(text: 'Ko gara.', onOpenHandle: null),
+        ProviderScope(
+          child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+
+            theme: buildIndigenTheme(),
+            home: const Scaffold(
+              body: PostText(text: 'Ko gara.', onOpenHandle: null),
+            ),
           ),
         ),
       );
@@ -110,13 +127,18 @@ void main() {
     ) async {
       final opened = <String>[];
       await tester.pumpWidget(
-        MaterialApp(
-          theme: buildIndigenTheme(),
-          home: Scaffold(
-            body: PostText(
-              text: 'Read https://indigenworld.com/learn, then return.',
-              onOpenHandle: null,
-              onOpenLink: opened.add,
+        ProviderScope(
+          child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+
+            theme: buildIndigenTheme(),
+            home: Scaffold(
+              body: PostText(
+                text: 'Read https://indigenworld.com/learn, then return.',
+                onOpenHandle: null,
+                onOpenLink: opened.add,
+              ),
             ),
           ),
         ),

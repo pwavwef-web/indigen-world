@@ -143,19 +143,19 @@ const kawuriPrompts = <KawuriPrompt>[
     glyph: '✣',
     label: 'Greetings',
     prompt:
-        'Teach me how greetings work in Kasena culture — who greets first, '
+        'Teach me how greetings work in Kassena culture — who greets first, '
         'and what a respectful exchange looks like.',
   ),
   KawuriPrompt(
     glyph: '▥',
     label: 'Festivals',
-    prompt: 'Tell me about the Fao festival and what it means to the Kasena.',
+    prompt: 'Tell me about the Fao festival and what it means to the Kassena.',
   ),
   KawuriPrompt(
     glyph: '◒',
     label: 'Compound houses',
     prompt:
-        'Explain the painted Kasena compound houses of Sirigu and Paga — how '
+        'Explain the painted Kassena compound houses of Sirigu and Paga — how '
         'they are built and what the patterns mean.',
   ),
   KawuriPrompt(
@@ -174,7 +174,7 @@ const kawuriPrompts = <KawuriPrompt>[
     glyph: '◆',
     label: 'Proverbs',
     prompt:
-        'What role do proverbs play in Kasena storytelling, and how are they '
+        'What role do proverbs play in Kassena storytelling, and how are they '
         'used in everyday speech?',
   ),
 ];

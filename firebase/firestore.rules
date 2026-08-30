@@ -296,7 +296,7 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // Legacy Project Kasena dictionary used by the mobile Collection. The app
+    // Legacy Project Kassena dictionary used by the mobile Collection. The app
     // deliberately queries `isPublished == true`, so drafts and approved-but-
     // not-yet-published rows remain private to staff.
     match /dictionaryEntries/{entryId} {
@@ -693,13 +693,23 @@ service cloud.firestore {
         && validCommunityText(request.resource.data.get('bio', ''), 300)
         && validCommunityText(request.resource.data.get('location', ''), 80)
         && validCommunityText(request.resource.data.get('dialect', ''), 80)
-        && request.resource.data.get('isVerified', false) == false;
-      // Handle, uid and verification are frozen after creation.
+        && request.resource.data.get('isVerified', false) == false
+        // Verification is granted, never claimed. A new profile arrives with
+        // no kind and no phone behind it.
+        && request.resource.data.get('verifiedKind', '') == ''
+        && request.resource.data.get('phoneVerified', false) == false;
+      // Handle, uid and verification are frozen after creation. The kind is
+      // staff's to give; the phone flag is the verification callable's to set,
+      // and it runs with admin credentials — so neither can move on a write the
+      // member makes about themselves.
       allow update: if isAdmin() || (
         isOwner(uid)
         && request.resource.data.uid == resource.data.uid
         && request.resource.data.username == resource.data.username
         && request.resource.data.get('isVerified', false) == resource.data.get('isVerified', false)
+        && request.resource.data.get('verifiedKind', '') == resource.data.get('verifiedKind', '')
+        && request.resource.data.get('phoneVerified', false) == resource.data.get('phoneVerified', false)
+        && request.resource.data.get('phoneVerifiedAt', null) == resource.data.get('phoneVerifiedAt', null)
         && validCommunityText(request.resource.data.displayName, 80)
         && request.resource.data.displayName.size() > 0
         && validCommunityText(request.resource.data.get('bio', ''), 300)
@@ -707,6 +717,28 @@ service cloud.firestore {
         && validCommunityText(request.resource.data.get('dialect', ''), 80)
       );
       allow delete: if isAdmin();
+    }
+
+    // ---- Phone verification challenges: nobody's but the server's ----------
+    //
+    // Holds a salted hash of the six-digit code and of the number it was sent
+    // to. A client that could read this document could answer its own
+    // challenge, and a client that could write one could mark itself verified —
+    // so no client does either. Both callables run with admin credentials and
+    // bypass these rules entirely.
+    match /phoneVerifications/{uid} {
+      allow read, write: if false;
+    }
+
+    // ---- Which numbers are already spoken for --------------------------------
+    //
+    // One document per verified number, keyed by a one-way fingerprint of it and
+    // holding nothing but the uid that answered first. It is what stops one
+    // phone verifying two accounts. Closed to clients for the same reason as the
+    // challenges: a readable list of fingerprints is a way to ask whether a
+    // given number is on the platform.
+    match /verifiedPhones/{fingerprint} {
+      allow read, write: if false;
     }
 
     match /communityUsernames/{username} {
@@ -1156,6 +1188,27 @@ service cloud.firestore {
     // Kasem apps, scripture apps and the other Indigen World releases, each a
     // link out to a store. Guest-readable because Collection is.
     match /collectionApps/{appId} {
+      allow read: if resource.data.get('published', false) == true || isStaff();
+      allow write: if isAdmin();
+    }
+
+    // ---- Kassena heroes: who the language belongs to -------------------------
+    //
+    // Admin-curated like the Apps and Shop directories beside it in Collection.
+    // Nobody contributes here from the app: a claim about who somebody was is
+    // not something to crowd-source in a feed, and the project answers for
+    // every word of it.
+    match /kasemHeroes/{heroId} {
+      allow read: if resource.data.get('published', false) == true || isStaff();
+      allow write: if isAdmin();
+    }
+
+    // ---- Kassena names: the list a handle can earn its ring from -------------
+    //
+    // Curated by the project rather than derived from the dictionary: a
+    // dictionary headword is a common noun, and taking one as a handle is not
+    // the same act as carrying a name your grandmother would recognise.
+    match /kasemNames/{nameId} {
       allow read: if resource.data.get('published', false) == true || isStaff();
       allow write: if isAdmin();
     }

@@ -12,6 +12,7 @@ import 'package:indigen_world_mobile/features/explore/explore_screen.dart';
 import 'package:indigen_world_mobile/features/learn/learn_screen.dart';
 import 'package:indigen_world_mobile/features/notifications/data/notification_providers.dart';
 import 'package:indigen_world_mobile/features/notifications/push_messaging.dart';
+import 'package:indigen_world_mobile/l10n/app_localizations.dart';
 import 'package:indigen_world_mobile/shared/connection_banner.dart';
 import 'package:indigen_world_mobile/shared/frosted_nav_bar.dart';
 import 'package:indigen_world_mobile/shared/profile_orb.dart';
@@ -23,6 +24,12 @@ import 'package:indigen_world_mobile/shared/profile_orb.dart';
 /// around it: consume on the left (Explore, Learn), keep and give on the right
 /// (Collection, Contribute).
 const int kCommunityTabIndex = 2;
+
+/// Index of the Learn destination.
+///
+/// Public for the same reason Community's is: a screen that answers a second
+/// tap on its own rail entry has to be able to tell which entry that was.
+const int kLearnTabIndex = 1;
 
 class AppShell extends ConsumerStatefulWidget {
   const AppShell({super.key, this.initialIndex = kCommunityTabIndex});
@@ -50,7 +57,6 @@ class _AppShellState extends ConsumerState<AppShell>
   /// the app everybody shares. It is reached from Contribute now, which is
   /// where the work it reviews comes from.
   static const _exploreIndex = 0;
-  static const _learnIndex = 1;
   static const _collectionIndex = 3;
   static const _contributeIndex = 4;
   static const _destinationCount = 5;
@@ -94,7 +100,14 @@ class _AppShellState extends ConsumerState<AppShell>
   }
 
   void _selectDestination(int index) {
-    if (index == _selectedIndex) return;
+    if (index == _selectedIndex) {
+      // Already here. Every feed in the app reads this as "take me back to the
+      // top", which is the one thing a rail can be asked twice for.
+      ref.read(tabReselectProvider.notifier).fire(index);
+      ref.read(shellChromeVisibilityProvider.notifier).reveal();
+      HapticFeedback.selectionClick();
+      return;
+    }
     // A rail one screen's scroll pushed away must not follow the member into
     // the next tab, where nothing they do would ever bring it back.
     ref.read(shellChromeVisibilityProvider.notifier).reveal();
@@ -125,7 +138,7 @@ class _AppShellState extends ConsumerState<AppShell>
     if (!_visited.contains(index)) return const SizedBox.shrink();
     return switch (index) {
       _exploreIndex => ExploreScreen(isActive: _selectedIndex == index),
-      _learnIndex => const LearnScreen(),
+      kLearnTabIndex => const LearnScreen(),
       kCommunityTabIndex => const CommunityScreen(),
       _collectionIndex => const CollectionScreen(),
       _contributeIndex => const ContributeScreen(reserveTopRight: true),
@@ -156,32 +169,33 @@ class _AppShellState extends ConsumerState<AppShell>
     final unread =
         ref.watch(unreadNotificationCountProvider).asData?.value ?? 0;
 
+    final l10n = AppLocalizations.of(context);
     final destinations = <FrostedNavBarItem>[
-      const FrostedNavBarItem(
+      FrostedNavBarItem(
         icon: Icons.play_circle_outline_rounded,
         selectedIcon: Icons.play_circle_fill_rounded,
-        label: 'Explore',
+        label: l10n.navExplore,
       ),
-      const FrostedNavBarItem(
+      FrostedNavBarItem(
         icon: Icons.school_outlined,
         selectedIcon: Icons.school_rounded,
-        label: 'Learn',
+        label: l10n.navLearn,
       ),
       FrostedNavBarItem(
         icon: Icons.forum_outlined,
         selectedIcon: Icons.forum_rounded,
-        label: 'Community',
+        label: l10n.navCommunity,
         badgeCount: unread,
       ),
-      const FrostedNavBarItem(
+      FrostedNavBarItem(
         icon: Icons.collections_bookmark_outlined,
         selectedIcon: Icons.collections_bookmark_rounded,
-        label: 'Collection',
+        label: l10n.navCollection,
       ),
-      const FrostedNavBarItem(
+      FrostedNavBarItem(
         icon: Icons.add_circle_outline_rounded,
         selectedIcon: Icons.add_circle_rounded,
-        label: 'Contribute',
+        label: l10n.navContribute,
       ),
     ];
 
@@ -215,10 +229,30 @@ class _AppShellState extends ConsumerState<AppShell>
                   ),
                 ),
               ),
+              // The orb travels with the rest of the shell's furniture.
+              //
+              // It used to be the one piece that stayed: a reader who scrolled
+              // on got the rail, the composer and the feed's own header out of
+              // the way, and was left with a single floating button hovering
+              // over the writing. Worse, a tab whose header slides up under it
+              // has nowhere to put its own controls. Everything the shell owns
+              // now leaves together and comes back together.
               Positioned(
                 top: MediaQuery.paddingOf(context).top + 6,
                 right: kProfileOrbInset,
-                child: ProfileOrb(onDark: onExplore),
+                child: AnimatedSlide(
+                  offset: chromeVisible ? Offset.zero : const Offset(0, -1.6),
+                  duration: const Duration(milliseconds: 240),
+                  curve: Curves.easeOutCubic,
+                  child: AnimatedOpacity(
+                    opacity: chromeVisible ? 1 : 0,
+                    duration: const Duration(milliseconds: 180),
+                    child: IgnorePointer(
+                      ignoring: !chromeVisible,
+                      child: ProfileOrb(onDark: onExplore),
+                    ),
+                  ),
+                ),
               ),
               // The connection state sits above the rail, and follows it down
               // whenever the rail is not there to sit above: on Explore, which

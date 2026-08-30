@@ -92,9 +92,9 @@ async function seed() {
     id: 'kasem-creator-challenge',
     slug: 'kasem-creator-challenge',
     title: 'Kasem Creator Challenge',
-    initiative: 'Project Kasena',
+    initiative: 'Project Kassena',
     language: { collection: 'languages', id: 'kasem' },
-    community: 'Kasena',
+    community: 'Kassena',
     description: 'The founding creator campaign for Kasem-language storytelling and culture.',
     brief: 'Create original Kasem-language content celebrating everyday life, storytelling and culture.',
     categories: ['storytelling', 'language-teaching', 'translation', 'interviews', 'oral-history', 'music', 'community-reporting', 'short-form-video', 'audio', 'written-content'],
@@ -133,7 +133,7 @@ async function seed() {
       bio: extra.bio ?? '',
       country: 'GH',
       region: extra.region ?? 'Navrongo',
-      community: 'Kasena',
+      community: 'Kassena',
       languagesSpoken: ['Kasem', 'English'],
       kasemProficiency: extra.proficiency ?? 'native',
       dialect: extra.dialect ?? 'navrongo',
@@ -146,7 +146,7 @@ async function seed() {
     fullName: `${name} Example`,
     contact: { email: `${uid}@example.com`, phone: '+233200000000', preferredContactMethod: 'whatsapp', preferredLanguage: 'en' },
     communityRelationship: 'Born and raised in the community.',
-    culturalCommunities: ['Kasena'],
+    culturalCommunities: ['Kassena'],
     skills: extra.interests ?? ['storytelling'],
     experience: 'Fictional experience for local testing.',
     motivation: 'Fictional motivation for local testing.',
@@ -207,7 +207,7 @@ async function seed() {
     status,
     roles: ['creator'],
     assignedLanguages: ['xsm'],
-    assignedCommunities: ['Kasena'],
+    assignedCommunities: ['Kassena'],
     assignedCampaigns: ['kasem-creator-challenge'],
     permissions: status === 'approved' ? ['profile:write', 'submission:write'] : [],
     approvedAt: status === 'approved' ? T : null,
@@ -234,7 +234,7 @@ async function seed() {
     dialect: extra.dialect ?? 'navrongo',
     description: extra.description ?? 'A Kasem-language piece.',
     englishSummary: extra.summary ?? 'English summary of the content.',
-    culturalContext: 'Shared to celebrate Kasena culture.',
+    culturalContext: 'Shared to celebrate Kassena culture.',
     media: { storagePath: `creator-submissions/${uid}/kasem-creator-challenge/${id}/original`, mimeType: 'video/mp4', sizeBytes: 10485760, mediaType: 'video', thumbnailPath: null, captionsPath: null },
     externalPostUrl: null,
     participants: [],
@@ -304,6 +304,43 @@ async function seed() {
     channels: ['in_app'],
     schemaVersion: 1,
     lifecycle: life('2026-08-20T00:00:00Z'),
+  });
+
+  // ── Kassena names and heroes ───────────────────────────────────────────
+  //
+  // Both are admin-curated in the console; these are what a fresh environment
+  // starts with so the kente ring and the hero-of-the-week card have something
+  // to show. The names match the short list bundled with the mobile app, so a
+  // seeded environment and a phone that has never reached Firebase agree.
+  const kasemNames = [
+    { name: 'Nyaaba', ascii: 'nyaaba', kind: 'given', meaning: '' },
+    { name: 'Atanga', ascii: 'atanga', kind: 'clan', meaning: '' },
+    { name: 'Ayaribisa', ascii: 'ayaribisa', kind: 'clan', meaning: '' },
+    { name: 'Ayine', ascii: 'ayine', kind: 'given', meaning: '' },
+    { name: 'Awine', ascii: 'awine', kind: 'given', meaning: '' },
+    {
+      name: 'Paga',
+      ascii: 'paga',
+      kind: 'place',
+      meaning: 'The town at the northern edge of Kassena country',
+    },
+    {
+      name: 'Navrongo',
+      ascii: 'navrongo',
+      kind: 'place',
+      meaning: 'The seat of the Kassena-Nankana district',
+    },
+    { name: 'Chiana', ascii: 'chiana', kind: 'place', meaning: '' },
+    { name: 'Sirigu', ascii: 'sirigu', kind: 'place', meaning: '' },
+  ];
+  kasemNames.forEach((entry, index) => {
+    batch.set(db.doc(`kasemNames/${entry.ascii}`), {
+      id: entry.ascii,
+      ...entry,
+      order: index + 1,
+      published: true,
+      updatedAt: T,
+    });
   });
 
   await batch.commit();

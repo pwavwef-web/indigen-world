@@ -373,6 +373,7 @@ class _ActorMark extends StatelessWidget {
         CommunityAvatar(
           initials: notification.initials,
           imageUrl: notification.actorAvatarUrl,
+          username: notification.actorUsername,
           size: 44,
         ),
         Positioned(

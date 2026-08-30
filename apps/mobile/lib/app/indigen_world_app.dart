@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/app/app_router.dart';
 import 'package:indigen_world_mobile/app/app_theme.dart';
+import 'package:indigen_world_mobile/core/app_locale.dart';
 import 'package:indigen_world_mobile/core/theme_mode.dart';
 import 'package:indigen_world_mobile/l10n/app_localizations.dart';
 
@@ -32,6 +33,12 @@ class IndigenWorldApp extends ConsumerWidget {
       theme: buildIndigenTheme(),
       darkTheme: buildIndigenDarkTheme(),
       themeMode: themeMode,
+      // Null on almost every device, and that is the point: Flutter then
+      // resolves the phone's own language against `supportedLocales`, so a
+      // French handset opens a French app without anybody choosing anything.
+      // A value here only ever exists because a member asked for something
+      // other than what their phone is set to.
+      locale: ref.watch(localeProvider),
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       routerConfig: router,

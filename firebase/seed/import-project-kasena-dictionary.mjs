@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Idempotently imports source-attested Project Kasena review candidates into
+// Idempotently imports source-attested Project Kassena review candidates into
 // dictionaryEntries. Rows remain unpublished until rights and Kasem community
 // validation are recorded through the normal review workflow.
 
@@ -219,6 +219,6 @@ async function main() {
 }
 
 main().catch((error) => {
-  console.error('Project Kasena dictionary import failed:', error);
+  console.error('Project Kassena dictionary import failed:', error);
   process.exit(1);
 });

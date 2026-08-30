@@ -48,7 +48,7 @@ client.
 - `/` — mission, ecosystem, Venacula, operating model, audiences, verified status and CTA
 - `/about` — problem, mission, approved team roster, principles and Kasem-first starting point
 - `/ecosystem` — product audiences, owners, status and boundaries
-- `/project-kasena` — Kasem/Kasena distinction, validation model and planned roadmap
+- `/project-kasena` — Kasem/Kassena distinction, validation model and planned roadmap
 - `/impact-governance` — permissions, cultural-data stewardship and labelled targets
 - `/get-involved` — contributor, validator, school, research, diaspora, sponsor and volunteer routes
 - `/contact` — privacy-aware general, publication, correction and takedown route

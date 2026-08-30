@@ -442,7 +442,7 @@ class _Welcome extends StatelessWidget {
         ),
         const SizedBox(height: 10),
         Text(
-          'I am Kawuri. I can walk you through Kasena culture, help you learn, '
+          'I am Kawuri. I can walk you through Kassena culture, help you learn, '
           'and show you how to contribute well.',
           textAlign: TextAlign.center,
           style: TextStyle(

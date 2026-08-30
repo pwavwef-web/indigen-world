@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:indigen_world_mobile/features/community/community_profile_screen.dart';
 import 'package:indigen_world_mobile/features/community/community_screen.dart';
@@ -9,6 +8,7 @@ import 'package:indigen_world_mobile/features/community/post_detail_screen.dart'
 import 'package:indigen_world_mobile/features/community/saved_posts_screen.dart';
 import 'package:indigen_world_mobile/features/community/widgets/community_avatar.dart';
 import 'package:indigen_world_mobile/features/community/widgets/community_post_card.dart';
+import 'package:indigen_world_mobile/features/community/widgets/inline_video.dart';
 
 import 'community_test_harness.dart';
 
@@ -355,8 +355,43 @@ void main() {
 
     await pumpFeed(tester, repository, profile: amina);
 
-    expect(find.text('REEL'), findsOneWidget);
-    expect(find.byIcon(Icons.play_circle_fill_rounded), findsOneWidget);
+    // A clip posted on its own is a player rather than a poster with a badge on
+    // it: it starts itself once it is mostly on screen, silently, and carries
+    // the controls that go with that. There is no decoder in a test, so what is
+    // on screen here is the state it falls back to — the placeholder, the play
+    // glyph, and the speaker that would have been muting it.
+    expect(find.byType(InlineVideoTile), findsOneWidget);
+    expect(find.byType(PlayGlyph), findsOneWidget);
+    expect(find.byTooltip('Sound off'), findsOneWidget);
+  });
+
+  testWidgets('a muted clip can be given its sound back from the feed', (
+    tester,
+  ) async {
+    final repository = FakeCommunityRepository(
+      profiles: [amina],
+      posts: [
+        fakePost(
+          text: 'De zaanem.',
+          media: const [
+            CommunityMedia(url: 'https://example.test/reel.mp4', type: 'video'),
+          ],
+        ),
+      ],
+    );
+
+    await pumpFeed(tester, repository, profile: amina);
+
+    // The speaker sits in the bottom corner of the attachment, which on a test
+    // surface is below the fold.
+    await tester.ensureVisible(find.byTooltip('Sound off'));
+    await tester.pump();
+    await tester.tap(find.byTooltip('Sound off'));
+    await tester.pump();
+
+    // One switch for every clip in the app, which is what members expect from
+    // every product that has this control.
+    expect(find.byTooltip('Sound on'), findsOneWidget);
   });
 
   testWidgets('a refused feed offers a way back, not a dead end', (

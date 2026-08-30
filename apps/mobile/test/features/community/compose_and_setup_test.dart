@@ -117,6 +117,16 @@ void main() {
   });
 
   group('CommunitySetupScreen', () {
+  /// The form's own list. `.first` because the panel of Kassena names is a
+  /// horizontal list *inside* it, and both answer to the same descendant query.
+  Finder setupScroll() => find
+      .descendant(
+        of: find.byKey(const PageStorageKey('community-setup-scroll')),
+        matching: find.byType(Scrollable),
+      )
+      .first;
+
+
     Future<void> pumpSetup(
       WidgetTester tester,
       FakeCommunityRepository repository,
@@ -139,6 +149,14 @@ void main() {
         find.textContaining('handle is public and cannot be changed later'),
         findsOneWidget,
       );
+      // The form is longer than a test surface now that it carries the Kassena
+      // name offer, and the panel's row of names is a second scrollable — so
+      // the walk has to say which list it means.
+      await tester.scrollUntilVisible(
+        find.byKey(const Key('community-setup-submit')),
+        140,
+        scrollable: setupScroll(),
+      );
       expect(find.text('Create my community profile'), findsOneWidget);
     });
 
@@ -150,6 +168,11 @@ void main() {
 
       await tester.enterText(find.byKey(const Key('community-handle')), 'ab');
       await tester.pump();
+      await tester.scrollUntilVisible(
+        find.byKey(const Key('community-setup-submit')),
+        140,
+        scrollable: setupScroll(),
+      );
       await tester.tap(find.byKey(const Key('community-setup-submit')));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));

@@ -1,19 +1,75 @@
-import 'dart:ui' show PathMetric;
+import 'dart:async';
+import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:indigen_world_mobile/app/app_shell.dart';
 import 'package:indigen_world_mobile/app/app_theme.dart';
+import 'package:indigen_world_mobile/app/shell_chrome.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/core/connectivity.dart';
+import 'package:indigen_world_mobile/domain/dictionary_entry.dart';
 import 'package:indigen_world_mobile/features/collection/collection_detail_screens.dart';
+import 'package:indigen_world_mobile/features/dictionary/entry_detail_screen.dart';
+import 'package:indigen_world_mobile/features/dictionary/word_lookup.dart';
+import 'package:indigen_world_mobile/features/heroes/hero_detail_screen.dart';
+import 'package:indigen_world_mobile/features/heroes/heroes_data.dart';
+import 'package:indigen_world_mobile/features/heroes/heroes_screen.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_fab.dart';
 import 'package:indigen_world_mobile/features/learn/learn_content.dart';
 import 'package:indigen_world_mobile/features/learn/learn_progress.dart';
 import 'package:indigen_world_mobile/features/rating/rating_service.dart';
+import 'package:indigen_world_mobile/l10n/app_localizations.dart';
 import 'package:indigen_world_mobile/shared/app_widgets.dart';
 import 'package:indigen_world_mobile/shared/frosted_nav_bar.dart';
 import 'package:indigen_world_mobile/shared/glass_popup.dart';
+
+/// ─────────────────────────────────────────────────────────────────────────────
+/// THE LEARNING PATH
+///
+/// A trail of round buttons winding down the page, a coloured bar that names
+/// whichever unit you are standing in, and a strip of numbers at the top that
+/// never leaves. The shape is not an accident and it is not ours: it is what a
+/// decade of teaching people languages on a phone converged on, and every part
+/// of it is doing a job.
+///
+///   * **The numbers stay put.** Streak, XP and today's quest are the reason
+///     somebody opened the app on a Tuesday. Scrolling three units down used to
+///     take all three off the screen, which is exactly when a learner most
+///     needs to see what they are about to break.
+///   * **The unit says where you are.** The banner sticks to the top of its own
+///     stretch of the trail, so the name of what you are learning is on screen
+///     the whole time you are learning it, and swaps at the moment you cross
+///     into the next one.
+///   * **The trail is one line.** Buttons sway around the middle rather than
+///     alternating hard left and hard right with a label beside each, which
+///     read as a list of rows. A path is something you walk; a list is
+///     something you get through.
+///   * **The buttons have a floor.** Each one sits on a solid lip of its own
+///     colour and presses down onto it. It costs eight pixels and it is the
+///     single thing that makes tapping one feel like pressing a button rather
+///     than tinting a circle.
+/// ─────────────────────────────────────────────────────────────────────────────
+
+/// Height of the strip of numbers pinned to the top of the tab.
+const double kLearnStatsBarHeight = 62;
+
+/// Height of a unit's banner, which sticks under the numbers.
+const double kLearnUnitBannerHeight = 74;
+
+/// The face of a lesson button, and the lip it presses onto.
+const double _nodeSize = 76;
+const double _nodeLip = 8;
+
+/// Vertical room one lesson gets on the trail.
+const double _nodeRowHeight = 96;
+
+/// How far each lesson sways from the middle, as a fraction of the half-width.
+///
+/// Eight steps, out and back, so a long unit reads as one continuous wander
+/// rather than as a zigzag repeating every other row.
+const List<double> _pathSway = [0, -0.34, -0.6, -0.34, 0, 0.34, 0.6, 0.34];
 
 class LearnScreen extends ConsumerStatefulWidget {
   const LearnScreen({super.key});
@@ -23,17 +79,40 @@ class LearnScreen extends ConsumerStatefulWidget {
 }
 
 class _LearnScreenState extends ConsumerState<LearnScreen> {
+  final _scroll = ScrollController();
+
   @override
-  Widget build(BuildContext context) => Scaffold(
-    backgroundColor: Colors.transparent,
-    // Lifted clear of the shell's floating glass rail, which the body extends
-    // behind.
-    floatingActionButton: const Padding(
-      padding: EdgeInsets.only(bottom: kFrostedNavBarReservedSpace - 26),
-      child: KawuriFab(),
-    ),
-    body: ScreenContainer(child: _path()),
-  );
+  void dispose() {
+    _scroll.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Tapping Learn while already on Learn walks back to the start of the path.
+    ref.listen<TabReselect>(tabReselectProvider, (previous, next) {
+      if (next.index != kLearnTabIndex || previous?.tick == next.tick) return;
+      if (!_scroll.hasClients) return;
+      unawaited(
+        _scroll.animateTo(
+          0,
+          duration: const Duration(milliseconds: 420),
+          curve: Curves.easeOutCubic,
+        ),
+      );
+    });
+
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      // Lifted clear of the shell's floating glass rail, which the body extends
+      // behind.
+      floatingActionButton: const Padding(
+        padding: EdgeInsets.only(bottom: kFrostedNavBarReservedSpace - 26),
+        child: KawuriFab(),
+      ),
+      body: ScreenContainer(child: _path()),
+    );
+  }
 
   Widget _path() {
     // Progress arrives from disk a frame or two after the screen does, and the
@@ -47,130 +126,133 @@ class _LearnScreenState extends ConsumerState<LearnScreen> {
     final completed = lessons
         .where((lesson) => progress.hasCompleted(lesson.id))
         .length;
+    final units = _groupUnits(lessons);
+    final word = ref.watch(wordOfTheDayProvider);
+    final hero = ref.watch(heroOfTheWeekProvider);
 
     return CustomScrollView(
       key: const PageStorageKey('learn-path-scroll'),
+      controller: _scroll,
       slivers: [
-        SliverToBoxAdapter(
-          child: _LearnHeader(
+        SliverPersistentHeader(
+          pinned: true,
+          delegate: _StatsBarDelegate(
             xp: progress.xp,
-            completed: completed,
-            total: lessons.length,
             streakDays: progress.streakDays,
             streakClaimed: progress.sparkClaimedToday,
+            streakAtRisk: progress.streakAtRisk,
+            questDone: completed.clamp(0, 3),
             onClaimStreak: _claimStreak,
-            onOpenDictionary: _openDictionary,
             onOpenQuest: () => _openQuest(completed, nextLesson),
             onOpenMomentum: () =>
                 _openMomentum(progress, completed, lessons.length),
+            onOpenDictionary: _openDictionary,
           ),
         ),
-        // The quest and the momentum summary used to open this list as two
-        // full-width cards, which pushed the first lesson button most of a
-        // screen down a *learning* path. They are status, not the path, so
-        // they moved into the header where the rest of the status already is
-        // and the trail starts where the tab does.
-        SliverPadding(
-          padding: const EdgeInsets.fromLTRB(20, 6, 20, 120),
-          sliver: SliverList.list(
-            children: [
-              ..._pathBody(progress, lessons, nextLesson),
-              const SizedBox(height: 24),
-              const _LockedUnitPreview(),
+        if (word != null)
+          SliverToBoxAdapter(child: _WordOfTheDayCard(entry: word)),
+        if (hero != null)
+          SliverToBoxAdapter(child: _HeroOfTheWeekCard(hero: hero)),
+        for (final unit in units)
+          // A group is what lets each unit's banner stick for exactly as long
+          // as its own lessons are on screen, and then be pushed off by the
+          // next one rather than piling up.
+          SliverMainAxisGroup(
+            slivers: [
+              SliverPersistentHeader(
+                pinned: true,
+                delegate: _UnitBannerDelegate(
+                  unit: unit,
+                  done: unit.lessons
+                      .where((lesson) => progress.hasCompleted(lesson.id))
+                      .length,
+                  // A banner is a surface, so it takes the accent's *fill*
+                  // rather than its foreground: on charcoal the foreground
+                  // green is a lit mint meant for small marks, and a whole bar
+                  // of it is the loudest thing in the app.
+                  colour: unit.order.isOdd
+                      ? context.brand.accentFill
+                      : BrandColors.terracotta,
+                  // Gold sits well on the deep green and disappears on the
+                  // terracotta, which is warm enough to be gold already.
+                  eyebrow: unit.order.isOdd
+                      ? context.brand.gold
+                      : Colors.white70,
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: _UnitTrail(
+                  unit: unit,
+                  progress: progress,
+                  nextLesson: nextLesson,
+                  lessonCount: lessons.length,
+                  onOpen: _openLesson,
+                ),
+              ),
             ],
           ),
+        const SliverPadding(
+          padding: EdgeInsets.fromLTRB(20, 26, 20, 130),
+          sliver: SliverToBoxAdapter(child: _LockedUnitPreview()),
         ),
       ],
     );
   }
 
+  /// The units on the published path, in order, each carrying its own lessons.
+  ///
+  /// Read off the lessons rather than kept in a second collection, so
+  /// publishing a lesson into a new unit is one document rather than two that
+  /// can disagree about what the unit is called.
+  List<_LearnUnit> _groupUnits(List<Lesson> lessons) {
+    final units = <_LearnUnit>[];
+    for (var index = 0; index < lessons.length; index++) {
+      final lesson = lessons[index];
+      if (units.isEmpty || units.last.title != lesson.unitTitle) {
+        units.add(
+          _LearnUnit(
+            title: lesson.unitTitle,
+            subtitle: lesson.unitSubtitle,
+            order: lesson.unitOrder,
+            firstIndex: index,
+            lessons: [lesson],
+          ),
+        );
+        continue;
+      }
+      units.last.lessons.add(lesson);
+    }
+    return units;
+  }
+
   /// Today's quest, in full, on a card that closes again.
   Future<void> _openQuest(int completed, int nextLesson) async {
+    final l10n = AppLocalizations.of(context);
     final start = await showGlassPopup<bool>(
       context: context,
-      title: "Today's quest",
-      subtitle: 'Complete 3 quick lessons',
+      title: l10n.learnQuestTitle,
+      subtitle: l10n.learnQuestSubtitle,
       builder: (popupContext) => _QuestPopupBody(completed: completed),
     );
     if (start == true && mounted) await _openLesson(nextLesson);
   }
 
   /// How far along the whole path this member is.
-  Future<void> _openMomentum(
-    LearnProgress progress,
-    int completed,
-    int total,
-  ) => showGlassPopup<void>(
-    context: context,
-    title: 'Your momentum',
-    subtitle: total == 0
-        ? 'The path is still being published'
-        : '$completed of $total lessons complete',
-    builder: (popupContext) => _MomentumPopupBody(
-      completed: completed,
-      total: total,
-      xp: progress.xp,
-      streakDays: progress.streakDays,
-    ),
-  );
-
-  /// The winding trail itself: a banner wherever the unit changes, a node per
-  /// lesson, and a ribbon between two lessons that belong to the same unit.
-  ///
-  /// Units are read off the lessons rather than kept in a second collection,
-  /// so publishing a lesson into a new unit is one document rather than two
-  /// that can disagree about what the unit is called.
-  List<Widget> _pathBody(
-    LearnProgress progress,
-    List<Lesson> lessons,
-    int nextLesson,
-  ) {
-    final body = <Widget>[];
-    for (var index = 0; index < lessons.length; index++) {
-      final lesson = lessons[index];
-      final startsUnit =
-          index == 0 || lessons[index - 1].unitTitle != lesson.unitTitle;
-      if (startsUnit) {
-        body
-          ..add(const SizedBox(height: 26))
-          ..add(
-            _UnitBanner(
-              unit: 'UNIT ${lesson.unitOrder}',
-              title: lesson.unitTitle,
-              subtitle: lesson.unitSubtitle,
-              color: lesson.unitOrder.isOdd
-                  ? context.brand.accent
-                  : context.brand.terracotta,
-            ),
-          )
-          ..add(const SizedBox(height: 18));
-      }
-      body.add(
-        _LessonPathNode(
-          lesson: lesson,
-          index: index,
-          completed: progress.hasCompleted(lesson.id),
-          unlocked: index <= nextLesson,
-          current: index == nextLesson,
-          onTap: () => _openLesson(index),
-        ),
-      );
-      final continuesUnit =
-          index + 1 < lessons.length &&
-          lessons[index + 1].unitTitle == lesson.unitTitle;
-      if (continuesUnit) {
-        body.add(
-          _LessonRibbon(
-            // Lessons alternate sides, so the segment always leaves the side
-            // this lesson sits on and arrives at the other.
-            startOnRight: index.isOdd,
-            travelled: _travelled(progress, lessons, index),
-            frontier: index + 1 == nextLesson,
-          ),
-        );
-      }
-    }
-    return body;
+  Future<void> _openMomentum(LearnProgress progress, int completed, int total) {
+    final l10n = AppLocalizations.of(context);
+    return showGlassPopup<void>(
+      context: context,
+      title: l10n.learnMomentumTitle,
+      subtitle: total == 0
+          ? l10n.learnMomentumUnpublished
+          : l10n.learnMomentumProgress(completed, total),
+      builder: (popupContext) => _MomentumPopupBody(
+        completed: completed,
+        total: total,
+        xp: progress.xp,
+        streakDays: progress.streakDays,
+      ),
+    );
   }
 
   int _nextLesson(LearnProgress progress, List<Lesson> lessons) {
@@ -180,20 +262,19 @@ class _LearnScreenState extends ConsumerState<LearnScreen> {
     return lessons.isEmpty ? 0 : lessons.length - 1;
   }
 
-  /// How much of the ribbon below lesson [index] is gold.
-  ///
-  /// The segment that leads into the lesson the member is on stops part way,
-  /// so the trail visibly ends where they have actually got to rather than
-  /// running on ahead of them.
-  double _travelled(LearnProgress progress, List<Lesson> lessons, int index) {
-    if (progress.hasCompleted(lessons[index + 1].id)) return 1.0;
-    if (progress.hasCompleted(lessons[index].id)) return 0.56;
-    return 0.0;
-  }
-
   Future<void> _claimStreak() async {
+    final l10n = AppLocalizations.of(context);
     final progress = ref.read(learnProgressProvider).value;
-    if (progress != null && progress.sparkClaimedToday) return;
+    if (progress != null && progress.sparkClaimedToday) {
+      // Nothing left to take today, so the flame explains itself instead of
+      // doing nothing at all.
+      final lessons = ref.read(lessonPathProvider).value ?? bundledLessons;
+      final completed = lessons
+          .where((lesson) => progress.hasCompleted(lesson.id))
+          .length;
+      await _openMomentum(progress, completed, lessons.length);
+      return;
+    }
     HapticFeedback.mediumImpact();
     // The controller owns the calendar, so it has the final say on whether
     // there was a spark left to claim today.
@@ -202,8 +283,8 @@ class _LearnScreenState extends ConsumerState<LearnScreen> {
         .claimStreak();
     if (!claimed || !mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Daily spark claimed · +${LearnProgress.xpPerSpark} XP'),
+      SnackBar(
+        content: Text(l10n.learnSparkClaimed(LearnProgress.xpPerSpark)),
       ),
     );
   }
@@ -217,22 +298,21 @@ class _LearnScreenState extends ConsumerState<LearnScreen> {
   }
 
   Future<void> _openLesson(int index) async {
+    final l10n = AppLocalizations.of(context);
     final progress =
         ref.read(learnProgressProvider).value ?? const LearnProgress();
     final lessons = ref.read(lessonPathProvider).value ?? bundledLessons;
     if (lessons.isEmpty) return;
     if (index > _nextLesson(progress, lessons)) {
       HapticFeedback.lightImpact();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Finish the lesson above to unlock this one.'),
-        ),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(l10n.learnLockedAbove)));
       return;
     }
     final lesson = lessons[index];
-    final completed = await Navigator.of(context).push<bool>(
-      MaterialPageRoute<bool>(
+    final alreadyDone = progress.hasCompleted(lesson.id);
+    final result = await Navigator.of(context).push<LessonResult>(
+      MaterialPageRoute<LessonResult>(
         builder: (context) => _LessonScreen(
           lesson: lesson,
           lessonNumber: index + 1,
@@ -240,193 +320,454 @@ class _LearnScreenState extends ConsumerState<LearnScreen> {
         ),
       ),
     );
-    if (completed == true && mounted) {
-      HapticFeedback.heavyImpact();
-      await ref
-          .read(learnProgressProvider.notifier)
-          .completeLesson(lesson.id, xp: lesson.xp);
-      // A finished lesson is somebody at their most pleased with the app, and
-      // the sheet has already closed — so nothing is being interrupted. The
-      // ask is rationed inside; most of the time this does nothing at all.
-      if (!mounted) return;
-      await maybeRequestReview(
-        online: ref.read(connectionBlockProvider) == null,
-      );
-    }
+    if (result == null || !mounted) return;
+
+    HapticFeedback.heavyImpact();
+    await ref
+        .read(learnProgressProvider.notifier)
+        .completeLesson(lesson.id, xp: lesson.xp);
+    if (!mounted) return;
+
+    // The lesson is over, the tally is in, and this is the moment somebody is
+    // most pleased with themselves. A snackbar sliding out of the bottom of a
+    // scrolling path was the least this could have been.
+    final after = ref.read(learnProgressProvider).value ?? progress;
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        fullscreenDialog: true,
+        builder: (context) => LessonCompleteScreen(
+          lesson: lesson,
+          result: result,
+          // Repeating a lesson is worth doing and worth nothing: the XP was
+          // paid the first time, and saying otherwise would be a lie the
+          // total on the next screen would immediately contradict.
+          xpEarned: alreadyDone ? 0 : lesson.xp,
+          totalXp: after.xp,
+          streakDays: after.streakDays,
+        ),
+      ),
+    );
+    if (!mounted) return;
+    // The ask is rationed inside; most of the time this does nothing at all.
+    await maybeRequestReview(online: ref.read(connectionBlockProvider) == null);
   }
 }
 
-/// The top of the Learn tab.
-///
-/// Deliberately shallow, and deliberately *not* a card. It used to be a filled
-/// green plate with a watermark behind it, which gave the tab a lid: a coloured
-/// panel the eye read as a different screen, sitting on top of the trail rather
-/// than introducing it. What stays is what changes — how much has been earned,
-/// whether the streak is alive, and the four things worth tapping — drawn on
-/// the same ground as the path itself.
-class _LearnHeader extends StatelessWidget {
-  const _LearnHeader({
+/// One unit of the published path, with the lessons that belong to it.
+class _LearnUnit {
+  _LearnUnit({
+    required this.title,
+    required this.subtitle,
+    required this.order,
+    required this.firstIndex,
+    required this.lessons,
+  });
+
+  final String title;
+  final String subtitle;
+  final int order;
+
+  /// Where this unit's first lesson sits on the whole path, so a node can name
+  /// its own number without the trail having to count.
+  final int firstIndex;
+
+  final List<Lesson> lessons;
+}
+
+// ── The strip of numbers ────────────────────────────────────────────────────
+
+class _StatsBarDelegate extends SliverPersistentHeaderDelegate {
+  const _StatsBarDelegate({
     required this.xp,
-    required this.completed,
-    required this.total,
     required this.streakDays,
     required this.streakClaimed,
+    required this.streakAtRisk,
+    required this.questDone,
     required this.onClaimStreak,
-    required this.onOpenDictionary,
     required this.onOpenQuest,
     required this.onOpenMomentum,
+    required this.onOpenDictionary,
   });
 
   final int xp;
-  final int completed;
-
-  /// Lessons on the published path.
-  final int total;
-
-  /// Consecutive days the daily spark has been claimed.
   final int streakDays;
-
   final bool streakClaimed;
+  final bool streakAtRisk;
+  final int questDone;
   final VoidCallback onClaimStreak;
-  final VoidCallback onOpenDictionary;
   final VoidCallback onOpenQuest;
   final VoidCallback onOpenMomentum;
+  final VoidCallback onOpenDictionary;
 
   @override
-  Widget build(BuildContext context) => Padding(
-    // The right inset clears the shell's floating profile orb.
-    padding: const EdgeInsets.fromLTRB(20, 26, 20, 14),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(right: 42),
-          child: Text(
-            'LEARN',
-            style: TextStyle(
-              color: context.brand.mutedInk,
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 1.1,
-            ),
-          ),
+  double get minExtent => kLearnStatsBarHeight;
+
+  @override
+  double get maxExtent => kLearnStatsBarHeight;
+
+  @override
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) =>
+      // A pinned header is measured by what its child actually is, not by what
+      // the delegate says it may be: a row of chips is as tall as a chip, and
+      // the viewport then refuses a layout extent bigger than what was painted.
+      SizedBox(
+        height: kLearnStatsBarHeight,
+        child: _LearnStatsBar(
+          xp: xp,
+          streakDays: streakDays,
+          streakClaimed: streakClaimed,
+          streakAtRisk: streakAtRisk,
+          questDone: questDone,
+          onClaimStreak: onClaimStreak,
+          onOpenQuest: onOpenQuest,
+          onOpenMomentum: onOpenMomentum,
+          onOpenDictionary: onOpenDictionary,
         ),
-        const SizedBox(height: 6),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: Text(
-                completed == 0
-                    ? 'Speak your first words.'
-                    : 'You are building a rhythm.',
-                style: Theme.of(context).textTheme.headlineMedium,
-              ),
-            ),
-            const SizedBox(width: 42),
-          ],
-        ),
-        const SizedBox(height: 14),
-        Row(
-          children: [
-            _MetricPill(icon: Icons.bolt_rounded, label: '$xp XP'),
-            const SizedBox(width: 8),
-            // Replaces a hard-coded five hearts that counted nothing and could
-            // not be lost. The streak is the number this screen actually keeps,
-            // and the one a daily habit is built on.
-            _MetricPill(
-              icon: streakDays > 0
-                  ? Icons.local_fire_department_rounded
-                  : Icons.local_fire_department_outlined,
-              label: '$streakDays',
-              color: streakDays > 0
-                  ? const Color(0xFFE0763C)
-                  : context.brand.faintInk,
-            ),
-          ],
-        ),
-        const SizedBox(height: 14),
-        Row(
-          children: [
-            Expanded(
-              child: _HeaderAction(
-                icon: Icons.emoji_events_rounded,
-                label: "Today's quest",
-                badge: '${completed.clamp(0, 3)}/3',
-                onTap: onOpenQuest,
-              ),
-            ),
-            const SizedBox(width: 9),
-            Expanded(
-              child: _HeaderAction(
-                icon: Icons.insights_rounded,
-                label: 'Momentum',
-                badge: total == 0
-                    ? '—'
-                    : '${((completed / total) * 100).round()}%',
-                onTap: onOpenMomentum,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 9),
-        Row(
-          children: [
-            Expanded(
-              child: _HeaderAction(
-                icon: streakClaimed
-                    ? Icons.local_fire_department_rounded
-                    : Icons.wb_sunny_outlined,
-                label: streakClaimed ? 'Spark claimed' : 'Daily spark',
-                onTap: onClaimStreak,
-                active: streakClaimed,
-              ),
-            ),
-            const SizedBox(width: 9),
-            Expanded(
-              child: _HeaderAction(
-                icon: Icons.menu_book_rounded,
-                label: 'Dictionary',
-                onTap: onOpenDictionary,
-              ),
-            ),
-          ],
-        ),
-      ],
-    ),
-  );
+      );
+
+  @override
+  bool shouldRebuild(_StatsBarDelegate old) =>
+      old.xp != xp ||
+      old.streakDays != streakDays ||
+      old.streakClaimed != streakClaimed ||
+      old.streakAtRisk != streakAtRisk ||
+      old.questDone != questDone;
 }
 
-class _MetricPill extends StatelessWidget {
-  const _MetricPill({required this.icon, required this.label, this.color});
+/// Streak, XP, today's quest and the dictionary, on one line that never leaves.
+///
+/// This replaced a header of stacked pills and paired buttons that was most of
+/// a screen tall — a *lid* on a tab whose whole point is the trail underneath
+/// it. Everything it carried is still here; it is one row now, and it stays.
+class _LearnStatsBar extends StatelessWidget {
+  const _LearnStatsBar({
+    required this.xp,
+    required this.streakDays,
+    required this.streakClaimed,
+    required this.streakAtRisk,
+    required this.questDone,
+    required this.onClaimStreak,
+    required this.onOpenQuest,
+    required this.onOpenMomentum,
+    required this.onOpenDictionary,
+  });
 
-  final IconData icon;
-  final String label;
-
-  /// Defaults to the palette's gold, which is the highlight on both grounds.
-  final Color? color;
+  final int xp;
+  final int streakDays;
+  final bool streakClaimed;
+  final bool streakAtRisk;
+  final int questDone;
+  final VoidCallback onClaimStreak;
+  final VoidCallback onOpenQuest;
+  final VoidCallback onOpenMomentum;
+  final VoidCallback onOpenDictionary;
 
   @override
   Widget build(BuildContext context) {
-    final tint = color ?? context.brand.gold;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+    final brand = context.brand;
+    final l10n = AppLocalizations.of(context);
+    return ClipRect(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: brand.background.withValues(alpha: 0.88),
+            border: Border(bottom: BorderSide(color: brand.divider)),
+          ),
+          child: Padding(
+            // The right inset clears the shell's floating profile orb.
+            padding: const EdgeInsets.fromLTRB(14, 0, 52, 0),
+            child: Row(
+              children: [
+                _StatChip(
+                  icon: streakDays > 0
+                      ? Icons.local_fire_department_rounded
+                      : Icons.local_fire_department_outlined,
+                  label: '$streakDays',
+                  // A streak that is alive but unclaimed is the one number on
+                  // this bar somebody has to act on today.
+                  tint: streakAtRisk
+                      ? const Color(0xFFE0763C)
+                      : streakDays > 0
+                      ? const Color(0xFFE0763C)
+                      : brand.faintInk,
+                  pulsing: streakAtRisk,
+                  semantics: streakClaimed
+                      ? l10n.learnStreakClaimed(streakDays)
+                      : l10n.learnDailySpark(streakDays),
+                  onTap: onClaimStreak,
+                ),
+                _StatChip(
+                  icon: Icons.bolt_rounded,
+                  label: '$xp',
+                  tint: brand.gold,
+                  semantics: l10n.learnXpSemantics(xp),
+                  onTap: onOpenMomentum,
+                ),
+                _StatChip(
+                  icon: Icons.emoji_events_rounded,
+                  label: '$questDone/3',
+                  tint: brand.accent,
+                  semantics: l10n.learnQuestSemantics(questDone),
+                  onTap: onOpenQuest,
+                ),
+                const Spacer(),
+                IconButton(
+                  tooltip: l10n.learnDictionary,
+                  onPressed: onOpenDictionary,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints.tightFor(
+                    width: 42,
+                    height: 42,
+                  ),
+                  icon: Icon(Icons.menu_book_rounded, color: brand.accent),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _StatChip extends StatelessWidget {
+  const _StatChip({
+    required this.icon,
+    required this.label,
+    required this.tint,
+    required this.semantics,
+    required this.onTap,
+    this.pulsing = false,
+  });
+
+  final IconData icon;
+  final String label;
+  final Color tint;
+  final String semantics;
+  final VoidCallback onTap;
+
+  /// Set on a streak that is alive and unclaimed. Nothing else on this bar ever
+  /// moves — which is the only reason the one thing that does gets noticed.
+  final bool pulsing;
+
+  @override
+  Widget build(BuildContext context) {
+    final glyph = Icon(icon, color: tint, size: 20);
+    return Semantics(
+      button: true,
+      label: semantics,
+      excludeSemantics: true,
+      child: InkResponse(
+        radius: 26,
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 8),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (pulsing) _Breathing(child: glyph) else glyph,
+              const SizedBox(width: 5),
+              Text(
+                label,
+                style: TextStyle(
+                  color: context.brand.ink,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A slow swell, for the one glyph on a screen that is asking for something.
+class _Breathing extends StatefulWidget {
+  const _Breathing({required this.child});
+
+  final Widget child;
+
+  @override
+  State<_Breathing> createState() => _BreathingState();
+}
+
+class _BreathingState extends State<_Breathing>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1400),
+  );
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // A member who has asked the system to hold animation still gets a still
+    // glyph; the colour is already carrying the message.
+    if (MediaQuery.disableAnimationsOf(context)) {
+      _controller.stop();
+    } else if (!_controller.isAnimating) {
+      _controller.repeat(reverse: true);
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => ScaleTransition(
+    scale: Tween<double>(
+      begin: 0.9,
+      end: 1.14,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut)),
+    child: widget.child,
+  );
+}
+
+// ── The unit banner ─────────────────────────────────────────────────────────
+
+class _UnitBannerDelegate extends SliverPersistentHeaderDelegate {
+  const _UnitBannerDelegate({
+    required this.unit,
+    required this.done,
+    required this.colour,
+    required this.eyebrow,
+  });
+
+  final _LearnUnit unit;
+  final int done;
+  final Color colour;
+  final Color eyebrow;
+
+  @override
+  double get minExtent => kLearnUnitBannerHeight;
+
+  @override
+  double get maxExtent => kLearnUnitBannerHeight;
+
+  @override
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) => _UnitBanner(
+    unit: unit,
+    done: done,
+    colour: colour,
+    eyebrow: eyebrow,
+    // Only lifts once the trail is actually running underneath it, so a banner
+    // sitting in the flow is flat and one that is holding its place is not.
+    raised: overlapsContent,
+  );
+
+  @override
+  bool shouldRebuild(_UnitBannerDelegate old) =>
+      old.unit != unit ||
+      old.done != done ||
+      old.colour != colour ||
+      old.eyebrow != eyebrow;
+}
+
+/// The coloured bar that names the stretch of trail underneath it.
+///
+/// Full width rather than an inset card: it has to hide the path passing behind
+/// it while it is stuck to the top, and a card with margins leaves two channels
+/// down the sides for lesson buttons to slide through.
+class _UnitBanner extends StatelessWidget {
+  const _UnitBanner({
+    required this.unit,
+    required this.done,
+    required this.colour,
+    required this.eyebrow,
+    required this.raised,
+  });
+
+  final _LearnUnit unit;
+  final int done;
+  final Color colour;
+  final Color eyebrow;
+  final bool raised;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 180),
+      height: kLearnUnitBannerHeight,
+      padding: const EdgeInsets.fromLTRB(20, 0, 16, 0),
       decoration: BoxDecoration(
-        color: context.brand.surfaceMuted,
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: context.brand.border),
+        color: colour,
+        boxShadow: raised
+            ? [
+                BoxShadow(
+                  color: context.brand.shadow.withValues(alpha: 0.28),
+                  blurRadius: 14,
+                  offset: const Offset(0, 5),
+                ),
+              ]
+            : const [],
       ),
       child: Row(
-        mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: tint, size: 15),
-          const SizedBox(width: 5),
-          Text(
-            label,
-            style: TextStyle(
-              color: context.brand.ink,
-              fontSize: 11.5,
-              fontWeight: FontWeight.w900,
+          Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  l10n.learnUnitNumber(unit.order),
+                  style: TextStyle(
+                    color: eyebrow,
+                    fontSize: 9.5,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 1.2,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  unit.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -0.3,
+                  ),
+                ),
+                if (unit.subtitle.isNotEmpty)
+                  Text(
+                    unit.subtitle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(color: Colors.white70, fontSize: 11),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
+            decoration: BoxDecoration(
+              color: Colors.white24,
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: Text(
+              '$done/${unit.lessons.length}',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 12.5,
+                fontWeight: FontWeight.w900,
+              ),
             ),
           ),
         ],
@@ -435,83 +776,1157 @@ class _MetricPill extends StatelessWidget {
   }
 }
 
-class _HeaderAction extends StatelessWidget {
-  const _HeaderAction({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-    this.badge,
-    this.active = false,
-  });
+// ── Word of the day ─────────────────────────────────────────────────────────
 
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
+/// One published entry, the same for everybody, for the whole of one day.
+///
+/// The dictionary is the biggest thing this project is building and it lived
+/// two taps away behind a collection screen. A learner opening the app to do a
+/// lesson now meets one word of their own language on the way in — which is
+/// four seconds of learning from somebody who had budgeted none.
+class _WordOfTheDayCard extends StatelessWidget {
+  const _WordOfTheDayCard({required this.entry});
 
-  /// A short figure carried on the right — `2/3`, `18%`. The point of moving
-  /// the quest and the momentum into the header is that their *state* still
-  /// has to be readable without opening anything.
-  final String? badge;
-
-  final bool active;
+  final DictionaryEntry entry;
 
   @override
   Widget build(BuildContext context) {
     final brand = context.brand;
-    return Semantics(
-      button: true,
-      label: badge == null ? label : '$label, $badge',
-      excludeSemantics: true,
+    final l10n = AppLocalizations.of(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
       child: Material(
-        color: active ? brand.accentSoft : brand.surfaceMuted,
-        borderRadius: BorderRadius.circular(15),
+        color: brand.surface,
+        borderRadius: BorderRadius.circular(20),
         child: InkWell(
-          borderRadius: BorderRadius.circular(15),
-          onTap: onTap,
+          borderRadius: BorderRadius.circular(20),
+          onTap: () => showWordLookup(context, entry),
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 10),
+            padding: const EdgeInsets.fromLTRB(16, 13, 12, 13),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(15),
-              border: Border.all(
-                color: active ? brand.accent.withValues(alpha: 0.4)
-                    : brand.border,
-              ),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: brand.border),
             ),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(
-                  icon,
-                  color: active ? brand.accent : brand.gold,
-                  size: 19,
-                ),
-                const SizedBox(width: 7),
-                Flexible(
-                  child: Text(
-                    label,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: brand.ink,
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.w800,
-                    ),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        l10n.learnWordOfTheDay,
+                        style: TextStyle(
+                          color: brand.mutedInk,
+                          fontSize: 9.5,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                      const SizedBox(height: 5),
+                      Text(
+                        entry.headword,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: brand.ink,
+                          fontSize: 21,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: -0.4,
+                        ),
+                      ),
+                      Text(
+                        entry.translation,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(color: brand.mutedInk, fontSize: 13.5),
+                      ),
+                    ],
                   ),
                 ),
-                if (badge case final badge?) ...[
-                  const SizedBox(width: 6),
-                  Text(
-                    badge,
-                    style: TextStyle(
-                      color: brand.accent,
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                ],
+                PronunciationButton(audioUrl: entry.audioUrl),
               ],
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// One life, the same for everybody, for the whole of a week.
+///
+/// The archive spent its first year collecting words and none of it said who
+/// spoke them. A learner opening the app to do a lesson now meets one of the
+/// people the language belongs to on the way in — by the week rather than the
+/// day, because a life is worth more than a glance.
+class _HeroOfTheWeekCard extends StatelessWidget {
+  const _HeroOfTheWeekCard({required this.hero});
+
+  final KasemHero hero;
+
+  @override
+  Widget build(BuildContext context) {
+    final brand = context.brand;
+    final l10n = AppLocalizations.of(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 10, 20, 4),
+      child: Material(
+        color: brand.surface,
+        borderRadius: BorderRadius.circular(20),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(20),
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (context) => HeroDetailScreen(hero: hero),
+            ),
+          ),
+          child: Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: brand.border),
+            ),
+            child: Row(
+              children: [
+                HeroPortrait(hero: hero, size: 52),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        l10n.learnHeroOfTheWeek,
+                        style: TextStyle(
+                          color: brand.mutedInk,
+                          fontSize: 9.5,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                      const SizedBox(height: 5),
+                      Text(
+                        hero.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: brand.ink,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: -0.3,
+                        ),
+                      ),
+                      if (hero.subtitle.isNotEmpty)
+                        Text(
+                          hero.subtitle,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(color: brand.mutedInk, fontSize: 13),
+                        ),
+                    ],
+                  ),
+                ),
+                Icon(Icons.chevron_right_rounded, color: brand.mutedInk),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── The trail ───────────────────────────────────────────────────────────────
+
+/// One unit's stretch of path: its lessons, and the chest at the end of them.
+class _UnitTrail extends StatelessWidget {
+  const _UnitTrail({
+    required this.unit,
+    required this.progress,
+    required this.nextLesson,
+    required this.lessonCount,
+    required this.onOpen,
+  });
+
+  final _LearnUnit unit;
+  final LearnProgress progress;
+
+  /// Index on the whole path of the lesson the member is up to.
+  final int nextLesson;
+
+  final int lessonCount;
+  final Future<void> Function(int index) onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    final finished = unit.lessons.every(
+      (lesson) => progress.hasCompleted(lesson.id),
+    );
+    return Padding(
+      // The bubble over the current lesson hangs a good way above the button it
+      // belongs to, and the unit banner is pinned right there — so the trail
+      // starts far enough down that the two never meet.
+      padding: const EdgeInsets.only(top: 46, bottom: 6),
+      child: Column(
+        children: [
+          for (var offset = 0; offset < unit.lessons.length; offset++)
+            _LessonPathNode(
+              lesson: unit.lessons[offset],
+              index: unit.firstIndex + offset,
+              lessonCount: lessonCount,
+              sway: _pathSway[(unit.firstIndex + offset) % _pathSway.length],
+              completed: progress.hasCompleted(unit.lessons[offset].id),
+              unlocked: unit.firstIndex + offset <= nextLesson,
+              current: unit.firstIndex + offset == nextLesson,
+              onOpen: onOpen,
+            ),
+          _UnitChest(unlocked: finished, unit: unit.title),
+        ],
+      ),
+    );
+  }
+}
+
+/// One stop on the trail.
+class _LessonPathNode extends StatelessWidget {
+  const _LessonPathNode({
+    required this.lesson,
+    required this.index,
+    required this.lessonCount,
+    required this.sway,
+    required this.completed,
+    required this.unlocked,
+    required this.current,
+    required this.onOpen,
+  });
+
+  final Lesson lesson;
+  final int index;
+  final int lessonCount;
+  final double sway;
+  final bool completed;
+  final bool unlocked;
+  final bool current;
+  final Future<void> Function(int index) onOpen;
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+    height: _nodeRowHeight,
+    child: Align(
+      alignment: Alignment(sway, 0),
+      child: Stack(
+        // The bubble over the current lesson hangs above its own row. Nothing
+        // clips it, and the row below is painted after this one, so it can
+        // never be covered.
+        clipBehavior: Clip.none,
+        alignment: Alignment.center,
+        children: [
+          _PathButton(
+            icon: completed
+                ? Icons.check_rounded
+                : unlocked
+                ? lesson.icon
+                : Icons.lock_rounded,
+            semantics: _semantics(AppLocalizations.of(context)),
+            completed: completed,
+            unlocked: unlocked,
+            current: current,
+            onTap: (anchor) => _open(context, anchor),
+          ),
+          if (current)
+            const Positioned(bottom: _nodeSize + 8, child: _StartBubble()),
+        ],
+      ),
+    ),
+  );
+
+  String _semantics(AppLocalizations l10n) {
+    final state = completed
+        ? l10n.learnStateCompleted
+        : unlocked
+        ? l10n.learnStateReady
+        : l10n.learnStateLocked;
+    return l10n.learnNodeSemantics(index + 1, lessonCount, lesson.title, state);
+  }
+
+  Future<void> _open(BuildContext context, Rect anchor) async {
+    final start = await showLessonBubble(
+      context,
+      anchor: anchor,
+      lesson: lesson,
+      number: index + 1,
+      total: lessonCount,
+      completed: completed,
+      unlocked: unlocked,
+    );
+    if (start == true && context.mounted) await onOpen(index);
+  }
+}
+
+/// The button itself: a coloured face resting on a lip of its own colour, which
+/// it presses down onto.
+class _PathButton extends StatefulWidget {
+  const _PathButton({
+    required this.icon,
+    required this.semantics,
+    required this.completed,
+    required this.unlocked,
+    required this.current,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String semantics;
+  final bool completed;
+  final bool unlocked;
+  final bool current;
+
+  /// Handed the button's place on the screen, so whatever opens can point at
+  /// the thing that was pressed.
+  final void Function(Rect anchor) onTap;
+
+  @override
+  State<_PathButton> createState() => _PathButtonState();
+}
+
+class _PathButtonState extends State<_PathButton> {
+  var _pressed = false;
+
+  Color _face(BrandPalette brand) => widget.completed
+      ? brand.gold
+      : widget.unlocked
+      ? brand.accentFill
+      : brand.pick(const Color(0xFFD6D3CA), const Color(0xFF2A312E));
+
+  void _fire() {
+    HapticFeedback.selectionClick();
+    final box = context.findRenderObject();
+    if (box is! RenderBox || !box.hasSize) {
+      widget.onTap(Rect.zero);
+      return;
+    }
+    final origin = box.localToGlobal(Offset.zero);
+    widget.onTap(origin & box.size);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final brand = context.brand;
+    final face = _face(brand);
+    // The lip is the same colour standing in its own shadow, which is what
+    // makes it read as the underside of one object rather than as a second
+    // circle behind the first.
+    final lip = Color.alphaBlend(Colors.black.withValues(alpha: 0.28), face);
+    final glyph = widget.completed
+        ? brand.pick(brand.accent, const Color(0xFF10231B))
+        : widget.unlocked
+        ? brand.onAccentFill
+        : brand.faintInk;
+
+    return Semantics(
+      button: true,
+      enabled: widget.unlocked,
+      label: widget.semantics,
+      excludeSemantics: true,
+      child: GestureDetector(
+        onTapDown: (_) => setState(() => _pressed = true),
+        onTapCancel: () => setState(() => _pressed = false),
+        onTapUp: (_) {
+          setState(() => _pressed = false);
+          _fire();
+        },
+        child: SizedBox(
+          width: _nodeSize,
+          height: _nodeSize + _nodeLip,
+          child: Stack(
+            children: [
+              Positioned(
+                left: 0,
+                right: 0,
+                top: _nodeLip,
+                height: _nodeSize,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(color: lip, shape: BoxShape.circle),
+                ),
+              ),
+              AnimatedPositioned(
+                duration: const Duration(milliseconds: 90),
+                curve: Curves.easeOut,
+                left: 0,
+                right: 0,
+                top: _pressed ? _nodeLip - 2 : 0,
+                height: _nodeSize,
+                child: _PathButtonFace(
+                  face: face,
+                  glyph: glyph,
+                  icon: widget.icon,
+                  current: widget.current,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PathButtonFace extends StatelessWidget {
+  const _PathButtonFace({
+    required this.face,
+    required this.glyph,
+    required this.icon,
+    required this.current,
+  });
+
+  final Color face;
+  final Color glyph;
+  final IconData icon;
+  final bool current;
+
+  @override
+  Widget build(BuildContext context) => DecoratedBox(
+    decoration: BoxDecoration(
+      color: face,
+      shape: BoxShape.circle,
+      border: Border.all(color: context.brand.background, width: 4),
+      boxShadow: current
+          ? [
+              BoxShadow(
+                color: face.withValues(alpha: 0.42),
+                blurRadius: 18,
+                spreadRadius: 1,
+              ),
+            ]
+          : const [],
+    ),
+    child: Icon(icon, color: glyph, size: 32),
+  );
+}
+
+/// The nudge over the lesson somebody is up to.
+class _StartBubble extends StatefulWidget {
+  const _StartBubble();
+
+  @override
+  State<_StartBubble> createState() => _StartBubbleState();
+}
+
+class _StartBubbleState extends State<_StartBubble>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _bob = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1100),
+  );
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (MediaQuery.disableAnimationsOf(context)) {
+      _bob.stop();
+    } else if (!_bob.isAnimating) {
+      _bob.repeat(reverse: true);
+    }
+  }
+
+  @override
+  void dispose() {
+    _bob.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final brand = context.brand;
+    return ExcludeSemantics(
+      child: SlideTransition(
+        position: Tween(
+          begin: Offset.zero,
+          end: const Offset(0, -0.14),
+        ).animate(CurvedAnimation(parent: _bob, curve: Curves.easeInOut)),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 6),
+              decoration: BoxDecoration(
+                color: brand.surface,
+                borderRadius: BorderRadius.circular(999),
+                border: Border.all(color: brand.accent, width: 2),
+              ),
+              child: Text(
+                AppLocalizations.of(context).learnStart,
+                style: TextStyle(
+                  color: brand.accent,
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.1,
+                ),
+              ),
+            ),
+            // The little tail that turns a pill into something pointing at the
+            // button underneath it.
+            CustomPaint(
+              size: const Size(14, 7),
+              painter: _BubbleTail(fill: brand.surface, edge: brand.accent),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _BubbleTail extends CustomPainter {
+  const _BubbleTail({required this.fill, required this.edge});
+
+  final Color fill;
+  final Color edge;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final tail = Path()
+      ..moveTo(0, 0)
+      ..lineTo(size.width, 0)
+      ..lineTo(size.width / 2, size.height)
+      ..close();
+    canvas
+      ..drawPath(tail, Paint()..color = fill)
+      ..drawPath(
+        tail,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2
+          ..color = edge,
+      );
+  }
+
+  @override
+  bool shouldRepaint(_BubbleTail old) => old.fill != fill || old.edge != edge;
+}
+
+/// What is waiting at the end of a unit.
+class _UnitChest extends StatelessWidget {
+  const _UnitChest({required this.unlocked, required this.unit});
+
+  final bool unlocked;
+  final String unit;
+
+  @override
+  Widget build(BuildContext context) {
+    final brand = context.brand;
+    final l10n = AppLocalizations.of(context);
+    final face = unlocked
+        ? brand.gold
+        : brand.pick(const Color(0xFFD6D3CA), const Color(0xFF2A312E));
+    return Semantics(
+      label: unlocked
+          ? l10n.learnUnitCompleteSemantics(unit)
+          : l10n.learnUnitTrophySemantics(unit),
+      child: Padding(
+        padding: const EdgeInsets.only(top: 10, bottom: 4),
+        child: Column(
+          children: [
+            Container(
+              width: 58,
+              height: 58,
+              decoration: BoxDecoration(
+                color: face,
+                shape: BoxShape.circle,
+                border: Border.all(color: brand.background, width: 4),
+              ),
+              child: Icon(
+                unlocked
+                    ? Icons.emoji_events_rounded
+                    : Icons.emoji_events_outlined,
+                color: unlocked
+                    ? brand.pick(brand.accent, const Color(0xFF10231B))
+                    : brand.faintInk,
+                size: 26,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              unlocked ? l10n.learnUnitComplete : l10n.learnUnitTrophy,
+              style: TextStyle(
+                color: unlocked ? brand.gold : brand.faintInk,
+                fontSize: 9,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 1,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── The lesson bubble ───────────────────────────────────────────────────────
+
+/// Opens the card that names the lesson somebody just pressed, pointing at the
+/// button they pressed.
+///
+/// Anchored rather than centred on purpose. A card in the middle of the screen
+/// has no relationship to the circle that opened it; one that grows out of the
+/// button is unmistakably *that lesson*, which matters on a trail where every
+/// button looks the same.
+Future<bool?> showLessonBubble(
+  BuildContext context, {
+  required Rect anchor,
+  required Lesson lesson,
+  required int number,
+  required int total,
+  required bool completed,
+  required bool unlocked,
+}) => showGeneralDialog<bool>(
+  context: context,
+  barrierDismissible: true,
+  barrierLabel: 'Close',
+  barrierColor: Colors.black.withValues(alpha: 0.18),
+  transitionDuration: const Duration(milliseconds: 190),
+  pageBuilder: (dialogContext, animation, secondary) => _LessonBubbleLayer(
+    anchor: anchor,
+    lesson: lesson,
+    number: number,
+    total: total,
+    completed: completed,
+    unlocked: unlocked,
+  ),
+  transitionBuilder: (context, animation, secondary, child) {
+    final curve = CurvedAnimation(parent: animation, curve: Curves.easeOutBack);
+    return FadeTransition(
+      opacity: animation,
+      child: ScaleTransition(
+        scale: Tween<double>(begin: 0.86, end: 1).animate(curve),
+        // Grows out of the top of the button rather than out of its own
+        // middle, which is where the finger was.
+        alignment: Alignment.topCenter,
+        child: child,
+      ),
+    );
+  },
+);
+
+class _LessonBubbleLayer extends StatelessWidget {
+  const _LessonBubbleLayer({
+    required this.anchor,
+    required this.lesson,
+    required this.number,
+    required this.total,
+    required this.completed,
+    required this.unlocked,
+  });
+
+  final Rect anchor;
+  final Lesson lesson;
+  final int number;
+  final int total;
+  final bool completed;
+  final bool unlocked;
+
+  static const _width = 268.0;
+
+  @override
+  Widget build(BuildContext context) {
+    final size = MediaQuery.sizeOf(context);
+    final width = _width > size.width - 32 ? size.width - 32 : _width;
+    // Held inside the screen, and pointing at the button wherever that put it.
+    final left = (anchor.center.dx - (width / 2)).clamp(
+      16.0,
+      size.width - width - 16,
+    );
+    final below = anchor.bottom + 8;
+    final fitsBelow = below + 190 < size.height;
+
+    return Stack(
+      children: [
+        Positioned(
+          left: left,
+          top: fitsBelow ? below : null,
+          bottom: fitsBelow ? null : size.height - anchor.top + 8,
+          width: width,
+          child: _LessonBubble(
+            lesson: lesson,
+            number: number,
+            total: total,
+            completed: completed,
+            unlocked: unlocked,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _LessonBubble extends StatelessWidget {
+  const _LessonBubble({
+    required this.lesson,
+    required this.number,
+    required this.total,
+    required this.completed,
+    required this.unlocked,
+  });
+
+  final Lesson lesson;
+  final int number;
+  final int total;
+  final bool completed;
+  final bool unlocked;
+
+  @override
+  Widget build(BuildContext context) {
+    final brand = context.brand;
+    final l10n = AppLocalizations.of(context);
+    final tint = completed
+        ? brand.gold
+        : unlocked
+        ? brand.accentFill
+        : brand.mutedInk;
+
+    return Material(
+      color: Colors.transparent,
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+        decoration: BoxDecoration(
+          color: brand.surfaceElevated,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: tint.withValues(alpha: 0.55), width: 2),
+          boxShadow: [
+            BoxShadow(
+              color: brand.shadow.withValues(alpha: brand.isDark ? 0.5 : 0.16),
+              blurRadius: 24,
+              offset: const Offset(0, 10),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              completed
+                  ? l10n.learnBubbleCompleted(number, total)
+                  : unlocked
+                  ? l10n.learnBubbleLesson(number, total)
+                  : l10n.learnBubbleLocked,
+              style: TextStyle(
+                color: tint,
+                fontSize: 9.5,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 1.1,
+              ),
+            ),
+            const SizedBox(height: 5),
+            Text(lesson.title, style: Theme.of(context).textTheme.titleLarge),
+            const SizedBox(height: 3),
+            Text(
+              unlocked
+                  ? l10n.learnBubbleMinutes(lesson.minutes, lesson.xp)
+                  : l10n.learnBubbleLockedBody,
+              style: TextStyle(color: brand.mutedInk, fontSize: 12.5),
+            ),
+            const SizedBox(height: 14),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: unlocked
+                    ? () => Navigator.of(context).pop(true)
+                    : null,
+                style: FilledButton.styleFrom(
+                  backgroundColor: tint,
+                  foregroundColor: completed
+                      ? brand.pick(brand.accent, const Color(0xFF10231B))
+                      : brand.onAccentFill,
+                  minimumSize: const Size(0, 46),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+                child: Text(
+                  completed
+                      ? l10n.learnBubblePractise
+                      : unlocked
+                      ? l10n.learnBubbleStart(lesson.xp)
+                      : l10n.learnBubbleLocked,
+                  style: const TextStyle(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 0.6,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Finishing ───────────────────────────────────────────────────────────────
+
+/// How a lesson went.
+///
+/// The lesson screen used to answer "did they finish it" with a bare `true`,
+/// which threw away the only thing worth knowing — how many they got right —
+/// at the exact moment somebody wanted to be told.
+@immutable
+class LessonResult {
+  const LessonResult({required this.correct, required this.total});
+
+  final int correct;
+  final int total;
+
+  bool get isPerfect => total > 0 && correct == total;
+
+  int get percent => total == 0 ? 0 : ((correct / total) * 100).round();
+}
+
+/// The screen at the end of a lesson.
+///
+/// This was a snackbar. A snackbar is what an app says when it has saved a
+/// draft — not what it says to somebody who has just learned to greet an elder
+/// in their grandmother's language. The tally counts up rather than appearing,
+/// because a number that climbs is a number somebody watches.
+class LessonCompleteScreen extends StatefulWidget {
+  const LessonCompleteScreen({
+    required this.lesson,
+    required this.result,
+    required this.xpEarned,
+    required this.totalXp,
+    required this.streakDays,
+    super.key,
+  });
+
+  final Lesson lesson;
+  final LessonResult result;
+
+  /// What this sitting paid. Zero for a lesson being walked again, which was
+  /// paid for the first time.
+  final int xpEarned;
+
+  final int totalXp;
+  final int streakDays;
+
+  @override
+  State<LessonCompleteScreen> createState() => _LessonCompleteScreenState();
+}
+
+class _LessonCompleteScreenState extends State<LessonCompleteScreen>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _entrance = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1100),
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    _entrance.forward();
+  }
+
+  @override
+  void dispose() {
+    _entrance.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final brand = context.brand;
+    final l10n = AppLocalizations.of(context);
+    final result = widget.result;
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: brandOverlayStyle(brand),
+      child: Scaffold(
+        backgroundColor: brand.background,
+        body: Stack(
+          children: [
+            const Positioned.fill(child: _LessonAtmosphere()),
+            SafeArea(
+              child: Align(
+                alignment: Alignment.topCenter,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 520),
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 12, 24, 20),
+                    child: Column(
+                      children: [
+                        const Spacer(),
+                        _Medal(animation: _entrance, perfect: result.isPerfect),
+                        const SizedBox(height: 26),
+                        Text(
+                          result.isPerfect
+                              ? l10n.learnPerfectLesson
+                              : l10n.learnLessonComplete,
+                          textAlign: TextAlign.center,
+                          style: Theme.of(context).textTheme.displaySmall,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          widget.lesson.title,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: brand.mutedInk,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 28),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _ScoreCard(
+                                label: widget.xpEarned > 0
+                                    ? l10n.learnXpEarned
+                                    : l10n.learnTotalXp,
+                                tint: brand.gold,
+                                animation: _entrance,
+                                target: widget.xpEarned > 0
+                                    ? widget.xpEarned
+                                    : widget.totalXp,
+                                suffix: '',
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: _ScoreCard(
+                                label: l10n.learnAnswersRight,
+                                tint: result.isPerfect
+                                    ? brand.success
+                                    : brand.accent,
+                                animation: _entrance,
+                                target: result.percent,
+                                suffix: '%',
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (widget.streakDays > 0) ...[
+                          const SizedBox(height: 12),
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 13,
+                            ),
+                            decoration: BoxDecoration(
+                              color: brand.surfaceMuted,
+                              borderRadius: BorderRadius.circular(18),
+                              border: Border.all(color: brand.border),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.local_fire_department_rounded,
+                                  color: Color(0xFFE0763C),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    widget.streakDays == 1
+                                        ? l10n.learnStreakDayOne
+                                        : l10n.learnStreakDays(
+                                            widget.streakDays,
+                                          ),
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                        const Spacer(),
+                        SizedBox(
+                          width: double.infinity,
+                          child: FilledButton(
+                            key: const Key('lesson-complete-continue'),
+                            onPressed: () => Navigator.of(context).pop(),
+                            style: FilledButton.styleFrom(
+                              minimumSize: const Size(0, 52),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                            ),
+                            child: Text(
+                              l10n.learnContinue,
+                              style: const TextStyle(
+                                fontSize: 14.5,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 1,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The mark at the top of the screen, with a burst of gold behind it.
+class _Medal extends StatelessWidget {
+  const _Medal({required this.animation, required this.perfect});
+
+  final Animation<double> animation;
+  final bool perfect;
+
+  @override
+  Widget build(BuildContext context) {
+    final brand = context.brand;
+    return SizedBox(
+      width: 190,
+      height: 190,
+      child: AnimatedBuilder(
+        animation: animation,
+        builder: (context, child) => Stack(
+          alignment: Alignment.center,
+          children: [
+            CustomPaint(
+              size: const Size.square(190),
+              painter: _SparkBurst(
+                progress: Curves.easeOutCubic.transform(
+                  animation.value.clamp(0.0, 1.0),
+                ),
+                colour: brand.gold,
+              ),
+            ),
+            Transform.scale(
+              scale: Curves.elasticOut.transform(
+                (animation.value * 1.6).clamp(0.0, 1.0),
+              ),
+              child: child,
+            ),
+          ],
+        ),
+        child: Container(
+          width: 118,
+          height: 118,
+          decoration: BoxDecoration(
+            color: perfect ? brand.gold : brand.accentFill,
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: (perfect ? brand.gold : brand.accentFill).withValues(
+                  alpha: 0.35,
+                ),
+                blurRadius: 26,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          child: Icon(
+            perfect ? Icons.workspace_premium_rounded : Icons.check_rounded,
+            size: 62,
+            color: perfect
+                ? brand.pick(brand.accent, const Color(0xFF10231B))
+                : brand.onAccentFill,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Twelve short strokes thrown outwards and fading. Cheap, brief, and the only
+/// thing on the screen that moves once the numbers have settled.
+class _SparkBurst extends CustomPainter {
+  const _SparkBurst({required this.progress, required this.colour});
+
+  final double progress;
+  final Color colour;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (progress <= 0 || progress >= 1) return;
+    final centre = size.center(Offset.zero);
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeWidth = 4
+      ..color = colour.withValues(alpha: (1 - progress) * 0.85);
+    for (var index = 0; index < 12; index++) {
+      final angle = (index / 12) * 2 * 3.1415926;
+      final inner = 62 + (progress * 26);
+      final outer = inner + 12 - (progress * 8);
+      canvas.drawLine(
+        centre + Offset.fromDirection(angle, inner),
+        centre + Offset.fromDirection(angle, outer),
+        paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_SparkBurst old) =>
+      old.progress != progress || old.colour != colour;
+}
+
+/// One number, counted up rather than printed.
+class _ScoreCard extends StatelessWidget {
+  const _ScoreCard({
+    required this.label,
+    required this.tint,
+    required this.animation,
+    required this.target,
+    required this.suffix,
+  });
+
+  final String label;
+  final Color tint;
+  final Animation<double> animation;
+  final int target;
+  final String suffix;
+
+  @override
+  Widget build(BuildContext context) {
+    final brand = context.brand;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 13),
+      decoration: BoxDecoration(
+        color: brand.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: tint.withValues(alpha: 0.45), width: 2),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              color: tint,
+              fontSize: 9.5,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 1,
+            ),
+          ),
+          const SizedBox(height: 5),
+          AnimatedBuilder(
+            animation: animation,
+            builder: (context, _) {
+              final shown = (target * Curves.easeOut.transform(animation.value))
+                  .round();
+              return Text(
+                '$shown$suffix',
+                style: TextStyle(
+                  color: brand.ink,
+                  fontSize: 26,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -0.8,
+                ),
+              );
+            },
+          ),
+        ],
       ),
     );
   }
@@ -714,454 +2129,6 @@ class _MomentumStat extends StatelessWidget {
       ],
     ),
   );
-}
-
-class _UnitBanner extends StatelessWidget {
-  const _UnitBanner({
-    required this.unit,
-    required this.title,
-    required this.subtitle,
-    required this.color,
-  });
-
-  final String unit;
-  final String title;
-  final String subtitle;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(17),
-    decoration: BoxDecoration(
-      color: color,
-      borderRadius: BorderRadius.circular(20),
-    ),
-    child: Row(
-      children: [
-        Container(
-          width: 46,
-          height: 46,
-          decoration: BoxDecoration(
-            color: Colors.white12,
-            borderRadius: BorderRadius.circular(14),
-          ),
-          child: Icon(
-            Icons.record_voice_over_rounded,
-            color: context.brand.gold,
-          ),
-        ),
-        const SizedBox(width: 13),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                unit,
-                style: TextStyle(
-                  color: context.brand.gold,
-                  fontSize: 9,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 1.1,
-                ),
-              ),
-              const SizedBox(height: 3),
-              Text(
-                title,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-              Text(
-                subtitle,
-                style: const TextStyle(color: Colors.white70, fontSize: 11),
-              ),
-            ],
-          ),
-        ),
-      ],
-    ),
-  );
-}
-
-/// Size of a lesson button. The ribbon between two lessons reads its anchor
-/// off the width, so nudging the button never leaves the trail pointing at
-/// empty space beside it.
-const _lessonButtonWidth = 78.0;
-const _lessonButtonHeight = 72.0;
-
-class _LessonPathNode extends StatelessWidget {
-  const _LessonPathNode({
-    required this.lesson,
-    required this.index,
-    required this.completed,
-    required this.unlocked,
-    required this.current,
-    required this.onTap,
-  });
-
-  final Lesson lesson;
-  final int index;
-  final bool completed;
-  final bool unlocked;
-  final bool current;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final alignRight = index.isOdd;
-    return Align(
-      alignment: alignRight ? Alignment.centerRight : Alignment.centerLeft,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        textDirection: alignRight ? TextDirection.rtl : TextDirection.ltr,
-        children: [
-          _BouncyLessonButton(
-            icon: completed
-                ? Icons.check_rounded
-                : unlocked
-                ? lesson.icon
-                : Icons.lock_rounded,
-            current: current,
-            completed: completed,
-            unlocked: unlocked,
-            onTap: onTap,
-          ),
-          const SizedBox(width: 12),
-          SizedBox(
-            width: 150,
-            child: Column(
-              crossAxisAlignment: alignRight
-                  ? CrossAxisAlignment.end
-                  : CrossAxisAlignment.start,
-              children: [
-                Text(
-                  current
-                      ? 'UP NEXT'
-                      : completed
-                      ? 'COMPLETED'
-                      : 'LESSON ${index + 1}',
-                  style: TextStyle(
-                    color: current
-                        ? context.brand.terracotta
-                        : context.brand.mutedInk,
-                    fontSize: 9,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 0.9,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  lesson.title,
-                  textAlign: alignRight ? TextAlign.right : TextAlign.left,
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                Text(
-                  '${lesson.minutes} min · ${lesson.xp} XP',
-                  style: TextStyle(color: context.brand.mutedInk, fontSize: 11),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _BouncyLessonButton extends StatefulWidget {
-  const _BouncyLessonButton({
-    required this.icon,
-    required this.current,
-    required this.completed,
-    required this.unlocked,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final bool current;
-  final bool completed;
-  final bool unlocked;
-  final VoidCallback onTap;
-
-  @override
-  State<_BouncyLessonButton> createState() => _BouncyLessonButtonState();
-}
-
-class _BouncyLessonButtonState extends State<_BouncyLessonButton> {
-  var _pressed = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final color = widget.completed
-        ? context.brand.gold
-        : widget.unlocked
-        ? context.brand.accent
-        : const Color(0xFFC8C6BE);
-    return GestureDetector(
-      onTapDown: (_) => setState(() => _pressed = true),
-      onTapCancel: () => setState(() => _pressed = false),
-      onTapUp: (_) {
-        setState(() => _pressed = false);
-        widget.onTap();
-      },
-      child: AnimatedScale(
-        scale: _pressed
-            ? 0.92
-            : widget.current
-            ? 1.05
-            : 1,
-        duration: const Duration(milliseconds: 140),
-        curve: Curves.easeOutBack,
-        child: Container(
-          width: _lessonButtonWidth,
-          height: _lessonButtonHeight,
-          decoration: BoxDecoration(
-            color: color,
-            shape: BoxShape.circle,
-            border: Border.all(color: context.brand.background, width: 5),
-            boxShadow: [
-              BoxShadow(
-                color: color.withValues(alpha: 0.35),
-                blurRadius: widget.current ? 18 : 7,
-                offset: const Offset(0, 7),
-              ),
-            ],
-          ),
-          child: Icon(
-            widget.icon,
-            color: widget.completed ? context.brand.accent : Colors.white,
-            size: 31,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Vertical room one ribbon segment gets. A straight bar needed almost none;
-/// a curve needs enough height to be a curve rather than a kink.
-const _ribbonHeight = 64.0;
-
-/// How far the ribbon swings past a lesson before crossing to the next one.
-/// Wide enough that four segments read as one winding trail, narrow enough
-/// that the curve never leaves its own box.
-const _ribbonBow = 26.0;
-
-/// Spacing of the beads threaded along the ribbon.
-const _ribbonBeadSpacing = 16.0;
-
-/// The trail between two lessons.
-///
-/// Lessons alternate sides of the page, and this is the ribbon that joins
-/// them: it leaves the bottom of one button, bows away from that side, then
-/// crosses and arrives at the top of the next. Consecutive segments bow
-/// opposite ways, so the whole unit spirals down the page as one path rather
-/// than a column of disconnected hops.
-class _LessonRibbon extends StatefulWidget {
-  const _LessonRibbon({
-    required this.startOnRight,
-    required this.travelled,
-    required this.frontier,
-  });
-
-  /// Side the lesson above sits on. The one below sits on the other.
-  final bool startOnRight;
-
-  /// How much of this segment the member has walked, 0 to 1.
-  final double travelled;
-
-  /// True for the single segment that leads into the lesson they are on now.
-  final bool frontier;
-
-  @override
-  State<_LessonRibbon> createState() => _LessonRibbonState();
-}
-
-class _LessonRibbonState extends State<_LessonRibbon>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _breath = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 2600),
-  );
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _syncBreath();
-  }
-
-  @override
-  void didUpdateWidget(covariant _LessonRibbon oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.frontier != widget.frontier) _syncBreath();
-  }
-
-  @override
-  void dispose() {
-    _breath.dispose();
-    super.dispose();
-  }
-
-  /// Only the frontier breathes, and only when the member has not asked the
-  /// system to hold animation still. Everywhere else the ribbon is a still
-  /// drawing, which costs nothing to leave on screen.
-  void _syncBreath() {
-    final animate =
-        widget.frontier &&
-        !MediaQuery.disableAnimationsOf(context) &&
-        !MediaQuery.accessibleNavigationOf(context);
-    if (animate) {
-      if (!_breath.isAnimating) _breath.repeat(reverse: true);
-    } else if (_breath.isAnimating || _breath.value != 0) {
-      _breath
-        ..stop()
-        ..value = 0;
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) => ExcludeSemantics(
-    // Pure decoration. A screen reader should hear four lessons, not three
-    // descriptions of a squiggle between them.
-    child: RepaintBoundary(
-      child: AnimatedBuilder(
-        animation: _breath,
-        builder: (context, _) => CustomPaint(
-          size: const Size(double.infinity, _ribbonHeight),
-          painter: _LessonRibbonPainter(
-            brand: context.brand,
-            startOnRight: widget.startOnRight,
-            travelled: widget.travelled,
-            glow: widget.frontier
-                ? Curves.easeInOut.transform(_breath.value)
-                : 0.0,
-          ),
-        ),
-      ),
-    ),
-  );
-}
-
-class _LessonRibbonPainter extends CustomPainter {
-  const _LessonRibbonPainter({
-    required this.brand,
-    required this.startOnRight,
-    required this.travelled,
-    required this.glow,
-  });
-
-  /// A painter has no context of its own, so the palette comes in with the
-  /// rest of the paint data — and takes part in [shouldRepaint], or the
-  /// trail would keep its daylight grey after a switch to dark.
-  final BrandPalette brand;
-
-  final bool startOnRight;
-  final double travelled;
-
-  /// Breath on the frontier segment, 0 when the trail is standing still.
-  final double glow;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    // The trail meets each button dead centre. Taking the anchor from the
-    // button width means the two cannot drift apart.
-    final anchor = _lessonButtonWidth / 2;
-    final startX = startOnRight ? size.width - anchor : anchor;
-    final endX = startOnRight ? anchor : size.width - anchor;
-    final outward = startOnRight ? _ribbonBow : -_ribbonBow;
-
-    final ribbon = Path()
-      ..moveTo(startX, 0)
-      ..cubicTo(
-        startX + outward,
-        size.height * 0.34,
-        endX - outward,
-        size.height * 0.66,
-        endX,
-        size.height,
-      );
-
-    // A wide, barely-there green underneath — the same warm shadow the cards
-    // carry, so the ribbon rests on the page instead of floating over it.
-    canvas.drawPath(
-      ribbon,
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 12
-        ..strokeCap = StrokeCap.round
-        ..color = brand.shadow.withValues(alpha: brand.isDark ? 0.5 : 0.06),
-    );
-
-    final metric = ribbon.computeMetrics().first;
-    final walked = metric.length * travelled.clamp(0.0, 1.0);
-
-    final thread = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 4
-      ..strokeCap = StrokeCap.round;
-
-    if (walked < metric.length) {
-      canvas.drawPath(
-        metric.extractPath(walked, metric.length),
-        thread..color = brand.divider,
-      );
-    }
-    if (walked > 0) {
-      final trail = metric.extractPath(0, walked);
-      if (glow > 0) {
-        canvas.drawPath(
-          trail,
-          Paint()
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = 11
-            ..strokeCap = StrokeCap.round
-            ..color = brand.gold.withValues(alpha: 0.1 + (glow * 0.22))
-            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4),
-        );
-      }
-      canvas.drawPath(trail, thread..color = brand.gold);
-    }
-
-    _paintBeads(canvas, metric, walked);
-  }
-
-  /// Beads are what turn a curve into a path somebody is walking. Each wears
-  /// the same white collar as the lesson buttons, so the trail and its stops
-  /// clearly belong to one another.
-  void _paintBeads(Canvas canvas, PathMetric metric, double walked) {
-    final bead = Paint();
-    final collar = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.6
-      ..color = brand.background;
-
-    for (
-      var distance = _ribbonBeadSpacing;
-      distance < metric.length - 6;
-      distance += _ribbonBeadSpacing
-    ) {
-      final tangent = metric.getTangentForOffset(distance);
-      if (tangent == null) continue;
-      final reached = distance <= walked;
-      final radius = reached ? 3.4 : 2.7;
-      canvas
-        ..drawCircle(
-          tangent.position,
-          radius,
-          bead..color = reached ? brand.gold : brand.divider,
-        )
-        ..drawCircle(tangent.position, radius, collar);
-    }
-  }
-
-  @override
-  bool shouldRepaint(_LessonRibbonPainter oldDelegate) =>
-      oldDelegate.brand != brand ||
-      oldDelegate.startOnRight != startOnRight ||
-      oldDelegate.travelled != travelled ||
-      oldDelegate.glow != glow;
 }
 
 class _LockedUnitPreview extends StatelessWidget {
@@ -1392,7 +2359,10 @@ class _LessonScreenState extends State<_LessonScreen> {
     }
     if (_isLast) {
       HapticFeedback.mediumImpact();
-      Navigator.pop(context, true);
+      Navigator.pop(
+        context,
+        LessonResult(correct: _correctCount, total: _questions.length),
+      );
       return;
     }
     setState(() {

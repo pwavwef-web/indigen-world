@@ -193,6 +193,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               CommunityAvatar(
                 initials: liveProfile?.initials ?? _initialsFor(name),
                 imageUrl: avatarUrl,
+                username: liveProfile?.username,
                 size: 34,
               ),
               const SizedBox(width: 10),

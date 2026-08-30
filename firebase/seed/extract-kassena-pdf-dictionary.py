@@ -634,7 +634,7 @@ def main() -> None:
     parser.add_argument("--limit", type=int, default=DEFAULT_LIMIT)
     args = parser.parse_args()
     if args.limit < 1000:
-        raise SystemExit("The Project Kasena review batch must contain at least 1000 entries.")
+        raise SystemExit("The Project Kassena review batch must contain at least 1000 entries.")
 
     volumes = [
         # A-K has introductory material before the alphabetic entries. L-Z is

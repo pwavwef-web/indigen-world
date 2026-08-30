@@ -41,10 +41,7 @@ void main() {
     });
 
     test('a thread id opens that conversation', () {
-      expect(
-        pushRouteFor({'type': 'message', 'threadId': 'a_b'}),
-        '/chat/a_b',
-      );
+      expect(pushRouteFor({'type': 'message', 'threadId': 'a_b'}), '/chat/a_b');
     });
 
     test('non-string values do not throw', () {
@@ -87,7 +84,10 @@ void main() {
 
     test('a community alert is never swallowed by an open conversation', () {
       // A like whose postId happens to match a thread id must still arrive.
-      expect(isForOpenThread({'type': 'like', 'postId': 'a_b'}, 'a_b'), isFalse);
+      expect(
+        isForOpenThread({'type': 'like', 'postId': 'a_b'}, 'a_b'),
+        isFalse,
+      );
       expect(isForOpenThread(const {}, 'a_b'), isFalse);
     });
   });

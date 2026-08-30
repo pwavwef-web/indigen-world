@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/app/app_theme.dart';
 import 'package:indigen_world_mobile/features/community/data/community_models.dart';
 import 'package:indigen_world_mobile/features/community/data/community_providers.dart';
 import 'package:indigen_world_mobile/features/community/data/community_repository.dart';
+import 'package:indigen_world_mobile/l10n/app_localizations.dart';
 
 /// An in-memory stand-in for [CommunityRepository].
 ///
@@ -51,12 +54,26 @@ class FakeCommunityRepository implements CommunityRepository {
   List<CommunityPost> get _topLevel =>
       _posts.where((post) => !post.isReply).toList(growable: false);
 
+  /// Lets a test push a second page down the same stream, the way Firestore
+  /// does when somebody else posts while the feed is open.
+  final _feed = StreamController<List<CommunityPost>>.broadcast();
+
+  void publish(CommunityPost post) {
+    _posts.insert(0, post);
+    _feed.add(_topLevel);
+  }
+
+  /// Called by tests that used [publish]; a broadcast controller left open
+  /// keeps the test binding waiting.
+  Future<void> closeFeed() => _feed.close();
+
   @override
-  Stream<List<CommunityPost>> watchFeed({int limit = 40}) {
+  Stream<List<CommunityPost>> watchFeed({int limit = 40}) async* {
     final error = feedError;
-    return error == null
-        ? Stream.value(_topLevel)
-        : Stream<List<CommunityPost>>.error(error);
+    if (error != null) throw error;
+    // The first page, then anything a test publishes afterwards.
+    yield _topLevel;
+    yield* _feed.stream;
   }
 
   @override
@@ -278,6 +295,8 @@ CommunityProfile fakeProfile({
   String location = 'Paga',
   String dialect = 'Paga',
   String? avatarUrl,
+  String verifiedKind = '',
+  bool phoneVerified = false,
 }) => CommunityProfile(
   uid: uid,
   username: username,
@@ -286,6 +305,8 @@ CommunityProfile fakeProfile({
   location: location,
   dialect: dialect,
   avatarUrl: avatarUrl,
+  verifiedKind: verifiedKind,
+  phoneVerified: phoneVerified,
   createdAt: DateTime(2026, 8, 1),
 );
 
@@ -305,6 +326,9 @@ CommunityPost fakePost({
   CommunityPost? quotedPost,
   CommunityPoll? poll,
   String? parentId,
+  DateTime? createdAt,
+  String authorVerifiedKind = '',
+  bool authorPhoneVerified = false,
 }) => CommunityPost(
   id: id,
   authorId: authorId,
@@ -322,7 +346,9 @@ CommunityPost fakePost({
   poll: poll,
   parentId: parentId,
   rootId: parentId ?? id,
-  createdAt: DateTime(2026, 8, 23, 11, 30),
+  authorVerifiedKind: authorVerifiedKind,
+  authorPhoneVerified: authorPhoneVerified,
+  createdAt: createdAt ?? DateTime(2026, 8, 23, 11, 30),
 );
 
 /// Wraps [child] in the app theme and a [ProviderScope] wired to [repository].
@@ -335,6 +361,9 @@ Widget communityHarness({
   String? uid = 'amina-uid',
   CommunityProfile? profile,
   ThemeData? theme,
+  /// Pins the reading language. Null lets the harness follow the test
+  /// platform's locale, which is what the app itself does.
+  Locale? locale,
 }) => ProviderScope(
   overrides: [
     communityRepositoryProvider.overrideWithValue(repository),
@@ -345,5 +374,11 @@ Widget communityHarness({
       (ref) => Stream<CommunityProfile?>.value(profile),
     ),
   ],
-  child: MaterialApp(theme: theme ?? buildIndigenTheme(), home: child),
+  child: MaterialApp(
+    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    supportedLocales: AppLocalizations.supportedLocales,
+    locale: locale,
+    theme: theme ?? buildIndigenTheme(),
+    home: child,
+  ),
 );

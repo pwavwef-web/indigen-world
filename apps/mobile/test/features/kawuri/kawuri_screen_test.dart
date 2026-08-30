@@ -6,6 +6,7 @@ import 'package:indigen_world_mobile/app/app_theme.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_models.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_screen.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_service.dart';
+import 'package:indigen_world_mobile/l10n/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// A stand-in for the callable so no test ever reaches Firebase.
@@ -42,6 +43,9 @@ void main() {
       ProviderScope(
         overrides: [kawuriServiceProvider.overrideWithValue(service)],
         child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+
           theme: buildIndigenTheme(),
           home: const KawuriScreen(),
         ),
@@ -166,6 +170,9 @@ void main() {
     Future<void> pumpText(WidgetTester tester, String text) async {
       await tester.pumpWidget(
         MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+
           theme: buildIndigenTheme(),
           home: Scaffold(body: KawuriText(text: text)),
         ),

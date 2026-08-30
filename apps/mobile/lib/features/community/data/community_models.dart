@@ -167,8 +167,83 @@ class CommunityPoll {
 
 /// The public identity a member posts under inside the community.
 ///
+/// What the app draws beside a name, and what it is claiming.
+///
+/// ── Why four, and why they rest on a phone ────────────────────────────────
+/// A single "verified" boolean answered a question nobody was asking. In a
+/// cultural archive the useful thing to say is not *that* somebody is trusted
+/// but *why*: the project itself, a custodian of the language, or somebody who
+/// has published into the collection. Those three are granted by staff and
+/// cannot be claimed.
+///
+/// Underneath all of them is [member], which is not granted by anybody: it is
+/// what a phone number proves. **A granted kind shows nothing until the phone
+/// is verified too** — a badge that says the project vouches for someone should
+/// not sit above an account that could belong to no one. A tier waiting on a
+/// phone is pending, not denied, and the member is told so.
+enum VerifiedMark {
+  /// No mark at all.
+  none,
+
+  /// A real person behind a real number. Earned, not granted.
+  member,
+
+  /// Has published into the collection.
+  creator,
+
+  /// A recognised custodian of the language — chiefs, elders, linguists.
+  elder,
+
+  /// Indigen World and Project Kassena themselves.
+  project;
+
+  /// The stored value. [member] is derived rather than stored: it is the phone,
+  /// not a decision anybody made.
+  static VerifiedMark fromKind(Object? raw) => switch (raw) {
+    'project' => VerifiedMark.project,
+    'elder' => VerifiedMark.elder,
+    'creator' => VerifiedMark.creator,
+    _ => VerifiedMark.none,
+  };
+
+  /// What goes back into `verifiedKind`.
+  String get kind => switch (this) {
+    VerifiedMark.project => 'project',
+    VerifiedMark.elder => 'elder',
+    VerifiedMark.creator => 'creator',
+    // Neither of these is a stored kind.
+    VerifiedMark.member || VerifiedMark.none => '',
+  };
+
+  /// Whether staff granted this rather than the member earning it.
+  bool get isGranted => kind.isNotEmpty;
+}
+
+/// The mark to draw, given what was granted and whether a phone backs it.
+///
+/// One function, used by the profile, by a post's author stamp and by the admin
+/// console, so the rule cannot drift between the places that apply it.
+///
+/// [VerifiedMark.project] is the single exception to the phone gate, and for a
+/// reason rather than for convenience: the phone exists to prove *a person* is
+/// behind an account, and the project's own accounts — the assistant among them
+/// — are not people. The project is its own guarantor there. An elder or a
+/// creator is a person, so for them the number is exactly the right anchor and
+/// the mark waits for it.
+VerifiedMark resolveVerifiedMark({
+  required String verifiedKind,
+  required bool phoneVerified,
+}) {
+  final granted = VerifiedMark.fromKind(verifiedKind);
+  if (granted == VerifiedMark.project) return granted;
+  if (!phoneVerified) return VerifiedMark.none;
+  return granted == VerifiedMark.none ? VerifiedMark.member : granted;
+}
+
 /// Mirrors `communityProfiles/{uid}`. Everything here is world-readable — the
-/// document deliberately carries no email, phone number or auth metadata.
+/// document deliberately carries no email, phone number or auth metadata: a
+/// verified phone is recorded as a flag and a one-way hash, never as a number
+/// anybody could read off the feed.
 class CommunityProfile {
   const CommunityProfile({
     required this.uid,
@@ -179,7 +254,9 @@ class CommunityProfile {
     this.bannerUrl,
     this.location = '',
     this.dialect = '',
-    this.isVerified = false,
+    this.verifiedKind = '',
+    this.phoneVerified = false,
+    this.usernameChangedAt,
     this.createdAt,
   });
 
@@ -191,8 +268,38 @@ class CommunityProfile {
   final String? bannerUrl;
   final String location;
   final String dialect;
-  final bool isVerified;
+
+  /// What staff granted, if anything: `''`, `'creator'`, `'elder'` or
+  /// `'project'`. Frozen against the member's own writes in the rules.
+  final String verifiedKind;
+
+  /// Whether an SMS code was answered from this account's number. Written only
+  /// by the verification callable.
+  final bool phoneVerified;
+
+  /// When the one-time Kassena name claim was used, or null while it is still
+  /// available. Written only by `claimKasemHandle`.
+  final DateTime? usernameChangedAt;
+
+  /// Whether this member may still take a Kassena name.
+  bool get canClaimKasemName => usernameChangedAt == null;
+
   final DateTime? createdAt;
+
+  /// The mark this profile actually draws.
+  VerifiedMark get mark => resolveVerifiedMark(
+    verifiedKind: verifiedKind,
+    phoneVerified: phoneVerified,
+  );
+
+  /// A kind that has been granted but is waiting on a phone number. Shown to
+  /// the member in Settings so a badge that has not appeared is explained
+  /// rather than mysterious.
+  bool get hasPendingVerification =>
+      !phoneVerified && mark == VerifiedMark.none && verifiedKind.isNotEmpty;
+
+  /// Kept for the call sites that only ask "is there a mark".
+  bool get isVerified => mark != VerifiedMark.none;
 
   String get handle => '@$username';
 
@@ -225,15 +332,24 @@ class CommunityProfile {
     bannerUrl: bannerUrl ?? this.bannerUrl,
     location: location ?? this.location,
     dialect: dialect ?? this.dialect,
-    isVerified: isVerified,
+    verifiedKind: verifiedKind,
+    phoneVerified: phoneVerified,
+    usernameChangedAt: usernameChangedAt,
     createdAt: createdAt,
   );
 
-  static CommunityProfile fromDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
-    final data = doc.data() ?? const <String, dynamic>{};
+  static CommunityProfile fromDoc(DocumentSnapshot<Map<String, dynamic>> doc) =>
+      fromMap(doc.id, doc.data() ?? const <String, dynamic>{});
+
+  /// The field mapping on its own, away from Firestore.
+  ///
+  /// Split out for the same reason [CommunityPost.fromMap] is: reading a
+  /// document and interpreting one are different jobs, and only the second is
+  /// worth testing.
+  static CommunityProfile fromMap(String uid, Map<String, dynamic> data) {
     return CommunityProfile(
-      uid: doc.id,
-      username: (data['username'] as String?) ?? doc.id,
+      uid: uid,
+      username: (data['username'] as String?) ?? uid,
       displayName: (data['displayName'] as String?)?.trim().isNotEmpty ?? false
           ? (data['displayName'] as String).trim()
           : 'Community member',
@@ -252,7 +368,14 @@ class CommunityProfile {
       ]),
       location: (data['location'] as String?) ?? '',
       dialect: (data['dialect'] as String?) ?? '',
-      isVerified: data['isVerified'] == true,
+      // A profile written before verification had kinds carries only the old
+      // boolean. Nothing in the app could ever set it, so one that is true was
+      // set by hand in the console — and that means the project itself.
+      verifiedKind: data['verifiedKind'] is String
+          ? data['verifiedKind'] as String
+          : (data['isVerified'] == true ? 'project' : ''),
+      phoneVerified: data['phoneVerified'] == true,
+      usernameChangedAt: (data['usernameChangedAt'] as Timestamp?)?.toDate(),
       createdAt: (data['createdAt'] as Timestamp?)?.toDate(),
     );
   }
@@ -266,6 +389,11 @@ class CommunityProfile {
     'bannerUrl': bannerUrl,
     'location': location,
     'dialect': dialect,
+    // Both are the server's to set, and the rules refuse a create that says
+    // otherwise. Written explicitly so that refusal is obvious rather than
+    // resting on a field being absent.
+    'verifiedKind': '',
+    'phoneVerified': false,
     'isVerified': false,
     'createdAt': FieldValue.serverTimestamp(),
     'updatedAt': FieldValue.serverTimestamp(),
@@ -277,7 +405,10 @@ class CommunityProfile {
     'displayName': displayName,
     'username': username,
     'avatarUrl': avatarUrl,
-    'isVerified': isVerified,
+    // Both halves travel with the post, so the feed can work out the mark
+    // without a profile read per row.
+    'verifiedKind': verifiedKind,
+    'phoneVerified': phoneVerified,
   };
 }
 
@@ -296,7 +427,8 @@ class CommunityPost {
     this.quoteCount = 0,
     this.viewCount = 0,
     this.authorAvatarUrl,
-    this.authorVerified = false,
+    this.authorVerifiedKind = '',
+    this.authorPhoneVerified = false,
     this.parentId,
     this.rootId,
     this.quotedPostId,
@@ -317,7 +449,18 @@ class CommunityPost {
   final String authorName;
   final String authorUsername;
   final String? authorAvatarUrl;
-  final bool authorVerified;
+
+  /// The author's verification, stamped on the post at write time so a feed of
+  /// forty rows does not cost forty profile reads to draw forty names.
+  final String authorVerifiedKind;
+  final bool authorPhoneVerified;
+
+  /// The mark to draw beside this post's byline.
+  VerifiedMark get authorMark => resolveVerifiedMark(
+    verifiedKind: authorVerifiedKind,
+    phoneVerified: authorPhoneVerified,
+  );
+
   final String text;
   final List<CommunityMedia> media;
   final int likeCount;
@@ -400,7 +543,10 @@ class CommunityPost {
         'avatar',
         'imageUrl',
       ]),
-      authorVerified: author['isVerified'] == true,
+      authorVerifiedKind: author['verifiedKind'] is String
+          ? author['verifiedKind'] as String
+          : (author['isVerified'] == true ? 'project' : ''),
+      authorPhoneVerified: author['phoneVerified'] == true,
       text: (data['text'] as String?) ?? '',
       media: rawMedia is List
           ? rawMedia
@@ -436,7 +582,8 @@ class CommunityPost {
     authorName: authorName,
     authorUsername: authorUsername,
     authorAvatarUrl: authorAvatarUrl,
-    authorVerified: authorVerified,
+    authorVerifiedKind: authorVerifiedKind,
+    authorPhoneVerified: authorPhoneVerified,
     text: text,
     media: media,
     likeCount: likeCount,
@@ -468,7 +615,8 @@ class CommunityPost {
       'displayName': authorName,
       'username': authorUsername,
       'avatarUrl': authorAvatarUrl,
-      'isVerified': authorVerified,
+      'verifiedKind': authorVerifiedKind,
+      'phoneVerified': authorPhoneVerified,
     },
     'text': text,
     'media': media.map((item) => item.toMap()).toList(growable: false),

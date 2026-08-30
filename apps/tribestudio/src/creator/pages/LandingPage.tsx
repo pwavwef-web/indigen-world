@@ -14,7 +14,7 @@ const HOW_IT_WORKS = [
 ];
 
 const BENEFITS = [
-  ['Be first', 'Founding creators are recognised as the earliest voices of Project Kasena.'],
+  ['Be first', 'Founding creators are recognised as the earliest voices of Project Kassena.'],
   ['Real audience', 'Approved content can be featured in the Indigen World mobile app.'],
   ['Support & resources', 'Guidelines, feedback and a community channel to help you grow.'],
   ['Fair recognition', 'Clear, separate permissions — your rights stay yours.'],
@@ -60,10 +60,10 @@ export function LandingPage() {
     <div className="landing">
       <section className="hero">
         <div className="hero__inner">
-          <p className="hero__eyebrow">Indigen World Founding Creators · Project Kasena</p>
+          <p className="hero__eyebrow">Indigen World Founding Creators · Project Kassena</p>
           <h1>Help build the future of Kasem storytelling.</h1>
           <p className="hero__lede">
-            Project Kasena is recruiting founding creators for upcoming Kasem-language campaigns. Join
+            Project Kassena is recruiting founding creators for upcoming Kasem-language campaigns. Join
             the waitlist now, prepare your profile, and be ready the moment entries open.
           </p>
           <div className="hero__actions">
@@ -82,7 +82,7 @@ export function LandingPage() {
         <p className="section__lede">
           The Founding Creators Programme is how Indigen World finds, supports and celebrates the
           creators shaping Kasem-language content — storytellers, teachers, musicians and everyday
-          voices from Kasena communities.
+          voices from Kassena communities.
         </p>
       </section>
 

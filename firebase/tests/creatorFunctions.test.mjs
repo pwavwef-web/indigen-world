@@ -42,7 +42,7 @@ before(async () => {
   adminApp = adminInit({ projectId: PROJECT_ID });
   db = adminFirestore(adminApp);
   await db.doc(`campaigns/${CAMPAIGN}`).set({
-    id: CAMPAIGN, slug: CAMPAIGN, title: 'Kasem Creator Challenge', initiative: 'Project Kasena',
+    id: CAMPAIGN, slug: CAMPAIGN, title: 'Kasem Creator Challenge', initiative: 'Project Kassena',
     status: 'WAITLIST_OPEN', visibility: 'public', lifecycle: life(),
   });
   creatorApp = await clientFor('creator-e2e', {});
@@ -102,7 +102,7 @@ test('admin approval creates an approved membership and creator claim', async ()
     decision: 'APPROVE',
     reason: '',
     assignedLanguages: ['xsm'],
-    assignedCommunities: ['Kasena'],
+    assignedCommunities: ['Kassena'],
     assignedCampaigns: [CAMPAIGN],
     permissions: ['profile:write', 'submission:write'],
   });

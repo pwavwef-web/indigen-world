@@ -132,10 +132,18 @@ void main() {
   ) async {
     await pumpSettings(tester);
 
-    await tester.scrollUntilVisible(find.byType(SwitchListTile), 120);
+    // Preferences carries more than one switch now, so this one is found by
+    // what it says rather than by being the first of its kind.
+    await tester.scrollUntilVisible(
+      find.text('Push alerts on this device'),
+      120,
+    );
     await tester.pump();
 
-    final toggle = find.byType(SwitchListTile).first;
+    final toggle = find.ancestor(
+      of: find.text('Push alerts on this device'),
+      matching: find.byType(SwitchListTile),
+    );
     expect(tester.widget<SwitchListTile>(toggle).value, isFalse);
 
     await tester.tap(toggle);

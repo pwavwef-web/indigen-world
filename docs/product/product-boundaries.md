@@ -2,7 +2,7 @@
 
 ## Source-of-truth statement
 
-Indigen World is the umbrella cultural-technology ecosystem. It delivers three user-facing products: the Indigen World public website, TribeStudio for creators and cultural custodians, and the Indigen World mobile app for everyday users. An internal Indigen World Admin console supports platform administration and governance and is not offered to the public. A shared Firebase and AI infrastructure supports the ecosystem. Project Kasena is Indigen World’s flagship Kasem-language programme and the first implementation of its language-preservation model.
+Indigen World is the umbrella cultural-technology ecosystem. It delivers three user-facing products: the Indigen World public website, TribeStudio for creators and cultural custodians, and the Indigen World mobile app for everyday users. An internal Indigen World Admin console supports platform administration and governance and is not offered to the public. A shared Firebase and AI infrastructure supports the ecosystem. Project Kassena is Indigen World’s flagship Kasem-language programme and the first implementation of its language-preservation model.
 
 ## Indigen World Website
 
@@ -74,9 +74,9 @@ AI infrastructure is not evidence that a production Kasem model is active. Produ
 
 A bounded custom API may run on DigitalOcean for long-lived HTTP APIs, AI/provider orchestration, media processing, webhooks, and assigned background work. It extends rather than replaces Firebase authority: clients retain Firebase identity, existing governed records remain authoritative in Firestore, and custom API mutations must apply the same role, consent, cultural-permission, validation, and audit rules as Firebase Functions. See [ADR 0002](../decisions/0002-adopt-firebase-authority-with-digitalocean-api.md).
 
-## Project Kasena
+## Project Kassena
 
-Project Kasena is the flagship Kasem-language programme. It supplies the first language cell and preserves the strongest existing requirements:
+Project Kassena is the flagship Kasem-language programme. It supplies the first language cell and preserves the strongest existing requirements:
 
 - Kasem dictionary and translation utility
 - Word and sentence contributions
@@ -86,4 +86,4 @@ Project Kasena is the flagship Kasem-language programme. It supplies the first l
 - Contributor points, bounties, and review transparency
 - Future text and voice AI readiness
 
-Project Kasena does not replace the Indigen World umbrella brand, and Indigen World does not erase Kasem-specific ownership, validation, linguistic, or cultural-governance requirements.
+Project Kassena does not replace the Indigen World umbrella brand, and Indigen World does not erase Kasem-specific ownership, validation, linguistic, or cultural-governance requirements.

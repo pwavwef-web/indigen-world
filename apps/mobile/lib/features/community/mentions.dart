@@ -5,6 +5,7 @@ import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/features/community/data/community_models.dart';
 import 'package:indigen_world_mobile/features/community/data/community_providers.dart';
 import 'package:indigen_world_mobile/features/community/widgets/community_avatar.dart';
+import 'package:indigen_world_mobile/features/community/widgets/verified_badge.dart';
 
 /// The handle that summons the assistant into a thread.
 ///
@@ -12,16 +13,29 @@ import 'package:indigen_world_mobile/features/community/widgets/community_avatar
 /// post that names it is answered by the backend rather than by a member.
 const kawuriHandle = 'kawuri';
 
-/// The assistant's identity as it appears anywhere a member is listed. It is
-/// not a `communityProfiles` document the app reads — the backend writes
-/// Kawuri's replies with a matching stamp — so the two have to agree, and this
-/// is the copy the app renders from.
+/// Public Firebase Storage URL for Kawuri's canonical community avatar.
+///
+/// Keeping this beside the reserved identity means the mention picker can show
+/// Kawuri before the profile document has been fetched, while replies and the
+/// profile screen read the same URL from `communityProfiles/kawuri`.
+const kawuriCommunityAvatarUrl =
+    'https://firebasestorage.googleapis.com/v0/b/'
+    'project-kassena-7e026.firebasestorage.app/o/'
+    'community-avatars%2Fkawuri%2Fkawuri-community-avatar.png?alt=media';
+
+/// The assistant's identity before `communityProfiles/kawuri` has been read.
+///
+/// The backend writes Kawuri's replies with the same stamp and maintains the
+/// Firebase profile, so this local copy must stay in step with both.
 const kawuriProfile = CommunityProfile(
   uid: 'kawuri',
   username: kawuriHandle,
   displayName: 'Kawuri',
   bio: 'The guide inside Indigen World. Mention me in a thread and I will answer.',
-  isVerified: true,
+  avatarUrl: kawuriCommunityAvatarUrl,
+  // The project's own account. It carries no phone number because it is not a
+  // person, and the project vouches for it directly.
+  verifiedKind: 'project',
 );
 
 /// The `@handle` fragment being typed at [cursor], if the caret sits inside
@@ -162,25 +176,14 @@ class MentionSuggestions extends ConsumerWidget {
           final isAssistant = profile.username == kawuriHandle;
           return ListTile(
             dense: true,
-            leading: isAssistant
-                ? Container(
-                    width: 34,
-                    height: 34,
-                    decoration: BoxDecoration(
-                      color: context.brand.accent,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      Icons.auto_awesome_rounded,
-                      size: 17,
-                      color: context.brand.gold,
-                    ),
-                  )
-                : CommunityAvatar(
-                    initials: profile.initials,
-                    imageUrl: profile.avatarUrl,
-                    size: 34,
-                  ),
+            leading: CommunityAvatar(
+              initials: profile.initials,
+              imageUrl: profile.avatarUrl,
+              username: profile.username,
+              size: 34,
+              ringed: isAssistant,
+              ringColor: isAssistant ? context.brand.gold : null,
+            ),
             title: Row(
               children: [
                 Flexible(
@@ -190,13 +193,11 @@ class MentionSuggestions extends ConsumerWidget {
                     style: const TextStyle(fontWeight: FontWeight.w800),
                   ),
                 ),
-                if (profile.isVerified) ...[
+                if (profile.mark != VerifiedMark.none) ...[
                   const SizedBox(width: 4),
-                  Icon(
-                    Icons.verified_rounded,
-                    size: 14,
-                    color: context.brand.accent,
-                  ),
+                  // The whole row is the button here, so the mark does not
+                  // become a second, smaller target inside it.
+                  VerifiedBadge(mark: profile.mark, explainOnTap: false),
                 ],
               ],
             ),
