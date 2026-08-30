@@ -11,6 +11,7 @@ import {
   NAME_KINDS,
   saveHero,
   saveKasemName,
+  slug,
   type KasemHero,
   type KasemNameEntry,
   type NameKind,

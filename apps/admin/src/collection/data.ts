@@ -142,7 +142,7 @@ export function emptyProduct(order: number): ShopProduct {
   };
 }
 
-function slug(value: string, fallback: string): string {
+export function slug(value: string, fallback: string): string {
   const cleaned = value
     .toLowerCase()
     .normalize('NFD')
