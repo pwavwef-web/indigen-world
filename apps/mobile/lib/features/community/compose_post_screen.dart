@@ -149,6 +149,21 @@ class _ComposePostScreenState extends ConsumerState<ComposePostScreen> {
     setState(() => _attachments.addAll(picked.take(remaining)));
   }
 
+  /// Sends one staged photo back through the cropper.
+  ///
+  /// Read off the list by index each time rather than captured, so a crop that
+  /// takes a while cannot write itself back over a different photo the member
+  /// removed and replaced while it was open.
+  Future<void> _cropAttachment(int index) async {
+    if (index < 0 || index >= _attachments.length) return;
+    final original = _attachments[index];
+    final cropped = await cropAttachment(context, original);
+    if (!mounted || identical(cropped, original)) return;
+    final at = _attachments.indexOf(original);
+    if (at < 0) return;
+    setState(() => _attachments[at] = cropped);
+  }
+
   Future<void> _publish() async {
     if (_recording) {
       await _toggleRecording();
@@ -331,6 +346,7 @@ class _ComposePostScreenState extends ConsumerState<ComposePostScreen> {
                 attachments: _attachments,
                 onRemove: (index) =>
                     setState(() => _attachments.removeAt(index)),
+                onCrop: _cropAttachment,
               ),
             ],
             if (_recording) ...[
@@ -490,10 +506,17 @@ class _ReplyContext extends StatelessWidget {
 }
 
 class _AttachmentStrip extends StatelessWidget {
-  const _AttachmentStrip({required this.attachments, required this.onRemove});
+  const _AttachmentStrip({
+    required this.attachments,
+    required this.onRemove,
+    required this.onCrop,
+  });
 
   final List<PendingUpload> attachments;
   final ValueChanged<int> onRemove;
+
+  /// Photos only — there is nothing to crop on a clip or a voice note.
+  final ValueChanged<int> onCrop;
 
   @override
   Widget build(BuildContext context) => SizedBox(
@@ -569,6 +592,22 @@ class _AttachmentStrip extends StatelessWidget {
                 icon: const Icon(Icons.close_rounded),
               ),
             ),
+            if (attachment.mediaType == 'image')
+              Positioned(
+                bottom: 4,
+                right: 4,
+                child: IconButton.filled(
+                  tooltip: 'Crop',
+                  iconSize: 16,
+                  visualDensity: VisualDensity.compact,
+                  style: IconButton.styleFrom(
+                    backgroundColor: Colors.black54,
+                    foregroundColor: Colors.white,
+                  ),
+                  onPressed: () => onCrop(index),
+                  icon: const Icon(Icons.crop_rounded),
+                ),
+              ),
           ],
         );
       },

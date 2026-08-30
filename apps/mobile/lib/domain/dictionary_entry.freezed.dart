@@ -16,7 +16,13 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$DictionaryEntry {
 
- String get id; String get headword; String get translation; String get partOfSpeech; String get dialect; String get pronunciation; String get example; String get exampleTranslation; String get attribution; String? get culturalNote; bool get isSynthetic;
+ String get id; String get headword; String get translation; String get partOfSpeech; String get dialect; String get pronunciation; String get example; String get exampleTranslation; String get attribution; String? get culturalNote;/// A published recording of the headword being said, or empty where the
+/// entry has none.
+///
+/// Separate from [pronunciation], which is the written guide. The two used
+/// to share one field, so an entry with audio showed a download URL where
+/// its phonetics belonged and still had nothing to play.
+ String get audioUrl; bool get isSynthetic;
 /// Create a copy of DictionaryEntry
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -29,16 +35,16 @@ $DictionaryEntryCopyWith<DictionaryEntry> get copyWith => _$DictionaryEntryCopyW
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is DictionaryEntry&&(identical(other.id, id) || other.id == id)&&(identical(other.headword, headword) || other.headword == headword)&&(identical(other.translation, translation) || other.translation == translation)&&(identical(other.partOfSpeech, partOfSpeech) || other.partOfSpeech == partOfSpeech)&&(identical(other.dialect, dialect) || other.dialect == dialect)&&(identical(other.pronunciation, pronunciation) || other.pronunciation == pronunciation)&&(identical(other.example, example) || other.example == example)&&(identical(other.exampleTranslation, exampleTranslation) || other.exampleTranslation == exampleTranslation)&&(identical(other.attribution, attribution) || other.attribution == attribution)&&(identical(other.culturalNote, culturalNote) || other.culturalNote == culturalNote)&&(identical(other.isSynthetic, isSynthetic) || other.isSynthetic == isSynthetic));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is DictionaryEntry&&(identical(other.id, id) || other.id == id)&&(identical(other.headword, headword) || other.headword == headword)&&(identical(other.translation, translation) || other.translation == translation)&&(identical(other.partOfSpeech, partOfSpeech) || other.partOfSpeech == partOfSpeech)&&(identical(other.dialect, dialect) || other.dialect == dialect)&&(identical(other.pronunciation, pronunciation) || other.pronunciation == pronunciation)&&(identical(other.example, example) || other.example == example)&&(identical(other.exampleTranslation, exampleTranslation) || other.exampleTranslation == exampleTranslation)&&(identical(other.attribution, attribution) || other.attribution == attribution)&&(identical(other.culturalNote, culturalNote) || other.culturalNote == culturalNote)&&(identical(other.audioUrl, audioUrl) || other.audioUrl == audioUrl)&&(identical(other.isSynthetic, isSynthetic) || other.isSynthetic == isSynthetic));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,headword,translation,partOfSpeech,dialect,pronunciation,example,exampleTranslation,attribution,culturalNote,isSynthetic);
+int get hashCode => Object.hash(runtimeType,id,headword,translation,partOfSpeech,dialect,pronunciation,example,exampleTranslation,attribution,culturalNote,audioUrl,isSynthetic);
 
 @override
 String toString() {
-  return 'DictionaryEntry(id: $id, headword: $headword, translation: $translation, partOfSpeech: $partOfSpeech, dialect: $dialect, pronunciation: $pronunciation, example: $example, exampleTranslation: $exampleTranslation, attribution: $attribution, culturalNote: $culturalNote, isSynthetic: $isSynthetic)';
+  return 'DictionaryEntry(id: $id, headword: $headword, translation: $translation, partOfSpeech: $partOfSpeech, dialect: $dialect, pronunciation: $pronunciation, example: $example, exampleTranslation: $exampleTranslation, attribution: $attribution, culturalNote: $culturalNote, audioUrl: $audioUrl, isSynthetic: $isSynthetic)';
 }
 
 
@@ -49,7 +55,7 @@ abstract mixin class $DictionaryEntryCopyWith<$Res>  {
   factory $DictionaryEntryCopyWith(DictionaryEntry value, $Res Function(DictionaryEntry) _then) = _$DictionaryEntryCopyWithImpl;
 @useResult
 $Res call({
- String id, String headword, String translation, String partOfSpeech, String dialect, String pronunciation, String example, String exampleTranslation, String attribution, String? culturalNote, bool isSynthetic
+ String id, String headword, String translation, String partOfSpeech, String dialect, String pronunciation, String example, String exampleTranslation, String attribution, String? culturalNote, String audioUrl, bool isSynthetic
 });
 
 
@@ -66,7 +72,7 @@ class _$DictionaryEntryCopyWithImpl<$Res>
 
 /// Create a copy of DictionaryEntry
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? headword = null,Object? translation = null,Object? partOfSpeech = null,Object? dialect = null,Object? pronunciation = null,Object? example = null,Object? exampleTranslation = null,Object? attribution = null,Object? culturalNote = freezed,Object? isSynthetic = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? headword = null,Object? translation = null,Object? partOfSpeech = null,Object? dialect = null,Object? pronunciation = null,Object? example = null,Object? exampleTranslation = null,Object? attribution = null,Object? culturalNote = freezed,Object? audioUrl = null,Object? isSynthetic = null,}) {
   return _then(DictionaryEntry(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,headword: null == headword ? _self.headword : headword // ignore: cast_nullable_to_non_nullable
@@ -78,7 +84,8 @@ as String,example: null == example ? _self.example : example // ignore: cast_nul
 as String,exampleTranslation: null == exampleTranslation ? _self.exampleTranslation : exampleTranslation // ignore: cast_nullable_to_non_nullable
 as String,attribution: null == attribution ? _self.attribution : attribution // ignore: cast_nullable_to_non_nullable
 as String,culturalNote: freezed == culturalNote ? _self.culturalNote : culturalNote // ignore: cast_nullable_to_non_nullable
-as String?,isSynthetic: null == isSynthetic ? _self.isSynthetic : isSynthetic // ignore: cast_nullable_to_non_nullable
+as String?,audioUrl: null == audioUrl ? _self.audioUrl : audioUrl // ignore: cast_nullable_to_non_nullable
+as String,isSynthetic: null == isSynthetic ? _self.isSynthetic : isSynthetic // ignore: cast_nullable_to_non_nullable
 as bool,
   ));
 }
@@ -164,10 +171,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String headword,  String translation,  String partOfSpeech,  String dialect,  String pronunciation,  String example,  String exampleTranslation,  String attribution,  String? culturalNote,  bool isSynthetic)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String headword,  String translation,  String partOfSpeech,  String dialect,  String pronunciation,  String example,  String exampleTranslation,  String attribution,  String? culturalNote,  String audioUrl,  bool isSynthetic)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _DictionaryEntry() when $default != null:
-return $default(_that.id,_that.headword,_that.translation,_that.partOfSpeech,_that.dialect,_that.pronunciation,_that.example,_that.exampleTranslation,_that.attribution,_that.culturalNote,_that.isSynthetic);case _:
+return $default(_that.id,_that.headword,_that.translation,_that.partOfSpeech,_that.dialect,_that.pronunciation,_that.example,_that.exampleTranslation,_that.attribution,_that.culturalNote,_that.audioUrl,_that.isSynthetic);case _:
   return orElse();
 
 }
@@ -185,10 +192,10 @@ return $default(_that.id,_that.headword,_that.translation,_that.partOfSpeech,_th
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String headword,  String translation,  String partOfSpeech,  String dialect,  String pronunciation,  String example,  String exampleTranslation,  String attribution,  String? culturalNote,  bool isSynthetic)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String headword,  String translation,  String partOfSpeech,  String dialect,  String pronunciation,  String example,  String exampleTranslation,  String attribution,  String? culturalNote,  String audioUrl,  bool isSynthetic)  $default,) {final _that = this;
 switch (_that) {
 case _DictionaryEntry():
-return $default(_that.id,_that.headword,_that.translation,_that.partOfSpeech,_that.dialect,_that.pronunciation,_that.example,_that.exampleTranslation,_that.attribution,_that.culturalNote,_that.isSynthetic);case _:
+return $default(_that.id,_that.headword,_that.translation,_that.partOfSpeech,_that.dialect,_that.pronunciation,_that.example,_that.exampleTranslation,_that.attribution,_that.culturalNote,_that.audioUrl,_that.isSynthetic);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -205,10 +212,10 @@ return $default(_that.id,_that.headword,_that.translation,_that.partOfSpeech,_th
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String headword,  String translation,  String partOfSpeech,  String dialect,  String pronunciation,  String example,  String exampleTranslation,  String attribution,  String? culturalNote,  bool isSynthetic)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String headword,  String translation,  String partOfSpeech,  String dialect,  String pronunciation,  String example,  String exampleTranslation,  String attribution,  String? culturalNote,  String audioUrl,  bool isSynthetic)?  $default,) {final _that = this;
 switch (_that) {
 case _DictionaryEntry() when $default != null:
-return $default(_that.id,_that.headword,_that.translation,_that.partOfSpeech,_that.dialect,_that.pronunciation,_that.example,_that.exampleTranslation,_that.attribution,_that.culturalNote,_that.isSynthetic);case _:
+return $default(_that.id,_that.headword,_that.translation,_that.partOfSpeech,_that.dialect,_that.pronunciation,_that.example,_that.exampleTranslation,_that.attribution,_that.culturalNote,_that.audioUrl,_that.isSynthetic);case _:
   return null;
 
 }
@@ -220,7 +227,7 @@ return $default(_that.id,_that.headword,_that.translation,_that.partOfSpeech,_th
 @JsonSerializable()
 
 class _DictionaryEntry extends DictionaryEntry {
-  const _DictionaryEntry({required this.id, required this.headword, required this.translation, required this.partOfSpeech, required this.dialect, required this.pronunciation, required this.example, required this.exampleTranslation, required this.attribution, this.culturalNote, this.isSynthetic = true}): super._();
+  const _DictionaryEntry({required this.id, required this.headword, required this.translation, required this.partOfSpeech, required this.dialect, required this.pronunciation, required this.example, required this.exampleTranslation, required this.attribution, this.culturalNote, this.audioUrl = '', this.isSynthetic = true}): super._();
   factory _DictionaryEntry.fromJson(Map<String, dynamic> json) => _$DictionaryEntryFromJson(json);
 
 @override final  String id;
@@ -233,6 +240,13 @@ class _DictionaryEntry extends DictionaryEntry {
 @override final  String exampleTranslation;
 @override final  String attribution;
 @override final  String? culturalNote;
+/// A published recording of the headword being said, or empty where the
+/// entry has none.
+///
+/// Separate from [pronunciation], which is the written guide. The two used
+/// to share one field, so an entry with audio showed a download URL where
+/// its phonetics belonged and still had nothing to play.
+@override@JsonKey() final  String audioUrl;
 @override@JsonKey() final  bool isSynthetic;
 
 /// Create a copy of DictionaryEntry
@@ -248,16 +262,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _DictionaryEntry&&(identical(other.id, id) || other.id == id)&&(identical(other.headword, headword) || other.headword == headword)&&(identical(other.translation, translation) || other.translation == translation)&&(identical(other.partOfSpeech, partOfSpeech) || other.partOfSpeech == partOfSpeech)&&(identical(other.dialect, dialect) || other.dialect == dialect)&&(identical(other.pronunciation, pronunciation) || other.pronunciation == pronunciation)&&(identical(other.example, example) || other.example == example)&&(identical(other.exampleTranslation, exampleTranslation) || other.exampleTranslation == exampleTranslation)&&(identical(other.attribution, attribution) || other.attribution == attribution)&&(identical(other.culturalNote, culturalNote) || other.culturalNote == culturalNote)&&(identical(other.isSynthetic, isSynthetic) || other.isSynthetic == isSynthetic));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _DictionaryEntry&&(identical(other.id, id) || other.id == id)&&(identical(other.headword, headword) || other.headword == headword)&&(identical(other.translation, translation) || other.translation == translation)&&(identical(other.partOfSpeech, partOfSpeech) || other.partOfSpeech == partOfSpeech)&&(identical(other.dialect, dialect) || other.dialect == dialect)&&(identical(other.pronunciation, pronunciation) || other.pronunciation == pronunciation)&&(identical(other.example, example) || other.example == example)&&(identical(other.exampleTranslation, exampleTranslation) || other.exampleTranslation == exampleTranslation)&&(identical(other.attribution, attribution) || other.attribution == attribution)&&(identical(other.culturalNote, culturalNote) || other.culturalNote == culturalNote)&&(identical(other.audioUrl, audioUrl) || other.audioUrl == audioUrl)&&(identical(other.isSynthetic, isSynthetic) || other.isSynthetic == isSynthetic));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,headword,translation,partOfSpeech,dialect,pronunciation,example,exampleTranslation,attribution,culturalNote,isSynthetic);
+int get hashCode => Object.hash(runtimeType,id,headword,translation,partOfSpeech,dialect,pronunciation,example,exampleTranslation,attribution,culturalNote,audioUrl,isSynthetic);
 
 @override
 String toString() {
-  return 'DictionaryEntry(id: $id, headword: $headword, translation: $translation, partOfSpeech: $partOfSpeech, dialect: $dialect, pronunciation: $pronunciation, example: $example, exampleTranslation: $exampleTranslation, attribution: $attribution, culturalNote: $culturalNote, isSynthetic: $isSynthetic)';
+  return 'DictionaryEntry(id: $id, headword: $headword, translation: $translation, partOfSpeech: $partOfSpeech, dialect: $dialect, pronunciation: $pronunciation, example: $example, exampleTranslation: $exampleTranslation, attribution: $attribution, culturalNote: $culturalNote, audioUrl: $audioUrl, isSynthetic: $isSynthetic)';
 }
 
 
@@ -268,7 +282,7 @@ abstract mixin class _$DictionaryEntryCopyWith<$Res> implements $DictionaryEntry
   factory _$DictionaryEntryCopyWith(_DictionaryEntry value, $Res Function(_DictionaryEntry) _then) = __$DictionaryEntryCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String headword, String translation, String partOfSpeech, String dialect, String pronunciation, String example, String exampleTranslation, String attribution, String? culturalNote, bool isSynthetic
+ String id, String headword, String translation, String partOfSpeech, String dialect, String pronunciation, String example, String exampleTranslation, String attribution, String? culturalNote, String audioUrl, bool isSynthetic
 });
 
 
@@ -285,7 +299,7 @@ class __$DictionaryEntryCopyWithImpl<$Res>
 
 /// Create a copy of DictionaryEntry
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? headword = null,Object? translation = null,Object? partOfSpeech = null,Object? dialect = null,Object? pronunciation = null,Object? example = null,Object? exampleTranslation = null,Object? attribution = null,Object? culturalNote = freezed,Object? isSynthetic = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? headword = null,Object? translation = null,Object? partOfSpeech = null,Object? dialect = null,Object? pronunciation = null,Object? example = null,Object? exampleTranslation = null,Object? attribution = null,Object? culturalNote = freezed,Object? audioUrl = null,Object? isSynthetic = null,}) {
   return _then(_DictionaryEntry(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,headword: null == headword ? _self.headword : headword // ignore: cast_nullable_to_non_nullable
@@ -297,7 +311,8 @@ as String,example: null == example ? _self.example : example // ignore: cast_nul
 as String,exampleTranslation: null == exampleTranslation ? _self.exampleTranslation : exampleTranslation // ignore: cast_nullable_to_non_nullable
 as String,attribution: null == attribution ? _self.attribution : attribution // ignore: cast_nullable_to_non_nullable
 as String,culturalNote: freezed == culturalNote ? _self.culturalNote : culturalNote // ignore: cast_nullable_to_non_nullable
-as String?,isSynthetic: null == isSynthetic ? _self.isSynthetic : isSynthetic // ignore: cast_nullable_to_non_nullable
+as String?,audioUrl: null == audioUrl ? _self.audioUrl : audioUrl // ignore: cast_nullable_to_non_nullable
+as String,isSynthetic: null == isSynthetic ? _self.isSynthetic : isSynthetic // ignore: cast_nullable_to_non_nullable
 as bool,
   ));
 }

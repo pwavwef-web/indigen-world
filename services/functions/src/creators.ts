@@ -2,7 +2,7 @@ import { HttpsError, onCall } from 'firebase-functions/v2/https';
 import { getAuth } from 'firebase-admin/auth';
 import { FieldValue, getFirestore, type DocumentReference } from 'firebase-admin/firestore';
 import { requireAuth, requireRole } from './auth.js';
-import { finalisePublishedMedia } from './published-media.js';
+import { finalisePublishedMedia, finalisePublishedPronunciation } from './published-media.js';
 import { consumeRateLimit } from './rate-limit.js';
 import {
   buildPublishedContentDocument,
@@ -589,6 +589,12 @@ export const decideSubmission = onCall(
         }
       | null = null;
 
+    // The same move for a dictionary word's pronunciation, which lands on the
+    // entry as `audioUrl` rather than on a publishedContent record.
+    let pronunciationToPublish:
+      | { contentId: string; storagePath: string; mimeType: string }
+      | null = null;
+
     const result = await db.runTransaction(async (tx) => {
       const snap = await tx.get(submissionRef);
       if (!snap.exists) {
@@ -685,6 +691,13 @@ export const decideSubmission = onCall(
         if (isDictionaryContribution) {
           const existingDictionary = await tx.get(dictionaryRef);
           if (decision === 'PUBLISH') {
+            // Carried forward rather than recomputed: the recording was copied
+            // to its public path the first time this entry was published, and
+            // a re-publish must not blank the URL in the window before the
+            // post-commit copy has run again.
+            const existingAudioUrl: string = existingDictionary.exists
+              ? (existingDictionary.get('audioUrl') ?? '')
+              : '';
             tx.set(dictionaryRef, {
               id: dictionaryRef.id,
               kasemText: asString(submission.body, 12_000).trim(),
@@ -698,6 +711,7 @@ export const decideSubmission = onCall(
               contributorId: creatorId,
               sourceContribution: { collection: 'collectionContributions', id: contributionId },
               relatedEntryId: submission.relatedEntryId ?? null,
+              audioUrl: existingAudioUrl,
               isPublished: true,
               approvedAt: FieldValue.serverTimestamp(),
               approvedBy: uid,
@@ -711,6 +725,20 @@ export const decideSubmission = onCall(
               collection: 'dictionaryEntries',
               id: dictionaryRef.id,
             };
+
+            // A word contributed with the speaker saying it. The recording is
+            // still in their private submission prefix, where nobody reading
+            // the dictionary can hear it, so publishing the entry has to carry
+            // the sound out with the text.
+            const audioPath: string = submission.media?.storagePath ?? '';
+            const audioIsSound: boolean = submission.media?.mediaType === 'audio';
+            if (audioPath && audioIsSound && !existingAudioUrl) {
+              pronunciationToPublish = {
+                contentId: dictionaryRef.id,
+                storagePath: audioPath,
+                mimeType: submission.media?.mimeType ?? 'audio/mp4',
+              };
+            }
           } else if (decision === 'UNPUBLISH' && existingDictionary.exists) {
             tx.update(dictionaryRef, {
               isPublished: false,
@@ -811,6 +839,14 @@ export const decideSubmission = onCall(
         await finalisePublishedMedia(publishedRef, mediaToPublish);
       } catch (error) {
         console.error(`finalisePublishedMedia failed for ${submissionId}`, error);
+      }
+    }
+
+    if (pronunciationToPublish) {
+      try {
+        await finalisePublishedPronunciation(dictionaryRef, pronunciationToPublish);
+      } catch (error) {
+        console.error(`finalisePublishedPronunciation failed for ${submissionId}`, error);
       }
     }
 

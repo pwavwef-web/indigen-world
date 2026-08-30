@@ -49,9 +49,30 @@ const _messagesChannel = AndroidNotificationChannel(
   importance: Importance.high,
 );
 
+/// The channel decisions and receipts about a member's own work arrive on.
+///
+/// Separate from community activity for the same reason messages are: somebody
+/// who mutes likes and follows from system settings must not thereby mute the
+/// outcome of the advert they paid for, or the review of the song they sent in.
+/// Must match `ACCOUNT_CHANNEL_ID` in the fan-out function.
+const accountChannelId = 'indigen_account';
+
+const _accountChannel = AndroidNotificationChannel(
+  accountChannelId,
+  'Your work and payments',
+  description:
+      'Review decisions on what you send in, advert approvals and payment '
+      'receipts.',
+  importance: Importance.high,
+);
+
 /// The channel a push belongs on, read from the payload the fan-out sends.
 AndroidNotificationChannel _channelFor(Map<String, dynamic> data) =>
-    data['type'] == 'message' ? _messagesChannel : _communityChannel;
+    switch (data['type']) {
+      'message' => _messagesChannel,
+      'account' => _accountChannel,
+      _ => _communityChannel,
+    };
 
 /// The status-bar icon, by bare resource name — see [initializeLocalAlerts].
 const _notificationIcon = 'ic_notification';
@@ -73,6 +94,7 @@ Future<void> createNotificationChannels() async {
   if (android == null) return;
   await android.createNotificationChannel(_communityChannel);
   await android.createNotificationChannel(_messagesChannel);
+  await android.createNotificationChannel(_accountChannel);
   await android.deleteNotificationChannel(
     channelId: _retiredCommunityChannelId,
   );

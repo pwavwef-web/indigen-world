@@ -23,7 +23,6 @@ class CollectionScreen extends ConsumerWidget {
     final music = ref.watch(musicCollectionProvider);
     final literature = ref.watch(literatureCollectionProvider);
     final audiobooks = ref.watch(audiobookCollectionProvider);
-    final video = ref.watch(videoCollectionProvider);
     final apps = ref.watch(directoryAppsProvider);
     final shop = ref.watch(shopProductsProvider);
     final textScale = MediaQuery.textScalerOf(context).scale(1);
@@ -57,13 +56,10 @@ class CollectionScreen extends ConsumerWidget {
         count: _count(audiobooks),
         onTap: () => _open(context, const AudiobookCollectionScreen()),
       ),
-      _CollectionPortalCard(
-        label: CollectionKind.video.label,
-        icon: Icons.movie_creation_rounded,
-        color: const Color(0xFF4A4E8C),
-        count: _count(video),
-        onTap: () => _open(context, const VideoCollectionScreen()),
-      ),
+      // Video has no portal here. Everything in it is what Explore already is
+      // — a full-bleed reel feed with its own tab — and a second, quieter door
+      // to the same footage only made the archive look like it had two.
+      //
       // Apps and Shop sit alongside the archive rather than inside it: one
       // sends members out to software worth having, the other to things the
       // project makes and sells. Neither is contributed to, which is why
@@ -104,7 +100,6 @@ class CollectionScreen extends ConsumerWidget {
                       music.isLoading ||
                       literature.isLoading ||
                       audiobooks.isLoading ||
-                      video.isLoading ||
                       apps.isLoading ||
                       shop.isLoading,
                   hasError:
@@ -112,7 +107,6 @@ class CollectionScreen extends ConsumerWidget {
                       music.hasError ||
                       literature.hasError ||
                       audiobooks.hasError ||
-                      video.hasError ||
                       apps.hasError ||
                       shop.hasError,
                 ),
@@ -147,10 +141,11 @@ class CollectionScreen extends ConsumerWidget {
                       ),
                     ),
             ),
-            const SliverPadding(
-              padding: EdgeInsets.fromLTRB(18, 8, 18, 138),
-              sliver: SliverToBoxAdapter(child: _StewardshipNote()),
-            ),
+            // No "Published with permission" plate at the foot of the tab.
+            // Every piece already carries its own licence line on the record
+            // that has one, which is where a reader is actually asking the
+            // question — a blanket claim under the grid answered nobody.
+            const SliverToBoxAdapter(child: SizedBox(height: 138)),
           ],
         ),
       ),
@@ -166,75 +161,23 @@ class CollectionScreen extends ConsumerWidget {
   }
 }
 
+/// The top of the Collection tab.
+///
+/// Was a full-bleed gradient card with a watermark behind it. A heading is not
+/// a hero: the card gave the tab a lid that had to be scrolled past before the
+/// archive itself began, and made the first screen look like a different
+/// screen. This is the same [BrandHeader] the rest of the app opens with.
 class _CollectionHero extends StatelessWidget {
   const _CollectionHero();
 
   @override
-  Widget build(BuildContext context) => Container(
-    margin: const EdgeInsets.fromLTRB(16, 52, 16, 14),
-    padding: const EdgeInsets.fromLTRB(22, 20, 22, 22),
-    decoration: BoxDecoration(
-      borderRadius: BorderRadius.circular(30),
-      gradient: const LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [Color(0xFF082F25), BrandColors.heritageGreen],
-      ),
-      boxShadow: [
-        BoxShadow(
-          color: context.brand.shadow.withValues(
-            alpha: context.brand.isDark ? 0.45 : 0.14,
-          ),
-          blurRadius: 24,
-          offset: const Offset(0, 10),
-        ),
-      ],
-    ),
-    child: Stack(
-      children: [
-        const Positioned(
-          right: -22,
-          bottom: -38,
-          child: Opacity(
-            opacity: 0.08,
-            child: Icon(Icons.hub_rounded, color: Colors.white, size: 158),
-          ),
-        ),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(
-                  Icons.collections_bookmark_rounded,
-                  color: context.brand.gold,
-                  size: 18,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  'THE KASENA COLLECTION',
-                  style: TextStyle(
-                    color: context.brand.gold,
-                    fontWeight: FontWeight.w900,
-                    fontSize: 10,
-                    letterSpacing: 1.25,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 22),
-            Text(
-              'Knowledge, kept alive.',
-              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                color: Colors.white,
-                height: 1,
-                letterSpacing: -0.7,
-              ),
-            ),
-            const SizedBox(height: 9),
-          ],
-        ),
-      ],
+  Widget build(BuildContext context) => const Padding(
+    padding: EdgeInsets.only(top: 22),
+    child: BrandHeader(
+      // A shell tab, so the heading has to clear the floating profile orb.
+      reserveTopRight: true,
+      eyebrow: 'The Kasena Collection',
+      title: 'Knowledge, kept alive.',
     ),
   );
 }
@@ -432,27 +375,6 @@ class _PortalCaption extends StatelessWidget {
               size: 16,
             ),
           ],
-        ),
-      ],
-    ),
-  );
-}
-
-class _StewardshipNote extends StatelessWidget {
-  const _StewardshipNote();
-
-  @override
-  Widget build(BuildContext context) => GlassSurface(
-    padding: const EdgeInsets.all(15),
-    child: Row(
-      children: [
-        Icon(Icons.verified_user_outlined, color: context.brand.accent),
-        const SizedBox(width: 12),
-        const Expanded(
-          child: Text(
-            'Published with permission.',
-            style: TextStyle(fontWeight: FontWeight.w700),
-          ),
         ),
       ],
     ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:indigen_world_mobile/app/shell_chrome.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/features/community/community_actions.dart';
 import 'package:indigen_world_mobile/features/community/community_profile_screen.dart';
@@ -34,6 +35,17 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
   var _tab = 0;
   final _viewedPostIds = <String>{};
 
+  /// Where the feed was when the current drag direction started.
+  ///
+  /// The gate is a distance rather than a direction change alone, so the
+  /// chrome does not flicker on the pixel of overscroll a thumb leaves behind
+  /// at the end of a fling.
+  double _lastScrollOffset = 0;
+
+  /// How far the feed has to travel in one direction before the composer and
+  /// the rail react to it.
+  static const _chromeScrollThreshold = 12.0;
+
   /// The community tab has no app bar of its own, so the hamburger sits in the
   /// feed's own header and needs a handle on the Scaffold to open the drawer.
   final _scaffoldKey = GlobalKey<ScaffoldState>();
@@ -47,6 +59,39 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
     // impression deterministic when the feed is removed quickly.
     VisibilityDetectorController.instance.notifyNow();
     super.dispose();
+  }
+
+  /// Hides the composer and the rail while the member reads on, and brings both
+  /// back when they turn around.
+  ///
+  /// The rail goes too, and not only the button. Half the reason to move the
+  /// composer out of the way is the strip of feed underneath it, and leaving a
+  /// glass bar sitting on that strip gives back the smaller half. They travel
+  /// together on one flag so neither can be caught halfway.
+  ///
+  /// Driven by raw offsets rather than [ScrollDirection] because a paged feed
+  /// reports a direction for every settling animation too; what matters is
+  /// whether the reader has actually moved, and which way.
+  bool _handleFeedScroll(ScrollNotification notification) {
+    if (notification.metrics.axis != Axis.vertical) return false;
+    final offset = notification.metrics.pixels;
+    final chrome = ref.read(shellChromeVisibilityProvider.notifier);
+
+    // The top of the feed always shows both: there is nothing to read past yet,
+    // and arriving at a feed with no way to post to it is a dead end.
+    if (offset <= 0) {
+      _lastScrollOffset = offset;
+      chrome.set(true);
+      return false;
+    }
+
+    final travelled = offset - _lastScrollOffset;
+    if (travelled.abs() < _chromeScrollThreshold) return false;
+    _lastScrollOffset = offset;
+
+    // Reading on hides them; turning back brings them out again.
+    chrome.set(travelled < 0);
+    return false;
   }
 
   void _trackVisiblePost(
@@ -86,6 +131,7 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
         ref.watch(myPollVotesProvider).asData?.value ??
         const <String, String>{};
     final currentUid = ref.watch(currentUidProvider);
+    final chromeVisible = ref.watch(shellChromeVisibilityProvider);
 
     return Scaffold(
       key: _scaffoldKey,
@@ -97,98 +143,115 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
         padding: const EdgeInsets.only(
           bottom: kFrostedNavBarReservedSpace - 24,
         ),
-        child: FloatingActionButton(
-          heroTag: 'community-compose',
-          tooltip: 'New Kasem post',
-          onPressed: () => actions.compose(context),
-          backgroundColor: context.brand.accentFill,
-          foregroundColor: context.brand.onAccentFill,
-          child: const Icon(Icons.edit_rounded),
+        // Slides down out of the frame rather than fading in place, so a
+        // half-hidden button is never left sitting there to be half-tapped.
+        child: AnimatedSlide(
+          offset: chromeVisible ? Offset.zero : const Offset(0, 1.4),
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeOutCubic,
+          child: AnimatedOpacity(
+            opacity: chromeVisible ? 1 : 0,
+            duration: const Duration(milliseconds: 180),
+            child: IgnorePointer(
+              ignoring: !chromeVisible,
+              child: FloatingActionButton(
+                heroTag: 'community-compose',
+                tooltip: 'New Kasem post',
+                onPressed: () => actions.compose(context),
+                backgroundColor: context.brand.accentFill,
+                foregroundColor: context.brand.onAccentFill,
+                child: const Icon(Icons.edit_rounded),
+              ),
+            ),
+          ),
         ),
       ),
       body: ScreenContainer(
-        child: RefreshIndicator(
-          onRefresh: () async {
-            ref
-              ..invalidate(rawCommunityFeedProvider)
-              ..invalidate(rawFollowingFeedProvider)
-              ..invalidate(followingIdsProvider)
-              ..invalidate(suggestedProfilesProvider);
-            await ref.read(suggestedProfilesProvider.future);
-          },
-          child: CustomScrollView(
-            key: const PageStorageKey('community-scroll'),
-            // An empty or short feed still has to accept the refresh gesture.
-            physics: const AlwaysScrollableScrollPhysics(),
-            slivers: [
-              SliverToBoxAdapter(
-                child: _CommunityHeader(
-                  onOpenMenu: () => _scaffoldKey.currentState?.openDrawer(),
-                ),
-              ),
-              const SliverToBoxAdapter(child: _CommunityPulse()),
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                  child: _ComposeBar(onTap: () => actions.compose(context)),
-                ),
-              ),
-              SliverToBoxAdapter(
-                child: _FeedTabs(
-                  selected: _tab,
-                  onChanged: (value) => setState(() => _tab = value),
-                ),
-              ),
-              // Matched on what the state HOLDS rather than on which class it
-              // is. Riverpod retries a failed provider, and while a retry is
-              // in flight the state is `AsyncLoading` *carrying* the error
-              // rather than `AsyncError` — so matching the class alone made
-              // the feed flash the skeleton back between attempts, and then
-              // the error, and then the skeleton again. A page we already have
-              // also outranks a reconnect: Firestore recovers on its own, and
-              // a reader would rather see slightly stale posts than a spinner.
-              ...switch (feed) {
-                AsyncValue(:final value?) when value.isEmpty => [
-                  SliverToBoxAdapter(
-                    child: _EmptyFeed(tab: _tab, actions: actions),
+        child: NotificationListener<ScrollNotification>(
+          onNotification: _handleFeedScroll,
+          child: RefreshIndicator(
+            onRefresh: () async {
+              ref
+                ..invalidate(rawCommunityFeedProvider)
+                ..invalidate(rawFollowingFeedProvider)
+                ..invalidate(followingIdsProvider)
+                ..invalidate(suggestedProfilesProvider);
+              await ref.read(suggestedProfilesProvider.future);
+            },
+            child: CustomScrollView(
+              key: const PageStorageKey('community-scroll'),
+              // An empty or short feed still has to accept the refresh gesture.
+              physics: const AlwaysScrollableScrollPhysics(),
+              slivers: [
+                SliverToBoxAdapter(
+                  child: _CommunityHeader(
+                    onOpenMenu: () => _scaffoldKey.currentState?.openDrawer(),
                   ),
-                ],
-                AsyncValue(:final value?) => [
-                  // Full-bleed rows: the feed is a single column of writing
-                  // separated by hairlines, so there is no gutter to inset
-                  // and no gap between one post and the next.
-                  SliverPadding(
-                    padding: const EdgeInsets.only(
-                      bottom: kFrostedNavBarReservedSpace + 60,
+                ),
+                const SliverToBoxAdapter(child: _CommunityPulse()),
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                    child: _ComposeBar(onTap: () => actions.compose(context)),
+                  ),
+                ),
+                SliverToBoxAdapter(
+                  child: _FeedTabs(
+                    selected: _tab,
+                    onChanged: (value) => setState(() => _tab = value),
+                  ),
+                ),
+                // Matched on what the state HOLDS rather than on which class it
+                // is. Riverpod retries a failed provider, and while a retry is
+                // in flight the state is `AsyncLoading` *carrying* the error
+                // rather than `AsyncError` — so matching the class alone made
+                // the feed flash the skeleton back between attempts, and then
+                // the error, and then the skeleton again. A page we already have
+                // also outranks a reconnect: Firestore recovers on its own, and
+                // a reader would rather see slightly stale posts than a spinner.
+                ...switch (feed) {
+                  AsyncValue(:final value?) when value.isEmpty => [
+                    SliverToBoxAdapter(
+                      child: _EmptyFeed(tab: _tab, actions: actions),
                     ),
-                    sliver: SliverList.builder(
-                      itemCount: value.length,
-                      itemBuilder: (context, index) => VisibilityDetector(
-                        key: Key('community-post-${value[index].id}-$index'),
-                        onVisibilityChanged: (info) => _trackVisiblePost(
-                          value[index],
-                          info.visibleFraction,
-                          actions,
-                        ),
-                        child: _FeedPost(
-                          post: value[index],
-                          liked: likes.contains(value[index].id),
-                          saved: saved.contains(value[index].id),
-                          reposted: reposts.contains(value[index].id),
-                          votedOptionId: pollVotes[value[index].id],
-                          isOwner: currentUid == value[index].authorId,
-                          actions: actions,
+                  ],
+                  AsyncValue(:final value?) => [
+                    // Full-bleed rows: the feed is a single column of writing
+                    // separated by hairlines, so there is no gutter to inset
+                    // and no gap between one post and the next.
+                    SliverPadding(
+                      padding: const EdgeInsets.only(
+                        bottom: kFrostedNavBarReservedSpace + 60,
+                      ),
+                      sliver: SliverList.builder(
+                        itemCount: value.length,
+                        itemBuilder: (context, index) => VisibilityDetector(
+                          key: Key('community-post-${value[index].id}-$index'),
+                          onVisibilityChanged: (info) => _trackVisiblePost(
+                            value[index],
+                            info.visibleFraction,
+                            actions,
+                          ),
+                          child: _FeedPost(
+                            post: value[index],
+                            liked: likes.contains(value[index].id),
+                            saved: saved.contains(value[index].id),
+                            reposted: reposts.contains(value[index].id),
+                            votedOptionId: pollVotes[value[index].id],
+                            isOwner: currentUid == value[index].authorId,
+                            actions: actions,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ],
-                AsyncValue(:final error?) => [
-                  SliverToBoxAdapter(child: _FeedError(error: error)),
-                ],
-                _ => [const SliverToBoxAdapter(child: _FeedSkeleton())],
-              },
-            ],
+                  ],
+                  AsyncValue(:final error?) => [
+                    SliverToBoxAdapter(child: _FeedError(error: error)),
+                  ],
+                  _ => [const SliverToBoxAdapter(child: _FeedSkeleton())],
+                },
+              ],
+            ),
           ),
         ),
       ),

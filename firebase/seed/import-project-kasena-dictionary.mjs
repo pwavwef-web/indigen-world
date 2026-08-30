@@ -1,5 +1,7 @@
 #!/usr/bin/env node
-// Idempotently imports Project Kasena review-pack rows into dictionaryEntries.
+// Idempotently imports source-attested Project Kasena review candidates into
+// dictionaryEntries. Rows remain unpublished until rights and Kasem community
+// validation are recorded through the normal review workflow.
 
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
@@ -48,8 +50,23 @@ function validatePayload(payload) {
   if (!Array.isArray(payload.dictionaryEntries)) {
     throw new Error('Import payload is missing dictionaryEntries array.');
   }
+  if (payload.dictionaryEntries.length < 1000) {
+    throw new Error('Import payload must contain at least 1000 dictionary entries.');
+  }
   const ids = new Set();
   const issues = [];
+  const requiredTextFields = [
+    'headword',
+    'translation',
+    'partOfSpeech',
+    'dialect',
+    'pronunciation',
+    'kasemExample',
+    'englishExample',
+    'culturalNote',
+    'attribution',
+    'sourceUrl',
+  ];
   for (const entry of payload.dictionaryEntries) {
     if (!entry.id || typeof entry.id !== 'string') {
       issues.push('entry missing string id');
@@ -58,14 +75,45 @@ function validatePayload(payload) {
       issues.push(`duplicate id ${entry.id}`);
     }
     ids.add(entry.id);
-    if (!entry.kasemText && !entry.headword) {
-      issues.push(`${entry.id}: missing Kasem text`);
+    for (const field of requiredTextFields) {
+      if (typeof entry[field] !== 'string' || !entry[field].trim()) {
+        issues.push(`${entry.id}: missing non-empty ${field}`);
+      }
     }
-    if (!entry.englishText && !entry.translation) {
-      issues.push(`${entry.id}: missing English translation`);
+    if (entry.kasemText !== entry.headword) {
+      issues.push(`${entry.id}: kasemText and headword must match`);
     }
-    if (entry.isPublished !== true) {
-      issues.push(`${entry.id}: isPublished must be true for mobile visibility`);
+    if (entry.englishText !== entry.translation) {
+      issues.push(`${entry.id}: englishText and translation must match`);
+    }
+    if (!Array.isArray(entry.usage) || entry.usage.length === 0) {
+      issues.push(`${entry.id}: usage must contain the word's sentence example`);
+    } else if (
+      entry.usage[0]?.kasem !== entry.kasemExample
+      || entry.usage[0]?.english !== entry.englishExample
+    ) {
+      issues.push(`${entry.id}: usage must match the flattened example fields`);
+    }
+    if (entry.isSentencePair !== false || /^sentence$/i.test(entry.partOfSpeech)) {
+      issues.push(`${entry.id}: sentences cannot be standalone dictionary entries`);
+    }
+    if ('audio' in entry || 'audioUrl' in entry || 'pronunciationAudioUrl' in entry) {
+      issues.push(`${entry.id}: audio fields must be omitted from this batch`);
+    }
+    if (entry.sourceMetadata?.languageCode !== 'xsm') {
+      issues.push(`${entry.id}: source language must be Kasem (xsm)`);
+    }
+    if (entry.governance?.language?.id !== 'kasem') {
+      issues.push(`${entry.id}: governance language must be Kasem`);
+    }
+    if (entry.isSynthetic !== false) {
+      issues.push(`${entry.id}: source-attested data cannot be marked synthetic`);
+    }
+    if (entry.isPublished !== false || entry.publicationEligible !== false) {
+      issues.push(`${entry.id}: review candidates must remain unpublished`);
+    }
+    if (entry.needsValidation !== true || entry.validationStatus !== 'in_review') {
+      issues.push(`${entry.id}: review candidates must retain validation gates`);
     }
   }
   if (issues.length > 0) {
@@ -123,6 +171,8 @@ async function writeEntries(db, payload) {
       id: payload.importId,
       sourceDocument: payload.sourceDocument,
       sourceDocumentName: payload.sourceDocumentName,
+      sourceFiles: payload.sourceFiles || [],
+      governanceNotice: payload.governanceNotice || '',
       generatedAt: payload.generatedAt,
       importedAt: now,
       writeCollection: WRITE_COLLECTION,
@@ -144,9 +194,10 @@ async function main() {
 
   const stats = payload.stats || {};
   console.log(`Import payload: ${payload.dictionaryEntries.length} dictionary entries`);
-  console.log(`Lexical rows: ${stats.lexicalRows ?? 'n/a'}; sentence rows: ${stats.sentenceRows ?? 'n/a'}`);
-  console.log(`Sentence examples matched: ${stats.lookedUpExamples ?? 'n/a'}`);
-  console.log(`Pending translations: ${stats.pendingTranslations ?? 'n/a'}`);
+  console.log(`Fully populated candidates: ${stats.fullyPopulatedCandidates ?? 'n/a'}`);
+  console.log(`Nested usage examples: ${stats.entriesWithUsage ?? 'n/a'}`);
+  console.log(`Standalone sentence entries: ${stats.standaloneSentenceEntries ?? 'n/a'}`);
+  console.log(`Published rows in review payload: ${stats.publishedEntries ?? 'n/a'}`);
   console.log(`Target project: ${options.projectId}`);
 
   if (options.dryRun) {

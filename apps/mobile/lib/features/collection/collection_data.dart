@@ -146,11 +146,14 @@ DictionaryEntry? dictionaryEntryFromData(String id, Map<String, dynamic> data) {
       'wordClass',
     ], fallback: 'Not specified'),
     dialect: _firstText(data, const ['dialect', 'region'], fallback: 'Kasem'),
+    // The written guide only. `audioUrl` used to sit at the end of this list
+    // as a last resort, which meant an entry that had a recording rendered its
+    // download URL as the pronunciation — and still had nothing to play.
     pronunciation: _firstText(data, const [
       'pronunciation',
       'phonetic',
-      'audioUrl',
-    ], fallback: 'Audio not available yet'),
+    ], fallback: 'No written guide yet'),
+    audioUrl: _firstText(data, const ['audioUrl', 'pronunciationAudioUrl']),
     example: kasemExample.isEmpty ? 'No example yet' : kasemExample,
     exampleTranslation: englishExample.isEmpty
         ? 'No translated example yet'

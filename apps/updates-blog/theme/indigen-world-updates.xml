@@ -1,0 +1,2110 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<!DOCTYPE html>
+<html b:css='false' b:defaultwidgetversion='2' b:layoutsVersion='3' b:responsive='true' b:version='2' expr:dir='data:blog.languageDirection' expr:lang='data:blog.locale.language' xmlns='http://www.w3.org/1999/xhtml' xmlns:b='http://www.google.com/2005/gml/b' xmlns:data='http://www.google.com/2005/gml/data' xmlns:expr='http://www.google.com/2005/gml/expr'>
+<head>
+
+<b:comment>
+  Indigen World Updates - a custom Blogger theme.
+  Palette, typeface and motifs follow packages/design-tokens in the
+  indigen-world monorepo. Colours, fonts and widths can be changed
+  without editing this file via Blogger, Theme, Customise.
+</b:comment>
+
+<b:include data='blog' name='all-head-content'/>
+<b:comment>
+  The page's own name comes first so it survives truncation in search results;
+  the homepage gets a descriptive tail instead of the bare blog title.
+</b:comment>
+<title><b:if cond='data:view.isHomepage'><data:blog.title/> &#183; Release notes and field notes<b:else/><data:view.title/> &#183; <data:blog.title/></b:if></title>
+
+<meta content='width=device-width, initial-scale=1, viewport-fit=cover' name='viewport'/>
+<meta content='#1e365d' name='theme-color'/>
+
+<b:comment>
+  Home-screen icon. Blogger serves the icon set in Settings, Favicon at
+  /favicon.ico; this adds the 180x180 PNG iOS and Android ask for.
+</b:comment>
+<link href='https://indigenworld.com/updates-apple-touch-icon.png' rel='apple-touch-icon' sizes='180x180'/>
+
+<b:comment>
+  Description. all-head-content already emits og:description and a description
+  meta whenever the page has a search description of its own, so this only fills
+  the gap - the homepage, label and archive views - and never duplicates a tag
+  Blogger has already written. og:url and og:title are Blogger's too; do not
+  repeat them here or scrapers see two of each.
+</b:comment>
+<b:if cond='data:view.description'>
+  <meta expr:content='data:view.description' name='twitter:description'/>
+<b:else/>
+  <meta content='Release notes, feature updates and notes from the field across the Indigen World ecosystem - the website, TribeStudio, the mobile app and Venacula.' name='description'/>
+  <meta content='Release notes, feature updates and notes from the field across the Indigen World ecosystem - the website, TribeStudio, the mobile app and Venacula.' property='og:description'/>
+  <meta content='Release notes, feature updates and notes from the field across the Indigen World ecosystem - the website, TribeStudio, the mobile app and Venacula.' name='twitter:description'/>
+</b:if>
+
+<b:comment>
+  Social sharing. The fallback card is a real 1200x630 PNG - most platforms will
+  not render an SVG. It is versioned at apps/updates-blog/assets/og-default.png
+  and deployed with the website, so it stays in step with the theme.
+</b:comment>
+<meta expr:content='data:blog.title' property='og:site_name'/>
+<b:if cond='data:view.isPost'>
+  <meta content='article' property='og:type'/>
+<b:else/>
+  <meta content='website' property='og:type'/>
+</b:if>
+<b:if cond='data:view.featuredImage'>
+  <meta expr:content='resizeImage(data:view.featuredImage, 1200, "1200:630")' property='og:image'/>
+  <meta expr:content='resizeImage(data:view.featuredImage, 1200, "1200:630")' name='twitter:image'/>
+  <meta expr:content='data:view.title' name='twitter:image:alt'/>
+  <meta expr:content='data:view.title' property='og:image:alt'/>
+<b:else/>
+  <meta content='https://indigenworld.com/og-image-updates.png' property='og:image'/>
+  <meta content='https://indigenworld.com/og-image-updates.png' name='twitter:image'/>
+  <meta content='Indigen World Updates - release notes and field notes' name='twitter:image:alt'/>
+  <meta content='Indigen World Updates - release notes and field notes' property='og:image:alt'/>
+</b:if>
+<meta content='1200' property='og:image:width'/>
+<meta content='630' property='og:image:height'/>
+<meta content='summary_large_image' name='twitter:card'/>
+<meta expr:content='data:view.title' name='twitter:title'/>
+
+<b:comment>
+  Site-level structured data. The per-post BlogPosting and BreadcrumbList are
+  built at the foot of the page from the page's own meta tags, so a title with
+  a quote in it can never break the JSON.
+</b:comment>
+<script type='application/ld+json'>{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebSite",
+      "@id": "https://updates.indigenworld.com/#website",
+      "url": "https://updates.indigenworld.com/",
+      "name": "Indigen World Updates",
+      "description": "Release notes, feature updates and notes from the field across the Indigen World ecosystem.",
+      "inLanguage": "en",
+      "publisher": { "@id": "https://indigenworld.com/#organization" },
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": { "@type": "EntryPoint", "urlTemplate": "https://updates.indigenworld.com/search?q={search_term_string}" },
+        "query-input": "required name=search_term_string"
+      }
+    },
+    {
+      "@type": "Organization",
+      "@id": "https://indigenworld.com/#organization",
+      "name": "Indigen World",
+      "url": "https://indigenworld.com/",
+      "logo": "https://indigenworld.com/og-image-updates.png"
+    }
+  ]
+}</script>
+
+<link crossorigin='anonymous' href='https://fonts.gstatic.com' rel='preconnect'/>
+<link href='https://fonts.googleapis.com' rel='preconnect'/>
+<link href='https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&amp;family=Noto+Serif:ital,wght@0,400;0,500;0,600;1,400&amp;display=swap' rel='stylesheet'/>
+
+<b:comment>Applies the saved colour scheme before first paint so there is no flash.</b:comment>
+<script>//<![CDATA[
+(function(){try{var s=localStorage.getItem('iw-theme');if(s==='dark'||s==='light'){document.documentElement.setAttribute('data-theme',s);}}catch(e){}})();
+//]]></script>
+
+<b:skin><![CDATA[/*
+<Variable name="keycolor" description="Main colour" type="color" default="#1e365d" value="#1e365d"/>
+
+<Group description="Brand palette" selector="body">
+  <Variable name="brand.indigo" description="Deep Indigo" type="color" default="#1e365d" value="#1e365d"/>
+  <Variable name="brand.indigoDeep" description="Indigo deepest" type="color" default="#142543" value="#142543"/>
+  <Variable name="brand.gold" description="Kente Gold" type="color" default="#d6a52b" value="#d6a52b"/>
+  <Variable name="brand.goldSoft" description="Gold soft" type="color" default="#f0d99c" value="#f0d99c"/>
+  <Variable name="brand.terracotta" description="Terracotta" type="color" default="#b65a3a" value="#b65a3a"/>
+  <Variable name="brand.green" description="Savannah Green" type="color" default="#1f5b3a" value="#1f5b3a"/>
+  <Variable name="brand.cream" description="Plaster Cream" type="color" default="#faf6ed" value="#faf6ed"/>
+  <Variable name="brand.sand" description="Sand" type="color" default="#f1eada" value="#f1eada"/>
+</Group>
+
+<Group description="Typography" selector="body">
+  <Variable name="type.ui" description="Interface font" type="font" default="normal normal 16px 'Noto Sans', system-ui, sans-serif" value="normal normal 16px 'Noto Sans', system-ui, sans-serif"/>
+  <Variable name="type.body" description="Article body font" type="font" default="normal normal 17px 'Noto Serif', Georgia, serif" value="normal normal 17px 'Noto Serif', Georgia, serif"/>
+</Group>
+
+<Group description="Layout" selector="body">
+  <Variable name="layout.width" description="Page width" type="length" default="1200px" min="960px" max="1440px" value="1200px"/>
+  <Variable name="layout.article" description="Article column width" type="length" default="760px" min="600px" max="900px" value="760px"/>
+  <Variable name="layout.radius" description="Corner radius" type="length" default="18px" min="0px" max="28px" value="18px"/>
+</Group>
+*/
+
+/* ==========================================================================
+   1. Tokens
+   ========================================================================== */
+
+:root{
+  color-scheme:light;
+
+  --indigo:$(brand.indigo);
+  --indigo-deep:$(brand.indigoDeep);
+  --gold:$(brand.gold);
+  --gold-soft:$(brand.goldSoft);
+  --terracotta:$(brand.terracotta);
+  --green:$(brand.green);
+  --cream:$(brand.cream);
+  --sand:$(brand.sand);
+
+  --bg:var(--cream);
+  --bg-alt:var(--sand);
+  --surface:#fffdfa;
+  --surface-2:#f7f2e6;
+  --ink:#16203a;
+  --ink-soft:#4c5568;
+  --ink-mute:#7a7364;
+  --line:rgba(30,54,93,.14);
+  --line-2:rgba(30,54,93,.26);
+  --accent-ink:#8a6a00;
+  --on-dark:#f7f2e6;
+  --on-dark-soft:rgba(247,242,230,.66);
+  --select-bg:var(--gold-soft);
+  --select-fg:var(--indigo-deep);
+  --code-bg:#101c36;
+  --code-fg:#e9e2d3;
+
+  --shadow-1:0 1px 2px rgba(20,37,67,.05),0 6px 18px rgba(20,37,67,.06);
+  --shadow-2:0 2px 8px rgba(20,37,67,.07),0 22px 48px rgba(20,37,67,.12);
+
+  --shell:$(layout.width);
+  --article-w:$(layout.article);
+  --radius:$(layout.radius);
+  --radius-sm:10px;
+  --pill:999px;
+
+  --font-ui:$(type.ui.family);
+  --font-body:$(type.body.family);
+  --font-mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --fs-body:$(type.body.size);
+
+  --ease:cubic-bezier(.2,.7,.2,1);
+  --dur:220ms;
+  --head-h:64px;
+}
+
+/* Dark palette. Gold and terracotta are lifted so they keep their contrast
+   on a dark ground; the rest is the ecosystem dark token set. */
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#0d1524;
+  --bg-alt:#0a1120;
+  --surface:#142036;
+  --surface-2:#1b2942;
+  --ink:#f2f5fa;
+  --ink-soft:#b9c3d5;
+  --ink-mute:#8593a8;
+  --line:rgba(255,255,255,.11);
+  --line-2:rgba(255,255,255,.22);
+  --gold:#e9bf55;
+  --gold-soft:#f3e2ae;
+  --terracotta:#d98460;
+  --green:#3d9a6a;
+  --accent-ink:#e9bf55;
+  --select-bg:rgba(233,191,85,.3);
+  --select-fg:#fff;
+  --code-bg:#0a1120;
+  --code-fg:#dfe7f2;
+  --shadow-1:0 1px 2px rgba(0,0,0,.4),0 6px 18px rgba(0,0,0,.28);
+  --shadow-2:0 2px 8px rgba(0,0,0,.45),0 24px 56px rgba(0,0,0,.45);
+}
+
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#0d1524;
+    --bg-alt:#0a1120;
+    --surface:#142036;
+    --surface-2:#1b2942;
+    --ink:#f2f5fa;
+    --ink-soft:#b9c3d5;
+    --ink-mute:#8593a8;
+    --line:rgba(255,255,255,.11);
+    --line-2:rgba(255,255,255,.22);
+    --gold:#e9bf55;
+    --gold-soft:#f3e2ae;
+    --terracotta:#d98460;
+    --green:#3d9a6a;
+    --accent-ink:#e9bf55;
+    --select-bg:rgba(233,191,85,.3);
+    --select-fg:#fff;
+    --code-bg:#0a1120;
+    --code-fg:#dfe7f2;
+    --shadow-1:0 1px 2px rgba(0,0,0,.4),0 6px 18px rgba(0,0,0,.28);
+    --shadow-2:0 2px 8px rgba(0,0,0,.45),0 24px 56px rgba(0,0,0,.45);
+  }
+}
+
+/* ==========================================================================
+   2. Reset and base
+   ========================================================================== */
+
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;overflow-x:clip;scroll-behavior:smooth;scroll-padding-top:96px}
+body{
+  margin:0;min-width:320px;
+  background:var(--bg);color:var(--ink);
+  font-family:var(--font-ui);font-size:16px;line-height:1.6;
+  -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+  overflow-wrap:break-word;
+}
+img,svg,video,iframe,canvas{display:block;max-width:100%}
+img{height:auto}
+a{color:inherit;text-decoration:none}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer;background:none;border:0;padding:0;color:inherit}
+ul,ol{margin:0;padding:0}
+li{list-style:none}
+h1,h2,h3,h4,h5,h6,p,figure,blockquote,dl,dd{margin:0}
+table{border-collapse:collapse}
+::selection{background:var(--select-bg);color:var(--select-fg)}
+:focus-visible{outline:2px solid var(--gold);outline-offset:3px;border-radius:4px}
+
+.iw-shell{width:min(var(--shell),calc(100% - 32px));margin-inline:auto}
+@media (min-width:700px){.iw-shell{width:min(var(--shell),calc(100% - 56px))}}
+
+.iw-skip{
+  position:fixed;z-index:400;top:10px;left:10px;transform:translateY(-160%);
+  padding:11px 18px;border-radius:var(--radius-sm);
+  background:var(--gold);color:var(--indigo-deep);font-weight:700;font-size:.88rem;
+  transition:transform var(--dur) var(--ease);
+}
+.iw-skip:focus{transform:none}
+
+.iw-sr{
+  position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;
+  overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0
+}
+
+/* Brand mark, carried over from the website's BrandMark component. */
+.iw-mark{width:34px;height:34px;flex:0 0 auto}
+.iw-mark__frame{fill:none;stroke:var(--gold);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.iw-mark__line{fill:none;stroke:var(--on-dark);stroke-width:2.2;stroke-linecap:round}
+.iw-mark__sun{fill:var(--terracotta)}
+
+/* Cultural motifs, mirroring packages/design-tokens/tokens.css */
+.iw-kente{
+  background-image:
+    repeating-linear-gradient(45deg,transparent 0 15px,rgba(240,217,156,.11) 15px 17px,transparent 17px 32px),
+    repeating-linear-gradient(-45deg,transparent 0 15px,rgba(182,90,58,.11) 15px 17px,transparent 17px 32px);
+}
+
+/* ==========================================================================
+   3. Reading progress
+   ========================================================================== */
+
+.iw-progress{position:fixed;z-index:120;inset:0 0 auto;height:3px;pointer-events:none}
+.iw-progress i{
+  display:block;height:100%;width:0;
+  background:linear-gradient(90deg,var(--gold),var(--terracotta));
+  transition:width 90ms linear;
+}
+
+/* ==========================================================================
+   4. Header, navigation, search
+   ========================================================================== */
+
+.iw-head{
+  position:sticky;z-index:90;top:0;color:var(--on-dark);
+  background:linear-gradient(180deg,rgba(20,37,67,.95),rgba(16,28,54,.9));
+  -webkit-backdrop-filter:blur(20px) saturate(155%);
+  backdrop-filter:blur(20px) saturate(155%);
+  border-bottom:1px solid rgba(255,255,255,.1);
+}
+.iw-head::after{
+  content:"";position:absolute;left:0;right:0;bottom:-1px;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(240,217,156,.6) 22%,rgba(182,90,58,.45) 62%,transparent);
+}
+.iw-head__in{
+  display:flex;flex-wrap:wrap;align-items:center;gap:12px;
+  min-height:var(--head-h);padding-block:9px;
+}
+
+.iw-brand{display:flex;align-items:center;gap:11px;min-width:0;margin-right:auto}
+.iw-brand__text{display:flex;flex-direction:column;line-height:1.2;min-width:0}
+.iw-brand__text strong{font-size:.98rem;font-weight:800;letter-spacing:-.005em;color:#fff}
+.iw-brand__text small{
+  font-size:.7rem;color:var(--on-dark-soft);
+  letter-spacing:.05em;text-transform:uppercase;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.iw-brand__img{max-height:38px;width:auto}
+
+/* Mobile: the nav is a collapsible second row. It becomes an inline
+   row at the desktop breakpoint. Using a grid-rows collapse rather than
+   a fixed overlay avoids the backdrop-filter containing-block trap. */
+.iw-nav{order:3;flex:1 0 100%;display:grid;grid-template-rows:0fr;transition:grid-template-rows var(--dur) var(--ease)}
+.iw-nav__in{min-height:0;overflow:hidden}
+.iw-nav.is-open{grid-template-rows:1fr}
+.iw-nav .section{display:contents}
+.iw-nav .widget{display:block}
+.iw-navlist{display:flex;flex-direction:column;padding-bottom:12px}
+.iw-navlist a{
+  display:block;padding:13px 2px;font-size:.92rem;font-weight:700;
+  color:rgba(255,255,255,.78);border-bottom:1px solid rgba(255,255,255,.08);
+  transition:color var(--dur) var(--ease),padding-inline var(--dur) var(--ease),background var(--dur) var(--ease);
+}
+.iw-navlist a:hover,.iw-navlist a:focus-visible,.iw-navlist li.is-current a{
+  color:#fff;padding-inline:10px;
+  background:linear-gradient(90deg,rgba(214,165,43,.18),transparent);
+}
+
+.iw-head__act{display:flex;align-items:center;gap:7px;order:2;flex:0 0 auto}
+.iw-ibtn{
+  display:grid;place-items:center;width:40px;height:40px;border-radius:12px;
+  border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.07);color:#fff;
+  transition:background var(--dur) var(--ease),border-color var(--dur) var(--ease),transform var(--dur) var(--ease);
+}
+.iw-ibtn:hover,.iw-ibtn:focus-visible{
+  background:rgba(255,255,255,.16);border-color:rgba(240,217,156,.5);transform:translateY(-1px);
+}
+.iw-ibtn svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.iw-ibtn .iw-i-moon{display:none}
+:root[data-theme="dark"] .iw-ibtn .iw-i-moon{display:block}
+:root[data-theme="dark"] .iw-ibtn .iw-i-sun{display:none}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]) .iw-ibtn .iw-i-moon{display:block}
+  :root:not([data-theme="light"]) .iw-ibtn .iw-i-sun{display:none}
+}
+
+@media (min-width:980px){
+  /* display:contents collapses the section and widget wrappers so the pill
+     itself becomes the flex item and shrinks to its own content. */
+  .iw-nav{order:2;flex:0 1 auto;display:flex;justify-content:center;margin-inline:auto}
+  .iw-nav__in{display:contents;overflow:visible}
+  .iw-nav .widget{display:contents}
+  .iw-navlist{
+    flex-direction:row;align-items:center;gap:2px;padding:4px;
+    border:1px solid rgba(255,255,255,.09);border-radius:var(--pill);
+    background:rgba(5,15,32,.22);
+  }
+  .iw-navlist a{
+    padding:8px 13px;border:1px solid transparent;border-radius:var(--pill);
+    font-size:.85rem;font-weight:600;white-space:nowrap;
+  }
+  .iw-navlist a:hover,.iw-navlist a:focus-visible,.iw-navlist li.is-current a{
+    background:rgba(255,255,255,.1);border-color:rgba(240,217,156,.24);padding-inline:13px;
+  }
+  .iw-navlist li.is-current a{box-shadow:inset 0 -1px 0 rgba(240,217,156,.55)}
+  .iw-menubtn{display:none}
+}
+
+/* Search panel */
+.iw-searchpane{
+  background:var(--indigo-deep);border-bottom:1px solid rgba(255,255,255,.1);
+  padding-block:18px;
+}
+.iw-searchpane[hidden]{display:none}
+.iw-searchform{display:flex;gap:9px;align-items:center}
+.iw-searchform input{
+  flex:1 1 auto;min-width:0;padding:13px 16px;border-radius:var(--radius-sm);
+  border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.07);
+  color:#fff;font-size:.95rem;
+}
+.iw-searchform input::placeholder{color:rgba(255,255,255,.5)}
+.iw-searchform input:focus{outline:none;border-color:var(--gold);background:rgba(255,255,255,.12)}
+.iw-searchform button{
+  padding:13px 20px;border-radius:var(--radius-sm);flex:0 0 auto;
+  background:var(--gold);color:var(--indigo-deep);font-weight:700;font-size:.9rem;
+}
+.iw-searchform button:hover{background:var(--gold-soft)}
+
+/* ==========================================================================
+   5. Homepage hero
+   ========================================================================== */
+
+.iw-hero{
+  position:relative;isolation:isolate;overflow:hidden;
+  color:var(--on-dark);
+  background:radial-gradient(125% 105% at 10% 0%,#26456f 0%,#1a2f52 45%,#101c36 100%);
+  border-bottom:1px solid rgba(240,217,156,.2);
+}
+.iw-hero::before,.iw-hero::after{content:"";position:absolute;z-index:-1;pointer-events:none}
+.iw-hero::before{
+  width:300px;aspect-ratio:1;top:-186px;right:-150px;
+  border:1px solid rgba(240,217,156,.14);border-radius:50%;
+  box-shadow:
+    0 0 0 42px rgba(255,255,255,.028),
+    0 0 0 84px rgba(214,165,43,.03),
+    0 0 0 126px rgba(255,255,255,.02);
+}
+.iw-hero::after{
+  width:320px;aspect-ratio:1;bottom:-176px;left:-160px;opacity:.5;
+  background-image:
+    repeating-linear-gradient(45deg,transparent 0 15px,rgba(255,255,255,.13) 15px 17px,transparent 17px 32px),
+    repeating-linear-gradient(-45deg,transparent 0 15px,rgba(240,217,156,.12) 15px 17px,transparent 17px 32px);
+  -webkit-mask-image:radial-gradient(circle,#000 0 30%,transparent 72%);
+  mask-image:radial-gradient(circle,#000 0 30%,transparent 72%);
+}
+.iw-hero__in{position:relative;z-index:1;padding:52px 0 58px;max-width:64ch}
+.iw-eyebrow{
+  display:inline-flex;align-items:center;gap:9px;margin-bottom:16px;
+  font-size:.73rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--gold-soft);
+}
+.iw-eyebrow::before{
+  content:"";width:7px;height:7px;border-radius:50%;flex:0 0 auto;
+  background:var(--terracotta);box-shadow:0 0 0 4px rgba(182,90,58,.25);
+}
+.iw-hero__title{
+  font-size:clamp(2.15rem,6vw,3.35rem);line-height:1.06;letter-spacing:-.02em;
+  font-weight:800;color:#fff;text-wrap:balance;
+}
+.iw-hero__lede{
+  margin-top:16px;max-width:56ch;font-size:clamp(1rem,2.1vw,1.13rem);
+  line-height:1.65;color:rgba(247,242,230,.76);text-wrap:pretty;
+}
+.iw-hero__actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:26px}
+.iw-btn{
+  display:inline-flex;align-items:center;gap:8px;padding:12px 20px;
+  border-radius:var(--pill);font-size:.88rem;font-weight:700;
+  border:1px solid transparent;
+  transition:background var(--dur) var(--ease),border-color var(--dur) var(--ease),transform var(--dur) var(--ease),box-shadow var(--dur) var(--ease);
+}
+.iw-btn--gold{background:var(--gold);color:var(--indigo-deep);box-shadow:0 10px 26px rgba(214,165,43,.22)}
+.iw-btn--gold:hover{background:var(--gold-soft);transform:translateY(-1px)}
+.iw-btn--ghost{
+  border-color:rgba(240,217,156,.34);color:#fff;
+  background:linear-gradient(135deg,rgba(214,165,43,.18),rgba(255,255,255,.05));
+}
+.iw-btn--ghost:hover{
+  background:linear-gradient(135deg,rgba(214,165,43,.32),rgba(255,255,255,.1));
+  transform:translateY(-1px);
+}
+.iw-btn svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+/* ==========================================================================
+   6. Page shell and layout
+   ========================================================================== */
+
+.iw-main{padding-block:44px 72px}
+.iw-layout{display:grid;gap:40px;align-items:start}
+.iw-layout--index{grid-template-columns:minmax(0,1fr)}
+@media (min-width:1040px){
+  .iw-layout--index{grid-template-columns:minmax(0,1fr) 312px;gap:52px}
+}
+.iw-layout--article{grid-template-columns:minmax(0,1fr)}
+.iw-layout--article > .iw-side{display:none}
+.iw-layout--index > .iw-rail{display:none}
+.iw-layout--article > #main{max-width:var(--article-w);margin-inline:auto;width:100%}
+@media (min-width:1280px){
+  /* Flexible gutters, so the article keeps its full measure and the table of
+     contents takes whatever is left on the right. Fixed-width gutters would
+     squeeze the article narrower than it is on a smaller screen. */
+  .iw-layout--article{
+    grid-template-columns:minmax(0,1fr) min(var(--article-w),100%) minmax(0,1fr);
+    justify-content:center;gap:0 36px;
+  }
+  .iw-layout--article > #main{grid-column:2;max-width:none}
+  .iw-layout--article > .iw-rail{grid-column:3;min-width:0}
+}
+
+/* View header for label, archive and search pages */
+.iw-viewhead{
+  margin-bottom:30px;padding-bottom:22px;border-bottom:1px solid var(--line);
+}
+.iw-viewhead .iw-eyebrow{color:var(--accent-ink);margin-bottom:10px}
+.iw-viewhead__title{
+  font-size:clamp(1.6rem,4vw,2.3rem);line-height:1.12;letter-spacing:-.015em;font-weight:800;
+}
+.iw-viewhead__count{margin-top:8px;color:var(--ink-mute);font-size:.9rem}
+
+.iw-empty{
+  padding:56px 24px;text-align:center;border:1px dashed var(--line-2);
+  border-radius:var(--radius);background:var(--surface);
+}
+.iw-empty h2{font-size:1.25rem;font-weight:800;margin-bottom:8px}
+.iw-empty p{color:var(--ink-mute);max-width:44ch;margin-inline:auto}
+
+/* ==========================================================================
+   7. Label chips
+   ========================================================================== */
+
+.iw-chips{display:flex;flex-wrap:wrap;gap:6px;position:relative;z-index:2}
+/* A card shows the two most specific topics. A heavily tagged post would
+   otherwise push a two-line chip row into the title and knock the grid out of
+   alignment; the post page still shows every label. */
+.iw-card .iw-chips a:nth-child(n+3){display:none}
+.iw-chip{
+  display:inline-flex;align-items:center;gap:6px;padding:4px 11px;
+  border-radius:var(--pill);border:1px solid var(--line-2);
+  background:var(--surface-2);color:var(--ink-soft);
+  font-size:.7rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;
+  transition:background var(--dur) var(--ease),color var(--dur) var(--ease),border-color var(--dur) var(--ease);
+}
+.iw-chip::before{content:"";width:6px;height:6px;border-radius:2px;background:var(--gold);flex:0 0 auto}
+.iw-chip:hover{border-color:var(--gold);color:var(--ink)}
+
+/* Colour-coded by label name, case-insensitively. Add your own by copying
+   a block and changing the label text. Anything unmatched keeps the gold. */
+.iw-chip[data-label="release" i]::before,
+.iw-chip[data-label="releases" i]::before,
+.iw-chip[data-label="shipped" i]::before{background:var(--green)}
+.iw-chip[data-label="feature" i]::before,
+.iw-chip[data-label="features" i]::before,
+.iw-chip[data-label="product" i]::before{background:var(--gold)}
+.iw-chip[data-label="engineering" i]::before,
+.iw-chip[data-label="platform" i]::before{background:var(--indigo)}
+.iw-chip[data-label="community" i]::before,
+.iw-chip[data-label="governance" i]::before{background:var(--terracotta)}
+.iw-chip[data-label="language" i]::before,
+.iw-chip[data-label="venacula" i]::before,
+.iw-chip[data-label="kasem" i]::before{background:#7a4fbf}
+:root[data-theme="dark"] .iw-chip[data-label="engineering" i]::before,
+:root[data-theme="dark"] .iw-chip[data-label="platform" i]::before{background:#6f9bd8}
+
+/* ==========================================================================
+   8. Post grid and cards
+   ========================================================================== */
+
+.iw-grid{display:grid;gap:26px;grid-template-columns:minmax(0,1fr)}
+@media (min-width:640px){.iw-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (min-width:1040px){.iw-grid{gap:30px}}
+
+.iw-card{
+  position:relative;display:flex;flex-direction:column;overflow:hidden;
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+  box-shadow:var(--shadow-1);
+  transition:transform var(--dur) var(--ease),box-shadow var(--dur) var(--ease),border-color var(--dur) var(--ease);
+}
+.iw-card:hover{transform:translateY(-3px);box-shadow:var(--shadow-2);border-color:var(--line-2)}
+.iw-card:focus-within{box-shadow:var(--shadow-2)}
+
+.iw-card__media{position:relative;aspect-ratio:16/9;overflow:hidden;background:var(--surface-2)}
+.iw-card__media img{width:100%;height:100%;object-fit:cover;transition:transform 420ms var(--ease)}
+.iw-card:hover .iw-card__media img{transform:scale(1.035)}
+
+/* Posts with no image get a woven placeholder rather than a blank box. */
+.iw-card__motif{
+  display:grid;place-items:center;width:100%;height:100%;
+  background:radial-gradient(120% 120% at 20% 0%,#24406e,#101c36);
+  background-image:
+    repeating-linear-gradient(45deg,transparent 0 15px,rgba(240,217,156,.1) 15px 17px,transparent 17px 32px),
+    repeating-linear-gradient(-45deg,transparent 0 15px,rgba(182,90,58,.12) 15px 17px,transparent 17px 32px),
+    radial-gradient(120% 120% at 20% 0%,#24406e,#101c36);
+}
+.iw-card__motif .iw-mark{width:52px;height:52px;opacity:.92}
+
+.iw-card__body{display:flex;flex-direction:column;gap:11px;padding:20px 20px 22px;flex:1 1 auto}
+.iw-card .iw-chip:nth-of-type(n+3){display:none}
+.iw-card__title{font-size:1.16rem;line-height:1.28;font-weight:800;letter-spacing:-.012em;text-wrap:balance}
+.iw-card__title a{transition:color var(--dur) var(--ease)}
+.iw-card__title a::after{content:"";position:absolute;inset:0;z-index:1}
+.iw-card:hover .iw-card__title a{color:var(--indigo)}
+:root[data-theme="dark"] .iw-card:hover .iw-card__title a{color:var(--gold)}
+.iw-card__snippet{color:var(--ink-soft);font-size:.93rem;line-height:1.6;margin-top:-2px}
+.iw-card__foot{
+  display:flex;align-items:center;gap:8px;margin-top:auto;padding-top:6px;
+  font-size:.78rem;color:var(--ink-mute);
+}
+.iw-dot{opacity:.5}
+.iw-card__more{
+  margin-left:auto;font-weight:700;color:var(--accent-ink);
+  display:inline-flex;align-items:center;gap:5px;
+}
+.iw-card__more::after{content:"\2192";transition:transform var(--dur) var(--ease)}
+.iw-card:hover .iw-card__more::after{transform:translateX(3px)}
+
+/* Lead card: the most recent update gets the full width and a side-by-side
+   treatment once there is room for it. */
+@media (min-width:640px){
+  .iw-card--lead{grid-column:1/-1}
+}
+@media (min-width:860px){
+  .iw-card--lead{flex-direction:row;align-items:stretch}
+  .iw-card--lead .iw-card__media{flex:0 0 52%;aspect-ratio:auto}
+  .iw-card--lead .iw-card__body{padding:30px 30px 32px;justify-content:center;gap:13px}
+  .iw-card--lead .iw-card__title{font-size:1.6rem;line-height:1.2}
+  .iw-card--lead .iw-card__snippet{font-size:1rem}
+}
+
+/* ==========================================================================
+   9. Article
+   ========================================================================== */
+
+.iw-article__head{margin-bottom:26px}
+.iw-article__head .iw-chips{margin-bottom:14px}
+.iw-article__title{
+  font-size:clamp(1.85rem,4.6vw,2.75rem);line-height:1.1;letter-spacing:-.02em;
+  font-weight:800;text-wrap:balance;
+}
+.iw-meta{
+  display:flex;flex-wrap:wrap;align-items:center;gap:9px;margin-top:18px;
+  font-size:.85rem;color:var(--ink-mute);
+}
+.iw-avatar{width:34px;height:34px;border-radius:50%;object-fit:cover;border:1px solid var(--line)}
+.iw-meta__author{font-weight:700;color:var(--ink)}
+
+.iw-cover{margin:0 0 30px;border-radius:var(--radius);overflow:hidden;border:1px solid var(--line);box-shadow:var(--shadow-1)}
+.iw-cover img{width:100%;aspect-ratio:16/9;object-fit:cover}
+
+/* --- Prose ------------------------------------------------------------- */
+
+.iw-prose{
+  font-family:var(--font-body);font-size:var(--fs-body);line-height:1.75;
+  color:var(--ink);
+}
+.iw-prose > * + *{margin-top:1.15em}
+.iw-prose p{text-wrap:pretty}
+.iw-prose a{
+  color:var(--indigo);text-decoration:underline;
+  text-decoration-color:var(--gold);text-decoration-thickness:2px;text-underline-offset:3px;
+  transition:color var(--dur) var(--ease),text-decoration-color var(--dur) var(--ease);
+}
+.iw-prose a:hover{color:var(--terracotta);text-decoration-color:var(--terracotta)}
+:root[data-theme="dark"] .iw-prose a{color:var(--gold)}
+:root[data-theme="dark"] .iw-prose a:hover{color:var(--gold-soft)}
+
+.iw-prose h2,.iw-prose h3,.iw-prose h4{
+  font-family:var(--font-ui);font-weight:800;letter-spacing:-.015em;
+  line-height:1.22;text-wrap:balance;scroll-margin-top:96px;
+}
+.iw-prose h2{font-size:1.55em;margin-top:2em;padding-top:.15em}
+.iw-prose h2::after{
+  content:"";display:block;width:46px;height:3px;border-radius:2px;
+  margin-top:.42em;background:linear-gradient(90deg,var(--gold),var(--terracotta));
+}
+.iw-prose h3{font-size:1.22em;margin-top:1.8em}
+.iw-prose h4{font-size:1.05em;margin-top:1.6em;color:var(--ink-soft)}
+
+.iw-prose ul,.iw-prose ol{padding-left:1.35em}
+.iw-prose li{list-style:inherit;margin-top:.42em}
+.iw-prose ul{list-style:none;padding-left:1.5em}
+.iw-prose ul > li{position:relative}
+.iw-prose ul > li::before{
+  content:"";position:absolute;left:-1.15em;top:.72em;
+  width:7px;height:7px;border-radius:2px;background:var(--gold);
+}
+.iw-prose ol{list-style:decimal}
+.iw-prose ol > li::marker{color:var(--accent-ink);font-weight:700}
+.iw-prose li > ul,.iw-prose li > ol{margin-top:.42em}
+
+.iw-prose blockquote{
+  margin-inline:0;padding:18px 22px;border-left:3px solid var(--terracotta);
+  border-radius:0 var(--radius-sm) var(--radius-sm) 0;
+  background:var(--surface-2);color:var(--ink-soft);font-style:italic;
+}
+.iw-prose blockquote p + p{margin-top:.8em}
+
+.iw-prose img{border-radius:var(--radius-sm);box-shadow:var(--shadow-1);margin-inline:auto}
+.iw-prose figure{margin-block:1.6em}
+.iw-prose figcaption,.iw-prose .separator + br{font-family:var(--font-ui)}
+.iw-prose figcaption{
+  margin-top:.7em;text-align:center;font-size:.83rem;color:var(--ink-mute);
+}
+/* Blogger wraps pasted images in .separator */
+.iw-prose .separator{margin:1.6em 0!important;clear:both;text-align:center}
+.iw-prose .separator a{display:inline-block;margin:0!important}
+
+.iw-prose code{
+  font-family:var(--font-mono);font-size:.86em;
+  padding:.16em .42em;border-radius:5px;
+  background:var(--surface-2);border:1px solid var(--line);
+  color:var(--terracotta);
+}
+:root[data-theme="dark"] .iw-prose code{color:var(--gold-soft)}
+.iw-prose pre{
+  position:relative;overflow-x:auto;padding:20px 22px;
+  border-radius:var(--radius-sm);background:var(--code-bg);color:var(--code-fg);
+  font-family:var(--font-mono);font-size:.86rem;line-height:1.62;
+  border:1px solid rgba(255,255,255,.08);
+}
+.iw-prose pre code{background:none;border:0;padding:0;color:inherit;font-size:1em}
+.iw-copy{
+  position:absolute;top:10px;right:10px;padding:5px 11px;border-radius:var(--pill);
+  border:1px solid rgba(255,255,255,.22);background:rgba(255,255,255,.09);
+  color:#fff;font-family:var(--font-ui);font-size:.7rem;font-weight:700;
+  letter-spacing:.06em;text-transform:uppercase;opacity:0;
+  transition:opacity var(--dur) var(--ease),background var(--dur) var(--ease);
+}
+.iw-prose pre:hover .iw-copy,.iw-copy:focus-visible{opacity:1}
+.iw-copy:hover{background:rgba(255,255,255,.18)}
+
+.iw-tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--radius-sm)}
+.iw-prose table{width:100%;font-family:var(--font-ui);font-size:.9rem;min-width:480px}
+.iw-prose th,.iw-prose td{padding:11px 15px;text-align:left;border-bottom:1px solid var(--line)}
+.iw-prose thead th{
+  background:var(--surface-2);font-weight:700;font-size:.76rem;
+  letter-spacing:.07em;text-transform:uppercase;color:var(--ink-soft);
+}
+.iw-prose tbody tr:last-child td{border-bottom:0}
+
+.iw-prose hr{
+  border:0;height:22px;margin-block:2.2em;
+  background-image:radial-gradient(circle,var(--gold) 2.5px,transparent 2.6px);
+  background-size:22px 22px;background-position:center;background-repeat:repeat-x;
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 42%,#000 58%,transparent);
+  mask-image:linear-gradient(90deg,transparent,#000 42%,#000 58%,transparent);
+}
+
+.iw-prose iframe{width:100%;aspect-ratio:16/9;height:auto;border:0;border-radius:var(--radius-sm)}
+
+/* --- Editor helper classes --------------------------------------------
+   Paste these into a post's HTML view to get consistent components.
+   Documented in apps/updates-blog/README.md                            */
+
+.iw-lede{font-size:1.16em;line-height:1.62;color:var(--ink-soft)}
+
+.iw-note,.iw-tip,.iw-warn,.iw-ship{
+  font-family:var(--font-ui);font-size:.95rem;line-height:1.6;
+  padding:16px 18px;border-radius:var(--radius-sm);
+  border:1px solid var(--line);border-left-width:3px;background:var(--surface-2);
+}
+.iw-note{border-left-color:var(--indigo)}
+.iw-tip{border-left-color:var(--gold)}
+.iw-warn{border-left-color:var(--terracotta)}
+.iw-ship{border-left-color:var(--green)}
+.iw-note strong:first-child,.iw-tip strong:first-child,
+.iw-warn strong:first-child,.iw-ship strong:first-child{
+  display:block;margin-bottom:5px;font-size:.74rem;
+  letter-spacing:.09em;text-transform:uppercase;
+}
+.iw-note strong:first-child{color:var(--indigo)}
+:root[data-theme="dark"] .iw-note strong:first-child{color:#7fa5dd}
+.iw-tip strong:first-child{color:var(--accent-ink)}
+.iw-warn strong:first-child{color:var(--terracotta)}
+.iw-ship strong:first-child{color:var(--green)}
+
+.iw-kbd{
+  font-family:var(--font-mono);font-size:.78em;padding:.16em .5em;
+  border-radius:5px;border:1px solid var(--line-2);border-bottom-width:2px;
+  background:var(--surface);color:var(--ink);
+}
+.iw-cols{display:grid;gap:18px;grid-template-columns:minmax(0,1fr)}
+@media (min-width:640px){.iw-cols{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* ==========================================================================
+   10. Article footer: labels, share, author, pager, related
+   ========================================================================== */
+
+.iw-postfoot{margin-top:40px;padding-top:26px;border-top:1px solid var(--line)}
+.iw-postfoot__row{display:flex;flex-wrap:wrap;align-items:center;gap:16px;justify-content:space-between}
+.iw-share{display:flex;align-items:center;gap:7px}
+.iw-share__label{font-size:.72rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-mute)}
+.iw-share button,.iw-share a{
+  display:grid;place-items:center;width:36px;height:36px;border-radius:50%;
+  border:1px solid var(--line-2);background:var(--surface);color:var(--ink-soft);
+  transition:background var(--dur) var(--ease),color var(--dur) var(--ease),border-color var(--dur) var(--ease),transform var(--dur) var(--ease);
+}
+.iw-share button:hover,.iw-share a:hover{
+  background:var(--indigo);border-color:var(--indigo);color:#fff;transform:translateY(-2px);
+}
+.iw-share svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.iw-share .is-copied{background:var(--green);border-color:var(--green);color:#fff}
+
+.iw-author{
+  display:flex;gap:16px;align-items:flex-start;margin-top:30px;padding:22px;
+  border:1px solid var(--line);border-radius:var(--radius);background:var(--surface);
+}
+.iw-author img{width:52px;height:52px;border-radius:50%;object-fit:cover;flex:0 0 auto}
+.iw-author__mark{
+  display:grid;place-items:center;width:52px;height:52px;border-radius:50%;flex:0 0 auto;
+  background:radial-gradient(120% 120% at 30% 0%,#24406e,#101c36);
+}
+.iw-author__mark .iw-mark{width:30px;height:30px}
+.iw-author__name{font-weight:800;font-size:1rem}
+.iw-author__role{margin-top:3px;font-size:.87rem;color:var(--ink-mute);line-height:1.55}
+
+.iw-pager{display:grid;gap:12px;margin-top:34px;grid-template-columns:minmax(0,1fr)}
+@media (min-width:640px){.iw-pager{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.iw-pager__link{
+  display:flex;flex-direction:column;gap:4px;padding:16px 20px;
+  border:1px solid var(--line);border-radius:var(--radius);background:var(--surface);
+  transition:border-color var(--dur) var(--ease),transform var(--dur) var(--ease),box-shadow var(--dur) var(--ease);
+}
+.iw-pager__link:hover{border-color:var(--gold);transform:translateY(-2px);box-shadow:var(--shadow-1)}
+.iw-pager__link--next{text-align:right;grid-column:-2/-1}
+.iw-pager__kicker{font-size:.7rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent-ink)}
+.iw-pager__title{font-weight:700;font-size:.95rem;color:var(--ink)}
+
+.iw-related{margin-top:44px;padding-top:30px;border-top:1px solid var(--line)}
+.iw-related[hidden]{display:none}
+.iw-related h2{
+  font-size:.76rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--ink-mute);margin-bottom:18px;
+}
+.iw-related__list{display:grid;gap:12px}
+.iw-related__item{
+  display:flex;gap:14px;align-items:center;padding:12px;
+  border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--surface);
+  transition:border-color var(--dur) var(--ease),transform var(--dur) var(--ease);
+}
+.iw-related__item:hover{border-color:var(--gold);transform:translateX(3px)}
+.iw-related__thumb{
+  width:64px;height:64px;flex:0 0 auto;border-radius:8px;object-fit:cover;
+  background:var(--surface-2);
+}
+.iw-related__text{min-width:0;display:block}
+.iw-related__t{display:block;font-weight:700;font-size:.95rem;line-height:1.35}
+.iw-related__d{display:block;margin-top:3px;font-size:.78rem;color:var(--ink-mute)}
+.iw-related__motif{
+  width:64px;height:64px;flex:0 0 auto;border-radius:8px;
+  display:grid;place-items:center;background:var(--surface-2);
+}
+.iw-related__motif .iw-mark{width:30px;height:30px}
+
+/* Table of contents rail, built from the article's own headings. */
+.iw-rail{position:sticky;top:calc(var(--head-h) + 22px)}
+.iw-rail[hidden]{display:none}
+.iw-toc__title{
+  font-size:.7rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--ink-mute);margin-bottom:12px;
+}
+.iw-toc__list{border-left:2px solid var(--line);display:flex;flex-direction:column}
+.iw-toc__list a{
+  padding:6px 0 6px 14px;margin-left:-2px;border-left:2px solid transparent;
+  font-size:.83rem;line-height:1.45;color:var(--ink-mute);
+  transition:color var(--dur) var(--ease),border-color var(--dur) var(--ease);
+}
+.iw-toc__list a:hover{color:var(--ink)}
+.iw-toc__list a.is-active{color:var(--ink);border-left-color:var(--gold);font-weight:700}
+.iw-toc__list a[data-depth="3"]{padding-left:26px;font-size:.79rem}
+
+/* ==========================================================================
+   11. Comments (Blogger's own markup, restyled)
+   ========================================================================== */
+
+.iw-comments{margin-top:48px;padding-top:32px;border-top:1px solid var(--line)}
+.iw-comments h3,.iw-comments h4,.iw-comments .comments h4{
+  font-size:1.1rem;font-weight:800;margin-bottom:18px;
+}
+.iw-comments .comments{color:var(--ink)}
+.iw-comments .comments .comment-block,
+.iw-comments .comments .comment{
+  padding:16px 18px;margin-bottom:12px;
+  border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--surface);
+}
+.iw-comments .comments .comment-header{display:flex;flex-wrap:wrap;gap:8px;align-items:baseline}
+.iw-comments .comments cite,.iw-comments .comments .user{font-style:normal;font-weight:700}
+.iw-comments .comments .datetime,.iw-comments .comments .comment-timestamp{
+  font-size:.78rem;color:var(--ink-mute)
+}
+.iw-comments .comments .comment-content{margin-top:8px;font-size:.94rem;line-height:1.65;color:var(--ink-soft)}
+.iw-comments .comments .comment-actions a,
+.iw-comments .comments .comment-reply,
+.iw-comments .comments .continue a{
+  display:inline-block;margin-top:9px;margin-right:10px;
+  font-size:.78rem;font-weight:700;color:var(--accent-ink);
+}
+.iw-comments .comments .comment-replies{margin-left:20px;padding-left:14px;border-left:2px solid var(--line)}
+.iw-comments .comments .avatar-image-container img{border-radius:50%}
+.iw-comments .comments .comment-thread ol{padding-left:0}
+.iw-comments .comments .thread-toggle{font-size:.8rem}
+.iw-comments #comment-editor{width:100%;border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--surface)}
+.iw-comments .comment-form h4{margin-top:26px}
+.iw-comments .comments .footer{margin-top:14px;font-size:.82rem;color:var(--ink-mute)}
+.iw-comments .comments .loadmore{margin-top:12px}
+.iw-comments .comments .loadmore.hidden,.iw-comments .comments .hidden{display:none}
+
+/* ==========================================================================
+   12. Sidebar widgets
+   ========================================================================== */
+
+.iw-side__in{display:flex;flex-direction:column;gap:24px;position:sticky;top:calc(var(--head-h) + 22px)}
+.iw-side .widget{
+  padding:20px;border:1px solid var(--line);border-radius:var(--radius);
+  background:var(--surface);box-shadow:var(--shadow-1);
+}
+.iw-side .widget h2,.iw-side .widget h3,.iw-side .widget .title,.iw-widget-title{
+  display:block;margin-bottom:14px;padding-bottom:11px;
+  border-bottom:1px solid var(--line);
+  font-size:.72rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--ink-mute);
+}
+.iw-side .widget-content{font-size:.92rem;color:var(--ink-soft);line-height:1.6}
+.iw-side .widget-content a{color:var(--ink);transition:color var(--dur) var(--ease)}
+.iw-side .widget-content a:hover{color:var(--accent-ink)}
+
+/* Labels */
+.iw-labels{display:flex;flex-wrap:wrap;gap:7px}
+.iw-labels__count{opacity:.6;font-size:.68rem}
+
+/* Popular posts */
+.iw-pp{display:flex;flex-direction:column;gap:14px}
+.iw-pp__item{display:flex;gap:12px;align-items:center}
+.iw-pp__item img{width:56px;height:56px;flex:0 0 auto;border-radius:8px;object-fit:cover;background:var(--surface-2)}
+.iw-pp__n{
+  display:grid;place-items:center;width:56px;height:56px;flex:0 0 auto;border-radius:8px;
+  background:var(--surface-2);color:var(--ink-mute);font-weight:800;font-size:1.1rem;
+}
+.iw-pp__t{font-weight:700;font-size:.9rem;line-height:1.38;color:var(--ink)}
+.iw-pp__item:hover .iw-pp__t{color:var(--accent-ink)}
+
+/* Archive (Blogger's default markup) */
+.iw-side .BlogArchive ul,.iw-side .BlogArchive #ArchiveList ul{display:flex;flex-direction:column;gap:2px}
+.iw-side .BlogArchive li{font-size:.9rem}
+.iw-side .BlogArchive li a{display:inline-block;padding:5px 0}
+.iw-side .BlogArchive select{
+  width:100%;padding:10px 12px;border-radius:var(--radius-sm);
+  border:1px solid var(--line-2);background:var(--surface-2);
+}
+.iw-side .BlogArchive .toggle{margin-right:6px;color:var(--ink-mute)}
+
+/* Search widget */
+.iw-sidesearch{display:flex;gap:7px}
+.iw-sidesearch input{
+  flex:1 1 auto;min-width:0;padding:10px 13px;font-size:.9rem;
+  border-radius:var(--radius-sm);border:1px solid var(--line-2);
+  background:var(--surface-2);color:var(--ink);
+}
+.iw-sidesearch input:focus{outline:none;border-color:var(--gold)}
+.iw-sidesearch button{
+  flex:0 0 auto;padding:10px 14px;border-radius:var(--radius-sm);
+  background:var(--indigo);color:#fff;font-size:.85rem;font-weight:700;
+}
+:root[data-theme="dark"] .iw-sidesearch button{background:var(--gold);color:var(--indigo-deep)}
+
+/* Profile widget */
+.iw-side .Profile .profile-img{border-radius:50%;margin:0 12px 8px 0}
+.iw-side .Profile .profile-datablock{margin-bottom:8px}
+.iw-profile{display:flex;align-items:center;gap:12px;font-weight:600}
+.iw-profile__img{width:42px;height:42px;border-radius:50%;object-fit:cover}
+
+/* Report Abuse. Blogger adds this widget to every blog; it sits quietly at the
+   end of the sidebar rather than as a heading in the middle of the reading
+   column, which is where Blogger puts it when a theme does not claim it. */
+.iw-side .ReportAbuse{padding:0;border:0;background:none}
+.iw-reportabuse{font-size:.78rem;color:var(--ink-mute)}
+.iw-reportabuse a{color:var(--ink-mute);text-decoration:underline;text-underline-offset:2px}
+.iw-reportabuse a:hover{color:var(--accent-ink)}
+
+/* ==========================================================================
+   13. Footer
+   ========================================================================== */
+
+.iw-foot{
+  position:relative;isolation:isolate;overflow:hidden;margin-top:auto;
+  background:var(--indigo-deep);color:rgba(255,255,255,.72);
+  padding:52px 0 22px;
+}
+.iw-foot::before,.iw-foot::after{content:"";position:absolute;z-index:0;pointer-events:none}
+.iw-foot::before{
+  width:320px;aspect-ratio:1;top:-194px;right:-184px;
+  border:1px solid rgba(240,217,156,.12);border-radius:50%;
+  box-shadow:
+    0 0 0 42px rgba(255,255,255,.025),
+    0 0 0 84px rgba(214,165,43,.025),
+    0 0 0 126px rgba(255,255,255,.018);
+}
+.iw-foot::after{
+  width:300px;aspect-ratio:1;bottom:-164px;left:-174px;opacity:.28;
+  background-image:
+    repeating-linear-gradient(45deg,transparent 0 15px,rgba(255,255,255,.12) 15px 17px,transparent 17px 32px),
+    repeating-linear-gradient(-45deg,transparent 0 15px,rgba(240,217,156,.1) 15px 17px,transparent 17px 32px);
+  -webkit-mask-image:radial-gradient(circle,#000 0 28%,transparent 72%);
+  mask-image:radial-gradient(circle,#000 0 28%,transparent 72%);
+}
+.iw-foot > .iw-shell{position:relative;z-index:1}
+.iw-foot__top{display:grid;gap:34px;margin-bottom:34px}
+@media (min-width:900px){.iw-foot__top{grid-template-columns:1.4fr 2fr;gap:60px}}
+.iw-foot__brand p{margin-top:12px;max-width:42ch;font-size:.9rem;color:rgba(255,255,255,.6);line-height:1.62}
+.iw-foot__cols{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px}
+@media (min-width:640px){.iw-foot__cols{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.iw-foot .widget{min-width:0}
+.iw-foot .widget h2,.iw-foot .widget h3,.iw-foot .widget .title,.iw-foot .iw-widget-title{
+  display:block;margin-bottom:12px;padding-bottom:0;border-bottom:0;color:#fff;
+  font-size:.74rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+}
+.iw-foot .widget-content{font-size:.89rem;line-height:1.6;color:rgba(255,255,255,.62)}
+.iw-foot .widget-content ul{display:flex;flex-direction:column;gap:9px}
+.iw-foot .widget-content a{color:rgba(255,255,255,.65);transition:color var(--dur) var(--ease)}
+.iw-foot .widget-content a:hover{color:var(--gold-soft)}
+.iw-foot__bottom{
+  display:flex;flex-direction:column;gap:7px;padding-top:22px;
+  border-top:1px solid rgba(255,255,255,.1);font-size:.8rem;color:rgba(255,255,255,.55);
+}
+@media (min-width:900px){.iw-foot__bottom{flex-direction:row;justify-content:space-between;align-items:center}}
+.iw-foot__bottom a{color:rgba(255,255,255,.72)}
+.iw-foot__bottom a:hover{color:var(--gold-soft)}
+
+/* ==========================================================================
+   14. Back to top, motion, print
+   ========================================================================== */
+
+.iw-top{
+  position:fixed;z-index:70;right:18px;bottom:18px;
+  display:grid;place-items:center;width:44px;height:44px;border-radius:50%;
+  border:1px solid var(--line-2);background:var(--surface);color:var(--ink);
+  box-shadow:var(--shadow-2);
+  opacity:0;visibility:hidden;transform:translateY(10px);
+  transition:opacity var(--dur) var(--ease),transform var(--dur) var(--ease),visibility var(--dur);
+}
+.iw-top.is-on{opacity:1;visibility:visible;transform:none}
+.iw-top:hover{background:var(--gold);border-color:var(--gold);color:var(--indigo-deep)}
+.iw-top svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+
+body{display:flex;flex-direction:column;min-height:100vh}
+.iw-main{flex:1 0 auto}
+
+/* Blogger's own navbar. The widget is declared so Layout keeps working, but the
+   theme supplies its own header, so the injected iframe is taken out of the
+   page. Without this it reserves an iframe's default 150px and leaves an empty
+   band above the header - Blogger's stylesheet that would size it is disabled
+   by b:css='false'. */
+#navbar,#navbar-iframe,#navbar-iframe-container{
+  display:none!important;height:0!important;visibility:hidden!important;
+}
+
+/* Any widget Blogger adds to the post column on its own - Report Abuse and the
+   profile box are added to every new blog - is placed in the sidebar by this
+   theme. If one still lands here, give it the same card as the sidebar rather
+   than letting it render unstyled. */
+#main > .widget:not(.Blog){
+  margin-top:24px;padding:20px;
+  border:1px solid var(--line);border-radius:var(--radius);
+  background:var(--surface);font-size:.92rem;color:var(--ink-soft);
+}
+#main > .widget:not(.Blog) h2,#main > .widget:not(.Blog) h3{
+  margin-bottom:10px;font-size:.72rem;font-weight:700;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--ink-mute);
+}
+#main > .widget:not(.Blog) a{color:var(--accent-ink)}
+#main > .widget:not(.Blog) img{border-radius:8px}
+
+/* Visible keyboard focus. Late in the cascade so it beats the outline:none on
+   the two search inputs; :focus-visible keeps it off mouse clicks. */
+a:focus-visible,button:focus-visible,input:focus-visible,
+textarea:focus-visible,select:focus-visible,summary:focus-visible,
+[tabindex]:focus-visible{
+  outline:2px solid var(--gold);outline-offset:3px;border-radius:4px;
+}
+.iw-searchform input:focus-visible,.iw-sidesearch input:focus-visible{outline-offset:1px}
+
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  *,*::before,*::after{
+    animation-duration:.001ms!important;animation-iteration-count:1!important;
+    transition-duration:.001ms!important;
+  }
+}
+
+@media print{
+  .iw-head,.iw-searchpane,.iw-side,.iw-rail,.iw-top,.iw-progress,
+  .iw-share,.iw-pager,.iw-related,.iw-comments,.iw-foot,.iw-hero{display:none!important}
+  body{background:#fff;color:#000}
+  .iw-prose a{text-decoration:none;color:#000}
+}
+]]></b:skin>
+
+<b:comment>Extra CSS from Blogger, Theme, Customise, Advanced, Add CSS lands here.</b:comment>
+</head>
+
+<body class='iw'>
+
+<a class='iw-skip' href='#iw-content'>Skip to content</a>
+<div aria-hidden='true' class='iw-progress'><i id='iw-progress-bar'></i></div>
+
+<b:comment>Blogger's own navbar is switched off; this theme provides its own header.</b:comment>
+<b:section id='navbar' maxwidgets='1' name='Navbar' showaddelement='no'>
+  <b:widget id='Navbar1' locked='true' title='Navbar' type='Navbar' version='1' visible='false'>
+    <b:includable id='main'/>
+  </b:widget>
+</b:section>
+
+<header class='iw-head' id='iw-head'>
+  <div class='iw-shell iw-head__in'>
+
+    <b:section class='iw-masthead' id='masthead' maxwidgets='1' name='Masthead' showaddelement='no'>
+      <b:widget id='Header1' locked='true' title='Indigen World Updates' type='Header' version='2' visible='true'>
+        <b:includable id='main'>
+          <b:comment>
+            The mark is inline SVG rather than an uploaded header image, so it
+            recolours with the theme. To use your own logo instead, replace the
+            svg below with an img tag pointing at your hosted file.
+          </b:comment>
+          <a class='iw-brand' expr:href='data:blog.homepageUrl' expr:title='data:title'>
+            <svg aria-hidden='true' class='iw-mark' focusable='false' viewBox='0 0 64 64' xmlns='http://www.w3.org/2000/svg'>
+              <path class='iw-mark__frame' d='M15 47V23l17-9 17 9v24'/>
+              <path class='iw-mark__line' d='M24 44V29m8 15V24m8 20V29'/>
+              <circle class='iw-mark__sun' cx='32' cy='14' r='4'/>
+            </svg>
+            <span class='iw-brand__text'>
+              <strong><data:title/></strong>
+              <b:if cond='data:description'>
+                <small><data:description/></small>
+              <b:else/>
+                <small>Culture belongs in the future</small>
+              </b:if>
+            </span>
+          </a>
+        </b:includable>
+      </b:widget>
+    </b:section>
+
+    <b:comment>
+      Below the nav breakpoint this collapses behind the menu button. It carries
+      inert/aria-hidden while collapsed so its links are not reachable by keyboard
+      or screen reader; the script clears both on open and restores them on close.
+    </b:comment>
+    <div class='iw-nav' id='iw-nav'>
+      <div class='iw-nav__in'>
+        <b:section id='mainnav' maxwidgets='3' name='Navigation' showaddelement='yes'>
+          <b:widget id='PageList1' locked='false' title='Pages' type='PageList' version='2' visible='true'>
+            <b:widget-settings>
+              <b:widget-setting name='homeTitle'>Latest</b:widget-setting>
+            </b:widget-settings>
+            <b:includable id='main'>
+              <ul class='iw-navlist'>
+                <b:loop values='data:links' var='link'>
+                  <li><a expr:href='data:link.href'><data:link.title/></a></li>
+                </b:loop>
+              </ul>
+            </b:includable>
+          </b:widget>
+        </b:section>
+      </div>
+    </div>
+
+    <div class='iw-head__act'>
+      <button aria-controls='iw-searchpane' aria-expanded='false' class='iw-ibtn' id='iw-search-btn' title='Search' type='button'>
+        <span class='iw-sr'>Search</span>
+        <svg aria-hidden='true' focusable='false' viewBox='0 0 24 24'><circle cx='11' cy='11' r='7'/><path d='M20 20l-3.5-3.5'/></svg>
+      </button>
+      <button aria-pressed='false' class='iw-ibtn' id='iw-theme-btn' title='Switch between light and dark' type='button'>
+        <span class='iw-sr'>Switch colour scheme</span>
+        <svg aria-hidden='true' class='iw-i-sun' focusable='false' viewBox='0 0 24 24'><circle cx='12' cy='12' r='4.2'/><path d='M12 2.5v2.2M12 19.3v2.2M4.2 4.2l1.6 1.6M18.2 18.2l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.2 19.8l1.6-1.6M18.2 5.8l1.6-1.6'/></svg>
+        <svg aria-hidden='true' class='iw-i-moon' focusable='false' viewBox='0 0 24 24'><path d='M20 14.2A8.2 8.2 0 019.8 4a8.4 8.4 0 108.2 10.2z'/></svg>
+      </button>
+      <button aria-controls='iw-nav' aria-expanded='false' class='iw-ibtn iw-menubtn' id='iw-menu-btn' title='Menu' type='button'>
+        <span class='iw-sr'>Menu</span>
+        <svg aria-hidden='true' focusable='false' viewBox='0 0 24 24'><path d='M4 7h16M4 12h16M4 17h16'/></svg>
+      </button>
+    </div>
+
+  </div>
+</header>
+
+<div aria-labelledby='iw-q-label' class='iw-searchpane' hidden='hidden' id='iw-searchpane'>
+  <div class='iw-shell'>
+    <form class='iw-searchform' expr:action='data:blog.homepageUrl + "search"' method='get' role='search'>
+      <label class='iw-sr' for='iw-q' id='iw-q-label'>Search this blog</label>
+      <input autocomplete='off' id='iw-q' name='q' placeholder='Search updates, features, releases...' type='text'/>
+      <button type='submit'>Search</button>
+    </form>
+  </div>
+</div>
+
+<b:if cond='data:view.isHomepage'>
+  <section class='iw-hero'>
+    <div class='iw-shell iw-hero__in'>
+      <p class='iw-eyebrow'>Release notes and field notes</p>
+      <h1 class='iw-hero__title'><data:blog.title/></h1>
+      <b:if cond='data:blog.metaDescription'>
+        <p class='iw-hero__lede'><data:blog.metaDescription/></p>
+      <b:else/>
+        <p class='iw-hero__lede'>What we are building, shipping and learning across the Indigen World ecosystem &#8212; the website, TribeStudio, the mobile app and Venacula.</p>
+      </b:if>
+      <div class='iw-hero__actions'>
+        <a class='iw-btn iw-btn--gold' href='#iw-content'>
+          Browse updates
+          <svg aria-hidden='true' focusable='false' viewBox='0 0 24 24'><path d='M12 5v14M6 13l6 6 6-6'/></svg>
+        </a>
+        <a class='iw-btn iw-btn--ghost' expr:href='data:blog.homepageUrl + "feeds/posts/default"'>
+          <svg aria-hidden='true' focusable='false' viewBox='0 0 24 24'><path d='M5 18.5a1 1 0 102 0 1 1 0 00-2 0'/><path d='M5 12a7 7 0 017 7M5 6a13 13 0 0113 13'/></svg>
+          Subscribe by RSS
+        </a>
+      </div>
+    </div>
+  </section>
+</b:if>
+
+<main class='iw-main' id='iw-content'>
+  <div class='iw-shell'>
+    <div class='iw-layout'>
+      <b:class cond='data:view.isSingleItem' name='iw-layout--article'/>
+      <b:class cond='not data:view.isSingleItem' name='iw-layout--index'/>
+
+      <b:section id='main' name='Blog posts' showaddelement='no'>
+        <b:widget id='Blog1' locked='true' title='Updates' type='Blog' version='2' visible='true'>
+          <b:widget-settings>
+            <b:widget-setting name='showDateHeader'>false</b:widget-setting>
+            <b:widget-setting name='showShareButtons'>false</b:widget-setting>
+            <b:widget-setting name='showAuthor'>true</b:widget-setting>
+            <b:widget-setting name='showTimestamp'>true</b:widget-setting>
+            <b:widget-setting name='showLabels'>true</b:widget-setting>
+            <b:widget-setting name='showBacklinks'>false</b:widget-setting>
+            <b:widget-setting name='showLocation'>false</b:widget-setting>
+            <b:widget-setting name='showInlineAds'>false</b:widget-setting>
+            <b:widget-setting name='showReactions'>false</b:widget-setting>
+            <b:widget-setting name='postLabelsLabel'>Tagged</b:widget-setting>
+            <b:widget-setting name='authorLabel'>By</b:widget-setting>
+          </b:widget-settings>
+
+          <b:includable id='main' var='top'>
+            <b:comment>-------- Whole blog area --------</b:comment>
+
+            <b:if cond='data:view.isError'>
+              <div class='iw-empty'>
+                <h2>This page has wandered off</h2>
+                <p>The update you were looking for has moved or never existed. Try the latest posts instead.</p>
+                <p style='margin-top:18px'>
+                  <a class='iw-btn iw-btn--gold' expr:href='data:blog.homepageUrl'>Back to the latest updates</a>
+                </p>
+              </div>
+            </b:if>
+
+            <b:comment>Header for label, archive and search views.</b:comment>
+            <b:if cond='data:view.isMultipleItems'>
+              <b:if cond='not data:view.isHomepage'>
+                <div class='iw-viewhead'>
+                  <p class='iw-eyebrow'>
+                    <b:if cond='data:view.isLabelSearch'>Topic<b:elseif cond='data:view.isArchive'/>Archive<b:elseif cond='data:view.isSearch'/>Search results<b:else/>Updates</b:if>
+                  </p>
+                  <h1 class='iw-viewhead__title'>
+                    <b:if cond='data:view.isLabelSearch'><data:view.search.label/><b:elseif cond='data:view.isSearch'/><data:view.search.query/><b:else/><data:view.title/></b:if>
+                  </h1>
+                </div>
+              </b:if>
+            </b:if>
+
+            <b:if cond='data:view.isSingleItem'>
+              <b:comment>-------- Single post or static page --------</b:comment>
+              <b:loop values='data:posts' var='post'>
+                <b:include data='post' name='iwPost'/>
+              </b:loop>
+            <b:else/>
+              <b:comment>-------- Index, label, archive, search --------</b:comment>
+              <div class='iw-grid' id='iw-grid'>
+                <b:loop index='i' values='data:posts' var='post'>
+                  <article class='iw-card'>
+                    <b:class cond='data:i == 0' name='iw-card--lead'/>
+                    <b:comment>
+                      isLead travels with the post so the card can load the first
+                      image eagerly - it is the largest-contentful paint here.
+                    </b:comment>
+                    <b:include name='iwCard'>
+                      <b:with value='data:post' var='post'/>
+                      <b:with value='data:i == 0' var='isLead'/>
+                    </b:include>
+                  </article>
+                </b:loop>
+              </div>
+              <b:comment>
+                Shown by the script when the grid comes back empty. A brand-new
+                blog and a topic with no matches are different situations, so
+                they do not get the same sentence.
+              </b:comment>
+              <div class='iw-empty' hidden='hidden' id='iw-empty'>
+                <b:if cond='data:view.isHomepage'>
+                  <h2>No updates published yet</h2>
+                  <p>This is where release notes, feature updates and notes from the field will appear. Nothing has been published so far.</p>
+                  <p style='margin-top:18px'>
+                    <a class='iw-btn iw-btn--gold' href='https://indigenworld.com/'>Visit indigenworld.com</a>
+                  </p>
+                <b:else/>
+                  <h2>Nothing here yet</h2>
+                  <p>No updates matched this view. Try another topic, or head back to the latest posts.</p>
+                  <p style='margin-top:18px'>
+                    <a class='iw-btn iw-btn--gold' expr:href='data:blog.homepageUrl'>Back to the latest updates</a>
+                  </p>
+                </b:if>
+              </div>
+            </b:if>
+
+            <b:comment>-------- Older / newer --------</b:comment>
+            <b:if cond='data:newerPageUrl or data:olderPageUrl'>
+              <nav class='iw-pager'>
+                <b:if cond='data:newerPageUrl'>
+                  <a class='iw-pager__link' expr:href='data:newerPageUrl' rel='prev'>
+                    <span class='iw-pager__kicker'>&#8592; Newer</span>
+                    <span class='iw-pager__title'><b:if cond='data:view.isSingleItem'>Next update<b:else/>More recent updates</b:if></span>
+                  </a>
+                </b:if>
+                <b:if cond='data:olderPageUrl'>
+                  <a class='iw-pager__link iw-pager__link--next' expr:href='data:olderPageUrl' rel='next'>
+                    <span class='iw-pager__kicker'>Older &#8594;</span>
+                    <span class='iw-pager__title'><b:if cond='data:view.isSingleItem'>Previous update<b:else/>Earlier updates</b:if></span>
+                  </a>
+                </b:if>
+              </nav>
+            </b:if>
+
+          </b:includable>
+
+          <b:includable id='iwCard' var='post'>
+            <b:comment>-------- A single post rendered as a card in the grid --------</b:comment>
+            <div class='iw-card__media'>
+              <b:if cond='data:post.featuredImage'>
+                <b:comment>
+                  Blogger's image proxy does the resizing, so the browser can pick
+                  a width that fits the slot instead of downloading the largest.
+                  The lead card is the largest-contentful paint on the index, so
+                  it loads eagerly while the rest stay lazy.
+                </b:comment>
+                <img decoding='async' expr:alt='data:post.title' expr:fetchpriority='data:isLead ? "high" : "auto"' expr:loading='data:isLead ? "eager" : "lazy"' expr:sizes='data:isLead ? "(max-width: 640px) calc(100vw - 32px), (max-width: 1040px) calc(100vw - 56px), 620px" : "(max-width: 640px) calc(100vw - 32px), (max-width: 1040px) calc((100vw - 86px) / 2), 400px"' expr:src='resizeImage(data:post.featuredImage, 900, "16:9")' expr:srcset='resizeImage(data:post.featuredImage, 480, "16:9") + " 480w, " + resizeImage(data:post.featuredImage, 900, "16:9") + " 900w, " + resizeImage(data:post.featuredImage, 1400, "16:9") + " 1400w"' height='506' width='900'/>
+              <b:else/>
+                <span class='iw-card__motif'>
+                  <svg aria-hidden='true' class='iw-mark' focusable='false' viewBox='0 0 64 64' xmlns='http://www.w3.org/2000/svg'>
+                    <path class='iw-mark__frame' d='M15 47V23l17-9 17 9v24'/>
+                    <path class='iw-mark__line' d='M24 44V29m8 15V24m8 20V29'/>
+                    <circle class='iw-mark__sun' cx='32' cy='14' r='4'/>
+                  </svg>
+                </span>
+              </b:if>
+            </div>
+            <div class='iw-card__body'>
+              <b:if cond='data:post.labels'>
+                <div class='iw-chips'>
+                  <b:loop values='data:post.labels' var='label'>
+                    <a class='iw-chip' expr:data-label='data:label.name' expr:href='data:label.url'><data:label.name/></a>
+                  </b:loop>
+                </div>
+              </b:if>
+              <h2 class='iw-card__title'><a expr:href='data:post.url'><data:post.title/></a></h2>
+              <p class='iw-card__snippet'><b:eval expr='snippet(data:post.body, {length: 165, links: false, linebreaks: false, ellipsis: true})'/></p>
+              <div class='iw-card__foot'>
+                <time expr:datetime='format(data:post.date, "yyyy-MM-dd")'><b:eval expr='format(data:post.date, "d MMM yyyy")'/></time>
+                <span class='iw-card__more'>Read update</span>
+              </div>
+            </div>
+          </b:includable>
+
+          <b:includable id='iwPost' var='post'>
+            <b:comment>-------- Full article --------</b:comment>
+            <article class='iw-article'>
+
+              <header class='iw-article__head'>
+                <b:if cond='data:view.isPost'>
+                  <b:if cond='data:post.labels'>
+                    <div class='iw-chips'>
+                      <b:loop values='data:post.labels' var='label'>
+                        <a class='iw-chip' expr:data-label='data:label.name' expr:href='data:label.url'><data:label.name/></a>
+                      </b:loop>
+                    </div>
+                  </b:if>
+                </b:if>
+                <h1 class='iw-article__title'><data:post.title/></h1>
+                <b:if cond='data:view.isPost'>
+                  <div class='iw-meta'>
+                    <b:if cond='data:post.author.authorPhoto.image'>
+                      <img alt='' class='iw-avatar' expr:src='data:post.author.authorPhoto.image' height='34' loading='lazy' width='34'/>
+                    </b:if>
+                    <span class='iw-meta__author'>
+                      <b:if cond='data:post.author.profileUrl'>
+                        <a expr:href='data:post.author.profileUrl' rel='author'><data:post.author.name/></a>
+                      <b:else/>
+                        <data:post.author.name/>
+                      </b:if>
+                    </span>
+                    <span class='iw-dot'>&#183;</span>
+                    <time expr:datetime='format(data:post.date, "yyyy-MM-dd")'><b:eval expr='format(data:post.date, "d MMMM yyyy")'/></time>
+                    <span class='iw-dot' hidden='hidden' id='iw-rt-dot'>&#183;</span>
+                    <span hidden='hidden' id='iw-readtime'></span>
+                  </div>
+                </b:if>
+              </header>
+
+              <b:if cond='data:view.isPost'>
+                <b:if cond='data:post.featuredImage'>
+                  <figure class='iw-cover'>
+                    <b:comment>
+                      The cover is the article's largest-contentful paint, so it
+                      loads eagerly, carries its own dimensions to reserve space
+                      before it arrives, and offers narrower crops to phones.
+                    </b:comment>
+                    <img decoding='async' expr:alt='data:post.title' expr:src='resizeImage(data:post.featuredImage, 1400, "16:9")' expr:srcset='resizeImage(data:post.featuredImage, 700, "16:9") + " 700w, " + resizeImage(data:post.featuredImage, 1080, "16:9") + " 1080w, " + resizeImage(data:post.featuredImage, 1400, "16:9") + " 1400w"' fetchpriority='high' height='788' loading='eager' sizes='(max-width: 700px) calc(100vw - 32px), 760px' width='1400'/>
+                  </figure>
+                </b:if>
+              </b:if>
+
+              <div class='iw-prose' id='iw-postbody'><data:post.body/></div>
+
+              <b:if cond='data:view.isPost'>
+                <footer class='iw-postfoot'>
+                  <div class='iw-postfoot__row'>
+                    <b:if cond='data:post.labels'>
+                      <div class='iw-chips'>
+                        <b:loop values='data:post.labels' var='label'>
+                          <a class='iw-chip' expr:data-label='data:label.name' expr:href='data:label.url'><data:label.name/></a>
+                        </b:loop>
+                      </div>
+                    <b:else/>
+                      <span></span>
+                    </b:if>
+                    <div class='iw-share' id='iw-share'>
+                      <span class='iw-share__label'>Share</span>
+                    </div>
+                  </div>
+
+                  <div class='iw-author'>
+                    <b:if cond='data:post.author.authorPhoto.image'>
+                      <img alt='' expr:src='data:post.author.authorPhoto.image' height='52' loading='lazy' width='52'/>
+                    <b:else/>
+                      <span class='iw-author__mark'>
+                        <svg aria-hidden='true' class='iw-mark' focusable='false' viewBox='0 0 64 64' xmlns='http://www.w3.org/2000/svg'>
+                          <path class='iw-mark__frame' d='M15 47V23l17-9 17 9v24'/>
+                          <path class='iw-mark__line' d='M24 44V29m8 15V24m8 20V29'/>
+                          <circle class='iw-mark__sun' cx='32' cy='14' r='4'/>
+                        </svg>
+                      </span>
+                    </b:if>
+                    <div>
+                      <div class='iw-author__name'><data:post.author.name/></div>
+                      <p class='iw-author__role'>Writing for <b:eval expr='data:blog.title'/>. Follow along for release notes, feature updates and notes from the field.</p>
+                    </div>
+                  </div>
+                </footer>
+
+                <section class='iw-related' hidden='hidden' id='iw-related'>
+                  <h2>More on this topic</h2>
+                  <div class='iw-related__list' id='iw-related-list'></div>
+                </section>
+
+                <b:comment>
+                  Blogger's own comment markup, restyled with CSS. Threaded and
+                  flat are different includables; picking the wrong one drops the
+                  reply UI, so follow the blog's setting rather than assuming.
+                </b:comment>
+                <section class='iw-comments' id='iw-comments'>
+                  <b:if cond='data:post.showThreadedComments'>
+                    <b:include data='post' name='threaded_comments'/>
+                  <b:else/>
+                    <b:include data='post' name='comments'/>
+                  </b:if>
+                </section>
+              </b:if>
+
+            </article>
+          </b:includable>
+
+        </b:widget>
+      </b:section>
+
+      <aside class='iw-side'>
+        <b:section class='iw-side__in' id='sidebar' name='Sidebar' showaddelement='yes'>
+
+          <b:widget id='BlogSearch1' locked='false' title='Search' type='BlogSearch' version='2' visible='true'>
+            <b:includable id='main'>
+              <b:if cond='data:title'><h3 class='iw-widget-title'><data:title/></h3></b:if>
+              <div class='widget-content'>
+                <form class='iw-sidesearch' expr:action='data:blog.homepageUrl + "search"' method='get' role='search'>
+                  <label class='iw-sr' for='iw-sq'>Search this blog</label>
+                  <input autocomplete='off' id='iw-sq' name='q' placeholder='Search updates' type='text'/>
+                  <button type='submit'>Go</button>
+                </form>
+              </div>
+            </b:includable>
+          </b:widget>
+
+          <b:widget id='HTML1' locked='false' title='About these updates' type='HTML' version='2' visible='true'>
+            <b:widget-settings>
+              <b:widget-setting name='content'>&lt;p&gt;Release notes, feature updates and notes from the field across the Indigen World ecosystem.&lt;/p&gt;&lt;p style="margin-top:10px"&gt;&lt;a href="https://indigenworld.com/"&gt;Visit indigenworld.com &amp;#8594;&lt;/a&gt;&lt;/p&gt;</b:widget-setting>
+            </b:widget-settings>
+            <b:includable id='main'>
+              <b:if cond='data:title'><h3 class='iw-widget-title'><data:title/></h3></b:if>
+              <div class='widget-content'><data:content/></div>
+            </b:includable>
+          </b:widget>
+
+          <b:widget id='Label1' locked='false' title='Topics' type='Label' version='2' visible='true'>
+            <b:widget-settings>
+              <b:widget-setting name='sorting'>ALPHA</b:widget-setting>
+              <b:widget-setting name='display'>LIST</b:widget-setting>
+              <b:widget-setting name='showType'>ALL</b:widget-setting>
+              <b:widget-setting name='showFreqNumbers'>true</b:widget-setting>
+            </b:widget-settings>
+            <b:includable id='main'>
+              <b:if cond='data:title'><h3 class='iw-widget-title'><data:title/></h3></b:if>
+              <div class='widget-content'>
+                <div class='iw-labels'>
+                  <b:loop values='data:labels' var='label'>
+                    <a class='iw-chip' expr:data-label='data:label.name' expr:href='data:label.url'>
+                      <data:label.name/>
+                      <span class='iw-labels__count'><data:label.count/></span>
+                    </a>
+                  </b:loop>
+                </div>
+              </div>
+            </b:includable>
+          </b:widget>
+
+          <b:widget id='PopularPosts1' locked='false' title='Most read' type='PopularPosts' version='2' visible='true'>
+            <b:widget-settings>
+              <b:widget-setting name='numItemsToShow'>4</b:widget-setting>
+              <b:widget-setting name='showThumbnails'>true</b:widget-setting>
+              <b:widget-setting name='showSnippets'>false</b:widget-setting>
+              <b:widget-setting name='timeRange'>ALL_TIME</b:widget-setting>
+            </b:widget-settings>
+            <b:includable id='main'>
+              <b:if cond='data:title'><h3 class='iw-widget-title'><data:title/></h3></b:if>
+              <div class='widget-content'>
+                <div class='iw-pp'>
+                  <b:loop index='i' values='data:posts' var='post'>
+                    <a class='iw-pp__item' expr:href='data:post.href'>
+                      <b:if cond='data:post.thumbnail'>
+                        <img alt='' class='iw-pp__img' expr:src='data:post.thumbnail' loading='lazy'/>
+                      <b:else/>
+                        <span class='iw-pp__n'><b:eval expr='data:i + 1'/></span>
+                      </b:if>
+                      <span class='iw-pp__t'><data:post.title/></span>
+                    </a>
+                  </b:loop>
+                </div>
+              </div>
+            </b:includable>
+          </b:widget>
+
+          <b:widget id='BlogArchive1' locked='false' title='Archive' type='BlogArchive' version='2' visible='true'>
+            <b:widget-settings>
+              <b:widget-setting name='showStyle'>FLAT</b:widget-setting>
+              <b:widget-setting name='yearPattern'>yyyy</b:widget-setting>
+              <b:widget-setting name='showWeekEnd'>true</b:widget-setting>
+              <b:widget-setting name='monthPattern'>MMMM</b:widget-setting>
+              <b:widget-setting name='dayPattern'>MMM dd</b:widget-setting>
+              <b:widget-setting name='weekPattern'>MM/dd</b:widget-setting>
+              <b:widget-setting name='chronological'>false</b:widget-setting>
+              <b:widget-setting name='showPosts'>false</b:widget-setting>
+              <b:widget-setting name='frequency'>MONTHLY</b:widget-setting>
+            </b:widget-settings>
+          </b:widget>
+
+          <b:widget id='Profile1' locked='false' title='Who writes these' type='Profile' version='2' visible='false'>
+            <b:includable id='main'>
+              <b:comment>
+                Blogger adds Profile and Report Abuse to every new blog whether
+                or not a theme asks for them. Declaring both here keeps them in
+                the sidebar, styled, in place of being appended raw to the bottom
+                of the reading column. This one is hidden by default - a
+                product-updates blog does not need a personal Blogger profile
+                card. Turn it on in Layout if you want one.
+              </b:comment>
+              <b:if cond='data:title'><h3 class='iw-widget-title'><data:title/></h3></b:if>
+              <div class='widget-content'>
+                <div class='iw-profile'>
+                  <b:if cond='data:authorPhoto.image'>
+                    <img alt='' class='iw-profile__img' expr:src='data:authorPhoto.image' height='42' loading='lazy' width='42'/>
+                  </b:if>
+                  <a expr:href='data:userUrl'><data:displayname/></a>
+                </div>
+              </div>
+            </b:includable>
+          </b:widget>
+
+          <b:widget id='ReportAbuse1' locked='false' title='' type='ReportAbuse' version='2' visible='true'>
+            <b:includable id='main'>
+              <b:comment>
+                Blogger's abuse link. The URL is the fixed one Blogger uses, so
+                this never depends on a data reference that could change under it.
+              </b:comment>
+              <div class='iw-reportabuse'>
+                <a href='https://www.blogger.com/go/report-abuse' rel='nofollow noopener' target='_blank'>Report abuse</a>
+              </div>
+            </b:includable>
+          </b:widget>
+
+        </b:section>
+      </aside>
+
+      <aside class='iw-rail' hidden='hidden' id='iw-rail'>
+        <nav class='iw-toc'>
+          <p class='iw-toc__title'>On this page</p>
+          <div class='iw-toc__list' id='iw-toc-list'></div>
+        </nav>
+      </aside>
+
+    </div>
+  </div>
+</main>
+
+<footer class='iw-foot'>
+  <div class='iw-shell'>
+
+    <div class='iw-foot__top'>
+      <div class='iw-foot__brand'>
+        <a class='iw-brand' expr:href='data:blog.homepageUrl'>
+          <svg aria-hidden='true' class='iw-mark' focusable='false' viewBox='0 0 64 64' xmlns='http://www.w3.org/2000/svg'>
+            <path class='iw-mark__frame' d='M15 47V23l17-9 17 9v24'/>
+            <path class='iw-mark__line' d='M24 44V29m8 15V24m8 20V29'/>
+            <circle class='iw-mark__sun' cx='32' cy='14' r='4'/>
+          </svg>
+          <span class='iw-brand__text'>
+            <strong><data:blog.title/></strong>
+            <small>Culture belongs in the future</small>
+          </span>
+        </a>
+        <p>A cultural technology ecosystem for language preservation, cultural learning, storytelling and creator enablement.</p>
+      </div>
+
+      <div class='iw-foot__cols'>
+        <b:section id='footer1' maxwidgets='2' name='Footer column 1' showaddelement='yes'>
+          <b:widget id='HTML2' locked='false' title='Ecosystem' type='HTML' version='2' visible='true'>
+            <b:widget-settings>
+              <b:widget-setting name='content'>&lt;ul&gt;&lt;li&gt;&lt;a href="https://indigenworld.com/"&gt;Indigen World&lt;/a&gt;&lt;/li&gt;&lt;li&gt;&lt;a href="https://indigenworld.com/ecosystem"&gt;Ecosystem&lt;/a&gt;&lt;/li&gt;&lt;li&gt;&lt;a href="https://indigenworld.com/project-kasena"&gt;Venacula&lt;/a&gt;&lt;/li&gt;&lt;li&gt;&lt;a href="https://indigenworld.com/get-involved"&gt;Get involved&lt;/a&gt;&lt;/li&gt;&lt;/ul&gt;</b:widget-setting>
+            </b:widget-settings>
+            <b:includable id='main'>
+              <b:if cond='data:title'><h3 class='iw-widget-title'><data:title/></h3></b:if>
+              <div class='widget-content'><data:content/></div>
+            </b:includable>
+          </b:widget>
+        </b:section>
+
+        <b:section id='footer2' maxwidgets='2' name='Footer column 2' showaddelement='yes'>
+          <b:widget id='HTML3' locked='false' title='Indigen World' type='HTML' version='2' visible='true'>
+            <b:widget-settings>
+              <b:widget-setting name='content'>&lt;ul&gt;&lt;li&gt;&lt;a href="https://indigenworld.com/about"&gt;About&lt;/a&gt;&lt;/li&gt;&lt;li&gt;&lt;a href="https://indigenworld.com/impact-governance"&gt;Impact and governance&lt;/a&gt;&lt;/li&gt;&lt;li&gt;&lt;a href="https://indigenworld.com/contact"&gt;Contact&lt;/a&gt;&lt;/li&gt;&lt;li&gt;&lt;a href="https://indigenworld.com/privacy"&gt;Privacy&lt;/a&gt;&lt;/li&gt;&lt;/ul&gt;</b:widget-setting>
+            </b:widget-settings>
+            <b:includable id='main'>
+              <b:if cond='data:title'><h3 class='iw-widget-title'><data:title/></h3></b:if>
+              <div class='widget-content'><data:content/></div>
+            </b:includable>
+          </b:widget>
+        </b:section>
+
+        <b:section id='footer3' maxwidgets='2' name='Footer column 3' showaddelement='yes'>
+          <b:widget id='HTML4' locked='false' title='Follow along' type='HTML' version='2' visible='true'>
+            <b:widget-settings>
+              <b:widget-setting name='content'>&lt;ul&gt;&lt;li&gt;&lt;a href="/feeds/posts/default"&gt;RSS feed&lt;/a&gt;&lt;/li&gt;&lt;li&gt;&lt;a href="/search"&gt;All updates&lt;/a&gt;&lt;/li&gt;&lt;/ul&gt;</b:widget-setting>
+            </b:widget-settings>
+            <b:includable id='main'>
+              <b:if cond='data:title'><h3 class='iw-widget-title'><data:title/></h3></b:if>
+              <div class='widget-content'><data:content/></div>
+            </b:includable>
+          </b:widget>
+        </b:section>
+      </div>
+    </div>
+
+    <div class='iw-foot__bottom'>
+      <p>&#169; <span id='iw-year'>2026</span> Indigen World. Cultural materials may carry distinct permissions.</p>
+      <b:section id='footerbottom' maxwidgets='1' name='Footer note' showaddelement='no'>
+        <b:widget id='Attribution1' locked='false' title='' type='Attribution' version='2' visible='true'>
+          <b:includable id='main'>
+            <span>Published with <a href='https://www.blogger.com' rel='nofollow noopener' target='_blank'>Blogger</a></span>
+          </b:includable>
+        </b:widget>
+      </b:section>
+    </div>
+
+  </div>
+</footer>
+
+<button class='iw-top' id='iw-top' title='Back to top' type='button'>
+  <span class='iw-sr'>Back to top</span>
+  <svg aria-hidden='true' focusable='false' viewBox='0 0 24 24'><path d='M12 19V5M6 11l6-6 6 6'/></svg>
+</button>
+
+<script>//<![CDATA[
+(function () {
+  'use strict';
+
+  var doc = document;
+  var root = doc.documentElement;
+  var qs = function (sel, ctx) { return (ctx || doc).querySelector(sel); };
+  var qsa = function (sel, ctx) { return Array.prototype.slice.call((ctx || doc).querySelectorAll(sel)); };
+  var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ---- Footer year ---------------------------------------------------- */
+  var yearEl = qs('#iw-year');
+  if (yearEl) { yearEl.textContent = String(new Date().getFullYear()); }
+
+  /* ---- Colour scheme -------------------------------------------------- */
+  var themeBtn = qs('#iw-theme-btn');
+  function currentTheme() {
+    var set = root.getAttribute('data-theme');
+    if (set) { return set; }
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+  function syncThemeBtn() {
+    if (!themeBtn) { return; }
+    var dark = currentTheme() === 'dark';
+    themeBtn.setAttribute('aria-pressed', dark ? 'true' : 'false');
+    themeBtn.title = dark ? 'Switch to light' : 'Switch to dark';
+  }
+  if (themeBtn) {
+    themeBtn.addEventListener('click', function () {
+      var next = currentTheme() === 'dark' ? 'light' : 'dark';
+      root.setAttribute('data-theme', next);
+      try { localStorage.setItem('iw-theme', next); } catch (e) {}
+      syncThemeBtn();
+    });
+    syncThemeBtn();
+  }
+
+  /* ---- Navigation ----------------------------------------------------- */
+  var nav = qs('#iw-nav');
+  var menuBtn = qs('#iw-menu-btn');
+  if (nav && menuBtn) {
+    // The nav is only collapsible below the breakpoint that shows the menu
+    // button; above it the nav is always laid out, so it must never be inert.
+    var collapsible = window.matchMedia('(max-width: 979px)');
+
+    function setNavState(open) {
+      nav.classList.toggle('is-open', open);
+      menuBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+      syncNavHidden();
+    }
+    function syncNavHidden() {
+      var hidden = collapsible.matches && !nav.classList.contains('is-open');
+      if (hidden && nav.contains(doc.activeElement)) { menuBtn.focus(); }
+      nav.setAttribute('aria-hidden', hidden ? 'true' : 'false');
+      if (hidden) { nav.setAttribute('inert', ''); } else { nav.removeAttribute('inert'); }
+    }
+
+    menuBtn.addEventListener('click', function () {
+      setNavState(!nav.classList.contains('is-open'));
+    });
+    doc.addEventListener('keydown', function (ev) {
+      if (ev.key === 'Escape' && nav.classList.contains('is-open')) {
+        setNavState(false);
+        menuBtn.focus();
+      }
+    });
+    if (collapsible.addEventListener) {
+      collapsible.addEventListener('change', function () {
+        if (!collapsible.matches) { nav.classList.remove('is-open'); menuBtn.setAttribute('aria-expanded', 'false'); }
+        syncNavHidden();
+      });
+    }
+    syncNavHidden();
+  }
+
+  // Mark the nav item matching the current page.
+  var here = location.pathname.replace(/\/+$/, '') || '/';
+  qsa('.iw-navlist a').forEach(function (a) {
+    var raw = a.getAttribute('href') || '';
+    if (raw.charAt(0) === '#') { return; }
+    var path = a.pathname.replace(/\/+$/, '') || '/';
+    if (path === here) {
+      var li = a.closest('li');
+      if (li) { li.classList.add('is-current'); }
+    }
+  });
+
+  /* ---- Search panel --------------------------------------------------- */
+  var searchBtn = qs('#iw-search-btn');
+  var searchPane = qs('#iw-searchpane');
+  if (searchBtn && searchPane) {
+    var searchReturnFocus = null;
+    function closeSearch() {
+      searchPane.setAttribute('hidden', 'hidden');
+      searchBtn.setAttribute('aria-expanded', 'false');
+      var stored = searchReturnFocus;
+      searchReturnFocus = null;
+      var back = stored && stored.focus && stored !== doc.body && doc.contains(stored) ? stored : searchBtn;
+      back.focus();
+    }
+    searchBtn.addEventListener('click', function () {
+      if (searchPane.hasAttribute('hidden')) {
+        searchReturnFocus = doc.activeElement;
+        searchPane.removeAttribute('hidden');
+        searchBtn.setAttribute('aria-expanded', 'true');
+        var q = qs('#iw-q');
+        if (q) { q.focus(); }
+      } else {
+        closeSearch();
+      }
+    });
+    doc.addEventListener('keydown', function (ev) {
+      if (ev.key === 'Escape' && !searchPane.hasAttribute('hidden')) { closeSearch(); }
+    });
+    // A click outside the open panel closes it, the way the menu does.
+    doc.addEventListener('click', function (ev) {
+      if (searchPane.hasAttribute('hidden')) { return; }
+      if (searchPane.contains(ev.target) || searchBtn.contains(ev.target)) { return; }
+      closeSearch();
+    });
+  }
+
+  /* ---- Back to top ---------------------------------------------------- */
+  var topBtn = qs('#iw-top');
+  var progressBar = qs('#iw-progress-bar');
+  var body = qs('#iw-postbody');
+
+  function onScroll() {
+    var y = window.scrollY || window.pageYOffset;
+    if (topBtn) { topBtn.classList.toggle('is-on', y > 600); }
+    if (progressBar && body) {
+      var start = body.offsetTop;
+      var span = body.offsetHeight - window.innerHeight + 220;
+      var pct = span > 0 ? ((y - start) / span) * 100 : 0;
+      progressBar.style.width = Math.max(0, Math.min(100, pct)) + '%';
+    }
+  }
+  var ticking = false;
+  window.addEventListener('scroll', function () {
+    if (ticking) { return; }
+    ticking = true;
+    window.requestAnimationFrame(function () { onScroll(); ticking = false; });
+  }, { passive: true });
+  onScroll();
+
+  if (topBtn) {
+    topBtn.addEventListener('click', function () {
+      window.scrollTo({ top: 0, behavior: reduceMotion ? 'auto' : 'smooth' });
+    });
+  }
+
+  /* ---- Empty state for index views ------------------------------------ */
+  var grid = qs('#iw-grid');
+  var empty = qs('#iw-empty');
+  if (grid && empty && !grid.querySelector('.iw-card')) {
+    grid.style.display = 'none';
+    empty.removeAttribute('hidden');
+  }
+
+  /* ---- Sharper Popular Posts thumbnails -------------------------------- */
+  qsa('.iw-pp__img').forEach(function (img) {
+    var src = img.getAttribute('src') || '';
+    img.setAttribute('src', src.replace(/\/s\d+(-c)?\//, '/s160-c/').replace(/=s\d+(-c)?$/, '=s160-c'));
+  });
+
+  /* ---- Article enhancements ------------------------------------------- */
+  if (body) {
+    // Estimated reading time
+    var words = (body.textContent || '').trim().split(/\s+/).filter(Boolean).length;
+    var mins = Math.max(1, Math.round(words / 200));
+    var rt = qs('#iw-readtime');
+    var rtDot = qs('#iw-rt-dot');
+    if (rt) {
+      rt.textContent = mins + ' min read';
+      rt.removeAttribute('hidden');
+      if (rtDot) { rtDot.removeAttribute('hidden'); }
+    }
+
+    // Lazy-load and tidy images that came from the post editor
+    qsa('img', body).forEach(function (img) {
+      if (!img.getAttribute('loading')) { img.setAttribute('loading', 'lazy'); }
+      if (!img.getAttribute('decoding')) { img.setAttribute('decoding', 'async'); }
+    });
+
+    // Give wide tables their own scroll container
+    qsa('table', body).forEach(function (tbl) {
+      if (tbl.parentNode && tbl.parentNode.classList.contains('iw-tablewrap')) { return; }
+      var wrap = doc.createElement('div');
+      wrap.className = 'iw-tablewrap';
+      tbl.parentNode.insertBefore(wrap, tbl);
+      wrap.appendChild(tbl);
+    });
+
+    // Outbound links open safely
+    qsa('a[href]', body).forEach(function (a) {
+      if (a.hostname && a.hostname !== location.hostname) {
+        a.setAttribute('rel', 'noopener noreferrer');
+      }
+    });
+
+    // Copy button on code blocks
+    qsa('pre', body).forEach(function (pre) {
+      var btn = doc.createElement('button');
+      btn.type = 'button';
+      btn.className = 'iw-copy';
+      btn.textContent = 'Copy';
+      btn.addEventListener('click', function () {
+        var text = (pre.querySelector('code') || pre).innerText;
+        var done = function () {
+          btn.textContent = 'Copied';
+          setTimeout(function () { btn.textContent = 'Copy'; }, 1600);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(done, function () {});
+        }
+      });
+      pre.appendChild(btn);
+    });
+
+    // Table of contents from the article's own headings
+    var rail = qs('#iw-rail');
+    var tocList = qs('#iw-toc-list');
+    var heads = qsa('h2, h3', body).filter(function (h) { return (h.textContent || '').trim().length > 0; });
+    if (rail && tocList && heads.length >= 3) {
+      heads.forEach(function (h, i) {
+        if (!h.id) {
+          var slug = (h.textContent || '').toLowerCase().trim()
+            .replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').slice(0, 48);
+          h.id = slug ? slug + '-' + i : 'section-' + i;
+        }
+        var a = doc.createElement('a');
+        a.href = '#' + h.id;
+        a.textContent = (h.textContent || '').trim();
+        a.setAttribute('data-depth', h.tagName === 'H3' ? '3' : '2');
+        tocList.appendChild(a);
+      });
+      rail.removeAttribute('hidden');
+
+      if ('IntersectionObserver' in window) {
+        var links = qsa('a', tocList);
+        var seen = {};
+        var io = new IntersectionObserver(function (entries) {
+          entries.forEach(function (en) { seen[en.target.id] = en.isIntersecting; });
+          var active = null;
+          heads.forEach(function (h) { if (seen[h.id] && !active) { active = h.id; } });
+          links.forEach(function (l) {
+            l.classList.toggle('is-active', active !== null && l.getAttribute('href') === '#' + active);
+          });
+        }, { rootMargin: '-90px 0px -70% 0px' });
+        heads.forEach(function (h) { io.observe(h); });
+      }
+    }
+
+    // Share row
+    var shareBox = qs('#iw-share');
+    if (shareBox) {
+      var url = (doc.querySelector('link[rel="canonical"]') || {}).href || location.href;
+      var title = doc.title;
+      var targets = [
+        { name: 'X', href: 'https://twitter.com/intent/tweet?url=' + encodeURIComponent(url) + '&text=' + encodeURIComponent(title),
+          path: 'M4 4l16 16M20 4L4 20' },
+        { name: 'LinkedIn', href: 'https://www.linkedin.com/sharing/share-offsite/?url=' + encodeURIComponent(url),
+          path: 'M6 9v10M6 5.5v.01M11 19v-6a3 3 0 016 0v6' },
+        { name: 'WhatsApp', href: 'https://api.whatsapp.com/send?text=' + encodeURIComponent(title + ' ' + url),
+          path: 'M21 12a9 9 0 01-13.4 7.8L3 21l1.3-4.4A9 9 0 1121 12z' }
+      ];
+      targets.forEach(function (t) {
+        var a = doc.createElement('a');
+        a.href = t.href;
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        a.title = 'Share on ' + t.name;
+        a.innerHTML = '<span class="iw-sr">Share on ' + t.name + '</span>' +
+          '<svg aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="' + t.path + '"/></svg>';
+        shareBox.appendChild(a);
+      });
+
+      var copyBtn = doc.createElement('button');
+      copyBtn.type = 'button';
+      copyBtn.title = 'Copy link';
+      copyBtn.innerHTML = '<span class="iw-sr">Copy link</span>' +
+        '<svg aria-hidden="true" focusable="false" viewBox="0 0 24 24">' +
+        '<path d="M10 13a4 4 0 006 .5l2-2a4 4 0 00-5.7-5.7l-1 1"/>' +
+        '<path d="M14 11a4 4 0 00-6-.5l-2 2A4 4 0 009.7 18l1-1"/></svg>';
+      copyBtn.addEventListener('click', function () {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(url).then(function () {
+            copyBtn.classList.add('is-copied');
+            setTimeout(function () { copyBtn.classList.remove('is-copied'); }, 1600);
+          }, function () {});
+        }
+      });
+      shareBox.appendChild(copyBtn);
+
+      if (navigator.share) {
+        var nativeBtn = doc.createElement('button');
+        nativeBtn.type = 'button';
+        nativeBtn.title = 'Share';
+        nativeBtn.innerHTML = '<span class="iw-sr">Share</span>' +
+          '<svg aria-hidden="true" focusable="false" viewBox="0 0 24 24">' +
+          '<circle cx="18" cy="5.5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="18.5" r="2.5"/>' +
+          '<path d="M8.2 10.8l7.6-4M8.2 13.2l7.6 4"/></svg>';
+        nativeBtn.addEventListener('click', function () {
+          navigator.share({ title: title, url: url }).catch(function () {});
+        });
+        shareBox.appendChild(nativeBtn);
+      }
+    }
+
+    /* ---- Related posts, by the post's first label --------------------- */
+    var relSection = qs('#iw-related');
+    var relList = qs('#iw-related-list');
+    var firstChip = qs('.iw-article__head .iw-chip');
+    if (relSection && relList && firstChip) {
+      var label = (firstChip.textContent || '').trim();
+      var feed = location.origin + '/feeds/posts/summary/-/' +
+        encodeURIComponent(label) + '?alt=json&max-results=7';
+      fetch(feed, { credentials: 'omit' })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (json) {
+          if (!json || !json.feed || !json.feed.entry) { return; }
+          var current = location.pathname;
+          var made = 0;
+          json.feed.entry.forEach(function (en) {
+            if (made >= 4) { return; }
+            var link = (en.link || []).filter(function (l) { return l.rel === 'alternate'; })[0];
+            if (!link) { return; }
+            var a = doc.createElement('a');
+            a.href = link.href;
+            if (a.pathname === current) { return; }
+            a.className = 'iw-related__item';
+            var thumb = en.media$thumbnail ? en.media$thumbnail.url.replace(/\/s\d+(-c)?\//, '/s160-c/') : '';
+            var when = en.published ? new Date(en.published.$t) : null;
+            var whenText = when ? when.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+            // Posts with no image get the woven mark, so every row lines up.
+            a.innerHTML =
+              (thumb
+                ? '<img class="iw-related__thumb" src="' + thumb + '" alt="" width="64" height="64" loading="lazy"/>'
+                : '<span class="iw-related__motif">' +
+                  '<svg aria-hidden="true" class="iw-mark" focusable="false" viewBox="0 0 64 64">' +
+                  '<path class="iw-mark__frame" d="M15 47V23l17-9 17 9v24"/>' +
+                  '<path class="iw-mark__line" d="M24 44V29m8 15V24m8 20V29"/>' +
+                  '<circle class="iw-mark__sun" cx="32" cy="14" r="4"/></svg></span>') +
+              '<span class="iw-related__text">' +
+              '<span class="iw-related__t"></span><span class="iw-related__d"></span></span>';
+            var t = a.querySelector('.iw-related__t');
+            var d = a.querySelector('.iw-related__d');
+            if (t) { t.textContent = en.title ? en.title.$t : link.href; }
+            if (d) { d.textContent = whenText; }
+            relList.appendChild(a);
+            made += 1;
+          });
+          if (made > 0) { relSection.removeAttribute('hidden'); }
+        })
+        .catch(function () {});
+    }
+
+    /* ---- Structured data, built from the page's own meta tags ---------
+       Built here rather than in the template so a title carrying a quote or a
+       backslash is escaped by JSON.stringify instead of breaking the JSON. */
+    try {
+      var metaOf = function (attr, val) {
+        var el = doc.querySelector('meta[' + attr + '="' + val + '"]');
+        return el ? (el.getAttribute('content') || '').trim() : '';
+      };
+      var type = metaOf('property', 'og:type');
+      if (type === 'article') {
+        var timeEl = qs('.iw-meta time');
+        var authorEl = qs('.iw-meta__author');
+        var titleEl = qs('.iw-article__title');
+        var canonEl = doc.querySelector('link[rel="canonical"]');
+        var canonical = (canonEl && canonEl.href) || metaOf('property', 'og:url') || location.href;
+        var heading = titleEl ? (titleEl.textContent || '').trim() : metaOf('property', 'og:title');
+        var coverImg = qs('.iw-cover img');
+        var image = (coverImg && coverImg.src) || metaOf('property', 'og:image');
+        var published = timeEl ? timeEl.getAttribute('datetime') : '';
+
+        var ld = {
+          '@context': 'https://schema.org',
+          '@type': 'BlogPosting',
+          headline: heading,
+          url: canonical,
+          mainEntityOfPage: { '@type': 'WebPage', '@id': canonical },
+          inLanguage: root.getAttribute('lang') || 'en',
+          publisher: { '@id': 'https://indigenworld.com/#organization' },
+          isPartOf: { '@id': 'https://updates.indigenworld.com/#website' }
+        };
+        var desc = metaOf('name', 'description') || metaOf('property', 'og:description');
+        if (desc) { ld.description = desc; }
+        if (image) { ld.image = image; }
+        if (published) { ld.datePublished = published; ld.dateModified = published; }
+        if (authorEl) { ld.author = { '@type': 'Person', name: (authorEl.textContent || '').trim() }; }
+
+        var crumbs = [{
+          '@type': 'ListItem', position: 1, name: 'Updates',
+          item: location.origin + '/'
+        }];
+        var firstChipEl = qs('.iw-article__head .iw-chip');
+        if (firstChipEl) {
+          crumbs.push({
+            '@type': 'ListItem', position: 2,
+            name: (firstChipEl.textContent || '').trim(), item: firstChipEl.href
+          });
+        }
+        crumbs.push({ '@type': 'ListItem', position: crumbs.length + 1, name: heading, item: canonical });
+
+        [ld, { '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: crumbs }]
+          .forEach(function (obj) {
+            var s = doc.createElement('script');
+            s.type = 'application/ld+json';
+            s.textContent = JSON.stringify(obj);
+            doc.head.appendChild(s);
+          });
+      }
+    } catch (e) {}
+  }
+}());
+//]]></script>
+
+</body>
+</html>

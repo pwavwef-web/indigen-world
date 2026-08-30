@@ -48,6 +48,11 @@ export const PAGE_COMPONENTS: Record<string, LazyPage> = {
   terms: lazy(() =>
     withRouteLoadingTiming(import("./TermsPage")).then(({ TermsPage }) => ({ default: TermsPage }))
   ),
+  "ads/payment-complete": lazy(() =>
+    withRouteLoadingTiming(import("./AdsPaymentCompletePage")).then(
+      ({ AdsPaymentCompletePage }) => ({ default: AdsPaymentCompletePage })
+    )
+  ),
 };
 
 export { NotFoundPage } from "./NotFoundPage";

@@ -133,63 +133,85 @@ class CommunityPostCard extends ConsumerWidget {
                   ),
                   const SizedBox(height: 6),
                 ],
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                Stack(
                   children: [
+                    // The rule from this post's avatar down to the next one.
+                    // Drawn here rather than inside the avatar's own column:
+                    // the attachment below now breaks out of that column, and
+                    // the rule still has to run the whole height of the post.
+                    if (showThreadLine)
+                      Positioned(
+                        top: avatarSize + 6,
+                        bottom: 0,
+                        left: avatarSize / 2 - 1,
+                        width: 2,
+                        child: ColoredBox(color: brand.divider),
+                      ),
                     Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        CommunityAvatar(
-                          initials: authorInitials,
-                          imageUrl: authorAvatar,
-                          size: avatarSize,
-                          onTap: onOpenAuthor,
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            CommunityAvatar(
+                              initials: authorInitials,
+                              imageUrl: authorAvatar,
+                              size: avatarSize,
+                              onTap: onOpenAuthor,
+                            ),
+                            SizedBox(width: gutter),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  _PostByline(
+                                    name: authorName,
+                                    handle: authorHandle,
+                                    verified: authorVerified,
+                                    age: communityAgeLabel(post.createdAt),
+                                    edited: post.isEdited,
+                                    compact: compact,
+                                    onOpenAuthor: onOpenAuthor,
+                                    onMore: onMore,
+                                  ),
+                                  if (post.text.isNotEmpty) ...[
+                                    const SizedBox(height: 3),
+                                    PostText(
+                                      text: post.text,
+                                      fontSize: compact ? 14.5 : 15.5,
+                                      onOpenHandle: onOpenHandle,
+                                      onOpenLink: onOpenLink,
+                                    ),
+                                  ],
+                                  if (post.firstLink case final link?) ...[
+                                    const SizedBox(height: 10),
+                                    CommunityLinkPreview(
+                                      url: link,
+                                      onTap: onOpenLink == null
+                                          ? null
+                                          : () => onOpenLink!(link),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
-                        if (showThreadLine)
-                          Expanded(
-                            child: Container(
-                              width: 2,
-                              margin: const EdgeInsets.only(top: 6),
-                              color: brand.divider,
-                            ),
-                          ),
-                      ],
-                    ),
-                    SizedBox(width: gutter),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _PostByline(
-                            name: authorName,
-                            handle: authorHandle,
-                            verified: authorVerified,
-                            age: communityAgeLabel(post.createdAt),
-                            edited: post.isEdited,
-                            compact: compact,
-                            onOpenAuthor: onOpenAuthor,
-                            onMore: onMore,
-                          ),
-                          if (post.text.isNotEmpty) ...[
-                            const SizedBox(height: 3),
-                            PostText(
-                              text: post.text,
-                              fontSize: compact ? 14.5 : 15.5,
-                              onOpenHandle: onOpenHandle,
-                              onOpenLink: onOpenLink,
-                            ),
-                          ],
-                          if (post.firstLink case final link?) ...[
-                            const SizedBox(height: 10),
-                            CommunityLinkPreview(
-                              url: link,
-                              onTap: onOpenLink == null
-                                  ? null
-                                  : () => onOpenLink!(link),
-                            ),
-                          ],
-                          if (post.hasMedia) ...[
-                            const SizedBox(height: 10),
-                            PostMediaView(
+                        // Full width, rather than tucked into the column beside
+                        // the avatar. Indented by an avatar's width on one side
+                        // and stopped short on the other, an attachment reads
+                        // as pushed to the right — and a portrait video, the
+                        // tallest thing in the feed, took the whole post with
+                        // it. Writing stays under the byline it belongs to;
+                        // the picture does not have to.
+                        if (post.hasMedia) ...[
+                          const SizedBox(height: 10),
+                          Padding(
+                            // Squares the right margin with the card's own left
+                            // inset, so the block sits centred rather than
+                            // merely wider.
+                            padding: const EdgeInsets.only(right: 4),
+                            child: PostMediaView(
                               media: post.media,
                               onOpen: (index) => Navigator.of(context).push(
                                 MaterialPageRoute<void>(
@@ -200,42 +222,50 @@ class CommunityPostCard extends ConsumerWidget {
                                 ),
                               ),
                             ),
-                          ],
-                          if (post.poll case final poll?) ...[
-                            const SizedBox(height: 10),
-                            CommunityPollCard(
-                              poll: poll,
-                              votedOptionId: votedOptionId,
-                              onVote: onVote,
-                              onViewVotes: onPollVotes,
-                            ),
-                          ],
-                          if (post.quotedPost case final quoted?) ...[
-                            const SizedBox(height: 10),
-                            QuotedPostPreview(
-                              post: quoted,
-                              onTap: onOpenQuoted ?? onOpen,
-                            ),
-                          ],
-                          const SizedBox(height: 2),
-                          PostActionBar(
-                            replyCount: post.replyCount,
-                            repostCount: post.reshareAndQuoteCount,
-                            likeCount: post.likeCount,
-                            viewCount: post.viewCount,
-                            liked: liked,
-                            reposted: reposted,
-                            saved: saved,
-                            onReply: onReply,
-                            onRepost: onRepost,
-                            onQuote: onQuote,
-                            onLike: onLike,
-                            onViews: onViews,
-                            onSave: onSave,
-                            onShare: onShare,
                           ),
                         ],
-                      ),
+                        Padding(
+                          padding: EdgeInsets.only(left: avatarSize + gutter),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              if (post.poll case final poll?) ...[
+                                const SizedBox(height: 10),
+                                CommunityPollCard(
+                                  poll: poll,
+                                  votedOptionId: votedOptionId,
+                                  onVote: onVote,
+                                  onViewVotes: onPollVotes,
+                                ),
+                              ],
+                              if (post.quotedPost case final quoted?) ...[
+                                const SizedBox(height: 10),
+                                QuotedPostPreview(
+                                  post: quoted,
+                                  onTap: onOpenQuoted ?? onOpen,
+                                ),
+                              ],
+                              const SizedBox(height: 2),
+                              PostActionBar(
+                                replyCount: post.replyCount,
+                                repostCount: post.reshareAndQuoteCount,
+                                likeCount: post.likeCount,
+                                viewCount: post.viewCount,
+                                liked: liked,
+                                reposted: reposted,
+                                saved: saved,
+                                onReply: onReply,
+                                onRepost: onRepost,
+                                onQuote: onQuote,
+                                onLike: onLike,
+                                onViews: onViews,
+                                onSave: onSave,
+                                onShare: onShare,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),

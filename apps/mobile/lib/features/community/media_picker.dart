@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:indigen_world_mobile/features/community/data/community_repository.dart';
+import 'package:indigen_world_mobile/features/community/photo_crop_screen.dart';
 import 'package:indigen_world_mobile/shared/glass_popup.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:video_player/video_player.dart';
@@ -36,13 +37,7 @@ class CommunityMediaPicker {
     );
     final picked = <PendingUpload>[];
     for (final file in files.take(limit)) {
-      picked.add(
-        PendingUpload(
-          path: file.path,
-          isVideo: false,
-          aspectRatio: await _imageAspectRatio(file),
-        ),
-      );
+      picked.add(await stagePhoto(file.path));
     }
     return picked;
   }
@@ -55,12 +50,19 @@ class CommunityMediaPicker {
       imageQuality: _imageQuality,
     );
     if (file == null) return null;
-    return PendingUpload(
-      path: file.path,
-      isVideo: false,
-      aspectRatio: await _imageAspectRatio(file),
-    );
+    return stagePhoto(file.path);
   }
+
+  /// Wraps a photo file as an attachment, measuring its real shape.
+  ///
+  /// Public because the cropper hands a *new* file back and the attachment has
+  /// to be re-measured against it — a crop that kept the original's aspect
+  /// ratio would have the feed reserve the wrong space for it.
+  Future<PendingUpload> stagePhoto(String path) async => PendingUpload(
+    path: path,
+    isVideo: false,
+    aspectRatio: await _imageAspectRatio(XFile(path)),
+  );
 
   Future<PendingUpload?> pickVideo({required ImageSource source}) async {
     final file = await _picker.pickVideo(
@@ -196,7 +198,7 @@ Future<List<PendingUpload>> showMediaPickerSheet(
     ],
   );
 
-  return switch (choice) {
+  final picked = switch (choice) {
     null => const <PendingUpload>[],
     _MediaChoice.gallery => await picker.pickImages(limit: remainingSlots),
     _MediaChoice.photo => [?await picker.pickImage(source: ImageSource.camera)],
@@ -205,4 +207,27 @@ Future<List<PendingUpload>> showMediaPickerSheet(
     ],
     _MediaChoice.reel => [?await picker.pickVideo(source: ImageSource.camera)],
   };
+
+  // One photo goes straight to the cropper, because that is nearly always what
+  // somebody wants next and it saves a tap. Several do not: four crop screens
+  // in a row to post four pictures is a chore, so a multi-pick stages as it is
+  // and each attachment carries its own crop button in the composer.
+  if (picked.length == 1 && picked.single.mediaType == 'image') {
+    if (!context.mounted) return picked;
+    return [await cropAttachment(context, picked.single)];
+  }
+  return picked;
+}
+
+/// Runs [upload] through the cropper and re-measures the result.
+///
+/// Cancelling gives the attachment back untouched, so the crop screen is
+/// always an offer rather than a gate.
+Future<PendingUpload> cropAttachment(
+  BuildContext context,
+  PendingUpload upload,
+) async {
+  final path = await cropPhoto(context, upload.path);
+  if (path == upload.path) return upload;
+  return const CommunityMediaPicker().stagePhoto(path);
 }

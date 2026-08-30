@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:indigen_world_mobile/app/app_theme.dart';
 import 'package:indigen_world_mobile/core/app_config.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/data/repositories.dart';
@@ -85,12 +86,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle(
-        statusBarColor: Colors.transparent,
-        statusBarIconBrightness: Brightness.dark,
-        systemNavigationBarColor: context.brand.background,
-        systemNavigationBarIconBrightness: Brightness.dark,
-      ),
+      // Was pinned to dark icons, which are invisible on the dark palette's
+      // near-black bars. The shared helper resolves both from the theme.
+      value: brandOverlayStyle(context.brand),
       child: Scaffold(
         extendBody: true,
         backgroundColor: context.brand.background,
@@ -285,11 +283,10 @@ class _ProfileBackdrop extends StatelessWidget {
   Widget build(BuildContext context) => IgnorePointer(
     child: DecoratedBox(
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [const Color(0xFFFFFCF3), context.brand.background],
-        ),
+        // The top of the wash used to be a literal cream, which is the right
+        // warmth on plaster and a grey haze on charcoal — the whitish patch
+        // behind every profile page in dark mode.
+        gradient: BrandGradients.pageWash(context.brand),
       ),
       child: Stack(
         children: [

@@ -18,6 +18,14 @@ abstract class DictionaryEntry with _$DictionaryEntry {
     required String exampleTranslation,
     required String attribution,
     String? culturalNote,
+
+    /// A published recording of the headword being said, or empty where the
+    /// entry has none.
+    ///
+    /// Separate from [pronunciation], which is the written guide. The two used
+    /// to share one field, so an entry with audio showed a download URL where
+    /// its phonetics belonged and still had nothing to play.
+    @Default('') String audioUrl,
     @Default(true) bool isSynthetic,
   }) = _DictionaryEntry;
 

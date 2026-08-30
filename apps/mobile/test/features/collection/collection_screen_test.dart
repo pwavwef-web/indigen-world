@@ -27,7 +27,7 @@ void main() {
       // shorter when the three-line description came off them, and a hard-coded
       // drag distance is a test that has to be re-tuned every time the layout
       // breathes.
-      for (final label in const ['Literature', 'Audiobooks', 'Video']) {
+      for (final label in const ['Literature', 'Audiobooks', 'Apps']) {
         await tester.scrollUntilVisible(
           find.text(label),
           180,
@@ -35,6 +35,10 @@ void main() {
         );
         expect(find.text(label), findsOneWidget);
       }
+      // Video has no portal here: Explore is already a full-bleed reel feed
+      // with a tab of its own, and a second, quieter door to the same footage
+      // only made the archive look like it had two.
+      expect(find.text('Video'), findsNothing);
       expect(tester.takeException(), isNull);
 
       await tester.scrollUntilVisible(
@@ -79,7 +83,7 @@ void main() {
         'Dictionary',
         'Literature',
         'Audiobooks',
-        'Video',
+        'Apps',
       ]) {
         await tester.scrollUntilVisible(
           find.text(label),

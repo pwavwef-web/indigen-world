@@ -317,6 +317,19 @@ final reviewQueueStatusProvider = NotifierProvider<ReviewQueueStatus, String>(
   ReviewQueueStatus.new,
 );
 
+/// How many contributions are waiting, for the badge on the review desk card.
+///
+/// Its own subscription rather than a read of the visible queue, so the count
+/// is still right while a reviewer is looking at the Published list — and so
+/// the Contribute screen can show it without opening the desk at all.
+final reviewWaitingCountProvider = StreamProvider<int>((ref) {
+  final repository = ref.watch(reviewRepositoryProvider);
+  if (repository == null || !ref.watch(isReviewerProvider)) {
+    return Stream.value(0);
+  }
+  return repository.watchQueue('SUBMITTED').map((rows) => rows.length);
+});
+
 final reviewQueueProvider = StreamProvider<List<ReviewItem>>((ref) {
   final repository = ref.watch(reviewRepositoryProvider);
   final canReview = ref.watch(isReviewerProvider);

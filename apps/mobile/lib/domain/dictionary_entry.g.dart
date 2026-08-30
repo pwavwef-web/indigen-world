@@ -18,6 +18,7 @@ _DictionaryEntry _$DictionaryEntryFromJson(Map<String, dynamic> json) =>
       exampleTranslation: json['exampleTranslation'] as String,
       attribution: json['attribution'] as String,
       culturalNote: json['culturalNote'] as String?,
+      audioUrl: json['audioUrl'] as String? ?? '',
       isSynthetic: json['isSynthetic'] as bool? ?? true,
     );
 
@@ -33,5 +34,6 @@ Map<String, dynamic> _$DictionaryEntryToJson(_DictionaryEntry instance) =>
       'exampleTranslation': instance.exampleTranslation,
       'attribution': instance.attribution,
       'culturalNote': instance.culturalNote,
+      'audioUrl': instance.audioUrl,
       'isSynthetic': instance.isSynthetic,
     };

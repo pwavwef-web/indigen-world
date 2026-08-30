@@ -29,8 +29,9 @@ const _kRegions = [
 ///
 /// Six short steps rather than one long form: every step asks one question,
 /// and the member can see the price forming before they are asked to commit to
-/// it. Nothing is charged here — Paystack is not wired yet — so the last step
-/// records what is owed and parks the campaign as awaiting payment.
+/// it. Nothing is charged here: the last step records what is owed and parks
+/// the campaign as awaiting payment, and paying for it is a deliberate second
+/// act on the campaign's own screen.
 class CreateAdScreen extends ConsumerStatefulWidget {
   const CreateAdScreen({this.existing, super.key});
 
@@ -269,8 +270,13 @@ class _CreateAdScreenState extends ConsumerState<CreateAdScreen> {
             ),
             const SizedBox(height: 14),
             Text(
-              'Saved and waiting for payment. Card and mobile money are '
-              'coming shortly — nothing has been charged.',
+              _isEditing
+                  ? 'Saved. The amount owed has been updated to '
+                        '${cedis(_cost.totalPesewas)}.'
+                  : 'Saved and waiting for payment. Nothing has been charged '
+                        'yet — open the campaign to pay '
+                        '${cedis(_cost.totalPesewas)} by card, bank or mobile '
+                        'money.',
               textAlign: TextAlign.center,
               style: TextStyle(color: context.brand.ink, height: 1.5),
             ),

@@ -115,7 +115,10 @@ class BrandHeader extends StatelessWidget {
     super.key,
   });
 
-  final String eyebrow;
+  /// The small label above the heading, or null where the heading already
+  /// says what it would have said.
+  final String? eyebrow;
+
   final String title;
   final String? subtitle;
   final Widget? trailing;
@@ -137,16 +140,18 @@ class BrandHeader extends StatelessWidget {
               // Set in the same muted ink as every other piece of supporting
               // text. A coloured eyebrow over every heading in the app meant
               // the accent was carrying no information at all.
-              Text(
-                eyebrow.toUpperCase(),
-                style: TextStyle(
-                  color: context.brand.mutedInk,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 1.1,
+              if (eyebrow case final eyebrow?) ...[
+                Text(
+                  eyebrow.toUpperCase(),
+                  style: TextStyle(
+                    color: context.brand.mutedInk,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1.1,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 6),
+                const SizedBox(height: 6),
+              ],
               Text(title, style: Theme.of(context).textTheme.headlineMedium),
               if (subtitle != null) ...[
                 const SizedBox(height: 6),

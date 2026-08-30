@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
@@ -8,6 +10,7 @@ import 'package:indigen_world_mobile/features/ads/data/ad_campaign.dart';
 import 'package:indigen_world_mobile/features/ads/data/ad_repository.dart';
 import 'package:indigen_world_mobile/shared/glass_popup.dart';
 import 'package:indigen_world_mobile/shared/glass_surface.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 /// One campaign in full: the creative, the copy, what it costs, where it is.
 class CampaignDetailScreen extends ConsumerWidget {
@@ -234,35 +237,8 @@ class _Detail extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: 16),
-        if (campaign.status == AdCampaignStatus.pendingPayment) ...[
-          GlassSurface(
-            padding: const EdgeInsets.all(15),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.lock_clock_rounded,
-                  color: context.brand.accent,
-                ),
-                const SizedBox(width: 12),
-                const Expanded(
-                  child: Text(
-                    'Card and mobile money are coming shortly. Nothing has '
-                    'been charged.',
-                    style: TextStyle(fontWeight: FontWeight.w700, height: 1.35),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 12),
-          FilledButton.icon(
-            // Deliberately inert until Paystack is wired. A button that
-            // pretends to take money and quietly does nothing is worse than a
-            // button that says it is not ready.
-            onPressed: null,
-            icon: const Icon(Icons.payments_rounded),
-            label: const Text('Pay — coming soon'),
-          ),
+        if (campaign.needsPayment) ...[
+          AdPaymentPanel(campaign: campaign),
           const SizedBox(height: 10),
         ],
         if (campaign.status.isEditable)
@@ -278,6 +254,247 @@ class _Detail extends ConsumerWidget {
       ],
     );
   }
+}
+
+/// Paying for a campaign.
+///
+/// The checkout itself is Paystack's own hosted page, opened in the browser:
+/// no card number, no mobile-money PIN and no OTP is ever typed into this app,
+/// which is the only version of this screen worth shipping.
+///
+/// Coming back is the interesting part. The member leaves for the browser and
+/// returns whenever they are done — possibly minutes later, possibly after the
+/// app was evicted — so the panel re-checks on every resume rather than relying
+/// on them to tell it. The server's webhook settles the campaign independently
+/// either way; this is the fast path, not the only one.
+class AdPaymentPanel extends ConsumerStatefulWidget {
+  const AdPaymentPanel({required this.campaign, super.key});
+
+  final AdCampaign campaign;
+
+  @override
+  ConsumerState<AdPaymentPanel> createState() => _AdPaymentPanelState();
+}
+
+class _AdPaymentPanelState extends ConsumerState<AdPaymentPanel>
+    with WidgetsBindingObserver {
+  var _busy = false;
+  var _checking = false;
+
+  /// Set once a checkout has been opened from this screen, so the resume check
+  /// only runs for somebody who actually went to pay.
+  var _awaitingReturn = false;
+
+  String? _error;
+  String? _note;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed || !_awaitingReturn) return;
+    unawaited(_check(quiet: true));
+  }
+
+  Future<void> _pay() async {
+    final repository = ref.read(adRepositoryProvider);
+    if (repository == null || _busy) return;
+    setState(() {
+      _busy = true;
+      _error = null;
+      _note = null;
+    });
+    try {
+      final checkout = await repository.startPayment(widget.campaign.id);
+      final opened = await launchUrl(
+        Uri.parse(checkout.authorizationUrl),
+        mode: LaunchMode.externalApplication,
+      );
+      if (!mounted) return;
+      if (!opened) {
+        setState(
+          () => _error = 'No browser could open the payment page.',
+        );
+        return;
+      }
+      setState(() {
+        _awaitingReturn = true;
+        _note = checkout.testMode
+            ? 'Test mode — use a Paystack test card. No real money moves.'
+            : null;
+      });
+    } on AdCampaignFailure catch (failure) {
+      if (mounted) setState(() => _error = failure.message);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  /// Asks the server what became of the checkout.
+  ///
+  /// [quiet] is the automatic check on resume: somebody who came back without
+  /// paying should not be met with an error about it.
+  Future<void> _check({bool quiet = false}) async {
+    final repository = ref.read(adRepositoryProvider);
+    if (repository == null || _checking) return;
+    setState(() {
+      _checking = true;
+      if (!quiet) {
+        _error = null;
+        _note = null;
+      }
+    });
+    try {
+      final outcome = await repository.confirmPayment(widget.campaign.id);
+      if (!mounted) return;
+      ref.invalidate(myAdCampaignsProvider);
+      if (outcome.paid) {
+        setState(() {
+          _awaitingReturn = false;
+          _note = 'Payment received. Your campaign is with our reviewers.';
+        });
+        return;
+      }
+      if (quiet) return;
+      setState(
+        () => _note = switch (outcome.providerStatus) {
+          'abandoned' => 'That checkout was not completed.',
+          'failed' => 'The payment did not go through. Nothing was charged.',
+          _ => 'Nothing has come through yet. Check again in a moment.',
+        },
+      );
+    } on AdCampaignFailure catch (failure) {
+      if (mounted && !quiet) setState(() => _error = failure.message);
+    } finally {
+      if (mounted) setState(() => _checking = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final campaign = widget.campaign;
+    final busy = _busy || _checking;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        GlassSurface(
+          padding: const EdgeInsets.all(15),
+          child: Row(
+            children: [
+              Icon(
+                campaign.isUnderpaid
+                    ? Icons.error_outline_rounded
+                    : Icons.payments_rounded,
+                color: campaign.isUnderpaid
+                    ? context.brand.danger
+                    : context.brand.accent,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      campaign.isUnderpaid
+                          ? 'Part of the amount came through'
+                          : '${cedis(campaign.totalBudgetPesewas)} to pay',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 15,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      campaign.isUnderpaid
+                          ? 'Pay the rest and the campaign goes to review.'
+                          : 'Card, bank or mobile money, on Paystack’s own '
+                                'page. Your details never touch this app.',
+                      style: TextStyle(
+                        color: context.brand.mutedInk,
+                        fontSize: 12.5,
+                        height: 1.4,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (_note case final note?) ...[
+          const SizedBox(height: 10),
+          _PaymentMessage(text: note, tone: context.brand.accent),
+        ],
+        if (_error case final error?) ...[
+          const SizedBox(height: 10),
+          _PaymentMessage(text: error, tone: context.brand.danger),
+        ],
+        const SizedBox(height: 12),
+        FilledButton.icon(
+          onPressed: busy ? null : _pay,
+          icon: _busy
+              ? const SizedBox.square(
+                  dimension: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.payments_rounded),
+          label: Text(
+            _busy
+                ? 'Opening Paystack…'
+                : campaign.hasOpenCheckout
+                ? 'Pay again'
+                : 'Pay ${cedis(campaign.totalBudgetPesewas)}',
+          ),
+        ),
+        // Offered as soon as there is a checkout to ask about, whether it was
+        // opened on this screen or on a phone the member has since closed.
+        if (campaign.hasOpenCheckout || _awaitingReturn) ...[
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            onPressed: busy ? null : () => _check(),
+            icon: _checking
+                ? const SizedBox.square(
+                    dimension: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.refresh_rounded),
+            label: Text(_checking ? 'Checking…' : 'I have paid — check now'),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _PaymentMessage extends StatelessWidget {
+  const _PaymentMessage({required this.text, required this.tone});
+
+  final String text;
+  final Color tone;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 11),
+    decoration: BoxDecoration(
+      color: tone.withValues(alpha: 0.10),
+      borderRadius: BorderRadius.circular(14),
+      border: Border.all(color: tone.withValues(alpha: 0.35)),
+    ),
+    child: Text(
+      text,
+      style: TextStyle(color: context.brand.ink, fontSize: 12.5, height: 1.4),
+    ),
+  );
 }
 
 class _Metric extends StatelessWidget {

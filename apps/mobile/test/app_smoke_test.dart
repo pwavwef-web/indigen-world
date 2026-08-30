@@ -50,13 +50,24 @@ void main() {
       'Contribute',
     ]);
 
-    await tester.tap(find.text('Explore'));
+    await tester.tap(
+      find.descendant(
+        of: find.byType(FrostedNavBar),
+        matching: find.text('Explore'),
+      ),
+    );
     await tester.pump(const Duration(milliseconds: 400));
 
-    // Nothing is published in a test, so the feed says so plainly rather than
-    // passing the curated preview off as community work.
-    expect(find.text('PREVIEW'), findsOneWidget);
     expect(find.text('Every rhythm remembers.'), findsOneWidget);
+    // The LIVE/PREVIEW pill went with the wordmark: over a full-bleed reel,
+    // chrome has to earn its place, and a badge saying which data source is
+    // behind the feed was answering a question no viewer was asking.
+    expect(find.text('PREVIEW'), findsNothing);
+    expect(find.text('LIVE'), findsNothing);
+    // The wordmark gave up its space to the two things a viewer wants there:
+    // which feed they are on, and a way to search.
+    expect(find.text('INDIGEN WORLD'), findsNothing);
+    expect(find.bySemanticsLabel('Search Explore'), findsOneWidget);
     // Explore is full-bleed: the shell rail disappears until native back
     // returns to the exact tab the member came from.
     expect(find.byType(FrostedNavBar), findsNothing);
@@ -68,13 +79,27 @@ void main() {
     expect(find.text('New voices'), findsOneWidget);
     expect(find.byType(FrostedNavBar), findsOneWidget);
 
-    await tester.tap(find.text('Learn'));
+    await tester.tap(
+      find.descendant(
+        of: find.byType(FrostedNavBar),
+        matching: find.text('Learn'),
+      ),
+    );
     await tester.pump(const Duration(milliseconds: 400));
 
     expect(find.text('Speak your first words.'), findsOneWidget);
-    expect(find.text("TODAY'S QUEST"), findsOneWidget);
+    // The quest and the momentum summary are header buttons that open a card,
+    // not two full-width panels the first lesson has to be scrolled past.
+    expect(find.text("Today's quest"), findsOneWidget);
+    expect(find.text('Momentum'), findsOneWidget);
 
-    await tester.tap(find.text('Complete 3 quick lessons'));
+    await tester.tap(find.text("Today's quest"));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.text('Complete 3 quick lessons'), findsOneWidget);
+    expect(find.text('0 of 3 done'), findsOneWidget);
+
+    await tester.tap(find.text('Continue the quest'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));
     expect(find.text('LESSON 1 OF 4'), findsOneWidget);
@@ -96,7 +121,12 @@ void main() {
     await tester.pump(const Duration(milliseconds: 400));
     expect(find.text('15 XP'), findsOneWidget);
 
-    await tester.tap(find.text('Collection'));
+    await tester.tap(
+      find.descendant(
+        of: find.byType(FrostedNavBar),
+        matching: find.text('Collection'),
+      ),
+    );
     await tester.pump(const Duration(milliseconds: 400));
 
     expect(find.text('THE KASENA COLLECTION'), findsOneWidget);
@@ -121,7 +151,12 @@ void main() {
     await tester.pump(const Duration(milliseconds: 200));
     expect(find.text('Audiobooks'), findsOneWidget);
 
-    await tester.tap(find.text('Community'));
+    await tester.tap(
+      find.descendant(
+        of: find.byType(FrostedNavBar),
+        matching: find.text('Community'),
+      ),
+    );
     await tester.pump(const Duration(milliseconds: 400));
 
     expect(find.text('New voices'), findsOneWidget);

@@ -995,8 +995,19 @@ service cloud.firestore {
     }
 
     match /reelViews/{viewId} {
-      // A viewer may read their own row; the public total comes from an
-      // aggregate count, which does not require reading the documents.
+      // A viewer may read their own row, and only their own.
+      //
+      // This does mean there is no public view total: an aggregate count over
+      // a whole reel is a query these rules cannot approve, because a `list`
+      // rule that depends on `resource.data` cannot be satisfied statically.
+      // The client asks anyway and treats a refusal as zero — which is why
+      // each of the three totals is now counted in its own request. They used
+      // to share one `Future.wait`, so this refusal took the appreciations and
+      // the replies down with it and every reel showed a pair of noughts.
+      //
+      // Making views public would mean publishing who watched what. If the
+      // number is ever wanted, it belongs in a counter a trigger maintains,
+      // not in a widened read.
       allow read: if isSignedIn()
         && (resource.data.viewerId == request.auth.uid || isStaff());
       // Set rather than create: the edge id makes a repeat view idempotent,

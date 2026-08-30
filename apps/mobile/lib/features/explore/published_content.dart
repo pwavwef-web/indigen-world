@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/firebase_ready.dart';
+import 'package:indigen_world_mobile/features/explore/explore_feed.dart' show exploreWindowProvider;
 
 /// A single approved, published creator piece as consumed by the Explore feed.
 ///
@@ -131,22 +132,27 @@ class PublishedContentRepository {
 
   static const feedLimit = 30;
 
-  Query<Map<String, dynamic>> get _feedQuery => _firestore
+  Query<Map<String, dynamic>> _feedQuery(int limit) => _firestore
       .collection('publishedContent')
       .where('publicationStatus', isEqualTo: 'published')
       .orderBy('publishedAt', descending: true)
-      .limit(feedLimit);
+      .limit(limit);
 
-  Future<List<PublishedReel>> fetchFeed() async {
-    final snapshot = await _feedQuery.get();
+  Future<List<PublishedReel>> fetchFeed({int limit = feedLimit}) async {
+    final snapshot = await _feedQuery(limit).get();
     return snapshot.docs.map(PublishedReel.fromDoc).toList(growable: false);
   }
 
   /// Live feed; emits again whenever content is published or updated.
-  Stream<List<PublishedReel>> watchFeed() => _feedQuery.snapshots().map(
-    (snapshot) =>
-        snapshot.docs.map(PublishedReel.fromDoc).toList(growable: false),
-  );
+  ///
+  /// [limit] is Explore's window, which widens as somebody scrolls. Widening it
+  /// re-subscribes rather than paging with a cursor — see `explore_feed.dart`
+  /// for why that trade is the right way round on a live query.
+  Stream<List<PublishedReel>> watchFeed({int limit = feedLimit}) =>
+      _feedQuery(limit).snapshots().map(
+        (snapshot) =>
+            snapshot.docs.map(PublishedReel.fromDoc).toList(growable: false),
+      );
 
   /// Everything one creator has published, newest first — the body of their
   /// creator page.
@@ -217,7 +223,7 @@ final publishedContentRepositoryProvider =
 final publishedReelsProvider = StreamProvider<List<PublishedReel>>((ref) {
   final repository = ref.watch(publishedContentRepositoryProvider);
   if (repository == null) return Stream.value(const <PublishedReel>[]);
-  return repository.watchFeed();
+  return repository.watchFeed(limit: ref.watch(exploreWindowProvider));
 });
 
 /// Everything one creator has published — the body of their creator page.

@@ -27,14 +27,55 @@ import 'package:indigen_world_mobile/features/explore/reel_view.dart';
 /// Published work leads. Not because it is better, but because it is what the
 /// archive exists to show, and it is comparatively rare; after that the two
 /// interleave newest-first.
-/// How many community videos may join one Explore session.
+/// How much of each source the feed holds, and how it grows.
 ///
-/// A cap, not a page: the community feed is already limited upstream, and
-/// Explore is a place to encounter things rather than to exhaust them.
-const _communityReelLimit = 40;
+/// Explore pages by *widening its window* rather than by carrying a cursor.
+/// Both sources are live Firestore queries, so a cursor would mean stitching
+/// pages that can each change underneath the stitching — a reel published while
+/// somebody is scrolling would either appear twice or slip through the seam.
+/// Re-subscribing at a larger limit has neither problem: Firestore serves the
+/// documents it already holds from cache and fetches only the new tail, and the
+/// feed stays one live list all the way down.
+const int kExploreWindowStep = 30;
+
+/// The ceiling. Not a technical limit — a decision that a feed which has shown
+/// somebody three hundred reels in one sitting should stop growing rather than
+/// keep an ever-larger snapshot listener open on a phone.
+const int kExploreWindowMax = 300;
+
+/// How wide the Explore window currently is.
+///
+/// Reset when the member leaves the tab: coming back to a feed that had grown
+/// to three hundred would re-open all of it at once.
+class ExploreWindow extends Notifier<int> {
+  @override
+  int build() => kExploreWindowStep;
+
+  /// Widens by one step, up to [kExploreWindowMax]. Returns whether it moved,
+  /// so a caller can tell "loading more" from "there is no more to load".
+  bool grow() {
+    if (state >= kExploreWindowMax) return false;
+    state = (state + kExploreWindowStep).clamp(
+      kExploreWindowStep,
+      kExploreWindowMax,
+    );
+    return true;
+  }
+
+  void reset() => state = kExploreWindowStep;
+}
+
+final exploreWindowProvider = NotifierProvider<ExploreWindow, int>(
+  ExploreWindow.new,
+);
+
+/// Whether the feed can still be widened — what the end-of-feed card reads.
+final exploreCanLoadMoreProvider = Provider<bool>(
+  (ref) => ref.watch(exploreWindowProvider) < kExploreWindowMax,
+);
 
 /// Community posts that are whole, public, and carry a video.
-List<Reel> communityReels(List<CommunityPost> posts) {
+List<Reel> communityReels(List<CommunityPost> posts, {required int limit}) {
   final reels = <Reel>[];
   for (final post in posts) {
     if (post.parentId != null) continue;
@@ -43,19 +84,20 @@ List<Reel> communityReels(List<CommunityPost> posts) {
     // opens on, exactly as the community card does.
     if (video == null || video.url.isEmpty) continue;
     reels.add(Reel.fromCommunityPost(post, video));
-    if (reels.length >= _communityReelLimit) break;
+    if (reels.length >= limit) break;
   }
   return reels;
 }
 
 /// The Explore feed: published work first, then community video.
 final exploreFeedProvider = Provider<List<Reel>>((ref) {
+  final window = ref.watch(exploreWindowProvider);
   final published = ref.watch(publishedReelsProvider).asData?.value;
   final community = ref.watch(communityFeedProvider).asData?.value;
 
   final reels = <Reel>[
     ...?published?.map(Reel.fromPublished),
-    ...?community.let(communityReels),
+    ...?community.let((posts) => communityReels(posts, limit: window)),
   ];
   return List.unmodifiable(reels);
 });
@@ -75,3 +117,32 @@ extension<T> on T? {
 final exploreHasContentProvider = Provider<bool>(
   (ref) => ref.watch(exploreFeedProvider).isNotEmpty,
 );
+
+/// The same feed, narrowed to the people this member follows.
+///
+/// Explore's two halves are the two questions a video feed answers: show me
+/// something, and show me *them*. Following is built from the same two sources
+/// as the main feed so a followed creator's published work and their community
+/// clips arrive together — following somebody and then not seeing half of what
+/// they make would be the wrong kind of surprise.
+///
+/// Empty is a real answer here, and the header says so rather than quietly
+/// falling back to everything: a member who follows nobody has an empty
+/// Following feed, and pretending otherwise hides the thing they would need to
+/// do about it.
+final exploreFollowingFeedProvider = Provider<List<Reel>>((ref) {
+  final following = ref.watch(followingIdsProvider).asData?.value;
+  if (following == null || following.isEmpty) return const <Reel>[];
+  final follows = following.toSet();
+
+  final published = ref.watch(publishedReelsProvider).asData?.value;
+  final community = ref.watch(followingFeedProvider).asData?.value;
+
+  final window = ref.watch(exploreWindowProvider);
+  return List.unmodifiable(<Reel>[
+    ...?published
+        ?.where((reel) => follows.contains(reel.creatorId))
+        .map(Reel.fromPublished),
+    ...?community.let((posts) => communityReels(posts, limit: window)),
+  ]);
+});

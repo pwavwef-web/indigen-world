@@ -7,8 +7,12 @@ import 'package:indigen_world_mobile/features/auth/sign_in_sheet.dart';
 import 'package:indigen_world_mobile/features/collection/collection_data.dart';
 import 'package:indigen_world_mobile/features/contribute/collection_contribution_repository.dart';
 import 'package:indigen_world_mobile/features/contribute/contribution_upload.dart';
+import 'package:indigen_world_mobile/features/contribute/pronunciation_recorder.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_fab.dart';
 import 'package:indigen_world_mobile/features/rating/rating_service.dart';
+import 'package:indigen_world_mobile/features/validate/data/ad_review_queue.dart';
+import 'package:indigen_world_mobile/features/validate/data/review_queue.dart';
+import 'package:indigen_world_mobile/features/validate/validate_screen.dart';
 import 'package:indigen_world_mobile/shared/app_widgets.dart';
 import 'package:indigen_world_mobile/shared/frosted_nav_bar.dart';
 import 'package:indigen_world_mobile/shared/glass_popup.dart';
@@ -93,11 +97,19 @@ class _ContributeScreenState extends ConsumerState<ContributeScreen> {
         children: [
           BrandHeader(
             reserveTopRight: widget.reserveTopRight,
-            eyebrow: 'Contribute',
+            // No eyebrow over "Contribute": a label above a heading that says
+            // the same word twice is decoration, not orientation.
+            eyebrow: widget.relatedEntryId == null ? null : 'Contribute',
             title: widget.relatedEntryId == null
-                ? 'Add to the living collection.'
+                ? 'Contribute'
                 : 'Suggest a correction.',
           ),
+          // Staff only, and deliberately at the top of *this* screen: the work
+          // the desk reviews is the work this form sends, so the two belong
+          // next to each other. It used to be a sixth tab on the shell rail,
+          // which changed the shape of the one strip of the app everybody
+          // shares depending on who was holding the phone.
+          const _ReviewDeskCard(),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Column(
@@ -139,6 +151,10 @@ class _ContributeScreenState extends ConsumerState<ContributeScreen> {
                   onDialectChanged: (value) => setState(() => _dialect = value),
                   onFormatChanged: (value) => setState(() => _format = value),
                   onPickFile: _pickFile,
+                  onPronunciationRecorded: (recording) => setState(() {
+                    _file = recording;
+                    _submitError = null;
+                  }),
                   onClearFile: () => setState(() => _file = null),
                   onRightsChanged: (value) =>
                       setState(() => _rightsConfirmed = value),
@@ -374,6 +390,147 @@ bool _requiresUpload(CollectionKind kind) =>
     kind == CollectionKind.audiobooks ||
     kind == CollectionKind.video;
 
+/// The way into the review desk, for the accounts that have one.
+///
+/// Renders nothing at all for everybody else — not a locked card, not a
+/// greyed-out row. A door somebody can never open is worse than no door: it
+/// invites the question and then refuses to answer it.
+class _ReviewDeskCard extends ConsumerWidget {
+  const _ReviewDeskCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (!ref.watch(isReviewerProvider)) return const SizedBox.shrink();
+
+    final waitingWork = ref.watch(reviewWaitingCountProvider).asData?.value ?? 0;
+    final waitingAds =
+        ref.watch(adReviewWaitingCountProvider).asData?.value ?? 0;
+    final waiting = waitingWork + waitingAds;
+    final brand = context.brand;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+      child: Semantics(
+        button: true,
+        label: waiting > 0
+            ? 'Review desk, $waiting waiting'
+            : 'Review desk, nothing waiting',
+        excludeSemantics: true,
+        child: Material(
+          color: brand.accentSoft,
+          borderRadius: BorderRadius.circular(22),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(22),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (context) => const ValidateScreen(),
+              ),
+            ),
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(16, 15, 14, 15),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(22),
+                border: Border.all(
+                  color: brand.accent.withValues(alpha: 0.35),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: brand.accent,
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Icon(
+                      Icons.fact_check_rounded,
+                      color: brand.onAccentFill,
+                      size: 22,
+                    ),
+                  ),
+                  const SizedBox(width: 13),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'REVIEW DESK',
+                          style: TextStyle(
+                            color: brand.terracotta,
+                            fontSize: 9.5,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 1.1,
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          waiting == 0
+                              ? 'Nothing is waiting'
+                              : '$waiting waiting on you',
+                          style: TextStyle(
+                            color: brand.ink,
+                            fontSize: 15.5,
+                            fontWeight: FontWeight.w800,
+                            height: 1.2,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          // Named rather than summed into one word, because
+                          // they are two different jobs with two different
+                          // urgencies — an unpublished song and an advert
+                          // somebody has already paid for.
+                          waiting == 0
+                              ? 'Contributions and adverts, when they arrive'
+                              : '$waitingWork contribution'
+                                    '${waitingWork == 1 ? '' : 's'} · '
+                                    '$waitingAds advert'
+                                    '${waitingAds == 1 ? '' : 's'}',
+                          style: TextStyle(
+                            color: brand.mutedInk,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  if (waiting > 0)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 9,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: brand.terracotta,
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Text(
+                        waiting > 99 ? '99+' : '$waiting',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    )
+                  else
+                    Icon(
+                      Icons.chevron_right_rounded,
+                      color: brand.mutedInk,
+                      size: 22,
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _KindSelector extends StatelessWidget {
   const _KindSelector({required this.selected, required this.onSelected});
 
@@ -518,6 +675,7 @@ class _ContributionFields extends StatelessWidget {
     required this.onDialectChanged,
     required this.onFormatChanged,
     required this.onPickFile,
+    required this.onPronunciationRecorded,
     required this.onClearFile,
     required this.onRightsChanged,
     required this.onPublicationChanged,
@@ -545,6 +703,7 @@ class _ContributionFields extends StatelessWidget {
   final ValueChanged<String?> onDialectChanged;
   final ValueChanged<String?> onFormatChanged;
   final VoidCallback onPickFile;
+  final ValueChanged<PickedContributionFile> onPronunciationRecorded;
   final VoidCallback onClearFile;
   final ValueChanged<bool> onRightsChanged;
   final ValueChanged<bool> onPublicationChanged;
@@ -615,6 +774,17 @@ class _ContributionFields extends StatelessWidget {
           validator: _required,
         ),
         if (_isDictionary) ...[
+          const SizedBox(height: 13),
+          // Directly under the word itself, and above the example sentence:
+          // the order somebody would say it out loud.
+          PronunciationRecorderField(
+            file: file,
+            progress: uploadProgress,
+            // Nothing here moves while the take is on its way up.
+            enabled: uploadProgress == null,
+            onRecorded: onPronunciationRecorded,
+            onCleared: onClearFile,
+          ),
           const SizedBox(height: 13),
           TextFormField(
             controller: kasemExampleController,

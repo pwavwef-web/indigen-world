@@ -28,6 +28,17 @@ const MAX_DEVICES = 20;
 export const COMMUNITY_CHANNEL_ID = 'indigen_community_v2';
 export const MESSAGES_CHANNEL_ID = 'indigen_messages';
 
+/**
+ * Decisions and receipts about the member's own work: a submission reviewed,
+ * an advert approved or turned down, a payment that went through.
+ *
+ * Its own channel rather than the community one because these are not activity
+ * — they are answers to something the member is waiting on, and somebody who
+ * mutes likes and follows must not thereby mute the outcome of the advert they
+ * paid for.
+ */
+export const ACCOUNT_CHANNEL_ID = 'indigen_account';
+
 export interface PushMessage {
   title: string;
   body: string;

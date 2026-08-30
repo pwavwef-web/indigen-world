@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Extract Project Kasena review-pack rows into a Firestore import payload."""
+"""Extract the legacy Project Kasena DOCX review pack for archival comparison.
+
+The canonical 1,000+ entry import is built by
+``extract-kassena-pdf-dictionary.py``. This legacy extractor writes a separate
+file so it cannot accidentally replace the source-attested dictionary batch.
+"""
 
 from __future__ import annotations
 
@@ -46,7 +51,7 @@ DEFAULT_DOCX = (
 )
 
 DEFAULT_OUTPUT = (
-    Path(__file__).resolve().parent / "project-kasena-dictionary-data.json"
+    Path(__file__).resolve().parent / "project-kasena-legacy-review-pack-data.json"
 )
 
 IMPORT_ID = "project_kasena_review_pack_v0_1"

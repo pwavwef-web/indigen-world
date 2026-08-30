@@ -5,6 +5,43 @@ import 'package:indigen_world_mobile/core/firebase_ready.dart';
 import 'package:indigen_world_mobile/features/ads/data/ad_campaign.dart';
 import 'package:indigen_world_mobile/features/auth/auth_repository.dart';
 
+/// A checkout waiting to be paid.
+class AdCheckout {
+  const AdCheckout({
+    required this.authorizationUrl,
+    required this.reference,
+    required this.amountPesewas,
+    required this.testMode,
+  });
+
+  /// Paystack's own hosted page. Card and mobile-money details are entered
+  /// there and never pass through this app.
+  final String authorizationUrl;
+
+  final String reference;
+  final int amountPesewas;
+
+  /// True while the backend is configured with test keys, which the screen
+  /// says out loud rather than letting somebody think they have been charged.
+  final bool testMode;
+}
+
+/// What came back from checking a checkout.
+class AdPaymentOutcome {
+  const AdPaymentOutcome({
+    required this.paid,
+    required this.alreadyPaid,
+    required this.providerStatus,
+  });
+
+  final bool paid;
+  final bool alreadyPaid;
+
+  /// Paystack's word for where the transaction got to — `abandoned`, `failed`,
+  /// `ongoing`. Empty when the payment succeeded.
+  final String providerStatus;
+}
+
 /// A message worth showing somebody who has just tried to spend money.
 class AdCampaignFailure implements Exception {
   const AdCampaignFailure(this.message);
@@ -34,12 +71,53 @@ class AdRepository {
 
   /// Creates a campaign and parks it at `PENDING_PAYMENT`.
   ///
-  /// Returns the new campaign id. Paystack is not wired yet; the callable
-  /// records the amount owed and nothing is charged.
+  /// Returns the new campaign id. Nothing is charged here: the callable records
+  /// the amount owed, and [startPayment] is what opens a checkout for it.
   Future<String> submit(AdCampaignDraft draft) async {
     final result = await _call('submitAdCampaign', draft.toPayload());
     final id = result['campaignId'];
     return id is String ? id : '';
+  }
+
+  /// Opens a Paystack checkout for [campaignId].
+  ///
+  /// The amount is never sent — the callable charges the total it computed and
+  /// stored when the campaign was created, which is the only figure a phone
+  /// cannot argue with.
+  Future<AdCheckout> startPayment(String campaignId) async {
+    final result = await _call('startAdPayment', {'campaignId': campaignId});
+    final url = result['authorizationUrl'];
+    if (url is! String || url.isEmpty) {
+      throw const AdCampaignFailure(
+        'The payment page could not be opened. Try again shortly.',
+      );
+    }
+    return AdCheckout(
+      authorizationUrl: url,
+      reference: result['reference'] is String
+          ? result['reference']! as String
+          : '',
+      amountPesewas: result['amountPesewas'] is num
+          ? (result['amountPesewas']! as num).round()
+          : 0,
+      testMode: result['testMode'] == true,
+    );
+  }
+
+  /// Asks the server whether the checkout went through.
+  ///
+  /// The reference is deliberately not a parameter: the server reads it off the
+  /// campaign, so nobody can settle their campaign with somebody else's
+  /// successful payment.
+  Future<AdPaymentOutcome> confirmPayment(String campaignId) async {
+    final result = await _call('confirmAdPayment', {'campaignId': campaignId});
+    return AdPaymentOutcome(
+      paid: result['paid'] == true,
+      alreadyPaid: result['alreadyPaid'] == true,
+      providerStatus: result['paymentStatus'] is String
+          ? result['paymentStatus']! as String
+          : '',
+    );
   }
 
   /// Edits a campaign that has not started running.

@@ -262,6 +262,22 @@ class AdCampaign {
 
   bool get isPaid => paymentStatus == 'paid';
 
+  /// A checkout has been opened and not finished. The screen offers to check
+  /// it rather than opening a second one, so somebody who paid and closed the
+  /// app does not end up looking at two references.
+  bool get hasOpenCheckout => paymentStatus == 'pending';
+
+  /// Money arrived, but not all of it. Deliberately its own state: silently
+  /// treating a short payment as paid would put a campaign in front of the
+  /// community on a budget nobody agreed to.
+  bool get isUnderpaid => paymentStatus == 'underpaid';
+
+  /// Whether this campaign is still waiting on money.
+  bool get needsPayment =>
+      !isPaid &&
+      (status == AdCampaignStatus.pendingPayment ||
+          status == AdCampaignStatus.draft);
+
   static AdCampaign fromDoc(QueryDocumentSnapshot<Map<String, dynamic>> doc) =>
       fromData(doc.id, doc.data());
 

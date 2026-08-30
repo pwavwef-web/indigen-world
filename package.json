@@ -29,6 +29,8 @@
     "build:tribestudio": "npm run build --workspace @indigen-world/tribestudio",
     "build:team-francis-pwavwe": "npm run build --workspace @indigen-world/team-francis-pwavwe",
     "build:functions": "npm run build --workspace @indigen-world/functions",
+    "validate:updates-blog": "node apps/updates-blog/scripts/validate-theme.mjs",
+    "build:updates-blog-preview": "npm run validate:updates-blog && node apps/updates-blog/scripts/build-preview.mjs",
     "typecheck:website": "npm run typecheck --workspace @indigen-world/website",
     "typecheck:admin": "npm run typecheck --workspace @indigen-world/admin",
     "typecheck:tribestudio": "npm run typecheck --workspace @indigen-world/tribestudio",

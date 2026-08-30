@@ -71,6 +71,13 @@ export const ROUTES: AppRoute[] = [
     title: "Terms",
     description: "Indigen World's terms of use.",
   },
+  {
+    // Where Paystack returns an advertiser after checkout. No navLabel: it is
+    // a destination people are sent to, never one they would go looking for.
+    path: "ads/payment-complete",
+    title: "Advert payment",
+    description: "You have finished paying for an Indigen World advert.",
+  },
 ];
 
 /** Routes shown in the header navigation, in display order. */

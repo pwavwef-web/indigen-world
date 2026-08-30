@@ -65,6 +65,35 @@ export async function finalisePublishedMedia(
   });
 }
 
+/**
+ * Copies an approved pronunciation recording into the world-readable path and
+ * writes its URL onto the published dictionary entry.
+ *
+ * A dictionary entry is not a `publishedContent` record — it lands in
+ * `dictionaryEntries`, keyed by its submission, and carries a word rather than
+ * a piece of media. So it needs the same Storage move as everything else and a
+ * different field at the end of it: the mobile entry screen plays `audioUrl`,
+ * and nothing about a word belongs in `mediaUrl`.
+ */
+export async function finalisePublishedPronunciation(
+  entryRef: FirebaseFirestore.DocumentReference,
+  info: { contentId: string; storagePath: string; mimeType: string },
+): Promise<void> {
+  const bucket = getStorage().bucket();
+  const source = bucket.file(info.storagePath);
+  const [exists] = await source.exists();
+  if (!exists) return;
+
+  const dest = `published-media/${info.contentId}/pronunciation`;
+  await source.copy(bucket.file(dest));
+  const audioUrl = await mintDownloadUrl(bucket, dest, info.mimeType);
+
+  await entryRef.update({
+    audioUrl,
+    updatedAt: FieldValue.serverTimestamp(),
+  });
+}
+
 /** Sets a download token on a file and returns its stable public download URL. */
 export async function mintDownloadUrl(
   bucket: StorageBucket,

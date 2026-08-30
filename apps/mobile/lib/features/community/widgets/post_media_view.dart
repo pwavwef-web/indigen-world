@@ -15,6 +15,24 @@ class PostMediaView extends StatelessWidget {
   final List<CommunityMedia> media;
   final void Function(int index)? onOpen;
 
+  /// The tallest and widest shapes a single attachment may be drawn in.
+  ///
+  /// A phone-shot portrait clip is 9:16, and drawn at its own shape one post
+  /// took nearly the whole screen — the feed became a stack of slabs with a
+  /// line of writing between them. Every text-first social product caps this
+  /// for the same reason. Past the cap the attachment is centred inside the
+  /// capped box and cropped evenly from both ends, which is what keeps the
+  /// middle of a portrait video in the middle of the frame. Tapping it still
+  /// opens the whole thing, uncropped.
+  static const _minAspect = 3 / 4;
+  static const _maxAspect = 16 / 9;
+
+  /// The shape [item] is drawn in: its own, held between the two caps.
+  static double displayAspect(CommunityMedia item) {
+    final ratio = item.aspectRatio <= 0 ? 4 / 3 : item.aspectRatio;
+    return ratio.clamp(_minAspect, _maxAspect).toDouble();
+  }
+
   @override
   Widget build(BuildContext context) {
     if (media.isEmpty) return const SizedBox.shrink();
@@ -30,7 +48,7 @@ class PostMediaView extends StatelessWidget {
       return ClipRRect(
         borderRadius: BorderRadius.circular(16),
         child: AspectRatio(
-          aspectRatio: item.aspectRatio <= 0 ? 4 / 3 : item.aspectRatio,
+          aspectRatio: displayAspect(item),
           child: _MediaTile(item: item, onOpen: () => onOpen?.call(0)),
         ),
       );

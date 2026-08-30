@@ -1,3 +1,5 @@
+import 'dart:ui' show ImageFilter;
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -187,6 +189,7 @@ class ReelFeedView extends ConsumerStatefulWidget {
     this.isActive = true,
     this.initialIndex = 0,
     this.header,
+    this.onNearEnd,
     super.key,
   });
 
@@ -205,6 +208,14 @@ class ReelFeedView extends ConsumerStatefulWidget {
   /// Optional chrome pinned over the top of the feed.
   final Widget? header;
 
+  /// Called once the member is within [_loadAheadPages] of the last reel.
+  ///
+  /// A callback rather than a provider read, because three surfaces show this
+  /// feed and only one of them — Explore — has more to fetch. A creator's page
+  /// and a search result are finite lists, and asking them to grow would be
+  /// asking for reels that are deliberately not theirs to show.
+  final VoidCallback? onNearEnd;
+
   @override
   ConsumerState<ReelFeedView> createState() => _ReelFeedViewState();
 }
@@ -222,6 +233,20 @@ class _ReelFeedViewState extends ConsumerState<ReelFeedView>
   /// back to one does not spend a round trip re-asserting what the server
   /// already knows.
   final _trackedViews = <String>{};
+
+  /// How close to the end the member has to get before more is asked for.
+  ///
+  /// Three reels ahead: far enough that a widened window has landed before the
+  /// last card does, close enough that somebody who opens Explore and closes it
+  /// again has not quietly fetched twice what they looked at.
+  static const _loadAheadPages = 3;
+
+  /// The length the feed had when more was last asked for.
+  ///
+  /// Growing is idempotent but not free — it re-subscribes two live queries —
+  /// so the ask is made once per arrival at the end rather than once per page
+  /// turn inside the same tail.
+  var _lastGrowthLength = 0;
 
   @override
   void initState() {
@@ -253,6 +278,20 @@ class _ReelFeedViewState extends ConsumerState<ReelFeedView>
 
   int get _clampedIndex =>
       widget.reels.isEmpty ? 0 : _activeIndex.clamp(0, widget.reels.length - 1);
+
+  /// Asks for more reels once the end of the feed is in sight.
+  void _maybeLoadMore(int index) {
+    final onNearEnd = widget.onNearEnd;
+    if (onNearEnd == null) return;
+    final length = widget.reels.length;
+    if (index < length - _loadAheadPages) return;
+    // The feed has not grown since the last ask, so the last ask is either
+    // still in flight or there was nothing left to fetch. Either way, asking
+    // again changes nothing.
+    if (length == _lastGrowthLength) return;
+    _lastGrowthLength = length;
+    onNearEnd();
+  }
 
   /// Impressions are telemetry: written best-effort, never spoken about, and
   /// never allowed to interrupt watching.
@@ -325,6 +364,7 @@ class _ReelFeedViewState extends ConsumerState<ReelFeedView>
                 _playing = true;
               });
               _trackActiveView();
+              _maybeLoadMore(index);
             },
             itemBuilder: (context, index) {
               final reel = reels[index];
@@ -364,37 +404,11 @@ class _ReelFeedViewState extends ConsumerState<ReelFeedView>
               right: 0,
               child: SafeArea(bottom: false, child: header),
             ),
-          Positioned(
-            left: 18,
-            right: 18,
-            bottom: 10,
-            child: IgnorePointer(
-              child: Row(
-                children: [
-                  Expanded(
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(999),
-                      child: LinearProgressIndicator(
-                        value: (activeIndex + 1) / reels.length,
-                        minHeight: 2,
-                        backgroundColor: Colors.white24,
-                        color: context.brand.gold,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Text(
-                    '${activeIndex + 1}/${reels.length}',
-                    style: const TextStyle(
-                      color: Colors.white70,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
+          // No "3 of 40" rail along the bottom any more. An endless feed has
+          // no meaningful length to be three-fortieths of, and the one bar
+          // worth having down there is the one that says where you are in the
+          // *clip* — which each card now draws for itself, because only the
+          // card knows whether it is playing anything.
         ],
       ),
     );
@@ -672,7 +686,14 @@ class ReelContextBlock extends StatelessWidget {
   );
 }
 
-class _ReelCard extends ConsumerWidget {
+/// One reel, full frame: its footage, its words and its action rail.
+///
+/// The card owns the video player rather than delegating it to the background
+/// layer, because everything drawn *over* the footage needs to know how the
+/// footage is doing — whether it is still opening, whether it is stopped, and
+/// how far through it is. Those three answers live in one place now, and the
+/// chrome that reports them sits above the scrim where it can be seen.
+class _ReelCard extends ConsumerStatefulWidget {
   const _ReelCard({
     required this.reel,
     required this.isActive,
@@ -710,7 +731,149 @@ class _ReelCard extends ConsumerWidget {
   final VoidCallback onOpenCreator;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_ReelCard> createState() => _ReelCardState();
+}
+
+class _ReelCardState extends ConsumerState<_ReelCard> {
+  VideoPlayerController? _controller;
+  var _ready = false;
+  var _failed = false;
+
+  /// Bumped every time a controller is let go.
+  ///
+  /// Opening a video is a network round trip, and the member can leave the feed
+  /// or flick to the next reel long before it finishes. The counter is how a
+  /// late-arriving `initialize()` recognises that it belongs to a player
+  /// nobody is waiting for any more, so it cannot resurrect playback.
+  var _generation = 0;
+
+  /// The clip this card should have open, or null when it should have none.
+  ///
+  /// Off screen the player goes altogether and the poster takes its place.
+  /// Merely pausing would leave a decoder and an open audio session behind
+  /// another tab.
+  String? get _wantedUrl =>
+      widget.isActive ? widget.reel.videoUrl : null;
+
+  /// Whether the member is waiting on footage that has not arrived.
+  ///
+  /// This is the state that used to be drawn as a play button: a reel that had
+  /// not finished opening looked exactly like a reel somebody had stopped, so
+  /// the only honest read of a slow connection was "tapping does nothing".
+  bool get _opening => _wantedUrl != null && !_ready && !_failed;
+
+  @override
+  void initState() {
+    super.initState();
+    _sync();
+  }
+
+  @override
+  void didUpdateWidget(_ReelCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.reel.videoUrl != widget.reel.videoUrl ||
+        oldWidget.isActive != widget.isActive) {
+      _sync();
+    } else if (oldWidget.isPlaying != widget.isPlaying ||
+        oldWidget.onScreen != widget.onScreen) {
+      _syncPlayback();
+    }
+  }
+
+  @override
+  void dispose() {
+    _release();
+    super.dispose();
+  }
+
+  /// Opens the clip this card should be showing, or lets go of the one it is.
+  ///
+  /// Only ever called from `initState` and `didUpdateWidget`, both of which a
+  /// build follows immediately — so the fields are set plainly rather than
+  /// through `setState`, which would only ask for a rebuild already on its way.
+  void _sync() {
+    final wanted = _wantedUrl;
+    if (wanted == null) {
+      _release();
+      _failed = false;
+      return;
+    }
+    if (_controller != null && _controller!.dataSource == wanted) {
+      _syncPlayback();
+      return;
+    }
+    _release();
+    _failed = false;
+    _open(wanted);
+  }
+
+  Future<void> _open(String url) async {
+    final generation = _generation;
+    final controller = VideoPlayerController.networkUrl(Uri.parse(url));
+    _controller = controller;
+    try {
+      await controller.initialize();
+      await controller.setLooping(true);
+      await controller.setVolume(1);
+    } on Object {
+      _discard(controller);
+      if (_isStale(generation)) return;
+      setState(() => _failed = true);
+      return;
+    }
+    if (_isStale(generation)) {
+      _discard(controller);
+      return;
+    }
+    setState(() => _ready = true);
+    // Opened while paused — because the member stopped this reel before it
+    // finished loading — the sync leaves it on its first frame rather than
+    // starting sound nobody asked for.
+    _syncPlayback();
+  }
+
+  /// True once this open no longer speaks for the card: it has been disposed,
+  /// or a newer controller has taken over.
+  bool _isStale(int generation) => !mounted || generation != _generation;
+
+  /// Releases [controller] unless it has already been handed over: ownership
+  /// decides who closes a player, and that is whoever still holds it in
+  /// [_controller].
+  ///
+  /// The dispose is deliberately not awaited. A controller that failed before
+  /// the platform ever created it waits forever to be torn down, and nothing
+  /// here has any reason to wait with it.
+  void _discard(VideoPlayerController controller) {
+    if (!identical(_controller, controller)) return;
+    _controller = null;
+    _ready = false;
+    controller.dispose();
+  }
+
+  /// Drops the current controller and makes every open so far stale.
+  void _release() {
+    _generation++;
+    _ready = false;
+    final controller = _controller;
+    if (controller != null) _discard(controller);
+  }
+
+  void _syncPlayback() {
+    final controller = _controller;
+    // Nothing left to sync once the controller has gone: a disposed player
+    // throws when told to play, and there is nobody there to hear it anyway.
+    if (controller == null || !_ready || !mounted) return;
+    if (widget.isPlaying && widget.onScreen) {
+      controller.play();
+    } else {
+      controller.pause();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final reel = widget.reel;
+
     // Published records only carry the avatar the creator had when the piece
     // was approved, and for most creators that is null. Their community
     // profile is world-readable and current, so it is what fills the gap —
@@ -731,17 +894,29 @@ class _ReelCard extends ConsumerWidget {
               emptyReelCounts)
         : (likes: reel.likes, comments: reel.comments, views: 0);
 
+    // A live total already counts this member's own edge, so adding one for
+    // the filled heart would show every liker a number one too high. Only the
+    // curated preview, whose figure is a fixed illustration, gets the local
+    // bump — but a filled heart over a nought is a plain contradiction, so a
+    // server total that has not caught up yet is floored at the one like the
+    // member can see they left.
+    final likeTotal = reel.isLive
+        ? (widget.liked && counts.likes < 1 ? 1 : counts.likes)
+        : counts.likes + (widget.liked ? 1 : 0);
+
+    final ready = _ready ? _controller : null;
+
     return Semantics(
       label: '${reel.title}. Cultural reel by ${reel.creator}.',
       child: GestureDetector(
-        onTap: onTogglePlayback,
+        onTap: widget.onTogglePlayback,
         child: Stack(
           fit: StackFit.expand,
           children: [
             _ReelBackground(
               reel: reel,
-              isActive: isActive,
-              isPlaying: isPlaying && onScreen,
+              isActive: widget.isActive,
+              controller: ready,
             ),
             const DecoratedBox(
               decoration: BoxDecoration(
@@ -757,7 +932,9 @@ class _ReelCard extends ConsumerWidget {
                 ),
               ),
             ),
-            if (!isPlaying)
+            if (_opening)
+              const Center(child: _ReelSpinner())
+            else if (!widget.isPlaying)
               Center(
                 child: Container(
                   width: 68,
@@ -796,7 +973,7 @@ class _ReelCard extends ConsumerWidget {
                   const SizedBox(height: 13),
                   GestureDetector(
                     behavior: HitTestBehavior.opaque,
-                    onTap: onOpenCreator,
+                    onTap: widget.onOpenCreator,
                     child: Text(
                       memberProfile?.displayName ?? reel.creator,
                       style: const TextStyle(
@@ -852,46 +1029,44 @@ class _ReelCard extends ConsumerWidget {
                   ReelCreatorAvatar(
                     initials: reel.initials,
                     avatarUrl: avatarUrl,
-                    onTap: reel.creatorId.isEmpty ? null : onOpenCreator,
+                    onTap: reel.creatorId.isEmpty
+                        ? null
+                        : widget.onOpenCreator,
                   ),
                   const SizedBox(height: 13),
                   _ReelAction(
-                    icon: liked
+                    icon: widget.liked
                         ? Icons.favorite_rounded
                         : Icons.favorite_border_rounded,
-                    // A live total already counts this member's own edge, so
-                    // adding one for the filled heart would show every liker a
-                    // number one too high. Only the curated preview, whose
-                    // figure is a fixed illustration, gets the local bump.
-                    label: reelCountLabel(
-                      reel.isLive
-                          ? counts.likes
-                          : counts.likes + (liked ? 1 : 0),
-                    ),
-                    tooltip: liked ? 'Remove appreciation' : 'Appreciate',
-                    active: liked,
-                    onTap: onLike,
+                    label: reelCountLabel(likeTotal),
+                    tooltip: widget.liked
+                        ? 'Remove appreciation'
+                        : 'Appreciate',
+                    active: widget.liked,
+                    onTap: widget.onLike,
                   ),
                   _ReelAction(
                     icon: Icons.chat_bubble_outline_rounded,
                     label: reelCountLabel(counts.comments),
                     tooltip: 'Replies',
-                    onTap: onComments,
+                    onTap: widget.onComments,
                   ),
                   _ReelAction(
-                    icon: saved
+                    icon: widget.saved
                         ? Icons.bookmark_rounded
                         : Icons.bookmark_border_rounded,
-                    label: saved ? 'Kept' : 'Keep',
-                    tooltip: saved ? 'Remove from keeps' : 'Keep this reel',
-                    active: saved,
-                    onTap: onSave,
+                    label: widget.saved ? 'Kept' : 'Keep',
+                    tooltip: widget.saved
+                        ? 'Remove from keeps'
+                        : 'Keep this reel',
+                    active: widget.saved,
+                    onTap: widget.onSave,
                   ),
                   _ReelAction(
                     icon: Icons.menu_book_outlined,
                     label: 'Context',
                     tooltip: 'Cultural context and licence',
-                    onTap: onContext,
+                    onTap: widget.onContext,
                   ),
                   if (reel.isLive && counts.views > 0)
                     Padding(
@@ -909,6 +1084,18 @@ class _ReelCard extends ConsumerWidget {
                 ],
               ),
             ),
+            // Above the scrim and below nothing: where you are in the clip is
+            // the last thing a full-bleed video should hide.
+            if (ready case final controller?)
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: SafeArea(
+                  top: false,
+                  child: ReelProgressBar(controller: controller),
+                ),
+              ),
           ],
         ),
       ),
@@ -916,31 +1103,195 @@ class _ReelCard extends ConsumerWidget {
   }
 }
 
-/// The reel background: a slow "Ken Burns" poster for image reels, or an
-/// autoplaying, looping video for video reels while they are the active page
-/// and the feed is in front of the member.
+/// The wait while a clip opens.
+///
+/// A ring rather than a bar: nothing here knows how long the opening will
+/// take, and a bar that cannot say how full it is only invites the question.
+class _ReelSpinner extends StatelessWidget {
+  const _ReelSpinner();
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    liveRegion: true,
+    label: 'Loading the reel',
+    child: Container(
+      width: 68,
+      height: 68,
+      decoration: const BoxDecoration(
+        color: Color(0x99000000),
+        shape: BoxShape.circle,
+      ),
+      child: Center(
+        child: SizedBox.square(
+          dimension: 30,
+          child: CircularProgressIndicator(
+            strokeWidth: 3,
+            strokeCap: StrokeCap.round,
+            color: context.brand.gold,
+            backgroundColor: Colors.white24,
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+/// How far through the clip this reel is, and a way to move it.
+///
+/// Public because a creator's page shows the same reels through the same card.
+/// Thin and unobtrusive while it plays, and thicker under a thumb — a reel is
+/// something you watch, right up until the moment you want a particular second
+/// of it back.
+class ReelProgressBar extends StatefulWidget {
+  const ReelProgressBar({required this.controller, super.key});
+
+  final VideoPlayerController controller;
+
+  @override
+  State<ReelProgressBar> createState() => _ReelProgressBarState();
+}
+
+class _ReelProgressBarState extends State<ReelProgressBar> {
+  /// Where the thumb is, while it is down. The controller is only told at the
+  /// end of the drag: seeking on every pixel makes a decoder thrash and the
+  /// bar stutter under the finger that is moving it.
+  double? _scrubbing;
+
+  static const _restingHeight = 3.0;
+  static const _scrubbingHeight = 7.0;
+
+  /// The whole strip is taller than the bar it draws, so the target is worth
+  /// aiming at on the very bottom edge of a phone.
+  static const _touchHeight = 26.0;
+
+  Duration _positionFor(double fraction, Duration total) => Duration(
+    milliseconds: (total.inMilliseconds * fraction.clamp(0.0, 1.0)).round(),
+  );
+
+  void _seekTo(double fraction, Duration total) {
+    widget.controller.seekTo(_positionFor(fraction, total));
+  }
+
+  double _fractionAt(double dx, double width) =>
+      width <= 0 ? 0 : (dx / width).clamp(0.0, 1.0);
+
+  @override
+  Widget build(BuildContext context) => ValueListenableBuilder<VideoPlayerValue>(
+    valueListenable: widget.controller,
+    builder: (context, value, _) {
+      final total = value.duration;
+      if (total <= Duration.zero) return const SizedBox.shrink();
+      final played = _scrubbing ??
+          (value.position.inMilliseconds / total.inMilliseconds)
+              .clamp(0.0, 1.0);
+      final scrubbing = _scrubbing != null;
+
+      return LayoutBuilder(
+        builder: (context, constraints) {
+          final width = constraints.maxWidth;
+          return GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            // Swallowed so a tap on the bar scrubs instead of stopping the
+            // reel, which is what the card's own tap handler would do.
+            onTap: () {},
+            onHorizontalDragStart: (details) => setState(
+              () => _scrubbing = _fractionAt(details.localPosition.dx, width),
+            ),
+            onHorizontalDragUpdate: (details) => setState(
+              () => _scrubbing = _fractionAt(details.localPosition.dx, width),
+            ),
+            onHorizontalDragEnd: (_) {
+              final fraction = _scrubbing;
+              setState(() => _scrubbing = null);
+              if (fraction != null) _seekTo(fraction, total);
+            },
+            onHorizontalDragCancel: () => setState(() => _scrubbing = null),
+            onTapDown: (details) =>
+                _seekTo(_fractionAt(details.localPosition.dx, width), total),
+            child: SizedBox(
+              height: _touchHeight,
+              child: Align(
+                alignment: Alignment.bottomCenter,
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 3),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 140),
+                    height: scrubbing ? _scrubbingHeight : _restingHeight,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.22),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: FractionallySizedBox(
+                      alignment: Alignment.centerLeft,
+                      widthFactor: played,
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: context.brand.gold,
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+      );
+    },
+  );
+}
+
+/// The reel background: a slow "Ken Burns" poster for image reels, or the
+/// card's own player — plus its ambient edges — once it has a frame to show.
 class _ReelBackground extends StatelessWidget {
   const _ReelBackground({
     required this.reel,
     required this.isActive,
-    required this.isPlaying,
+    required this.controller,
   });
 
   final Reel reel;
   final bool isActive;
-  final bool isPlaying;
+
+  /// An initialised player, or null while one is opening and for image reels.
+  final VideoPlayerController? controller;
 
   @override
   Widget build(BuildContext context) {
     final poster = _poster();
-    final videoUrl = reel.videoUrl;
-    // Off screen the player leaves the tree altogether and the poster takes
-    // its place, which disposes the controller on the way out. Merely pausing
-    // would leave a decoder and an open audio session behind another tab.
-    if (videoUrl != null && isActive) {
-      return _ReelVideo(url: videoUrl, isPlaying: isPlaying, poster: poster);
-    }
-    return poster;
+    final controller = this.controller;
+    if (controller == null) return poster;
+    final videoAspect = controller.value.aspectRatio;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final cardAspect =
+            constraints.hasBoundedHeight && constraints.maxHeight > 0
+            ? constraints.maxWidth / constraints.maxHeight
+            : videoAspect;
+        return Stack(
+          fit: StackFit.expand,
+          children: [
+            // Still the floor of the card: the texture is blank for the frame
+            // or two between `initialize()` returning and the first decoded
+            // picture arriving, and a black flash there reads as a failure.
+            poster,
+            if (reelNeedsAmbientEdges(videoAspect, cardAspect))
+              _AmbientEdges(controller: controller),
+            // Contained, not covered. A reel is somebody's framing, and
+            // cropping a landscape clip to a portrait screen throws away the
+            // sides of the shot — which on a dance or a weaving is most of what
+            // was being filmed.
+            Center(
+              child: AspectRatio(
+                aspectRatio: videoAspect,
+                child: VideoPlayer(controller),
+              ),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   Widget _poster() {
@@ -964,141 +1315,80 @@ class _ReelBackground extends StatelessWidget {
   }
 }
 
-/// Plays a published video reel, covering the frame. Falls back to the poster
-/// until the controller initialises, and on any playback error.
-class _ReelVideo extends StatefulWidget {
-  const _ReelVideo({
-    required this.url,
-    required this.isPlaying,
-    required this.poster,
-  });
-
-  final String url;
-  final bool isPlaying;
-  final Widget poster;
-
-  @override
-  State<_ReelVideo> createState() => _ReelVideoState();
+/// Whether a clip of [videoAspect] leaves the card any edges to light.
+///
+/// A clip shot for this screen fills it outright, and blurring a second copy of
+/// a texture that covers every pixel of the card would be a full-screen gaussian
+/// per frame for a background nobody can see — on the one device class where
+/// that budget is tightest.
+bool reelNeedsAmbientEdges(double videoAspect, double cardAspect) {
+  if (videoAspect <= 0 || cardAspect <= 0) return false;
+  return (videoAspect - cardAspect).abs() > 0.02;
 }
 
-class _ReelVideoState extends State<_ReelVideo> {
-  VideoPlayerController? _controller;
-  bool _ready = false;
-  bool _failed = false;
+/// The letterbox, lit by the reel itself.
+///
+/// A contained clip leaves bands above and below it, and those bands used to be
+/// the poster — the video's own opening frame, held still for the whole play.
+/// A clip that pans, or cuts, or simply moves therefore played inside a
+/// photograph of the moment before it started, and the seam between the two was
+/// the most obvious thing on the card.
+///
+/// This is the same texture the player is already drawing, sampled a second
+/// time: no second decode, no second stream, and nothing still. It is blown
+/// past the card's edges so the blur has real pixels to reach for in the
+/// corners, and dimmed so the reel stays the brightest thing on the screen.
+///
+/// Only ever one of these exists at a time — a card holds a player only while
+/// it is the active reel — so the cost is one blurred layer, not one per row.
+class _AmbientEdges extends StatelessWidget {
+  const _AmbientEdges({required this.controller});
 
-  /// Bumped every time a controller is let go.
-  ///
-  /// Opening a video is a network round trip, and the member can leave the feed
-  /// or flick to the next reel long before it finishes. The counter is how a
-  /// late-arriving `initialize()` recognises that it belongs to a player
-  /// nobody is waiting for any more, so it cannot resurrect playback.
-  var _generation = 0;
+  final VideoPlayerController controller;
 
-  @override
-  void initState() {
-    super.initState();
-    _initialise();
-  }
+  /// Enough blur that no detail survives to compete with the reel, and not so
+  /// much that a mid-range phone spends its frame budget on the background.
+  static const _sigma = 26.0;
 
-  Future<void> _initialise() async {
-    final generation = _generation;
-    final controller = VideoPlayerController.networkUrl(Uri.parse(widget.url));
-    _controller = controller;
-    try {
-      await controller.initialize();
-      await controller.setLooping(true);
-      await controller.setVolume(1);
-    } on Object {
-      _discard(controller);
-      if (_isStale(generation)) return;
-      setState(() => _failed = true);
-      return;
-    }
-    if (_isStale(generation)) {
-      _discard(controller);
-      return;
-    }
-    setState(() => _ready = true);
-    // Built while paused — because the member had stopped this reel before it
-    // finished opening — the sync leaves it on its first frame rather than
-    // starting sound nobody asked for.
-    _syncPlayback();
-  }
-
-  /// True once this initialise no longer speaks for the widget: it has been
-  /// disposed, or a newer controller has taken over.
-  bool _isStale(int generation) => !mounted || generation != _generation;
-
-  /// Releases [controller] unless it has already been handed over: ownership
-  /// decides who closes a player, and that is whoever still holds it in
-  /// [_controller].
-  ///
-  /// The dispose is deliberately not awaited. A controller that failed before
-  /// the platform ever created it waits forever to be torn down, and nothing
-  /// here has any reason to wait with it.
-  void _discard(VideoPlayerController controller) {
-    if (!identical(_controller, controller)) return;
-    _controller = null;
-    _ready = false;
-    controller.dispose();
-  }
-
-  /// Drops the current controller and makes every initialise so far stale.
-  void _release() {
-    _generation++;
-    final controller = _controller;
-    if (controller != null) _discard(controller);
-  }
-
-  void _syncPlayback() {
-    final controller = _controller;
-    // Nothing left to sync once the controller has gone: a disposed player
-    // throws when told to play, and there is nobody there to hear it anyway.
-    if (controller == null || !_ready || !mounted) return;
-    if (widget.isPlaying) {
-      controller.play();
-    } else {
-      controller.pause();
-    }
-  }
-
-  @override
-  void didUpdateWidget(_ReelVideo oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.url != widget.url) {
-      _release();
-      _failed = false;
-      _initialise();
-    } else if (oldWidget.isPlaying != widget.isPlaying) {
-      _syncPlayback();
-    }
-  }
-
-  @override
-  void dispose() {
-    _release();
-    super.dispose();
-  }
+  /// Overscan. A gaussian reaches past its own edge, so a copy sized exactly to
+  /// the card thins out into the corners and lets the poster show through.
+  static const _overscan = 1.18;
 
   @override
   Widget build(BuildContext context) {
-    final controller = _controller;
-    if (_failed || !_ready || controller == null) {
-      return widget.poster;
-    }
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        widget.poster,
-        FittedBox(
-          fit: BoxFit.cover,
-          child: SizedBox(
-            width: controller.value.size.width,
-            height: controller.value.size.height,
-            child: VideoPlayer(controller),
-          ),
+    final size = controller.value.size;
+    return RepaintBoundary(
+      child: ClipRect(
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            ImageFiltered(
+              imageFilter: ImageFilter.blur(
+                sigmaX: _sigma,
+                sigmaY: _sigma,
+                tileMode: TileMode.clamp,
+              ),
+              child: Transform.scale(
+                scale: _overscan,
+                child: FittedBox(
+                  fit: BoxFit.cover,
+                  child: SizedBox(
+                    // A player that reports nothing sensible still has to be
+                    // given a shape to be scaled from.
+                    width: size.width > 0 ? size.width : 16,
+                    height: size.height > 0 ? size.height : 9,
+                    child: VideoPlayer(controller),
+                  ),
+                ),
+              ),
+            ),
+            // The reel's own colours held to about a third. Without this a
+            // bright clip washes the card out and the white captions over the
+            // bands stop being readable.
+            const ColoredBox(color: Color(0x66000000)),
+          ],
         ),
-      ],
+      ),
     );
   }
 }

@@ -5,6 +5,7 @@ import 'package:indigen_world_mobile/core/firebase_ready.dart';
 import 'package:indigen_world_mobile/features/auth/auth_repository.dart';
 import 'package:indigen_world_mobile/features/community/data/community_models.dart';
 import 'package:indigen_world_mobile/features/community/data/community_repository.dart';
+import 'package:indigen_world_mobile/features/explore/explore_feed.dart' show exploreWindowProvider;
 
 /// The community data layer, or `null` when Firebase is unavailable this
 /// launch. Every consumer treats `null` as "read-only preview".
@@ -72,7 +73,21 @@ final profileCountsProvider =
 final rawCommunityFeedProvider = StreamProvider<List<CommunityPost>>((ref) {
   final repository = ref.watch(communityRepositoryProvider);
   if (repository == null) return Stream.value(const <CommunityPost>[]);
-  return repository.watchFeed();
+  // Explore's window widens as somebody scrolls, and community video is one of
+  // the two things it is made of — so the same window has to reach the query
+  // that supplies it, or the feed would stop growing halfway down.
+  return repository.watchFeed(limit: ref.watch(communityFeedWindowProvider));
+});
+
+/// How many posts the community feed holds.
+///
+/// Shared with Explore, whose infinite scroll widens it. The Community tab
+/// reads whatever it happens to be, which is never smaller than its own page.
+final communityFeedWindowProvider = Provider<int>((ref) {
+  final window = ref.watch(exploreWindowProvider);
+  return window < CommunityRepository.feedPageSize
+      ? CommunityRepository.feedPageSize
+      : window;
 });
 
 /// Applies a member's hide / mute / block lists to a feed without throwing away
@@ -141,7 +156,10 @@ final rawFollowingFeedProvider = StreamProvider<List<CommunityPost>>((ref) {
   if (repository == null || following == null || following.isEmpty) {
     return Stream.value(const <CommunityPost>[]);
   }
-  return repository.watchFollowingFeed(following);
+  return repository.watchFollowingFeed(
+    following,
+    limit: ref.watch(communityFeedWindowProvider),
+  );
 });
 
 final followingFeedProvider = Provider<AsyncValue<List<CommunityPost>>>((ref) {

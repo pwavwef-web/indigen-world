@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -6,6 +8,7 @@ import 'package:indigen_world_mobile/data/repositories.dart';
 import 'package:indigen_world_mobile/domain/dictionary_entry.dart';
 import 'package:indigen_world_mobile/features/collection/collection_data.dart';
 import 'package:indigen_world_mobile/shared/app_widgets.dart';
+import 'package:just_audio/just_audio.dart';
 
 class EntryDetailScreen extends ConsumerWidget {
   const EntryDetailScreen({required this.entryId, this.entry, super.key});
@@ -145,11 +148,7 @@ class EntryDetailScreen extends ConsumerWidget {
               icon: Icons.volume_up_outlined,
               title: 'Pronunciation',
               body: resolvedEntry.pronunciation,
-              trailing: IconButton.filledTonal(
-                tooltip: 'Audio unavailable',
-                onPressed: () => _showAudioNotice(context),
-                icon: const Icon(Icons.play_arrow_rounded),
-              ),
+              trailing: PronunciationButton(audioUrl: resolvedEntry.audioUrl),
             ),
             const SizedBox(height: 12),
             _DetailCard(
@@ -186,13 +185,105 @@ class EntryDetailScreen extends ConsumerWidget {
     );
   }
 
-  void _showAudioNotice(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text(
-          'Audio stays disabled until consent and validation are ready.',
+}
+
+/// The play button beside a word's pronunciation.
+///
+/// It has been a stub since the dictionary shipped — the entry carried no
+/// recording, so the button apologised for itself. Entries can now be
+/// contributed with the word actually said aloud, reviewed like everything
+/// else, and published with a world-readable audio URL, so the button has
+/// something to do.
+///
+/// An entry without one still shows a button rather than nothing at all: an
+/// absence explained in a sentence tells somebody the entry is incomplete,
+/// where a missing control just looks like a feature that is not there.
+class PronunciationButton extends StatefulWidget {
+  const PronunciationButton({required this.audioUrl, super.key});
+
+  final String audioUrl;
+
+  @override
+  State<PronunciationButton> createState() => _PronunciationButtonState();
+}
+
+class _PronunciationButtonState extends State<PronunciationButton> {
+  AudioPlayer? _player;
+  var _loading = false;
+  var _failed = false;
+
+  bool get _hasAudio => widget.audioUrl.isNotEmpty;
+
+  @override
+  void dispose() {
+    _player?.dispose();
+    super.dispose();
+  }
+
+  Future<void> _toggle() async {
+    if (!_hasAudio) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Nobody has recorded this word yet. Contribute one from '
+            '"Suggest a correction".',
+          ),
         ),
-      ),
+      );
+      return;
+    }
+    final player = _player ??= AudioPlayer();
+    if (player.playing) {
+      await player.pause();
+      if (mounted) setState(() {});
+      return;
+    }
+    setState(() {
+      _loading = true;
+      _failed = false;
+    });
+    try {
+      if (player.audioSource == null) await player.setUrl(widget.audioUrl);
+      // A second tap on a finished clip plays it again, which is what somebody
+      // learning a word is going to do several times over.
+      if (player.processingState == ProcessingState.completed) {
+        await player.seek(Duration.zero);
+      }
+      unawaited(player.play());
+    } on Object {
+      if (mounted) setState(() => _failed = true);
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final playing = _player?.playing ?? false;
+    return IconButton.filledTonal(
+      tooltip: _failed
+          ? 'The recording could not be played'
+          : !_hasAudio
+          ? 'No recording yet'
+          : playing
+          ? 'Pause'
+          : 'Hear it said',
+      onPressed: _loading ? null : _toggle,
+      style: _hasAudio
+          ? null
+          : IconButton.styleFrom(foregroundColor: context.brand.mutedInk),
+      icon: _loading
+          ? const SizedBox.square(
+              dimension: 20,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : Icon(
+              _failed
+                  ? Icons.error_outline_rounded
+                  : playing
+                  ? Icons.pause_rounded
+                  : Icons.play_arrow_rounded,
+            ),
     );
   }
 }

@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:indigen_world_mobile/app/app_theme.dart';
+import 'package:indigen_world_mobile/app/shell_chrome.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/features/collection/collection_screen.dart';
 import 'package:indigen_world_mobile/features/community/community_screen.dart';
@@ -11,8 +12,6 @@ import 'package:indigen_world_mobile/features/explore/explore_screen.dart';
 import 'package:indigen_world_mobile/features/learn/learn_screen.dart';
 import 'package:indigen_world_mobile/features/notifications/data/notification_providers.dart';
 import 'package:indigen_world_mobile/features/notifications/push_messaging.dart';
-import 'package:indigen_world_mobile/features/validate/data/review_queue.dart';
-import 'package:indigen_world_mobile/features/validate/validate_screen.dart';
 import 'package:indigen_world_mobile/shared/connection_banner.dart';
 import 'package:indigen_world_mobile/shared/frosted_nav_bar.dart';
 import 'package:indigen_world_mobile/shared/profile_orb.dart';
@@ -44,16 +43,17 @@ class _AppShellState extends ConsumerState<AppShell>
 
   /// Account lives in the top-right orb, so the rail carries only the content
   /// destinations — with Community at the centre.
+  ///
+  /// Five, and only ever five. The review desk used to sit here as a sixth for
+  /// staff accounts, which made the rail a different shape depending on who was
+  /// holding the phone, and put a tool nobody else can open in the one strip of
+  /// the app everybody shares. It is reached from Contribute now, which is
+  /// where the work it reviews comes from.
   static const _exploreIndex = 0;
   static const _learnIndex = 1;
   static const _collectionIndex = 3;
   static const _contributeIndex = 4;
-
-  /// The validation desk. Present in the stack for everybody so the indices
-  /// above never shift, but only reachable — and only ever built — for an
-  /// account whose role claim can actually review.
-  static const _validateIndex = 5;
-  static const _destinationCount = 6;
+  static const _destinationCount = 5;
 
   /// The destinations the member has actually opened.
   ///
@@ -95,6 +95,9 @@ class _AppShellState extends ConsumerState<AppShell>
 
   void _selectDestination(int index) {
     if (index == _selectedIndex) return;
+    // A rail one screen's scroll pushed away must not follow the member into
+    // the next tab, where nothing they do would ever bring it back.
+    ref.read(shellChromeVisibilityProvider.notifier).reveal();
     setState(() {
       if (_selectedIndex != _exploreIndex) {
         _lastNonExploreIndex = _selectedIndex;
@@ -126,7 +129,6 @@ class _AppShellState extends ConsumerState<AppShell>
       kCommunityTabIndex => const CommunityScreen(),
       _collectionIndex => const CollectionScreen(),
       _contributeIndex => const ContributeScreen(reserveTopRight: true),
-      _validateIndex => const ValidateScreen(reserveTopRight: true),
       _ => const SizedBox.shrink(),
     };
   }
@@ -134,6 +136,9 @@ class _AppShellState extends ConsumerState<AppShell>
   @override
   Widget build(BuildContext context) {
     final onExplore = _selectedIndex == _exploreIndex;
+    // Feeds hide the rail while somebody reads on. The flag is the shell's
+    // because the rail is, and the scroll that moves it happens a tab away.
+    final chromeVisible = ref.watch(shellChromeVisibilityProvider);
     // Registering the device for push is a shell-level concern: it has to run
     // once the member is signed in, whichever tab they happen to be on.
     ref.watch(pushRegistrationProvider);
@@ -150,11 +155,6 @@ class _AppShellState extends ConsumerState<AppShell>
     });
     final unread =
         ref.watch(unreadNotificationCountProvider).asData?.value ?? 0;
-
-    // Validation is staff work. The tab is drawn only for an account whose
-    // `role` claim the Security Rules and `decideSubmission` would actually
-    // accept — anybody else would get a queue made of permission errors.
-    final canValidate = ref.watch(isReviewerProvider);
 
     final destinations = <FrostedNavBarItem>[
       const FrostedNavBarItem(
@@ -183,22 +183,7 @@ class _AppShellState extends ConsumerState<AppShell>
         selectedIcon: Icons.add_circle_rounded,
         label: 'Contribute',
       ),
-      if (canValidate)
-        const FrostedNavBarItem(
-          icon: Icons.fact_check_outlined,
-          selectedIcon: Icons.fact_check_rounded,
-          label: 'Validate',
-        ),
     ];
-
-    // A validator who signs out mid-session must not be left sitting on a tab
-    // that no longer exists. Bounce them back to the heart of the app rather
-    // than letting the rail index run past its own item list.
-    if (!canValidate && _selectedIndex == _validateIndex) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _selectDestination(kCommunityTabIndex);
-      });
-    }
 
     return PopScope<void>(
       // Explore is deliberately immersive. Its first back gesture restores the
@@ -235,14 +220,21 @@ class _AppShellState extends ConsumerState<AppShell>
                 right: kProfileOrbInset,
                 child: ProfileOrb(onDark: onExplore),
               ),
-              // On Explore the rail is absent, so the connection state moves
-              // down into the freed safe area without covering reel controls.
-              Positioned(
+              // The connection state sits above the rail, and follows it down
+              // whenever the rail is not there to sit above: on Explore, which
+              // has none, and in a feed somebody is reading on through. A
+              // banner left hovering over the gap the rail vacated is the one
+              // piece of chrome that would still be pointing at furniture.
+              AnimatedPositioned(
+                duration: const Duration(milliseconds: 240),
+                curve: Curves.easeOutCubic,
                 left: 16,
                 right: 16,
                 bottom: onExplore
                     ? MediaQuery.paddingOf(context).bottom + 28
-                    : kFrostedNavBarReservedSpace + 6,
+                    : chromeVisible
+                    ? kFrostedNavBarReservedSpace + 6
+                    : MediaQuery.paddingOf(context).bottom + 16,
                 child: Center(child: ConnectionBanner(onDark: onExplore)),
               ),
             ],
@@ -251,10 +243,21 @@ class _AppShellState extends ConsumerState<AppShell>
           // chrome painted over it. Native back is the way home from Explore.
           bottomNavigationBar: onExplore
               ? null
-              : FrostedNavBar(
-                  currentIndex: _selectedIndex,
-                  onTap: _selectDestination,
-                  items: destinations,
+              // Slides out of the frame rather than being taken out of the
+              // layout: the body already extends behind it, so the rail can
+              // leave and come back without a single row of the feed moving.
+              : AnimatedSlide(
+                  offset: chromeVisible ? Offset.zero : const Offset(0, 1),
+                  duration: const Duration(milliseconds: 240),
+                  curve: Curves.easeOutCubic,
+                  child: IgnorePointer(
+                    ignoring: !chromeVisible,
+                    child: FrostedNavBar(
+                      currentIndex: _selectedIndex,
+                      onTap: _selectDestination,
+                      items: destinations,
+                    ),
+                  ),
                 ),
         ),
       ),

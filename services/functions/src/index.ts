@@ -30,6 +30,10 @@ export {
   submitAdCampaign,
   updateAdCampaign,
   cancelAdCampaign,
+  startAdPayment,
+  confirmAdPayment,
+  paystackWebhook,
+  decideAdCampaign,
 } from './ads.js';
 export { kawuriChat } from './kawuri.js';
 export { onCommunityKawuriMention } from './community-kawuri.js';

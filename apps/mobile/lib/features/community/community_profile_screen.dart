@@ -92,15 +92,31 @@ class _ProfileBody extends ConsumerWidget {
       headerSliverBuilder: (context, innerScrolled) => [
         SliverAppBar(
           pinned: true,
-          expandedHeight: 116,
+          expandedHeight: _kBannerHeight,
           backgroundColor: context.brand.background,
           surfaceTintColor: Colors.transparent,
           title: Text(
             profile.displayName,
             style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
           ),
-          flexibleSpace: FlexibleSpaceBar(
-            background: _Banner(profile: profile),
+          // The avatar rides in the app bar rather than in the header sliver
+          // below it. Slivers paint in list order with the first on top, so an
+          // avatar drawn in the header and merely nudged upwards was painted
+          // over by the cover it was supposed to be sitting on. Up here it
+          // overhangs the bar's own bottom edge and lands on top of the
+          // picture, which is the way round somebody expects.
+          flexibleSpace: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Positioned.fill(
+                child: FlexibleSpaceBar(background: _Banner(profile: profile)),
+              ),
+              Positioned(
+                left: _kProfileGutter,
+                bottom: -_kAvatarOverhang,
+                child: _HeaderAvatar(profile: profile),
+              ),
+            ],
           ),
         ),
         SliverToBoxAdapter(
@@ -111,6 +127,67 @@ class _ProfileBody extends ConsumerWidget {
         ),
       ],
       body: _ProfileTabContent(uid: profile.uid, tab: tab, actions: actions),
+    );
+  }
+}
+
+/// The cover's height, and how the avatar sits against its bottom edge.
+///
+/// [_kAvatarLift] is the part of the avatar that overlaps the cover; the rest
+/// hangs below it, into the header. Named because two widgets in two different
+/// slivers have to agree on them — the app bar that draws the avatar, and the
+/// header that reserves the room it is no longer taking.
+const double _kBannerHeight = 116;
+const double _kProfileGutter = 18;
+const double _kAvatarBox = 80;
+const double _kAvatarLift = 22;
+const double _kAvatarOverhang = _kAvatarBox - _kAvatarLift;
+
+/// The member's face, overhanging the cover.
+///
+/// It fades out as the bar collapses. Pinned to the bar's bottom edge, it
+/// tracks the header exactly while the bar is still shrinking — but once the
+/// bar is down to its toolbar it stops moving, and an avatar left hanging there
+/// over somebody's posts is chrome nobody asked for. By then this has already
+/// gone.
+class _HeaderAvatar extends StatelessWidget {
+  const _HeaderAvatar({required this.profile});
+
+  final CommunityProfile profile;
+
+  @override
+  Widget build(BuildContext context) {
+    final settings = context
+        .dependOnInheritedWidgetOfExactType<FlexibleSpaceBarSettings>();
+    // How far open the bar is: 1 fully expanded, 0 down to its toolbar. Read
+    // from the settings the app bar publishes rather than from a scroll
+    // controller, because this is drawn inside the bar being measured.
+    var expanded = 1.0;
+    if (settings != null) {
+      final range = settings.maxExtent - settings.minExtent;
+      if (range > 0) {
+        expanded = ((settings.currentExtent - settings.minExtent) / range)
+            .clamp(0.0, 1.0);
+      }
+    }
+    // Solid for the first stretch of the collapse, then out well before the
+    // bar reaches its toolbar.
+    final opacity = ((expanded - 0.25) / 0.45).clamp(0.0, 1.0);
+    if (opacity == 0) return const SizedBox.shrink();
+    return Opacity(
+      opacity: opacity,
+      child: Container(
+        padding: const EdgeInsets.all(3),
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: context.brand.background,
+        ),
+        child: CommunityAvatar(
+          initials: profile.initials,
+          imageUrl: profile.avatarUrl,
+          size: _kAvatarBox - 6,
+        ),
+      ),
     );
   }
 }
@@ -178,21 +255,11 @@ class _ProfileHeader extends ConsumerWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Transform.translate(
-                offset: const Offset(0, -22),
-                child: Container(
-                  padding: const EdgeInsets.all(3),
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: context.brand.background,
-                  ),
-                  child: CommunityAvatar(
-                    initials: profile.initials,
-                    imageUrl: profile.avatarUrl,
-                    size: 74,
-                  ),
-                ),
-              ),
+              // The avatar itself is drawn by the app bar, one sliver up, so
+              // that the cover cannot paint over it. This holds the space it
+              // would have taken, which is what keeps the buttons opposite on
+              // the line they have always been on.
+              const SizedBox(width: _kAvatarBox, height: _kAvatarBox),
               const Spacer(),
               if (isMe)
                 OutlinedButton.icon(

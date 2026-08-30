@@ -569,6 +569,24 @@ class _Conversation extends StatelessWidget {
   }
 }
 
+/// The ground both speakers' turns are drawn on.
+///
+/// One gradient rather than two surfaces. Kawuri's answers used to sit on a
+/// near-white card, which is unreadable here: this screen is always the night
+/// theme, so the palette ink inside the bubble resolved to near-white as well
+/// and the answer was white on white. Sharing the member's own green fixes the
+/// contrast outright, and the gold rule down the leading edge plus the
+/// mirrored corner still say which of the two is speaking.
+const kKawuriBubbleGradient = LinearGradient(
+  begin: Alignment.topLeft,
+  end: Alignment.bottomRight,
+  colors: [BrandColors.savannahGreen, BrandColors.heritageGreen],
+);
+
+/// Text drawn on [kKawuriBubbleGradient]. Stated rather than read off the
+/// palette, because the bubble is one fixed pigment in both themes.
+const kKawuriBubbleInk = Color(0xFFF4F7F5);
+
 class _MessageBubble extends StatelessWidget {
   const _MessageBubble({required this.message, this.onRetry});
 
@@ -623,11 +641,7 @@ class _MessageBubble extends StatelessWidget {
   Widget _yourBubble() => Container(
     padding: const EdgeInsets.fromLTRB(15, 12, 15, 12),
     decoration: BoxDecoration(
-      gradient: const LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [BrandColors.savannahGreen, BrandColors.heritageGreen],
-      ),
+      gradient: kKawuriBubbleGradient,
       borderRadius: const BorderRadius.only(
         topLeft: Radius.circular(20),
         topRight: Radius.circular(20),
@@ -638,20 +652,30 @@ class _MessageBubble extends StatelessWidget {
     ),
     child: Text(
       message.text,
-      style: const TextStyle(color: Colors.white, fontSize: 14.5, height: 1.45),
+      style: const TextStyle(
+        color: kKawuriBubbleInk,
+        fontSize: 14.5,
+        height: 1.45,
+      ),
     ),
   );
 
   Widget _kawuriBubble() => Container(
     padding: const EdgeInsets.fromLTRB(15, 13, 15, 13),
     decoration: BoxDecoration(
-      color: Colors.white.withValues(alpha: 0.95),
+      // The same green ground the member's own turn is drawn on. It used to be
+      // near-white, which was legible in daylight and invisible at night: this
+      // screen is always the night theme, so the ink inside the bubble was
+      // near-white too, and the answer read as white on white.
+      gradient: kKawuriBubbleGradient,
       borderRadius: const BorderRadius.only(
         topLeft: Radius.circular(6),
         topRight: Radius.circular(20),
         bottomLeft: Radius.circular(20),
         bottomRight: Radius.circular(20),
       ),
+      // Kawuri's turn keeps the gold rule down its leading edge, which is what
+      // still tells the two speakers apart now that they share a ground.
       border: const Border(
         left: BorderSide(color: BrandColors.kenteGold, width: 3),
       ),
@@ -728,12 +752,12 @@ class KawuriText extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         for (var index = 0; index < lines.length; index++)
-          _line(context.brand, lines[index], isFirst: index == 0),
+          _line(lines[index], isFirst: index == 0),
       ],
     );
   }
 
-  Widget _line(BrandPalette brand, String raw, {required bool isFirst}) {
+  Widget _line(String raw, {required bool isFirst}) {
     final line = raw.trimRight();
     if (line.trim().isEmpty) return const SizedBox(height: 9);
 
@@ -741,10 +765,10 @@ class KawuriText extends StatelessWidget {
     final numbered = RegExp(r'^\s*(\d+)[.)]\s+(.*)$').firstMatch(line);
 
     if (bullet != null) {
-      return _hanging(brand, '•', bullet.group(1) ?? '');
+      return _hanging('•', bullet.group(1) ?? '');
     }
     if (numbered != null) {
-      return _hanging(brand, '${numbered.group(1)}.', numbered.group(2) ?? '');
+      return _hanging('${numbered.group(1)}.', numbered.group(2) ?? '');
     }
 
     // A short opening line with no sentence-ending punctuation is a heading.
@@ -759,7 +783,7 @@ class KawuriText extends StatelessWidget {
       child: Text(
         _stripEmphasis(line),
         style: TextStyle(
-          color: brand.ink,
+          color: kKawuriBubbleInk,
           fontSize: looksLikeHeading ? 15 : 14.5,
           height: 1.5,
           fontWeight: looksLikeHeading ? FontWeight.w900 : FontWeight.w500,
@@ -768,7 +792,7 @@ class KawuriText extends StatelessWidget {
     );
   }
 
-  Widget _hanging(BrandPalette brand, String marker, String body) => Padding(
+  Widget _hanging(String marker, String body) => Padding(
     padding: const EdgeInsets.only(bottom: 4),
     child: Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -778,7 +802,9 @@ class KawuriText extends StatelessWidget {
           child: Text(
             marker,
             style: const TextStyle(
-              color: BrandColors.terracotta,
+              // Terracotta on deep green is mud on mud. Gold is the brand's
+              // own highlight and the one this ground was built for.
+              color: BrandColors.kenteGold,
               fontSize: 14,
               height: 1.5,
               fontWeight: FontWeight.w900,
@@ -788,8 +814,8 @@ class KawuriText extends StatelessWidget {
         Expanded(
           child: Text(
             _stripEmphasis(body),
-            style: TextStyle(
-              color: brand.ink,
+            style: const TextStyle(
+              color: kKawuriBubbleInk,
               fontSize: 14.5,
               height: 1.5,
               fontWeight: FontWeight.w500,
@@ -846,15 +872,15 @@ class _ThinkingBubbleState extends State<_ThinkingBubble>
       label: 'Kawuri is thinking',
       child: Container(
         padding: const EdgeInsets.fromLTRB(16, 15, 18, 15),
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.95),
-          borderRadius: const BorderRadius.only(
+        decoration: const BoxDecoration(
+          gradient: kKawuriBubbleGradient,
+          borderRadius: BorderRadius.only(
             topLeft: Radius.circular(6),
             topRight: Radius.circular(20),
             bottomLeft: Radius.circular(20),
             bottomRight: Radius.circular(20),
           ),
-          border: const Border(
+          border: Border(
             left: BorderSide(color: BrandColors.kenteGold, width: 3),
           ),
         ),
@@ -878,12 +904,12 @@ class _ThinkingBubbleState extends State<_ThinkingBubble>
                                         2 *
                                         math.pi,
                                   )),
-                  child: DecoratedBox(
+                  child: const DecoratedBox(
                     decoration: BoxDecoration(
-                      color: context.brand.accent,
+                      color: BrandColors.kenteGold,
                       shape: BoxShape.circle,
                     ),
-                    child: const SizedBox(width: 7, height: 7),
+                    child: SizedBox(width: 7, height: 7),
                   ),
                 ),
               ],

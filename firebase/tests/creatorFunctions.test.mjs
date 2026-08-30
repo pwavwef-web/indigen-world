@@ -314,6 +314,48 @@ test('published Dictionary contribution enters the existing dictionary collectio
   assert.equal((await db.doc(`dictionaryEntries/collection_${submissionId}`).get()).get('isPublished'), false);
 });
 
+test('a Dictionary word contributed with its pronunciation publishes with an audio field', async () => {
+  const created = await call(creatorApp, 'submitCollectionContribution')({
+    collectionKind: 'dictionary',
+    title: 'Fire',
+    body: 'bugum',
+    format: 'Noun',
+    dialect: 'Paga',
+    source: 'E2E Kasem speaker',
+    mediaUrl: '',
+    // The speaker said the word while submitting it. The recording lands in
+    // their own private prefix; publication is what carries it out.
+    media: {
+      storagePath: 'creator-submissions/creator-e2e/collection-contributions/e2e/pronunciation.m4a',
+      mimeType: 'audio/mp4',
+      sizeBytes: 4096,
+      mediaType: 'audio',
+    },
+    notes: '',
+    relatedEntryId: null,
+    involvesMinors: null,
+    usesThirdPartyMaterial: false,
+    participantConsentConfirmed: true,
+    kasemExample: 'Bugum ba di.',
+    englishExample: 'The fire is burning.',
+    rightsConfirmed: true,
+    publicationPermission: true,
+  });
+  const submissionId = created.data.submissionId;
+  await call(validatorApp, 'decideSubmission')({ submissionId, decision: 'APPROVE', feedback: '' });
+  await call(validatorApp, 'decideSubmission')({ submissionId, decision: 'PUBLISH', feedback: '' });
+
+  const dictionary = await db.doc(`dictionaryEntries/collection_${submissionId}`).get();
+  assert.equal(dictionary.get('isPublished'), true);
+  assert.equal(dictionary.get('kasemText'), 'bugum');
+  // The field is always written, so the mobile entry screen reads an empty
+  // string rather than undefined for a word nobody has recorded. Storage is not
+  // running in this suite, so the copy that fills it in is a logged no-op —
+  // which is the point: media I/O must never fail a publication.
+  assert.equal(typeof dictionary.get('audioUrl'), 'string');
+  assert.equal((await db.doc(`submissions/${submissionId}`).get()).get('status'), 'PUBLISHED');
+});
+
 test('approved Collection work without publication permission can be archived', async () => {
   const created = await call(creatorApp, 'submitCollectionContribution')({
     collectionKind: 'music',

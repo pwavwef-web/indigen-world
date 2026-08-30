@@ -132,6 +132,36 @@ void main() {
     expect(find.text('Ask me anything.'), findsOneWidget);
   });
 
+  testWidgets('Kawuri answers on the same ground as your own turn', (
+    tester,
+  ) async {
+    // The answer bubble used to be a near-white card. This screen is always
+    // the night theme, so the palette ink inside it resolved to near-white too
+    // and the reply was white on white — unreadable rather than merely low
+    // contrast.
+    await pump(tester, answer: 'Elders are greeted first.');
+    await tester.enterText(find.byType(TextField), 'Who do I greet first?');
+    await tester.pump();
+    await tester.tap(find.byIcon(Icons.arrow_upward_rounded));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+
+    final bubbles = tester
+        .widgetList<Container>(find.byType(Container))
+        .map((container) => container.decoration)
+        .whereType<BoxDecoration>()
+        .where((decoration) => decoration.gradient == kKawuriBubbleGradient)
+        .toList();
+
+    // Both turns — the question and the answer — are drawn on it.
+    expect(bubbles.length, greaterThanOrEqualTo(2));
+
+    // And every one of them is opaque green, never a white plate.
+    for (final decoration in bubbles) {
+      expect(decoration.color, isNull);
+    }
+  });
+
   group('KawuriText', () {
     Future<void> pumpText(WidgetTester tester, String text) async {
       await tester.pumpWidget(

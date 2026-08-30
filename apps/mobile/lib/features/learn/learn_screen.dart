@@ -3,6 +3,7 @@ import 'dart:ui' show PathMetric;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:indigen_world_mobile/app/app_theme.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/core/connectivity.dart';
 import 'package:indigen_world_mobile/features/collection/collection_detail_screens.dart';
@@ -12,6 +13,7 @@ import 'package:indigen_world_mobile/features/learn/learn_progress.dart';
 import 'package:indigen_world_mobile/features/rating/rating_service.dart';
 import 'package:indigen_world_mobile/shared/app_widgets.dart';
 import 'package:indigen_world_mobile/shared/frosted_nav_bar.dart';
+import 'package:indigen_world_mobile/shared/glass_popup.dart';
 
 class LearnScreen extends ConsumerStatefulWidget {
   const LearnScreen({super.key});
@@ -53,25 +55,25 @@ class _LearnScreenState extends ConsumerState<LearnScreen> {
           child: _LearnHeader(
             xp: progress.xp,
             completed: completed,
+            total: lessons.length,
             streakDays: progress.streakDays,
             streakClaimed: progress.sparkClaimedToday,
             onClaimStreak: _claimStreak,
             onOpenDictionary: _openDictionary,
+            onOpenQuest: () => _openQuest(completed, nextLesson),
+            onOpenMomentum: () =>
+                _openMomentum(progress, completed, lessons.length),
           ),
         ),
+        // The quest and the momentum summary used to open this list as two
+        // full-width cards, which pushed the first lesson button most of a
+        // screen down a *learning* path. They are status, not the path, so
+        // they moved into the header where the rest of the status already is
+        // and the trail starts where the tab does.
         SliverPadding(
           padding: const EdgeInsets.fromLTRB(20, 6, 20, 120),
           sliver: SliverList.list(
             children: [
-              _DailyQuestCard(
-                completed: completed,
-                onTap: () => _openLesson(nextLesson),
-              ),
-              const SizedBox(height: 14),
-              _LearningMomentumCard(
-                completed: completed,
-                total: lessons.length,
-              ),
               ..._pathBody(progress, lessons, nextLesson),
               const SizedBox(height: 24),
               const _LockedUnitPreview(),
@@ -81,6 +83,36 @@ class _LearnScreenState extends ConsumerState<LearnScreen> {
       ],
     );
   }
+
+  /// Today's quest, in full, on a card that closes again.
+  Future<void> _openQuest(int completed, int nextLesson) async {
+    final start = await showGlassPopup<bool>(
+      context: context,
+      title: "Today's quest",
+      subtitle: 'Complete 3 quick lessons',
+      builder: (popupContext) => _QuestPopupBody(completed: completed),
+    );
+    if (start == true && mounted) await _openLesson(nextLesson);
+  }
+
+  /// How far along the whole path this member is.
+  Future<void> _openMomentum(
+    LearnProgress progress,
+    int completed,
+    int total,
+  ) => showGlassPopup<void>(
+    context: context,
+    title: 'Your momentum',
+    subtitle: total == 0
+        ? 'The path is still being published'
+        : '$completed of $total lessons complete',
+    builder: (popupContext) => _MomentumPopupBody(
+      completed: completed,
+      total: total,
+      xp: progress.xp,
+      streakDays: progress.streakDays,
+    ),
+  );
 
   /// The winding trail itself: a banner wherever the unit changes, a node per
   /// lesson, and a ribbon between two lessons that belong to the same unit.
@@ -224,25 +256,32 @@ class _LearnScreenState extends ConsumerState<LearnScreen> {
   }
 }
 
-/// The band across the top of the Learn tab.
+/// The top of the Learn tab.
 ///
-/// Deliberately shallow. It used to open with a display-size headline and two
-/// paragraphs of encouragement, which pushed the first lesson below the fold —
-/// a learning path whose first act is scrolling past a welcome message. What
-/// stays is what changes: how much has been earned, whether the streak is
-/// alive, and the two things worth tapping.
+/// Deliberately shallow, and deliberately *not* a card. It used to be a filled
+/// green plate with a watermark behind it, which gave the tab a lid: a coloured
+/// panel the eye read as a different screen, sitting on top of the trail rather
+/// than introducing it. What stays is what changes — how much has been earned,
+/// whether the streak is alive, and the four things worth tapping — drawn on
+/// the same ground as the path itself.
 class _LearnHeader extends StatelessWidget {
   const _LearnHeader({
     required this.xp,
     required this.completed,
+    required this.total,
     required this.streakDays,
     required this.streakClaimed,
     required this.onClaimStreak,
     required this.onOpenDictionary,
+    required this.onOpenQuest,
+    required this.onOpenMomentum,
   });
 
   final int xp;
   final int completed;
+
+  /// Lessons on the published path.
+  final int total;
 
   /// Consecutive days the daily spark has been claimed.
   final int streakDays;
@@ -250,93 +289,106 @@ class _LearnHeader extends StatelessWidget {
   final bool streakClaimed;
   final VoidCallback onClaimStreak;
   final VoidCallback onOpenDictionary;
+  final VoidCallback onOpenQuest;
+  final VoidCallback onOpenMomentum;
 
   @override
-  Widget build(BuildContext context) => Container(
-    margin: const EdgeInsets.fromLTRB(16, 46, 16, 12),
-    padding: const EdgeInsets.fromLTRB(18, 13, 18, 15),
-    decoration: BoxDecoration(
-      color: context.brand.accent,
-      borderRadius: BorderRadius.circular(24),
-      boxShadow: const [
-        BoxShadow(
-          color: Color(0x260B3D2E),
-          blurRadius: 20,
-          offset: Offset(0, 10),
-        ),
-      ],
-    ),
-    child: Stack(
+  Widget build(BuildContext context) => Padding(
+    // The right inset clears the shell's floating profile orb.
+    padding: const EdgeInsets.fromLTRB(20, 26, 20, 14),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Positioned(
-          right: -20,
-          bottom: -40,
-          child: Opacity(
-            opacity: 0.08,
-            child: Text(
-              '✣',
-              style: TextStyle(fontSize: 110, color: Colors.white),
+        Padding(
+          padding: const EdgeInsets.only(right: 42),
+          child: Text(
+            'LEARN',
+            style: TextStyle(
+              color: context.brand.mutedInk,
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 1.1,
             ),
           ),
         ),
-        Column(
+        const SizedBox(height: 6),
+        Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    completed == 0
-                        ? 'Speak your first words.'
-                        : 'You are building a rhythm.',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w900,
-                      height: 1.05,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                _MetricPill(icon: Icons.bolt_rounded, label: '$xp XP'),
-                const SizedBox(width: 6),
-                // Replaces a hard-coded five hearts that counted nothing and
-                // could not be lost. The streak is the number this screen
-                // actually keeps, and the one a daily habit is built on.
-                _MetricPill(
-                  icon: streakDays > 0
-                      ? Icons.local_fire_department_rounded
-                      : Icons.local_fire_department_outlined,
-                  label: '$streakDays',
-                  color: streakDays > 0
-                      ? const Color(0xFFFFA26B)
-                      : Colors.white54,
-                ),
-              ],
+            Expanded(
+              child: Text(
+                completed == 0
+                    ? 'Speak your first words.'
+                    : 'You are building a rhythm.',
+                style: Theme.of(context).textTheme.headlineMedium,
+              ),
             ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: _HeaderAction(
-                    icon: streakClaimed
-                        ? Icons.local_fire_department_rounded
-                        : Icons.wb_sunny_outlined,
-                    label: streakClaimed ? 'Spark claimed' : 'Daily spark',
-                    onTap: onClaimStreak,
-                    active: streakClaimed,
-                  ),
-                ),
-                const SizedBox(width: 9),
-                Expanded(
-                  child: _HeaderAction(
-                    icon: Icons.menu_book_rounded,
-                    label: 'Dictionary',
-                    onTap: onOpenDictionary,
-                  ),
-                ),
-              ],
+            const SizedBox(width: 42),
+          ],
+        ),
+        const SizedBox(height: 14),
+        Row(
+          children: [
+            _MetricPill(icon: Icons.bolt_rounded, label: '$xp XP'),
+            const SizedBox(width: 8),
+            // Replaces a hard-coded five hearts that counted nothing and could
+            // not be lost. The streak is the number this screen actually keeps,
+            // and the one a daily habit is built on.
+            _MetricPill(
+              icon: streakDays > 0
+                  ? Icons.local_fire_department_rounded
+                  : Icons.local_fire_department_outlined,
+              label: '$streakDays',
+              color: streakDays > 0
+                  ? const Color(0xFFE0763C)
+                  : context.brand.faintInk,
+            ),
+          ],
+        ),
+        const SizedBox(height: 14),
+        Row(
+          children: [
+            Expanded(
+              child: _HeaderAction(
+                icon: Icons.emoji_events_rounded,
+                label: "Today's quest",
+                badge: '${completed.clamp(0, 3)}/3',
+                onTap: onOpenQuest,
+              ),
+            ),
+            const SizedBox(width: 9),
+            Expanded(
+              child: _HeaderAction(
+                icon: Icons.insights_rounded,
+                label: 'Momentum',
+                badge: total == 0
+                    ? '—'
+                    : '${((completed / total) * 100).round()}%',
+                onTap: onOpenMomentum,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 9),
+        Row(
+          children: [
+            Expanded(
+              child: _HeaderAction(
+                icon: streakClaimed
+                    ? Icons.local_fire_department_rounded
+                    : Icons.wb_sunny_outlined,
+                label: streakClaimed ? 'Spark claimed' : 'Daily spark',
+                onTap: onClaimStreak,
+                active: streakClaimed,
+              ),
+            ),
+            const SizedBox(width: 9),
+            Expanded(
+              child: _HeaderAction(
+                icon: Icons.menu_book_rounded,
+                label: 'Dictionary',
+                onTap: onOpenDictionary,
+              ),
             ),
           ],
         ),
@@ -346,40 +398,41 @@ class _LearnHeader extends StatelessWidget {
 }
 
 class _MetricPill extends StatelessWidget {
-  const _MetricPill({
-    required this.icon,
-    required this.label,
-    this.color = BrandColors.kenteGold,
-  });
+  const _MetricPill({required this.icon, required this.label, this.color});
 
   final IconData icon;
   final String label;
-  final Color color;
+
+  /// Defaults to the palette's gold, which is the highlight on both grounds.
+  final Color? color;
 
   @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
-    decoration: BoxDecoration(
-      color: Colors.white.withValues(alpha: 0.1),
-      borderRadius: BorderRadius.circular(999),
-      border: Border.all(color: Colors.white12),
-    ),
-    child: Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, color: color, size: 15),
-        const SizedBox(width: 4),
-        Text(
-          label,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 11,
-            fontWeight: FontWeight.w900,
+  Widget build(BuildContext context) {
+    final tint = color ?? context.brand.gold;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: context.brand.surfaceMuted,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: context.brand.border),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: tint, size: 15),
+          const SizedBox(width: 5),
+          Text(
+            label,
+            style: TextStyle(
+              color: context.brand.ink,
+              fontSize: 11.5,
+              fontWeight: FontWeight.w900,
+            ),
           ),
-        ),
-      ],
-    ),
-  );
+        ],
+      ),
+    );
+  }
 }
 
 class _HeaderAction extends StatelessWidget {
@@ -387,204 +440,280 @@ class _HeaderAction extends StatelessWidget {
     required this.icon,
     required this.label,
     required this.onTap,
+    this.badge,
     this.active = false,
   });
 
   final IconData icon;
   final String label;
   final VoidCallback onTap;
+
+  /// A short figure carried on the right — `2/3`, `18%`. The point of moving
+  /// the quest and the momentum into the header is that their *state* still
+  /// has to be readable without opening anything.
+  final String? badge;
+
   final bool active;
 
   @override
-  Widget build(BuildContext context) => Material(
-    color: active
-        ? context.brand.gold.withValues(alpha: 0.24)
-        : Colors.white.withValues(alpha: 0.09),
-    borderRadius: BorderRadius.circular(15),
-    child: InkWell(
-      borderRadius: BorderRadius.circular(15),
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, color: context.brand.gold, size: 19),
-            const SizedBox(width: 7),
-            Flexible(
-              child: Text(
-                label,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w800,
+  Widget build(BuildContext context) {
+    final brand = context.brand;
+    return Semantics(
+      button: true,
+      label: badge == null ? label : '$label, $badge',
+      excludeSemantics: true,
+      child: Material(
+        color: active ? brand.accentSoft : brand.surfaceMuted,
+        borderRadius: BorderRadius.circular(15),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(15),
+          onTap: onTap,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 10),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(15),
+              border: Border.all(
+                color: active ? brand.accent.withValues(alpha: 0.4)
+                    : brand.border,
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  icon,
+                  color: active ? brand.accent : brand.gold,
+                  size: 19,
                 ),
+                const SizedBox(width: 7),
+                Flexible(
+                  child: Text(
+                    label,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: brand.ink,
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                if (badge case final badge?) ...[
+                  const SizedBox(width: 6),
+                  Text(
+                    badge,
+                    style: TextStyle(
+                      color: brand.accent,
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _QuestPopupBody extends StatelessWidget {
+  const _QuestPopupBody({required this.completed});
+
+  final int completed;
+
+  @override
+  Widget build(BuildContext context) {
+    final done = completed.clamp(0, 3);
+    final progress = (completed / 3).clamp(0.0, 1.0);
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            Stack(
+              alignment: Alignment.center,
+              children: [
+                SizedBox.square(
+                  dimension: 62,
+                  child: CircularProgressIndicator(
+                    value: progress,
+                    strokeWidth: 7,
+                    strokeCap: StrokeCap.round,
+                    color: context.brand.gold,
+                    backgroundColor: context.brand.divider,
+                  ),
+                ),
+                Icon(
+                  Icons.emoji_events_rounded,
+                  color: context.brand.terracotta,
+                ),
+              ],
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '$done of 3 done',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    done >= 3
+                        ? 'Today is finished. Anything further is a head start '
+                              'on tomorrow.'
+                        : 'Three short lessons is a day. Keep going and the '
+                              'streak keeps its spark.',
+                    style: TextStyle(
+                      color: context.brand.mutedInk,
+                      fontSize: 12.5,
+                      height: 1.4,
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
         ),
-      ),
-    ),
-  );
-}
-
-class _DailyQuestCard extends StatelessWidget {
-  const _DailyQuestCard({required this.completed, required this.onTap});
-
-  final int completed;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final progress = (completed / 3).clamp(0.0, 1.0);
-    return Card(
-      child: InkWell(
-        borderRadius: BorderRadius.circular(20),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              Stack(
-                alignment: Alignment.center,
-                children: [
-                  SizedBox.square(
-                    dimension: 58,
-                    child: CircularProgressIndicator(
-                      value: progress,
-                      strokeWidth: 7,
-                      strokeCap: StrokeCap.round,
-                      color: context.brand.gold,
-                      backgroundColor: context.brand.divider,
-                    ),
-                  ),
-                  Icon(
-                    Icons.emoji_events_rounded,
-                    color: context.brand.terracotta,
-                  ),
-                ],
-              ),
-              const SizedBox(width: 15),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'TODAY\'S QUEST',
-                      style: TextStyle(
-                        color: context.brand.terracotta,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 1,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Complete 3 quick lessons',
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      '${completed.clamp(0, 3)} of 3 · Tap to continue',
-                      style: TextStyle(
-                        color: context.brand.mutedInk,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Icon(Icons.arrow_forward_rounded, color: context.brand.accent),
-            ],
-          ),
+        const SizedBox(height: 20),
+        FilledButton.icon(
+          onPressed: () => Navigator.pop(context, true),
+          icon: const Icon(Icons.play_arrow_rounded),
+          label: Text(done >= 3 ? 'Keep going' : 'Continue the quest'),
         ),
-      ),
+      ],
     );
   }
 }
 
-class _LearningMomentumCard extends StatelessWidget {
-  const _LearningMomentumCard({required this.completed, required this.total});
+/// Progress across the whole published path, with the two numbers a daily
+/// habit is actually built on.
+class _MomentumPopupBody extends StatelessWidget {
+  const _MomentumPopupBody({
+    required this.completed,
+    required this.total,
+    required this.xp,
+    required this.streakDays,
+  });
 
   final int completed;
   final int total;
+  final int xp;
+  final int streakDays;
 
   @override
   Widget build(BuildContext context) {
     final progress = total == 0 ? 0.0 : (completed / total).clamp(0.0, 1.0);
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 15),
-      decoration: BoxDecoration(
-        color: context.brand.surface,
-        borderRadius: BorderRadius.circular(19),
-        border: Border.all(color: context.brand.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 34,
-                height: 34,
-                decoration: BoxDecoration(
-                  color: context.brand.accent.withValues(alpha: 0.09),
-                  borderRadius: BorderRadius.circular(11),
-                ),
-                child: Icon(
-                  Icons.insights_rounded,
-                  size: 19,
-                  color: context.brand.accent,
-                ),
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                completed == 0
+                    ? 'Your first milestone is ready'
+                    : '$completed of $total lessons complete',
+                style: const TextStyle(fontWeight: FontWeight.w800),
               ),
-              const SizedBox(width: 11),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'YOUR MOMENTUM',
-                      style: TextStyle(
-                        color: context.brand.terracotta,
-                        fontSize: 9,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 1.1,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      completed == 0
-                          ? 'Your first milestone is ready'
-                          : '$completed of $total lessons complete',
-                      style: const TextStyle(fontWeight: FontWeight.w800),
-                    ),
-                  ],
+            ),
+            Text(
+              '${(progress * 100).round()}%',
+              style: TextStyle(
+                color: context.brand.accent,
+                fontWeight: FontWeight.w900,
+                fontSize: 17,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(999),
+          child: LinearProgressIndicator(
+            value: progress,
+            minHeight: 8,
+            color: context.brand.gold,
+            backgroundColor: context.brand.accentFill.withValues(alpha: 0.08),
+          ),
+        ),
+        const SizedBox(height: 18),
+        Row(
+          children: [
+            Expanded(
+              child: _MomentumStat(
+                icon: Icons.bolt_rounded,
+                value: '$xp',
+                label: 'XP earned',
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: _MomentumStat(
+                icon: streakDays > 0
+                    ? Icons.local_fire_department_rounded
+                    : Icons.local_fire_department_outlined,
+                value: '$streakDays',
+                label: 'day streak',
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _MomentumStat extends StatelessWidget {
+  const _MomentumStat({
+    required this.icon,
+    required this.value,
+    required this.label,
+  });
+
+  final IconData icon;
+  final String value;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 13),
+    decoration: BoxDecoration(
+      color: context.brand.surfaceMuted,
+      borderRadius: BorderRadius.circular(15),
+      border: Border.all(color: context.brand.border),
+    ),
+    child: Row(
+      children: [
+        Icon(icon, color: context.brand.gold, size: 20),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                value,
+                style: TextStyle(
+                  color: context.brand.ink,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w900,
+                  height: 1.1,
                 ),
               ),
               Text(
-                '${(progress * 100).round()}%',
-                style: TextStyle(
-                  color: context.brand.accent,
-                  fontWeight: FontWeight.w900,
-                ),
+                label,
+                style: TextStyle(color: context.brand.mutedInk, fontSize: 11),
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(999),
-            child: LinearProgressIndicator(
-              value: progress,
-              minHeight: 7,
-              color: context.brand.gold,
-              backgroundColor: context.brand.accentFill.withValues(alpha: 0.08),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+        ),
+      ],
+    ),
+  );
 }
 
 class _UnitBanner extends StatelessWidget {
@@ -1104,12 +1233,9 @@ class _LessonScreenState extends State<_LessonScreen> {
 
   @override
   Widget build(BuildContext context) => AnnotatedRegion<SystemUiOverlayStyle>(
-    value: SystemUiOverlayStyle(
-      statusBarColor: Colors.transparent,
-      statusBarIconBrightness: Brightness.dark,
-      systemNavigationBarColor: context.brand.background,
-      systemNavigationBarIconBrightness: Brightness.dark,
-    ),
+    // Resolved from the theme rather than pinned to dark icons, which vanish
+    // against the dark palette's near-black system bars.
+    value: brandOverlayStyle(context.brand),
     child: Scaffold(
       backgroundColor: context.brand.background,
       body: Stack(
@@ -1285,11 +1411,9 @@ class _LessonAtmosphere extends StatelessWidget {
   Widget build(BuildContext context) => IgnorePointer(
     child: DecoratedBox(
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [const Color(0xFFFFFCF2), context.brand.background],
-        ),
+        // A literal cream reads as a grey smear on the dark palette; the wash
+        // is lifted off the ground it sits on instead.
+        gradient: BrandGradients.pageWash(context.brand),
       ),
       child: Stack(
         children: [

@@ -408,6 +408,27 @@ abstract final class BrandGradients {
     end: Alignment.bottomRight,
     colors: [brand.surface, brand.surfaceMuted],
   );
+
+  /// The daylight falling across a whole page — a profile, a lesson.
+  ///
+  /// The lit corner used to be a literal cream at every call site, which is
+  /// the right warmth on plaster and a pale smear on charcoal: it is why
+  /// profile pages kept a whitish patch in dark mode. Lifting the shade off
+  /// the palette's own ground keeps the gradient in both themes.
+  static LinearGradient pageWash(BrandPalette brand) => LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [pageWashTop(brand), brand.background],
+  );
+
+  /// The lit corner of [pageWash], for the rare caller that needs the colour
+  /// on its own.
+  static Color pageWashTop(BrandPalette brand) => Color.alphaBlend(
+    (brand.isDark ? Colors.white : const Color(0xFFFFF6DC)).withValues(
+      alpha: brand.isDark ? 0.045 : 0.75,
+    ),
+    brand.background,
+  );
 }
 
 /// Elevation the brand actually uses. Shadows are tinted with the palette's

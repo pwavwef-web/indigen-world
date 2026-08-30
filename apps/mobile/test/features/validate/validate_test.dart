@@ -1,9 +1,14 @@
-// The validation desk.
+// The review desk.
 //
-// Two things matter here and both are access control. The tab must appear only
-// for an account the backend would actually accept as a reviewer — anybody
-// else gets a screen made entirely of permission errors — and the decisions
-// offered on an item must be the ones `decideSubmission` will not refuse.
+// Two things matter here and both are access control. The way in must appear
+// only for an account the backend would actually accept as a reviewer —
+// anybody else gets a screen made entirely of permission errors — and the
+// decisions offered on an item must be the ones `decideSubmission` will not
+// refuse.
+//
+// The desk is no longer a tab. The rail carries five content destinations for
+// everybody, and the desk is reached from a card on Contribute, which is where
+// the work it reviews is sent from.
 
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
@@ -12,6 +17,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:indigen_world_mobile/app/app_shell.dart';
 import 'package:indigen_world_mobile/app/app_theme.dart';
 import 'package:indigen_world_mobile/data/local/app_database.dart';
+import 'package:indigen_world_mobile/features/contribute/contribute_screen.dart';
 import 'package:indigen_world_mobile/features/validate/data/review_queue.dart';
 import 'package:indigen_world_mobile/features/validate/validate_screen.dart';
 import 'package:indigen_world_mobile/shared/frosted_nav_bar.dart';
@@ -134,8 +140,16 @@ void main() {
       );
       await tester.pump(const Duration(milliseconds: 400));
 
-      expect(find.text('The review desk.'), findsOneWidget);
-      expect(find.text('VALIDATE · VALIDATOR'), findsOneWidget);
+      // Its own route now, so it carries its own title bar and its own way
+      // back rather than borrowing the shell's.
+      expect(find.text('Review desk'), findsOneWidget);
+      expect(find.text('Waiting on you.'), findsOneWidget);
+      expect(find.text('REVIEW · VALIDATOR'), findsOneWidget);
+
+      // Two halves now: contributions and adverts are both reviewed here.
+      expect(find.text('Contributions'), findsOneWidget);
+      expect(find.text('Adverts'), findsOneWidget);
+
       for (final queue in const [
         'Waiting',
         'Approved',
@@ -144,6 +158,34 @@ void main() {
       ]) {
         expect(find.text(queue), findsOneWidget);
       }
+      await tester.pump(const Duration(milliseconds: 400));
+    });
+
+    testWidgets('the advert half has its own queues', (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            userRoleProvider.overrideWith((ref) async => 'validator'),
+          ],
+          child: MaterialApp(
+            theme: buildIndigenTheme(),
+            home: const ValidateScreen(),
+          ),
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 400));
+
+      await tester.tap(find.text('Adverts'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+
+      // A campaign's life is not a submission's, so the pills are not either.
+      for (final queue in const ['Waiting', 'Running', 'Paused', 'Rejected']) {
+        expect(find.text(queue), findsOneWidget);
+      }
+      // The contribution queues are gone with the half they belong to.
+      expect(find.text('Escalated'), findsNothing);
+      expect(find.text('Published'), findsNothing);
       await tester.pump(const Duration(milliseconds: 400));
     });
   });
@@ -174,38 +216,71 @@ void main() {
       return labels;
     }
 
-    testWidgets('an ordinary member never sees a Validate tab', (tester) async {
-      expect(await railLabels(tester, null), [
-        'Explore',
-        'Learn',
-        'Community',
-        'Collection',
-        'Contribute',
-      ]);
+    const contentRail = [
+      'Explore',
+      'Learn',
+      'Community',
+      'Collection',
+      'Contribute',
+    ];
+
+    testWidgets('the rail is the same five for everybody', (tester) async {
+      // Whoever is holding the phone. A rail that grows a sixth item for staff
+      // changes the shape of the one strip of the app everybody shares, and
+      // moves every other destination under a different thumb position.
+      for (final role in const [
+        null,
+        'contributor',
+        'creator',
+        'validator',
+        'reviewer',
+        'admin',
+        'super_admin',
+      ]) {
+        expect(await railLabels(tester, role), contentRail, reason: '$role');
+      }
+    });
+  });
+
+  group('the way in', () {
+    late AppDatabase database;
+
+    setUp(() => database = AppDatabase.forTesting(NativeDatabase.memory()));
+    tearDown(() => database.close());
+
+    Future<void> pumpContribute(WidgetTester tester, String? role) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            appDatabaseProvider.overrideWithValue(database),
+            userRoleProvider.overrideWith((ref) async => role),
+          ],
+          child: MaterialApp(
+            theme: buildIndigenTheme(),
+            home: const ContributeScreen(),
+          ),
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 500));
+    }
+
+    testWidgets('a reviewer gets the desk card on Contribute', (tester) async {
+      await pumpContribute(tester, 'validator');
+      expect(find.text('REVIEW DESK'), findsOneWidget);
+      // Nothing is in the queue in a test, and the card says so rather than
+      // showing a badge over a nought.
+      expect(find.text('Nothing is waiting'), findsOneWidget);
+      await tester.pump(const Duration(milliseconds: 400));
     });
 
-    testWidgets('a creator does not get one either', (tester) async {
-      // Being able to contribute is not being able to judge contributions.
-      expect(await railLabels(tester, 'creator'), isNot(contains('Validate')));
-      expect(await railLabels(tester, 'contributor'), isNot(contains('Validate')));
-    });
-
-    testWidgets('a validator gets one, after the five content destinations', (
-      tester,
-    ) async {
-      expect(await railLabels(tester, 'validator'), [
-        'Explore',
-        'Learn',
-        'Community',
-        'Collection',
-        'Contribute',
-        'Validate',
-      ]);
-    });
-
-    testWidgets('so do reviewers and admins', (tester) async {
-      for (final role in const ['reviewer', 'admin', 'super_admin']) {
-        expect(await railLabels(tester, role), contains('Validate'), reason: role);
+    testWidgets('an ordinary member gets no card at all', (tester) async {
+      // Not a locked one, not a greyed-out row. A door somebody can never open
+      // is worse than no door: it invites the question and then refuses to
+      // answer it.
+      for (final role in const [null, 'contributor', 'creator']) {
+        await pumpContribute(tester, role);
+        expect(find.text('REVIEW DESK'), findsNothing, reason: '$role');
+        await tester.pump(const Duration(milliseconds: 400));
       }
     });
   });

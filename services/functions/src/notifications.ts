@@ -5,6 +5,7 @@ import { onDocumentCreated } from 'firebase-functions/v2/firestore';
 import { SMTP_PASSWORD, isEmailConfigured, sendMail } from './email.js';
 import { notificationEmail } from './email-templates.js';
 import { ARKESEL_API_KEY, isSmsConfigured, sendSms } from './sms.js';
+import { ACCOUNT_CHANNEL_ID, pushToUser } from './push.js';
 
 /** Base URL used to turn a relative notification `link` into a clickable URL. */
 function studioBaseUrl(): string {
@@ -83,6 +84,9 @@ function smsText(title: string, body: string): string {
  * `notifications` document with a `channels` array; this trigger fans it out:
  *
  *   - `email`         → an on-brand HTML email (see email-templates.ts)
+ *   - `push`          → an alert on the member's own handsets, on the account
+ *                       channel, carrying the notification's `link` so tapping
+ *                       it lands on the thing being talked about
  *   - `sms` / `priority: 'high'` → a concise Arkesel SMS to the recipient's phone
  *
  * Each channel is handled independently, records its outcome back on the
@@ -99,8 +103,9 @@ export const onNotificationCreated = onDocumentCreated(
 
     const channels = Array.isArray(data.channels) ? data.channels : [];
     const wantsEmail = channels.includes('email');
+    const wantsPush = channels.includes('push');
     const wantsSms = channels.includes('sms') || data.priority === 'high';
-    if (!wantsEmail && !wantsSms) return;
+    if (!wantsEmail && !wantsPush && !wantsSms) return;
 
     const title = typeof data.title === 'string' ? data.title : 'Indigen World update';
     const body = typeof data.body === 'string' ? data.body : '';
@@ -125,6 +130,39 @@ export const onNotificationCreated = onDocumentCreated(
       } catch (error) {
         logger.error('Notification email handler failed', { errorType: error instanceof Error ? error.name : 'unknown' });
         try { await snap.ref.update({ email: { status: 'failed', attemptedAt: nowIso() } }); } catch { /* ignore */ }
+      }
+    }
+
+    // ---- Push ----
+    //
+    // Best effort and never awaited into a failure: the row this trigger is
+    // reading is already the record, and the notification centre in the app
+    // reads it directly. A push is the tap on the shoulder, not the message.
+    const pushHandled = data.push && typeof data.push === 'object' && 'status' in data.push;
+    if (wantsPush && !pushHandled) {
+      try {
+        const uid = typeof data.authUid === 'string' ? data.authUid : '';
+        if (!uid) {
+          await snap.ref.update({ push: { status: 'skipped', reason: 'no-recipient-uid', attemptedAt: nowIso() } });
+        } else {
+          await pushToUser(db, uid, {
+            title,
+            body,
+            channelId: ACCOUNT_CHANNEL_ID,
+            data: {
+              type: 'account',
+              route: typeof data.link === 'string' ? data.link : '/',
+              notificationId: typeof data.id === 'string' ? data.id : snap.id,
+            },
+            // One notification per subject supersedes the last: three payment
+            // attempts on one campaign is one thing worth knowing, not three.
+            collapseKey: typeof data.type === 'string' ? data.type : 'account',
+          });
+          await snap.ref.update({ push: { status: 'sent', attemptedAt: nowIso() } });
+        }
+      } catch (error) {
+        logger.error('Notification push handler failed', { errorType: error instanceof Error ? error.name : 'unknown' });
+        try { await snap.ref.update({ push: { status: 'failed', attemptedAt: nowIso() } }); } catch { /* ignore */ }
       }
     }
 

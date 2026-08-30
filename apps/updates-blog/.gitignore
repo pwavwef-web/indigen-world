@@ -1,0 +1,3 @@
+# Generated from theme/indigen-world-updates.xml by scripts/build-preview.mjs.
+# Run: node apps/updates-blog/scripts/build-preview.mjs
+preview/

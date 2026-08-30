@@ -181,19 +181,41 @@ class ReelEngagementRepository {
 
   // ── Public totals ─────────────────────────────────────────────────────────
 
-  /// Appreciations, replies and unique viewers for one reel, in a single
-  /// round trip of three aggregate reads.
+  /// Appreciations, replies and unique viewers for one reel.
+  ///
+  /// Each total is asked for and *fails* on its own. They used to share one
+  /// `Future.wait`, which meant any single rejection took the other two down
+  /// with it — and one of them is always rejected: `reelViews` is readable
+  /// only by the viewer who wrote the row, so an aggregate over a whole reel
+  /// is a query the rules cannot approve. The visible symptom was a reel
+  /// showing `0` appreciations and `0` replies underneath a heart the member
+  /// had just filled in and a conversation plainly happening.
+  ///
+  /// Views stay private and stay best-effort. A number nobody is allowed to
+  /// compute is not worth blanking the two that everybody is.
   Future<ReelCounts> counts(String reelId) async {
     final results = await Future.wait([
-      _likes.where('reelId', isEqualTo: reelId).count().get(),
-      _comments.where('reelId', isEqualTo: reelId).count().get(),
-      _views.where('reelId', isEqualTo: reelId).count().get(),
+      _countOf(_likes, reelId),
+      _countOf(_comments, reelId),
+      _countOf(_views, reelId),
     ]);
-    return (
-      likes: results[0].count ?? 0,
-      comments: results[1].count ?? 0,
-      views: results[2].count ?? 0,
-    );
+    return (likes: results[0], comments: results[1], views: results[2]);
+  }
+
+  /// One aggregate count, or zero if the query is refused or unreachable.
+  Future<int> _countOf(
+    CollectionReference<Map<String, dynamic>> collection,
+    String reelId,
+  ) async {
+    try {
+      final snapshot = await collection
+          .where('reelId', isEqualTo: reelId)
+          .count()
+          .get();
+      return snapshot.count ?? 0;
+    } on Object {
+      return 0;
+    }
   }
 
   // ── Replies ───────────────────────────────────────────────────────────────
@@ -256,14 +278,19 @@ final myReelSavesProvider = StreamProvider<Set<String>>((ref) {
   return repository.watchMySaves(uid);
 });
 
-/// The public totals under one reel. Invalidated by whoever changes them, so
-/// the number a member just moved updates under their thumb.
+/// The public totals under one reel.
+///
+/// Recomputed whenever this member's own appreciations change, on top of the
+/// explicit invalidations callers already make. Relying on the invalidation
+/// alone meant a like whose refetch was missed — a slow write, a screen rebuilt
+/// from a different route — left a stale figure sitting under a filled heart.
 final reelCountsProvider = FutureProvider.family<ReelCounts, String>((
   ref,
   reelId,
 ) async {
   final repository = ref.watch(reelEngagementRepositoryProvider);
   if (repository == null) return emptyReelCounts;
+  ref.watch(myReelLikesProvider);
   try {
     return await repository.counts(reelId);
   } on Object {
