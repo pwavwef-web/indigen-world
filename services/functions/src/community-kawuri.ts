@@ -25,6 +25,12 @@ const REGION = 'us-central1';
 /** The handle that summons the assistant, and the uid its replies post under. */
 export const KAWURI_UID = 'kawuri';
 const KAWURI_HANDLE = 'kawuri';
+export const KAWURI_AVATAR_STORAGE_PATH =
+  'community-avatars/kawuri/kawuri-community-avatar.png';
+export const KAWURI_AVATAR_URL =
+  'https://firebasestorage.googleapis.com/v0/b/' +
+  'project-kassena-7e026.firebasestorage.app/o/' +
+  'community-avatars%2Fkawuri%2Fkawuri-community-avatar.png?alt=media';
 
 /** How many posts of surrounding thread are handed to the model. */
 const MAX_CONTEXT_POSTS = 8;
@@ -74,39 +80,60 @@ function contextText(text: unknown): string {
 }
 
 /**
- * The assistant's own community profile, created on first use.
+ * The assistant's own community profile, repaired on first use when needed.
  *
  * It exists so Kawuri's replies render like anybody else's — an avatar, a
  * name, a handle — and so the notification writer has an actor to stamp. The
  * handle is also reserved in the username registry, because a member holding
  * `@kawuri` would be answered over by a machine in their own replies.
  */
-async function ensureKawuriProfile(db: FirebaseFirestore.Firestore): Promise<void> {
+async function ensureKawuriProfile(db: FirebaseFirestore.Firestore): Promise<string> {
   const profile = db.collection('communityProfiles').doc(KAWURI_UID);
-  if ((await profile.get()).exists) return;
+  const username = db.collection('communityUsernames').doc(KAWURI_HANDLE);
+  const [profileSnapshot, usernameSnapshot] = await Promise.all([
+    profile.get(),
+    username.get(),
+  ]);
 
-  await profile.set(
-    {
-      uid: KAWURI_UID,
-      username: KAWURI_HANDLE,
-      displayNameLower: 'kawuri',
-      displayName: 'Kawuri',
-      bio: 'The guide inside Indigen World. Mention me in a thread and I will answer.',
-      avatarUrl: null,
-      bannerUrl: null,
-      location: '',
-      dialect: '',
-      isVerified: true,
-      isAssistant: true,
-      createdAt: FieldValue.serverTimestamp(),
-      updatedAt: FieldValue.serverTimestamp(),
-    },
-    { merge: true },
-  );
-  await db
-    .collection('communityUsernames')
-    .doc(KAWURI_HANDLE)
-    .set({ uid: KAWURI_UID, username: KAWURI_HANDLE, reserved: true }, { merge: true });
+  if (
+    !profileSnapshot.exists ||
+    profileSnapshot.get('avatarUrl') !== KAWURI_AVATAR_URL ||
+    profileSnapshot.get('isAssistant') !== true
+  ) {
+    await profile.set(
+      {
+        uid: KAWURI_UID,
+        username: KAWURI_HANDLE,
+        displayNameLower: 'kawuri',
+        displayName: 'Kawuri',
+        bio: 'The guide inside Indigen World. Mention me in a thread and I will answer.',
+        avatarUrl: KAWURI_AVATAR_URL,
+        bannerUrl: null,
+        location: '',
+        dialect: '',
+        isVerified: true,
+        isAssistant: true,
+        ...(!profileSnapshot.exists
+          ? { createdAt: FieldValue.serverTimestamp() }
+          : {}),
+        updatedAt: FieldValue.serverTimestamp(),
+      },
+      { merge: true },
+    );
+  }
+
+  if (
+    !usernameSnapshot.exists ||
+    usernameSnapshot.get('uid') !== KAWURI_UID ||
+    usernameSnapshot.get('reserved') !== true
+  ) {
+    await username.set(
+      { uid: KAWURI_UID, username: KAWURI_HANDLE, reserved: true },
+      { merge: true },
+    );
+  }
+
+  return KAWURI_AVATAR_URL;
 }
 
 /**
@@ -212,7 +239,7 @@ export const onCommunityKawuriMention = onDocumentCreated(
     // or produced nothing, leave the conversation as the members wrote it.
     if (!answer.configured || !answer.reply) return;
 
-    await ensureKawuriProfile(db);
+    const avatarUrl = await ensureKawuriProfile(db);
 
     const rootId = typeof post.rootId === 'string' && post.rootId ? post.rootId : postId;
     await replyRef.set({
@@ -220,7 +247,7 @@ export const onCommunityKawuriMention = onDocumentCreated(
       author: {
         displayName: 'Kawuri',
         username: KAWURI_HANDLE,
-        avatarUrl: null,
+        avatarUrl,
         isVerified: true,
       },
       text: answer.reply,

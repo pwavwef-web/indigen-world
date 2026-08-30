@@ -22,6 +22,11 @@ import {
 import { isCampaignSubmission } from '../../services/functions/lib/open-publishing.js';
 import { normaliseTurns, replyFromGemini, vertexEndpoint } from '../../services/functions/lib/kawuri.js';
 import {
+  KAWURI_AVATAR_STORAGE_PATH,
+  KAWURI_AVATAR_URL,
+  summonsKawuri,
+} from '../../services/functions/lib/community-kawuri.js';
+import {
   buildPublishedContentDocument,
   canonicalCollectionKind,
 } from '../../services/functions/lib/publication.js';
@@ -32,6 +37,22 @@ import {
 import { parseAdCampaignInput } from '../../services/functions/lib/ads.js';
 
 // ── Mentions ────────────────────────────────────────────────────────────────
+
+test('Kawuri uses the public Firebase community avatar', () => {
+  assert.equal(
+    KAWURI_AVATAR_STORAGE_PATH,
+    'community-avatars/kawuri/kawuri-community-avatar.png',
+  );
+  assert.match(KAWURI_AVATAR_URL, /^https:\/\/firebasestorage\.googleapis\.com\//);
+  assert.match(KAWURI_AVATAR_URL, /community-avatars%2Fkawuri%2F/);
+});
+
+test('Kawuri is summoned only by its reserved mention', () => {
+  assert.equal(summonsKawuri('@kawuri can you help?'), true);
+  assert.equal(summonsKawuri('Ask @KAWURI.'), true);
+  assert.equal(summonsKawuri('kawuri can you help?'), false);
+  assert.equal(summonsKawuri('mail me@kawuri.test'), false);
+});
 
 test('mentionedHandles finds handles wherever they sit in a post', () => {
   assert.deepEqual(mentionedHandles('@amina_paga de zaanem'), ['amina_paga']);
