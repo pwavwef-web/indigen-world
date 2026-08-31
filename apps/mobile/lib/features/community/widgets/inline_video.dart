@@ -8,6 +8,7 @@ import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/core/media_preferences.dart';
 import 'package:indigen_world_mobile/features/community/data/community_models.dart';
 import 'package:indigen_world_mobile/features/community/widgets/video_cover.dart';
+import 'package:indigen_world_mobile/features/music/music_providers.dart';
 import 'package:video_player/video_player.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
@@ -217,7 +218,12 @@ class _InlineVideoTileState extends ConsumerState<InlineVideoTile> {
         ref.read(videoAutoplayProvider) &&
         // Nothing in the feed plays under a full-screen viewer: the viewer is
         // showing the same clip, with the sound on.
-        ref.read(fullScreenMediaProvider) == 0;
+        ref.read(fullScreenMediaProvider) == 0 &&
+        // And nothing *starts itself* over a song somebody chose to play. A
+        // tapped video still plays and takes the speakers properly, through
+        // the claim above; this is only about autoplay, which nobody asked
+        // for and which has no business interrupting the album.
+        !ref.read(musicIsPlayingProvider);
     if (shouldPlay == _playing) return;
     _playing = shouldPlay;
     unawaited(shouldPlay ? controller.play() : controller.pause());
@@ -238,6 +244,7 @@ class _InlineVideoTileState extends ConsumerState<InlineVideoTile> {
     });
     ref.listen<bool>(videoAutoplayProvider, (_, _) => _syncPlayback());
     ref.listen<int>(fullScreenMediaProvider, (_, _) => _syncPlayback());
+    ref.listen<bool>(musicIsPlayingProvider, (_, _) => _syncPlayback());
     final muted = ref.watch(videoMutedProvider);
     final controller = _controller;
     final showPlayer = _ready && controller != null;

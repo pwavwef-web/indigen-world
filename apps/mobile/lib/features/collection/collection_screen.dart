@@ -3,6 +3,9 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
+import 'package:indigen_world_mobile/features/ads/data/ad_campaign.dart';
+import 'package:indigen_world_mobile/features/ads/data/served_ad.dart';
+import 'package:indigen_world_mobile/features/ads/widgets/sponsored_card.dart';
 import 'package:indigen_world_mobile/features/collection/apps_and_shop.dart';
 import 'package:indigen_world_mobile/features/collection/apps_screen.dart';
 import 'package:indigen_world_mobile/features/collection/collection_data.dart';
@@ -12,10 +15,10 @@ import 'package:indigen_world_mobile/features/collection/widgets/collection_card
 import 'package:indigen_world_mobile/features/heroes/heroes_data.dart';
 import 'package:indigen_world_mobile/features/heroes/heroes_screen.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_fab.dart';
+import 'package:indigen_world_mobile/features/music/music_screen.dart';
 import 'package:indigen_world_mobile/l10n/app_localizations.dart';
 import 'package:indigen_world_mobile/shared/app_widgets.dart';
 import 'package:indigen_world_mobile/shared/frosted_nav_bar.dart';
-import 'package:indigen_world_mobile/shared/glass_surface.dart';
 
 class CollectionScreen extends ConsumerWidget {
   const CollectionScreen({super.key});
@@ -32,19 +35,28 @@ class CollectionScreen extends ConsumerWidget {
     final shop = ref.watch(shopProductsProvider);
     final textScale = MediaQuery.textScalerOf(context).scale(1);
     final useSingleColumn = textScale > 1.1;
+    // One advert at most, and only ever the one at the front of the rotation.
+    // The grid is the map of the archive; a second paid tile in it would stop
+    // being a tile in the map and start being a column of them.
+    final sponsored = ref.watch(placedAdsProvider(AdPlacement.collection));
     final portals = <Widget>[
       _CollectionPortalCard(
         label: l10n.collectionMusic,
         icon: Icons.graphic_eq_rounded,
         color: context.brand.terracotta,
         count: _count(music),
-        onTap: () => _open(context, const MusicCollectionScreen()),
+        onRetry: _retry(music, () => ref.invalidate(musicCollectionProvider)),
+        onTap: () => _open(context, const MusicScreen()),
       ),
       _CollectionPortalCard(
         label: l10n.collectionDictionary,
         icon: Icons.translate_rounded,
         color: context.brand.accent,
         count: _count(dictionary),
+        onRetry: _retry(
+          dictionary,
+          () => ref.invalidate(publishedDictionaryEntriesProvider),
+        ),
         onTap: () => _open(context, const DictionaryCollectionScreen()),
       ),
       _CollectionPortalCard(
@@ -52,6 +64,10 @@ class CollectionScreen extends ConsumerWidget {
         icon: Icons.auto_stories_rounded,
         color: context.brand.success,
         count: _count(literature),
+        onRetry: _retry(
+          literature,
+          () => ref.invalidate(literatureCollectionProvider),
+        ),
         onTap: () => _open(context, const LiteratureCollectionScreen()),
       ),
       _CollectionPortalCard(
@@ -59,7 +75,17 @@ class CollectionScreen extends ConsumerWidget {
         icon: Icons.headphones_rounded,
         color: const Color(0xFF735C25),
         count: _count(audiobooks),
-        onTap: () => _open(context, const AudiobookCollectionScreen()),
+        onRetry: _retry(
+          audiobooks,
+          () => ref.invalidate(audiobookCollectionProvider),
+        ),
+        // Audiobooks are the same shape as music — one long audio record
+        // with a transcript — so they get the same player rather than a
+        // second, near-identical screen fighting for the same speakers.
+        onTap: () => _open(
+          context,
+          const MusicScreen(kind: CollectionKind.audiobooks),
+        ),
       ),
       // Video has no portal here. Everything in it is what Explore already is
       // — a full-bleed reel feed with its own tab — and a second, quieter door
@@ -76,6 +102,7 @@ class CollectionScreen extends ConsumerWidget {
         icon: Icons.stars_rounded,
         color: context.brand.gold,
         count: _count(heroes),
+        onRetry: _retry(heroes, () => ref.invalidate(kasemHeroesProvider)),
         onTap: () => _open(context, const HeroesCollectionScreen()),
       ),
       _CollectionPortalCard(
@@ -83,6 +110,7 @@ class CollectionScreen extends ConsumerWidget {
         icon: Icons.apps_rounded,
         color: const Color(0xFF2F6F8F),
         count: _count(apps),
+        onRetry: _retry(apps, () => ref.invalidate(directoryAppsProvider)),
         onTap: () => _open(context, const AppsCollectionScreen()),
       ),
       _CollectionPortalCard(
@@ -90,44 +118,33 @@ class CollectionScreen extends ConsumerWidget {
         icon: Icons.storefront_rounded,
         color: const Color(0xFF8C3B2E),
         count: _count(shop),
+        onRetry: _retry(shop, () => ref.invalidate(shopProductsProvider)),
         onTap: () => _open(context, const ShopCollectionScreen()),
       ),
+      // Last, and only when there is one. Every tile above this is a door into
+      // work the community contributed; an advert placed among them — or worse,
+      // above them — would be the archive selling its own shelf space at the
+      // eye level it gives to the dictionary.
+      if (sponsored.isNotEmpty) SponsoredTile(ad: sponsored.first),
     ];
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      floatingActionButton: const Padding(
-        padding: EdgeInsets.only(bottom: kFrostedNavBarReservedSpace - 26),
-        child: KawuriFab(),
+      floatingActionButton: Padding(
+        padding: EdgeInsets.only(bottom: shellBottomReserve(context) - 26),
+        child: const KawuriFab(),
       ),
       body: ScreenContainer(
         child: CustomScrollView(
           key: const PageStorageKey('collection-overview-scroll'),
           slivers: [
             const SliverToBoxAdapter(child: _CollectionHero()),
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(18, 2, 18, 12),
-              sliver: SliverToBoxAdapter(
-                child: _FirebaseStatus(
-                  loading:
-                      dictionary.isLoading ||
-                      music.isLoading ||
-                      literature.isLoading ||
-                      audiobooks.isLoading ||
-                      heroes.isLoading ||
-                      apps.isLoading ||
-                      shop.isLoading,
-                  hasError:
-                      dictionary.hasError ||
-                      music.hasError ||
-                      literature.hasError ||
-                      audiobooks.hasError ||
-                      heroes.hasError ||
-                      apps.hasError ||
-                      shop.hasError,
-                ),
-              ),
-            ),
+            // No connection strip under the heading. It said "Live · published
+            // only" for the whole life of the tab and only ever changed to say
+            // that *something* had failed, without saying what — a banner that
+            // is right ninety-nine times out of a hundred teaches people to
+            // stop reading it. A collection that could not load now says so on
+            // its own tile, where the retry is.
             SliverPadding(
               padding: const EdgeInsets.fromLTRB(18, 8, 18, 16),
               sliver: useSingleColumn
@@ -171,6 +188,16 @@ class CollectionScreen extends ConsumerWidget {
   static int? _count<T>(AsyncValue<List<T>> value) =>
       value.asData?.value.length;
 
+  /// A tap that reloads one collection, or null when that collection is fine.
+  ///
+  /// [reload] is the caller's `ref.invalidate` of that one provider, and that
+  /// is the whole retry: every collection here is a stream off Firestore, so
+  /// dropping it re-subscribes and the tile goes back to counting by itself.
+  /// Nothing else on the tab is disturbed, which is the point of doing this
+  /// per tile rather than reloading the screen.
+  static VoidCallback? _retry<T>(AsyncValue<T> value, VoidCallback reload) =>
+      value.hasError ? reload : null;
+
   static void _open(BuildContext context, Widget screen) {
     Navigator.of(context)
         .push(MaterialPageRoute<void>(builder: (context) => screen));
@@ -183,6 +210,11 @@ class CollectionScreen extends ConsumerWidget {
 /// a hero: the card gave the tab a lid that had to be scrolled past before the
 /// archive itself began, and made the first screen look like a different
 /// screen. This is the same [BrandHeader] the rest of the app opens with.
+///
+/// The name of the tab is the whole heading now. "Knowledge, kept alive." sat
+/// under it as the title, with the name demoted to an eyebrow above — a slogan
+/// given the larger type and the thing a member came here for given the
+/// smaller. A tab keeps its name; it does not need a motto.
 class _CollectionHero extends StatelessWidget {
   const _CollectionHero();
 
@@ -192,50 +224,8 @@ class _CollectionHero extends StatelessWidget {
     child: BrandHeader(
       // A shell tab, so the heading has to clear the floating profile orb.
       reserveTopRight: true,
-      eyebrow: AppLocalizations.of(context).collectionEyebrow,
-      title: AppLocalizations.of(context).collectionTitle,
-    ),
-  );
-}
-
-class _FirebaseStatus extends StatelessWidget {
-  const _FirebaseStatus({required this.loading, required this.hasError});
-
-  final bool loading;
-  final bool hasError;
-
-  @override
-  Widget build(BuildContext context) => GlassSurface(
-    blur: false,
-    radius: 16,
-    lifted: false,
-    accent: hasError ? context.brand.terracotta : null,
-    padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 10),
-    child: Row(
-      children: [
-        if (loading)
-          const SizedBox.square(
-            dimension: 17,
-            child: CircularProgressIndicator(strokeWidth: 2),
-          )
-        else
-          Icon(
-            hasError ? Icons.cloud_off_rounded : Icons.cloud_done_rounded,
-            size: 18,
-            color: hasError ? context.brand.terracotta : context.brand.success,
-          ),
-        const SizedBox(width: 9),
-        Expanded(
-          child: Text(
-            loading
-                ? 'Refreshing…'
-                : hasError
-                ? 'Some collections could not refresh'
-                : 'Live · published only',
-            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
-          ),
-        ),
-      ],
+      eyebrow: null,
+      title: AppLocalizations.of(context).collectionEyebrow,
     ),
   );
 }
@@ -247,6 +237,7 @@ class _CollectionPortalCard extends StatelessWidget {
     required this.color,
     required this.count,
     required this.onTap,
+    this.onRetry,
   });
 
   final String label;
@@ -255,13 +246,29 @@ class _CollectionPortalCard extends StatelessWidget {
   final int? count;
   final VoidCallback onTap;
 
+  /// Non-null when this one collection could not be read.
+  ///
+  /// The tile keeps its place in the grid and swaps its count for a reload:
+  /// the failure is reported next to the thing that failed, and the tap that
+  /// would have opened an empty screen retries instead. This replaced a status
+  /// strip under the heading that could only say that something, somewhere,
+  /// had not refreshed.
+  final VoidCallback? onRetry;
+
   @override
   Widget build(BuildContext context) => CollectionCardSurface(
-    semanticLabel: '$label collection',
-    onTap: onTap,
+    semanticLabel: onRetry == null
+        ? '$label collection'
+        : '$label collection could not load. Tap to try again',
+    onTap: onRetry ?? onTap,
     child: LayoutBuilder(
       builder: (context, constraints) {
-        final artwork = _PortalArtwork(icon: icon, color: color, count: count);
+        final artwork = _PortalArtwork(
+          icon: icon,
+          color: color,
+          count: count,
+          failed: onRetry != null,
+        );
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -275,7 +282,12 @@ class _CollectionPortalCard extends StatelessWidget {
               Expanded(child: artwork)
             else
               AspectRatio(aspectRatio: 4 / 3, child: artwork),
-            _PortalCaption(label: label, color: color, count: count),
+            _PortalCaption(
+              label: label,
+              color: color,
+              count: count,
+              failed: onRetry != null,
+            ),
           ],
         );
       },
@@ -288,11 +300,13 @@ class _PortalArtwork extends StatelessWidget {
     required this.icon,
     required this.color,
     required this.count,
+    this.failed = false,
   });
 
   final IconData icon;
   final Color color;
   final int? count;
+  final bool failed;
 
   @override
   Widget build(BuildContext context) => Stack(
@@ -321,16 +335,24 @@ class _PortalArtwork extends StatelessWidget {
             borderRadius: BorderRadius.circular(999),
             border: Border.all(color: context.brand.border),
           ),
-          child: Text(
-            count == null ? '…' : '$count',
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: context.brand.mutedInk,
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
+          // The count badge is where a member is already looking for how much
+          // is in there, so it is also where "we could not find out" belongs.
+          child: failed
+              ? Icon(
+                  Icons.refresh_rounded,
+                  size: 13,
+                  color: context.brand.terracotta,
+                )
+              : Text(
+                  count == null ? '…' : '$count',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: context.brand.mutedInk,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
         ),
       ),
     ],
@@ -347,11 +369,13 @@ class _PortalCaption extends StatelessWidget {
     required this.label,
     required this.color,
     required this.count,
+    this.failed = false,
   });
 
   final String label;
   final Color color;
   final int? count;
+  final bool failed;
 
   @override
   Widget build(BuildContext context) => Padding(
@@ -371,7 +395,9 @@ class _PortalCaption extends StatelessWidget {
           children: [
             Expanded(
               child: Text(
-                count == null
+                failed
+                    ? 'Could not load · retry'
+                    : count == null
                     ? 'Loading…'
                     : count == 0
                     ? 'Open collection'
@@ -379,17 +405,20 @@ class _PortalCaption extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  color: color,
+                  color: failed ? context.brand.terracotta : color,
                   fontSize: 10,
                   fontWeight: FontWeight.w900,
                 ),
               ),
             ),
-            Icon(
-              Icons.north_east_rounded,
-              color: context.brand.mutedInk,
-              size: 16,
-            ),
+            // The arrow means "this opens something". A tile that failed does
+            // not open anything yet, so it does not get one.
+            if (!failed)
+              Icon(
+                Icons.north_east_rounded,
+                color: context.brand.mutedInk,
+                size: 16,
+              ),
           ],
         ),
       ],

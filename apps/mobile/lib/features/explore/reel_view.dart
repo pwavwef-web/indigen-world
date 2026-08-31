@@ -5,7 +5,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
+import 'package:indigen_world_mobile/core/media_preferences.dart';
 import 'package:indigen_world_mobile/data/repositories.dart';
+import 'package:indigen_world_mobile/features/ads/data/served_ad.dart';
+import 'package:indigen_world_mobile/features/ads/widgets/sponsored_card.dart';
 import 'package:indigen_world_mobile/features/community/community_actions.dart';
 import 'package:indigen_world_mobile/features/community/community_profile_screen.dart';
 import 'package:indigen_world_mobile/features/community/data/community_models.dart';
@@ -45,6 +48,7 @@ class Reel {
     this.avatarUrl,
     this.isLive = false,
     this.communityPostId,
+    this.servedAd,
   });
 
   /// Stable across rebuilds, so an appreciation stays attached to the piece
@@ -96,7 +100,21 @@ class Reel {
   /// real one.
   final String? communityPostId;
 
+  /// The advert this reel *is*, when it was spliced into the feed by
+  /// [spliceSponsored] rather than published or posted by anybody.
+  ///
+  /// The whole [ServedAd] rather than a bare flag, because the card has to draw
+  /// the advertiser's own call to action and open the advertiser's own link,
+  /// and copying those two fields onto [Reel] would have been two more places
+  /// for the wording of a paid advert to go stale.
+  final ServedAd? servedAd;
+
   bool get isCommunity => communityPostId != null;
+
+  /// True when nothing on this card belongs to a member: no creator page, no
+  /// appreciation, no replies, and an impression that is counted against a
+  /// campaign instead of against a reel.
+  bool get isSponsored => servedAd != null;
 
   /// A community post as a reel.
   ///
@@ -166,6 +184,36 @@ class Reel {
           : 'Published with permission · Indigen World',
     );
   }
+
+  /// A paid advert as a full-screen reel.
+  ///
+  /// Its id is the campaign's and not a document's, because that is what the
+  /// advertiser is counted on and what keeps the same advert from being counted
+  /// twice when the rotation puts it in the feed more than once.
+  ///
+  /// A video creative *does* play here, unlike on the feed cards, and for the
+  /// reason given in `sponsored_card.dart`: Explore holds exactly one reel in
+  /// front of the member and stops everything else, so there is no second
+  /// soundtrack to talk over. An advert frozen on a still in a column of moving
+  /// pictures would be the only motionless thing on the screen, which is a
+  /// worse kind of conspicuous than an honest label.
+  static Reel fromServedAd(ServedAd ad) => Reel(
+    id: 'sponsored:${ad.campaignId}',
+    servedAd: ad,
+    isLive: true,
+    videoUrl: ad.isVideo && ad.hasCreative ? ad.creativeUrl : null,
+    imageUrl: !ad.isVideo && ad.hasCreative ? ad.creativeUrl : '',
+    label: 'SPONSORED',
+    title: ad.headline,
+    // The placement record carries no advertiser name, and inventing one — the
+    // campaign id, "an advertiser", the CTA label — would put a byline on the
+    // card where a member's name goes. The card leaves that line out instead.
+    creator: '',
+    initials: '',
+    caption: ad.body,
+    sound: '',
+    credit: 'Sponsored · paid placement on Indigen World',
+  );
 }
 
 String reelInitials(String name) {
@@ -259,8 +307,34 @@ class _ReelFeedViewState extends ConsumerState<ReelFeedView>
     WidgetsBinding.instance.addPostFrameCallback((_) => _trackActiveView());
   }
 
+  /// Whether this feed is currently holding the audio claim.
+  ///
+  /// Explore is the loudest surface in the app and until now it claimed
+  /// nothing: it played video with sound while a song carried on underneath it,
+  /// which is two soundtracks at once — exactly what
+  /// [fullScreenMediaProvider] was built to prevent for community clips.
+  var _claimedAudio = false;
+
+  late final FullScreenMediaCount _audioFocus = ref.read(
+    fullScreenMediaProvider.notifier,
+  );
+
+  /// Takes or gives back the claim as the feed comes and goes.
+  ///
+  /// Driven from `build` through a post-frame callback rather than called
+  /// inline: `onScreen` is computed during layout and moving another provider
+  /// there would be mutating state mid-build.
+  void _syncAudioClaim(bool onScreen) {
+    if (onScreen == _claimedAudio) return;
+    _claimedAudio = onScreen;
+    onScreen ? _audioFocus.enter() : _audioFocus.leave();
+  }
+
   @override
   void dispose() {
+    // Leaving the tab with the claim still held would silence the music for
+    // the rest of the session.
+    if (_claimedAudio) _audioFocus.leave();
     WidgetsBinding.instance.removeObserver(this);
     _controller.dispose();
     super.dispose();
@@ -298,6 +372,16 @@ class _ReelFeedViewState extends ConsumerState<ReelFeedView>
   Future<void> _trackActiveView() async {
     if (widget.reels.isEmpty || !widget.isActive) return;
     final reel = widget.reels[_clampedIndex];
+    // A sponsored reel is not a reel anybody published, so it has no view
+    // document and belongs in none of the engagement collections. Its
+    // impression goes to the advertiser's own counter instead, guarded by
+    // [ServedAdTelemetry] rather than by [_trackedViews] — the campaign must
+    // stay counted once even if the member leaves Explore and comes back to a
+    // freshly built feed.
+    if (reel.servedAd case final ad?) {
+      await ref.read(servedAdTelemetryProvider).recordImpression(ad.campaignId);
+      return;
+    }
     if (!reel.isLive || reel.isCommunity || !_trackedViews.add(reel.id)) {
       return;
     }
@@ -317,6 +401,9 @@ class _ReelFeedViewState extends ConsumerState<ReelFeedView>
     // The single question the whole feed hangs on: is this reel in front of a
     // pair of eyes right now?
     final onScreen = widget.isActive && _foreground;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _syncAudioClaim(onScreen);
+    });
     final reels = widget.reels;
     if (reels.isEmpty) {
       return const ColoredBox(
@@ -487,6 +574,12 @@ class _ReelFeedViewState extends ConsumerState<ReelFeedView>
   }
 
   Future<void> _openCreator(BuildContext context, Reel reel) async {
+    // Nobody's page. An advert has an advertiser, not a creator, and the one
+    // door it is allowed to open is the one it paid for — which the card draws
+    // as its own button. Reached only from the name line, which a sponsored
+    // card does not draw either; the guard is here so it cannot be reached by a
+    // route added later.
+    if (reel.isSponsored) return;
     if (reel.isCommunity && reel.creatorId.isNotEmpty) {
       await Navigator.of(context).push(
         MaterialPageRoute<void>(
@@ -888,8 +981,10 @@ class _ReelCardState extends ConsumerState<_ReelCard> {
     // A community video counts where it lives: its appreciations and replies
     // are the post's own, already denormalised onto it, so reading the reel
     // engagement collections for one would show a permanent zero beside a
-    // conversation that is plainly happening.
-    final counts = reel.isLive && !reel.isCommunity
+    // conversation that is plainly happening. A sponsored reel is excluded for
+    // a blunter reason: there is no engagement document behind a campaign id,
+    // so this would open a snapshot listener on a reel that does not exist.
+    final counts = reel.isLive && !reel.isCommunity && !reel.isSponsored
         ? (ref.watch(reelCountsProvider(reel.id)).asData?.value ??
               emptyReelCounts)
         : (likes: reel.likes, comments: reel.comments, views: 0);
@@ -907,7 +1002,11 @@ class _ReelCardState extends ConsumerState<_ReelCard> {
     final ready = _ready ? _controller : null;
 
     return Semantics(
-      label: '${reel.title}. Cultural reel by ${reel.creator}.',
+      // A screen reader hears what it is before it hears what it says, exactly
+      // as a sighted member reads the pill before the headline.
+      label: reel.isSponsored
+          ? 'Sponsored. ${reel.title}.'
+          : '${reel.title}. Cultural reel by ${reel.creator}.',
       child: GestureDetector(
         onTap: widget.onTogglePlayback,
         child: Stack(
@@ -952,7 +1051,10 @@ class _ReelCardState extends ConsumerState<_ReelCard> {
               ),
             Positioned(
               left: 18,
-              right: 82,
+              // The 82 is the room the action rail needs. An advert draws no
+              // rail, so it does not hold a column of empty screen open beside
+              // itself.
+              right: reel.isSponsored ? 18 : 82,
               bottom: 42,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -970,19 +1072,25 @@ class _ReelCardState extends ConsumerState<_ReelCard> {
                       shadows: [Shadow(blurRadius: 16, color: Colors.black)],
                     ),
                   ),
-                  const SizedBox(height: 13),
-                  GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: widget.onOpenCreator,
-                    child: Text(
-                      memberProfile?.displayName ?? reel.creator,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w900,
+                  // The byline and the sound line are both claims about a
+                  // person: who made this, and what they are playing. An
+                  // advert has neither, so it draws neither rather than
+                  // drawing them empty.
+                  if (!reel.isSponsored) ...[
+                    const SizedBox(height: 13),
+                    GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: widget.onOpenCreator,
+                      child: Text(
+                        memberProfile?.displayName ?? reel.creator,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w900,
+                        ),
                       ),
                     ),
-                  ),
+                  ],
                   const SizedBox(height: 3),
                   Text(
                     reel.caption,
@@ -993,26 +1101,35 @@ class _ReelCardState extends ConsumerState<_ReelCard> {
                     ),
                   ),
                   const SizedBox(height: 9),
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.music_note_rounded,
-                        color: Colors.white70,
-                        size: 15,
-                      ),
-                      const SizedBox(width: 5),
-                      Expanded(
-                        child: Text(
-                          reel.sound,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Colors.white70,
-                            fontSize: 11,
+                  // The advert's own button stands where the sound line does on
+                  // a real reel: the one place on the card that is a claim
+                  // about the thing itself rather than about the person.
+                  if (reel.servedAd case final ad? when ad.hasLink)
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: SponsoredCtaButton(ad: ad, onDark: true),
+                    )
+                  else if (!reel.isSponsored)
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.music_note_rounded,
+                          color: Colors.white70,
+                          size: 15,
+                        ),
+                        const SizedBox(width: 5),
+                        Expanded(
+                          child: Text(
+                            reel.sound,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 11,
+                            ),
                           ),
                         ),
-                      ),
-                    ],
-                  ),
+                      ],
+                    ),
                   const SizedBox(height: 8),
                   Text(
                     reel.credit,
@@ -1021,69 +1138,78 @@ class _ReelCardState extends ConsumerState<_ReelCard> {
                 ],
               ),
             ),
-            Positioned(
-              right: 11,
-              bottom: 44,
-              child: Column(
-                children: [
-                  ReelCreatorAvatar(
-                    initials: reel.initials,
-                    avatarUrl: avatarUrl,
-                    onTap: reel.creatorId.isEmpty
-                        ? null
-                        : widget.onOpenCreator,
-                  ),
-                  const SizedBox(height: 13),
-                  _ReelAction(
-                    icon: widget.liked
-                        ? Icons.favorite_rounded
-                        : Icons.favorite_border_rounded,
-                    label: reelCountLabel(likeTotal),
-                    tooltip: widget.liked
-                        ? 'Remove appreciation'
-                        : 'Appreciate',
-                    active: widget.liked,
-                    onTap: widget.onLike,
-                  ),
-                  _ReelAction(
-                    icon: Icons.chat_bubble_outline_rounded,
-                    label: reelCountLabel(counts.comments),
-                    tooltip: 'Replies',
-                    onTap: widget.onComments,
-                  ),
-                  _ReelAction(
-                    icon: widget.saved
-                        ? Icons.bookmark_rounded
-                        : Icons.bookmark_border_rounded,
-                    label: widget.saved ? 'Kept' : 'Keep',
-                    tooltip: widget.saved
-                        ? 'Remove from keeps'
-                        : 'Keep this reel',
-                    active: widget.saved,
-                    onTap: widget.onSave,
-                  ),
-                  _ReelAction(
-                    icon: Icons.menu_book_outlined,
-                    label: 'Context',
-                    tooltip: 'Cultural context and licence',
-                    onTap: widget.onContext,
-                  ),
-                  if (reel.isLive && counts.views > 0)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 2),
-                      child: Text(
-                        '${reelCountLabel(counts.views)} views',
-                        style: const TextStyle(
-                          color: Colors.white60,
-                          fontSize: 9,
-                          fontWeight: FontWeight.w700,
-                          shadows: [Shadow(blurRadius: 8, color: Colors.black)],
+            // No rail at all on an advert. Every control on it — the heart, the
+            // replies, the keep, the context card with its licence line —
+            // asserts that a member made this and that other members are
+            // talking about it. An appreciation count under a paid placement is
+            // not a small cosmetic wrong; it is the app vouching for an advert
+            // in the same words it uses for somebody's grandmother singing.
+            if (!reel.isSponsored)
+              Positioned(
+                right: 11,
+                bottom: 44,
+                child: Column(
+                  children: [
+                    ReelCreatorAvatar(
+                      initials: reel.initials,
+                      avatarUrl: avatarUrl,
+                      onTap: reel.creatorId.isEmpty
+                          ? null
+                          : widget.onOpenCreator,
+                    ),
+                    const SizedBox(height: 13),
+                    _ReelAction(
+                      icon: widget.liked
+                          ? Icons.favorite_rounded
+                          : Icons.favorite_border_rounded,
+                      label: reelCountLabel(likeTotal),
+                      tooltip: widget.liked
+                          ? 'Remove appreciation'
+                          : 'Appreciate',
+                      active: widget.liked,
+                      onTap: widget.onLike,
+                    ),
+                    _ReelAction(
+                      icon: Icons.chat_bubble_outline_rounded,
+                      label: reelCountLabel(counts.comments),
+                      tooltip: 'Replies',
+                      onTap: widget.onComments,
+                    ),
+                    _ReelAction(
+                      icon: widget.saved
+                          ? Icons.bookmark_rounded
+                          : Icons.bookmark_border_rounded,
+                      label: widget.saved ? 'Kept' : 'Keep',
+                      tooltip: widget.saved
+                          ? 'Remove from keeps'
+                          : 'Keep this reel',
+                      active: widget.saved,
+                      onTap: widget.onSave,
+                    ),
+                    _ReelAction(
+                      icon: Icons.menu_book_outlined,
+                      label: 'Context',
+                      tooltip: 'Cultural context and licence',
+                      onTap: widget.onContext,
+                    ),
+                    if (reel.isLive && counts.views > 0)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 2),
+                        child: Text(
+                          '${reelCountLabel(counts.views)} views',
+                          style: const TextStyle(
+                            color: Colors.white60,
+                            fontSize: 9,
+                            fontWeight: FontWeight.w700,
+                            shadows: [
+                              Shadow(blurRadius: 8, color: Colors.black),
+                            ],
+                          ),
                         ),
                       ),
-                    ),
-                ],
+                  ],
+                ),
               ),
-            ),
             // Above the scrim and below nothing: where you are in the clip is
             // the last thing a full-bleed video should hide.
             if (ready case final controller?)

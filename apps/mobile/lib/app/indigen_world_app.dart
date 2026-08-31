@@ -5,6 +5,7 @@ import 'package:indigen_world_mobile/app/app_router.dart';
 import 'package:indigen_world_mobile/app/app_theme.dart';
 import 'package:indigen_world_mobile/core/app_locale.dart';
 import 'package:indigen_world_mobile/core/theme_mode.dart';
+import 'package:indigen_world_mobile/features/music/widgets/music_overlay.dart';
 import 'package:indigen_world_mobile/l10n/app_localizations.dart';
 
 class IndigenWorldApp extends ConsumerWidget {
@@ -49,7 +50,13 @@ class IndigenWorldApp extends ConsumerWidget {
             textScaler: MediaQuery.textScalerOf(context)
                 .clamp(minScaleFactor: 0.9, maxScaleFactor: 2),
           ),
-          child: child ?? const SizedBox.shrink(),
+          // Above the Router, so the mini-player survives a pushed route. The
+          // palette is handed down rather than looked up: this sits outside
+          // the Navigator, and `brand` is already resolved right here.
+          child: MusicOverlay(
+            brand: brand,
+            child: child ?? const SizedBox.shrink(),
+          ),
         ),
       ),
     );

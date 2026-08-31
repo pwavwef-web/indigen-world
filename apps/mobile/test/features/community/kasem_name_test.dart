@@ -6,12 +6,44 @@
 // real Kassena name, folded into the ASCII a handle can hold.
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:indigen_world_mobile/features/community/data/kasem_names.dart';
 import 'package:indigen_world_mobile/features/community/widgets/community_avatar.dart';
 import 'package:indigen_world_mobile/features/community/widgets/kasem_name_panel.dart';
 
 import 'community_test_harness.dart';
+
+/// What the admin console has published, as far as these tests are concerned.
+///
+/// Nothing is bundled with the app: the offered list is the console's alone,
+/// and it is empty until Firestore answers with one. So a test that needs names
+/// has to publish its own, exactly as the console would.
+const _published = <KasemName>[
+  KasemName(name: 'Nyaaba', ascii: 'nyaaba'),
+  KasemName(
+    name: 'Paga',
+    ascii: 'paga',
+    kind: 'place',
+    meaning: 'The town at the northern edge of Kassena country',
+  ),
+];
+
+/// Puts [_published] in front of the widgets under [child].
+///
+/// `communityHarness` builds the root scope and takes no overrides beyond its
+/// own, so this nests inside it. Both the panel and the avatar read these two
+/// providers directly rather than through anything derived, which is what lets
+/// a nested override reach them.
+Widget _withPublishedNames(Widget child) => ProviderScope(
+  overrides: [
+    kasemNamesProvider.overrideWithValue(_published),
+    kasemHandleSetProvider.overrideWithValue({
+      for (final name in _published) name.ascii,
+    }),
+  ],
+  child: child,
+);
 
 void main() {
   group('folding a name into a handle', () {
@@ -28,7 +60,7 @@ void main() {
       expect(foldKasemToAscii('Bá'), 'ba');
       // The same word written with a combining acute rather than a precomposed
       // vowel — which is what the composer's tone keys produce.
-      expect(foldKasemToAscii('Bá'), 'ba');
+      expect(foldKasemToAscii('Bá'), 'ba');
     });
 
     test('keeps only what a handle is allowed to be', () {
@@ -38,7 +70,7 @@ void main() {
   });
 
   group('whether a handle carries a name', () {
-    final names = {for (final name in bundledKasemNames) name.ascii};
+    final names = {for (final name in _published) name.ascii};
 
     test('the whole handle counts', () {
       expect(isKasemHandle('nyaaba', names), isTrue);
@@ -59,8 +91,8 @@ void main() {
     });
 
     test('and nothing does when there is no list at all', () {
-      // A device that has never reached Firebase still has the bundled seed,
-      // but an empty set must never quietly award the ring to everybody.
+      // Which is the state of every device until Firestore answers. An empty
+      // set must never quietly award the ring to everybody.
       expect(isKasemHandle('nyaaba', const <String>{}), isFalse);
     });
   });
@@ -71,12 +103,14 @@ void main() {
     await tester.pumpWidget(
       communityHarness(
         repository: FakeCommunityRepository(),
-        child: const Scaffold(
-          body: Column(
-            children: [
-              CommunityAvatar(initials: 'NA', username: 'nyaaba'),
-              CommunityAvatar(initials: 'JS', username: 'john_smith'),
-            ],
+        child: _withPublishedNames(
+          const Scaffold(
+            body: Column(
+              children: [
+                CommunityAvatar(initials: 'NA', username: 'nyaaba'),
+                CommunityAvatar(initials: 'JS', username: 'john_smith'),
+              ],
+            ),
           ),
         ),
       ),
@@ -94,9 +128,11 @@ void main() {
     await tester.pumpWidget(
       communityHarness(
         repository: FakeCommunityRepository(),
-        child: Scaffold(
-          body: SingleChildScrollView(
-            child: KasemNamePanel(currentHandle: '', onPick: picked.add),
+        child: _withPublishedNames(
+          Scaffold(
+            body: SingleChildScrollView(
+              child: KasemNamePanel(currentHandle: '', onPick: picked.add),
+            ),
           ),
         ),
       ),
@@ -111,5 +147,28 @@ void main() {
     await tester.tap(find.text('Nyaaba'));
     await tester.pump();
     expect(picked, ['nyaaba']);
+  });
+
+  testWidgets('and offers nothing at all when nothing is published', (
+    tester,
+  ) async {
+    // No override, so the list is what an un-seeded environment gives: empty.
+    // The panel has to disappear rather than draw an empty rail, because the
+    // server refuses every handle that is not on the published list and a name
+    // offered here would be a name refused there.
+    await tester.pumpWidget(
+      communityHarness(
+        repository: FakeCommunityRepository(),
+        child: Scaffold(
+          body: SingleChildScrollView(
+            child: KasemNamePanel(currentHandle: '', onPick: (_) {}),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text('Take a Kassena name'), findsNothing);
+    expect(find.text('Nyaaba'), findsNothing);
   });
 }

@@ -358,7 +358,4 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get collectionShop => 'Boutique';
-
-  @override
-  String get collectionTitle => 'Un savoir gardé vivant.';
 }

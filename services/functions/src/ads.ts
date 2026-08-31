@@ -1,8 +1,11 @@
 import { logger } from 'firebase-functions';
 import { FieldValue, getFirestore } from 'firebase-admin/firestore';
-import type { Firestore, Transaction } from 'firebase-admin/firestore';
+import type { DocumentSnapshot, Firestore, Transaction } from 'firebase-admin/firestore';
+import { getStorage } from 'firebase-admin/storage';
 import { HttpsError, onCall, onRequest } from 'firebase-functions/v2/https';
+import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { requireAuth, requireRole } from './auth.js';
+import { mintDownloadUrl } from './published-media.js';
 import { consumeRateLimit } from './rate-limit.js';
 import {
   PAYSTACK_SECRET_KEY,
@@ -491,6 +494,10 @@ export const cancelAdCampaign = onCall(
         cancelledAt: FieldValue.serverTimestamp(),
         updatedAt: FieldValue.serverTimestamp(),
       });
+      // Cancelling is terminal, so the public projection goes with it — in this
+      // same commit, so an advert cannot still be served after its owner has
+      // been told it is off. The campaign document stays for the record.
+      tx.delete(adPlacementRef(db, campaignId));
       tx.set(auditRef, {
         id: auditRef.id,
         actor: { collection: 'creatorProfiles', id: uid },
@@ -882,6 +889,198 @@ export const paystackWebhook = onRequest(
 
 
 // ═══════════════════════════════════════════════════════════════════════════
+// Serving
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// ── Why a second collection ────────────────────────────────────────────────
+//
+// `adCampaigns` is the campaign: budget, payment state, owner, reviewer, the
+// impression count. None of that is a reader's business, and its rules say so —
+// owner and staff only. But an advert has to be readable by whoever is
+// scrolling, guests included, so what actually runs is projected into
+// `adPlacements/{campaignId}`: the headline, the artwork, the link and the
+// audience it was bought for, and nothing else. A field that is not in the
+// projection is a field that cannot leak out of it.
+//
+// ── Going up needs Storage, coming down does not ───────────────────────────
+//
+// Taking an advert down is a Firestore write and nothing more, so it rides
+// inside the same transaction as the status change and is atomic with it: the
+// moment a campaign stops being ACTIVE it has already stopped being readable.
+// Putting one up has to copy a file between Storage prefixes, so it happens
+// after the transaction commits — the same discipline `finalisePublishedMedia`
+// follows, because media I/O must never be the reason a reviewer's decision
+// fails.
+//
+// ── Delete or deactivate ───────────────────────────────────────────────────
+//
+// One rule, applied everywhere: a stop that can be undone deactivates, a stop
+// that cannot deletes. PAUSE flips `active` to false and leaves the document
+// alone, so RESUME is a single write that never re-copies artwork which is
+// already public. REJECT, CANCELLED and COMPLETED delete it, because the
+// projection is derived state that will never serve again and the campaign
+// document — with its audit trail — remains the accountable record of what ran.
+
+/** The public, server-written projection of a campaign that may be served. */
+const AD_PLACEMENTS = 'adPlacements';
+
+function adPlacementRef(db: Firestore, campaignId: string) {
+  return db.collection(AD_PLACEMENTS).doc(campaignId);
+}
+
+function creativeField(snapshot: DocumentSnapshot, key: string): unknown {
+  const creative = snapshot.get('creative');
+  return creative && typeof creative === 'object'
+    ? (creative as Record<string, unknown>)[key]
+    : undefined;
+}
+
+function textOf(snapshot: DocumentSnapshot, key: string): string {
+  const value = snapshot.get(key);
+  return typeof value === 'string' ? value : '';
+}
+
+function listOf(snapshot: DocumentSnapshot, key: string): string[] {
+  const value = snapshot.get(key);
+  return Array.isArray(value)
+    ? value.filter((entry): entry is string => typeof entry === 'string')
+    : [];
+}
+
+/**
+ * Copies an approved creative out of the advertiser's private folder and into
+ * the world-readable `ad-creatives/` prefix, returning its download URL.
+ *
+ * The uploaded file lives under `creator-submissions/{uid}/`, which Storage
+ * keeps owner-only — correctly, since it is unreviewed material right up until
+ * a reviewer approves it. Copying rather than moving leaves the original where
+ * the audit trail expects to find it, and the URL is minted by the same
+ * `mintDownloadUrl` the published Explore media uses, so an advert and a reel
+ * reach the phone as the same kind of link.
+ *
+ * Returns null when the upload has gone missing. That is a campaign which
+ * cannot be served, not a decision which should have failed.
+ */
+async function copyAdCreative(
+  campaignId: string,
+  storagePath: string,
+  mimeType: string,
+): Promise<string | null> {
+  const bucket = getStorage().bucket();
+  const source = bucket.file(storagePath);
+  const [exists] = await source.exists();
+  if (!exists) return null;
+
+  const destination = `ad-creatives/${campaignId}/original`;
+  await source.copy(bucket.file(destination));
+  return mintDownloadUrl(bucket, destination, mimeType);
+}
+
+/**
+ * Publishes — or republishes — the public projection of a running campaign.
+ *
+ * Runs after the review transaction has committed, for APPROVE and RESUME
+ * alike. The creative is copied only when `creative.previewUrl` is not already
+ * set: a resumed campaign's artwork is already public at a URL the projection
+ * has been handing out, and copying it again would mint a second token for a
+ * file that is byte-for-byte the one already being served.
+ *
+ * The status is re-read here rather than trusted from the decision that called
+ * us. Between the commit and this line a campaign can have been paused or
+ * cancelled, and this is the write that would put it back in front of people.
+ *
+ * ── Why the projection is written in a transaction ─────────────────────────
+ *
+ * Re-reading the status once at the top of this function was not enough, and
+ * the gap was not theoretical: the read is followed by [copyAdCreative], which
+ * copies the creative between Storage prefixes and mints a URL, and for a video
+ * measured in hundreds of megabytes that is seconds rather than milliseconds.
+ * A PAUSE, a REJECT or a `cancelAdCampaign` landing inside that window did its
+ * work correctly — flipped `active` off, or deleted the projection — and then
+ * this function's unconditional `set` put the advert straight back with
+ * `active: true`. A campaign its owner had been told was cancelled carried on
+ * being served, which is the exact thing the atomic take-down above exists to
+ * prevent.
+ *
+ * Reading the campaign inside the transaction puts it in the transaction's
+ * conflict set, so any of those three writes forces a retry and the retry sees
+ * the status that actually won. The Storage copy deliberately stays outside:
+ * a transaction body can run several times, and copying a file is not
+ * something to do twice.
+ */
+async function publishAdPlacement(db: Firestore, campaignId: string): Promise<void> {
+  const campaignRef = db.collection('adCampaigns').doc(campaignId);
+  const snap = await campaignRef.get();
+  if (!snap.exists) return;
+  if (snap.get('status') !== 'ACTIVE') return;
+
+  const existing = creativeField(snap, 'previewUrl');
+  let creativeUrl = typeof existing === 'string' && existing ? existing : null;
+  if (!creativeUrl) {
+    const storagePath = String(creativeField(snap, 'storagePath') ?? '');
+    const mimeType = String(creativeField(snap, 'mimeType') ?? 'application/octet-stream');
+    creativeUrl = storagePath ? await copyAdCreative(campaignId, storagePath, mimeType) : null;
+    if (creativeUrl) {
+      await campaignRef.update({
+        'creative.previewUrl': creativeUrl,
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+    }
+  }
+  if (!creativeUrl) {
+    // No artwork, no advert. Better a campaign that visibly never appeared than
+    // a placement carrying a headline and an empty frame.
+    logger.error('Approved a campaign whose creative could not be published', { campaignId });
+    return;
+  }
+
+  const publishedUrl = creativeUrl;
+  await db.runTransaction(async (tx: Transaction) => {
+    const fresh = await tx.get(campaignRef);
+    if (!fresh.exists || fresh.get('status') !== 'ACTIVE') return;
+
+    // Projected from `fresh` rather than from the snapshot read before the
+    // copy, so the advert that goes up says what the campaign says now.
+    tx.set(adPlacementRef(db, campaignId), {
+      campaignId,
+      headline: textOf(fresh, 'headline'),
+      body: textOf(fresh, 'body'),
+      ctaLabel: textOf(fresh, 'ctaLabel'),
+      ctaUrl: textOf(fresh, 'ctaUrl'),
+      objective: textOf(fresh, 'objective'),
+      placements: listOf(fresh, 'placements'),
+      regions: listOf(fresh, 'regions'),
+      creativeUrl: publishedUrl,
+      mediaType: String(creativeField(fresh, 'mediaType') ?? 'image'),
+      // Copied verbatim as the ISO strings the campaign already stores, so the
+      // two documents can never disagree about when a run ends. `updatedAt` is
+      // a server timestamp, matching the campaign document it is projected
+      // from.
+      startsAt: fresh.get('startsAt') ?? null,
+      endsAt: fresh.get('endsAt') ?? null,
+      active: true,
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+  });
+}
+
+/**
+ * Takes a paused advert out of the feed while keeping its projection.
+ *
+ * Written with merge rather than update so a pause bites even on a campaign
+ * whose projection was never written — approval's Storage copy can fail, and a
+ * pause that threw not-found would leave a reviewer believing they had stopped
+ * something they had not.
+ */
+function deactivateAdPlacement(tx: Transaction, db: Firestore, campaignId: string): void {
+  tx.set(
+    adPlacementRef(db, campaignId),
+    { active: false, updatedAt: FieldValue.serverTimestamp() },
+    { merge: true },
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // Review
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -894,6 +1093,19 @@ const AD_DECISIONS = {
 } as const;
 
 type AdDecision = keyof typeof AD_DECISIONS;
+
+/**
+ * Whether [key] is a decision a reviewer may actually take.
+ *
+ * `Object.hasOwn` rather than `in`, for the reason spelled out on
+ * [isAdEventKind]. Reachable only by a validator here, so the damage was a 500
+ * rather than a bad write — `AD_DECISION_PRECONDITIONS['constructor']` is a
+ * function, and calling `.has` on it throws — but it is the same hole and it
+ * closes the same way.
+ */
+function isAdDecision(key: string): key is AdDecision {
+  return Object.hasOwn(AD_DECISIONS, key);
+}
 
 /** Which decisions make sense from where a campaign currently is. */
 const AD_DECISION_PRECONDITIONS: Record<AdDecision, ReadonlySet<string>> = {
@@ -965,8 +1177,8 @@ export const decideAdCampaign = onCall(
 
     const data = (req.data ?? {}) as Record<string, unknown>;
     const campaignId = requiredText(data, 'campaignId', 1, 200);
-    const decision = String(data.decision ?? '') as AdDecision;
-    if (!(decision in AD_DECISIONS)) {
+    const decision = String(data.decision ?? '');
+    if (!isAdDecision(decision)) {
       throw new HttpsError('invalid-argument', `Unknown decision: ${String(data.decision)}.`);
     }
     const feedback = optionalText(data, 'feedback', 1000);
@@ -983,7 +1195,7 @@ export const decideAdCampaign = onCall(
     const notificationRef = db.collection('notifications').doc();
     const now = nowIso();
 
-    return db.runTransaction(async (tx: Transaction) => {
+    const result = await db.runTransaction(async (tx: Transaction) => {
       const snap = await tx.get(campaignRef);
       if (!snap.exists) throw new HttpsError('not-found', 'Campaign not found.');
 
@@ -1023,6 +1235,15 @@ export const decideAdCampaign = onCall(
         updatedAt: FieldValue.serverTimestamp(),
       });
 
+      // Coming down is atomic with the status change: a rejected advert can
+      // never run again, so its projection goes; a paused one is expected back,
+      // so it is only switched off. Going up is the post-commit step below.
+      if (decision === 'REJECT') {
+        tx.delete(adPlacementRef(db, campaignId));
+      } else if (decision === 'PAUSE') {
+        deactivateAdPlacement(tx, db, campaignId);
+      }
+
       const copy = adDecisionCopy(decision, name, feedback);
       tx.set(notificationRef, {
         id: notificationRef.id,
@@ -1054,5 +1275,222 @@ export const decideAdCampaign = onCall(
 
       return { campaignId, status: nextStatus, previousStatus };
     });
+
+    // Post-commit: copy the creative into the public prefix and write the
+    // projection that actually puts the advert in a feed. A failure here is
+    // logged and swallowed rather than thrown, exactly as the submission
+    // workflow does: the decision is recorded, the advertiser has been told,
+    // and the money question is settled. Approving again after a fix republishes
+    // from the same code path, so nothing here needs to be undone first.
+    if (result.status === 'ACTIVE') {
+      try {
+        await publishAdPlacement(db, campaignId);
+      } catch (error) {
+        logger.error('publishAdPlacement failed', { campaignId, error: String(error) });
+      }
+    }
+
+    return result;
+  },
+);
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Delivery reporting
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** What a phone may report about an advert, and where the count lands. */
+const AD_EVENT_FIELDS = {
+  impression: 'metrics.impressions',
+  click: 'metrics.clicks',
+} as const;
+
+type AdEventKind = keyof typeof AD_EVENT_FIELDS;
+
+/**
+ * Whether [key] is one of the events this backend actually counts.
+ *
+ * `Object.hasOwn` and not `key in AD_EVENT_FIELDS`, which was the bug: `in`
+ * walks the prototype chain, so `'toString'`, `'constructor'` and `'__proto__'`
+ * all satisfied it. The lookup that followed then returned a function or
+ * `Object.prototype` instead of a field path, and that went straight into the
+ * `update` call below as a computed key — `"function toString() { [native
+ * code] }"`. `recordAdEvent` takes no authentication at all, so this was an
+ * unauthenticated caller choosing what a Firestore field path says about
+ * somebody else's campaign document.
+ */
+function isAdEventKind(key: string): key is AdEventKind {
+  return Object.hasOwn(AD_EVENT_FIELDS, key);
+}
+
+/**
+ * A phone reporting that it put an advert on screen, or that somebody tapped it.
+ *
+ * ── Why this one is not authenticated ──────────────────────────────────────
+ *
+ * A guest scrolling Explore sees the same adverts a signed-in member does, and
+ * an advertiser who paid to reach that guest is owed the count. Requiring auth
+ * here would quietly under-report every campaign by however much of its
+ * audience had not signed up yet.
+ *
+ * ── What a forged count can and cannot do ──────────────────────────────────
+ *
+ * These numbers are a report, not a ledger, and that is the whole reason this
+ * is safe to leave open. Nothing in this backend spends against them: a
+ * campaign is charged once, up front, for its entire run, and
+ * `expireAdCampaigns` ends it on the calendar rather than on the count. So the
+ * worst a flood of invented impressions does is make somebody's own report look
+ * better than reality. It cannot drain a rival's budget or push their advert
+ * out of the feed, which is exactly what a spend-per-impression model would
+ * have exposed here. What is left — a distorted report — is held down by App
+ * Check and by a rate limit keyed per campaign, so no one caller can move one
+ * campaign's counters faster than a real audience would.
+ */
+export const recordAdEvent = onCall(
+  {
+    region: REGION,
+    enforceAppCheck: ENFORCE_APP_CHECK,
+    consumeAppCheckToken: ENFORCE_APP_CHECK,
+    invoker: 'public',
+  },
+  async (req) => {
+    const data = (req.data ?? {}) as Record<string, unknown>;
+    const campaignId = requiredText(data, 'campaignId', 1, 200);
+    const kind = String(data.kind ?? '');
+    if (!isAdEventKind(kind)) {
+      throw new HttpsError('invalid-argument', `Unknown advert event: ${String(data.kind)}.`);
+    }
+
+    // Keyed by campaign as well as caller: an anonymous reporter has no
+    // identity worth keying on alone, and it is the campaign's counters that
+    // are being protected. 600 a minute is far above what a real audience
+    // produces for one advert on an app this size — if one ever genuinely
+    // sustains it, this counter wants sharding before the limit wants raising.
+    const actor = req.auth?.uid ?? 'anonymous';
+    await consumeRateLimit('recordAdEvent', `${campaignId}_${actor}`, 600);
+
+    const db = getFirestore();
+    const campaignRef = db.collection('adCampaigns').doc(campaignId);
+    const snap = await campaignRef.get();
+    if (!snap.exists) throw new HttpsError('not-found', 'Campaign not found.');
+    if (snap.get('status') !== 'ACTIVE') {
+      // Counting against a paused, finished or rejected campaign would report
+      // delivery for days the advertiser was not being shown to anybody.
+      throw new HttpsError('failed-precondition', 'That advert is not running.');
+    }
+
+    // Deliberately does not touch `updatedAt`: that field answers "when did
+    // this campaign last change", and an impression changes nothing about it.
+    await campaignRef.update({ [AD_EVENT_FIELDS[kind]]: FieldValue.increment(1) });
+
+    return { campaignId, kind, recorded: true };
+  },
+);
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Housekeeping
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Ends the campaigns whose last day has passed.
+ *
+ * COMPLETED has been in the status enum from the start and nothing ever wrote
+ * it: until now an approved campaign stayed ACTIVE for good and its `endsAt`
+ * was a date nobody enforced. This is the sweep that enforces it.
+ *
+ * The first scheduled function in this project, so a deployment note: Cloud
+ * Scheduler must be enabled on the Firebase project (it needs Blaze, and the
+ * API is switched on the first time a scheduled function deploys). If the
+ * sweep ever looks like it is not running, check that the job exists in Cloud
+ * Scheduler before suspecting this code.
+ *
+ * Daily rather than hourly by choice. An advert that lingers a few hours past
+ * midnight of its last day costs the advertiser nothing — the run was prepaid
+ * by the day — while an hourly sweep would be twenty-four times the reads for
+ * the same outcome.
+ */
+export const expireAdCampaigns = onSchedule(
+  {
+    region: REGION,
+    schedule: 'every day 03:00',
+    // Accra is where the advertisers and the audience are; a campaign should
+    // end at the end of the day they bought, not the end of a day in Utah.
+    timeZone: 'Africa/Accra',
+  },
+  async () => {
+    const db = getFirestore();
+    const now = nowIso();
+
+    // Filtered on status alone and finished in memory. `endsAt` is an ISO
+    // string, and Firestore inequalities reach across types, so an
+    // `endsAt <= now` filter would also sweep up the nulls that sort ahead of
+    // every string. It would want a composite index too, for a set that is
+    // small by construction: the ACTIVE campaigns are the ones being paid for.
+    const running = await db.collection('adCampaigns').where('status', '==', 'ACTIVE').get();
+
+    let completed = 0;
+    for (const campaign of running.docs) {
+      const endsAt = campaign.get('endsAt');
+      if (typeof endsAt !== 'string' || !endsAt || endsAt > now) continue;
+
+      const ownerUid = campaign.get('ownerUid');
+      const name = String(campaign.get('name') ?? 'Your campaign');
+      const auditRef = db.collection('auditLogs').doc();
+      const notificationRef = db.collection('notifications').doc();
+
+      // One batch per campaign: a single document that cannot be written must
+      // not stop every campaign behind it in the sweep from ending.
+      const batch = db.batch();
+      batch.update(campaign.ref, {
+        status: 'COMPLETED',
+        completedAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+      // Finished is terminal, so the projection goes rather than going quiet.
+      batch.delete(adPlacementRef(db, campaign.id));
+      batch.set(notificationRef, {
+        id: notificationRef.id,
+        recipient: { collection: 'creatorProfiles', id: ownerUid },
+        authUid: ownerUid,
+        type: 'ad_campaign',
+        title: 'Advert finished',
+        body: `“${name}” has finished its run. Nothing further will be charged.`,
+        link: `/ads/${campaign.id}`,
+        read: false,
+        // No email: the run ending on the day it was bought to end is expected
+        // news, unlike a payment or a review decision.
+        channels: ['in_app', 'push'],
+        schemaVersion: 1,
+        lifecycle: { createdAt: now, updatedAt: now, version: 1 },
+      });
+      batch.set(auditRef, {
+        id: auditRef.id,
+        // Nobody decided this one; the calendar did.
+        actor: { collection: 'system', id: 'expireAdCampaigns' },
+        action: 'ads.campaign.complete',
+        target: { collection: 'adCampaigns', id: campaign.id },
+        outcome: 'success',
+        source: 'functions',
+        before: { status: 'ACTIVE' },
+        after: { status: 'COMPLETED' },
+        metadata: { endsAt },
+        occurredAt: now,
+      });
+
+      try {
+        await batch.commit();
+        completed += 1;
+      } catch (error) {
+        logger.error('Could not complete an expired campaign', {
+          campaignId: campaign.id,
+          error: String(error),
+        });
+      }
+    }
+
+    if (completed > 0) {
+      logger.info('Completed expired ad campaigns', { completed, checked: running.size });
+    }
   },
 );

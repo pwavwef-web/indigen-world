@@ -1,4 +1,5 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
     <!-- Core flows (Firebase, cached network images) require network access in
          every build type. Declared here so release builds do not depend on
          library manifest-merge for INTERNET. -->
@@ -13,6 +14,20 @@
     <!-- Voice notes in Community use the microphone only while the member is
          visibly recording from the composer. -->
     <uses-permission android:name="android.permission.RECORD_AUDIO"/>
+    <!-- The three the music player needs, and only the music player.
+
+         A song keeps playing with the screen off, which is the whole point of
+         a player rather than a preview button; without WAKE_LOCK the CPU is
+         allowed to sleep between buffers and playback stutters and then dies.
+         FOREGROUND_SERVICE and its mediaPlayback type are what let the
+         playback service keep running once the app is no longer on screen —
+         from Android 14 an untyped foreground service is refused outright, so
+         the pair has to be declared together or the first song crashes the
+         process the moment somebody goes to their home screen. Nothing else in
+         the app runs a service, which is why these arrive with the player. -->
+    <uses-permission android:name="android.permission.WAKE_LOCK"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"/>
     <application
         android:allowBackup="false"
         android:label="@string/app_name"
@@ -47,6 +62,43 @@
                 <category android:name="android.intent.category.DEFAULT"/>
             </intent-filter>
         </activity>
+        <!-- ── The music playback service ───────────────────────────────────
+             Everything below belongs to audio_service. The service is the
+             process that outlives the Activity: it holds the media session
+             Android draws the lock-screen and notification controls from, and
+             it is what keeps a song playing after the app is swiped away.
+
+             `exported="true"` is not a choice. A MediaBrowserService is bound
+             by other processes — Android Auto, Assistant, Wear, the system
+             media resumption row that offers to restart what you were last
+             listening to — and an unexported service is invisible to all of
+             them.
+
+             `tools:ignore="Instantiatable"` silences a lint that is simply
+             wrong here: the class lives in the audio_service AAR rather than
+             in this module's sources, so Lint cannot see a constructor and
+             reports the service as un-instantiatable. -->
+        <service
+            android:name="com.ryanheise.audioservice.AudioService"
+            android:foregroundServiceType="mediaPlayback"
+            android:exported="true"
+            tools:ignore="Instantiatable">
+            <intent-filter>
+                <action android:name="android.media.browse.MediaBrowserService"/>
+            </intent-filter>
+        </service>
+        <!-- Headset buttons and Bluetooth steering-wheel controls arrive as a
+             broadcast, not as a touch. Without this receiver a squeeze of the
+             earbud does nothing at all, and on some OEM builds the broadcast is
+             instead handed to whatever other app last claimed it. -->
+        <receiver
+            android:name="com.ryanheise.audioservice.MediaButtonReceiver"
+            android:exported="true"
+            tools:ignore="Instantiatable">
+            <intent-filter>
+                <action android:name="android.intent.action.MEDIA_BUTTON"/>
+            </intent-filter>
+        </receiver>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data

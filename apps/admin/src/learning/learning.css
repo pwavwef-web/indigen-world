@@ -101,9 +101,40 @@
   justify-content: space-between;
   gap: 12px;
 }
+.learning-question__tools {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Text answers or picture answers, as one segmented control: the two are
+   alternatives, not a checkbox each, and seeing which one is on matters more
+   here than anywhere else on the card — it decides what the app draws. */
+.learning-layout {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.learning-layout button {
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 6px 14px;
+  border: 0;
+  background: transparent;
+  color: var(--text-soft);
+  cursor: pointer;
+}
+.learning-layout button[aria-pressed='true'] {
+  background: var(--plaster-cream, #f3efe6);
+  color: var(--text);
+}
 
 /* Answer rows: a radio marks the correct one, so the mark and the text it
-   belongs to always move together. */
+   belongs to always move together. A picture answer stacks its upload under
+   that row rather than beside it — a thumbnail in the line would squeeze the
+   label input down to nothing. */
 .learning-answers {
   list-style: none;
   margin: 10px 0 14px;
@@ -112,12 +143,16 @@
   gap: 8px;
 }
 .learning-answers li {
+  display: grid;
+  gap: 8px;
+}
+.learning-answers__row {
   display: flex;
   align-items: center;
   gap: 10px;
 }
 .learning-answers input[type='text'],
-.learning-answers li > input:not([type='radio']) {
+.learning-answers__row > input:not([type='radio']) {
   flex: 1;
   font: inherit;
   padding: 9px 11px;
@@ -125,6 +160,61 @@
   border-radius: 9px;
   background: var(--surface);
   color: var(--text);
+}
+
+/* An uploaded picture, its file picker and whatever went wrong. */
+.learning-image {
+  display: grid;
+  gap: 6px;
+  margin-top: 12px;
+}
+.learning-image--compact {
+  margin: 0 0 4px 28px;
+}
+.learning-image__row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.learning-image__preview {
+  width: 72px;
+  height: 72px;
+  object-fit: cover;
+  border-radius: 11px;
+  border: 1px solid var(--border);
+  background: var(--plaster-cream, #f3efe6);
+  flex: none;
+}
+.learning-image__preview--empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-size: 0.68rem;
+  color: var(--text-soft);
+}
+.learning-image__controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.learning-image__pick {
+  display: grid;
+  gap: 6px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-soft);
+}
+.learning-image__pick input {
+  font: inherit;
+  font-size: 0.8rem;
+  max-width: 260px;
+}
+.learning-image__note {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--text-soft);
 }
 
 .learning-explanation {

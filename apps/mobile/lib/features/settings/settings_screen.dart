@@ -182,11 +182,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     : 'Name, photo, cover, bio and dialect',
                 onTap: _openCommunityProfile,
               ),
-              // Offered only while it is still there to take, and only to
-              // somebody who has not already got the ring — a row that says
-              // "take a Kassena name" to a member called Nyaaba is noise.
+              // Offered only while it is still there to take, only to somebody
+              // who has not already got the ring — a row that says "take a
+              // Kassena name" to a member called Nyaaba is noise — and only
+              // when the console has published names to take. The list is the
+              // console's alone now, so it can be empty, and there is no point
+              // offering a door to an empty room.
               if (profile != null &&
                   profile.canClaimKasemName &&
+                  ref.watch(kasemNamesProvider).isNotEmpty &&
                   !isKasemHandle(
                     profile.username,
                     ref.watch(kasemHandleSetProvider),

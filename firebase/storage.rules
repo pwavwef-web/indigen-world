@@ -22,6 +22,14 @@ service firebase.storage {
         || role() == 'super_admin'
         || (isSignedIn() && request.auth.token.get('superAdmin', false) == true);
     }
+    // Narrower than isStaff(): a validator or reviewer decides what community
+    // work is published, which is not the same authority as writing the app's
+    // own teaching material or its advertising.
+    function isAdmin() {
+      return role() == 'admin'
+        || role() == 'super_admin'
+        || (isSignedIn() && request.auth.token.get('superAdmin', false) == true);
+    }
     function isBlockedCreator() {
       return isSignedIn() && request.auth.token.get('creatorStatus', '') in ['suspended', 'revoked', 'rejected'];
     }
@@ -125,6 +133,33 @@ service firebase.storage {
       allow read: if true;
       allow write: if isSignedIn() && request.auth.uid == uid && communityImageOk();
       allow delete: if isSignedIn() && (request.auth.uid == uid || isStaff());
+    }
+
+    // ---- Lesson pictures: world-readable, admin-written ---------------------
+    // "Which of these is a goat" needs the goat. These are uploaded from the
+    // admin console rather than copied in by a Function, because the person
+    // authoring the question has the photograph on the machine they are typing
+    // on — so this is one of the very few prefixes a browser may write to, and
+    // it is fenced accordingly: admins only, images only, and small enough to
+    // open over a village connection. Read is open because a published lesson
+    // is public and Learning works with no account at all.
+    match /learn-images/{lessonId}/{fileName} {
+      allow read: if true;
+      allow write: if isAdmin()
+        && request.resource.size < 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+      allow delete: if isAdmin();
+    }
+
+    // ---- Ad creatives: world-readable, server-written only -------------------
+    // An ad is served to every member, so its artwork is public. Nothing here
+    // is client-writable: creatives arrive through the campaign workflow with
+    // the Admin SDK, which bypasses these rules, and a browser that could write
+    // its own file into this prefix could put any picture in front of the whole
+    // membership.
+    match /ad-creatives/{campaignId}/{fileName} {
+      allow read: if true;
+      allow write: if false;
     }
 
     // ---- Default deny -------------------------------------------------------

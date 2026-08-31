@@ -673,12 +673,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Shop'**
   String get collectionShop;
-
-  /// No description provided for @collectionTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Knowledge, kept alive.'**
-  String get collectionTitle;
 }
 
 class _AppLocalizationsDelegate

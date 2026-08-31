@@ -22,6 +22,16 @@ const String _recentSearchesKey = 'explore.recentSearches';
 /// Scored rather than merely filtered, because the fields are not equal: a
 /// term in a title is what somebody meant, and the same term buried in a
 /// licence line usually is not.
+///
+/// ── Why adverts are dropped before scoring ────────────────────────────────
+/// The list handed in is [exploreFeedProvider], which now has paid placements
+/// spliced through it, and an advert is the one thing here nobody searched
+/// for. Left in, it did not merely appear among the results: its headline is
+/// [Reel.title] and scores the full ten, and [Reel.fromServedAd] sets
+/// `isLive`, so it also collected the bonus below that exists to put real
+/// published work above an illustrative preview card. An advertiser who wrote
+/// "Kassena" into their headline was outranking the archive on a search for
+/// Kassena — reach in a surface they did not buy, dressed as a result.
 List<Reel> searchReels(List<Reel> reels, String query) {
   final needle = query.trim().toLowerCase();
   if (needle.isEmpty) return const <Reel>[];
@@ -30,6 +40,7 @@ List<Reel> searchReels(List<Reel> reels, String query) {
 
   final scored = <({Reel reel, int score})>[];
   for (final reel in reels) {
+    if (reel.isSponsored) continue;
     final score = _score(reel, words);
     if (score > 0) scored.add((reel: reel, score: score));
   }
@@ -73,10 +84,15 @@ bool _has(String haystack, String needle) =>
 /// The eyebrow on each reel already names its category, its language and where
 /// it is from — which is exactly the vocabulary somebody would search in, and
 /// it stays honest because it is only ever words the feed can actually answer.
+///
+/// A sponsored reel's eyebrow is the word "Sponsored", and `isLive` alone did
+/// not keep it out: [Reel.fromServedAd] sets that true. So one live campaign
+/// was enough to put "Sponsored" among the terms this screen offers unprompted
+/// as something the community is looking at.
 List<String> trendingTerms(List<Reel> reels, {int limit = 10}) {
   final counts = <String, int>{};
   for (final reel in reels) {
-    if (!reel.isLive) continue;
+    if (!reel.isLive || reel.isSponsored) continue;
     for (final part in reel.label.split('·')) {
       final term = _tidy(part);
       if (term.isEmpty) continue;

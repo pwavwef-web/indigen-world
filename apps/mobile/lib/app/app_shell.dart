@@ -267,7 +267,7 @@ class _AppShellState extends ConsumerState<AppShell>
                 bottom: onExplore
                     ? MediaQuery.paddingOf(context).bottom + 28
                     : chromeVisible
-                    ? kFrostedNavBarReservedSpace + 6
+                    ? shellBottomReserve(context) + 6
                     : MediaQuery.paddingOf(context).bottom + 16,
                 child: Center(child: ConnectionBanner(onDark: onExplore)),
               ),

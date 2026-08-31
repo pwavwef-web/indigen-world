@@ -306,42 +306,14 @@ async function seed() {
     lifecycle: life('2026-08-20T00:00:00Z'),
   });
 
-  // ── Kassena names and heroes ───────────────────────────────────────────
+  // ── Kassena names ──────────────────────────────────────────────────────
   //
-  // Both are admin-curated in the console; these are what a fresh environment
-  // starts with so the kente ring and the hero-of-the-week card have something
-  // to show. The names match the short list bundled with the mobile app, so a
-  // seeded environment and a phone that has never reached Firebase agree.
-  const kasemNames = [
-    { name: 'Nyaaba', ascii: 'nyaaba', kind: 'given', meaning: '' },
-    { name: 'Atanga', ascii: 'atanga', kind: 'clan', meaning: '' },
-    { name: 'Ayaribisa', ascii: 'ayaribisa', kind: 'clan', meaning: '' },
-    { name: 'Ayine', ascii: 'ayine', kind: 'given', meaning: '' },
-    { name: 'Awine', ascii: 'awine', kind: 'given', meaning: '' },
-    {
-      name: 'Paga',
-      ascii: 'paga',
-      kind: 'place',
-      meaning: 'The town at the northern edge of Kassena country',
-    },
-    {
-      name: 'Navrongo',
-      ascii: 'navrongo',
-      kind: 'place',
-      meaning: 'The seat of the Kassena-Nankana district',
-    },
-    { name: 'Chiana', ascii: 'chiana', kind: 'place', meaning: '' },
-    { name: 'Sirigu', ascii: 'sirigu', kind: 'place', meaning: '' },
-  ];
-  kasemNames.forEach((entry, index) => {
-    batch.set(db.doc(`kasemNames/${entry.ascii}`), {
-      id: entry.ascii,
-      ...entry,
-      order: index + 1,
-      published: true,
-      updatedAt: T,
-    });
-  });
+  // Deliberately not seeded. `kasemNames` is the admin console's collection,
+  // and `claimKasemHandle` honours nothing else — so anything written here is
+  // a handle somebody can really take, off a list nobody curated. This once
+  // seeded nine names to match a list bundled with the mobile app; the bundle
+  // is gone, and a fresh environment now starts with no names on offer, which
+  // is what the app is built to show.
 
   await batch.commit();
   console.log('✓ Seeded creator fixtures into project', PROJECT_ID);

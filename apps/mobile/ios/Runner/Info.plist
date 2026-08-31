@@ -62,6 +62,16 @@
 	</dict>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<!-- iOS silences an app the instant it leaves the foreground unless the app
+	     declares that audio is the reason it wants to keep running. Without
+	     this key a song stops when the screen locks, the Control Centre and
+	     lock-screen controls never appear at all, and there is no error to
+	     read anywhere — the sound simply ends. `audio` is the only mode
+	     claimed; nothing here runs in the background for any other reason. -->
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>audio</string>
+	</array>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>

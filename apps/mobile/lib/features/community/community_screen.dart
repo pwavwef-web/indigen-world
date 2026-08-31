@@ -7,6 +7,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/app/app_shell.dart';
 import 'package:indigen_world_mobile/app/shell_chrome.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
+import 'package:indigen_world_mobile/features/ads/data/ad_campaign.dart';
+import 'package:indigen_world_mobile/features/ads/data/served_ad.dart';
+import 'package:indigen_world_mobile/features/ads/widgets/sponsored_card.dart';
 import 'package:indigen_world_mobile/features/community/community_actions.dart';
 import 'package:indigen_world_mobile/features/community/community_profile_screen.dart';
 import 'package:indigen_world_mobile/features/community/data/chat_providers.dart';
@@ -284,8 +287,8 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
       // The shell extends its body behind the floating glass rail, so the FAB
       // is lifted clear of it.
       floatingActionButton: Padding(
-        padding: const EdgeInsets.only(
-          bottom: kFrostedNavBarReservedSpace - 24,
+        padding: EdgeInsets.only(
+          bottom: shellBottomReserve(context) - 24,
         ),
         // Slides down out of the frame rather than fading in place, so a
         // half-hidden button is never left sitting there to be half-tapped.
@@ -370,11 +373,14 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
                         // writing separated by hairlines, so there is no gutter
                         // to inset and no gap between one post and the next.
                         SliverPadding(
-                          padding: const EdgeInsets.only(
-                            bottom: kFrostedNavBarReservedSpace + 60,
+                          padding: EdgeInsets.only(
+                            bottom: shellBottomReserve(context) + 60,
                           ),
                           sliver: _FeedList(
                             posts: posts,
+                            ads: ref.watch(
+                              placedAdsProvider(AdPlacement.community),
+                            ),
                             likes: likes,
                             saved: saved,
                             reposts: reposts,
@@ -423,6 +429,17 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
   }
 }
 
+/// How many posts a reader passes between adverts.
+///
+/// Deliberately low and deliberately fixed. The Community timeline is where
+/// people write to each other, and the further apart the paid rows are the
+/// longer that stays true; ten is roughly a screenful and a half on a phone, so
+/// an advert is something you scroll to rather than something you scroll past.
+/// [spliceSponsored] places one only after a complete run of ten, so a quiet
+/// morning with six posts in it carries no advert at all — and two can never
+/// land next to each other, whatever the rotation is doing.
+const int kCommunityAdCadence = 10;
+
 /// The timeline itself.
 ///
 /// Pulled out of [CommunityScreen.build] so the list of posts is one widget
@@ -431,6 +448,7 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
 class _FeedList extends StatelessWidget {
   const _FeedList({
     required this.posts,
+    required this.ads,
     required this.likes,
     required this.saved,
     required this.reposts,
@@ -441,6 +459,11 @@ class _FeedList extends StatelessWidget {
   });
 
   final List<CommunityPost> posts;
+
+  /// The adverts cleared for this feed, in the order they should be used.
+  /// Empty whenever Firebase is not up, which is every widget test.
+  final List<ServedAd> ads;
+
   final Set<String> likes;
   final Set<String> saved;
   final Set<String> reposts;
@@ -450,26 +473,45 @@ class _FeedList extends StatelessWidget {
   final void Function(CommunityPost, double, CommunityActions) onSeen;
 
   @override
-  Widget build(BuildContext context) => SliverList.builder(
-    itemCount: posts.length,
-    itemBuilder: (context, index) {
-      final post = posts[index];
-      return VisibilityDetector(
-        key: Key('community-post-${post.id}-$index'),
-        onVisibilityChanged: (info) =>
-            onSeen(post, info.visibleFraction, actions),
-        child: _FeedPost(
-          post: post,
-          liked: likes.contains(post.id),
-          saved: saved.contains(post.id),
-          reposted: reposts.contains(post.id),
-          votedOptionId: pollVotes[post.id],
-          isOwner: currentUid == post.authorId,
-          actions: actions,
-        ),
-      );
-    },
-  );
+  Widget build(BuildContext context) {
+    // Built once per build rather than resolved by arithmetic inside the
+    // builder. A row's index has to mean the same thing to the item count, to
+    // the key and to the reader, and index maths that skips advert slots is the
+    // kind of code that quietly hands post 41 the key of post 40.
+    final rows = spliceSponsored<Object>(
+      rows: posts,
+      ads: ads,
+      cadence: kCommunityAdCadence,
+      render: (ad) => ad,
+    );
+    return SliverList.builder(
+      itemCount: rows.length,
+      itemBuilder: (context, index) {
+        final row = rows[index];
+        // The advert brings its own visibility detector and its own impression
+        // — see [SponsoredCard]. It is emphatically not passed to [onSeen]:
+        // that writes a post view against a post id, and a campaign is neither.
+        if (row is ServedAd) {
+          return SponsoredCard(ad: row, slot: 'community-$index');
+        }
+        final post = row as CommunityPost;
+        return VisibilityDetector(
+          key: Key('community-post-${post.id}-$index'),
+          onVisibilityChanged: (info) =>
+              onSeen(post, info.visibleFraction, actions),
+          child: _FeedPost(
+            post: post,
+            liked: likes.contains(post.id),
+            saved: saved.contains(post.id),
+            reposted: reposts.contains(post.id),
+            votedOptionId: pollVotes[post.id],
+            isOwner: currentUid == post.authorId,
+            actions: actions,
+          ),
+        );
+      },
+    );
+  }
 }
 
 class _FeedPost extends StatelessWidget {

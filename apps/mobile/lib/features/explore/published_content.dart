@@ -62,6 +62,15 @@ class PublishedReel {
   bool get isVideo => mediaType?.toLowerCase() == 'video';
   bool get isImage => mediaType?.toLowerCase() == 'image';
 
+  /// Music and audiobooks: the publication workflow stamps both `audio`.
+  ///
+  /// Asked here rather than with an ad-hoc `mediaType.contains('audio')` at
+  /// each call site, which is how the rest of the app currently spells it. A
+  /// substring test is a looser rule than the one this class documents on
+  /// [mediaType], and three copies of a loose rule drift apart; the exact
+  /// comparison lives beside [isVideo] and [isImage] so all three agree.
+  bool get isAudio => mediaType?.toLowerCase() == 'audio';
+
   /// Still image to show as the reel background / video poster.
   String? get posterUrl {
     if (thumbnailUrl != null && thumbnailUrl!.isNotEmpty) return thumbnailUrl;
@@ -132,9 +141,22 @@ class PublishedContentRepository {
 
   static const feedLimit = 30;
 
+  /// ── Why the video filter is on the query ──────────────────────────────
+  /// Explore is a video surface, so every non-video record this returns is
+  /// thrown away by `explore_feed.dart` a moment later. Filtering only there
+  /// spends the [limit] window on documents nobody will ever see: a language
+  /// that published thirty poems this week would push every reel out of the
+  /// newest thirty and Explore would open empty.
+  ///
+  /// The client filter stays all the same. This one needs a composite index
+  /// that is deployed separately from the app, and an equality filter also
+  /// quietly excludes the older records that carry no `mediaType` at all — so
+  /// what comes back is not something the feed can simply trust. The rule is
+  /// restated there, where it cannot be un-deployed.
   Query<Map<String, dynamic>> _feedQuery(int limit) => _firestore
       .collection('publishedContent')
       .where('publicationStatus', isEqualTo: 'published')
+      .where('mediaType', isEqualTo: 'video')
       .orderBy('publishedAt', descending: true)
       .limit(limit);
 

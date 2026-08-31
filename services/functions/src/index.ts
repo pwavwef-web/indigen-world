@@ -10,6 +10,7 @@ export {
   confirmPhoneVerification,
 } from './phone-verification.js';
 export { claimKasemHandle } from './kasem-handle.js';
+export { setCommunityVerifiedKind } from './community-marks.js';
 export { publicForms } from './public-forms.js';
 export {
   submitCreatorApplication,
@@ -39,6 +40,8 @@ export {
   confirmAdPayment,
   paystackWebhook,
   decideAdCampaign,
+  recordAdEvent,
+  expireAdCampaigns,
 } from './ads.js';
 export { kawuriChat } from './kawuri.js';
 export { onCommunityKawuriMention } from './community-kawuri.js';

@@ -2,7 +2,9 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
+import 'package:indigen_world_mobile/core/media_preferences.dart';
 import 'package:indigen_world_mobile/features/contribute/contribution_upload.dart';
 import 'package:indigen_world_mobile/shared/glass_surface.dart';
 import 'package:just_audio/just_audio.dart';
@@ -20,7 +22,7 @@ import 'package:record/record.dart';
 ///
 /// Optional on purpose. Somewhere with no quiet room, or no microphone
 /// permission to give, must still be able to contribute the word.
-class PronunciationRecorderField extends StatefulWidget {
+class PronunciationRecorderField extends ConsumerStatefulWidget {
   const PronunciationRecorderField({
     required this.file,
     required this.onRecorded,
@@ -43,12 +45,12 @@ class PronunciationRecorderField extends StatefulWidget {
   final bool enabled;
 
   @override
-  State<PronunciationRecorderField> createState() =>
+  ConsumerState<PronunciationRecorderField> createState() =>
       _PronunciationRecorderFieldState();
 }
 
 class _PronunciationRecorderFieldState
-    extends State<PronunciationRecorderField> {
+    extends ConsumerState<PronunciationRecorderField> {
   final _recorder = AudioRecorder();
   AudioPlayer? _player;
 
@@ -62,8 +64,36 @@ class _PronunciationRecorderFieldState
   /// generous enough for a headword plus its example sentence.
   static const _maxLength = Duration(seconds: 30);
 
+  /// The claim held for the whole time this field owns the microphone.
+  ///
+  /// ── Why it covers the preview too, and not just the recording ────────────
+  /// On iOS the recorder sets the audio session to `playAndRecord`, and that
+  /// category applies to the whole process — so a song playing underneath is
+  /// interrupted or re-routed the moment the microphone engages, whatever this
+  /// widget intended. Taking the claim *before* asking for permission means the
+  /// music is already paused by then, rather than being cut off mid-bar by the
+  /// platform. It is held until the field is cleared or torn down, because the
+  /// preview plays through the same session.
+  late final FullScreenMediaCount _audioFocus = ref.read(
+    fullScreenMediaProvider.notifier,
+  );
+  var _claimed = false;
+
+  void _claimAudio() {
+    if (_claimed) return;
+    _claimed = true;
+    _audioFocus.enter();
+  }
+
+  void _releaseAudio() {
+    if (!_claimed) return;
+    _claimed = false;
+    _audioFocus.leave();
+  }
+
   @override
   void dispose() {
+    _releaseAudio();
     _ticker?.cancel();
     unawaited(_recorder.dispose());
     unawaited(_player?.dispose());
@@ -75,6 +105,9 @@ class _PronunciationRecorderFieldState
       : DateTime.now().difference(_startedAt!);
 
   Future<void> _start() async {
+    // Before the permission prompt, and so before the microphone: see
+    // [_audioFocus].
+    _claimAudio();
     setState(() => _error = null);
     // Asked at the moment it is needed, and never fatal: the rest of the entry
     // is still a contribution worth having without it.
@@ -157,6 +190,8 @@ class _PronunciationRecorderFieldState
   }
 
   Future<void> _togglePlayback() async {
+    // The preview shares the session the recording opened.
+    _claimAudio();
     final chosen = widget.file;
     if (chosen == null) return;
     final player = _player ??= AudioPlayer();
@@ -186,6 +221,8 @@ class _PronunciationRecorderFieldState
     await _discardPlayer();
     widget.onCleared();
     if (chosen != null) await _delete(chosen.path);
+    // Nothing left to record or play back, so the speakers go back.
+    _releaseAudio();
     if (mounted) setState(() => _error = null);
   }
 

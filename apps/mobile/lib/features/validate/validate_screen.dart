@@ -145,11 +145,11 @@ class ValidateScreen extends ConsumerWidget {
                 ],
                 AsyncValue(:final value?) => [
                   SliverPadding(
-                    padding: const EdgeInsets.fromLTRB(
+                    padding: EdgeInsets.fromLTRB(
                       18,
                       2,
                       18,
-                      kFrostedNavBarReservedSpace + 24,
+                      shellBottomReserve(context) + 24,
                     ),
                     sliver: SliverList.separated(
                       itemCount: value.length,
@@ -224,11 +224,11 @@ class ValidateScreen extends ConsumerWidget {
         ],
         AsyncValue(:final value?) => [
           SliverPadding(
-            padding: const EdgeInsets.fromLTRB(
+            padding: EdgeInsets.fromLTRB(
               18,
               2,
               18,
-              kFrostedNavBarReservedSpace + 24,
+              shellBottomReserve(context) + 24,
             ),
             sliver: SliverList.separated(
               itemCount: value.length,

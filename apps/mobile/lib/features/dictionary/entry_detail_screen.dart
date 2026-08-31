@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
+import 'package:indigen_world_mobile/core/media_preferences.dart';
 import 'package:indigen_world_mobile/data/repositories.dart';
 import 'package:indigen_world_mobile/domain/dictionary_entry.dart';
 import 'package:indigen_world_mobile/features/collection/collection_data.dart';
@@ -198,24 +199,52 @@ class EntryDetailScreen extends ConsumerWidget {
 /// An entry without one still shows a button rather than nothing at all: an
 /// absence explained in a sentence tells somebody the entry is incomplete,
 /// where a missing control just looks like a feature that is not there.
-class PronunciationButton extends StatefulWidget {
+class PronunciationButton extends ConsumerStatefulWidget {
   const PronunciationButton({required this.audioUrl, super.key});
 
   final String audioUrl;
 
   @override
-  State<PronunciationButton> createState() => _PronunciationButtonState();
+  ConsumerState<PronunciationButton> createState() =>
+      _PronunciationButtonState();
 }
 
-class _PronunciationButtonState extends State<PronunciationButton> {
+class _PronunciationButtonState extends ConsumerState<PronunciationButton> {
   AudioPlayer? _player;
   var _loading = false;
   var _failed = false;
 
+  /// The claim that quiets everything else while a word is said.
+  ///
+  /// A pronunciation is one or two seconds long, and it is the reason somebody
+  /// opened this screen — so it takes the speakers outright rather than talking
+  /// over whatever was playing. The music player pauses on the claim and comes
+  /// back on its own afterwards; see `MusicDuckListener`.
+  late final FullScreenMediaCount _audioFocus = ref.read(
+    fullScreenMediaProvider.notifier,
+  );
+  var _claimed = false;
+  StreamSubscription<PlayerState>? _watching;
+
   bool get _hasAudio => widget.audioUrl.isNotEmpty;
+
+  void _claim() {
+    if (_claimed) return;
+    _claimed = true;
+    _audioFocus.enter();
+  }
+
+  void _release() {
+    if (!_claimed) return;
+    _claimed = false;
+    _audioFocus.leave();
+  }
 
   @override
   void dispose() {
+    // Leaving mid-clip must not hold the claim: the music would never return.
+    _release();
+    _watching?.cancel();
     _player?.dispose();
     super.dispose();
   }
@@ -233,8 +262,17 @@ class _PronunciationButtonState extends State<PronunciationButton> {
       return;
     }
     final player = _player ??= AudioPlayer();
+    // Watched once, so the claim is given back when the clip ends on its own
+    // rather than only when somebody presses pause.
+    _watching ??= player.playerStateStream.listen((state) {
+      if (!state.playing ||
+          state.processingState == ProcessingState.completed) {
+        _release();
+      }
+    });
     if (player.playing) {
       await player.pause();
+      _release();
       if (mounted) setState(() {});
       return;
     }
@@ -249,8 +287,10 @@ class _PronunciationButtonState extends State<PronunciationButton> {
       if (player.processingState == ProcessingState.completed) {
         await player.seek(Duration.zero);
       }
+      _claim();
       unawaited(player.play());
     } on Object {
+      _release();
       if (mounted) setState(() => _failed = true);
     } finally {
       if (mounted) setState(() => _loading = false);

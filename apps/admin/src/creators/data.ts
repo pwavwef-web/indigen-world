@@ -220,24 +220,15 @@ export async function fetchCommunityMembers(handle?: string): Promise<CommunityM
 /**
  * Grants or clears a member's mark.
  *
- * The rules already allow an admin to write `communityProfiles`, so this needs
- * no callable — but it does need an audit entry, because handing somebody the
- * standing of a language custodian is exactly the kind of decision that should
- * be answerable later.
+ * The rules would let an admin write `communityProfiles` from here, but they
+ * let nobody write `auditLogs` — that collection is the server's alone, and
+ * handing somebody the standing of a language custodian is exactly the kind of
+ * decision that should be answerable later. So both writes happen in one
+ * callable, under admin credentials, or neither does.
  */
-export async function setMemberVerifiedKind(
-  uid: string,
-  kind: VerifiedKind,
-  actorUid: string,
-): Promise<void> {
-  await updateDoc(doc(db, 'communityProfiles', uid), { verifiedKind: kind });
-  await addDoc(collection(db, 'auditLogs'), {
-    action: 'community.verifiedKind',
-    actorUid,
-    targetUid: uid,
-    detail: kind || 'cleared',
-    createdAt: new Date().toISOString(),
-  });
+export async function setMemberVerifiedKind(uid: string, kind: VerifiedKind): Promise<void> {
+  const call = httpsCallable<{ uid: string; kind: VerifiedKind }, unknown>(functions, 'setCommunityVerifiedKind');
+  await call({ uid, kind });
 }
 
 // ---------------------------------------------------------------------------

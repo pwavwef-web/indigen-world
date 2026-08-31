@@ -70,6 +70,7 @@ class _ClaimKasemNameScreenState extends ConsumerState<ClaimKasemNameScreen> {
   @override
   Widget build(BuildContext context) {
     final brand = context.brand;
+    final offered = ref.watch(kasemNamesProvider);
     final names = ref.watch(kasemHandleSetProvider);
     final handle = _handle.text.trim();
     final carries = isKasemHandle(handle, names);
@@ -90,14 +91,35 @@ class _ClaimKasemNameScreenState extends ConsumerState<ClaimKasemNameScreen> {
                   style: TextStyle(color: brand.mutedInk, height: 1.5),
                 ),
                 const SizedBox(height: 18),
-                KasemNamePanel(
-                  currentHandle: handle,
-                  title: 'Names to take',
-                  onPick: (ascii) {
-                    _handle.text = ascii;
-                    setState(() => _error = null);
-                  },
-                ),
+                if (offered.isEmpty)
+                  // The panel draws nothing when it has nothing to offer, and
+                  // the list is the admin console's alone — so an empty one is
+                  // a real state, not a moment of loading to be hidden. Left
+                  // unsaid, this screen is a bare handle field with no hint of
+                  // what is supposed to go in it.
+                  Container(
+                    padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+                    decoration: BoxDecoration(
+                      color: brand.surfaceMuted,
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(color: brand.border),
+                    ),
+                    child: Text(
+                      'No Kassena names have been published yet. When they '
+                      'are, they will appear here to choose from — your one '
+                      'change keeps until then.',
+                      style: TextStyle(color: brand.mutedInk, height: 1.5),
+                    ),
+                  )
+                else
+                  KasemNamePanel(
+                    currentHandle: handle,
+                    title: 'Names to take',
+                    onPick: (ascii) {
+                      _handle.text = ascii;
+                      setState(() => _error = null);
+                    },
+                  ),
                 const SizedBox(height: 18),
                 TextField(
                   key: const Key('claim-handle-field'),
@@ -125,6 +147,9 @@ class _ClaimKasemNameScreenState extends ConsumerState<ClaimKasemNameScreen> {
                         carries
                             ? 'This one carries a Kassena name. Your picture '
                                   'gets the ring.'
+                            : offered.isEmpty
+                            ? 'No names to pick from yet — this becomes '
+                                  'available once some are published.'
                             : 'Not a Kassena name yet — pick one above, or '
                                   'build your handle around one.',
                         style: TextStyle(

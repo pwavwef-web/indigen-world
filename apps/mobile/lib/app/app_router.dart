@@ -9,6 +9,7 @@ import 'package:indigen_world_mobile/features/community/post_detail_screen.dart'
 import 'package:indigen_world_mobile/features/contribute/contribute_screen.dart';
 import 'package:indigen_world_mobile/features/dictionary/entry_detail_screen.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_screen.dart';
+import 'package:indigen_world_mobile/features/music/now_playing_screen.dart';
 import 'package:indigen_world_mobile/features/notifications/notifications_screen.dart';
 import 'package:indigen_world_mobile/features/onboarding/startup_gate.dart';
 
@@ -51,6 +52,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/kawuri',
         builder: (context, state) => const KawuriScreen(),
+      ),
+      // A route rather than a `Navigator.push`, for two reasons. The
+      // mini-player that opens it is mounted above the Navigator and cannot
+      // reach a router through context, so it pushes by provider instead; and a
+      // media notification wants somewhere to land when it is tapped.
+      GoRoute(
+        path: '/now-playing',
+        builder: (context, state) => const NowPlayingScreen(),
       ),
       GoRoute(
         path: '/contribute',

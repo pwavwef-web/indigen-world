@@ -32,6 +32,33 @@ const double kFrostedNavBarLabelSize = 9.5;
 const double kFrostedNavBarReservedSpace =
     kFrostedNavBarHeight + kFrostedNavBarBottomGap + 18;
 
+/// How much room the mini-player takes when there is one.
+///
+/// ── Why this is not another constant screens add themselves ────────────────
+/// The mini-player is not always there, so a flat constant would reserve a
+/// strip of dead space on every screen for every member who has never played
+/// anything. Instead the overlay that draws it inflates `MediaQuery.padding`
+/// and the two helpers below read that inflation back out. A screen asks how
+/// much room to leave and gets the honest answer for the moment it is asking.
+///
+/// `viewPadding` is deliberately left alone by the overlay, which is what makes
+/// the delta recoverable: the system inset is still in there unchanged, so the
+/// difference between the two is exactly what the mini-player added.
+const double kMiniPlayerHeight = 56;
+
+/// The vertical space the mini-player is currently claiming, or zero.
+double musicInset(BuildContext context) {
+  final padding = MediaQuery.paddingOf(context).bottom;
+  final view = MediaQuery.viewPaddingOf(context).bottom;
+  final inset = padding - view;
+  return inset > 0 ? inset : 0;
+}
+
+/// What a shell tab should leave under its scrollable content: the rail, plus
+/// the mini-player when one is playing.
+double shellBottomReserve(BuildContext context) =>
+    kFrostedNavBarReservedSpace + musicInset(context);
+
 class FrostedNavBarItem {
   const FrostedNavBarItem({
     required this.label,

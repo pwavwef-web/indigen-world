@@ -86,9 +86,9 @@ class _ContributeScreenState extends ConsumerState<ContributeScreen> {
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: Colors.transparent,
     appBar: widget.standalone ? AppBar(title: const Text('Contribute')) : null,
-    floatingActionButton: const Padding(
-      padding: EdgeInsets.only(bottom: kFrostedNavBarReservedSpace - 26),
-      child: KawuriFab(),
+    floatingActionButton: Padding(
+      padding: EdgeInsets.only(bottom: shellBottomReserve(context) - 26),
+      child: const KawuriFab(),
     ),
     body: ScreenContainer(
       child: ListView(

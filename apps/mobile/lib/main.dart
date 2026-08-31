@@ -1,16 +1,20 @@
 import 'dart:ui';
 
+import 'package:audio_service/audio_service.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/app/indigen_world_app.dart';
 import 'package:indigen_world_mobile/core/app_locale.dart';
 import 'package:indigen_world_mobile/core/app_signature.dart';
+import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/core/firebase_bootstrap.dart';
 import 'package:indigen_world_mobile/core/firebase_ready.dart';
 import 'package:indigen_world_mobile/core/theme_mode.dart';
 import 'package:indigen_world_mobile/data/local/app_database.dart';
 import 'package:indigen_world_mobile/data/local/legacy_preferences_migration.dart';
+import 'package:indigen_world_mobile/features/music/music_audio_handler.dart';
+import 'package:indigen_world_mobile/features/music/music_providers.dart';
 import 'package:indigen_world_mobile/features/rating/rating_service.dart';
 
 Future<void> main() async {
@@ -44,10 +48,54 @@ Future<void> main() async {
     };
   }
 
+  // The background audio session, which has to exist before the first frame
+  // because the media session is a process-level thing rather than a screen.
+  //
+  // Wrapped, and deliberately not fatal. `AudioService.init` reaches all the
+  // way down to a platform service that a device can refuse — a locked-down
+  // OEM build, a foreground service the system will not start, a channel that
+  // never answers — and none of that is a reason for somebody to lose the
+  // dictionary, the community and their lessons as well. When it fails the
+  // override is simply omitted: `musicAudioHandlerProvider` keeps its null
+  // default, every music surface reads that and stands down, and the rest of
+  // the app is untouched. Placed after the Crashlytics handlers are installed
+  // so the failure is something we can actually read afterwards.
+  IndigenAudioHandler? audioHandler;
+  try {
+    audioHandler = await AudioService.init(
+      builder: IndigenAudioHandler.new,
+      config: const AudioServiceConfig(
+        androidNotificationChannelId: IndigenAudioHandler.notificationChannelId,
+        androidNotificationChannelName:
+            IndigenAudioHandler.notificationChannelName,
+        androidNotificationChannelDescription:
+            'Controls for the song or audiobook you are listening to.',
+        // Ongoing while playing, and swipeable once paused — the pair Android
+        // requires be set together for either to mean anything.
+        androidNotificationOngoing: true,
+        androidStopForegroundOnPause: true,
+        // The same silhouette and tint the community alerts use, so the two
+        // notifications read as coming from one app.
+        androidNotificationIcon: 'drawable/ic_notification',
+        notificationColor: BrandColors.kenteGold,
+      ),
+    );
+  } on Object catch (error, stackTrace) {
+    audioHandler = null;
+    if (firebaseReady) {
+      await FirebaseCrashlytics.instance.recordError(error, stackTrace);
+    }
+  }
+
   runApp(
     ProviderScope(
       overrides: [
         appDatabaseProvider.overrideWithValue(database),
+        // Omitted entirely when the session failed to start, which is what
+        // leaves the provider at its test-safe null and the app at "no music
+        // player" rather than "no app".
+        if (audioHandler != null)
+          musicAudioHandlerProvider.overrideWithValue(audioHandler),
         // Without this the provider keeps its test-safe `false` default, and
         // every Firebase-backed surface — sign-in, the community feed, posting,
         // the Explore feed — behaves as though the device were offline no

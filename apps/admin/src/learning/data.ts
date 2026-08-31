@@ -8,6 +8,7 @@ import {
   serverTimestamp,
   setDoc,
 } from 'firebase/firestore';
+import { badLink } from '../collection/data';
 import { db } from '../firebase';
 
 /**
@@ -39,6 +40,16 @@ export const LESSON_ICONS = [
 
 export type LessonIcon = (typeof LESSON_ICONS)[number];
 
+/**
+ * How the app draws a question's options.
+ *
+ * Stored on the question rather than inferred from whether images happen to be
+ * present, because "this is a picture question that is not finished yet" and
+ * "this is a word question" are different states and only the author knows
+ * which one a half-filled question is.
+ */
+export type AnswerLayout = 'text' | 'image';
+
 export interface LessonQuestion {
   prompt: string;
   support: string;
@@ -46,6 +57,37 @@ export interface LessonQuestion {
   /** Index into `answers`. */
   correctAnswer: number;
   explanation: string;
+  /** A picture inside the question itself. Empty when the prompt is words only. */
+  promptImageUrl: string;
+  /** Parallel to `answers`, `''` where an option carries no picture. */
+  answerImages: string[];
+  answerLayout: AnswerLayout;
+}
+
+/**
+ * One option, with its text and its picture held together.
+ *
+ * Answers and their images are two parallel arrays on the document — that is
+ * what the mobile app reads and what older lessons already contain — but every
+ * rule about them ("drop the blanks", "which one is marked correct") is a rule
+ * about the pair. They are zipped into these before anything is decided and
+ * unzipped again on the way out, so the two arrays can never fall out of step.
+ */
+interface AnswerOption {
+  text: string;
+  image: string;
+}
+
+function zipOptions(question: LessonQuestion): AnswerOption[] {
+  return question.answers.map((text, position) => ({
+    text: text.trim(),
+    image: (question.answerImages[position] ?? '').trim(),
+  }));
+}
+
+/** An option with nothing in it at all is a blank slot, not an answer. */
+function isFilled(option: AnswerOption): boolean {
+  return option.text.length > 0 || option.image.length > 0;
 }
 
 export interface Lesson {
@@ -64,7 +106,16 @@ export interface Lesson {
 }
 
 export function emptyQuestion(): LessonQuestion {
-  return { prompt: '', support: '', answers: ['', ''], correctAnswer: 0, explanation: '' };
+  return {
+    prompt: '',
+    support: '',
+    answers: ['', ''],
+    correctAnswer: 0,
+    explanation: '',
+    promptImageUrl: '',
+    answerImages: ['', ''],
+    answerLayout: 'text',
+  };
 }
 
 export function emptyLesson(order: number): Lesson {
@@ -111,12 +162,28 @@ export function lessonProblems(lesson: Lesson): string[] {
   lesson.questions.forEach((question, index) => {
     const label = `Question ${index + 1}`;
     if (!question.prompt.trim()) problems.push(`${label}: add the prompt.`);
-    const answers = question.answers.filter((answer) => answer.trim().length > 0);
-    if (answers.length < 2) problems.push(`${label}: needs at least two answers.`);
-    if (question.correctAnswer < 0 || question.correctAnswer >= question.answers.length) {
+    const options = zipOptions(question);
+    const picture = question.answerLayout === 'image';
+    // A word question is still judged on its words: an image attached to a text
+    // option is decoration the app never draws, so it cannot stand in for the
+    // answer itself. A picture question is judged on its pictures, and its text
+    // is only the label the author uses to tell two photographs apart.
+    const kept = picture ? options.filter(isFilled) : options.filter((option) => option.text.length > 0);
+    if (kept.length < 2) problems.push(`${label}: needs at least two answers.`);
+    if (picture && kept.some((option) => !option.image)) {
+      problems.push(`${label}: every picture answer needs an image.`);
+    }
+    const marked = options[question.correctAnswer];
+    if (!marked) {
       problems.push(`${label}: mark which answer is correct.`);
-    } else if (!question.answers[question.correctAnswer]?.trim()) {
+    } else if (picture ? !isFilled(marked) : !marked.text) {
       problems.push(`${label}: the answer marked correct is empty.`);
+    }
+    if (badLink(question.promptImageUrl)) {
+      problems.push(`${label}: the prompt picture must be a complete https link.`);
+    }
+    if (options.some((option) => badLink(option.image))) {
+      problems.push(`${label}: every answer picture must be a complete https link.`);
     }
   });
   // A published lesson is put in front of learners as guidance, so the bar for
@@ -140,15 +207,26 @@ function normalise(lesson: Lesson): Omit<Lesson, 'id'> {
     published: lesson.published,
     questions: lesson.questions.map((question) => {
       // Empty answer slots are dropped on save, which can move the correct
-      // index — so it is re-resolved against the answer that was marked, not
-      // carried over as a number that now points somewhere else.
-      const marked = question.answers[question.correctAnswer];
-      const answers = question.answers.map((a) => a.trim()).filter((a) => a.length > 0);
-      const correctAnswer = Math.max(0, answers.indexOf((marked ?? '').trim()));
+      // index, so it has to be re-resolved after the filter. This used to be
+      // done by remembering the marked answer's TEXT and finding it again in
+      // the trimmed list, which only worked while an option was nothing but its
+      // text. With pictures it fails twice over: two picture options can both
+      // carry the same (or an empty) label and the match lands on the wrong
+      // one, and an option that is a picture with no label looks like a blank
+      // and gets deleted. The marked option is carried through the filter by
+      // object identity instead — indexOf on the objects, not on the strings —
+      // which stays true whatever an option happens to be made of.
+      const options = zipOptions(question);
+      const marked = options[question.correctAnswer];
+      const kept = options.filter(isFilled);
+      const correctAnswer = marked ? Math.max(0, kept.indexOf(marked)) : 0;
       return {
         prompt: question.prompt.trim(),
         support: question.support.trim(),
-        answers,
+        answers: kept.map((option) => option.text),
+        answerImages: kept.map((option) => option.image),
+        answerLayout: question.answerLayout === 'image' ? ('image' as const) : ('text' as const),
+        promptImageUrl: question.promptImageUrl.trim(),
         correctAnswer,
         explanation: question.explanation.trim(),
       };
@@ -172,13 +250,26 @@ export async function listLessons(): Promise<Lesson[]> {
       iconName: data.iconName ?? 'school',
       published: data.published === true,
       questions: Array.isArray(data.questions)
-        ? data.questions.map((question) => ({
-            prompt: question?.prompt ?? '',
-            support: question?.support ?? '',
-            answers: Array.isArray(question?.answers) ? question.answers : ['', ''],
-            correctAnswer: typeof question?.correctAnswer === 'number' ? question.correctAnswer : 0,
-            explanation: question?.explanation ?? '',
-          }))
+        ? data.questions.map((question) => {
+            const answers = Array.isArray(question?.answers) ? question.answers : ['', ''];
+            const images = Array.isArray(question?.answerImages) ? question.answerImages : [];
+            return {
+              prompt: question?.prompt ?? '',
+              support: question?.support ?? '',
+              answers,
+              // Every lesson written before picture answers existed has no
+              // image array at all, and one written since can have a short one
+              // if an answer was added after the pictures were. Padding to the
+              // answers here means every other line in this console can index
+              // the two arrays together without checking the length first.
+              answerImages: answers.map((_, position) => images[position] ?? ''),
+              answerLayout: question?.answerLayout === 'image' ? ('image' as const) : ('text' as const),
+              promptImageUrl: question?.promptImageUrl ?? '',
+              correctAnswer:
+                typeof question?.correctAnswer === 'number' ? question.correctAnswer : 0,
+              explanation: question?.explanation ?? '',
+            };
+          })
         : [emptyQuestion()],
     };
   });

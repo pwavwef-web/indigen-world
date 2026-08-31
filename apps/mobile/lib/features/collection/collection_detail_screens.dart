@@ -9,6 +9,8 @@ import 'package:indigen_world_mobile/features/community/widgets/community_avatar
 import 'package:indigen_world_mobile/features/contribute/contribute_screen.dart';
 import 'package:indigen_world_mobile/features/dictionary/entry_detail_screen.dart';
 import 'package:indigen_world_mobile/features/explore/published_content.dart';
+import 'package:indigen_world_mobile/features/music/music_controller.dart';
+import 'package:indigen_world_mobile/features/music/music_providers.dart';
 import 'package:indigen_world_mobile/shared/app_widgets.dart';
 import 'package:video_player/video_player.dart';
 
@@ -510,7 +512,14 @@ class CollectionItemDetailScreen extends StatelessWidget {
       child: ListView(
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 42),
         children: [
-          _CollectionMedia(item: item, kind: kind),
+          // Audio is handed to the shared player; only video still gets a
+          // controller of its own here. A song that played from this screen
+          // died the moment somebody navigated away from it, which is the
+          // whole reason the music player exists.
+          if (_playsAsMusic(item, kind))
+            _CollectionAudioHeader(item: item, kind: kind)
+          else
+            _CollectionMedia(item: item, kind: kind),
           const SizedBox(height: 22),
           Text(
             item.category.isEmpty
@@ -570,6 +579,107 @@ class CollectionItemDetailScreen extends StatelessWidget {
   };
 }
 
+/// Whether this record belongs to the shared music player rather than to a
+/// route-scoped video controller.
+///
+/// Keyed on the media rather than only on the channel: Literature occasionally
+/// carries a reading, and a member who taps play on one wants it to survive
+/// them leaving the page exactly as a song does.
+bool _playsAsMusic(PublishedReel item, CollectionKind kind) =>
+    item.isAudio && (item.mediaUrl?.isNotEmpty ?? false);
+
+/// The play control for a published recording.
+///
+/// Holds no controller at all. Tapping it hands the whole channel to the music
+/// player with this record as the starting point, so the rest of the collection
+/// is queued behind it and the mini-player takes over from there.
+class _CollectionAudioHeader extends ConsumerWidget {
+  const _CollectionAudioHeader({required this.item, required this.kind});
+
+  final PublishedReel item;
+  final CollectionKind kind;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final nowPlaying = ref.watch(musicMediaItemProvider).asData?.value;
+    final isCurrent = nowPlaying?.id == item.id;
+    final playing = isCurrent && ref.watch(musicIsPlayingProvider);
+
+    // The siblings this record should be queued with, read from the same
+    // provider the list screen was built from. Watching it here rather than
+    // threading a list down through three constructors keeps the card, the
+    // list and this screen all agreeing about what the channel contains.
+    final siblings =
+        (kind == CollectionKind.audiobooks
+                ? ref.watch(audiobookCollectionProvider)
+                : ref.watch(musicCollectionProvider))
+            .asData
+            ?.value ??
+        const <PublishedReel>[];
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(26),
+      child: AspectRatio(
+        aspectRatio: 16 / 10,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            if (item.posterUrl case final poster? when poster.isNotEmpty)
+              CachedNetworkImage(
+                imageUrl: poster,
+                fit: BoxFit.cover,
+                errorWidget: (_, _, _) => _MediaFallback(kind: kind),
+              )
+            else
+              _MediaFallback(kind: kind),
+            Container(color: Colors.black.withValues(alpha: 0.28)),
+            Center(
+              child: IconButton.filled(
+                iconSize: 44,
+                tooltip: playing ? 'Pause' : 'Play',
+                onPressed: () {
+                  final controller = ref.read(musicControllerProvider.notifier);
+                  if (playing) {
+                    controller.pause();
+                    return;
+                  }
+                  if (isCurrent) {
+                    controller.play();
+                    return;
+                  }
+                  // Falls back to this record alone when the channel has not
+                  // arrived yet, so the button always does something.
+                  final queue = siblings.isEmpty ? [item] : siblings;
+                  final index = queue.indexWhere((sibling) => sibling.id == item.id);
+                  controller.playCollection(
+                    queue,
+                    startIndex: index < 0 ? 0 : index,
+                    kind: kind,
+                  );
+                },
+                icon: Icon(
+                  playing ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                ),
+              ),
+            ),
+            if (item.mediaUrl == null || item.mediaUrl!.isEmpty)
+              const Align(
+                alignment: Alignment.bottomCenter,
+                child: Padding(
+                  padding: EdgeInsets.all(12),
+                  child: Text(
+                    'This recording is still being processed.',
+                    style: TextStyle(color: Colors.white, fontSize: 12),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _CollectionMedia extends StatefulWidget {
   const _CollectionMedia({required this.item, required this.kind});
 
@@ -584,11 +694,11 @@ class _CollectionMediaState extends State<_CollectionMedia> {
   VideoPlayerController? _controller;
   Future<void>? _initializing;
 
-  bool get _canPlay {
-    final type = widget.item.mediaType?.toLowerCase() ?? '';
-    return widget.item.mediaUrl != null &&
-        (type.contains('audio') || type.contains('video'));
-  }
+  /// Video only now. Audio goes to the shared player — see
+  /// [_CollectionAudioHeader] — so this widget no longer opens a
+  /// `VideoPlayerController` for a file that has no pictures in it.
+  bool get _canPlay =>
+      widget.item.mediaUrl != null && widget.item.isVideo;
 
   @override
   void initState() {

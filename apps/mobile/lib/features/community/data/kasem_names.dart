@@ -14,6 +14,13 @@ import 'package:indigen_world_mobile/core/firebase_ready.dart';
 /// admin console rather than derived from the dictionary, because a dictionary
 /// headword is a common noun and taking one as a handle is not the same act as
 /// carrying a name your grandmother would recognise.
+///
+/// Nothing is bundled with the app, and nothing may be. `claimKasemHandle`
+/// checks a claim against `kasemNames where published == true` and against
+/// nothing else, so a name offered from any other source is a name the server
+/// then refuses. A list shipped in the app once did exactly that: nine names on
+/// offer that the callable had never heard of, every one of them turned away at
+/// the door. The published collection is the only list there is.
 class KasemName {
   const KasemName({
     required this.name,
@@ -120,34 +127,6 @@ bool isKasemHandle(String username, Set<String> names) {
   return false;
 }
 
-/// What ships in the app, so the ring works offline and on the day this lands.
-///
-/// Deliberately short, and deliberately drawn from names and places the project
-/// already uses in its own material rather than from anything invented here.
-/// The real list is curated in the admin console; this is what stands in until
-/// there is one, and everything in it is superseded the moment there is.
-const bundledKasemNames = <KasemName>[
-  KasemName(name: 'Nyaaba', ascii: 'nyaaba'),
-  KasemName(name: 'Atanga', ascii: 'atanga', kind: 'clan'),
-  KasemName(name: 'Ayaribisa', ascii: 'ayaribisa', kind: 'clan'),
-  KasemName(name: 'Ayine', ascii: 'ayine'),
-  KasemName(name: 'Awine', ascii: 'awine'),
-  KasemName(
-    name: 'Paga',
-    ascii: 'paga',
-    kind: 'place',
-    meaning: 'The town at the northern edge of Kassena country',
-  ),
-  KasemName(
-    name: 'Navrongo',
-    ascii: 'navrongo',
-    kind: 'place',
-    meaning: 'The seat of the Kassena-Nankana district',
-  ),
-  KasemName(name: 'Chiana', ascii: 'chiana', kind: 'place'),
-  KasemName(name: 'Sirigu', ascii: 'sirigu', kind: 'place'),
-];
-
 class KasemNamesRepository {
   const KasemNamesRepository(this._firestore);
 
@@ -171,23 +150,19 @@ final kasemNamesRepositoryProvider = Provider<KasemNamesRepository?>((ref) {
   return KasemNamesRepository(FirebaseFirestore.instance);
 });
 
-/// The curated list, with the bundled seed behind it.
+/// The published list, and nothing beside it.
 ///
-/// The seed is not replaced by the published list, it is *added to* it: a name
-/// somebody already took should not stop earning its ring because the curated
-/// collection was reorganised.
-final kasemNamesProvider = Provider<List<KasemName>>((ref) {
-  final repository = ref.watch(kasemNamesRepositoryProvider);
-  final published = repository == null
-      ? const <KasemName>[]
-      : ref.watch(_publishedKasemNamesProvider).asData?.value ??
-            const <KasemName>[];
-  final byAscii = <String, KasemName>{
-    for (final name in bundledKasemNames) name.ascii: name,
-    for (final name in published) name.ascii: name,
-  };
-  return List.unmodifiable(byAscii.values);
-});
+/// This used to merge a list bundled with the app underneath the published one,
+/// which meant the bundled names were always in the offered set — the panel
+/// offered nine names the callable had never heard of, and every claim on one
+/// came back "This is only for taking a Kassena name." Before Firebase answers,
+/// and while the collection is empty, this is empty, and the screens above say
+/// so rather than offering a name that will be refused.
+final kasemNamesProvider = Provider<List<KasemName>>(
+  (ref) =>
+      ref.watch(_publishedKasemNamesProvider).asData?.value ??
+      const <KasemName>[],
+);
 
 final _publishedKasemNamesProvider = StreamProvider<List<KasemName>>((ref) {
   final repository = ref.watch(kasemNamesRepositoryProvider);

@@ -451,11 +451,11 @@ class _OverviewTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) => ListView(
     key: const PageStorageKey('profile-overview-scroll'),
-    padding: const EdgeInsets.fromLTRB(
+    padding: EdgeInsets.fromLTRB(
       18,
       8,
       18,
-      kFrostedNavBarReservedSpace + 28,
+      shellBottomReserve(context) + 28,
     ),
     children: [
       _ProfileHero(data: data),
@@ -561,11 +561,11 @@ class _CommunityTab extends StatelessWidget {
     final profile = data.communityProfile;
     return ListView(
       key: const PageStorageKey('profile-community-scroll'),
-      padding: const EdgeInsets.fromLTRB(
+      padding: EdgeInsets.fromLTRB(
         18,
         8,
         18,
-        kFrostedNavBarReservedSpace + 28,
+        shellBottomReserve(context) + 28,
       ),
       children: [
         const _TabIntro(
@@ -669,11 +669,11 @@ class _SettingsTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) => ListView(
     key: const PageStorageKey('profile-settings-scroll'),
-    padding: const EdgeInsets.fromLTRB(
+    padding: EdgeInsets.fromLTRB(
       18,
       8,
       18,
-      kFrostedNavBarReservedSpace + 28,
+      shellBottomReserve(context) + 28,
     ),
     children: [
       const _TabIntro(

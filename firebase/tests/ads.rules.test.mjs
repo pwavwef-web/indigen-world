@@ -72,6 +72,27 @@ function makeCampaign(ownerUid, overrides = {}) {
   };
 }
 
+// The public projection of a campaign that is actually running. Deliberately
+// none of the campaign's money: no budget, no payment, no owner, no metrics.
+function makePlacement(campaignId, overrides = {}) {
+  return {
+    campaignId,
+    headline: 'Pure shea from Paga',
+    body: 'Cold-pressed, unrefined, sold by the tin.',
+    ctaLabel: 'Ask for it',
+    ctaUrl: '',
+    objective: 'awareness',
+    placements: ['community'],
+    regions: ['Upper East'],
+    creativeUrl: 'https://firebasestorage.googleapis.com/v0/b/demo/o/ad-creatives',
+    mediaType: 'image',
+    startsAt: '2026-01-01T00:00:00.000Z',
+    endsAt: '2026-01-08T00:00:00.000Z',
+    active: true,
+    ...overrides,
+  };
+}
+
 let env;
 
 before(async () => {
@@ -84,6 +105,11 @@ before(async () => {
   // disabled — exactly as the callable does in production.
   await env.withSecurityRulesDisabled(async (ctx) => {
     await setDoc(doc(ctx.firestore(), 'adCampaigns/campaign-1'), makeCampaign(ADVERTISER));
+    await setDoc(doc(ctx.firestore(), 'adPlacements/campaign-1'), makePlacement('campaign-1'));
+    await setDoc(
+      doc(ctx.firestore(), 'adPlacements/campaign-paused'),
+      makePlacement('campaign-paused', { active: false }),
+    );
   });
 });
 
@@ -163,4 +189,52 @@ test('a campaign cannot be deleted from a client', async () => {
   // a campaign that was live has to stay accountable for having been live.
   const owner = env.authenticatedContext(ADVERTISER);
   await assertFails(deleteDoc(doc(db(owner), 'adCampaigns/campaign-1')));
+});
+
+// ── Placements ──────────────────────────────────────────────────────────────
+//
+// The other half of the model: the campaign stays private, and what it bought
+// is served from a separate document that carries nothing worth hiding.
+
+test('anyone at all can read a running advert', async () => {
+  // Including signed out. An advertiser paid to reach the whole audience, and
+  // a guest scrolling Explore is part of that audience.
+  await assertSucceeds(
+    getDoc(doc(db(env.unauthenticatedContext()), 'adPlacements/campaign-1')),
+  );
+  await assertSucceeds(
+    getDoc(doc(db(env.authenticatedContext(STRANGER)), 'adPlacements/campaign-1')),
+  );
+});
+
+test('a paused advert is readable by nobody but staff', async () => {
+  // `active: false` is how a pause takes an advert out of the feed, so a reader
+  // who can still fetch the document has been served something a reviewer
+  // stopped.
+  await assertFails(
+    getDoc(doc(db(env.unauthenticatedContext()), 'adPlacements/campaign-paused')),
+  );
+  await assertFails(
+    getDoc(doc(db(env.authenticatedContext(STRANGER)), 'adPlacements/campaign-paused')),
+  );
+  const staff = env.authenticatedContext(VALIDATOR, { role: 'admin' });
+  await assertSucceeds(getDoc(doc(db(staff), 'adPlacements/campaign-paused')));
+});
+
+test('no client may write a placement', async () => {
+  // The projection is derived from a reviewed, paid campaign. A client that
+  // could write one could put unreviewed copy in front of everybody, with no
+  // campaign and no payment behind it.
+  const owner = env.authenticatedContext(ADVERTISER);
+  const staff = env.authenticatedContext(VALIDATOR, { role: 'admin' });
+  await assertFails(
+    setDoc(doc(db(owner), 'adPlacements/campaign-self'), makePlacement('campaign-self')),
+  );
+  await assertFails(
+    updateDoc(doc(db(owner), 'adPlacements/campaign-1'), { headline: 'Free delivery' }),
+  );
+  await assertFails(
+    updateDoc(doc(db(staff), 'adPlacements/campaign-paused'), { active: true }),
+  );
+  await assertFails(deleteDoc(doc(db(owner), 'adPlacements/campaign-1')));
 });

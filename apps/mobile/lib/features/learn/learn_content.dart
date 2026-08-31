@@ -17,6 +17,9 @@ class LessonQuestion {
     required this.correctAnswer,
     this.support = '',
     this.explanation = '',
+    this.promptImageUrl = '',
+    this.answerImages = const [],
+    this.answerLayout = 'text',
   });
 
   final String prompt;
@@ -33,27 +36,76 @@ class LessonQuestion {
   /// Shown after the answer is checked, right or wrong.
   final String explanation;
 
+  /// A picture belonging to the question itself, drawn under the support line.
+  final String promptImageUrl;
+
+  /// Parallel to [answers], `''` where an option has no picture.
+  final List<String> answerImages;
+
+  /// `'text'` or `'image'`. Anything else is read as text, which is what makes
+  /// this safe to add: a build that has never heard of picture answers, and any
+  /// value a later one invents, still draws something a member can answer.
+  final String answerLayout;
+
+  bool get isPictureAnswers => answerLayout == 'image';
+
+  /// The picture for one option, `''` when it has none or the arrays are short.
+  String imageFor(int index) =>
+      index >= 0 && index < answerImages.length ? answerImages[index] : '';
+
+  /// A picture question with a missing picture is an option nobody can choose,
+  /// so it fails here and [Lesson.fromDoc] drops it — a half-authored question
+  /// disappears instead of putting a blank square in front of a learner and
+  /// then marking them wrong for guessing.
   bool get isValid =>
       prompt.trim().isNotEmpty &&
       answers.length >= 2 &&
       correctAnswer >= 0 &&
-      correctAnswer < answers.length;
+      correctAnswer < answers.length &&
+      (!isPictureAnswers ||
+          (answerImages.length == answers.length &&
+              answerImages.every((image) => image.trim().isNotEmpty)));
 
-  static LessonQuestion fromMap(Map<String, Object?> data) => LessonQuestion(
-    prompt: _text(data['prompt']),
-    support: _text(data['support']),
-    answers: (data['answers'] as List<Object?>? ?? const [])
+  static LessonQuestion fromMap(Map<String, Object?> data) {
+    final rawAnswers = (data['answers'] as List<Object?>? ?? const [])
         .map(_text)
-        .where((answer) => answer.isNotEmpty)
-        .toList(growable: false),
-    correctAnswer: _int(data['correctAnswer']),
-    explanation: _text(data['explanation']),
-  );
+        .toList(growable: false);
+    final rawImages = (data['answerImages'] as List<Object?>? ?? const [])
+        .map(_text)
+        .toList(growable: false);
+    // The answers and their pictures are two lists on the document describing
+    // one row of options, so a blank slot has to leave both at once. Filtering
+    // the answers on their own — which is what this did while an option was
+    // nothing but its text — would slide every picture after the blank up one
+    // place and quietly attach it to the wrong answer.
+    final answers = <String>[];
+    final images = <String>[];
+    for (var index = 0; index < rawAnswers.length; index++) {
+      final answer = rawAnswers[index];
+      final image = index < rawImages.length ? rawImages[index] : '';
+      if (answer.isEmpty && image.isEmpty) continue;
+      answers.add(answer);
+      images.add(image);
+    }
+    return LessonQuestion(
+      prompt: _text(data['prompt']),
+      support: _text(data['support']),
+      answers: List.unmodifiable(answers),
+      answerImages: List.unmodifiable(images),
+      answerLayout: _text(data['answerLayout'], fallback: 'text'),
+      promptImageUrl: _text(data['promptImageUrl']),
+      correctAnswer: _int(data['correctAnswer']),
+      explanation: _text(data['explanation']),
+    );
+  }
 
   Map<String, Object?> toMap() => {
     'prompt': prompt,
     'support': support,
     'answers': answers,
+    'answerImages': answerImages,
+    'answerLayout': answerLayout,
+    'promptImageUrl': promptImageUrl,
     'correctAnswer': correctAnswer,
     'explanation': explanation,
   };

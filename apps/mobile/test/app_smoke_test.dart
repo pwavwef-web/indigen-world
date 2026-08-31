@@ -140,7 +140,10 @@ void main() {
     );
     await tester.pump(const Duration(milliseconds: 400));
 
-    expect(find.text('THE KASSENA COLLECTION'), findsOneWidget);
+    // The tab's name, and no slogan under it. It used to be the eyebrow over
+    // "Knowledge, kept alive." and so arrived here upper-cased; it is the
+    // heading itself now, in the case somebody actually wrote it in.
+    expect(find.text('The Kassena Collection'), findsOneWidget);
     expect(find.text('Music'), findsOneWidget);
     expect(find.text('Dictionary'), findsOneWidget);
     final collectionScroll = find.descendant(

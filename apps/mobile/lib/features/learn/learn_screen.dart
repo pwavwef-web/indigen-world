@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:ui' show ImageFilter;
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -106,9 +107,9 @@ class _LearnScreenState extends ConsumerState<LearnScreen> {
       backgroundColor: Colors.transparent,
       // Lifted clear of the shell's floating glass rail, which the body extends
       // behind.
-      floatingActionButton: const Padding(
-        padding: EdgeInsets.only(bottom: kFrostedNavBarReservedSpace - 26),
-        child: KawuriFab(),
+      floatingActionButton: Padding(
+        padding: EdgeInsets.only(bottom: shellBottomReserve(context) - 26),
+        child: const KawuriFab(),
       ),
       body: ScreenContainer(child: _path()),
     );
@@ -2261,29 +2262,69 @@ class _LessonScreenState extends State<_LessonScreen> {
                                 ),
                               ),
                             ],
-                            const SizedBox(height: 22),
-                            for (
-                              var index = 0;
-                              index < _current.answers.length;
-                              index++
-                            ) ...[
-                              _AnswerTile(
-                                // Keyed by question as well as position, so
-                                // moving to the next card rebuilds the tiles
-                                // rather than animating the previous answer's
-                                // colours into the new one.
-                                key: ValueKey('q${_question}_a$index'),
-                                index: index,
-                                answer: _current.answers[index],
-                                selected: _selected == index,
-                                checked: _checked,
-                                correct: index == _current.correctAnswer,
-                                onTap: _checked
-                                    ? null
-                                    : () => setState(() => _selected = index),
-                              ),
-                              const SizedBox(height: 10),
+                            if (_current.promptImageUrl.isNotEmpty) ...[
+                              const SizedBox(height: 14),
+                              _PromptImage(url: _current.promptImageUrl),
                             ],
+                            const SizedBox(height: 22),
+                            // Words stack; pictures go two to a row. A
+                            // photograph in a full-width row is either postage
+                            // stamp sized or pushes the check button off the
+                            // bottom of the screen, and a member comparing two
+                            // pictures wants them side by side anyway.
+                            if (_current.isPictureAnswers)
+                              GridView.count(
+                                crossAxisCount: 2,
+                                shrinkWrap: true,
+                                // The grid sits inside the lesson's own
+                                // scroller, so it must not try to scroll too.
+                                physics: const NeverScrollableScrollPhysics(),
+                                mainAxisSpacing: 10,
+                                crossAxisSpacing: 10,
+                                childAspectRatio: 0.92,
+                                children: [
+                                  for (
+                                    var index = 0;
+                                    index < _current.answers.length;
+                                    index++
+                                  )
+                                    _AnswerImageTile(
+                                      key: ValueKey('q${_question}_a$index'),
+                                      index: index,
+                                      imageUrl: _current.imageFor(index),
+                                      selected: _selected == index,
+                                      checked: _checked,
+                                      correct: index == _current.correctAnswer,
+                                      onTap: _checked
+                                          ? null
+                                          : () =>
+                                                setState(() => _selected = index),
+                                    ),
+                                ],
+                              )
+                            else
+                              for (
+                                var index = 0;
+                                index < _current.answers.length;
+                                index++
+                              ) ...[
+                                _AnswerTile(
+                                  // Keyed by question as well as position, so
+                                  // moving to the next card rebuilds the tiles
+                                  // rather than animating the previous answer's
+                                  // colours into the new one.
+                                  key: ValueKey('q${_question}_a$index'),
+                                  index: index,
+                                  answer: _current.answers[index],
+                                  selected: _selected == index,
+                                  checked: _checked,
+                                  correct: index == _current.correctAnswer,
+                                  onTap: _checked
+                                      ? null
+                                      : () => setState(() => _selected = index),
+                                ),
+                                const SizedBox(height: 10),
+                              ],
                             AnimatedSwitcher(
                               duration: const Duration(milliseconds: 220),
                               child: !_checked
@@ -2707,6 +2748,176 @@ class _AnswerTile extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// One picture option.
+///
+/// Every colour here is lifted from [_AnswerTile] rather than chosen again:
+/// selected is gold, right is the success green, wrong is terracotta, and an
+/// untouched option is the divider. A picture question is the same screen with
+/// different options on it, and a second palette for "you picked this one"
+/// would make it feel like a different app the first time a lesson used one.
+///
+/// What does change is where things sit. There is no row left to put the number
+/// and the reveal tick in, so they go on opposite corners of the picture, on
+/// their own solid ground — a numeral drawn straight onto a photograph is
+/// legible until the photograph is of a white goat.
+class _AnswerImageTile extends StatelessWidget {
+  const _AnswerImageTile({
+    required this.index,
+    super.key,
+    required this.imageUrl,
+    required this.selected,
+    required this.checked,
+    required this.correct,
+    required this.onTap,
+  });
+
+  final int index;
+  final String imageUrl;
+  final bool selected;
+  final bool checked;
+  final bool correct;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final revealCorrect = checked && correct;
+    final revealWrong = checked && selected && !correct;
+    final borderColor = revealCorrect
+        ? context.brand.success
+        : revealWrong
+        ? context.brand.terracotta
+        : selected
+        ? context.brand.gold
+        : context.brand.divider;
+    return Semantics(
+      // Deliberately the option's position and not the label the admin gave the
+      // picture. That label is nearly always the name of the thing in it, so
+      // reading it out would hand a screen reader user the answer to a question
+      // whose whole point is recognising what they are looking at.
+      label: 'Option ${index + 1}',
+      button: true,
+      selected: selected,
+      child: Material(
+        color: revealCorrect
+            ? context.brand.success.withValues(alpha: 0.08)
+            : revealWrong
+            ? context.brand.terracotta.withValues(alpha: 0.08)
+            : context.brand.surface,
+        borderRadius: BorderRadius.circular(17),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(17),
+          onTap: onTap,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(17),
+              border: Border.all(
+                color: borderColor,
+                width: selected || revealCorrect ? 2 : 1,
+              ),
+            ),
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: _LessonImage(url: imageUrl),
+                ),
+                Positioned(
+                  left: 6,
+                  top: 6,
+                  child: Container(
+                    width: 28,
+                    height: 28,
+                    decoration: BoxDecoration(
+                      color: context.brand.surface,
+                      borderRadius: BorderRadius.circular(9),
+                      border: Border.all(
+                        color: borderColor.withValues(alpha: 0.45),
+                      ),
+                    ),
+                    child: Center(
+                      child: Text(
+                        '${index + 1}',
+                        style: TextStyle(
+                          color: borderColor,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                if (revealCorrect || revealWrong)
+                  Positioned(
+                    right: 6,
+                    top: 6,
+                    child: CircleAvatar(
+                      radius: 14,
+                      backgroundColor: context.brand.surface,
+                      child: Icon(
+                        revealCorrect
+                            ? Icons.check_circle_rounded
+                            : Icons.cancel_rounded,
+                        color: revealCorrect
+                            ? context.brand.success
+                            : context.brand.terracotta,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A picture belonging to the question, above the options.
+class _PromptImage extends StatelessWidget {
+  const _PromptImage({required this.url});
+
+  final String url;
+
+  @override
+  Widget build(BuildContext context) => ClipRRect(
+    borderRadius: BorderRadius.circular(17),
+    child: AspectRatio(aspectRatio: 16 / 10, child: _LessonImage(url: url)),
+  );
+}
+
+/// A lesson picture, with the same thing drawn while it loads and if it never
+/// does. A question that has lost its network is still a question — a broken
+/// image icon in the middle of a lesson reads as the app being broken, not as
+/// the picture being missing.
+class _LessonImage extends StatelessWidget {
+  const _LessonImage({required this.url});
+
+  final String url;
+
+  @override
+  Widget build(BuildContext context) {
+    final fallback = ColoredBox(
+      color: context.brand.divider.withValues(alpha: 0.25),
+      child: Center(
+        child: Icon(
+          Icons.image_outlined,
+          color: context.brand.mutedInk,
+          size: 26,
+        ),
+      ),
+    );
+    if (url.isEmpty) return fallback;
+    return CachedNetworkImage(
+      imageUrl: url,
+      fit: BoxFit.cover,
+      placeholder: (context, _) => fallback,
+      errorWidget: (context, _, _) => fallback,
     );
   }
 }

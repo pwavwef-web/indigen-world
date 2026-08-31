@@ -25,7 +25,18 @@ void main() {
 
       expect(find.text('Music'), findsOneWidget);
       expect(find.text('Dictionary'), findsOneWidget);
-      expect(find.text('Live · published only'), findsOneWidget);
+
+      // The tab opens with its own name and nothing else. The slogan that used
+      // to be the heading is gone, and so is the connection strip that sat
+      // under it: "Live · published only" was true on every launch, which is
+      // what made it worth reading to nobody. A collection that fails now says
+      // so on its own tile.
+      expect(find.text('The Kassena Collection'), findsOneWidget);
+      // It was the eyebrow, in caps above the slogan; now it is the heading.
+      expect(find.text('THE KASSENA COLLECTION'), findsNothing);
+      expect(find.text('Knowledge, kept alive.'), findsNothing);
+      expect(find.text('Live · published only'), findsNothing);
+      expect(find.text('Refreshing…'), findsNothing);
 
       // Scrolled to rather than dragged by a fixed offset: the tiles got
       // shorter when the three-line description came off them, and a hard-coded

@@ -512,6 +512,24 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // ---- Ad placements: the public face of a campaign that is running -------
+    //
+    // The projection ads.ts writes when a paid campaign is approved: headline,
+    // artwork, link, and the audience it was bought for. No budget, no payment
+    // state, no owner and no impression count, because a phone that renders an
+    // advert has no use for any of it and everything published here is readable
+    // by the whole world — signed out included, since a guest scrolling Explore
+    // is part of what the advertiser paid to reach.
+    //
+    // `active` is the switch a pause flips. The campaign carries on existing
+    // and staff can still see what it says, but it stops being servable, which
+    // is the same thing as leaving the feed. Deletion is for the ends a
+    // campaign never comes back from.
+    match /adPlacements/{campaignId} {
+      allow read: if resource.data.get('active', false) == true || isStaff();
+      allow write: if false;
+    }
+
     // ---- Notifications: owner reads own; owner may only flip `read` ----------
     match /notifications/{notificationId} {
       allow read: if isStaff() || (

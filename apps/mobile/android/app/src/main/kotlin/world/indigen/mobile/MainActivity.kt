@@ -2,7 +2,7 @@ package world.indigen.mobile
 
 import android.content.pm.PackageManager
 import android.os.Build
-import io.flutter.embedding.android.FlutterActivity
+import com.ryanheise.audioservice.AudioServiceActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 import java.security.MessageDigest
@@ -26,7 +26,20 @@ import java.security.MessageDigest
  */
 private const val DIAGNOSTICS_CHANNEL = "world.indigen.mobile/app_signature"
 
-class MainActivity : FlutterActivity() {
+/**
+ * Extends [AudioServiceActivity] rather than `FlutterActivity` so that a song
+ * survives leaving the app.
+ *
+ * The playback service and the UI have to be talking to the *same* Flutter
+ * engine — the handler that owns the player lives in Dart, and a second engine
+ * would give the notification a player nobody on screen can see. So
+ * [AudioServiceActivity] overrides one method, `provideFlutterEngine`, to hand
+ * back the engine the audio_service plugin already holds.
+ *
+ * It changes nothing else: it is a plain `FlutterActivity` subclass, so the
+ * signature channel below is configured exactly as it was.
+ */
+class MainActivity : AudioServiceActivity() {
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, DIAGNOSTICS_CHANNEL)

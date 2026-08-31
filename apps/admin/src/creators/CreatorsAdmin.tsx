@@ -330,12 +330,11 @@ function MembersTab({ role, notify }: { role: AdminRole; notify: (m: string) => 
 
   const grant = async (row: CommunityMemberRow, kind: VerifiedKind) => {
     if (!isAdmin(role)) { notify('Admin access required.'); return; }
-    const actorUid = auth.currentUser?.uid;
-    if (!actorUid) { notify('Sign in again.'); return; }
+    if (!auth.currentUser) { notify('Sign in again.'); return; }
     if (kind === 'project' && !window.confirm(`Mark @${row.username} as the project itself?`)) return;
     setBusy(row.uid);
     try {
-      await setMemberVerifiedKind(row.uid, kind, actorUid);
+      await setMemberVerifiedKind(row.uid, kind);
       setRows((current) => current.map((r) => (r.uid === row.uid ? { ...r, verifiedKind: kind } : r)));
       notify(kind ? `@${row.username} is now ${VERIFIED_KIND_LABELS[kind].toLowerCase()}.` : `Mark cleared for @${row.username}.`);
     } catch (err) {
