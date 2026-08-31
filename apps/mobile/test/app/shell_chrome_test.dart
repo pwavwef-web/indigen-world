@@ -110,6 +110,32 @@ void main() {
     await tester.pump(const Duration(milliseconds: 500));
   });
 
+  testWidgets('the composer sits just above the rail, not a screen above it', (
+    tester,
+  ) async {
+    await pumpShell(tester);
+
+    final composer = tester.getRect(find.byType(FloatingActionButton));
+    final railBox = tester.getRect(find.byType(FrostedNavBar));
+    // The rail floats inside its own box, above the gap and the system inset.
+    final railTop =
+        railBox.bottom -
+        kFrostedNavBarBottomGap -
+        kFrostedNavBarHeight -
+        MediaQuery.viewPaddingOf(tester.element(find.byType(FrostedNavBar)))
+            .bottom;
+
+    // Clear of the rail, and only just: the shell reserves the rail once, and
+    // a mini-player only when one is playing. It used to reserve the rail
+    // twice — Scaffold's `extendBody` had already put its height into
+    // `MediaQuery.padding`, and the helper that measured the mini-player
+    // counted that as music — which parked the button a third of the way up
+    // the screen for members who had never played anything.
+    expect(composer.bottom, lessThan(railTop));
+    expect(railTop - composer.bottom, lessThan(kFrostedNavBarHeight));
+    await tester.pump(const Duration(milliseconds: 500));
+  });
+
   testWidgets('a rail on its way out takes no taps with it', (tester) async {
     await pumpShell(tester);
 

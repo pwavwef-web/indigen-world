@@ -19,16 +19,19 @@ import 'package:indigen_world_mobile/shared/frosted_nav_bar.dart';
 /// thing they are listening to under their thumb.
 ///
 /// ── How it makes room ─────────────────────────────────────────────────────
-/// It inflates `MediaQuery.padding.bottom` and deliberately leaves
-/// `viewPadding.bottom` alone. Seventeen scroll views already reserve
-/// `kFrostedNavBarReservedSpace`, several of them in `const` insets, and
-/// rewriting all of them to read a provider would have been a wide change for a
-/// bar that is usually not there. Inflating the inset instead means the rail —
-/// which positions *and* sizes itself from `MediaQuery.paddingOf` — rises by
-/// exactly the right amount with no edit at all, the connection banner follows
-/// it, and any screen that wants the number can recover it with
-/// [musicInset] because the untouched `viewPadding` is the baseline to
-/// subtract.
+/// Two ways, for two audiences. It inflates `MediaQuery.padding.bottom` and
+/// deliberately leaves `viewPadding.bottom` alone, which lifts the rail — the
+/// rail positions *and* sizes itself from `MediaQuery.paddingOf` — with no edit
+/// to it at all. And it publishes the same number through [MusicInsetScope],
+/// which is what the seventeen scroll views and the floating buttons read
+/// through [musicInset] and [shellBottomReserve].
+///
+/// The scope is not redundant with the inflation. Screens sit under the shell's
+/// `Scaffold`, which sets `extendBody: true`, and Scaffold raises
+/// `padding.bottom` for the body to the height of the bottom navigation bar. A
+/// screen that tried to recover this widget's contribution by subtracting
+/// `viewPadding` from `padding` therefore got the rail's height added to it,
+/// and reserved a mini-player nobody was playing.
 class MusicOverlay extends ConsumerWidget {
   const MusicOverlay({required this.brand, required this.child, super.key});
 
@@ -51,31 +54,35 @@ class MusicOverlay extends ConsumerWidget {
       data: media.copyWith(
         padding: media.padding.copyWith(bottom: media.padding.bottom + lift),
       ),
-      child: Stack(
-        children: [
-          // The arbitration lives here rather than in a screen because the
-          // music outlives every screen: whatever is on top, this is above it.
-          MusicDuckListener(child: child),
-          if (showMini)
-            Positioned(
-              left: 10,
-              right: 10,
-              // Sits on the system inset, with the rail lifted above it by the
-              // same inflation. `viewPadding` rather than `padding`, because
-              // `padding` is the one this widget just moved.
-              bottom: media.viewPadding.bottom + 6,
-              child: Material(
-                // There is no Material ancestor above the Navigator, and the
-                // bar is full of ink responses that need one.
-                type: MaterialType.transparency,
-                child: MiniPlayer(
-                  brand: brand,
-                  onOpen: () =>
-                      ref.read(appRouterProvider).push('/now-playing'),
+      child: MusicInsetScope(
+        inset: lift,
+        child: Stack(
+          children: [
+            // The arbitration lives here rather than in a screen because the
+            // music outlives every screen: whatever is on top, this is above
+            // it.
+            MusicDuckListener(child: child),
+            if (showMini)
+              Positioned(
+                left: 10,
+                right: 10,
+                // Sits on the system inset, with the rail lifted above it by
+                // the same inflation. `viewPadding` rather than `padding`,
+                // because `padding` is the one this widget just moved.
+                bottom: media.viewPadding.bottom + 6,
+                child: Material(
+                  // There is no Material ancestor above the Navigator, and the
+                  // bar is full of ink responses that need one.
+                  type: MaterialType.transparency,
+                  child: MiniPlayer(
+                    brand: brand,
+                    onOpen: () =>
+                        ref.read(appRouterProvider).push('/now-playing'),
+                  ),
                 ),
               ),
-            ),
-        ],
+          ],
+        ),
       ),
     );
   }

@@ -37,22 +37,41 @@ const double kFrostedNavBarReservedSpace =
 /// ── Why this is not another constant screens add themselves ────────────────
 /// The mini-player is not always there, so a flat constant would reserve a
 /// strip of dead space on every screen for every member who has never played
-/// anything. Instead the overlay that draws it inflates `MediaQuery.padding`
-/// and the two helpers below read that inflation back out. A screen asks how
-/// much room to leave and gets the honest answer for the moment it is asking.
-///
-/// `viewPadding` is deliberately left alone by the overlay, which is what makes
-/// the delta recoverable: the system inset is still in there unchanged, so the
-/// difference between the two is exactly what the mini-player added.
+/// anything. Instead the overlay that draws it publishes its height through
+/// [MusicInsetScope] and the two helpers below read it back out. A screen asks
+/// how much room to leave and gets the honest answer for the moment it is
+/// asking.
 const double kMiniPlayerHeight = 56;
 
-/// The vertical space the mini-player is currently claiming, or zero.
-double musicInset(BuildContext context) {
-  final padding = MediaQuery.paddingOf(context).bottom;
-  final view = MediaQuery.viewPaddingOf(context).bottom;
-  final inset = padding - view;
-  return inset > 0 ? inset : 0;
+/// The height the mini-player is claiming, published to everything below it.
+///
+/// ── Why an explicit number and not an inferred one ─────────────────────────
+/// This used to be read off `MediaQuery`: the overlay inflated `padding.bottom`
+/// by the mini-player's height, left `viewPadding.bottom` alone, and the
+/// helpers returned the difference. The inference had a second author. The
+/// shell's `Scaffold` sets `extendBody: true`, and Scaffold answers that by
+/// raising `padding.bottom` *for its body* to the height of the bottom
+/// navigation bar — the whole floating rail, gap and system inset included. So
+/// every tab in the shell measured a mini-player that was not playing and put
+/// its floating button and its scroll padding a full rail too high, whether or
+/// not anybody had ever pressed play. A number that is handed over cannot be
+/// confused with somebody else's inset.
+class MusicInsetScope extends InheritedWidget {
+  const MusicInsetScope({required this.inset, required super.child, super.key});
+
+  /// The vertical space the mini-player currently occupies, or zero.
+  final double inset;
+
+  static double of(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<MusicInsetScope>()?.inset ?? 0;
+
+  @override
+  bool updateShouldNotify(MusicInsetScope oldWidget) =>
+      oldWidget.inset != inset;
 }
+
+/// The vertical space the mini-player is currently claiming, or zero.
+double musicInset(BuildContext context) => MusicInsetScope.of(context);
 
 /// What a shell tab should leave under its scrollable content: the rail, plus
 /// the mini-player when one is playing.
