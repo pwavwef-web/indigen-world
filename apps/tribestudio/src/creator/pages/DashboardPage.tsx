@@ -235,6 +235,13 @@ export function DashboardPage() {
       <section className="creation-shortcuts">
         <h2>Quick Creation Tools</h2>
         <div className="shortcuts-grid">
+          <Link to="/studio/video" className="shortcut-card shortcut-card--video">
+            <span className="shortcut-card__icon">🎬</span>
+            <div>
+              <strong>Create a Kasem Video</strong>
+              <p className="tiny muted">Runway visuals and consented Kasem lip-sync</p>
+            </div>
+          </Link>
           <Link to="/workspace" className="shortcut-card">
             <span className="shortcut-card__icon">🎙️</span>
             <div>

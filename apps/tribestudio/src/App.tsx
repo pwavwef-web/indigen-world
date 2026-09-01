@@ -31,6 +31,7 @@ const OpportunityDetailPage = named(() => import('./creator/pages/OpportunityDet
 const SubmissionsPage = named(() => import('./creator/pages/SubmissionsPage'), 'SubmissionsPage');
 const SubmissionNewPage = named(() => import('./creator/pages/SubmissionNewPage'), 'SubmissionNewPage');
 const SubmissionDetailPage = named(() => import('./creator/pages/SubmissionDetailPage'), 'SubmissionDetailPage');
+const StudioVideoPage = named(() => import('./creator/pages/StudioVideoPage'), 'StudioVideoPage');
 const NotificationsPage = named(() => import('./creator/pages/NotificationsPage'), 'NotificationsPage');
 const HelpPage = named(() => import('./creator/pages/HelpPage'), 'HelpPage');
 
@@ -197,6 +198,7 @@ function renderStudio(path: string) {
   if (path === '/studio/submissions') return <SubmissionsPage />;
   if (path === '/studio/submissions/new') return <SubmissionNewPage />;
   if (matchRoute('/studio/submissions/:id', path)) return <SubmissionDetailPage />;
+  if (path === '/studio/video') return <StudioVideoPage />;
   if (path === '/studio/notifications') return <NotificationsPage />;
   if (path === '/studio/help') return <HelpPage />;
   return <NotFoundPage variant="studio" />;

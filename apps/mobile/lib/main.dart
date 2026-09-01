@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui';
 
 import 'package:audio_service/audio_service.dart';
@@ -8,11 +9,13 @@ import 'package:indigen_world_mobile/app/indigen_world_app.dart';
 import 'package:indigen_world_mobile/core/app_locale.dart';
 import 'package:indigen_world_mobile/core/app_signature.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
+import 'package:indigen_world_mobile/core/device_integrity.dart';
 import 'package:indigen_world_mobile/core/firebase_bootstrap.dart';
 import 'package:indigen_world_mobile/core/firebase_ready.dart';
 import 'package:indigen_world_mobile/core/theme_mode.dart';
 import 'package:indigen_world_mobile/data/local/app_database.dart';
 import 'package:indigen_world_mobile/data/local/legacy_preferences_migration.dart';
+import 'package:indigen_world_mobile/features/downloads/data/downloads_providers.dart';
 import 'package:indigen_world_mobile/features/music/music_audio_handler.dart';
 import 'package:indigen_world_mobile/features/music/music_providers.dart';
 import 'package:indigen_world_mobile/features/rating/rating_service.dart';
@@ -27,6 +30,13 @@ Future<void> main() async {
   // that cannot wait for a platform channel, and this is the only place the
   // answer is knowable at all on a Play-signed release.
   await const AppSignatureReader().read();
+
+  // Play Integrity's token provider takes seconds to prepare and nothing on
+  // the first frame needs it, so it is started here and never waited for. Doing
+  // it now rather than at the first check means the check a member actually
+  // triggers — opening the paywall, starting a purchase — answers immediately
+  // instead of stalling on a network round trip they did not ask for.
+  unawaited(const PlayIntegrityChannel().warmUp());
 
   // One line in the ledger the review prompt reads from. Counted per launch
   // rather than per session so "three distinct days" means what it says.
@@ -91,6 +101,13 @@ Future<void> main() async {
     ProviderScope(
       overrides: [
         appDatabaseProvider.overrideWithValue(database),
+        // The real offline index. Its provider ships empty so that the
+        // hundreds of widget tests built on a bare scope never reach a
+        // platform channel — see downloads_providers.dart — which means the
+        // app itself has to hand it the real one exactly here.
+        offlineTrackUrlsLookupProvider.overrideWith(
+          (ref) => () => ref.read(downloadsRepositoryProvider).playableIndex(),
+        ),
         // Omitted entirely when the session failed to start, which is what
         // leaves the provider at its test-safe null and the app at "no music
         // player" rather than "no app".

@@ -3,6 +3,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
+import 'package:indigen_world_mobile/features/downloads/widgets/download_toggle.dart';
 import 'package:indigen_world_mobile/features/music/music_controller.dart';
 import 'package:indigen_world_mobile/features/music/music_providers.dart';
 
@@ -25,6 +26,15 @@ class NowPlayingScreen extends ConsumerWidget {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         title: Text(item?.album ?? 'Now playing'),
+        actions: [
+          if (item != null)
+            DownloadToggle(
+              item: item,
+              // The collection this queue was built from, which the media
+              // session itself has no idea about — see [MusicSessionState].
+              kind: ref.watch(musicControllerProvider).queueKind,
+            ),
+        ],
       ),
       body: item == null
           ? const _NothingCued()

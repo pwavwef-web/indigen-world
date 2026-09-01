@@ -13,6 +13,8 @@ import 'package:indigen_world_mobile/features/community/widgets/community_avatar
 import 'package:indigen_world_mobile/features/community/widgets/community_post_card.dart';
 import 'package:indigen_world_mobile/features/community/widgets/people_widgets.dart';
 import 'package:indigen_world_mobile/features/community/widgets/verified_badge.dart';
+import 'package:indigen_world_mobile/features/subscriptions/data/subscription_catalog.dart';
+import 'package:indigen_world_mobile/features/subscriptions/widgets/supporter_badge.dart';
 
 /// A member's community profile: cover, identity, counts and their posts,
 /// replies, media and appreciated posts.
@@ -318,6 +320,14 @@ class _ProfileHeader extends ConsumerWidget {
                     if (profile.mark != VerifiedMark.none) ...[
                       const SizedBox(width: 6),
                       VerifiedBadge(mark: profile.mark, size: 18),
+                    ],
+                    // Its own condition, not nested inside the verification
+                    // one: a supporter who has not verified a number still
+                    // paid, and hiding their mark behind somebody else's
+                    // check would be the wrong way round.
+                    if (profile.supporterMark != SupporterMark.none) ...[
+                      const SizedBox(width: 4),
+                      SupporterBadge(mark: profile.supporterMark, size: 18),
                     ],
                   ],
                 ),

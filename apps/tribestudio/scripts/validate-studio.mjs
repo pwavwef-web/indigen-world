@@ -33,6 +33,7 @@ const LAZY_PAGES = [
   'OpportunitiesPage',
   'SubmissionsPage',
   'SubmissionNewPage',
+  'StudioVideoPage',
   'NotificationsPage',
   'LexiconWorkspace',
 ];

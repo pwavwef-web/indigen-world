@@ -96,6 +96,20 @@ class MusicTrack {
     );
   }
 
+  /// The same track playing from somewhere else — a downloaded copy.
+  ///
+  /// Everything but the URL is kept, deliberately: the id is what the resume
+  /// point and the collection lookup are both keyed by, and swapping it for a
+  /// file path would break both the moment somebody deleted the download.
+  MusicTrack withUrl(String url) => MusicTrack(
+    id: id,
+    title: title,
+    url: url,
+    album: album,
+    artist: artist,
+    artworkUrl: artworkUrl,
+  );
+
   /// The media-session view of this track.
   MediaItem toMediaItem() => MediaItem(
     id: id,

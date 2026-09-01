@@ -49,6 +49,7 @@ export function SubmissionNewPage() {
   const { config, whatsappUrl } = useConfig();
   const { navigate } = useRoute();
   const requestedCampaign = useQueryParam('campaign') ?? '';
+  const generatedVideoPath = useQueryParam('generated') ?? '';
   // No campaign in the URL means this is an open post: anyone may publish it,
   // it needs no verification, and nobody reviews it before it goes live.
   const isOpenPost = requestedCampaign.trim() === '';
@@ -101,6 +102,25 @@ export function SubmissionNewPage() {
   const [attParticipants, setAttParticipants] = useState(false);
   const [attGuardian, setAttGuardian] = useState(false);
   const [attCopyright, setAttCopyright] = useState(false);
+
+  // A completed AI-video job can hand its private Firebase output straight to
+  // the normal publishing workflow. The owner-scoped path check prevents a URL
+  // parameter from attaching another creator's media.
+  useEffect(() => {
+    if (!user || !generatedVideoPath) return;
+    const ownOutputPrefix = `studio-video-jobs/${user.uid}/`;
+    if (!generatedVideoPath.startsWith(ownOutputPrefix) || !generatedVideoPath.endsWith('/output.mp4')) return;
+    setStudioType('video');
+    setMedia({
+      storagePath: generatedVideoPath,
+      mimeType: 'video/mp4',
+      sizeBytes: 0,
+      mediaType: 'video',
+      thumbnailPath: null,
+      captionsPath: null,
+    });
+    setUploadPct(100);
+  }, [generatedVideoPath, user]);
 
   useEffect(() => {
     if (isOpenPost) { setLoading(false); return; }

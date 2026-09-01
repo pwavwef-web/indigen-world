@@ -158,6 +158,15 @@ before(async () => {
     await setDoc(doc(db, 'publishedContent/pub-hidden'), { id: 'pub-hidden', title: 'Hidden', publicationStatus: 'unpublished', lifecycle: life });
     await setDoc(doc(db, 'payouts/pay1'), { id: 'pay1', amount: 100, status: 'PENDING_VERIFICATION' });
     await setDoc(doc(db, 'notifications/notifA'), { id: 'notifA', authUid: 'creatorA', recipient: { collection: 'creatorProfiles', id: 'creatorA' }, type: 'application_update', title: 'Hi', read: false, lifecycle: life });
+    await setDoc(doc(db, 'studioVideoJobs/creatorA_request-1'), {
+      id: 'creatorA_request-1',
+      ownerUid: 'creatorA',
+      operation: 'generate_visual',
+      provider: 'runway',
+      model: 'gen4.5',
+      status: 'QUEUED',
+      lifecycle: life,
+    });
     await setDoc(doc(db, 'teamSiteRequests/requestA'), teamSiteRequestDoc());
   });
 });
@@ -354,6 +363,25 @@ test('applications are not client-writable; owner reads own, others cannot', asy
   await assertSucceeds(getDoc(doc(db(creatorA), 'creatorApplications/appA')));
   await assertFails(getDoc(doc(db(creatorB), 'creatorApplications/appA')));
   await assertFails(setDoc(doc(db(creatorA), 'creatorApplications/appA'), { id: 'appA', authUid: 'creatorA', status: 'APPROVED', consent: {}, lifecycle: life }));
+});
+
+test('Studio video jobs are owner-and-staff readable but server-write only', async () => {
+  const owner = env.authenticatedContext('creatorA');
+  const stranger = env.authenticatedContext('creatorB');
+  const validator = env.authenticatedContext('val1', { role: 'validator' });
+  const anonymous = env.unauthenticatedContext();
+  const job = doc(db(owner), 'studioVideoJobs/creatorA_request-1');
+
+  await assertSucceeds(getDoc(job));
+  await assertSucceeds(getDoc(doc(db(validator), 'studioVideoJobs/creatorA_request-1')));
+  await assertFails(getDoc(doc(db(stranger), 'studioVideoJobs/creatorA_request-1')));
+  await assertFails(getDoc(doc(db(anonymous), 'studioVideoJobs/creatorA_request-1')));
+  await assertFails(updateDoc(job, { status: 'SUCCEEDED' }));
+  await assertFails(setDoc(doc(db(owner), 'studioVideoJobs/forged'), {
+    id: 'forged',
+    ownerUid: 'creatorA',
+    status: 'SUCCEEDED',
+  }));
 });
 
 test('an admin without finance access cannot read payouts; a finance user can', async () => {

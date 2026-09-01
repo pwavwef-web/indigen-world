@@ -11,7 +11,7 @@ import {
   where,
 } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
-import { getDownloadURL, ref, uploadBytesResumable } from 'firebase/storage';
+import { getBlob, getDownloadURL, ref, uploadBytesResumable } from 'firebase/storage';
 import type {
   Campaign,
   CreatorApplication,
@@ -370,6 +370,178 @@ export function uploadSubmissionMedia(
       },
     );
   });
+}
+
+// ---------------------------------------------------------------------------
+// AI-assisted Studio video
+// ---------------------------------------------------------------------------
+
+export type StudioVideoOperation = 'generate_visual' | 'lip_sync';
+export type StudioVideoStatus =
+  | 'SUBMITTING'
+  | 'QUEUED'
+  | 'RUNNING'
+  | 'SUCCEEDED'
+  | 'FAILED'
+  | 'CANCELLED';
+
+export interface StudioVideoModelCapability {
+  id: string;
+  estimatedUsdPerSecond: number;
+  requiresReferenceImage?: boolean;
+  textRatios?: string[];
+  imageRatios?: string[];
+}
+
+export interface StudioVideoCapabilities {
+  pricingVersion: string;
+  limits: {
+    durationsSeconds: Array<5 | 10>;
+    ratios: string[];
+    minorsSupported: false;
+    thirdPartyMaterialSupported: false;
+    languageCode: 'xsm';
+  };
+  operations: Array<{
+    operation: StudioVideoOperation;
+    provider: 'runway' | 'fal';
+    models: StudioVideoModelCapability[];
+  }>;
+}
+
+export interface StudioVideoCostEstimate {
+  amountUsd: number;
+  billingUnit: 'output_second';
+  rateUsd: number;
+  pricingVersion: string;
+}
+
+export interface StudioVideoJob {
+  id: string;
+  operation: StudioVideoOperation;
+  provider: 'runway' | 'fal';
+  model: string;
+  status: StudioVideoStatus;
+  outputStoragePath: string | null;
+  costEstimate: StudioVideoCostEstimate;
+  failureReason: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface StudioVideoGovernanceInput {
+  aiProcessingPermission: true;
+  rightsConfirmed: true;
+  culturalPermissionConfirmed: true;
+  participantConsentConfirmed: boolean;
+  voiceConsentConfirmed: boolean;
+  likenessConsentConfirmed: boolean;
+  containsRecognisablePerson: boolean;
+  involvesMinors: false;
+  usesThirdPartyMaterial: false;
+  consentVersion: string;
+}
+
+interface StudioVideoInputBase {
+  clientRequestId: string;
+  durationSeconds: 5 | 10;
+  governance: StudioVideoGovernanceInput;
+  kasem: {
+    languageCode: 'xsm';
+    dialect: string;
+    transcript: string;
+    validationRef: string;
+  };
+}
+
+export type CreateStudioVideoJobInput = StudioVideoInputBase & (
+  | {
+    operation: 'generate_visual';
+    provider: 'runway';
+    model: 'gen4_turbo' | 'gen4.5';
+    prompt: string;
+    ratio: '1280:720' | '720:1280' | '960:960';
+    referenceImageStoragePath: string | null;
+  }
+  | {
+    operation: 'lip_sync';
+    provider: 'fal';
+    model: 'lipsync-2' | 'lipsync-2-pro';
+    videoStoragePath: string;
+    audioStoragePath: string;
+    syncMode: 'cut_off' | 'loop' | 'bounce' | 'silence' | 'remap';
+  }
+);
+
+export async function fetchStudioVideoCapabilities(): Promise<StudioVideoCapabilities> {
+  const call = httpsCallable<Record<string, never>, StudioVideoCapabilities>(
+    functions,
+    'getStudioVideoCapabilities',
+  );
+  const response = await call({});
+  return response.data;
+}
+
+export async function createStudioVideoJob(
+  input: CreateStudioVideoJobInput,
+): Promise<StudioVideoJob> {
+  const call = httpsCallable<CreateStudioVideoJobInput, StudioVideoJob>(
+    functions,
+    'createStudioVideoJob',
+  );
+  const response = await call(input);
+  return response.data;
+}
+
+export async function refreshStudioVideoJob(jobId: string): Promise<StudioVideoJob> {
+  const call = httpsCallable<{ jobId: string }, StudioVideoJob>(
+    functions,
+    'refreshStudioVideoJob',
+  );
+  const response = await call({ jobId });
+  return response.data;
+}
+
+const STUDIO_ASSET_LIMITS = {
+  image: 20 * 1024 * 1024,
+  audio: 50 * 1024 * 1024,
+  video: 200 * 1024 * 1024,
+} as const;
+
+export type StudioVideoAssetKind = keyof typeof STUDIO_ASSET_LIMITS;
+
+/** Uploads provider input into a private, owner-scoped path accepted by the callable. */
+export function uploadStudioVideoAsset(
+  uid: string,
+  kind: StudioVideoAssetKind,
+  file: File,
+  onProgress: (pct: number) => void,
+): Promise<string> {
+  if (!file.type.startsWith(`${kind}/`)) {
+    return Promise.reject(new Error(`Choose a valid ${kind} file.`));
+  }
+  if (file.size <= 0 || file.size > STUDIO_ASSET_LIMITS[kind]) {
+    const limitMb = STUDIO_ASSET_LIMITS[kind] / (1024 * 1024);
+    return Promise.reject(new Error(`${kind[0].toUpperCase()}${kind.slice(1)} files must be under ${limitMb} MB.`));
+  }
+  const assetId = crypto.randomUUID();
+  const safeName = file.name.replace(/[^A-Za-z0-9._-]+/g, '-').slice(-100) || `${kind}.bin`;
+  const storagePath = `creator-submissions/${uid}/studio-video/${assetId}/${kind}-${safeName}`;
+  const task = uploadBytesResumable(ref(storage, storagePath), file, { contentType: file.type });
+  return new Promise((resolve, reject) => {
+    task.on(
+      'state_changed',
+      (snapshot) => onProgress(Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100)),
+      reject,
+      () => resolve(storagePath),
+    );
+  });
+}
+
+/** Reads a private generated output with the signed-in user's Storage authorization. */
+export async function loadStudioVideoOutput(storagePath: string): Promise<string> {
+  const blob = await getBlob(ref(storage, storagePath), 200 * 1024 * 1024);
+  return URL.createObjectURL(blob);
 }
 
 // ---------------------------------------------------------------------------

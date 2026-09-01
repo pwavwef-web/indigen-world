@@ -2,6 +2,7 @@ import { HttpsError, onCall } from 'firebase-functions/v2/https';
 import { applicationDefault } from 'firebase-admin/app';
 import { logger } from 'firebase-functions';
 import { consumeRateLimit } from './rate-limit.js';
+import { benefitsForUid } from './subscriptions.js';
 
 /**
  * Kawuri — the assistant behind the Learn tab's floating button.
@@ -31,6 +32,17 @@ const MAX_CHARS_PER_TURN = 4000;
 
 /** Requests per member per minute. Generous for a person, useless for a script. */
 const RATE_LIMIT_PER_MINUTE = 20;
+
+/**
+ * The second ceiling, and the one a subscription moves.
+ *
+ * The per-minute limit above stops a script; it does nothing about a bill.
+ * Every Kawuri turn is a paid Vertex call, so there is also a daily allowance,
+ * and how large it is depends on what the member subscribes to — see
+ * `TIER_BENEFITS` in `subscription-catalog.ts`. Guests and free members share
+ * the free row, which is the same number it would have had to be anyway.
+ */
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 const MODEL = process.env.KAWURI_MODEL || 'gemini-2.5-flash';
 
@@ -268,6 +280,18 @@ export const kawuriChat = onCall(
     // where available, and share a bucket otherwise.
     const actor = req.auth?.uid ?? req.app?.appId ?? 'anonymous';
     await consumeRateLimit('kawuriChat', actor, RATE_LIMIT_PER_MINUTE);
+
+    // The daily allowance the subscription actually buys. Charged against the
+    // same actor key as the per-minute limit, so a guest is capped too — and
+    // charged *before* the model call, because a limit that only counts
+    // successful generations is a limit somebody can walk past by failing.
+    const benefits = await benefitsForUid(req.auth?.uid);
+    await consumeRateLimit(
+      'kawuriChatDaily',
+      actor,
+      benefits.kawuriDailyMessages,
+      DAY_MS,
+    );
 
     const turns = normaliseTurns((req.data as Record<string, unknown> | undefined)?.messages);
     if (turns.length === 0) {

@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/firebase_ready.dart';
 import 'package:indigen_world_mobile/features/ads/data/ad_campaign.dart';
+import 'package:indigen_world_mobile/features/subscriptions/data/subscription_providers.dart';
 
 /// An advert as a *reader* sees it, rather than as its owner does.
 ///
@@ -369,10 +370,23 @@ final servedAdsProvider = StreamProvider<List<ServedAd>>((ref) {
 ///
 /// A derived family rather than a query per placement: the three surfaces read
 /// three views of the same subscription.
+///
+/// ── The one gate every ad-free subscriber passes through ──────────────────
+/// Explore, the Community timeline and the Collection all take their adverts
+/// from here, so "no adverts" is enforced once, in this function, rather than
+/// remembered at three call sites. A fourth surface that starts showing
+/// adverts inherits it for free — which is the point, because the surface that
+/// forgets is the one a paying member notices.
+///
+/// The adverts themselves are still streamed. `adPlacements` is a world-
+/// readable collection and stopping the subscription would save one small
+/// query at the cost of a visible flicker of adverts every time the entitlement
+/// resolves a moment after the feed does.
 final placedAdsProvider = Provider.family<List<ServedAd>, AdPlacement>((
   ref,
   placement,
 ) {
+  if (!ref.watch(adsAllowedProvider)) return const <ServedAd>[];
   final ads = ref.watch(servedAdsProvider).asData?.value;
   if (ads == null || ads.isEmpty) return const <ServedAd>[];
   return adsForPlacement(ads, placement, now: DateTime.now());

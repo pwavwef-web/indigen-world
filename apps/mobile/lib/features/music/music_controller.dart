@@ -5,6 +5,7 @@ import 'package:audio_service/audio_service.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/features/collection/collection_data.dart';
+import 'package:indigen_world_mobile/features/downloads/data/downloads_providers.dart';
 import 'package:indigen_world_mobile/features/explore/published_content.dart';
 import 'package:indigen_world_mobile/features/music/music_providers.dart';
 import 'package:indigen_world_mobile/features/music/music_track.dart';
@@ -116,6 +117,7 @@ MusicQueuePlan buildMusicQueue(
   List<PublishedReel> items, {
   required int startIndex,
   required CollectionKind kind,
+  Map<String, String> offline = const <String, String>{},
 }) {
   final tappedId = startIndex >= 0 && startIndex < items.length
       ? items[startIndex].id
@@ -124,7 +126,14 @@ MusicQueuePlan buildMusicQueue(
   final tracks = <MusicTrack>[];
   for (final item in items) {
     final track = MusicTrack.fromReel(item, kind: kind);
-    if (track != null) tracks.add(track);
+    if (track == null) continue;
+    // A downloaded copy replaces the stream for that one entry and changes
+    // nothing else about the queue. Substituting here rather than in the
+    // handler keeps the rule in one place: the queue is built once, and
+    // everything downstream — the notification, the resume point, the lyrics
+    // lookup — still sees the same ids it always did.
+    final local = offline[track.id];
+    tracks.add(local == null ? track : track.withUrl(local));
   }
   if (tracks.isEmpty) {
     return const MusicQueuePlan(tracks: <MusicTrack>[], startIndex: 0);
@@ -197,7 +206,12 @@ class MusicController extends Notifier<MusicSessionState> {
     required int startIndex,
     required CollectionKind kind,
   }) async {
-    final plan = buildMusicQueue(items, startIndex: startIndex, kind: kind);
+    final plan = buildMusicQueue(
+      items,
+      startIndex: startIndex,
+      kind: kind,
+      offline: await _offlineUrls(),
+    );
     if (plan.isEmpty) {
       state = state.copyWith(error: 'Nothing here can be played yet.');
       return;
@@ -237,7 +251,12 @@ class MusicController extends Notifier<MusicSessionState> {
     final index = items.indexWhere((item) => item.id == resume.trackId);
     if (index < 0) return false;
 
-    final plan = buildMusicQueue(items, startIndex: index, kind: resume.kind);
+    final plan = buildMusicQueue(
+      items,
+      startIndex: index,
+      kind: resume.kind,
+      offline: await _offlineUrls(),
+    );
     if (plan.isEmpty) return false;
 
     state = state.copyWith(queueKind: resume.kind, clearError: true);
@@ -247,6 +266,25 @@ class MusicController extends Notifier<MusicSessionState> {
       initialPosition: resume.position,
     );
     return true;
+  }
+
+  /// Downloaded copies, keyed by track id, or an empty map.
+  ///
+  /// Read through [offlineTrackUrlsLookupProvider] rather than from a stream,
+  /// so that no part of the queue path depends on a stream having emitted
+  /// first — a queue built a moment too early would silently stream a song the
+  /// member had already paid for the data to download. That provider is also
+  /// what keeps this off the database in a test scope.
+  ///
+  /// Failure is empty rather than fatal: an unreadable index means everything
+  /// streams, which is what would have happened before downloads existed.
+  Future<Map<String, String>> _offlineUrls() async {
+    try {
+      return await ref.read(offlineTrackUrlsLookupProvider)();
+    } on Object catch (error) {
+      debugPrint('Offline index unavailable: $error');
+      return const <String, String>{};
+    }
   }
 
   /// Starts or resumes playback.

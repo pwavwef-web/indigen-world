@@ -8,10 +8,13 @@ import 'package:indigen_world_mobile/features/community/messages_screen.dart';
 import 'package:indigen_world_mobile/features/community/post_detail_screen.dart';
 import 'package:indigen_world_mobile/features/contribute/contribute_screen.dart';
 import 'package:indigen_world_mobile/features/dictionary/entry_detail_screen.dart';
+import 'package:indigen_world_mobile/features/downloads/downloads_screen.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_screen.dart';
 import 'package:indigen_world_mobile/features/music/now_playing_screen.dart';
 import 'package:indigen_world_mobile/features/notifications/notifications_screen.dart';
 import 'package:indigen_world_mobile/features/onboarding/startup_gate.dart';
+import 'package:indigen_world_mobile/features/subscriptions/manage_subscription_screen.dart';
+import 'package:indigen_world_mobile/features/subscriptions/paywall_screen.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   final router = GoRouter(
@@ -52,6 +55,21 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/kawuri',
         builder: (context, state) => const KawuriScreen(),
+      ),
+      // Routes rather than pushes, because both are places a notification or a
+      // link can want to land: a renewal reminder points at the subscription,
+      // and a finished download at the list it landed in.
+      GoRoute(
+        path: '/subscribe',
+        builder: (context, state) => const PaywallScreen(),
+      ),
+      GoRoute(
+        path: '/subscription',
+        builder: (context, state) => const ManageSubscriptionScreen(),
+      ),
+      GoRoute(
+        path: '/downloads',
+        builder: (context, state) => const DownloadsScreen(),
       ),
       // A route rather than a `Navigator.push`, for two reasons. The
       // mini-player that opens it is mounted above the Navigator and cannot

@@ -113,6 +113,17 @@ dependencies {
     // Pairs with isCoreLibraryDesugaringEnabled above. Version tracked by
     // flutter_local_notifications; see its README if the plugin is upgraded.
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+
+    // Play Integrity, used by PlayIntegrityChannel.kt.
+    //
+    // Firebase App Check already runs the Play Integrity *provider*, and that
+    // dependency arrives with firebase_app_check. This one is separate because
+    // the two ask different questions: App Check asks "is this a genuine app on
+    // a genuine device" and hands back a yes/no, while the API below returns
+    // the seven verdict fields Play Console lists — licensing, app recognition,
+    // device recognition, recent activity, Play Protect state and app access
+    // risk — which is what services/functions/src/play-integrity.ts judges.
+    implementation("com.google.android.play:integrity:1.6.0")
 }
 
 kotlin {

@@ -222,6 +222,60 @@ The system prompt, the rate limit and the model choice all stay server-side, whi
 
 Kawuri will not invent Kasem, in either mode. Language in this project is confirmed by appointed speakers before it counts as guidance, and a confident guess is worse than no answer, so a translation question is answered by pointing at the dictionary, the Community tab, or a contribution. Conversations are kept in shared preferences on the device, never uploaded.
 
+### Subscriptions and offline downloads
+
+Three Google Play subscriptions — **Indigen Plus**, **Indigen Patron** and
+**Indigen Creator**, monthly and yearly each. Play Billing, never a card form:
+`in_app_purchase` opens Play's own sheet and the purchase token goes to
+`registerPlayPurchase`, which asks the Play Developer API what it is worth and
+writes `entitlements/{uid}`. Nothing in this app grants a benefit on its own
+say-so — the entitlement document is readable by its owner and writable by
+nobody, and the app redraws from it.
+
+**No price is written down anywhere in this repository.** The paywall shows
+`ProductDetails.price`, which is Play's own formatted string in the member's
+currency after regional pricing and tax. A price in a Dart file would be wrong
+for the first member who opened the app outside Ghana.
+
+What a subscription buys: no adverts (one gate, in `placedAdsProvider`, so a
+new advert surface inherits it), a much larger daily Kawuri allowance (enforced
+in `kawuri.ts`, not here), offline downloads of collection audio, and a
+supporter mark beside the name.
+
+The supporter mark is deliberately **not** a `verifiedKind`. A verification
+mark says something was checked — a phone number, published work, standing as a
+custodian of Kasem. A supporter mark says something was paid. Folding the two
+together would put a price on the first, which is the one thing this project
+cannot sell. The kente ring stays what it always was: earned, never bought.
+
+Downloads live in the app's own documents directory with an index in the
+existing Drift database, and survive a lapsed subscription — the files are
+already on the phone and the audio streams free anyway; what lapses is the
+ability to add more. The limit is applied on the device and honestly so: a
+server-side check over a public media URL would be theatre. The paid things
+that cost real money are the ones enforced on the server.
+
+Play Console setup — the products, the base plans, the RTDN Pub/Sub topic and
+the service-account permissions — is in
+[`docs/product/play-integrity-and-billing.md`](../../docs/product/play-integrity-and-billing.md).
+
+### Play Integrity
+
+Firebase App Check already runs the Play Integrity *provider* on Firestore and
+callable traffic; that is the protection and it is unchanged. Alongside it,
+`PlayIntegrityChannel.kt` requests a Standard integrity token directly and
+`verifyDeviceIntegrity` decodes it against Google, which is the only way to see
+the seven signals Play Console lists — licensing, app tampering, device
+recognition, virtual devices, recent activity, Play Protect and app access
+risk. An App Check token carries none of them.
+
+The device never judges itself: the token is opaque here and every failure
+resolves to "unavailable", which blocks nothing. `PLAY_INTEGRITY_MODE` ships on
+**`monitor`** — verdicts are recorded and logged, and nothing is refused. Moving
+to `enforce` is a decision to take on a few weeks of real verdicts, because a
+great many legitimate handsets in Ghana are rooted, sideloaded or on a custom
+ROM.
+
 ### Community feed
 
 The Community tab is a live Firestore + Storage surface, not a local preview.

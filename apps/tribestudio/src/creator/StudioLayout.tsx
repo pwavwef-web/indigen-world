@@ -7,6 +7,7 @@ const STUDIO_NAV = [
   { to: '/studio/profile', label: 'Profile', icon: '☺' },
   { to: '/studio/opportunities', label: 'Opportunities', icon: '✦' },
   { to: '/studio/submissions', label: 'Submissions', icon: '⬆' },
+  { to: '/studio/video', label: 'AI Video', icon: '▶' },
   { to: '/studio/notifications', label: 'Notifications', icon: '◈' },
   { to: '/studio/help', label: 'Help', icon: '?' },
 ];

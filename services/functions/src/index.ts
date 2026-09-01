@@ -46,6 +46,21 @@ export {
 export { kawuriChat } from './kawuri.js';
 export { onCommunityKawuriMention } from './community-kawuri.js';
 export {
+  getStudioVideoCapabilities,
+  createStudioVideoJob,
+  refreshStudioVideoJob,
+} from './studio-video.js';
+export { startIntegrityCheck, verifyDeviceIntegrity } from './play-integrity.js';
+export {
+  getSubscriptionOptions,
+  preparePlayPurchase,
+  registerPlayPurchase,
+  refreshSubscription,
+  playBillingNotification,
+  onCommunityProfileCreated,
+  reconcileSubscriptions,
+} from './subscriptions.js';
+export {
   smsBalance,
   sendTestSms,
   sendSmsCampaign,

@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:indigen_world_mobile/features/subscriptions/data/subscription_catalog.dart';
 
 /// A single photo or video attached to a community post.
 class CommunityMedia {
@@ -255,6 +256,7 @@ class CommunityProfile {
     this.location = '',
     this.dialect = '',
     this.verifiedKind = '',
+    this.supporterMark = SupporterMark.none,
     this.phoneVerified = false,
     this.usernameChangedAt,
     this.createdAt,
@@ -272,6 +274,12 @@ class CommunityProfile {
   /// What staff granted, if anything: `''`, `'creator'`, `'elder'` or
   /// `'project'`. Frozen against the member's own writes in the rules.
   final String verifiedKind;
+
+  /// What a subscription bought, if anything. Its own axis, never folded into
+  /// [verifiedKind]: one mark says something was checked, the other says
+  /// something was paid, and the rules freeze this field against the member's
+  /// own writes so the second can never be claimed without the payment.
+  final SupporterMark supporterMark;
 
   /// Whether an SMS code was answered from this account's number. Written only
   /// by the verification callable.
@@ -333,6 +341,7 @@ class CommunityProfile {
     location: location ?? this.location,
     dialect: dialect ?? this.dialect,
     verifiedKind: verifiedKind,
+    supporterMark: supporterMark,
     phoneVerified: phoneVerified,
     usernameChangedAt: usernameChangedAt,
     createdAt: createdAt,
@@ -374,6 +383,7 @@ class CommunityProfile {
       verifiedKind: data['verifiedKind'] is String
           ? data['verifiedKind'] as String
           : (data['isVerified'] == true ? 'project' : ''),
+      supporterMark: SupporterMark.fromName(data['supporterMark']),
       phoneVerified: data['phoneVerified'] == true,
       usernameChangedAt: (data['usernameChangedAt'] as Timestamp?)?.toDate(),
       createdAt: (data['createdAt'] as Timestamp?)?.toDate(),
@@ -393,6 +403,7 @@ class CommunityProfile {
     // otherwise. Written explicitly so that refusal is obvious rather than
     // resting on a field being absent.
     'verifiedKind': '',
+    'supporterMark': '',
     'phoneVerified': false,
     'isVerified': false,
     'createdAt': FieldValue.serverTimestamp(),
@@ -409,6 +420,9 @@ class CommunityProfile {
     // without a profile read per row.
     'verifiedKind': verifiedKind,
     'phoneVerified': phoneVerified,
+    // Checked against `entitlements/{uid}` by the Security Rules before the
+    // post is accepted, so a stamp that claims a mark has to have bought it.
+    'supporterMark': supporterMark.wire,
   };
 }
 
@@ -428,6 +442,7 @@ class CommunityPost {
     this.viewCount = 0,
     this.authorAvatarUrl,
     this.authorVerifiedKind = '',
+    this.authorSupporterMark = SupporterMark.none,
     this.authorPhoneVerified = false,
     this.parentId,
     this.rootId,
@@ -454,6 +469,11 @@ class CommunityPost {
   /// forty rows does not cost forty profile reads to draw forty names.
   final String authorVerifiedKind;
   final bool authorPhoneVerified;
+
+  /// What the author subscribes to, stamped alongside the verification for the
+  /// same reason. Unlike the verification, this one the Security Rules check
+  /// against the author's entitlement before the post is accepted.
+  final SupporterMark authorSupporterMark;
 
   /// The mark to draw beside this post's byline.
   VerifiedMark get authorMark => resolveVerifiedMark(
@@ -547,6 +567,7 @@ class CommunityPost {
           ? author['verifiedKind'] as String
           : (author['isVerified'] == true ? 'project' : ''),
       authorPhoneVerified: author['phoneVerified'] == true,
+      authorSupporterMark: SupporterMark.fromName(author['supporterMark']),
       text: (data['text'] as String?) ?? '',
       media: rawMedia is List
           ? rawMedia
@@ -584,6 +605,7 @@ class CommunityPost {
     authorAvatarUrl: authorAvatarUrl,
     authorVerifiedKind: authorVerifiedKind,
     authorPhoneVerified: authorPhoneVerified,
+    authorSupporterMark: authorSupporterMark,
     text: text,
     media: media,
     likeCount: likeCount,
@@ -617,6 +639,7 @@ class CommunityPost {
       'avatarUrl': authorAvatarUrl,
       'verifiedKind': authorVerifiedKind,
       'phoneVerified': authorPhoneVerified,
+      'supporterMark': authorSupporterMark.wire,
     },
     'text': text,
     'media': media.map((item) => item.toMap()).toList(growable: false),

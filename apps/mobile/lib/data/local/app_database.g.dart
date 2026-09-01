@@ -854,6 +854,634 @@ class SavedEntryRecordsCompanion extends UpdateCompanion<SavedEntryRecord> {
   }
 }
 
+class $DownloadedTrackRecordsTable extends DownloadedTrackRecords
+    with TableInfo<$DownloadedTrackRecordsTable, DownloadedTrackRecord> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $DownloadedTrackRecordsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _trackIdMeta = const VerificationMeta(
+    'trackId',
+  );
+  @override
+  late final GeneratedColumn<String> trackId = GeneratedColumn<String>(
+    'track_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _titleMeta = const VerificationMeta('title');
+  @override
+  late final GeneratedColumn<String> title = GeneratedColumn<String>(
+    'title',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _artistMeta = const VerificationMeta('artist');
+  @override
+  late final GeneratedColumn<String> artist = GeneratedColumn<String>(
+    'artist',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _albumMeta = const VerificationMeta('album');
+  @override
+  late final GeneratedColumn<String> album = GeneratedColumn<String>(
+    'album',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _artworkUrlMeta = const VerificationMeta(
+    'artworkUrl',
+  );
+  @override
+  late final GeneratedColumn<String> artworkUrl = GeneratedColumn<String>(
+    'artwork_url',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _kindMeta = const VerificationMeta('kind');
+  @override
+  late final GeneratedColumn<String> kind = GeneratedColumn<String>(
+    'kind',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _sourceUrlMeta = const VerificationMeta(
+    'sourceUrl',
+  );
+  @override
+  late final GeneratedColumn<String> sourceUrl = GeneratedColumn<String>(
+    'source_url',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _fileNameMeta = const VerificationMeta(
+    'fileName',
+  );
+  @override
+  late final GeneratedColumn<String> fileName = GeneratedColumn<String>(
+    'file_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _sizeBytesMeta = const VerificationMeta(
+    'sizeBytes',
+  );
+  @override
+  late final GeneratedColumn<int> sizeBytes = GeneratedColumn<int>(
+    'size_bytes',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _downloadedAtMeta = const VerificationMeta(
+    'downloadedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> downloadedAt = GeneratedColumn<DateTime>(
+    'downloaded_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    trackId,
+    title,
+    artist,
+    album,
+    artworkUrl,
+    kind,
+    sourceUrl,
+    fileName,
+    sizeBytes,
+    downloadedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'downloaded_track_records';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<DownloadedTrackRecord> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('track_id')) {
+      context.handle(
+        _trackIdMeta,
+        trackId.isAcceptableOrUnknown(data['track_id']!, _trackIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_trackIdMeta);
+    }
+    if (data.containsKey('title')) {
+      context.handle(
+        _titleMeta,
+        title.isAcceptableOrUnknown(data['title']!, _titleMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_titleMeta);
+    }
+    if (data.containsKey('artist')) {
+      context.handle(
+        _artistMeta,
+        artist.isAcceptableOrUnknown(data['artist']!, _artistMeta),
+      );
+    }
+    if (data.containsKey('album')) {
+      context.handle(
+        _albumMeta,
+        album.isAcceptableOrUnknown(data['album']!, _albumMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_albumMeta);
+    }
+    if (data.containsKey('artwork_url')) {
+      context.handle(
+        _artworkUrlMeta,
+        artworkUrl.isAcceptableOrUnknown(data['artwork_url']!, _artworkUrlMeta),
+      );
+    }
+    if (data.containsKey('kind')) {
+      context.handle(
+        _kindMeta,
+        kind.isAcceptableOrUnknown(data['kind']!, _kindMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_kindMeta);
+    }
+    if (data.containsKey('source_url')) {
+      context.handle(
+        _sourceUrlMeta,
+        sourceUrl.isAcceptableOrUnknown(data['source_url']!, _sourceUrlMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_sourceUrlMeta);
+    }
+    if (data.containsKey('file_name')) {
+      context.handle(
+        _fileNameMeta,
+        fileName.isAcceptableOrUnknown(data['file_name']!, _fileNameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_fileNameMeta);
+    }
+    if (data.containsKey('size_bytes')) {
+      context.handle(
+        _sizeBytesMeta,
+        sizeBytes.isAcceptableOrUnknown(data['size_bytes']!, _sizeBytesMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_sizeBytesMeta);
+    }
+    if (data.containsKey('downloaded_at')) {
+      context.handle(
+        _downloadedAtMeta,
+        downloadedAt.isAcceptableOrUnknown(
+          data['downloaded_at']!,
+          _downloadedAtMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_downloadedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {trackId};
+  @override
+  DownloadedTrackRecord map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return DownloadedTrackRecord(
+      trackId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}track_id'],
+      )!,
+      title: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}title'],
+      )!,
+      artist: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}artist'],
+      ),
+      album: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}album'],
+      )!,
+      artworkUrl: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}artwork_url'],
+      ),
+      kind: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}kind'],
+      )!,
+      sourceUrl: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}source_url'],
+      )!,
+      fileName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}file_name'],
+      )!,
+      sizeBytes: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}size_bytes'],
+      )!,
+      downloadedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}downloaded_at'],
+      )!,
+    );
+  }
+
+  @override
+  $DownloadedTrackRecordsTable createAlias(String alias) {
+    return $DownloadedTrackRecordsTable(attachedDatabase, alias);
+  }
+}
+
+class DownloadedTrackRecord extends DataClass
+    implements Insertable<DownloadedTrackRecord> {
+  /// The published record id — the same id the collection stream is keyed by.
+  final String trackId;
+  final String title;
+  final String? artist;
+  final String album;
+  final String? artworkUrl;
+
+  /// Which collection it was saved from, so Downloads can group them.
+  final String kind;
+
+  /// The remote file this came from. Kept so a re-download after a failure
+  /// does not need the collection stream to be loaded again.
+  final String sourceUrl;
+
+  /// Absolute path on this device. Rebuilt against the current documents
+  /// directory on read, because iOS and Android both move that directory
+  /// between installs and an absolute path stored today can be wrong tomorrow.
+  final String fileName;
+  final int sizeBytes;
+  final DateTime downloadedAt;
+  const DownloadedTrackRecord({
+    required this.trackId,
+    required this.title,
+    this.artist,
+    required this.album,
+    this.artworkUrl,
+    required this.kind,
+    required this.sourceUrl,
+    required this.fileName,
+    required this.sizeBytes,
+    required this.downloadedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['track_id'] = Variable<String>(trackId);
+    map['title'] = Variable<String>(title);
+    if (!nullToAbsent || artist != null) {
+      map['artist'] = Variable<String>(artist);
+    }
+    map['album'] = Variable<String>(album);
+    if (!nullToAbsent || artworkUrl != null) {
+      map['artwork_url'] = Variable<String>(artworkUrl);
+    }
+    map['kind'] = Variable<String>(kind);
+    map['source_url'] = Variable<String>(sourceUrl);
+    map['file_name'] = Variable<String>(fileName);
+    map['size_bytes'] = Variable<int>(sizeBytes);
+    map['downloaded_at'] = Variable<DateTime>(downloadedAt);
+    return map;
+  }
+
+  DownloadedTrackRecordsCompanion toCompanion(bool nullToAbsent) {
+    return DownloadedTrackRecordsCompanion(
+      trackId: Value(trackId),
+      title: Value(title),
+      artist: artist == null && nullToAbsent
+          ? const Value.absent()
+          : Value(artist),
+      album: Value(album),
+      artworkUrl: artworkUrl == null && nullToAbsent
+          ? const Value.absent()
+          : Value(artworkUrl),
+      kind: Value(kind),
+      sourceUrl: Value(sourceUrl),
+      fileName: Value(fileName),
+      sizeBytes: Value(sizeBytes),
+      downloadedAt: Value(downloadedAt),
+    );
+  }
+
+  factory DownloadedTrackRecord.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return DownloadedTrackRecord(
+      trackId: serializer.fromJson<String>(json['trackId']),
+      title: serializer.fromJson<String>(json['title']),
+      artist: serializer.fromJson<String?>(json['artist']),
+      album: serializer.fromJson<String>(json['album']),
+      artworkUrl: serializer.fromJson<String?>(json['artworkUrl']),
+      kind: serializer.fromJson<String>(json['kind']),
+      sourceUrl: serializer.fromJson<String>(json['sourceUrl']),
+      fileName: serializer.fromJson<String>(json['fileName']),
+      sizeBytes: serializer.fromJson<int>(json['sizeBytes']),
+      downloadedAt: serializer.fromJson<DateTime>(json['downloadedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'trackId': serializer.toJson<String>(trackId),
+      'title': serializer.toJson<String>(title),
+      'artist': serializer.toJson<String?>(artist),
+      'album': serializer.toJson<String>(album),
+      'artworkUrl': serializer.toJson<String?>(artworkUrl),
+      'kind': serializer.toJson<String>(kind),
+      'sourceUrl': serializer.toJson<String>(sourceUrl),
+      'fileName': serializer.toJson<String>(fileName),
+      'sizeBytes': serializer.toJson<int>(sizeBytes),
+      'downloadedAt': serializer.toJson<DateTime>(downloadedAt),
+    };
+  }
+
+  DownloadedTrackRecord copyWith({
+    String? trackId,
+    String? title,
+    Value<String?> artist = const Value.absent(),
+    String? album,
+    Value<String?> artworkUrl = const Value.absent(),
+    String? kind,
+    String? sourceUrl,
+    String? fileName,
+    int? sizeBytes,
+    DateTime? downloadedAt,
+  }) => DownloadedTrackRecord(
+    trackId: trackId ?? this.trackId,
+    title: title ?? this.title,
+    artist: artist.present ? artist.value : this.artist,
+    album: album ?? this.album,
+    artworkUrl: artworkUrl.present ? artworkUrl.value : this.artworkUrl,
+    kind: kind ?? this.kind,
+    sourceUrl: sourceUrl ?? this.sourceUrl,
+    fileName: fileName ?? this.fileName,
+    sizeBytes: sizeBytes ?? this.sizeBytes,
+    downloadedAt: downloadedAt ?? this.downloadedAt,
+  );
+  DownloadedTrackRecord copyWithCompanion(
+    DownloadedTrackRecordsCompanion data,
+  ) {
+    return DownloadedTrackRecord(
+      trackId: data.trackId.present ? data.trackId.value : this.trackId,
+      title: data.title.present ? data.title.value : this.title,
+      artist: data.artist.present ? data.artist.value : this.artist,
+      album: data.album.present ? data.album.value : this.album,
+      artworkUrl: data.artworkUrl.present
+          ? data.artworkUrl.value
+          : this.artworkUrl,
+      kind: data.kind.present ? data.kind.value : this.kind,
+      sourceUrl: data.sourceUrl.present ? data.sourceUrl.value : this.sourceUrl,
+      fileName: data.fileName.present ? data.fileName.value : this.fileName,
+      sizeBytes: data.sizeBytes.present ? data.sizeBytes.value : this.sizeBytes,
+      downloadedAt: data.downloadedAt.present
+          ? data.downloadedAt.value
+          : this.downloadedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DownloadedTrackRecord(')
+          ..write('trackId: $trackId, ')
+          ..write('title: $title, ')
+          ..write('artist: $artist, ')
+          ..write('album: $album, ')
+          ..write('artworkUrl: $artworkUrl, ')
+          ..write('kind: $kind, ')
+          ..write('sourceUrl: $sourceUrl, ')
+          ..write('fileName: $fileName, ')
+          ..write('sizeBytes: $sizeBytes, ')
+          ..write('downloadedAt: $downloadedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    trackId,
+    title,
+    artist,
+    album,
+    artworkUrl,
+    kind,
+    sourceUrl,
+    fileName,
+    sizeBytes,
+    downloadedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is DownloadedTrackRecord &&
+          other.trackId == this.trackId &&
+          other.title == this.title &&
+          other.artist == this.artist &&
+          other.album == this.album &&
+          other.artworkUrl == this.artworkUrl &&
+          other.kind == this.kind &&
+          other.sourceUrl == this.sourceUrl &&
+          other.fileName == this.fileName &&
+          other.sizeBytes == this.sizeBytes &&
+          other.downloadedAt == this.downloadedAt);
+}
+
+class DownloadedTrackRecordsCompanion
+    extends UpdateCompanion<DownloadedTrackRecord> {
+  final Value<String> trackId;
+  final Value<String> title;
+  final Value<String?> artist;
+  final Value<String> album;
+  final Value<String?> artworkUrl;
+  final Value<String> kind;
+  final Value<String> sourceUrl;
+  final Value<String> fileName;
+  final Value<int> sizeBytes;
+  final Value<DateTime> downloadedAt;
+  final Value<int> rowid;
+  const DownloadedTrackRecordsCompanion({
+    this.trackId = const Value.absent(),
+    this.title = const Value.absent(),
+    this.artist = const Value.absent(),
+    this.album = const Value.absent(),
+    this.artworkUrl = const Value.absent(),
+    this.kind = const Value.absent(),
+    this.sourceUrl = const Value.absent(),
+    this.fileName = const Value.absent(),
+    this.sizeBytes = const Value.absent(),
+    this.downloadedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  DownloadedTrackRecordsCompanion.insert({
+    required String trackId,
+    required String title,
+    this.artist = const Value.absent(),
+    required String album,
+    this.artworkUrl = const Value.absent(),
+    required String kind,
+    required String sourceUrl,
+    required String fileName,
+    required int sizeBytes,
+    required DateTime downloadedAt,
+    this.rowid = const Value.absent(),
+  }) : trackId = Value(trackId),
+       title = Value(title),
+       album = Value(album),
+       kind = Value(kind),
+       sourceUrl = Value(sourceUrl),
+       fileName = Value(fileName),
+       sizeBytes = Value(sizeBytes),
+       downloadedAt = Value(downloadedAt);
+  static Insertable<DownloadedTrackRecord> custom({
+    Expression<String>? trackId,
+    Expression<String>? title,
+    Expression<String>? artist,
+    Expression<String>? album,
+    Expression<String>? artworkUrl,
+    Expression<String>? kind,
+    Expression<String>? sourceUrl,
+    Expression<String>? fileName,
+    Expression<int>? sizeBytes,
+    Expression<DateTime>? downloadedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (trackId != null) 'track_id': trackId,
+      if (title != null) 'title': title,
+      if (artist != null) 'artist': artist,
+      if (album != null) 'album': album,
+      if (artworkUrl != null) 'artwork_url': artworkUrl,
+      if (kind != null) 'kind': kind,
+      if (sourceUrl != null) 'source_url': sourceUrl,
+      if (fileName != null) 'file_name': fileName,
+      if (sizeBytes != null) 'size_bytes': sizeBytes,
+      if (downloadedAt != null) 'downloaded_at': downloadedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  DownloadedTrackRecordsCompanion copyWith({
+    Value<String>? trackId,
+    Value<String>? title,
+    Value<String?>? artist,
+    Value<String>? album,
+    Value<String?>? artworkUrl,
+    Value<String>? kind,
+    Value<String>? sourceUrl,
+    Value<String>? fileName,
+    Value<int>? sizeBytes,
+    Value<DateTime>? downloadedAt,
+    Value<int>? rowid,
+  }) {
+    return DownloadedTrackRecordsCompanion(
+      trackId: trackId ?? this.trackId,
+      title: title ?? this.title,
+      artist: artist ?? this.artist,
+      album: album ?? this.album,
+      artworkUrl: artworkUrl ?? this.artworkUrl,
+      kind: kind ?? this.kind,
+      sourceUrl: sourceUrl ?? this.sourceUrl,
+      fileName: fileName ?? this.fileName,
+      sizeBytes: sizeBytes ?? this.sizeBytes,
+      downloadedAt: downloadedAt ?? this.downloadedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (trackId.present) {
+      map['track_id'] = Variable<String>(trackId.value);
+    }
+    if (title.present) {
+      map['title'] = Variable<String>(title.value);
+    }
+    if (artist.present) {
+      map['artist'] = Variable<String>(artist.value);
+    }
+    if (album.present) {
+      map['album'] = Variable<String>(album.value);
+    }
+    if (artworkUrl.present) {
+      map['artwork_url'] = Variable<String>(artworkUrl.value);
+    }
+    if (kind.present) {
+      map['kind'] = Variable<String>(kind.value);
+    }
+    if (sourceUrl.present) {
+      map['source_url'] = Variable<String>(sourceUrl.value);
+    }
+    if (fileName.present) {
+      map['file_name'] = Variable<String>(fileName.value);
+    }
+    if (sizeBytes.present) {
+      map['size_bytes'] = Variable<int>(sizeBytes.value);
+    }
+    if (downloadedAt.present) {
+      map['downloaded_at'] = Variable<DateTime>(downloadedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DownloadedTrackRecordsCompanion(')
+          ..write('trackId: $trackId, ')
+          ..write('title: $title, ')
+          ..write('artist: $artist, ')
+          ..write('album: $album, ')
+          ..write('artworkUrl: $artworkUrl, ')
+          ..write('kind: $kind, ')
+          ..write('sourceUrl: $sourceUrl, ')
+          ..write('fileName: $fileName, ')
+          ..write('sizeBytes: $sizeBytes, ')
+          ..write('downloadedAt: $downloadedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -861,6 +1489,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       $ContributionRecordsTable(this);
   late final $SavedEntryRecordsTable savedEntryRecords =
       $SavedEntryRecordsTable(this);
+  late final $DownloadedTrackRecordsTable downloadedTrackRecords =
+      $DownloadedTrackRecordsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -868,6 +1498,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   List<DatabaseSchemaEntity> get allSchemaEntities => [
     contributionRecords,
     savedEntryRecords,
+    downloadedTrackRecords,
   ];
 }
 
@@ -1346,6 +1977,324 @@ typedef $$SavedEntryRecordsTableProcessedTableManager =
       SavedEntryRecord,
       PrefetchHooks Function()
     >;
+typedef $$DownloadedTrackRecordsTableCreateCompanionBuilder =
+    DownloadedTrackRecordsCompanion Function({
+      required String trackId,
+      required String title,
+      Value<String?> artist,
+      required String album,
+      Value<String?> artworkUrl,
+      required String kind,
+      required String sourceUrl,
+      required String fileName,
+      required int sizeBytes,
+      required DateTime downloadedAt,
+      Value<int> rowid,
+    });
+typedef $$DownloadedTrackRecordsTableUpdateCompanionBuilder =
+    DownloadedTrackRecordsCompanion Function({
+      Value<String> trackId,
+      Value<String> title,
+      Value<String?> artist,
+      Value<String> album,
+      Value<String?> artworkUrl,
+      Value<String> kind,
+      Value<String> sourceUrl,
+      Value<String> fileName,
+      Value<int> sizeBytes,
+      Value<DateTime> downloadedAt,
+      Value<int> rowid,
+    });
+
+class $$DownloadedTrackRecordsTableFilterComposer
+    extends Composer<_$AppDatabase, $DownloadedTrackRecordsTable> {
+  $$DownloadedTrackRecordsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get trackId => $composableBuilder(
+    column: $table.trackId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get artist => $composableBuilder(
+    column: $table.artist,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get album => $composableBuilder(
+    column: $table.album,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get artworkUrl => $composableBuilder(
+    column: $table.artworkUrl,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get sourceUrl => $composableBuilder(
+    column: $table.sourceUrl,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get fileName => $composableBuilder(
+    column: $table.fileName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get sizeBytes => $composableBuilder(
+    column: $table.sizeBytes,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get downloadedAt => $composableBuilder(
+    column: $table.downloadedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$DownloadedTrackRecordsTableOrderingComposer
+    extends Composer<_$AppDatabase, $DownloadedTrackRecordsTable> {
+  $$DownloadedTrackRecordsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get trackId => $composableBuilder(
+    column: $table.trackId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get artist => $composableBuilder(
+    column: $table.artist,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get album => $composableBuilder(
+    column: $table.album,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get artworkUrl => $composableBuilder(
+    column: $table.artworkUrl,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get sourceUrl => $composableBuilder(
+    column: $table.sourceUrl,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get fileName => $composableBuilder(
+    column: $table.fileName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get sizeBytes => $composableBuilder(
+    column: $table.sizeBytes,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get downloadedAt => $composableBuilder(
+    column: $table.downloadedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$DownloadedTrackRecordsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $DownloadedTrackRecordsTable> {
+  $$DownloadedTrackRecordsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get trackId =>
+      $composableBuilder(column: $table.trackId, builder: (column) => column);
+
+  GeneratedColumn<String> get title =>
+      $composableBuilder(column: $table.title, builder: (column) => column);
+
+  GeneratedColumn<String> get artist =>
+      $composableBuilder(column: $table.artist, builder: (column) => column);
+
+  GeneratedColumn<String> get album =>
+      $composableBuilder(column: $table.album, builder: (column) => column);
+
+  GeneratedColumn<String> get artworkUrl => $composableBuilder(
+    column: $table.artworkUrl,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get kind =>
+      $composableBuilder(column: $table.kind, builder: (column) => column);
+
+  GeneratedColumn<String> get sourceUrl =>
+      $composableBuilder(column: $table.sourceUrl, builder: (column) => column);
+
+  GeneratedColumn<String> get fileName =>
+      $composableBuilder(column: $table.fileName, builder: (column) => column);
+
+  GeneratedColumn<int> get sizeBytes =>
+      $composableBuilder(column: $table.sizeBytes, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get downloadedAt => $composableBuilder(
+    column: $table.downloadedAt,
+    builder: (column) => column,
+  );
+}
+
+class $$DownloadedTrackRecordsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $DownloadedTrackRecordsTable,
+          DownloadedTrackRecord,
+          $$DownloadedTrackRecordsTableFilterComposer,
+          $$DownloadedTrackRecordsTableOrderingComposer,
+          $$DownloadedTrackRecordsTableAnnotationComposer,
+          $$DownloadedTrackRecordsTableCreateCompanionBuilder,
+          $$DownloadedTrackRecordsTableUpdateCompanionBuilder,
+          (
+            DownloadedTrackRecord,
+            BaseReferences<
+              _$AppDatabase,
+              $DownloadedTrackRecordsTable,
+              DownloadedTrackRecord
+            >,
+          ),
+          DownloadedTrackRecord,
+          PrefetchHooks Function()
+        > {
+  $$DownloadedTrackRecordsTableTableManager(
+    _$AppDatabase db,
+    $DownloadedTrackRecordsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$DownloadedTrackRecordsTableFilterComposer(
+                $db: db,
+                $table: table,
+              ),
+          createOrderingComposer: () =>
+              $$DownloadedTrackRecordsTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$DownloadedTrackRecordsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> trackId = const Value.absent(),
+                Value<String> title = const Value.absent(),
+                Value<String?> artist = const Value.absent(),
+                Value<String> album = const Value.absent(),
+                Value<String?> artworkUrl = const Value.absent(),
+                Value<String> kind = const Value.absent(),
+                Value<String> sourceUrl = const Value.absent(),
+                Value<String> fileName = const Value.absent(),
+                Value<int> sizeBytes = const Value.absent(),
+                Value<DateTime> downloadedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => DownloadedTrackRecordsCompanion(
+                trackId: trackId,
+                title: title,
+                artist: artist,
+                album: album,
+                artworkUrl: artworkUrl,
+                kind: kind,
+                sourceUrl: sourceUrl,
+                fileName: fileName,
+                sizeBytes: sizeBytes,
+                downloadedAt: downloadedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String trackId,
+                required String title,
+                Value<String?> artist = const Value.absent(),
+                required String album,
+                Value<String?> artworkUrl = const Value.absent(),
+                required String kind,
+                required String sourceUrl,
+                required String fileName,
+                required int sizeBytes,
+                required DateTime downloadedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => DownloadedTrackRecordsCompanion.insert(
+                trackId: trackId,
+                title: title,
+                artist: artist,
+                album: album,
+                artworkUrl: artworkUrl,
+                kind: kind,
+                sourceUrl: sourceUrl,
+                fileName: fileName,
+                sizeBytes: sizeBytes,
+                downloadedAt: downloadedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$DownloadedTrackRecordsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $DownloadedTrackRecordsTable,
+      DownloadedTrackRecord,
+      $$DownloadedTrackRecordsTableFilterComposer,
+      $$DownloadedTrackRecordsTableOrderingComposer,
+      $$DownloadedTrackRecordsTableAnnotationComposer,
+      $$DownloadedTrackRecordsTableCreateCompanionBuilder,
+      $$DownloadedTrackRecordsTableUpdateCompanionBuilder,
+      (
+        DownloadedTrackRecord,
+        BaseReferences<
+          _$AppDatabase,
+          $DownloadedTrackRecordsTable,
+          DownloadedTrackRecord
+        >,
+      ),
+      DownloadedTrackRecord,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -1354,4 +2303,9 @@ class $AppDatabaseManager {
       $$ContributionRecordsTableTableManager(_db, _db.contributionRecords);
   $$SavedEntryRecordsTableTableManager get savedEntryRecords =>
       $$SavedEntryRecordsTableTableManager(_db, _db.savedEntryRecords);
+  $$DownloadedTrackRecordsTableTableManager get downloadedTrackRecords =>
+      $$DownloadedTrackRecordsTableTableManager(
+        _db,
+        _db.downloadedTrackRecords,
+      );
 }

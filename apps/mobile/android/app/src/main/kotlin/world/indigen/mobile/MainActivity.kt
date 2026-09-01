@@ -46,6 +46,11 @@ class MainActivity : AudioServiceActivity() {
             .setMethodCallHandler { call, result ->
                 if (call.method == "read") result.success(signature()) else result.notImplemented()
             }
+        // Play Integrity. The application context rather than the activity:
+        // the token provider outlives a configuration change, and holding the
+        // activity in it would leak one on every rotation.
+        PlayIntegrityChannel(applicationContext)
+            .attachTo(flutterEngine.dartExecutor.binaryMessenger)
     }
 
     private fun signature(): Map<String, Any?> {

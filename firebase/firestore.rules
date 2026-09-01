@@ -54,6 +54,44 @@ service cloud.firestore {
       return /databases/$(database)/documents/creatorMemberships/$(uid);
     }
 
+    // ---- Supporter marks ----------------------------------------------------
+    //
+    // A supporter mark is bought through Google Play and written by
+    // services/functions/src/subscriptions.ts once Play has confirmed the
+    // purchase. Posts and reel comments carry an author stamp so the feed can
+    // draw a byline without a profile read per row, and that stamp is written
+    // by the phone — so the one field in it that money buys is checked against
+    // the entitlement rather than believed.
+    //
+    // ── Why the profile and not the entitlement ──────────────────────────
+    // `communityProfiles/{uid}` carries a mirror of the mark, written by the
+    // same backend and frozen against the member's own writes by the rules
+    // below. Reading it here rather than `entitlements/{uid}` costs one
+    // document instead of two, and — the part that matters — it needs no
+    // existence guard: every rule that calls this already requires the
+    // author's profile to exist, so there is no `get()` on a missing document
+    // to go wrong. A profile created after the subscription is stamped by
+    // `onCommunityProfileCreated` in subscriptions.ts, which is what keeps the
+    // mirror from lagging a month behind the purchase.
+    //
+    // One extra document read on a post or comment *create*, and none on any
+    // read. That is the right side of the trade: writes here are a handful per
+    // member per day, and the alternative is a badge anybody can put on
+    // themselves by editing one string.
+    function grantedSupporterMark() {
+      return get(/databases/$(database)/documents/communityProfiles/$(request.auth.uid))
+        .data.get('supporterMark', '');
+    }
+
+    function claimedSupporterMark(data) {
+      return data.get('author', {}).get('supporterMark', '');
+    }
+
+    function supporterMarkIsEarned(data) {
+      return claimedSupporterMark(data) == ''
+        || claimedSupporterMark(data) == grantedSupporterMark();
+    }
+
     function hasApprovedCreatorClaim(uid) {
       return isOwner(uid)
         && request.auth.token.get('creatorStatus', '') == 'approved'
@@ -497,6 +535,53 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // AI-assisted Studio video jobs are created and advanced only by callable
+    // Functions. Creators can observe their own queue without seeing provider
+    // task URLs, signed media URLs, or another creator's generation metadata.
+    match /studioVideoJobs/{jobId} {
+      allow read: if isStaff() || (
+        isSignedIn() && resource.data.ownerUid == request.auth.uid
+      );
+      allow write: if false;
+    }
+
+    // ---- Subscriptions: the member reads what they are owed, and nothing else
+    //
+    // `entitlements/{uid}` is the answer to "what has this member paid for".
+    // Readable by its owner so the app can draw the right tier without a round
+    // trip, and writable by nobody at all: it is derived from what Google Play
+    // says about a purchase token, which is a conversation a phone has no part
+    // in. Everything that sets it lives in services/functions/src/subscriptions.ts.
+    //
+    // The purchase tokens themselves are NOT here. A token is a bearer
+    // credential — anyone holding one can ask Play about the purchase — so it
+    // lives only in `subscriptionPurchases`, which nobody may read.
+    match /entitlements/{uid} {
+      allow read: if isOwner(uid) || isStaff();
+      allow write: if false;
+    }
+
+    // Play purchase tokens and the reverse map from Play's obfuscated account
+    // id back to a uid. Server-only in both directions. Spelled out rather than
+    // left to the default deny because what is in them is worth naming.
+    match /subscriptionPurchases/{purchaseId} {
+      allow read, write: if false;
+    }
+    match /playAccountIndex/{accountId} {
+      allow read, write: if false;
+    }
+
+    // ---- Play Integrity verdicts: staff read, nobody writes -----------------
+    //
+    // Deliberately not readable by the member it is about. The document says
+    // which security signals a device failed, and handing that to the device is
+    // handing a tamper attempt its own scorecard. The app learns only what the
+    // `verifyDeviceIntegrity` callable chooses to return.
+    match /deviceIntegrityChecks/{uid} {
+      allow read: if isStaff();
+      allow write: if false;
+    }
+
     // ---- Advertising campaigns: owner reads own, server writes everything ---
     //
     // A campaign is money. Its status, what it has been charged, whether it is
@@ -715,7 +800,10 @@ service cloud.firestore {
         // Verification is granted, never claimed. A new profile arrives with
         // no kind and no phone behind it.
         && request.resource.data.get('verifiedKind', '') == ''
-        && request.resource.data.get('phoneVerified', false) == false;
+        && request.resource.data.get('phoneVerified', false) == false
+        // A supporter mark is bought, not declared. It arrives only from
+        // subscriptions.ts once Play has confirmed a purchase.
+        && request.resource.data.get('supporterMark', '') == '';
       // Handle, uid and verification are frozen after creation. The kind is
       // staff's to give; the phone flag is the verification callable's to set,
       // and it runs with admin credentials — so neither can move on a write the
@@ -728,6 +816,7 @@ service cloud.firestore {
         && request.resource.data.get('verifiedKind', '') == resource.data.get('verifiedKind', '')
         && request.resource.data.get('phoneVerified', false) == resource.data.get('phoneVerified', false)
         && request.resource.data.get('phoneVerifiedAt', null) == resource.data.get('phoneVerifiedAt', null)
+        && request.resource.data.get('supporterMark', '') == resource.data.get('supporterMark', '')
         && validCommunityText(request.resource.data.displayName, 80)
         && request.resource.data.displayName.size() > 0
         && validCommunityText(request.resource.data.get('bio', ''), 300)
@@ -791,7 +880,8 @@ service cloud.firestore {
             && request.resource.data.poll.totalVotes == 0
             && request.resource.data.poll.endsAt is timestamp))
         && (request.resource.data.parentId == null
-          || request.resource.data.parentId is string);
+          || request.resource.data.parentId is string)
+        && supporterMarkIsEarned(request.resource.data);
       // The author may edit their own body text; anyone signed in may move a
       // counter by one step under the constraints above.
       allow update: if (
@@ -1078,7 +1168,8 @@ service cloud.firestore {
         && exists(/databases/$(database)/documents/communityProfiles/$(request.auth.uid))
         && request.resource.data.text is string
         && request.resource.data.text.size() > 0
-        && request.resource.data.text.size() <= 400;
+        && request.resource.data.text.size() <= 400
+        && supporterMarkIsEarned(request.resource.data);
       allow update: if false;
       allow delete: if isSignedIn()
         && (resource.data.authorId == request.auth.uid || isStaff());

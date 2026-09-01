@@ -25,11 +25,17 @@ import 'package:indigen_world_mobile/features/community/people_screen.dart';
 import 'package:indigen_world_mobile/features/community/phone_verification_screen.dart';
 import 'package:indigen_world_mobile/features/community/saved_posts_screen.dart';
 import 'package:indigen_world_mobile/features/community/widgets/verified_badge.dart';
+import 'package:indigen_world_mobile/features/downloads/data/downloads_providers.dart';
+import 'package:indigen_world_mobile/features/downloads/downloads_screen.dart';
 import 'package:indigen_world_mobile/features/notifications/notifications_screen.dart';
 import 'package:indigen_world_mobile/features/notifications/push_messaging.dart';
 import 'package:indigen_world_mobile/features/rating/rating_service.dart';
 import 'package:indigen_world_mobile/features/settings/licences_screen.dart';
 import 'package:indigen_world_mobile/features/settings/policy_screen.dart';
+import 'package:indigen_world_mobile/features/subscriptions/data/entitlement.dart';
+import 'package:indigen_world_mobile/features/subscriptions/data/subscription_catalog.dart';
+import 'package:indigen_world_mobile/features/subscriptions/data/subscription_providers.dart';
+import 'package:indigen_world_mobile/features/subscriptions/manage_subscription_screen.dart';
 import 'package:indigen_world_mobile/l10n/app_localizations.dart';
 import 'package:indigen_world_mobile/shared/glass_popup.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -129,6 +135,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final locale = ref.watch(localeProvider);
     final l10n = AppLocalizations.of(context);
     final signature = ref.watch(appSignatureProvider).asData?.value;
+    final entitlement =
+        ref.watch(entitlementProvider).asData?.value ?? Entitlement.none;
+    final downloadCount = ref.watch(downloadedIdsProvider).length;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
@@ -223,6 +232,24 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 enabled: signedIn && profile != null && !(profile.phoneVerified),
                 onTap: _verifyPhone,
               ),
+              // Between verification and the account controls, because that is
+              // what it is about: what this account is entitled to. The row
+              // reads the entitlement rather than guessing, so a member whose
+              // renewal has failed sees that here rather than discovering it
+              // when the adverts come back.
+              _SettingsRow(
+                icon: entitlement.isActive
+                    ? Icons.volunteer_activism_rounded
+                    : Icons.favorite_border_rounded,
+                title: entitlement.isActive
+                    ? productForId(entitlement.productId)?.name ??
+                          'Your subscription'
+                    : 'Support this work',
+                subtitle: entitlement.isActive
+                    ? entitlement.status.description
+                    : 'No adverts, offline listening, and more of Kawuri',
+                onTap: _openSubscription,
+              ),
               _SettingsRow(
                 icon: Icons.lock_outline_rounded,
                 title: 'Change password',
@@ -249,6 +276,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           const SizedBox(height: 9),
           _SettingsGroup(
             children: [
+              _SettingsRow(
+                icon: Icons.download_for_offline_outlined,
+                title: 'Downloads',
+                subtitle: downloadCount > 0
+                    ? '$downloadCount kept on this phone'
+                    : 'Songs and chapters kept for listening offline',
+                onTap: _openDownloads,
+              ),
               _SettingsRow(
                 icon: Icons.bookmark_border_rounded,
                 title: 'Saved posts',
@@ -577,6 +612,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       _message('Your name is yours. Wear it well.');
     }
   }
+
+  Future<void> _openSubscription() => Navigator.of(context).push(
+    MaterialPageRoute<void>(
+      builder: (context) => const ManageSubscriptionScreen(),
+    ),
+  );
+
+  Future<void> _openDownloads() => Navigator.of(context).push(
+    MaterialPageRoute<void>(builder: (context) => const DownloadsScreen()),
+  );
 
   Future<void> _verifyPhone() async {
     final block = ref.read(connectionBlockProvider);

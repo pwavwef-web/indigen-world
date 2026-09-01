@@ -9,6 +9,8 @@ import 'package:indigen_world_mobile/features/community/widgets/post_media_view.
 import 'package:indigen_world_mobile/features/community/widgets/post_text.dart';
 import 'package:indigen_world_mobile/features/community/widgets/verified_badge.dart';
 import 'package:indigen_world_mobile/features/community/widgets/video_cover.dart';
+import 'package:indigen_world_mobile/features/subscriptions/data/subscription_catalog.dart';
+import 'package:indigen_world_mobile/features/subscriptions/widgets/supporter_badge.dart';
 import 'package:indigen_world_mobile/shared/glass_popup.dart';
 
 /// One complete community post surface.
@@ -103,6 +105,12 @@ class CommunityPostCard extends ConsumerWidget {
     final authorAvatar = liveAuthor?.avatarUrl ?? post.authorAvatarUrl;
     final authorInitials = liveAuthor?.initials ?? post.initials;
     final authorMark = liveAuthor?.mark ?? post.authorMark;
+    // The live profile first, exactly as the verification mark does. A profile
+    // read is what makes a badge disappear the day a subscription lapses; the
+    // stamp on the post is only the fallback for a feed drawn before the
+    // profile has arrived.
+    final authorSupporter =
+        liveAuthor?.supporterMark ?? post.authorSupporterMark;
 
     final avatarSize = compact ? 34.0 : 42.0;
     final gutter = compact ? 10.0 : 12.0;
@@ -171,6 +179,7 @@ class CommunityPostCard extends ConsumerWidget {
                                     name: authorName,
                                     handle: authorHandle,
                                     mark: authorMark,
+                                    supporter: authorSupporter,
                                     age: communityAgeLabel(post.createdAt),
                                     edited: post.isEdited,
                                     compact: compact,
@@ -295,6 +304,7 @@ class _PostByline extends StatelessWidget {
     required this.name,
     required this.handle,
     required this.mark,
+    required this.supporter,
     required this.age,
     required this.edited,
     required this.compact,
@@ -305,6 +315,12 @@ class _PostByline extends StatelessWidget {
   final String name;
   final String handle;
   final VerifiedMark mark;
+
+  /// Drawn after the verification mark and never instead of it: the two say
+  /// different things and a byline that showed only one of them would be
+  /// saying the wrong one.
+  final SupporterMark supporter;
+
   final String age;
   final bool edited;
   final bool compact;
@@ -339,6 +355,10 @@ class _PostByline extends StatelessWidget {
                 if (mark != VerifiedMark.none) ...[
                   const SizedBox(width: 3),
                   VerifiedBadge(mark: mark, size: size),
+                ],
+                if (supporter != SupporterMark.none) ...[
+                  const SizedBox(width: 3),
+                  SupporterBadge(mark: supporter, size: size),
                 ],
                 const SizedBox(width: 5),
                 Flexible(

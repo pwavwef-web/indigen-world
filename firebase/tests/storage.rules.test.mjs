@@ -7,6 +7,7 @@ import assert from 'node:assert/strict';
 import { after, before, test } from 'node:test';
 import { initializeApp as adminInit, deleteApp as adminDelete } from 'firebase-admin/app';
 import { getAuth as adminAuth } from 'firebase-admin/auth';
+import { getStorage as adminStorage } from 'firebase-admin/storage';
 import { deleteApp, initializeApp as clientInit } from 'firebase/app';
 import { connectAuthEmulator, getAuth as clientAuth, signInWithCustomToken } from 'firebase/auth';
 import { connectStorageEmulator, getBytes, getStorage, ref, uploadBytes } from 'firebase/storage';
@@ -125,6 +126,29 @@ test('raw submission media is private to owner and staff', async () => {
 
   const reviewer = await clientFor('reviewer-storage', 'reviewer-1', { role: 'reviewer' });
   await getBytes(ref(reviewer, path));
+});
+
+test('generated Studio videos are private and server-written only', async () => {
+  const path = 'studio-video-jobs/video-owner/job-1/output.mp4';
+  await adminStorage(adminApp).bucket(BUCKET).file(path).save(Buffer.from('video'), {
+    metadata: { contentType: 'video/mp4' },
+  });
+
+  const owner = await clientFor('studio-video-owner-storage', 'video-owner');
+  await getBytes(ref(owner, path));
+
+  const reviewer = await clientFor('studio-video-reviewer-storage', 'video-reviewer', { role: 'reviewer' });
+  await getBytes(ref(reviewer, path));
+
+  const stranger = await clientFor('studio-video-stranger-storage', 'video-stranger');
+  await assert.rejects(getBytes(ref(stranger, path)));
+
+  const guest = await clientFor('studio-video-guest-storage', null);
+  await assert.rejects(getBytes(ref(guest, path)));
+
+  await assert.rejects(
+    uploadBytes(ref(owner, path), bytes(), { contentType: 'video/mp4' }),
+  );
 });
 
 test('blocked creators cannot update avatars while normal profile avatars are public-readable', async () => {

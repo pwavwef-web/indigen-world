@@ -36,3 +36,11 @@ services/ai/
 ├── policies/
 └── observability/
 ```
+
+The first server-executed implementation currently lives with the trusted
+Firebase callable boundary in `services/functions/src/studio-video*.ts`. Its
+release contract and governance notes are documented in
+`docs/architecture/tribestudio-video-generation.md`. Provider-independent code
+can move into this directory when a second runtime consumes it; keeping the
+initial implementation in Functions avoids publishing a package with no real
+cross-runtime consumer.

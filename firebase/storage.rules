@@ -162,6 +162,14 @@ service firebase.storage {
       allow write: if false;
     }
 
+    // ---- Private AI-assisted Studio video outputs --------------------------
+    // Provider results are imported here by trusted backend code. They stay
+    // private until they enter the normal submission and review workflow.
+    match /studio-video-jobs/{uid}/{jobId}/{fileName} {
+      allow read: if isSignedIn() && (request.auth.uid == uid || isStaff());
+      allow write: if false;
+    }
+
     // ---- Default deny -------------------------------------------------------
     match /{allPaths=**} {
       allow read, write: if false;
