@@ -103,10 +103,24 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   return router;
 });
 
-CollectionKind _collectionKind(String? value) => switch (value) {
+/// The kind a `/contribute` link names, or null when it names none.
+///
+/// Null rather than a default, now that Contribute opens on a hub. An absent
+/// `category` used to mean "the dictionary", which was harmless while every
+/// kind lived behind one picker on one screen — a member who wanted something
+/// else tapped a tile. It stopped being harmless the moment the form became a
+/// destination: `submitCollectionContribution` writes a receipt notification
+/// with `link: '/contribute'`, so tapping "your contribution was received"
+/// would have opened a blank dictionary form rather than the screen that shows
+/// what happened to it.
+///
+/// An unknown value folds to null for the same reason: a link from a build
+/// that knows a kind this one does not should ask, rather than guess wrong.
+CollectionKind? _collectionKind(String? value) => switch (value) {
   'music' => CollectionKind.music,
+  'dictionary' || 'word' => CollectionKind.dictionary,
   'literature' => CollectionKind.literature,
   'audiobook' || 'audiobooks' => CollectionKind.audiobooks,
   'video' || 'film' => CollectionKind.video,
-  _ => CollectionKind.dictionary,
+  _ => null,
 };

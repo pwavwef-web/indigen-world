@@ -47,6 +47,14 @@ class ExploreScreen extends ConsumerStatefulWidget {
 class _ExploreScreenState extends ConsumerState<ExploreScreen> {
   var _tab = ExploreTab.forYou;
 
+  /// How long the feed was when more was last asked for.
+  ///
+  /// Widening the window is asynchronous — two live queries re-subscribe and
+  /// Firestore answers when it answers — so "did that bring anything back?"
+  /// cannot be answered at the moment of asking. It is answered at the next
+  /// ask, by whether the feed is any longer than it was left.
+  var _lengthAtLastAsk = -1;
+
   @override
   void didUpdateWidget(ExploreScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -55,14 +63,64 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
     // grown to three hundred reels would re-open every one of those snapshot
     // listeners at once, on a phone, to show a member the first card again.
     //
+    // The re-queued passes go back with it, and for the same kind of reason:
+    // somebody returning to Explore is starting again, and starting again four
+    // passes deep would mean a feed that opens on reels they have already seen
+    // and never fetches the ones published since.
+    //
     // Deferred to after the frame because `didUpdateWidget` runs *inside* the
     // build that switched tabs, and writing to a provider there is refused —
     // rightly, since the widgets reading it have already been laid out.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted && !widget.isActive) {
         ref.read(exploreWindowProvider.notifier).reset();
+        ref.read(exploreCyclesProvider.notifier).reset();
+        _lengthAtLastAsk = -1;
       }
     });
+  }
+
+  /// Moves between For you and Following.
+  ///
+  /// The re-queue count goes back to nought on the way. The two feeds hold
+  /// different reels and are different lengths, so a count carried across would
+  /// open Following already three passes deep — repeating clips at somebody who
+  /// had not yet reached the end of it once.
+  void _changeTab(ExploreTab tab) {
+    if (tab == _tab) return;
+    ref.read(exploreCyclesProvider.notifier).reset();
+    _lengthAtLastAsk = -1;
+    setState(() => _tab = tab);
+  }
+
+  /// What happens when the member reaches the end of the feed.
+  ///
+  /// Fetching comes first, always: a reel somebody has not seen beats one they
+  /// have. Only when the window refuses to widen — it is at its ceiling — or
+  /// when the last widening brought nothing back does the feed queue what it
+  /// already holds again.
+  ///
+  /// The second of those is a guess, and it is worth being plain about which
+  /// way it goes wrong. A slow connection looks exactly like an exhausted
+  /// archive, so a member on a bad signal can get a repeat a few seconds before
+  /// the real reels land. When those reels do land the feed is longer than it
+  /// was at the last ask, the next ask widens again, and the cost of the guess
+  /// is one early repeat rather than a feed stuck in one — which is the right
+  /// way round, because the other failure is a dead end.
+  void _loadMore() {
+    final forYou = _tab == ExploreTab.forYou;
+    final length = ref
+        .read(forYou ? exploreLoopedFeedProvider : exploreFollowingLoopedFeedProvider)
+        .length;
+    final stalled = length == _lengthAtLastAsk;
+    _lengthAtLastAsk = length;
+    if (!stalled && ref.read(exploreWindowProvider.notifier).grow()) return;
+    // The reels before anything is repeated: what a pass is a reordering of,
+    // and what [ExploreCycles.advance] measures against its minimum.
+    final content = ref.read(
+      forYou ? exploreContentProvider : exploreFollowingContentProvider,
+    );
+    ref.read(exploreCyclesProvider.notifier).advance(content.length);
   }
 
   @override
@@ -71,30 +129,30 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
 
   Widget _build(BuildContext context) {
     // Published TribeStudio work and community video, merged — see
-    // exploreFeedProvider. The curated preview stands in only while there is
-    // genuinely nothing else, so the feed is never empty on a first launch.
+    // exploreContentProvider — then queued again in a fresh order for as long
+    // as the member keeps scrolling. The curated preview stands in only while
+    // there is genuinely nothing else, so the feed is never empty on a first
+    // launch.
     final feed = _tab == ExploreTab.forYou
-        ? ref.watch(exploreFeedProvider)
-        : ref.watch(exploreFollowingFeedProvider);
+        ? ref.watch(exploreLoopedFeedProvider)
+        : ref.watch(exploreFollowingLoopedFeedProvider);
     final live = feed.isNotEmpty;
 
     // Following is allowed to be empty — that is the honest answer for
     // somebody who follows nobody, and the curated preview would only hide it.
     final reels = live
         ? feed
-        : (_tab == ExploreTab.forYou ? _previewReels : const <Reel>[]);
+        : (_tab == ExploreTab.forYou ? kExplorePreviewReels : const <Reel>[]);
 
-    final header = _ExploreHeader(
-      tab: _tab,
-      onTabChanged: (tab) => setState(() => _tab = tab),
-    );
+    final header = _ExploreHeader(tab: _tab, onTabChanged: _changeTab);
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.light,
       child: reels.isEmpty
-          ? _EmptyFollowing(header: header, onBrowse: () => setState(
-              () => _tab = ExploreTab.forYou,
-            ))
+          ? _EmptyFollowing(
+              header: header,
+              onBrowse: () => _changeTab(ExploreTab.forYou),
+            )
           : ReelFeedView(
               key: PageStorageKey(
                 'explore-reels-${_tab.name}-${live ? 'live' : 'preview'}',
@@ -103,10 +161,13 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
               isActive: widget.isActive,
               header: header,
               // The curated preview is three fixed cards with nothing behind
-              // them, so there is nothing to fetch more of.
-              onNearEnd: live
-                  ? () => ref.read(exploreWindowProvider.notifier).grow()
-                  : null,
+              // them: nothing to fetch more of, and nothing worth queueing
+              // again either. Three illustrative cards on a loop would be the
+              // app insisting it has a feed when what it has is a placeholder,
+              // and the member would be scrolling past the same stock
+              // photograph every third swipe until they gave up on Explore
+              // altogether.
+              onNearEnd: live ? _loadMore : null,
             ),
     );
   }
@@ -351,7 +412,13 @@ class _GlassAction extends StatelessWidget {
   );
 }
 
-const _previewReels = [
+/// The curated preview: what Explore shows a member on a first launch, before
+/// the archive has answered.
+///
+/// Public so the rule that matters about it can be stated somewhere a test can
+/// read — these three cards are not live, and [loopedExploreFeed] refuses to
+/// queue anything that is not.
+const kExplorePreviewReels = [
   Reel(
     id: 'preview-rhythm',
     imageUrl: 'https://images.unsplash.com/photo-1660675133223-c293889b9fb8?auto=format&fit=crop&q=82&w=1200',

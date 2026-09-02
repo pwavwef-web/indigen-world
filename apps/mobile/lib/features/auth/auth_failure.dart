@@ -33,18 +33,38 @@ enum AuthFailureKind {
 
 /// A human-readable authentication failure surfaced in the UI.
 class AuthFailure implements Exception {
-  const AuthFailure(this.kind, this.message);
+  const AuthFailure(this.kind, this.message, {this.detail});
 
   /// Convenience for the common "we do not know, show this sentence" case.
-  const AuthFailure.unknown(this.message) : kind = AuthFailureKind.unknown;
+  const AuthFailure.unknown(this.message)
+    : kind = AuthFailureKind.unknown,
+      detail = null;
 
   final AuthFailureKind kind;
   final String message;
 
+  /// The provider's own verdict, verbatim, for somebody reporting this.
+  ///
+  /// Kept apart from [message] rather than appended to it. The message is
+  /// written for a member who wants to get in; this is the error code and
+  /// description Google actually returned, which is the only thing that tells
+  /// anybody *which* of the half-dozen ways Google Sign-In can fail happened
+  /// here. It used to go only to Crashlytics, which meant the one person who
+  /// could see it was not the person holding the phone — so a member's report
+  /// arrived as "it doesn't work" and there was nothing to add to it.
+  ///
+  /// Null whenever the failure came from our own code rather than a provider.
+  final String? detail;
+
   bool get wasCancelled => kind == AuthFailureKind.cancelled;
 
+  /// The same failure with [detail] attached, for a caller that knows which
+  /// leg of the sign-in failed and wants to say so.
+  AuthFailure withDetail(String? value) =>
+      value == null || value.isEmpty ? this : AuthFailure(kind, message, detail: value);
+
   @override
-  String toString() => message;
+  String toString() => detail == null ? message : '$message ($detail)';
 }
 
 /// Raised when a sign-in flow is dismissed by the member (for example closing

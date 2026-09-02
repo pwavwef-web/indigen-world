@@ -13,9 +13,18 @@ enum NotificationKind {
   follow,
   mention,
   post,
+  threadReply,
+  milestone,
+  reelComment,
+  welcome,
+  leaderboard,
   publication,
   announcement;
 
+  /// The wire value is the backend's `type`, which is snake_case, so the two
+  /// multi-word kinds cannot simply be `name`d back and forth. Spelled out here
+  /// rather than derived, because a derivation that silently stopped matching
+  /// would show up as every reel alert quietly turning into an announcement.
   static NotificationKind parse(Object? raw) => switch (raw) {
     'like' => NotificationKind.like,
     'repost' => NotificationKind.repost,
@@ -24,6 +33,11 @@ enum NotificationKind {
     'follow' => NotificationKind.follow,
     'mention' => NotificationKind.mention,
     'post' => NotificationKind.post,
+    'thread_reply' => NotificationKind.threadReply,
+    'milestone' => NotificationKind.milestone,
+    'reel_comment' => NotificationKind.reelComment,
+    'welcome' => NotificationKind.welcome,
+    'leaderboard' => NotificationKind.leaderboard,
     'publication' => NotificationKind.publication,
     _ => NotificationKind.announcement,
   };
@@ -32,10 +46,22 @@ enum NotificationKind {
     NotificationKind.like => Icons.favorite_rounded,
     NotificationKind.repost => Icons.repeat_rounded,
     NotificationKind.quote => Icons.format_quote_rounded,
+    // One bubble is somebody answering you; two is a conversation carrying on
+    // around you. The difference is the whole difference between the two kinds.
     NotificationKind.reply => Icons.mode_comment_rounded,
+    NotificationKind.threadReply => Icons.forum_rounded,
     NotificationKind.follow => Icons.person_add_alt_1_rounded,
     NotificationKind.mention => Icons.alternate_email_rounded,
     NotificationKind.post => Icons.auto_stories_rounded,
+    NotificationKind.milestone => Icons.local_fire_department_rounded,
+    // A screen rather than a bubble: what matters about this one is that it
+    // happened under a reel, not in the community feed.
+    NotificationKind.reelComment => Icons.smart_display_rounded,
+    NotificationKind.welcome => Icons.waving_hand_rounded,
+    // A podium rather than a trophy: the same kind carries both being passed
+    // on the board and a nudge about a lapsing streak, and a trophy would be
+    // congratulating somebody for the one that is bad news.
+    NotificationKind.leaderboard => Icons.leaderboard_rounded,
     NotificationKind.publication => Icons.play_circle_fill_rounded,
     NotificationKind.announcement => Icons.campaign_rounded,
   };
@@ -49,9 +75,16 @@ enum NotificationKind {
     NotificationKind.repost => brand.repost,
     NotificationKind.quote => brand.gold,
     NotificationKind.reply => brand.accent,
+    NotificationKind.threadReply => brand.accent,
     NotificationKind.follow => brand.accent,
     NotificationKind.mention => brand.gold,
     NotificationKind.post => brand.accent,
+    // A milestone is a like total, so it wears the like colour rather than a
+    // fifth accent nobody would be able to read a meaning into.
+    NotificationKind.milestone => brand.like,
+    NotificationKind.reelComment => brand.terracotta,
+    NotificationKind.welcome => brand.success,
+    NotificationKind.leaderboard => brand.gold,
     NotificationKind.publication => brand.gold,
     NotificationKind.announcement => brand.terracotta,
   };

@@ -186,7 +186,9 @@ function parseKasem(raw: unknown, operation: StudioVideoInput['operation']): Kas
     throw new HttpsError('invalid-argument', 'The first release supports the Kasem language code xsm.');
   }
   const transcript = textField(data, 'transcript', 4_000, operation === 'lip_sync');
-  const validationRef = textField(data, 'validationRef', 240, Boolean(transcript));
+  // Creators may write a purpose-built video script directly in TribeStudio.
+  // A reviewed submission reference remains optional provenance when available.
+  const validationRef = textField(data, 'validationRef', 240, false);
   return {
     languageCode: 'xsm',
     dialect: textField(data, 'dialect', 80),

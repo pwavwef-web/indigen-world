@@ -302,12 +302,35 @@ String? pushRouteFor(Map<String, dynamic> data) {
   final postId = data['postId'];
   if (postId is String && postId.isNotEmpty) return '/post/$postId';
   final type = data['type'];
+  return routeForPushType(type is String ? type : null);
+}
+
+/// Where a payload carrying nothing but its `type` should land.
+///
+/// The fan-out denormalises a `postId` or an explicit `route` onto almost every
+/// alert, so this is the last resort rather than the usual path — but it is the
+/// one that decides what happens when a kind this build has never heard of
+/// arrives, and "nowhere" is the wrong answer to that. The notification centre
+/// is the honest default: whatever the alert was about, the row announcing it
+/// is certainly there.
+String? routeForPushType(String? type) => switch (type) {
   // A conversation writes no row to the alert centre, so the centre is the one
   // place a message must never fall back to. The inbox is where it lives.
-  if (type == 'message') return '/messages';
-  if (type is String && type.isNotEmpty) return '/notifications';
-  return null;
-}
+  'message' => '/messages',
+  // Reels live on the home tab and there is no per-reel route in the router, so
+  // a made-up one would be a deep link that quietly goes nowhere.
+  'reel_comment' || 'publication' => '/',
+  // The first thing we ask a new member for is a contribution, not a scroll.
+  'welcome' => '/contribute',
+  // Being passed on the board, and the nudge before a streak lapses. Both land
+  // on Contribute, which is where the board lives and — more to the point —
+  // where the answer to either alert is. Sending somebody to a scoreboard to
+  // read that they have slipped, with nothing to do about it there, would be
+  // the least useful possible destination.
+  'leaderboard' => '/contribute',
+  null || '' => null,
+  _ => '/notifications',
+};
 
 /// Turns push alerts on or off for this device, end to end.
 ///

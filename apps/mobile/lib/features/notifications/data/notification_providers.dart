@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/firebase_ready.dart';
 import 'package:indigen_world_mobile/features/community/data/community_providers.dart';
 import 'package:indigen_world_mobile/features/notifications/data/notification_models.dart';
+import 'package:indigen_world_mobile/features/notifications/data/notification_preferences.dart';
 import 'package:indigen_world_mobile/features/notifications/data/notifications_repository.dart';
 
 /// The notifications data layer, or `null` when Firebase is unavailable this
@@ -33,3 +34,19 @@ final unreadNotificationCountProvider = StreamProvider<int>((ref) {
   if (repository == null || uid == null) return Stream.value(0);
   return repository.watchUnreadCount(uid);
 });
+
+/// What this member has agreed to be woken about.
+///
+/// Everything-on for a guest and while the profile is still loading, which is
+/// the same answer absence gives everywhere else: a member who has never opened
+/// the settings screen behaves exactly as they did before the switches existed.
+final notificationPreferencesProvider = StreamProvider<NotificationPreferences>(
+  (ref) {
+    final repository = ref.watch(notificationsRepositoryProvider);
+    final uid = ref.watch(currentUidProvider);
+    if (repository == null || uid == null) {
+      return Stream.value(const NotificationPreferences.all());
+    }
+    return repository.watchPreferences(uid);
+  },
+);

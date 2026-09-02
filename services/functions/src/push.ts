@@ -58,6 +58,13 @@ export interface PushMessage {
    * Groups messages that supersede each other, so a burst arrives as one entry
    * rather than a stack. `collapseKey` covers delivery while the device is
    * offline, `tag` covers what is already on screen — both are needed.
+   *
+   * Neither reaches an alert that lands while somebody is *looking* at the app:
+   * FCM hands those to the app rather than drawing them, and the app draws them
+   * itself (local_alerts.dart). A caller that wants a burst collapsed there too
+   * has to put the same key in [data] as well, which is what the community
+   * fan-out does — otherwise following a prolific poster costs one lock-screen
+   * entry and six in-app ones, which is the wrong way round.
    */
   collapseKey?: string;
   tag?: string;

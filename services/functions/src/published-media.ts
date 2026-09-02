@@ -16,6 +16,13 @@ type StorageBucket = ReturnType<ReturnType<typeof getStorage>['bucket']>;
 
 export interface PublishableMedia {
   contentId: string;
+  /**
+   * The private upload to make world-readable, or '' when there is nothing to
+   * move — a piece whose recording is already public and must keep the download
+   * URL it was published with. Re-copying such a file would mint a fresh token
+   * and break every URL already sitting in a client's cache, so the caller
+   * blanks this rather than passing a path it does not want copied again.
+   */
   storagePath: string;
   mimeType: string;
   mediaType: string;
@@ -31,38 +38,84 @@ function nowIso(): string {
  * private submission path into the world-readable `published-media/{id}/` path,
  * mints a stable Firebase download URL for each, and records them on the
  * publishedContent document so the mobile Explore feed can play them.
+ *
+ * The two files are moved independently. An earlier version bailed out of the
+ * whole function when the main upload was missing, which quietly took the
+ * artwork with it: a song whose recording had already been published (so it was
+ * deliberately not copied again) could never gain the cover its contributor
+ * uploaded, and the Now Playing screen stayed blank for good. A missing file is
+ * now only ever a reason to skip *that* file.
  */
 export async function finalisePublishedMedia(
   publishedRef: FirebaseFirestore.DocumentReference,
   info: PublishableMedia,
 ): Promise<void> {
   const bucket = getStorage().bucket();
-  const source = bucket.file(info.storagePath);
-  const [exists] = await source.exists();
-  if (!exists) return;
 
-  const mediaDest = `published-media/${info.contentId}/original`;
-  await source.copy(bucket.file(mediaDest));
-  const mediaUrl = await mintDownloadUrl(bucket, mediaDest, info.mimeType);
+  const mediaUrl = info.storagePath
+    ? await copyToPublicPath(
+        bucket,
+        info.storagePath,
+        `published-media/${info.contentId}/original`,
+        info.mimeType,
+      )
+    : null;
 
-  let thumbnailUrl: string | null = null;
-  if (info.thumbnailPath) {
-    const thumbSource = bucket.file(info.thumbnailPath);
-    const [thumbExists] = await thumbSource.exists();
-    if (thumbExists) {
-      const thumbDest = `published-media/${info.contentId}/thumbnail`;
-      await thumbSource.copy(bucket.file(thumbDest));
-      thumbnailUrl = await mintDownloadUrl(bucket, thumbDest, 'image/jpeg');
-    }
-  }
+  const thumbnailUrl = info.thumbnailPath
+    ? await copyToPublicPath(
+        bucket,
+        info.thumbnailPath,
+        `published-media/${info.contentId}/thumbnail`,
+        'image/jpeg',
+      )
+    : null;
+
+  // Nothing moved, so nothing to say. Writing here anyway would bump the
+  // lifecycle version of a record that did not change.
+  if (!mediaUrl && !thumbnailUrl) return;
 
   await publishedRef.update({
-    mediaUrl,
-    mediaType: info.mediaType,
+    // Spread rather than written unconditionally: a null `mediaUrl` would erase
+    // the URL a previous publish minted, taking a playable song off the air
+    // because its *cover* was the only thing that needed moving.
+    ...(mediaUrl ? { mediaUrl, mediaType: info.mediaType } : {}),
     ...(thumbnailUrl ? { thumbnailUrl } : {}),
     'lifecycle.updatedAt': nowIso(),
     'lifecycle.version': FieldValue.increment(1),
   });
+}
+
+/**
+ * Copies one private upload to its public path and returns its download URL,
+ * or null when the source file is not there.
+ *
+ * The file's own recorded content type wins over the declared one. The declared
+ * type comes from whatever the client said when it asked for an upload slot,
+ * and the thumbnail branch had no declared type at all — every cover was
+ * labelled `image/jpeg`, so a PNG was served under a lie. A missing file is
+ * distinguished from a failing bucket by the 404 alone: swallowing every error
+ * as "not there" would silently skip media that exists whenever Storage had a
+ * bad minute, and publication would look complete when it was not.
+ */
+async function copyToPublicPath(
+  bucket: StorageBucket,
+  sourcePath: string,
+  destPath: string,
+  declaredType: string,
+): Promise<string | null> {
+  const source = bucket.file(sourcePath);
+  let contentType = declaredType;
+  try {
+    const [metadata] = await source.getMetadata();
+    if (typeof metadata.contentType === 'string' && metadata.contentType) {
+      contentType = metadata.contentType;
+    }
+  } catch (error) {
+    if ((error as { code?: number }).code === 404) return null;
+    throw error;
+  }
+  await source.copy(bucket.file(destPath));
+  return mintDownloadUrl(bucket, destPath, contentType);
 }
 
 /**
@@ -80,13 +133,13 @@ export async function finalisePublishedPronunciation(
   info: { contentId: string; storagePath: string; mimeType: string },
 ): Promise<void> {
   const bucket = getStorage().bucket();
-  const source = bucket.file(info.storagePath);
-  const [exists] = await source.exists();
-  if (!exists) return;
-
-  const dest = `published-media/${info.contentId}/pronunciation`;
-  await source.copy(bucket.file(dest));
-  const audioUrl = await mintDownloadUrl(bucket, dest, info.mimeType);
+  const audioUrl = await copyToPublicPath(
+    bucket,
+    info.storagePath,
+    `published-media/${info.contentId}/pronunciation`,
+    info.mimeType,
+  );
+  if (!audioUrl) return;
 
   await entryRef.update({
     audioUrl,

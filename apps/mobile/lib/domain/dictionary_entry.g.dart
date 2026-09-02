@@ -11,11 +11,25 @@ _DictionaryEntry _$DictionaryEntryFromJson(Map<String, dynamic> json) =>
       id: json['id'] as String,
       headword: json['headword'] as String,
       translation: json['translation'] as String,
+      translations:
+          (json['translations'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          const <String>[],
+      renderings:
+          (json['renderings'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          const <String>[],
       partOfSpeech: json['partOfSpeech'] as String,
       dialect: json['dialect'] as String,
       pronunciation: json['pronunciation'] as String,
       example: json['example'] as String,
       exampleTranslation: json['exampleTranslation'] as String,
+      sentenceSource: json['sentenceSource'] as String? ?? '',
+      tatoebaId: json['tatoebaId'] as String? ?? '',
+      tatoebaContributor: json['tatoebaContributor'] as String? ?? '',
+      sentenceLicence: json['sentenceLicence'] as String? ?? '',
       attribution: json['attribution'] as String,
       culturalNote: json['culturalNote'] as String?,
       audioUrl: json['audioUrl'] as String? ?? '',
@@ -27,11 +41,17 @@ Map<String, dynamic> _$DictionaryEntryToJson(_DictionaryEntry instance) =>
       'id': instance.id,
       'headword': instance.headword,
       'translation': instance.translation,
+      'translations': instance.translations,
+      'renderings': instance.renderings,
       'partOfSpeech': instance.partOfSpeech,
       'dialect': instance.dialect,
       'pronunciation': instance.pronunciation,
       'example': instance.example,
       'exampleTranslation': instance.exampleTranslation,
+      'sentenceSource': instance.sentenceSource,
+      'tatoebaId': instance.tatoebaId,
+      'tatoebaContributor': instance.tatoebaContributor,
+      'sentenceLicence': instance.sentenceLicence,
       'attribution': instance.attribution,
       'culturalNote': instance.culturalNote,
       'audioUrl': instance.audioUrl,

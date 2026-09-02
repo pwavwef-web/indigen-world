@@ -236,3 +236,63 @@ test('community avatars and banners are owner-writable and public-readable', asy
     uploadBytes(ref(stranger, avatarPath), imageBytes(), { contentType: 'image/png' }),
   );
 });
+
+test('library audiobooks are admin-written and public to listen to', async () => {
+  // Audiobook contribution came off the phone and is curated in the admin
+  // console, so — like lesson pictures — this is one of the very few prefixes
+  // a browser may write to, and the fence has to hold on its own.
+  const admin = await clientFor('audiobook-admin-storage', 'audiobook-admin', { role: 'admin' });
+  const narration = 'collection-audiobooks/tales-of-paga/narration';
+  const cover = 'collection-audiobooks/tales-of-paga/cover';
+
+  await uploadBytes(
+    ref(admin, narration),
+    new Blob(['id3'], { type: 'audio/mpeg' }),
+    { contentType: 'audio/mpeg' },
+  );
+  await uploadBytes(ref(admin, cover), imageBytes(), { contentType: 'image/png' });
+
+  // A published audiobook plays to signed-out listeners, and the console reads
+  // the files back to reopen a record for editing.
+  const guest = await clientFor('audiobook-guest-storage', null);
+  await getBytes(ref(guest, narration));
+  await getBytes(ref(guest, cover));
+
+  // A validator decides what community work is published. That is not the same
+  // authority as putting a book on the shelf, so the narrower gate is the one
+  // that applies here.
+  const reviewer = await clientFor('audiobook-reviewer-storage', 'audiobook-reviewer', { role: 'validator' });
+  await assert.rejects(
+    uploadBytes(ref(reviewer, narration), new Blob(['id3'], { type: 'audio/mpeg' }), {
+      contentType: 'audio/mpeg',
+    }),
+  );
+
+  const member = await clientFor('audiobook-member-storage', 'audiobook-member');
+  await assert.rejects(
+    uploadBytes(ref(member, narration), new Blob(['id3'], { type: 'audio/mpeg' }), {
+      contentType: 'audio/mpeg',
+    }),
+  );
+});
+
+test('an audiobook slot takes audio and images, and nothing else', async () => {
+  const admin = await clientFor('audiobook-type-storage', 'audiobook-type-admin', { role: 'admin' });
+
+  // A book is an audio file and a picture. A PDF here would be a manuscript
+  // nobody can play, uploaded to a prefix the player reads from.
+  await assert.rejects(
+    uploadBytes(
+      ref(admin, 'collection-audiobooks/tales-of-paga/manuscript'),
+      new Blob(['%PDF'], { type: 'application/pdf' }),
+      { contentType: 'application/pdf' },
+    ),
+  );
+  await assert.rejects(
+    uploadBytes(
+      ref(admin, 'collection-audiobooks/tales-of-paga/clip'),
+      bytes(),
+      { contentType: 'video/mp4' },
+    ),
+  );
+});

@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/features/ads/data/ad_campaign.dart';
+import 'package:indigen_world_mobile/features/community/data/kasem_names.dart';
 import 'package:indigen_world_mobile/features/validate/ad_review_screen.dart';
 import 'package:indigen_world_mobile/features/validate/data/ad_review_queue.dart';
+import 'package:indigen_world_mobile/features/validate/data/name_request_queue.dart';
 import 'package:indigen_world_mobile/features/validate/data/review_queue.dart';
+import 'package:indigen_world_mobile/features/validate/name_request_review_screen.dart';
 import 'package:indigen_world_mobile/features/validate/submission_review_screen.dart';
 import 'package:indigen_world_mobile/shared/app_widgets.dart';
 import 'package:indigen_world_mobile/shared/frosted_nav_bar.dart';
@@ -18,14 +21,16 @@ const _queues = <(String, String, IconData)>[
   ('PUBLISHED', 'Published', Icons.public_rounded),
 ];
 
-/// The two kinds of work that reach the desk.
+/// The three kinds of work that reach the desk.
 enum _Desk {
   contributions,
-  adverts;
+  adverts,
+  names;
 
   String get label => switch (this) {
     _Desk.contributions => 'Contributions',
     _Desk.adverts => 'Adverts',
+    _Desk.names => 'Names',
   };
 }
 
@@ -46,10 +51,11 @@ class _DeskTab extends Notifier<_Desk> {
 /// Showing these queues to anybody else would produce a screen made entirely of
 /// permission errors.
 ///
-/// Two halves, because two different things arrive here and neither one's
-/// vocabulary fits the other. A contribution is approved, escalated or
+/// Three halves — which is the point. Three different things arrive here and no
+/// one vocabulary fits them all. A contribution is approved, escalated or
 /// published; an advert has been paid for, runs for a stated number of days,
-/// and can be stopped again after it starts.
+/// and can be stopped again after it starts; a name request is a question about
+/// whether a word is somebody's grandmother's name, answered yes or no.
 class ValidateScreen extends ConsumerWidget {
   const ValidateScreen({super.key});
 
@@ -94,6 +100,7 @@ class ValidateScreen extends ConsumerWidget {
               ...switch (desk) {
                 _Desk.contributions => _contributionSlivers(context, ref),
                 _Desk.adverts => _advertSlivers(context, ref),
+                _Desk.names => _nameSlivers(context, ref),
               },
             ],
           ),
@@ -258,10 +265,89 @@ class ValidateScreen extends ConsumerWidget {
       },
     ];
   }
+
+  /// The name queue: members asking for a Kassena name to be added to the list
+  /// the kente ring is awarded from.
+  List<Widget> _nameSlivers(BuildContext context, WidgetRef ref) {
+    final status = ref.watch(nameRequestQueueStatusProvider);
+    final queue = ref.watch(nameRequestQueueProvider);
+    return [
+      SliverToBoxAdapter(
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+          child: Row(
+            children: [
+              for (final (value, label, icon) in kNameRequestQueues) ...[
+                GlassPill(
+                  label: label,
+                  icon: icon,
+                  selected: status == value,
+                  onTap: () => ref
+                      .read(nameRequestQueueStatusProvider.notifier)
+                      .select(value),
+                ),
+                const SizedBox(width: 8),
+              ],
+            ],
+          ),
+        ),
+      ),
+      ...switch (queue) {
+        AsyncValue(:final value?) when value.isEmpty => [
+          SliverToBoxAdapter(
+            child: GlassEmptyState(
+              icon: Icons.done_all_rounded,
+              title: switch (status) {
+                'pending' => 'No names are waiting',
+                'approved' => 'No names have been added yet',
+                'rejected' => 'Nothing has been turned down',
+                _ => 'Nothing here yet',
+              },
+              color: context.brand.success,
+            ),
+          ),
+        ],
+        AsyncValue(:final value?) => [
+          SliverPadding(
+            padding: EdgeInsets.fromLTRB(
+              18,
+              2,
+              18,
+              shellBottomReserve(context) + 24,
+            ),
+            sliver: SliverList.separated(
+              itemCount: value.length,
+              separatorBuilder: (context, index) => const SizedBox(height: 12),
+              itemBuilder: (context, index) =>
+                  _NameQueueCard(request: value[index]),
+            ),
+          ),
+        ],
+        AsyncValue(:final error?) => [
+          SliverToBoxAdapter(
+            child: GlassEmptyState(
+              icon: Icons.lock_outline_rounded,
+              color: context.brand.terracotta,
+              title: '$error'.contains('permission-denied')
+                  ? 'This account cannot review name requests'
+                  : 'The name queue could not be loaded',
+              action: FilledButton.icon(
+                onPressed: () => ref.invalidate(nameRequestQueueProvider),
+                icon: const Icon(Icons.refresh_rounded),
+                label: const Text('Try again'),
+              ),
+            ),
+          ),
+        ],
+        _ => [const _QueueSkeleton()],
+      },
+    ];
+  }
 }
 
-/// Contributions or adverts. A switch rather than a second tab in the shell:
-/// they are the same job, and a reviewer moves between them constantly.
+/// Contributions, adverts or names. A switch rather than three tabs in the
+/// shell: they are the same job, and a reviewer moves between them constantly.
 class _DeskSwitch extends ConsumerWidget {
   const _DeskSwitch({required this.selected, required this.onChanged});
 
@@ -271,6 +357,8 @@ class _DeskSwitch extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final waitingAds = ref.watch(adReviewWaitingCountProvider).asData?.value ?? 0;
+    final waitingNames =
+        ref.watch(nameRequestWaitingCountProvider).asData?.value ?? 0;
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 14),
       child: DecoratedBox(
@@ -284,9 +372,11 @@ class _DeskSwitch extends ConsumerWidget {
                 label: desk.label,
                 // Only the waiting count is worth a badge: a reviewer needs to
                 // know there is something to do, not how much has been done.
-                badge: desk == _Desk.adverts && waitingAds > 0
-                    ? '$waitingAds'
-                    : null,
+                badge: switch (desk) {
+                  _Desk.adverts when waitingAds > 0 => '$waitingAds',
+                  _Desk.names when waitingNames > 0 => '$waitingNames',
+                  _ => null,
+                },
                 selected: desk == selected,
                 onTap: () => onChanged(desk),
               ),
@@ -469,6 +559,126 @@ class _AdQueueCard extends StatelessWidget {
                   icon: placement.icon,
                   label: placement.label,
                   color: context.brand.terracotta,
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// One name request in the names queue.
+///
+/// The name is drawn as it is written and the fold beneath it, because those
+/// two strings are the whole decision: a reviewer approving on the ASCII alone
+/// has approved a handle, not a name.
+class _NameQueueCard extends StatelessWidget {
+  const _NameQueueCard({required this.request});
+
+  final KasemNameRequest request;
+
+  @override
+  Widget build(BuildContext context) {
+    final brand = context.brand;
+    // A request that also asks for a handle is the one that spends somebody's
+    // one name change on approval, so the card says so before it is opened.
+    final withHandle = request.handle.isNotEmpty;
+    return GlassCard.listItem(
+      accent: withHandle ? brand.terracotta : brand.accent,
+      onTap: () => Navigator.of(context).push(
+        MaterialPageRoute<bool>(
+          builder: (context) => NameRequestReviewScreen(request: request),
+        ),
+      ),
+      padding: const EdgeInsets.all(15),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              GlassIconPlate(
+                icon: switch (request.kind) {
+                  'clan' => Icons.groups_rounded,
+                  'place' => Icons.place_rounded,
+                  _ => Icons.person_rounded,
+                },
+                color: withHandle ? brand.terracotta : brand.accent,
+                size: 44,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      request.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      '@${request.ascii} · ${request.kindLabel}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: brand.mutedInk,
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(Icons.chevron_right_rounded, color: brand.mutedInk),
+            ],
+          ),
+          if (request.meaning.isNotEmpty) ...[
+            const SizedBox(height: 9),
+            Text(
+              request.meaning,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: brand.ink,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+          if (request.note.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text(
+              request.note,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: brand.mutedInk,
+                fontSize: 12.5,
+                height: 1.35,
+              ),
+            ),
+          ],
+          const SizedBox(height: 11),
+          Wrap(
+            spacing: 7,
+            runSpacing: 7,
+            children: [
+              ReviewFlag(
+                icon: Icons.person_outline_rounded,
+                label: request.requesterHandle.isEmpty
+                    ? (request.requesterName.isEmpty
+                          ? 'A member'
+                          : request.requesterName)
+                    : '@${request.requesterHandle}',
+                color: brand.mutedInk,
+              ),
+              if (withHandle)
+                ReviewFlag(
+                  icon: Icons.workspace_premium_outlined,
+                  label: 'Wants @${request.handle}',
+                  color: brand.terracotta,
                 ),
             ],
           ),

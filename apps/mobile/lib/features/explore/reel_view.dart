@@ -49,10 +49,18 @@ class Reel {
     this.isLive = false,
     this.communityPostId,
     this.servedAd,
+    this.cycle = 0,
   });
 
   /// Stable across rebuilds, so an appreciation stays attached to the piece
   /// rather than to whatever happens to be at that scroll position.
+  ///
+  /// Deliberately *not* made unique when a reel is queued again on a later pass
+  /// through an endless feed — see [cycle]. Everything this id reaches is
+  /// something the archive holds one of: the view that has already been
+  /// counted, the appreciation the member has already left, the counts document
+  /// the card subscribes to. A repeat that carried a fresh id would double-count
+  /// the first, lose the second and open a second listener for the third.
   final String id;
 
   final String imageUrl;
@@ -108,6 +116,50 @@ class Reel {
   /// and copying those two fields onto [Reel] would have been two more places
   /// for the wording of a paid advert to go stale.
   final ServedAd? servedAd;
+
+  /// Which pass through an endless feed this card is: 0 the first time the
+  /// archive shows it, 1 the first time it comes round again, and so on.
+  ///
+  /// It exists so a repeat can be told apart from the reel it repeats without
+  /// touching [id], which everything that counts anything reads. What it is
+  /// deliberately *not* used for is a widget key: the pager keys its pages by
+  /// position, as it always has, and the one list that would need unique keys
+  /// is the one that cannot promise them — an advert can legitimately fill two
+  /// slots of the same pass when the rotation holds fewer campaigns than the
+  /// pass has room for, and a keyed sliver refuses duplicates outright.
+  final int cycle;
+
+  /// True when the member has watched everything and the feed has come round.
+  bool get isReplay => cycle > 0;
+
+  /// This same reel, queued again on pass [cycle].
+  ///
+  /// Spelt out field by field rather than through a general `copyWith`, because
+  /// there is exactly one field a repeat is allowed to differ in and a copier
+  /// that could change any of them would be an invitation to change [id].
+  Reel replayed(int cycle) => Reel(
+    id: id,
+    imageUrl: imageUrl,
+    label: label,
+    title: title,
+    creator: creator,
+    initials: initials,
+    caption: caption,
+    sound: sound,
+    credit: credit,
+    creatorId: creatorId,
+    likes: likes,
+    comments: comments,
+    englishSummary: englishSummary,
+    culturalNotes: culturalNotes,
+    alignment: alignment,
+    videoUrl: videoUrl,
+    avatarUrl: avatarUrl,
+    isLive: isLive,
+    communityPostId: communityPostId,
+    servedAd: servedAd,
+    cycle: cycle,
+  );
 
   bool get isCommunity => communityPostId != null;
 
@@ -230,6 +282,36 @@ String reelInitials(String name) {
       .toUpperCase();
 }
 
+/// How close to the end the member has to get before more is asked for.
+///
+/// Three reels ahead: far enough that a widened window has landed before the
+/// last card does, close enough that somebody who opens Explore and closes it
+/// again has not quietly fetched twice what they looked at. It is also the
+/// budget the end of an endless feed has to work in — two asks, one to try
+/// fetching and one to conclude there is nothing to fetch and come round
+/// instead, both of which fit inside three pages.
+const int kReelLoadAheadPages = 3;
+
+/// Whether arriving at [index] of a feed of [length] rows is an ask for more.
+///
+/// Pure, public and named, because the rule is subtle enough that both ways of
+/// getting it wrong are bad in ways nobody would notice in a review: ask on
+/// every swipe and the feed re-subscribes two live queries under the member's
+/// thumb; ask only once per length and a feed that has stopped fetching can
+/// never be told to come round, so the member hits a wall at the end of the
+/// archive. It asks once per page of the tail, and never again for a page it
+/// has already asked from.
+bool reelFeedShouldAskForMore({
+  required int index,
+  required int length,
+  required int lastAskLength,
+  required int lastAskIndex,
+  int loadAhead = kReelLoadAheadPages,
+}) {
+  if (index < length - loadAhead) return false;
+  return length != lastAskLength || index > lastAskIndex;
+}
+
 /// A full-bleed, vertically paged reel feed with its action rail.
 class ReelFeedView extends ConsumerStatefulWidget {
   const ReelFeedView({
@@ -256,7 +338,7 @@ class ReelFeedView extends ConsumerStatefulWidget {
   /// Optional chrome pinned over the top of the feed.
   final Widget? header;
 
-  /// Called once the member is within [_loadAheadPages] of the last reel.
+  /// Called once the member is within [kReelLoadAheadPages] of the last reel.
   ///
   /// A callback rather than a provider read, because three surfaces show this
   /// feed and only one of them — Explore — has more to fetch. A creator's page
@@ -282,19 +364,31 @@ class _ReelFeedViewState extends ConsumerState<ReelFeedView>
   /// already knows.
   final _trackedViews = <String>{};
 
-  /// How close to the end the member has to get before more is asked for.
+  /// The feed's length, and how deep into it the member had gone, when more was
+  /// last asked for.
   ///
-  /// Three reels ahead: far enough that a widened window has landed before the
-  /// last card does, close enough that somebody who opens Explore and closes it
-  /// again has not quietly fetched twice what they looked at.
-  static const _loadAheadPages = 3;
-
-  /// The length the feed had when more was last asked for.
+  /// ── Why this is no longer "ask once per length" ────────────────────────
+  /// It used to be exactly that: growing re-subscribes two live queries, so the
+  /// ask was made once per arrival at the end rather than once per page turn
+  /// inside the same tail, and a feed that had not grown since the last ask was
+  /// a feed where asking again changed nothing.
   ///
-  /// Growing is idempotent but not free — it re-subscribes two live queries —
-  /// so the ask is made once per arrival at the end rather than once per page
-  /// turn inside the same tail.
-  var _lastGrowthLength = 0;
+  /// That was true while the only answer to "there is nothing left" was to
+  /// stop. It is now the *question*: a feed with nothing left to fetch queues
+  /// what it holds again instead, and the way [ExploreScreen] tells a window
+  /// still filling from an archive already exhausted is that a second ask
+  /// arrives with the feed no longer than the first one left it. A guard that
+  /// refused to ask twice at the same length was refusing to ask the one
+  /// question that had a new answer, and the member hit a wall three swipes
+  /// later.
+  ///
+  /// So the ask is made once per *page* instead. Every fresh page inside the
+  /// tail asks again — at most [kReelLoadAheadPages] asks before the feed either
+  /// grows or comes round — while a member scrolling back up through pages they
+  /// have already asked from is still silent, which is what the old guard was
+  /// really protecting.
+  var _lastAskLength = -1;
+  var _lastAskIndex = -1;
 
   @override
   void initState() {
@@ -358,12 +452,18 @@ class _ReelFeedViewState extends ConsumerState<ReelFeedView>
     final onNearEnd = widget.onNearEnd;
     if (onNearEnd == null) return;
     final length = widget.reels.length;
-    if (index < length - _loadAheadPages) return;
-    // The feed has not grown since the last ask, so the last ask is either
-    // still in flight or there was nothing left to fetch. Either way, asking
-    // again changes nothing.
-    if (length == _lastGrowthLength) return;
-    _lastGrowthLength = length;
+    // Asked once per page of the tail, and not again for a page already asked
+    // from — see [_lastAskLength] for why this is not once per length.
+    if (!reelFeedShouldAskForMore(
+      index: index,
+      length: length,
+      lastAskLength: _lastAskLength,
+      lastAskIndex: _lastAskIndex,
+    )) {
+      return;
+    }
+    _lastAskLength = length;
+    _lastAskIndex = index;
     onNearEnd();
   }
 
@@ -378,10 +478,19 @@ class _ReelFeedViewState extends ConsumerState<ReelFeedView>
     // [ServedAdTelemetry] rather than by [_trackedViews] — the campaign must
     // stay counted once even if the member leaves Explore and comes back to a
     // freshly built feed.
+    //
+    // That guard is also what makes an endless feed safe to charge from. It is
+    // keyed by campaign and lives for the session, so an advert the re-queue
+    // happens to place a second time cannot be counted a second time — an
+    // advertiser is charged for reaching a member, not for how long that member
+    // kept scrolling.
     if (reel.servedAd case final ad?) {
       await ref.read(servedAdTelemetryProvider).recordImpression(ad.campaignId);
       return;
     }
+    // [_trackedViews] holds ids, and a re-queued reel keeps the id of the reel
+    // it repeats, so the same discipline covers the loop: watching a clip for
+    // the second time on the third pass is the view it already was.
     if (!reel.isLive || reel.isCommunity || !_trackedViews.add(reel.id)) {
       return;
     }

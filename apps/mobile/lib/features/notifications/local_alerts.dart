@@ -134,6 +134,14 @@ Future<void> initializeLocalAlerts({
 /// Pure so the collapsing rule can be tested without a plugin: a conversation
 /// is one entry however many messages arrive, matching the `tag` the fan-out
 /// sends for the backgrounded case.
+///
+/// The fan-out's own `collapseKey` comes second, and it is the reason a member
+/// who follows a prolific poster sees one row rather than six. Android's
+/// `collapseKey` and APNs' `apns-collapse-id` only govern what the *system*
+/// draws, so they do nothing at all for an alert that arrives while somebody is
+/// looking at the app — that one is drawn here. Without reading the key back
+/// out of the data payload, being inside the app meant getting the stack the
+/// locked phone was spared.
 String alertKeyFor(RemoteMessage message) {
   final threadId = message.data['threadId'];
   if (message.data['type'] == 'message' &&
@@ -141,6 +149,8 @@ String alertKeyFor(RemoteMessage message) {
       threadId.isNotEmpty) {
     return 'chat_$threadId';
   }
+  final collapseKey = message.data['collapseKey'];
+  if (collapseKey is String && collapseKey.isNotEmpty) return collapseKey;
   final notificationId = message.data['notificationId'];
   if (notificationId is String && notificationId.isNotEmpty) {
     return notificationId;

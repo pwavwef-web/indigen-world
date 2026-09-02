@@ -1,7 +1,7 @@
 name: indigen_world_mobile
 description: Offline-first mobile experience for Indigen World and Project Kassena.
 publish_to: none
-version: 0.1.9+18
+version: 0.1.10+19
 
 environment:
   sdk: ^3.13.0

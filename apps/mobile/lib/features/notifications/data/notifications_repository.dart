@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:indigen_world_mobile/features/notifications/data/notification_models.dart';
+import 'package:indigen_world_mobile/features/notifications/data/notification_preferences.dart';
 
 /// Reads and updates the member's notification centre.
 ///
@@ -67,6 +68,41 @@ class NotificationsRepository {
     }
     await batch.commit();
   }
+
+  // ── What the member has agreed to be woken about ──────────────────────────
+
+  /// The member's own switches, live.
+  ///
+  /// Read from their community profile rather than from the device row the
+  /// lock-screen preview preference lives on, because these answer a different
+  /// question. "Draw text on this screen" is about a handset — a shared tablet
+  /// wants a different answer from a private phone. "Tell me when somebody I
+  /// follow posts" is about the person, and following them onto every device
+  /// they sign in on is the only behaviour that would not feel broken.
+  Stream<NotificationPreferences> watchPreferences(String uid) => _firestore
+      .collection('communityProfiles')
+      .doc(uid)
+      .snapshots()
+      .map(
+        (snapshot) =>
+            NotificationPreferences.fromField(snapshot.data()?['notificationPrefs']),
+      );
+
+  /// Writes one switch.
+  ///
+  /// A field-path update rather than a merged `set`, and the difference
+  /// matters twice. It touches one key, so two switches flipped in quick
+  /// succession cannot overwrite each other; and it fails rather than creating
+  /// anything when the profile is not there, which is the correct outcome —
+  /// the rules only let the owner *update* their profile, and a member with no
+  /// handle has nothing for these preferences to hang off.
+  Future<void> setPreference({
+    required String uid,
+    required NotificationPreference preference,
+    required bool enabled,
+  }) => _firestore.collection('communityProfiles').doc(uid).update({
+    'notificationPrefs.${preference.key}': enabled,
+  });
 
   /// Registers this device for push so the fan-out trigger can reach it.
   ///

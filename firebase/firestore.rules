@@ -342,6 +342,66 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // ---- The guided word queue ---------------------------------------------
+    //
+    // Fifteen thousand English words in frequency order, each waiting for a
+    // Kasem translation. It exists because the dictionary form used to be a
+    // blank field: asked to think of a word out of the whole language, people
+    // freeze and leave. Now the app asks a specific question, with the sentence
+    // the word came from, and a member can answer it or skip it.
+    //
+    // Open rows are world-readable so a guest browsing the dictionary can see
+    // what is still unanswered — the size of the backlog is the honest state of
+    // the language's coverage, not something to keep behind a login. Translated
+    // and retired rows stay with staff: a row that has left the queue carries
+    // review state rather than public information.
+    //
+    // `resource.data.status` is compared directly rather than through
+    // `.get('status', 'open')` so the rule is provably satisfied by the serving
+    // query, which is `where('status','==','open').orderBy('rank')`.
+    //
+    // No client writes, ever. `approvedCount`, `pendingCount`, `skipCount` and
+    // `status` ARE the integrity of the queue — a phone that could increment
+    // them could retire a word by claiming it had been translated — so they
+    // belong to the callables in services/functions/src/word-queue.ts and to
+    // nothing else.
+    match /wordQueue/{wordId} {
+      allow read: if resource.data.status == 'open' || isStaff();
+      allow write: if false;
+    }
+
+    // One document per member recording which queued words they have answered
+    // and which they skipped, so `nextQueueWords` can filter a batch on the
+    // server before it crosses a metered connection. One document rather than
+    // an edge document per word: fifteen thousand of those per member would be
+    // absurd, and the two arrays are capped inside word-queue.ts, well within
+    // Firestore's 1 MB per-document ceiling.
+    //
+    // The member reads their own so the client can show progress without a
+    // round trip. Nobody writes but the Admin SDK: a client that could write
+    // here could clear its own skip list, which is harmless, or write somebody
+    // else's, which would silently re-offer words they had already dealt with —
+    // exactly the experience the list exists to prevent.
+    match /wordQueueProgress/{uid} {
+      allow read: if isOwner(uid) || isStaff();
+      allow write: if false;
+    }
+
+    // The idempotency ledger behind the word-queue approval trigger: one
+    // document per contribution holding the counter state already applied for
+    // it. It lives here rather than as a field on the contribution precisely so
+    // that settling a claim does not re-fire every trigger watching
+    // `collectionContributions` — contributor scoring is on that same path.
+    //
+    // Pure server bookkeeping with no client reader. The default-deny rule at
+    // the bottom of this file would already cover it; it is written out so the
+    // collection turns up when somebody greps the rules for it, rather than
+    // looking like an oversight.
+    match /wordQueueClaims/{contributionId} {
+      allow read: if isStaff();
+      allow write: if false;
+    }
+
     // ---- Contributors: self-managed profile, no privilege escalation -------
     match /contributors/{contributorId} {
       allow read: if isOwner(contributorId) || isValidator();
@@ -1289,6 +1349,47 @@ service cloud.firestore {
       allow delete: if isOwner(uid);
     }
 
+    // ---- Contributor scores: the board, and why it is not learnProgress -----
+    //
+    // Points for work the community accepted. Public to read because it is a
+    // leaderboard; writable by nothing but the backend because a ranking built
+    // on a number its owner can write is not a ranking.
+    //
+    // That is the whole reason this collection exists rather than a
+    // `contributionPoints` field on the row above. `learnProgress` is
+    // owner-writable on purpose — learning works signed out, the lesson is
+    // finished on the device, and the client reconciles by taking the more
+    // generous of the two copies — and every one of those properties would hand
+    // the top of the board to whoever looked at their own traffic first. Rules
+    // cannot make one field of a document server-only while its neighbours stay
+    // owner-writable, and `LearnProgress.toFirestore` writes the whole map back,
+    // so the split is the only spelling that holds.
+    //
+    // The identity fields are denormalised copies of the community profile, so
+    // the board is one ordered query instead of fifty profile reads behind it.
+    // They are refreshed by the backend whenever it touches the row, and they
+    // expose nothing new: `communityProfiles` is already world-readable.
+    match /contributorScores/{uid} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // ---- Contribution point awards: the idempotency ledger ------------------
+    //
+    // One document per contribution that has ever paid, keyed by the
+    // contribution id and created inside the same transaction that moves the
+    // points. Firestore triggers are at-least-once, and a redelivered approval
+    // that paid twice would be undetectable afterwards — a total carries no
+    // receipt of its own. This collection is that receipt, which is why no
+    // client may write one and why nobody may delete one.
+    //
+    // Staff-readable rather than owner-readable: "why do I have 340 points" is a
+    // question support will be asked, and the member already has the total.
+    match /contributorPointAwards/{contributionId} {
+      allow read: if isStaff();
+      allow write: if false;
+    }
+
     // ======================================================================
     // COLLECTION: APPS AND SHOP
     // ======================================================================
@@ -1320,6 +1421,31 @@ service cloud.firestore {
     match /kasemNames/{nameId} {
       allow read: if resource.data.get('published', false) == true || isStaff();
       allow write: if isAdmin();
+    }
+
+    // ---- Asking for a Kassena name to be added ------------------------------
+    //
+    // The curated list was always going to be missing somebody's grandmother,
+    // and a member who could not find their own name had nowhere to go: the
+    // claim callable checks against `kasemNames where published == true` and
+    // against nothing else, so an unlisted name is simply refused. This is the
+    // way in. `requestKasemName` writes the row and `decideKasemNameRequest`
+    // settles it, both with the Admin SDK, which is why every client write is
+    // denied here rather than merely constrained.
+    //
+    // That is not ceremony. The whole value of the collection is that `ascii`
+    // — the folded form a handle can hold, and therefore the thing that decides
+    // who wears the kente ring — is derived on the server from the name as it
+    // is properly written. A phone that could write its own `ascii`, or flip
+    // its own `status` to approved, could award the ring for anything at all.
+    //
+    // A member reads their own requests so a screen can say "you already asked
+    // for this"; staff read the queue they are reviewing.
+    match /kasemNameRequests/{requestId} {
+      allow read: if isStaff() || (
+        isSignedIn() && resource.data.uid == request.auth.uid
+      );
+      allow write: if false;
     }
 
     // ---- Shop catalogue: public read, admin-managed --------------------------

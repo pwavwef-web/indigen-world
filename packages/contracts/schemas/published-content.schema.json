@@ -32,6 +32,19 @@
       "description": "Approved long-form text. Kept separately so literature is never reduced to a short summary."
     },
     "englishSummary": { "type": "string" },
+    "lexicalKind": {
+      "description": "For dictionary work, what kind of lexical item this is. A word can be prompted for from a queue; a proverb is something somebody's grandmother said and cannot be. Null on every other kind of published work.",
+      "oneOf": [
+        { "type": "string", "enum": ["word", "phrase", "idiom", "proverb"] },
+        { "type": "null" }
+      ]
+    },
+    "translations": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Every Kasem rendering the contributor gave for this entry, in the order they gave them. A Kasem word rarely maps to exactly one English word, so a single value would force a choice the contributor did not make. Empty on work that is not a dictionary entry.",
+      "maxItems": 8
+    },
     "mediaUrl": { "type": "string", "description": "Signed or CDN delivery reference for approved media." },
     "mediaType": { "oneOf": [{ "$ref": "common.schema.json#/$defs/mediaType" }, { "type": "null" }] },
     "thumbnailUrl": { "oneOf": [{ "type": "string" }, { "type": "null" }] },
@@ -45,7 +58,7 @@
     "sourceAttribution": { "type": "string", "description": "Public source or authorship line supplied with the approved work." },
     "publicationRoute": {
       "type": "string",
-      "enum": ["open", "reviewed", "collection_review"]
+      "enum": ["open", "reviewed", "collection_review", "admin"]
     },
     "correctionState": {
       "type": "string",

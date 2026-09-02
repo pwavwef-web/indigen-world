@@ -8,6 +8,8 @@ import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/features/collection/collection_screen.dart';
 import 'package:indigen_world_mobile/features/community/community_screen.dart';
 import 'package:indigen_world_mobile/features/contribute/contribute_screen.dart';
+import 'package:indigen_world_mobile/features/downloads/data/downloads_providers.dart';
+import 'package:indigen_world_mobile/features/downloads/widgets/downloads_orb_action.dart';
 import 'package:indigen_world_mobile/features/explore/explore_screen.dart';
 import 'package:indigen_world_mobile/features/learn/learn_screen.dart';
 import 'package:indigen_world_mobile/features/notifications/data/notification_providers.dart';
@@ -169,6 +171,20 @@ class _AppShellState extends ConsumerState<AppShell>
     final unread =
         ref.watch(unreadNotificationCountProvider).asData?.value ?? 0;
 
+    // What the shell hangs beside the orb, left of it and in order.
+    //
+    // Downloads belongs to Collection: it is a shortcut into audio out of the
+    // archive, and on any other tab it would be a control pointing somewhere
+    // else. The subscription is asked here as well as inside the widget —
+    // which renders nothing on its own account when there is no subscription —
+    // because a row that included it regardless would still reserve
+    // `kShellOrbActionGap` of space for a control that never arrives.
+    final orbActions = <Widget>[
+      if (_selectedIndex == _collectionIndex &&
+          ref.watch(downloadsAllowedProvider))
+        DownloadsOrbAction(onDark: onExplore),
+    ];
+
     final l10n = AppLocalizations.of(context);
     final destinations = <FrostedNavBarItem>[
       FrostedNavBarItem(
@@ -237,6 +253,15 @@ class _AppShellState extends ConsumerState<AppShell>
               // over the writing. Worse, a tab whose header slides up under it
               // has nowhere to put its own controls. Everything the shell owns
               // now leaves together and comes back together.
+              //
+              // Which is why [orbActions] is inside this one `Positioned` and
+              // not in a second one beside it. A per-tab action pinned on its
+              // own would need its own slide, its own fade and its own
+              // `IgnorePointer` kept in step with these three by hand, and the
+              // first time they fell out of step somebody would be left with a
+              // lone button hovering over a screen the rest of the chrome had
+              // already vacated — the exact bug the orb was moved in here to
+              // stop. One cluster, one animation, one pointer gate.
               Positioned(
                 top: MediaQuery.paddingOf(context).top + 6,
                 right: kProfileOrbInset,
@@ -249,7 +274,19 @@ class _AppShellState extends ConsumerState<AppShell>
                     duration: const Duration(milliseconds: 180),
                     child: IgnorePointer(
                       ignoring: !chromeVisible,
-                      child: ProfileOrb(onDark: onExplore),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        spacing: kShellOrbActionGap,
+                        children: [
+                          // Actions to the left, the orb hard against the
+                          // corner. The account control has been in that exact
+                          // spot since it stopped being a tab, and a shortcut
+                          // that only some tabs have must not be allowed to
+                          // shove it around.
+                          ...orbActions,
+                          ProfileOrb(onDark: onExplore),
+                        ],
+                      ),
                     ),
                   ),
                 ),

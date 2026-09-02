@@ -1,11 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
-import type { Submission } from '@indigen-world/contracts/creator-models';
 import { useAuth } from '../../auth';
 import { Link } from '../../router';
 import { Field, LoadError, Skeleton } from '../components';
 import {
   createStudioVideoJob,
-  fetchMySubmissions,
   fetchStudioVideoCapabilities,
   loadStudioVideoOutput,
   refreshStudioVideoJob,
@@ -46,13 +44,6 @@ function formatUsd(value: number): string {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
 }
 
-function isApprovedKasemScript(submission: Submission): boolean {
-  return ['APPROVED', 'PUBLISHED'].includes(submission.status)
-    && submission.primaryLanguage?.toLowerCase() === 'xsm'
-    && Boolean(submission.dialect?.trim())
-    && Boolean(submission.body?.trim());
-}
-
 function statusCopy(status: StudioVideoJob['status']): string {
   if (status === 'SUBMITTING') return 'Securing your request';
   if (status === 'QUEUED') return 'Waiting for the provider';
@@ -70,8 +61,8 @@ interface UploadedAsset {
 export function StudioVideoPage() {
   const { user } = useAuth();
   const [capabilities, setCapabilities] = useState<StudioVideoCapabilities | null>(null);
-  const [scripts, setScripts] = useState<Submission[]>([]);
-  const [selectedScriptId, setSelectedScriptId] = useState('');
+  const [script, setScript] = useState('');
+  const [dialect, setDialect] = useState('');
   const [loading, setLoading] = useState(true);
   const [loadFailed, setLoadFailed] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
@@ -111,13 +102,10 @@ export function StudioVideoPage() {
     let active = true;
     setLoading(true);
     setLoadFailed(false);
-    void Promise.all([fetchStudioVideoCapabilities(), fetchMySubmissions(user.uid)])
-      .then(([nextCapabilities, submissions]) => {
+    void fetchStudioVideoCapabilities()
+      .then((nextCapabilities) => {
         if (!active) return;
-        const approvedScripts = submissions.filter(isApprovedKasemScript);
         setCapabilities(nextCapabilities);
-        setScripts(approvedScripts);
-        setSelectedScriptId((current) => current || approvedScripts[0]?.id || '');
         setLoading(false);
       })
       .catch(() => {
@@ -171,7 +159,6 @@ export function StudioVideoPage() {
     if (outputUrl) URL.revokeObjectURL(outputUrl);
   }, [outputUrl]);
 
-  const selectedScript = scripts.find((script) => script.id === selectedScriptId) ?? null;
   const operationCapability = capabilities?.operations.find((item) => item.operation === operation);
   const model = operation === 'generate_visual' ? visualModel : lipSyncModel;
   const modelCapability = operationCapability?.models.find((item) => item.id === model);
@@ -201,7 +188,8 @@ export function StudioVideoPage() {
   };
 
   const validate = (): string | null => {
-    if (!selectedScript) return 'Choose an approved or published Kasem script.';
+    if (script.trim().length < 2) return 'Write the Kasem words for this video.';
+    if (!dialect.trim()) return 'Add the Kasem dialect or community variety.';
     if (!aiPermission || !rightsConfirmed || !culturalPermission) {
       return 'Confirm AI processing, rights, and cultural permission before creating.';
     }
@@ -223,16 +211,15 @@ export function StudioVideoPage() {
   };
 
   const buildInput = (): CreateStudioVideoJobInput => {
-    if (!selectedScript) throw new Error('Choose an approved Kasem script.');
     if (!requestId.current) requestId.current = `video_${crypto.randomUUID().replace(/-/g, '')}`;
     const base = {
       clientRequestId: requestId.current,
       durationSeconds: duration,
       kasem: {
         languageCode: 'xsm' as const,
-        dialect: selectedScript.dialect ?? '',
-        transcript: selectedScript.body ?? '',
-        validationRef: `submissions/${selectedScript.id}`,
+        dialect: dialect.trim(),
+        transcript: script.trim(),
+        validationRef: '',
       },
       governance: {
         aiProcessingPermission: true as const,
@@ -336,28 +323,13 @@ export function StudioVideoPage() {
     );
   }
 
-  if (scripts.length === 0) {
-    return (
-      <div className="page video-studio">
-        <header className="video-hero">
-          <div><p className="hero__eyebrow">Kasem creator tool</p><h1>AI-assisted video</h1></div>
-        </header>
-        <div className="empty">
-          <h2>Start with a reviewed Kasem script</h2>
-          <p>The first release only sends approved or published Kasem text to a video provider. Create a Kasem submission, then return when its status is approved or published.</p>
-          <Link to="/studio/submissions/new" className="button button--primary">Create Kasem script</Link>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="page video-studio">
       <header className="video-hero">
         <div>
-          <p className="hero__eyebrow">Kasem creator tool · first release</p>
-          <h1>Bring a Kasem story to life</h1>
-          <p>Generate a visual with Runway or lip-sync consented footage with fal. Your script and media are checked before they leave TribeStudio.</p>
+          <p className="hero__eyebrow">Kasem video maker</p>
+          <h1>Create a Kasem video</h1>
+          <p>Write what will be said, choose the kind of video, and create it. TribeStudio keeps your files private until you publish.</p>
         </div>
         <span className="video-hero__mark" aria-hidden="true">▶</span>
       </header>
@@ -402,93 +374,104 @@ export function StudioVideoPage() {
             <section className="video-step">
               <span className="video-step__number">1</span>
               <div className="video-step__body">
-                <h2>Choose the Kasem script</h2>
-                <p className="muted">Only your approved or published xsm submissions appear here.</p>
-                <Field label="Validated script" htmlFor="video-script">
-                  <select id="video-script" value={selectedScriptId} onChange={(event) => setSelectedScriptId(event.target.value)}>
-                    {scripts.map((script) => <option key={script.id} value={script.id}>{script.title || 'Untitled'} · {script.dialect}</option>)}
-                  </select>
+                <h2>Write your script</h2>
+                <p className="muted">Type the Kasem words that will be spoken or guide the story. This does not need to be a previous submission.</p>
+                <Field label="Kasem script" htmlFor="video-script" hint="Up to 4,000 characters. Write it exactly as it should be spoken.">
+                  <textarea
+                    id="video-script"
+                    rows={8}
+                    maxLength={4000}
+                    value={script}
+                    onChange={(event) => setScript(event.target.value)}
+                    placeholder="Write your Kasem narration or dialogue here…"
+                  />
                 </Field>
-                {selectedScript ? (
-                  <div className="script-preview">
-                    <span>{selectedScript.dialect} · Kasem (xsm)</span>
-                    <p>{selectedScript.body}</p>
-                  </div>
-                ) : null}
+                <div className="script-meta">
+                  <Field label="Dialect or community variety" htmlFor="video-dialect">
+                    <input id="video-dialect" maxLength={80} value={dialect} onChange={(event) => setDialect(event.target.value)} placeholder="For example: Navrongo" />
+                  </Field>
+                  <span className="tiny muted">{script.length.toLocaleString()} / 4,000 characters</span>
+                </div>
               </div>
             </section>
 
             <section className="video-step">
               <span className="video-step__number">2</span>
               <div className="video-step__body">
-                <h2>Choose how to create</h2>
+                <h2>Choose your video</h2>
                 <div className="video-mode" role="radiogroup" aria-label="Video operation">
                   <label className={operation === 'generate_visual' ? 'video-mode__card is-on' : 'video-mode__card'}>
                     <input type="radio" name="operation" checked={operation === 'generate_visual'} onChange={() => setOperation('generate_visual')} />
-                    <strong>Generate a visual</strong><span>Build a new scene from your prompt and optional image.</span>
+                    <strong>Make new visuals</strong><span>Create a scene from your description and optional image.</span>
                   </label>
                   <label className={operation === 'lip_sync' ? 'video-mode__card is-on' : 'video-mode__card'}>
                     <input type="radio" name="operation" checked={operation === 'lip_sync'} onChange={() => setOperation('lip_sync')} />
-                    <strong>Lip-sync footage</strong><span>Match a consented video to your Kasem recording.</span>
+                    <strong>Sync someone speaking</strong><span>Match your own video to a consented Kasem recording.</span>
                   </label>
                 </div>
 
                 {operation === 'generate_visual' ? (
                   <div className="video-options">
-                    <div className="field-row">
-                      <Field label="Model" htmlFor="visual-model">
-                        <select id="visual-model" value={visualModel} onChange={(event) => setVisualModel(event.target.value as typeof visualModel)}>
-                          {operationCapability?.models.map((item) => <option key={item.id} value={item.id}>{MODEL_LABELS[item.id] ?? item.id}</option>)}
-                        </select>
-                      </Field>
-                      <Field label="Length" htmlFor="video-duration">
-                        <select id="video-duration" value={duration} onChange={(event) => setDuration(Number(event.target.value) as 5 | 10)}>
-                          {capabilities?.limits.durationsSeconds.map((seconds) => <option key={seconds} value={seconds}>{seconds} seconds</option>)}
-                        </select>
-                      </Field>
-                      <Field label="Shape" htmlFor="video-ratio">
-                        <select id="video-ratio" value={ratio} onChange={(event) => setRatio(event.target.value as typeof ratio)}>
-                          {availableRatios.map((item) => <option key={item} value={item}>{RATIO_LABELS[item] ?? item}</option>)}
-                        </select>
-                      </Field>
-                    </div>
-                    <Field label="Scene direction" htmlFor="video-prompt" hint="Describe people, setting, movement, light and camera motion. Do not put private information here.">
+                    <Field label="How should it look?" htmlFor="video-prompt" hint="Describe the place, people, movement and mood. Do not include private information.">
                       <textarea id="video-prompt" rows={5} maxLength={1000} value={prompt} onChange={(event) => setPrompt(event.target.value)} placeholder="At golden hour in a Kassena courtyard, woven baskets beside the storyteller, slow camera push-in…" />
                     </Field>
-                    <Field label={`Reference image ${referenceRequired ? '(required for this model)' : '(optional)'}`} htmlFor="reference-image" hint="JPEG, PNG or WebP under 20 MB. Use only an image you control.">
+                    <Field label={`Add an image ${referenceRequired ? '(required with the selected quality)' : '(optional)'}`} htmlFor="reference-image" hint="Use your own JPEG, PNG or WebP under 20 MB.">
                       <input id="reference-image" type="file" accept="image/*" disabled={uploading !== null} onChange={(event) => void handleUpload('image', event)} />
                     </Field>
                     {referenceImage ? <p className="asset-ready"><span>✓</span>{referenceImage.name}</p> : null}
+                    <details className="video-advanced">
+                      <summary>Quality, length and format</summary>
+                      <div className="field-row">
+                        <Field label="Quality" htmlFor="visual-model">
+                          <select id="visual-model" value={visualModel} onChange={(event) => setVisualModel(event.target.value as typeof visualModel)}>
+                            {operationCapability?.models.map((item) => <option key={item.id} value={item.id}>{MODEL_LABELS[item.id] ?? item.id}</option>)}
+                          </select>
+                        </Field>
+                        <Field label="Length" htmlFor="video-duration">
+                          <select id="video-duration" value={duration} onChange={(event) => setDuration(Number(event.target.value) as 5 | 10)}>
+                            {capabilities?.limits.durationsSeconds.map((seconds) => <option key={seconds} value={seconds}>{seconds} seconds</option>)}
+                          </select>
+                        </Field>
+                        <Field label="Format" htmlFor="video-ratio">
+                          <select id="video-ratio" value={ratio} onChange={(event) => setRatio(event.target.value as typeof ratio)}>
+                            {availableRatios.map((item) => <option key={item} value={item}>{RATIO_LABELS[item] ?? item}</option>)}
+                          </select>
+                        </Field>
+                      </div>
+                    </details>
                   </div>
                 ) : (
                   <div className="video-options">
-                    <div className="field-row">
-                      <Field label="Lip-sync model" htmlFor="lipsync-model">
-                        <select id="lipsync-model" value={lipSyncModel} onChange={(event) => setLipSyncModel(event.target.value as typeof lipSyncModel)}>
-                          {operationCapability?.models.map((item) => <option key={item.id} value={item.id}>{MODEL_LABELS[item.id] ?? item.id}</option>)}
-                        </select>
-                      </Field>
-                      <Field label="Length" htmlFor="lipsync-duration">
-                        <select id="lipsync-duration" value={duration} onChange={(event) => setDuration(Number(event.target.value) as 5 | 10)}>
-                          {capabilities?.limits.durationsSeconds.map((seconds) => <option key={seconds} value={seconds}>{seconds} seconds</option>)}
-                        </select>
-                      </Field>
-                      <Field label="Duration handling" htmlFor="sync-mode">
-                        <select id="sync-mode" value={syncMode} onChange={(event) => setSyncMode(event.target.value as typeof syncMode)}>
-                          <option value="cut_off">Cut off longer source</option><option value="loop">Loop video</option><option value="bounce">Bounce video</option><option value="silence">Pad with silence</option><option value="remap">Remap timing</option>
-                        </select>
-                      </Field>
-                    </div>
                     <div className="media-pair">
-                      <Field label="Source video" htmlFor="source-video" hint="MP4 or other video under 200 MB.">
+                      <Field label="Your video" htmlFor="source-video" hint="A video you control, under 200 MB.">
                         <input id="source-video" type="file" accept="video/*" disabled={uploading !== null} onChange={(event) => void handleUpload('video', event)} />
                         {sourceVideo ? <p className="asset-ready"><span>✓</span>{sourceVideo.name}</p> : null}
                       </Field>
-                      <Field label="Kasem voice recording" htmlFor="source-audio" hint="Audio under 50 MB; it must match the selected transcript.">
+                      <Field label="Kasem recording" htmlFor="source-audio" hint="Audio matching the script above, under 50 MB.">
                         <input id="source-audio" type="file" accept="audio/*" disabled={uploading !== null} onChange={(event) => void handleUpload('audio', event)} />
                         {sourceAudio ? <p className="asset-ready"><span>✓</span>{sourceAudio.name}</p> : null}
                       </Field>
                     </div>
+                    <details className="video-advanced">
+                      <summary>Quality, length and timing</summary>
+                      <div className="field-row">
+                        <Field label="Quality" htmlFor="lipsync-model">
+                          <select id="lipsync-model" value={lipSyncModel} onChange={(event) => setLipSyncModel(event.target.value as typeof lipSyncModel)}>
+                            {operationCapability?.models.map((item) => <option key={item.id} value={item.id}>{MODEL_LABELS[item.id] ?? item.id}</option>)}
+                          </select>
+                        </Field>
+                        <Field label="Length" htmlFor="lipsync-duration">
+                          <select id="lipsync-duration" value={duration} onChange={(event) => setDuration(Number(event.target.value) as 5 | 10)}>
+                            {capabilities?.limits.durationsSeconds.map((seconds) => <option key={seconds} value={seconds}>{seconds} seconds</option>)}
+                          </select>
+                        </Field>
+                        <Field label="If lengths differ" htmlFor="sync-mode">
+                          <select id="sync-mode" value={syncMode} onChange={(event) => setSyncMode(event.target.value as typeof syncMode)}>
+                            <option value="cut_off">Cut off the longer file</option><option value="loop">Loop the video</option><option value="bounce">Bounce the video</option><option value="silence">Add silence</option><option value="remap">Adjust timing</option>
+                          </select>
+                        </Field>
+                      </div>
+                    </details>
                   </div>
                 )}
                 {uploading ? (
@@ -500,38 +483,37 @@ export function StudioVideoPage() {
             <section className="video-step">
               <span className="video-step__number">3</span>
               <div className="video-step__body">
-                <h2>Permissions and consent</h2>
-                <p className="muted">These confirmations apply to this generation only. AI-training permission is not requested.</p>
-                <div className="consent-grid">
-                  <label className="checkbox"><input type="checkbox" checked={aiPermission} onChange={(event) => setAiPermission(event.target.checked)} /><span>I permit TribeStudio to send this job’s script and selected media to the named AI provider.</span></label>
-                  <label className="checkbox"><input type="checkbox" checked={rightsConfirmed} onChange={(event) => setRightsConfirmed(event.target.checked)} /><span>I created or control the material and have the necessary rights.</span></label>
-                  <label className="checkbox"><input type="checkbox" checked={culturalPermission} onChange={(event) => setCulturalPermission(event.target.checked)} /><span>I have the cultural permission needed to represent this story, language and imagery.</span></label>
-                  <label className="checkbox"><input type="checkbox" checked={noMinors} onChange={(event) => setNoMinors(event.target.checked)} /><span>I confirm that no minor appears in or supplied the source material.</span></label>
-                  <label className="checkbox"><input type="checkbox" checked={noThirdParty} onChange={(event) => setNoThirdParty(event.target.checked)} /><span>I confirm there is no third-party music, image, voice or footage in this job.</span></label>
-                  <label className="checkbox"><input type="checkbox" checked={containsPerson} onChange={(event) => setContainsPerson(event.target.checked)} /><span>The source or requested video contains a recognisable person.</span></label>
-                  <label className="checkbox"><input type="checkbox" checked={participantConsent} onChange={(event) => setParticipantConsent(event.target.checked)} /><span>Every featured participant consented to this AI-assisted creation.</span></label>
-                  <label className="checkbox"><input type="checkbox" checked={likenessConsent} onChange={(event) => setLikenessConsent(event.target.checked)} /><span>Every recognisable person consented to use of their likeness.</span></label>
-                  {operation === 'lip_sync' ? <label className="checkbox"><input type="checkbox" checked={voiceConsent} onChange={(event) => setVoiceConsent(event.target.checked)} /><span>The recorded speaker consented to AI voice processing and lip-sync.</span></label> : null}
+                <h2>Confirm you can use it</h2>
+                <p className="muted">These permissions are only for making this video. They do not give permission to train an AI model.</p>
+                <div className="consent-list">
+                  <label className="checkbox"><input type="checkbox" checked={aiPermission} onChange={(event) => setAiPermission(event.target.checked)} /><span>I allow TribeStudio to send this script and selected media to the video provider for this job.</span></label>
+                  <label className="checkbox"><input type="checkbox" checked={rightsConfirmed && culturalPermission} onChange={(event) => { setRightsConfirmed(event.target.checked); setCulturalPermission(event.target.checked); }} /><span>I own or control this material and have the cultural permission to use it.</span></label>
+                  <label className="checkbox"><input type="checkbox" checked={noMinors && noThirdParty} onChange={(event) => { setNoMinors(event.target.checked); setNoThirdParty(event.target.checked); }} /><span>No minors or third-party music, images, voices or footage are included.</span></label>
+                  {operation === 'generate_visual' ? (
+                    <label className="checkbox"><input type="checkbox" checked={containsPerson} onChange={(event) => setContainsPerson(event.target.checked)} /><span>The requested video includes a recognisable person.</span></label>
+                  ) : null}
+                  {recognisableConsentRequired ? (
+                    <label className="checkbox"><input type="checkbox" checked={participantConsent && likenessConsent && (operation !== 'lip_sync' || voiceConsent)} onChange={(event) => { setParticipantConsent(event.target.checked); setLikenessConsent(event.target.checked); if (operation === 'lip_sync') setVoiceConsent(event.target.checked); }} /><span>{operation === 'lip_sync' ? 'Everyone shown and the recorded speaker agreed to participation, likeness use and AI lip-sync.' : 'Every recognisable person agreed to participate and have their likeness used.'}</span></label>
+                  ) : null}
                 </div>
               </div>
             </section>
           </div>
 
           <aside className="video-summary">
-            <p className="hero__eyebrow">Before you create</p>
-            <h2>{MODEL_LABELS[model] ?? model}</h2>
+            <p className="hero__eyebrow">Your video</p>
+            <h2>{operation === 'generate_visual' ? 'New visual' : 'Speaking video'}</h2>
             <dl>
               <div><dt>Language</dt><dd>Kasem · xsm</dd></div>
               <div><dt>Length</dt><dd>{duration} seconds</dd></div>
               <div><dt>Estimated charge</dt><dd>{formatUsd(costEstimate)}</dd></div>
-              <div><dt>Pricing snapshot</dt><dd>{capabilities?.pricingVersion}</dd></div>
             </dl>
-            <p className="tiny muted">This estimate is for one provider generation. Provider billing can change; TribeStudio records the rate snapshot with the job.</p>
+            <p className="tiny muted">One generation using {MODEL_LABELS[model] ?? model}. The final provider charge may vary slightly.</p>
             {error ? <div className="callout callout--warn" role="alert">{error}</div> : null}
             <button type="button" className="button button--primary button--block" disabled={creating || uploading !== null} onClick={() => void submit()}>
               {creating ? 'Starting securely…' : `Create for about ${formatUsd(costEstimate)}`}
             </button>
-            <p className="video-summary__safety">Your provider keys never enter this browser. Inputs and outputs remain private in Firebase until you choose to publish.</p>
+            <p className="video-summary__safety">Your files stay private until you publish. Provider keys never enter this browser.</p>
           </aside>
         </div>
       )}

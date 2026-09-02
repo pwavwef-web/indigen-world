@@ -273,7 +273,10 @@ class _NoResults extends StatelessWidget {
           const SizedBox(height: 16),
           FilledButton.icon(
             onPressed: () => context.push(
-              '/contribute?source=${Uri.encodeQueryComponent(query)}',
+              // Named, because Contribute opens on a hub without one — and a
+              // search that found nothing is a request for this exact word.
+              '/contribute?category=dictionary'
+              '&source=${Uri.encodeQueryComponent(query)}',
             ),
             icon: const Icon(Icons.add_rounded),
             label: const Text('Contribute this word'),

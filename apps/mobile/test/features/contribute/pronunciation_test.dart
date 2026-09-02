@@ -10,24 +10,24 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:indigen_world_mobile/features/collection/collection_data.dart';
-import 'package:indigen_world_mobile/features/contribute/contribute_screen.dart';
+import 'package:indigen_world_mobile/features/contribute/contribution_form_screen.dart';
 import 'package:indigen_world_mobile/features/dictionary/entry_detail_screen.dart';
 import 'package:indigen_world_mobile/l10n/app_localizations.dart';
 
 void main() {
   group('the contribute form', () {
-    Future<void> pumpForm(WidgetTester tester) async {
+    Future<void> pumpForm(WidgetTester tester, CollectionKind kind) async {
       tester.view.physicalSize = const Size(800, 1000);
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
 
       await tester.pumpWidget(
-        const ProviderScope(
+        ProviderScope(
           child: MaterialApp(
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,
-            home: ContributeScreen(standalone: true),
+            home: ContributionFormScreen(kind: kind),
           ),
         ),
       );
@@ -37,7 +37,7 @@ void main() {
     testWidgets('asks a dictionary contributor to say the word', (
       tester,
     ) async {
-      await pumpForm(tester);
+      await pumpForm(tester, CollectionKind.dictionary);
 
       expect(find.text('Say the word'), findsOneWidget);
       expect(find.text('Record pronunciation'), findsOneWidget);
@@ -50,10 +50,8 @@ void main() {
     testWidgets('asks nobody else — a song is already a recording', (
       tester,
     ) async {
-      await pumpForm(tester);
+      await pumpForm(tester, CollectionKind.music);
 
-      await tester.tap(find.text('Music'));
-      await tester.pump(const Duration(milliseconds: 220));
       expect(find.text('Say the word'), findsNothing);
       expect(find.text('Record pronunciation'), findsNothing);
       await tester.pump(const Duration(milliseconds: 500));

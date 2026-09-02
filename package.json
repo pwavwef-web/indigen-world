@@ -39,7 +39,7 @@
     "test:rules": "firebase emulators:exec --project demo-indigen-world --only firestore \"node --test firebase/tests/firestore.rules.test.mjs firebase/tests/creator.rules.test.mjs firebase/tests/community.rules.test.mjs firebase/tests/reelsAndChats.rules.test.mjs firebase/tests/learningAndShop.rules.test.mjs firebase/tests/ads.rules.test.mjs firebase/tests/subscriptions.rules.test.mjs\"",
     "test:storage-rules": "firebase emulators:exec --project demo-indigen-world --only auth,storage \"node --test firebase/tests/storage.rules.test.mjs\"",
     "test:e2e": "npm run build:functions && cross-env FUNCTIONS_DISCOVERY_TIMEOUT=120 firebase emulators:exec --project demo-indigen-world --only auth,firestore,functions \"node --test firebase/tests/decideReview.test.mjs firebase/tests/creatorFunctions.test.mjs firebase/tests/publicForms.test.mjs\"",
-    "test:function-helpers": "npm run build:functions && node --test firebase/tests/functionHelpers.test.mjs firebase/tests/studioVideo.test.mjs firebase/tests/playBilling.test.mjs"
+    "test:function-helpers": "npm run build:functions && node --test firebase/tests/functionHelpers.test.mjs firebase/tests/studioVideo.test.mjs firebase/tests/playBilling.test.mjs firebase/tests/collectionContributions.test.mjs firebase/tests/adminAudiobooks.test.mjs firebase/tests/communityNotifications.test.mjs firebase/tests/kasemNameRequests.test.mjs firebase/tests/wordQueue.test.mjs firebase/tests/contributorScores.test.mjs"
   },
   "devDependencies": {
     "cross-env": "7.0.3",

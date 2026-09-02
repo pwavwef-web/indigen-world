@@ -139,6 +139,45 @@ before(async () => {
       published: true,
       order: 1,
     });
+    await setDoc(doc(db, 'kasemNameRequests/req-1'), {
+      id: 'req-1',
+      uid: LEARNER,
+      name: 'Awɛlɩmwɛ',
+      ascii: 'awelimwe',
+      kind: 'given',
+      handle: 'awelimwe',
+      status: 'pending',
+    });
+    await setDoc(doc(db, 'kasemNameRequests/req-2'), {
+      id: 'req-2',
+      uid: OTHER,
+      name: 'Apɔka',
+      ascii: 'apoka',
+      kind: 'given',
+      handle: '',
+      status: 'pending',
+    });
+    await setDoc(doc(db, 'wordQueue/the-8f7a9c'), {
+      id: 'the-8f7a9c', word: 'the', lookup: 'the', rank: 1, tier: 'core',
+      sentence: 'Give him an inch and he will take a yard.',
+      sentenceSource: 'tatoeba', status: 'open',
+      approvedCount: 0, pendingCount: 0, skipCount: 0,
+    });
+    await setDoc(doc(db, 'wordQueue/done-111111'), {
+      id: 'done-111111', word: 'water', lookup: 'water', rank: 2, tier: 'core',
+      sentence: 'The water is cold.', sentenceSource: 'tatoeba',
+      status: 'translated', approvedCount: 1, pendingCount: 0, skipCount: 0,
+    });
+    await setDoc(doc(db, `wordQueueProgress/${LEARNER}`), {
+      uid: LEARNER, answered: ['the-8f7a9c'], skipped: [],
+    });
+    await setDoc(doc(db, `contributorScores/${LEARNER}`), {
+      uid: LEARNER, points: 340, approvedCount: 12, streakDays: 3,
+      displayName: 'A member', username: 'nyaaba', avatarUrl: null,
+    });
+    await setDoc(doc(db, 'contributorPointAwards/contrib-1'), {
+      contributionId: 'contrib-1', uid: LEARNER, points: 10,
+    });
     await setDoc(doc(db, 'shopOrders/order-1'), makeOrder(LEARNER));
   });
 });
@@ -264,6 +303,129 @@ test('the heroes and the names are guest-readable, admin-written', async () => {
   );
   await assertSucceeds(
     setDoc(doc(db(admin), 'kasemNames/awine'), { name: 'Awine', ascii: 'awine', published: true }),
+  );
+});
+
+test('a name request is read by its asker and the reviewers, and written by nobody', async () => {
+  const owner = env.authenticatedContext(LEARNER);
+  const other = env.authenticatedContext(OTHER);
+  const anon = env.unauthenticatedContext();
+  const validator = env.authenticatedContext(VALIDATOR.sub, { role: VALIDATOR.role });
+
+  // The asker reads their own, so the claim screen can say "you already asked
+  // for this" instead of letting them spend a day's quota asking twice.
+  await assertSucceeds(getDoc(doc(db(owner), 'kasemNameRequests/req-1')));
+  // A reviewer reads the queue they are reviewing.
+  await assertSucceeds(getDoc(doc(db(validator), 'kasemNameRequests/req-2')));
+  // Nobody else. A request names somebody's grandmother and the handle they
+  // want; it is not a public list.
+  await assertFails(getDoc(doc(db(other), 'kasemNameRequests/req-1')));
+  await assertFails(getDoc(doc(db(anon), 'kasemNameRequests/req-1')));
+
+  // Every write is the callables' — and it has to be. `ascii` is what decides
+  // who wears the kente ring, and `status` is what decides whether a name goes
+  // on the list at all; a phone that could write either could award the ring
+  // for anything.
+  await assertFails(
+    setDoc(doc(db(owner), 'kasemNameRequests/forged'), {
+      uid: LEARNER,
+      name: 'Me',
+      ascii: 'me',
+      status: 'approved',
+    }),
+  );
+  await assertFails(
+    updateDoc(doc(db(owner), 'kasemNameRequests/req-1'), { status: 'approved' }),
+  );
+  await assertFails(
+    updateDoc(doc(db(validator), 'kasemNameRequests/req-1'), { status: 'approved' }),
+  );
+});
+
+// ── The guided word queue ───────────────────────────────────────────────────
+
+test('an open queue word is public, a translated one is staff-only', async () => {
+  const anon = env.unauthenticatedContext();
+  const validator = env.authenticatedContext(VALIDATOR.sub, { role: VALIDATOR.role });
+
+  // The size of the backlog is the honest state of the language's coverage,
+  // not something to keep behind a login.
+  await assertSucceeds(getDoc(doc(db(anon), 'wordQueue/the-8f7a9c')));
+  // A word that has left the queue carries review state rather than public
+  // information.
+  await assertFails(getDoc(doc(db(anon), 'wordQueue/done-111111')));
+  await assertSucceeds(getDoc(doc(db(validator), 'wordQueue/done-111111')));
+});
+
+test('nobody writes the queue from a client, not even staff', async () => {
+  const learner = env.authenticatedContext(LEARNER);
+  const admin = env.authenticatedContext(ADMIN.sub, { role: ADMIN.role });
+
+  // `status` and the counters ARE the integrity of the queue: a phone that
+  // could set `status: 'translated'` could retire a word it never answered,
+  // and one that could move `approvedCount` could empty the backlog.
+  await assertFails(
+    updateDoc(doc(db(learner), 'wordQueue/the-8f7a9c'), { status: 'translated' }),
+  );
+  await assertFails(
+    updateDoc(doc(db(learner), 'wordQueue/the-8f7a9c'), { approvedCount: 99 }),
+  );
+  await assertFails(
+    setDoc(doc(db(admin), 'wordQueue/invented'), { word: 'x', status: 'open' }),
+  );
+});
+
+test('a member reads their own queue progress and nobody else writes it', async () => {
+  const owner = env.authenticatedContext(LEARNER);
+  const other = env.authenticatedContext(OTHER);
+
+  await assertSucceeds(getDoc(doc(db(owner), `wordQueueProgress/${LEARNER}`)));
+  // Writing somebody else's would silently re-offer words they had already
+  // dealt with — exactly what the list exists to prevent.
+  await assertFails(getDoc(doc(db(other), `wordQueueProgress/${LEARNER}`)));
+  await assertFails(
+    updateDoc(doc(db(owner), `wordQueueProgress/${LEARNER}`), { skipped: [] }),
+  );
+  await assertFails(
+    setDoc(doc(db(other), `wordQueueProgress/${OTHER}`), { uid: OTHER, answered: [] }),
+  );
+});
+
+// ── The contributors board ──────────────────────────────────────────────────
+
+test('the board is public to read and writable by nobody at all', async () => {
+  const anon = env.unauthenticatedContext();
+  const owner = env.authenticatedContext(LEARNER);
+  const admin = env.authenticatedContext(ADMIN.sub, { role: ADMIN.role });
+
+  // A board is worth reading, so it is readable; the identity on the row is a
+  // copy of an already-public community profile.
+  await assertSucceeds(getDoc(doc(db(anon), `contributorScores/${LEARNER}`)));
+
+  // The whole reason this collection exists rather than a field on the
+  // owner-writable learnProgress document. If its owner can write it, it is
+  // not a ranking — it is a text box with a trophy next to it.
+  await assertFails(
+    updateDoc(doc(db(owner), `contributorScores/${LEARNER}`), { points: 999999 }),
+  );
+  await assertFails(
+    setDoc(doc(db(owner), `contributorScores/${LEARNER}`), { uid: LEARNER, points: 999999 }),
+  );
+  await assertFails(
+    setDoc(doc(db(admin), `contributorScores/${OTHER}`), { uid: OTHER, points: 1 }),
+  );
+});
+
+test('the award ledger is staff-readable and never client-written', async () => {
+  const owner = env.authenticatedContext(LEARNER);
+  const validator = env.authenticatedContext(VALIDATOR.sub, { role: VALIDATOR.role });
+
+  // 'Why do I have 340 points' is a question support gets asked.
+  await assertSucceeds(getDoc(doc(db(validator), 'contributorPointAwards/contrib-1')));
+  await assertFails(getDoc(doc(db(owner), 'contributorPointAwards/contrib-1')));
+  // Forging a receipt would let one approval pay twice, undetectably.
+  await assertFails(
+    setDoc(doc(db(owner), 'contributorPointAwards/forged'), { uid: LEARNER, points: 500 }),
   );
 });
 

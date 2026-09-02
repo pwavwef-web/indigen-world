@@ -7,6 +7,11 @@ import {
   collectionKindForSubmission,
   type CollectionKind,
 } from './publication.js';
+import {
+  canonicalLexicalKind,
+  normaliseTranslations,
+  type LexicalKind,
+} from './lexical-kinds.js';
 
 const REGION = 'us-central1';
 export const COLLECTION_CAMPAIGN_ID = 'collection-contributions';
@@ -24,13 +29,38 @@ export interface CollectionContributionMedia {
 
 export interface CollectionContributionInput {
   collectionKind: CollectionKind;
+  /**
+   * Whether this is a word, a phrase, an idiom or a proverb — see
+   * LEXICAL_KINDS. Only the dictionary path reads it; everything else carries
+   * the default so no reader has to hold a null check for a field it never
+   * consults.
+   */
+  lexicalKind: LexicalKind;
   title: string;
   body: string;
+  /**
+   * Every meaning the member gave, already split, trimmed and de-duplicated.
+   *
+   * Held beside `body` rather than replacing it: `body` is the text the member
+   * typed and is what a reviewer should see, while this is the machine-readable
+   * reading of it. A dictionary contribution that predates this field derives
+   * its list from `body`, so nothing published before today changes shape.
+   */
+  translations: string[];
   format: string;
   dialect: string;
   source: string;
   mediaUrl: string;
   media: CollectionContributionMedia | null;
+  /**
+   * Optional artwork for the recording — a song's cover.
+   *
+   * Separate from [media] because it is a second file with a second set of
+   * rules: it is always a picture, it is small, and it means nothing on its own.
+   * It travels to publication as the submission's `media.thumbnailPath`, which
+   * is the field the publication workflow already knows how to make public.
+   */
+  cover: CollectionContributionMedia | null;
   notes: string;
   relatedEntryId: string | null;
   /**
@@ -53,6 +83,15 @@ export interface CollectionContributionInput {
 /** Largest single upload accepted, matching the Storage rules' own ceiling. */
 const MAX_UPLOAD_BYTES = 500 * 1024 * 1024;
 
+/**
+ * Cover art gets a ceiling of its own, two orders of magnitude below the one a
+ * master recording needs. A picture that big is a mistake — a photograph
+ * straight off a phone camera, or the wrong file entirely — and a member on a
+ * metered village connection should hear about it before the upload, not after
+ * paying for it.
+ */
+const MAX_COVER_BYTES = 8 * 1024 * 1024;
+
 const MEDIA_TYPES = ['image', 'audio', 'video', 'document'] as const;
 
 /**
@@ -62,14 +101,22 @@ const MEDIA_TYPES = ['image', 'audio', 'video', 'document'] as const;
  * Storage rules stop a member writing into somebody else's folder, but nothing
  * stops them *naming* one here, and a submission that pointed a reviewer at
  * another member's private upload would be a disclosure the rules never saw.
+ *
+ * [label] and [maxBytes] exist so cover art can be put through this exact check
+ * and still fail with its own message and its own ceiling. The alternative was
+ * a second near-identical parser, which is how one of the two copies eventually
+ * loses the prefix check.
  */
 export function parseContributionMedia(
   raw: unknown,
   uid: string,
+  options: { label?: string; maxBytes?: number } = {},
 ): CollectionContributionMedia | null {
+  const label = options.label ?? 'media';
+  const maxBytes = options.maxBytes ?? MAX_UPLOAD_BYTES;
   if (raw == null) return null;
   if (typeof raw !== 'object' || Array.isArray(raw)) {
-    throw new HttpsError('invalid-argument', 'media must be an object.');
+    throw new HttpsError('invalid-argument', `${label} must be an object.`);
   }
   const data = raw as Record<string, unknown>;
   const storagePath = typeof data.storagePath === 'string' ? data.storagePath.trim() : '';
@@ -82,8 +129,11 @@ export function parseContributionMedia(
     throw new HttpsError('invalid-argument', 'mediaType must be image, audio, video, or document.');
   }
   const sizeBytes = typeof data.sizeBytes === 'number' ? Math.round(data.sizeBytes) : 0;
-  if (sizeBytes < 0 || sizeBytes > MAX_UPLOAD_BYTES) {
-    throw new HttpsError('invalid-argument', 'The uploaded file is too large.');
+  if (sizeBytes < 0 || sizeBytes > maxBytes) {
+    throw new HttpsError(
+      'invalid-argument',
+      `The ${label} file is too large (${Math.round(maxBytes / (1024 * 1024))} MB maximum).`,
+    );
   }
   return {
     storagePath,
@@ -91,6 +141,40 @@ export function parseContributionMedia(
     sizeBytes,
     mediaType: mediaType as CollectionContributionMedia['mediaType'],
   };
+}
+
+/**
+ * The same check, plus the two things that make a file cover art rather than
+ * simply another upload: it is declared an image, and it says so in its own
+ * MIME type. Both are asked because they can disagree — a client that picks an
+ * `.mp3` into the artwork slot would otherwise put an audio file where the
+ * player expects a picture, and the lock screen would show nothing while the
+ * bytes were downloaded to find that out.
+ */
+export function parseContributionCover(
+  raw: unknown,
+  uid: string,
+): CollectionContributionMedia | null {
+  const cover = parseContributionMedia(raw, uid, { label: 'cover', maxBytes: MAX_COVER_BYTES });
+  if (!cover) return null;
+  if (cover.mediaType !== 'image' || !cover.mimeType.toLowerCase().startsWith('image/')) {
+    throw new HttpsError('invalid-argument', 'The cover must be an image file.');
+  }
+  return cover;
+}
+
+/**
+ * Where the cover ends up, or null.
+ *
+ * A cover with no recording is nothing: the submission carries no `media`
+ * object for a text-only contribution, and inventing one so a picture had
+ * somewhere to sit would make a poem look like a song whose audio failed to
+ * upload. Asked in one place because the receipt and the canonical submission
+ * must agree — two copies of this rule would drift the first time one changed.
+ */
+export function contributionCoverPath(input: CollectionContributionInput): string | null {
+  if (!input.media || !input.cover) return null;
+  return input.cover.storagePath;
 }
 
 function nowIso(): string {
@@ -171,21 +255,38 @@ export function parseCollectionContributionInput(
 
   const relatedEntryId = optionalText(data, 'relatedEntryId', 200) || null;
   const media = parseContributionMedia(data.media, uid);
+  const cover = parseContributionCover(data.cover, uid);
   // A song, a narration or a film *is* its recording. Accepting one without
   // the file would put an empty item in the review queue that nobody can
   // assess.
   if (!media && !mediaUrl && (kind === 'music' || kind === 'audiobooks' || kind === 'video')) {
     throw new HttpsError('failed-precondition', 'Upload the recording before submitting.');
   }
+
+  const body = requiredText(data, 'body', 12_000);
+  // Back-compatibility, and the only reason this is conditional: an older
+  // client sends no `translations` at all. For a dictionary word the typed body
+  // *is* the list of meanings, so reading it through the same parser turns
+  // "water, rain" into two translations instead of one headword nobody can
+  // search for. For a song the body is lyrics, and splitting lyrics on commas
+  // would be vandalism — so every other kind gets an empty list unless the
+  // client asked for one explicitly.
+  const translations = data.translations != null
+    ? normaliseTranslations(data.translations)
+    : (kind === 'dictionary' ? normaliseTranslations(body) : []);
+
   return {
     collectionKind: kind as CollectionKind,
+    lexicalKind: canonicalLexicalKind(data.lexicalKind),
     title: requiredText(data, 'title', 180),
-    body: requiredText(data, 'body', 12_000),
+    body,
+    translations,
     format: requiredText(data, 'format', 80),
     dialect: requiredText(data, 'dialect', 80),
     source: requiredText(data, 'source', 1200),
     mediaUrl,
     media,
+    cover,
     notes: optionalText(data, 'notes', 4000),
     relatedEntryId,
     involvesMinors,
@@ -224,6 +325,12 @@ export function buildCollectionSubmissionDocument(
     title: input.title,
     category: input.collectionKind,
     collectionKind: input.collectionKind,
+    // Carried on the canonical submission, not only on the receipt, because the
+    // review desk is where the difference matters: a reviewer assessing a
+    // proverb is being asked a different question from one checking a noun, and
+    // until now both arrived looking like "a dictionary contribution".
+    lexicalKind: input.lexicalKind,
+    translations: input.translations,
     format: input.format,
     kasemExample: input.kasemExample,
     englishExample: input.englishExample,
@@ -250,7 +357,14 @@ export function buildCollectionSubmissionDocument(
             mimeType: input.media.mimeType,
             sizeBytes: input.media.sizeBytes,
             mediaType: input.media.mediaType,
-            thumbnailPath: null,
+            // The cover rides in as the recording's thumbnail because that is
+            // the field the publication workflow already carries out to the
+            // public bucket — it becomes `publishedContent.thumbnailUrl`, which
+            // is what the player draws on the Now Playing and lock screens. A
+            // cover sent without a recording is dropped here (see
+            // contributionCoverPath): there is nothing for it to be the cover
+            // of.
+            thumbnailPath: contributionCoverPath(input),
             captionsPath: null,
           },
         }
@@ -289,6 +403,90 @@ export function buildCollectionSubmissionDocument(
 }
 
 /**
+ * The campaign every Collection contribution hangs off, created on first use.
+ *
+ * Shared with the word queue for the same reason as the receipt below: two
+ * writers bootstrapping the same document with two slightly different sets of
+ * fields is a bug that only shows up on an empty project, which is exactly
+ * where nobody is looking.
+ */
+export function buildCollectionCampaignDocument(now: string): Record<string, unknown> {
+  return {
+    id: COLLECTION_CAMPAIGN_ID,
+    slug: COLLECTION_CAMPAIGN_ID,
+    title: 'Community Collection contributions',
+    initiative: 'Project Kassena',
+    description: 'Mobile contributions for Music, Dictionary, Literature, and Audiobooks.',
+    brief: 'Community-supplied cultural knowledge reviewed before publication.',
+    categories: [...COLLECTION_KINDS],
+    eligibility: 'Signed-in community members',
+    geographies: [],
+    status: 'SUBMISSIONS_OPEN',
+    consentRequirements: ['review', 'publication'],
+    termsVersion: 'collection-contribution-v1',
+    visibility: 'internal',
+    schemaVersion: 1,
+    lifecycle: { createdAt: now, updatedAt: now, version: 1 },
+  };
+}
+
+/**
+ * The contributor's own copy of what they sent.
+ *
+ * Extracted from the callable rather than left inline because a second entry
+ * point now creates contributions — the guided word queue in word-queue.ts —
+ * and a queue answer has to land in the same review desk, with the same shape,
+ * as one typed into the open form. The alternative was a parallel writer that
+ * happened to agree with this one on the day it was written and would have
+ * stopped agreeing the first time a field was added here.
+ *
+ * Server timestamps are minted inside, so both callers get identical ordering
+ * semantics; anything a particular route wants to add (the queue stamps the
+ * prompt the member was answering) is spread over the result by that route.
+ */
+export function buildCollectionContributionReceipt(
+  id: string,
+  submissionId: string,
+  uid: string,
+  input: CollectionContributionInput,
+): Record<string, unknown> {
+  return {
+    id,
+    submissionId,
+    authUid: uid,
+    category: input.collectionKind,
+    collectionKind: input.collectionKind,
+    lexicalKind: input.lexicalKind,
+    title: input.title,
+    body: input.body,
+    translations: input.translations,
+    format: input.format,
+    dialect: input.dialect,
+    source: input.source,
+    mediaUrl: input.mediaUrl,
+    mediaStoragePath: input.media?.storagePath ?? null,
+    mediaType: input.media?.mediaType ?? null,
+    // Mirrored so the contributor's own receipt shows the same artwork the
+    // reviewer sees, without reading the canonical submission they are not
+    // allowed to read.
+    coverStoragePath: contributionCoverPath(input),
+    notes: input.notes,
+    relatedEntryId: input.relatedEntryId,
+    involvesMinors: input.involvesMinors,
+    usesThirdPartyMaterial: input.usesThirdPartyMaterial,
+    participantConsentConfirmed: input.participantConsentConfirmed,
+    kasemExample: input.kasemExample,
+    englishExample: input.englishExample,
+    rightsConfirmed: true,
+    publicationPermission: input.publicationPermission,
+    status: 'submitted',
+    createdAt: FieldValue.serverTimestamp(),
+    updatedAt: FieldValue.serverTimestamp(),
+    schemaVersion: 1,
+  };
+}
+
+/**
  * Accepts one of the four lightweight mobile contributions and atomically
  * creates both its user-visible receipt and a canonical reviewed Submission.
  */
@@ -314,53 +512,15 @@ export const submitCollectionContribution = onCall(
     await db.runTransaction(async (tx) => {
       const campaign = await tx.get(campaignRef);
       if (!campaign.exists) {
-        tx.set(campaignRef, {
-          id: COLLECTION_CAMPAIGN_ID,
-          slug: COLLECTION_CAMPAIGN_ID,
-          title: 'Community Collection contributions',
-          initiative: 'Project Kassena',
-          description: 'Mobile contributions for Music, Dictionary, Literature, and Audiobooks.',
-          brief: 'Community-supplied cultural knowledge reviewed before publication.',
-          categories: [...COLLECTION_KINDS],
-          eligibility: 'Signed-in community members',
-          geographies: [],
-          status: 'SUBMISSIONS_OPEN',
-          consentRequirements: ['review', 'publication'],
-          termsVersion: 'collection-contribution-v1',
-          visibility: 'internal',
-          schemaVersion: 1,
-          lifecycle: { createdAt: now, updatedAt: now, version: 1 },
-        });
+        tx.set(campaignRef, buildCollectionCampaignDocument(now));
       }
 
-      tx.set(contributionRef, {
-        id: contributionRef.id,
-        submissionId: submissionRef.id,
-        authUid: uid,
-        category: input.collectionKind,
-        collectionKind: input.collectionKind,
-        title: input.title,
-        body: input.body,
-        format: input.format,
-        dialect: input.dialect,
-        source: input.source,
-        mediaUrl: input.mediaUrl,
-        mediaStoragePath: input.media?.storagePath ?? null,
-        mediaType: input.media?.mediaType ?? null,
-        notes: input.notes,
-        relatedEntryId: input.relatedEntryId,
-        involvesMinors: input.involvesMinors,
-        usesThirdPartyMaterial: input.usesThirdPartyMaterial,
-        participantConsentConfirmed: input.participantConsentConfirmed,
-        kasemExample: input.kasemExample,
-        englishExample: input.englishExample,
-        rightsConfirmed: true,
-        publicationPermission: input.publicationPermission,
-        status: 'submitted',
-        createdAt: FieldValue.serverTimestamp(),
-        updatedAt: FieldValue.serverTimestamp(),
-        schemaVersion: 1,
-      });
+      tx.set(contributionRef, buildCollectionContributionReceipt(
+        contributionRef.id,
+        submissionRef.id,
+        uid,
+        input,
+      ));
       tx.set(submissionRef, buildCollectionSubmissionDocument(
         submissionRef.id,
         uid,

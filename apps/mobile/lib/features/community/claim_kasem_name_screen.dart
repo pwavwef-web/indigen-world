@@ -5,8 +5,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/features/community/data/community_models.dart';
 import 'package:indigen_world_mobile/features/community/data/kasem_names.dart';
+import 'package:indigen_world_mobile/features/community/request_kasem_name_screen.dart';
 import 'package:indigen_world_mobile/features/community/widgets/community_avatar.dart';
 import 'package:indigen_world_mobile/features/community/widgets/kasem_name_panel.dart';
+import 'package:indigen_world_mobile/shared/glass_surface.dart';
 
 /// Taking a Kassena name, once.
 ///
@@ -67,6 +69,22 @@ class _ClaimKasemNameScreenState extends ConsumerState<ClaimKasemNameScreen> {
     }
   }
 
+  /// Opens the request screen, and refreshes this one when it comes back.
+  ///
+  /// [handle] is what approval should hand over, [name] what the member has
+  /// already typed — which is a handle, and therefore missing the letters the
+  /// name is actually written with. They rewrite it there; the fold is shown as
+  /// they do, so they can see it still comes back to the handle they wanted.
+  Future<void> _ask({String handle = '', String name = ''}) async {
+    await Navigator.of(context).push<bool>(
+      MaterialPageRoute<bool>(
+        builder: (context) =>
+            RequestKasemNameScreen(initialName: name, handle: handle),
+      ),
+    );
+    if (mounted) setState(() {});
+  }
+
   @override
   Widget build(BuildContext context) {
     final brand = context.brand;
@@ -74,6 +92,14 @@ class _ClaimKasemNameScreenState extends ConsumerState<ClaimKasemNameScreen> {
     final names = ref.watch(kasemHandleSetProvider);
     final handle = _handle.text.trim();
     final carries = isKasemHandle(handle, names);
+    final ascii = foldKasemToAscii(handle);
+
+    // A handle that could be asked for: shaped like a handle, and not already
+    // carrying a published name.
+    final askable = !carries && isHandleShaped(ascii);
+    final alreadyAsked = ref
+        .watch(pendingKasemNameAsciiProvider)
+        .contains(ascii);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Take a Kassena name')),
@@ -115,11 +141,24 @@ class _ClaimKasemNameScreenState extends ConsumerState<ClaimKasemNameScreen> {
                   KasemNamePanel(
                     currentHandle: handle,
                     title: 'Names to take',
-                    onPick: (ascii) {
-                      _handle.text = ascii;
+                    onPick: (picked) {
+                      _handle.text = picked;
                       setState(() => _error = null);
                     },
                   ),
+                const SizedBox(height: 12),
+                // The list is curated, so it was always going to be missing
+                // somebody's grandmother. Offered whether or not the list is
+                // empty: "I cannot find mine" is the same problem as "there is
+                // nothing here", and both used to end the screen.
+                GlassRow(
+                  key: const Key('claim-ask-for-name'),
+                  icon: Icons.add_circle_outline_rounded,
+                  color: brand.terracotta,
+                  title: "My name isn't here",
+                  detail: 'Ask for it to be added to the list',
+                  onTap: () => _ask(),
+                ),
                 const SizedBox(height: 18),
                 TextField(
                   key: const Key('claim-handle-field'),
@@ -148,10 +187,10 @@ class _ClaimKasemNameScreenState extends ConsumerState<ClaimKasemNameScreen> {
                             ? 'This one carries a Kassena name. Your picture '
                                   'gets the ring.'
                             : offered.isEmpty
-                            ? 'No names to pick from yet — this becomes '
-                                  'available once some are published.'
-                            : 'Not a Kassena name yet — pick one above, or '
-                                  'build your handle around one.',
+                            ? 'No names to pick from yet — pick one once some '
+                                  'are published, or ask for yours.'
+                            : 'Not a Kassena name yet — pick one above, build '
+                                  'your handle around one, or ask for yours.',
                         style: TextStyle(
                           color: carries ? brand.accent : brand.mutedInk,
                           fontSize: 13,
@@ -162,6 +201,32 @@ class _ClaimKasemNameScreenState extends ConsumerState<ClaimKasemNameScreen> {
                     ),
                   ],
                 ),
+                // The old dead end. A member who typed a real name was told
+                // "Not a Kassena name yet" and given nothing to do about it —
+                // which was the moment the list's gaps became the member's
+                // problem. Now the same moment is where the request is made,
+                // with the handle already attached so approval does both halves
+                // at once.
+                if (alreadyAsked) ...[
+                  const SizedBox(height: 14),
+                  GlassRow(
+                    key: const Key('claim-request-pending'),
+                    icon: Icons.hourglass_bottom_rounded,
+                    color: brand.gold,
+                    title: 'You already asked for this',
+                    detail: 'It is with the reviewers',
+                  ),
+                ] else if (askable) ...[
+                  const SizedBox(height: 14),
+                  GlassRow(
+                    key: const Key('claim-ask-for-handle'),
+                    icon: Icons.workspace_premium_outlined,
+                    color: brand.accent,
+                    title: 'Ask for @$ascii to be recognised',
+                    detail: 'Approval adds the name and gives you the handle',
+                    onTap: () => _ask(handle: ascii, name: handle),
+                  ),
+                ],
                 if (_error case final message?) ...[
                   const SizedBox(height: 14),
                   Text(

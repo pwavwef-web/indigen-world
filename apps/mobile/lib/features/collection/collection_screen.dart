@@ -19,6 +19,7 @@ import 'package:indigen_world_mobile/features/music/music_screen.dart';
 import 'package:indigen_world_mobile/l10n/app_localizations.dart';
 import 'package:indigen_world_mobile/shared/app_widgets.dart';
 import 'package:indigen_world_mobile/shared/frosted_nav_bar.dart';
+import 'package:indigen_world_mobile/shared/profile_orb.dart';
 
 class CollectionScreen extends ConsumerWidget {
   const CollectionScreen({super.key});
@@ -224,6 +225,21 @@ class _CollectionHero extends StatelessWidget {
     child: BrandHeader(
       // A shell tab, so the heading has to clear the floating profile orb.
       reserveTopRight: true,
+      // ...and the Downloads action the shell pins beside it on this tab.
+      //
+      // ── Why the room is held even for members who never see the action ──
+      // Whether it is there at all is decided by `downloadsAllowedProvider`,
+      // which is a subscription answer, and a subscription answer does not
+      // exist on the first frame: the entitlement arrives on a stream and the
+      // benefits behind it on a callable, so a paying member's tab is built
+      // once as "no downloads" and rebuilt a moment later as "downloads". A
+      // reserve that tracked the provider would lay the heading out, show it,
+      // and then shunt it 46 pixels sideways in front of the person reading
+      // it — on every cold open of the tab, and for subscribers only, which is
+      // precisely the group that must not be the one with the janky tab.
+      // Holding the room costs the heading a strip of right margin it was not
+      // using. Not holding it costs the heading a flinch.
+      extraTopRightReserve: kShellOrbActionExtent,
       eyebrow: null,
       title: AppLocalizations.of(context).collectionEyebrow,
     ),

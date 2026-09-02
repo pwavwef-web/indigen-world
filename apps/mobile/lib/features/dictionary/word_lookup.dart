@@ -4,6 +4,8 @@ import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/domain/dictionary_entry.dart';
 import 'package:indigen_world_mobile/features/collection/collection_data.dart';
 import 'package:indigen_world_mobile/features/dictionary/entry_detail_screen.dart';
+import 'package:indigen_world_mobile/features/dictionary/sentence_credit.dart';
+import 'package:indigen_world_mobile/features/dictionary/translation_display.dart';
 import 'package:indigen_world_mobile/shared/glass_popup.dart';
 
 /// The published dictionary, arranged so a single word can be found in it.
@@ -88,7 +90,10 @@ Future<void> showWordLookup(BuildContext context, DictionaryEntry entry) =>
       context: context,
       title: entry.headword,
       subtitle: [
-        if (entry.partOfSpeech.isNotEmpty) entry.partOfSpeech,
+        // Through the label helper, so a class the app does not recognise shows
+        // as itself rather than being quietly dropped from the line.
+        if (partOfSpeechLabel(entry.partOfSpeech).isNotEmpty)
+          partOfSpeechLabel(entry.partOfSpeech),
         if (entry.dialect.isNotEmpty) entry.dialect,
       ].join(' · '),
       builder: (popupContext) => _WordLookupBody(entry: entry),
@@ -113,10 +118,12 @@ class _WordLookupBody extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    entry.translation,
-                    style: Theme.of(context).textTheme.titleLarge,
-                  ),
+                  // The card is deliberately small — somebody tapped a word in
+                  // the middle of a post and is still reading it — but a word
+                  // with three senses has three senses here too. Numbering them
+                  // costs two lines and is the difference between a lookup that
+                  // answers the question and one that answers a third of it.
+                  TranslationList(entry: entry),
                   if (entry.pronunciation.isNotEmpty) ...[
                     const SizedBox(height: 4),
                     Text(
@@ -164,6 +171,11 @@ class _WordLookupBody extends StatelessWidget {
                     style: TextStyle(color: brand.mutedInk, fontSize: 13),
                   ),
                 ],
+                // Inside the quotation box, under the sentence it credits.
+                // Renders nothing where no credit is owed — see
+                // [SentenceCredit], which treats that as the licence condition
+                // it is rather than as an empty state.
+                SentenceCredit(entry: entry),
               ],
             ),
           ),

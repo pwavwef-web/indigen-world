@@ -12,6 +12,7 @@ import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/core/connectivity.dart';
 import 'package:indigen_world_mobile/domain/dictionary_entry.dart';
 import 'package:indigen_world_mobile/features/collection/collection_detail_screens.dart';
+import 'package:indigen_world_mobile/features/contribute/leaderboard/contributor_scores.dart';
 import 'package:indigen_world_mobile/features/dictionary/entry_detail_screen.dart';
 import 'package:indigen_world_mobile/features/dictionary/word_lookup.dart';
 import 'package:indigen_world_mobile/features/heroes/hero_detail_screen.dart';
@@ -131,6 +132,27 @@ class _LearnScreenState extends ConsumerState<LearnScreen> {
     final word = ref.watch(wordOfTheDayProvider);
     final hero = ref.watch(heroOfTheWeekProvider);
 
+    // ── Why contribution points are added here and not merged ──────────────
+    //
+    // The bolt in the header now counts both halves of what a member has done
+    // for the language: the lessons they have finished, and the work they have
+    // had approved. They are added at the moment of drawing, and nowhere else.
+    //
+    // Folding them into `LearnProgress.xp` was the obvious shortcut and it is
+    // the wrong one, for two reasons that are each on their own decisive.
+    // First, `learnProgress/{uid}` is owner-writable and reconciled by
+    // [LearnProgress.merge], which deliberately keeps the *more generous* of
+    // the device and server copies — that rule is exactly right for lessons
+    // done offline, and it is a licence to print money for a number the server
+    // is supposed to own: one stale phone that had seen a higher contribution
+    // total would push it back up for good. Second, it would put a public
+    // leaderboard figure inside a document its own subject can write.
+    //
+    // `contributorScores/{uid}` stays the only home for the contributed half,
+    // read-only from here, and the two are shown as parts the moment anybody
+    // taps the number — see [_openMomentum].
+    final contributed = ref.watch(myContributionPointsProvider);
+
     return CustomScrollView(
       key: const PageStorageKey('learn-path-scroll'),
       controller: _scroll,
@@ -138,7 +160,7 @@ class _LearnScreenState extends ConsumerState<LearnScreen> {
         SliverPersistentHeader(
           pinned: true,
           delegate: _StatsBarDelegate(
-            xp: progress.xp,
+            xp: progress.xp + contributed,
             streakDays: progress.streakDays,
             streakClaimed: progress.sparkClaimedToday,
             streakAtRisk: progress.streakAtRisk,
@@ -239,6 +261,11 @@ class _LearnScreenState extends ConsumerState<LearnScreen> {
   }
 
   /// How far along the whole path this member is.
+  ///
+  /// This is where the header's one number comes apart again. Somebody who has
+  /// finished four lessons and had a dozen words approved should be able to
+  /// find out which of the two the badge is mostly made of, and the tap they
+  /// already make on it is the cheapest place to answer that.
   Future<void> _openMomentum(LearnProgress progress, int completed, int total) {
     final l10n = AppLocalizations.of(context);
     return showGlassPopup<void>(
@@ -251,6 +278,7 @@ class _LearnScreenState extends ConsumerState<LearnScreen> {
         completed: completed,
         total: total,
         xp: progress.xp,
+        contributionXp: ref.read(myContributionPointsProvider),
         streakDays: progress.streakDays,
       ),
     );
@@ -343,7 +371,11 @@ class _LearnScreenState extends ConsumerState<LearnScreen> {
           // paid the first time, and saying otherwise would be a lie the
           // total on the next screen would immediately contradict.
           xpEarned: alreadyDone ? 0 : lesson.xp,
-          totalXp: after.xp,
+          // The same total the header carries, contributions included. This
+          // card only prints it when the lesson was a repeat and paid nothing,
+          // and a "TOTAL XP" here that disagreed with the badge one screen
+          // back would be read as one of the two having lost something.
+          totalXp: after.xp + ref.read(myContributionPointsProvider),
           streakDays: after.streakDays,
         ),
       ),
@@ -2012,12 +2044,20 @@ class _MomentumPopupBody extends StatelessWidget {
     required this.completed,
     required this.total,
     required this.xp,
+    required this.contributionXp,
     required this.streakDays,
   });
 
   final int completed;
   final int total;
+
+  /// What the lessons and the daily spark have paid.
   final int xp;
+
+  /// What the archive has paid — approved contributions, scored on the server.
+  /// Zero for a guest, and for a member who has not had anything approved yet.
+  final int contributionXp;
+
   final int streakDays;
 
   @override
@@ -2063,7 +2103,7 @@ class _MomentumPopupBody extends StatelessWidget {
             Expanded(
               child: _MomentumStat(
                 icon: Icons.bolt_rounded,
-                value: '$xp',
+                value: '${xp + contributionXp}',
                 label: 'XP earned',
               ),
             ),
@@ -2079,6 +2119,27 @@ class _MomentumPopupBody extends StatelessWidget {
             ),
           ],
         ),
+        // The header carries one badge; this is the only place it says what
+        // that badge is made of. A full line of its own rather than a longer
+        // label under the number, because on a narrow phone each of those two
+        // panels is about eighty pixels wide and "120 learning · 340
+        // contributed" wrapped to four lines inside one of them.
+        //
+        // Absent entirely for somebody who has contributed nothing, rather
+        // than reading "· 0 contributed": that would introduce a second total
+        // by showing them a nought in it.
+        if (contributionXp > 0) ...[
+          const SizedBox(height: 12),
+          Text(
+            '$xp learning · $contributionXp contributed',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: context.brand.mutedInk,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
       ],
     );
   }

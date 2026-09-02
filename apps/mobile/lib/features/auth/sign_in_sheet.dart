@@ -40,6 +40,12 @@ class _SignInSheetState extends ConsumerState<_SignInSheet> {
   bool _obscure = true;
   String? _error;
 
+  /// The provider's own verdict behind [_error], when there was one.
+  ///
+  /// Held apart from the sentence so the banner can keep the sentence short
+  /// and still let somebody reporting a fault read the code Google returned.
+  String? _errorDetail;
+
   @override
   void dispose() {
     _name.dispose();
@@ -56,16 +62,18 @@ class _SignInSheetState extends ConsumerState<_SignInSheet> {
       // Name the actual obstacle rather than blaming the connection: a member
       // on full signal reading "you are offline" has no way to act on it.
       final block = ref.read(connectionBlockProvider);
-      setState(
-        () => _error =
+      setState(() {
+        _error =
             block?.message ??
-            'Sign-in is not available right now. Please try again shortly.',
-      );
+            'Sign-in is not available right now. Please try again shortly.';
+        _errorDetail = null;
+      });
       return;
     }
     setState(() {
       _busy = true;
       _error = null;
+      _errorDetail = null;
     });
     try {
       await action(repo);
@@ -76,8 +84,15 @@ class _SignInSheetState extends ConsumerState<_SignInSheet> {
       // Android Credential Manager can report a real package/certificate
       // configuration failure as `canceled` after an account was selected.
       // Always surface the mapped result so the flow never appears to do
-      // nothing; provider details are recorded separately in Crashlytics.
-      if (mounted) setState(() => _error = failure.message);
+      // nothing — and carry the provider's own verdict with it, because
+      // Crashlytics alone means the one person who can read the actual error
+      // is not the person holding the phone.
+      if (mounted) {
+        setState(() {
+          _error = failure.message;
+          _errorDetail = failure.detail;
+        });
+      }
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -225,7 +240,7 @@ class _SignInSheetState extends ConsumerState<_SignInSheet> {
             ),
           if (_error != null) ...[
             const SizedBox(height: 8),
-            _ErrorBanner(message: _error!),
+            _ErrorBanner(message: _error!, detail: _errorDetail),
           ],
           const SizedBox(height: 16),
           FilledButton(
@@ -266,6 +281,7 @@ class _SignInSheetState extends ConsumerState<_SignInSheet> {
                   : () => setState(() {
                       _mode = _isRegister ? _Mode.signIn : _Mode.register;
                       _error = null;
+                      _errorDetail = null;
                     }),
               child: Text(
                 _isRegister
@@ -280,41 +296,115 @@ class _SignInSheetState extends ConsumerState<_SignInSheet> {
   );
 }
 
-class _ErrorBanner extends StatelessWidget {
-  const _ErrorBanner({required this.message});
+/// What went wrong, and — folded away — exactly what the provider said.
+///
+/// The sentence is for the member: it says what to do next and never names a
+/// code. The fold under it is for the report they send afterwards. Google
+/// Sign-In has half a dozen distinct failures that all read as "it did not
+/// work", and until this existed the only copy of the distinguishing detail
+/// went to Crashlytics — visible to everybody except the person who could
+/// describe what they had just done.
+class _ErrorBanner extends StatefulWidget {
+  const _ErrorBanner({required this.message, this.detail});
 
   final String message;
 
+  /// The provider's own code and description, when the failure carried one.
+  final String? detail;
+
   @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(12),
-    decoration: BoxDecoration(
-      color: context.brand.terracotta.withValues(alpha: 0.1),
-      borderRadius: BorderRadius.circular(12),
-      border: Border.all(color: context.brand.terracotta.withValues(alpha: 0.4)),
-    ),
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(
-          Icons.error_outline_rounded,
-          color: context.brand.terracotta,
-          size: 20,
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Text(
-            message,
-            style: TextStyle(
-              color: context.brand.terracotta,
-              fontWeight: FontWeight.w600,
-              height: 1.3,
+  State<_ErrorBanner> createState() => _ErrorBannerState();
+}
+
+class _ErrorBannerState extends State<_ErrorBanner> {
+  var _showDetail = false;
+
+  @override
+  void didUpdateWidget(_ErrorBanner oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // A new failure folds itself away again. Leaving the previous one open
+    // would show a code belonging to an attempt that is no longer on screen.
+    if (oldWidget.detail != widget.detail) _showDetail = false;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final brand = context.brand;
+    final detail = widget.detail;
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: brand.terracotta.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: brand.terracotta.withValues(alpha: 0.4)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.error_outline_rounded, color: brand.terracotta, size: 20),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  widget.message,
+                  style: TextStyle(
+                    color: brand.terracotta,
+                    fontWeight: FontWeight.w600,
+                    height: 1.3,
+                  ),
+                ),
+                if (detail != null && detail.isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  InkWell(
+                    onTap: () => setState(() => _showDetail = !_showDetail),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            _showDetail ? 'Hide details' : 'Details',
+                            style: TextStyle(
+                              color: brand.terracotta,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w800,
+                              decoration: TextDecoration.underline,
+                            ),
+                          ),
+                          Icon(
+                            _showDetail
+                                ? Icons.expand_less_rounded
+                                : Icons.expand_more_rounded,
+                            color: brand.terracotta,
+                            size: 16,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  if (_showDetail)
+                    SelectableText(
+                      detail,
+                      key: const Key('sign-in-error-detail'),
+                      style: TextStyle(
+                        color: brand.terracotta,
+                        fontSize: 11.5,
+                        height: 1.35,
+                        // Selectable, because the only useful thing to do with
+                        // it is send it to somebody.
+                        fontFamily: 'monospace',
+                      ),
+                    ),
+                ],
+              ],
             ),
           ),
-        ),
-      ],
-    ),
-  );
+        ],
+      ),
+    );
+  }
 }
 
 /// Small "G" mark so the Google button reads correctly without a network asset.

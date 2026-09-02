@@ -35,19 +35,39 @@ import {
   type OrderStatus,
   type ShopOrder,
   type ShopProduct,
+  AUDIOBOOK_DIALECTS,
+  AUDIOBOOK_FORMATS,
+  audiobookProblems,
+  emptyAudiobook,
+  listAudiobooks,
+  newAudiobookId,
+  publishAudiobook,
+  unpublishAudiobook,
+  type LibraryAudiobook,
 } from './data';
+import {
+  audiobookFileProblem,
+  describeStoredFile,
+  formatBytes,
+  uploadAudiobookFile,
+  type AudiobookSlot,
+  type StoredFile,
+} from './audiobookUpload';
 import './collection.css';
 
-type Tab = 'heroes' | 'names' | 'apps' | 'shop' | 'orders';
+type Tab = 'heroes' | 'names' | 'apps' | 'audiobooks' | 'shop' | 'orders';
 
 /**
  * Everything the Collection tab shows beyond the archive itself.
  *
  * Heroes are the people the Kassena remember, and Names is the list a member's
  * handle can earn its kente ring from — both curated here because neither is
- * something to crowd-source in a feed. Apps are links out; Shop is the physical
- * side. Neither takes money in the app: a member sends an order request and
- * somebody here answers it, which is what the Orders tab is for.
+ * something to crowd-source in a feed. Audiobooks joined them for the same
+ * reason: a recording has a rights holder, a narrator and a licence behind it,
+ * which is not something to take on trust from a phone form. Apps are links
+ * out; Shop is the physical side. Neither takes money in the app: a member
+ * sends an order request and somebody here answers it, which is what the Orders
+ * tab is for.
  */
 export function CollectionAdmin() {
   const [tab, setTab] = useState<Tab>('heroes');
@@ -57,8 +77,8 @@ export function CollectionAdmin() {
         <h2>Collection</h2>
         <p className="panel__hint">
           The people the Kassena remember, the names a handle can carry, a directory of apps worth
-          having, and a shop of things the project sells. Nothing here is charged for in the app —
-          a member sends a request and you reply.
+          having, the library's own audiobooks, and a shop of things the project sells. Nothing here
+          is charged for in the app — a member sends a request and you reply.
         </p>
         <div className="seg-toggle">
           {(
@@ -66,6 +86,7 @@ export function CollectionAdmin() {
               ['heroes', 'Heroes'],
               ['names', 'Names'],
               ['apps', 'Apps'],
+              ['audiobooks', 'Audiobooks'],
               ['shop', 'Shop'],
               ['orders', 'Orders'],
             ] as [Tab, string][]
@@ -85,6 +106,7 @@ export function CollectionAdmin() {
       {tab === 'heroes' ? <HeroesPanel /> : null}
       {tab === 'names' ? <NamesPanel /> : null}
       {tab === 'apps' ? <AppsPanel /> : null}
+      {tab === 'audiobooks' ? <AudiobooksPanel /> : null}
       {tab === 'shop' ? <ShopPanel /> : null}
       {tab === 'orders' ? <OrdersPanel /> : null}
     </div>
@@ -303,6 +325,474 @@ function AppEditor({
         </Button>
       </div>
     </section>
+  );
+}
+
+/* ------------------------------------------------------------- Audiobooks */
+
+/**
+ * The library's own audiobooks.
+ *
+ * Built in the same shape as the app directory above — list, edit one in place,
+ * add a new one — with two differences that are not cosmetic. The records live
+ * in `publishedContent` beside every reviewed song and film rather than in a
+ * catalogue of their own, so the mobile Collection screen needs no second code
+ * path to show them. And the shelf can therefore also contain audiobooks that
+ * came through community review, which this panel lists but refuses to edit:
+ * unpublishing one of those here would strip it off the app while its
+ * submission still said PUBLISHED, so those go back through review instead.
+ */
+function AudiobooksPanel() {
+  const [books, setBooks] = useState<LibraryAudiobook[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [editing, setEditing] = useState<LibraryAudiobook | null>(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      setBooks(await listAudiobooks());
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not load the audiobooks.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  if (editing) {
+    return (
+      <AudiobookEditor
+        audiobook={editing}
+        onCancel={() => setEditing(null)}
+        onSaved={async () => {
+          setEditing(null);
+          await load();
+        }}
+      />
+    );
+  }
+
+  return (
+    <section className="panel">
+      <h3>Audiobooks</h3>
+      <p className="panel__hint">
+        Recordings the project publishes itself: a narration, who wrote it, who read it and the
+        terms it is published under. Each one becomes a card in Collection &rarr; Audiobooks and
+        plays in the app's own player. Contributed recordings still arrive through review — those
+        are listed here but edited there.
+      </p>
+      <div className="collection-actions">
+        <Button onClick={() => setEditing(emptyAudiobook())}>New audiobook</Button>
+        <Button variant="ghost" onClick={() => void load()} disabled={loading}>
+          Refresh
+        </Button>
+      </div>
+      {error ? <p className="error-line">{error}</p> : null}
+      {loading ? <p className="muted">Loading&hellip;</p> : null}
+      {!loading && books.length === 0 ? <p className="muted">Nothing recorded yet.</p> : null}
+      {books.length > 0 ? (
+        <table className="collection-table">
+          <thead>
+            <tr>
+              <th>Title</th>
+              <th>Format</th>
+              <th>Dialect</th>
+              <th>Source</th>
+              <th>Status</th>
+              <th aria-label="Actions" />
+            </tr>
+          </thead>
+          <tbody>
+            {books.map((book) => {
+              const ours = book.publicationRoute === 'admin';
+              return (
+                <tr key={book.id}>
+                  <td>
+                    <strong>{book.title || 'Untitled'}</strong>
+                    <div className="muted">
+                      {[book.author, book.narrator === book.author ? '' : book.narrator]
+                        .filter(Boolean)
+                        .join(' · ') || '—'}
+                    </div>
+                    {book.audioUrl ? (
+                      <a
+                        className="collection-listen"
+                        href={book.audioUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        Open the recording
+                      </a>
+                    ) : null}
+                  </td>
+                  <td>{book.category}</td>
+                  <td>{book.dialect}</td>
+                  <td>{ours ? 'Library' : 'Community review'}</td>
+                  <td>
+                    {book.removed ? (
+                      <span className="collection-status collection-status--draft">Taken down</span>
+                    ) : (
+                      <StatusPill published={book.published} />
+                    )}
+                  </td>
+                  <td className="collection-table__actions">
+                    <Button
+                      variant="ghost"
+                      disabled={!ours}
+                      title={ours ? undefined : 'Published through community review — edit it there.'}
+                      onClick={() => setEditing(book)}
+                    >
+                      Edit
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      disabled={!ours || !book.published}
+                      title={ours ? undefined : 'Published through community review — unpublish it there.'}
+                      onClick={async () => {
+                        if (!window.confirm(`Take "${book.title}" off the shelf?`)) return;
+                        try {
+                          await unpublishAudiobook(book.id);
+                        } catch (err) {
+                          setError(
+                            err instanceof Error ? err.message : 'Could not unpublish that record.',
+                          );
+                          // Deliberately not reloading: load() clears the error
+                          // it just set, and the row is unchanged anyway.
+                          return;
+                        }
+                        await load();
+                      }}
+                    >
+                      Unpublish
+                    </Button>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      ) : null}
+    </section>
+  );
+}
+
+/**
+ * One audiobook, its two files and the line that says who may publish it.
+ *
+ * ── Why the id is minted before anything is typed into Firestore ──────────
+ * The narration is uploaded straight to `collection-audiobooks/{id}/narration`
+ * and the callable writes the record at that same id, so both have to agree
+ * before the first byte leaves the browser. That is why the file pickers stay
+ * shut until there is a title: the id is a slug of it, and it cannot be changed
+ * afterwards without orphaning the upload.
+ *
+ * ── Why an existing record's files are looked up rather than re-uploaded ──
+ * `publishAdminAudiobook` requires a narration on every save, including the one
+ * that only fixes a misspelt author. The published record keeps the public
+ * download URL and not the private path, so the two files are asked for their
+ * own metadata on open; the alternative was making somebody push a 400 MB
+ * recording up the wire again to correct a typo.
+ */
+function AudiobookEditor({
+  audiobook: initial,
+  onCancel,
+  onSaved,
+}: {
+  audiobook: LibraryAudiobook;
+  onCancel: () => void;
+  onSaved: () => Promise<void>;
+}) {
+  const [book, setBook] = useState(initial);
+  const [recordId, setRecordId] = useState(initial.id);
+  const [audio, setAudio] = useState<StoredFile | null>(null);
+  const [cover, setCover] = useState<StoredFile | null>(null);
+  const [restoring, setRestoring] = useState(initial.id !== '');
+  const [progress, setProgress] = useState<{ slot: AudiobookSlot; value: number } | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!initial.id) return;
+    let cancelled = false;
+    void (async () => {
+      const [narration, art] = await Promise.all([
+        describeStoredFile(initial.id, 'narration'),
+        describeStoredFile(initial.id, 'cover'),
+      ]);
+      if (cancelled) return;
+      setAudio(narration);
+      setCover(art);
+      setRestoring(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [initial.id]);
+
+  const update = (patch: Partial<LibraryAudiobook>) =>
+    setBook((current) => ({ ...current, ...patch }));
+
+  const problems = audiobookProblems(book, audio);
+  if (!restoring && initial.id && !audio) {
+    // Said here rather than in audiobookProblems, which cannot know whether a
+    // file is missing or simply not looked up yet: a record whose narration
+    // predates the fixed-slot path has to be given one before it can be saved.
+    problems.push('The narration for this record could not be found. Upload it again.');
+  }
+  const busy = progress !== null;
+
+  const receive = async (slot: AudiobookSlot, file: File) => {
+    setError(null);
+    setNotice(null);
+    const problem = audiobookFileProblem(file, slot);
+    if (problem) {
+      setError(problem);
+      return;
+    }
+    const id = recordId || newAudiobookId(book.title);
+    setRecordId(id);
+    setProgress({ slot, value: 0 });
+    try {
+      const stored = await uploadAudiobookFile({
+        file,
+        audiobookId: id,
+        slot,
+        onProgress: (value) => setProgress({ slot, value }),
+      });
+      if (slot === 'narration') setAudio(stored);
+      else setCover(stored);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'The upload did not finish.');
+    } finally {
+      setProgress(null);
+    }
+  };
+
+  return (
+    <section className="panel">
+      <h3>{initial.id ? 'Edit audiobook' : 'New audiobook'}</h3>
+      <div className="collection-grid">
+        <label>
+          Title
+          <input value={book.title} onChange={(e) => update({ title: e.target.value })} />
+        </label>
+        <label>
+          Author
+          <input value={book.author} onChange={(e) => update({ author: e.target.value })} />
+        </label>
+        <label>
+          Narrator
+          <input
+            value={book.narrator}
+            placeholder="Who read it aloud"
+            onChange={(e) => update({ narrator: e.target.value })}
+          />
+        </label>
+        <label>
+          Format
+          <select value={book.category} onChange={(e) => update({ category: e.target.value })}>
+            {AUDIOBOOK_FORMATS.map((format) => (
+              <option key={format} value={format}>
+                {format}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Dialect or region
+          <select value={book.dialect} onChange={(e) => update({ dialect: e.target.value })}>
+            {AUDIOBOOK_DIALECTS.map((dialect) => (
+              <option key={dialect} value={dialect}>
+                {dialect}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Language code
+          <input
+            value={book.language}
+            placeholder="xsm"
+            onChange={(e) => update({ language: e.target.value })}
+          />
+        </label>
+        <label className="collection-grid__wide">
+          Description — the shelf copy
+          <textarea
+            rows={3}
+            value={book.description}
+            onChange={(e) => update({ description: e.target.value })}
+          />
+        </label>
+        <label className="collection-grid__wide">
+          The text — a transcript, or the synopsis at length. Leave blank if there is none.
+          <textarea rows={8} value={book.body} onChange={(e) => update({ body: e.target.value })} />
+        </label>
+        <label className="collection-grid__wide">
+          Licence line
+          <input
+            value={book.licenceDisplay}
+            placeholder="Recorded and published with the permission of …"
+            onChange={(e) => update({ licenceDisplay: e.target.value })}
+          />
+        </label>
+        <label className="collection-checkbox">
+          <input
+            type="checkbox"
+            checked={book.published}
+            onChange={(e) => update({ published: e.target.checked })}
+          />
+          Published
+        </label>
+      </div>
+
+      <UploadSlot
+        label="Narration"
+        hint="The recording itself — MP3, M4A, WAV or Ogg, up to 500 MB."
+        accept="audio/*"
+        file={audio}
+        slot="narration"
+        progress={progress}
+        disabled={busy || !book.title.trim()}
+        disabledHint={
+          book.title.trim()
+            ? undefined
+            : 'Give the audiobook a title first — the upload is filed under a name made from it.'
+        }
+        onPick={receive}
+      />
+      <UploadSlot
+        label="Cover"
+        hint="Optional artwork for the player — JPEG, PNG or WebP, under 8 MB."
+        accept="image/*"
+        file={cover}
+        slot="cover"
+        progress={progress}
+        disabled={busy || !book.title.trim()}
+        onPick={receive}
+      />
+
+      {restoring ? <p className="muted">Looking up the files already uploaded&hellip;</p> : null}
+      {notice ? <p className="notice-line">{notice}</p> : null}
+      <Problems problems={problems} error={error} />
+      <div className="collection-actions">
+        <Button
+          disabled={saving || busy || restoring || problems.length > 0 || !audio}
+          onClick={async () => {
+            // Re-read rather than trusting the disabled prop: the button cannot
+            // be pressed without a narration, but the closure has to prove it.
+            const narration = audio;
+            if (!narration) return;
+            setSaving(true);
+            setError(null);
+            setNotice(null);
+            try {
+              const result = await publishAudiobook({ ...book, id: recordId }, narration, cover);
+              setRecordId(result.id);
+              if (!result.mediaPublished) {
+                // The record is written; only the copy into the public path
+                // failed. Saying "saved" and closing would leave a silent
+                // audiobook on the shelf, so the editor stays open — publishing
+                // is idempotent, and saving again retries the copy.
+                setNotice(
+                  'The audiobook was saved, but its files could not be copied to the public ' +
+                    'library. Save again to retry — nothing is duplicated.',
+                );
+                setSaving(false);
+                return;
+              }
+              await onSaved();
+            } catch (err) {
+              setError(err instanceof Error ? err.message : 'The audiobook could not be saved.');
+              setSaving(false);
+            }
+          }}
+        >
+          {saving ? 'Saving…' : 'Save audiobook'}
+        </Button>
+        <Button variant="ghost" onClick={onCancel} disabled={saving || busy}>
+          Cancel
+        </Button>
+      </div>
+    </section>
+  );
+}
+
+/**
+ * One file picker with a real progress bar behind it.
+ *
+ * A narration is a large file on a connection that is not, and an upload with
+ * nothing but a spinner is indistinguishable from a hung browser — somebody
+ * would reload the page twenty minutes in and start the whole thing again. The
+ * percentage is the point.
+ */
+function UploadSlot({
+  label,
+  hint,
+  accept,
+  file,
+  slot,
+  progress,
+  disabled,
+  disabledHint,
+  onPick,
+}: {
+  label: string;
+  hint: string;
+  accept: string;
+  file: StoredFile | null;
+  slot: AudiobookSlot;
+  progress: { slot: AudiobookSlot; value: number } | null;
+  disabled: boolean;
+  disabledHint?: string;
+  onPick: (slot: AudiobookSlot, file: File) => Promise<void>;
+}) {
+  const mine = progress && progress.slot === slot ? progress.value : null;
+  const percent = mine === null ? 0 : Math.round(mine * 100);
+  return (
+    <div className="collection-upload">
+      <div className="collection-upload__head">
+        <strong>{label}</strong>
+        <span className="muted">{hint}</span>
+      </div>
+      <input
+        type="file"
+        accept={accept}
+        disabled={disabled}
+        onChange={(event) => {
+          const chosen = event.target.files?.[0];
+          // Cleared immediately so the same file can be picked again after a
+          // rejection; a file input fires nothing when re-given its own value.
+          event.target.value = '';
+          if (chosen) void onPick(slot, chosen);
+        }}
+      />
+      {disabled && disabledHint ? <p className="muted">{disabledHint}</p> : null}
+      {mine !== null ? (
+        <div
+          className="collection-progress"
+          role="progressbar"
+          aria-label={`${label} upload`}
+          aria-valuenow={percent}
+          aria-valuemin={0}
+          aria-valuemax={100}
+        >
+          <span className="collection-progress__bar" style={{ width: `${percent}%` }} />
+          <span className="collection-progress__label">{percent}%</span>
+        </div>
+      ) : null}
+      {file && mine === null ? (
+        <p className="muted">
+          Uploaded · {file.mimeType || 'unknown type'} · {formatBytes(file.sizeBytes)}
+        </p>
+      ) : null}
+    </div>
   );
 }
 

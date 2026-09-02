@@ -66,7 +66,20 @@ class LearnProgress {
         DateTime.now().subtract(const Duration(days: 1)),
       );
 
-  /// XP on the badge in the header.
+  /// What the *learning path* has paid: lessons plus the daily spark.
+  ///
+  /// Not the number on the badge in the header any more. That badge shows this
+  /// plus the member's contribution points, and the addition happens in
+  /// `learn_screen.dart` at the moment of drawing rather than in here.
+  ///
+  /// Contribution points must never be folded into this class. Everything on
+  /// it is device-first and reconciled by [merge], which takes the *more
+  /// generous* of the device and server copies — the right rule for a lesson
+  /// finished on a plane, and a licence to print money for a score the server
+  /// is meant to own, since one stale phone carrying a higher contribution
+  /// total would push it back up permanently. `learnProgress/{uid}` is also
+  /// owner-writable, and a public leaderboard figure has no business living in
+  /// a document its own subject can write.
   int get xp =>
       lessonXp.values.fold<int>(0, (total, value) => total + value) + sparkXp;
 

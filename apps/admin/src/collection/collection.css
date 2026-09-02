@@ -93,6 +93,64 @@
   width: auto;
 }
 
+/* An audiobook's narration and cover. A file input rather than a drop zone:
+   the file is picked once and the bar underneath is what matters. */
+.collection-upload {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+}
+.collection-upload__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 8px;
+  font-size: 0.86rem;
+}
+.collection-upload input[type='file'] {
+  font: inherit;
+  font-size: 0.85rem;
+  max-width: 100%;
+}
+.collection-upload p {
+  margin: 8px 0 0;
+  font-size: 0.82rem;
+}
+
+/* Real progress, not a spinner: a narration is a large file on a connection
+   that is not, and a silent wait reads as a hung browser. */
+.collection-progress {
+  position: relative;
+  margin-top: 10px;
+  height: 20px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--plaster-cream, #f3efe6);
+  overflow: hidden;
+}
+.collection-progress__bar {
+  display: block;
+  height: 100%;
+  background: var(--gold);
+  transition: width 160ms linear;
+}
+.collection-progress__label {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.collection-listen {
+  font-size: 0.8rem;
+}
+
 .collection-problems {
   margin: 14px 0 0;
   padding: 12px 14px 12px 30px;

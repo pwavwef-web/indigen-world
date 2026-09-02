@@ -1,5 +1,11 @@
 /** Shared, side-effect-free projection from a reviewed submission to the public model. */
 
+import {
+  canonicalLexicalKind,
+  normaliseTranslations,
+  type LexicalKind,
+} from './lexical-kinds.js';
+
 export const COLLECTION_KINDS = [
   'music',
   'dictionary',
@@ -22,7 +28,25 @@ export interface PublishedProjectionInput {
   avatarUrl: string | null;
   publicationStatus: 'published' | 'unpublished';
   now: string;
-  publicationRoute?: 'open' | 'reviewed' | 'collection_review';
+  publicationRoute?: 'open' | 'reviewed' | 'collection_review' | 'admin';
+  /**
+   * The record this publication was projected from.
+   *
+   * Defaults to the submission, which is where all community work comes from.
+   * Admin-published library material has no submission — nobody submitted it,
+   * an administrator entered it — and the contract requires this pointer, so
+   * that route supplies one rather than leaving a reference to a `submissions`
+   * document that was never written and can never be fetched.
+   */
+  sourceReference?: { collection: string; id: string } | null;
+  /**
+   * Overrides the "© {displayName} · Published with permission by Indigen
+   * World" line. Community work is published *with permission* from the person
+   * who made it; a library audiobook carries whatever licence the rights holder
+   * actually granted, and claiming otherwise on their behalf would be a rights
+   * statement this code has no business inventing.
+   */
+  licenceDisplay?: string | null;
 }
 
 function text(value: unknown): string {
@@ -57,6 +81,32 @@ export function collectionKindForSubmission(submission: JsonRecord): CollectionK
     ?? canonicalCollectionKind(submission.category);
 }
 
+/**
+ * The list of meanings a lexical submission carries, for the public record.
+ *
+ * A submission written before `translations` existed has only `body`, and for a
+ * dictionary entry that body *is* the list — so it is read through the same
+ * parser rather than published as one long headword. Every other kind gets an
+ * empty list unless it declared one: a song's body is lyrics, and splitting
+ * lyrics on their commas would publish nonsense.
+ *
+ * Deriving here rather than at write time is deliberate. Fifteen thousand
+ * historical rows are not going to be back-filled, and a projection that can
+ * reconstruct the field on demand means they never have to be.
+ */
+export function submissionTranslations(
+  submission: JsonRecord,
+  kind: CollectionKind | null,
+): string[] {
+  if (submission.translations != null) return normaliseTranslations(submission.translations);
+  return kind === 'dictionary' ? normaliseTranslations(submission.body) : [];
+}
+
+/** What kind of lexical item this is; `word` unless the submission said otherwise. */
+export function submissionLexicalKind(submission: JsonRecord): LexicalKind {
+  return canonicalLexicalKind(submission.lexicalKind);
+}
+
 function inferredMediaType(submission: JsonRecord, kind: CollectionKind | null): string | null {
   const declared = text(submission.media?.mediaType);
   if (['image', 'audio', 'video', 'document'].includes(declared)) return declared;
@@ -87,7 +137,7 @@ export function buildPublishedContentDocument(input: PublishedProjectionInput): 
 
   return {
     id: input.publishedId,
-    submission: { collection: 'submissions', id: input.submissionId },
+    submission: input.sourceReference ?? { collection: 'submissions', id: input.submissionId },
     campaign: submission.campaign ?? null,
     creatorAttribution: {
       creatorId: input.creatorId,
@@ -98,10 +148,22 @@ export function buildPublishedContentDocument(input: PublishedProjectionInput): 
     dialect: text(submission.dialect),
     category: text(submission.category),
     collectionKind: kind,
+    // Carried through unconditionally rather than only for lexical material.
+    // A song publishing with `lexicalKind: 'word'` is meaningless noise, and it
+    // is the price of one rule instead of two: every reader can read the field
+    // without first asking what kind of record it is looking at.
+    lexicalKind: submissionLexicalKind(submission),
+    translations: submissionTranslations(submission, kind),
     title: text(submission.title) || 'Untitled',
     description,
     body,
     englishSummary: text(submission.englishSummary),
+    // Public media URLs are carried forward, never recomputed. They are minted
+    // by finalisePublishedMedia *after* the publishing transaction commits, so
+    // on a re-publish the record already holds the only copy of them: a song
+    // republished after an edit keeps the recording and the cover art it was
+    // published with, and the artwork does not blink out of the Now Playing
+    // screen while a second copy is made that was never needed.
     mediaUrl: currentMediaUrl || externalMediaUrl,
     mediaType: inferredMediaType(submission, kind),
     thumbnailUrl: existing?.thumbnailUrl ?? null,
@@ -115,7 +177,8 @@ export function buildPublishedContentDocument(input: PublishedProjectionInput): 
     publishedAt: input.publicationStatus === 'published'
       ? (currentPublishedAt || now)
       : (currentPublishedAt || null),
-    licenceDisplay: `© ${input.displayName} · Published with permission by Indigen World`,
+    licenceDisplay: text(input.licenceDisplay)
+      || `© ${input.displayName} · Published with permission by Indigen World`,
     sourceAttribution: text(submission.sourceReferences),
     publicationRoute: route,
     correctionState: text(existing?.correctionState) || 'none',

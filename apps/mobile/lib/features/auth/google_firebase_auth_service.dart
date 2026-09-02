@@ -82,11 +82,25 @@ class GoogleFirebaseAuthService {
     if (idToken != null) return _signInWithIdToken(auth, idToken);
 
     // Backing out of the account sheet is a decision, not a fault. Opening a
-    // browser tab on top of it — which is what the previous fallback did —
-    // takes a member who closed one sheet and hands them another, and if the
-    // hosted flow then fails on its own configuration it replaces their
-    // deliberate cancellation with an error about certificate hashes.
-    if (providerFailure!.wasCancelled) throw providerFailure;
+    // browser tab on top of it takes a member who closed one sheet and hands
+    // them another, and if the hosted flow then fails on its own configuration
+    // it replaces their deliberate cancellation with an error about
+    // certificate hashes. So a dismissal still ends here.
+    //
+    // But only a *dismissal*. `GoogleSignInExceptionCode.canceled` is not one
+    // thing: the Android plugin raises it for every
+    // `GetCredentialCancellationException`, and Credential Manager reports one
+    // both when somebody swipes the sheet away and, on some Play services
+    // builds, when it declines to show a sheet at all. The second is a member
+    // pressing a button that then does nothing, forever, on a device where the
+    // browser flow would have worked — which is the more expensive mistake by
+    // a long way, and is invisible in a bug report. So only a cancellation
+    // that *says* it was the user ends the attempt; anything else falls
+    // through. See [isUserDismissal].
+    if (providerFailure!.wasCancelled &&
+        isUserDismissal(providerFailure.detail)) {
+      throw providerFailure;
+    }
 
     return _signInWithHostedFlow(auth, providerFailure);
   }
@@ -115,15 +129,16 @@ class GoogleFirebaseAuthService {
       }
       return idToken;
     } on GoogleSignInException catch (error, stackTrace) {
-      await _recordGoogleFailure(error, stackTrace);
+      await _recordGoogleFailure(error, stackTrace, route: 'native-sheet');
       throw googleSignInFailure(error);
     } on AuthFailure {
       rethrow;
     } on Object catch (error, stackTrace) {
-      await _recordGoogleFailure(error, stackTrace);
-      throw const AuthFailure(
+      await _recordGoogleFailure(error, stackTrace, route: 'native-sheet');
+      throw AuthFailure(
         AuthFailureKind.unknown,
         'Google Sign-In did not finish. Please try again.',
+        detail: error.runtimeType.toString(),
       );
     }
   }
@@ -142,15 +157,16 @@ class GoogleFirebaseAuthService {
       );
       return result;
     } on FirebaseAuthException catch (error, stackTrace) {
-      await _recordGoogleFailure(error, stackTrace);
-      throw firebaseAuthFailure(error);
+      await _recordGoogleFailure(error, stackTrace, route: 'firebase-exchange');
+      throw firebaseAuthFailure(error).withDetail('firebase:${error.code}');
     } on AuthFailure {
       rethrow;
     } on Object catch (error, stackTrace) {
-      await _recordGoogleFailure(error, stackTrace);
-      throw const AuthFailure(
+      await _recordGoogleFailure(error, stackTrace, route: 'firebase-exchange');
+      throw AuthFailure(
         AuthFailureKind.unknown,
         'Google Sign-In did not finish. Please try again.',
+        detail: error.runtimeType.toString(),
       );
     }
   }
@@ -176,17 +192,29 @@ class GoogleFirebaseAuthService {
       );
       return result;
     } on FirebaseAuthException catch (error, stackTrace) {
-      await _recordGoogleFailure(error, stackTrace);
-      final hosted = hostedGoogleFlowFailure(error);
+      await _recordGoogleFailure(error, stackTrace, route: 'hosted-browser');
+      final hosted = hostedGoogleFlowFailure(error).withDetail(
+        // Both legs are named. A member reading this has just been through two
+        // attempts, and "which one failed, and how" is the entire content of a
+        // useful report — the sentence above can only describe one of them.
+        'native ${providerFailure.detail ?? providerFailure.kind.name} '
+        '/ hosted firebase:${error.code}',
+      );
       throw hosted.kind == AuthFailureKind.configuration ||
               hosted.kind == AuthFailureKind.cancelled
           ? hosted
-          : providerFailure;
+          : providerFailure.withDetail(
+              '${providerFailure.detail ?? providerFailure.kind.name} '
+              '/ hosted firebase:${error.code}',
+            );
     } on AuthFailure {
       rethrow;
     } on Object catch (error, stackTrace) {
-      await _recordGoogleFailure(error, stackTrace);
-      throw providerFailure;
+      await _recordGoogleFailure(error, stackTrace, route: 'hosted-browser');
+      throw providerFailure.withDetail(
+        '${providerFailure.detail ?? providerFailure.kind.name} '
+        '/ hosted ${error.runtimeType}',
+      );
     }
   }
 
@@ -198,11 +226,30 @@ class GoogleFirebaseAuthService {
   /// carry — a Play-signed release runs under a certificate that exists in no
   /// keystore anybody here owns, so without them a report says only that
   /// something went wrong.
-  Future<void> _recordGoogleFailure(Object error, StackTrace stackTrace) async {
-    debugPrint('Google Sign-In failed: $error');
+  /// [route] names which of the three legs failed — `native-sheet`,
+  /// `firebase-exchange` or `hosted-browser`. Without it a report says only
+  /// that Google Sign-In failed, and the three legs fail for entirely
+  /// different reasons: the sheet on the device's Play services, the exchange
+  /// on the Firebase project, the browser on the certificate registration.
+  Future<void> _recordGoogleFailure(
+    Object error,
+    StackTrace stackTrace, {
+    required String route,
+  }) async {
+    debugPrint('Google Sign-In failed at $route: $error');
     try {
       final signature = AppSignatureReader.cached;
       final crashlytics = FirebaseCrashlytics.instance;
+      await crashlytics.setCustomKey('google_signin_route', route);
+      if (error is GoogleSignInException) {
+        await crashlytics.setCustomKey('google_signin_code', error.code.name);
+        await crashlytics.setCustomKey(
+          'google_signin_description',
+          error.description ?? 'none',
+        );
+      } else if (error is FirebaseAuthException) {
+        await crashlytics.setCustomKey('google_signin_code', error.code);
+      }
       if (signature != null) {
         await crashlytics.setCustomKey('app_package', signature.packageName);
         await crashlytics.setCustomKey('app_sha1', signature.sha1 ?? 'unknown');
@@ -321,46 +368,104 @@ String unregisteredBuildMessage() {
       'If you are reporting this: ${signature.packageName} · $fingerprint';
 }
 
+/// Whether a `canceled` verdict really was somebody dismissing the sheet.
+///
+/// ── Why this is decided on a string ───────────────────────────────────────
+/// Because the enum cannot decide it. Tracing the Android plugin
+/// (`google_sign_in_android` 7.2.16, `GoogleSignInPlugin.java`), every
+/// `GetCredentialCancellationException` becomes `GetCredentialFailureType
+/// .CANCELED` becomes `GoogleSignInExceptionCode.canceled`, with the platform
+/// exception's message carried through as [GoogleSignInException.description]
+/// and nothing else to tell the cases apart. Credential Manager raises that
+/// exception for a swipe-away — description "activity is cancelled by the
+/// user." — and has also been observed raising it when it declines to present
+/// a sheet at all.
+///
+/// The two mistakes are not equally bad. Falling through on a real dismissal
+/// costs one unwanted browser tab, once. Stopping on a suppressed sheet is a
+/// button that does nothing, on every attempt, on a device where the hosted
+/// flow would have signed the member straight in — and it looks identical to
+/// "the app is broken". So the burden of proof sits on the dismissal: an
+/// absent, empty or unrecognised description is *not* one.
+@visibleForTesting
+bool isUserDismissal(String? description) {
+  if (description == null) return false;
+  final text = description.toLowerCase();
+  return text.contains('cancelled by the user') ||
+      text.contains('canceled by the user') ||
+      text.contains('user cancelled') ||
+      text.contains('user canceled');
+}
+
+/// The provider's verdict in one line, for [AuthFailure.detail].
+String _providerDetail(GoogleSignInException error) {
+  final code = error.code.name;
+  final description = error.description?.trim() ?? '';
+  return description.isEmpty ? code : '$code: $description';
+}
+
 /// Converts provider outcomes into UI-safe failures.
 ///
 /// Only an explicit dismissal is silent. Android may report `interrupted`
 /// after the account chooser when the activity is recreated or the provider
 /// flow is disrupted; treating that as a cancellation previously made the
 /// button appear to do nothing.
+///
+/// Every failure now carries the provider's own code and description as
+/// [AuthFailure.detail], because the member-facing sentence deliberately does
+/// not name them and they are the only thing that identifies which failure
+/// this was. See [AuthFailure.detail].
 @visibleForTesting
-AuthFailure googleSignInFailure(
-  GoogleSignInException error,
-) => switch (error.code) {
-  GoogleSignInExceptionCode.canceled => const AuthFailure(
-    AuthFailureKind.cancelled,
-    'Google Sign-In did not finish. Please try again.',
-  ),
-  GoogleSignInExceptionCode.interrupted => const AuthFailure(
-    AuthFailureKind.unavailable,
-    'Google Sign-In was interrupted. Please try again.',
-  ),
-  GoogleSignInExceptionCode.clientConfigurationError ||
-  GoogleSignInExceptionCode.providerConfigurationError => AuthFailure(
-    AuthFailureKind.configuration,
-    unregisteredBuildMessage(),
-  ),
-  GoogleSignInExceptionCode.uiUnavailable => const AuthFailure(
-    AuthFailureKind.unavailable,
-    'Google Sign-In cannot open right now. Return to the app and try again.',
-  ),
-  GoogleSignInExceptionCode.userMismatch => const AuthFailure(
-    AuthFailureKind.accountConflict,
-    'A different Google account is already active. Sign out and try again.',
-  ),
-  // Android reports "no Google account is available to offer you" through the
-  // same channel as a genuine fault, so the description is the only thing that
-  // separates "add an account to this phone" from "this build is not
-  // registered". Keeping it is what makes the difference readable.
-  GoogleSignInExceptionCode.unknownError => AuthFailure(
-    AuthFailureKind.unknown,
-    error.description ?? 'Google Sign-In failed. Please try again.',
-  ),
-};
+AuthFailure googleSignInFailure(GoogleSignInException error) {
+  final failure = switch (error.code) {
+    GoogleSignInExceptionCode.canceled => const AuthFailure(
+      AuthFailureKind.cancelled,
+      'Google Sign-In did not finish. Please try again.',
+    ),
+    GoogleSignInExceptionCode.interrupted => const AuthFailure(
+      AuthFailureKind.unavailable,
+      'Google Sign-In was interrupted. Please try again.',
+    ),
+    // Split apart, because they are two different people's problems and used
+    // to produce one sentence blaming the build.
+    //
+    // `clientConfigurationError` is ours: the plugin raises it when the server
+    // client id is missing, which is a thing this app passes in code.
+    // `providerConfigurationError` is the device's: Credential Manager not
+    // supported on this Android version, or Play services unable to serve a
+    // provider. Telling somebody on an old handset that "this build of the app
+    // is not registered" sends them to report a fault that does not exist —
+    // and it is what they were told, because every registration was in place
+    // the whole time.
+    GoogleSignInExceptionCode.clientConfigurationError => AuthFailure(
+      AuthFailureKind.configuration,
+      unregisteredBuildMessage(),
+    ),
+    GoogleSignInExceptionCode.providerConfigurationError => const AuthFailure(
+      AuthFailureKind.configuration,
+      'This device cannot show the Google account sheet. '
+          'Check Google Play services is up to date, or use your email and '
+          'password.',
+    ),
+    GoogleSignInExceptionCode.uiUnavailable => const AuthFailure(
+      AuthFailureKind.unavailable,
+      'Google Sign-In cannot open right now. Return to the app and try again.',
+    ),
+    GoogleSignInExceptionCode.userMismatch => const AuthFailure(
+      AuthFailureKind.accountConflict,
+      'A different Google account is already active. Sign out and try again.',
+    ),
+    // Android reports "no Google account is available to offer you" through the
+    // same channel as a genuine fault, so the description is the only thing that
+    // separates "add an account to this phone" from "this build is not
+    // registered". Keeping it is what makes the difference readable.
+    GoogleSignInExceptionCode.unknownError => AuthFailure(
+      AuthFailureKind.unknown,
+      error.description ?? 'Google Sign-In failed. Please try again.',
+    ),
+  };
+  return failure.withDetail(_providerDetail(error));
+}
 
 /// Maps a browser-flow outcome onto a member-facing failure.
 ///

@@ -1,6 +1,6 @@
 # TribeStudio AI-assisted video: first release
 
-Status: backend foundation implemented; provider credentials and creator UI still required for live generation.
+Status: backend and creator interface deployed; first paid end-to-end generation still to verify.
 
 ## Release boundary
 
@@ -8,7 +8,7 @@ The first release deliberately separates visual generation from Kasem speech:
 
 1. Runway creates a silent visual clip from a visual-direction prompt and an
    optional creator-owned reference image.
-2. A consenting Kasem speaker records the validated script.
+2. A creator writes a purpose-built Kasem script and a consenting speaker records it.
 3. fal Sync Lipsync combines the private video and audio assets.
 4. The trusted backend imports the result into private Firebase Storage.
 5. Publication still uses TribeStudio's existing submission, validation, and
@@ -40,15 +40,16 @@ Every request must explicitly record:
 - cultural permission;
 - whether a recognisable person appears;
 - participant, voice, and likeness consent where applicable;
-- the Kasem dialect, ISO language code `xsm`, consent-form version, and a
-  linguistic validation reference when a transcript is present.
+- the creator-written Kasem script, dialect, ISO language code `xsm`, and
+  consent-form version.
 
-For the first release, that reference must be `submissions/{id}` and the
-referenced submission must belong to the creator, be `APPROVED` or `PUBLISHED`,
-use language code `xsm`, and match the submitted dialect and transcript exactly.
+Creators do not need to turn a video script into a separate content submission.
+An optional `submissions/{id}` reference may preserve reviewed provenance; when
+present, it must belong to the creator, be `APPROVED` or `PUBLISHED`, use `xsm`,
+and match the submitted dialect and transcript exactly.
 
 The initial implementation rejects material involving minors and third-party
-material. Lip-sync requires a validated transcript plus participant, voice, and
+material. Lip-sync requires a written transcript plus participant, voice, and
 likeness consent. Source files must live under the caller's dedicated private
 `creator-submissions/{uid}/studio-video/` prefix or be their earlier generated
 video output.
@@ -95,13 +96,15 @@ Planning rates are snapshotted as `2026-09-01` in
 Never use a `VITE_*` variable for either provider key and never paste a key into
 an issue, commit, test fixture, or chat transcript.
 
-## Creator UI still to connect
+## Creator interface
 
-The next UI increment should provide a two-stage wizard:
+The deployed interface provides a short creator flow:
 
-- visual brief, ratio, duration, model, optional reference image;
-- Kasem transcript, dialect, validation reference, audio recording, consent
-  declarations, cost estimate, and explicit submit confirmation.
+- write a Kasem script and name its dialect or community variety;
+- choose new visuals or lip-sync, with provider details hidden under advanced options;
+- add only the media needed for that operation;
+- confirm rights, cultural permission, provider processing, and participant consent;
+- review the cost estimate and explicitly create the job.
 
-The UI should poll `refreshStudioVideoJob` with backoff, show the private output,
-and offer "Send to review" rather than "Publish".
+The UI polls `refreshStudioVideoJob`, shows the private output, and can attach it
+directly to TribeStudio's normal post editor.

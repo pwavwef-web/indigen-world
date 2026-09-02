@@ -28,7 +28,7 @@ import { consumeRateLimit } from './rate-limit.js';
  * said at the time.
  */
 
-const HANDLE_SHAPE = /^[a-z][a-z0-9_]{2,19}$/;
+export const HANDLE_SHAPE = /^[a-z][a-z0-9_]{2,19}$/;
 
 /** Handles the platform speaks under, which no member may take. */
 const RESERVED = new Set([
@@ -42,6 +42,11 @@ const RESERVED = new Set([
   'official',
   'moderator',
 ]);
+
+/** Whether [handle] is one of the names the platform speaks under. */
+export function isReservedHandle(handle: string): boolean {
+  return RESERVED.has(handle);
+}
 
 const ENFORCE_APP_CHECK = process.env.ENFORCE_APP_CHECK === 'true';
 
@@ -84,7 +89,7 @@ export function carriesKasemName(handle: string, names: Set<string>): boolean {
     .some((part) => part.length >= 3 && names.has(part));
 }
 
-async function publishedKasemNames(): Promise<Set<string>> {
+export async function publishedKasemNames(): Promise<Set<string>> {
   const snap = await getFirestore()
     .collection('kasemNames')
     .where('published', '==', true)
@@ -97,6 +102,99 @@ async function publishedKasemNames(): Promise<Set<string>> {
     if (ascii.length >= 3) names.add(ascii);
   }
   return names;
+}
+
+/**
+ * Why a one-change rename could not happen, when it could not.
+ *
+ * `already-yours` is in here for completeness rather than because it is a
+ * failure: a member who is already called that ends up wearing the ring the
+ * moment the name is published, which is the outcome they were after.
+ */
+export type HandleClaimRefusal =
+  | 'no-profile'
+  | 'already-changed'
+  | 'already-yours'
+  | 'taken';
+
+export type HandleClaimOutcome =
+  | { readonly ok: true; readonly previous: string }
+  | { readonly ok: false; readonly reason: HandleClaimRefusal };
+
+/**
+ * What each refusal is called when it has to be said out loud.
+ *
+ * `claimKasemHandle` turns these into an `HttpsError`, because a member who
+ * asked for a rename and did not get one needs to be told why. The reviewer
+ * path does not: an approval that publishes the name is still worth having, so
+ * it records the refusal on the request and puts it in the notification instead.
+ */
+export const HANDLE_CLAIM_MESSAGES: Record<HandleClaimRefusal, string> = {
+  'no-profile': 'Set up your community profile first.',
+  'already-changed': 'You have already taken your one name change.',
+  'already-yours': 'That is already your handle.',
+  taken: 'That handle is already taken.',
+};
+
+/**
+ * The rename itself, as one step inside somebody else's transaction.
+ *
+ * Two callables now perform it — the member taking a name from the published
+ * list, and a reviewer approving a request that carried a handle — and they
+ * must perform it *identically*. A second copy of this would be a second set of
+ * rules about who owns a handle, and the failure mode of the two drifting apart
+ * is a handle owned by nobody or owned by two people, which is precisely what
+ * the registry exists to prevent.
+ *
+ * The caller must have finished every read it needs before calling this, since
+ * this reads and then writes and Firestore will not allow a read afterwards.
+ */
+export async function claimHandleInTransaction(
+  tx: FirebaseFirestore.Transaction,
+  input: {
+    readonly uid: string;
+    readonly handle: string;
+    /** Who is performing it — the member themselves, or a reviewer. */
+    readonly actorUid?: string;
+    readonly action?: string;
+  },
+): Promise<HandleClaimOutcome> {
+  const db = getFirestore();
+  const { uid, handle } = input;
+  const profileRef = db.collection('communityProfiles').doc(uid);
+  const nextRef = db.collection('communityUsernames').doc(handle);
+
+  const profile = await tx.get(profileRef);
+  if (!profile.exists) return { ok: false, reason: 'no-profile' };
+  if (profile.get('usernameChangedAt')) return { ok: false, reason: 'already-changed' };
+
+  const current = String(profile.get('username') ?? '');
+  if (current === handle) return { ok: false, reason: 'already-yours' };
+
+  const taken = await tx.get(nextRef);
+  if (taken.exists) return { ok: false, reason: 'taken' };
+
+  // Registry and profile move together, so the handle is never owned by
+  // nobody and never owned by two people.
+  tx.set(nextRef, { uid, createdAt: FieldValue.serverTimestamp() });
+  if (current) tx.delete(db.collection('communityUsernames').doc(current));
+  tx.update(profileRef, {
+    username: handle,
+    usernameChangedAt: FieldValue.serverTimestamp(),
+    updatedAt: FieldValue.serverTimestamp(),
+  });
+
+  const auditRef = db.collection('auditLogs').doc();
+  tx.set(auditRef, {
+    id: auditRef.id,
+    action: input.action ?? 'community.kasemHandleClaimed',
+    actorUid: input.actorUid ?? uid,
+    targetUid: uid,
+    detail: `${current} -> ${handle}`,
+    createdAt: FieldValue.serverTimestamp(),
+  });
+
+  return { ok: true, previous: current };
 }
 
 export const claimKasemHandle = onCall(
@@ -132,47 +230,20 @@ export const claimKasemHandle = onCall(
       );
     }
 
-    const db = getFirestore();
-    const profileRef = db.collection('communityProfiles').doc(uid);
-    const nextRef = db.collection('communityUsernames').doc(handle);
-    const auditRef = db.collection('auditLogs').doc();
-
-    const previous = await db.runTransaction(async (tx) => {
-      const profile = await tx.get(profileRef);
-      if (!profile.exists) {
-        throw new HttpsError('failed-precondition', 'Set up your community profile first.');
+    const previous = await getFirestore().runTransaction(async (tx) => {
+      const outcome = await claimHandleInTransaction(tx, { uid, handle });
+      if (!outcome.ok) {
+        // A member asking for a rename gets told why they did not get one; the
+        // two `already-exists` cases are the ones that describe a handle rather
+        // than the member's own history.
+        throw new HttpsError(
+          outcome.reason === 'taken' || outcome.reason === 'already-yours'
+            ? 'already-exists'
+            : 'failed-precondition',
+          HANDLE_CLAIM_MESSAGES[outcome.reason],
+        );
       }
-      if (profile.get('usernameChangedAt')) {
-        throw new HttpsError('failed-precondition', 'You have already taken your one name change.');
-      }
-      const current = String(profile.get('username') ?? '');
-      if (current === handle) {
-        throw new HttpsError('already-exists', 'That is already your handle.');
-      }
-
-      const taken = await tx.get(nextRef);
-      if (taken.exists) {
-        throw new HttpsError('already-exists', 'That handle is already taken.');
-      }
-
-      // Registry and profile move together, so the handle is never owned by
-      // nobody and never owned by two people.
-      tx.set(nextRef, { uid, createdAt: FieldValue.serverTimestamp() });
-      if (current) tx.delete(db.collection('communityUsernames').doc(current));
-      tx.update(profileRef, {
-        username: handle,
-        usernameChangedAt: FieldValue.serverTimestamp(),
-        updatedAt: FieldValue.serverTimestamp(),
-      });
-      tx.set(auditRef, {
-        id: auditRef.id,
-        action: 'community.kasemHandleClaimed',
-        actorUid: uid,
-        targetUid: uid,
-        detail: `${current} -> ${handle}`,
-        createdAt: FieldValue.serverTimestamp(),
-      });
-      return current;
+      return outcome.previous;
     });
 
     logger.info('Kassena handle claimed', { uid, from: previous, to: handle });

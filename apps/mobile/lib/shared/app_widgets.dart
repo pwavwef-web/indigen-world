@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/shared/glass_surface.dart';
+import 'package:indigen_world_mobile/shared/profile_orb.dart';
 
 class ScreenContainer extends StatelessWidget {
   const ScreenContainer({required this.child, super.key});
@@ -112,6 +113,7 @@ class BrandHeader extends StatelessWidget {
     this.subtitle,
     this.trailing,
     this.reserveTopRight = false,
+    this.extraTopRightReserve = 0,
     super.key,
   });
 
@@ -127,9 +129,29 @@ class BrandHeader extends StatelessWidget {
   /// orb. Only shell tabs need it; pushed routes have their own app bar.
   final bool reserveTopRight;
 
+  /// Extra width to leave clear on top of the orb's own, for a tab that pins
+  /// a second control beside it — [kShellOrbActionExtent] per control.
+  ///
+  /// Kept as a plain number rather than a second bool because [BrandHeader] is
+  /// the wrong place to know *which* controls a given tab hangs up there. It
+  /// only needs to know how much of its own right edge somebody else has
+  /// spoken for. Ignored unless [reserveTopRight] is set: without the orb there
+  /// is no cluster for an action to sit beside.
+  final double extraTopRightReserve;
+
   @override
   Widget build(BuildContext context) => Padding(
-    padding: EdgeInsets.fromLTRB(20, 18, reserveTopRight ? 62 : 20, 16),
+    padding: EdgeInsets.fromLTRB(
+      20,
+      18,
+      // The reserve is computed from the shell's own constants rather than
+      // written down here. It was a literal 62 — correct, and correct only for
+      // as long as the orb was the one thing the shell pinned in that corner.
+      reserveTopRight
+          ? shellTopRightReserve(withAction: false) + extraTopRightReserve
+          : 20,
+      16,
+    ),
     child: Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

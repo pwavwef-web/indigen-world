@@ -12,6 +12,34 @@ import 'package:indigen_world_mobile/features/profile/profile_screen.dart';
 const double kProfileOrbSize = 38;
 const double kProfileOrbInset = 12;
 
+/// The gap between the orb and an action pinned to its left.
+///
+/// Small on purpose. The pair has to read as one cluster of shell furniture
+/// rather than as two unrelated buttons that happen to share a corner — at a
+/// rail-sized gap the eye starts asking which of them belongs to the screen.
+const double kShellOrbActionGap = 8;
+
+/// What one extra control beside the orb costs in width.
+const double kShellOrbActionExtent = kProfileOrbSize + kShellOrbActionGap;
+
+/// How much room a shell tab has to leave clear at its top right.
+///
+/// The shell pins its floating controls over the top of whatever tab is in
+/// front of the member, so every tab's own heading has to be told how wide
+/// that cluster is. This is that number, derived from the same constants the
+/// shell lays the cluster out with — which is the entire point of it being a
+/// function here rather than a literal in a padding somewhere. The reserve was
+/// a hard-coded 62 in [BrandHeader] until a second control appeared beside the
+/// orb and the 62 quietly became wrong.
+///
+/// Pass [withAction] on a tab that pins an action beside the orb; the orb's own
+/// inset is counted twice, once as the pin and once as breathing room between
+/// the cluster and the heading it sits next to.
+double shellTopRightReserve({required bool withAction}) =>
+    kProfileOrbInset * 2 +
+    kProfileOrbSize +
+    (withAction ? kShellOrbActionExtent : 0);
+
 /// The account control that used to be the "You" tab.
 ///
 /// It floats in the top-right corner of every shell tab as a glass orb — the

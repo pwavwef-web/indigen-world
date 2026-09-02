@@ -10,6 +10,10 @@ export {
   confirmPhoneVerification,
 } from './phone-verification.js';
 export { claimKasemHandle } from './kasem-handle.js';
+export {
+  requestKasemName,
+  decideKasemNameRequest,
+} from './kasem-name-requests.js';
 export { setCommunityVerifiedKind } from './community-marks.js';
 export { publicForms } from './public-forms.js';
 export {
@@ -25,13 +29,29 @@ export {
   onCommunityPostCreated,
   onCommunityPollVoteCreated,
   onCommunityNotificationCreated,
+  onCommunityProfileWelcome,
 } from './community-notifications.js';
+export { onReelCommentCreated } from './reel-notifications.js';
 export { onChatMessageCreated } from './chat-notifications.js';
 export { onSubmissionWritten } from './open-publishing.js';
 export {
   submitCollectionContribution,
   withdrawCollectionContribution,
 } from './collection-contributions.js';
+export {
+  nextQueueWords,
+  skipQueueWord,
+  submitWordTranslation,
+  onWordQueueContributionWritten,
+} from './word-queue.js';
+export {
+  awardContributorPoints,
+  remindContributorStreaks,
+} from './contributor-scores.js';
+export {
+  publishAdminAudiobook,
+  deleteAdminAudiobook,
+} from './admin-collection.js';
 export {
   submitAdCampaign,
   updateAdCampaign,

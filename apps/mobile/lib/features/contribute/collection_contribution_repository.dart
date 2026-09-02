@@ -55,6 +55,7 @@ class CollectionContributionDraft {
     required this.source,
     required this.media,
     required this.notes,
+    this.cover,
     required this.publicationPermission,
     required this.involvesMinors,
     required this.usesThirdPartyMaterial,
@@ -73,6 +74,14 @@ class CollectionContributionDraft {
 
   /// The uploaded song, narration or manuscript, when this kind carries one.
   final UploadedContributionFile? media;
+
+  /// The song's artwork, when a member chose one.
+  ///
+  /// Kept apart from [media] rather than being a second entry in a list: it is
+  /// not another draft of the work, it is the picture the player shows while
+  /// the work plays, and review treats the two differently — a song with no
+  /// cover is still publishable, a song with no recording is not.
+  final UploadedContributionFile? cover;
 
   final String notes;
   final bool publicationPermission;
@@ -111,6 +120,11 @@ class CollectionContributionRepository {
       // The bytes went to Storage under the member's own prefix; the callable
       // only ever sees where they landed.
       'media': draft.media?.toMap(),
+      // The cover travels the same way and in the same shape as `media`, in
+      // its own top-level key: a reviewer approving a song has to be able to
+      // see the artwork it will be published with without unpacking a list and
+      // guessing which entry is the picture.
+      'cover': draft.cover?.toMap(),
       'notes': draft.notes.trim(),
       'kasemExample': draft.kasemExample.trim(),
       'englishExample': draft.englishExample.trim(),
@@ -169,10 +183,18 @@ final myCollectionContributionsProvider =
       return repository.watchMine(uid);
     });
 
+/// The stored `collectionKind` read back as the enum.
+///
+/// `video` was missing from this switch, so every film a member sent came back
+/// into their own submissions list labelled *Dictionary* with a translation
+/// glyph beside it. The fallback is deliberately still the dictionary — it is
+/// the oldest kind and the one legacy rows carry no marker for — but a kind we
+/// actually write must never reach it.
 CollectionKind _kindFromName(String value) => switch (value) {
   'music' => CollectionKind.music,
   'literature' => CollectionKind.literature,
   'audiobooks' || 'audiobook' => CollectionKind.audiobooks,
+  'video' || 'film' => CollectionKind.video,
   _ => CollectionKind.dictionary,
 };
 

@@ -151,6 +151,32 @@ service firebase.storage {
       allow delete: if isAdmin();
     }
 
+    // ---- Library audiobooks: world-readable, admin-written ------------------
+    //
+    // Audiobook contribution came off the phone. A narrated book involves a
+    // rights holder, a narrator who is rarely the person uploading, and hours
+    // of audio — none of which fits a mobile form, and all of which the review
+    // queue would otherwise have to take on trust from whoever pressed send. It
+    // is curated in the admin console instead, beside the Apps directory, so
+    // this joins learn-images as one of the very few prefixes a browser may
+    // write to, and it is fenced the same way: admins only, and only the two
+    // kinds of file an audiobook is made of.
+    //
+    // The narration keeps the 500 MB ceiling a whole book needs; the cover
+    // keeps the small one artwork gets everywhere else, because a picture that
+    // big is a mistake somebody on a metered connection pays for. Read is open
+    // because a published audiobook is public and the Collection plays to
+    // signed-out listeners — and because the console calls getMetadata() on
+    // these files when it reopens a record to edit.
+    match /collection-audiobooks/{audiobookId}/{fileName} {
+      allow read: if true;
+      allow write: if isAdmin()
+        && ((request.resource.contentType.matches('audio/.*') && withinSizeLimit())
+          || (request.resource.contentType.matches('image/.*')
+              && request.resource.size < 8 * 1024 * 1024));
+      allow delete: if isAdmin();
+    }
+
     // ---- Ad creatives: world-readable, server-written only -------------------
     // An ad is served to every member, so its artwork is public. Nothing here
     // is client-writable: creatives arrive through the campaign workflow with

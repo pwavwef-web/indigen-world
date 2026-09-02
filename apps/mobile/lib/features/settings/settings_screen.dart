@@ -27,6 +27,8 @@ import 'package:indigen_world_mobile/features/community/saved_posts_screen.dart'
 import 'package:indigen_world_mobile/features/community/widgets/verified_badge.dart';
 import 'package:indigen_world_mobile/features/downloads/data/downloads_providers.dart';
 import 'package:indigen_world_mobile/features/downloads/downloads_screen.dart';
+import 'package:indigen_world_mobile/features/notifications/data/notification_preferences.dart';
+import 'package:indigen_world_mobile/features/notifications/data/notification_providers.dart';
 import 'package:indigen_world_mobile/features/notifications/notifications_screen.dart';
 import 'package:indigen_world_mobile/features/notifications/push_messaging.dart';
 import 'package:indigen_world_mobile/features/rating/rating_service.dart';
@@ -359,10 +361,27 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ref.read(videoAutoplayProvider.notifier).set(value),
                 ),
               ),
+            ],
+          ),
+          const SizedBox(height: 22),
+
+          // ── Notifications ────────────────────────────────────────────
+          //
+          // Its own section rather than three rows inside Preferences. The
+          // fan-outs the backend now runs — a reply reaching a whole thread, a
+          // post reaching every follower — mean this is the screen somebody
+          // arrives at because their phone will not stop, and what they are
+          // looking for must not be buried between the theme and the
+          // autoplay switch.
+          const _SectionLabel('NOTIFICATIONS'),
+          const SizedBox(height: 9),
+          _SettingsGroup(
+            children: [
               _SettingsRow(
                 icon: Icons.notifications_none_rounded,
                 title: 'Notifications',
-                subtitle: 'Likes, replies, follows, mentions',
+                subtitle: 'Everything that has happened, whatever is switched '
+                    'off below',
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute<void>(
                     builder: (context) => const NotificationsScreen(),
@@ -409,6 +428,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   onChanged: _previewsEnabled == null ? null : _setPreviews,
                 ),
             ],
+          ),
+          const SizedBox(height: 18),
+          const _SectionLabel('WHAT WAKES YOU'),
+          const SizedBox(height: 9),
+          _NotificationPreferencesGroup(
+            hasProfile: profile != null,
+            onSetUpProfile: _openCommunityProfile,
+            onFailed: () => _message('Could not save that choice. Try again.'),
           ),
           const SizedBox(height: 22),
 
@@ -840,6 +867,92 @@ class _SettingsGroup extends StatelessWidget {
       ],
     ),
   );
+}
+
+/// The seven switches that decide what the backend is allowed to wake you for.
+///
+/// Its own widget, and a `ConsumerWidget` rather than more state on the screen,
+/// so that a preference arriving from the profile stream rebuilds seven rows
+/// instead of the whole settings list — and so the switches are readable next
+/// to the enum that defines them rather than a hundred lines away from it.
+///
+/// Nothing here is optimistic. Firestore's local write echoes back through the
+/// same snapshot listener before it has left the device, so the switch moves
+/// immediately and then *stays* moved only if the write actually lands: a
+/// refused write snaps the switch back, which is the honest thing for a control
+/// whose whole job is to be believed.
+class _NotificationPreferencesGroup extends ConsumerWidget {
+  const _NotificationPreferencesGroup({
+    required this.hasProfile,
+    required this.onSetUpProfile,
+    required this.onFailed,
+  });
+
+  final bool hasProfile;
+  final VoidCallback onSetUpProfile;
+  final VoidCallback onFailed;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    // The preferences live on the community profile, so there is nowhere to
+    // write them until there is one. Said plainly rather than shown as seven
+    // switches that would silently fail to save.
+    if (!hasProfile) {
+      return _SettingsGroup(
+        children: [
+          _SettingsRow(
+            icon: Icons.notifications_paused_outlined,
+            title: 'Set up your profile to choose',
+            subtitle:
+                'These belong to you rather than to this phone, so they follow '
+                'you to every device you sign in on',
+            onTap: onSetUpProfile,
+          ),
+        ],
+      );
+    }
+
+    final uid = ref.watch(currentUidProvider);
+    final repository = ref.watch(notificationsRepositoryProvider);
+    // Everything-on while the profile is still in flight, which is the same
+    // answer absence gives on the backend: a member who has never been here
+    // behaves exactly as they did before the switches existed.
+    final preferences =
+        ref.watch(notificationPreferencesProvider).asData?.value ??
+        const NotificationPreferences.all();
+
+    Future<void> set(NotificationPreference preference, bool enabled) async {
+      if (uid == null || repository == null) return;
+      try {
+        await repository.setPreference(
+          uid: uid,
+          preference: preference,
+          enabled: enabled,
+        );
+      } on Object {
+        onFailed();
+      }
+    }
+
+    final ready = uid != null && repository != null;
+    return _SettingsGroup(
+      children: [
+        for (final preference in NotificationPreference.values)
+          SwitchListTile.adaptive(
+            secondary: Icon(preference.icon, color: context.brand.accent),
+            title: Text(
+              preference.title,
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
+            subtitle: Text(preference.description),
+            value: preferences.isOn(preference),
+            onChanged: ready
+                ? (value) => unawaited(set(preference, value))
+                : null,
+          ),
+      ],
+    );
+  }
 }
 
 class _SettingsRow extends StatelessWidget {

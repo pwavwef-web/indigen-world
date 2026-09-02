@@ -8,6 +8,7 @@ import 'package:indigen_world_mobile/features/collection/widgets/collection_card
 import 'package:indigen_world_mobile/features/community/widgets/community_avatar.dart';
 import 'package:indigen_world_mobile/features/contribute/contribute_screen.dart';
 import 'package:indigen_world_mobile/features/dictionary/entry_detail_screen.dart';
+import 'package:indigen_world_mobile/features/dictionary/translation_display.dart';
 import 'package:indigen_world_mobile/features/explore/published_content.dart';
 import 'package:indigen_world_mobile/features/music/music_controller.dart';
 import 'package:indigen_world_mobile/features/music/music_providers.dart';
@@ -244,7 +245,17 @@ class _DictionaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => CollectionCardSurface(
-    semanticLabel: '${entry.headword}, ${entry.translation}',
+    // Every meaning, not the one the row had room to print: the "+2 more" the
+    // sighted row falls back to is a worse answer for a reader who is not
+    // constrained by the width of the card.
+    // Every meaning AND every rendering, not the ones the row had room to
+    // print: the "+2 more" a sighted row falls back to is a worse answer for a
+    // reader who is not constrained by the width of the card.
+    semanticLabel: entry.furtherRenderings.isEmpty
+        ? '${entry.headword}, ${entry.allTranslations}'
+        : '${entry.headword}, also '
+              '${entry.furtherRenderings.join(', ')}, '
+              '${entry.allTranslations}',
     onTap: () => Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (context) =>
@@ -275,22 +286,52 @@ class _DictionaryCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                entry.headword,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.titleMedium,
+              Row(
+                children: [
+                  Flexible(
+                    child: Text(
+                      entry.headword,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                  ),
+                  // A count rather than the words themselves, for the same
+                  // reason the meanings below are counted: a row that grows to
+                  // fit its longest entry is a list nobody can scan.
+                  if (entry.furtherRenderings.isNotEmpty) ...[
+                    const SizedBox(width: 6),
+                    Text(
+                      '+${entry.furtherRenderings.length}',
+                      style: TextStyle(
+                        color: context.brand.accent,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ],
+                ],
               ),
               const SizedBox(height: 3),
-              Text(
-                entry.translation,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
+              // The first meaning and a count of the rest. Wrapping all of them
+              // into the row was the alternative and it makes a list whose
+              // every row is a different height — unscannable, and for the sake
+              // of text the entry screen shows properly one tap away.
+              TranslationSummary(
+                entry: entry,
                 style: TextStyle(color: context.brand.mutedInk),
               ),
               const SizedBox(height: 6),
               Text(
-                '${entry.partOfSpeech} · ${entry.dialect}',
+                // Through the label helper: an unfamiliar word class shows as
+                // itself here, and the row is never filtered on it, so an
+                // `ideophone` is neither renamed nor hidden by the list that
+                // predates it.
+                [
+                  if (partOfSpeechLabel(entry.partOfSpeech).isNotEmpty)
+                    partOfSpeechLabel(entry.partOfSpeech),
+                  if (entry.dialect.isNotEmpty) entry.dialect,
+                ].join(' · '),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
@@ -948,7 +989,21 @@ class _CollectionEmptyState extends StatelessWidget {
               style: TextStyle(color: context.brand.mutedInk, height: 1.4),
             ),
           ],
-          if (!searching) ...[
+          // Audiobooks are the one shelf nobody fills from a phone. A narrated
+          // book carries a rights holder, a narrator who is rarely the person
+          // uploading, and hours of audio, so it is curated in the admin
+          // console instead — and the chooser this button opens no longer
+          // offers the kind. Saying so is the only honest option: an "add one"
+          // button that leads somewhere without an audiobook in it is a promise
+          // the flow cannot keep.
+          if (!searching && kind == CollectionKind.audiobooks) ...[
+            const SizedBox(height: 10),
+            Text(
+              'Audiobooks are recorded and added by the project team.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: context.brand.mutedInk, height: 1.4),
+            ),
+          ] else if (!searching) ...[
             const SizedBox(height: 18),
             FilledButton.icon(
               onPressed: () => Navigator.of(context).push(

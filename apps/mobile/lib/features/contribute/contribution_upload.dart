@@ -180,7 +180,23 @@ class ContributionUploader {
   /// write forty minutes in.
   static const maxBytes = 120 * 1024 * 1024;
 
-  Future<PickedContributionFile?> pick(ContributionMediaKind kind) async {
+  /// Ceiling on a piece of cover artwork.
+  ///
+  /// Far tighter than [maxBytes] on purpose. A song's cover is one square
+  /// picture that will be shown at a few hundred pixels on a lock screen, so
+  /// a 40 MB photograph straight off a camera is forty megabytes of somebody's
+  /// data spent on nothing — and the sentence saying so has to arrive before
+  /// the upload starts, not after it.
+  static const maxCoverBytes = 8 * 1024 * 1024;
+
+  /// Chooses a file of [kind], refusing anything over [maxBytes] — which
+  /// defaults to the whole-contribution ceiling and is passed explicitly for
+  /// the smaller things, artwork above all.
+  Future<PickedContributionFile?> pick(
+    ContributionMediaKind kind, {
+    int? maxBytes,
+  }) async {
+    final ceiling = maxBytes ?? ContributionUploader.maxBytes;
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
       allowedExtensions: kind.extensions,
@@ -189,10 +205,12 @@ class ContributionUploader {
     final file = result?.files.singleOrNull;
     final path = file?.path;
     if (file == null || path == null) return null;
-    if (file.size > maxBytes) {
+    if (file.size > ceiling) {
       throw ContributionUploadFailure(
-        'That ${kind.label} is larger than ${maxBytes ~/ (1024 * 1024)} MB. '
-        'Please send a shorter or more compressed version.',
+        'That ${kind.label} is larger than ${ceiling ~/ (1024 * 1024)} MB. '
+        '${kind == ContributionMediaKind.image
+            ? 'Please choose a smaller picture, or crop it.'
+            : 'Please send a shorter or more compressed version.'}',
       );
     }
     return PickedContributionFile(

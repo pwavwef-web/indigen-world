@@ -8,6 +8,8 @@ import 'package:indigen_world_mobile/core/media_preferences.dart';
 import 'package:indigen_world_mobile/data/repositories.dart';
 import 'package:indigen_world_mobile/domain/dictionary_entry.dart';
 import 'package:indigen_world_mobile/features/collection/collection_data.dart';
+import 'package:indigen_world_mobile/features/dictionary/sentence_credit.dart';
+import 'package:indigen_world_mobile/features/dictionary/translation_display.dart';
 import 'package:indigen_world_mobile/shared/app_widgets.dart';
 import 'package:just_audio/just_audio.dart';
 
@@ -108,12 +110,23 @@ class EntryDetailScreen extends ConsumerWidget {
                       : 'PUBLISHED ENTRY',
                   color: context.brand.success,
                 ),
-                const Spacer(),
-                Text(
-                  resolvedEntry.partOfSpeech,
-                  style: TextStyle(
-                    color: context.brand.mutedInk,
-                    fontWeight: FontWeight.w700,
+                const SizedBox(width: 12),
+                // Whatever the entry says its class is, rendered as itself when
+                // this app has never heard of it. See [partOfSpeechLabel]; an
+                // `ideophone` must not become a shrug on the way to the screen.
+                //
+                // Expanded rather than the Spacer that used to sit here: the
+                // list this label is drawn from now runs to twenty-five entries
+                // and "Auxiliary verb" beside a pill on a narrow phone was an
+                // overflow waiting to be reported as a rendering bug.
+                Expanded(
+                  child: Text(
+                    partOfSpeechLabel(resolvedEntry.partOfSpeech),
+                    textAlign: TextAlign.end,
+                    style: TextStyle(
+                      color: context.brand.mutedInk,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
               ],
@@ -123,10 +136,32 @@ class EntryDetailScreen extends ConsumerWidget {
               resolvedEntry.headword,
               style: Theme.of(context).textTheme.headlineLarge,
             ),
+            // The other Kasem words a contributor gave for the same meaning.
+            // The headword is one of several answers, not the only one, and a
+            // learner who hears `nyu` and finds an entry filed under `nia`
+            // needs to be told here that they are the same word — otherwise
+            // the second and third answers somebody typed exist only in the
+            // database.
+            if (resolvedEntry.furtherRenderings.isNotEmpty) ...[
+              const SizedBox(height: 6),
+              Text(
+                'Also: ${resolvedEntry.furtherRenderings.join(' · ')}',
+                style: TextStyle(
+                  color: context.brand.accent,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
             const SizedBox(height: 8),
-            Text(
-              resolvedEntry.translation,
-              style: Theme.of(context).textTheme.titleLarge
+            // One meaning renders exactly the line it always rendered. Several
+            // are numbered, in the order the contributor gave them, with the
+            // first still set in the type the single one had — this is the
+            // screen a member came to for the whole entry, so it is the one
+            // place that shows all of it rather than a count.
+            TranslationList(
+              entry: resolvedEntry,
+              primaryStyle: Theme.of(context).textTheme.titleLarge
                   ?.copyWith(color: context.brand.terracotta),
             ),
             const SizedBox(height: 16),
@@ -157,6 +192,12 @@ class EntryDetailScreen extends ConsumerWidget {
               title: 'Example',
               body:
                   '${resolvedEntry.example}\n${resolvedEntry.exampleTranslation}',
+              // Directly beneath the sentence, not in "Source and rights"
+              // below. A CC BY credit belongs next to the thing it credits;
+              // moving it to a rights block further down would be the same
+              // information in the one place a reader has already decided not
+              // to look. Renders nothing at all when no credit is owed.
+              footer: SentenceCredit(entry: resolvedEntry),
             ),
             if (resolvedEntry.culturalNote != null) ...[
               const SizedBox(height: 12),
@@ -175,7 +216,17 @@ class EntryDetailScreen extends ConsumerWidget {
             const SizedBox(height: 24),
             OutlinedButton.icon(
               onPressed: () => context.push(
-                '/contribute?source=${Uri.encodeQueryComponent(resolvedEntry.translation)}&entryId=${resolvedEntry.id}',
+                // `category` is named explicitly. Contribute now opens on a
+                // hub unless a link says what it is for, and somebody who
+                // pressed "suggest a correction" on a word has already said.
+                //
+                // The first meaning, not the whole list: the form's source box
+                // holds one English word, and pre-filling it with "bottle,
+                // flask" would have a member correcting the prompt before they
+                // could answer it.
+                '/contribute?category=dictionary'
+                '&source=${Uri.encodeQueryComponent(resolvedEntry.primaryTranslation)}'
+                '&entryId=${resolvedEntry.id}',
               ),
               icon: const Icon(Icons.edit_outlined),
               label: const Text('Suggest a correction'),
@@ -334,12 +385,18 @@ class _DetailCard extends StatelessWidget {
     required this.title,
     required this.body,
     this.trailing,
+    this.footer,
   });
 
   final IconData icon;
   final String title;
   final String body;
   final Widget? trailing;
+
+  /// Sits under the body, inside the card. The example's licence credit is the
+  /// only thing that uses it, and it belongs inside because a credit that has
+  /// floated free of the card holding the sentence is a credit for nothing.
+  final Widget? footer;
 
   @override
   Widget build(BuildContext context) => Card(
@@ -357,6 +414,7 @@ class _DetailCard extends StatelessWidget {
                 Text(title, style: Theme.of(context).textTheme.titleMedium),
                 const SizedBox(height: 7),
                 Text(body),
+                ?footer,
               ],
             ),
           ),

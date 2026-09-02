@@ -63,6 +63,13 @@ Thumbs.db
 *.log
 
 # Data and cultural records — never commit raw or private datasets
+# The word-queue build output. Regenerate it with
+#   node services/functions/scripts/build-word-queue.mjs
+# The two sources beside it ARE committed: they are the provenance for a CC BY
+# 2.0 FR dataset, and a licence you cannot trace back to its source is a licence
+# you cannot honour.
+data/word-seed/word-queue.ndjson
+
 data/raw/
 data/private/
 data/exports/

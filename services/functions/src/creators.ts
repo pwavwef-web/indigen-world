@@ -2,12 +2,19 @@ import { HttpsError, onCall } from 'firebase-functions/v2/https';
 import { getAuth } from 'firebase-admin/auth';
 import { FieldValue, getFirestore, type DocumentReference } from 'firebase-admin/firestore';
 import { requireAuth, requireRole } from './auth.js';
-import { finalisePublishedMedia, finalisePublishedPronunciation } from './published-media.js';
+import {
+  finalisePublishedMedia,
+  finalisePublishedPronunciation,
+  type PublishableMedia,
+} from './published-media.js';
 import { consumeRateLimit } from './rate-limit.js';
 import {
   buildPublishedContentDocument,
   collectionKindForSubmission,
+  submissionLexicalKind,
+  submissionTranslations,
 } from './publication.js';
+import { canonicalPartOfSpeech } from './lexical-kinds.js';
 
 // App Check enforcement is opt-in: set ENFORCE_APP_CHECK=true on the deployed
 // functions once App Check (reCAPTCHA Enterprise) is configured for the web apps.
@@ -578,16 +585,8 @@ export const decideSubmission = onCall(
     // Captured inside the transaction; the approved media is copied to the
     // world-readable path AFTER the transaction commits (Storage I/O cannot run
     // inside a Firestore transaction). Null unless this is a fresh publish that
-    // still needs its public media URL.
-    let mediaToPublish:
-      | {
-          contentId: string;
-          storagePath: string;
-          mimeType: string;
-          mediaType: string;
-          thumbnailPath: string | null;
-        }
-      | null = null;
+    // still needs its public media URL, its artwork, or both.
+    let mediaToPublish: PublishableMedia | null = null;
 
     // The same move for a dictionary word's pronunciation, which lands on the
     // entry as `audioUrl` rather than on a publishedContent record.
@@ -698,13 +697,48 @@ export const decideSubmission = onCall(
             const existingAudioUrl: string = existingDictionary.exists
               ? (existingDictionary.get('audioUrl') ?? '')
               : '';
+            const kasemText = asString(submission.body, 12_000).trim();
+            // Every Kasem rendering the contributor gave. A submission that
+            // predates the field has this reconstructed from its body, so a
+            // word approved last year publishes byte-for-byte as it did then
+            // and simply gains a one-element array beside it.
+            //
+            // ── Why there is no singular `translation` written here ────────
+            // Because the name is already taken, and by the opposite meaning.
+            // The mobile reader resolves an entry's ENGLISH side from
+            // `['englishText', 'translation', 'english', 'definition']` — so in
+            // the legacy schema `translation` is the English gloss. These are
+            // Kasem renderings. Writing the first one into `translation` for
+            // the convenience of a reader that only understands one value would
+            // put a Kasem string in a field the app reads as English, and the
+            // only thing standing between that and a visible bug is that
+            // `englishText` happens to be written on the same document and is
+            // consulted first. A field whose safety depends on the order of a
+            // fallback chain somewhere else is a bug that has not happened yet.
+            //
+            // Nothing is lost: `englishText` carries the English, `kasemText`
+            // carries the entry as written, and `translations` carries every
+            // rendering the contributor gave. Older documents that use
+            // `translation` as English keep working untouched — this branch
+            // simply stops adding new ones with the opposite meaning.
+            const translations = submissionTranslations(submission, collectionKind);
             tx.set(dictionaryRef, {
               id: dictionaryRef.id,
-              kasemText: asString(submission.body, 12_000).trim(),
+              kasemText,
+              translations,
+              lexicalKind: submissionLexicalKind(submission),
               englishText: asString(submission.title, 180).trim(),
               kasemExample: asString(submission.kasemExample, 4000).trim(),
               englishExample: asString(submission.englishExample, 4000).trim(),
               partOfSpeech: asString(submission.format, 80).trim(),
+              // The stable id beside the human label. `format` has always been
+              // free text, so it stays exactly as the contributor's client sent
+              // it and this carries the value anything machine-readable should
+              // group by. `unknown` rather than null when nothing resolves: a
+              // word class nobody recognised is still a word class somebody has
+              // to look at.
+              partOfSpeechId:
+                canonicalPartOfSpeech(submission.partOfSpeechId ?? submission.format) ?? 'unknown',
               dialect: asString(submission.dialect, 80).trim(),
               category: 'Community vocabulary',
               source: asString(submission.sourceReferences, 1200).trim(),
@@ -766,16 +800,32 @@ export const decideSubmission = onCall(
 
           // Only a PUBLISH makes uploaded media world-readable. An approved
           // external recording URL is already public and needs no Storage copy.
+          //
+          // The artwork is asked about separately from the recording. A song
+          // published before its cover was carried across — the first attempt
+          // failed, or the record predates cover art entirely — has a public
+          // `mediaUrl` and no `thumbnailUrl`, and treating "the recording is
+          // already out there" as "there is nothing left to move" would leave
+          // it that way for ever. Where only the artwork is outstanding the
+          // recording's path is deliberately not passed on: re-copying a file
+          // that is already public mints a new download token and breaks every
+          // URL a client has cached.
           const storagePath: string = submission.media?.storagePath ?? '';
+          const thumbnailPath: string = submission.media?.thumbnailPath ?? '';
           const alreadyPublic: string = existingPub.exists ? (existingPub.get('mediaUrl') ?? '') : '';
+          const alreadyHasArtwork: string = existingPub.exists
+            ? (existingPub.get('thumbnailUrl') ?? '')
+            : '';
           const externalMediaUrl = asString(submission.externalPostUrl, 2000).trim();
-          if (decision === 'PUBLISH' && storagePath && !alreadyPublic && !externalMediaUrl) {
+          const needsMedia = Boolean(storagePath) && !alreadyPublic && !externalMediaUrl;
+          const needsArtwork = Boolean(thumbnailPath) && !alreadyHasArtwork;
+          if (decision === 'PUBLISH' && (needsMedia || needsArtwork)) {
             mediaToPublish = {
               contentId: publishedRef.id,
-              storagePath,
+              storagePath: needsMedia ? storagePath : '',
               mimeType: submission.media?.mimeType ?? 'application/octet-stream',
               mediaType: submission.media?.mediaType ?? 'video',
-              thumbnailPath: submission.media?.thumbnailPath ?? null,
+              thumbnailPath: needsArtwork ? thumbnailPath : null,
             };
           }
         }

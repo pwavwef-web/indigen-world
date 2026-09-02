@@ -46,7 +46,9 @@ function jobIdFor(uid: string, clientRequestId: string): string {
 }
 
 async function assertValidatedKasemScript(input: StudioVideoInput, uid: string): Promise<void> {
-  if (!input.kasem.transcript) return;
+  // Free-authored video scripts intentionally have no submission reference.
+  // When a creator does attach one, keep the exact-match provenance check.
+  if (!input.kasem.validationRef) return;
   const match = /^submissions\/([^/]+)$/.exec(input.kasem.validationRef);
   if (!match) {
     throw new HttpsError(

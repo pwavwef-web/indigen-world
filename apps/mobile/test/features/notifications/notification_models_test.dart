@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/features/notifications/data/notification_models.dart';
 
 void main() {
@@ -89,6 +90,37 @@ void main() {
       );
     });
 
+    test('the fan-out kinds arrive as themselves, not as announcements', () {
+      // These five are the whole point of the fan-out work. Every one of them
+      // is snake_case on the wire and camelCase here, so a missing case in
+      // `parse` would not fail to compile — it would quietly turn every
+      // followed post into a generic megaphone with no post to open.
+      expect(NotificationKind.parse('post'), NotificationKind.post);
+      expect(
+        NotificationKind.parse('thread_reply'),
+        NotificationKind.threadReply,
+      );
+      expect(NotificationKind.parse('milestone'), NotificationKind.milestone);
+      expect(
+        NotificationKind.parse('reel_comment'),
+        NotificationKind.reelComment,
+      );
+      expect(NotificationKind.parse('welcome'), NotificationKind.welcome);
+    });
+
+    test('the camelCase spelling is not the wire value', () {
+      // Guards the tempting "just use name" refactor: `threadReply` is what
+      // this enum is called, `thread_reply` is what the backend sends.
+      expect(
+        NotificationKind.parse('threadReply'),
+        NotificationKind.announcement,
+      );
+      expect(
+        NotificationKind.parse('reelComment'),
+        NotificationKind.announcement,
+      );
+    });
+
     test('a kind from a newer backend still shows, rather than vanishing', () {
       // Dropping the row would mean a member silently never learns about
       // something that happened to them.
@@ -97,6 +129,43 @@ void main() {
         NotificationKind.announcement,
       );
       expect(NotificationKind.parse(null), NotificationKind.announcement);
+    });
+  });
+
+  group('every kind is drawable', () {
+    // The row builds its mark from these two. A kind added to the enum and
+    // forgotten in either switch is a compile error in Dart's exhaustive
+    // switch, so what these actually pin down is that nothing falls back to a
+    // blank icon or a transparent colour at runtime.
+
+    test('each kind names an icon and a brand colour, in both themes', () {
+      for (final kind in NotificationKind.values) {
+        expect(kind.icon, isNotNull, reason: '$kind has no icon');
+        for (final brand in [BrandPalette.light, BrandPalette.dark]) {
+          expect(kind.accent(brand).a, greaterThan(0), reason: '$kind is invisible');
+        }
+      }
+    });
+
+    test('a conversation and a thread do not wear the same mark', () {
+      // "Somebody replied to you" and "a thread you follow carried on" are
+      // different pieces of news, and the icon is the only thing that says so
+      // before the title is read.
+      expect(
+        NotificationKind.reply.icon,
+        isNot(NotificationKind.threadReply.icon),
+      );
+      expect(
+        NotificationKind.reelComment.icon,
+        isNot(NotificationKind.reply.icon),
+      );
+    });
+
+    test('a milestone wears the like colour, because that is what it counts', () {
+      expect(
+        NotificationKind.milestone.accent(BrandPalette.light),
+        BrandPalette.light.like,
+      );
     });
   });
 

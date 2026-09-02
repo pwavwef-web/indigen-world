@@ -66,8 +66,8 @@ function lipSync(overrides = {}) {
       containsRecognisablePerson: true,
     }),
     kasem: kasem({
-      transcript: 'Validated Kasem words.',
-      validationRef: 'reviews/kasem-001',
+      transcript: 'Creator-written Kasem words.',
+      validationRef: '',
     }),
     videoStoragePath: `studio-video-jobs/${uid}/visual-1/output.mp4`,
     audioStoragePath: `creator-submissions/${uid}/studio-video/audio-1/speech.wav`,
@@ -117,7 +117,7 @@ test('square Gen-4.5 uses image-to-video because text-only supports two ratios',
   );
 });
 
-test('lip-sync requires a validated transcript and voice plus likeness consent', () => {
+test('lip-sync accepts a creator-written transcript and requires voice plus likeness consent', () => {
   assert.equal(estimateStudioVideoCost(parseStudioVideoInput(lipSync(), uid)).amountUsd, 0.5);
   assert.throws(
     () => parseStudioVideoInput(lipSync({
@@ -135,8 +135,18 @@ test('lip-sync requires a validated transcript and voice plus likeness consent',
   );
 });
 
+test('a creator-written Kasem script does not require an approved submission reference', () => {
+  const parsed = parseStudioVideoInput(lipSync({
+    kasem: kasem({ transcript: 'A fresh script written for this video.', validationRef: '' }),
+  }), uid);
+  assert.equal(parsed.kasem.transcript, 'A fresh script written for this video.');
+  assert.equal(parsed.kasem.validationRef, '');
+});
+
 test('an approved script match is exact across owner, language, dialect and transcript', () => {
-  const parsed = parseStudioVideoInput(lipSync(), uid);
+  const parsed = parseStudioVideoInput(lipSync({
+    kasem: kasem({ transcript: 'Validated Kasem words.', validationRef: 'submissions/kasem-001' }),
+  }), uid);
   const approved = {
     authUid: uid,
     status: 'APPROVED',
