@@ -57,6 +57,10 @@
 .vision-card--image p {
   color: white;
 }
+.vision-card--image .vision-card__number {
+  position: relative;
+  z-index: 1;
+}
 .woven-pattern {
   position: absolute;
   inset: 0;

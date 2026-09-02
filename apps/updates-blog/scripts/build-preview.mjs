@@ -138,7 +138,7 @@ const POSTS = [
     date: "2026-08-11",
     shown: "11 Aug 2026",
     snippet:
-      "Venacula is the first implementation of a reusable structure. Here is what a language cell holds, and what has to travel with every entry.",
+      "Project Kassena is the first implementation of a reusable structure. Here is what a language cell holds, and what has to travel with every entry.",
     image: false,
   },
   {
@@ -326,7 +326,7 @@ const FOOTER = `  <footer class="iw-foot">
             <div class="widget-content"><ul>
               <li><a href="https://indigenworld.com/">Indigen World</a></li>
               <li><a href="https://indigenworld.com/ecosystem">Ecosystem</a></li>
-              <li><a href="https://indigenworld.com/project-kasena">Venacula</a></li>
+              <li><a href="https://indigenworld.com/project-kassena">Project Kassena</a></li>
               <li><a href="https://indigenworld.com/get-involved">Get involved</a></li>
             </ul></div>
           </div></div>
@@ -413,7 +413,7 @@ const home = page({
     <div class="iw-shell iw-hero__in">
       <p class="iw-eyebrow">Release notes and field notes</p>
       <h1 class="iw-hero__title">Indigen World Updates</h1>
-      <p class="iw-hero__lede">What we are building, shipping and learning across the Indigen World ecosystem &#8212; the website, TribeStudio, the mobile app and Venacula.</p>
+      <p class="iw-hero__lede">What we are building, shipping and learning across the Indigen World ecosystem &#8212; the website, TribeStudio, the mobile app and Project Kassena.</p>
       <div class="iw-hero__actions">
         <a class="iw-btn iw-btn--gold" href="#iw-content">Browse updates
           <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M12 5v14M6 13l6 6 6-6"/></svg>

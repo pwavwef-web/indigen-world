@@ -9,7 +9,8 @@ const routes = [
   ["/", "HomePage.tsx"],
   ["/about", "AboutPage.tsx"],
   ["/ecosystem", "EcosystemPage.tsx"],
-  ["/project-kasena", "ProjectKasenaPage.tsx"],
+  ["/project-kassena", "ProjectKasenaPage.tsx"],
+  ["/dictionary", "DictionaryPage.tsx"],
   ["/impact-governance", "ImpactGovernancePage.tsx"],
   ["/get-involved", "GetInvolvedPage.tsx"],
   ["/contact", "ContactPage.tsx"],
@@ -27,6 +28,13 @@ const homePage = read("src/pages/HomePage.tsx");
 const venaculaPage = read("src/pages/ProjectKasenaPage.tsx");
 const getInvolvedPage = read("src/pages/GetInvolvedPage.tsx");
 const contactPage = read("src/pages/ContactPage.tsx");
+const dictionaryPage = read("src/pages/DictionaryPage.tsx");
+const dictionaryData = read("src/features/dictionary/dictionaryData.ts");
+const firebaseConfig = read("../../firebase.json");
+const websiteHosting = firebaseConfig.slice(
+  firebaseConfig.indexOf('"site": "indigen-world"'),
+  firebaseConfig.indexOf('"site": "indigen-admin"')
+);
 for (const [route, page] of routes) {
   assert.ok(pageIndex.includes(`./${page.replace(".tsx", "")}`), `${page} is lazy-loaded`);
   assert.ok(sitemap.includes(`https://indigenworld.com${route}`), `${route} is in sitemap.xml`);
@@ -55,7 +63,9 @@ assert.ok(!read("src/lib/routeLoading.ts").includes("MIN_VISIBLE"), "route loadi
 assert.match(read("src/lib/routeLoading.ts"), /return modulePromise;/, "route bundles resolve as soon as they load");
 assert.match(headerStyles, /\.mobile-nav nav\s*\{[\s\S]*?overflow-y:\s*hidden/, "collapsed mobile navigation does not expose a scrollbar");
 assert.match(headerStyles, /\.mobile-nav--open nav\s*\{[\s\S]*?overflow-y:\s*auto/, "open mobile navigation remains scrollable");
-assert.match(ecosystemPage, /"mobile-app", "project-kasena"/, "learner filtering uses canonical product IDs");
+assert.match(ecosystemPage, /const PUBLIC_PRODUCTS/, "the product grid is separated from programmes and infrastructure");
+assert.match(ecosystemPage, /learners: \["mobile-app", "public-website"\]/, "learner filtering uses only public product IDs");
+assert.match(ecosystemPage, /Partly live/, "the publishing workflow exposes its current status");
 assert.match(ecosystemPage, /aria-pressed=\{audience === key\}/, "audience filters expose their selected state");
 assert.ok(!homePage.includes("ProverbCard"), "unapproved cultural expressions are not presented as public content");
 assert.ok(!venaculaPage.includes("KasemStarterKit"), "the public site does not simulate a learning product");
@@ -64,13 +74,26 @@ assert.match(read("index.html"), /https:\/\/indigenworld\.com\//, "static metada
 assert.match(read("public/robots.txt"), /https:\/\/indigenworld\.com\/sitemap\.xml/, "robots points to the primary sitemap");
 assert.match(read("src/lib/forms.ts"), /VITE_PUBLIC_FORMS_ENDPOINT/, "forms use the reviewed endpoint boundary");
 assert.match(sourceFiles, /Venacula/, "the Venacula newsletter signup is visible on the site");
+assert.ok(!venaculaPage.includes("Venacula starts"), "the programme is not presented as Venacula");
+assert.match(venaculaPage, /Venacula is the separate Indigen World newsletter/, "programme and newsletter names are distinguished");
 assert.match(read("src/features/forms/NewsletterForm.tsx"), /consent/, "newsletter signup records explicit consent");
 assert.ok(!getInvolvedPage.includes("NewsletterForm"), "Get Involved does not duplicate the footer newsletter form");
 assert.match(contactPage, /mailto:hi@indigenworld\.com/, "contact page provides a fallback email route");
 assert.match(contactPage, /within five working days/, "contact page sets a response expectation");
+assert.match(dictionaryPage, /Search Kasem, English, or dialect/, "dictionary exposes the mobile app search journey");
+assert.match(dictionaryData, /where\("isPublished", "==", true\)/, "dictionary requests published records only");
+assert.match(dictionaryPage, /SAVED_WORDS_KEY/, "dictionary saves words on the visitor's device");
+assert.match(dictionaryPage, /role=\{mobileOpen \? "dialog" : undefined\}/, "mobile dictionary details use dialog semantics");
+assert.match(dictionaryPage, /element\.inert = true/, "mobile dictionary details isolate background content");
+assert.match(dictionaryPage, /returnFocus\.focus\(\)/, "mobile dictionary details restore trigger focus");
 assert.match(app, /PAGE_COMPONENTS\[path\]\s*\?\?\s*NotFoundPage/, "unknown routes render the 404 page");
 assert.match(notFound, /noindex:\s*true/, "the 404 route is excluded from indexing");
 assert.match(notFound, /aria-label="Error 404"/, "the 404 state has an explicit accessible error code");
+assert.match(read("scripts/prerender-meta.mjs"), /dist\/404\.html/, "the build creates a custom hosting 404 page");
+assert.ok(
+  !websiteHosting.match(/"source":\s*"\*\*"[\s\S]*?"destination":\s*"\/index\.html"/),
+  "website hosting does not rewrite unknown paths to HTTP 200"
+);
 assert.match(headerStyles, /backdrop-filter:\s*blur/, "the primary navigation retains its glass treatment");
 
 console.log(`Validated ${routes.length} public routes and core privacy/safety invariants.`);

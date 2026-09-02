@@ -186,6 +186,58 @@
   display: none;
 }
 
+@media (max-width: 639px) {
+  .hero {
+    padding: 108px 0 42px;
+  }
+
+  .status-pill {
+    margin-bottom: 14px;
+  }
+
+  .hero__lead {
+    margin-bottom: 18px;
+  }
+
+  .hero-visual {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .hero-visual__core {
+    grid-column: 1 / -1;
+    padding: 20px;
+  }
+
+  .floating-card {
+    justify-content: center;
+    min-height: 56px;
+    padding: 9px 6px;
+    text-align: center;
+  }
+
+  .floating-card__icon,
+  .floating-card small {
+    display: none;
+  }
+
+  .floating-card strong {
+    font-size: 0.74rem;
+    line-height: 1.25;
+  }
+}
+
+@media (max-width: 359px) {
+  .hero h1 {
+    font-size: 2.1rem;
+  }
+
+  .hero__lead {
+    font-size: 0.94rem;
+  }
+}
+
 @media (min-width: 900px) {
   .hero {
     padding: 168px 0 96px;

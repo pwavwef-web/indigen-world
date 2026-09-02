@@ -38,7 +38,7 @@ export function NotFoundPage() {
         </div>
 
         <nav className="not-found__routes" aria-label="Helpful destinations">
-          <Link to="project-kasena" className="not-found__route">
+          <Link to="project-kassena" className="not-found__route">
             <Icon name="book" />
             <span><strong>Project Kassena</strong><small>Discover our first language cell</small></span>
             <Icon name="arrow" size={18} />

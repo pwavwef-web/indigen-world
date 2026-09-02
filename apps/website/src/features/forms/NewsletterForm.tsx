@@ -80,7 +80,8 @@ export function NewsletterForm() {
       </div>
 
       <p className="form-notice">
-        Occasional stories and verified project updates from Indigen World. Unsubscribe at any time.
+        Newsletter delivery is being prepared. When it begins, every email will include an
+        unsubscribe link.
       </p>
       <p className={`form-status form-status--${status}`} role="status" aria-live="polite">
         {statusMessage}

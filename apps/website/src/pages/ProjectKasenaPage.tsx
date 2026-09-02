@@ -1,19 +1,8 @@
 /**
  * src/pages/ProjectKasenaPage.tsx
  *
- * The flagship-programme deep dive: feature points, a static "what the
- * module will include" preview, and the three-phase roadmap.
- *
- * This page previously had an interactive translation-demo widget (a
- * language-direction toggle plus a live word lookup), carried over
- * from the uploaded template. It's been removed: the brief's Ecosystem
- * scope note is explicit that the public website "does not rebuild:
- * dashboards, dictionaries, translators or validator tools — those
- * belong to their own products." A working dictionary/translator UI is
- * exactly that, even with a clear "Illustrative" label on it — the
- * label made the demo honest about *what it showed*, but didn't change
- * *what kind of tool it was*. The module-preview list below describes
- * the same planned capability in prose instead of demonstrating it.
+ * The flagship-programme deep dive: feature points, a module preview,
+ * a route into the live dictionary, and the three-phase roadmap.
  */
 import { Fragment } from "react";
 import { useDocumentMeta } from "../lib/useDocumentMeta";
@@ -30,7 +19,7 @@ import { Icon } from "../components/Icon";
 import { SectionHeading } from "../components/SectionHeading";
 import { StatusBadge } from "../components/StatusBadge";
 
-const route = ROUTES_BY_PATH["project-kasena"];
+const route = ROUTES_BY_PATH["project-kassena"];
 
 export function ProjectKasenaPage() {
   useDocumentMeta(route.title, route.description);
@@ -43,8 +32,8 @@ export function ProjectKasenaPage() {
           <div className="kasena-copy">
             <SectionHeading
               eyebrow="Flagship programme"
-              title="Venacula starts with one language—deeply."
-              body="Venacula is Indigen World's flagship Kasem initiative and intended model for community-validated language preservation. It is building foundations for future text and voice research without presenting a finished translator."
+              title="Project Kassena starts with one language—deeply."
+              body="Project Kassena is Indigen World's flagship Kasem-language programme and the first implementation of its community-validated language-cell model. It is building foundations for future text and voice research without presenting a finished translator."
               light
               as="h1"
             />
@@ -76,9 +65,13 @@ export function ProjectKasenaPage() {
               ))}
             </ul>
             <p className="module-preview__note">
-              This module is in development and will live as its own product experience once ready
-              — this page describes the work underway rather than presenting a finished version.
+              The website offers immediate dictionary search and sharing. The mobile app carries
+              the same reviewed entries into an offline-friendly learning and contribution
+              experience. Translation tooling remains in development.
             </p>
+            <Button to="dictionary" variant="secondary" className="module-preview__button">
+              Open the Kasem dictionary
+            </Button>
           </div>
         </div>
       </section>
@@ -88,7 +81,7 @@ export function ProjectKasenaPage() {
           <SectionHeading
             eyebrow="Community validation"
             title="A record is not publishable simply because it was submitted."
-            body="Venacula is designed around dialect respect, qualified review and permissions that travel with each record."
+            body="Project Kassena is designed around dialect respect, qualified review and permissions that travel with each record."
           />
           <ol className="process-list" data-reveal>
             {KASENA_STEWARDSHIP_STEPS.map((step, index) => (
@@ -123,8 +116,8 @@ export function ProjectKasenaPage() {
         <div className="container">
           <SectionHeading
             eyebrow="Getting the names right"
-            title="Kasem, Kassena, Venacula."
-            body="Kasem is the language. Kassena refers to the people and community it belongs to. Venacula is Indigen World's initiative built to serve that community — they aren't interchangeable, and we're careful to keep the distinction clear everywhere on this site."
+            title="Kasem, Kassena and Project Kassena."
+            body="Kasem is the language. Kassena refers to the people and community it belongs to. Project Kassena is Indigen World's programme serving that language community. Venacula is the separate Indigen World newsletter."
           />
         </div>
       </section>

@@ -505,6 +505,29 @@
   outline: none;
 }
 
+@media (max-width: 639px) {
+  .section {
+    padding: 44px 0;
+  }
+
+  .section-heading {
+    margin-bottom: 26px;
+  }
+
+  .home-ecosystem .product-card__meta {
+    display: none;
+  }
+
+  .home-ecosystem .product-card,
+  .involvement-route-card {
+    border-radius: 20px;
+  }
+
+  .home-deep-dive .section:first-child {
+    padding-top: 34px;
+  }
+}
+
 @media (min-width: 640px) {
   .section-cta {
     align-items: center;

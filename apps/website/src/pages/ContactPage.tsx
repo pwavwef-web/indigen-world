@@ -20,9 +20,9 @@ export function ContactPage() {
       <section className="page-hero page-hero--contact">
         <div className="container">
           <SectionHeading
-            eyebrow="Partners, educators, funders & cultural custodians"
-            title="Help build a future where culture is digitally present—and still belongs to its people."
-            body="We are preparing the first Kasem pilot and welcome conversations with communities, schools, researchers, cultural organisations, technology partners and responsible funders."
+            eyebrow="Contact Indigen World"
+            title="Questions, partnerships, corrections and takedown requests."
+            body="Choose the subject that best matches your request. We welcome general enquiries and partnership conversations, and we route publication, correction and takedown requests for review."
             light
             as="h1"
           />

@@ -1,7 +1,7 @@
 # Indigen World public website
 
 The public website is Indigen World's discovery, trust and participation layer. It explains the
-ecosystem, positions Venacula as the flagship Kasem-language initiative, labels unfinished
+ecosystem, positions Project Kassena as the flagship Kasem-language programme, labels unfinished
 work honestly, and routes visitors to an appropriate next step. Product tools, validators,
 datasets and backend workflows remain outside this app.
 
@@ -45,18 +45,22 @@ client.
 
 ## MVP routes
 
-- `/` — mission, ecosystem, Venacula, operating model, audiences, verified status and CTA
+- `/` — mission, ecosystem, Project Kassena, operating model, audiences, verified status and CTA
 - `/about` — problem, mission, approved team roster, principles and Kasem-first starting point
 - `/ecosystem` — product audiences, owners, status and boundaries
-- `/project-kasena` — Kasem/Kassena distinction, validation model and planned roadmap
+- `/project-kassena` — Project Kassena, the Kasem/Kassena distinction, validation model and planned roadmap
+- `/dictionary` — searchable public Kasem dictionary with published entries and device-local saved words
 - `/impact-governance` — permissions, cultural-data stewardship and labelled targets
 - `/get-involved` — contributor, validator, school, research, diaspora, sponsor and volunteer routes
 - `/contact` — privacy-aware general, publication, correction and takedown route
 - `/privacy` and `/terms` — plain-language implementation summaries pending legal approval
 
+See the [human-readable website sitemap](../../docs/product/website-sitemap.md) for the page
+hierarchy, discovery paths, indexing policy and primary visitor journeys.
+
 ## Updating content
 
-Editable product, status, team, principle and Venacula copy lives under `src/content/`.
+Editable product, status, team, principle and Project Kassena copy lives under `src/content/`.
 Navigation and route metadata live in `src/content/navigation.ts`. Page layouts live under
 `src/pages/`; shared UI is under `src/components/`; form behavior is under `src/features/forms/`.
 The privacy-safe analytics vocabulary is documented in `src/lib/analytics.ts`.
@@ -77,7 +81,7 @@ firebase deploy --only hosting:indigen-world
 
 This app is served by the `indigen-world` Hosting site. Its production custom domains are
 `indigenworld.com` (apex), `www.indigenworld.com` (redirects to the apex) and
-`kasem.indigenworld.com` (Venacula entry point). See
+`kasem.indigenworld.com` (Project Kassena entry point). See
 [`docs/architecture/hosting-and-domains.md`](../../docs/architecture/hosting-and-domains.md) for the
 full site/domain map.
 

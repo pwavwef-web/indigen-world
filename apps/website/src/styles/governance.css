@@ -134,6 +134,17 @@
   }
 }
 
+@media (min-width: 380px) and (max-width: 639px) {
+  .impact-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .impact-grid article {
+    min-height: 126px;
+    padding: 18px;
+  }
+}
+
 @media (min-width: 900px) {
   .governance-grid {
     grid-template-columns: 320px 1fr;

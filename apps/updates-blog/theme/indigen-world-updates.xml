@@ -36,9 +36,9 @@
 <b:if cond='data:view.description'>
   <meta expr:content='data:view.description' name='twitter:description'/>
 <b:else/>
-  <meta content='Release notes, feature updates and notes from the field across the Indigen World ecosystem - the website, TribeStudio, the mobile app and Venacula.' name='description'/>
-  <meta content='Release notes, feature updates and notes from the field across the Indigen World ecosystem - the website, TribeStudio, the mobile app and Venacula.' property='og:description'/>
-  <meta content='Release notes, feature updates and notes from the field across the Indigen World ecosystem - the website, TribeStudio, the mobile app and Venacula.' name='twitter:description'/>
+  <meta content='Release notes, feature updates and notes from the field across the Indigen World ecosystem - the website, TribeStudio, the mobile app and Project Kassena.' name='description'/>
+  <meta content='Release notes, feature updates and notes from the field across the Indigen World ecosystem - the website, TribeStudio, the mobile app and Project Kassena.' property='og:description'/>
+  <meta content='Release notes, feature updates and notes from the field across the Indigen World ecosystem - the website, TribeStudio, the mobile app and Project Kassena.' name='twitter:description'/>
 </b:if>
 
 <b:comment>
@@ -1196,7 +1196,7 @@ textarea:focus-visible,select:focus-visible,summary:focus-visible,
       <b:if cond='data:blog.metaDescription'>
         <p class='iw-hero__lede'><data:blog.metaDescription/></p>
       <b:else/>
-        <p class='iw-hero__lede'>What we are building, shipping and learning across the Indigen World ecosystem &#8212; the website, TribeStudio, the mobile app and Venacula.</p>
+        <p class='iw-hero__lede'>What we are building, shipping and learning across the Indigen World ecosystem &#8212; the website, TribeStudio, the mobile app and Project Kassena.</p>
       </b:if>
       <div class='iw-hero__actions'>
         <a class='iw-btn iw-btn--gold' href='#iw-content'>
@@ -1633,7 +1633,7 @@ textarea:focus-visible,select:focus-visible,summary:focus-visible,
         <b:section id='footer1' maxwidgets='2' name='Footer column 1' showaddelement='yes'>
           <b:widget id='HTML2' locked='false' title='Ecosystem' type='HTML' version='2' visible='true'>
             <b:widget-settings>
-              <b:widget-setting name='content'>&lt;ul&gt;&lt;li&gt;&lt;a href="https://indigenworld.com/"&gt;Indigen World&lt;/a&gt;&lt;/li&gt;&lt;li&gt;&lt;a href="https://indigenworld.com/ecosystem"&gt;Ecosystem&lt;/a&gt;&lt;/li&gt;&lt;li&gt;&lt;a href="https://indigenworld.com/project-kasena"&gt;Venacula&lt;/a&gt;&lt;/li&gt;&lt;li&gt;&lt;a href="https://indigenworld.com/get-involved"&gt;Get involved&lt;/a&gt;&lt;/li&gt;&lt;/ul&gt;</b:widget-setting>
+              <b:widget-setting name='content'>&lt;ul&gt;&lt;li&gt;&lt;a href="https://indigenworld.com/"&gt;Indigen World&lt;/a&gt;&lt;/li&gt;&lt;li&gt;&lt;a href="https://indigenworld.com/ecosystem"&gt;Ecosystem&lt;/a&gt;&lt;/li&gt;&lt;li&gt;&lt;a href="https://indigenworld.com/project-kassena"&gt;Project Kassena&lt;/a&gt;&lt;/li&gt;&lt;li&gt;&lt;a href="https://indigenworld.com/get-involved"&gt;Get involved&lt;/a&gt;&lt;/li&gt;&lt;/ul&gt;</b:widget-setting>
             </b:widget-settings>
             <b:includable id='main'>
               <b:if cond='data:title'><h3 class='iw-widget-title'><data:title/></h3></b:if>

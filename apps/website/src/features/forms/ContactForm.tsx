@@ -5,6 +5,7 @@
  * reviewed public-form service boundary rather than exposing a personal
  * recipient address in client code.
  */
+import { useMemo } from "react";
 import { useFormValidation } from "./useFormValidation";
 import { FormField } from "./FormField";
 import { Button } from "../../components/Button";
@@ -19,6 +20,16 @@ interface ContactFormValues {
 }
 
 const EMPTY_VALUES: ContactFormValues = { name: "", email: "", subject: "", message: "" };
+const CORRECTION_SUBJECT = "Publication, correction or takedown request";
+
+function subjectFromLocation(): string {
+  if (typeof window === "undefined") return "";
+
+  return new URLSearchParams(window.location.search).get("subject") ===
+    "publication-correction-takedown"
+    ? CORRECTION_SUBJECT
+    : "";
+}
 
 function validateEmail(value: string): FieldValidation {
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
@@ -32,9 +43,13 @@ async function submitContactForm(values: ContactFormValues): Promise<void> {
 }
 
 export function ContactForm() {
+  const initialValues = useMemo<ContactFormValues>(
+    () => ({ ...EMPTY_VALUES, subject: subjectFromLocation() }),
+    []
+  );
   const { values, errors, status, handleChange, handleSubmit, statusMessage } =
     useFormValidation<ContactFormValues>({
-      initialValues: EMPTY_VALUES,
+      initialValues,
       fields: {
         name: { required: true },
         email: { required: true, validate: validateEmail },
@@ -81,7 +96,7 @@ export function ContactForm() {
         <option>General question</option>
         <option>Partnership</option>
         <option>Press &amp; media</option>
-        <option>Publication, correction or takedown request</option>
+        <option>{CORRECTION_SUBJECT}</option>
         <option>Something else</option>
       </FormField>
       <FormField

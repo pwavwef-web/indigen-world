@@ -24,9 +24,14 @@ export const PAGE_COMPONENTS: Record<string, LazyPage> = {
       default: EcosystemPage,
     }))
   ),
-  "project-kasena": lazy(() =>
+  "project-kassena": lazy(() =>
     withRouteLoadingTiming(import("./ProjectKasenaPage")).then(({ ProjectKasenaPage }) => ({
       default: ProjectKasenaPage,
+    }))
+  ),
+  dictionary: lazy(() =>
+    withRouteLoadingTiming(import("./DictionaryPage")).then(({ DictionaryPage }) => ({
+      default: DictionaryPage,
     }))
   ),
   "impact-governance": lazy(() =>

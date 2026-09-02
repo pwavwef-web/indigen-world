@@ -37,7 +37,7 @@ function referenceFromLocation(): string | null {
 }
 
 export function AdsPaymentCompletePage() {
-  useDocumentMeta(route.title, route.description);
+  useDocumentMeta(route.title, route.description, { noindex: route.noindex });
 
   const [reference, setReference] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -103,15 +103,15 @@ export function AdsPaymentCompletePage() {
           <h2>If nothing has changed in the app</h2>
           <p>
             Open the campaign and tap <strong>I have paid — check now</strong>.
-            If it still says it is waiting after a few minutes, nothing was
-            taken: a checkout that is abandoned or declined never charges you.
-            Either way, the campaign stays exactly as you left it and can be
-            paid for again.
+            If it still says it is waiting after a few minutes, do not start
+            another payment yet. A delayed status does not prove whether a
+            charge completed.
           </p>
           <p>
-            Anything that still looks wrong is worth telling us about —{" "}
-            <Link to="contact">get in touch</Link> with the reference above and
-            we will look at the transaction itself.
+            <Link to="contact">Get in touch</Link> with the reference above and
+            we will verify the transaction before you try again. If Paystack
+            and the app both confirm that the checkout was abandoned or
+            declined, you can then start a new checkout from the campaign.
           </p>
 
           <h2>What happens next</h2>

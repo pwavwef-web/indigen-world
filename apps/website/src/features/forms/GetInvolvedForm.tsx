@@ -5,6 +5,7 @@
  * page. `route` is constrained to INTEREST_ROUTES below, so the
  * dropdown's options and the submitted value can never drift apart.
  */
+import { useEffect, useMemo, useState } from "react";
 import { useFormValidation } from "./useFormValidation";
 import { FormField } from "./FormField";
 import { Button } from "../../components/Button";
@@ -28,7 +29,8 @@ const EMPTY_VALUES: GetInvolvedFormValues = {
   note: "",
 };
 
-const INTEREST_ROUTES = [
+export const INTEREST_ROUTES = [
+  "Indigen mobile app waitlist",
   "Language contributor",
   "Elder / teacher validator",
   "School or educator",
@@ -38,17 +40,77 @@ const INTEREST_ROUTES = [
   "Technical volunteer",
 ] as const;
 
+export type InterestRoute = (typeof INTEREST_ROUTES)[number];
+
+const ROUTES_BY_QUERY: Record<string, InterestRoute> = {
+  "mobile-app-waitlist": "Indigen mobile app waitlist",
+  "language-contributor": "Language contributor",
+  validator: "Elder / teacher validator",
+  school: "School or educator",
+  researcher: "Researcher",
+  diaspora: "Diaspora supporter",
+  sponsor: "Sponsor or cultural partner",
+  "technical-volunteer": "Technical volunteer",
+};
+
+const QUERY_BY_ROUTE = Object.fromEntries(
+  Object.entries(ROUTES_BY_QUERY).map(([query, route]) => [route, query])
+) as Record<InterestRoute, string>;
+
+export function interestRouteFromLocation(): InterestRoute | "" {
+  if (typeof window === "undefined") return "";
+  const query = new URLSearchParams(window.location.search).get("route") ?? "";
+  return ROUTES_BY_QUERY[query] ?? "";
+}
+
+export function queryForInterestRoute(route: InterestRoute): string {
+  return QUERY_BY_ROUTE[route];
+}
+
+function isInterestRoute(value: string): value is InterestRoute {
+  return INTEREST_ROUTES.some((route) => route === value);
+}
+
+function validEmail(value: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+
+function validPhone(value: string): boolean {
+  return value.replace(/\D/g, "").length >= 7;
+}
+
 async function submitGetInvolvedForm(values: GetInvolvedFormValues): Promise<void> {
   await submitPublicForm("get-involved", values);
 }
 
-export function GetInvolvedForm() {
+export function GetInvolvedForm({
+  selectedRoute,
+  onRouteChange,
+}: {
+  selectedRoute?: InterestRoute | "";
+  onRouteChange?: (route: InterestRoute | "") => void;
+}) {
+  const [contactMethod, setContactMethod] = useState<"email" | "phone">("email");
+  const initialValues = useMemo(
+    () => ({ ...EMPTY_VALUES, route: selectedRoute || interestRouteFromLocation() }),
+    []
+  );
   const { values, errors, status, handleChange, handleSubmit, statusMessage } =
     useFormValidation<GetInvolvedFormValues>({
-      initialValues: EMPTY_VALUES,
+      initialValues,
       fields: {
         name: { required: true },
-        contact: { required: true },
+        contact: {
+          required: true,
+          validate: (value) =>
+            contactMethod === "email"
+              ? validEmail(value)
+                ? { valid: true }
+                : { valid: false, message: "Please enter a valid email address." }
+              : validPhone(value)
+                ? { valid: true }
+                : { valid: false, message: "Please enter a valid phone number with its country code." },
+        },
         country: { required: true },
         route: { required: true },
         note: { required: true },
@@ -59,8 +121,14 @@ export function GetInvolvedForm() {
         "Online submissions are unavailable right now. Email hi@indigenworld.com instead.",
     });
 
+  useEffect(() => {
+    if (selectedRoute) handleChange("route", selectedRoute);
+    // The card selection is the only external route update this form accepts.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedRoute]);
+
   return (
-    <form className="form" onSubmit={handleSubmit} noValidate>
+    <form id="get-involved-form" className="form" onSubmit={handleSubmit} noValidate>
       <FormField
         id="gi-name"
         label="Full name"
@@ -70,13 +138,50 @@ export function GetInvolvedForm() {
         autoComplete="name"
         onChange={(v) => handleChange("name", v)}
       />
+      <fieldset className="contact-method">
+        <legend>How should we contact you?</legend>
+        <div>
+          <label>
+            <input
+              type="radio"
+              name="contact-method"
+              value="email"
+              checked={contactMethod === "email"}
+              onChange={() => {
+                setContactMethod("email");
+                handleChange("contact", "");
+              }}
+            />
+            Email
+          </label>
+          <label>
+            <input
+              type="radio"
+              name="contact-method"
+              value="phone"
+              checked={contactMethod === "phone"}
+              onChange={() => {
+                setContactMethod("phone");
+                handleChange("contact", "");
+              }}
+            />
+            Phone or WhatsApp
+          </label>
+        </div>
+      </fieldset>
       <FormField
         id="gi-contact"
-        label="Email or phone"
+        label={contactMethod === "email" ? "Email address" : "Phone or WhatsApp number"}
+        type={contactMethod === "email" ? "email" : "tel"}
         value={values.contact}
         error={errors.contact}
         required
-        autoComplete="email"
+        autoComplete={contactMethod === "email" ? "email" : "tel"}
+        hint={
+          contactMethod === "email"
+            ? "We'll send an automatic acknowledgement here."
+            : "Include the international country code, for example +233."
+        }
         onChange={(v) => handleChange("contact", v)}
       />
       <FormField
@@ -101,7 +206,10 @@ export function GetInvolvedForm() {
         value={values.route}
         error={errors.route}
         required
-        onChange={(v) => handleChange("route", v)}
+        onChange={(v) => {
+          handleChange("route", v);
+          onRouteChange?.(isInterestRoute(v) ? v : "");
+        }}
       >
         <option value="">Select one</option>
         {INTEREST_ROUTES.map((route) => (
@@ -126,6 +234,11 @@ export function GetInvolvedForm() {
       <p className="form-notice">
         We use these details only to route and answer your request. Do not submit audio, sacred or
         restricted knowledge, detailed cultural records, or information about minors here.
+      </p>
+
+      <p className="form-response-time">
+        We aim to acknowledge your interest within five working days. Some routes may take longer
+        when community, safeguarding, or rights-holder consultation is needed.
       </p>
 
       <p className={`form-status form-status--${status}`} role="status" aria-live="polite">

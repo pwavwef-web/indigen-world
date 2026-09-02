@@ -24,7 +24,7 @@ const PRODUCT_ICONS: Record<string, IconName> = {
   "public-website": "globe",
   tribestudio: "studio",
   "mobile-app": "mobile",
-  "project-kasena": "book",
+  "project-kassena": "book",
   backend: "layers",
 };
 

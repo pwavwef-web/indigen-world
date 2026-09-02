@@ -86,7 +86,7 @@ export function ImpactGovernancePage() {
             body="Our first milestones focus on a working product, trusted validation and a useful language dataset—not vanity features."
           />
           <p className="target-label" data-reveal>
-            Targets below describe the Venacula MVP ambition, not completed results.
+            Targets below describe the Project Kassena MVP ambition, not completed results.
           </p>
         </div>
         <div className="container impact-grid">

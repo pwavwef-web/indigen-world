@@ -1,14 +1,13 @@
 /**
  * src/content/kasena.ts
  *
- * Content specific to the Venacula and Impact & Governance
+ * Content specific to Project Kassena and Impact & Governance
  * pages: the honestly-labelled MVP impact targets, the three-phase
  * roadmap, and the flagship feature list. Carried over from the
  * uploaded template's inline JSX, now separated as data.
  *
- * This file previously also exported TRANSLATION_DEMO, sample data for
- * an interactive dictionary/translator widget. That's been removed —
- * see MODULE_PREVIEW_POINTS below for why and what replaced it.
+ * The public dictionary now has its own route; this file keeps the
+ * programme-level summary and the roadmap for translation work.
  */
 
 /** MVP targets — the brief's "target/planned" labelling rule made
@@ -19,7 +18,7 @@ export const IMPACT_TARGETS = [
   { figure: "20,000+", label: "validated Kasem words, phrases and sentence pairs targeted" },
   { figure: "200–500", label: "active youth contributors targeted for the first large data campaign" },
   { figure: "3–4", label: "elder and teacher validators for the initial quality network" },
-  { figure: "1 model", label: "a reusable language-cell framework proven deeply before expansion" },
+  { figure: "1 model", label: "a reusable language-cell model tested thoroughly with Kasem before expansion" },
 ] as const;
 
 export const ROADMAP_PHASES = [
@@ -41,7 +40,7 @@ export const ROADMAP_PHASES = [
 ] as const;
 
 export const KASENA_POINTS = [
-  "Planned English ↔ Kasem dictionary and translation utility",
+  "Community-published Kasem dictionary, with translation tooling planned",
   "Youth contribution and expert validation workflow",
   "Dialect-aware records and cultural permissions",
   "Future text AI and voice-data readiness",
@@ -62,19 +61,11 @@ export const KASENA_STEWARDSHIP_STEPS = [
   },
 ] as const;
 
-/** What the Kasem dictionary/translator module will include, once it
- *  exists as its own product. Deliberately described here — not
- *  demonstrated: the brief's Ecosystem scope note says the public
- *  website "does not rebuild: dashboards, dictionaries, translators or
- *  validator tools — those belong to their own products." An earlier
- *  version of this page had an interactive (if clearly-labelled
- *  "Illustrative") translation widget; even well-labelled, a working
- *  dictionary/translator UI is exactly the kind of tool the brief says
- *  belongs to Venacula's own product, not this marketing site.
- *  This static list replaces it. */
+/** What visitors can use in the published dictionary today, alongside
+ *  the contribution and validation workflow that maintains it. */
 export const MODULE_PREVIEW_POINTS = [
-  "English ↔ Kasem word and phrase lookup",
+  "Kasem and English word lookup",
   "Dialect metadata attached to every validated entry",
   "Contributor suggestions routed to qualified validators",
-  "Example sentences reviewed for accuracy before publication",
+  "Pronunciation, examples and cultural context where published",
 ] as const;

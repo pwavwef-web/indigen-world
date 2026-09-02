@@ -9,7 +9,7 @@
 
 /**
  * The four honest-labelling states used on every product/status badge
- * (Ecosystem cards, Venacula status, Home progress cards).
+ * (Ecosystem cards, Project Kassena status, Home progress cards).
  * A union of string literals rather than `string` — TypeScript refuses
  * to compile a typo'd status like "live " or "Live", which is exactly
  * the brief's "never present planned features as live" rule enforced
@@ -61,6 +61,8 @@ export interface AppRoute {
   navLabel?: string;
   title: string;
   description: string;
+  /** Exclude utility and transactional routes from search indexing. */
+  noindex?: boolean;
 }
 
 /** Result of validating a single form field — a discriminated union so

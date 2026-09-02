@@ -53,8 +53,9 @@ export function PrivacyPage() {
           <p>
             Contact and Get Involved submissions are used to respond to you and route your request.
             If you subscribe to Venacula, we use your email only to send the newsletter and related
-            Indigen World updates. We do not sell this information or publish form responses. Every
-            newsletter email will include a way to unsubscribe.
+            Indigen World updates. We do not sell this information or publish form responses.
+            Newsletter delivery will not begin until every email can include a working unsubscribe
+            link.
           </p>
 
           <h2>What we don't collect here</h2>

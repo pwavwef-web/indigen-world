@@ -13,6 +13,7 @@
     {
       "site": "indigen-world",
       "public": "apps/website/dist",
+      "cleanUrls": true,
       "ignore": [
         "firebase.json",
         "**/.*",
@@ -42,6 +43,13 @@
           ]
         }
       ],
+      "redirects": [
+        {
+          "regex": "^/project-kasena$",
+          "destination": "/project-kassena",
+          "type": 301
+        }
+      ],
       "rewrites": [
         {
           "source": "/api/public-forms",
@@ -49,10 +57,6 @@
             "functionId": "publicForms",
             "region": "us-central1"
           }
-        },
-        {
-          "source": "**",
-          "destination": "/index.html"
         }
       ]
     },

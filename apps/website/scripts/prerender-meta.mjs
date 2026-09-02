@@ -7,10 +7,10 @@
  * the home page's generic tags for /about, /ecosystem, and so on.
  *
  * This bakes the correct static metadata for each route into its own
- * dist/<route>/index.html. Firebase Hosting serves that file directly (the
- * catch-all rewrite to /index.html only applies when no matching file exists),
- * so a crawler requesting /about gets /about's real title and description while
- * users still get the same SPA bundle.
+ * dist/<route>/index.html. Firebase Hosting serves those files directly, so a
+ * crawler requesting /about gets /about's real title and description while
+ * users still get the same SPA bundle. A noindex 404.html uses that bundle to
+ * render NotFoundPage while allowing Hosting to return a genuine HTTP 404.
  *
  * Route metadata is read from src/content/navigation.ts so this file and the
  * app share one source of truth — no hand-maintained duplicate to drift.
@@ -24,16 +24,27 @@ const distIndex = resolve(root, "dist/index.html");
 const siteOrigin = (process.env.VITE_SITE_URL || "https://indigenworld.com").replace(/\/+$/, "");
 
 const HOME_TITLE = "Indigen World — Culture belongs in the future";
+const NOT_FOUND_ROUTE = {
+  path: "404",
+  title: "Page not found",
+  description: "The page you're looking for doesn't exist.",
+  noindex: true,
+};
 
-/** Parse ROUTES (path, title, description) out of the app's navigation source. */
+/** Parse ROUTES (path, title, description, noindex) out of the app's navigation source. */
 function readRoutes() {
   const source = readFileSync(resolve(root, "src/content/navigation.ts"), "utf8");
   const pattern =
-    /path:\s*"([^"]+)",[\s\S]*?title:\s*"([^"]+)",\s*description:\s*"((?:[^"\\]|\\.)*)"/g;
+    /path:\s*"([^"]+)",[\s\S]*?title:\s*"([^"]+)",\s*description:\s*"((?:[^"\\]|\\.)*)"(?:,\s*noindex:\s*(true|false))?/g;
   const routes = [];
   let match;
   while ((match = pattern.exec(source)) !== null) {
-    routes.push({ path: match[1], title: match[2], description: match[3] });
+    routes.push({
+      path: match[1],
+      title: match[2],
+      description: match[3],
+      noindex: match[4] === "true",
+    });
   }
   if (routes.length === 0) {
     throw new Error("prerender-meta: no routes parsed from navigation.ts");
@@ -85,7 +96,12 @@ function renderRoute(baseHtml, route) {
   html = replaceAttr(html, 'property="og:url"', "content", url);
   html = replaceAttr(html, 'name="twitter:title"', "content", fullTitle);
   html = replaceAttr(html, 'name="twitter:description"', "content", description);
-  html = replaceAttr(html, 'rel="canonical"', "href", url);
+  html = replaceAttr(html, 'name="robots"', "content", route.noindex ? "noindex" : "index, follow");
+  if (route.noindex) {
+    html = html.replace(/\s*<link\b[^>]*rel="canonical"[^>]*\/?\s*>/, "");
+  } else {
+    html = replaceAttr(html, 'rel="canonical"', "href", url);
+  }
   return html;
 }
 
@@ -105,4 +121,6 @@ for (const route of routes) {
   written += 1;
 }
 
-console.log(`Prerendered per-route metadata for ${written} routes (origin ${siteOrigin}).`);
+writeFileSync(resolve(root, "dist/404.html"), renderRoute(baseHtml, NOT_FOUND_ROUTE), "utf8");
+
+console.log(`Prerendered metadata for ${written} routes plus the hosting 404 page (origin ${siteOrigin}).`);

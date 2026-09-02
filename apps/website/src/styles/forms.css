@@ -101,6 +101,62 @@
   color: var(--muted);
 }
 
+.contact-method {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.contact-method legend {
+  margin-bottom: 7px;
+  color: var(--indigo-900);
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.contact-method > div {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.contact-method label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 9px 11px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--white);
+  color: var(--indigo-900);
+  font-size: 0.84rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.contact-method label:has(input:checked) {
+  border-color: var(--indigo-900);
+  background: rgba(30, 54, 93, 0.07);
+}
+
+.contact-method input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--indigo-900);
+}
+
+.form-response-time {
+  margin: 0;
+  padding: 11px 13px;
+  border-left: 3px solid var(--gold);
+  background: rgba(214, 165, 43, 0.08);
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
 .newsletter-form__row {
   display: flex;
   flex-direction: column;

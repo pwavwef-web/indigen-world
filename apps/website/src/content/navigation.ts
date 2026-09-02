@@ -8,7 +8,7 @@
  * This is the single biggest structural change from the uploaded
  * template: the template was one scrolling page with `<a href="#vision">`
  * anchor links into sections. The brief's sitemap calls for distinct
- * pages (Home, About, Ecosystem, Venacula, Impact & Governance,
+ * pages (Home, About, Ecosystem, Project Kassena, Impact & Governance,
  * Get Involved, Contact, Privacy, Terms) — so this file backs a
  * real router (see src/app/router.tsx) instead of scroll anchors.
  */
@@ -37,11 +37,18 @@ export const ROUTES: AppRoute[] = [
       "One ecosystem, three user-facing products: the public website, TribeStudio and the Indigen World mobile app, on a shared Firebase foundation.",
   },
   {
-    path: "project-kasena",
-    navLabel: "Venacula",
-    title: "Venacula",
+    path: "project-kassena",
+    navLabel: "Project Kassena",
+    title: "Project Kassena",
     description:
-      "Venacula is Indigen World's flagship language cell, proving community-validated language preservation with Kasem before expanding further.",
+      "Project Kassena is Indigen World's flagship Kasem-language programme and the first implementation of its community-validated language-cell model.",
+  },
+  {
+    path: "dictionary",
+    navLabel: "Dictionary",
+    title: "Kasem Dictionary",
+    description:
+      "Search Project Kassena's public web dictionary by Kasem, English or dialect, with pronunciation, examples, cultural context and attribution.",
   },
   {
     path: "impact-governance",
@@ -75,8 +82,10 @@ export const ROUTES: AppRoute[] = [
     // Where Paystack returns an advertiser after checkout. No navLabel: it is
     // a destination people are sent to, never one they would go looking for.
     path: "ads/payment-complete",
-    title: "Advert payment",
-    description: "You have finished paying for an Indigen World advert.",
+    title: "Advert checkout",
+    description:
+      "Your Paystack checkout has closed. Return to Indigen to verify the campaign's payment status.",
+    noindex: true,
   },
 ];
 

@@ -3,7 +3,7 @@
  *
  * Landing page: hero, belief strip, ecosystem highlights, a Project
  * Kassena spotlight (trimmed — the full translation demo and roadmap
- * live on the dedicated Venacula page), an honestly-labelled
+ * live on the dedicated Project Kassena page), an honestly-labelled
  * progress snapshot, and a closing CTA. Adapted from the top portion
  * of the uploaded template's single-page App.tsx.
  */
@@ -17,6 +17,7 @@ import { Icon } from "../components/Icon";
 import { BrandMark } from "../components/BrandMark";
 import { SectionHeading } from "../components/SectionHeading";
 import { ProductCard } from "../components/ProductCard";
+import { ResponsiveDisclosure } from "../components/ResponsiveDisclosure";
 
 const route = ROUTES_BY_PATH["home"];
 
@@ -94,7 +95,7 @@ export function HomePage() {
               </span>
               <div>
                 <small>Language cell 01</small>
-                <strong>Venacula</strong>
+                <strong>Project Kassena</strong>
               </div>
             </div>
             <div className="floating-card floating-card--creator">
@@ -149,12 +150,12 @@ export function HomePage() {
         </div>
       </section>
 
-      <section className="section section--white" id="ecosystem-highlights">
+      <section className="section section--white home-ecosystem" id="ecosystem-highlights">
         <div className="container">
           <SectionHeading
             eyebrow="One connected ecosystem"
-            title="Different doors. One cultural future."
-            body="TribeStudio, the mobile experience, Venacula and shared data infrastructure each have a clear job — and an honest status."
+            title="Three products. One cultural future."
+            body="The public website, TribeStudio and the mobile app each serve a distinct audience while sharing the same governance standards and technical foundation."
           />
           <div className="product-grid">
             {HOME_ECOSYSTEM_HIGHLIGHTS.map((product, index) => (
@@ -173,51 +174,56 @@ export function HomePage() {
         <div className="container kasena-spotlight">
           <SectionHeading
             eyebrow="Flagship programme"
-            title="Venacula starts with one language—deeply."
+            title="Project Kassena starts with one language—deeply."
             body="Indigen World's first language cell and intended model for community-validated language preservation. It begins with Kasem and is building foundations for future text and voice research."
             light
           />
-          <Button to="project-kasena" variant="secondary">
-            Explore Venacula
+          <Button to="project-kassena" variant="secondary">
+            Explore Project Kassena
           </Button>
         </div>
       </section>
 
-      <section className="section section--cream" id="how-it-works">
-        <div className="container">
-          <SectionHeading
-            eyebrow="How Indigen World works"
-            title="From community knowledge to useful, governed technology."
-            body="The model keeps cultural authority present at every step instead of treating validation and consent as an afterthought."
-          />
-          <ol className="process-list" data-reveal>
-            {HOW_IT_WORKS.map(([title, body], index) => (
-              <li key={title}>
-                <span>{String(index + 1).padStart(2, "0")}</span>
-                <div>
-                  <strong>{title}</strong>
-                  <p>{body}</p>
-                </div>
-              </li>
-            ))}
-          </ol>
-        </div>
-      </section>
+      <ResponsiveDisclosure
+        className="home-deep-dive"
+        summary="See how the model works and who it serves"
+      >
+        <section className="section section--cream" id="how-it-works">
+          <div className="container">
+            <SectionHeading
+              eyebrow="How Indigen World works"
+              title="From community knowledge to useful, governed technology."
+              body="The model keeps cultural authority present at every step instead of treating validation and consent as an afterthought."
+            />
+            <ol className="process-list" data-reveal>
+              {HOW_IT_WORKS.map(([title, body], index) => (
+                <li key={title}>
+                  <span>{String(index + 1).padStart(2, "0")}</span>
+                  <div>
+                    <strong>{title}</strong>
+                    <p>{body}</p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </div>
+        </section>
 
-      <section className="section section--white" id="who-it-serves">
-        <div className="container split-intro">
-          <SectionHeading
-            eyebrow="Who it serves"
-            title="Built for the people who keep culture moving."
-            body="The ecosystem supports different roles without asking every visitor to use the same product or contribution path."
-          />
-          <ul className="audience-list" data-reveal>
-            {WHO_IT_SERVES.map((audience) => (
-              <li key={audience}>{audience}</li>
-            ))}
-          </ul>
-        </div>
-      </section>
+        <section className="section section--white" id="who-it-serves">
+          <div className="container split-intro">
+            <SectionHeading
+              eyebrow="Who it serves"
+              title="Built for the people who keep culture moving."
+              body="The ecosystem supports different roles without asking every visitor to use the same product or contribution path."
+            />
+            <ul className="audience-list" data-reveal>
+              {WHO_IT_SERVES.map((audience) => (
+                <li key={audience}>{audience}</li>
+              ))}
+            </ul>
+          </div>
+        </section>
+      </ResponsiveDisclosure>
 
       <section className="section section--white" id="progress">
         <div className="container">
@@ -227,7 +233,7 @@ export function HomePage() {
             body="Our first milestones focus on a working product, trusted validation and a useful language dataset—not vanity features."
           />
           <p className="target-label" data-reveal>
-            Figures below describe the Venacula MVP ambition, not completed results.
+            Figures below describe the Project Kassena MVP ambition, not completed results.
           </p>
           <div className="impact-grid">
             {IMPACT_TARGETS.map((target) => (

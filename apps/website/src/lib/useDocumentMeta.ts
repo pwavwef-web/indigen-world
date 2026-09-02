@@ -71,8 +71,8 @@ export function useDocumentMeta(
       page_title: title,
     });
 
-    if (window.location.pathname === "/project-kasena") {
-      trackEvent(ANALYTICS_EVENTS.languageProjectPageView, { project: "project_kasena" });
+    if (window.location.pathname === "/project-kassena") {
+      trackEvent(ANALYTICS_EVENTS.languageProjectPageView, { project: "project_kassena" });
     }
   }, [title, description]);
 }

@@ -10,14 +10,23 @@
 export type IconName =
   | "arrow"
   | "book"
+  | "bookmark"
+  | "chat"
   | "check"
+  | "chevron"
   | "community"
+  | "context"
   | "globe"
   | "layers"
   | "menu"
   | "mobile"
+  | "pin"
+  | "search"
   | "shield"
+  | "source"
   | "studio"
+  | "translate"
+  | "volume"
   | "x";
 
 export function Icon({ name, size = 22 }: { name: IconName; size?: number }) {
@@ -48,10 +57,28 @@ export function Icon({ name, size = 22 }: { name: IconName; size?: number }) {
           <path d="M20 5.5A2.5 2.5 0 0 0 17.5 3H13v16h4.5a2.5 2.5 0 0 1 2.5 2.5z" />
         </svg>
       );
+    case "bookmark":
+      return (
+        <svg {...shared}>
+          <path d="M6 4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18l-6-4-6 4z" />
+        </svg>
+      );
+    case "chat":
+      return (
+        <svg {...shared}>
+          <path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z" />
+        </svg>
+      );
     case "check":
       return (
         <svg {...shared}>
           <path d="m5 12 4 4L19 6" />
+        </svg>
+      );
+    case "chevron":
+      return (
+        <svg {...shared}>
+          <path d="m9 18 6-6-6-6" />
         </svg>
       );
     case "community":
@@ -61,6 +88,14 @@ export function Icon({ name, size = 22 }: { name: IconName; size?: number }) {
           <circle cx="9" cy="7" r="4" />
           <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
           <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+        </svg>
+      );
+    case "context":
+      return (
+        <svg {...shared}>
+          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+          <path d="M8 7h8M8 11h6" />
         </svg>
       );
     case "globe":
@@ -93,11 +128,32 @@ export function Icon({ name, size = 22 }: { name: IconName; size?: number }) {
           <path d="M10 18h4" />
         </svg>
       );
+    case "pin":
+      return (
+        <svg {...shared}>
+          <path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0z" />
+          <circle cx="12" cy="10" r="2.5" />
+        </svg>
+      );
+    case "search":
+      return (
+        <svg {...shared}>
+          <circle cx="11" cy="11" r="7" />
+          <path d="m20 20-4-4" />
+        </svg>
+      );
     case "shield":
       return (
         <svg {...shared}>
           <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" />
           <path d="m9 12 2 2 4-4" />
+        </svg>
+      );
+    case "source":
+      return (
+        <svg {...shared}>
+          <path d="m12 3 8 4-8 4-8-4z" />
+          <path d="M5 10v6c3 3 11 3 14 0v-6M20 7v7" />
         </svg>
       );
     case "studio":
@@ -107,6 +163,21 @@ export function Icon({ name, size = 22 }: { name: IconName; size?: number }) {
           <path d="M6 17V8l6-4 6 4v9" />
           <path d="M9 17v-5h6v5" />
           <path d="M8 9h.01M16 9h.01" />
+        </svg>
+      );
+    case "translate":
+      return (
+        <svg {...shared}>
+          <path d="M5 8l5 5M4 14l6-6 2-3" />
+          <path d="M2 5h12M7 2v3" />
+          <path d="m14 22 4-10 4 10M15.5 18h5" />
+        </svg>
+      );
+    case "volume":
+      return (
+        <svg {...shared}>
+          <path d="M11 5 6 9H2v6h4l5 4z" />
+          <path d="M15 9a4 4 0 0 1 0 6M18 6a8 8 0 0 1 0 12" />
         </svg>
       );
     case "x":

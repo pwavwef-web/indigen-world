@@ -27,7 +27,7 @@ export const PRINCIPLES: Principle[] = [
   {
     number: "04",
     title: "One language deeply, then scale",
-    body: "Venacula is designed to test the language-cell model with Kasem before any expansion into additional language communities.",
+    body: "Project Kassena tests the language-cell model with Kasem before any expansion into additional language communities.",
   },
 ];
 

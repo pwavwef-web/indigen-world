@@ -71,6 +71,7 @@ export function AboutPage() {
             </div>
           </article>
           <article className="vision-card vision-card--image" data-reveal>
+            <span className="vision-card__number">02</span>
             <div className="woven-pattern" aria-hidden="true" />
             <div className="vision-card__overlay">
               <p className="eyebrow">The opportunity</p>
@@ -132,11 +133,11 @@ export function AboutPage() {
           <SectionHeading
             eyebrow="Starting point"
             title="Why Kasem, why now."
-            body="Indigen World's first deep commitment is to Kasem, the language of the Kassena people of Northern Ghana, through Venacula. Starting with one language lets us build the validation, consent and attribution model properly — a foundation other language communities can eventually build on."
+            body="Indigen World's first deep commitment is Project Kassena, focused on Kasem, the language of the Kassena people of Northern Ghana. Starting with one language lets us build the validation, consent and attribution model properly — a foundation other language communities can eventually build on."
           />
           <div data-reveal>
-            <Button to="project-kasena" variant="secondary">
-              Read about Venacula
+            <Button to="project-kassena" variant="secondary">
+              Read about Project Kassena
             </Button>
           </div>
         </div>

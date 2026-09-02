@@ -60,6 +60,12 @@
   z-index: 1;
 }
 
+.site-footer > .responsive-disclosure,
+.footer-newsletter {
+  position: relative;
+  z-index: 1;
+}
+
 .footer-newsletter {
   display: grid;
   gap: var(--space-3);

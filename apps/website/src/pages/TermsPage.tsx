@@ -40,20 +40,24 @@ export function TermsPage() {
 
           <h2>Using this site</h2>
           <p>
-            This website introduces Indigen World's mission, ecosystem and team, and provides ways
-            to get in touch or express interest in contributing. It is informational — it is not
-            itself a language-learning tool, dictionary or translator. Descriptions of Project
-            Kassena tools on this site are plans, not a live product experience.
+            This website introduces Indigen World's mission, ecosystem and team, provides ways to
+            get in touch or express interest in contributing, and hosts Project Kassena's public
+            Kasem dictionary. Visitors can search published entries, save words on their own
+            device, share links and suggest corrections. The web dictionary is not a complete
+            language course or finished translator; features labelled as planned or in development
+            are not yet live.
           </p>
 
           <h2>Using the Indigen World mobile app</h2>
           <p>
             The mobile app is an everyday consumer app for exploring, learning, saving and
-            contributing cultural and language content, beginning with the Kasem language cell. Some
-            surfaces are feature-gated and may be unavailable or clearly labelled as previews. When
-            you post in the community, comment, or attribute Explore content, you are responsible
-            for what you share and must hold the rights and permissions to share it. Do not upload
-            restricted, sacred or third-party material you are not permitted to submit.
+            contributing cultural and language content, beginning with the Kasem language cell. It
+            includes the same reviewed dictionary within an offline-friendly learning experience;
+            the website remains the quickest public route for search and sharing. Some surfaces are
+            feature-gated and may be unavailable or clearly labelled as previews. When you post in
+            the community, comment, or attribute Explore content, you are responsible for what you
+            share and must hold the rights and permissions to share it. Do not upload restricted,
+            sacred or third-party material you are not permitted to submit.
           </p>
           <p>
             Rewards and points shown against contributions are provisional: they remain pending
