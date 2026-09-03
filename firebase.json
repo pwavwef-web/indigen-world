@@ -13,6 +13,10 @@
     {
       "site": "indigen-world",
       "public": "apps/website/dist",
+      "predeploy": [
+        "npm run verify:production-main",
+        "npm run check --workspace @indigen-world/website"
+      ],
       "cleanUrls": true,
       "ignore": [
         "firebase.json",

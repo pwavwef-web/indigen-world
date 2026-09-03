@@ -25,6 +25,8 @@
     "audit:prod": "npm audit --omit=dev --audit-level=high",
     "build:web-ui": "npm run build --workspace @indigen-world/web-ui",
     "build:website": "npm run build --workspace @indigen-world/website",
+    "verify:production-main": "node scripts/verify-production-main.mjs",
+    "deploy:website": "firebase deploy --only hosting:indigen-world --project project-kassena-7e026",
     "build:admin": "npm run build --workspace @indigen-world/admin",
     "build:tribestudio": "npm run build --workspace @indigen-world/tribestudio",
     "build:team-francis-pwavwe": "npm run build --workspace @indigen-world/team-francis-pwavwe",
