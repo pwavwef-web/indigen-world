@@ -139,28 +139,41 @@ void main() {
       ),
     );
     await tester.pump(const Duration(milliseconds: 400));
+    await tester.pump(const Duration(milliseconds: 500));
 
     // The tab's name, and no slogan under it. It used to be the eyebrow over
     // "Knowledge, kept alive." and so arrived here upper-cased; it is the
     // heading itself now, in the case somebody actually wrote it in.
     expect(find.text('The Kassena Collection'), findsOneWidget);
-    expect(find.text('Music'), findsOneWidget);
-    expect(find.text('Dictionary'), findsOneWidget);
+    expect(
+      find.text('Preserving culture, one story at a time'),
+      findsOneWidget,
+    );
+    expect(find.byKey(const Key('collection-search-field')), findsOneWidget);
+    expect(find.text('Published'), findsOneWidget);
+    expect(find.text('Open'), findsOneWidget);
     final collectionScroll = find.descendant(
       of: find.byKey(const PageStorageKey('collection-overview-scroll')),
       matching: find.byType(Scrollable),
     );
     await tester.scrollUntilVisible(
+      find.text('Music'),
+      120,
+      scrollable: collectionScroll.first,
+    );
+    expect(find.text('Music'), findsOneWidget);
+    expect(find.text('Dictionary'), findsOneWidget);
+    await tester.scrollUntilVisible(
       find.text('Literature'),
       180,
-      scrollable: collectionScroll,
+      scrollable: collectionScroll.first,
     );
     await tester.pump(const Duration(milliseconds: 200));
     expect(find.text('Literature'), findsOneWidget);
     await tester.scrollUntilVisible(
       find.text('Audiobooks'),
       180,
-      scrollable: collectionScroll,
+      scrollable: collectionScroll.first,
     );
     await tester.pump(const Duration(milliseconds: 200));
     expect(find.text('Audiobooks'), findsOneWidget);

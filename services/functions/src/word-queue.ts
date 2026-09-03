@@ -18,6 +18,10 @@ import {
   type CollectionContributionInput,
 } from './collection-contributions.js';
 import {
+  type NounForms,
+  parseNounForms,
+} from './kasem-morphology.js';
+import {
   canonicalPartOfSpeech,
   parseTranslations,
   partOfSpeechLabel,
@@ -598,6 +602,100 @@ function parseSkipReason(value: unknown): 'unknown' | 'unsure' {
   return reason as 'unknown' | 'unsure';
 }
 
+// ---------------------------------------------------------------------------
+// Sentence fit
+// ---------------------------------------------------------------------------
+
+/**
+ * Whether the example sentence actually shows the word being asked about.
+ *
+ * ── The problem this exists for ──────────────────────────────────────────
+ * Queue row `word-3cbcd9` is the English word *word*, rank 31, tier core — a
+ * first-time member reaches it inside two batches — and its sentence is
+ * "My teacher put in a good word for me." The member is asked for the Kasem
+ * for *word*; the sentence shows an idiom that means *recommend*. Before this
+ * field their three options were to translate the idiom (which poisons the
+ * entry), to translate the plain word (correct, but a reviewer cannot tell
+ * which of the two they did), or to skip — and skipping throws away a word a
+ * fluent speaker was perfectly able to answer.
+ *
+ * So this is not a skip reason. It rides *alongside* a real answer: the member
+ * says what the word means and, separately, that the sentence was no help.
+ * The word is answered; the sentence is what gets repaired.
+ *
+ *   fits        — the sentence shows the word's plain meaning. The common case.
+ *   idiom       — the sentence means something its words do not. This is the
+ *                 value that offers the member the idiom form afterwards,
+ *                 because an idiom nobody records is an idiom lost.
+ *   other-sense — the sentence is fine English but shows a different sense of
+ *                 the word ("light" the noun against "light" the verb). A
+ *                 different repair: swap the sentence, keep the word.
+ *
+ * `idiom` and `other-sense` are kept apart rather than collapsed into one
+ * "misfit" precisely because they lead to different actions. Collapsing them
+ * would mean a validator re-reads every flagged row to work out which it was.
+ */
+export const SENTENCE_FITS = ['fits', 'idiom', 'other-sense'] as const;
+
+export type SentenceFit = (typeof SENTENCE_FITS)[number];
+
+/**
+ * Resolves the sentence-fit value, defaulting to `fits`.
+ *
+ * Deliberately asymmetric with `partOfSpeech`, which is *rejected* when it is
+ * unrecognised. A word class always comes from a list this backend shipped, so
+ * an unknown id there means the client has drifted and is worth an error. A
+ * missing sentence fit means an older client that predates the field, and
+ * failing its submission would punish a member for not having updated the app.
+ * An unrecognised *non-empty* value is still a bug, and still throws.
+ */
+export function parseSentenceFit(value: unknown): SentenceFit {
+  const fit = text(value).toLowerCase();
+  if (!fit) return 'fits';
+  if (!(SENTENCE_FITS as readonly string[]).includes(fit)) {
+    throw new HttpsError(
+      'invalid-argument',
+      `sentenceFit must be one of ${SENTENCE_FITS.join(', ')}.`,
+    );
+  }
+  return fit as SentenceFit;
+}
+
+/**
+ * The counter update a flag causes, or null when there is nothing to record.
+ *
+ * Null for `fits` so the caller can spread-or-skip in one expression and the
+ * overwhelming majority of submissions write no extra fields at all. The shape
+ * mirrors `skipReasons.${reason}` in [skipQueueWord] on purpose: one total to
+ * query on and a breakdown to read once a row surfaces.
+ */
+export function sentenceFlagUpdate(fit: SentenceFit): JsonRecord | null {
+  if (fit === 'fits') return null;
+  return {
+    sentenceFlagCount: FieldValue.increment(1),
+    [`sentenceFlags.${fit}`]: FieldValue.increment(1),
+  };
+}
+
+/**
+ * Whether a row's sentence has been flagged often enough to be worth replacing.
+ *
+ * Pure and read-only — nothing in this file acts on it automatically, and that
+ * is the point. A flagged sentence is a bad *prompt*, not a bad word, so the
+ * word must stay in the queue and keep being answerable while the sentence
+ * waits to be fixed. Retiring on a flag count would silently delete vocabulary
+ * over a typographical problem.
+ *
+ * Three by default because one member finding a sentence odd is an opinion and
+ * three agreeing is a pattern, and because at fifteen thousand rows a threshold
+ * of two would surface more than anybody can read.
+ */
+export function sentenceNeedsReplacing(row: JsonRecord, threshold = 3): boolean {
+  const status = text(row.sentenceStatus).toLowerCase();
+  if (status === 'replaced') return false;
+  return count(row.sentenceFlagCount) >= threshold;
+}
+
 /**
  * "I don't know this one."
  *
@@ -663,6 +761,17 @@ export interface WordTranslationInput {
   readonly kasemExample: string;
   readonly englishExample: string;
   readonly publicationPermission: boolean;
+  /** Whether the prompt sentence showed the word's plain meaning. See [SENTENCE_FITS]. */
+  readonly sentenceFit: SentenceFit;
+  /**
+   * The definite and plural forms, on a noun. Empty for every other class.
+   *
+   * This is the data that makes "the" answerable at all: definiteness in Kasem
+   * is a property of the noun rather than a separate word, so the queue asks
+   * for a form the member says without thinking and the class is induced from
+   * it. See `kasem-morphology.ts`.
+   */
+  readonly forms: NounForms;
 }
 
 /** Pure payload validation, so the whole shape can be exercised without Firestore. */
@@ -713,6 +822,13 @@ export function parseWordTranslationInput(raw: unknown): WordTranslationInput {
     // that wants to withhold it still can, and the review desk honours that —
     // decideSubmission refuses to publish without it.
     publicationPermission: data.publicationPermission !== false,
+    // Absent on a client that predates the field, which is why this defaults
+    // rather than throwing. See [parseSentenceFit].
+    sentenceFit: parseSentenceFit(data.sentenceFit),
+    // Silently empty for anything that is not a noun rather than an error:
+    // the fields only render for Noun, so their presence elsewhere is stale
+    // client state, and a member's good answer must not fail over it.
+    forms: parseNounForms(data.forms, partOfSpeech),
   };
 }
 
@@ -753,6 +869,7 @@ export function buildWordQueueContributionInput(
     participantConsentConfirmed: true,
     kasemExample: input.kasemExample,
     englishExample: input.englishExample,
+    forms: input.forms,
     rightsConfirmed: true,
     publicationPermission: input.publicationPermission,
   };
@@ -830,16 +947,25 @@ export const submitWordTranslation = onCall(CALLABLE_OPTIONS, async (req) => {
       wordQueueId: input.wordId,
       wordQueuePrompt: prompt,
       partOfSpeechId: input.partOfSpeech,
+      // Top-level rather than folded into `wordQueuePrompt`. That stamp is
+      // built purely from the row, which is what makes wordQueuePromptStamp
+      // testable on its own; mixing member input into it would end that.
+      sentenceFit: input.sentenceFit,
     });
     tx.set(submissionRef, {
       ...buildCollectionSubmissionDocument(submissionRef.id, uid, contribution, now),
       wordQueueId: input.wordId,
       wordQueuePrompt: prompt,
       partOfSpeechId: input.partOfSpeech,
+      sentenceFit: input.sentenceFit,
     });
 
     tx.update(wordRef, {
       pendingCount: Math.max(0, count(row.pendingCount) + 1),
+      // Folded into the update that was already happening rather than run as a
+      // second write: a flag is a remark about a submission that is committing
+      // anyway, and it must never be the reason a member's answer fails.
+      ...(sentenceFlagUpdate(input.sentenceFit) ?? {}),
       updatedAt: FieldValue.serverTimestamp(),
     });
     tx.set(claimRef, claimDocument(contributionRef.id, input.wordId, 'pending'), { merge: true });
@@ -875,6 +1001,7 @@ export const submitWordTranslation = onCall(CALLABLE_OPTIONS, async (req) => {
         submissionId: submissionRef.id,
         partOfSpeech: input.partOfSpeech,
         translationCount: input.translations.length,
+        sentenceFit: input.sentenceFit,
       },
       occurredAt: now,
     });

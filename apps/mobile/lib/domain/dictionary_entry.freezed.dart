@@ -90,7 +90,20 @@ mixin _$DictionaryEntry {
 /// Separate from [pronunciation], which is the written guide. The two used
 /// to share one field, so an entry with audio showed a download URL where
 /// its phonetics belonged and still had nothing to play.
- String get audioUrl; bool get isSynthetic;
+ String get audioUrl;/// The noun said with *the*, and said for many.
+///
+/// ── Why these two and not "the" ──────────────────────────────────────
+/// Definiteness in Kasem is a property of the noun rather than a word of
+/// its own, so there is no Kasem for "the" to record and never was. There
+/// is only the form a speaker says, which is what these hold. Empty on
+/// every entry contributed before the queue started asking, and on every
+/// entry that is not a noun.
+ String get definiteForm; String get pluralForm;/// The noun class, worked out from [definiteForm] when it could be.
+///
+/// Empty means *not established*, which is the honest answer and by far
+/// the common one — the class inventory is being built from contributed
+/// forms rather than assumed in advance. It never means "no class".
+ String get nounClass; bool get isSynthetic;
 /// Create a copy of DictionaryEntry
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -103,16 +116,16 @@ $DictionaryEntryCopyWith<DictionaryEntry> get copyWith => _$DictionaryEntryCopyW
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is DictionaryEntry&&(identical(other.id, id) || other.id == id)&&(identical(other.headword, headword) || other.headword == headword)&&(identical(other.translation, translation) || other.translation == translation)&&const DeepCollectionEquality().equals(other.translations, translations)&&const DeepCollectionEquality().equals(other.renderings, renderings)&&(identical(other.partOfSpeech, partOfSpeech) || other.partOfSpeech == partOfSpeech)&&(identical(other.dialect, dialect) || other.dialect == dialect)&&(identical(other.pronunciation, pronunciation) || other.pronunciation == pronunciation)&&(identical(other.example, example) || other.example == example)&&(identical(other.exampleTranslation, exampleTranslation) || other.exampleTranslation == exampleTranslation)&&(identical(other.sentenceSource, sentenceSource) || other.sentenceSource == sentenceSource)&&(identical(other.tatoebaId, tatoebaId) || other.tatoebaId == tatoebaId)&&(identical(other.tatoebaContributor, tatoebaContributor) || other.tatoebaContributor == tatoebaContributor)&&(identical(other.sentenceLicence, sentenceLicence) || other.sentenceLicence == sentenceLicence)&&(identical(other.attribution, attribution) || other.attribution == attribution)&&(identical(other.culturalNote, culturalNote) || other.culturalNote == culturalNote)&&(identical(other.audioUrl, audioUrl) || other.audioUrl == audioUrl)&&(identical(other.isSynthetic, isSynthetic) || other.isSynthetic == isSynthetic));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is DictionaryEntry&&(identical(other.id, id) || other.id == id)&&(identical(other.headword, headword) || other.headword == headword)&&(identical(other.translation, translation) || other.translation == translation)&&const DeepCollectionEquality().equals(other.translations, translations)&&const DeepCollectionEquality().equals(other.renderings, renderings)&&(identical(other.partOfSpeech, partOfSpeech) || other.partOfSpeech == partOfSpeech)&&(identical(other.dialect, dialect) || other.dialect == dialect)&&(identical(other.pronunciation, pronunciation) || other.pronunciation == pronunciation)&&(identical(other.example, example) || other.example == example)&&(identical(other.exampleTranslation, exampleTranslation) || other.exampleTranslation == exampleTranslation)&&(identical(other.sentenceSource, sentenceSource) || other.sentenceSource == sentenceSource)&&(identical(other.tatoebaId, tatoebaId) || other.tatoebaId == tatoebaId)&&(identical(other.tatoebaContributor, tatoebaContributor) || other.tatoebaContributor == tatoebaContributor)&&(identical(other.sentenceLicence, sentenceLicence) || other.sentenceLicence == sentenceLicence)&&(identical(other.attribution, attribution) || other.attribution == attribution)&&(identical(other.culturalNote, culturalNote) || other.culturalNote == culturalNote)&&(identical(other.audioUrl, audioUrl) || other.audioUrl == audioUrl)&&(identical(other.definiteForm, definiteForm) || other.definiteForm == definiteForm)&&(identical(other.pluralForm, pluralForm) || other.pluralForm == pluralForm)&&(identical(other.nounClass, nounClass) || other.nounClass == nounClass)&&(identical(other.isSynthetic, isSynthetic) || other.isSynthetic == isSynthetic));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,headword,translation,const DeepCollectionEquality().hash(translations),const DeepCollectionEquality().hash(renderings),partOfSpeech,dialect,pronunciation,example,exampleTranslation,sentenceSource,tatoebaId,tatoebaContributor,sentenceLicence,attribution,culturalNote,audioUrl,isSynthetic);
+int get hashCode => Object.hashAll([runtimeType,id,headword,translation,const DeepCollectionEquality().hash(translations),const DeepCollectionEquality().hash(renderings),partOfSpeech,dialect,pronunciation,example,exampleTranslation,sentenceSource,tatoebaId,tatoebaContributor,sentenceLicence,attribution,culturalNote,audioUrl,definiteForm,pluralForm,nounClass,isSynthetic]);
 
 @override
 String toString() {
-  return 'DictionaryEntry(id: $id, headword: $headword, translation: $translation, translations: $translations, renderings: $renderings, partOfSpeech: $partOfSpeech, dialect: $dialect, pronunciation: $pronunciation, example: $example, exampleTranslation: $exampleTranslation, sentenceSource: $sentenceSource, tatoebaId: $tatoebaId, tatoebaContributor: $tatoebaContributor, sentenceLicence: $sentenceLicence, attribution: $attribution, culturalNote: $culturalNote, audioUrl: $audioUrl, isSynthetic: $isSynthetic)';
+  return 'DictionaryEntry(id: $id, headword: $headword, translation: $translation, translations: $translations, renderings: $renderings, partOfSpeech: $partOfSpeech, dialect: $dialect, pronunciation: $pronunciation, example: $example, exampleTranslation: $exampleTranslation, sentenceSource: $sentenceSource, tatoebaId: $tatoebaId, tatoebaContributor: $tatoebaContributor, sentenceLicence: $sentenceLicence, attribution: $attribution, culturalNote: $culturalNote, audioUrl: $audioUrl, definiteForm: $definiteForm, pluralForm: $pluralForm, nounClass: $nounClass, isSynthetic: $isSynthetic)';
 }
 
 
@@ -123,7 +136,7 @@ abstract mixin class $DictionaryEntryCopyWith<$Res>  {
   factory $DictionaryEntryCopyWith(DictionaryEntry value, $Res Function(DictionaryEntry) _then) = _$DictionaryEntryCopyWithImpl;
 @useResult
 $Res call({
- String id, String headword, String translation, List<String> translations, List<String> renderings, String partOfSpeech, String dialect, String pronunciation, String example, String exampleTranslation, String sentenceSource, String tatoebaId, String tatoebaContributor, String sentenceLicence, String attribution, String? culturalNote, String audioUrl, bool isSynthetic
+ String id, String headword, String translation, List<String> translations, List<String> renderings, String partOfSpeech, String dialect, String pronunciation, String example, String exampleTranslation, String sentenceSource, String tatoebaId, String tatoebaContributor, String sentenceLicence, String attribution, String? culturalNote, String audioUrl, String definiteForm, String pluralForm, String nounClass, bool isSynthetic
 });
 
 
@@ -140,7 +153,7 @@ class _$DictionaryEntryCopyWithImpl<$Res>
 
 /// Create a copy of DictionaryEntry
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? headword = null,Object? translation = null,Object? translations = null,Object? renderings = null,Object? partOfSpeech = null,Object? dialect = null,Object? pronunciation = null,Object? example = null,Object? exampleTranslation = null,Object? sentenceSource = null,Object? tatoebaId = null,Object? tatoebaContributor = null,Object? sentenceLicence = null,Object? attribution = null,Object? culturalNote = freezed,Object? audioUrl = null,Object? isSynthetic = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? headword = null,Object? translation = null,Object? translations = null,Object? renderings = null,Object? partOfSpeech = null,Object? dialect = null,Object? pronunciation = null,Object? example = null,Object? exampleTranslation = null,Object? sentenceSource = null,Object? tatoebaId = null,Object? tatoebaContributor = null,Object? sentenceLicence = null,Object? attribution = null,Object? culturalNote = freezed,Object? audioUrl = null,Object? definiteForm = null,Object? pluralForm = null,Object? nounClass = null,Object? isSynthetic = null,}) {
   return _then(DictionaryEntry(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,headword: null == headword ? _self.headword : headword // ignore: cast_nullable_to_non_nullable
@@ -159,6 +172,9 @@ as String,sentenceLicence: null == sentenceLicence ? _self.sentenceLicence : sen
 as String,attribution: null == attribution ? _self.attribution : attribution // ignore: cast_nullable_to_non_nullable
 as String,culturalNote: freezed == culturalNote ? _self.culturalNote : culturalNote // ignore: cast_nullable_to_non_nullable
 as String?,audioUrl: null == audioUrl ? _self.audioUrl : audioUrl // ignore: cast_nullable_to_non_nullable
+as String,definiteForm: null == definiteForm ? _self.definiteForm : definiteForm // ignore: cast_nullable_to_non_nullable
+as String,pluralForm: null == pluralForm ? _self.pluralForm : pluralForm // ignore: cast_nullable_to_non_nullable
+as String,nounClass: null == nounClass ? _self.nounClass : nounClass // ignore: cast_nullable_to_non_nullable
 as String,isSynthetic: null == isSynthetic ? _self.isSynthetic : isSynthetic // ignore: cast_nullable_to_non_nullable
 as bool,
   ));
@@ -245,10 +261,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String headword,  String translation,  List<String> translations,  List<String> renderings,  String partOfSpeech,  String dialect,  String pronunciation,  String example,  String exampleTranslation,  String sentenceSource,  String tatoebaId,  String tatoebaContributor,  String sentenceLicence,  String attribution,  String? culturalNote,  String audioUrl,  bool isSynthetic)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String headword,  String translation,  List<String> translations,  List<String> renderings,  String partOfSpeech,  String dialect,  String pronunciation,  String example,  String exampleTranslation,  String sentenceSource,  String tatoebaId,  String tatoebaContributor,  String sentenceLicence,  String attribution,  String? culturalNote,  String audioUrl,  String definiteForm,  String pluralForm,  String nounClass,  bool isSynthetic)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _DictionaryEntry() when $default != null:
-return $default(_that.id,_that.headword,_that.translation,_that.translations,_that.renderings,_that.partOfSpeech,_that.dialect,_that.pronunciation,_that.example,_that.exampleTranslation,_that.sentenceSource,_that.tatoebaId,_that.tatoebaContributor,_that.sentenceLicence,_that.attribution,_that.culturalNote,_that.audioUrl,_that.isSynthetic);case _:
+return $default(_that.id,_that.headword,_that.translation,_that.translations,_that.renderings,_that.partOfSpeech,_that.dialect,_that.pronunciation,_that.example,_that.exampleTranslation,_that.sentenceSource,_that.tatoebaId,_that.tatoebaContributor,_that.sentenceLicence,_that.attribution,_that.culturalNote,_that.audioUrl,_that.definiteForm,_that.pluralForm,_that.nounClass,_that.isSynthetic);case _:
   return orElse();
 
 }
@@ -266,10 +282,10 @@ return $default(_that.id,_that.headword,_that.translation,_that.translations,_th
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String headword,  String translation,  List<String> translations,  List<String> renderings,  String partOfSpeech,  String dialect,  String pronunciation,  String example,  String exampleTranslation,  String sentenceSource,  String tatoebaId,  String tatoebaContributor,  String sentenceLicence,  String attribution,  String? culturalNote,  String audioUrl,  bool isSynthetic)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String headword,  String translation,  List<String> translations,  List<String> renderings,  String partOfSpeech,  String dialect,  String pronunciation,  String example,  String exampleTranslation,  String sentenceSource,  String tatoebaId,  String tatoebaContributor,  String sentenceLicence,  String attribution,  String? culturalNote,  String audioUrl,  String definiteForm,  String pluralForm,  String nounClass,  bool isSynthetic)  $default,) {final _that = this;
 switch (_that) {
 case _DictionaryEntry():
-return $default(_that.id,_that.headword,_that.translation,_that.translations,_that.renderings,_that.partOfSpeech,_that.dialect,_that.pronunciation,_that.example,_that.exampleTranslation,_that.sentenceSource,_that.tatoebaId,_that.tatoebaContributor,_that.sentenceLicence,_that.attribution,_that.culturalNote,_that.audioUrl,_that.isSynthetic);case _:
+return $default(_that.id,_that.headword,_that.translation,_that.translations,_that.renderings,_that.partOfSpeech,_that.dialect,_that.pronunciation,_that.example,_that.exampleTranslation,_that.sentenceSource,_that.tatoebaId,_that.tatoebaContributor,_that.sentenceLicence,_that.attribution,_that.culturalNote,_that.audioUrl,_that.definiteForm,_that.pluralForm,_that.nounClass,_that.isSynthetic);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -286,10 +302,10 @@ return $default(_that.id,_that.headword,_that.translation,_that.translations,_th
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String headword,  String translation,  List<String> translations,  List<String> renderings,  String partOfSpeech,  String dialect,  String pronunciation,  String example,  String exampleTranslation,  String sentenceSource,  String tatoebaId,  String tatoebaContributor,  String sentenceLicence,  String attribution,  String? culturalNote,  String audioUrl,  bool isSynthetic)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String headword,  String translation,  List<String> translations,  List<String> renderings,  String partOfSpeech,  String dialect,  String pronunciation,  String example,  String exampleTranslation,  String sentenceSource,  String tatoebaId,  String tatoebaContributor,  String sentenceLicence,  String attribution,  String? culturalNote,  String audioUrl,  String definiteForm,  String pluralForm,  String nounClass,  bool isSynthetic)?  $default,) {final _that = this;
 switch (_that) {
 case _DictionaryEntry() when $default != null:
-return $default(_that.id,_that.headword,_that.translation,_that.translations,_that.renderings,_that.partOfSpeech,_that.dialect,_that.pronunciation,_that.example,_that.exampleTranslation,_that.sentenceSource,_that.tatoebaId,_that.tatoebaContributor,_that.sentenceLicence,_that.attribution,_that.culturalNote,_that.audioUrl,_that.isSynthetic);case _:
+return $default(_that.id,_that.headword,_that.translation,_that.translations,_that.renderings,_that.partOfSpeech,_that.dialect,_that.pronunciation,_that.example,_that.exampleTranslation,_that.sentenceSource,_that.tatoebaId,_that.tatoebaContributor,_that.sentenceLicence,_that.attribution,_that.culturalNote,_that.audioUrl,_that.definiteForm,_that.pluralForm,_that.nounClass,_that.isSynthetic);case _:
   return null;
 
 }
@@ -301,7 +317,7 @@ return $default(_that.id,_that.headword,_that.translation,_that.translations,_th
 @JsonSerializable()
 
 class _DictionaryEntry extends DictionaryEntry {
-  const _DictionaryEntry({required this.id, required this.headword, required this.translation,  List<String> translations = const <String>[],  List<String> renderings = const <String>[], required this.partOfSpeech, required this.dialect, required this.pronunciation, required this.example, required this.exampleTranslation, this.sentenceSource = '', this.tatoebaId = '', this.tatoebaContributor = '', this.sentenceLicence = '', required this.attribution, this.culturalNote, this.audioUrl = '', this.isSynthetic = true}): _translations = translations,_renderings = renderings,super._();
+  const _DictionaryEntry({required this.id, required this.headword, required this.translation,  List<String> translations = const <String>[],  List<String> renderings = const <String>[], required this.partOfSpeech, required this.dialect, required this.pronunciation, required this.example, required this.exampleTranslation, this.sentenceSource = '', this.tatoebaId = '', this.tatoebaContributor = '', this.sentenceLicence = '', required this.attribution, this.culturalNote, this.audioUrl = '', this.definiteForm = '', this.pluralForm = '', this.nounClass = '', this.isSynthetic = true}): _translations = translations,_renderings = renderings,super._();
   factory _DictionaryEntry.fromJson(Map<String, dynamic> json) => _$DictionaryEntryFromJson(json);
 
 @override final  String id;
@@ -441,6 +457,22 @@ class _DictionaryEntry extends DictionaryEntry {
 /// to share one field, so an entry with audio showed a download URL where
 /// its phonetics belonged and still had nothing to play.
 @override@JsonKey() final  String audioUrl;
+/// The noun said with *the*, and said for many.
+///
+/// ── Why these two and not "the" ──────────────────────────────────────
+/// Definiteness in Kasem is a property of the noun rather than a word of
+/// its own, so there is no Kasem for "the" to record and never was. There
+/// is only the form a speaker says, which is what these hold. Empty on
+/// every entry contributed before the queue started asking, and on every
+/// entry that is not a noun.
+@override@JsonKey() final  String definiteForm;
+@override@JsonKey() final  String pluralForm;
+/// The noun class, worked out from [definiteForm] when it could be.
+///
+/// Empty means *not established*, which is the honest answer and by far
+/// the common one — the class inventory is being built from contributed
+/// forms rather than assumed in advance. It never means "no class".
+@override@JsonKey() final  String nounClass;
 @override@JsonKey() final  bool isSynthetic;
 
 /// Create a copy of DictionaryEntry
@@ -456,16 +488,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _DictionaryEntry&&(identical(other.id, id) || other.id == id)&&(identical(other.headword, headword) || other.headword == headword)&&(identical(other.translation, translation) || other.translation == translation)&&const DeepCollectionEquality().equals(other._translations, _translations)&&const DeepCollectionEquality().equals(other._renderings, _renderings)&&(identical(other.partOfSpeech, partOfSpeech) || other.partOfSpeech == partOfSpeech)&&(identical(other.dialect, dialect) || other.dialect == dialect)&&(identical(other.pronunciation, pronunciation) || other.pronunciation == pronunciation)&&(identical(other.example, example) || other.example == example)&&(identical(other.exampleTranslation, exampleTranslation) || other.exampleTranslation == exampleTranslation)&&(identical(other.sentenceSource, sentenceSource) || other.sentenceSource == sentenceSource)&&(identical(other.tatoebaId, tatoebaId) || other.tatoebaId == tatoebaId)&&(identical(other.tatoebaContributor, tatoebaContributor) || other.tatoebaContributor == tatoebaContributor)&&(identical(other.sentenceLicence, sentenceLicence) || other.sentenceLicence == sentenceLicence)&&(identical(other.attribution, attribution) || other.attribution == attribution)&&(identical(other.culturalNote, culturalNote) || other.culturalNote == culturalNote)&&(identical(other.audioUrl, audioUrl) || other.audioUrl == audioUrl)&&(identical(other.isSynthetic, isSynthetic) || other.isSynthetic == isSynthetic));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _DictionaryEntry&&(identical(other.id, id) || other.id == id)&&(identical(other.headword, headword) || other.headword == headword)&&(identical(other.translation, translation) || other.translation == translation)&&const DeepCollectionEquality().equals(other._translations, _translations)&&const DeepCollectionEquality().equals(other._renderings, _renderings)&&(identical(other.partOfSpeech, partOfSpeech) || other.partOfSpeech == partOfSpeech)&&(identical(other.dialect, dialect) || other.dialect == dialect)&&(identical(other.pronunciation, pronunciation) || other.pronunciation == pronunciation)&&(identical(other.example, example) || other.example == example)&&(identical(other.exampleTranslation, exampleTranslation) || other.exampleTranslation == exampleTranslation)&&(identical(other.sentenceSource, sentenceSource) || other.sentenceSource == sentenceSource)&&(identical(other.tatoebaId, tatoebaId) || other.tatoebaId == tatoebaId)&&(identical(other.tatoebaContributor, tatoebaContributor) || other.tatoebaContributor == tatoebaContributor)&&(identical(other.sentenceLicence, sentenceLicence) || other.sentenceLicence == sentenceLicence)&&(identical(other.attribution, attribution) || other.attribution == attribution)&&(identical(other.culturalNote, culturalNote) || other.culturalNote == culturalNote)&&(identical(other.audioUrl, audioUrl) || other.audioUrl == audioUrl)&&(identical(other.definiteForm, definiteForm) || other.definiteForm == definiteForm)&&(identical(other.pluralForm, pluralForm) || other.pluralForm == pluralForm)&&(identical(other.nounClass, nounClass) || other.nounClass == nounClass)&&(identical(other.isSynthetic, isSynthetic) || other.isSynthetic == isSynthetic));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,headword,translation,const DeepCollectionEquality().hash(_translations),const DeepCollectionEquality().hash(_renderings),partOfSpeech,dialect,pronunciation,example,exampleTranslation,sentenceSource,tatoebaId,tatoebaContributor,sentenceLicence,attribution,culturalNote,audioUrl,isSynthetic);
+int get hashCode => Object.hashAll([runtimeType,id,headword,translation,const DeepCollectionEquality().hash(_translations),const DeepCollectionEquality().hash(_renderings),partOfSpeech,dialect,pronunciation,example,exampleTranslation,sentenceSource,tatoebaId,tatoebaContributor,sentenceLicence,attribution,culturalNote,audioUrl,definiteForm,pluralForm,nounClass,isSynthetic]);
 
 @override
 String toString() {
-  return 'DictionaryEntry(id: $id, headword: $headword, translation: $translation, translations: $translations, renderings: $renderings, partOfSpeech: $partOfSpeech, dialect: $dialect, pronunciation: $pronunciation, example: $example, exampleTranslation: $exampleTranslation, sentenceSource: $sentenceSource, tatoebaId: $tatoebaId, tatoebaContributor: $tatoebaContributor, sentenceLicence: $sentenceLicence, attribution: $attribution, culturalNote: $culturalNote, audioUrl: $audioUrl, isSynthetic: $isSynthetic)';
+  return 'DictionaryEntry(id: $id, headword: $headword, translation: $translation, translations: $translations, renderings: $renderings, partOfSpeech: $partOfSpeech, dialect: $dialect, pronunciation: $pronunciation, example: $example, exampleTranslation: $exampleTranslation, sentenceSource: $sentenceSource, tatoebaId: $tatoebaId, tatoebaContributor: $tatoebaContributor, sentenceLicence: $sentenceLicence, attribution: $attribution, culturalNote: $culturalNote, audioUrl: $audioUrl, definiteForm: $definiteForm, pluralForm: $pluralForm, nounClass: $nounClass, isSynthetic: $isSynthetic)';
 }
 
 
@@ -476,7 +508,7 @@ abstract mixin class _$DictionaryEntryCopyWith<$Res> implements $DictionaryEntry
   factory _$DictionaryEntryCopyWith(_DictionaryEntry value, $Res Function(_DictionaryEntry) _then) = __$DictionaryEntryCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String headword, String translation, List<String> translations, List<String> renderings, String partOfSpeech, String dialect, String pronunciation, String example, String exampleTranslation, String sentenceSource, String tatoebaId, String tatoebaContributor, String sentenceLicence, String attribution, String? culturalNote, String audioUrl, bool isSynthetic
+ String id, String headword, String translation, List<String> translations, List<String> renderings, String partOfSpeech, String dialect, String pronunciation, String example, String exampleTranslation, String sentenceSource, String tatoebaId, String tatoebaContributor, String sentenceLicence, String attribution, String? culturalNote, String audioUrl, String definiteForm, String pluralForm, String nounClass, bool isSynthetic
 });
 
 
@@ -493,7 +525,7 @@ class __$DictionaryEntryCopyWithImpl<$Res>
 
 /// Create a copy of DictionaryEntry
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? headword = null,Object? translation = null,Object? translations = null,Object? renderings = null,Object? partOfSpeech = null,Object? dialect = null,Object? pronunciation = null,Object? example = null,Object? exampleTranslation = null,Object? sentenceSource = null,Object? tatoebaId = null,Object? tatoebaContributor = null,Object? sentenceLicence = null,Object? attribution = null,Object? culturalNote = freezed,Object? audioUrl = null,Object? isSynthetic = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? headword = null,Object? translation = null,Object? translations = null,Object? renderings = null,Object? partOfSpeech = null,Object? dialect = null,Object? pronunciation = null,Object? example = null,Object? exampleTranslation = null,Object? sentenceSource = null,Object? tatoebaId = null,Object? tatoebaContributor = null,Object? sentenceLicence = null,Object? attribution = null,Object? culturalNote = freezed,Object? audioUrl = null,Object? definiteForm = null,Object? pluralForm = null,Object? nounClass = null,Object? isSynthetic = null,}) {
   return _then(_DictionaryEntry(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,headword: null == headword ? _self.headword : headword // ignore: cast_nullable_to_non_nullable
@@ -512,6 +544,9 @@ as String,sentenceLicence: null == sentenceLicence ? _self.sentenceLicence : sen
 as String,attribution: null == attribution ? _self.attribution : attribution // ignore: cast_nullable_to_non_nullable
 as String,culturalNote: freezed == culturalNote ? _self.culturalNote : culturalNote // ignore: cast_nullable_to_non_nullable
 as String?,audioUrl: null == audioUrl ? _self.audioUrl : audioUrl // ignore: cast_nullable_to_non_nullable
+as String,definiteForm: null == definiteForm ? _self.definiteForm : definiteForm // ignore: cast_nullable_to_non_nullable
+as String,pluralForm: null == pluralForm ? _self.pluralForm : pluralForm // ignore: cast_nullable_to_non_nullable
+as String,nounClass: null == nounClass ? _self.nounClass : nounClass // ignore: cast_nullable_to_non_nullable
 as String,isSynthetic: null == isSynthetic ? _self.isSynthetic : isSynthetic // ignore: cast_nullable_to_non_nullable
 as bool,
   ));

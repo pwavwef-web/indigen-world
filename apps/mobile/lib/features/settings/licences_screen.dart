@@ -136,6 +136,55 @@ class LicencesScreen extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 26),
+        const _SectionLabel('SOURCE MATERIAL'),
+        const SizedBox(height: 10),
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(18),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'English example sentences',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'The English sentences shown beside words in the guided '
+                  'contribution queue come from Tatoeba, the open collection '
+                  'of example sentences, and are used under the Creative '
+                  'Commons Attribution 2.0 France licence (CC BY 2.0 FR).',
+                  style: TextStyle(height: 1.5),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'tatoeba.org · creativecommons.org/licenses/by/2.0/fr',
+                  style: TextStyle(
+                    color: context.brand.mutedInk,
+                    fontSize: 11,
+                    height: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Individual sentences also carry their own credit — the '
+                  'sentence id and contributor — wherever the sentence itself '
+                  'is shown. Sentences written for Indigen World carry no '
+                  'Tatoeba credit, because none is owed.',
+                  style: TextStyle(height: 1.5, color: context.brand.mutedInk),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Kasem words, meanings and recordings are contributed by the '
+                  'community and are not part of this licence. They are covered '
+                  'by the content licences above.',
+                  style: TextStyle(height: 1.5, color: context.brand.mutedInk),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 26),
         const _SectionLabel('SOFTWARE'),
         const SizedBox(height: 10),
         Card(

@@ -402,6 +402,32 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // ---- Grammar rules: the answers no word queue could ever collect -------
+    //
+    // A few dozen documents beside fifteen thousand, and they carry the
+    // questions the queue could never answer. Ranks one to seven of `wordQueue`
+    // are `the, of, to, and, a, in, is`, so every new contributor met them
+    // first — and "what is the Kasem for *the*" has no answer, because
+    // definiteness in Kasem is a property of the noun rather than a word of its
+    // own. Asked fifteen thousand times, that question collects nothing; stated
+    // once here as a rule, it is answered for the whole language.
+    //
+    // Small and closed on purpose. This is not a second crowd-sourced
+    // collection: a grammatical claim about a language with few written sources
+    // gets published, taught, and repeated back by Kawuri, so it is authored by
+    // the project and its validators through `seed-grammar.mjs` rather than
+    // submitted from a phone.
+    //
+    // `status` is compared directly rather than through `.get(...)` — the same
+    // convention as `wordQueue` above — so the serving query
+    // `where('status','==','published')` is provably satisfied by this rule.
+    // Drafts stay with staff: a half-written rule about somebody's language is
+    // exactly the thing that must not be read as settled.
+    match /grammarRules/{ruleId} {
+      allow read: if resource.data.status == 'published' || isStaff();
+      allow write: if false;
+    }
+
     // ---- Contributors: self-managed profile, no privilege escalation -------
     match /contributors/{contributorId} {
       allow read: if isOwner(contributorId) || isValidator();

@@ -1,22 +1,33 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/features/collection/collection_data.dart';
 import 'package:indigen_world_mobile/features/explore/published_content.dart';
+import 'package:indigen_world_mobile/features/music/artist_screen.dart';
 import 'package:indigen_world_mobile/features/music/music_controller.dart';
-import 'package:indigen_world_mobile/features/music/music_providers.dart';
-import 'package:indigen_world_mobile/features/music/music_track.dart';
+import 'package:indigen_world_mobile/features/music/music_library.dart';
+import 'package:indigen_world_mobile/features/music/music_recent.dart';
+import 'package:indigen_world_mobile/features/music/music_search_screen.dart';
+import 'package:indigen_world_mobile/features/music/widgets/music_widgets.dart';
 import 'package:indigen_world_mobile/shared/app_widgets.dart';
 import 'package:indigen_world_mobile/shared/frosted_nav_bar.dart';
 
 /// The Music channel, as something you can actually listen to.
 ///
-/// It replaces the old list of cards, which could only open one song at a time
-/// on a screen whose player died the moment you left it. A grid of artwork with
-/// a queue behind it is what the archive has needed since the first song was
-/// published: the whole channel is one sitting, and walking away from the
-/// screen does not end it.
+/// ── What changed, and why ─────────────────────────────────────────────────
+/// It used to be one grid of every published song, ordered by whatever
+/// Firestore returned. That is a directory, not a player: it answers "what is
+/// in here" and nothing else. It cannot answer "everything by this singer",
+/// "the song called Na", or "the thing I had on yesterday" — which are the
+/// three questions anybody actually opens a music app with.
+///
+/// So the channel is now a library. The people who made the music are a shelf
+/// of their own, because in an oral tradition the singer is at least as much
+/// the point as the song. What you came back to is at the top, because a
+/// player that opens identically on the hundredth visit is one nobody makes a
+/// habit of. And everything else is a list you can read rather than a wall of
+/// squares — a hundred song titles in a grid is a hundred songs nobody can
+/// find.
 ///
 /// Audiobooks come through here too. They are the same shape — one long audio
 /// record with a transcript — and giving them a second, near-identical screen
@@ -28,12 +39,23 @@ class MusicScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final items = kind == CollectionKind.audiobooks
-        ? ref.watch(audiobookCollectionProvider)
-        : ref.watch(musicCollectionProvider);
+    final items = ref.watch(playableMusicProvider(kind));
 
     return Scaffold(
-      appBar: AppBar(title: Text(kind.label)),
+      appBar: AppBar(
+        title: Text(kind.label),
+        actions: [
+          IconButton(
+            tooltip: 'Search',
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (context) => MusicSearchScreen(kind: kind),
+              ),
+            ),
+            icon: const Icon(Icons.search_rounded),
+          ),
+        ],
+      ),
       body: ScreenContainer(
         child: items.when(
           loading: () => const Center(child: CircularProgressIndicator()),
@@ -44,63 +66,15 @@ class MusicScreen extends ConsumerWidget {
                   : musicCollectionProvider,
             ),
           ),
-          data: (entries) {
-            // Only what can actually be queued. A record still being processed
-            // by the publication workflow has no media URL yet, and a tile that
-            // does nothing when tapped is worse than a tile that is not there.
-            final playable = [
-              for (final entry in entries)
-                if (MusicTrack.fromReel(entry, kind: kind) != null) entry,
-            ];
-            return CustomScrollView(
-              slivers: [
-                SliverToBoxAdapter(
-                  child: _Header(kind: kind, items: playable),
-                ),
-                if (playable.isEmpty)
-                  SliverFillRemaining(
-                    hasScrollBody: false,
-                    child: _Empty(kind: kind),
-                  ),
-                SliverPadding(
-                  padding: EdgeInsets.fromLTRB(
-                    18,
-                    4,
-                    18,
-                    24 + musicInset(context),
-                  ),
-                  sliver: SliverGrid.builder(
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          crossAxisSpacing: 14,
-                          mainAxisSpacing: 16,
-                          childAspectRatio: 0.78,
-                        ),
-                    itemCount: playable.length,
-                    itemBuilder: (context, index) => _TrackTile(
-                      item: playable[index],
-                      onPlay: () => ref
-                          .read(musicControllerProvider.notifier)
-                          .playCollection(
-                            playable,
-                            startIndex: index,
-                            kind: kind,
-                          ),
-                    ),
-                  ),
-                ),
-              ],
-            );
-          },
+          data: (playable) => _Library(kind: kind, items: playable),
         ),
       ),
     );
   }
 }
 
-class _Header extends ConsumerWidget {
-  const _Header({required this.kind, required this.items});
+class _Library extends ConsumerWidget {
+  const _Library({required this.kind, required this.items});
 
   final CollectionKind kind;
   final List<PublishedReel> items;
@@ -108,137 +82,153 @@ class _Header extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final controller = ref.read(musicControllerProvider.notifier);
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(18, 6, 18, 14),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            kind == CollectionKind.audiobooks
-                ? 'Listen, learn, and carry it forward.'
-                : 'Hear the rhythm of home.',
-            style: Theme.of(context).textTheme.headlineMedium,
-          ),
-          // The channel keeps its name when it is empty — that line is what the
-          // Collection promised on the way in. Only the transport goes, because
-          // there is nothing for it to start.
-          if (items.isNotEmpty) ...[
-            const SizedBox(height: 14),
-            Row(
+    final artists = ref.watch(musicArtistsProvider(kind));
+    final recent = resolveRecent(ref.watch(recentlyPlayedProvider), items);
+
+    Future<void> play(List<PublishedReel> queue, int index) =>
+        controller.playCollection(queue, startIndex: index, kind: kind);
+
+    void openArtist(MusicArtist artist) => Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (context) =>
+            MusicArtistScreen(artistId: artist.id, kind: kind),
+      ),
+    );
+
+    return CustomScrollView(
+      slivers: [
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(18, 8, 18, 6),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                FilledButton.icon(
-                  onPressed: () => controller.playCollection(
-                    items,
-                    startIndex: 0,
-                    kind: kind,
+                Text(
+                  kind == CollectionKind.audiobooks
+                      ? 'Listen, learn, and carry it forward.'
+                      : 'Hear the rhythm of home.',
+                  style: Theme.of(context).textTheme.headlineMedium,
+                ),
+                // The channel keeps its name when it is empty — that line is
+                // what the Collection promised on the way in. Only the
+                // transport goes, because there is nothing for it to start.
+                if (items.isNotEmpty) ...[
+                  const SizedBox(height: 14),
+                  MusicTransportRow(
+                    count: items.length,
+                    onPlayAll: () => play(items, 0),
+                    onShuffle: () async {
+                      await controller.toggleShuffle();
+                      await play(items, 0);
+                    },
                   ),
-                  icon: const Icon(Icons.play_arrow_rounded),
-                  label: Text('Play all ${items.length}'),
-                ),
-                const SizedBox(width: 10),
-                OutlinedButton.icon(
-                  // Shuffle goes on before the queue is loaded, so the first
-                  // song is already a shuffled one. Starting at track one and
-                  // then shuffling would always open on the same song.
-                  onPressed: () async {
-                    await controller.toggleShuffle();
-                    await controller.playCollection(
-                      items,
-                      startIndex: 0,
-                      kind: kind,
-                    );
-                  },
-                  icon: const Icon(Icons.shuffle_rounded),
-                  label: const Text('Shuffle'),
-                ),
+                ],
               ],
             ),
-          ],
+          ),
+        ),
+
+        if (items.isEmpty)
+          SliverFillRemaining(hasScrollBody: false, child: _Empty(kind: kind)),
+
+        // What they came back for, first. Only when there is something to
+        // show: an empty shelf labelled "Jump back in" is a promise the app
+        // has not kept yet.
+        if (recent.isNotEmpty) ...[
+          const SliverToBoxAdapter(
+            child: MusicSectionHeader(title: 'Jump back in'),
+          ),
+          SliverToBoxAdapter(
+            child: _Shelf(
+              children: [
+                for (final item in recent)
+                  MusicShelfCard(
+                    item: item,
+                    // The shelf plays *the shelf*, not the whole archive:
+                    // somebody who taps what they were listening to yesterday
+                    // is asking for that sitting back, not for the collection
+                    // in publication order.
+                    onPlay: () => play(recent, recent.indexOf(item)),
+                  ),
+              ],
+            ),
+          ),
         ],
-      ),
+
+        // The people. Above the songs, deliberately — the name under a
+        // recording is the thing a listener reaches for next, and in a
+        // tradition carried by singers the singer is not metadata.
+        if (artists.length > 1) ...[
+          SliverToBoxAdapter(
+            child: MusicSectionHeader(
+              title: 'Artists',
+              onSeeAll: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (context) => MusicSearchScreen(kind: kind),
+                ),
+              ),
+              seeAllLabel: 'Browse',
+            ),
+          ),
+          SliverToBoxAdapter(
+            child: _Shelf(
+              height: 148,
+              children: [
+                for (final artist in artists.take(12))
+                  MusicArtistCircle(
+                    artist: artist,
+                    onOpen: () => openArtist(artist),
+                  ),
+              ],
+            ),
+          ),
+        ],
+
+        if (items.isNotEmpty) ...[
+          SliverToBoxAdapter(
+            child: MusicSectionHeader(
+              title: kind == CollectionKind.audiobooks
+                  ? 'Every reading'
+                  : 'Every song',
+            ),
+          ),
+          SliverPadding(
+            padding: EdgeInsets.only(bottom: 24 + musicInset(context)),
+            sliver: SliverList.builder(
+              itemCount: items.length,
+              itemBuilder: (context, index) => MusicTrackRow(
+                item: items[index],
+                onPlay: () => play(items, index),
+              ),
+            ),
+          ),
+        ],
+      ],
     );
   }
 }
 
-class _TrackTile extends ConsumerWidget {
-  const _TrackTile({required this.item, required this.onPlay});
+/// A horizontally scrolling row of cards.
+///
+/// Fixed height rather than intrinsic, because a shelf whose height is decided
+/// by its tallest child jumps every time a longer title loads in.
+class _Shelf extends StatelessWidget {
+  const _Shelf({required this.children, this.height = 186});
 
-  final PublishedReel item;
-  final VoidCallback onPlay;
+  final List<Widget> children;
+  final double height;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final brand = context.brand;
-    final nowPlaying = ref.watch(musicMediaItemProvider).asData?.value;
-    final isCurrent = nowPlaying?.id == item.id;
-    final art = item.posterUrl;
-    final fallback = ColoredBox(
-      color: brand.surfaceMuted,
-      child: Center(
-        child: Icon(Icons.graphic_eq_rounded, color: brand.mutedInk),
-      ),
-    );
-
-    return Semantics(
-      button: true,
-      label: 'Play ${item.title} by ${item.creatorName}',
-      excludeSemantics: true,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(18),
-        onTap: onPlay,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(18),
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    if (art == null || art.isEmpty)
-                      fallback
-                    else
-                      CachedNetworkImage(
-                        imageUrl: art,
-                        fit: BoxFit.cover,
-                        placeholder: (_, _) => fallback,
-                        errorWidget: (_, _, _) => fallback,
-                      ),
-                    if (isCurrent)
-                      Container(
-                        color: Colors.black.withValues(alpha: 0.35),
-                        child: Icon(
-                          Icons.equalizer_rounded,
-                          color: brand.gold,
-                          size: 34,
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              item.title,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: isCurrent ? brand.accent : brand.ink,
-                fontWeight: FontWeight.w800,
-                fontSize: 13.5,
-              ),
-            ),
-            Text(
-              item.creatorName,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(color: brand.mutedInk, fontSize: 11.5),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => SizedBox(
+    height: height,
+    child: ListView.separated(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: 18),
+      itemCount: children.length,
+      separatorBuilder: (_, _) => const SizedBox(width: 14),
+      itemBuilder: (context, index) => children[index],
+    ),
+  );
 }
 
 class _Empty extends StatelessWidget {

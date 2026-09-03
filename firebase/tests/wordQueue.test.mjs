@@ -28,15 +28,19 @@ import {
 
 import {
   MAX_PROGRESS_IDS,
+  SENTENCE_FITS,
   appendProgressId,
   buildWordQueueContributionInput,
   nextQueueRowState,
   parseQueueBatchLimit,
+  parseSentenceFit,
   parseWordTranslationInput,
   progressIds,
   queueOutcomeForStatus,
   queueWordAttribution,
   selectQueueBatch,
+  sentenceFlagUpdate,
+  sentenceNeedsReplacing,
   wordQueuePromptStamp,
   wordQueueSourceLine,
 } from '../../services/functions/lib/word-queue.js';
@@ -464,6 +468,72 @@ test('an answer is validated before it becomes a contribution', () => {
     () => parseWordTranslationInput(answer({ wordId: 'wordQueue/the-bbccdf' })),
     (error) => error?.code === 'invalid-argument',
   );
+});
+
+// ── Sentence fit: answering the word while flagging the sentence ─────────────
+
+test('a client that has never heard of sentence fit still submits', () => {
+  // The compatibility guarantee. `answer()` deliberately omits sentenceFit, so
+  // this is the shape every already-installed copy of the app sends.
+  assert.equal(parseSentenceFit(undefined), 'fits');
+  assert.equal(parseSentenceFit(null), 'fits');
+  assert.equal(parseSentenceFit(''), 'fits');
+  assert.equal(parseWordTranslationInput(answer()).sentenceFit, 'fits');
+});
+
+test('a flag rides alongside a real answer rather than replacing it', () => {
+  // The whole point: the member said what the word means AND that the sentence
+  // was no help. Losing either half would defeat the feature.
+  const parsed = parseWordTranslationInput(answer({ sentenceFit: 'idiom' }));
+  assert.equal(parsed.sentenceFit, 'idiom');
+  assert.deepEqual(parsed.translations, ['kʋm', 'nɩ']);
+  assert.equal(parsed.partOfSpeech, 'noun');
+});
+
+test('idiom and other-sense stay apart, and junk is still a bug', () => {
+  assert.deepEqual([...SENTENCE_FITS], ['fits', 'idiom', 'other-sense']);
+  assert.equal(parseSentenceFit('OTHER-SENSE'), 'other-sense');
+  assert.throws(
+    () => parseSentenceFit('sort-of'),
+    (error) => error?.code === 'invalid-argument',
+  );
+  assert.throws(
+    () => parseWordTranslationInput(answer({ sentenceFit: 'misfit' })),
+    (error) => error?.code === 'invalid-argument',
+  );
+});
+
+test('the common answer writes no counters at all', () => {
+  assert.equal(sentenceFlagUpdate('fits'), null);
+  assert.deepEqual(
+    Object.keys(sentenceFlagUpdate('idiom')).sort(),
+    ['sentenceFlagCount', 'sentenceFlags.idiom'],
+  );
+  assert.deepEqual(
+    Object.keys(sentenceFlagUpdate('other-sense')).sort(),
+    ['sentenceFlagCount', 'sentenceFlags.other-sense'],
+  );
+});
+
+test('a flagged sentence surfaces at the threshold and not before', () => {
+  assert.equal(sentenceNeedsReplacing(row()), false);
+  assert.equal(sentenceNeedsReplacing(row({ sentenceFlagCount: 2 })), false);
+  assert.equal(sentenceNeedsReplacing(row({ sentenceFlagCount: 3 })), true);
+  assert.equal(sentenceNeedsReplacing(row({ sentenceFlagCount: 1 }), 1), true);
+  // Already repaired: it must not come back round a second time.
+  assert.equal(
+    sentenceNeedsReplacing(row({ sentenceFlagCount: 9, sentenceStatus: 'replaced' })),
+    false,
+  );
+});
+
+test('flagging a sentence never touches the word itself', () => {
+  // A bad sentence is a bad prompt, not a bad word. The row's status is the
+  // field that would take vocabulary out of circulation, and nothing on the
+  // sentence-fit path is allowed to compute it.
+  const flagged = row({ sentenceFlagCount: 25 });
+  assert.equal(nextQueueRowState(flagged, 'none', 'pending').status, 'open');
+  assert.equal(sentenceNeedsReplacing(flagged), true);
 });
 
 test('a member may still withhold publication of an individual answer', () => {

@@ -237,6 +237,22 @@ class CommunityPostCard extends ConsumerWidget {
                                 onReply: onReply,
                                 onShare: onShare,
                               ),
+                              // And it says whose it is while they look. The
+                              // byline the card draws above is the first thing
+                              // a full-screen picture covers up, and a
+                              // photograph nobody is named under is a
+                              // photograph nobody can follow, reply to or
+                              // trust.
+                              author: MediaPostAuthor(
+                                displayName: authorName,
+                                handle: authorHandle,
+                                initials: authorInitials,
+                                mark: authorMark,
+                                supporterMark: authorSupporter,
+                                avatarUrl: authorAvatar,
+                                caption: post.text,
+                                onOpenProfile: onOpenAuthor,
+                              ),
                             ),
                           ),
                         ],

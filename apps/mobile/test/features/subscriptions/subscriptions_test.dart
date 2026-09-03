@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:indigen_world_mobile/core/firebase_ready.dart';
 import 'package:indigen_world_mobile/features/ads/data/ad_campaign.dart';
 import 'package:indigen_world_mobile/features/ads/data/served_ad.dart';
@@ -90,6 +93,69 @@ Future<void> _settle(ProviderContainer container) async {
   for (var turn = 0; turn < 4; turn++) {
     await Future<void>.delayed(Duration.zero);
   }
+}
+
+/// A stand-in for the plugin that answers `isAvailable` slowly, the way the
+/// real one does: under it sits a `BillingClient` connection and a platform
+/// channel, so the answer never arrives in the same turn it was asked for.
+class _FakePlugin implements InAppPurchase {
+  _FakePlugin({this.availability = const [true]});
+
+  /// One answer per call to [isAvailable], the last one repeating. Lets a test
+  /// say "no the first time, yes the second" — a Play Store that was signed
+  /// out and now is not.
+  final List<bool> availability;
+
+  int availabilityChecks = 0;
+
+  final _purchases = StreamController<List<PurchaseDetails>>.broadcast();
+
+  @override
+  Stream<List<PurchaseDetails>> get purchaseStream => _purchases.stream;
+
+  @override
+  Future<bool> isAvailable() async {
+    final answer =
+        availability[availabilityChecks.clamp(0, availability.length - 1)];
+    availabilityChecks++;
+    // The delay is the whole point. A caller that walks past a start still in
+    // flight reads the availability from before this returns.
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+    return answer;
+  }
+
+  @override
+  Future<ProductDetailsResponse> queryProductDetails(
+    Set<String> identifiers,
+  ) async => ProductDetailsResponse(
+    productDetails: const [],
+    notFoundIDs: identifiers.toList(),
+  );
+
+  @override
+  Future<bool> buyNonConsumable({required PurchaseParam purchaseParam}) async =>
+      true;
+
+  @override
+  Future<bool> buyConsumable({
+    required PurchaseParam purchaseParam,
+    bool autoConsume = true,
+  }) async => true;
+
+  @override
+  Future<void> completePurchase(PurchaseDetails purchase) async {}
+
+  @override
+  Future<void> restorePurchases({String? applicationUserName}) async {}
+
+  @override
+  Future<String> countryCode() async => 'GH';
+
+  /// `getPlatformAddition` is the one member left, and naming its bound would
+  /// mean importing the platform interface package directly. Nothing in this
+  /// file calls it, so it is forwarded into a throw instead.
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
 void main() {
@@ -484,6 +550,64 @@ void main() {
         isNotEmpty,
       );
       expect(container.read(supporterMarkProvider), SupporterMark.none);
+    });
+  });
+
+
+  group('starting the billing connection', () {
+    // The bug this group exists for: the paywall asked for the offers while
+    // the availability check kicked off a microsecond earlier was still in
+    // flight, read the `false` it had not yet replaced, and told every single
+    // member that Google Play was missing from their phone.
+    setUpAll(TestWidgetsFlutterBinding.ensureInitialized);
+
+    test('a second caller waits for the first start instead of racing it', () async {
+      final plugin = _FakePlugin();
+      final service = BillingService((_) async => true, plugin: plugin);
+      addTearDown(service.dispose);
+
+      // Exactly what the provider does: start it and let it run, then have the
+      // paywall ask for the offers.
+      unawaited(service.start());
+      await service.start();
+      final offerings = await service.loadOffers();
+
+      // Play was reachable, so whatever else is wrong, it is not this.
+      expect(
+        offerings.reason,
+        isNot(SubscriptionUnavailableReason.billingUnavailable),
+      );
+      expect(offerings.reason, SubscriptionUnavailableReason.playReturnedNothing);
+      expect(plugin.availabilityChecks, 1);
+    });
+
+    test('a no is asked again, so a retry can succeed', () async {
+      // Signed out of the Play Store, then signed in. The first answer must not
+      // be the answer for the rest of the launch — that is what the paywall's
+      // "Try again" leans on.
+      final plugin = _FakePlugin(availability: const [false, true]);
+      final service = BillingService((_) async => true, plugin: plugin);
+      addTearDown(service.dispose);
+
+      final first = await service.loadOffers();
+      expect(first.reason, SubscriptionUnavailableReason.billingUnavailable);
+
+      final second = await service.loadOffers();
+      expect(
+        second.reason,
+        SubscriptionUnavailableReason.playReturnedNothing,
+      );
+      expect(plugin.availabilityChecks, 2);
+    });
+
+    test('a yes is not asked again', () async {
+      final plugin = _FakePlugin();
+      final service = BillingService((_) async => true, plugin: plugin);
+      addTearDown(service.dispose);
+
+      await service.loadOffers();
+      await service.loadOffers();
+      expect(plugin.availabilityChecks, 1);
     });
   });
 

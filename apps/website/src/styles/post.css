@@ -1,0 +1,186 @@
+/**
+ * src/styles/post.css
+ *
+ * The shared-post landing page (/post/<id>).
+ *
+ * Narrower than the rest of the site on purpose: this page has one job, which
+ * is to show one post and then offer the app. A full-width layout would make a
+ * two-line post look like a mistake.
+ */
+
+.post-page {
+  max-width: 640px;
+  display: grid;
+  gap: var(--space-4);
+}
+
+.post-card {
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  display: grid;
+  gap: var(--space-2);
+}
+
+.post-card--loading,
+.post-card--empty {
+  min-height: 140px;
+}
+
+.post-card__skeleton {
+  display: block;
+  height: 14px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--sand), var(--cream), var(--sand));
+  background-size: 200% 100%;
+  animation: post-skeleton 1.4s var(--motion-ease) infinite;
+}
+
+.post-card__skeleton--short {
+  width: 55%;
+}
+
+@keyframes post-skeleton {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .post-card__skeleton {
+    animation: none;
+  }
+}
+
+.post-card--empty h2 {
+  margin: 0 0 var(--space-1);
+  font-size: 1.15rem;
+}
+
+.post-card--empty p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.post-card__author {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.post-card__avatar {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--sand);
+}
+
+.post-card__avatar--initial {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  color: var(--indigo-900);
+}
+
+.post-card__name {
+  margin: 0;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.post-card__verified {
+  color: var(--gold);
+  font-size: 0.85em;
+}
+
+.post-card__handle {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.post-card__text {
+  margin: 0;
+  /* Community text arrives with the author's own line breaks in it, and it is
+     rendered as text, never as markup. */
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 1.05rem;
+  line-height: 1.6;
+}
+
+.post-card__media {
+  display: grid;
+  gap: 6px;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.post-card__media--2 {
+  grid-template-columns: 1fr 1fr;
+}
+
+.post-card__media img {
+  width: 100%;
+  height: 100%;
+  max-height: 420px;
+  object-fit: cover;
+  display: block;
+  background: var(--sand);
+}
+
+.post-card__attachment,
+.post-card__meta {
+  margin: 0;
+}
+
+.post-card__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  padding-top: var(--space-1);
+  border-top: 1px solid var(--line);
+}
+
+.post-handoff {
+  background: var(--sand);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+}
+
+.post-handoff h2 {
+  margin: 0 0 var(--space-1);
+  font-size: 1.15rem;
+}
+
+.post-handoff > p {
+  margin: 0 0 var(--space-2);
+  color: var(--muted);
+}
+
+.post-handoff__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+
+.post-handoff__actions .button {
+  /* The site's `.button` is full-width by default, which is right in a form
+     column and wrong for two controls side by side. */
+  width: auto;
+  text-decoration: none;
+}
+
+.post-page__footer-note {
+  margin: 0;
+}

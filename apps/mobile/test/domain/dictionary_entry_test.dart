@@ -158,6 +158,53 @@ void main() {
     });
   });
 
+  group('the forms a noun takes', () {
+    test('the plain form is derived, so every legacy noun already has one', () {
+      // _oneMeaning carries no `forms` at all — it is the shape of the whole
+      // dictionary as contributed before any of this existed. It still gets
+      // its indefinite, because the indefinite is a rule and not a record.
+      expect(_oneMeaning.definiteForm, '');
+      expect(_oneMeaning.pluralForm, '');
+      expect(_oneMeaning.hasForms, isFalse);
+      expect(_oneMeaning.indefinite, 'Konkwolo mo');
+    });
+
+    test('nothing but a noun is given an indefinite form', () {
+      // Asking is how a caller decides whether to draw the line, so a verb has
+      // to answer null rather than leave every screen re-testing word classes.
+      final verb = _oneMeaning.copyWith(partOfSpeech: 'verb');
+      expect(verb.indefinite, isNull);
+      // Free text, so the capitalisation the contributor's client sent is
+      // whatever it was. "Noun" and "noun" are the same word class.
+      expect(_oneMeaning.copyWith(partOfSpeech: 'Noun').indefinite, 'Konkwolo mo');
+    });
+
+    test('an entry with no headword gets no form rather than a bare particle', () {
+      // "mo" alone is not the indefinite of anything, and printing it would
+      // state something false on an entry whose data is simply missing.
+      expect(_oneMeaning.copyWith(headword: '').indefinite, isNull);
+      expect(_oneMeaning.copyWith(headword: '   ').indefinite, isNull);
+    });
+
+    test('collected forms are carried, and the indefinite is not among them', () {
+      final recorded = _oneMeaning.copyWith(
+        definiteForm: 'konkwolokam',
+        pluralForm: 'konkwoli',
+      );
+      expect(recorded.hasForms, isTrue);
+      expect(recorded.definiteForm, 'konkwolokam');
+      expect(recorded.pluralForm, 'konkwoli');
+      // Still computed from the headword, never read from a stored field, so
+      // the two can never come to disagree.
+      expect(recorded.indefinite, 'Konkwolo mo');
+    });
+
+    test('an unestablished noun class reads empty, which is not "no class"', () {
+      expect(_oneMeaning.nounClass, '');
+      expect(_oneMeaning.copyWith(nounClass: 'class-1').nounClass, 'class-1');
+    });
+  });
+
   test('an entry survives a JSON round trip with its new fields', () {
     final restored = DictionaryEntry.fromJson(
       _severalMeanings

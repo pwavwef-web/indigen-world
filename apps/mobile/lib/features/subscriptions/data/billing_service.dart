@@ -5,6 +5,7 @@ import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:in_app_purchase_android/billing_client_wrappers.dart';
 import 'package:in_app_purchase_android/in_app_purchase_android.dart';
 import 'package:indigen_world_mobile/features/subscriptions/data/subscription_catalog.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 /// One buyable thing: a product, one of its base plans, and Play's own price.
 ///
@@ -96,6 +97,7 @@ class SubscriptionOfferings {
     this.playProductIds = const <String>[],
     this.playBasePlanIds = const <String>[],
     this.queryError = '',
+    this.packageName = '',
   });
 
   final List<SubscriptionOffer> offers;
@@ -110,6 +112,15 @@ class SubscriptionOfferings {
 
   /// Play's own message when the query failed outright.
   final String queryError;
+
+  /// The application id this build is actually running under, filled in only
+  /// when there is nothing to show.
+  ///
+  /// The single fastest way to end the commonest false alarm: Play sells
+  /// nothing for `world.indigen.mobile.dev` or `.staging`, and a `.dev` suffix
+  /// sitting here says so in one glance rather than an afternoon of guessing
+  /// at Play Console.
+  final String packageName;
 
   bool get isEmpty => offers.isEmpty;
 }
@@ -188,6 +199,17 @@ class BillingService {
     return null;
   }
 
+  /// The startup in flight, or the finished one. Held so that a second caller
+  /// *waits* rather than walking past a start that has not finished.
+  ///
+  /// This is not a micro-optimisation. Guarding on `_subscription != null`
+  /// instead would let the second caller through the moment the stream is
+  /// listened to — which happens synchronously, before Play has answered
+  /// whether billing is even available. The paywall is exactly that second
+  /// caller, so every first open read `_available` while it was still false
+  /// and told the member Google Play was missing from their phone.
+  Future<void>? _startup;
+
   /// Starts listening. Must run before any purchase is attempted, and is safe
   /// to call more than once.
   ///
@@ -195,24 +217,57 @@ class BillingService {
   /// purchase that completed while the app was closed is delivered on this
   /// stream the moment it is listened to, and a listener attached later would
   /// miss it — which is a member who has paid and been given nothing.
-  Future<void> start() async {
-    if (_subscription != null) return;
+  Future<void> start() => _startup ??= _start();
+
+  Future<void> _start() async {
     _subscription = _plugin.purchaseStream.listen(
       _handle,
       onError: (Object error) => debugPrint('Billing stream error: $error'),
     );
+    _available = await _checkAvailable();
+  }
+
+  /// Asks Play whether it can serve billing at all.
+  ///
+  /// Under the plugin this waits for the `BillingClient` connection to settle,
+  /// so it is a real answer rather than a snapshot of a connection still being
+  /// made.
+  Future<bool> _checkAvailable() async {
     try {
-      _available = await _plugin.isAvailable();
+      return await _plugin.isAvailable();
     } on Object catch (error) {
       debugPrint('Billing availability unknown: $error');
-      _available = false;
+      return false;
     }
+  }
+
+  /// Whether the current answer in [_available] has already been given to
+  /// somebody.
+  bool _availabilityReported = false;
+
+  /// The availability, re-asked when the last answer was no and has already
+  /// been acted on.
+  ///
+  /// A "no" that somebody has already been shown is worth asking again: they
+  /// have had the time in between to sign into the Play Store or update Play
+  /// Services, and this is what the paywall's "Try again" leans on. Asking
+  /// twice inside one load would be pointless, and a "yes" never turns into a
+  /// "no" without the plugin reconnecting underneath, so neither is done.
+  Future<bool> _ensureAvailable() async {
+    await start();
+    if (!_available && _availabilityReported) {
+      _available = await _checkAvailable();
+    }
+    _availabilityReported = true;
+    return _available;
   }
 
   Future<void> dispose() async {
     _owned.clear();
     await _subscription?.cancel();
     _subscription = null;
+    _startup = null;
+    _availabilityReported = false;
     await _events.close();
   }
 
@@ -255,9 +310,10 @@ class BillingService {
   /// But every drop is *counted*, so an empty paywall can say which of the
   /// five reasons it is rather than shrugging.
   Future<SubscriptionOfferings> loadOffers() async {
-    if (!_available) {
-      return const SubscriptionOfferings(
+    if (!await _ensureAvailable()) {
+      return SubscriptionOfferings(
         reason: SubscriptionUnavailableReason.billingUnavailable,
+        packageName: await _packageName(),
       );
     }
 
@@ -318,6 +374,9 @@ class BillingService {
       return a.plan.billingPeriod.index.compareTo(b.plan.billingPeriod.index);
     });
 
+    // Only worth a platform call when there is a failure to explain.
+    final packageName = offers.isEmpty ? await _packageName() : '';
+
     return SubscriptionOfferings(
       offers: List.unmodifiable(offers),
       reason: switch ((offers.isNotEmpty, playProductIds.isEmpty)) {
@@ -331,6 +390,7 @@ class BillingService {
       playProductIds: List.unmodifiable(playProductIds.toList()..sort()),
       playBasePlanIds: List.unmodifiable(playBasePlanIds.toList()..sort()),
       queryError: queryError,
+      packageName: packageName,
     );
   }
 
@@ -350,7 +410,7 @@ class BillingService {
     required String obfuscatedAccountId,
     GooglePlayPurchaseDetails? current,
   }) async {
-    if (!_available) return PurchaseOutcome.unavailable;
+    if (!await _ensureAvailable()) return PurchaseOutcome.unavailable;
 
     final param = GooglePlayPurchaseParam(
       productDetails: offer.details,
@@ -381,11 +441,23 @@ class BillingService {
   /// What "Restore purchases" runs. Everything it finds arrives on the same
   /// stream as a fresh purchase, so it settles through exactly the same path.
   Future<void> restore() async {
-    if (!_available) return;
+    if (!await _ensureAvailable()) return;
     try {
       await _plugin.restorePurchases();
     } on Object catch (error) {
       debugPrint('Restore failed: $error');
+    }
+  }
+
+  /// The application id this build is running under, or '' when it cannot be
+  /// read. Only ever used to explain a failure, so a failure to read it is not
+  /// worth failing over.
+  static Future<String> _packageName() async {
+    try {
+      return (await PackageInfo.fromPlatform()).packageName;
+    } on Object catch (error) {
+      debugPrint('Could not read the package name: $error');
+      return '';
     }
   }
 

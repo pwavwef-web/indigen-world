@@ -46,19 +46,31 @@ Future<void> answer(WidgetTester tester, String translation) async {
   await tester.enterText(find.byType(TextFormField).first, translation);
   await tester.pump();
 
-  await tester.tap(find.text('Word class'));
-  await tester.pump();
-  await tester.pump(const Duration(milliseconds: 400));
-  await tester.tap(find.text('Noun'));
-  await tester.pump();
-  await tester.pump(const Duration(milliseconds: 400));
+  // Only when it still needs choosing. A test that has already picked Noun —
+  // to reach the noun-form fields, which render only for a noun — would
+  // otherwise reopen the picker and find "Noun" twice: once as the chosen
+  // value on the field, once as the row in the list.
+  if (find.text('Noun').evaluate().isEmpty) {
+    await tester.tap(find.text('Word class'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.tap(find.text('Noun'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+  }
 
-  await tester.tap(find.text('Dialect or region'));
-  await tester.pump();
-  await tester.pump(const Duration(milliseconds: 400));
-  await tester.tap(find.text('Navrongo').last);
-  await tester.pump();
-  await tester.pump(const Duration(milliseconds: 400));
+  // Only when it still needs choosing. The dialect is kept across words on
+  // purpose — it is a fact about the member, not about the word — so a second
+  // call would be opening a dropdown that is already answered, and tapping a
+  // collapsed label that no longer hit-tests.
+  if (find.text('Navrongo').evaluate().isEmpty) {
+    await tester.tap(find.text('Dialect or region'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.tap(find.text('Navrongo').last);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+  }
 
   await tester.tap(find.text('Send and take the next'));
   await tester.pump();
@@ -278,6 +290,181 @@ void main() {
 
     expect(find.text('That is the whole queue.'), findsOneWidget);
     expect(find.text('Try again'), findsNothing);
+  });
+
+  // ── Sentence fit ──────────────────────────────────────────────────────────
+  //
+  // The queue shows a word and a sentence, and sometimes the sentence is about
+  // something else — rank 31 is *word*, shown in "put in a good word for me".
+  // These tests hold the escape open: the member answers the word AND says the
+  // sentence was no help, in one send, without skipping a word they knew.
+
+  testWidgets('a member who says nothing has said the sentence was fine', (
+    tester,
+  ) async {
+    final api = FakeWordQueueApi([batchOf(2)]);
+    await pumpQueue(tester, api);
+
+    expect(find.text('Does that sentence show the plain word?'), findsOneWidget);
+
+    // Answered without touching the control at all: the median word must cost
+    // zero extra taps, or the queue grows a field per word and people stop.
+    await answer(tester, 'kʋm');
+
+    expect(api.submissions.single.sentenceFit, WordQueueSentenceFit.fits);
+  });
+
+  testWidgets('the word is still answered when the sentence is flagged', (
+    tester,
+  ) async {
+    final api = FakeWordQueueApi([batchOf(2)]);
+    await pumpQueue(tester, api);
+
+    await tester.tap(find.text('That is a saying, not the plain word'));
+    await tester.pump();
+    await answer(tester, 'kʋm');
+
+    // Both halves survive. Losing either would defeat the whole feature: the
+    // answer alone loses the flag, the flag alone is just a skip.
+    final sent = api.submissions.single;
+    expect(sent.sentenceFit, WordQueueSentenceFit.idiom);
+    expect(sent.translations, ['kʋm']);
+    expect(api.skips, isEmpty);
+  });
+
+  testWidgets('a remark about one sentence does not follow the next word', (
+    tester,
+  ) async {
+    final api = FakeWordQueueApi([batchOf(3)]);
+    await pumpQueue(tester, api);
+
+    await tester.tap(find.text('That is a different meaning'));
+    await tester.pump();
+    await answer(tester, 'kʋm');
+
+    // The next word arrived; the control must have gone back to fits with the
+    // rest of the answer. This is the bug `_clearAnswer` exists for.
+    expect(find.text('word-1'), findsOneWidget);
+    await answer(tester, 'nɩ');
+    expect(api.submissions.last.sentenceFit, WordQueueSentenceFit.fits);
+  });
+
+  testWidgets('a saying is offered a home, and only when one was spotted', (
+    tester,
+  ) async {
+    final api = FakeWordQueueApi([batchOf(3)]);
+    await pumpQueue(tester, api);
+
+    await answer(tester, 'kʋm');
+    expect(find.text('Record that saying too?'), findsNothing);
+
+    await tester.tap(find.text('That is a saying, not the plain word'));
+    await tester.pump();
+    await answer(tester, 'nɩ');
+
+    // Offered after the send, never before it — interrupting somebody
+    // mid-word to ask for a second contribution is how the rhythm dies.
+    expect(find.text('Record that saying too?'), findsOneWidget);
+  });
+
+  // ── Noun forms ────────────────────────────────────────────────────────────
+  //
+  // The queue used to ask for the Kasem for "the", fifteen thousand times, and
+  // there is no such word — definiteness is a property of the noun. These tests
+  // hold the replacement: two optional fields that cost nothing to ignore, and
+  // a plain form stated rather than asked for.
+
+  testWidgets('the form fields appear only once the word is a noun', (
+    tester,
+  ) async {
+    final api = FakeWordQueueApi([batchOf(2)]);
+    await pumpQueue(tester, api);
+
+    // Nothing until a word class is chosen: a verb must cost zero extra
+    // keystrokes, and so must a noun whose contributor does not elaborate.
+    expect(find.text('Say it with “the” (optional)'), findsNothing);
+    expect(find.text('Say it for many (optional)'), findsNothing);
+
+    await tester.tap(find.text('Word class'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.tap(find.text('Noun'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+
+    expect(find.text('Say it with “the” (optional)'), findsOneWidget);
+    expect(find.text('Say it for many (optional)'), findsOneWidget);
+    // The rule is stated, never asked for. A member who reads this line has
+    // learnt something true and will not type "bu mo" into the meaning box.
+    expect(find.textContaining('just the word and mo'), findsOneWidget);
+  });
+
+  testWidgets('a noun answered without its forms still sends nothing extra', (
+    tester,
+  ) async {
+    final api = FakeWordQueueApi([batchOf(2)]);
+    await pumpQueue(tester, api);
+    await answer(tester, 'bu');
+
+    final sent = api.submissions.single;
+    expect(sent.definiteForm, '');
+    expect(sent.pluralForm, '');
+    // The optionality is the whole design. If this key ever appears on an
+    // answer nobody filled in, every verb in the collection grows an empty map.
+    expect(sent.toPayload().containsKey('forms'), isFalse);
+  });
+
+  testWidgets('the forms a member does give travel with the answer', (
+    tester,
+  ) async {
+    final api = FakeWordQueueApi([batchOf(2)]);
+    await pumpQueue(tester, api);
+
+    await tester.tap(find.text('Word class'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.tap(find.text('Noun'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Say it with “the” (optional)'),
+      'bukam',
+    );
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Say it for many (optional)'),
+      'buga',
+    );
+    await tester.pump();
+    await answer(tester, 'bu');
+
+    final sent = api.submissions.single;
+    expect(sent.definiteForm, 'bukam');
+    expect(sent.pluralForm, 'buga');
+    expect(sent.toPayload()['forms'], {'definite': 'bukam', 'plural': 'buga'});
+  });
+
+  testWidgets('one word\'s forms do not follow the member to the next', (
+    tester,
+  ) async {
+    final api = FakeWordQueueApi([batchOf(3)]);
+    await pumpQueue(tester, api);
+
+    await tester.tap(find.text('Word class'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.tap(find.text('Noun'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Say it with “the” (optional)'),
+      'bukam',
+    );
+    await tester.pump();
+    await answer(tester, 'bu');
+
+    await answer(tester, 'nɩ');
+    expect(api.submissions.last.definiteForm, '');
   });
 
   testWidgets('no Firebase says so instead of looking like an empty queue', (

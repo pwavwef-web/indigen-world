@@ -8,7 +8,13 @@ import {
   type CollectionKind,
 } from './publication.js';
 import {
+  type NounForms,
+  hasNounForms,
+  parseNounForms,
+} from './kasem-morphology.js';
+import {
   canonicalLexicalKind,
+  canonicalPartOfSpeech,
   normaliseTranslations,
   type LexicalKind,
 } from './lexical-kinds.js';
@@ -76,6 +82,16 @@ export interface CollectionContributionInput {
   participantConsentConfirmed: boolean;
   kasemExample: string;
   englishExample: string;
+  /**
+   * The definite and plural forms of a noun; empty for everything else.
+   *
+   * Here as well as on the queue's own input because the open form reaches the
+   * same review desk and the same published entry, and a noun contributed
+   * through it should not silently lose the one piece of structure that makes
+   * definiteness answerable. See `kasem-morphology.ts` for why the indefinite
+   * is not among them.
+   */
+  forms: NounForms;
   rightsConfirmed: true;
   publicationPermission: boolean;
 }
@@ -294,6 +310,10 @@ export function parseCollectionContributionInput(
     participantConsentConfirmed,
     kasemExample: optionalText(data, 'kasemExample', 4000),
     englishExample: optionalText(data, 'englishExample', 4000),
+    // `format` is the word class on the dictionary path, and it arrives as a
+    // label ("Noun") from this form rather than as an id, so it is canonicalised
+    // before being asked whether this is a noun at all.
+    forms: parseNounForms(data.forms, canonicalPartOfSpeech(data.format)),
     rightsConfirmed: true,
     publicationPermission: data.publicationPermission,
   };
@@ -334,6 +354,10 @@ export function buildCollectionSubmissionDocument(
     format: input.format,
     kasemExample: input.kasemExample,
     englishExample: input.englishExample,
+    // On the canonical submission as well as the receipt, because publication
+    // reads this document and the forms have to survive the journey to the
+    // dictionary entry — they are the whole reason the queue asks for them.
+    ...(hasNounForms(input.forms) ? { forms: input.forms } : {}),
     primaryLanguage: 'xsm',
     dialect: input.dialect,
     // The public mobile details currently render description. Retain body too,
@@ -477,6 +501,10 @@ export function buildCollectionContributionReceipt(
     participantConsentConfirmed: input.participantConsentConfirmed,
     kasemExample: input.kasemExample,
     englishExample: input.englishExample,
+    // Omitted entirely when there is nothing in it, so the overwhelming
+    // majority of contributions — every verb, every adjective, every noun
+    // whose contributor did not elaborate — carry no empty map at all.
+    ...(hasNounForms(input.forms) ? { forms: input.forms } : {}),
     rightsConfirmed: true,
     publicationPermission: input.publicationPermission,
     status: 'submitted',

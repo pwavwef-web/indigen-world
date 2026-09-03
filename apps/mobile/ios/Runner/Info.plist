@@ -28,6 +28,25 @@
 				<string>com.googleusercontent.apps.111428711822-cjbl1qsp59klm352f7drivr9t48d2p95</string>
 			</array>
 		</dict>
+		<!-- The app's own scheme, matching the Android manifest and the
+		     "Open in the app" button on indigenworld.com/post/<id>.
+
+		     This is the fallback, not the main route. The main route on iOS is
+		     a Universal Link, which additionally needs the associated-domains
+		     entitlement on the Runner target and an Apple team id in
+		     apps/website/config/app-links.json — neither of which can be added
+		     without an Apple Developer account. See
+		     docs/product/shared-post-links.md. -->
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>world.indigen.mobile.links</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>indigen</string>
+			</array>
+		</dict>
 	</array>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>

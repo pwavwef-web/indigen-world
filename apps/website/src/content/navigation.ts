@@ -12,7 +12,7 @@
  * Get Involved, Contact, Privacy, Terms) — so this file backs a
  * real router (see src/app/router.tsx) instead of scroll anchors.
  */
-import type { AppRoute } from "../lib/types";
+import type { AppRoute, DynamicRoute } from "../lib/types";
 
 export const ROUTES: AppRoute[] = [
   {
@@ -79,6 +79,19 @@ export const ROUTES: AppRoute[] = [
     description: "Indigen World's terms of use.",
   },
   {
+    // Where a post shared out of the app lands. No navLabel: it is only ever
+    // reached by following a link, never by browsing the site.
+    //
+    // noindex because the prerendered HTML for this route cannot describe any
+    // particular post — the post is fetched in the browser — so every one of
+    // these URLs would otherwise be indexed under one generic title.
+    path: "post",
+    title: "Community post",
+    description:
+      "A post from the Indigen World community. Open it in the Indigen app to reply, react and follow the conversation.",
+    noindex: true,
+  },
+  {
     // Where Paystack returns an advertiser after checkout. No navLabel: it is
     // a destination people are sent to, never one they would go looking for.
     path: "ads/payment-complete",
@@ -88,6 +101,16 @@ export const ROUTES: AppRoute[] = [
     noindex: true,
   },
 ];
+
+/**
+ * Routes that carry an id in the segment after them.
+ *
+ * The router matches these by prefix, so `/post/abc123` resolves to the `post`
+ * page with `params.postId === "abc123"` instead of falling through to the 404
+ * page. Every entry here needs a matching Hosting rewrite in firebase.json —
+ * Hosting serves files, and `dist/post/abc123/index.html` does not exist.
+ */
+export const DYNAMIC_ROUTES: DynamicRoute[] = [{ path: "post", param: "postId" }];
 
 /** Routes shown in the header navigation, in display order. */
 export const NAV_ROUTES: AppRoute[] = ROUTES.filter((route) => route.navLabel !== undefined);

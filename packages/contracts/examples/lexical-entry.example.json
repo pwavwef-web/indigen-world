@@ -11,7 +11,12 @@
       "examples": ["Nia pe yogo."]
     }
   ],
-  "tags": ["nature", "basic-vocabulary"],
+  "nounClass": null,
+  "forms": {
+    "definite": "nia-DEF",
+    "plural": "nia-PL"
+  },
+  "tags": ["nature", "basic-vocabulary", "synthetic-fixture"],
   "governance": {
     "source": "Contributor submission (synthetic)",
     "contributor": { "collection": "contributors", "id": "contributor-ama" },

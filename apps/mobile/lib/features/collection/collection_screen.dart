@@ -1,8 +1,11 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
+import 'package:indigen_world_mobile/domain/dictionary_entry.dart';
 import 'package:indigen_world_mobile/features/ads/data/ad_campaign.dart';
 import 'package:indigen_world_mobile/features/ads/data/served_ad.dart';
 import 'package:indigen_world_mobile/features/ads/widgets/sponsored_card.dart';
@@ -12,6 +15,7 @@ import 'package:indigen_world_mobile/features/collection/collection_data.dart';
 import 'package:indigen_world_mobile/features/collection/collection_detail_screens.dart';
 import 'package:indigen_world_mobile/features/collection/shop_screen.dart';
 import 'package:indigen_world_mobile/features/collection/widgets/collection_card_surface.dart';
+import 'package:indigen_world_mobile/features/explore/published_content.dart';
 import 'package:indigen_world_mobile/features/heroes/heroes_data.dart';
 import 'package:indigen_world_mobile/features/heroes/heroes_screen.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_fab.dart';
@@ -19,115 +23,163 @@ import 'package:indigen_world_mobile/features/music/music_screen.dart';
 import 'package:indigen_world_mobile/l10n/app_localizations.dart';
 import 'package:indigen_world_mobile/shared/app_widgets.dart';
 import 'package:indigen_world_mobile/shared/frosted_nav_bar.dart';
+import 'package:indigen_world_mobile/shared/glass_surface.dart';
 import 'package:indigen_world_mobile/shared/profile_orb.dart';
 
-class CollectionScreen extends ConsumerWidget {
+class CollectionScreen extends ConsumerStatefulWidget {
   const CollectionScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final dictionary = ref.watch(publishedDictionaryEntriesProvider);
-    final music = ref.watch(musicCollectionProvider);
-    final literature = ref.watch(literatureCollectionProvider);
-    final audiobooks = ref.watch(audiobookCollectionProvider);
+  ConsumerState<CollectionScreen> createState() => _CollectionScreenState();
+}
+
+class _CollectionScreenState extends ConsumerState<CollectionScreen>
+    with AutomaticKeepAliveClientMixin {
+  final _searchController = TextEditingController();
+  Timer? _searchDebounce;
+  var _query = '';
+  var _filter = _CollectionFilter.all;
+
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  void dispose() {
+    _searchDebounce?.cancel();
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _onSearchChanged(String value) {
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(const Duration(milliseconds: 260), () {
+      if (!mounted) return;
+      final next = value.trim();
+      if (next == _query) return;
+      setState(() => _query = next);
+    });
+  }
+
+  void _clearSearch() {
+    _searchDebounce?.cancel();
+    _searchController.clear();
+    if (_query.isNotEmpty) setState(() => _query = '');
+  }
+
+  void _setFilter(_CollectionFilter filter) {
+    if (_filter == filter) return;
+    HapticFeedback.selectionClick();
+    setState(() => _filter = filter);
+  }
+
+  void _resetFilters() {
+    _searchDebounce?.cancel();
+    _searchController.clear();
+    setState(() {
+      _query = '';
+      _filter = _CollectionFilter.all;
+    });
+  }
+
+  void _retryAll() {
+    ref.invalidate(musicCollectionProvider);
+    ref.invalidate(publishedDictionaryEntriesProvider);
+    ref.invalidate(literatureCollectionProvider);
+    ref.invalidate(audiobookCollectionProvider);
+    ref.invalidate(kasemHeroesProvider);
+    ref.invalidate(directoryAppsProvider);
+    ref.invalidate(shopProductsProvider);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
+
     final l10n = AppLocalizations.of(context);
-    final heroes = ref.watch(kasemHeroesProvider);
-    final apps = ref.watch(directoryAppsProvider);
-    final shop = ref.watch(shopProductsProvider);
-    final textScale = MediaQuery.textScalerOf(context).scale(1);
-    final useSingleColumn = textScale > 1.1;
-    // One advert at most, and only ever the one at the front of the rotation.
-    // The grid is the map of the archive; a second paid tile in it would stop
-    // being a tile in the map and start being a column of them.
-    final sponsored = ref.watch(placedAdsProvider(AdPlacement.collection));
-    final portals = <Widget>[
-      _CollectionPortalCard(
-        label: l10n.collectionMusic,
+    final portals = <_CollectionPortal>[
+      _portal<PublishedReel>(
+        title: l10n.collectionMusic,
         icon: Icons.graphic_eq_rounded,
         color: context.brand.terracotta,
-        count: _count(music),
-        onRetry: _retry(music, () => ref.invalidate(musicCollectionProvider)),
+        value: ref.watch(musicCollectionProvider),
+        aliases: const ['songs', 'audio', 'recordings'],
+        itemMatches: _publishedReelMatches,
+        onRetry: () => ref.invalidate(musicCollectionProvider),
         onTap: () => _open(context, const MusicScreen()),
       ),
-      _CollectionPortalCard(
-        label: l10n.collectionDictionary,
+      _portal<DictionaryEntry>(
+        title: l10n.collectionDictionary,
         icon: Icons.translate_rounded,
         color: context.brand.accent,
-        count: _count(dictionary),
-        onRetry: _retry(
-          dictionary,
-          () => ref.invalidate(publishedDictionaryEntriesProvider),
-        ),
+        value: ref.watch(publishedDictionaryEntriesProvider),
+        aliases: const ['words', 'kasem', 'english', 'translation'],
+        itemMatches: (entry, query) => entry.matches(query),
+        onRetry: () => ref.invalidate(publishedDictionaryEntriesProvider),
         onTap: () => _open(context, const DictionaryCollectionScreen()),
       ),
-      _CollectionPortalCard(
-        label: l10n.collectionLiterature,
+      _portal<PublishedReel>(
+        title: l10n.collectionLiterature,
         icon: Icons.auto_stories_rounded,
         color: context.brand.success,
-        count: _count(literature),
-        onRetry: _retry(
-          literature,
-          () => ref.invalidate(literatureCollectionProvider),
-        ),
+        value: ref.watch(literatureCollectionProvider),
+        aliases: const ['stories', 'poems', 'writing', 'books'],
+        itemMatches: _publishedReelMatches,
+        onRetry: () => ref.invalidate(literatureCollectionProvider),
         onTap: () => _open(context, const LiteratureCollectionScreen()),
       ),
-      _CollectionPortalCard(
-        label: l10n.collectionAudiobooks,
+      _portal<PublishedReel>(
+        title: l10n.collectionAudiobooks,
         icon: Icons.headphones_rounded,
-        color: const Color(0xFF735C25),
-        count: _count(audiobooks),
-        onRetry: _retry(
-          audiobooks,
-          () => ref.invalidate(audiobookCollectionProvider),
-        ),
-        // Audiobooks are the same shape as music — one long audio record
-        // with a transcript — so they get the same player rather than a
-        // second, near-identical screen fighting for the same speakers.
-        onTap: () => _open(
-          context,
-          const MusicScreen(kind: CollectionKind.audiobooks),
-        ),
+        color: context.brand.gold,
+        value: ref.watch(audiobookCollectionProvider),
+        aliases: const ['audio books', 'readings', 'spoken'],
+        itemMatches: _publishedReelMatches,
+        onRetry: () => ref.invalidate(audiobookCollectionProvider),
+        onTap: () =>
+            _open(context, const MusicScreen(kind: CollectionKind.audiobooks)),
       ),
-      // Video has no portal here. Everything in it is what Explore already is
-      // — a full-bleed reel feed with its own tab — and a second, quieter door
-      // to the same footage only made the archive look like it had two.
-      //
-      // Apps and Shop sit alongside the archive rather than inside it: one
-      // sends members out to software worth having, the other to things the
-      // project makes and sells. Neither is contributed to, which is why
-      // neither is a CollectionKind.
-      // The people, beside the work. An archive of a language that never says
-      // who spoke it is a dictionary rather than a heritage.
-      _CollectionPortalCard(
-        label: l10n.collectionHeroes,
+      _portal<KasemHero>(
+        title: l10n.collectionHeroes,
         icon: Icons.stars_rounded,
         color: context.brand.gold,
-        count: _count(heroes),
-        onRetry: _retry(heroes, () => ref.invalidate(kasemHeroesProvider)),
+        value: ref.watch(kasemHeroesProvider),
+        aliases: const ['people', 'elders', 'chiefs', 'history'],
+        itemMatches: _heroMatches,
+        onRetry: () => ref.invalidate(kasemHeroesProvider),
         onTap: () => _open(context, const HeroesCollectionScreen()),
       ),
-      _CollectionPortalCard(
-        label: l10n.collectionApps,
+      _portal<DirectoryApp>(
+        title: l10n.collectionApps,
         icon: Icons.apps_rounded,
-        color: const Color(0xFF2F6F8F),
-        count: _count(apps),
-        onRetry: _retry(apps, () => ref.invalidate(directoryAppsProvider)),
+        color: const Color(0xFF4EA5CE),
+        value: ref.watch(directoryAppsProvider),
+        aliases: const ['software', 'directory'],
+        itemMatches: _directoryAppMatches,
+        onRetry: () => ref.invalidate(directoryAppsProvider),
         onTap: () => _open(context, const AppsCollectionScreen()),
       ),
-      _CollectionPortalCard(
-        label: l10n.collectionShop,
+      _portal<ShopProduct>(
+        title: l10n.collectionShop,
         icon: Icons.storefront_rounded,
-        color: const Color(0xFF8C3B2E),
-        count: _count(shop),
-        onRetry: _retry(shop, () => ref.invalidate(shopProductsProvider)),
+        color: const Color(0xFFC76F54),
+        value: ref.watch(shopProductsProvider),
+        aliases: const ['store', 'products', 'craft', 'souvenirs'],
+        itemMatches: _shopProductMatches,
+        onRetry: () => ref.invalidate(shopProductsProvider),
         onTap: () => _open(context, const ShopCollectionScreen()),
       ),
-      // Last, and only when there is one. Every tile above this is a door into
-      // work the community contributed; an advert placed among them — or worse,
-      // above them — would be the archive selling its own shelf space at the
-      // eye level it gives to the dictionary.
-      if (sponsored.isNotEmpty) SponsoredTile(ad: sponsored.first),
     ];
+
+    final query = _normalise(_query);
+    final visiblePortals = portals
+        .where((portal) => portal.matchesFilter(_filter))
+        .where((portal) => portal.matchesSearch(query))
+        .toList(growable: false);
+    final hasLoading = portals.any((portal) => portal.loading);
+    final hasErrors = portals.any((portal) => portal.failed);
+    final searchOrFilterActive =
+        query.isNotEmpty || _filter != _CollectionFilter.all;
+    final sponsored = ref.watch(placedAdsProvider(AdPlacement.collection));
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -138,66 +190,83 @@ class CollectionScreen extends ConsumerWidget {
       body: ScreenContainer(
         child: CustomScrollView(
           key: const PageStorageKey('collection-overview-scroll'),
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
           slivers: [
-            const SliverToBoxAdapter(child: _CollectionHero()),
-            // No connection strip under the heading. It said "Live · published
-            // only" for the whole life of the tab and only ever changed to say
-            // that *something* had failed, without saying what — a banner that
-            // is right ninety-nine times out of a hundred teaches people to
-            // stop reading it. A collection that could not load now says so on
-            // its own tile, where the retry is.
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(18, 8, 18, 16),
-              sliver: useSingleColumn
-                  ? SliverList.separated(
-                      itemCount: portals.length,
-                      separatorBuilder: (_, _) => const SizedBox(height: 12),
-                      itemBuilder: (context, index) => portals[index],
-                    )
-                  // The tile height is measured, not guessed. A ratio of the
-                  // tile width re-decides how much room the caption gets every
-                  // time the device width or the text scale moves, and on a
-                  // 540-wide screen it decided seven pixels too few. Asking the
-                  // sliver how wide it actually is lets the height be stated in
-                  // logical pixels with the caption budgeted first.
-                  : SliverLayoutBuilder(
-                      builder: (context, constraints) => SliverGrid(
-                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          crossAxisSpacing: _portalGridGap,
-                          mainAxisSpacing: _portalGridGap,
-                          mainAxisExtent: _portalTileExtent(
-                            (constraints.crossAxisExtent - _portalGridGap) / 2,
-                            textScale,
-                          ),
-                        ),
-                        delegate: SliverChildListDelegate.fixed(portals),
-                      ),
-                    ),
+            const SliverToBoxAdapter(child: _CollectionHeader()),
+            SliverToBoxAdapter(
+              child: _CollectionSearchField(
+                controller: _searchController,
+                onChanged: _onSearchChanged,
+                onClear: _clearSearch,
+              ),
             ),
-            // No "Published with permission" plate at the foot of the tab.
-            // Every piece already carries its own licence line on the record
-            // that has one, which is where a reader is actually asking the
-            // question — a blanket claim under the grid answered nobody.
-            const SliverToBoxAdapter(child: SizedBox(height: 138)),
+            SliverToBoxAdapter(
+              child: _CollectionFilterBar(
+                selected: _filter,
+                onSelected: _setFilter,
+              ),
+            ),
+            if (visiblePortals.isNotEmpty)
+              _CollectionGrid(
+                portals: visiblePortals,
+                sponsored: !searchOrFilterActive && sponsored.isNotEmpty
+                    ? SponsoredTile(ad: sponsored.first)
+                    : null,
+              )
+            else if (hasLoading)
+              const _CollectionGridSkeleton()
+            else if (hasErrors)
+              SliverFillRemaining(
+                hasScrollBody: false,
+                child: _CollectionErrorState(onRetry: _retryAll),
+              )
+            else
+              SliverFillRemaining(
+                hasScrollBody: false,
+                child: _CollectionEmptySearchState(
+                  query: _query,
+                  filter: _filter,
+                  onReset: _resetFilters,
+                ),
+              ),
+            SliverToBoxAdapter(
+              child: SizedBox(height: shellBottomReserve(context) + 28),
+            ),
           ],
         ),
       ),
     );
   }
 
-  static int? _count<T>(AsyncValue<List<T>> value) =>
-      value.asData?.value.length;
-
-  /// A tap that reloads one collection, or null when that collection is fine.
-  ///
-  /// [reload] is the caller's `ref.invalidate` of that one provider, and that
-  /// is the whole retry: every collection here is a stream off Firestore, so
-  /// dropping it re-subscribes and the tile goes back to counting by itself.
-  /// Nothing else on the tab is disturbed, which is the point of doing this
-  /// per tile rather than reloading the screen.
-  static VoidCallback? _retry<T>(AsyncValue<T> value, VoidCallback reload) =>
-      value.hasError ? reload : null;
+  _CollectionPortal _portal<T>({
+    required String title,
+    required IconData icon,
+    required Color color,
+    required AsyncValue<List<T>> value,
+    required List<String> aliases,
+    required bool Function(T item, String query) itemMatches,
+    required VoidCallback onRetry,
+    required VoidCallback onTap,
+    bool available = true,
+  }) {
+    final data = value.asData?.value;
+    final failed = data == null && value.hasError;
+    return _CollectionPortal(
+      title: title,
+      icon: icon,
+      color: color,
+      aliases: aliases,
+      count: data?.length,
+      loading: data == null && !value.hasError,
+      failed: failed,
+      available: available,
+      onRetry: failed ? onRetry : null,
+      onTap: available ? onTap : null,
+      contentMatches: data == null
+          ? null
+          : (query) => data.any((item) => itemMatches(item, query)),
+    );
+  }
 
   static void _open(BuildContext context, Widget screen) {
     Navigator.of(context)
@@ -205,263 +274,636 @@ class CollectionScreen extends ConsumerWidget {
   }
 }
 
-/// The top of the Collection tab.
-///
-/// Was a full-bleed gradient card with a watermark behind it. A heading is not
-/// a hero: the card gave the tab a lid that had to be scrolled past before the
-/// archive itself began, and made the first screen look like a different
-/// screen. This is the same [BrandHeader] the rest of the app opens with.
-///
-/// The name of the tab is the whole heading now. "Knowledge, kept alive." sat
-/// under it as the title, with the name demoted to an eyebrow above — a slogan
-/// given the larger type and the thing a member came here for given the
-/// smaller. A tab keeps its name; it does not need a motto.
-class _CollectionHero extends StatelessWidget {
-  const _CollectionHero();
+enum _CollectionFilter { all, published, open }
 
-  @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(top: 22),
-    child: BrandHeader(
-      // A shell tab, so the heading has to clear the floating profile orb.
-      reserveTopRight: true,
-      // ...and the Downloads action the shell pins beside it on this tab.
-      //
-      // ── Why the room is held even for members who never see the action ──
-      // Whether it is there at all is decided by `downloadsAllowedProvider`,
-      // which is a subscription answer, and a subscription answer does not
-      // exist on the first frame: the entitlement arrives on a stream and the
-      // benefits behind it on a callable, so a paying member's tab is built
-      // once as "no downloads" and rebuilt a moment later as "downloads". A
-      // reserve that tracked the provider would lay the heading out, show it,
-      // and then shunt it 46 pixels sideways in front of the person reading
-      // it — on every cold open of the tab, and for subscribers only, which is
-      // precisely the group that must not be the one with the janky tab.
-      // Holding the room costs the heading a strip of right margin it was not
-      // using. Not holding it costs the heading a flinch.
-      extraTopRightReserve: kShellOrbActionExtent,
-      eyebrow: null,
-      title: AppLocalizations.of(context).collectionEyebrow,
-    ),
-  );
+extension _CollectionFilterLabel on _CollectionFilter {
+  String get label => switch (this) {
+    _CollectionFilter.all => 'All',
+    _CollectionFilter.published => 'Published',
+    _CollectionFilter.open => 'Open',
+  };
 }
 
-class _CollectionPortalCard extends StatelessWidget {
-  const _CollectionPortalCard({
-    required this.label,
+class _CollectionPortal {
+  const _CollectionPortal({
+    required this.title,
     required this.icon,
     required this.color,
+    required this.aliases,
     required this.count,
+    required this.loading,
+    required this.failed,
+    required this.available,
+    required this.onRetry,
     required this.onTap,
-    this.onRetry,
+    required this.contentMatches,
   });
 
-  final String label;
+  final String title;
   final IconData icon;
   final Color color;
+  final List<String> aliases;
   final int? count;
-  final VoidCallback onTap;
-
-  /// Non-null when this one collection could not be read.
-  ///
-  /// The tile keeps its place in the grid and swaps its count for a reload:
-  /// the failure is reported next to the thing that failed, and the tap that
-  /// would have opened an empty screen retries instead. This replaced a status
-  /// strip under the heading that could only say that something, somewhere,
-  /// had not refreshed.
+  final bool loading;
+  final bool failed;
+  final bool available;
   final VoidCallback? onRetry;
+  final VoidCallback? onTap;
+  final bool Function(String query)? contentMatches;
 
-  @override
-  Widget build(BuildContext context) => CollectionCardSurface(
-    semanticLabel: onRetry == null
-        ? '$label collection'
-        : '$label collection could not load. Tap to try again',
-    onTap: onRetry ?? onTap,
-    child: LayoutBuilder(
-      builder: (context, constraints) {
-        final artwork = _PortalArtwork(
-          icon: icon,
-          color: color,
-          count: count,
-          failed: onRetry != null,
-        );
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // The grid hands the card a tile of a stated height and the
-            // single-column fallback hands it none at all, so the card asks
-            // which it is rather than assuming. Given a height, the artwork
-            // takes whatever the caption leaves and the caption can never be
-            // pushed past the bottom edge; left free, the artwork keeps the
-            // 4:3 band the design was drawn around.
-            if (constraints.hasBoundedHeight)
-              Expanded(child: artwork)
-            else
-              AspectRatio(aspectRatio: 4 / 3, child: artwork),
-            _PortalCaption(
-              label: label,
-              color: color,
-              count: count,
-              failed: onRetry != null,
-            ),
-          ],
-        );
-      },
-    ),
-  );
+  bool get isOpen => available && onTap != null;
+  bool get hasPublished => count != null && count! > 0;
+
+  bool matchesFilter(_CollectionFilter filter) => switch (filter) {
+    _CollectionFilter.all => true,
+    _CollectionFilter.published => loading || hasPublished,
+    _CollectionFilter.open => isOpen,
+  };
+
+  bool matchesSearch(String query) {
+    if (query.isEmpty) return true;
+    if (_normalise(title).contains(query)) return true;
+    for (final alias in aliases) {
+      if (_normalise(alias).contains(query)) return true;
+    }
+    return contentMatches?.call(query) ?? false;
+  }
 }
 
-class _PortalArtwork extends StatelessWidget {
-  const _PortalArtwork({
-    required this.icon,
-    required this.color,
-    required this.count,
-    this.failed = false,
-  });
-
-  final IconData icon;
-  final Color color;
-  final int? count;
-  final bool failed;
-
-  @override
-  Widget build(BuildContext context) => Stack(
-    fit: StackFit.expand,
-    children: [
-      DecoratedBox(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              color.withValues(alpha: 0.05),
-              color.withValues(alpha: 0.11),
-            ],
-          ),
-        ),
-        child: Icon(icon, color: color, size: 58),
-      ),
-      Positioned(
-        top: 10,
-        right: 10,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
-          decoration: BoxDecoration(
-            color: context.brand.surface.withValues(alpha: 0.9),
-            borderRadius: BorderRadius.circular(999),
-            border: Border.all(color: context.brand.border),
-          ),
-          // The count badge is where a member is already looking for how much
-          // is in there, so it is also where "we could not find out" belongs.
-          child: failed
-              ? Icon(
-                  Icons.refresh_rounded,
-                  size: 13,
-                  color: context.brand.terracotta,
-                )
-              : Text(
-                  count == null ? '…' : '$count',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: context.brand.mutedInk,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-        ),
-      ),
-    ],
-  );
-}
-
-/// The words under a portal's artwork: the name and how much is in there.
-///
-/// Every line is capped, because this is the block whose height the tile is
-/// sized around — a title that wrapped would be height the artwork has already
-/// spent.
-class _PortalCaption extends StatelessWidget {
-  const _PortalCaption({
-    required this.label,
-    required this.color,
-    required this.count,
-    this.failed = false,
-  });
-
-  final String label;
-  final Color color;
-  final int? count;
-  final bool failed;
+class _CollectionHeader extends StatelessWidget {
+  const _CollectionHeader();
 
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.all(13),
+    padding: EdgeInsets.fromLTRB(
+      20,
+      22,
+      shellTopRightReserve(withAction: true),
+      10,
+    ),
     child: Column(
-      mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          label,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: Theme.of(context).textTheme.titleMedium,
+          'The Kassena Collection',
+          style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+            color: context.brand.ink,
+            fontWeight: FontWeight.w900,
+            height: 1.08,
+            letterSpacing: 0,
+          ),
         ),
-        const SizedBox(height: 6),
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                failed
-                    ? 'Could not load · retry'
-                    : count == null
-                    ? 'Loading…'
-                    : count == 0
-                    ? 'Open collection'
-                    : '$count published',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: failed ? context.brand.terracotta : color,
-                  fontSize: 10,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-            ),
-            // The arrow means "this opens something". A tile that failed does
-            // not open anything yet, so it does not get one.
-            if (!failed)
-              Icon(
-                Icons.north_east_rounded,
-                color: context.brand.mutedInk,
-                size: 16,
-              ),
-          ],
+        const SizedBox(height: 8),
+        Text(
+          'Preserving culture, one story at a time',
+          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+            color: context.brand.mutedInk,
+            height: 1.35,
+            letterSpacing: 0,
+          ),
         ),
       ],
     ),
   );
 }
 
-/// The gap between portal tiles, shared by the grid delegate and the tile
-/// height arithmetic so the two can never drift apart.
-const _portalGridGap = 12.0;
+class _CollectionSearchField extends StatelessWidget {
+  const _CollectionSearchField({
+    required this.controller,
+    required this.onChanged,
+    required this.onClear,
+  });
 
-/// What a portal caption needs at the default text scale: 26 of padding, a
-/// 24px title line, 6, and a footer row the 16px arrow holds open. That comes
-/// to 72; the rest is headroom for a font whose metrics run taller than the
-/// ones measured here.
-///
-/// It used to be 132, because three lines of description sat in the middle of
-/// it. Dropping the description gave every tile 56px back.
-const _portalCaptionExtent = 80.0;
+  final TextEditingController controller;
+  final ValueChanged<String> onChanged;
+  final VoidCallback onClear;
 
-/// The height of one portal tile, in logical pixels.
-///
-/// The caption is budgeted first and the artwork takes the remainder, which is
-/// the whole point: a caption sized against a tile whose height came from a
-/// width ratio is a caption that overflows the moment the device width or the
-/// text scale changes. The artwork asks for a 4:3 band on top of the caption
-/// but is never given so little that the glyph and the count badge crowd each
-/// other on a narrow phone.
+  @override
+  Widget build(BuildContext context) {
+    final brand = context.brand;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 18, 20, 16),
+      child: Semantics(
+        label: 'Search the collection',
+        textField: true,
+        child: TextField(
+          key: const Key('collection-search-field'),
+          controller: controller,
+          onChanged: onChanged,
+          textInputAction: TextInputAction.search,
+          style: TextStyle(color: brand.ink, fontWeight: FontWeight.w600),
+          decoration: InputDecoration(
+            hintText: 'Search the collection',
+            prefixIcon: Icon(Icons.search_rounded, color: brand.mutedInk),
+            suffixIcon: ValueListenableBuilder<TextEditingValue>(
+              valueListenable: controller,
+              builder: (context, value, _) => value.text.isEmpty
+                  ? const SizedBox.shrink()
+                  : IconButton(
+                      tooltip: 'Clear search',
+                      onPressed: onClear,
+                      icon: const Icon(Icons.close_rounded),
+                    ),
+            ),
+            filled: true,
+            fillColor: Color.alphaBlend(
+              brand.accent.withValues(alpha: brand.isDark ? 0.06 : 0.035),
+              brand.surfaceMuted,
+            ),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 18,
+              vertical: 18,
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(24),
+              borderSide: BorderSide(color: brand.border),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(24),
+              borderSide: BorderSide(color: brand.border),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(24),
+              borderSide: BorderSide(color: brand.accent, width: 1.4),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CollectionFilterBar extends StatelessWidget {
+  const _CollectionFilterBar({
+    required this.selected,
+    required this.onSelected,
+  });
+
+  final _CollectionFilter selected;
+  final ValueChanged<_CollectionFilter> onSelected;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+    child: Wrap(
+      spacing: 10,
+      runSpacing: 10,
+      children: [
+        for (final filter in _CollectionFilter.values)
+          _CollectionFilterChip(
+            key: Key('collection-filter-${filter.name}'),
+            filter: filter,
+            selected: selected == filter,
+            onTap: () => onSelected(filter),
+          ),
+      ],
+    ),
+  );
+}
+
+class _CollectionFilterChip extends StatelessWidget {
+  const _CollectionFilterChip({
+    required this.filter,
+    required this.selected,
+    required this.onTap,
+    super.key,
+  });
+
+  final _CollectionFilter filter;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final brand = context.brand;
+    final foreground = selected ? brand.accent : brand.mutedInk;
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: '${filter.label} collections',
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(999),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(999),
+          onTap: onTap,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            curve: Curves.easeOutCubic,
+            constraints: const BoxConstraints(minHeight: 48, minWidth: 74),
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+            decoration: BoxDecoration(
+              color: selected
+                  ? brand.accent.withValues(alpha: brand.isDark ? 0.16 : 0.08)
+                  : brand.surfaceMuted.withValues(
+                      alpha: brand.isDark ? 0.62 : 1,
+                    ),
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(
+                color: selected
+                    ? brand.accent.withValues(alpha: 0.9)
+                    : brand.border,
+                width: selected ? 1.4 : 1,
+              ),
+            ),
+            child: Text(
+              filter.label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: foreground,
+                fontWeight: FontWeight.w800,
+                fontSize: 14,
+                letterSpacing: 0,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CollectionGrid extends StatelessWidget {
+  const _CollectionGrid({required this.portals, this.sponsored});
+
+  final List<_CollectionPortal> portals;
+  final Widget? sponsored;
+
+  @override
+  Widget build(BuildContext context) {
+    final children = <Widget>[
+      for (final portal in portals)
+        portal.loading
+            ? const _CollectionPortalSkeleton()
+            : _CollectionPortalCard(portal: portal),
+      ?sponsored,
+    ];
+    return _CollectionGridLayout(children: children);
+  }
+}
+
+class _CollectionGridSkeleton extends StatelessWidget {
+  const _CollectionGridSkeleton();
+
+  @override
+  Widget build(BuildContext context) => const _CollectionGridLayout(
+    children: [
+      _CollectionPortalSkeleton(),
+      _CollectionPortalSkeleton(),
+      _CollectionPortalSkeleton(),
+      _CollectionPortalSkeleton(),
+    ],
+  );
+}
+
+class _CollectionGridLayout extends StatelessWidget {
+  const _CollectionGridLayout({required this.children});
+
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    final textScale = MediaQuery.textScalerOf(context).scale(1);
+    return SliverPadding(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+      sliver: SliverLayoutBuilder(
+        builder: (context, constraints) {
+          final singleColumn =
+              constraints.crossAxisExtent < 300 || textScale > 1.35;
+          if (singleColumn) {
+            return SliverList.separated(
+              itemCount: children.length,
+              separatorBuilder: (_, _) => const SizedBox(height: _gridGap),
+              itemBuilder: (context, index) => children[index],
+            );
+          }
+          final tileWidth = (constraints.crossAxisExtent - _gridGap) / 2;
+          return SliverGrid(
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              crossAxisSpacing: _gridGap,
+              mainAxisSpacing: _gridGap,
+              mainAxisExtent: _portalTileExtent(tileWidth, textScale),
+            ),
+            delegate: SliverChildBuilderDelegate(
+              (context, index) => children[index],
+              childCount: children.length,
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _CollectionPortalCard extends StatelessWidget {
+  const _CollectionPortalCard({required this.portal});
+
+  final _CollectionPortal portal;
+
+  @override
+  Widget build(BuildContext context) {
+    final action = portal.failed ? portal.onRetry : portal.onTap;
+    final semanticState = portal.failed
+        ? 'Could not load. Tap to retry.'
+        : portal.isOpen
+        ? '${portal.count ?? 0} published. Opens collection.'
+        : 'Coming soon.';
+
+    return CollectionCardSurface(
+      accent: portal.color,
+      onTap: action,
+      semanticLabel: '${portal.title}. $semanticState',
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: 156),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final boundedHeight = constraints.hasBoundedHeight;
+            final artwork = Center(
+              child: Icon(
+                portal.icon,
+                color: portal.color,
+                size: _iconSize(context),
+              ),
+            );
+            return DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: RadialGradient(
+                  center: const Alignment(0.35, -0.42),
+                  radius: 1.15,
+                  colors: [
+                    portal.color.withValues(
+                      alpha: context.brand.isDark ? 0.2 : 0.11,
+                    ),
+                    portal.color.withValues(
+                      alpha: context.brand.isDark ? 0.07 : 0.04,
+                    ),
+                    Colors.transparent,
+                  ],
+                ),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
+                child: Column(
+                  mainAxisSize: boundedHeight
+                      ? MainAxisSize.max
+                      : MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (boundedHeight)
+                      Expanded(child: artwork)
+                    else
+                      SizedBox(height: 76, child: artwork),
+                    const SizedBox(height: 10),
+                    Text(
+                      portal.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w900,
+                        height: 1.08,
+                        letterSpacing: 0,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    _CollectionPortalStatus(portal: portal),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  double _iconSize(BuildContext context) {
+    final scaled = MediaQuery.textScalerOf(context).scale(56);
+    return scaled.clamp(46, 70).toDouble();
+  }
+}
+
+class _CollectionPortalStatus extends StatelessWidget {
+  const _CollectionPortalStatus({required this.portal});
+
+  final _CollectionPortal portal;
+
+  @override
+  Widget build(BuildContext context) {
+    final brand = context.brand;
+    final failed = portal.failed;
+    final comingSoon = !portal.isOpen && !failed;
+    final color = failed
+        ? brand.terracotta
+        : comingSoon
+        ? portal.color.withValues(alpha: 0.82)
+        : portal.color;
+    final icon = failed
+        ? Icons.refresh_rounded
+        : comingSoon
+        ? Icons.schedule_rounded
+        : null;
+    final label = failed
+        ? 'Could not load · retry'
+        : comingSoon
+        ? 'Coming soon'
+        : '${portal.count ?? 0} published';
+
+    return Row(
+      children: [
+        if (icon != null) ...[
+          Icon(icon, color: color, size: 16),
+          const SizedBox(width: 6),
+        ],
+        Expanded(
+          child: Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: color,
+              fontSize: 13,
+              fontWeight: FontWeight.w800,
+              height: 1.2,
+              letterSpacing: 0,
+            ),
+          ),
+        ),
+        if (!failed && portal.isOpen) ...[
+          const SizedBox(width: 10),
+          Icon(Icons.arrow_forward_rounded, color: brand.ink, size: 24),
+        ],
+      ],
+    );
+  }
+}
+
+class _CollectionPortalSkeleton extends StatelessWidget {
+  const _CollectionPortalSkeleton();
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, constraints) => GlassSkeleton(
+      height: constraints.hasBoundedHeight ? constraints.maxHeight : 166,
+      radius: 22,
+    ),
+  );
+}
+
+class _CollectionEmptySearchState extends StatelessWidget {
+  const _CollectionEmptySearchState({
+    required this.query,
+    required this.filter,
+    required this.onReset,
+  });
+
+  final String query;
+  final _CollectionFilter filter;
+  final VoidCallback onReset;
+
+  @override
+  Widget build(BuildContext context) {
+    final filtered = filter != _CollectionFilter.all;
+    final title = query.trim().isEmpty
+        ? 'No collections match ${filter.label.toLowerCase()}'
+        : 'No results for "${query.trim()}"';
+    return _CollectionStatePanel(
+      icon: Icons.search_off_rounded,
+      title: title,
+      action: OutlinedButton.icon(
+        key: const Key('collection-reset-filters'),
+        onPressed: onReset,
+        icon: const Icon(Icons.restart_alt_rounded),
+        label: Text(filtered ? 'Reset filters' : 'Clear search'),
+      ),
+    );
+  }
+}
+
+class _CollectionErrorState extends StatelessWidget {
+  const _CollectionErrorState({required this.onRetry});
+
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) => _CollectionStatePanel(
+    icon: Icons.cloud_off_rounded,
+    title: 'The collection could not be refreshed.',
+    color: context.brand.terracotta,
+    action: OutlinedButton.icon(
+      onPressed: onRetry,
+      icon: const Icon(Icons.refresh_rounded),
+      label: const Text('Try again'),
+    ),
+  );
+}
+
+class _CollectionStatePanel extends StatelessWidget {
+  const _CollectionStatePanel({
+    required this.icon,
+    required this.title,
+    this.action,
+    this.color,
+  });
+
+  final IconData icon;
+  final String title;
+  final Widget? action;
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) => Center(
+    child: Padding(
+      padding: const EdgeInsets.fromLTRB(20, 28, 20, 92),
+      child: GlassSurface(
+        radius: 22,
+        padding: const EdgeInsets.fromLTRB(20, 24, 20, 22),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            GlassIconPlate(icon: icon, color: color ?? context.brand.accent),
+            const SizedBox(height: 14),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.titleMedium
+                  ?.copyWith(fontWeight: FontWeight.w800, letterSpacing: 0),
+            ),
+            if (action != null) ...[const SizedBox(height: 16), action!],
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+const _gridGap = 14.0;
+
 double _portalTileExtent(double tileWidth, double textScale) =>
-    _portalCaptionExtent * textScale + math.max(tileWidth * 3 / 4, 104.0);
+    math.max(tileWidth * 0.98, 166 + (textScale - 1) * 48);
+
+String _normalise(String value) =>
+    value.toLowerCase().replaceAll(RegExp(r'\s+'), ' ').trim();
+
+bool _contains(String haystack, String query) =>
+    _normalise(haystack).contains(query);
+
+bool _publishedReelMatches(PublishedReel item, String query) {
+  for (final value in [
+    item.title,
+    item.creatorName,
+    item.category,
+    item.description,
+    item.body,
+    item.englishSummary,
+    item.culturalNotes,
+    item.language,
+    item.dialect,
+  ]) {
+    if (_contains(value, query)) return true;
+  }
+  return false;
+}
+
+bool _heroMatches(KasemHero hero, String query) {
+  for (final value in [
+    hero.name,
+    hero.alsoKnownAs,
+    hero.era,
+    hero.field,
+    hero.summary,
+    hero.story,
+    hero.birthplace,
+  ]) {
+    if (_contains(value, query)) return true;
+  }
+  return false;
+}
+
+bool _directoryAppMatches(DirectoryApp app, String query) {
+  for (final value in [
+    app.name,
+    app.developer,
+    app.description,
+    app.category,
+  ]) {
+    if (_contains(value, query)) return true;
+  }
+  return false;
+}
+
+bool _shopProductMatches(ShopProduct product, String query) {
+  for (final value in [
+    product.name,
+    product.summary,
+    product.description,
+    product.category,
+    product.maker,
+    product.priceLabel,
+  ]) {
+    if (_contains(value, query)) return true;
+  }
+  return false;
+}

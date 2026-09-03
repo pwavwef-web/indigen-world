@@ -1,4 +1,5 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:indigen_world_mobile/features/contribute/words/data/kasem_morphology.dart';
 
 part 'dictionary_entry.freezed.dart';
 part 'dictionary_entry.g.dart';
@@ -106,11 +107,50 @@ abstract class DictionaryEntry with _$DictionaryEntry {
     /// to share one field, so an entry with audio showed a download URL where
     /// its phonetics belonged and still had nothing to play.
     @Default('') String audioUrl,
+
+    /// The noun said with *the*, and said for many.
+    ///
+    /// ── Why these two and not "the" ──────────────────────────────────────
+    /// Definiteness in Kasem is a property of the noun rather than a word of
+    /// its own, so there is no Kasem for "the" to record and never was. There
+    /// is only the form a speaker says, which is what these hold. Empty on
+    /// every entry contributed before the queue started asking, and on every
+    /// entry that is not a noun.
+    @Default('') String definiteForm,
+    @Default('') String pluralForm,
+
+    /// The noun class, worked out from [definiteForm] when it could be.
+    ///
+    /// Empty means *not established*, which is the honest answer and by far
+    /// the common one — the class inventory is being built from contributed
+    /// forms rather than assumed in advance. It never means "no class".
+    @Default('') String nounClass,
     @Default(true) bool isSynthetic,
   }) = _DictionaryEntry;
 
   factory DictionaryEntry.fromJson(Map<String, Object?> json) =>
       _$DictionaryEntryFromJson(json);
+
+  /// The plain form of a noun: the headword, then `mo`.
+  ///
+  /// ── Derived, and deliberately not a stored field ─────────────────────
+  /// The indefinite is invariant in Kasem, which makes it a rule rather than
+  /// per-entry data. Computing it here means it is right for every noun in the
+  /// collection the moment this ships — including the thousands contributed
+  /// long before anybody thought to ask — with no backfill and nothing to
+  /// migrate, and it means refining the rule is one edit rather than a
+  /// rewrite of every row.
+  ///
+  /// Null for anything that is not a noun, so a caller renders the line by
+  /// asking for it rather than by re-testing the word class itself.
+  String? get indefinite {
+    if (partOfSpeech.trim().toLowerCase() != 'noun') return null;
+    final form = indefiniteForm(headword);
+    return form.isEmpty ? null : form;
+  }
+
+  /// Whether this entry has any collected morphology worth a line of its own.
+  bool get hasForms => definiteForm.isNotEmpty || pluralForm.isNotEmpty;
 
   /// The meaning to show when there is only room for one.
   ///

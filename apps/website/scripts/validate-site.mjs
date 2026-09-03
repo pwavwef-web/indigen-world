@@ -96,4 +96,44 @@ assert.ok(
 );
 assert.match(headerStyles, /backdrop-filter:\s*blur/, "the primary navigation retains its glass treatment");
 
-console.log(`Validated ${routes.length} public routes and core privacy/safety invariants.`);
+// ── Shared post links ────────────────────────────────────────────────────────
+// The app shares https://indigenworld.com/post/<id>. Every assertion below is
+// one link in the chain between that URL and something other than a 404; break
+// any one of them and shared posts silently stop working, which is exactly how
+// this route came to be missing in the first place.
+const postPage = read("src/pages/PostPage.tsx");
+const appLinks = read("src/content/appLinks.ts");
+const navigationSource = read("src/content/navigation.ts");
+const shareLink = read("../../apps/mobile/lib/features/community/community_actions.dart");
+
+assert.match(shareLink, /https:\/\/indigenworld\.com\/post\/\$\{post\.id\}/, "the app shares /post/<id> on this domain");
+assert.match(navigationSource, /path: "post"/, "the post route has prerendered metadata");
+assert.match(navigationSource, /DYNAMIC_ROUTES: DynamicRoute\[\] = \[\{ path: "post", param: "postId" \}\]/, "the router knows /post/<id> carries an id");
+assert.match(read("src/app/router.tsx"), /export function matchRoute/, "the router resolves dynamic routes");
+assert.match(read("src/pages/index.ts"), /post: lazy\(/, "the post route has a page component");
+assert.match(
+  websiteHosting,
+  /"source":\s*"\/post\/\*\*"[\s\S]*?"destination":\s*"\/post\/index\.html"/,
+  "hosting serves the post page for every post id"
+);
+assert.ok(
+  !websiteHosting.match(/"ignore":\s*\[[^\]]*"\*\*\/\.\*"/),
+  "hosting does not ignore dotfiles, which would drop .well-known from every deploy"
+);
+assert.match(websiteHosting, /"source":\s*"\*\*\/index\.html"/, "every route's entry document is served uncached");
+assert.match(postPage, /noindex: route\.noindex/, "the post route is excluded from indexing");
+assert.match(postPage, /status === "missing"/, "a deleted post gets an explanation rather than a blank page");
+assert.match(postPage, /<AppHandoff postId=\{postId\} \/>/, "every post-page state offers the app");
+assert.match(appLinks, /APP_STORE_URL: string \| null = null/, "no store link is advertised before the listing exists");
+assert.ok(
+  read("src/features/community/postData.ts").includes(String.raw`/^https:\/\/\S+$/i.test`),
+  "member-supplied media and avatar URLs are restricted to https"
+);
+assert.match(read("config/app-links.json"), /"sha256CertFingerprints"/, "the app-link association config is present");
+assert.match(
+  read("scripts/emit-well-known.mjs"),
+  /sha256CertFingerprints\.length === 0/,
+  "an unconfigured association file is skipped rather than shipped wrong"
+);
+
+console.log(`Validated ${routes.length} public routes, the shared-post link chain, and core privacy/safety invariants.`);

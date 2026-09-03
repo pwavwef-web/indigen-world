@@ -61,6 +61,51 @@
                 <action android:name="FLUTTER_NOTIFICATION_CLICK"/>
                 <category android:name="android.intent.category.DEFAULT"/>
             </intent-filter>
+            <!-- ── Shared links ─────────────────────────────────────────────
+                 A post shared out of Community is a plain
+                 https://indigenworld.com/post/<id> link. Without this filter
+                 Android has no reason to associate that URL with this app, so
+                 a tapped link always opens a browser — which is what it did
+                 before this filter existed.
+
+                 `autoVerify` is what makes it open the app *without* asking:
+                 on install, Android fetches
+                 https://indigenworld.com/.well-known/assetlinks.json and opens
+                 the link here only if this build's signing certificate is
+                 listed in it. That file is generated from
+                 apps/website/config/app-links.json — until real fingerprints
+                 are pasted in there, verification fails and links keep opening
+                 the website, which now has a real page for them.
+
+                 Both hosts, because a pasted link is as likely to carry the
+                 `www.` as not, and each host is verified separately.
+
+                 The path prefix is not a detail. A filter for the whole domain
+                 would make this app the default handler for every page on the
+                 website — /about, /dictionary, the lot — and the app has a
+                 screen for none of them. It claims exactly what it can open,
+                 and `core/deep_links.dart` claims the same list again on the
+                 Dart side. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="https" android:host="indigenworld.com" android:pathPrefix="/post/"/>
+                <data android:scheme="https" android:host="www.indigenworld.com" android:pathPrefix="/post/"/>
+            </intent-filter>
+            <!-- The fallback the website's post page offers when verification
+                 did not take — a debug or sideloaded build signed with a key
+                 that is not in assetlinks.json, or a browser that insists on
+                 handling links itself. A custom scheme needs no verification
+                 and can only ever reach an app already on the device. It is
+                 deliberately not autoVerify'd and deliberately not the primary
+                 path: any app may claim a custom scheme. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="indigen"/>
+            </intent-filter>
         </activity>
         <!-- ── The music playback service ───────────────────────────────────
              Everything below belongs to audio_service. The service is the

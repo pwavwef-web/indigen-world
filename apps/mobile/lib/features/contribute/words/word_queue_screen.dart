@@ -4,6 +4,10 @@ import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/core/firebase_ready.dart';
 import 'package:indigen_world_mobile/features/auth/auth_repository.dart';
 import 'package:indigen_world_mobile/features/auth/sign_in_sheet.dart';
+import 'package:indigen_world_mobile/features/collection/collection_data.dart';
+import 'package:indigen_world_mobile/features/contribute/contribution_form_screen.dart';
+import 'package:indigen_world_mobile/features/contribute/contribution_kinds.dart';
+import 'package:indigen_world_mobile/features/contribute/words/data/kasem_morphology.dart';
 import 'package:indigen_world_mobile/features/contribute/words/data/parts_of_speech.dart';
 import 'package:indigen_world_mobile/features/contribute/words/data/translation_parser.dart';
 import 'package:indigen_world_mobile/features/contribute/words/data/word_queue_controller.dart';
@@ -48,6 +52,16 @@ class _WordQueueScreenState extends ConsumerState<WordQueueScreen> {
   final _kasemExample = TextEditingController();
   final _notes = TextEditingController();
 
+  /// The noun said with *the*, and said for many.
+  ///
+  /// Both optional, both shown only for Noun. They are the answer to a
+  /// question this app used to ask fifteen thousand times and could never get
+  /// an answer to: definiteness in Kasem is a property of the noun rather than
+  /// a word of its own, so there is no Kasem for "the" — there is only the
+  /// form a speaker says. See `kasem_morphology.dart`.
+  final _definiteForm = TextEditingController();
+  final _pluralForm = TextEditingController();
+
   PartOfSpeech? _partOfSpeech;
 
   /// Kept across words on purpose.
@@ -57,12 +71,35 @@ class _WordQueueScreenState extends ConsumerState<WordQueueScreen> {
   /// friction that ends a sitting at four words instead of twenty.
   String? _dialect;
 
+  /// Whether the sentence above the form showed the word's plain meaning.
+  ///
+  /// Starts at [WordQueueSentenceFit.fits] for every word, because that is
+  /// true of almost every word and because a control that starts unanswered
+  /// is a control every member has to deal with. Reset with the rest of the
+  /// answer — a remark about one word's sentence is nonsense on the next.
+  WordQueueSentenceFit _sentenceFit = WordQueueSentenceFit.fits;
+
+  /// The saying a member has just told us they saw, waiting to be offered.
+  ///
+  /// Held here rather than on the receipt because it is not a fact about the
+  /// submission that was made — it is a fact about one the member might make
+  /// next. Set only when they flagged the sentence as an idiom, cleared as
+  /// soon as the offer stops being on screen.
+  String? _idiomPrompt;
+
   /// Empties everything that was an answer to the word that has just gone.
   void _clearAnswer() {
     _translations.clear();
     _kasemExample.clear();
     _notes.clear();
-    if (mounted) setState(() => _partOfSpeech = null);
+    _definiteForm.clear();
+    _pluralForm.clear();
+    if (mounted) {
+      setState(() {
+        _partOfSpeech = null;
+        _sentenceFit = WordQueueSentenceFit.fits;
+      });
+    }
   }
 
   @override
@@ -70,6 +107,8 @@ class _WordQueueScreenState extends ConsumerState<WordQueueScreen> {
     _translations.dispose();
     _kasemExample.dispose();
     _notes.dispose();
+    _definiteForm.dispose();
+    _pluralForm.dispose();
     super.dispose();
   }
 
@@ -185,13 +224,29 @@ class _WordQueueScreenState extends ConsumerState<WordQueueScreen> {
         if (state.receipt case final receipt?) ...[
           _JustSent(
             receipt: receipt,
-            onDismiss: () =>
-                ref.read(wordQueueControllerProvider.notifier).dismissReceipt(),
+            idiomPrompt: _idiomPrompt,
+            onRecordIdiom: _recordIdiom,
+            onDismiss: () {
+              setState(() => _idiomPrompt = null);
+              ref.read(wordQueueControllerProvider.notifier).dismissReceipt();
+            },
           ),
           const SizedBox(height: 12),
         ],
 
         QueueWordCard(key: ValueKey(word.id), word: word),
+
+        // Between the card and the form on purpose. The card is the question;
+        // this is a remark *about* the question, and putting it down among the
+        // answer fields would read as one more thing to fill in.
+        if (word.sentence.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          _SentenceFitControl(
+            value: _sentenceFit,
+            enabled: !state.sending,
+            onChanged: (value) => setState(() => _sentenceFit = value),
+          ),
+        ],
         const SizedBox(height: 16),
 
         Form(
@@ -209,6 +264,17 @@ class _WordQueueScreenState extends ConsumerState<WordQueueScreen> {
                 enabled: !state.sending,
                 onChanged: (value) => setState(() => _partOfSpeech = value),
               ),
+              // Shown only for a noun, and never required. Everything else —
+              // every verb, every adjective, every noun whose contributor does
+              // not want to elaborate — costs exactly zero extra keystrokes.
+              if (_partOfSpeech?.id == 'noun') ...[
+                const SizedBox(height: 13),
+                _NounForms(
+                  definite: _definiteForm,
+                  plural: _pluralForm,
+                  enabled: !state.sending,
+                ),
+              ],
               const SizedBox(height: 13),
               DropdownButtonFormField<String>(
                 initialValue: _dialect,
@@ -304,6 +370,11 @@ class _WordQueueScreenState extends ConsumerState<WordQueueScreen> {
     final chosen = _partOfSpeech;
     if (chosen == null) return;
 
+    // Read before sending: the word on screen is about to be replaced, and the
+    // sentence is the one thing the offer afterwards needs.
+    final fit = _sentenceFit;
+    final sentence = ref.read(wordQueueControllerProvider).word?.sentence ?? '';
+
     final sent = await ref
         .read(wordQueueControllerProvider.notifier)
         .submit(
@@ -314,9 +385,26 @@ class _WordQueueScreenState extends ConsumerState<WordQueueScreen> {
             dialect: _dialect ?? '',
             notes: _notes.text.trim(),
             kasemExample: _kasemExample.text.trim(),
+            sentenceFit: fit,
+            // Sent whatever the word class currently says. The fields are only
+            // reachable for a noun, and the server drops them for anything
+            // else rather than erroring — so a member who typed a definite
+            // form and then changed their mind about the class loses the form
+            // quietly instead of losing the whole submission.
+            definiteForm: _definiteForm.text.trim(),
+            pluralForm: _pluralForm.text.trim(),
           ),
         );
     if (!sent || !mounted) return;
+
+    // Offered only after the send, never before it. Interrupting somebody
+    // mid-word to ask for a second contribution is how the rhythm of this
+    // queue dies; offering once the word is gone costs nothing to ignore.
+    setState(() {
+      _idiomPrompt = fit == WordQueueSentenceFit.idiom && sentence.isNotEmpty
+          ? sentence
+          : null;
+    });
 
     // The fields have already emptied — the word changed, and the listener in
     // `build` owns that. All that is left is where the member is looking.
@@ -334,6 +422,176 @@ class _WordQueueScreenState extends ConsumerState<WordQueueScreen> {
         curve: Curves.easeOutCubic,
       );
     }
+  }
+
+  /// Hands the saying the member just spotted to the open contribution form.
+  ///
+  /// Navigation rather than a second form on this screen, and no new backend
+  /// surface at all: [ContributionFormScreen] already knows how to take an
+  /// idiom, and `parseCollectionContributionInput` already accepts every field
+  /// it sends. The English sentence seeds the title, so all the member types
+  /// is what it means and the Kasem for it.
+  ///
+  /// This is where the "put in a good word for me" case finally goes somewhere
+  /// instead of being thrown away by a skip.
+  Future<void> _recordIdiom(String prompt) async {
+    setState(() => _idiomPrompt = null);
+    ref.read(wordQueueControllerProvider.notifier).dismissReceipt();
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => ContributionFormScreen(
+          kind: CollectionKind.dictionary,
+          lexicalKind: LexicalKind.idiom,
+          initialSource: prompt,
+        ),
+      ),
+    );
+  }
+}
+
+/// The two forms that make "the" answerable, and the one that never needs to be.
+///
+/// ── Why this asks for words and not for a noun class ─────────────────────
+/// The obvious design was a noun-class picker. It would have been far less
+/// work and it would have collected almost nothing: most fluent speakers of
+/// any language cannot name their own noun classes, and a picker somebody
+/// cannot answer is a picker they set to the first item. So this asks two
+/// questions any Kasem speaker answers without thinking — say it with *the*,
+/// say it for many — and the class is worked out from the answer on the
+/// server. Nobody using this app ever sees the phrase "noun class".
+///
+/// ── Why the plain form is stated rather than asked for ───────────────────
+/// The indefinite is invariant: the noun, then `mo`. Asking fifteen thousand
+/// times for a form that follows a single rule is exactly the pattern this
+/// whole change exists to stop. Saying it out loud instead does two useful
+/// things for free — it teaches the member something true about their own
+/// language, and it stops them typing "bu mo" into the meaning box above.
+class _NounForms extends StatelessWidget {
+  const _NounForms({
+    required this.definite,
+    required this.plural,
+    required this.enabled,
+  });
+
+  final TextEditingController definite;
+  final TextEditingController plural;
+  final bool enabled;
+
+  @override
+  Widget build(BuildContext context) {
+    final brand = context.brand;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Container(
+          padding: const EdgeInsets.fromLTRB(11, 9, 11, 9),
+          decoration: BoxDecoration(
+            color: brand.accent.withValues(alpha: 0.07),
+            borderRadius: BorderRadius.circular(11),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(Icons.lightbulb_outline_rounded, size: 15, color: brand.accent),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'The plain form is just the word and $kIndefiniteParticle — '
+                  'that is automatic in Kasem, so you never need to type it. '
+                  'These two are the ones that change.',
+                  style: TextStyle(
+                    color: brand.mutedInk,
+                    fontSize: 11.5,
+                    height: 1.45,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 11),
+        TextFormField(
+          controller: definite,
+          enabled: enabled,
+          decoration: const InputDecoration(
+            labelText: 'Say it with “the” (optional)',
+            hintText: 'the boy → …',
+            prefixIcon: Icon(Icons.label_important_outline_rounded),
+          ),
+        ),
+        const SizedBox(height: 11),
+        TextFormField(
+          controller: plural,
+          enabled: enabled,
+          decoration: const InputDecoration(
+            labelText: 'Say it for many (optional)',
+            hintText: 'boys → …',
+            prefixIcon: Icon(Icons.groups_outlined),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// "Did that sentence actually show the word?"
+///
+/// ── Why this is here at all ──────────────────────────────────────────────
+/// Queue rank 31 is the word *word*, and its sentence is "My teacher put in a
+/// good word for me." A fluent speaker knows the Kasem for *word* perfectly
+/// well; the sentence is about recommending somebody. Before this control they
+/// had three options and all of them were bad — translate the idiom and poison
+/// the entry, translate the plain word and leave a reviewer unable to tell
+/// which they meant, or skip a word they could answer.
+///
+/// So this is not a skip. It rides alongside a real answer.
+///
+/// ── Why it costs nothing when the sentence is fine ───────────────────────
+/// Pre-selected on "The sentence fits", which is true of the overwhelming
+/// majority of the fifteen thousand rows. A member who never looks at it has
+/// still said something true, and the median word costs zero taps. That is the
+/// test every addition to this screen has to pass: a queue that grows a field
+/// per word is a queue people answer four words in instead of twenty.
+class _SentenceFitControl extends StatelessWidget {
+  const _SentenceFitControl({
+    required this.value,
+    required this.enabled,
+    required this.onChanged,
+  });
+
+  final WordQueueSentenceFit value;
+  final bool enabled;
+  final ValueChanged<WordQueueSentenceFit> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final brand = context.brand;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Does that sentence show the plain word?',
+          style: TextStyle(
+            color: brand.mutedInk,
+            fontSize: 11.5,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 7),
+        Wrap(
+          spacing: 7,
+          runSpacing: 7,
+          children: [
+            for (final fit in WordQueueSentenceFit.values)
+              ChoiceChip(
+                label: Text(fit.label),
+                selected: fit == value,
+                onSelected: enabled ? (_) => onChanged(fit) : null,
+              ),
+          ],
+        ),
+      ],
+    );
   }
 }
 
@@ -397,10 +655,24 @@ class _SittingTally extends StatelessWidget {
 /// thing a member cannot check any other way once the word has gone: if the
 /// chips said something they did not mean, this is where they find out.
 class _JustSent extends StatelessWidget {
-  const _JustSent({required this.receipt, required this.onDismiss});
+  const _JustSent({
+    required this.receipt,
+    required this.onDismiss,
+    this.idiomPrompt,
+    this.onRecordIdiom,
+  });
 
   final WordTranslationReceipt receipt;
   final VoidCallback onDismiss;
+
+  /// The English sentence the member flagged as a saying, or null.
+  ///
+  /// Null on every ordinary send, which is almost all of them — the offer
+  /// below appears only for the member who has just told us the sentence was
+  /// an idiom, and only for as long as this strip is on screen.
+  final String? idiomPrompt;
+
+  final ValueChanged<String>? onRecordIdiom;
 
   @override
   Widget build(BuildContext context) {
@@ -442,6 +714,26 @@ class _JustSent extends StatelessWidget {
                     height: 1.4,
                   ),
                 ),
+                // An idiom nobody writes down is an idiom lost. The member has
+                // just proved they recognised one; asking now, while it is
+                // still in their head, is the only cheap moment there will be.
+                if (idiomPrompt case final prompt?
+                    when onRecordIdiom != null) ...[
+                  const SizedBox(height: 4),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton.icon(
+                      style: TextButton.styleFrom(
+                        visualDensity: VisualDensity.compact,
+                        padding: const EdgeInsets.symmetric(horizontal: 6),
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      onPressed: () => onRecordIdiom!(prompt),
+                      icon: const Icon(Icons.auto_stories_outlined, size: 15),
+                      label: const Text('Record that saying too?'),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),

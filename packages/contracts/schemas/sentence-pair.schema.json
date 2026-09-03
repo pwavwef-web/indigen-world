@@ -34,6 +34,36 @@
       "description": "Escalation level for high-impact translations.",
       "enum": ["standard", "elevated", "high_impact"]
     },
+    "gloss": {
+      "type": "array",
+      "description": "A word-by-word reading of `source`, in source order.\n\nWhy this exists at all: a bare pair of strings teaches a model that two sentences correspond, and nothing about why. A gloss teaches which piece carries which meaning, which is the difference between a corpus that can be memorised and one that can be generalised from. It is the same reasoning that puts `forms` and `nounClass` on a lexical entry — structure recorded once beats structure re-inferred forever.\n\nOptional, and expected to be absent on most pairs. Glossing is slow human work, and a pair without one is still a valid pair.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "source": {
+            "type": "string",
+            "minLength": 1,
+            "description": "One token of the source sentence, as written."
+          },
+          "gloss": {
+            "type": "string",
+            "minLength": 1,
+            "description": "What this token contributes. A grammatical label (DEF, PL, NEG) is as valid as a word, and is often the more useful answer."
+          },
+          "note": {
+            "type": "string",
+            "description": "Anything the label cannot carry — an idiomatic reading, a dialect remark, a doubt worth recording."
+          },
+          "targetIndices": {
+            "type": "array",
+            "description": "Which whitespace-separated tokens of `target.text` this source token corresponds to, zero-based. An array rather than a single index because alignment is genuinely many-to-many, and an empty array is a real answer: it says this token is not expressed as a separate word on the target side, which is exactly what happens to a definiteness marker translated into English `the`.",
+            "items": { "type": "integer", "minimum": 0 }
+          }
+        },
+        "required": ["source", "gloss"],
+        "additionalProperties": false
+      }
+    },
     "notes": { "type": "string" },
     "governance": { "$ref": "common.schema.json#/$defs/governanceMetadata" },
     "lifecycle": { "$ref": "common.schema.json#/$defs/recordLifecycle" }

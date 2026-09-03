@@ -65,6 +65,20 @@ export interface AppRoute {
   noindex?: boolean;
 }
 
+/**
+ * A route whose last path segment is an id rather than a page name — the
+ * shared-post link `/post/<id>` is the only one today.
+ *
+ * `path` is the real route: the key `PAGE_COMPONENTS` is looked up by, the
+ * directory `prerender-meta.mjs` writes metadata into, and the prefix Firebase
+ * Hosting rewrites onto. `param` names the segment after it, which the page
+ * reads off `useRoute().params`.
+ */
+export interface DynamicRoute {
+  path: string;
+  param: string;
+}
+
 /** Result of validating a single form field — a discriminated union so
  *  consuming code can't read `.message` off a result that's valid. */
 export type FieldValidation = { valid: true } | { valid: false; message: string };

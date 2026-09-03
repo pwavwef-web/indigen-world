@@ -4,7 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/features/downloads/widgets/download_toggle.dart';
+import 'package:indigen_world_mobile/features/music/artist_screen.dart';
 import 'package:indigen_world_mobile/features/music/music_controller.dart';
+import 'package:indigen_world_mobile/features/music/music_library.dart';
 import 'package:indigen_world_mobile/features/music/music_providers.dart';
 
 /// The song, full screen.
@@ -34,6 +36,18 @@ class NowPlayingScreen extends ConsumerWidget {
               // session itself has no idea about — see [MusicSessionState].
               kind: ref.watch(musicControllerProvider).queueKind,
             ),
+          if (item != null)
+            IconButton(
+              tooltip: 'Up next',
+              onPressed: () => showModalBottomSheet<void>(
+                context: context,
+                isScrollControlled: true,
+                backgroundColor: brand.surfaceElevated,
+                showDragHandle: true,
+                builder: (context) => const _QueueSheet(),
+              ),
+              icon: const Icon(Icons.queue_music_rounded),
+            ),
         ],
       ),
       body: item == null
@@ -51,13 +65,7 @@ class NowPlayingScreen extends ConsumerWidget {
                   ),
                   if (item.artist case final artist? when artist.isNotEmpty) ...[
                     const SizedBox(height: 6),
-                    Text(
-                      artist,
-                      style: TextStyle(
-                        color: brand.success,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
+                    _ArtistLine(name: artist),
                   ],
                   const SizedBox(height: 22),
                   _Scrubber(duration: item.duration),
@@ -276,6 +284,163 @@ class _Transport extends ConsumerWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// The name under the title, and the way to everything else they made.
+///
+/// ── Why it is matched by name ─────────────────────────────────────────────
+/// A [MediaItem] carries an artist *line*, not an artist *id* — it is built for
+/// a lock screen, and everything on it has to survive the trip to the platform
+/// side and back. The account id lives on the publication record, so the line
+/// is matched against the artists of the collection this queue came from.
+///
+/// When that lookup finds nothing — a queue cued from a collection that has
+/// since moved on, or a record with no name at all — the line simply stays a
+/// line. A name that does nothing when tapped is better than a name that
+/// promises a page and opens an error.
+class _ArtistLine extends ConsumerWidget {
+  const _ArtistLine({required this.name});
+
+  final String name;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final brand = context.brand;
+    final kind = ref.watch(musicControllerProvider).queueKind;
+    final needle = normaliseMusicText(name);
+    MusicArtist? match;
+    if (kind != null) {
+      for (final artist in ref.watch(musicArtistsProvider(kind))) {
+        if (normaliseMusicText(artist.name) == needle) {
+          match = artist;
+          break;
+        }
+      }
+    }
+
+    final line = Text(
+      name,
+      style: TextStyle(color: brand.success, fontWeight: FontWeight.w800),
+    );
+    if (match == null || kind == null) return line;
+
+    final artist = match;
+    return Semantics(
+      button: true,
+      label: 'Open $name',
+      excludeSemantics: true,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(6),
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (context) =>
+                MusicArtistScreen(artistId: artist.id, kind: kind),
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            line,
+            const SizedBox(width: 2),
+            Icon(Icons.chevron_right_rounded, size: 18, color: brand.success),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// What is playing after this one.
+///
+/// ── Why the sheet taps into the queue rather than the collection ──────────
+/// Because the queue is the thing somebody is listening to. Re-cueing the
+/// collection to play its fourth entry would throw away a shuffle order and
+/// restart a sitting halfway through — see [MusicController.skipToQueueItem].
+class _QueueSheet extends ConsumerWidget {
+  const _QueueSheet();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final brand = context.brand;
+    final queue = ref.watch(musicQueueProvider).asData?.value ?? const [];
+    final current = ref.watch(musicMediaItemProvider).asData?.value;
+    final controller = ref.read(musicControllerProvider.notifier);
+
+    return SafeArea(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.sizeOf(context).height * 0.7,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+              child: Text(
+                'Up next',
+                style: TextStyle(
+                  color: brand.ink,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+            Flexible(
+              child: ListView.builder(
+                shrinkWrap: true,
+                itemCount: queue.length,
+                itemBuilder: (context, index) {
+                  final entry = queue[index];
+                  final isCurrent = entry.id == current?.id;
+                  return ListTile(
+                    onTap: () {
+                      Navigator.of(context).pop();
+                      controller.skipToQueueItem(index);
+                    },
+                    leading: isCurrent
+                        ? Icon(Icons.equalizer_rounded, color: brand.accent)
+                        : SizedBox(
+                            width: 24,
+                            child: Text(
+                              '${index + 1}',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: brand.faintInk,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                    title: Text(
+                      entry.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: isCurrent ? brand.accent : brand.ink,
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    subtitle: entry.artist == null || entry.artist!.isEmpty
+                        ? null
+                        : Text(
+                            entry.artist!,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: brand.mutedInk,
+                              fontSize: 12.5,
+                            ),
+                          ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

@@ -1,0 +1,48 @@
+{
+  "_comment": [
+    "Credentials for the mobile-app link association files served from",
+    "/.well-known/ (see scripts/emit-well-known.mjs).",
+    "",
+    "These are the only values that stand between a shared link and the app",
+    "opening it: Android will not hand indigenworld.com/post/<id> to the app",
+    "until it has fetched assetlinks.json and matched the signing certificate",
+    "of the installed build against a fingerprint listed below.",
+    "",
+    "Nothing here is a secret. A signing certificate's SHA-256 fingerprint is",
+    "public by design — it is what every device checks the association with —",
+    "and so is an Apple team id.",
+    "",
+    "HOW TO FILL android.sha256CertFingerprints:",
+    "  Every key that can sign a build members install must be listed, or",
+    "  links break for whoever has the build signed by the missing key.",
+    "  - Play App Signing (the one that matters for the Play install):",
+    "    Play Console > your app > Test and release > Setup > App signing >",
+    "    'App signing key certificate' > SHA-256 certificate fingerprint.",
+    "  - Any local release key, and the upload key:",
+    "    cd apps/mobile/android && ./gradlew :app:signingReport",
+    "  Paste them uppercase, colon-separated, exactly as reported.",
+    "",
+    "HOW TO FILL apple.appIds:",
+    "  '<TEAM ID>.world.indigen.mobile'. The team id is in the Apple Developer",
+    "  account under Membership details. Leave the list empty until the iOS",
+    "  build actually declares the associated-domains entitlement — an",
+    "  apple-app-site-association naming an app that does not claim the domain",
+    "  is worse than none at all.",
+    "",
+    "The hosts these files vouch for are wherever they are served from, which",
+    "is indigenworld.com and www.indigenworld.com. They are not configured",
+    "here; the Android manifest names them in its App Links filter.",
+    "",
+    "An empty list means the file is not generated and not deployed, which is",
+    "deliberate: a malformed or wrong association file makes Android cache a",
+    "verification failure, and no link opens the app until the cache expires."
+  ],
+  "android": {
+    "packageNames": ["world.indigen.mobile"],
+    "sha256CertFingerprints": []
+  },
+  "apple": {
+    "appIds": [],
+    "paths": ["/post/*"]
+  }
+}

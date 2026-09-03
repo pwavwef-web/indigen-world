@@ -2,6 +2,8 @@ import { HttpsError, onCall } from 'firebase-functions/v2/https';
 import { applicationDefault } from 'firebase-admin/app';
 import { logger } from 'firebase-functions';
 import { consumeRateLimit } from './rate-limit.js';
+import { dictionaryContextFor } from './kawuri-dictionary.js';
+import { grammarContextFor } from './kawuri-grammar.js';
 import { benefitsForUid } from './subscriptions.js';
 
 /**
@@ -52,8 +54,34 @@ const MODEL = process.env.KAWURI_MODEL || 'gemini-2.5-flash';
  */
 const LOCATION = process.env.KAWURI_LOCATION || 'us-central1';
 
-/** Hard ceiling on one answer, so a runaway generation cannot bill forever. */
-const MAX_OUTPUT_TOKENS = 1200;
+/**
+ * Hard ceiling on one answer, so a runaway generation cannot bill forever.
+ *
+ * ── Why this is not 1200 any more ──────────────────────────────────────────
+ * Because on a 2.5-series model this number does not buy what it looks like it
+ * buys. `maxOutputTokens` is charged for the model's *reasoning* tokens as well
+ * as the words it actually says, and reasoning is on by default. A budget of
+ * 1200 was therefore spent silently on thinking, and the reply was cut off
+ * mid-sentence with `finishReason: MAX_TOKENS` — which the caller could not
+ * see, because a truncated answer is still a non-empty string.
+ *
+ * Two changes fix it together, and neither works alone: the budget below is
+ * the room a full answer needs, and [THINKING_BUDGET] stops that room being
+ * eaten before a single word is written. Override either with an environment
+ * variable when a deployment wants to trade cost against depth.
+ */
+const MAX_OUTPUT_TOKENS = Number(process.env.KAWURI_MAX_OUTPUT_TOKENS) || 4096;
+
+/**
+ * Reasoning tokens allowed before the answer starts. `0` disables thinking.
+ *
+ * Off by default, deliberately. Kawuri answers questions about a culture, an
+ * app and a dictionary — recall and tone, not multi-step reasoning — so the
+ * thinking budget bought nothing here except a truncated reply and a larger
+ * bill. A deployment that wants it back sets `KAWURI_THINKING_BUDGET`; the
+ * value is a token count, and `-1` hands the model dynamic control.
+ */
+const THINKING_BUDGET = Number(process.env.KAWURI_THINKING_BUDGET ?? 0);
 
 const SYSTEM_INSTRUCTION = `You are Kawuri, the guide inside Indigen World — a
 platform for keeping living languages and cultures alive, starting with Kasem
@@ -69,7 +97,12 @@ How you answer:
 - Plain text only. For structure use a short heading line, then "• " bullets or
   "1. " numbered steps. Never use markdown symbols like ** or ##.
 - Lead with the answer. Context after, if it earns its place.
-- Aim for under 200 words unless the person asks for depth.
+- Answer completely. A simple question deserves a short reply; a real one
+  deserves the whole of it, usually two to five short paragraphs. Never trail
+  off, never stop mid-list, and never end by offering to continue — say the
+  thing now.
+- Only go past roughly 500 words when the person has asked for depth, a list of
+  many items, or a step-by-step walkthrough.
 
 What you must not do:
 - Never invent Kasem words, spellings, translations or proverbs. Language in
@@ -78,6 +111,14 @@ What you must not do:
   repeated. If you are not certain a form is attested, say so plainly and point
   the person at the in-app dictionary, at the Community tab, or at contributing
   the word once they have learned it from a speaker.
+
+How translations work:
+- When somebody asks how a word is said in Kasem, or what a Kasem word means,
+  the published dictionary is searched for you before you answer and the result
+  is given to you under a "DICTIONARY LOOKUP" heading. That block is the
+  archive speaking, not a suggestion: quote what it holds exactly, and when it
+  says nothing matched, say the dictionary does not have the word yet.
+- No such block means no lookup was owed. It never means you may improvise one.
 - Never present contested cultural practice as settled fact. Practice varies by
   town, clan and family; say which variation you mean, or say that it varies.
 - Never speak for the Kassena as a single voice. You are a guide, not an
@@ -168,6 +209,22 @@ export async function accessToken(): Promise<string> {
   return cachedToken.value;
 }
 
+/**
+ * Why the model stopped, as it reported it.
+ *
+ * `MAX_TOKENS` is the one that matters and the one that used to be invisible:
+ * the answer comes back non-empty and looks fine right up to the point where
+ * it stops mid-sentence. Reading it here is what turns "members say Kawuri
+ * gets cut off" into a line in the logs with a number beside it.
+ */
+export function finishReasonFromGemini(payload: unknown): string {
+  if (!payload || typeof payload !== 'object') return '';
+  const candidates = (payload as Record<string, unknown>).candidates;
+  if (!Array.isArray(candidates) || candidates.length === 0) return '';
+  const reason = (candidates[0] as Record<string, unknown>)?.finishReason;
+  return typeof reason === 'string' ? reason : '';
+}
+
 /** Pulls the answer text out of a `generateContent` response. */
 export function replyFromGemini(payload: unknown): string {
   if (!payload || typeof payload !== 'object') return '';
@@ -214,11 +271,28 @@ export async function askKawuri(
   const project = projectId();
   if (!project) return { configured: false, reply: '' };
 
-  const instruction = extraInstruction
-    ? `${SYSTEM_INSTRUCTION}
+  // The dictionary is consulted before the model is, and only for a question
+  // that is actually asking about a word — see `kawuri-dictionary.ts`. It sits
+  // here rather than in the callable so that the community `@kawuri` trigger
+  // answers a translation asked in a thread from the same archive, with the
+  // same refusal to guess, without anyone having to remember to wire it up.
+  //
+  // The grammar notes are consulted alongside it, and the two are exclusive by
+  // construction: `dictionaryContextFor` discards function words as stop words,
+  // and `grammarContextFor` keeps only those. So "how do you say water" reaches
+  // the dictionary, "how do you say the" reaches the grammar, and the second of
+  // those used to reach nothing at all — which is how a question with a real
+  // answer ("it is not a separate word in Kasem") became a question Kawuri
+  // answered from memory. Fetched together because they never contend.
+  const asked = turns[turns.length - 1]?.text ?? '';
+  const [lookup, grammar] = await Promise.all([
+    dictionaryContextFor(asked),
+    grammarContextFor(asked),
+  ]);
 
-${extraInstruction}`
-    : SYSTEM_INSTRUCTION;
+  const instruction = [SYSTEM_INSTRUCTION, extraInstruction, lookup, grammar]
+    .filter((part): part is string => Boolean(part && part.trim()))
+    .join('\n\n');
 
   try {
     const response = await fetch(vertexEndpoint(project), {
@@ -234,6 +308,10 @@ ${extraInstruction}`
           temperature: 0.7,
           topP: 0.95,
           maxOutputTokens: MAX_OUTPUT_TOKENS,
+          // Sent unconditionally so the budget is a decision this file made
+          // rather than whatever the model defaults to this month. A model that
+          // does not support the field ignores it.
+          thinkingConfig: { thinkingBudget: THINKING_BUDGET },
         },
       }),
     });
@@ -256,7 +334,18 @@ ${extraInstruction}`
       return { configured: true, reply: '' };
     }
 
-    return { configured: true, reply: replyFromGemini(await response.json()) };
+    const payload = await response.json();
+    const finishReason = finishReasonFromGemini(payload);
+    if (finishReason === 'MAX_TOKENS') {
+      // The answer is real but incomplete. Logged rather than hidden: if this
+      // ever appears again it means the budget above needs raising, and the
+      // only alternative to a log line is waiting for somebody to report it.
+      logger.warn('Kawuri answer hit the output ceiling', {
+        maxOutputTokens: MAX_OUTPUT_TOKENS,
+        thinkingBudget: THINKING_BUDGET,
+      });
+    }
+    return { configured: true, reply: replyFromGemini(payload) };
   } catch (error) {
     logger.error('Kawuri request threw', {
       errorType: error instanceof Error ? error.name : 'unknown',

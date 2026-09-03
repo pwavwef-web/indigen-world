@@ -84,9 +84,17 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
       body: SafeArea(
         child: offers.when(
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (error, _) => _Unavailable(message: '$error'),
+          error: (error, _) => _Unavailable(message: '$error', onRetry: _retry),
           data: (loaded) {
-            if (loaded.isEmpty) return _Unavailable(offerings: loaded);
+            if (loaded.isEmpty) {
+              return _Unavailable(
+                offerings: loaded,
+                onRetry:
+                    loaded.reason == SubscriptionUnavailableReason.notAndroid
+                    ? null
+                    : _retry,
+              );
+            }
             return ListView(
               padding: const EdgeInsets.fromLTRB(18, 8, 18, 32),
               children: [
@@ -212,6 +220,18 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
         _error = 'That did not go through. Try again in a moment.';
       });
     }
+  }
+
+  /// Asks Play for the plans again.
+  ///
+  /// Worth a button rather than an app restart: every reason a paywall is
+  /// empty except [SubscriptionUnavailableReason.notAndroid] can stop being
+  /// true a moment later — the Play Store gets signed into, a backend comes
+  /// back, a connection finishes — and the offerings are cached for the life
+  /// of the launch otherwise.
+  void _retry() {
+    setState(() => _error = null);
+    ref.invalidate(subscriptionOffersProvider);
   }
 
   Future<void> _restore() async {
@@ -482,10 +502,15 @@ class _SmallPrint extends StatelessWidget {
 /// first worse; hiding it entirely makes the second impossible, which is how
 /// an afternoon disappears into guessing.
 class _Unavailable extends StatelessWidget {
-  const _Unavailable({this.message, this.offerings});
+  const _Unavailable({this.message, this.offerings, this.onRetry});
 
   final String? message;
   final SubscriptionOfferings? offerings;
+
+  /// Asks Play again. Worth offering for every reason but [notAndroid]: a
+  /// backend that is down comes back, and so does a billing connection that
+  /// had not finished the first time somebody looked.
+  final VoidCallback? onRetry;
 
   /// One sentence, for somebody who only wanted to subscribe.
   String get _title => switch (offerings?.reason) {
@@ -514,9 +539,23 @@ class _Unavailable extends StatelessWidget {
             'verified even if Play accepted it. The paywall stays shut rather '
             'than take money it cannot honour.',
       ],
-      SubscriptionUnavailableReason.billingUnavailable => const [
-        'BillingClient reported not ready. Usually no Play Store on the '
-            'device, or a Play Services install too old to serve billing.',
+      SubscriptionUnavailableReason.billingUnavailable => [
+        'BillingClient reported not ready. Google Play refused to open a '
+            'billing connection at all, which is a different thing from Play '
+            'not knowing the products.',
+        '',
+        if (offerings.packageName.isNotEmpty) ...[
+          'This build is running as ${offerings.packageName}.',
+          '',
+        ],
+        'In order of how often it is the answer: the application id this '
+            'build runs under is not one Play has ever seen — every .dev and '
+            '.staging flavour has its own, and only the production flavour is '
+            'com.indigenworld.indigen. Or the Play Store on this device is '
+            'signed out, disabled, or signed in as an account that is not on '
+            'a track carrying the app. Or there is genuinely no Play Store '
+            'here — an emulator image without Google APIs, or a Play Services '
+            'install too old to serve billing.',
       ],
       SubscriptionUnavailableReason.playReturnedNothing => [
         'Google Play recognised none of these product ids:',
@@ -529,6 +568,9 @@ class _Unavailable extends StatelessWidget {
             'for it. Or this Google account is not on a track that carries '
             'them. Or they were published minutes ago and have not propagated '
             'yet, which can take a few hours.',
+        if (offerings.packageName.isNotEmpty) '',
+        if (offerings.packageName.isNotEmpty)
+          'This build is running as ${offerings.packageName}.',
         if (offerings.queryError.isNotEmpty) '',
         if (offerings.queryError.isNotEmpty)
           'Play said: ${offerings.queryError}',
@@ -562,9 +604,13 @@ class _Unavailable extends StatelessWidget {
       child: GlassEmptyState(
         icon: Icons.store_mall_directory_outlined,
         title: _title,
-        action: detail.isEmpty
-            ? null
-            : TextButton(
+        action: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (onRetry != null)
+              TextButton(onPressed: onRetry, child: const Text('Try again')),
+            if (detail.isNotEmpty)
+              TextButton(
                 onPressed: () => showGlassPopup<void>(
                   context: context,
                   title: 'Why the plans are missing',
@@ -579,6 +625,8 @@ class _Unavailable extends StatelessWidget {
                 ),
                 child: const Text('Why?'),
               ),
+          ],
+        ),
       ),
     );
   }

@@ -50,6 +50,34 @@ function question(row) {
   };
 }
 
+/**
+ * The same, minus everything to do with the example sentence.
+ *
+ * ── Why a repaired sentence has to survive a re-seed ──────────────────────
+ * `sentence` is a question field, so the rule above — "the seed owns the
+ * question and may rewrite it" — would restore the original sentence on the
+ * next run. That is fine for the fifteen thousand rows nobody has touched, and
+ * silently destructive for the handful where a validator has replaced a
+ * sentence that members flagged as an idiom or as the wrong sense. The repair
+ * is the one piece of the question the community, not the seed file, is right
+ * about.
+ *
+ * A row opts out by carrying `sentenceOverride: true`, which the repair writes.
+ * Everything else about the row — its rank, its tier, its lookup — still gets
+ * rewritten, so a re-ranked seed still lands.
+ */
+function questionKeepingSentence(row) {
+  const {
+    sentence: _sentence,
+    sentenceSource: _sentenceSource,
+    tatoebaId: _tatoebaId,
+    tatoebaContributor: _tatoebaContributor,
+    licence: _licence,
+    ...rest
+  } = question(row);
+  return rest;
+}
+
 /** Fields the community owns, written once and never touched again. */
 function answerDefaults() {
   return {
@@ -72,14 +100,25 @@ async function main() {
   const collection = db.collection('wordQueue');
 
   const existing = new Set();
+  const sentenceOverridden = new Set();
   if (commit) {
     // One read of the ids already there, so the run can tell a create from an
     // update without a get() per row — 15,000 point reads to avoid 15,000
-    // point reads would be a poor trade.
+    // point reads would be a poor trade. `sentenceOverride` is projected in
+    // because it is the one existing value this run must not overwrite, and
+    // selecting a single boolean costs the same read as selecting nothing.
     process.stdout.write('reading existing ids… ');
-    const snapshot = await collection.select().get();
-    for (const doc of snapshot.docs) existing.add(doc.id);
-    console.log(`${existing.size} already present`);
+    const snapshot = await collection.select('sentenceOverride').get();
+    for (const doc of snapshot.docs) {
+      existing.add(doc.id);
+      if (doc.get('sentenceOverride') === true) sentenceOverridden.add(doc.id);
+    }
+    console.log(
+      `${existing.size} already present` +
+        (sentenceOverridden.size > 0
+          ? `, ${sentenceOverridden.size} with a repaired sentence to preserve`
+          : ''),
+    );
   }
 
   const reader = createInterface({
@@ -106,7 +145,11 @@ async function main() {
 
     batch.set(
       collection.doc(row.id),
-      isNew ? { ...question(row), ...answerDefaults() } : question(row),
+      isNew
+        ? { ...question(row), ...answerDefaults() }
+        : sentenceOverridden.has(row.id)
+          ? questionKeepingSentence(row)
+          : question(row),
       { merge: true },
     );
     queued += 1;

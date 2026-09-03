@@ -4,7 +4,17 @@
   "target": { "languageCode": "en", "text": "The water is cold." },
   "domain": "general",
   "riskLevel": "standard",
-  "notes": "Synthetic fixture used for interface illustration.",
+  "gloss": [
+    {
+      "source": "Nia",
+      "gloss": "water",
+      "targetIndices": [0, 1],
+      "note": "Covers English \"The water\": definiteness is not a separate word on the Kasem side."
+    },
+    { "source": "pe", "gloss": "COP", "targetIndices": [2] },
+    { "source": "yogo", "gloss": "cold", "targetIndices": [3] }
+  ],
+  "notes": "Synthetic fixture used for interface illustration. The gloss labels are placeholders, not an attested analysis.",
   "governance": {
     "source": "Contributor submission (synthetic)",
     "contributor": { "collection": "contributors", "id": "contributor-ama" },

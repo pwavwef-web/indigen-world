@@ -79,6 +79,14 @@ consent-records/
 voice-recordings/
 production-backups/
 
+# Sandboxed toolchain caches. An agent session that cannot write to the user's
+# real Flutter/Gradle homes creates its own beside the app; the Gradle one alone
+# is several hundred megabytes of downloaded dependencies. They are machine
+# state, not source, and they must never reach a commit.
+apps/mobile/.codex-appdata/
+apps/mobile/.codex-flutter-sdk/
+apps/mobile/.codex-gradle-home/
+
 # Temporary files
 *.tmp
 *.temp

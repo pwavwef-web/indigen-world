@@ -53,6 +53,9 @@ export const PAGE_COMPONENTS: Record<string, LazyPage> = {
   terms: lazy(() =>
     withRouteLoadingTiming(import("./TermsPage")).then(({ TermsPage }) => ({ default: TermsPage }))
   ),
+  post: lazy(() =>
+    withRouteLoadingTiming(import("./PostPage")).then(({ PostPage }) => ({ default: PostPage }))
+  ),
   "ads/payment-complete": lazy(() =>
     withRouteLoadingTiming(import("./AdsPaymentCompletePage")).then(
       ({ AdsPaymentCompletePage }) => ({ default: AdsPaymentCompletePage })

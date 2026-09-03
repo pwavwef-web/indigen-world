@@ -74,6 +74,32 @@ void main() {
     expect(find.byType(LicensePage), findsOneWidget);
   });
 
+  testWidgets('the corpus the example sentences come from is credited', (
+    tester,
+  ) async {
+    // A licence condition, not a courtesy. The guided queue's English
+    // sentences are Tatoeba, CC BY 2.0 FR, and this section is where the
+    // corpus as a whole is credited — individual sentences carry their own
+    // credit beside them wherever they are shown.
+    await tester.pumpWidget(wrap(const LicencesScreen()));
+    await tester.pump();
+
+    await tester.scrollUntilVisible(find.text('SOURCE MATERIAL'), 200);
+    await tester.pump();
+
+    expect(find.text('English example sentences'), findsOneWidget);
+    expect(find.textContaining('Tatoeba'), findsWidgets);
+    expect(find.textContaining('CC BY 2.0 FR'), findsOneWidget);
+    // Never invent a credit: a sentence written for this project is not
+    // Tatoeba's, and the page has to say so rather than crediting everything.
+    expect(find.textContaining('carry no Tatoeba credit'), findsOneWidget);
+    // The boundary that matters: community Kasem is not under this licence.
+    expect(
+      find.textContaining('are not part of this licence'),
+      findsOneWidget,
+    );
+  });
+
   group('PolicyScreen', () {
     testWidgets('privacy explains what leaves the device', (tester) async {
       await tester.pumpWidget(

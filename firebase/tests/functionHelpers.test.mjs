@@ -20,7 +20,20 @@ import {
   shouldAlert,
 } from '../../services/functions/lib/chat-notifications.js';
 import { isCampaignSubmission } from '../../services/functions/lib/open-publishing.js';
-import { normaliseTurns, replyFromGemini, vertexEndpoint } from '../../services/functions/lib/kawuri.js';
+import {
+  finishReasonFromGemini,
+  normaliseTurns,
+  replyFromGemini,
+  vertexEndpoint,
+} from '../../services/functions/lib/kawuri.js';
+import {
+  dictionaryBriefing,
+  dictionaryRecordFrom,
+  englishSenses,
+  matchDictionary,
+  normaliseTerm,
+  translationTerms,
+} from '../../services/functions/lib/kawuri-dictionary.js';
 import {
   KAWURI_AVATAR_STORAGE_PATH,
   KAWURI_AVATAR_URL,
@@ -353,6 +366,126 @@ test('replyFromGemini pulls the answer out, and survives every empty shape', () 
   assert.equal(replyFromGemini({}), '');
   assert.equal(replyFromGemini(null), '');
   assert.equal(replyFromGemini('nonsense'), '');
+});
+
+test('finishReasonFromGemini surfaces a truncated answer', () => {
+  // The failure this exists for: the reply is a real, non-empty string that
+  // simply stops mid-sentence. Without the reason there is nothing to tell it
+  // apart from a short answer.
+  assert.equal(
+    finishReasonFromGemini({ candidates: [{ finishReason: 'MAX_TOKENS' }] }),
+    'MAX_TOKENS',
+  );
+  assert.equal(finishReasonFromGemini({ candidates: [{ finishReason: 'STOP' }] }), 'STOP');
+  assert.equal(finishReasonFromGemini({ candidates: [] }), '');
+  assert.equal(finishReasonFromGemini(null), '');
+});
+
+// ── Kawuri's dictionary lookup ──────────────────────────────────────────────
+//
+// The rule Kawuri is held to is "never invent Kasem". These helpers are what
+// let it answer a translation anyway: they decide which questions are asking
+// about a word, which published entries answer them, and what the model is
+// told when nothing does.
+
+const WATER = dictionaryRecordFrom('e1', {
+  kasemText: 'na',
+  translations: ['na', 'nabon'],
+  englishText: 'water, rain water',
+  partOfSpeech: 'noun',
+  dialect: 'Nankana',
+  kasemExample: 'Ba wo na.',
+  englishExample: 'They drank water.',
+});
+
+const GREETING = dictionaryRecordFrom('e2', {
+  headword: 'Zaanem',
+  translation: 'greeting / hello',
+  partOfSpeech: 'noun',
+});
+
+test('translationTerms reads the word out of every way people ask', () => {
+  assert.deepEqual(translationTerms('How do you say water in Kasem?'), ['water']);
+  assert.deepEqual(translationTerms('what is the Kasem word for water'), ['water']);
+  assert.deepEqual(translationTerms('What does zaanem mean?'), ['zaanem']);
+  assert.deepEqual(translationTerms('translate "good morning" into Kasem'), [
+    'good morning',
+    'good',
+    'morning',
+  ]);
+  assert.deepEqual(translationTerms('water in kasem'), ['water']);
+});
+
+test('translationTerms stays quiet when nobody asked about a word', () => {
+  // A false positive only costs a dictionary read; being noisy about every
+  // question would put a "nothing matched" block in front of answers that were
+  // never about vocabulary at all.
+  assert.deepEqual(translationTerms('Who reviews a contribution?'), []);
+  assert.deepEqual(translationTerms(''), []);
+  assert.deepEqual(translationTerms('Tell me about Paga.'), []);
+});
+
+test('a stored entry is read whichever schema generation wrote it', () => {
+  assert.equal(WATER.kasem, 'na');
+  assert.deepEqual(WATER.renderings, ['na', 'nabon']);
+  assert.equal(WATER.english, 'water, rain water');
+  // Legacy rows: `headword` is the Kasem side and singular `translation` is the
+  // English one — the opposite of what the plural field means today.
+  assert.equal(GREETING.kasem, 'Zaanem');
+  assert.equal(GREETING.english, 'greeting / hello');
+  assert.equal(dictionaryRecordFrom('x', { partOfSpeech: 'noun' }), null);
+});
+
+test('englishSenses splits the list members actually type', () => {
+  assert.deepEqual(englishSenses(WATER), ['water', 'rain water']);
+  assert.deepEqual(englishSenses(GREETING), ['greeting', 'hello']);
+});
+
+test('matchDictionary finds an entry by either side, exact matches first', () => {
+  const records = [WATER, GREETING];
+  assert.deepEqual(matchDictionary(records, ['water']), [WATER]);
+  // The Kasem side, and case-folded — a member types what they saw in a post.
+  assert.deepEqual(matchDictionary(records, ['zaanem']), [GREETING]);
+  // A sense buried in a list is still the answer to that word.
+  assert.deepEqual(matchDictionary(records, ['hello']), [GREETING]);
+  assert.deepEqual(matchDictionary(records, ['aeroplane']), []);
+});
+
+test('matchDictionary prefers the whole phrase over its parts', () => {
+  const morning = dictionaryRecordFrom('e3', { kasemText: 'zaa', englishText: 'morning' });
+  const goodMorning = dictionaryRecordFrom('e4', {
+    kasemText: 'zaa nintwem',
+    englishText: 'good morning',
+  });
+  // translationTerms puts the phrase first, and the ranking has to keep it there.
+  const matches = matchDictionary(
+    [morning, goodMorning],
+    translationTerms('translate "good morning" into Kasem'),
+  );
+  assert.equal(matches[0], goodMorning);
+});
+
+test('a dictionary miss is stated, not left as silence', () => {
+  const briefing = dictionaryBriefing(['aeroplane'], []);
+  assert.match(briefing, /NO entry/);
+  assert.match(briefing, /Contribute/);
+  // Nothing is owed when the question was not about a word.
+  assert.equal(dictionaryBriefing([], []), '');
+});
+
+test('a dictionary hit is handed over whole, with its alternates and example', () => {
+  const briefing = dictionaryBriefing(['water'], [WATER]);
+  assert.match(briefing, /Kasem: na/);
+  assert.match(briefing, /also written: nabon/);
+  assert.match(briefing, /water, rain water/);
+  assert.match(briefing, /Ba wo na\./);
+  assert.match(briefing, /ONLY Kasem you may state as confirmed/);
+});
+
+test('normaliseTerm folds what a sentence hangs off a word', () => {
+  assert.equal(normaliseTerm('  Water?  '), 'water');
+  assert.equal(normaliseTerm('“Zaanem,”'), 'zaanem');
+  assert.equal(normaliseTerm('good   morning'), 'good morning');
 });
 
 // ── Direct-message alerts ───────────────────────────────────────────────────

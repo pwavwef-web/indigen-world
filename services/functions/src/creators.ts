@@ -15,6 +15,7 @@ import {
   submissionTranslations,
 } from './publication.js';
 import { canonicalPartOfSpeech } from './lexical-kinds.js';
+import { hasNounForms, induceNounClass, parseNounForms } from './kasem-morphology.js';
 
 // App Check enforcement is opt-in: set ENFORCE_APP_CHECK=true on the deployed
 // functions once App Check (reCAPTCHA Enterprise) is configured for the web apps.
@@ -722,10 +723,49 @@ export const decideSubmission = onCall(
             // `translation` as English keep working untouched — this branch
             // simply stops adding new ones with the opposite meaning.
             const translations = submissionTranslations(submission, collectionKind);
+            // The morphology, and the class it implies.
+            //
+            // ── Why the class is worked out here rather than asked for ─────
+            // The contributor was asked to "say it with *the*", which every
+            // Kasem speaker can answer without thinking. Which noun class that
+            // answer implies is a question almost nobody can answer about their
+            // own language, so it is induced from the form instead. When the
+            // ending matches nothing known, `induceNounClass` returns null and
+            // this writes null — an admitted gap, never a plausible guess. See
+            // the header of `kasem-morphology.ts`.
+            //
+            // A validator's correction outranks this: once `nounClassSource` is
+            // `validator`, a re-publish carries the human answer forward rather
+            // than overwriting it with a fresh induction, the same way
+            // `audioUrl` and `createdAt` above survive a re-publish.
+            const submittedForms = parseNounForms(
+              submission.forms,
+              canonicalPartOfSpeech(submission.partOfSpeechId ?? submission.format),
+            );
+            const validatorClassed =
+              existingDictionary.exists &&
+              existingDictionary.get('nounClassSource') === 'validator';
+            const induced = validatorClassed
+              ? null
+              : induceNounClass(kasemText, submittedForms.definite);
             tx.set(dictionaryRef, {
               id: dictionaryRef.id,
               kasemText,
               translations,
+              ...(hasNounForms(submittedForms) ? { forms: submittedForms } : {}),
+              ...(validatorClassed
+                ? {
+                    nounClass: existingDictionary.get('nounClass') ?? null,
+                    nounClassMarker: existingDictionary.get('nounClassMarker') ?? '',
+                    nounClassSource: 'validator',
+                  }
+                : hasNounForms(submittedForms)
+                  ? {
+                      nounClass: induced?.id ?? null,
+                      nounClassMarker: induced?.marker ?? '',
+                      nounClassSource: 'induced',
+                    }
+                  : {}),
               lexicalKind: submissionLexicalKind(submission),
               englishText: asString(submission.title, 180).trim(),
               kasemExample: asString(submission.kasemExample, 4000).trim(),

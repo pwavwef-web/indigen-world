@@ -8,6 +8,7 @@ import 'package:indigen_world_mobile/features/collection/collection_data.dart';
 import 'package:indigen_world_mobile/features/downloads/data/downloads_providers.dart';
 import 'package:indigen_world_mobile/features/explore/published_content.dart';
 import 'package:indigen_world_mobile/features/music/music_providers.dart';
+import 'package:indigen_world_mobile/features/music/music_recent.dart';
 import 'package:indigen_world_mobile/features/music/music_track.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -234,6 +235,15 @@ class MusicController extends Notifier<MusicSessionState> {
       initialIndex: plan.startIndex,
       initialPosition: _resumePositionFor(plan.tracks[plan.startIndex].id),
     );
+    // What somebody chose, rather than what the queue then walked through. The
+    // shelf is a record of decisions — "the album I put on" — and stamping
+    // every track the player advanced to would fill it with twelve rows of one
+    // sitting and push out the last week.
+    unawaited(
+      ref
+          .read(recentlyPlayedProvider.notifier)
+          .record(plan.tracks[plan.startIndex].id),
+    );
     await play();
   }
 
@@ -306,6 +316,16 @@ class MusicController extends Notifier<MusicSessionState> {
     state = state.copyWith(pausedForOtherAudio: false);
     await ref.read(musicAudioHandlerProvider)?.pause();
     await _persist();
+  }
+
+  /// Jumps to [index] of the queue that is already loaded.
+  ///
+  /// The queue, not a collection: this is what the "up next" list taps into,
+  /// and re-cueing the collection for it would throw away a shuffle order and
+  /// restart a queue somebody is halfway through.
+  Future<void> skipToQueueItem(int index) async {
+    await ref.read(musicAudioHandlerProvider)?.skipToQueueItem(index);
+    await play();
   }
 
   Future<void> next() async =>

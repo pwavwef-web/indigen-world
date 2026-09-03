@@ -199,8 +199,31 @@ DictionaryEntry? dictionaryEntryFromData(String id, Map<String, dynamic> data) {
       'source',
       'contributorName',
     ], fallback: 'Project Kassena community dictionary'),
+    definiteForm: _formsValue(data, 'definite'),
+    pluralForm: _formsValue(data, 'plural'),
+    // Empty means *not established*, never "no class". The inventory is being
+    // built from contributed definite forms rather than assumed in advance, so
+    // most entries will read empty here for a long while and that is the
+    // honest answer rather than a gap to be filled with something plausible.
+    nounClass: _firstText(data, const ['nounClass']),
     isSynthetic: false,
   );
+}
+
+/// One recorded form off the entry's `forms` map, or empty.
+///
+/// A nested map rather than two flat fields because the two belong together
+/// and because `definite` on its own, at the top level of a document that also
+/// carries `translations` and `renderings`, reads like a boolean.
+///
+/// The indefinite is deliberately not readable here: it is derived from the
+/// headword by [DictionaryEntry.indefinite], and a stored copy would be free
+/// to disagree with the rule it came from.
+String _formsValue(Map<String, dynamic> data, String key) {
+  final forms = data['forms'];
+  if (forms is! Map) return '';
+  final value = forms[key];
+  return value is String ? value.trim() : '';
 }
 
 /// Every meaning this entry carries, whether or not the document lists them.

@@ -8,22 +8,22 @@ import 'package:indigen_world_mobile/app/app_theme.dart';
 import 'package:indigen_world_mobile/features/collection/collection_screen.dart';
 import 'package:indigen_world_mobile/features/downloads/data/downloads_providers.dart';
 import 'package:indigen_world_mobile/l10n/app_localizations.dart';
-import 'package:indigen_world_mobile/shared/app_widgets.dart';
 import 'package:indigen_world_mobile/shared/profile_orb.dart';
 
 /// The right inset the tab's heading leaves clear.
-double _headingReserve(WidgetTester tester) => tester
-    .widget<Padding>(
-      find
-          .descendant(
-            of: find.byType(BrandHeader),
-            matching: find.byType(Padding),
-          )
-          .first,
-    )
-    .padding
-    .resolve(TextDirection.ltr)
-    .right;
+double _headingReserve(WidgetTester tester) {
+  final ancestors = find.ancestor(
+    of: find.text('The Kassena Collection'),
+    matching: find.byType(Padding),
+  );
+  for (final element in ancestors.evaluate()) {
+    final padding = (element.widget as Padding).padding.resolve(
+      TextDirection.ltr,
+    );
+    if (padding.left == 20 && padding.top == 22) return padding.right;
+  }
+  throw StateError('Collection header padding was not found.');
+}
 
 Future<void> _pumpCollection(
   WidgetTester tester, {
@@ -79,7 +79,7 @@ void main() {
   });
 
   test('the reserve is the cluster, measured from the shell own constants', () {
-    // Both numbers used to be one hard-coded 62 in `BrandHeader`, which was
+    // Both numbers used to be one hard-coded 62 in the tab header, which was
     // right until a second control turned up beside the orb.
     expect(
       shellTopRightReserve(withAction: false),

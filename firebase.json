@@ -16,7 +16,7 @@
       "cleanUrls": true,
       "ignore": [
         "firebase.json",
-        "**/.*",
+        "**/.DS_Store",
         "**/node_modules/**"
       ],
       "headers": [
@@ -27,9 +27,34 @@
           ]
         },
         {
+          "source": "**/index.html",
+          "headers": [
+            { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+          ]
+        },
+        {
+          "source": "404.html",
+          "headers": [
+            { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+          ]
+        },
+        {
           "source": "sw.js",
           "headers": [
             { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+          ]
+        },
+        {
+          "source": "/.well-known/apple-app-site-association",
+          "headers": [
+            { "key": "Content-Type", "value": "application/json" },
+            { "key": "Cache-Control", "value": "public, max-age=300" }
+          ]
+        },
+        {
+          "source": "/.well-known/assetlinks.json",
+          "headers": [
+            { "key": "Cache-Control", "value": "public, max-age=300" }
           ]
         },
         {
@@ -57,6 +82,10 @@
             "functionId": "publicForms",
             "region": "us-central1"
           }
+        },
+        {
+          "source": "/post/**",
+          "destination": "/post/index.html"
         }
       ]
     },

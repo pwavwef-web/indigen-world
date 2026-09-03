@@ -29,11 +29,11 @@ class CollectionCardSurface extends StatelessWidget {
   Widget build(BuildContext context) => ClipRRect(
     // Portal artwork bleeds to the tile's edges, so the ink and the imagery
     // both have to be cut to the same radius as the glass.
-    borderRadius: BorderRadius.circular(18),
+    borderRadius: BorderRadius.circular(22),
     child: GlassCard.listItem(
       onTap: onTap,
       accent: accent,
-      radius: 18,
+      radius: 22,
       padding: padding,
       semanticLabel: semanticLabel,
       child: child,

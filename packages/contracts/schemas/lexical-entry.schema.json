@@ -9,20 +9,47 @@
     "headword": { "type": "string", "minLength": 1 },
     "partOfSpeech": {
       "type": "string",
+      "description": "Stable word-class id. This list is the contract half of PARTS_OF_SPEECH in services/functions/src/lexical-kinds.ts and kPartsOfSpeech in apps/mobile/lib/features/contribute/words/data/parts_of_speech.dart; all three must agree. It is long on purpose: a six-item dropdown describes a form, not a language, and everything it cannot name lands in \"other\", which is where data goes to stop being searchable. Kasem is a Gur language with a large productive ideophone class, and a bound morpheme is a real lexical entry that is not a noun.",
       "enum": [
         "noun",
+        "proper-noun",
+        "pronoun",
         "verb",
+        "auxiliary-verb",
         "adjective",
         "adverb",
-        "pronoun",
         "preposition",
+        "postposition",
         "conjunction",
-        "interjection",
+        "determiner",
+        "article",
         "numeral",
+        "quantifier",
         "particle",
+        "interjection",
+        "ideophone",
+        "classifier",
+        "prefix",
+        "suffix",
         "phrase",
-        "other"
+        "idiom",
+        "proverb",
+        "other",
+        "unknown"
       ]
+    },
+    "nounClass": {
+      "description": "The noun class this entry belongs to, or null when it has not been established. Null rather than a guess: an unrecognised definite ending means the class inventory has not yet been attested, and a plausible-looking invented class is worse for the language record than an admitted gap.",
+      "oneOf": [{ "type": "string", "minLength": 1 }, { "type": "null" }]
+    },
+    "forms": {
+      "type": "object",
+      "description": "Morphological forms that cannot be derived from the headword.\n\nThe indefinite is deliberately absent. In Kasem it is invariantly the noun followed by the particle `mo`, which makes it a rule rather than per-entry data; storing it on every row would denormalise a fact about the language into thousands of copies that all become wrong the day the rule is refined. It is derived on read by indefiniteForm() in services/functions/src/kasem-morphology.ts.\n\nThe definite is here because it is the one form that genuinely varies: it changes with the noun class, and it is what nounClass is induced from.",
+      "properties": {
+        "definite": { "type": "string" },
+        "plural": { "type": "string" }
+      },
+      "additionalProperties": false
     },
     "pronunciation": {
       "type": "object",

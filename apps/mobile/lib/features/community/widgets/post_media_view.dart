@@ -8,8 +8,12 @@ import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/core/media_preferences.dart';
 import 'package:indigen_world_mobile/features/community/data/community_models.dart';
 import 'package:indigen_world_mobile/features/community/data/community_providers.dart';
+import 'package:indigen_world_mobile/features/community/widgets/community_avatar.dart';
 import 'package:indigen_world_mobile/features/community/widgets/inline_video.dart';
+import 'package:indigen_world_mobile/features/community/widgets/verified_badge.dart';
 import 'package:indigen_world_mobile/features/community/widgets/video_cover.dart';
+import 'package:indigen_world_mobile/features/subscriptions/data/subscription_catalog.dart';
+import 'package:indigen_world_mobile/features/subscriptions/widgets/supporter_badge.dart';
 import 'package:indigen_world_mobile/shared/night_theme.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:video_player/video_player.dart';
@@ -39,6 +43,53 @@ class MediaPostActions {
   final VoidCallback? onShare;
 }
 
+/// Whose picture this is, carried into the immersive viewer.
+///
+/// ── Why a photograph has to say who took it ───────────────────────────────
+/// A picture opened full screen has left its byline behind on the card, and
+/// for as long as it is open the one thing the reader can see is the thing
+/// that tells them least about it. Every timeline worth the name puts the
+/// poster back on top of the media for exactly that reason: the picture is
+/// what somebody looked at, but *whose it is* is what they act on — follow,
+/// reply, or scroll past.
+///
+/// The identity is passed in rather than looked up in here, because the card
+/// has already resolved it once. It reads the live profile first and the
+/// stamp on the post second, so a member who changed their photograph this
+/// morning is not two different people between the feed and the viewer.
+@immutable
+class MediaPostAuthor {
+  const MediaPostAuthor({
+    required this.displayName,
+    required this.handle,
+    required this.initials,
+    required this.mark,
+    required this.supporterMark,
+    this.avatarUrl,
+    this.caption = '',
+    this.onOpenProfile,
+  });
+
+  final String displayName;
+
+  /// The handle as written, `@` and all.
+  final String handle;
+
+  /// Drawn when there is no photograph — never a blank circle.
+  final String initials;
+
+  final VerifiedMark mark;
+  final SupporterMark supporterMark;
+  final String? avatarUrl;
+
+  /// What was written above the picture. Shown a couple of lines at a time,
+  /// because a caption belongs *with* the photograph and a reader should not
+  /// have to close it to find out what they are looking at.
+  final String caption;
+
+  final VoidCallback? onOpenProfile;
+}
+
 /// The media block under a post body.
 ///
 /// One attachment fills the width at its own shape; two or more tile into the
@@ -49,12 +100,20 @@ class MediaPostActions {
 ///
 /// A lone clip plays where it lies. Everything else waits for a tap.
 class PostMediaView extends StatefulWidget {
-  const PostMediaView({required this.media, this.actions, super.key});
+  const PostMediaView({
+    required this.media,
+    this.actions,
+    this.author,
+    super.key,
+  });
 
   final List<CommunityMedia> media;
 
   /// Appreciate / reply / share, carried through to the immersive viewer.
   final MediaPostActions? actions;
+
+  /// Who posted it, drawn over the picture in the immersive viewer.
+  final MediaPostAuthor? author;
 
   /// The tallest and widest shapes a single attachment may be drawn in.
   ///
@@ -108,6 +167,7 @@ class _PostMediaViewState extends State<PostMediaView> {
         // behind it, which is what the eye expects from a shared element.
         heroTag: widget.media[index].isVideo ? null : '$_heroBase-$index',
         actions: widget.actions,
+        author: widget.author,
       ),
     );
   }
@@ -507,6 +567,7 @@ Future<void> openMediaViewer(
   int initialIndex = 0,
   String? heroTag,
   MediaPostActions? actions,
+  MediaPostAuthor? author,
 }) => Navigator.of(context).push(
   PageRouteBuilder<void>(
     opaque: false,
@@ -519,6 +580,7 @@ Future<void> openMediaViewer(
       initialIndex: initialIndex,
       heroTag: heroTag,
       actions: actions,
+      author: author,
     ),
     transitionsBuilder: (context, animation, secondary, child) => FadeTransition(
       opacity: CurvedAnimation(parent: animation, curve: Curves.easeOut),
@@ -538,6 +600,7 @@ class MediaViewerPage extends ConsumerStatefulWidget {
     this.initialIndex = 0,
     this.heroTag,
     this.actions,
+    this.author,
     super.key,
   });
 
@@ -548,6 +611,10 @@ class MediaViewerPage extends ConsumerStatefulWidget {
   final String? heroTag;
 
   final MediaPostActions? actions;
+
+  /// The byline drawn over the picture. Null where a viewer was opened from
+  /// somewhere that has no author to name.
+  final MediaPostAuthor? author;
 
   @override
   ConsumerState<MediaViewerPage> createState() => _MediaViewerPageState();
@@ -745,6 +812,7 @@ class _MediaViewerPageState extends ConsumerState<MediaViewerPage>
               visible: _chromeVisible && _restingness > 0.85,
               index: _index,
               count: widget.media.length,
+              author: widget.author,
               liked: liked,
               likeCount: (actions?.likeCount ?? 0) + (_likeDelta ?? 0),
               replyCount: actions?.replyCount ?? 0,
@@ -1036,9 +1104,10 @@ class _ViewerVideoButton extends StatelessWidget {
   );
 }
 
-/// The counter, the way out and the post's own actions, floated over the
-/// picture and taken away the moment somebody wants to look at it properly.
-class _ViewerChrome extends StatelessWidget {
+/// The byline, the counter, the way out and the post's own actions, floated
+/// over the picture and taken away the moment somebody wants to look at it
+/// properly.
+class _ViewerChrome extends StatefulWidget {
   const _ViewerChrome({
     required this.visible,
     required this.index,
@@ -1049,6 +1118,7 @@ class _ViewerChrome extends StatelessWidget {
     required this.onLike,
     required this.onReply,
     required this.onShare,
+    this.author,
   });
 
   final bool visible;
@@ -1060,17 +1130,35 @@ class _ViewerChrome extends StatelessWidget {
   final VoidCallback? onLike;
   final VoidCallback? onReply;
   final VoidCallback? onShare;
+  final MediaPostAuthor? author;
+
+  @override
+  State<_ViewerChrome> createState() => _ViewerChromeState();
+}
+
+class _ViewerChromeState extends State<_ViewerChrome> {
+  /// Whether the caption has been opened out. Two lines by default: enough to
+  /// know what the picture is, little enough that it is not competing with it.
+  var _captionExpanded = false;
 
   @override
   Widget build(BuildContext context) {
     final padding = MediaQuery.paddingOf(context);
+    final author = widget.author;
     return IgnorePointer(
-      ignoring: !visible,
+      ignoring: !widget.visible,
       child: AnimatedOpacity(
-        opacity: visible ? 1 : 0,
+        opacity: widget.visible ? 1 : 0,
         duration: const Duration(milliseconds: 180),
         child: Stack(
           children: [
+            // White chrome over an unknown photograph is a coin toss. The two
+            // washes are the cheapest way to win it: they cost nothing where
+            // the picture is already dark and rescue the text where it is a
+            // white sky.
+            const _ChromeScrim(top: true),
+            if (author != null || widget.onLike != null)
+              const _ChromeScrim(top: false),
             Positioned(
               top: padding.top + 6,
               left: 6,
@@ -1084,8 +1172,10 @@ class _ViewerChrome extends StatelessWidget {
                   ),
                   Expanded(
                     child: Center(
-                      child: count > 1
-                          ? MediaPill(label: '${index + 1} of $count')
+                      child: widget.count > 1
+                          ? MediaPill(
+                              label: '${widget.index + 1} of ${widget.count}',
+                            )
                           : const SizedBox.shrink(),
                     ),
                   ),
@@ -1093,47 +1183,231 @@ class _ViewerChrome extends StatelessWidget {
                 ],
               ),
             ),
-            if (onLike != null)
-              Positioned(
-                left: 0,
-                right: 0,
-                bottom: padding.bottom + 10,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    _ViewerAction(
-                      icon: liked
-                          ? Icons.favorite_rounded
-                          : Icons.favorite_border_rounded,
-                      tooltip: liked ? 'Appreciated' : 'Appreciate',
-                      label: likeCount > 0
-                          ? communityCountLabel(likeCount)
-                          : '',
-                      tint: liked ? const Color(0xFFE0563C) : Colors.white,
-                      onTap: onLike,
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: padding.bottom + 10,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (author != null)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+                      child: _ViewerByline(
+                        author: author,
+                        captionExpanded: _captionExpanded,
+                        onToggleCaption: () => setState(
+                          () => _captionExpanded = !_captionExpanded,
+                        ),
+                      ),
                     ),
-                    _ViewerAction(
-                      icon: Icons.mode_comment_outlined,
-                      tooltip: 'Reply',
-                      label: replyCount > 0
-                          ? communityCountLabel(replyCount)
-                          : '',
-                      tint: Colors.white,
-                      onTap: onReply,
+                  if (widget.onLike != null)
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        _ViewerAction(
+                          icon: widget.liked
+                              ? Icons.favorite_rounded
+                              : Icons.favorite_border_rounded,
+                          tooltip: widget.liked ? 'Appreciated' : 'Appreciate',
+                          label: widget.likeCount > 0
+                              ? communityCountLabel(widget.likeCount)
+                              : '',
+                          tint: widget.liked
+                              ? const Color(0xFFE0563C)
+                              : Colors.white,
+                          onTap: widget.onLike,
+                        ),
+                        _ViewerAction(
+                          icon: Icons.mode_comment_outlined,
+                          tooltip: 'Reply',
+                          label: widget.replyCount > 0
+                              ? communityCountLabel(widget.replyCount)
+                              : '',
+                          tint: Colors.white,
+                          onTap: widget.onReply,
+                        ),
+                        _ViewerAction(
+                          icon: Icons.ios_share_rounded,
+                          tooltip: 'Share',
+                          label: '',
+                          tint: Colors.white,
+                          onTap: widget.onShare,
+                        ),
+                      ],
                     ),
-                    _ViewerAction(
-                      icon: Icons.ios_share_rounded,
-                      tooltip: 'Share',
-                      label: '',
-                      tint: Colors.white,
-                      onTap: onShare,
-                    ),
-                  ],
-                ),
+                ],
               ),
+            ),
           ],
         ),
       ),
+    );
+  }
+}
+
+/// The wash under the chrome at one end of the picture.
+///
+/// Deliberately not a solid bar. A bar would crop the photograph; a gradient
+/// that reaches nothing at its far edge only darkens the part the text is
+/// actually sitting on, and goes away with the chrome when it is tapped off.
+class _ChromeScrim extends StatelessWidget {
+  const _ChromeScrim({required this.top});
+
+  final bool top;
+
+  @override
+  Widget build(BuildContext context) => Positioned(
+    top: top ? 0 : null,
+    bottom: top ? null : 0,
+    left: 0,
+    right: 0,
+    height: top ? 132 : 220,
+    child: IgnorePointer(
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: top ? Alignment.topCenter : Alignment.bottomCenter,
+            end: top ? Alignment.bottomCenter : Alignment.topCenter,
+            colors: [
+              Colors.black.withValues(alpha: top ? 0.42 : 0.62),
+              Colors.transparent,
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+/// Who posted the picture, over the picture.
+///
+/// The whole row is one target and it opens their profile, because that is the
+/// only thing anybody has ever wanted from a name on a photograph. The caption
+/// underneath is a second, separate target: tapping it opens it out rather
+/// than navigating away, so reading the rest of a long caption never costs
+/// somebody the picture they were reading it about.
+class _ViewerByline extends StatelessWidget {
+  const _ViewerByline({
+    required this.author,
+    required this.captionExpanded,
+    required this.onToggleCaption,
+  });
+
+  final MediaPostAuthor author;
+  final bool captionExpanded;
+  final VoidCallback onToggleCaption;
+
+  @override
+  Widget build(BuildContext context) {
+    final caption = author.caption.trim();
+    final open = author.onOpenProfile;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Semantics(
+          button: open != null,
+          label: '${author.displayName}, ${author.handle}',
+          excludeSemantics: true,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            // The viewer closes on the way to the profile. Leaving it open
+            // would bury the profile under a full-screen photograph that the
+            // back gesture reaches first.
+            onTap: open == null
+                ? null
+                : () {
+                    Navigator.of(context).maybePop();
+                    open();
+                  },
+            child: Row(
+              children: [
+                CommunityAvatar(
+                  initials: author.initials,
+                  imageUrl: author.avatarUrl,
+                  username: author.handle,
+                  size: 34,
+                ),
+                const SizedBox(width: 10),
+                Flexible(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Flexible(
+                            child: Text(
+                              author.displayName,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 14.5,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: -0.1,
+                              ),
+                            ),
+                          ),
+                          if (author.mark != VerifiedMark.none) ...[
+                            const SizedBox(width: 3),
+                            // The mark explains itself everywhere else by
+                            // opening a card. Not here: a popup over a
+                            // full-screen photograph, inside a row that is
+                            // itself a button, is a trap.
+                            VerifiedBadge(
+                              mark: author.mark,
+                              size: 14.5,
+                              explainOnTap: false,
+                            ),
+                          ],
+                          if (author.supporterMark != SupporterMark.none) ...[
+                            const SizedBox(width: 3),
+                            SupporterBadge(
+                              mark: author.supporterMark,
+                              size: 14.5,
+                            ),
+                          ],
+                        ],
+                      ),
+                      if (author.handle.isNotEmpty)
+                        Text(
+                          author.handle,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 12.5,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (caption.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: onToggleCaption,
+            child: Text(
+              caption,
+              maxLines: captionExpanded ? 8 : 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 14,
+                height: 1.35,
+              ),
+            ),
+          ),
+        ],
+      ],
     );
   }
 }

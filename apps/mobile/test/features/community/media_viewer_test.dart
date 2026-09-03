@@ -8,6 +8,7 @@
 // tap to appreciate — with the post's own actions along the bottom.
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:indigen_world_mobile/features/community/community_profile_screen.dart';
 import 'package:indigen_world_mobile/features/community/community_screen.dart';
 import 'package:indigen_world_mobile/features/community/data/community_models.dart';
 import 'package:indigen_world_mobile/features/community/widgets/post_media_view.dart';
@@ -110,5 +111,56 @@ void main() {
     await tester.pump(const Duration(milliseconds: 500));
 
     expect(find.byType(MediaViewerPage), findsOneWidget);
+  });
+
+  testWidgets('the picture says whose it is, and what was written with it', (
+    tester,
+  ) async {
+    await pumpAndOpen(tester);
+
+    // A full-screen photograph covers the byline it was opened from. Putting
+    // the poster back over the picture is what keeps an attachment attached to
+    // a person rather than floating free of one.
+    final inViewer = find.descendant(
+      of: find.byType(MediaViewerPage),
+      matching: find.text('Amina Ayaribisa'),
+    );
+    expect(inViewer, findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(MediaViewerPage),
+        matching: find.textContaining('amina_paga'),
+      ),
+      findsOneWidget,
+    );
+    // The caption travels too: what a picture is of is usually written above
+    // it, and that line is the first thing the viewer covers up.
+    expect(
+      find.descendant(
+        of: find.byType(MediaViewerPage),
+        matching: find.text('De zaanem. Ko gara.'),
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('tapping the byline puts the picture down and opens them', (
+    tester,
+  ) async {
+    await pumpAndOpen(tester);
+
+    await tester.tap(
+      find.descendant(
+        of: find.byType(MediaViewerPage),
+        matching: find.text('Amina Ayaribisa'),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+
+    // The viewer closes on the way out. Left open, it would sit on top of the
+    // profile and take the back gesture meant for it.
+    expect(find.byType(MediaViewerPage), findsNothing);
+    expect(find.byType(CommunityProfileScreen), findsOneWidget);
   });
 }

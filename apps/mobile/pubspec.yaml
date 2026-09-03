@@ -1,7 +1,7 @@
 name: indigen_world_mobile
 description: Offline-first mobile experience for Indigen World and Project Kassena.
 publish_to: none
-version: 0.1.10+19
+version: 0.1.11+20
 
 environment:
   sdk: ^3.13.0
@@ -55,6 +55,7 @@ dependencies:
   in_app_purchase_android: ^0.5.3
   audio_service: ^0.18.19
   audio_session: ^0.1.25
+  app_links: ^7.2.1
 
 dev_dependencies:
   integration_test:

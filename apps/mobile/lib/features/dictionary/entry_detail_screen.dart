@@ -186,6 +186,21 @@ class EntryDetailScreen extends ConsumerWidget {
               body: resolvedEntry.pronunciation,
               trailing: PronunciationButton(audioUrl: resolvedEntry.audioUrl),
             ),
+            // ── The forms a noun takes ───────────────────────────────────
+            // Grammar shown where a learner already is, rather than on a
+            // grammar screen they would have to decide to visit. The plain
+            // form is computed from the headword rather than stored, so this
+            // card appears on every noun in the collection — including the
+            // ones contributed years before anybody thought to ask for the
+            // other two — and simply grows as members fill them in.
+            if (_formsBody(resolvedEntry) case final body?) ...[
+              const SizedBox(height: 12),
+              _DetailCard(
+                icon: Icons.account_tree_outlined,
+                title: 'Forms',
+                body: body,
+              ),
+            ],
             const SizedBox(height: 12),
             _DetailCard(
               icon: Icons.chat_bubble_outline_rounded,
@@ -237,6 +252,27 @@ class EntryDetailScreen extends ConsumerWidget {
     );
   }
 
+}
+
+/// The forms card's text, or null when there is nothing true to say.
+///
+/// ── Why the plain form is enough on its own ──────────────────────────────
+/// A noun with no contributed morphology still gets this card, because the
+/// indefinite is a rule rather than a record: it is the word and `mo`, always.
+/// That single line is worth showing on its own — it is the answer to the
+/// question the dictionary could never answer before, and the reason the queue
+/// stopped asking members for the Kasem for "the".
+///
+/// Null for anything that is not a noun, so no screen has to re-test the word
+/// class to decide whether to draw the card.
+String? _formsBody(DictionaryEntry entry) {
+  final plain = entry.indefinite;
+  if (plain == null) return null;
+  return [
+    'Plain: $plain',
+    if (entry.definiteForm.isNotEmpty) 'With “the”: ${entry.definiteForm}',
+    if (entry.pluralForm.isNotEmpty) 'Many: ${entry.pluralForm}',
+  ].join('\n');
 }
 
 /// The play button beside a word's pronunciation.

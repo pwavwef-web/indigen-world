@@ -91,6 +91,14 @@ before(async () => {
     await setDoc(doc(db, 'dictionaryEntries/private-word'), {
       kasemText: 'Draft', englishText: 'Draft', isPublished: false,
     });
+    await setDoc(doc(db, 'grammarRules/definiteness'), {
+      id: 'definiteness', topic: 'definiteness', status: 'published',
+      summary: 'There is no Kasem word for "the".', englishTriggers: ['the'],
+    });
+    await setDoc(doc(db, 'grammarRules/copula'), {
+      id: 'copula', topic: 'copula', status: 'draft',
+      summary: '', englishTriggers: ['is'],
+    });
     await setDoc(doc(db, 'collectionContributions/contribution-owned'), {
       id: 'contribution-owned',
       authUid: 'member-collection',
@@ -238,6 +246,37 @@ test('only published legacy dictionary rows are publicly readable', async () => 
   await assertSucceeds(getDoc(doc(db(anon), 'dictionaryEntries/published-word')));
   await assertFails(getDoc(doc(db(anon), 'dictionaryEntries/private-word')));
   await assertSucceeds(getDoc(doc(db(validator), 'dictionaryEntries/private-word')));
+});
+
+test('a published grammar rule is public; a draft one about a language is not', async () => {
+  // Grammar notes are the answer to the questions the word queue could never
+  // collect — "the Kasem for *the*" is not a hard question, it is a question
+  // with no referent — so a published rule has to be readable by a guest
+  // browsing the dictionary without an account.
+  //
+  // Drafts must not be. A half-written grammatical claim about somebody's
+  // language is exactly the thing that gets read as settled, quoted, and taught.
+  const anon = env.unauthenticatedContext();
+  const member = env.authenticatedContext('member-grammar');
+  const validator = env.authenticatedContext('val-grammar', { role: 'validator' });
+  await assertSucceeds(getDoc(doc(db(anon), 'grammarRules/definiteness')));
+  await assertFails(getDoc(doc(db(anon), 'grammarRules/copula')));
+  await assertFails(getDoc(doc(db(member), 'grammarRules/copula')));
+  await assertSucceeds(getDoc(doc(db(validator), 'grammarRules/copula')));
+});
+
+test('nobody writes a grammar rule from a client, whatever their role', async () => {
+  // Authored by the project through seed-grammar.mjs. A rules collection that
+  // a phone could write to is a rules collection that can be made to say
+  // anything about Kasem, to everybody, permanently.
+  const member = env.authenticatedContext('member-grammar');
+  const validator = env.authenticatedContext('val-grammar', { role: 'validator' });
+  const admin = env.authenticatedContext('admin-grammar', { role: 'admin' });
+  const forged = { id: 'forged', topic: 'definiteness', status: 'published', summary: 'nonsense' };
+  await assertFails(setDoc(doc(db(member), 'grammarRules/forged'), forged));
+  await assertFails(setDoc(doc(db(validator), 'grammarRules/forged'), forged));
+  await assertFails(setDoc(doc(db(admin), 'grammarRules/forged'), forged));
+  await assertFails(setDoc(doc(db(validator), 'grammarRules/definiteness'), forged));
 });
 
 test('callable-created Collection contributions are private to their owner and staff', async () => {

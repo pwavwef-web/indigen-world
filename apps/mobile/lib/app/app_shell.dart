@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:indigen_world_mobile/app/app_theme.dart';
 import 'package:indigen_world_mobile/app/shell_chrome.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
+import 'package:indigen_world_mobile/core/deep_links.dart';
 import 'package:indigen_world_mobile/features/collection/collection_screen.dart';
 import 'package:indigen_world_mobile/features/community/community_screen.dart';
 import 'package:indigen_world_mobile/features/contribute/contribute_screen.dart';
@@ -14,6 +15,7 @@ import 'package:indigen_world_mobile/features/explore/explore_screen.dart';
 import 'package:indigen_world_mobile/features/learn/learn_screen.dart';
 import 'package:indigen_world_mobile/features/notifications/data/notification_providers.dart';
 import 'package:indigen_world_mobile/features/notifications/push_messaging.dart';
+import 'package:indigen_world_mobile/features/subscriptions/data/subscription_providers.dart';
 import 'package:indigen_world_mobile/l10n/app_localizations.dart';
 import 'package:indigen_world_mobile/shared/connection_banner.dart';
 import 'package:indigen_world_mobile/shared/frosted_nav_bar.dart';
@@ -161,6 +163,20 @@ class _AppShellState extends ConsumerState<AppShell>
     // but it does not wait for an account: broadcast announcements reach a
     // guest device through the topic.
     ref.watch(foregroundAlertsProvider);
+    // A link followed from outside the app — a shared post opened from a chat
+    // — is parked in exactly the same provider, for exactly the same reason.
+    // Subscribing here rather than at start-up is deliberate: the shell is the
+    // first thing that exists once onboarding is done, so a link tapped on a
+    // first-ever launch waits behind onboarding instead of replacing it.
+    ref.watch(incomingLinksProvider);
+    // Play Billing is started here for two reasons that both cost real money
+    // when it is not. Play redelivers a purchase that completed while the app
+    // was closed the moment something listens, and until this line the only
+    // listener was the paywall — so a purchase interrupted by a dead network
+    // sat undelivered unless the member happened to open the paywall again.
+    // And the BillingClient connection takes a moment to settle, which is a
+    // moment better spent before somebody taps Subscribe than after.
+    ref.watch(billingServiceProvider);
     // A tapped push may arrive before any route can consume it, so it is parked
     // in a provider and routed from here once there is a router to route with.
     ref.listen<String?>(pendingPushRouteProvider, (_, route) {

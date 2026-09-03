@@ -390,16 +390,27 @@ All of this happens on the internal testing track. None of it needs production.
    and being on only one of them is the usual reason a test purchase fails.
 2. **Internal testing track**: subscriptions only appear once the app is
    published to a track and the products are **active**. A debug build
-   sideloaded over USB will show an empty paywall — that is `queryProductDetails`
-   returning nothing, not a bug. Install from the internal-testing opt-in link,
-   not from a local build, when testing purchases.
+   sideloaded over USB will show an empty paywall — not a bug. Which of the two
+   empty paywalls it is depends on the flavour. The `development` and `staging`
+   flavours carry their own application ids (`world.indigen.mobile.dev` and
+   `.staging`); Play has never heard of either, so the `BillingClient`
+   connection is refused outright and the paywall says *Google Play is not
+   available on this device*. Only the `production` flavour builds
+   `com.indigenworld.indigen`, and a sideloaded production build gets as far as
+   `queryProductDetails` returning nothing. Install from the internal-testing
+   opt-in link, not from a local build, when testing purchases.
 3. **Integrity on an internal build**: expect `appLicensingVerdict: UNLICENSED`.
    That is why `PLAY_INTEGRITY_REQUIRE_LICENSED` ships `false`.
 4. **The full purchase path worth walking once**: buy → check
    `entitlements/{uid}` gains the tier → adverts disappear from Explore →
    cancel in Play → the entitlement flips to `canceled` with the same expiry →
    access continues to that date → the nightly sweep expires it afterwards.
-5. **Recovery**: force-stop the app mid-purchase. The purchase is redelivered
+5. **When the paywall is empty, read it before guessing.** The *Why?* button
+   on the empty paywall names which of the five causes it is and prints the
+   application id the build is actually running under — one glance settles the
+   commonest false alarm. *Try again* re-asks Play without restarting the app,
+   which is what recovers a Play Store that was signed out a minute ago.
+6. **Recovery**: force-stop the app mid-purchase. The purchase is redelivered
    on the next launch through `BillingService.start()` and settles then. It is
    the reason `completePurchase` is only called after the backend has settled.
 

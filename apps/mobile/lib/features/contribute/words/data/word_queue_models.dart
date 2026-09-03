@@ -210,6 +210,49 @@ enum WordQueueSkipReason {
   };
 }
 
+/// Whether the example sentence actually showed the word being asked about.
+///
+/// ── Not a skip reason, and the difference is the whole feature ───────────
+/// [WordQueueSkipReason] is how a member leaves a word unanswered. This is how
+/// they answer it *and* say the sentence was no help. The two cannot be merged
+/// because the outcomes are opposite: a skip throws the word away, and this
+/// keeps the answer while flagging the prompt.
+///
+/// The case that forced it: the queue asks for the Kasem for *word* and shows
+/// "My teacher put in a good word for me." A fluent speaker knows the answer
+/// perfectly well; the sentence is simply about something else. Before this
+/// they could translate the idiom (which poisons the entry), translate the
+/// plain word (right, but a reviewer could not tell which they had done), or
+/// skip a word they knew.
+///
+/// [idiom] and [otherSense] stay apart because they lead to different repairs —
+/// an idiom is worth recording as an idiom in its own right, and a wrong sense
+/// just needs a better sentence.
+enum WordQueueSentenceFit {
+  fits,
+  idiom,
+  otherSense;
+
+  /// Not [name]: `otherSense` goes over the wire as `other-sense`, which is
+  /// what `SENTENCE_FITS` in word-queue.ts validates against. A Dart enum
+  /// cannot spell a hyphen, so the two spellings are written out here rather
+  /// than left for a `toLowerCase()` somewhere to get wrong.
+  String get wire => switch (this) {
+    WordQueueSentenceFit.fits => 'fits',
+    WordQueueSentenceFit.idiom => 'idiom',
+    WordQueueSentenceFit.otherSense => 'other-sense',
+  };
+
+  /// Written as things a person would say, not as grammatical categories. A
+  /// member who has to work out whether their sentence is "non-compositional"
+  /// picks the first option and moves on.
+  String get label => switch (this) {
+    WordQueueSentenceFit.fits => 'The sentence fits',
+    WordQueueSentenceFit.idiom => 'That is a saying, not the plain word',
+    WordQueueSentenceFit.otherSense => 'That is a different meaning',
+  };
+}
+
 /// What the member is sending back about one word.
 @immutable
 class WordTranslationDraft {
@@ -221,6 +264,9 @@ class WordTranslationDraft {
     this.notes = '',
     this.kasemExample = '',
     this.englishExample = '',
+    this.sentenceFit = WordQueueSentenceFit.fits,
+    this.definiteForm = '',
+    this.pluralForm = '',
   });
 
   final String wordId;
@@ -246,6 +292,34 @@ class WordTranslationDraft {
   /// something a reviewer wants.
   final String englishExample;
 
+  /// Defaults to [WordQueueSentenceFit.fits], which is the honest default: the
+  /// control is pre-selected there, so the median word costs zero taps and a
+  /// member who says nothing has said the sentence was fine.
+  final WordQueueSentenceFit sentenceFit;
+
+  /// The noun said with *the*, if the member offered it.
+  ///
+  /// ── The field that makes "the" answerable ────────────────────────────
+  /// Definiteness in Kasem is a property of the noun, not a separate word, so
+  /// there is no Kasem for "the" to collect and never was. What there is, is
+  /// this: the form a speaker actually says. The noun class is worked out from
+  /// it on the server — see `kasem-morphology.ts` — so that nobody is ever
+  /// asked to name their own language's noun classes, which almost no fluent
+  /// speaker of any language can do.
+  ///
+  /// Empty for every word class but Noun, and empty for most nouns too. It is
+  /// optional on purpose: a queue that grows a required field is a queue
+  /// people answer four words in instead of twenty.
+  final String definiteForm;
+
+  /// The noun said for many. Optional on the same terms as [definiteForm].
+  final String pluralForm;
+
+  /// The indefinite is **not** here, and must not be added.
+  ///
+  /// It is the noun plus `mo`, invariantly, so it is derived wherever it is
+  /// shown ([indefiniteForm]) rather than stored. Sending a copy would let the
+  /// copy and the rule disagree, and the server refuses one for that reason.
   Map<String, Object?> toPayload() => <String, Object?>{
     'wordId': wordId,
     'translations': translations,
@@ -254,6 +328,14 @@ class WordTranslationDraft {
     'notes': notes,
     'kasemExample': kasemExample,
     'englishExample': englishExample,
+    'sentenceFit': sentenceFit.wire,
+    // Omitted entirely when there is nothing in it, so the great majority of
+    // answers send no forms key at all rather than a map of empty strings.
+    if (definiteForm.isNotEmpty || pluralForm.isNotEmpty)
+      'forms': <String, Object?>{
+        'definite': definiteForm,
+        'plural': pluralForm,
+      },
   };
 }
 

@@ -1,0 +1,68 @@
+[
+  {
+    "id": "indefiniteness",
+    "topic": "indefiniteness",
+    "englishTriggers": ["a", "an"],
+    "title": "Saying \"a\" — the plain form",
+    "status": "published",
+    "summary": "There is no separate Kasem word for \"a\" or \"an\". A noun is made indefinite by the particle mo, which follows the noun and does not change.",
+    "pattern": "<noun> mo",
+    "examples": [],
+    "note": "Because the particle is invariant, the app never asks a contributor for this form and never stores it. It is computed from the headword wherever it is shown — see indefiniteForm() in services/functions/src/kasem-morphology.ts."
+  },
+  {
+    "id": "definiteness",
+    "topic": "definiteness",
+    "englishTriggers": ["the"],
+    "title": "Saying \"the\" — it is part of the noun",
+    "status": "published",
+    "summary": "There is no Kasem word for \"the\". Definiteness is marked on the noun itself, and unlike the indefinite mo it changes from noun to noun according to the noun's class. So \"the\" cannot be translated on its own; what can be recorded is the definite form of each noun, which is what the dictionary now collects.",
+    "pattern": "<noun in its definite form>",
+    "examples": [],
+    "note": "This is why \"the\" was retired from the guided word queue: the question had no answer and was rank 1 of 15,000, so every new contributor met it first."
+  },
+  {
+    "id": "noun-classes",
+    "topic": "noun-class",
+    "englishTriggers": [],
+    "title": "Noun classes",
+    "status": "draft",
+    "summary": "Kasem nouns fall into classes, and the class decides how the definite and plural forms are built. The inventory below is generated from the classes recorded in kasem-morphology.ts and is deliberately incomplete: it is being built from definite forms contributed by speakers rather than assumed in advance.",
+    "pattern": "",
+    "examples": [],
+    "note": "Kept as a draft until the inventory is worth publishing. Do not hand-edit the nounClasses array on the published document — seed-grammar.mjs generates it from NOUN_CLASSES so the two cannot drift."
+  },
+  {
+    "id": "prepositions",
+    "topic": "preposition",
+    "englishTriggers": ["of", "to", "in", "on", "at", "for", "with", "from", "by"],
+    "title": "English prepositions",
+    "status": "draft",
+    "summary": "",
+    "pattern": "",
+    "examples": [],
+    "note": "Deliberately empty. English prepositions do not map one-to-one onto Kasem and several are not separate words at all, which is why asking the queue for \"the Kasem for of\" collected nothing. The triggers are listed so those rows leave the queue; the explanation is left for a Kasem speaker to write rather than guessed at here."
+  },
+  {
+    "id": "conjunctions",
+    "topic": "conjunction",
+    "englishTriggers": ["and", "or", "but"],
+    "title": "Joining words",
+    "status": "draft",
+    "summary": "",
+    "pattern": "",
+    "examples": [],
+    "note": "Deliberately empty, on the same terms as the prepositions above."
+  },
+  {
+    "id": "copula",
+    "topic": "copula",
+    "englishTriggers": ["is", "are", "am", "was", "were", "be"],
+    "title": "Saying \"is\"",
+    "status": "draft",
+    "summary": "",
+    "pattern": "",
+    "examples": [],
+    "note": "Deliberately empty. \"is\" is rank 7 and unanswerable as a single word; the triggers retire those rows while the explanation waits for somebody who can write it."
+  }
+]
