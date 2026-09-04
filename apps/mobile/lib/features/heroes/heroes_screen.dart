@@ -2,6 +2,9 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
+import 'package:indigen_world_mobile/features/ads/collection_ads.dart';
+import 'package:indigen_world_mobile/features/ads/data/served_ad.dart';
+import 'package:indigen_world_mobile/features/ads/widgets/sponsored_card.dart';
 import 'package:indigen_world_mobile/features/collection/widgets/collection_card_surface.dart';
 import 'package:indigen_world_mobile/features/heroes/hero_detail_screen.dart';
 import 'package:indigen_world_mobile/features/heroes/heroes_data.dart';
@@ -48,14 +51,9 @@ class HeroesCollectionScreen extends ConsumerWidget {
                   ),
                 ],
                 AsyncValue(:final value?) => [
-                  SliverPadding(
-                    padding: const EdgeInsets.fromLTRB(18, 4, 18, 40),
-                    sliver: SliverList.separated(
-                      itemCount: value.length,
-                      separatorBuilder: (_, _) => const SizedBox(height: 12),
-                      itemBuilder: (context, index) =>
-                          HeroCard(hero: value[index]),
-                    ),
+                  _HeroRows(
+                    heroes: value,
+                    ads: ref.watch(collectionAdsProvider),
                   ),
                 ],
                 AsyncValue(hasError: true) => const [
@@ -78,6 +76,37 @@ class HeroesCollectionScreen extends ConsumerWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// The names, with adverts dealt between them.
+class _HeroRows extends StatelessWidget {
+  const _HeroRows({required this.heroes, required this.ads});
+
+  final List<KasemHero> heroes;
+  final List<ServedAd> ads;
+
+  @override
+  Widget build(BuildContext context) {
+    final rows = collectionRowsWithAds(items: heroes, ads: ads);
+    return SliverPadding(
+      padding: const EdgeInsets.fromLTRB(18, 4, 18, 40),
+      sliver: SliverList.separated(
+        itemCount: rows.length,
+        separatorBuilder: (_, _) => const SizedBox(height: 12),
+        itemBuilder: (context, index) {
+          final row = rows[index];
+          if (row is ServedAd) {
+            return SponsoredCard(
+              ad: row,
+              slot: 'heroes-$index',
+              margin: EdgeInsets.zero,
+            );
+          }
+          return HeroCard(hero: row as KasemHero);
+        },
       ),
     );
   }

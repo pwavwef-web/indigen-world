@@ -330,6 +330,13 @@ class _CollectionPortal {
   }
 }
 
+/// The tab's name, at the size the Community tab wears its own.
+///
+/// It was a headline and a slogan, which is a masthead rather than a heading:
+/// two of the five tabs in the shell shouted their own name at different volumes
+/// and this was the loud one. Set to the same 19/800 the Community header uses
+/// so the shell reads as one app, and the slogan is gone — a tab that has to
+/// explain itself under its own title is a tab that has been named badly.
 class _CollectionHeader extends StatelessWidget {
   const _CollectionHeader();
 
@@ -341,28 +348,16 @@ class _CollectionHeader extends StatelessWidget {
       shellTopRightReserve(withAction: true),
       10,
     ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'The Kassena Collection',
-          style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-            color: context.brand.ink,
-            fontWeight: FontWeight.w900,
-            height: 1.08,
-            letterSpacing: 0,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          'Preserving culture, one story at a time',
-          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-            color: context.brand.mutedInk,
-            height: 1.35,
-            letterSpacing: 0,
-          ),
-        ),
-      ],
+    child: Text(
+      'Kasem Collections',
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: TextStyle(
+        color: context.brand.ink,
+        fontSize: 19,
+        fontWeight: FontWeight.w800,
+        letterSpacing: -0.4,
+      ),
     ),
   );
 }
@@ -597,6 +592,20 @@ class _CollectionGridLayout extends StatelessWidget {
   }
 }
 
+/// One channel, as a tile.
+///
+/// ── Why this is quieter than it was ──────────────────────────────────────
+/// It used to be a coloured radial wash behind a 56px icon under a 22/900
+/// title, seven times over in a two-column grid. Seven of those on one screen
+/// is not seven doors, it is a fairground: nothing on the page was allowed to
+/// be the loudest thing because every tile was already shouting, and the colour
+/// that was meant to tell the channels apart stopped carrying any information
+/// at all.
+///
+/// So the pane is a plain one now. The colour survives at the one size where it
+/// still distinguishes — a small plate behind the icon — and the type steps down
+/// to the same weights the rest of the app reads at. The card is still a door;
+/// it has simply stopped announcing it.
 class _CollectionPortalCard extends StatelessWidget {
   const _CollectionPortalCard({required this.portal});
 
@@ -612,65 +621,39 @@ class _CollectionPortalCard extends StatelessWidget {
         : 'Coming soon.';
 
     return CollectionCardSurface(
-      accent: portal.color,
       onTap: action,
       semanticLabel: '${portal.title}. $semanticState',
       child: ConstrainedBox(
-        constraints: const BoxConstraints(minHeight: 156),
+        constraints: const BoxConstraints(minHeight: 128),
         child: LayoutBuilder(
+          // The grid states a tile height and the single-column fallback states
+          // none, so the gap under the icon cannot be a [Spacer] unconditionally
+          // — a flexible child under an unbounded height is a layout assertion,
+          // and the fallback is exactly that case.
           builder: (context, constraints) {
-            final boundedHeight = constraints.hasBoundedHeight;
-            final artwork = Center(
-              child: Icon(
-                portal.icon,
-                color: portal.color,
-                size: _iconSize(context),
-              ),
-            );
-            return DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: RadialGradient(
-                  center: const Alignment(0.35, -0.42),
-                  radius: 1.15,
-                  colors: [
-                    portal.color.withValues(
-                      alpha: context.brand.isDark ? 0.2 : 0.11,
+            final bounded = constraints.hasBoundedHeight;
+            return Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+              child: Column(
+                mainAxisSize: bounded ? MainAxisSize.max : MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _PortalIcon(portal: portal),
+                  if (bounded) const Spacer() else const SizedBox(height: 16),
+                  Text(
+                    portal.title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w800,
+                      height: 1.15,
+                      letterSpacing: 0,
                     ),
-                    portal.color.withValues(
-                      alpha: context.brand.isDark ? 0.07 : 0.04,
-                    ),
-                    Colors.transparent,
-                  ],
-                ),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
-                child: Column(
-                  mainAxisSize: boundedHeight
-                      ? MainAxisSize.max
-                      : MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (boundedHeight)
-                      Expanded(child: artwork)
-                    else
-                      SizedBox(height: 76, child: artwork),
-                    const SizedBox(height: 10),
-                    Text(
-                      portal.title,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w900,
-                        height: 1.08,
-                        letterSpacing: 0,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    _CollectionPortalStatus(portal: portal),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 5),
+                  _CollectionPortalStatus(portal: portal),
+                ],
               ),
             );
           },
@@ -678,10 +661,28 @@ class _CollectionPortalCard extends StatelessWidget {
       ),
     );
   }
+}
 
-  double _iconSize(BuildContext context) {
-    final scaled = MediaQuery.textScalerOf(context).scale(56);
-    return scaled.clamp(46, 70).toDouble();
+/// The channel's colour, at the one size it is still telling somebody apart.
+class _PortalIcon extends StatelessWidget {
+  const _PortalIcon({required this.portal});
+
+  final _CollectionPortal portal;
+
+  @override
+  Widget build(BuildContext context) {
+    final side = MediaQuery.textScalerOf(context).scale(38).clamp(34, 48);
+    return Container(
+      width: side.toDouble(),
+      height: side.toDouble(),
+      decoration: BoxDecoration(
+        color: portal.color.withValues(
+          alpha: context.brand.isDark ? 0.16 : 0.1,
+        ),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Icon(portal.icon, color: portal.color, size: side * 0.5),
+    );
   }
 }
 
@@ -695,11 +696,10 @@ class _CollectionPortalStatus extends StatelessWidget {
     final brand = context.brand;
     final failed = portal.failed;
     final comingSoon = !portal.isOpen && !failed;
-    final color = failed
-        ? brand.terracotta
-        : comingSoon
-        ? portal.color.withValues(alpha: 0.82)
-        : portal.color;
+    // Only the failure keeps a colour of its own. A count is supporting text
+    // and reads as supporting text; it was set in the channel's own colour at
+    // 800 weight, which made "2 published" compete with the channel's name.
+    final color = failed ? brand.terracotta : brand.mutedInk;
     final icon = failed
         ? Icons.refresh_rounded
         : comingSoon
@@ -714,8 +714,8 @@ class _CollectionPortalStatus extends StatelessWidget {
     return Row(
       children: [
         if (icon != null) ...[
-          Icon(icon, color: color, size: 16),
-          const SizedBox(width: 6),
+          Icon(icon, color: color, size: 14),
+          const SizedBox(width: 5),
         ],
         Expanded(
           child: Text(
@@ -724,16 +724,16 @@ class _CollectionPortalStatus extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
               color: color,
-              fontSize: 13,
-              fontWeight: FontWeight.w800,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
               height: 1.2,
               letterSpacing: 0,
             ),
           ),
         ),
         if (!failed && portal.isOpen) ...[
-          const SizedBox(width: 10),
-          Icon(Icons.arrow_forward_rounded, color: brand.ink, size: 24),
+          const SizedBox(width: 8),
+          Icon(Icons.arrow_forward_rounded, color: brand.mutedInk, size: 16),
         ],
       ],
     );
@@ -746,7 +746,7 @@ class _CollectionPortalSkeleton extends StatelessWidget {
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, constraints) => GlassSkeleton(
-      height: constraints.hasBoundedHeight ? constraints.maxHeight : 166,
+      height: constraints.hasBoundedHeight ? constraints.maxHeight : 138,
       radius: 22,
     ),
   );
@@ -841,8 +841,10 @@ class _CollectionStatePanel extends StatelessWidget {
 
 const _gridGap = 14.0;
 
+/// Shorter than the tile is wide now. The card no longer holds a square of
+/// artwork, so a square of space under a small icon was a square of nothing.
 double _portalTileExtent(double tileWidth, double textScale) =>
-    math.max(tileWidth * 0.98, 166 + (textScale - 1) * 48);
+    math.max(tileWidth * 0.82, 138 + (textScale - 1) * 48);
 
 String _normalise(String value) =>
     value.toLowerCase().replaceAll(RegExp(r'\s+'), ' ').trim();
@@ -850,22 +852,12 @@ String _normalise(String value) =>
 bool _contains(String haystack, String query) =>
     _normalise(haystack).contains(query);
 
-bool _publishedReelMatches(PublishedReel item, String query) {
-  for (final value in [
-    item.title,
-    item.creatorName,
-    item.category,
-    item.description,
-    item.body,
-    item.englishSummary,
-    item.culturalNotes,
-    item.language,
-    item.dialect,
-  ]) {
-    if (_contains(value, query)) return true;
-  }
-  return false;
-}
+/// The same question the channel itself asks, asked once.
+///
+/// Two spellings of "does this song match" is how the grid surfaces a channel
+/// for a word the channel then finds nothing for.
+bool _publishedReelMatches(PublishedReel item, String query) =>
+    publishedReelMatches(item, query);
 
 bool _heroMatches(KasemHero hero, String query) {
   for (final value in [

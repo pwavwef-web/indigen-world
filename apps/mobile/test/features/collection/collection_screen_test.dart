@@ -172,11 +172,7 @@ void main() {
   ) async {
     await _pumpCollection(tester);
 
-    expect(find.text('The Kassena Collection'), findsOneWidget);
-    expect(
-      find.text('Preserving culture, one story at a time'),
-      findsOneWidget,
-    );
+    expect(find.text('Kasem Collections'), findsOneWidget);
     expect(find.byKey(const Key('collection-search-field')), findsOneWidget);
     for (final label in const ['All', 'Published', 'Open']) {
       expect(find.text(label), findsOneWidget);

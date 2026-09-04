@@ -69,9 +69,13 @@ void main() {
     await tester.pump(const Duration(milliseconds: 400));
 
     final rail = tester.widget<FrostedNavBar>(find.byType(FrostedNavBar));
+    // The second destination is Profile, not Community: the member's identity
+    // had three front doors and this is now the only one. It is deliberately
+    // not called Community — that word belongs to the shell's own destination,
+    // the room everybody is in, and this is the page that is only about you.
     expect(rail.items.map((item) => item.label).toList(), [
       'Overview',
-      'Community',
+      'Profile',
       'Adverts',
       'Settings',
     ]);
@@ -83,7 +87,7 @@ void main() {
     await tester.tap(
       find.descendant(
         of: find.byType(FrostedNavBar),
-        matching: find.text('Community'),
+        matching: find.text('Profile'),
       ),
     );
     await tester.pump(const Duration(milliseconds: 320));
@@ -108,5 +112,51 @@ void main() {
     await tester.pump(const Duration(milliseconds: 320));
     expect(find.text('Private by design.'), findsOneWidget);
     expect(find.text('App settings'), findsOneWidget);
+    // The three ways into the community profile are down to one, on the
+    // Profile tab. None of them is here any more.
+    expect(find.text('Manage community profile'), findsNothing);
+    expect(find.text('Community profile setup'), findsNothing);
+  });
+
+  testWidgets('the Profile tab is the only door to the community identity', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [appDatabaseProvider.overrideWithValue(database)],
+        child: const MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: ProfileScreen(),
+        ),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 400));
+
+    // Overview no longer opens a profile of its own. It points next door,
+    // which is a signpost rather than a second front door — and the proof is
+    // that tapping it lands on the Profile tab rather than pushing a route.
+    final signpost = find.text('Go to your profile');
+    expect(find.text('Open community profile'), findsNothing);
+
+    // Signed out in tests, so Overview offers sign-in instead; the signpost is
+    // only there for a member who has an account to have a profile on.
+    if (signpost.evaluate().isNotEmpty) {
+      await tester.tap(signpost);
+      await tester.pump(const Duration(milliseconds: 320));
+      expect(find.text('Be known. Stay connected.'), findsOneWidget);
+    }
+
+    await tester.tap(
+      find.descendant(
+        of: find.byType(FrostedNavBar),
+        matching: find.text('Profile'),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 320));
+
+    // The old "open the public page" button is gone; viewing and editing are
+    // now two named actions on this one tab.
+    expect(find.text('Open public profile'), findsNothing);
   });
 }

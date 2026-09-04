@@ -1,11 +1,12 @@
 // Where a post's attachment sits, and how tall it is allowed to get.
 //
-// Both used to be decided by the attachment: it lived in the column beside the
-// avatar, which starts an avatar's width in from one edge and stops short of
-// the other, and it was drawn at whatever shape the camera gave it. A portrait
-// clip is 9:16, so one post became a tall slab pressed against the right of the
-// screen. It now spans the card with even margins, and its shape is held inside
-// a range that leaves room for the writing around it.
+// Both used to be decided by the attachment: it was drawn at whatever shape the
+// camera gave it, in a column that stopped short of the right edge. A portrait
+// clip is 9:16, so one post became a tall slab pressed against one side of the
+// screen. The shape is now held inside a range that leaves room for the writing
+// around it, and the block sits in the column the writing is in — the gutter
+// the avatars live in stays reserved the whole height of the post, which is
+// what keeps them a straight line down the feed.
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -121,7 +122,7 @@ void main() {
     });
   });
 
-  testWidgets('an attachment breaks out of the avatar gutter', (tester) async {
+  testWidgets('an attachment keeps the avatar gutter reserved', (tester) async {
     await _pumpCard(
       tester,
       const CommunityMedia(
@@ -133,13 +134,18 @@ void main() {
 
     final media = tester.getRect(find.byType(PostMediaView));
     final text = tester.getRect(find.byType(PostText));
+    final actions = tester.getRect(find.byType(PostActionBar));
     final card = tester.getRect(find.byType(CommunityPostCard));
 
-    // Writing stays under the byline it belongs to; the picture does not.
-    expect(media.left, lessThan(text.left));
-    // And the margins either side of it match, which is the difference between
-    // wider and centred.
-    expect(media.left - card.left, closeTo(card.right - media.right, 0.5));
+    // One column: the writing, the picture and the row of controls under it
+    // all start and stop in the same two places.
+    expect(media.left, closeTo(text.left, 0.5));
+    expect(media.left, closeTo(actions.left, 0.5));
+    expect(media.right, closeTo(actions.right, 0.5));
+    // And that column starts past the avatar rather than at the edge of the
+    // screen, so nothing in a post is drawn end to end.
+    expect(media.left - card.left, greaterThan(40));
+    expect(card.right - media.right, greaterThan(0));
   });
 
   testWidgets('a portrait clip no longer takes the whole screen', (

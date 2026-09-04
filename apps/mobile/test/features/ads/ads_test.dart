@@ -17,10 +17,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:indigen_world_mobile/app/app_theme.dart';
 import 'package:indigen_world_mobile/features/ads/ads_screen.dart';
+import 'package:indigen_world_mobile/features/ads/collection_ads.dart';
 import 'package:indigen_world_mobile/features/ads/create_ad_screen.dart';
 import 'package:indigen_world_mobile/features/ads/data/ad_campaign.dart';
 import 'package:indigen_world_mobile/features/ads/data/served_ad.dart';
 import 'package:indigen_world_mobile/features/ads/widgets/sponsored_card.dart';
+import 'package:indigen_world_mobile/features/subscriptions/data/subscription_providers.dart';
 import 'package:indigen_world_mobile/l10n/app_localizations.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
@@ -388,6 +390,57 @@ void main() {
       await _settle(container, placedAdsProvider(AdPlacement.community));
 
       expect(_idsIn(container, AdPlacement.community), ['running']);
+    });
+
+    test('the Collection channels carry adverts too, at their own cadence', () {
+      // The placement used to reach exactly one tile at the bottom of the
+      // Collection grid — past everything anybody actually opened the
+      // Collection for. The channels themselves now carry it.
+      final songs = [for (var index = 0; index < 12; index += 1) 'song$index'];
+      final rows = collectionRowsWithAds(
+        items: songs,
+        ads: [_served('shea'), _served('cloth')],
+      );
+
+      final slots = [
+        for (var index = 0; index < rows.length; index += 1)
+          if (rows[index] is ServedAd) index,
+      ];
+      // Looser than the timeline's and looser than Explore's: a channel is a
+      // list somebody opened to find one song, not a feed they are grazing.
+      expect(kCollectionListAdCadence, 5);
+      expect(slots, [5, 11]);
+      expect(rows.whereType<String>().toList(), songs);
+    });
+
+    test('a channel with four things in it carries no advert at all', () {
+      expect(
+        collectionRowsWithAds(
+          items: const ['one', 'two', 'three', 'four'],
+          ads: [_served('shea')],
+        ).whereType<ServedAd>(),
+        isEmpty,
+      );
+    });
+
+    test('a subscriber gets no adverts in the channels either', () async {
+      // The gate is `placedAdsProvider` and nothing else, which is the whole
+      // point of routing the channels through it: a ninth surface inherits
+      // "no adverts" rather than having to remember it.
+      final adFree = ProviderContainer(
+        overrides: [
+          servedAdsProvider.overrideWith(
+            (ref) => Stream.value([
+              _served('cloth', placements: const ['collection']),
+            ]),
+          ),
+          adsAllowedProvider.overrideWithValue(false),
+        ],
+      );
+      addTearDown(adFree.dispose);
+      await _settle(adFree, collectionAdsProvider);
+
+      expect(adFree.read(collectionAdsProvider), isEmpty);
     });
 
     test('adverts land at a cadence, and never two in a row', () {

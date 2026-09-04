@@ -15,6 +15,7 @@ import 'package:indigen_world_mobile/features/community/community_profile_screen
 import 'package:indigen_world_mobile/features/community/community_setup_screen.dart';
 import 'package:indigen_world_mobile/features/community/data/community_models.dart';
 import 'package:indigen_world_mobile/features/community/data/community_providers.dart';
+import 'package:indigen_world_mobile/features/community/edit_community_profile_screen.dart';
 import 'package:indigen_world_mobile/features/community/saved_posts_screen.dart';
 import 'package:indigen_world_mobile/features/community/widgets/verified_badge.dart';
 import 'package:indigen_world_mobile/features/contribute/collection_contribution_repository.dart';
@@ -36,18 +37,34 @@ class ProfileScreen extends ConsumerStatefulWidget {
 class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   var _selectedIndex = 0;
 
-  static const _titles = ['Overview', 'Community', 'Adverts', 'Settings'];
+  /// The Profile destination's index, named rather than written as a literal:
+  /// two other places switch to it, and a bare `1` is the kind of thing that
+  /// survives a reorder of the rail and quietly starts opening Adverts.
+  static const _profileIndex = 1;
 
+  static const _titles = ['Overview', 'Profile', 'Adverts', 'Settings'];
+
+  /// ── Why "Profile" and not "Community" ─────────────────────────────────────
+  /// Because the member's community identity had three front doors — a button
+  /// on Overview, a button on this tab, and a row in Settings — and three doors
+  /// into one room means nobody knows which one is *the* one, or whether the
+  /// three of them do the same thing. They now do not exist: this tab is the
+  /// only place the identity is viewed, edited, previewed or set up.
+  ///
+  /// It is deliberately not named Community. That word already belongs to a
+  /// destination in the app's own shell — the room everybody is in — and this is
+  /// the opposite thing: the one page in it that is only about you. The badge
+  /// icon says the same, and is nothing like the shell's `groups` glyph.
   static const _destinations = <FrostedNavBarItem>[
     FrostedNavBarItem(
-      icon: Icons.person_outline_rounded,
-      selectedIcon: Icons.person_rounded,
+      icon: Icons.dashboard_outlined,
+      selectedIcon: Icons.dashboard_rounded,
       label: 'Overview',
     ),
     FrostedNavBarItem(
-      icon: Icons.groups_outlined,
-      selectedIcon: Icons.groups_rounded,
-      label: 'Community',
+      icon: Icons.badge_outlined,
+      selectedIcon: Icons.badge_rounded,
+      label: 'Profile',
     ),
     FrostedNavBarItem(
       icon: Icons.campaign_outlined,
@@ -151,26 +168,38 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     0 => _OverviewTab(
       key: const ValueKey('profile-overview'),
       data: data,
-      onAccountAction: data.signedIn ? _openCommunity : _signIn,
+      onAccountAction: data.signedIn ? _goToProfileTab : _signIn,
       onOpenSavedWords: _openSavedWords,
       onOpenContributions: _openContributions,
       onOpenApproved: _openApproved,
     ),
-    1 => _CommunityTab(
-      key: const ValueKey('profile-community'),
+    _profileIndex => _ProfileTab(
+      key: const ValueKey('profile-identity'),
       data: data,
-      onOpenCommunity: _openCommunity,
+      onSetUp: _openProfileSetup,
+      onEdit: _openEditProfile,
+      onPreview: _openPublicProfile,
       onOpenSavedPosts: _openSavedPosts,
+      onSignIn: _signIn,
     ),
     2 => const AdsScreen(key: ValueKey('profile-ads')),
     _ => _SettingsTab(
       key: const ValueKey('profile-settings'),
       data: data,
       onOpenSettings: _openSettings,
-      onOpenCommunity: _openCommunity,
       onAccountAction: data.signedIn ? _signOut : _signIn,
     ),
   };
+
+  /// Overview's one identity affordance: it points at the Profile tab rather
+  /// than opening a profile screen of its own. A signpost is not a second front
+  /// door — everything that can be *done* to the identity still happens in one
+  /// place, and the member ends up looking at the place it happens.
+  void _goToProfileTab() {
+    if (_selectedIndex == _profileIndex) return;
+    HapticFeedback.selectionClick();
+    setState(() => _selectedIndex = _profileIndex);
+  }
 
   Future<void> _signIn() async {
     final signedIn = await showSignInSheet(context);
@@ -192,19 +221,44 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     if (mounted) _showMessage('Signed out.');
   }
 
-  void _openCommunity() {
+  /// Claims a handle, for somebody who has never had one.
+  void _openProfileSetup() {
+    if (ref.read(currentUidProvider) == null) {
+      _signIn();
+      return;
+    }
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(builder: (context) => const CommunitySetupScreen()),
+    );
+  }
+
+  /// The editor. The only route to it in the app.
+  void _openEditProfile() {
     final profile = ref.read(myCommunityProfileProvider).asData?.value;
+    if (profile == null) {
+      _openProfileSetup();
+      return;
+    }
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (context) => EditCommunityProfileScreen(profile: profile),
+      ),
+    );
+  }
+
+  /// The public page, exactly as everybody else sees it.
+  ///
+  /// Worth its own action rather than being folded into the editor: a form
+  /// shows a member their fields, and what they actually want to know before
+  /// they post is what a stranger sees.
+  void _openPublicProfile() {
     final uid = ref.read(currentUidProvider);
     if (uid == null) {
       _signIn();
       return;
     }
     Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (context) => profile == null
-            ? const CommunitySetupScreen()
-            : CommunityProfileScreen(uid: uid),
-      ),
+      MaterialPageRoute<void>(builder: (context) => CommunityProfileScreen(uid: uid)),
     );
   }
 
@@ -508,18 +562,15 @@ class _OverviewTab extends StatelessWidget {
                   : 'Carry your learning across devices.',
               style: Theme.of(context).textTheme.titleLarge,
             ),
-            const SizedBox(height: 7),
             const SizedBox(height: 14),
             FilledButton.icon(
               onPressed: onAccountAction,
               icon: Icon(
-                data.signedIn ? Icons.groups_rounded : Icons.login_rounded,
+                data.signedIn ? Icons.badge_rounded : Icons.login_rounded,
               ),
               label: Text(
                 data.signedIn
-                    ? data.communityProfile == null
-                          ? 'Create community profile'
-                          : 'Open community profile'
+                    ? 'Go to your profile'
                     : 'Sign in or create an account',
               ),
             ),
@@ -544,23 +595,38 @@ class _OverviewTab extends StatelessWidget {
   );
 }
 
-class _CommunityTab extends StatelessWidget {
-  const _CommunityTab({
+/// The one place the member's community identity lives.
+///
+/// Everything that used to be scattered across three screens is here and only
+/// here: what the profile says, how complete it is, the way into the editor, and
+/// the way to see the public page a stranger sees. The two buttons are
+/// deliberately different verbs — *Edit* changes it, *Preview* does not — because
+/// the commonest thing anybody wants before they post is to check, and a page
+/// where checking means opening a form full of their own text is a page that
+/// invites accidental edits.
+class _ProfileTab extends StatelessWidget {
+  const _ProfileTab({
     required this.data,
-    required this.onOpenCommunity,
+    required this.onSetUp,
+    required this.onEdit,
+    required this.onPreview,
     required this.onOpenSavedPosts,
+    required this.onSignIn,
     super.key,
   });
 
   final _ProfileViewData data;
-  final VoidCallback onOpenCommunity;
+  final VoidCallback onSetUp;
+  final VoidCallback onEdit;
+  final VoidCallback onPreview;
   final VoidCallback onOpenSavedPosts;
+  final VoidCallback onSignIn;
 
   @override
   Widget build(BuildContext context) {
     final profile = data.communityProfile;
     return ListView(
-      key: const PageStorageKey('profile-community-scroll'),
+      key: const PageStorageKey('profile-identity-scroll'),
       padding: EdgeInsets.fromLTRB(
         18,
         8,
@@ -569,77 +635,27 @@ class _CommunityTab extends StatelessWidget {
       ),
       children: [
         const _TabIntro(
-          icon: Icons.diversity_3_rounded,
-          eyebrow: 'COMMUNITY IDENTITY',
+          icon: Icons.badge_rounded,
+          eyebrow: 'YOUR COMMUNITY IDENTITY',
           title: 'Be known. Stay connected.',
         ),
         const SizedBox(height: 14),
         _GlassPanel(
           child: profile == null
-              ? _EmptyIdentity(signedIn: data.signedIn, onOpen: onOpenCommunity)
-              : Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        _CommunityAvatar(profile: profile),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                profile.displayName,
-                                style: Theme.of(context).textTheme.titleLarge,
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                profile.handle,
-                                style: TextStyle(
-                                  color: context.brand.terracotta,
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        if (profile.mark != VerifiedMark.none)
-                          VerifiedBadge(mark: profile.mark, size: 20),
-                      ],
-                    ),
-                    if (profile.bio.trim().isNotEmpty) ...[
-                      const SizedBox(height: 14),
-                      Text(profile.bio),
-                    ],
-                    if (profile.location.trim().isNotEmpty ||
-                        profile.dialect.trim().isNotEmpty) ...[
-                      const SizedBox(height: 13),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          if (profile.location.trim().isNotEmpty)
-                            _InfoPill(
-                              icon: Icons.location_on_outlined,
-                              label: profile.location,
-                            ),
-                          if (profile.dialect.trim().isNotEmpty)
-                            _InfoPill(
-                              icon: Icons.translate_rounded,
-                              label: profile.dialect,
-                            ),
-                        ],
-                      ),
-                    ],
-                    const SizedBox(height: 16),
-                    FilledButton.icon(
-                      onPressed: onOpenCommunity,
-                      icon: const Icon(Icons.arrow_outward_rounded),
-                      label: const Text('Open public profile'),
-                    ),
-                  ],
+              ? _EmptyIdentity(
+                  signedIn: data.signedIn,
+                  onOpen: data.signedIn ? onSetUp : onSignIn,
+                )
+              : _IdentityCard(
+                  profile: profile,
+                  onEdit: onEdit,
+                  onPreview: onPreview,
                 ),
         ),
+        if (profile != null) ...[
+          const SizedBox(height: 14),
+          _ProfileCompleteness(profile: profile, onEdit: onEdit),
+        ],
         const SizedBox(height: 14),
         _ActionTile(
           icon: Icons.bookmarks_rounded,
@@ -652,18 +668,191 @@ class _CommunityTab extends StatelessWidget {
   }
 }
 
+class _IdentityCard extends StatelessWidget {
+  const _IdentityCard({
+    required this.profile,
+    required this.onEdit,
+    required this.onPreview,
+  });
+
+  final CommunityProfile profile;
+  final VoidCallback onEdit;
+  final VoidCallback onPreview;
+
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Row(
+        children: [
+          _CommunityAvatar(profile: profile),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  profile.displayName,
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  profile.handle,
+                  style: TextStyle(
+                    color: context.brand.terracotta,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (profile.mark != VerifiedMark.none)
+            VerifiedBadge(mark: profile.mark, size: 20),
+        ],
+      ),
+      if (profile.bio.trim().isNotEmpty) ...[
+        const SizedBox(height: 14),
+        Text(profile.bio),
+      ],
+      if (profile.location.trim().isNotEmpty ||
+          profile.dialect.trim().isNotEmpty) ...[
+        const SizedBox(height: 13),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            if (profile.location.trim().isNotEmpty)
+              _InfoPill(
+                icon: Icons.location_on_outlined,
+                label: profile.location,
+              ),
+            if (profile.dialect.trim().isNotEmpty)
+              _InfoPill(icon: Icons.translate_rounded, label: profile.dialect),
+          ],
+        ),
+      ],
+      const SizedBox(height: 16),
+      Row(
+        children: [
+          Expanded(
+            child: FilledButton.icon(
+              onPressed: onEdit,
+              icon: const Icon(Icons.edit_rounded, size: 18),
+              label: const Text('Edit profile'),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: OutlinedButton.icon(
+              onPressed: onPreview,
+              icon: const Icon(Icons.visibility_outlined, size: 18),
+              label: const Text('Preview'),
+            ),
+          ),
+        ],
+      ),
+    ],
+  );
+}
+
+/// How much of the identity is actually filled in, and the one thing to do next.
+///
+/// ── Why a member is shown this at all ─────────────────────────────────────
+/// Because the editor is a form with seven optional fields and a form full of
+/// optional fields gets a name typed into it and nothing else. That is not
+/// laziness: nothing on the page said which of the seven were worth the effort,
+/// or what any of them changes. A photo is the difference between a post
+/// somebody reads and a post somebody scrolls past, and a dialect is how the
+/// project knows which Kasem a contribution is in — those two are worth asking
+/// for by name.
+///
+/// It is a nudge and not a gate. Everything works at 40%, the bar never turns
+/// red, and there is no badge for finishing: a member who wants to be a grey
+/// circle called Amina is allowed to be one.
+class _ProfileCompleteness extends StatelessWidget {
+  const _ProfileCompleteness({required this.profile, required this.onEdit});
+
+  final CommunityProfile profile;
+  final VoidCallback onEdit;
+
+  /// The parts, in the order they are worth having.
+  List<(String label, bool done)> get _steps => [
+    ('A name', profile.displayName.trim().isNotEmpty),
+    ('A photo', profile.avatarUrl?.isNotEmpty ?? false),
+    ('A few words about you', profile.bio.trim().isNotEmpty),
+    ('Where you are', profile.location.trim().isNotEmpty),
+    ('The Kasem you speak', profile.dialect.trim().isNotEmpty),
+    ('A verified number', profile.phoneVerified),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final steps = _steps;
+    final done = steps.where((step) => step.$2).length;
+    final missing = steps.where((step) => !step.$2).toList(growable: false);
+    final complete = missing.isEmpty;
+
+    return _GlassPanel(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const _Eyebrow(text: 'YOUR PROFILE'),
+          const SizedBox(height: 7),
+          Text(
+            complete
+                ? 'Nothing left to add.'
+                : '$done of ${steps.length} filled in.',
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
+          const SizedBox(height: 12),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(999),
+            child: LinearProgressIndicator(
+              value: done / steps.length,
+              minHeight: 7,
+              backgroundColor: context.brand.accent.withValues(alpha: 0.12),
+              valueColor: AlwaysStoppedAnimation<Color>(
+                complete ? context.brand.success : context.brand.accent,
+              ),
+            ),
+          ),
+          if (!complete) ...[
+            const SizedBox(height: 14),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                // Only the first three. Six grey chips is a list of failures.
+                for (final step in missing.take(3))
+                  _InfoPill(icon: Icons.add_rounded, label: step.$1),
+              ],
+            ),
+            const SizedBox(height: 14),
+            // The verified mark is the one part of this the editor cannot
+            // grant, so the button says what it does rather than promising to
+            // finish the list.
+            OutlinedButton.icon(
+              onPressed: onEdit,
+              icon: const Icon(Icons.edit_rounded, size: 18),
+              label: const Text('Add the rest'),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
 class _SettingsTab extends StatelessWidget {
   const _SettingsTab({
     required this.data,
     required this.onOpenSettings,
-    required this.onOpenCommunity,
     required this.onAccountAction,
     super.key,
   });
 
   final _ProfileViewData data;
   final VoidCallback onOpenSettings;
-  final VoidCallback onOpenCommunity;
   final VoidCallback onAccountAction;
 
   @override
@@ -682,22 +871,15 @@ class _SettingsTab extends StatelessWidget {
         title: 'Private by design.',
       ),
       const SizedBox(height: 14),
+      // The community profile is emphatically *not* offered here any more. It
+      // had a row on this tab, a button on Overview and a row inside App
+      // settings, which is three doors into one room; it now has one, on the
+      // Profile tab next door.
       _ActionTile(
         icon: Icons.tune_rounded,
         title: 'App settings',
         subtitle: 'Notifications, privacy, licences',
         onTap: onOpenSettings,
-      ),
-      const SizedBox(height: 10),
-      _ActionTile(
-        icon: Icons.manage_accounts_rounded,
-        title: data.communityProfile == null
-            ? 'Community profile setup'
-            : 'Manage community profile',
-        subtitle: data.communityProfile == null
-            ? 'Choose a public handle'
-            : data.communityProfile!.handle,
-        onTap: onOpenCommunity,
       ),
       const SizedBox(height: 14),
       _GlassPanel(

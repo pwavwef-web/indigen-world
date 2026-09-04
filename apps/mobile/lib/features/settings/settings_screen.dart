@@ -16,11 +16,9 @@ import 'package:indigen_world_mobile/core/theme_mode.dart';
 import 'package:indigen_world_mobile/features/auth/auth_repository.dart';
 import 'package:indigen_world_mobile/features/auth/sign_in_sheet.dart';
 import 'package:indigen_world_mobile/features/community/claim_kasem_name_screen.dart';
-import 'package:indigen_world_mobile/features/community/community_setup_screen.dart';
 import 'package:indigen_world_mobile/features/community/data/community_models.dart';
 import 'package:indigen_world_mobile/features/community/data/community_providers.dart';
 import 'package:indigen_world_mobile/features/community/data/kasem_names.dart';
-import 'package:indigen_world_mobile/features/community/edit_community_profile_screen.dart';
 import 'package:indigen_world_mobile/features/community/people_screen.dart';
 import 'package:indigen_world_mobile/features/community/phone_verification_screen.dart';
 import 'package:indigen_world_mobile/features/community/saved_posts_screen.dart';
@@ -29,11 +27,13 @@ import 'package:indigen_world_mobile/features/downloads/data/downloads_providers
 import 'package:indigen_world_mobile/features/downloads/downloads_screen.dart';
 import 'package:indigen_world_mobile/features/notifications/data/notification_preferences.dart';
 import 'package:indigen_world_mobile/features/notifications/data/notification_providers.dart';
+import 'package:indigen_world_mobile/features/notifications/notification_settings_screen.dart';
 import 'package:indigen_world_mobile/features/notifications/notifications_screen.dart';
 import 'package:indigen_world_mobile/features/notifications/push_messaging.dart';
 import 'package:indigen_world_mobile/features/rating/rating_service.dart';
 import 'package:indigen_world_mobile/features/settings/licences_screen.dart';
 import 'package:indigen_world_mobile/features/settings/policy_screen.dart';
+import 'package:indigen_world_mobile/features/settings/settings_widgets.dart';
 import 'package:indigen_world_mobile/features/subscriptions/data/entitlement.dart';
 import 'package:indigen_world_mobile/features/subscriptions/data/subscription_catalog.dart';
 import 'package:indigen_world_mobile/features/subscriptions/data/subscription_providers.dart';
@@ -41,7 +41,6 @@ import 'package:indigen_world_mobile/features/subscriptions/manage_subscription_
 import 'package:indigen_world_mobile/l10n/app_localizations.dart';
 import 'package:indigen_world_mobile/shared/glass_popup.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 /// App version and build number, read from the packaged manifest.
 final appVersionProvider = FutureProvider<String>((ref) async {
@@ -49,13 +48,15 @@ final appVersionProvider = FutureProvider<String>((ref) async {
   return '${info.version} (${info.buildNumber})';
 });
 
-/// Shared with the push layer so the toggle and the registration agree on what
-/// the member chose. Two copies of this key meant settings could show "on"
-/// while no device was ever registered.
-const _notificationsPreferenceKey = pushAlertsPreferenceKey;
-
-/// Everything about the account, the community identity, privacy and the
-/// legal record — including licences.
+/// Everything about the account, privacy and the legal record — including
+/// licences.
+///
+/// Two things it deliberately no longer holds. The community profile, which now
+/// lives in exactly one place (the Profile tab), because it had three front
+/// doors and one of them was buried in here. And the notification switches,
+/// which are their own page: eleven controls wedged between the app's theme and
+/// its privacy policy is not where anybody looks for them at the moment their
+/// phone will not stop.
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
 
@@ -64,61 +65,6 @@ class SettingsScreen extends ConsumerStatefulWidget {
 }
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
-  bool? _alertsEnabled;
-  var _updatingAlerts = false;
-  bool? _previewsEnabled;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadPreferences();
-  }
-
-  Future<void> _loadPreferences() async {
-    final preferences = await SharedPreferences.getInstance();
-    final previews = await messagePreviewsEnabled();
-    if (!mounted) return;
-    setState(() {
-      _alertsEnabled =
-          preferences.getBool(_notificationsPreferenceKey) ?? false;
-      _previewsEnabled = previews;
-    });
-  }
-
-  Future<void> _setPreviews(bool enabled) async {
-    setState(() => _previewsEnabled = enabled);
-    await setMessagePreviews(ref, enabled: enabled);
-  }
-
-  Future<void> _setAlerts(bool enabled) async {
-    final block = ref.read(connectionBlockProvider);
-    if (block != null) {
-      _message(block.message);
-      return;
-    }
-    setState(() => _updatingAlerts = true);
-    try {
-      // Permission, device registration, the announcements topic and the
-      // stored preference all move together — see setPushAlerts.
-      final granted = await setPushAlerts(ref, enabled: enabled);
-
-      if (!mounted) return;
-      setState(() {
-        _alertsEnabled = granted;
-        _updatingAlerts = false;
-      });
-      if (enabled && !granted) {
-        _message(
-          'Notifications are turned off for Indigen in your device settings.',
-        );
-      }
-    } on Object {
-      if (!mounted) return;
-      setState(() => _updatingAlerts = false);
-      _message('Could not update your notification choice.');
-    }
-  }
-
   void _message(String text) {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
@@ -140,6 +86,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final entitlement =
         ref.watch(entitlementProvider).asData?.value ?? Entitlement.none;
     final downloadCount = ref.watch(downloadedIdsProvider).length;
+    final mutedAlerts =
+        ref.watch(notificationPreferencesProvider).asData?.value.mutedCount ?? 0;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
@@ -147,6 +95,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         padding: const EdgeInsets.fromLTRB(18, 10, 18, 40),
         children: [
           // ── Identity card ────────────────────────────────────────────
+          //
+          // A summary and nothing more. It used to be the third way into the
+          // community profile editor; it now says who is signed in, which is
+          // the only thing a settings screen needs an identity for.
           Card(
             child: ListTile(
               minVerticalPadding: 16,
@@ -170,29 +122,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     : (user?.email ??
                           'Signed out · $appEnvironmentName environment'),
               ),
-              trailing: signedIn
-                  ? const Icon(Icons.chevron_right_rounded)
-                  : null,
-              onTap: signedIn ? _openCommunityProfile : null,
             ),
           ),
           const SizedBox(height: 22),
 
           // ── Account ──────────────────────────────────────────────────
-          const _SectionLabel('ACCOUNT'),
+          const SettingsSectionLabel('ACCOUNT'),
           const SizedBox(height: 9),
-          _SettingsGroup(
+          SettingsGroup(
             children: [
-              _SettingsRow(
-                icon: Icons.badge_outlined,
-                title: profile == null
-                    ? 'Set up your community profile'
-                    : 'Edit community profile',
-                subtitle: profile == null
-                    ? 'Choose the handle the community knows you by'
-                    : 'Name, photo, cover, bio and dialect',
-                onTap: _openCommunityProfile,
-              ),
               // Offered only while it is still there to take, only to somebody
               // who has not already got the ring — a row that says "take a
               // Kassena name" to a member called Nyaaba is noise — and only
@@ -206,7 +144,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     profile.username,
                     ref.watch(kasemHandleSetProvider),
                   ))
-                _SettingsRow(
+                SettingsRow(
                   icon: Icons.workspace_premium_outlined,
                   title: 'Take a Kassena name',
                   subtitle: 'One change, and your picture gets the kente ring',
@@ -214,7 +152,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
               // Verification sits in Account rather than Preferences: it is
               // about who this account is, not how it behaves.
-              _SettingsRow(
+              SettingsRow(
                 icon: profile?.phoneVerified ?? false
                     ? Icons.verified_user_rounded
                     : Icons.phone_iphone_rounded,
@@ -239,20 +177,20 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               // reads the entitlement rather than guessing, so a member whose
               // renewal has failed sees that here rather than discovering it
               // when the adverts come back.
-              _SettingsRow(
+              SettingsRow(
                 icon: entitlement.isActive
                     ? Icons.volunteer_activism_rounded
                     : Icons.favorite_border_rounded,
                 title: entitlement.isActive
                     ? productForId(entitlement.productId)?.name ??
-                          'Your subscription'
-                    : 'Support this work',
+                          'Your membership'
+                    : 'Membership',
                 subtitle: entitlement.isActive
                     ? entitlement.status.description
                     : 'No adverts, offline listening, and more of Kawuri',
                 onTap: _openSubscription,
               ),
-              _SettingsRow(
+              SettingsRow(
                 icon: Icons.lock_outline_rounded,
                 title: 'Change password',
                 subtitle: signedIn
@@ -261,7 +199,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 enabled: signedIn && (user.email?.isNotEmpty ?? false),
                 onTap: () => _sendPasswordReset(user?.email),
               ),
-              _SettingsRow(
+              SettingsRow(
                 icon: signedIn ? Icons.logout_rounded : Icons.login_rounded,
                 title: signedIn ? 'Sign out' : 'Sign in or create an account',
                 subtitle: signedIn
@@ -274,11 +212,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           const SizedBox(height: 22),
 
           // ── Community ────────────────────────────────────────────────
-          const _SectionLabel('COMMUNITY'),
+          const SettingsSectionLabel('COMMUNITY'),
           const SizedBox(height: 9),
-          _SettingsGroup(
+          SettingsGroup(
             children: [
-              _SettingsRow(
+              SettingsRow(
                 icon: Icons.download_for_offline_outlined,
                 title: 'Downloads',
                 subtitle: downloadCount > 0
@@ -286,7 +224,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     : 'Songs and chapters kept for listening offline',
                 onTap: _openDownloads,
               ),
-              _SettingsRow(
+              SettingsRow(
                 icon: Icons.bookmark_border_rounded,
                 title: 'Saved posts',
                 subtitle: 'Posts you kept for later — private to you',
@@ -296,7 +234,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ),
                 ),
               ),
-              _SettingsRow(
+              SettingsRow(
                 icon: Icons.person_search_outlined,
                 title: 'Find people',
                 subtitle: 'Search members by name or handle',
@@ -306,7 +244,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ),
                 ),
               ),
-              _SettingsRow(
+              SettingsRow(
                 icon: Icons.handshake_outlined,
                 title: 'Community guidelines',
                 subtitle: 'How this room keeps Kasem at its centre',
@@ -322,13 +260,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           const SizedBox(height: 22),
 
           // ── Preferences ──────────────────────────────────────────────
-          _SectionLabel(l10n.settingsPreferences),
+          SettingsSectionLabel(l10n.settingsPreferences),
           const SizedBox(height: 9),
-          _SettingsGroup(
+          SettingsGroup(
             children: [
               // First in the group, because it decides what every other row on
               // this screen is written in.
-              _SettingsRow(
+              SettingsRow(
                 icon: Icons.translate_rounded,
                 title: l10n.settingsLanguage,
                 subtitle: locale == null
@@ -336,7 +274,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     : languageEndonym(locale),
                 onTap: _chooseLanguage,
               ),
-              _SettingsRow(
+              SettingsRow(
                 icon: themeModeIcon(themeMode),
                 title: l10n.settingsAppearance,
                 subtitle: switch (themeMode) {
@@ -367,84 +305,48 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
           // ── Notifications ────────────────────────────────────────────
           //
-          // Its own section rather than three rows inside Preferences. The
-          // fan-outs the backend now runs — a reply reaching a whole thread, a
-          // post reaching every follower — mean this is the screen somebody
-          // arrives at because their phone will not stop, and what they are
-          // looking for must not be buried between the theme and the
-          // autoplay switch.
-          const _SectionLabel('NOTIFICATIONS'),
+          // Two doors, and neither of them is a switch. One goes to what has
+          // already happened, the other to what is allowed to happen — a
+          // distinction that was genuinely hard to see when the second was
+          // eleven controls sitting directly under the first.
+          const SettingsSectionLabel('NOTIFICATIONS'),
           const SizedBox(height: 9),
-          _SettingsGroup(
+          SettingsGroup(
             children: [
-              _SettingsRow(
+              SettingsRow(
                 icon: Icons.notifications_none_rounded,
                 title: 'Notifications',
-                subtitle: 'Everything that has happened, whatever is switched '
-                    'off below',
+                subtitle:
+                    'Everything that has happened, whatever is muted for push',
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute<void>(
                     builder: (context) => const NotificationsScreen(),
                   ),
                 ),
               ),
-              SwitchListTile.adaptive(
-                secondary: Icon(
-                  Icons.campaign_outlined,
-                  color: context.brand.accent,
+              SettingsRow(
+                icon: Icons.tune_rounded,
+                title: 'Notification settings',
+                subtitle: mutedAlerts == 0
+                    ? 'Push alerts, and what is allowed to wake you'
+                    : '$mutedAlerts of ${NotificationPreference.values.length} '
+                          'kinds muted',
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (context) => const NotificationSettingsScreen(),
+                  ),
                 ),
-                title: const Text(
-                  'Push alerts on this device',
-                  style: TextStyle(fontWeight: FontWeight.w700),
-                ),
-                subtitle: Text(
-                  _alertsEnabled == null
-                      ? 'Loading your choice…'
-                      : 'Alerts reach your lock screen. Everything still '
-                            'appears in the app either way.',
-                ),
-                value: _alertsEnabled ?? false,
-                onChanged: _alertsEnabled == null || _updatingAlerts
-                    ? null
-                    : _setAlerts,
               ),
-              // Only worth offering to somebody whose lock screen actually has
-              // something drawn on it.
-              if (_alertsEnabled ?? false)
-                SwitchListTile.adaptive(
-                  secondary: Icon(
-                    Icons.visibility_outlined,
-                    color: context.brand.accent,
-                  ),
-                  title: const Text(
-                    'Show message text in alerts',
-                    style: TextStyle(fontWeight: FontWeight.w700),
-                  ),
-                  subtitle: const Text(
-                    'Off means an alert says who wrote, not what they said. '
-                    'This choice belongs to this device.',
-                  ),
-                  value: _previewsEnabled ?? true,
-                  onChanged: _previewsEnabled == null ? null : _setPreviews,
-                ),
             ],
-          ),
-          const SizedBox(height: 18),
-          const _SectionLabel('WHAT WAKES YOU'),
-          const SizedBox(height: 9),
-          _NotificationPreferencesGroup(
-            hasProfile: profile != null,
-            onSetUpProfile: _openCommunityProfile,
-            onFailed: () => _message('Could not save that choice. Try again.'),
           ),
           const SizedBox(height: 22),
 
           // ── Privacy and data ─────────────────────────────────────────
-          const _SectionLabel('PRIVACY AND DATA'),
+          const SettingsSectionLabel('PRIVACY AND DATA'),
           const SizedBox(height: 9),
-          _SettingsGroup(
+          SettingsGroup(
             children: [
-              _SettingsRow(
+              SettingsRow(
                 icon: Icons.privacy_tip_outlined,
                 title: 'Privacy and community data',
                 subtitle: 'What is stored, where, and why',
@@ -455,13 +357,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ),
                 ),
               ),
-              _SettingsRow(
+              SettingsRow(
                 icon: Icons.support_agent_outlined,
                 title: 'Contact support',
                 subtitle: 'Reach the project team',
                 onTap: _openSupport,
               ),
-              _SettingsRow(
+              SettingsRow(
                 icon: Icons.no_accounts_outlined,
                 title: 'Delete your account',
                 subtitle: 'Removes your identity, posts and saves',
@@ -473,11 +375,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           const SizedBox(height: 22),
 
           // ── About ────────────────────────────────────────────────────
-          const _SectionLabel('ABOUT'),
+          const SettingsSectionLabel('ABOUT'),
           const SizedBox(height: 9),
-          _SettingsGroup(
+          SettingsGroup(
             children: [
-              _SettingsRow(
+              SettingsRow(
                 icon: Icons.description_outlined,
                 title: 'Licences',
                 subtitle: 'Licences and open-source notices',
@@ -490,13 +392,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               // A deliberate, member-initiated path to the store. Distinct from
               // the in-app review card, which Play forbids putting behind any
               // button or question — see rating_service.dart.
-              const _SettingsRow(
+              const SettingsRow(
                 icon: Icons.star_outline_rounded,
                 title: 'Rate Indigen World',
                 subtitle: 'Leave a review on Google Play',
                 onTap: openStoreListing,
               ),
-              _SettingsRow(
+              SettingsRow(
                 icon: Icons.gavel_outlined,
                 title: 'Terms of use',
                 subtitle: 'Your agreement with Indigen World',
@@ -507,7 +409,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ),
                 ),
               ),
-              _SettingsRow(
+              SettingsRow(
                 icon: Icons.info_outline_rounded,
                 title: 'Indigen World',
                 subtitle: version == null
@@ -530,7 +432,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               // after upload — and the only thing anybody needs when sign-in
               // is refused for this build.
               if (signature != null)
-                _SettingsRow(
+                SettingsRow(
                   icon: Icons.fingerprint_rounded,
                   title: 'App signature',
                   subtitle:
@@ -664,21 +566,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     if ((verified ?? false) && mounted) {
       _message('Your number is verified.');
     }
-  }
-
-  void _openCommunityProfile() {
-    final profile = ref.read(myCommunityProfileProvider).asData?.value;
-    if (ref.read(currentUidProvider) == null) {
-      _signIn();
-      return;
-    }
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (context) => profile == null
-            ? const CommunitySetupScreen()
-            : EditCommunityProfileScreen(profile: profile),
-      ),
-    );
   }
 
   Future<void> _signIn() async {
@@ -827,168 +714,5 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     } on Object {
       if (mounted) _message('Could not send the request. Try again.');
     }
-  }
-}
-
-// ── Building blocks ─────────────────────────────────────────────────────────
-
-class _SectionLabel extends StatelessWidget {
-  const _SectionLabel(this.label);
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) => Text(
-    label,
-    style: TextStyle(
-      // Muted, not accented. A green stamp over every group turned the section
-      // headings into the loudest thing on a screen that is mostly reading.
-      color: context.brand.mutedInk,
-      fontSize: 11,
-      fontWeight: FontWeight.w700,
-      letterSpacing: 1.1,
-    ),
-  );
-}
-
-class _SettingsGroup extends StatelessWidget {
-  const _SettingsGroup({required this.children});
-
-  final List<Widget> children;
-
-  @override
-  Widget build(BuildContext context) => Card(
-    child: Column(
-      children: [
-        for (var index = 0; index < children.length; index++) ...[
-          if (index > 0) const Divider(height: 1, indent: 62),
-          children[index],
-        ],
-      ],
-    ),
-  );
-}
-
-/// The seven switches that decide what the backend is allowed to wake you for.
-///
-/// Its own widget, and a `ConsumerWidget` rather than more state on the screen,
-/// so that a preference arriving from the profile stream rebuilds seven rows
-/// instead of the whole settings list — and so the switches are readable next
-/// to the enum that defines them rather than a hundred lines away from it.
-///
-/// Nothing here is optimistic. Firestore's local write echoes back through the
-/// same snapshot listener before it has left the device, so the switch moves
-/// immediately and then *stays* moved only if the write actually lands: a
-/// refused write snaps the switch back, which is the honest thing for a control
-/// whose whole job is to be believed.
-class _NotificationPreferencesGroup extends ConsumerWidget {
-  const _NotificationPreferencesGroup({
-    required this.hasProfile,
-    required this.onSetUpProfile,
-    required this.onFailed,
-  });
-
-  final bool hasProfile;
-  final VoidCallback onSetUpProfile;
-  final VoidCallback onFailed;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    // The preferences live on the community profile, so there is nowhere to
-    // write them until there is one. Said plainly rather than shown as seven
-    // switches that would silently fail to save.
-    if (!hasProfile) {
-      return _SettingsGroup(
-        children: [
-          _SettingsRow(
-            icon: Icons.notifications_paused_outlined,
-            title: 'Set up your profile to choose',
-            subtitle:
-                'These belong to you rather than to this phone, so they follow '
-                'you to every device you sign in on',
-            onTap: onSetUpProfile,
-          ),
-        ],
-      );
-    }
-
-    final uid = ref.watch(currentUidProvider);
-    final repository = ref.watch(notificationsRepositoryProvider);
-    // Everything-on while the profile is still in flight, which is the same
-    // answer absence gives on the backend: a member who has never been here
-    // behaves exactly as they did before the switches existed.
-    final preferences =
-        ref.watch(notificationPreferencesProvider).asData?.value ??
-        const NotificationPreferences.all();
-
-    Future<void> set(NotificationPreference preference, bool enabled) async {
-      if (uid == null || repository == null) return;
-      try {
-        await repository.setPreference(
-          uid: uid,
-          preference: preference,
-          enabled: enabled,
-        );
-      } on Object {
-        onFailed();
-      }
-    }
-
-    final ready = uid != null && repository != null;
-    return _SettingsGroup(
-      children: [
-        for (final preference in NotificationPreference.values)
-          SwitchListTile.adaptive(
-            secondary: Icon(preference.icon, color: context.brand.accent),
-            title: Text(
-              preference.title,
-              style: const TextStyle(fontWeight: FontWeight.w700),
-            ),
-            subtitle: Text(preference.description),
-            value: preferences.isOn(preference),
-            onChanged: ready
-                ? (value) => unawaited(set(preference, value))
-                : null,
-          ),
-      ],
-    );
-  }
-}
-
-class _SettingsRow extends StatelessWidget {
-  const _SettingsRow({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.onTap,
-    this.enabled = true,
-    this.destructive = false,
-  });
-
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final VoidCallback? onTap;
-  final bool enabled;
-  final bool destructive;
-
-  @override
-  Widget build(BuildContext context) {
-    final color = destructive ? context.brand.terracotta : context.brand.accent;
-    return ListTile(
-      enabled: enabled && onTap != null,
-      minVerticalPadding: 12,
-      leading: Icon(icon, color: color),
-      title: Text(
-        title,
-        style: TextStyle(
-          fontWeight: FontWeight.w700,
-          color: destructive ? context.brand.terracotta : null,
-        ),
-      ),
-      subtitle: Text(subtitle),
-      trailing: const Icon(Icons.chevron_right_rounded),
-      onTap: onTap,
-    );
   }
 }

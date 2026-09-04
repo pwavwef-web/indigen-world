@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/features/ads/data/served_ad.dart';
+import 'package:indigen_world_mobile/features/subscriptions/manage_subscription_screen.dart';
 import 'package:indigen_world_mobile/shared/glass_popup.dart';
 import 'package:indigen_world_mobile/shared/glass_surface.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -93,7 +94,12 @@ Future<void> _openAd(BuildContext context, WidgetRef ref, ServedAd ad) async {
 
 /// One advert in a scrolling feed: the Community timeline.
 class SponsoredCard extends ConsumerWidget {
-  const SponsoredCard({required this.ad, required this.slot, super.key});
+  const SponsoredCard({
+    required this.ad,
+    required this.slot,
+    this.margin = const EdgeInsets.fromLTRB(16, 10, 16, 10),
+    super.key,
+  });
 
   final ServedAd ad;
 
@@ -104,12 +110,21 @@ class SponsoredCard extends ConsumerWidget {
   /// else in the tree shares.
   final String slot;
 
+  /// The space around the card.
+  ///
+  /// The default is the Community timeline's, which is full-bleed and so has to
+  /// inset the advert itself. A Collection channel is a list that already has a
+  /// gutter, and a card that adds its own on top of that would be the one row
+  /// on the page that is narrower than the rest — which reads as a mistake
+  /// rather than as a boundary.
+  final EdgeInsetsGeometry margin;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) => _SponsoredImpression(
     campaignId: ad.campaignId,
     slot: slot,
     child: Padding(
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+      padding: margin,
       child: GlassCard.listItem(
         // The gold hairline is the app's own "this is set apart" hint, and it
         // is as loud as an advert is allowed to be here.
@@ -135,7 +150,13 @@ class SponsoredCard extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const _SponsoredLabel(),
+                  const Row(
+                    children: [
+                      _SponsoredLabel(),
+                      Spacer(),
+                      _WhyThisAdvert(),
+                    ],
+                  ),
                   const SizedBox(height: 8),
                   Text(
                     ad.headline,
@@ -289,6 +310,72 @@ class SponsoredCtaButton extends ConsumerWidget {
     onDark: onDark,
     onTap: () => _openAd(context, ref, ad),
   );
+}
+
+/// The question every advert should be willing to answer.
+///
+/// ── Why this is here, and why it offers a way out ─────────────────────────
+/// Adverts now run through the Collection channels as well as the two feeds,
+/// which means a member can meet several in an afternoon of ordinary use. An app
+/// that has just increased how often it interrupts somebody owes them two
+/// things: a plain account of why, and the door out. Both are one tap away, and
+/// the door is a real one — a membership genuinely removes every advert in the
+/// app, enforced in `placedAdsProvider` rather than promised here.
+///
+/// Deliberately a small icon and not a labelled button. It has to be findable
+/// by anybody who wants it and invisible to everybody who does not, and an
+/// advert that argues its own case in a paragraph is a worse advert and a worse
+/// app.
+class _WhyThisAdvert extends StatelessWidget {
+  const _WhyThisAdvert();
+
+  @override
+  Widget build(BuildContext context) => IconButton(
+    tooltip: 'Why am I seeing this?',
+    visualDensity: VisualDensity.compact,
+    padding: EdgeInsets.zero,
+    constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+    iconSize: 16,
+    color: context.brand.mutedInk,
+    icon: const Icon(Icons.info_outline_rounded),
+    onPressed: () => _explain(context),
+  );
+
+  Future<void> _explain(BuildContext context) async {
+    final seePlans = await showGlassPopup<bool>(
+      context: context,
+      title: 'Why am I seeing this?',
+      builder: (popupContext) => Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            'Everything in Indigen World is free to read, watch and listen to, '
+            'and adverts are part of how that is paid for. They are placed by '
+            'the project — nobody is tracked, profiled or targeted, and no '
+            'advertiser is told anything about you.\n\n'
+            'A membership takes every advert out of the app.',
+            style: TextStyle(
+              color: popupContext.brand.mutedInk,
+              fontSize: 13.5,
+              height: 1.5,
+            ),
+          ),
+          const SizedBox(height: 18),
+          FilledButton(
+            onPressed: () => Navigator.pop(popupContext, true),
+            child: const Text('See membership'),
+          ),
+        ],
+      ),
+    );
+    if (seePlans != true || !context.mounted) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (context) => const ManageSubscriptionScreen(),
+      ),
+    );
+  }
 }
 
 /// The word, first, on everything.

@@ -141,13 +141,12 @@ void main() {
     await tester.pump(const Duration(milliseconds: 400));
     await tester.pump(const Duration(milliseconds: 500));
 
-    // The tab's name, and no slogan under it. It used to be the eyebrow over
-    // "Knowledge, kept alive." and so arrived here upper-cased; it is the
-    // heading itself now, in the case somebody actually wrote it in.
-    expect(find.text('The Kassena Collection'), findsOneWidget);
+    // The tab's name, and nothing else. It was a headline plus a slogan, at a
+    // volume no other tab in the shell shouts its own name at.
+    expect(find.text('Kasem Collections'), findsOneWidget);
     expect(
       find.text('Preserving culture, one story at a time'),
-      findsOneWidget,
+      findsNothing,
     );
     expect(find.byKey(const Key('collection-search-field')), findsOneWidget);
     expect(find.text('Published'), findsOneWidget);

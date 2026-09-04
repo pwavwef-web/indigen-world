@@ -126,6 +126,85 @@ List<Reel> publishedReels(Iterable<PublishedReel> published) => published
     .map(Reel.fromPublished)
     .toList(growable: false);
 
+// ── Whose turn it is ────────────────────────────────────────────────────────
+//
+// Both sources arrive newest-first, which on an archive this size means the
+// feed played each person's work back in the order they uploaded it, in one
+// unbroken run. Somebody who published six songs on a Sunday afternoon owned
+// the next six swipes, in the order they happened to hit publish — and a member
+// who came back the next day watched the same six in the same order again.
+//
+// Neither half of that is what a video feed is for, so [variedByCreator] takes
+// the arrangement apart on two axes: each person's reels are shuffled, and the
+// people are dealt round-robin so two consecutive reels are almost never by the
+// same person.
+
+/// Reels rearranged so that nobody's work plays in the order they uploaded it.
+///
+/// Creators keep the order the feed found them in — first appearance in a
+/// newest-first list, so whoever posted most recently still leads and the feed
+/// stays a living one. What changes is what happens *inside* and *between* those
+/// runs: one reel is taken from each creator in turn, and each creator's own
+/// reels come out shuffled.
+///
+/// ── Why the shuffle is seeded from the creator ────────────────────────────
+/// For the same reason [exploreCycleOrder] is seeded, and it is the sharper
+/// version of that hazard. This runs inside a plain [Provider] over two live
+/// Firestore snapshots, so it recomputes whenever either ticks — which on a feed
+/// people are posting to is constantly. An unseeded shuffle would hand back a
+/// different order each time, and the pager, which addresses reels by position,
+/// would drop the member onto a different video mid-swipe.
+///
+/// Seeded from the creator's own id, one person's arrangement cannot move when
+/// somebody else posts: their reels are dealt in the same order for the whole
+/// sitting, and for every sitting after it.
+List<Reel> variedByCreator(List<Reel> reels) {
+  if (reels.length < 2) return reels;
+
+  // A plain map literal, so the creators come back in the order the feed met
+  // them — which is the recency order both sources arrive in.
+  final byCreator = <String, List<Reel>>{};
+  for (final reel in reels) {
+    // Anything without an account behind it is one bucket rather than a bucket
+    // each: the alternative is a "creator" per reel, which is round-robin over
+    // singletons — the original order, at more expense.
+    byCreator.putIfAbsent(reel.creatorId, () => <Reel>[]).add(reel);
+  }
+  if (byCreator.length == reels.length) return reels;
+
+  final queues = <List<Reel>>[];
+  for (final entry in byCreator.entries) {
+    final owned = entry.value;
+    if (owned.length > 1) {
+      owned.shuffle(math.Random(creatorOrderSeed(entry.key)));
+    }
+    queues.add(owned);
+  }
+
+  final dealt = <Reel>[];
+  for (var round = 0; dealt.length < reels.length; round++) {
+    for (final queue in queues) {
+      if (round < queue.length) dealt.add(queue[round]);
+    }
+  }
+  return dealt;
+}
+
+/// A stable number for one creator id.
+///
+/// FNV-1a rather than [Object.hashCode], which Dart is entitled to salt per
+/// process — and does. A per-process hash would still hold the feed still
+/// within one sitting, which is the requirement that matters, but it would give
+/// the same member a freshly shuffled archive every time they opened the app.
+/// This way an arrangement is theirs to learn.
+int creatorOrderSeed(String creatorId) {
+  var hash = 0x811c9dc5;
+  for (final unit in creatorId.codeUnits) {
+    hash = ((hash ^ unit) * 0x01000193) & 0x7fffffff;
+  }
+  return hash;
+}
+
 /// How many reels a member watches between adverts.
 ///
 /// Six is a judgement, and the judgement is this: an advert every three reels
@@ -156,9 +235,14 @@ final exploreContentProvider = Provider<List<Reel>>((ref) {
   final published = ref.watch(publishedReelsProvider).asData?.value;
   final community = ref.watch(communityFeedProvider).asData?.value;
 
+  // Varied within each half rather than across both, so "published work leads"
+  // survives: interleaving the two would put a clip somebody filmed this
+  // morning ahead of the archive the tab exists to show.
   return List.unmodifiable(<Reel>[
-    if (published != null) ...publishedReels(published),
-    ...?community.let((posts) => communityReels(posts, limit: window)),
+    if (published != null) ...variedByCreator(publishedReels(published)),
+    ...?community.let(
+      (posts) => variedByCreator(communityReels(posts, limit: window)),
+    ),
   ]);
 });
 
@@ -222,10 +306,14 @@ final exploreFollowingContentProvider = Provider<List<Reel>>((ref) {
   final window = ref.watch(exploreWindowProvider);
   return List.unmodifiable(<Reel>[
     if (published != null)
-      ...publishedReels(
-        published.where((reel) => follows.contains(reel.creatorId)),
+      ...variedByCreator(
+        publishedReels(
+          published.where((reel) => follows.contains(reel.creatorId)),
+        ),
       ),
-    ...?community.let((posts) => communityReels(posts, limit: window)),
+    ...?community.let(
+      (posts) => variedByCreator(communityReels(posts, limit: window)),
+    ),
   ]);
 });
 

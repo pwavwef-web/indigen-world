@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
+import 'package:indigen_world_mobile/features/ads/collection_ads.dart';
+import 'package:indigen_world_mobile/features/ads/data/served_ad.dart';
+import 'package:indigen_world_mobile/features/ads/widgets/sponsored_card.dart';
 import 'package:indigen_world_mobile/features/auth/auth_repository.dart';
 import 'package:indigen_world_mobile/features/auth/sign_in_sheet.dart';
 import 'package:indigen_world_mobile/features/collection/apps_and_shop.dart';
@@ -81,21 +84,12 @@ class _ShopCollectionScreenState extends ConsumerState<ShopCollectionScreen> {
                   ),
                 ],
                 AsyncData(value: final list) => [
-                  SliverPadding(
-                    padding: const EdgeInsets.fromLTRB(18, 4, 18, 40),
-                    sliver: SliverList.separated(
-                      itemCount: list.length,
-                      separatorBuilder: (_, _) => const SizedBox(height: 12),
-                      itemBuilder: (context, index) {
-                        final product = list[index];
-                        return _ProductCard(
-                          product: product,
-                          quantity: _basket[product.id]?.quantity ?? 0,
-                          onChanged: (quantity) =>
-                              _setQuantity(product, quantity),
-                        );
-                      },
-                    ),
+                  _ProductRows(
+                    products: list,
+                    ads: ref.watch(collectionAdsProvider),
+                    quantityOf: (product) =>
+                        _basket[product.id]?.quantity ?? 0,
+                    onChanged: _setQuantity,
                   ),
                 ],
                 AsyncError() => const [
@@ -206,6 +200,54 @@ class _ShopCollectionScreenState extends ConsumerState<ShopCollectionScreen> {
         ),
       );
     }
+  }
+}
+
+/// The stock, with adverts dealt between the products.
+///
+/// The basket lives on the screen rather than in a provider, so the quantity
+/// arrives as a lookup rather than as a copied map: a row has to read the count
+/// that is in the basket *now*, and a snapshot taken when the list was built is
+/// the count that was in it a tap ago.
+class _ProductRows extends StatelessWidget {
+  const _ProductRows({
+    required this.products,
+    required this.ads,
+    required this.quantityOf,
+    required this.onChanged,
+  });
+
+  final List<ShopProduct> products;
+  final List<ServedAd> ads;
+  final int Function(ShopProduct product) quantityOf;
+  final void Function(ShopProduct product, int quantity) onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final rows = collectionRowsWithAds(items: products, ads: ads);
+    return SliverPadding(
+      padding: const EdgeInsets.fromLTRB(18, 4, 18, 40),
+      sliver: SliverList.separated(
+        itemCount: rows.length,
+        separatorBuilder: (_, _) => const SizedBox(height: 12),
+        itemBuilder: (context, index) {
+          final row = rows[index];
+          if (row is ServedAd) {
+            return SponsoredCard(
+              ad: row,
+              slot: 'shop-$index',
+              margin: EdgeInsets.zero,
+            );
+          }
+          final product = row as ShopProduct;
+          return _ProductCard(
+            product: product,
+            quantity: quantityOf(product),
+            onChanged: (quantity) => onChanged(product, quantity),
+          );
+        },
+      ),
+    );
   }
 }
 

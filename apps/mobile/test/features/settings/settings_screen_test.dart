@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:indigen_world_mobile/features/notifications/notification_settings_screen.dart';
 import 'package:indigen_world_mobile/features/settings/licences_screen.dart';
 import 'package:indigen_world_mobile/features/settings/policy_screen.dart';
 import 'package:indigen_world_mobile/features/settings/settings_screen.dart';
@@ -46,14 +46,15 @@ void main() {
     // The list is lazy, so walk it rather than expecting everything at once.
     for (final label in const [
       'ACCOUNT',
-      'Edit community profile',
+      'Membership',
       'Change password',
       'COMMUNITY',
       'Saved posts',
       'Community guidelines',
       'PREFERENCES',
+      'NOTIFICATIONS',
       'Notifications',
-      'Push alerts on this device',
+      'Notification settings',
       'PRIVACY AND DATA',
       'ABOUT',
       'Licences',
@@ -65,16 +66,17 @@ void main() {
     }
   });
 
-  testWidgets('a member without a handle is invited to set one up', (
+  testWidgets('the community profile is not editable from here any more', (
     tester,
   ) async {
-    await pumpSettings(tester, withProfile: false);
+    // It had three front doors — Overview, the Profile tab and this row — and
+    // now has one, on the Profile tab. The identity card at the top of this
+    // screen stays as a summary of who is signed in and goes nowhere.
+    await pumpSettings(tester);
 
-    expect(find.text('Set up your community profile'), findsOneWidget);
-    expect(
-      find.text('Choose the handle the community knows you by'),
-      findsOneWidget,
-    );
+    expect(find.text('Edit community profile'), findsNothing);
+    expect(find.text('Set up your community profile'), findsNothing);
+    expect(find.text('Amina Ayaribisa'), findsOneWidget);
   });
 
   testWidgets('a guest is offered sign-in rather than sign-out', (
@@ -127,36 +129,24 @@ void main() {
     expect(find.text('Respect what is not public'), findsOneWidget);
   });
 
-  testWidgets('push alerts start off and name why they cannot be turned on', (
+  testWidgets('the notification controls are one tap away, not on this page', (
     tester,
   ) async {
+    // Eleven switches used to sit between the app's theme and its privacy
+    // policy. Nobody browses to them: they are reached in the middle of
+    // something else, by somebody whose phone will not stop.
     await pumpSettings(tester);
 
-    // Preferences carries more than one switch now, so this one is found by
-    // what it says rather than by being the first of its kind.
-    await tester.scrollUntilVisible(
-      find.text('Push alerts on this device'),
-      120,
-    );
+    await tester.scrollUntilVisible(find.text('Notification settings'), 120);
     await tester.pump();
+    expect(find.text('Push alerts on this device'), findsNothing);
 
-    final toggle = find.ancestor(
-      of: find.text('Push alerts on this device'),
-      matching: find.byType(SwitchListTile),
-    );
-    expect(tester.widget<SwitchListTile>(toggle).value, isFalse);
-
-    await tester.tap(toggle);
+    await tester.tap(find.text('Notification settings'));
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump(const Duration(milliseconds: 400));
 
-    // firebaseReadyProvider defaults to false in tests, so the toggle refuses —
-    // and says which of the two possible reasons it is rather than blaming the
-    // member's connection.
-    expect(
-      find.textContaining('Indigen World could not be reached'),
-      findsOneWidget,
-    );
+    expect(find.byType(NotificationSettingsScreen), findsOneWidget);
+    expect(find.text('Push alerts on this device'), findsOneWidget);
   });
 
   testWidgets('deleting an account is a request, not a silent local wipe', (

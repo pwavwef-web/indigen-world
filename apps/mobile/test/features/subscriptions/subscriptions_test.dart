@@ -12,6 +12,7 @@ import 'package:indigen_world_mobile/features/subscriptions/data/billing_service
 import 'package:indigen_world_mobile/features/subscriptions/data/entitlement.dart';
 import 'package:indigen_world_mobile/features/subscriptions/data/subscription_catalog.dart';
 import 'package:indigen_world_mobile/features/subscriptions/data/subscription_providers.dart';
+import 'package:indigen_world_mobile/features/subscriptions/paywall_screen.dart';
 
 /// The catalogue, the entitlement rules, and the one place a subscription
 /// actually changes what a screen draws.
@@ -664,6 +665,91 @@ void main() {
         for (final product in subscriptionProducts)
           for (final plan in product.plans) plan.basePlanId,
       ], isNot(containsAll(offerings.playBasePlanIds)));
+    });
+  });
+
+  group('yearlySavingsPercent', () {
+    // No discount is written down anywhere in the app, for the same reason no
+    // price is: it is a property of two base plans in Play Console, it moves
+    // with Play's own regional pricing, and it changes the day somebody edits
+    // either plan. A "Save 20%" typed into the paywall is a claim the app is
+    // not in a position to keep.
+    SubscriptionOffer offer(BillingPeriod period, double rawPrice, {
+      String currency = 'GHS',
+    }) => SubscriptionOffer(
+      product: subscriptionProducts.first,
+      plan: SubscriptionPlan(basePlanId: 'plan', billingPeriod: period),
+      details: ProductDetails(
+        id: 'indigen_plus',
+        title: 'Indigen Plus',
+        description: '',
+        price: '$rawPrice',
+        rawPrice: rawPrice,
+        currencyCode: currency,
+      ),
+      offerToken: 'token',
+    );
+
+    test('reads the discount off the two prices Play returned', () {
+      // 100 a month is 1200 a year; 900 is a quarter off.
+      expect(
+        yearlySavingsPercent([
+          offer(BillingPeriod.monthly, 100),
+          offer(BillingPeriod.yearly, 900),
+        ]),
+        25,
+      );
+    });
+
+    test('says nothing when there is nothing to compare against', () {
+      expect(yearlySavingsPercent(const []), isNull);
+      expect(
+        yearlySavingsPercent([offer(BillingPeriod.yearly, 900)]),
+        isNull,
+      );
+    });
+
+    test('refuses a saving too small to be worth a badge', () {
+      // A rounded "Save 1%" reads as a rounding error rather than an offer.
+      expect(
+        yearlySavingsPercent([
+          offer(BillingPeriod.monthly, 100),
+          offer(BillingPeriod.yearly, 1190),
+        ]),
+        isNull,
+      );
+    });
+
+    test('refuses a yearly plan that is not actually cheaper', () {
+      expect(
+        yearlySavingsPercent([
+          offer(BillingPeriod.monthly, 100),
+          offer(BillingPeriod.yearly, 1400),
+        ]),
+        isNull,
+      );
+    });
+
+    test('refuses to compare two different currencies', () {
+      // Should not happen for one member, and is cheap to refuse. Subtracting
+      // cedis from dollars is the kind of arithmetic that ships.
+      expect(
+        yearlySavingsPercent([
+          offer(BillingPeriod.monthly, 100),
+          offer(BillingPeriod.yearly, 900, currency: 'USD'),
+        ]),
+        isNull,
+      );
+    });
+
+    test('refuses a price Play reported as zero', () {
+      expect(
+        yearlySavingsPercent([
+          offer(BillingPeriod.monthly, 0),
+          offer(BillingPeriod.yearly, 900),
+        ]),
+        isNull,
+      );
     });
   });
 }

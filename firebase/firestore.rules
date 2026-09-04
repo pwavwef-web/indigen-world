@@ -1130,6 +1130,28 @@ service cloud.firestore {
       allow delete: if isSignedIn() && resource.data.followerId == request.auth.uid;
     }
 
+    // ---- Link preview cache: server-written, read by anyone who reads posts --
+    //
+    // One document per link somebody has shared, holding the headline, sentence
+    // and picture that link's own page publishes about itself. Written only by
+    // `fetchLinkPreview` (services/functions/src/link-preview.ts), which is the
+    // only thing on the platform allowed to go and fetch a stranger's web page.
+    //
+    // Read is open because a post is: the card is metadata about a URL that is
+    // already sitting in world-readable `communityPosts` text, and gating it
+    // behind sign-in would mean a guest reading the feed saw a bare URL where
+    // everybody else saw an article. It carries nothing about who shared the
+    // link or who read it — the sharer's campaign tags are stripped before the
+    // document id is even computed.
+    //
+    // Nobody writes but the Admin SDK. A client that could write here could put
+    // any picture and any headline under any link in the community, which is a
+    // near-perfect phishing surface.
+    match /linkPreviews/{previewId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
     // ---- Community notifications: server-authored, owner reads and marks ----
     // Every row is written by a Cloud Functions trigger in response to
     // something that actually happened (a like, a reply, a follow, a mention, a

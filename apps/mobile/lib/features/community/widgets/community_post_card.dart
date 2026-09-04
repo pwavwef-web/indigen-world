@@ -1,9 +1,11 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/features/community/data/community_models.dart';
 import 'package:indigen_world_mobile/features/community/data/community_providers.dart';
+import 'package:indigen_world_mobile/features/community/data/link_preview.dart';
 import 'package:indigen_world_mobile/features/community/widgets/community_avatar.dart';
 import 'package:indigen_world_mobile/features/community/widgets/post_media_view.dart';
 import 'package:indigen_world_mobile/features/community/widgets/post_text.dart';
@@ -146,8 +148,9 @@ class CommunityPostCard extends ConsumerWidget {
                   children: [
                     // The rule from this post's avatar down to the next one.
                     // Drawn here rather than inside the avatar's own column:
-                    // the attachment below now breaks out of that column, and
-                    // the rule still has to run the whole height of the post.
+                    // the attachment, the poll and the action bar all hang
+                    // below that row, and the rule has to run the whole height
+                    // of the post rather than the height of the byline.
                     if (showThreadLine)
                       Positioned(
                         top: avatarSize + 6,
@@ -195,7 +198,16 @@ class CommunityPostCard extends ConsumerWidget {
                                       onOpenLink: onOpenLink,
                                     ),
                                   ],
-                                  if (post.firstLink case final link?) ...[
+                                  // Not when the post brought its own picture.
+                                  // A card and an attachment are both a large
+                                  // image asking to be looked at, and a post
+                                  // carrying two of them says neither is the
+                                  // one that matters — so the photograph
+                                  // somebody chose wins, and the link stays a
+                                  // link in the writing above it, where it is
+                                  // still tappable.
+                                  if (post.firstLink case final link?
+                                      when !post.hasMedia) ...[
                                     const SizedBox(height: 10),
                                     CommunityLinkPreview(
                                       url: link,
@@ -209,58 +221,65 @@ class CommunityPostCard extends ConsumerWidget {
                             ),
                           ],
                         ),
-                        // Full width, rather than tucked into the column beside
-                        // the avatar. Indented by an avatar's width on one side
-                        // and stopped short on the other, an attachment reads
-                        // as pushed to the right — and a portrait video, the
-                        // tallest thing in the feed, took the whole post with
-                        // it. Writing stays under the byline it belongs to;
-                        // the picture does not have to.
-                        if (post.hasMedia) ...[
-                          const SizedBox(height: 10),
-                          Padding(
-                            // Squares the right margin with the card's own left
-                            // inset, so the block sits centred rather than
-                            // merely wider.
-                            padding: const EdgeInsets.only(right: 4),
-                            child: PostMediaView(
-                              media: post.media,
-                              // The viewer can appreciate, reply to and share
-                              // the post the picture came from, so somebody
-                              // who opened it to look properly never has to
-                              // close it again to say anything.
-                              actions: MediaPostActions(
-                                postId: post.id,
-                                likeCount: post.likeCount,
-                                replyCount: post.replyCount,
-                                onLike: onLike,
-                                onReply: onReply,
-                                onShare: onShare,
-                              ),
-                              // And it says whose it is while they look. The
-                              // byline the card draws above is the first thing
-                              // a full-screen picture covers up, and a
-                              // photograph nobody is named under is a
-                              // photograph nobody can follow, reply to or
-                              // trust.
-                              author: MediaPostAuthor(
-                                displayName: authorName,
-                                handle: authorHandle,
-                                initials: authorInitials,
-                                mark: authorMark,
-                                supporterMark: authorSupporter,
-                                avatarUrl: authorAvatar,
-                                caption: post.text,
-                                onOpenProfile: onOpenAuthor,
-                              ),
-                            ),
-                          ),
-                        ],
                         Padding(
                           padding: EdgeInsets.only(left: avatarSize + gutter),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
+                              // ── Where an attachment sits ────────────────
+                              // In the column the writing is in, indented past
+                              // the avatar and stopping where the writing
+                              // stops. It briefly ran the full width of the
+                              // card instead, breaking out of this column, and
+                              // that was wrong twice over: a picture pressed
+                              // against both edges of a phone is the loudest
+                              // thing on the screen whatever is written above
+                              // it, and the gutter the avatars live in stopped
+                              // being a straight line down the feed — which is
+                              // the thing that tells a reader, without
+                              // thinking about it, where one post ends and the
+                              // next begins.
+                              //
+                              // So the gutter stays reserved the whole height
+                              // of the post, exactly as it is on X, and the
+                              // shape the picture is drawn in
+                              // ([PostMediaView.displayAspect]) is what stops
+                              // a portrait clip taking the whole screen.
+                              if (post.hasMedia) ...[
+                                const SizedBox(height: 10),
+                                PostMediaView(
+                                  media: post.media,
+                                  // The viewer can appreciate, reply to and
+                                  // share the post the picture came from, so
+                                  // somebody who opened it to look properly
+                                  // never has to close it again to say
+                                  // anything.
+                                  actions: MediaPostActions(
+                                    postId: post.id,
+                                    likeCount: post.likeCount,
+                                    replyCount: post.replyCount,
+                                    onLike: onLike,
+                                    onReply: onReply,
+                                    onShare: onShare,
+                                  ),
+                                  // And it says whose it is while they look.
+                                  // The byline the card draws above is the
+                                  // first thing a full-screen picture covers
+                                  // up, and a photograph nobody is named under
+                                  // is a photograph nobody can follow, reply
+                                  // to or trust.
+                                  author: MediaPostAuthor(
+                                    displayName: authorName,
+                                    handle: authorHandle,
+                                    initials: authorInitials,
+                                    mark: authorMark,
+                                    supporterMark: authorSupporter,
+                                    avatarUrl: authorAvatar,
+                                    caption: post.text,
+                                    onOpenProfile: onOpenAuthor,
+                                  ),
+                                ),
+                              ],
                               if (post.poll case final poll?) ...[
                                 const SizedBox(height: 10),
                                 CommunityPollCard(
@@ -561,80 +580,224 @@ class QuotedPostPreview extends StatelessWidget {
   }
 }
 
-class CommunityLinkPreview extends StatelessWidget {
+/// The card a link in a post turns into.
+///
+/// ── Why this is not the address ───────────────────────────────────────────
+/// It used to be a grey chip with the host on one line and the raw URL on the
+/// other, which is the link handed straight back to the person reading it. It
+/// told nobody what they were about to open — an article, a market listing, a
+/// video, a phishing page all looked identical — and on a metered connection
+/// the only way to find out cost money.
+///
+/// So the page is read once, on the backend, and the card shows what the page
+/// publishes about itself: the picture, the site, the headline, the sentence.
+/// The unfurling lives in `link_preview.dart` and
+/// `services/functions/src/link-preview.ts`.
+///
+/// The chip has not gone away — it is what a link still looks like while the
+/// card is being fetched, and what it stays as when a site publishes nothing
+/// or refuses to be read. That matters more than the card does: a preview that
+/// collapsed to nothing when it failed would take the link with it.
+class CommunityLinkPreview extends ConsumerWidget {
   const CommunityLinkPreview({required this.url, this.onTap, super.key});
 
   final String url;
   final VoidCallback? onTap;
 
+  /// The shape the picture is drawn in.
+  ///
+  /// 1.91:1 is the ratio Open Graph asks publishers for, so it is the ratio
+  /// the artwork on the other end was cut to. Drawing it at anything else
+  /// crops somebody's headline off their own illustration.
+  static const pictureAspect = 1.91;
+
+  static const _radius = 14.0;
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final brand = context.brand;
-    final uri = Uri.tryParse(url);
-    final host = uri?.host.replaceFirst(RegExp(r'^www\.'), '') ?? url;
+    // `asData` on purpose: a link that cannot be unfurled is not an error the
+    // reader has to be told about, it is a link. While it loads, and if it
+    // never arrives, the chip below is the answer.
+    final preview = ref.watch(linkPreviewProvider(url)).asData?.value;
+    // ── Whose name goes on the card ─────────────────────────────────────
+    // The host of the link the tap will open, NEVER the host the unfurler
+    // finished at. Those differ exactly when a link redirects, and a card that
+    // named the destination would be a ready-made disguise: post
+    // `https://evil.test/x`, have it redirect to a newspaper, and the feed
+    // draws that newspaper's name, headline and photograph over a link that
+    // opens evil.test. Naming the first hop makes the card say what tapping it
+    // does. The cost is that a shortened link is honestly labelled with the
+    // shortener, which is the truth about where the tap goes.
+    final tapped = (Uri.tryParse(url)?.host ?? '').replaceFirst(
+      RegExp(r'^www\.'),
+      '',
+    );
+    final host = tapped.isNotEmpty ? tapped : (preview?.host ?? url);
+    final rich = preview != null && preview.isRich;
+
     return Semantics(
       button: onTap != null,
-      label: 'Open link to $host',
+      label: rich
+          ? 'Open ${preview.title ?? 'link'} on $host'
+          : 'Open link to $host',
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(_radius),
           onTap: onTap,
           child: Container(
-            padding: const EdgeInsets.all(11),
+            clipBehavior: Clip.antiAlias,
             decoration: BoxDecoration(
               border: Border.all(color: brand.border),
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(_radius),
             ),
-            child: Row(
-              children: [
-                Container(
-                  width: 34,
-                  height: 34,
-                  decoration: BoxDecoration(
-                    color: brand.surfaceMuted,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Icon(
-                    Icons.link_rounded,
-                    size: 17,
-                    color: brand.mutedInk,
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        host.isEmpty ? 'External link' : host,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                          color: brand.ink,
-                        ),
-                      ),
-                      const SizedBox(height: 1),
-                      Text(
-                        url,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(color: brand.faintInk, fontSize: 11),
-                      ),
-                    ],
-                  ),
-                ),
-                Icon(
-                  Icons.open_in_new_rounded,
+            child: rich
+                ? _Unfurled(preview: preview, host: host)
+                : _LinkChip(url: url, host: host),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The picture, then the site, the headline and the sentence under it.
+class _Unfurled extends StatelessWidget {
+  const _Unfurled({required this.preview, required this.host});
+
+  final LinkPreview preview;
+  final String host;
+
+  @override
+  Widget build(BuildContext context) {
+    final brand = context.brand;
+    final image = preview.imageUrl;
+    final title = preview.title;
+    final description = preview.description;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (image != null && image.isNotEmpty)
+          AspectRatio(
+            aspectRatio: CommunityLinkPreview.pictureAspect,
+            child: CachedNetworkImage(
+              imageUrl: image,
+              fit: BoxFit.cover,
+              width: double.infinity,
+              // No spinner and no broken-image glyph: a card whose picture is
+              // still coming should look like a card, not like a fault.
+              placeholder: (context, _) => ColoredBox(color: brand.surfaceMuted),
+              errorWidget: (context, _, _) =>
+                  ColoredBox(color: brand.surfaceMuted),
+            ),
+          ),
+        Container(
+          width: double.infinity,
+          color: brand.surfaceMuted,
+          padding: const EdgeInsets.fromLTRB(12, 9, 12, 11),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // The site, in capitals, above the headline — the one line on a
+              // card that says whether the headline can be believed.
+              Text(
+                host.toUpperCase(),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
                   color: brand.faintInk,
-                  size: 16,
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.4,
+                ),
+              ),
+              if (title != null && title.isNotEmpty) ...[
+                const SizedBox(height: 3),
+                Text(
+                  title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: brand.ink,
+                    fontSize: 14.5,
+                    height: 1.25,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
+              if (description != null && description.isNotEmpty) ...[
+                const SizedBox(height: 3),
+                Text(
+                  description,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: brand.mutedInk,
+                    fontSize: 12.5,
+                    height: 1.3,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// A link that has not been read yet, or one whose page had nothing to say.
+class _LinkChip extends StatelessWidget {
+  const _LinkChip({required this.url, required this.host});
+
+  final String url;
+  final String host;
+
+  @override
+  Widget build(BuildContext context) {
+    final brand = context.brand;
+    return Padding(
+      padding: const EdgeInsets.all(11),
+      child: Row(
+        children: [
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: brand.surfaceMuted,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(Icons.link_rounded, size: 17, color: brand.mutedInk),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  host.isEmpty ? 'External link' : host,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: brand.ink,
+                  ),
+                ),
+                const SizedBox(height: 1),
+                Text(
+                  url,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(color: brand.faintInk, fontSize: 11),
                 ),
               ],
             ),
           ),
-        ),
+          Icon(Icons.open_in_new_rounded, color: brand.faintInk, size: 16),
+        ],
       ),
     );
   }

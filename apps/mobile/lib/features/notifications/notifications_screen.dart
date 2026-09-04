@@ -13,9 +13,7 @@ import 'package:indigen_world_mobile/features/community/widgets/community_avatar
 import 'package:indigen_world_mobile/features/community/widgets/people_widgets.dart';
 import 'package:indigen_world_mobile/features/notifications/data/notification_models.dart';
 import 'package:indigen_world_mobile/features/notifications/data/notification_providers.dart';
-import 'package:indigen_world_mobile/features/notifications/push_messaging.dart';
-import 'package:indigen_world_mobile/shared/glass_popup.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:indigen_world_mobile/features/notifications/notification_settings_screen.dart';
 
 /// The notifications centre: everything that happened to you, newest first,
 /// grouped into Today / This week / Earlier.
@@ -117,58 +115,18 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     }
   }
 
-  Future<void> _openAlertSettings() async {
-    final preferences = await SharedPreferences.getInstance();
-    final enabled = preferences.getBool(pushAlertsPreferenceKey) ?? false;
-    if (!mounted) return;
-
-    final next = await showGlassPopup<bool>(
-      context: context,
-      title: 'Push alerts',
-      builder: (popupContext) => Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Get a notification on this device when somebody replies to '
-            'you, follows you, or mentions you in Kasem. Everything still '
-            'appears here either way.',
-            style: TextStyle(color: context.brand.mutedInk, height: 1.45),
-          ),
-          const SizedBox(height: 18),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () => Navigator.pop(popupContext, false),
-                  child: const Text('Keep off'),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: FilledButton(
-                  onPressed: () => Navigator.pop(popupContext, true),
-                  child: Text(enabled ? 'Keep on' : 'Turn on'),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-    if (next == null || !mounted) return;
-
-    final granted = await setPushAlerts(ref, enabled: next);
-    if (!mounted) return;
-    showCommunityMessage(
-      context,
-      granted
-          ? 'Push alerts are on for this device.'
-          : next
-          ? 'Notifications are turned off for Indigen in your device settings.'
-          : 'Push alerts are off. You will still see everything here.',
-    );
-  }
+  /// ── Why this stopped being a popup ──────────────────────────────────────
+  /// It used to be a two-button sheet that could only answer one question — is
+  /// push on — which is rarely the question somebody has when they reach for
+  /// this control from the notifications list. They are here because one *kind*
+  /// of alert is too much, and the sheet's only offer was all of them or none.
+  /// The page it opens instead holds both axes, and turning the whole lot off
+  /// is still one row at the top of it.
+  void _openAlertSettings() => Navigator.of(context).push(
+    MaterialPageRoute<void>(
+      builder: (context) => const NotificationSettingsScreen(),
+    ),
+  );
 }
 
 // ── List ────────────────────────────────────────────────────────────────────

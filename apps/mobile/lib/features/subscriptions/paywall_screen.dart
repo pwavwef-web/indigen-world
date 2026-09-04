@@ -73,7 +73,15 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
     return Scaffold(
       backgroundColor: brand.background,
       appBar: AppBar(
-        title: const Text('Support this work'),
+        // ── Why not "Support this work" ────────────────────────────────────
+        // Because it asked for charity for something that gives back. A
+        // subscription here takes the adverts away, opens offline listening and
+        // raises the Kawuri allowance — that is a membership, and calling it a
+        // donation both undersells it and makes anybody who cannot afford one
+        // feel they have failed the language. The warmth belongs in the
+        // sentence under the heading, where it can say what the money does; the
+        // title's job is to say what the screen is.
+        title: const Text('Membership'),
         actions: [
           TextButton(
             onPressed: _busy ? null : _restore,
@@ -269,18 +277,22 @@ class _Intro extends StatelessWidget {
       children: [
         Text(
           entitlement.isActive
-              ? 'You already subscribe'
-              : 'Keep Kasem where it belongs',
+              ? 'You are a member'
+              : 'The archive is free. Membership keeps it running.',
           style: Theme.of(context).textTheme.headlineSmall,
         ),
         const SizedBox(height: 8),
         Text(
           entitlement.isActive
-              ? 'Thank you. You can change plan below, or manage the '
-                    'subscription from Google Play at any time.'
-              : 'Everything in the archive stays free. A subscription pays for '
-                    'the servers, the recordings and the review work behind it '
-                    '— and takes the adverts away while it does.',
+              ? 'Thank you — that is the servers paid for and the recordings '
+                    'kept. Change plan below, or manage it from Google Play at '
+                    'any time.'
+              : 'Every word, song and story in here is free to anybody who '
+                    'opens the app, and it stays that way. What membership pays '
+                    'for is the part nobody sees: the servers, the recording '
+                    'trips, and the people who check each contribution before '
+                    'it becomes part of the record. It takes the adverts out of '
+                    'your feed while it does.',
           style: TextStyle(color: brand.mutedInk, fontSize: 14, height: 1.45),
         ),
       ],
@@ -378,13 +390,23 @@ class _TierCard extends StatelessWidget {
                     ?.copyWith(fontWeight: FontWeight.w800),
               ),
               const SizedBox(width: 8),
-              Padding(
-                padding: const EdgeInsets.only(bottom: 4),
-                child: Text(
-                  chosen.plan.billingPeriod.cadence,
-                  style: TextStyle(color: brand.mutedInk, fontSize: 12),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: Text(
+                    chosen.plan.billingPeriod.cadence,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(color: brand.mutedInk, fontSize: 12),
+                  ),
                 ),
               ),
+              if (chosen.plan.billingPeriod == BillingPeriod.yearly)
+                if (yearlySavingsPercent(offers) case final saved?)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 3),
+                    child: _SavingsBadge(percent: saved),
+                  ),
             ],
           ),
           if (chosen.hasTrial) ...[
@@ -448,6 +470,61 @@ class _TierCard extends StatelessWidget {
   }
 }
 
+/// What a year costs against twelve months of the same plan, as a percentage.
+///
+/// ── Why this is computed and not written down ─────────────────────────────
+/// For exactly the reason no price on this screen is written down. The discount
+/// is a property of the two base plans in Play Console, it differs by region
+/// once Play's own local pricing has been applied, and it changes the day
+/// somebody edits either plan. A "Save 20%" typed into this file is a claim the
+/// app cannot keep, and a wrong one is worse than none.
+///
+/// Null whenever the arithmetic would be a guess: one of the two plans missing,
+/// a price Play reported as zero, two different currencies — which should not
+/// happen for one member but is cheap to refuse — or a saving too small to be
+/// worth a badge. Below five per cent the badge is noise, and a rounded "Save
+/// 1%" reads as a rounding error rather than an offer.
+int? yearlySavingsPercent(List<SubscriptionOffer> offers) {
+  SubscriptionOffer? monthly;
+  SubscriptionOffer? yearly;
+  for (final offer in offers) {
+    if (offer.plan.billingPeriod == BillingPeriod.monthly) monthly ??= offer;
+    if (offer.plan.billingPeriod == BillingPeriod.yearly) yearly ??= offer;
+  }
+  if (monthly == null || yearly == null) return null;
+  if (monthly.details.currencyCode != yearly.details.currencyCode) return null;
+
+  final twelveMonths = monthly.details.rawPrice * 12;
+  final year = yearly.details.rawPrice;
+  if (twelveMonths <= 0 || year <= 0 || year >= twelveMonths) return null;
+
+  final saved = ((1 - year / twelveMonths) * 100).round();
+  return saved >= 5 ? saved : null;
+}
+
+class _SavingsBadge extends StatelessWidget {
+  const _SavingsBadge({required this.percent});
+
+  final int percent;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+    decoration: BoxDecoration(
+      color: context.brand.success.withValues(alpha: 0.14),
+      borderRadius: BorderRadius.circular(999),
+    ),
+    child: Text(
+      'Save $percent%',
+      style: TextStyle(
+        color: context.brand.success,
+        fontSize: 11,
+        fontWeight: FontWeight.w800,
+      ),
+    ),
+  );
+}
+
 class _PeriodToggle extends StatelessWidget {
   const _PeriodToggle({
     required this.offers,
@@ -484,10 +561,10 @@ class _SmallPrint extends StatelessWidget {
   Widget build(BuildContext context) {
     final brand = context.brand;
     return Text(
-      'Subscriptions are billed by Google Play and renew until cancelled. '
+      'Memberships are billed by Google Play and renew until cancelled. '
       'Cancel any time from Play — everything you have paid for keeps working '
       'until the end of the period. Nothing in the archive is ever locked '
-      'behind a subscription.',
+      'behind a membership, and nothing you have contributed depends on one.',
       style: TextStyle(color: brand.faintInk, fontSize: 12, height: 1.45),
     );
   }

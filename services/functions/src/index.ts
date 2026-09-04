@@ -15,6 +15,7 @@ export {
   decideKasemNameRequest,
 } from './kasem-name-requests.js';
 export { setCommunityVerifiedKind } from './community-marks.js';
+export { fetchLinkPreview } from './link-preview.js';
 export { publicForms } from './public-forms.js';
 export {
   submitCreatorApplication,

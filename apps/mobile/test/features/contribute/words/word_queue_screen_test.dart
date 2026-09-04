@@ -17,11 +17,19 @@ import 'package:indigen_world_mobile/l10n/app_localizations.dart';
 
 import 'fake_word_queue_api.dart';
 
-Future<void> pumpQueue(WidgetTester tester, FakeWordQueueApi api) async {
+Future<void> pumpQueue(
+  WidgetTester tester,
+  FakeWordQueueApi api, {
   // Tall on purpose: the whole of one question fits on a real phone only
   // because the form is short, and a test that had to scroll to reach Send
   // would stop noticing when it stopped fitting.
-  tester.view.physicalSize = const Size(900, 3000);
+  //
+  // The one test that overrides this is the one about where a member is
+  // looking after they pass on a word, which is only a question at all on a
+  // screen the form does not fit on.
+  Size size = const Size(900, 3000),
+}) async {
+  tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.resetPhysicalSize);
   addTearDown(tester.view.resetDevicePixelRatio);
@@ -156,6 +164,34 @@ void main() {
 
     expect(find.text('word-2'), findsOneWidget);
     expect(api.skips.last, ('id-1', WordQueueSkipReason.unsure));
+  });
+
+  testWidgets('passing on a word puts the next one in front of the eyes', (
+    tester,
+  ) async {
+    // A phone rather than the tall test screen, because that is the only place
+    // this is a question: the skip controls are at the bottom of a form that
+    // does not fit, so somebody has to scroll down to reach them — and the
+    // word that replaces this one arrives at the top, out of sight.
+    final api = FakeWordQueueApi([batchOf(3)]);
+    await pumpQueue(tester, api, size: const Size(400, 780));
+
+    final list = find.byType(Scrollable).first;
+    // The whole form is one child of the list, so everything in it is laid out
+    // whether or not it is on screen — scrolling to the controls is what a
+    // member does, and `ensureVisible` is the same movement.
+    await tester.ensureVisible(find.text("I don't know this one"));
+    await tester.pump();
+    expect(tester.state<ScrollableState>(list).position.pixels, greaterThan(0));
+
+    await tester.tap(find.text("I don't know this one"));
+    await tester.pump();
+    // Past the 240ms the scroll takes.
+    await tester.pump(const Duration(milliseconds: 400));
+
+    expect(find.text('word-1'), findsOneWidget);
+    // Back at the question, rather than at an empty form with nothing above it.
+    expect(tester.state<ScrollableState>(list).position.pixels, 0);
   });
 
   testWidgets('answering advances in place, with a receipt and a tally', (

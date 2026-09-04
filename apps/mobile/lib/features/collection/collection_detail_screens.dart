@@ -1,8 +1,13 @@
+import 'dart:async';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/domain/dictionary_entry.dart';
+import 'package:indigen_world_mobile/features/ads/collection_ads.dart';
+import 'package:indigen_world_mobile/features/ads/data/served_ad.dart';
+import 'package:indigen_world_mobile/features/ads/widgets/sponsored_card.dart';
 import 'package:indigen_world_mobile/features/collection/collection_data.dart';
 import 'package:indigen_world_mobile/features/collection/widgets/collection_card_surface.dart';
 import 'package:indigen_world_mobile/features/community/widgets/community_avatar.dart';
@@ -23,7 +28,7 @@ class MusicCollectionScreen extends ConsumerWidget {
       PublishedCollectionScreen(
         kind: CollectionKind.music,
         items: ref.watch(musicCollectionProvider),
-        onRetry: () => ref.invalidate(musicCollectionProvider),
+        onReload: () => _reload(ref, musicCollectionProvider),
       );
 }
 
@@ -35,7 +40,7 @@ class LiteratureCollectionScreen extends ConsumerWidget {
       PublishedCollectionScreen(
         kind: CollectionKind.literature,
         items: ref.watch(literatureCollectionProvider),
-        onRetry: () => ref.invalidate(literatureCollectionProvider),
+        onReload: () => _reload(ref, literatureCollectionProvider),
       );
 }
 
@@ -47,7 +52,7 @@ class AudiobookCollectionScreen extends ConsumerWidget {
       PublishedCollectionScreen(
         kind: CollectionKind.audiobooks,
         items: ref.watch(audiobookCollectionProvider),
-        onRetry: () => ref.invalidate(audiobookCollectionProvider),
+        onReload: () => _reload(ref, audiobookCollectionProvider),
       );
 }
 
@@ -59,7 +64,7 @@ class VideoCollectionScreen extends ConsumerWidget {
       PublishedCollectionScreen(
         kind: CollectionKind.video,
         items: ref.watch(videoCollectionProvider),
-        onRetry: () => ref.invalidate(videoCollectionProvider),
+        onReload: () => _reload(ref, videoCollectionProvider),
       );
 }
 
@@ -152,13 +157,31 @@ class _DictionaryCollectionScreenState
                       ),
                     );
                   }
+                  // Same rule as every other channel: adverts over the whole
+                  // dictionary, none over a search. Somebody who has typed a
+                  // word is looking for that word.
+                  final rows = query.isEmpty
+                      ? collectionRowsWithAds(
+                          items: visible,
+                          ads: ref.watch(collectionAdsProvider),
+                        )
+                      : List<Object>.of(visible);
                   return SliverPadding(
                     padding: const EdgeInsets.fromLTRB(20, 0, 20, 40),
                     sliver: SliverList.separated(
-                      itemCount: visible.length,
+                      itemCount: rows.length,
                       separatorBuilder: (_, _) => const SizedBox(height: 10),
-                      itemBuilder: (context, index) =>
-                          _DictionaryCard(entry: visible[index]),
+                      itemBuilder: (context, index) {
+                        final row = rows[index];
+                        if (row is ServedAd) {
+                          return SponsoredCard(
+                            ad: row,
+                            slot: 'dictionary-$index',
+                            margin: EdgeInsets.zero,
+                          );
+                        }
+                        return _DictionaryCard(entry: row as DictionaryEntry);
+                      },
                     ),
                   );
                 },
@@ -171,71 +194,246 @@ class _DictionaryCollectionScreenState
   }
 }
 
-class PublishedCollectionScreen extends StatelessWidget {
+/// One published channel, as a searchable list.
+///
+/// ── Why this grew a search field ──────────────────────────────────────────
+/// The dictionary has had one since the day it shipped, and the other four
+/// channels are the same shape of problem: a flat list, newest first, that only
+/// gets longer. Somebody who half-remembers a title, or wants everything one
+/// singer recorded, had one tool for it — their thumb. Parity with the
+/// dictionary rather than a new idea, and the matcher is the channel's own
+/// fields so a search for a dialect or a category finds the work filed under it.
+class PublishedCollectionScreen extends ConsumerStatefulWidget {
   const PublishedCollectionScreen({
     required this.kind,
     required this.items,
-    required this.onRetry,
+    required this.onReload,
     super.key,
   });
 
   final CollectionKind kind;
   final AsyncValue<List<PublishedReel>> items;
-  final VoidCallback onRetry;
+
+  /// Drops the channel's cache and completes when the replacement has landed.
+  ///
+  /// Awaitable rather than a plain callback because a [RefreshIndicator] takes
+  /// its spinner down when the future it was given completes, and a future that
+  /// completed on a timer would take it down while the list it was pulled for
+  /// was still on its way.
+  final Future<void> Function() onReload;
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: Text(kind.label)),
-    body: ScreenContainer(
-      child: CustomScrollView(
-        slivers: [
-          SliverToBoxAdapter(
-            child: BrandHeader(
-              eyebrow: 'Collection · ${kind.label}',
-              title: _title,
-            ),
-          ),
-          items.when(
-            loading: () => const SliverFillRemaining(
-              hasScrollBody: false,
-              child: Center(child: CircularProgressIndicator()),
-            ),
-            error: (_, _) => SliverFillRemaining(
-              hasScrollBody: false,
-              child: _CollectionLoadError(onRetry: onRetry),
-            ),
-            data: (entries) {
-              if (entries.isEmpty) {
-                return SliverFillRemaining(
-                  hasScrollBody: false,
-                  child: _CollectionEmptyState(kind: kind),
-                );
-              }
-              return SliverPadding(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 42),
-                sliver: SliverList.separated(
-                  itemCount: entries.length,
-                  separatorBuilder: (_, _) => const SizedBox(height: 14),
-                  itemBuilder: (context, index) => _PublishedCollectionCard(
-                    item: entries[index],
-                    kind: kind,
+  ConsumerState<PublishedCollectionScreen> createState() =>
+      _PublishedCollectionScreenState();
+}
+
+class _PublishedCollectionScreenState
+    extends ConsumerState<PublishedCollectionScreen> {
+  final _searchController = TextEditingController();
+  var _query = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _clearSearch() {
+    _searchController.clear();
+    if (_query.isNotEmpty) setState(() => _query = '');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final items = widget.items;
+    final all = items.asData?.value ?? const <PublishedReel>[];
+    // Only worth offering once there is enough to lose something in. A search
+    // field over three songs is a control that can only ever hide two of them.
+    final searchable = all.length >= _searchFrom;
+
+    return Scaffold(
+      appBar: AppBar(title: Text(widget.kind.label)),
+      body: ScreenContainer(
+        child: RefreshIndicator(
+          onRefresh: widget.onReload,
+          child: CustomScrollView(
+            slivers: [
+              SliverToBoxAdapter(
+                child: BrandHeader(
+                  eyebrow: 'Collection · ${widget.kind.label}',
+                  title: _title,
+                ),
+              ),
+              if (searchable)
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+                    child: TextField(
+                      key: const Key('published-collection-search'),
+                      controller: _searchController,
+                      onChanged: (value) =>
+                          setState(() => _query = value.trim()),
+                      textInputAction: TextInputAction.search,
+                      decoration: InputDecoration(
+                        hintText: _searchHint,
+                        prefixIcon: const Icon(Icons.search_rounded),
+                        suffixIcon: _query.isEmpty
+                            ? null
+                            : IconButton(
+                                tooltip: 'Clear search',
+                                onPressed: _clearSearch,
+                                icon: const Icon(Icons.close_rounded),
+                              ),
+                      ),
+                    ),
                   ),
                 ),
-              );
-            },
+              ...switch (items) {
+                AsyncValue(hasValue: false, hasError: true) => [
+                  SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: _CollectionLoadError(onRetry: _reloadNow),
+                  ),
+                ],
+                AsyncValue(hasValue: false) => const [
+                  SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: Center(child: CircularProgressIndicator()),
+                  ),
+                ],
+                _ => _body(all),
+              },
+            ],
           ),
-        ],
+        ),
       ),
-    ),
-  );
+    );
+  }
 
-  String get _title => switch (kind) {
+  void _reloadNow() => unawaited(widget.onReload());
+
+  List<Widget> _body(List<PublishedReel> all) {
+    if (all.isEmpty) {
+      return [
+        SliverFillRemaining(
+          hasScrollBody: false,
+          child: _CollectionEmptyState(kind: widget.kind),
+        ),
+      ];
+    }
+
+    final query = _query.toLowerCase();
+    final visible = query.isEmpty
+        ? all
+        : all
+              .where((item) => publishedReelMatches(item, query))
+              .toList(growable: false);
+    if (visible.isEmpty) {
+      return [
+        SliverFillRemaining(
+          hasScrollBody: false,
+          child: _CollectionEmptyState(kind: widget.kind, searching: true),
+        ),
+      ];
+    }
+
+    // Adverts only over the whole channel. Splicing them through a search
+    // result would put a paid card between somebody and the one thing they
+    // came in and typed the name of.
+    final rows = query.isEmpty
+        ? collectionRowsWithAds(
+            items: visible,
+            ads: ref.watch(collectionAdsProvider),
+          )
+        : List<Object>.of(visible);
+
+    return [
+      SliverPadding(
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 42),
+        sliver: SliverList.separated(
+          itemCount: rows.length,
+          separatorBuilder: (_, _) => const SizedBox(height: 14),
+          itemBuilder: (context, index) {
+            final row = rows[index];
+            if (row is ServedAd) {
+              return SponsoredCard(
+                ad: row,
+                slot: '${widget.kind.name}-$index',
+                margin: EdgeInsets.zero,
+              );
+            }
+            return _PublishedCollectionCard(
+              item: row as PublishedReel,
+              kind: widget.kind,
+            );
+          },
+        ),
+      ),
+    ];
+  }
+
+  /// How long a channel has to be before it is worth searching.
+  static const _searchFrom = 6;
+
+  String get _searchHint => switch (widget.kind) {
+    CollectionKind.music => 'Search songs, singers or dialect',
+    CollectionKind.literature => 'Search stories, writers or dialect',
+    CollectionKind.audiobooks => 'Search readings, readers or dialect',
+    CollectionKind.dictionary => 'Search the dictionary',
+    CollectionKind.video => 'Search videos, makers or dialect',
+  };
+
+  String get _title => switch (widget.kind) {
     CollectionKind.music => 'Hear the rhythm of home.',
     CollectionKind.literature => 'Stories that remember.',
     CollectionKind.audiobooks => 'Listen, learn, and carry it forward.',
     CollectionKind.dictionary => 'Words with a living context.',
     CollectionKind.video => 'Watch it as it happened.',
   };
+}
+
+/// Drops a channel's cache and waits for what replaces it.
+///
+/// One helper rather than four copies: the pair of calls has to stay a pair —
+/// invalidating without awaiting is a refresh that reports itself finished
+/// before it has started.
+Future<void> _reload(
+  WidgetRef ref,
+  StreamProvider<List<PublishedReel>> provider,
+) async {
+  ref.invalidate(provider);
+  // Swallowed rather than rethrown: a pull that fails should put the spinner
+  // away and leave the error state to the screen, which already knows how to
+  // draw one. An exception escaping here reaches the framework as an unhandled
+  // error from a gesture.
+  try {
+    await ref.read(provider.future);
+  } on Object {
+    // The screen redraws from the provider's own error.
+  }
+}
+
+/// Whether a published record answers to [query], which is already lowercased.
+///
+/// Public because the Collection grid asks the same question of the same fields
+/// when it decides whether a channel matches what somebody typed, and two
+/// spellings of "does this song match" is how a search finds a channel that
+/// then shows nothing.
+bool publishedReelMatches(PublishedReel item, String query) {
+  for (final value in [
+    item.title,
+    item.creatorName,
+    item.category,
+    item.description,
+    item.body,
+    item.englishSummary,
+    item.culturalNotes,
+    item.language,
+    item.dialect,
+  ]) {
+    if (value.toLowerCase().contains(query)) return true;
+  }
+  return false;
 }
 
 class _DictionaryCard extends StatelessWidget {

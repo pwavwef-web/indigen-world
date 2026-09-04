@@ -2,6 +2,9 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
+import 'package:indigen_world_mobile/features/ads/collection_ads.dart';
+import 'package:indigen_world_mobile/features/ads/data/served_ad.dart';
+import 'package:indigen_world_mobile/features/ads/widgets/sponsored_card.dart';
 import 'package:indigen_world_mobile/features/collection/apps_and_shop.dart';
 import 'package:indigen_world_mobile/features/collection/widgets/collection_card_surface.dart';
 import 'package:indigen_world_mobile/shared/app_widgets.dart';
@@ -49,15 +52,7 @@ class AppsCollectionScreen extends ConsumerWidget {
                   ),
                 ],
                 AsyncData(value: final list) => [
-                  SliverPadding(
-                    padding: const EdgeInsets.fromLTRB(18, 4, 18, 40),
-                    sliver: SliverList.separated(
-                      itemCount: list.length,
-                      separatorBuilder: (_, _) => const SizedBox(height: 12),
-                      itemBuilder: (context, index) =>
-                          _AppCard(app: list[index]),
-                    ),
-                  ),
+                  _AppRows(apps: list, ads: ref.watch(collectionAdsProvider)),
                 ],
                 AsyncError() => const [
                   SliverFillRemaining(
@@ -79,6 +74,42 @@ class AppsCollectionScreen extends ConsumerWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// The directory, with adverts dealt between the listings.
+///
+/// The one channel where the boundary has to be unmistakable: every card here
+/// is already a link out to a store, so an advert that did not wear the word
+/// "Sponsored" would be indistinguishable from a listing the project chose.
+/// [SponsoredCard] wears it before it says anything else.
+class _AppRows extends StatelessWidget {
+  const _AppRows({required this.apps, required this.ads});
+
+  final List<DirectoryApp> apps;
+  final List<ServedAd> ads;
+
+  @override
+  Widget build(BuildContext context) {
+    final rows = collectionRowsWithAds(items: apps, ads: ads);
+    return SliverPadding(
+      padding: const EdgeInsets.fromLTRB(18, 4, 18, 40),
+      sliver: SliverList.separated(
+        itemCount: rows.length,
+        separatorBuilder: (_, _) => const SizedBox(height: 12),
+        itemBuilder: (context, index) {
+          final row = rows[index];
+          if (row is ServedAd) {
+            return SponsoredCard(
+              ad: row,
+              slot: 'apps-$index',
+              margin: EdgeInsets.zero,
+            );
+          }
+          return _AppCard(app: row as DirectoryApp);
+        },
       ),
     );
   }

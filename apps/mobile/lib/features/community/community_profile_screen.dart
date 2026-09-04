@@ -6,7 +6,6 @@ import 'package:indigen_world_mobile/features/community/chat_screen.dart';
 import 'package:indigen_world_mobile/features/community/community_actions.dart';
 import 'package:indigen_world_mobile/features/community/data/community_models.dart';
 import 'package:indigen_world_mobile/features/community/data/community_providers.dart';
-import 'package:indigen_world_mobile/features/community/edit_community_profile_screen.dart';
 import 'package:indigen_world_mobile/features/community/people_screen.dart';
 import 'package:indigen_world_mobile/features/community/post_detail_screen.dart';
 import 'package:indigen_world_mobile/features/community/widgets/community_avatar.dart';
@@ -241,6 +240,35 @@ class _BannerPlaceholder extends StatelessWidget {
   );
 }
 
+/// What stands where the follow button stands on everybody else's page.
+///
+/// Not nothing, and not a control. A page with an empty right-hand slot reads
+/// as one that failed to load its buttons; a label says whose page this is and
+/// stays honest about being a preview of what a stranger sees.
+class _ThisIsYouPill extends StatelessWidget {
+  const _ThisIsYouPill();
+
+  @override
+  Widget build(BuildContext context) => Container(
+    height: 40,
+    alignment: Alignment.center,
+    padding: const EdgeInsets.symmetric(horizontal: 14),
+    decoration: BoxDecoration(
+      color: context.brand.accent.withValues(alpha: 0.08),
+      borderRadius: BorderRadius.circular(999),
+      border: Border.all(color: context.brand.border),
+    ),
+    child: Text(
+      'This is your page',
+      style: TextStyle(
+        color: context.brand.mutedInk,
+        fontSize: 13,
+        fontWeight: FontWeight.w800,
+      ),
+    ),
+  );
+}
+
 class _ProfileHeader extends ConsumerWidget {
   const _ProfileHeader({required this.profile, required this.isMe});
 
@@ -265,25 +293,17 @@ class _ProfileHeader extends ConsumerWidget {
               // the line they have always been on.
               const SizedBox(width: _kAvatarBox, height: _kAvatarBox),
               const Spacer(),
+              // ── Why your own page has no Edit button ──────────────────
+              // This screen is the *public* page, and it is reached from half
+              // the app — a name in the feed, an actor in a notification, an
+              // avatar in the media viewer. An editor hanging off all of those
+              // is exactly the sprawl the Profile tab was consolidated to end:
+              // the identity is now viewed, edited, previewed and set up in one
+              // place, and this page is what that place previews. So what a
+              // member sees here is what everybody else sees, which is the
+              // whole point of a preview.
               if (isMe)
-                OutlinedButton.icon(
-                  onPressed: () => Navigator.of(context).push(
-                    MaterialPageRoute<void>(
-                      builder: (context) =>
-                          EditCommunityProfileScreen(profile: profile),
-                    ),
-                  ),
-                  style: OutlinedButton.styleFrom(
-                    minimumSize: const Size(0, 40),
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    textStyle: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  icon: const Icon(Icons.edit_outlined, size: 16),
-                  label: const Text('Edit profile'),
-                )
+                const _ThisIsYouPill()
               else ...[
                 // A profile you cannot write to is a wall of numbers. The
                 // message button is the one action that turns reading about

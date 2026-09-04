@@ -344,11 +344,7 @@ class _WordQueueScreenState extends ConsumerState<WordQueueScreen> {
         const SizedBox(height: 9),
         const _PointsNote(),
         const SizedBox(height: 18),
-        _SkipControls(
-          enabled: !state.sending,
-          onSkip: (reason) =>
-              ref.read(wordQueueControllerProvider.notifier).skip(reason),
-        ),
+        _SkipControls(enabled: !state.sending, onSkip: _skip),
         // Said only when it is reassuring. "1 more ready" would draw attention
         // to a buffer that is about to be topped up anyway; a healthy number
         // tells a member on a wavering signal that they can keep going.
@@ -408,20 +404,44 @@ class _WordQueueScreenState extends ConsumerState<WordQueueScreen> {
 
     // The fields have already emptied — the word changed, and the listener in
     // `build` owns that. All that is left is where the member is looking.
-    //
-    // Back to the top, because the next word is up there and a member who has
-    // scrolled down to the send button would otherwise be looking at an empty
-    // form with no question above it. Guarded on `hasClients`: the controller
-    // exists in the tree whether or not this route's list is attached to it,
-    // and animating a controller with no clients throws.
+    await _scrollToTop();
+  }
+
+  /// Passes on the word on screen, and puts the next one in front of the eyes
+  /// that asked for it.
+  ///
+  /// The skip controls sit at the *bottom* of a form that runs well past the
+  /// bottom of a phone, so a member who has scrolled down to reach them is,
+  /// the instant they tap, looking at an empty form with the new word out of
+  /// sight above it — which reads as nothing having happened. A send already
+  /// scrolled back for exactly this reason; a skip changes the word just as
+  /// completely and had been left out.
+  ///
+  /// [WordQueueController.skip] advances the queue before it touches the
+  /// network on purpose, so the next word is already on screen here and the
+  /// scroll is never waiting on a round trip.
+  Future<void> _skip(WordQueueSkipReason reason) async {
+    FocusScope.of(context).unfocus();
+    final recorded = ref
+        .read(wordQueueControllerProvider.notifier)
+        .skip(reason);
+    await _scrollToTop();
+    await recorded;
+  }
+
+  /// Puts the member's eyes back on the question.
+  ///
+  /// Guarded on `hasClients`: the controller exists in the tree whether or not
+  /// this route's list is attached to it, and animating a controller with no
+  /// clients throws.
+  Future<void> _scrollToTop() async {
     final scroll = PrimaryScrollController.maybeOf(context);
-    if (scroll != null && scroll.hasClients) {
-      await scroll.animateTo(
-        0,
-        duration: const Duration(milliseconds: 240),
-        curve: Curves.easeOutCubic,
-      );
-    }
+    if (scroll == null || !scroll.hasClients) return;
+    await scroll.animateTo(
+      0,
+      duration: const Duration(milliseconds: 240),
+      curve: Curves.easeOutCubic,
+    );
   }
 
   /// Hands the saying the member just spotted to the open contribution form.

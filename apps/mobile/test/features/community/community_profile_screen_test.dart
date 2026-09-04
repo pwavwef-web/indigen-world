@@ -60,25 +60,23 @@ void main() {
     expect(find.text('Posts'), findsNWidgets(2));
   });
 
-  testWidgets('your own profile offers Edit profile rather than Follow', (
+  testWidgets('your own page says so, and does not edit itself', (
     tester,
   ) async {
+    // This is the *public* page, reached from half the app — a name in the
+    // feed, an actor in a notification, an avatar in the media viewer. An
+    // editor hanging off all of those is the sprawl the Profile tab was
+    // consolidated to end, so what a member sees here is exactly what a
+    // stranger sees. Editing lives in one place now, and this is what that
+    // place previews.
     final repository = FakeCommunityRepository(profiles: [amina]);
 
     await pumpProfile(tester, repository, uid: 'amina-uid');
 
-    expect(find.text('Edit profile'), findsOneWidget);
+    expect(find.text('This is your page'), findsOneWidget);
+    expect(find.text('Edit profile'), findsNothing);
+    expect(find.byType(EditCommunityProfileScreen), findsNothing);
     expect(find.byType(FollowButton), findsNothing);
-
-    await tester.tap(find.text('Edit profile'));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 400));
-
-    expect(find.byType(EditCommunityProfileScreen), findsOneWidget);
-    expect(
-      find.text('Handles cannot be changed once claimed.'),
-      findsOneWidget,
-    );
   });
 
   testWidgets(

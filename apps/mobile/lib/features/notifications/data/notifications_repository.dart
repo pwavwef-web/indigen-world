@@ -104,6 +104,22 @@ class NotificationsRepository {
     'notificationPrefs.${preference.key}': enabled,
   });
 
+  /// Writes every switch at once.
+  ///
+  /// One update rather than a loop over [setPreference], and not for speed. A
+  /// loop is nine writes that can half-succeed, and half of "mute everything" is
+  /// the exact state a member reached for this control to escape — they would
+  /// have pressed it, watched some of the switches move, and still been woken up
+  /// at midnight. Written as explicit field paths so the rest of
+  /// `notificationPrefs` is untouched if anything is ever added beside it.
+  Future<void> setAllPreferences({
+    required String uid,
+    required bool enabled,
+  }) => _firestore.collection('communityProfiles').doc(uid).update({
+    for (final preference in NotificationPreference.values)
+      'notificationPrefs.${preference.key}': enabled,
+  });
+
   /// Registers this device for push so the fan-out trigger can reach it.
   ///
   /// Keyed by the FCM token itself, so a reinstall or token refresh replaces

@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
+import 'package:indigen_world_mobile/features/ads/collection_ads.dart';
+import 'package:indigen_world_mobile/features/ads/data/served_ad.dart';
+import 'package:indigen_world_mobile/features/ads/widgets/sponsored_card.dart';
 import 'package:indigen_world_mobile/features/collection/collection_data.dart';
 import 'package:indigen_world_mobile/features/explore/published_content.dart';
 import 'package:indigen_world_mobile/features/music/artist_screen.dart';
@@ -194,16 +197,56 @@ class _Library extends ConsumerWidget {
           ),
           SliverPadding(
             padding: EdgeInsets.only(bottom: 24 + musicInset(context)),
-            sliver: SliverList.builder(
-              itemCount: items.length,
-              itemBuilder: (context, index) => MusicTrackRow(
-                item: items[index],
-                onPlay: () => play(items, index),
-              ),
+            sliver: _TrackRows(
+              items: items,
+              ads: ref.watch(collectionAdsProvider),
+              onPlay: (index) => play(items, index),
             ),
           ),
         ],
       ],
+    );
+  }
+}
+
+/// Every song, with adverts dealt between them.
+///
+/// ── Why the rows are indices ──────────────────────────────────────────────
+/// Because a track row does not only draw a song, it starts the queue at a
+/// position — `play(items, index)` — and splicing adverts into the list moves
+/// every position after the first one. Splicing the *indices* instead keeps the
+/// one number that matters exact: row seven may be the fifth song, and it is the
+/// fifth song that plays.
+class _TrackRows extends StatelessWidget {
+  const _TrackRows({
+    required this.items,
+    required this.ads,
+    required this.onPlay,
+  });
+
+  final List<PublishedReel> items;
+  final List<ServedAd> ads;
+  final ValueChanged<int> onPlay;
+
+  @override
+  Widget build(BuildContext context) {
+    final rows = collectionRowsWithAds(
+      items: List<Object>.generate(items.length, (index) => index),
+      ads: ads,
+    );
+    return SliverList.builder(
+      itemCount: rows.length,
+      itemBuilder: (context, row) {
+        final entry = rows[row];
+        if (entry is ServedAd) {
+          return SponsoredCard(ad: entry, slot: 'music-$row');
+        }
+        final index = entry as int;
+        return MusicTrackRow(
+          item: items[index],
+          onPlay: () => onPlay(index),
+        );
+      },
     );
   }
 }

@@ -13,7 +13,7 @@ import 'package:indigen_world_mobile/shared/profile_orb.dart';
 /// The right inset the tab's heading leaves clear.
 double _headingReserve(WidgetTester tester) {
   final ancestors = find.ancestor(
-    of: find.text('The Kassena Collection'),
+    of: find.text('Kasem Collections'),
     matching: find.byType(Padding),
   );
   for (final element in ancestors.evaluate()) {
