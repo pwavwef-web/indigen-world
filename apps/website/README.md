@@ -75,9 +75,14 @@ The repository `firebase.json` serves `apps/website/dist` and rewrites unknown p
 `index.html` so direct route loads work.
 
 ```bash
-npm run check --workspace @indigen-world/website
-firebase deploy --only hosting:indigen-world
+npm run deploy:website
 ```
+
+The Firebase target enforces the same safeguards even when the CLI is invoked directly: it refuses
+to deploy uncommitted tracked changes, a branch other than `main`, or a commit that does not match
+the freshly fetched `origin/main`; it then runs the complete website check and production build
+before uploading. This prevents a stale ignored `dist` directory or an older checkout from replacing
+the current production release.
 
 This app is served by the `indigen-world` Hosting site. Its production custom domains are
 `indigenworld.com` (apex), `www.indigenworld.com` (redirects to the apex) and
