@@ -28,8 +28,28 @@
     <uses-permission android:name="android.permission.WAKE_LOCK"/>
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"/>
+    <!-- ── Backup, and why it is on ─────────────────────────────────────────
+         It used to be off, which was the safe default for an app holding a
+         session and an offline library. Zero-Tap Sign-In changes the trade:
+         the restore key minted by the Restore Credentials API is carried to a
+         member's next handset by the backup transport, and an app excluded
+         from backup is an app that transport carries nothing for. Play
+         requires that restore from April 2027.
+
+         Turning it on is not the same as sending everything. Both rule files
+         are whitelists containing exactly one entry — the app's own
+         preferences — so appearance, reading language and recent searches move
+         to the new phone while the secure store, the Firebase session, the
+         offline index and every downloaded file stay behind. The reasoning for
+         each omission is in res/xml/backup_rules.xml.
+
+         Two files because the grammar changed: dataExtractionRules is read
+         from Android 12, fullBackupContent below it. Dropping either leaves
+         that half of the install base backing up everything by default. -->
     <application
-        android:allowBackup="false"
+        android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
         android:label="@string/app_name"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"

@@ -3,6 +3,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/firebase_ready.dart';
 import 'package:indigen_world_mobile/features/auth/google_firebase_auth_service.dart';
+import 'package:indigen_world_mobile/features/auth/restore_credentials.dart';
 
 export 'package:indigen_world_mobile/features/auth/auth_failure.dart';
 
@@ -10,10 +11,15 @@ export 'package:indigen_world_mobile/features/auth/auth_failure.dart';
 /// offers — email/password, account creation, password reset and Google — and
 /// maps platform exceptions to short, friendly messages.
 class AuthRepository {
-  AuthRepository(this._auth, this._google);
+  AuthRepository(this._auth, this._google, {this.restore});
 
   final FirebaseAuth _auth;
   final GoogleFirebaseAuthService _google;
+
+  /// Zero-Tap Sign-In, when this build has it. Null in tests and whenever
+  /// Firebase is unusable, which is why every use of it is null-guarded rather
+  /// than assumed.
+  final RestoreCredentialService? restore;
 
   User? get currentUser => _auth.currentUser;
 
@@ -54,7 +60,18 @@ class AuthRepository {
   /// connection problem.
   Future<UserCredential> signInWithGoogle() => _guarded(_google.signIn);
 
-  Future<void> signOut() => _google.signOut();
+  /// Ends the session, and the restore key with it.
+  ///
+  /// The key is forgotten *first*, and on purpose. It is the one thing that
+  /// could hand this account back without anybody asking, so a sign-out that
+  /// ended the session but left the key behind would be a sign-out in name
+  /// only — the next launch would silently restore what the member had just
+  /// closed. Forgetting it never fails loudly: a member is signed out either
+  /// way, and the server-side half is cleared again on the next sign-in.
+  Future<void> signOut() async {
+    await restore?.forget();
+    await _google.signOut();
+  }
 
   /// Runs [action], translating [FirebaseAuthException] and Google/Firebase
   /// errors into an [AuthFailure] with a message safe to show a member.
@@ -104,7 +121,11 @@ final googleAuthServiceProvider = Provider<GoogleFirebaseAuthService>(
 final authRepositoryProvider = Provider<AuthRepository?>((ref) {
   final auth = ref.watch(firebaseAuthProvider);
   if (auth == null) return null;
-  return AuthRepository(auth, ref.watch(googleAuthServiceProvider));
+  return AuthRepository(
+    auth,
+    ref.watch(googleAuthServiceProvider),
+    restore: ref.watch(restoreCredentialServiceProvider),
+  );
 });
 
 /// The current signed-in user, or `null` for guests / when Firebase is offline.

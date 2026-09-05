@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  What Android's backup service is allowed to carry off this device, on
+  Android 11 and below. The Android 12+ rules live in data_extraction_rules.xml
+  and say exactly the same thing in the newer grammar; both have to exist or
+  the older devices fall back to "back up everything", which is the opposite of
+  what is wanted here.
+
+  ── Why backup is on at all ───────────────────────────────────────────────
+  It was off. It is on because Zero-Tap Sign-In needs it: the restore key the
+  Restore Credentials API mints is carried to a member's next handset by the
+  backup transport, and an app excluded from backup is an app the transport
+  carries nothing for. Google Play requires that restore from April 2027.
+
+  ── Why almost nothing is listed ──────────────────────────────────────────
+  An <include> list is a whitelist: naming one file excludes every other file,
+  database and preference the app has. That is deliberate, and the one entry
+  below is the app's own preferences — appearance, reading language, data-saver
+  choices, recent searches, Kawuri history. Restoring those is the point of
+  pairing backup with the restore key: the new phone opens in dark mode, in the
+  right language, rather than as a stranger.
+
+  Everything else stays behind, and each omission is a decision:
+
+    * FlutterSecureStorage.xml — encrypted with keys held in this device's
+      hardware keystore. Those keys are not backed up and cannot be, so the
+      restored file would be ciphertext nobody can read. Copying it to another
+      handset achieves nothing and moves a secret for no reason.
+    * The Firebase Auth session store — a live session is bound to the install
+      that obtained it. The whole design here is that the *new* device proves
+      itself with a restore key and is issued its own session.
+    * databases/ — the offline library index. It names downloaded media files
+      by path, and those files are not restored, so a copied index describes a
+      library that is not there.
+    * files/ and external storage — downloaded audio and video. Large, and
+      re-downloadable on demand.
+-->
+<full-backup-content>
+    <include domain="sharedpref" path="FlutterSharedPreferences.xml"/>
+</full-backup-content>

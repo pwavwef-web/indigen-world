@@ -1,0 +1,261 @@
+# Play technical quality: the 2027 thresholds
+
+What Google's August 2026 post — *App quality, memory optimization and secure
+onboarding* — actually requires of this app, what was already true, what
+changed in the codebase, and the one thing only a person with the Play Console
+can finish.
+
+Source: [the announcement][blog] and the threshold page it links to,
+[Technical quality requirements][thresholds].
+
+[blog]: https://android-developers.googleblog.com/2026/08/app-quality-memory-optimization-secure-onboarding.html
+[thresholds]: https://support.google.com/googleplay/android-developer/answer/17492799
+
+Two deadlines, three requirements. Missing them does not get the app removed —
+the stated consequence is **reduced store visibility and publishing
+capability**, which for an app whose members mostly arrive through search is
+close enough to the same thing.
+
+| Requirement | Enforced from | State here |
+| --- | --- | --- |
+| DEX code optimisation ≥ 25% | February 2027 | Already satisfied. Nothing to do. |
+| Memory and bitmap thresholds | February 2027 | Comfortably inside on RSS. Bitmaps now released on background. |
+| Zero-Tap Sign-In restoration | April 2027 | Built. Blocked on one relation in the live `assetlinks.json`. |
+
+---
+
+## 1. DEX code optimisation — already satisfied
+
+The rule: at least **25% coverage across optimisation, shrinking and
+obfuscation**, measured by Play on each uploaded bundle. It only applies at all
+once an app's DEX exceeds **10 MB** (50 MB for games).
+
+Nothing needed changing, and it is worth writing down why so nobody
+"fixes" it later:
+
+- **R8 is on.** The Flutter Gradle plugin sets `isMinifyEnabled` and
+  `isShrinkResources` on the release build type itself, and adds
+  `proguard-android-optimize.txt`, Flutter's own rules, and this app's
+  `android/app/proguard-rules.pro`. It is disabled only by passing
+  `-Pshrink=false`, which nothing in this repo does.
+- **AGP 9** is pinned in `android/settings.gradle.kts`, whose R8 runs the
+  optimised resource shrinker by default.
+- **Repackaging** — the fourth setting Play's optimisation report looks for —
+  is `-repackageclasses ''` in `proguard-rules.pro`.
+
+Where to confirm it: Play Console shows a **DEX code optimisation** insight per
+bundle upload. Read it after the next release rather than trusting this
+paragraph.
+
+## 2. Memory and bitmaps
+
+### 2.1 Dynamic memory (anonymous RSS + swap)
+
+Judged at the 90th percentile, per device RAM tier and per app state. The
+floor case — a 4 GB handset — allows **2 GB foreground** and **1 GB in
+background or while running a user-perceived service**. This is a Flutter app
+whose heaviest surface is a video reel; it is not in the same postcode as those
+numbers. No change.
+
+### 2.2 Bitmap memory — one change
+
+The bitmap rule is stricter and is the one this app could plausibly trip:
+**> 200 MB** while in the background or running a user-perceived service,
+**> 400 MB** cached. The reasoning is that a decoded bitmap no screen is
+drawing cannot become a pixel.
+
+This app is more exposed than most, for a specific reason: the music player
+runs a media foreground service, so it has a long-lived *user-perceived
+service* state that an app without background playback never enters. Somebody
+listening to an audiobook with their phone in their pocket is in that state for
+hours — and Flutter's image cache, up to its 100 MB budget, survives it. The
+engine forwards Android's memory-pressure signals and Flutter empties the cache
+when one arrives, but those mean "the device is running low" and are not sent
+when an app is merely backgrounded.
+
+**Changed:** `apps/mobile/lib/core/image_memory.dart` — an app-lifecycle
+observer attached in `main` that clears the image cache when the app leaves the
+foreground. Images a live widget still holds are untouched; what goes is the
+backlog. The cost of being wrong is a re-decode on the way back in.
+
+## 3. Zero-Tap Sign-In restoration — the real work
+
+The rule: an app that supports sign-in, optional or mandatory, **must sign the
+member back in without a tap** when they move to a new Android device. Mobile
+and tablet, Android 9+. Games are out of scope; so are enterprise and
+permanently-private apps, and Block Store integrations completed before 30
+September 2026. None of those exemptions apply here.
+
+The mechanism is Android's **Restore Credentials API**, and a restore key is a
+real WebAuthn credential — so this needed a real relying party, not a token
+store. That is the shape of what was built.
+
+### 3.1 What was added
+
+| Piece | File |
+| --- | --- |
+| Relying party — five callables, FIDO verification, custom-token issue | `services/functions/src/restore-credentials.ts` |
+| Server-only Firestore collections | `firebase/firestore.rules` |
+| Device half — Credential Manager create / get / clear | `apps/mobile/android/app/src/main/kotlin/world/indigen/mobile/RestoreCredentialChannel.kt` |
+| Credential Manager dependency | `apps/mobile/android/app/build.gradle.kts` |
+| Backup participation and its rules | `AndroidManifest.xml`, `res/xml/backup_rules.xml`, `res/xml/data_extraction_rules.xml` |
+| App half — mint, restore, forget | `apps/mobile/lib/features/auth/restore_credentials.dart` |
+| Forget-on-sign-out | `apps/mobile/lib/features/auth/auth_repository.dart` |
+| `get_login_creds` in the emitted association file (dormant — see §3.5) | `apps/website/scripts/emit-well-known.mjs` |
+
+### 3.2 How a session actually moves
+
+1. A member signs in. `restoreCredentialProvider`, watched by the shell, calls
+   `startRestoreKeyRegistration`; the backend issues WebAuthn creation options
+   bound to a single-use challenge; Credential Manager mints a key whose
+   private half never leaves the device; `finishRestoreKeyRegistration` stores
+   the public half against their uid.
+2. Android's backup service carries the key forward — to the encrypted cloud
+   backup, or over the cable during device-to-device setup.
+3. On the new phone, the first launch finds nobody signed in and calls
+   `startRestoreSignIn`. The system asserts the key. `finishRestoreSignIn`
+   verifies the signature against the stored public key and returns a Firebase
+   **custom token**, which the app exchanges for an ordinary session. Every
+   rule and claim downstream is unchanged.
+4. Signing out forgets both halves, device first.
+
+Nothing about this is visible to a member, and every step of it fails
+harmlessly: a device below Android 9, stale Play services, no screen lock, no
+backup, a fresh install that was never restored. Each of those ends at the
+sign-in screen, which is exactly what happens today.
+
+### 3.3 Backup had to be turned on
+
+`android:allowBackup` was `false`. It is now `true`, because the restore key
+travels by the backup transport and an app excluded from backup is one the
+transport carries nothing for.
+
+That is a real change in posture, so the rules are whitelists with **one entry**
+— `FlutterSharedPreferences.xml`, the app's own preferences. Appearance,
+reading language, data-saver choices, recent searches and Kawuri history follow
+a member to their new phone, which is what Google means by pairing the restore
+key with app data backup. Everything else stays behind, and each omission is a
+decision recorded in `res/xml/backup_rules.xml`:
+
+- **`FlutterSecureStorage.xml`** — encrypted with hardware keystore keys that
+  are not backed up and cannot be. A restored copy is unreadable ciphertext.
+- **The Firebase Auth session store** — a session belongs to the install that
+  obtained it. The new device proves itself with the restore key and is issued
+  its own.
+- **`databases/`** — the offline library index names downloaded files by path,
+  and those files are not restored.
+- **`files/` and external storage** — downloaded audio and video. Large, and
+  re-downloadable.
+
+One consequence worth knowing: because preferences *are* restored, the marker
+recording "this install already minted a key" is kept in the **secure store**
+rather than in preferences. A marker in preferences would arrive on the new
+device claiming a key it does not have, and no key would ever be minted there.
+
+### 3.4 Configuration
+
+Two values in `services/functions/.env`. Neither is set today, so the feature
+reports itself disabled and the app never shows a prompt it cannot honour.
+
+```
+RESTORE_CREDENTIAL_RP_ID=indigenworld.com
+ANDROID_CERTIFICATE_DIGESTS=J5bEcASyi9-sqO8XBPxNl77bERWNgxoGXtuszt3qoj8,IlpLTH53NMIwxyu4xXFOPPuydAAffqh-bf4wBq10vEQ,hU2KXfAX136gOXjM-T62ZBMi1EhkoDvunx_AcSczfUA,o6uNPjXaFW9_SVLX71kTRSfV6ed14G5rhTS79RLTvVw
+```
+
+Those four are the production package's fingerprints from the **live**
+`assetlinks.json`, converted to the base64url form Credential Manager sends as
+`android:apk-key-hash:`. The backend accepts either spelling, so the
+colon-separated hex from Play Console can be pasted in verbatim instead; it is
+written out here only so nobody has to do the conversion by hand.
+
+Nothing is duplicated on purpose: `ANDROID_CERTIFICATE_DIGESTS` is the list
+Play Integrity already checks against, and a second copy is a second thing to
+forget on a key rotation.
+
+**Two consequences of that reuse, both worth knowing before setting it.**
+
+- The variable is currently **unset**, which means Play Integrity's certificate
+  check is being skipped. Setting it switches that check on. With the correct
+  four values that is right and wanted — but it is a behaviour change in a
+  second feature, and Play Integrity should stay on `monitor` while it beds in.
+- Only the production flavour's certificates are listed. A `.dev` or `.staging`
+  build is signed with a different key, so zero-tap will not run on one.
+  Adding those digests would also make Play Integrity accept them, which is a
+  worse trade than testing zero-tap on a production-signed build.
+
+### 3.5 The blocker — one relation on the live association file
+
+**Credential Manager will not mint a restore key until
+`https://indigenworld.com/.well-known/assetlinks.json` names this app under
+`delegate_permission/common.get_login_creds`.** It does not today. Fetched on
+5 September 2026, the live file is complete and correct for App Links — four
+packages, real fingerprints — and every entry claims
+`delegate_permission/common.handle_all_urls` and nothing else.
+
+**That file is not generated from this repo.** It was uploaded out of band and
+Firebase Hosting preserves it across deploys; `apps/website/dist/.well-known/`
+is never written, because `apps/website/config/app-links.json` still has an
+empty `sha256CertFingerprints` and the emitter deliberately writes nothing
+rather than a wrong file.
+
+So the fix is to edit the live file, adding the relation to the production
+entry:
+
+```json
+{
+  "relation": [
+    "delegate_permission/common.handle_all_urls",
+    "delegate_permission/common.get_login_creds"
+  ],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "com.indigenworld.indigen",
+    "sha256_cert_fingerprints": [ ...the four already there, unchanged... ]
+  }
+}
+```
+
+**Do not try to do this by filling in `apps/website/config/app-links.json`.**
+That config names the package `world.indigen.mobile` — the Gradle namespace and
+the non-production application id, not production's `com.indigenworld.indigen`
+— so pasting fingerprints into it would start generating a file that names the
+wrong package *and* overwrite the good live one. The emitter now claims
+`get_login_creds` alongside `handle_all_urls` so that it is correct whenever
+that config is eventually repaired, but repairing it means fixing the package
+name in the same change. See `docs/product/shared-post-links.md`.
+
+Until the live file carries the relation, the app behaves exactly as it did
+before this work: a sign-in screen on every new device.
+
+### 3.6 Deploying it
+
+Three deploys, and they are independent — none of them changes behaviour until
+§3.5 is done, so they can go out in any order and ahead of the fingerprints.
+
+```bash
+npm run build:functions && firebase deploy --only functions --project project-kassena-7e026
+```
+
+**Check `services/functions/functions.yaml` is absent before deploying.** It is
+a generated manifest, and a stale one silently skips triggers it predates —
+which would deploy this release with none of the five new callables and no error
+anywhere. There is no such file in the tree today; delete it if one appears.
+
+```bash
+firebase deploy --only firestore:rules --project project-kassena-7e026
+npm run build:website && npm run deploy:website
+```
+
+The website deploy is listed for completeness and changes nothing today: the
+live `assetlinks.json` is preserved by Hosting rather than emitted from this
+repo, so §3.5 is a change to that file and not a build.
+
+## 4. What to verify after the next release
+
+- Play Console → the **DEX code optimisation** insight on the uploaded bundle
+  reads at or above 25%.
+- Android vitals → the new **dynamic memory** panels and the **out of memory**
+  crash filter, for the user-perceived-service state in particular.
+- A real device-to-device transfer with a member account, once the fingerprints
+  are published. Nothing short of that exercises the restore path end to end —
+  the emulator has no backup transport to carry a key.

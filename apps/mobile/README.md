@@ -276,6 +276,31 @@ to `enforce` is a decision to take on a few weeks of real verdicts, because a
 great many legitimate handsets in Ghana are rooted, sideloaded or on a custom
 ROM.
 
+### Zero-Tap Sign-In
+
+Play requires from April 2027 that an app supporting sign-in restores the
+session on a member's next Android device without a tap. `RestoreCredentialChannel.kt`
+and `features/auth/restore_credentials.dart` do that through the Restore
+Credentials API, against a WebAuthn relying party in
+`services/functions/src/restore-credentials.ts`.
+
+A restore key is a real public-key credential, not a stored token: the private
+half never leaves the device's credential store, the backup transport carries
+it to the next handset, and what the backend accepts is a signature over a
+challenge it issued moments earlier. Which is also why `allowBackup` is now
+`true` — with two whitelisted preference files and nothing else. Everything
+here is silent and every failure ends at the ordinary sign-in screen.
+
+It does not work yet, and the missing piece is one line on the live
+`assetlinks.json`: Credential Manager refuses to mint a key until that file
+claims `delegate_permission/common.get_login_creds` for this package, and today
+it claims only `handle_all_urls`. That file is maintained out of band and
+preserved by Hosting — it is **not** generated from
+`apps/website/config/app-links.json`, which still names the wrong package — so
+this is an edit to the live file, not a build. The whole picture, and the other
+two 2027 thresholds, is in
+[`docs/product/play-technical-quality-2027.md`](../../docs/product/play-technical-quality-2027.md).
+
 ### Community feed
 
 The Community tab is a live Firestore + Storage surface, not a local preview.

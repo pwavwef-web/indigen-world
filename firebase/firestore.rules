@@ -761,6 +761,31 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // ---- Zero-Tap Sign-In: restore keys ------------------------------------
+    //
+    // Everything the Restore Credentials flow keeps, and none of it is a
+    // client's to touch. `_restoreCredentials/{uid}` holds the *public* half of
+    // a member's restore key — harmless to read in the abstract, which is
+    // exactly why it is worth being strict about: the collection next to it
+    // maps a credential id back to a uid, and a phone that could read that map
+    // could enumerate accounts from credential ids it found somewhere else.
+    // `_restoreCredentialChallenges` is anti-replay state whose whole value is
+    // that only the server decides when a challenge is spent.
+    //
+    // Written and read exclusively by restore-credentials.ts through the Admin
+    // SDK. Named here rather than left to the default deny because a
+    // collection that authenticates people deserves to be findable in this
+    // file.
+    match /_restoreCredentials/{uid} {
+      allow read, write: if false;
+    }
+    match /_restoreCredentialIndex/{credentialId} {
+      allow read, write: if false;
+    }
+    match /_restoreCredentialChallenges/{challengeId} {
+      allow read, write: if false;
+    }
+
     // ---- Advertising campaigns: owner reads own, server writes everything ---
     //
     // A campaign is money. Its status, what it has been charged, whether it is

@@ -84,6 +84,13 @@ export {
 } from './studio-video.js';
 export { startIntegrityCheck, verifyDeviceIntegrity } from './play-integrity.js';
 export {
+  startRestoreKeyRegistration,
+  finishRestoreKeyRegistration,
+  startRestoreSignIn,
+  finishRestoreSignIn,
+  forgetRestoreKey,
+} from './restore-credentials.js';
+export {
   getSubscriptionOptions,
   preparePlayPurchase,
   registerPlayPurchase,

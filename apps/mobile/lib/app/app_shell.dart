@@ -6,6 +6,7 @@ import 'package:indigen_world_mobile/app/app_theme.dart';
 import 'package:indigen_world_mobile/app/shell_chrome.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/core/deep_links.dart';
+import 'package:indigen_world_mobile/features/auth/restore_credentials.dart';
 import 'package:indigen_world_mobile/features/collection/collection_screen.dart';
 import 'package:indigen_world_mobile/features/community/community_screen.dart';
 import 'package:indigen_world_mobile/features/contribute/contribute_screen.dart';
@@ -177,6 +178,13 @@ class _AppShellState extends ConsumerState<AppShell>
     // And the BillingClient connection takes a moment to settle, which is a
     // moment better spent before somebody taps Subscribe than after.
     ref.watch(billingServiceProvider);
+    // Zero-Tap Sign-In, which Play requires from April 2027. Two jobs, and
+    // which one runs depends only on whether anybody is signed in: mint a
+    // restore key for a member who is, or — once per launch — try to be handed
+    // a session by one carried over from their last phone. Both are silent and
+    // both fail harmlessly, so this sits with the other shell-level concerns
+    // rather than in front of a member as a step.
+    ref.watch(restoreCredentialProvider);
     // A tapped push may arrive before any route can consume it, so it is parked
     // in a provider and routed from here once there is a router to route with.
     ref.listen<String?>(pendingPushRouteProvider, (_, route) {

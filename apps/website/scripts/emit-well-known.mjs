@@ -63,7 +63,17 @@ function emitAssetLinks() {
   write(
     "assetlinks.json",
     packageNames.map((packageName) => ({
-      relation: ["delegate_permission/common.handle_all_urls"],
+      // Two permissions, one statement. `handle_all_urls` is what lets a
+      // shared indigenworld.com/post/<id> link open in the app instead of a
+      // browser tab. `get_login_creds` is what lets the app hold a credential
+      // scoped to this domain — the restore key behind Zero-Tap Sign-In, which
+      // Google Play requires from April 2027. Without it Credential Manager
+      // refuses to mint the key, and the sign-in screen appears on every new
+      // device exactly as it does today.
+      relation: [
+        "delegate_permission/common.handle_all_urls",
+        "delegate_permission/common.get_login_creds",
+      ],
       target: {
         namespace: "android_app",
         package_name: packageName,

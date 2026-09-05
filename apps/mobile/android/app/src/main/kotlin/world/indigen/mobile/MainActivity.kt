@@ -51,6 +51,11 @@ class MainActivity : AudioServiceActivity() {
         // activity in it would leak one on every rotation.
         PlayIntegrityChannel(applicationContext)
             .attachTo(flutterEngine.dartExecutor.binaryMessenger)
+        // Zero-Tap Sign-In. This one does want the activity — Credential
+        // Manager is allowed to put UI on screen — and holds it weakly for the
+        // same reason the line above avoids holding it at all.
+        RestoreCredentialChannel(this)
+            .attachTo(flutterEngine.dartExecutor.binaryMessenger)
     }
 
     private fun signature(): Map<String, Any?> {

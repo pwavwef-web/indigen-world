@@ -124,6 +124,25 @@ dependencies {
     // device recognition, recent activity, Play Protect state and app access
     // risk — which is what services/functions/src/play-integrity.ts judges.
     implementation("com.google.android.play:integrity:1.6.0")
+
+    // Zero-Tap Sign-In, used by RestoreCredentialChannel.kt.
+    //
+    // Play requires from April 2027 that an app supporting sign-in restores the
+    // session on a new device without a tap, and the Restore Credentials API is
+    // how that is done. The restore classes — CreateRestoreCredentialRequest,
+    // GetRestoreCredentialOption, RestoreCredential — went stable in
+    // androidx.credentials 1.5.0; this is on the current stable line.
+    //
+    // `google_sign_in` already pulls Credential Manager in transitively for the
+    // account sheet, but at whatever version that plugin pins. Declaring it
+    // here means the restore APIs are present by contract rather than by
+    // whatever a plugin upgrade happens to bring, and Gradle resolves the two
+    // to the higher version either way.
+    //
+    // The -play-services-auth artifact is the provider half: without it
+    // Credential Manager has an API and no-one to answer it on most devices.
+    implementation("androidx.credentials:credentials:1.6.0")
+    implementation("androidx.credentials:credentials-play-services-auth:1.6.0")
 }
 
 kotlin {

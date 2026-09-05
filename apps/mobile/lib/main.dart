@@ -12,6 +12,7 @@ import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/core/device_integrity.dart';
 import 'package:indigen_world_mobile/core/firebase_bootstrap.dart';
 import 'package:indigen_world_mobile/core/firebase_ready.dart';
+import 'package:indigen_world_mobile/core/image_memory.dart';
 import 'package:indigen_world_mobile/core/theme_mode.dart';
 import 'package:indigen_world_mobile/data/local/app_database.dart';
 import 'package:indigen_world_mobile/data/local/legacy_preferences_migration.dart';
@@ -22,6 +23,12 @@ import 'package:indigen_world_mobile/features/rating/rating_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Hand decoded images back the moment the app stops being looked at. Play
+  // measures bitmap memory per app state from February 2027, and this app
+  // keeps a media foreground service alive for hours at a time — see
+  // core/image_memory.dart for why Flutter does not do this on its own.
+  ImageMemoryTrimmer().attach();
   final database = AppDatabase();
   await migrateLegacyPreferences(database);
 

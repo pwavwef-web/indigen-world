@@ -35,7 +35,17 @@
     "",
     "An empty list means the file is not generated and not deployed, which is",
     "deliberate: a malformed or wrong association file makes Android cache a",
-    "verification failure, and no link opens the app until the cache expires."
+    "verification failure, and no link opens the app until the cache expires.",
+    "",
+    "TWO FEATURES NOW DEPEND ON THIS LIST, not one. Alongside App Links, the",
+    "emitted file claims delegate_permission/common.get_login_creds, which is",
+    "what lets the app hold a credential scoped to this domain. That is the",
+    "restore key behind Zero-Tap Sign-In — required by Google Play from April",
+    "2027 — so while this list is empty the app cannot mint one and every new",
+    "device shows the sign-in screen. The same fingerprints also belong in",
+    "ANDROID_CERTIFICATE_DIGESTS in services/functions/.env, which is the",
+    "server side of the same statement; the backend accepts them in either the",
+    "colon-hex or the base64url spelling."
   ],
   "android": {
     "packageNames": ["world.indigen.mobile"],
