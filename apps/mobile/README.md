@@ -291,14 +291,15 @@ challenge it issued moments earlier. Which is also why `allowBackup` is now
 `true` — with two whitelisted preference files and nothing else. Everything
 here is silent and every failure ends at the ordinary sign-in screen.
 
-It does not work yet, and the missing piece is one line on the live
-`assetlinks.json`: Credential Manager refuses to mint a key until that file
-claims `delegate_permission/common.get_login_creds` for this package, and today
-it claims only `handle_all_urls`. That file is maintained out of band and
-preserved by Hosting — it is **not** generated from
-`apps/website/config/app-links.json`, which still names the wrong package — so
-this is an edit to the live file, not a build. The whole picture, and the other
-two 2027 thresholds, is in
+The domain side is done: `indigenworld.com` claims
+`delegate_permission/common.get_login_creds` for this package as of
+2026-09-05. That took overriding a file Firebase Hosting had been generating on
+its own — the site now serves its own `assetlinks.json` from
+`apps/website/config/app-links.json`, which means a new flavour or a rotated
+signing key has to be added there by hand from now on. What is still missing is
+two values in `services/functions/.env` and a functions deploy; until then the
+callables report `enabled: false`. The whole picture, and the other two 2027
+thresholds, is in
 [`docs/product/play-technical-quality-2027.md`](../../docs/product/play-technical-quality-2027.md).
 
 ### Community feed
