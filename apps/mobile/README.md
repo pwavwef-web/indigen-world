@@ -296,9 +296,10 @@ The domain side is done: `indigenworld.com` claims
 2026-09-05. That took overriding a file Firebase Hosting had been generating on
 its own — the site now serves its own `assetlinks.json` from
 `apps/website/config/app-links.json`, which means a new flavour or a rotated
-signing key has to be added there by hand from now on. What is still missing is
-two values in `services/functions/.env` and a functions deploy; until then the
-callables report `enabled: false`. The whole picture, and the other two 2027
+signing key has to be added there by hand from now on. The backend is live too: the five callables
+deployed on 2026-09-05 and `startRestoreSignIn` answers `enabled: true` against
+`indigenworld.com`. What has not been proved is the part no emulator can prove
+— an actual device-to-device transfer carrying a key across. The whole picture, and the other two 2027
 thresholds, is in
 [`docs/product/play-technical-quality-2027.md`](../../docs/product/play-technical-quality-2027.md).
 

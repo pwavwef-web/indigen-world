@@ -20,7 +20,7 @@ close enough to the same thing.
 | --- | --- | --- |
 | DEX code optimisation ≥ 25% | February 2027 | Already satisfied. Nothing to do. |
 | Memory and bitmap thresholds | February 2027 | Comfortably inside on RSS. Bitmaps now released on background. |
-| Zero-Tap Sign-In restoration | April 2027 | Built and claimed. Two env values left. |
+| Zero-Tap Sign-In restoration | April 2027 | **Live.** Deployed and answering; needs a real device transfer to prove end to end. |
 
 ---
 
@@ -152,37 +152,38 @@ recording "this install already minted a key" is kept in the **secure store**
 rather than in preferences. A marker in preferences would arrive on the new
 device claiming a key it does not have, and no key would ever be minted there.
 
-### 3.4 Configuration
+### 3.4 Configuration — set, 2026-09-05
 
-Two values in `services/functions/.env`. Neither is set today, so the feature
-reports itself disabled and the app never shows a prompt it cannot honour.
-**With §3.5 done, this is the only thing left.**
+Both values are set in `services/functions/.env` and deployed:
 
 ```
 RESTORE_CREDENTIAL_RP_ID=indigenworld.com
-ANDROID_CERTIFICATE_DIGESTS=J5bEcASyi9-sqO8XBPxNl77bERWNgxoGXtuszt3qoj8,IlpLTH53NMIwxyu4xXFOPPuydAAffqh-bf4wBq10vEQ,hU2KXfAX136gOXjM-T62ZBMi1EhkoDvunx_AcSczfUA,o6uNPjXaFW9_SVLX71kTRSfV6ed14G5rhTS79RLTvVw
+ANDROID_CERTIFICATE_DIGESTS=<the four production certificates, base64url>
 ```
 
-Those four are the production package's fingerprints from the **live**
-`assetlinks.json`, converted to the base64url form Credential Manager sends as
-`android:apk-key-hash:`. The backend accepts either spelling, so the
-colon-separated hex from Play Console can be pasted in verbatim instead; it is
-written out here only so nobody has to do the conversion by hand.
+Confirmed against production rather than assumed — `startRestoreSignIn` answers
+`enabled: true`, issues a challenge and scopes it to `indigenworld.com`, and
+`finishRestoreSignIn` refuses an unknown challenge with `FAILED_PRECONDITION`
+before it looks anything up:
 
-Nothing is duplicated on purpose: `ANDROID_CERTIFICATE_DIGESTS` is the list
-Play Integrity already checks against, and a second copy is a second thing to
-forget on a key rotation.
+```bash
+curl -X POST https://us-central1-project-kassena-7e026.cloudfunctions.net/startRestoreSignIn   -H 'Content-Type: application/json' -d '{"data":{}}'
+```
 
-**Two consequences of that reuse, both worth knowing before setting it.**
+The four digests are the production package's own certificates, taken from the
+association file and converted to the base64url form Credential Manager sends
+as `android:apk-key-hash:`. The backend accepts colon-hex too.
 
-- The variable is currently **unset**, which means Play Integrity's certificate
-  check is being skipped. Setting it switches that check on. With the correct
-  four values that is right and wanted — but it is a behaviour change in a
-  second feature, and Play Integrity should stay on `monitor` while it beds in.
-- Only the production flavour's certificates are listed. A `.dev` or `.staging`
-  build is signed with a different key, so zero-tap will not run on one.
-  Adding those digests would also make Play Integrity accept them, which is a
-  worse trade than testing zero-tap on a production-signed build.
+**Enabling this switched on a second thing, by design.**
+`ANDROID_CERTIFICATE_DIGESTS` is the list Play Integrity checks against, reused
+rather than duplicated, and it was empty — so that check was being skipped
+entirely. It is now active. `PLAY_INTEGRITY_MODE` is `monitor`, so verdicts are
+recorded and nothing is refused; `startIntegrityCheck` was re-checked after the
+deploy and still answers. Read the verdicts before considering `enforce`.
+
+Only the production flavour's certificates are listed, so a `.dev` or
+`.staging` build will not do zero-tap. Adding those digests would also make
+Play Integrity accept them, which is the worse trade.
 
 ### 3.5 The association file — done, and not where anyone thought it was
 
