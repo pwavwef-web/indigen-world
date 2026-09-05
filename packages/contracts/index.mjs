@@ -7,6 +7,11 @@
 //   import lexicalEntry from '@indigen-world/contracts/schemas/lexical-entry.schema.json';
 
 import common from './schemas/common.schema.json' with { type: 'json' };
+import kasemEvidence from './schemas/kasem-evidence.schema.json' with { type: 'json' };
+import kasemContext from './schemas/kasem-context.schema.json' with { type: 'json' };
+import kasemReview from './schemas/kasem-review.schema.json' with { type: 'json' };
+import kasemDatasetRelease from './schemas/kasem-dataset-release.schema.json' with { type: 'json' };
+import kasemGrammarClaim from './schemas/kasem-grammar-claim.schema.json' with { type: 'json' };
 import community from './schemas/community.schema.json' with { type: 'json' };
 import language from './schemas/language.schema.json' with { type: 'json' };
 import dialect from './schemas/dialect.schema.json' with { type: 'json' };
@@ -27,6 +32,11 @@ import notification from './schemas/notification.schema.json' with { type: 'json
 import platformConfiguration from './schemas/platform-configuration.schema.json' with { type: 'json' };
 
 export {
+  kasemGrammarClaim,
+  kasemEvidence,
+  kasemContext,
+  kasemReview,
+  kasemDatasetRelease,
   common,
   community,
   language,
@@ -50,6 +60,11 @@ export {
 
 /** All entity schemas keyed by camelCase entity name (excludes the shared common definitions). */
 export const schemas = {
+  kasemGrammarClaim,
+  kasemEvidence,
+  kasemContext,
+  kasemReview,
+  kasemDatasetRelease,
   community,
   language,
   dialect,

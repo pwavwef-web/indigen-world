@@ -2,18 +2,28 @@
   {
     "id": "indefiniteness",
     "topic": "indefiniteness",
-    "englishTriggers": ["a", "an"],
+    "englishTriggers": [
+      "a",
+      "an"
+    ],
     "title": "Saying \"a\" — the plain form",
-    "status": "published",
-    "summary": "There is no separate Kasem word for \"a\" or \"an\". A noun is made indefinite by the particle mo, which follows the noun and does not change.",
-    "pattern": "<noun> mo",
+    "status": "draft",
+    "summary": "The earlier blanket noun + mo indefiniteness rule is under review. No automatic indefinite form should be generated from it.",
+    "pattern": "",
     "examples": [],
-    "note": "Because the particle is invariant, the app never asks a contributor for this form and never stores it. It is computed from the headword wherever it is shown — see indefiniteForm() in services/functions/src/kasem-morphology.ts."
+    "note": "Speaker sentence evidence and linguistic descriptions of focus challenge the earlier generalization. Preserve recorded noun forms; do not extend either an indefinite or a focus analysis to every occurrence.",
+    "claimStatus": "disputed",
+    "version": 2,
+    "evidenceRefs": [
+      "https://www.lingref.com/cpp/wccfl/42/paper3804.pdf"
+    ]
   },
   {
     "id": "definiteness",
     "topic": "definiteness",
-    "englishTriggers": ["the"],
+    "englishTriggers": [
+      "the"
+    ],
     "title": "Saying \"the\" — it is part of the noun",
     "status": "published",
     "summary": "There is no Kasem word for \"the\". Definiteness is marked on the noun itself, and unlike the indefinite mo it changes from noun to noun according to the noun's class. So \"the\" cannot be translated on its own; what can be recorded is the definite form of each noun, which is what the dictionary now collects.",
@@ -35,7 +45,17 @@
   {
     "id": "prepositions",
     "topic": "preposition",
-    "englishTriggers": ["of", "to", "in", "on", "at", "for", "with", "from", "by"],
+    "englishTriggers": [
+      "of",
+      "to",
+      "in",
+      "on",
+      "at",
+      "for",
+      "with",
+      "from",
+      "by"
+    ],
     "title": "English prepositions",
     "status": "draft",
     "summary": "",
@@ -46,7 +66,11 @@
   {
     "id": "conjunctions",
     "topic": "conjunction",
-    "englishTriggers": ["and", "or", "but"],
+    "englishTriggers": [
+      "and",
+      "or",
+      "but"
+    ],
     "title": "Joining words",
     "status": "draft",
     "summary": "",
@@ -57,12 +81,63 @@
   {
     "id": "copula",
     "topic": "copula",
-    "englishTriggers": ["is", "are", "am", "was", "were", "be"],
-    "title": "Saying \"is\"",
+    "englishTriggers": [
+      "is",
+      "are",
+      "am",
+      "was",
+      "were",
+      "be"
+    ],
+    "title": "Saying \"is\" - often there is no verb \"to be\" at all",
     "status": "draft",
-    "summary": "",
+    "summary": "English uses \"is\" for everything. Kasem does not, and for a physical state it does something quite different: the sensation becomes the subject of the clause and the person who feels it becomes the object. \"The big boy is hungry\" is built as \"hunger has the big boy\". There is no word standing where the English \"is\" stands, so \"is\" cannot be translated on its own - what can be recorded is how each kind of statement is built.",
+    "pattern": "<sensation> mo <verb> <experiencer>",
+    "examples": [
+      {
+        "kasem": "kana mo jege bakeira kamunu kom",
+        "english": "the big boy is hungry",
+        "note": "word for word: hunger PART has boy big the"
+      },
+      {
+        "kasem": "kana mo jege ne",
+        "english": "I am hungry",
+        "note": "word for word: hunger PART has me. `ne` is the object form - `a`/`amo` is \"I\" as a subject"
+      }
+    ],
+    "note": "Draft scoped to the contributed hunger examples. Other physical states and other uses of English be require their own evidence."
+  },
+  {
+    "id": "focus",
+    "topic": "focus",
+    "englishTriggers": [],
+    "title": "The particle `mo`",
+    "status": "draft",
+    "summary": "Linguistic research describes mo as a focus marker. Applicability to the project dialects and individual constructions requires reviewed contextual evidence.",
     "pattern": "",
     "examples": [],
-    "note": "Deliberately empty. \"is\" is rank 7 and unanswerable as a single word; the triggers retire those rows while the explanation waits for somebody who can write it."
+    "note": "Dropping mo does not by itself establish its function. Focus marking may be required in a context. Do not infer the segmentation of amo or a universal placement rule from spelling alone.",
+    "claimStatus": "hypothesis",
+    "version": 2,
+    "evidenceRefs": [
+      "https://www.lingref.com/cpp/wccfl/42/paper3804.pdf"
+    ]
+  },
+  {
+    "id": "word-order",
+    "topic": "word-order",
+    "englishTriggers": [],
+    "title": "The order of a Kasem clause",
+    "status": "draft",
+    "summary": "Subject, then verb, then object, as in English. Inside a noun phrase the order is the other way round from English: the adjective follows its noun, and the definite marker comes last of all. So \"the big boy\" is `bakeira kamunu kom` - boy, big, the. Knowing the words is not knowing the sentence, which is why the project records whole sentences with a word-for-word line under them.",
+    "pattern": "<noun> <adjective> <definite marker>",
+    "examples": [
+      {
+        "kasem": "bakeira kamunu kom",
+        "english": "the big boy",
+        "note": "word for word: boy big the"
+      }
+    ],
+    "note": "Draft, from a single contributed sentence. One noun phrase is enough to show the order and nowhere near enough to know what happens with two adjectives, with a possessor, or in the plural."
   }
 ]

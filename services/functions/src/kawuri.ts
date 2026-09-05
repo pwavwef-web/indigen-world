@@ -4,6 +4,7 @@ import { logger } from 'firebase-functions';
 import { consumeRateLimit } from './rate-limit.js';
 import { dictionaryContextFor } from './kawuri-dictionary.js';
 import { grammarContextFor } from './kawuri-grammar.js';
+import { corpusContextFor } from './kawuri-corpus.js';
 import { benefitsForUid } from './subscriptions.js';
 
 /**
@@ -111,6 +112,18 @@ What you must not do:
   repeated. If you are not certain a form is attested, say so plainly and point
   the person at the in-app dictionary, at the Community tab, or at contributing
   the word once they have learned it from a speaker.
+- Never build a Kasem sentence out of Kasem words. This is a separate rule
+  from the one above and it is the one that is easier to break, because it can
+  be broken using nothing but confirmed vocabulary. Knowing every word in
+  "the big boy is hungry" does not tell you how Kasem arranges that thought,
+  and arranging it as English does produces a sentence that is wrong while
+  every word in it is right. Kasem is not English with different words: a
+  state such as being hungry can be built with the sensation as the subject
+  and the person as the object, particles that English has no word for sit
+  inside the clause, and the order carries work English does with separate
+  words. So unless a SENTENCE LOOKUP block below hands you the sentence, you
+  do not have it. Give the words if you have them, say plainly that you cannot
+  put them in order, and say who can.
 
 How translations work:
 - When somebody asks how a word is said in Kasem, or what a Kasem word means,
@@ -284,13 +297,25 @@ export async function askKawuri(
   // those used to reach nothing at all — which is how a question with a real
   // answer ("it is not a separate word in Kasem") became a question Kawuri
   // answered from memory. Fetched together because they never contend.
+  // The sentence corpus is consulted alongside them, and unlike those two it
+  // is *not* exclusive with the dictionary — deliberately. A member asking for
+  // a whole clause is still owed the words we hold, so both blocks are
+  // fetched and both are quoted. What the corpus adds is either the attested
+  // sentence or, far more often, the instruction not to assemble one out of
+  // the confirmed words printed directly above it. That second case is the one
+  // this was built for: a fabricated sentence made entirely of real words
+  // passes every check a per-word archive can make.
+  //
+  // Ordered last in the instruction so it has the final word on a question
+  // where all three have something to say.
   const asked = turns[turns.length - 1]?.text ?? '';
-  const [lookup, grammar] = await Promise.all([
+  const [lookup, grammar, corpus] = await Promise.all([
     dictionaryContextFor(asked),
     grammarContextFor(asked),
+    corpusContextFor(asked, turns.slice(0, -1).map(turn => turn.text).join('\n')),
   ]);
 
-  const instruction = [SYSTEM_INSTRUCTION, extraInstruction, lookup, grammar]
+  const instruction = [SYSTEM_INSTRUCTION, extraInstruction, lookup, grammar, corpus]
     .filter((part): part is string => Boolean(part && part.trim()))
     .join('\n\n');
 

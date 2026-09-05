@@ -1,4 +1,5 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:indigen_world_mobile/domain/kasem_orthography.dart';
 import 'package:indigen_world_mobile/features/contribute/words/data/kasem_morphology.dart';
 
 part 'dictionary_entry.freezed.dart';
@@ -125,24 +126,31 @@ abstract class DictionaryEntry with _$DictionaryEntry {
     /// the common one — the class inventory is being built from contributed
     /// forms rather than assumed in advance. It never means "no class".
     @Default('') String nounClass,
-    @Default(true) bool isSynthetic,
+
+    /// Which sense of this spelling the entry is — 1, 2, 3 — or 0 where none
+    /// has been assigned.
+    ///
+    /// ── Zero, never one, for "not numbered" ─────────────────────────────
+    /// A default of 1 would be the natural-looking choice and it is a trap: it
+    /// says "this is the first of several" about every entry in the archive,
+    /// including the thousands that are the only word under their spelling.
+    /// Zero says nothing, which is the truth for a row the backfill has not
+    /// reached, and [homographDisplay] draws nothing for it.
+    ///
+    /// The number is assigned once, on the server, at first publication, and
+    /// is never reassigned — see `services/functions/src/kasem-homographs.ts`.
+    /// It is an identity rather than a fact about the language: a learner
+    /// writing `mo²` in their notes is making a citation, and a citation whose
+    /// target moves is worse than none. Whether it is *shown* is the derived
+    /// half, and depends on how many entries share the headword.
+    @Default(0) int homographIndex,
   }) = _DictionaryEntry;
 
   factory DictionaryEntry.fromJson(Map<String, Object?> json) =>
       _$DictionaryEntryFromJson(json);
 
-  /// The plain form of a noun: the headword, then `mo`.
-  ///
-  /// ── Derived, and deliberately not a stored field ─────────────────────
-  /// The indefinite is invariant in Kasem, which makes it a rule rather than
-  /// per-entry data. Computing it here means it is right for every noun in the
-  /// collection the moment this ships — including the thousands contributed
-  /// long before anybody thought to ask — with no backfill and nothing to
-  /// migrate, and it means refining the rule is one edit rather than a
-  /// rewrite of every row.
-  ///
-  /// Null for anything that is not a noun, so a caller renders the line by
-  /// asking for it rather than by re-testing the word class itself.
+  /// No form is generated while the blanket indefinite rule is disputed.
+  /// The nullable API keeps existing callers from displaying unsupported forms.
   String? get indefinite {
     if (partOfSpeech.trim().toLowerCase() != 'noun') return null;
     final form = indefiniteForm(headword);
@@ -216,23 +224,46 @@ abstract class DictionaryEntry with _$DictionaryEntry {
   /// dictionary, and typing it returned nothing, because the field held
   /// "water / rain water" only until the parser split it and then held the
   /// first piece.
+  ///
+  /// ── And every letter is reachable from a phone keyboard ──────────────
+  /// The comparison used to be `toLowerCase().contains()`, which is correct
+  /// for English and unusable for Kasem: 785 of the 1200 published entries
+  /// carry a letter no stock keyboard can produce. A learner who had heard
+  /// `dɩ`, could not type ɩ, and typed `di` was told the dictionary had no
+  /// matching words — for two thirds of the archive the search box did not
+  /// work. [foldForSearch] is what makes the two comparable.
   bool matches(String query) {
-    final normalized = query.trim().toLowerCase();
-    if (normalized.isEmpty) return true;
-    if (headword.toLowerCase().contains(normalized)) return true;
-    if (translation.toLowerCase().contains(normalized)) return true;
-    if (dialect.toLowerCase().contains(normalized)) return true;
-    for (final meaning in translations) {
-      if (meaning.toLowerCase().contains(normalized)) return true;
-    }
-    // And every Kasem rendering. Somebody who knows the word as `nyu` must
-    // find it even when the entry is filed under `nia`, or the second and
-    // third answers a contributor gave are searchable by nobody.
-    for (final rendering in renderings) {
-      if (rendering.toLowerCase().contains(normalized)) return true;
-    }
-    return false;
+    return rankFor(foldForSearch(query)) != null;
   }
+
+  /// How well this entry answers an already-folded query, lower being better,
+  /// or null when it does not answer it at all.
+  ///
+  /// Exposed beside [matches] so a list can order its results rather than only
+  /// filter them, and so the folding of the query happens once per keystroke
+  /// instead of once per entry per keystroke — at 1200 entries that difference
+  /// is the whole cost of the search.
+  int? rankFor(String foldedQuery) => searchRank(
+    foldedQuery: foldedQuery,
+    headword: headword,
+    renderings: renderings,
+    // The split list where there is one, and the raw gloss where there is not
+    // — the same fallback [primaryTranslation] makes, so a legacy row whose
+    // meanings were never split is still searchable by what it says.
+    translations: translations.isEmpty ? [translation] : translations,
+    dialect: dialect,
+    definiteForm: definiteForm,
+    pluralForm: pluralForm,
+  );
+
+  /// The headword in Kasem alphabetical order, where ɛ files after e, ɩ after
+  /// i, ŋ after n, ɔ after o and ʋ after u.
+  ///
+  /// Sorting on the plain string put every word beginning with an extended
+  /// letter after z, because those code points are all above U+0100 — several
+  /// hundred entries in a heap past the end of the alphabet, where a reader
+  /// scrolling to find them never looks.
+  String get sortKey => collationKey(headword);
 }
 
 /// The most meanings one entry may carry, and the longest any one of them may

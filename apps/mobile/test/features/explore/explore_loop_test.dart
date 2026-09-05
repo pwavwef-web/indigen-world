@@ -20,7 +20,6 @@ import 'package:indigen_world_mobile/features/ads/data/served_ad.dart';
 import 'package:indigen_world_mobile/features/community/data/community_models.dart';
 import 'package:indigen_world_mobile/features/community/data/community_providers.dart';
 import 'package:indigen_world_mobile/features/explore/explore_feed.dart';
-import 'package:indigen_world_mobile/features/explore/explore_screen.dart';
 import 'package:indigen_world_mobile/features/explore/published_content.dart';
 import 'package:indigen_world_mobile/features/explore/reel_view.dart';
 
@@ -266,15 +265,31 @@ void main() {
       }
     });
 
-    test('the curated preview never loops', () {
-      // Three illustrative cards meet the loop minimum on length alone, so what
-      // keeps them from repeating for ever is that they are not live — as well
-      // as the screen, which hands the preview no onNearEnd at all.
-      expect(kExplorePreviewReels, hasLength(3));
-      expect(kExplorePreviewReels.every((reel) => !reel.isLive), isTrue);
+    test('nothing that is not live is ever looped', () {
+      // This used to be stated against `kExplorePreviewReels` — three invented
+      // creators with fabricated engagement counts, shown to every guest on
+      // first launch. Those are gone, and the rule they were the example of is
+      // not: a feed of non-live cards meets the loop minimum on length alone,
+      // and what stops it repeating for ever is that `loopedExploreFeed`
+      // refuses to queue anything that is not live.
+      final notLive = <Reel>[
+        for (var index = 0; index < 3; index++)
+          Reel(
+            id: 'not-live-$index',
+            imageUrl: '',
+            label: 'LABEL',
+            title: 'Title $index',
+            creator: '@nobody',
+            initials: 'NB',
+            caption: '',
+            sound: '',
+            credit: '',
+          ),
+      ];
+      expect(notLive.every((reel) => !reel.isLive), isTrue);
       expect(
         loopedExploreFeed(
-          content: kExplorePreviewReels,
+          content: notLive,
           ads: const [],
           cadence: kExploreAdCadence,
           cycles: 4,

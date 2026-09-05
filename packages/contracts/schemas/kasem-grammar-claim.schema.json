@@ -1,0 +1,89 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.indigen-world.org/v2/kasem-grammar-claim.schema.json",
+  "title": "kasem-grammar-claim",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "maxLength": 150
+    },
+    "authorUid": {
+      "type": "string",
+      "maxLength": 150
+    },
+    "title": {
+      "type": "string",
+      "maxLength": 180
+    },
+    "summary": {
+      "type": "string",
+      "maxLength": 2000
+    },
+    "scope": {
+      "type": "string",
+      "maxLength": 2000
+    },
+    "dialect": {
+      "type": "string",
+      "maxLength": 60
+    },
+    "evidenceIds": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 20,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "maxLength": 150
+      }
+    },
+    "evidenceRevisions": {
+      "type": "object",
+      "minProperties": 1,
+      "maxProperties": 20,
+      "additionalProperties": {
+        "type": "integer",
+        "minimum": 1
+      }
+    },
+    "triggers": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "maxLength": 300
+      }
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "status": {
+      "enum": [
+        "hypothesis",
+        "supported",
+        "disputed",
+        "retired"
+      ]
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "id",
+    "authorUid",
+    "title",
+    "summary",
+    "scope",
+    "dialect",
+    "evidenceIds",
+    "evidenceRevisions",
+    "triggers",
+    "version",
+    "status",
+    "createdAt"
+  ],
+  "additionalProperties": false
+}

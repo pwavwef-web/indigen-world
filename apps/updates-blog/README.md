@@ -95,12 +95,17 @@ looks finished from the first post.
 | Typography | Interface font and article body font (family and size) |
 | Layout | Page width, article column width, corner radius |
 
-The article body defaults to **Noto Serif** — the sans-serif sibling of the
+The article body defaults to **Noto Serif** — the serif sibling of the
 brand typeface — because long-form reading benefits from it. To go all-sans,
 set *Article body font* to Noto Sans in that panel; nothing else changes.
 
 Dark-mode colours are fixed in the stylesheet rather than exposed as variables,
 because they are contrast-tuned against the dark surfaces.
+
+The default brand colours match the shared palette. Semantic text, focus,
+and control colours are tuned separately for contrast; gold decoration is
+not used directly as small text on light surfaces. Plaster Cream colours
+the light callout panels. The interface font size also scales rem-based UI.
 
 ## Label conventions
 
@@ -147,6 +152,8 @@ elements — headings, lists, tables, `<pre><code>`, blockquotes, images —
 are already styled; write them normally.
 
 Headings become table-of-contents entries once a post has three or more.
+The contents sit beside the article on wide screens and before the prose
+on smaller screens, following the same order for keyboard navigation.
 
 ## Validating the theme
 
@@ -170,6 +177,10 @@ npm run validate:updates-blog
 
 It exits non-zero on failure, so it can gate a commit or CI step. The preview
 build runs it first and refuses to generate from a broken theme.
+It also checks shared brand defaults, equality of system and explicit dark
+palettes, and 64 text/control colour pairings per scheme (4.5:1 for normal
+text; 3:1 for control boundaries and focus rings). These checks cover the
+default palette, not arbitrary Theme Designer overrides or images.
 
 ## Preview
 
@@ -180,7 +191,8 @@ drift from what you paste into Blogger:
 npm run build:updates-blog-preview
 ```
 
-That writes `preview/index.html` (homepage) and `preview/post.html` (article).
+That writes `preview/index.html` (homepage), `preview/post.html` (article),
+and `label.html`, `archive.html`, `search.html`, and `empty.html` fixtures.
 Open them directly, or serve the folder if you want the JavaScript features to
 behave exactly as they will live:
 
@@ -192,6 +204,11 @@ The script pulls the CSS out of `<b:skin>`, resolves the Blogger
 `$(variable)` substitutions to their declared defaults, and reuses the theme's
 own runtime JavaScript. If you add a theme variable and forget to give it a
 default, the build fails rather than emitting a broken preview.
+
+The preview uses sample HTML around the theme's actual CSS and JavaScript;
+it does not execute Blogger's template engine. The article includes all four
+callouts, inline and block code, image captions, tables and nested comments.
+See [THEME-AUDIT.md](THEME-AUDIT.md) for the theme audit and verification scope.
 
 ## Before you publish
 

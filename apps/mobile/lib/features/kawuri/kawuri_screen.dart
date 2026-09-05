@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_controller.dart';
+import 'package:indigen_world_mobile/features/kawuri/kawuri_feedback.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_models.dart';
 import 'package:indigen_world_mobile/shared/glass_popup.dart';
 import 'package:indigen_world_mobile/shared/night_theme.dart';
@@ -549,10 +550,18 @@ class _Conversation extends StatelessWidget {
     // and so the keyboard opening never scrolls the thread away.
     final rows = <Widget>[
       if (state.thinking) const _ThinkingBubble(),
-      for (final message in state.messages.reversed)
+      for (final entry in state.messages.asMap().entries.toList().reversed)
         _MessageBubble(
-          message: message,
-          onRetry: message == state.messages.last && !message.isYou
+          message: entry.value,
+          // The turn that produced this answer. Resolved here rather than in
+          // the bubble because this is the only place that can see the thread:
+          // a bubble knows what it says and nothing about what was asked, and
+          // a correction with no question attached is one a reviewer cannot
+          // judge.
+          question: entry.value.isYou
+              ? ''
+              : _questionBefore(state.messages, entry.key),
+          onRetry: entry.value == state.messages.last && !entry.value.isYou
               ? onRetry
               : null,
         ),
@@ -587,10 +596,29 @@ const kKawuriBubbleGradient = LinearGradient(
 /// palette, because the bubble is one fixed pigment in both themes.
 const kKawuriBubbleInk = Color(0xFFF4F7F5);
 
+/// The member's turn that an answer at [index] is answering, or `''`.
+///
+/// Walks backwards rather than assuming the turn before it, because a failed
+/// send can leave two of Kawuri's turns adjacent and the question is still the
+/// last thing the member actually said.
+String _questionBefore(List<KawuriMessage> messages, int index) {
+  for (var i = index - 1; i >= 0; i--) {
+    if (messages[i].isYou && messages[i].text.trim().isNotEmpty) {
+      return messages[i].text.trim();
+    }
+  }
+  return '';
+}
+
 class _MessageBubble extends StatelessWidget {
-  const _MessageBubble({required this.message, this.onRetry});
+  const _MessageBubble({required this.message, this.question = '', this.onRetry});
 
   final KawuriMessage message;
+
+  /// What was asked. Empty on the member's own turns and on an answer with no
+  /// question before it, both of which are cases with nothing to rate.
+  final String question;
+
   final VoidCallback? onRetry;
 
   @override
@@ -615,6 +643,16 @@ class _MessageBubble extends StatelessWidget {
               const SizedBox(height: 6),
               const _OfflineTag(),
             ],
+            // Only on a real answer. The on-device guide is a fixed script and
+            // rating it would collect an opinion about a fallback rather than
+            // about the model, and a streaming turn is not finished being
+            // wrong yet.
+            if (!isYou &&
+                !message.isStreaming &&
+                !message.failed &&
+                !message.fromOfflineGuide &&
+                question.isNotEmpty)
+              KawuriFeedbackBar(question: question, answer: message.text),
             if (onRetry != null) ...[
               const SizedBox(height: 6),
               TextButton.icon(

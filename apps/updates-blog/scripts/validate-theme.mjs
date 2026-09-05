@@ -189,6 +189,57 @@ for (const [what, re] of [
   check(`${what} ids unique`, dupes.length === 0, dupes.join(", "));
 }
 
+/* Keep device-driven dark mode identical to the saved dark preference, and
+   check the actual default token pairings used by text and form controls. */
+const skin = src.match(/<b:skin><!\[CDATA\[([\s\S]*?)\]\]><\/b:skin>/)[1];
+const properties = (block) => Object.fromEntries(
+  [...block.matchAll(/(--[\w-]+):([^;]+);/g)].map((m) => [m[1], m[2].trim()])
+);
+const lightTokens = properties(skin.match(/:root\{([\s\S]*?)\n\}/)[1]);
+const darkTokens = properties(skin.match(/:root\[data-theme="dark"\]\{([\s\S]*?)\n\}/)[1]);
+const systemDarkTokens = properties(skin.match(/:root:not\(\[data-theme="light"\]\)\{([\s\S]*?)\n  \}/)[1]);
+const darkNames = new Set([...Object.keys(darkTokens), ...Object.keys(systemDarkTokens)]);
+check("system and explicit dark palettes agree", [...darkNames].every((name) => darkTokens[name] === systemDarkTokens[name]));
+
+const defaults = Object.fromEntries(
+  [...skin.matchAll(/<Variable\s+name="([^"]+)"[^>]*?default="([^"]*)"/g)].map((m) => [m[1], m[2]])
+);
+const brand = JSON.parse(readFileSync(join(here, "..", "..", "..", "packages", "design-tokens", "colors.json"), "utf8")).brand;
+const brandNames = { indigo: "indigo", indigoDeep: "indigoDeep", gold: "gold", goldSoft: "goldSoft", terracotta: "terracotta", green: "savannahGreen", cream: "plasterCream", sand: "sand" };
+check("brand defaults match shared palette", Object.entries(brandNames).every(([name, source]) => defaults[`brand.${name}`].toLowerCase() === brand[source].toLowerCase()));
+
+function colour(value, tokens, depth = 0) {
+  if (depth > 10 || !value) throw new Error(`Cannot resolve theme colour: ${value}`);
+  const resolved = value.replace(/\$\(([^)]+)\)/g, (_, name) => defaults[name])
+    .replace(/var\((--[\w-]+)\)/g, (_, name) => colour(tokens[name], tokens, depth + 1));
+  if (!/^#[\da-f]{3}([\da-f]{3})?$/i.test(resolved)) throw new Error(`Expected an opaque hex colour: ${resolved}`);
+  return resolved.length === 4 ? `#${[...resolved.slice(1)].map((c) => c + c).join("")}` : resolved;
+}
+function luminance(hex) {
+  const channels = hex.slice(1).match(/../g).map((channel) => parseInt(channel, 16) / 255)
+    .map((channel) => channel <= .04045 ? channel / 12.92 : ((channel + .055) / 1.055) ** 2.4);
+  return channels.reduce((sum, channel, i) => sum + channel * [.2126, .7152, .0722][i], 0);
+}
+for (const [mode, overrides] of [["light", {}], ["dark", darkTokens]]) {
+  const tokens = { ...lightTokens, ...overrides };
+  const pairs = [];
+  for (const background of ["--bg", "--bg-alt", "--surface", "--surface-2", "--callout-bg"]) {
+    for (const foreground of ["--ink", "--ink-soft", "--ink-mute", "--accent-ink", "--link", "--link-hover", "--code-ink", "--info-ink", "--success-ink", "--warn-ink"]) {
+      pairs.push([foreground, background, 4.5]);
+    }
+    pairs.push(["--focus", background, 3], ["--control-border", background, 3]);
+  }
+  pairs.push(["--action-ink", "--action-bg", 4.5], ["--indigo-deep", "--gold", 4.5], ["--code-fg", "--code-bg", 4.5], ["#fff", "--success-bg", 4.5]);
+  const failures = [];
+  for (const [foreground, background, minimum] of pairs) {
+    const fg = luminance(colour(tokens[foreground] || foreground, tokens));
+    const bg = luminance(colour(tokens[background] || background, tokens));
+    const ratio = (Math.max(fg, bg) + .05) / (Math.min(fg, bg) + .05);
+    if (ratio < minimum) failures.push(`${foreground} on ${background}: ${ratio.toFixed(2)}:1 (needs ${minimum}:1)`);
+  }
+  check(`${mode} text and control contrast (${pairs.length} pairings)`, failures.length === 0, failures.join("\n    "));
+}
+
 /* ------------------------------------------------------------------ report */
 
 let failed = 0;

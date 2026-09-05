@@ -11,7 +11,7 @@
  *
  *   node apps/updates-blog/scripts/build-preview.mjs
  */
-import { readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -38,7 +38,7 @@ const runtimeJs = between(xml, "<script>//<![CDATA[", "//]]></script>", { from: 
 
 /* ------------------------------------------------- resolve $(...) tokens */
 
-// <Variable name="brand.gold" ... default="#d6a52b" .../>
+// <Variable name="brand.gold" ... default="#c58a00" .../>
 const vars = new Map();
 for (const m of skin.matchAll(/<Variable\s+name="([^"]+)"[^>]*?default="([^"]*)"/g)) {
   vars.set(m[1], m[2]);
@@ -92,9 +92,9 @@ const MARK = `<svg aria-hidden="true" class="iw-mark" focusable="false" viewBox=
 /** A woven, brand-coloured stand-in so the preview needs no network. */
 function plate(seed) {
   const tones = [
-    ["#24406e", "#101c36", "#d6a52b"],
-    ["#1f5b3a", "#101c36", "#f0d99c"],
-    ["#7a3f2c", "#191024", "#d6a52b"],
+    ["#24406e", "#101c36", "#c58a00"],
+    ["#1f5a3a", "#101c36", "#f0d99c"],
+    ["#7a3f2c", "#191024", "#c58a00"],
     ["#1e365d", "#0d1524", "#b65a3a"],
   ][seed % 4];
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450">
@@ -213,7 +213,7 @@ const ACTIONS = `      <div class="iw-head__act">
 
 const HEADER = `  <header class="iw-head" id="iw-head">
     <div class="iw-shell iw-head__in">
-      <div class="section" id="masthead"><div class="widget Header">
+      <div class="section iw-masthead" id="masthead"><div class="widget Header">
         <a class="iw-brand" href="index.html" title="Indigen World Updates">
           ${MARK}
           <span class="iw-brand__text">
@@ -360,11 +360,9 @@ const FOOTER = `  <footer class="iw-foot">
     <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></svg>
   </button>`;
 
-const THEME_INIT = `<script>
-(function(){try{var s=localStorage.getItem('iw-theme');if(s==='dark'||s==='light'){document.documentElement.setAttribute('data-theme',s);}}catch(e){}})();
-</script>`;
+const THEME_INIT = `<script>${between(xml, "<script>//<![CDATA[", "//]]></script>").text}</script>`;
 
-const BANNER = `  <div style="background:#101c36;color:#f0d99c;font:600 12px/1.5 'Noto Sans',sans-serif;letter-spacing:.06em;text-transform:uppercase;text-align:center;padding:8px 16px">
+const BANNER = `  <div class="iw-preview-banner" style="background:#101c36;color:#f0d99c;font:600 12px/1.5 'Noto Sans',sans-serif;letter-spacing:.06em;text-transform:uppercase;text-align:center;padding:8px 16px">
     Local preview &#183; generated from theme/indigen-world-updates.xml
   </div>`;
 
@@ -388,6 +386,7 @@ ${ogImage ? `<meta content="${ogImage}" property="og:image"/>` : ""}
 ${THEME_INIT}
 <style>
 ${css}
+@media print { .iw-preview-banner { display: none; } }
 </style>
 </head>
 <body class="${bodyClass}">
@@ -498,6 +497,7 @@ const article = page({
 
               <h3>The token layer</h3>
               <p>Semantic tokens sit on top of the brand palette. Components reference the semantic name, never the raw brand colour:</p>
+              <p>Inline <code>--surface</code> and <code>--accent-ink</code> tokens should remain readable beside <a href="#contrast-results-2">article links</a>.</p>
 
               <pre><code>--surface:      #142036;  /* dark */
 --text:         #f5f7fa;
@@ -519,6 +519,8 @@ const article = page({
               </table>
 
               <div class="iw-note"><strong>Note</strong>Sepia and high-contrast themes are defined in the shared token file and will follow in a later release.</div>
+              <div class="iw-tip"><strong>Tip</strong><p>Use <span class="iw-kbd">Tab</span> to check the focus ring on links and the copy button.</p><p><strong>Nested emphasis</strong> stays part of the paragraph.</p></div>
+              <figure><img alt="Woven pattern used for the preview" src="${plate(0)}"/><figcaption>Image captions use the same muted text colour as dates and metadata.</figcaption></figure>
 
               <h2>What is next</h2>
               <p>Per-screen overrides are being removed so the token layer is the only source of colour. After that, the same tokens move into the admin console.</p>
@@ -569,16 +571,19 @@ ${POSTS.slice(2, 5)
             <section class="iw-comments" id="iw-comments">
               <div class="comments">
                 <h4>2 comments</h4>
-                <div class="comment-block">
+                <ol class="comment-thread"><li class="comment"><div class="comment-block">
                   <div class="comment-header"><cite class="user">Chinedum Okwonko Udeaja</cite><span class="datetime">20 August 2026</span></div>
                   <div class="comment-content">The contrast pass on the gold accent makes a real difference on the feed. Nice work.</div>
                   <div class="comment-actions"><a href="#">Reply</a></div>
-                </div>
-                <div class="comment-block">
+                </div><div class="comment-replies"><ol><li class="comment"><div class="comment-block">
+                  <div class="comment-header"><cite class="user">Indigen World</cite><span class="datetime">20 August 2026</span></div>
+                  <div class="comment-content">Thank you. The same colours also apply when the device changes its appearance.</div>
+                  <div class="comment-actions"><a href="#">Reply</a></div>
+                </div></li></ol></div></li><li class="comment"><div class="comment-block">
                   <div class="comment-header"><cite class="user">Francis E. Onai</cite><span class="datetime">20 August 2026</span></div>
                   <div class="comment-content">Any plans to bring the sepia reading theme to the app as well?</div>
                   <div class="comment-actions"><a href="#">Reply</a></div>
-                </div>
+                </div></li></ol>
               </div>
             </section>
           </article>
@@ -609,9 +614,27 @@ ${POSTS.slice(2, 5)
 ${FOOTER}`,
 });
 
+mkdirSync(join(root, "preview"), { recursive: true });
 writeFileSync(join(root, "preview", "index.html"), home, "utf8");
 writeFileSync(join(root, "preview", "post.html"), article, "utf8");
 
+// Exercise the non-homepage view headers and hidden/empty grid treatment too.
+const listing = home.replace(/  <section class="iw-hero">[\s\S]*?<\/section>/, "");
+for (const [name, eyebrow, title, empty] of [
+  ["label", "Topic", "Engineering", false],
+  ["archive", "Archive", "August 2026", false],
+  ["search", "Search results", "Results for “Kasem”", false],
+  ["empty", "Search results", "No matching updates", true],
+]) {
+  const viewhead = `<header class="iw-viewhead"><p class="iw-eyebrow">${eyebrow}</p><h1 class="iw-viewhead__title">${title}</h1><p class="iw-viewhead__count">${empty ? "0" : POSTS.length} updates</p></header>`;
+  let listingPage = listing.replace('<div class="iw-grid" id="iw-grid">', `${viewhead}<div class="iw-grid" id="iw-grid">`);
+  listingPage = listingPage.replaceAll("iw-card iw-card--lead", "iw-card");
+  if (empty) {
+    listingPage = listingPage.replace(/<div class="iw-grid" id="iw-grid">[\s\S]*?<\/nav>/, '<div class="iw-grid" id="iw-grid"></div><div class="iw-empty" hidden id="iw-empty"><h2>No updates found</h2><p>Try a different search or browse all updates.</p></div>');
+  }
+  writeFileSync(join(root, "preview", `${name}.html`), listingPage, "utf8");
+}
+
 console.log(`build-preview: resolved ${vars.size} theme variables`);
 console.log(`build-preview: css ${css.length} bytes, js ${runtimeJs.length} bytes`);
-console.log("build-preview: wrote preview/index.html and preview/post.html");
+console.log("build-preview: wrote homepage, article, label, archive, search and empty previews");

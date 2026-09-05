@@ -1,0 +1,103 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.indigen-world.org/v2/kasem-review.schema.json",
+  "title": "kasem-review",
+  "type": "object",
+  "properties": {
+    "reviewerId": {
+      "type": "string",
+      "maxLength": 150
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "dialectCompetent": {
+      "type": "boolean"
+    },
+    "judgments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "meaning": {
+            "type": "string",
+            "enum": [
+              "faithful",
+              "partial",
+              "different",
+              "cannot-judge"
+            ]
+          },
+          "grammar": {
+            "type": "string",
+            "enum": [
+              "acceptable",
+              "unacceptable",
+              "context-dependent",
+              "cannot-judge"
+            ]
+          },
+          "naturalness": {
+            "type": "string",
+            "enum": [
+              "natural",
+              "awkward",
+              "unnatural",
+              "cannot-judge"
+            ]
+          },
+          "contextFit": {
+            "type": "string",
+            "enum": [
+              "fits",
+              "does-not-fit",
+              "context-missing",
+              "cannot-judge"
+            ]
+          },
+          "explanation": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "annotationApproved": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "meaning",
+          "grammar",
+          "naturalness",
+          "contextFit",
+          "explanation",
+          "annotationApproved"
+        ],
+        "additionalProperties": false
+      },
+      "maxItems": 6
+    },
+    "preference": {
+      "type": "string",
+      "enum": [
+        "first",
+        "second",
+        "tie",
+        "context-dependent",
+        "cannot-judge"
+      ]
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "reviewerId",
+    "revision",
+    "dialectCompetent",
+    "judgments",
+    "preference",
+    "createdAt"
+  ],
+  "additionalProperties": false
+}

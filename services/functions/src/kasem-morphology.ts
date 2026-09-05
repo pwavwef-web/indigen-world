@@ -1,60 +1,8 @@
-/**
- * The shapes a Kasem noun takes, and the one rule that needs no data at all.
- *
- * ── What this module is for ───────────────────────────────────────────────
- * The dictionary could record what a word means and nothing about how it
- * behaves. That is enough for a lookup and nowhere near enough for anything
- * that has to *produce* Kasem, which is why the queue kept asking members for
- * the Kasem for "the" — a question with no answer, put fifteen thousand times.
- *
- * There is no answer because definiteness in Kasem is not a word. It is a
- * property of the noun. So the fix is not a better translation of "the"; it is
- * to record the forms a noun actually takes and stop pretending the English
- * function word has a Kasem twin.
- *
- * ── Why `mo` is derived and never stored ──────────────────────────────────
- * The indefinite is invariant: the noun, then the particle `mo`. Every noun,
- * no exceptions recorded so far. That makes it a fact about the *language*,
- * and writing it onto fifteen thousand rows would turn one rule into fifteen
- * thousand copies of a rule — all of which become wrong together on the day
- * somebody refines it, and none of which can be fixed without a migration.
- *
- * So [indefiniteForm] computes it on read. This is the same call
- * `submissionTranslations` and `splitTranslations` already made elsewhere in
- * this codebase: derive on read, never rewrite history. It has a pleasant side
- * effect — every noun already in `dictionaryEntries`, contributed long before
- * any of this existed, gets its indefinite form the day the client ships, with
- * no backfill and no reprocessing.
- *
- * The definite is the opposite: it changes with the noun's class, and it is
- * the one form that genuinely has to be collected per word.
- *
- * ── Deliberately free of firebase-admin ───────────────────────────────────
- * Same reason as `lexical-kinds.ts`: the queue callable, the contribution
- * parser and the publication projection all consult these, and every one of
- * them wants to be exercisable under `node --test` without a Firestore client
- * on the runner's path.
- */
-
-/** The particle that makes a Kasem noun indefinite. Attested, invariant. */
+/** Recorded noun forms remain authoritative; the blanket mo rule is disputed. */
 export const KASEM_INDEFINITE_PARTICLE = 'mo';
 
-/**
- * The indefinite form of a noun: the noun, then `mo`.
- *
- * Total and never throws — it is called from a display path on rows that
- * predate every field in this module, and a getter that throws on an empty
- * headword would take down an entry screen over a row nobody can fix.
- *
- * Returns an empty string rather than a bare `"mo"` for an empty headword,
- * because "mo" on its own is not the indefinite of anything and rendering it
- * would state something false about the language.
- */
-export function indefiniteForm(headword: unknown): string {
-  const stem = typeof headword === 'string' ? headword.trim().replace(/\s+/g, ' ') : '';
-  if (!stem) return '';
-  return `${stem} ${KASEM_INDEFINITE_PARTICLE}`;
-}
+/** No form is synthesized until its construction is independently validated. */
+export function indefiniteForm(_headword: unknown): string { return ''; }
 
 /** One noun class: the marker that identifies it and what it does. */
 export interface NounClass {
@@ -172,8 +120,8 @@ const NO_FORMS: NounForms = { definite: '', plural: '' };
  * submission over — the member's actual answer is fine, and the stray forms
  * are simply not stored.
  *
- * The indefinite is *not* read even if a client sends one. It is derived, and
- * accepting a stored copy would let the two disagree.
+ * Indefinite forms are withheld while their general derivation is disputed.
+ * A client-supplied generated copy is not accepted as attested evidence.
  *
  * Pure, total, never throws: it is called from the queue callable, from the
  * contribution parser and from the publication projection, and a parser that

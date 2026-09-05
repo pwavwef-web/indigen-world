@@ -59,6 +59,10 @@ const TOPICS = new Set([
   'postposition',
   'conjunction',
   'copula',
+  // Added with the sentence corpus: these are properties of a clause rather
+  // than of a word, and they are the half a dictionary structurally cannot hold.
+  'word-order',
+  'focus',
   'tense',
   'aspect',
   'negation',
@@ -97,7 +101,10 @@ function ruleDocument(row) {
     nounClasses: row.topic === 'noun-class' ? NOUN_CLASSES.map((entry) => ({ ...entry })) : [],
     dialect: String(row.dialect ?? '').trim(),
     status: row.status,
-    schemaVersion: 1,
+    claimStatus: row.claimStatus ?? (row.status === 'published' ? 'supported' : 'hypothesis'),
+    version: row.version ?? 1,
+    evidenceRefs: Array.isArray(row.evidenceRefs) ? row.evidenceRefs : [],
+    schemaVersion: 2,
     updatedAt: FieldValue.serverTimestamp(),
   };
 }

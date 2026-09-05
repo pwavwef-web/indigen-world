@@ -36,7 +36,7 @@ _DictionaryEntry _$DictionaryEntryFromJson(Map<String, dynamic> json) =>
       definiteForm: json['definiteForm'] as String? ?? '',
       pluralForm: json['pluralForm'] as String? ?? '',
       nounClass: json['nounClass'] as String? ?? '',
-      isSynthetic: json['isSynthetic'] as bool? ?? true,
+      homographIndex: (json['homographIndex'] as num?)?.toInt() ?? 0,
     );
 
 Map<String, dynamic> _$DictionaryEntryToJson(_DictionaryEntry instance) =>
@@ -61,5 +61,5 @@ Map<String, dynamic> _$DictionaryEntryToJson(_DictionaryEntry instance) =>
       'definiteForm': instance.definiteForm,
       'pluralForm': instance.pluralForm,
       'nounClass': instance.nounClass,
-      'isSynthetic': instance.isSynthetic,
+      'homographIndex': instance.homographIndex,
     };

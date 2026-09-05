@@ -20,7 +20,6 @@ void main() {
     expect(entry!.headword, 'Konkwolo');
     expect(entry.translation, 'Bottle');
     expect(entry.pronunciation, '1.25');
-    expect(entry.isSynthetic, isFalse);
   });
 
   test('ignores rows that contain neither a Kasem nor English term', () {

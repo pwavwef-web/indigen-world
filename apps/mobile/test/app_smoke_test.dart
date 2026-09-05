@@ -58,22 +58,20 @@ void main() {
     );
     await tester.pump(const Duration(milliseconds: 400));
 
-    expect(find.text('Every rhythm remembers.'), findsOneWidget);
-    // The LIVE/PREVIEW pill went with the wordmark: over a full-bleed reel,
-    // chrome has to earn its place, and a badge saying which data source is
-    // behind the feed was answering a question no viewer was asking.
+    // A guest with no Firebase reaches an empty archive, and Explore says so
+    // rather than filling the gap. It used to show three invented creators
+    // over stock photographs with fabricated engagement counts; the assertion
+    // that a fictional reel was on screen is the thing that had to go.
+    expect(find.text('No reels have been published yet'), findsOneWidget);
+    // The For You empty state offers no "Browse For you" button, because that
+    // would switch to the tab the member is already standing on.
+    expect(find.text('Browse For you'), findsNothing);
     expect(find.text('PREVIEW'), findsNothing);
     expect(find.text('LIVE'), findsNothing);
     // The wordmark gave up its space to the two things a viewer wants there:
     // which feed they are on, and a way to search.
     expect(find.text('INDIGEN WORLD'), findsNothing);
     expect(find.bySemanticsLabel('Search Explore'), findsOneWidget);
-    // Explore is full-bleed: the shell rail disappears until native back
-    // returns to the exact tab the member came from.
-    expect(find.byType(FrostedNavBar), findsNothing);
-    // Context, not a share button that cannot share anything yet.
-    expect(find.text('Context'), findsOneWidget);
-
     await tester.binding.handlePopRoute();
     await tester.pump(const Duration(milliseconds: 400));
     expect(find.text('New voices'), findsOneWidget);

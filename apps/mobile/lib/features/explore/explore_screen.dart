@@ -140,17 +140,28 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
 
     // Following is allowed to be empty — that is the honest answer for
     // somebody who follows nobody, and the curated preview would only hide it.
-    final reels = live
-        ? feed
-        : (_tab == ExploreTab.forYou ? kExplorePreviewReels : const <Reel>[]);
+    // ── There is no curated preview any more ─────────────────────────────
+    // For You used to fall back to three fixed cards when the archive had not
+    // answered: invented creators (@afi.dances, @kassena.collective,
+    // @heritage.in.motion) over Unsplash stock photographs, carrying
+    // fabricated engagement counts — 12,800 likes, 426 comments — and a
+    // comment sheet with two invented community members in it.
+    //
+    // That is not a placeholder in an app about cultural preservation. It is
+    // three fictional Ghanaian creators, with an audience they do not have,
+    // shown to every guest on first launch and to everybody whose Firebase
+    // init failed. An empty feed is the honest answer, and the empty state
+    // below now says which kind of empty it is.
+    final reels = feed;
 
     final header = _ExploreHeader(tab: _tab, onTabChanged: _changeTab);
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.light,
       child: reels.isEmpty
-          ? _EmptyFollowing(
+          ? _ExploreEmpty(
               header: header,
+              tab: _tab,
               onBrowse: () => _changeTab(ExploreTab.forYou),
             )
           : ReelFeedView(
@@ -174,11 +185,27 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
 }
 
 /// What Following looks like before there is anybody in it.
-class _EmptyFollowing extends StatelessWidget {
-  const _EmptyFollowing({required this.header, required this.onBrowse});
+/// What Explore says when it has nothing to show.
+///
+/// It has to say two different things, and until the curated preview was
+/// removed it only ever said one of them. Following being empty means the
+/// member follows nobody — the fix is to follow somebody. For You being empty
+/// means nothing has been published yet, or this launch could not reach the
+/// archive at all — and telling that member to "follow a creator", under a
+/// button that switches to the tab they are already standing on, is advice
+/// that cannot help and a control that does nothing.
+class _ExploreEmpty extends StatelessWidget {
+  const _ExploreEmpty({
+    required this.header,
+    required this.tab,
+    required this.onBrowse,
+  });
 
   final Widget header;
+  final ExploreTab tab;
   final VoidCallback onBrowse;
+
+  bool get _isFollowing => tab == ExploreTab.following;
 
   @override
   Widget build(BuildContext context) => ColoredBox(
@@ -193,36 +220,48 @@ class _EmptyFollowing extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(
-                  Icons.group_add_outlined,
+                  _isFollowing
+                      ? Icons.group_add_outlined
+                      : Icons.movie_filter_outlined,
                   color: context.brand.gold,
                   size: 38,
                 ),
                 const SizedBox(height: 16),
-                const Text(
-                  'Nothing from the people you follow',
+                Text(
+                  _isFollowing
+                      ? 'Nothing from the people you follow'
+                      : 'No reels have been published yet',
                   textAlign: TextAlign.center,
-                  style: TextStyle(
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 17,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
                 const SizedBox(height: 8),
-                const Text(
-                  'Follow a creator and their reels arrive here.',
+                Text(
+                  _isFollowing
+                      ? 'Follow a creator and their reels arrive here.'
+                      : 'When somebody publishes from TribeStudio, it appears '
+                            'here. If you are offline, reels will arrive when '
+                            'you are back.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(
+                  style: const TextStyle(
                     color: Colors.white60,
                     fontSize: 13.5,
                     height: 1.4,
                   ),
                 ),
-                const SizedBox(height: 22),
-                FilledButton.icon(
-                  onPressed: onBrowse,
-                  icon: const Icon(Icons.explore_rounded),
-                  label: const Text('Browse For you'),
-                ),
+                // Offered only where it leads somewhere. On For You it would
+                // switch to the tab the member is already on.
+                if (_isFollowing) ...[
+                  const SizedBox(height: 22),
+                  FilledButton.icon(
+                    onPressed: onBrowse,
+                    icon: const Icon(Icons.explore_rounded),
+                    label: const Text('Browse For you'),
+                  ),
+                ],
               ],
             ),
           ),
@@ -412,51 +451,3 @@ class _GlassAction extends StatelessWidget {
   );
 }
 
-/// The curated preview: what Explore shows a member on a first launch, before
-/// the archive has answered.
-///
-/// Public so the rule that matters about it can be stated somewhere a test can
-/// read — these three cards are not live, and [loopedExploreFeed] refuses to
-/// queue anything that is not.
-const kExplorePreviewReels = [
-  Reel(
-    id: 'preview-rhythm',
-    imageUrl: 'https://images.unsplash.com/photo-1660675133223-c293889b9fb8?auto=format&fit=crop&q=82&w=1200',
-    label: 'REEL PREVIEW · NORTHERN GHANA',
-    title: 'Every rhythm remembers.',
-    creator: '@afi.dances',
-    initials: 'AD',
-    caption: 'The feet carry the story. The drum calls everyone home.',
-    sound: 'Original sound · Kassena rhythms',
-    credit: 'Photo: Emmanuel Yeboah Okine · Unsplash',
-    likes: 12800,
-    comments: 426,
-  ),
-  Reel(
-    id: 'preview-circle',
-    imageUrl: 'https://images.unsplash.com/photo-1515921560173-3633830cb11a?auto=format&fit=crop&q=82&w=1200',
-    label: 'PHOTO REEL · COMMUNITY',
-    title: 'The circle makes room for everyone.',
-    creator: '@kassena.collective',
-    initials: 'KC',
-    caption: 'De zaanem. Welcome is a place beside us.',
-    sound: 'Field notes · community gathering',
-    credit: 'Photo: Kwasi Ansong Bamfo · Unsplash',
-    likes: 7400,
-    comments: 218,
-  ),
-  Reel(
-    id: 'preview-cloth',
-    imageUrl: 'https://images.unsplash.com/photo-1757169917348-b4f790e4dc85?auto=format&fit=crop&q=82&w=1200',
-    label: 'STORY REEL · CAPE COAST',
-    title: 'What we wear can speak.',
-    creator: '@heritage.in.motion',
-    initials: 'HM',
-    caption: 'Colour, memory and pride—carried into the next generation.',
-    sound: 'Festival voices · story reel',
-    credit: 'Photo: Oswald Elsaboath · Unsplash',
-    likes: 9300,
-    comments: 301,
-    alignment: Alignment.centerLeft,
-  ),
-];

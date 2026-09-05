@@ -166,17 +166,17 @@ void main() {
       expect(_oneMeaning.definiteForm, '');
       expect(_oneMeaning.pluralForm, '');
       expect(_oneMeaning.hasForms, isFalse);
-      expect(_oneMeaning.indefinite, 'Konkwolo mo');
+      expect(_oneMeaning.indefinite, isNull);
     });
 
-    test('nothing but a noun is given an indefinite form', () {
+    test('unverified indefinite forms are withheld for all word classes', () {
       // Asking is how a caller decides whether to draw the line, so a verb has
       // to answer null rather than leave every screen re-testing word classes.
       final verb = _oneMeaning.copyWith(partOfSpeech: 'verb');
       expect(verb.indefinite, isNull);
       // Free text, so the capitalisation the contributor's client sent is
       // whatever it was. "Noun" and "noun" are the same word class.
-      expect(_oneMeaning.copyWith(partOfSpeech: 'Noun').indefinite, 'Konkwolo mo');
+      expect(_oneMeaning.copyWith(partOfSpeech: 'Noun').indefinite, isNull);
     });
 
     test('an entry with no headword gets no form rather than a bare particle', () {
@@ -196,7 +196,7 @@ void main() {
       expect(recorded.pluralForm, 'konkwoli');
       // Still computed from the headword, never read from a stored field, so
       // the two can never come to disagree.
-      expect(recorded.indefinite, 'Konkwolo mo');
+      expect(recorded.indefinite, isNull);
     });
 
     test('an unestablished noun class reads empty, which is not "no class"', () {

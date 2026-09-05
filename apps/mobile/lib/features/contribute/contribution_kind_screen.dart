@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/features/contribute/contribution_form_screen.dart';
 import 'package:indigen_world_mobile/features/contribute/contribution_kinds.dart';
+import 'package:indigen_world_mobile/features/contribute/grammar/grammar_note_screen.dart';
 import 'package:indigen_world_mobile/features/contribute/words/word_queue_screen.dart';
 import 'package:indigen_world_mobile/shared/app_widgets.dart';
 import 'package:indigen_world_mobile/shared/frosted_nav_bar.dart';
@@ -66,6 +67,17 @@ class ContributionKindScreen extends StatelessWidget {
     // submits many times, and a member leaving it is going back to choose
     // something else. So the chooser stays underneath it and is what Back
     // lands on — the opposite of the rule below, and for the opposite reason.
+    // Not a contribution form at all — no shelf, no upload, no consent
+    // questions about third-party material, because a sentence somebody says
+    // in their own language has none of those. Checked before the queue branch
+    // only because both are exceptions and one of them has to be first.
+    if (offer.isGrammarNote) {
+      await navigator.push<bool>(
+        MaterialPageRoute<bool>(builder: (context) => const GrammarNoteScreen()),
+      );
+      return;
+    }
+
     if (offer.isGuidedQueue) {
       await navigator.push<void>(
         MaterialPageRoute<void>(builder: (context) => const WordQueueScreen()),

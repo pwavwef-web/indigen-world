@@ -428,6 +428,99 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // ---- The sentence corpus, and the two queues that feed it ---------------
+    //
+    // `grammarRules` above says how a word behaves. These say how a clause is
+    // built, which is the half a dictionary structurally cannot hold: knowing
+    // every word in "the big boy is hungry" tells you nothing about the order
+    // Kasem puts them in, and laying them out as English does produces a
+    // sentence that is wrong while every word in it is right.
+    //
+    // Every one of these is `allow write: if false`, exactly like the rules
+    // collection beside them. Writes go through the callables in
+    // services/functions/src/grammar-contributions.ts, which is what puts a
+    // validator between a contributed sentence and the corpus Kawuri quotes.
+
+    // Confirmed sentences. World-readable once confirmed — this is the
+    // archive, and it is the point of collecting it — while a submitted one
+    // is visible only to the desk that has to decide on it.
+    match /kasemSentences/{sentenceId} {
+      allow read: if isStaff() || (resource.data.status == 'confirmed'
+        && resource.data.get('projectionVersion', 0) == 2
+        && (resource.data.get('expiresAtMillis', null) == null
+          || resource.data.expiresAtMillis > request.time.toMillis()));
+      allow write: if false;
+    }
+
+    // Source evidence, consent and reviewer identities never enter a public projection.
+    match /kasemEvidence/{noteId} {
+      allow read: if isAdmin();
+      allow write: if false;
+      match /revisions/{revision} {
+        allow read: if isAdmin();
+        allow write: if false;
+      }
+      match /reviews/{reviewId} {
+        allow read: if isAdmin() || isOwner(resource.data.reviewerId);
+        allow write: if false;
+      }
+    }
+    match /kasemDatasetReleases/{releaseId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+    match /kasemWithdrawals/{noteId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+    match /grammarClaims/{claimId} {
+      allow read: if isStaff();
+      allow write: if false;
+      match /versions/{version} {
+        allow read: if isStaff();
+        allow write: if false;
+      }
+    }
+    match /kasemClaimReviews/{claimId} {
+      allow read: if isAdmin();
+      allow write: if false;
+      match /events/{eventId} {
+        allow read: if isAdmin() || isOwner(resource.data.reviewerId);
+        allow write: if false;
+      }
+    }
+    match /kasemModelRuns/{runId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    // A speaker's explanation and the examples under it, waiting for review.
+    // The person who sent it may follow it; nobody else but the desk sees it,
+    // because an unreviewed claim about somebody's language is exactly what
+    // this project refuses to publish.
+    match /grammarNotes/{noteId} {
+      allow read: if isStaff() || isOwner(resource.data.authUid);
+      allow write: if false;
+    }
+
+    // One member marking one answer right or wrong. Readable by its author and
+    // by the desk: a verdict is feedback on the model, not a public rating of
+    // it, and showing whose thumbs-down it was to everybody would change what
+    // people are willing to send.
+    match /kawuriVerdicts/{verdictId} {
+      allow read: if isStaff() || isOwner(resource.data.authUid);
+      allow write: if false;
+    }
+
+    // The derived tally. World-readable and server-written, which is the whole
+    // design: see the argument in contributor-scores.ts about numbers their own
+    // audience can set. A member votes by writing a verdict document above;
+    // what that adds up to is not something any client gets to touch.
+    match /kawuriScoreboard/{docId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
     // ---- Contributors: self-managed profile, no privilege escalation -------
     match /contributors/{contributorId} {
       allow read: if isOwner(contributorId) || isValidator();

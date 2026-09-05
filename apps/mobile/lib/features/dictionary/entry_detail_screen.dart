@@ -7,6 +7,7 @@ import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/core/media_preferences.dart';
 import 'package:indigen_world_mobile/data/repositories.dart';
 import 'package:indigen_world_mobile/domain/dictionary_entry.dart';
+import 'package:indigen_world_mobile/domain/kasem_homographs.dart';
 import 'package:indigen_world_mobile/features/collection/collection_data.dart';
 import 'package:indigen_world_mobile/features/dictionary/sentence_credit.dart';
 import 'package:indigen_world_mobile/features/dictionary/translation_display.dart';
@@ -19,14 +20,30 @@ class EntryDetailScreen extends ConsumerWidget {
   final String entryId;
   final DictionaryEntry? entry;
 
+  /// The headword as it should be drawn and as it should be spoken.
+  static HomographDisplay _headword(DictionaryEntry entry, int siblings) =>
+      homographDisplay(
+        entry.headword,
+        homographIndex: entry.homographIndex,
+        siblingCount: siblings,
+      );
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final bundledEntry =
-        entry ?? ref.watch(dictionaryRepositoryProvider).findById(entryId);
-    final liveEntry = bundledEntry == null
-        ? ref.watch(publishedDictionaryEntryProvider(entryId))
-        : const AsyncData<DictionaryEntry?>(null);
-    final resolvedEntry = bundledEntry ?? liveEntry.asData?.value;
+    // ── The live document always wins ────────────────────────────────
+    // This used to consult a bundle of four synthetic demo entries FIRST and
+    // only fall through to Firestore when that missed, so `/entry/demo-water`
+    // resolved to invented vocabulary in preference to any real published
+    // document. The demo bundle is gone; what remains is the ordering lesson.
+    //
+    // An entry handed in by a caller is a first paint, not an answer. Every
+    // live caller already holds a row from the same stream, so passing it
+    // avoids a spinner on a screen that is about to show the same thing — but
+    // watching the document as well is what makes a word that has since been
+    // corrected, gained a recording, or been unpublished stop rendering from
+    // whatever the caller happened to be holding.
+    final liveEntry = ref.watch(publishedDictionaryEntryProvider(entryId));
+    final resolvedEntry = liveEntry.asData?.value ?? entry;
     if (resolvedEntry == null && liveEntry.isLoading) {
       return Scaffold(
         appBar: AppBar(title: const Text('Opening entry')),
@@ -59,6 +76,11 @@ class EntryDetailScreen extends ConsumerWidget {
         ),
       );
     }
+
+    // How many published entries share this spelling. Decides whether the
+    // sense number is drawn at all — see `kasem_homographs.dart`.
+    final siblings = dictionarySiblingCount(ref, resolvedEntry.headword);
+    final culturalNote = resolvedEntry.culturalNote;
 
     final savedIds =
         ref.watch(savedEntryIdsProvider).asData?.value ?? const <String>{};
@@ -97,17 +119,11 @@ class EntryDetailScreen extends ConsumerWidget {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 40),
           children: [
-            if (resolvedEntry.isSynthetic) ...[
-              const DemoDataNotice(),
-              const SizedBox(height: 20),
-            ],
             Row(
               children: [
                 StatusPill(
                   icon: Icons.verified_outlined,
-                  label: resolvedEntry.isSynthetic
-                      ? 'DEMO PROJECTION'
-                      : 'PUBLISHED ENTRY',
+                  label: 'PUBLISHED ENTRY',
                   color: context.brand.success,
                 ),
                 const SizedBox(width: 12),
@@ -132,10 +148,59 @@ class EntryDetailScreen extends ConsumerWidget {
               ],
             ),
             const SizedBox(height: 18),
-            Text(
-              resolvedEntry.headword,
-              style: Theme.of(context).textTheme.headlineLarge,
+            // ── The headword, with its sense number where one is owed ────
+            // 478 of the 1200 published entries share a spelling with another
+            // entry — eight are headed `ni`, eight `dɩ` — and until now this
+            // line was the same string on every one of them. A learner who
+            // arrived from a search, or from a link somebody sent them, had no
+            // way to tell which of the eight they were reading.
+            //
+            // Selectable, because the one thing somebody reliably wants from a
+            // dictionary entry is to copy the word, and every string on this
+            // screen used to be an inert `Text`. The number is deliberately
+            // outside the selection: `SelectableText` copies what it shows, and
+            // `dɩ²` pasted into a message is not a word.
+            Semantics(
+              label: _headword(resolvedEntry, siblings).spoken,
+              excludeSemantics: true,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Flexible(
+                    child: SelectableText(
+                      resolvedEntry.headword,
+                      style: Theme.of(context).textTheme.headlineLarge,
+                    ),
+                  ),
+                  if (_headword(resolvedEntry, siblings).numbered)
+                    Padding(
+                      padding: const EdgeInsets.only(left: 2, top: 4),
+                      child: Text(
+                        superscript(resolvedEntry.homographIndex),
+                        style: Theme.of(context).textTheme.headlineSmall
+                            ?.copyWith(color: context.brand.accent),
+                      ),
+                    ),
+                ],
+              ),
             ),
+            // Which of the several words under this spelling this one is, said
+            // in words. The superscript alone is a convention a learner may
+            // never have met, and a reader who does not know it reads a stray
+            // digit rather than a signpost.
+            if (_headword(resolvedEntry, siblings).numbered) ...[
+              const SizedBox(height: 4),
+              Text(
+                'Sense ${resolvedEntry.homographIndex} of $siblings words '
+                'written “${resolvedEntry.headword}”. They are different '
+                'words, not different meanings of one word.',
+                style: TextStyle(
+                  color: context.brand.mutedInk,
+                  fontSize: 12.5,
+                  height: 1.4,
+                ),
+              ),
+            ],
             // The other Kasem words a contributor gave for the same meaning.
             // The headword is one of several answers, not the only one, and a
             // learner who hears `nyu` and finds an entry filed under `nia`
@@ -169,10 +234,17 @@ class EntryDetailScreen extends ConsumerWidget {
               spacing: 8,
               runSpacing: 8,
               children: [
-                Chip(
-                  avatar: const Icon(Icons.location_on_outlined, size: 18),
-                  label: Text(resolvedEntry.dialect),
-                ),
+                // The dialect chip is drawn only when a dialect is actually
+                // recorded. The reader's fallback for an entry with none used
+                // to be the literal string 'Kasem', which put a pin icon
+                // labelled Kasem directly beside a globe icon labelled Kasem
+                // on every such entry.
+                if (resolvedEntry.dialect.isNotEmpty &&
+                    resolvedEntry.dialect.toLowerCase() != 'kasem')
+                  Chip(
+                    avatar: const Icon(Icons.location_on_outlined, size: 18),
+                    label: Text(resolvedEntry.dialect),
+                  ),
                 const Chip(
                   avatar: Icon(Icons.language_rounded, size: 18),
                   label: Text('Kasem'),
@@ -180,12 +252,29 @@ class EntryDetailScreen extends ConsumerWidget {
               ],
             ),
             const SizedBox(height: 24),
-            _DetailCard(
-              icon: Icons.volume_up_outlined,
-              title: 'Pronunciation',
-              body: resolvedEntry.pronunciation,
-              trailing: PronunciationButton(audioUrl: resolvedEntry.audioUrl),
-            ),
+            // ── Cards appear when there is something in them ─────────────
+            // Every one of these used to render unconditionally, because the
+            // reader filled the empty fields with sentences describing their
+            // own emptiness — 'No written guide yet', 'No example yet' — and
+            // a non-empty string passes every guard. So an entry with no
+            // recording and no sentence drew a card headed Pronunciation
+            // containing an apology, and below it a card headed Example
+            // containing two more.
+            //
+            // The fields are honestly empty now (see `collection_data.dart`),
+            // which is what lets these guards mean something. An entry with
+            // nothing recorded is shorter, rather than padded with prose about
+            // what it does not have.
+            if (resolvedEntry.pronunciation.isNotEmpty ||
+                resolvedEntry.audioUrl.isNotEmpty)
+              _DetailCard(
+                icon: Icons.volume_up_outlined,
+                title: 'Pronunciation',
+                body: resolvedEntry.pronunciation.isEmpty
+                    ? 'Recorded by a speaker. No written guide yet.'
+                    : resolvedEntry.pronunciation,
+                trailing: PronunciationButton(audioUrl: resolvedEntry.audioUrl),
+              ),
             // ── The forms a noun takes ───────────────────────────────────
             // Grammar shown where a learner already is, rather than on a
             // grammar screen they would have to decide to visit. The plain
@@ -201,12 +290,15 @@ class EntryDetailScreen extends ConsumerWidget {
                 body: body,
               ),
             ],
+            if (resolvedEntry.example.isNotEmpty) ...[
             const SizedBox(height: 12),
             _DetailCard(
               icon: Icons.chat_bubble_outline_rounded,
               title: 'Example',
-              body:
-                  '${resolvedEntry.example}\n${resolvedEntry.exampleTranslation}',
+              body: [
+                resolvedEntry.example,
+                resolvedEntry.exampleTranslation,
+              ].where((line) => line.isNotEmpty).join('\n'),
               // Directly beneath the sentence, not in "Source and rights"
               // below. A CC BY credit belongs next to the thing it credits;
               // moving it to a rights block further down would be the same
@@ -214,12 +306,13 @@ class EntryDetailScreen extends ConsumerWidget {
               // to look. Renders nothing at all when no credit is owed.
               footer: SentenceCredit(entry: resolvedEntry),
             ),
-            if (resolvedEntry.culturalNote != null) ...[
+            ],
+            if (culturalNote != null) ...[
               const SizedBox(height: 12),
               _DetailCard(
                 icon: Icons.auto_stories_outlined,
                 title: 'Cultural context',
-                body: resolvedEntry.culturalNote!,
+                body: culturalNote,
               ),
             ],
             const SizedBox(height: 12),

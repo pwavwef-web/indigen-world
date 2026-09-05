@@ -16,6 +16,12 @@ import {
 } from './publication.js';
 import { canonicalPartOfSpeech } from './lexical-kinds.js';
 import { hasNounForms, induceNounClass, parseNounForms } from './kasem-morphology.js';
+import {
+  type HomographPeer,
+  MAX_HOMOGRAPH_PEERS,
+  assignHomographIndex,
+  headwordKey,
+} from './kasem-homographs.js';
 
 // App Check enforcement is opt-in: set ENFORCE_APP_CHECK=true on the deployed
 // functions once App Check (reCAPTCHA Enterprise) is configured for the web apps.
@@ -690,6 +696,40 @@ export const decideSubmission = onCall(
 
         if (isDictionaryContribution) {
           const existingDictionary = await tx.get(dictionaryRef);
+
+          // Every entry already filed under this spelling, read here because a
+          // Firestore transaction takes all of its reads before any of its
+          // writes and the entry is written a few dozen lines below.
+          //
+          // ── Why this is not filtered to published rows ────────────────────
+          // Because an unpublished entry's number is still spent. If `mo²` were
+          // withdrawn and the next `mo` were handed a 2 again, every note,
+          // saved word and Kawuri answer that ever cited `mo²` would silently
+          // start pointing at a different word. A visible gap in the numbering
+          // is the cheaper failure by a wide margin — and it is what every
+          // print dictionary does for exactly this reason.
+          //
+          // Queried on `headwordKey` rather than on `kasemText` so the grouping
+          // is case- and whitespace-insensitive in the same way
+          // `kasem-homographs.ts` groups. A single equality filter needs no
+          // composite index. Legacy rows written before that field existed are
+          // reached by `backfill-homographs.mjs`, which is what stops a new
+          // sense being numbered against a peer the query cannot see.
+          const headwordOf = headwordKey(asString(submission.body, 12_000).trim());
+          const peerSnapshot = headwordOf
+            ? await tx.get(
+                db
+                  .collection('dictionaryEntries')
+                  .where('headwordKey', '==', headwordOf)
+                  .limit(MAX_HOMOGRAPH_PEERS),
+              )
+            : null;
+          const homographPeers: HomographPeer[] = (peerSnapshot?.docs ?? []).map((doc) => ({
+            id: doc.id,
+            kasem: String(doc.get('kasemText') ?? ''),
+            homographIndex: Number(doc.get('homographIndex') ?? 0) || 0,
+          }));
+
           if (decision === 'PUBLISH') {
             // Carried forward rather than recomputed: the recording was copied
             // to its public path the first time this entry was published, and
@@ -751,6 +791,15 @@ export const decideSubmission = onCall(
             tx.set(dictionaryRef, {
               id: dictionaryRef.id,
               kasemText,
+              // The grouping key homographs are decided by, stored so the
+              // question "what else is spelled like this" is one indexed
+              // equality rather than a scan that folds case in memory.
+              headwordKey: headwordOf,
+              // Handed out once and never reassigned — see the header of
+              // `kasem-homographs.ts`. A re-publish finds this entry among its
+              // own peers and keeps the number it already had, so correcting a
+              // typo in an example sentence cannot renumber the word.
+              homographIndex: assignHomographIndex(dictionaryRef.id, homographPeers),
               translations,
               ...(hasNounForms(submittedForms) ? { forms: submittedForms } : {}),
               ...(validatorClassed

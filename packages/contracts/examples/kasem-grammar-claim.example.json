@@ -1,0 +1,20 @@
+{
+  "id": "synthetic-claim",
+  "authorUid": "synthetic-validator",
+  "title": "Synthetic schema fixture",
+  "summary": "This is test data, not a claim about Kasem.",
+  "scope": "Synthetic tests only.",
+  "dialect": "synthetic",
+  "evidenceIds": [
+    "synthetic-evidence"
+  ],
+  "evidenceRevisions": {
+    "synthetic-evidence": 1
+  },
+  "triggers": [
+    "synthetic"
+  ],
+  "version": 1,
+  "status": "hypothesis",
+  "createdAt": "2026-09-05T00:00:00.000Z"
+}

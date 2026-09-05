@@ -1,80 +1,28 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/data/local/app_database.dart';
 import 'package:indigen_world_mobile/domain/contribution.dart';
-import 'package:indigen_world_mobile/domain/dictionary_entry.dart';
 
-abstract interface class DictionaryRepository {
-  List<DictionaryEntry> search(String query);
-  DictionaryEntry? findById(String id);
-}
-
-class DemoDictionaryRepository implements DictionaryRepository {
-  const DemoDictionaryRepository();
-
-  static const entries = <DictionaryEntry>[
-    DictionaryEntry(
-      id: 'demo-greeting',
-      headword: 'Kasem greeting · demo',
-      translation: 'Hello · synthetic placeholder',
-      partOfSpeech: 'Expression',
-      dialect: 'Dialect not assigned',
-      pronunciation: 'Audio pending validation',
-      example: 'Synthetic example withheld',
-      exampleTranslation: 'Validated community data will replace this demo.',
-      culturalNote: 'A validator-approved greeting and context belong here.',
-      attribution: 'Synthetic engineering fixture · not linguistic guidance',
-    ),
-    DictionaryEntry(
-      id: 'demo-water',
-      headword: 'Kasem word for water · demo',
-      translation: 'Water · synthetic placeholder',
-      partOfSpeech: 'Noun',
-      dialect: 'Paga · demo metadata',
-      pronunciation: 'Audio pending validation',
-      example: 'Synthetic example withheld',
-      exampleTranslation: 'Validated community data will replace this demo.',
-      culturalNote:
-          'Public copy requires linguistic validation and attribution.',
-      attribution: 'Synthetic engineering fixture · not linguistic guidance',
-    ),
-    DictionaryEntry(
-      id: 'demo-family',
-      headword: 'Kasem word for family · demo',
-      translation: 'Family · synthetic placeholder',
-      partOfSpeech: 'Noun',
-      dialect: 'Navrongo · demo metadata',
-      pronunciation: 'Audio pending validation',
-      example: 'Synthetic example withheld',
-      exampleTranslation: 'Validated community data will replace this demo.',
-      culturalNote: 'Cultural notes remain hidden until they are approved.',
-      attribution: 'Synthetic engineering fixture · not linguistic guidance',
-    ),
-    DictionaryEntry(
-      id: 'demo-thank-you',
-      headword: 'Kasem thanks · demo',
-      translation: 'Thank you · synthetic placeholder',
-      partOfSpeech: 'Expression',
-      dialect: 'Chiana · demo metadata',
-      pronunciation: 'Audio pending validation',
-      example: 'Synthetic example withheld',
-      exampleTranslation: 'Validated community data will replace this demo.',
-      culturalNote: 'Usage guidance must be supplied by approved validators.',
-      attribution: 'Synthetic engineering fixture · not linguistic guidance',
-    ),
-  ];
-
-  @override
-  DictionaryEntry? findById(String id) {
-    for (final entry in entries) {
-      if (entry.id == id) return entry;
-    }
-    return null;
-  }
-
-  @override
-  List<DictionaryEntry> search(String query) =>
-      entries.where((entry) => entry.matches(query)).toList(growable: false);
-}
+/// What this device remembers on its own.
+///
+/// ── What used to be here, and why it is not ──────────────────────────────
+/// A `DemoDictionaryRepository` holding four synthetic entries — "Kasem
+/// greeting · demo", "Synthetic example withheld", "Validated community data
+/// will replace this demo" — behind a `dictionaryRepositoryProvider` that
+/// `EntryDetailScreen` consulted BEFORE the published Firestore document. So
+/// `/entry/demo-water` resolved to invented vocabulary in preference to a real
+/// entry with the same id, and every entry built without explicitly passing
+/// `isSynthetic: false` was flagged in the interface as a demo projection.
+///
+/// It was scaffolding from before there was a dictionary to read, and the
+/// dictionary has had 1200 published entries for some time. Synthetic
+/// vocabulary in a language-preservation app is not a placeholder; it is a
+/// wrong answer about somebody's language, sitting in the one place a learner
+/// has been told to trust.
+///
+/// The published archive is read through `publishedDictionaryEntriesProvider`
+/// in `features/collection/collection_data.dart`. An unavailable Firebase
+/// launch yields an empty collection, which every surface renders as an honest
+/// empty state rather than as four invented words.
 
 abstract interface class ContributionRepository {
   Future<List<Contribution>> getAll();
@@ -110,10 +58,6 @@ class LocalSavedEntryRepository implements SavedEntryRepository {
   @override
   Future<bool> toggle(String entryId) => _database.toggleSavedEntry(entryId);
 }
-
-final dictionaryRepositoryProvider = Provider<DictionaryRepository>(
-  (ref) => const DemoDictionaryRepository(),
-);
 
 final contributionRepositoryProvider = Provider<ContributionRepository>(
   (ref) => LocalContributionRepository(ref.watch(appDatabaseProvider)),

@@ -1,0 +1,302 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.indigen-world.org/v2/kasem-dataset-release.schema.json",
+  "title": "kasem-dataset-release",
+  "type": "object",
+  "properties": {
+    "schemaVersion": {
+      "const": 2
+    },
+    "exporterVersion": {
+      "type": "string"
+    },
+    "releaseId": {
+      "type": "string"
+    },
+    "asOf": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "seed": {
+      "type": "string"
+    },
+    "trainPercent": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "validationPercent": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "snapshotHash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "files": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "rows": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "sha256",
+          "rows"
+        ],
+        "additionalProperties": false
+      },
+      "propertyNames": {
+        "pattern": "^(train|validation|test)-(translation|preference|grammar|evaluation)\\.jsonl$"
+      }
+    },
+    "assignments": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string",
+        "enum": [
+          "train",
+          "validation",
+          "test"
+        ]
+      }
+    },
+    "lineage": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 150
+          },
+          "noteId": {
+            "type": "string",
+            "maxLength": 150
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "example": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "group": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "split": {
+            "type": "string",
+            "enum": [
+              "train",
+              "validation",
+              "test"
+            ]
+          },
+          "sourceType": {
+            "enum": [
+              "speaker",
+              "literature",
+              "model"
+            ]
+          },
+          "sourceHash": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "permissionHash": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "contentHash": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "annotationApproved": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "noteId",
+          "revision",
+          "example",
+          "group",
+          "split",
+          "sourceType",
+          "sourceHash",
+          "permissionHash",
+          "contentHash",
+          "annotationApproved"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "exclusions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "index": {
+            "type": "integer"
+          },
+          "reasons": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "index",
+          "reasons"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "quality": {
+      "type": "object",
+      "properties": {
+        "notes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "examples": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "eligible": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "disputed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "audio": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "exclusions": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "coverage": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "required": [
+        "notes",
+        "examples",
+        "eligible",
+        "disputed",
+        "audio",
+        "exclusions",
+        "coverage"
+      ],
+      "additionalProperties": false
+    },
+    "reservations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "noteId": {
+            "type": "string",
+            "maxLength": 150
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "split": {
+            "type": "string",
+            "enum": [
+              "train",
+              "validation",
+              "test"
+            ]
+          },
+          "contentHash": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        },
+        "required": [
+          "noteId",
+          "revision",
+          "split",
+          "contentHash"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "claimLineage": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "claimId": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "contentHash": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        },
+        "required": [
+          "id",
+          "claimId",
+          "version",
+          "contentHash"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "exporterVersion",
+    "releaseId",
+    "asOf",
+    "seed",
+    "trainPercent",
+    "validationPercent",
+    "snapshotHash",
+    "files",
+    "assignments",
+    "lineage",
+    "exclusions",
+    "quality",
+    "reservations",
+    "claimLineage"
+  ],
+  "additionalProperties": false
+}

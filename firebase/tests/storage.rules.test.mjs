@@ -49,6 +49,23 @@ after(async () => {
 const bytes = () => new Blob(['ok'], { type: 'video/mp4' });
 const imageBytes = () => new Blob(['png'], { type: 'image/png' });
 
+test('sentence audio is private, owner-scoped, typed, and immutable', async () => {
+  const owner = await clientFor('grammar-owner', 'grammar-owner');
+  const stranger = await clientFor('grammar-stranger', 'grammar-stranger');
+  const reviewer = await clientFor('grammar-reviewer', 'grammar-reviewer', { role: 'validator' });
+  const anonymous = await clientFor('grammar-anonymous', null);
+  const path = 'grammarAudio/grammar-owner/example.mp3';
+  const audio = new Uint8Array([1, 2, 3]);
+  await uploadBytes(ref(owner, path), audio, { contentType: 'audio/mpeg' });
+  assert.equal((await getBytes(ref(owner, path))).byteLength, 3);
+  await assert.rejects(getBytes(ref(reviewer, path)));
+  await assert.rejects(getBytes(ref(stranger, path)));
+  await assert.rejects(getBytes(ref(anonymous, path)));
+  await assert.rejects(uploadBytes(ref(owner, path), audio, { contentType: 'audio/mpeg' }));
+  await assert.rejects(uploadBytes(ref(stranger, path + '2'), audio, { contentType: 'audio/mpeg' }));
+  await assert.rejects(uploadBytes(ref(owner, path + '.txt'), audio, { contentType: 'text/plain' }));
+});
+
 test('any signed-in account can upload raw media into its own prefix', async () => {
   // Publishing to Explore no longer requires approval, so neither does staging
   // the file. The path stays private to its owner and staff either way (see the

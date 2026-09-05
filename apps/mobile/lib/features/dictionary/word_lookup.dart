@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/domain/dictionary_entry.dart';
+import 'package:indigen_world_mobile/domain/kasem_homographs.dart';
 import 'package:indigen_world_mobile/features/collection/collection_data.dart';
 import 'package:indigen_world_mobile/features/dictionary/entry_detail_screen.dart';
 import 'package:indigen_world_mobile/features/dictionary/sentence_credit.dart';
 import 'package:indigen_world_mobile/features/dictionary/translation_display.dart';
 import 'package:indigen_world_mobile/shared/glass_popup.dart';
+import 'package:indigen_world_mobile/shared/glass_surface.dart';
 
 /// The published dictionary, arranged so a single word can be found in it.
 ///
@@ -21,24 +23,57 @@ import 'package:indigen_world_mobile/shared/glass_popup.dart';
 /// dictionary. A headword of several words is indexed whole *and* by each of
 /// its parts, because a reader tapping one word of a phrase is asking about
 /// the phrase.
-final dictionaryIndexProvider = Provider<Map<String, DictionaryEntry>>((ref) {
-  final entries =
-      ref.watch(publishedDictionaryEntriesProvider).asData?.value ??
-      const <DictionaryEntry>[];
-  final index = <String, DictionaryEntry>{};
-  for (final entry in entries) {
-    final headword = normaliseWord(entry.headword);
-    if (headword.isEmpty) continue;
-    index[headword] = entry;
-    if (!headword.contains(' ')) continue;
-    for (final part in headword.split(' ')) {
-      // Whole headwords win: a one-word entry must never be shadowed by a
-      // fragment of a longer one.
-      if (part.length > 1) index.putIfAbsent(part, () => entry);
-    }
-  }
-  return Map.unmodifiable(index);
-});
+/// ── Why the value is a list ──────────────────────────────────────────────
+/// It used to be a single entry, assigned with `index[headword] = entry`, and
+/// last write won. 478 of the 1200 published entries share a spelling with
+/// another entry — eight are headed `ni`, eight `dɩ`, seven `maŋɩ` — so for
+/// every one of those runs, seven or so entries were simply unreachable from
+/// the tap-a-word feature, and *which* one survived depended on the order a
+/// Firestore snapshot happened to arrive in.
+///
+/// A reader tapping `ni` in a post was shown one of eight different words with
+/// nothing to say it was a choice, and could be shown a different one an hour
+/// later. That is worse than showing nothing: it is a dictionary confidently
+/// answering a question it did not understand.
+final dictionaryIndexProvider =
+    Provider<Map<String, List<DictionaryEntry>>>((ref) {
+      final entries =
+          ref.watch(publishedDictionaryEntriesProvider).asData?.value ??
+          const <DictionaryEntry>[];
+      final index = <String, List<DictionaryEntry>>{};
+      final fragments = <String, List<DictionaryEntry>>{};
+
+      for (final entry in entries) {
+        final headword = normaliseWord(entry.headword);
+        if (headword.isEmpty) continue;
+        index.putIfAbsent(headword, () => <DictionaryEntry>[]).add(entry);
+        if (!headword.contains(' ')) continue;
+        for (final part in headword.split(' ')) {
+          if (part.length > 1) {
+            fragments.putIfAbsent(part, () => <DictionaryEntry>[]).add(entry);
+          }
+        }
+      }
+
+      // Whole headwords still win: a one-word entry must never be shadowed by
+      // a fragment of a longer one. Collected separately and merged after, so
+      // the rule holds regardless of the order entries arrive in — with a
+      // single-valued map `putIfAbsent` enforced it by accident, and only for
+      // as long as the fragment happened to be seen second.
+      for (final fragment in fragments.entries) {
+        index.putIfAbsent(fragment.key, () => fragment.value);
+      }
+
+      // The senses under one spelling are ordered, so a chooser lists them
+      // 1, 2, 3 rather than in snapshot order.
+      for (final senses in index.values) {
+        senses.sort((left, right) {
+          final bySense = left.homographIndex.compareTo(right.homographIndex);
+          return bySense != 0 ? bySense : left.id.compareTo(right.id);
+        });
+      }
+      return Map.unmodifiable(index);
+    });
 
 /// One entry, the same for everybody, for the whole of one day.
 ///
@@ -85,6 +120,29 @@ final wordPattern = RegExp(r"[\p{L}\p{M}][\p{L}\p{M}'’-]*", unicode: true);
 /// Deliberately a card rather than a page. Somebody who taps a word in the
 /// middle of a post is still reading the post, and pushing a whole screen over
 /// it costs them their place. Anyone who wants the full entry can say so.
+/// The card for a tapped word, or a chooser when the spelling names more than
+/// one word.
+///
+/// [senses] is every entry filed under the spelling that was tapped, in sense
+/// order. One is the ordinary case and opens the card directly. More than one
+/// is the case that used to be silently resolved by picking whichever entry a
+/// snapshot wrote last, and it is now a question put to the reader — because
+/// `ni` naming eight different words is a fact about the language, and hiding
+/// it behind a confident single answer teaches the wrong one.
+Future<void> showWordSenses(
+  BuildContext context,
+  List<DictionaryEntry> senses,
+) {
+  if (senses.isEmpty) return Future<void>.value();
+  if (senses.length == 1) return showWordLookup(context, senses.first);
+  return showGlassPopup<void>(
+    context: context,
+    title: senses.first.headword,
+    subtitle: '${senses.length} different words are written this way',
+    builder: (popupContext) => _SenseChooser(senses: senses),
+  );
+}
+
 Future<void> showWordLookup(BuildContext context, DictionaryEntry entry) =>
     showGlassPopup<void>(
       context: context,
@@ -98,6 +156,97 @@ Future<void> showWordLookup(BuildContext context, DictionaryEntry entry) =>
       ].join(' · '),
       builder: (popupContext) => _WordLookupBody(entry: entry),
     );
+
+/// The list a reader picks from when one spelling names several words.
+///
+/// Each row leads with the numbered headword and the word class, because those
+/// are the two things that actually tell eight `ni` entries apart — the
+/// meaning below is what confirms the choice, but a learner scanning for "the
+/// verb one" finds it on the class.
+class _SenseChooser extends ConsumerWidget {
+  const _SenseChooser({required this.senses});
+
+  final List<DictionaryEntry> senses;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final brand = context.brand;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (final entry in senses)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Semantics(
+              button: true,
+              label: homographDisplay(
+                entry.headword,
+                homographIndex: entry.homographIndex,
+                siblingCount: senses.length,
+              ).spoken,
+              excludeSemantics: true,
+              child: GlassCard(
+                blur: false,
+                padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  showWordLookup(context, entry);
+                },
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            homographDisplay(
+                              entry.headword,
+                              homographIndex: entry.homographIndex,
+                              siblingCount: senses.length,
+                            ).text,
+                            style: TextStyle(
+                              color: brand.ink,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          if (partOfSpeechLabel(entry.partOfSpeech).isNotEmpty)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 2),
+                              child: Text(
+                                partOfSpeechLabel(entry.partOfSpeech),
+                                style: TextStyle(
+                                  color: brand.accent,
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                          const SizedBox(height: 4),
+                          Text(
+                            entry.primaryTranslation,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: brand.mutedInk,
+                              fontSize: 13,
+                              height: 1.35,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Icon(Icons.chevron_right_rounded, color: brand.faintInk),
+                  ],
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
 
 class _WordLookupBody extends StatelessWidget {
   const _WordLookupBody({required this.entry});

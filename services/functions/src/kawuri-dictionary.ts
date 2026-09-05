@@ -1,6 +1,8 @@
 import { getFirestore } from 'firebase-admin/firestore';
 import { logger } from 'firebase-functions';
 
+import { countByHeadword, headwordKey, homographDisplay } from './kasem-homographs.js';
+
 /**
  * The dictionary, as Kawuri is allowed to quote it.
  *
@@ -48,6 +50,17 @@ export interface DictionaryRecord {
   dialect: string;
   kasemExample: string;
   englishExample: string;
+  /**
+   * Which sense of this spelling the entry is — 1, 2, 3 — or 0 on a row the
+   * backfill has not reached.
+   *
+   * Carried into the briefing because without it two homographs arrive as two
+   * lines with the same headword on them, and the only sane thing a model can
+   * do with that is merge them into one word with two meanings. That is
+   * precisely wrong when they are two words, and it is the sort of error that
+   * gets copied into somebody's notes and taught on.
+   */
+  homographIndex: number;
 }
 
 /** How many entries one instance will hold. */
@@ -209,13 +222,102 @@ export function grammarTerms(question: string): string[] {
     // looked up and fatal when the term *is* the word "the".
     const cleaned = normaliseTerm(raw);
     if (!cleaned || cleaned.length > MAX_TERM_LENGTH) return;
-    if (!STOP_WORDS.has(cleaned)) return;
+    if (!STOP_WORDS.has(cleaned) && cleaned !== 'mo') return;
     if (!found.includes(cleaned)) found.push(cleaned);
   };
 
   for (const match of asked.matchAll(QUOTED)) add(match[1]);
   for (const pattern of TERM_PATTERNS) add(asked.match(pattern)?.[1]);
   for (const pattern of FALLBACK_PATTERNS) add(asked.match(pattern)?.[1]);
+
+  return found;
+}
+
+/** The longest thing treated as a sentence to be translated. Past this it is
+ * a passage, and no corpus of attested examples is going to hold it. */
+const MAX_SENTENCE_REQUEST_LENGTH = 240;
+
+/**
+ * The fewest whitespace tokens that make a request a clause rather than a term.
+ *
+ * Three, and the boundary is worth defending because the obvious alternative —
+ * length — is wrong. "the big boy is hungry" is twenty-one characters, well
+ * inside the dictionary's 48-character term cap, and it is unmistakably a
+ * sentence. Length measures how long a word is; a clause is a matter of how
+ * many there are.
+ *
+ * Two would sweep up "good morning", "red cloth", "my father" — compounds and
+ * phrases the dictionary genuinely holds, or should. Three lets those through
+ * to the lexicon and catches "i am hungry", "he beat me", "the water is cold",
+ * which is where the trouble starts.
+ */
+const MIN_SENTENCE_TOKENS = 3;
+
+/**
+ * The whole sentence a question is asking to have translated, or `''`.
+ *
+ * ── The third slice of one question ───────────────────────────────────────
+ * "How do you say X in Kasem?" is one phrasing with three different answers,
+ * and which one is owed depends entirely on what X is:
+ *
+ *   X is a meaningful word      → the dictionary        [translationTerms]
+ *   X is a function word        → the grammar rules     [grammarTerms]
+ *   X is a clause               → the sentence corpus   [sentenceRequest]
+ *
+ * The first two are here already and they partition the *short* answers
+ * exactly: whatever one discards as a stop word, the other keeps. Neither
+ * takes the third case, and the way they decline it is silent — a clause is
+ * chopped into its words, each word is looked up, and the model is handed a
+ * pile of correct vocabulary with no instruction about the order it goes in.
+ * What comes back is the Kasem words in English order: every word right, the
+ * sentence invented. That is the failure this extractor exists to catch.
+ *
+ * ── Why this one does NOT displace the dictionary ─────────────────────────
+ * [grammarTerms] and [translationTerms] are mutually exclusive by
+ * construction, and that is right for them: a question is about a word or
+ * about a function word, never both. This one deliberately overlaps. A member
+ * asking for a sentence we do not hold is still owed the words we do hold —
+ * they are the honest part of the answer — so both briefings are fetched and
+ * both are quoted. What the corpus briefing adds is the sentence, or, far more
+ * often, the instruction not to build one out of the words sitting above it.
+ *
+ * ── Why it lives in this module ───────────────────────────────────────────
+ * For the reason stated above [grammarTerms]: one copy of [TERM_PATTERNS]. A
+ * third file with its own regexes for the same eight phrasings would stay
+ * correct for about a month, and the failure would be invisible — a phrasing
+ * that stopped being recognised looks exactly like a question nobody asked.
+ */
+export function sentenceRequest(question: string): string {
+  const asked = question.trim();
+  if (!asked) return '';
+
+  let found = '';
+  // Whether a specific phrasing matched at all, which is NOT the same question
+  // as whether its capture survived the token filter — and conflating the two
+  // is the bug [translationTerms] documents at length, made here again. "How
+  // do you say water in Kasem?" matches the first pattern cleanly and captures
+  // "water", which is then dropped for being one token. Guarding the fallback
+  // on an empty *result* let it run anyway, where it matched the tail of the
+  // very phrasing that had already been understood and returned "how do you
+  // say water" — four tokens, so a sentence by this module's own test, and a
+  // corpus read spent on a question the dictionary had already answered.
+  //
+  // The fallback exists for questions no pattern recognised, not for questions
+  // whose answer was recognised and then discarded.
+  let recognised = false;
+  const add = (raw: string | undefined) => {
+    if (!raw) return;
+    recognised = true;
+    if (found) return;
+    const cleaned = normaliseTerm(raw);
+    if (!cleaned || cleaned.length > MAX_SENTENCE_REQUEST_LENGTH) return;
+    if (cleaned.split(' ').filter(Boolean).length < MIN_SENTENCE_TOKENS) return;
+    found = cleaned;
+  };
+
+  for (const match of asked.matchAll(QUOTED)) add(match[1]);
+  for (const pattern of TERM_PATTERNS) add(asked.match(pattern)?.[1]);
+  if (!recognised) for (const pattern of FALLBACK_PATTERNS) add(asked.match(pattern)?.[1]);
 
   return found;
 }
@@ -273,6 +375,7 @@ export function dictionaryRecordFrom(
     dialect: text(data.dialect),
     kasemExample: firstText(data, ['kasemExample', 'example']),
     englishExample: firstText(data, ['englishExample', 'exampleTranslation']),
+    homographIndex: Number(data.homographIndex ?? 0) || 0,
   };
 }
 
@@ -340,10 +443,24 @@ export function matchDictionary(
 }
 
 /** One entry as a line the model can quote without re-deriving anything. */
-function briefingLine(entry: DictionaryRecord, index: number): string {
+function briefingLine(
+  entry: DictionaryRecord,
+  index: number,
+  siblings: ReadonlyMap<string, number>,
+): string {
   const alternates = entry.renderings.slice(1);
+  // The headword carries its sense number wherever one is owed, so the model
+  // reads `mo` and `mo` as two distinguishable things rather than two lines
+  // with the same word on them. Handed over pre-rendered rather than as a
+  // number to format, because a model asked to apply the superscript itself
+  // does it inconsistently and sometimes helpfully "tidies" it away.
+  const headword = homographDisplay(
+    entry.kasem,
+    entry.homographIndex,
+    siblings.get(headwordKey(entry.kasem)) ?? 1,
+  );
   const parts = [
-    `${index + 1}. Kasem: ${entry.kasem || '(none recorded)'}`,
+    `${index + 1}. Kasem: ${headword.text || '(none recorded)'}`,
     alternates.length > 0 ? `also written: ${alternates.join(', ')}` : '',
     `English: ${entry.english || '(none recorded)'}`,
     entry.partOfSpeech ? `word class: ${entry.partOfSpeech}` : '',
@@ -369,6 +486,7 @@ function briefingLine(entry: DictionaryRecord, index: number): string {
 export function dictionaryBriefing(
   terms: readonly string[],
   matches: readonly DictionaryRecord[],
+  siblings: ReadonlyMap<string, number> = new Map(),
 ): string {
   if (terms.length === 0) return '';
 
@@ -379,7 +497,24 @@ export function dictionaryBriefing(
 Say so plainly: the dictionary does not have this word yet. Do not offer a Kasem word from your own memory, do not guess a spelling, and do not describe how it "might" be said. Point the person at the Contribute tab if they know the word from a speaker, or at the Community tab if they want to ask one.`;
   }
 
-  const lines = matches.map(briefingLine).join('\n');
+  const lines = matches
+    .map((entry, index) => briefingLine(entry, index, siblings))
+    .join('\n');
+
+  // Two entries under one spelling are two WORDS, and the instruction has to
+  // say so out loud. Handed a pair of lines both headed `mo`, the reasonable
+  // reading is one word with two meanings — and stating them as one word is
+  // exactly the error the numbering exists to prevent. So the numbering has
+  // to arrive with its explanation attached rather than as decoration on a
+  // headword.
+  const numbered = matches.filter(
+    (entry) => (siblings.get(headwordKey(entry.kasem)) ?? 1) > 1 && entry.homographIndex > 0,
+  );
+  const homographNote = numbered.length > 0
+    ? `\n\nTWO WORDS, ONE SPELLING — ${numbered
+        .map((entry) => homographDisplay(entry.kasem, entry.homographIndex, 2).text)
+        .join(', ')} are separate entries that happen to be written the same way. They are NOT one word with several meanings. Keep them apart: give each its own meaning, and print the small number whenever you name one so the person knows which you mean. Never merge their meanings into a single definition, and never say one of them "also means" something that belongs to the other.`
+    : '';
   return `DICTIONARY LOOKUP — the published Indigen World dictionary was searched for ${asked}. These entries matched, and they are the ONLY Kasem you may state as confirmed in this answer:
 
 ${lines}
@@ -389,18 +524,34 @@ How to use them:
 • Where an entry lists more than one Kasem rendering, give them all and say they are alternatives.
 • Where an entry carries an example sentence, include it; it is what makes the word usable.
 • If the entry does not actually answer what was asked, say that instead of stretching it to fit.
-• Do not add any further Kasem word from memory. Anything not listed above is unattested, and saying so is a complete answer.`;
+• Do not add any further Kasem word from memory. Anything not listed above is unattested, and saying so is a complete answer.${homographNote}`;
 }
 
 /** The cached dictionary for this instance. */
-let cache: { records: DictionaryRecord[]; truncated: boolean; loadedAt: number } | null = null;
+let cache: {
+  records: DictionaryRecord[];
+  truncated: boolean;
+  /**
+   * How many published entries share each headword.
+   *
+   * Built with the cache rather than per question, because it is a property of
+   * the whole collection and rebuilding it for every lookup would walk four
+   * thousand rows to answer something about eight of them.
+   */
+  siblings: Map<string, number>;
+  loadedAt: number;
+} | null = null;
 
 /** Drops the cache. For tests, and for anything that needs a cold read. */
 export function resetDictionaryCache(): void {
   cache = null;
 }
 
-async function loadDictionary(): Promise<{ records: DictionaryRecord[]; truncated: boolean }> {
+async function loadDictionary(): Promise<{
+  records: DictionaryRecord[];
+  truncated: boolean;
+  siblings: Map<string, number>;
+}> {
   const now = Date.now();
   if (cache && now - cache.loadedAt < CACHE_TTL_MS) return cache;
 
@@ -423,7 +574,7 @@ async function loadDictionary(): Promise<{ records: DictionaryRecord[]; truncate
       cached: records.length,
     });
   }
-  cache = { records, truncated, loadedAt: now };
+  cache = { records, truncated, siblings: countByHeadword(records), loadedAt: now };
   return cache;
 }
 
@@ -462,6 +613,34 @@ async function exactMatches(terms: readonly string[]): Promise<DictionaryRecord[
 }
 
 /**
+ * Every Kasem rendering the published dictionary holds, normalised.
+ *
+ * For the one caller that needs to ask "is this word new?" of a whole
+ * sentence at once — `grammar-contributions.ts`, deciding which words out of a
+ * confirmed gloss the archive has never seen.
+ *
+ * It reuses [loadDictionary] rather than reading the collection itself, which
+ * is the entire point of it living here. The alternative was forty equality
+ * queries per approval, or a second cache of the same rows with its own TTL
+ * drifting against this one.
+ *
+ * The English side is deliberately absent. The question being asked is whether
+ * a Kasem token is attested, and an English gloss that happens to match some
+ * entry's meaning says nothing about that.
+ */
+export async function publishedKasemForms(): Promise<Set<string>> {
+  const { records } = await loadDictionary();
+  const forms = new Set<string>();
+  for (const record of records) {
+    for (const rendering of record.renderings) {
+      const value = normaliseTerm(rendering);
+      if (value) forms.add(value);
+    }
+  }
+  return forms;
+}
+
+/**
  * The dictionary instruction for a question, or `''` when none is owed.
  *
  * Never throws. A dictionary that cannot be read is a Kawuri that answers the
@@ -473,13 +652,19 @@ export async function dictionaryContextFor(question: string): Promise<string> {
   if (terms.length === 0) return '';
 
   try {
-    const { records, truncated } = await loadDictionary();
+    const { records, truncated, siblings } = await loadDictionary();
     const matches = matchDictionary(records, terms);
     if (matches.length === 0 && truncated) {
+      // The direct rows are counted among themselves rather than against the
+      // cached siblings map, which by definition does not hold them. Two
+      // homographs that both fell outside the cache still arrive numbered;
+      // one whose sibling is inside it does not, and that is the honest
+      // degradation — a missing number is a headword that reads plainly, not
+      // a wrong one.
       const direct = matchDictionary(await exactMatches(terms), terms);
-      return dictionaryBriefing(terms, direct);
+      return dictionaryBriefing(terms, direct, countByHeadword(direct));
     }
-    return dictionaryBriefing(terms, matches);
+    return dictionaryBriefing(terms, matches, siblings);
   } catch (error) {
     logger.error('Dictionary lookup failed', {
       errorType: error instanceof Error ? error.name : 'unknown',

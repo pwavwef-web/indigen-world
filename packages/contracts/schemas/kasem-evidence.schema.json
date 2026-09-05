@@ -1,0 +1,493 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.indigen-world.org/v2/kasem-evidence.schema.json",
+  "title": "kasem-evidence",
+  "type": "object",
+  "properties": {
+    "datasetSplit": { "type": "string", "enum": ["", "train", "validation", "test"] },
+    "id": {
+      "type": "string",
+      "maxLength": 150
+    },
+    "schemaVersion": {
+      "const": 2
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "authorUid": {
+      "type": "string",
+      "maxLength": 150
+    },
+    "title": {
+      "type": "string",
+      "maxLength": 240
+    },
+    "explanation": {
+      "type": "string",
+      "maxLength": 2000
+    },
+    "mode": {
+      "type": "string",
+      "enum": [
+        "sentence",
+        "comparison",
+        "correction"
+      ]
+    },
+    "examples": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "kasem": {
+            "type": "string",
+            "maxLength": 240
+          },
+          "english": {
+            "type": "string",
+            "maxLength": 240
+          },
+          "literal": {
+            "type": "string",
+            "maxLength": 240
+          },
+          "gloss": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "kasem": {
+                  "type": "string"
+                },
+                "english": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "kasem",
+                "english"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "dialect": {
+            "type": "string",
+            "maxLength": 60
+          },
+          "constructions": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 80
+            },
+            "maxItems": 4
+          },
+          "originalKasem": {
+            "type": "string",
+            "maxLength": 240
+          },
+          "originalEnglish": {
+            "type": "string",
+            "maxLength": 240
+          },
+          "annotations": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "start": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "end": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "gloss": {
+                  "type": "string",
+                  "maxLength": 200
+                },
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "lexical",
+                    "grammatical",
+                    "unknown"
+                  ]
+                },
+                "senseId": {
+                  "type": "string",
+                  "maxLength": 100
+                },
+                "role": {
+                  "type": "string",
+                  "maxLength": 80
+                },
+                "hypotheses": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "maxLength": 200
+                  },
+                  "maxItems": 5
+                }
+              },
+              "required": [
+                "start",
+                "end",
+                "gloss",
+                "kind",
+                "senseId",
+                "role",
+                "hypotheses"
+              ],
+              "additionalProperties": false
+            },
+            "maxItems": 80
+          },
+          "context": {
+            "type": "object",
+            "properties": {
+              "status": {
+                "type": "string",
+                "enum": [
+                  "specified",
+                  "unspecified"
+                ]
+              },
+              "situation": {
+                "type": "string",
+                "maxLength": 1200
+              },
+              "preceding": {
+                "type": "string",
+                "maxLength": 1600
+              },
+              "intent": {
+                "type": "string",
+                "maxLength": 120
+              },
+              "register": {
+                "type": "string",
+                "maxLength": 120
+              }
+            },
+            "required": [
+              "status",
+              "situation",
+              "preceding",
+              "intent",
+              "register"
+            ],
+            "additionalProperties": false
+          },
+          "sourceType": {
+            "type": "string",
+            "enum": [
+              "speaker",
+              "literature",
+              "model"
+            ]
+          },
+          "source": {
+            "type": "string",
+            "maxLength": 1000
+          },
+          "naturalness": {
+            "type": "string",
+            "enum": [
+              "natural",
+              "awkward",
+              "unnatural",
+              "cannot-judge"
+            ]
+          },
+          "audioPath": {
+            "type": "string",
+            "maxLength": 300
+          },
+          "audioGeneration": {
+            "type": "string",
+            "maxLength": 100
+          }
+        },
+        "required": [
+          "kasem",
+          "english",
+          "literal",
+          "gloss",
+          "note",
+          "dialect",
+          "constructions",
+          "originalKasem",
+          "originalEnglish",
+          "annotations",
+          "context",
+          "sourceType",
+          "source",
+          "naturalness",
+          "audioPath"
+        ],
+        "additionalProperties": false
+      },
+      "maxItems": 6,
+      "minItems": 1
+    },
+    "permissions": {
+      "type": "object",
+      "properties": {
+        "review": {
+          "type": "boolean"
+        },
+        "sourceConfirmed": {
+          "type": "boolean"
+        },
+        "publication": {
+          "type": "boolean"
+        },
+        "providerRetrieval": {
+          "type": "boolean"
+        },
+        "modelTraining": {
+          "type": "boolean"
+        },
+        "evaluation": {
+          "type": "boolean"
+        },
+        "audio": {
+          "type": "boolean"
+        },
+        "version": {
+          "type": "string",
+          "maxLength": 60
+        },
+        "licence": {
+          "type": "string",
+          "maxLength": 400
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "active",
+            "withdrawn"
+          ]
+        },
+        "expiresAt": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "review",
+        "sourceConfirmed",
+        "publication",
+        "providerRetrieval",
+        "modelTraining",
+        "evaluation",
+        "audio",
+        "version",
+        "licence",
+        "status",
+        "expiresAt"
+      ],
+      "additionalProperties": false
+    },
+    "groups": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "maxLength": 200
+      }
+    },
+    "comparisonNote": {
+      "type": "string",
+      "maxLength": 2000
+    },
+    "question": {
+      "type": "string",
+      "maxLength": 2000
+    },
+    "answer": {
+      "type": "string",
+      "maxLength": 8000
+    },
+    "modelVersion": {
+      "type": "string",
+      "maxLength": 120
+    },
+    "promptVersion": {
+      "type": "string",
+      "maxLength": 120
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updatedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "submitted",
+        "confirmed",
+        "disputed",
+        "reviewed",
+        "needs-permission",
+        "withdrawn"
+      ]
+    },
+    "reviews": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "reviewerId": {
+            "type": "string",
+            "maxLength": 150
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "dialectCompetent": {
+            "type": "boolean"
+          },
+          "judgments": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "meaning": {
+                  "type": "string",
+                  "enum": [
+                    "faithful",
+                    "partial",
+                    "different",
+                    "cannot-judge"
+                  ]
+                },
+                "grammar": {
+                  "type": "string",
+                  "enum": [
+                    "acceptable",
+                    "unacceptable",
+                    "context-dependent",
+                    "cannot-judge"
+                  ]
+                },
+                "naturalness": {
+                  "type": "string",
+                  "enum": [
+                    "natural",
+                    "awkward",
+                    "unnatural",
+                    "cannot-judge"
+                  ]
+                },
+                "contextFit": {
+                  "type": "string",
+                  "enum": [
+                    "fits",
+                    "does-not-fit",
+                    "context-missing",
+                    "cannot-judge"
+                  ]
+                },
+                "explanation": {
+                  "type": "string",
+                  "maxLength": 2000
+                },
+                "annotationApproved": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "meaning",
+                "grammar",
+                "naturalness",
+                "contextFit",
+                "explanation",
+                "annotationApproved"
+              ],
+              "additionalProperties": false
+            },
+            "maxItems": 6
+          },
+          "preference": {
+            "type": "string",
+            "enum": [
+              "first",
+              "second",
+              "tie",
+              "context-dependent",
+              "cannot-judge"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "reviewerId",
+          "revision",
+          "dialectCompetent",
+          "judgments",
+          "preference",
+          "createdAt"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "reservedSplit": {
+      "type": "string",
+      "enum": [
+        "",
+        "validation",
+        "test"
+      ]
+    },
+    "requestFingerprint": {
+      "type": "string",
+      "maxLength": 64
+    }
+  },
+  "required": [
+    "id",
+    "schemaVersion",
+    "revision",
+    "authorUid",
+    "title",
+    "explanation",
+    "mode",
+    "examples",
+    "permissions",
+    "groups",
+    "comparisonNote",
+    "question",
+    "answer",
+    "modelVersion",
+    "promptVersion",
+    "createdAt",
+    "updatedAt",
+    "status",
+    "reviews",
+    "reservedSplit"
+  ],
+  "additionalProperties": false
+}

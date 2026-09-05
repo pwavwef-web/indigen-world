@@ -87,7 +87,7 @@ class _PostTextState extends ConsumerState<PostText> {
 
     final dictionary = widget.lookUpWords
         ? ref.watch(dictionaryIndexProvider)
-        : const <String, DictionaryEntry>{};
+        : const <String, List<DictionaryEntry>>{};
 
     final body = TextStyle(
       fontSize: widget.fontSize,
@@ -158,15 +158,15 @@ class _PostTextState extends ConsumerState<PostText> {
     String text,
     TextStyle body,
     TextStyle known,
-    Map<String, DictionaryEntry> dictionary,
+    Map<String, List<DictionaryEntry>> dictionary,
   ) {
     if (dictionary.isEmpty) return [TextSpan(text: text, style: body)];
 
     final spans = <InlineSpan>[];
     var cursor = 0;
     for (final match in wordPattern.allMatches(text)) {
-      final entry = dictionary[normaliseWord(match[0]!)];
-      if (entry == null) continue;
+      final senses = dictionary[normaliseWord(match[0]!)];
+      if (senses == null || senses.isEmpty) continue;
       if (match.start > cursor) {
         spans.add(
           TextSpan(text: text.substring(cursor, match.start), style: body),
@@ -176,7 +176,8 @@ class _PostTextState extends ConsumerState<PostText> {
         TextSpan(
           text: match[0],
           style: known,
-          recognizer: _recogniser(() => showWordLookup(context, entry)),
+          // Every sense, not the one an unstable index happened to keep.
+          recognizer: _recogniser(() => showWordSenses(context, senses)),
         ),
       );
       cursor = match.end;

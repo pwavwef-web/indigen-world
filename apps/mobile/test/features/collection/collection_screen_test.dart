@@ -25,8 +25,7 @@ const _dictionary = [
     example: 'Nia zaanem',
     exampleTranslation: 'Greeting in the morning',
     attribution: 'Project Kassena community dictionary',
-    isSynthetic: false,
-  ),
+    ),
 ];
 
 const _literature = [

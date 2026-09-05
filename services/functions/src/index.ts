@@ -65,6 +65,17 @@ export {
   expireAdCampaigns,
 } from './ads.js';
 export { kawuriChat } from './kawuri.js';
+export { submitGrammarClaim, decideGrammarClaim } from './kasem-claims.js';
+export { reviewContributionDraft } from './contribution-assist.js';
+export {
+  submitGrammarNote,
+  rateKawuriAnswer,
+  decideGrammarNote,
+  reviseGrammarNote,
+  withdrawGrammarNote,
+  grammarQualityReport,
+  readGrammarAudio,
+} from './grammar-contributions.js';
 export { onCommunityKawuriMention } from './community-kawuri.js';
 export {
   getStudioVideoCapabilities,

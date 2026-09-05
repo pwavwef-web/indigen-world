@@ -100,6 +100,7 @@ class ContributionOffer {
     required this.blurb,
     this.lexicalKind,
     this.icon,
+    this.isGrammarNote = false,
   });
 
   /// The shelf this contribution ends up on.
@@ -122,6 +123,22 @@ class ContributionOffer {
   final IconData? icon;
 
   IconData get glyph => icon ?? contributionKindIcon(kind);
+
+  /// Whether this offer opens the grammar-note form instead of a contribution
+  /// form at all.
+  ///
+  /// A flag rather than another [CollectionKind], because a sentence with a
+  /// word-for-word line under it is not a shelf. It has no publication
+  /// projection, it never becomes a Collection item, and the thing it feeds —
+  /// `kasemSentences`, read by Kawuri — has no other contributor. Adding a
+  /// sixth enum value would have taught the Collection tab, the review desk,
+  /// the player and the submissions list about a destination none of them can
+  /// render.
+  ///
+  /// [kind] is still `dictionary` on that offer. It is the truthful shelf for
+  /// lexical material and it is only read for the icon, which this offer
+  /// overrides anyway.
+  final bool isGrammarNote;
 
   /// Whether this offer opens the guided queue rather than the open form.
   ///
@@ -159,6 +176,20 @@ const kContributionOffers = <ContributionOffer>[
     title: 'Add an idiom or proverb',
     blurb: 'A saying you know, in Kasem, and what it means.',
     icon: Icons.format_quote_rounded,
+  ),
+  // Third, under the two lexical doors and above the media ones, because that
+  // is what it is: the dictionary offers collect what a word means, and this
+  // collects what a sentence does. A member who has just answered "what is the
+  // Kasem for boy" is exactly the person who knows that knowing the word is
+  // not knowing the sentence.
+  ContributionOffer(
+    kind: CollectionKind.dictionary,
+    isGrammarNote: true,
+    title: 'Explain a sentence',
+    blurb:
+        'How something is really said — with the word-for-word line that '
+        'shows why.',
+    icon: Icons.account_tree_rounded,
   ),
   ContributionOffer(
     kind: CollectionKind.music,

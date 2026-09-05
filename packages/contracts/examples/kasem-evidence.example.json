@@ -1,0 +1,60 @@
+{
+  "id": "synthetic-contract",
+  "schemaVersion": 2,
+  "revision": 1,
+  "authorUid": "synthetic-author",
+  "title": "Synthetic contract fixture",
+  "explanation": "",
+  "mode": "sentence",
+  "examples": [
+    {
+      "kasem": "fixture token",
+      "english": "A synthetic example.",
+      "literal": "",
+      "gloss": [],
+      "note": "",
+      "dialect": "synthetic",
+      "constructions": [],
+      "originalKasem": "fixture token",
+      "originalEnglish": "A synthetic example.",
+      "annotations": [],
+      "context": {
+        "status": "specified",
+        "situation": "A test fixture, not language evidence.",
+        "preceding": "",
+        "intent": "",
+        "register": ""
+      },
+      "sourceType": "speaker",
+      "source": "Synthetic test fixture",
+      "naturalness": "cannot-judge",
+      "audioPath": ""
+    }
+  ],
+  "permissions": {
+    "review": true,
+    "sourceConfirmed": true,
+    "publication": false,
+    "providerRetrieval": false,
+    "modelTraining": false,
+    "evaluation": false,
+    "audio": false,
+    "version": "kasem-evidence-v2",
+    "licence": "",
+    "status": "active",
+    "expiresAt": null
+  },
+  "groups": [
+    "note:synthetic-contract"
+  ],
+  "comparisonNote": "",
+  "question": "",
+  "answer": "",
+  "modelVersion": "",
+  "promptVersion": "",
+  "createdAt": "2026-09-05T00:00:00.000Z",
+  "updatedAt": "2026-09-05T00:00:00.000Z",
+  "status": "submitted",
+  "reviews": [],
+  "reservedSplit": ""
+}

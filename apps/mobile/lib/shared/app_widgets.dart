@@ -209,27 +209,6 @@ class SectionTitle extends StatelessWidget {
   );
 }
 
-class DemoDataNotice extends StatelessWidget {
-  const DemoDataNotice({super.key});
-
-  @override
-  Widget build(BuildContext context) => GlassSurface(
-    padding: const EdgeInsets.all(14),
-    child: Row(
-      children: [
-        Icon(Icons.science_outlined, color: context.brand.mutedInk),
-        const SizedBox(width: 12),
-        const Expanded(
-          child: Text(
-            'Development build · sample data',
-            style: TextStyle(fontWeight: FontWeight.w700),
-          ),
-        ),
-      ],
-    ),
-  );
-}
-
 class StatusPill extends StatelessWidget {
   const StatusPill({
     required this.icon,

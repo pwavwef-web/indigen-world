@@ -5,8 +5,10 @@ import 'package:indigen_world_mobile/features/ads/data/ad_campaign.dart';
 import 'package:indigen_world_mobile/features/community/data/kasem_names.dart';
 import 'package:indigen_world_mobile/features/validate/ad_review_screen.dart';
 import 'package:indigen_world_mobile/features/validate/data/ad_review_queue.dart';
+import 'package:indigen_world_mobile/features/validate/data/grammar_note_queue.dart';
 import 'package:indigen_world_mobile/features/validate/data/name_request_queue.dart';
 import 'package:indigen_world_mobile/features/validate/data/review_queue.dart';
+import 'package:indigen_world_mobile/features/validate/grammar_note_review_screen.dart';
 import 'package:indigen_world_mobile/features/validate/name_request_review_screen.dart';
 import 'package:indigen_world_mobile/features/validate/submission_review_screen.dart';
 import 'package:indigen_world_mobile/shared/app_widgets.dart';
@@ -21,14 +23,16 @@ const _queues = <(String, String, IconData)>[
   ('PUBLISHED', 'Published', Icons.public_rounded),
 ];
 
-/// The three kinds of work that reach the desk.
+/// The four kinds of work that reach the desk.
 enum _Desk {
   contributions,
+  sentences,
   adverts,
   names;
 
   String get label => switch (this) {
     _Desk.contributions => 'Contributions',
+    _Desk.sentences => 'Sentences',
     _Desk.adverts => 'Adverts',
     _Desk.names => 'Names',
   };
@@ -51,11 +55,16 @@ class _DeskTab extends Notifier<_Desk> {
 /// Showing these queues to anybody else would produce a screen made entirely of
 /// permission errors.
 ///
-/// Three halves — which is the point. Three different things arrive here and no
+/// Four halves — which is the point. Four different things arrive here and no
 /// one vocabulary fits them all. A contribution is approved, escalated or
 /// published; an advert has been paid for, runs for a stated number of days,
 /// and can be stopped again after it starts; a name request is a question about
-/// whether a word is somebody's grandmother's name, answered yes or no.
+/// whether a word is somebody's grandmother's name, answered yes or no; and a
+/// sentence is a question only a speaker can answer — is this how it is said?
+///
+/// The sentence queue is the one that must not sit still. Until a note is
+/// confirmed, `kasemSentences` stays empty, and an empty corpus means every
+/// sentence Kawuri is asked for gets the refusal rather than the answer.
 class ValidateScreen extends ConsumerWidget {
   const ValidateScreen({super.key});
 
@@ -99,6 +108,7 @@ class ValidateScreen extends ConsumerWidget {
               ),
               ...switch (desk) {
                 _Desk.contributions => _contributionSlivers(context, ref),
+                _Desk.sentences => _grammarSlivers(context, ref),
                 _Desk.adverts => _advertSlivers(context, ref),
                 _Desk.names => _nameSlivers(context, ref),
               },
@@ -114,77 +124,174 @@ class ValidateScreen extends ConsumerWidget {
     final status = ref.watch(reviewQueueStatusProvider);
     final queue = ref.watch(reviewQueueProvider);
     return [
-              SliverToBoxAdapter(
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
-                  child: Row(
-                    children: [
-                      for (final (value, label, icon) in _queues) ...[
-                        GlassPill(
-                          label: label,
-                          icon: icon,
-                          selected: status == value,
-                          onTap: () => ref
-                              .read(reviewQueueStatusProvider.notifier)
-                              .select(value),
-                        ),
-                        const SizedBox(width: 8),
-                      ],
-                    ],
-                  ),
+      SliverToBoxAdapter(
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+          child: Row(
+            children: [
+              for (final (value, label, icon) in _queues) ...[
+                GlassPill(
+                  label: label,
+                  icon: icon,
+                  selected: status == value,
+                  onTap: () => ref
+                      .read(reviewQueueStatusProvider.notifier)
+                      .select(value),
                 ),
-              ),
-              ...switch (queue) {
-                AsyncValue(:final value?) when value.isEmpty => [
-                  SliverToBoxAdapter(
-                    child: GlassEmptyState(
-                      icon: Icons.done_all_rounded,
-                      title: switch (status) {
-                        'SUBMITTED' => 'Nothing is waiting for review',
-                        'APPROVED' => 'Nothing approved is waiting to publish',
-                        'UNDER_REVIEW' => 'Nothing has been escalated',
-                        _ => 'Nothing here yet',
-                      },
-                      color: context.brand.success,
-                    ),
-                  ),
-                ],
-                AsyncValue(:final value?) => [
-                  SliverPadding(
-                    padding: EdgeInsets.fromLTRB(
-                      18,
-                      2,
-                      18,
-                      shellBottomReserve(context) + 24,
-                    ),
-                    sliver: SliverList.separated(
-                      itemCount: value.length,
-                      separatorBuilder: (context, index) =>
-                          const SizedBox(height: 12),
-                      itemBuilder: (context, index) =>
-                          _QueueCard(item: value[index]),
-                    ),
-                  ),
-                ],
-                AsyncValue(:final error?) => [
-                  SliverToBoxAdapter(
-                    child: GlassEmptyState(
-                      icon: Icons.lock_outline_rounded,
-                      color: context.brand.terracotta,
-                      title: '$error'.contains('permission-denied')
-                          ? 'This account cannot review submissions'
-                          : 'The queue could not be loaded',
-                      action: FilledButton.icon(
-                        onPressed: () => ref.invalidate(reviewQueueProvider),
-                        icon: const Icon(Icons.refresh_rounded),
-                        label: const Text('Try again'),
-                      ),
-                    ),
-                  ),
-                ],
-                _ => [const _QueueSkeleton()],
+                const SizedBox(width: 8),
+              ],
+            ],
+          ),
+        ),
+      ),
+      ...switch (queue) {
+        AsyncValue(:final value?) when value.isEmpty => [
+          SliverToBoxAdapter(
+            child: GlassEmptyState(
+              icon: Icons.done_all_rounded,
+              title: switch (status) {
+                'SUBMITTED' => 'Nothing is waiting for review',
+                'APPROVED' => 'Nothing approved is waiting to publish',
+                'UNDER_REVIEW' => 'Nothing has been escalated',
+                _ => 'Nothing here yet',
               },
+              color: context.brand.success,
+            ),
+          ),
+        ],
+        AsyncValue(:final value?) => [
+          SliverPadding(
+            padding: EdgeInsets.fromLTRB(
+              18,
+              2,
+              18,
+              shellBottomReserve(context) + 24,
+            ),
+            sliver: SliverList.separated(
+              itemCount: value.length,
+              separatorBuilder: (context, index) => const SizedBox(height: 12),
+              itemBuilder: (context, index) => _QueueCard(item: value[index]),
+            ),
+          ),
+        ],
+        AsyncValue(:final error?) => [
+          SliverToBoxAdapter(
+            child: GlassEmptyState(
+              icon: Icons.lock_outline_rounded,
+              color: context.brand.terracotta,
+              title: '$error'.contains('permission-denied')
+                  ? 'This account cannot review submissions'
+                  : 'The queue could not be loaded',
+              action: FilledButton.icon(
+                onPressed: () => ref.invalidate(reviewQueueProvider),
+                icon: const Icon(Icons.refresh_rounded),
+                label: const Text('Try again'),
+              ),
+            ),
+          ),
+        ],
+        _ => [const _QueueSkeleton()],
+      },
+    ];
+  }
+
+  /// The sentence queue: speakers explaining how a clause is built, and members
+  /// correcting an answer Kawuri got wrong.
+  List<Widget> _grammarSlivers(BuildContext context, WidgetRef ref) {
+    final status = ref.watch(grammarNoteQueueStatusProvider);
+    final filter = ref.watch(grammarNoteFilterProvider);
+    final queue = ref
+        .watch(grammarNoteQueueProvider)
+        .whenData(
+          (rows) =>
+              rows.where((note) => grammarNoteMatches(note, filter)).toList(),
+        );
+    return [
+      SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+          child: TextFormField(
+            initialValue: filter,
+            decoration: const InputDecoration(
+              labelText:
+                  'Filter this queue by dialect, construction or context',
+              prefixIcon: Icon(Icons.search),
+            ),
+            onChanged: ref.read(grammarNoteFilterProvider.notifier).change,
+          ),
+        ),
+      ),
+      SliverToBoxAdapter(
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+          child: Row(
+            children: [
+              for (final (value, label, icon) in kGrammarNoteQueues) ...[
+                GlassPill(
+                  label: label,
+                  icon: icon,
+                  selected: status == value,
+                  onTap: () => ref
+                      .read(grammarNoteQueueStatusProvider.notifier)
+                      .select(value),
+                ),
+                const SizedBox(width: 8),
+              ],
+            ],
+          ),
+        ),
+      ),
+      ...switch (queue) {
+        AsyncValue(:final value?) when value.isEmpty => [
+          SliverToBoxAdapter(
+            child: GlassEmptyState(
+              icon: Icons.done_all_rounded,
+              title: switch (status) {
+                'submitted' => 'No sentences are waiting',
+                'confirmed' => 'Nothing has been confirmed yet',
+                'rejected' => 'Nothing has been turned down',
+                _ => 'Nothing here yet',
+              },
+              color: context.brand.success,
+            ),
+          ),
+        ],
+        AsyncValue(:final value?) => [
+          SliverPadding(
+            padding: EdgeInsets.fromLTRB(
+              18,
+              2,
+              18,
+              shellBottomReserve(context) + 24,
+            ),
+            sliver: SliverList.separated(
+              itemCount: value.length,
+              separatorBuilder: (context, index) => const SizedBox(height: 12),
+              itemBuilder: (context, index) =>
+                  _GrammarQueueCard(note: value[index]),
+            ),
+          ),
+        ],
+        AsyncValue(:final error?) => [
+          SliverToBoxAdapter(
+            child: GlassEmptyState(
+              icon: Icons.lock_outline_rounded,
+              color: context.brand.terracotta,
+              title: '$error'.contains('permission-denied')
+                  ? 'This account cannot review sentences'
+                  : 'The sentence queue could not be loaded',
+              action: FilledButton.icon(
+                onPressed: () => ref.invalidate(grammarNoteQueueProvider),
+                icon: const Icon(Icons.refresh_rounded),
+                label: const Text('Try again'),
+              ),
+            ),
+          ),
+        ],
+        _ => [const _QueueSkeleton()],
+      },
     ];
   }
 
@@ -205,8 +312,9 @@ class ValidateScreen extends ConsumerWidget {
                   label: label,
                   icon: icon,
                   selected: status == value,
-                  onTap: () =>
-                      ref.read(adReviewQueueStatusProvider.notifier).select(value),
+                  onTap: () => ref
+                      .read(adReviewQueueStatusProvider.notifier)
+                      .select(value),
                 ),
                 const SizedBox(width: 8),
               ],
@@ -346,8 +454,17 @@ class ValidateScreen extends ConsumerWidget {
   }
 }
 
-/// Contributions, adverts or names. A switch rather than three tabs in the
-/// shell: they are the same job, and a reviewer moves between them constantly.
+/// Contributions, sentences, adverts or names. A switch rather than four tabs
+/// in the shell: they are the same job, and a reviewer moves between them
+/// constantly.
+///
+/// It scrolls, and it has to. Three equal-width tabs fitted a phone; four do
+/// not — "Contributions" alone wants about 185 logical pixels and a quarter of
+/// a handset is nearer 90. The alternatives were shortening a label somebody
+/// already knows, or shrinking the type on every tab to accommodate the
+/// longest one. Scrolling is what the queue pills directly below this already
+/// do, it keeps every label at full size, and it is the only one of the three
+/// that still works when a fifth desk arrives.
 class _DeskSwitch extends ConsumerWidget {
   const _DeskSwitch({required this.selected, required this.onChanged});
 
@@ -356,31 +473,40 @@ class _DeskSwitch extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final waitingAds = ref.watch(adReviewWaitingCountProvider).asData?.value ?? 0;
+    final waitingAds =
+        ref.watch(adReviewWaitingCountProvider).asData?.value ?? 0;
     final waitingNames =
         ref.watch(nameRequestWaitingCountProvider).asData?.value ?? 0;
+    final waitingSentences =
+        ref.watch(grammarNoteWaitingCountProvider).asData?.value ?? 0;
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 14),
       child: DecoratedBox(
         decoration: BoxDecoration(
           border: Border(bottom: BorderSide(color: context.brand.divider)),
         ),
-        child: Row(
-          children: [
-            for (final desk in _Desk.values)
-              _DeskTabLabel(
-                label: desk.label,
-                // Only the waiting count is worth a badge: a reviewer needs to
-                // know there is something to do, not how much has been done.
-                badge: switch (desk) {
-                  _Desk.adverts when waitingAds > 0 => '$waitingAds',
-                  _Desk.names when waitingNames > 0 => '$waitingNames',
-                  _ => null,
-                },
-                selected: desk == selected,
-                onTap: () => onChanged(desk),
-              ),
-          ],
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: [
+              for (final desk in _Desk.values)
+                _DeskTabLabel(
+                  label: desk.label,
+                  // Only the waiting count is worth a badge: a reviewer needs
+                  // to know there is something to do, not how much has been
+                  // done.
+                  badge: switch (desk) {
+                    _Desk.sentences when waitingSentences > 0 =>
+                      '$waitingSentences',
+                    _Desk.adverts when waitingAds > 0 => '$waitingAds',
+                    _Desk.names when waitingNames > 0 => '$waitingNames',
+                    _ => null,
+                  },
+                  selected: desk == selected,
+                  onTap: () => onChanged(desk),
+                ),
+            ],
+          ),
         ),
       ),
     );
@@ -403,13 +529,17 @@ class _DeskTabLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final brand = context.brand;
-    return Expanded(
-      child: Semantics(
-        button: true,
-        selected: selected,
-        child: InkWell(
-          onTap: onTap,
+    return Semantics(
+      button: true,
+      selected: selected,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          // Sized to its label now rather than to a quarter of the screen, so
+          // the padding is what separates one tab from the next.
+          padding: const EdgeInsets.symmetric(horizontal: 14),
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 12),
@@ -450,13 +580,14 @@ class _DeskTabLabel extends StatelessWidget {
                   ],
                 ),
               ),
+              // Spans the tab rather than a fixed 64 pixels, which only ever
+              // looked right under a label of about that width.
               AnimatedContainer(
                 duration: const Duration(milliseconds: 180),
                 curve: Curves.easeOut,
                 height: 3,
-                width: selected ? 64 : 0,
                 decoration: BoxDecoration(
-                  color: brand.accent,
+                  color: selected ? brand.accent : Colors.transparent,
                   borderRadius: BorderRadius.circular(999),
                 ),
               ),
@@ -573,6 +704,120 @@ class _AdQueueCard extends StatelessWidget {
 /// The name is drawn as it is written and the fold beneath it, because those
 /// two strings are the whole decision: a reviewer approving on the ASCII alone
 /// has approved a handle, not a name.
+/// One note on the sentence queue.
+///
+/// The card leads with the Kasem rather than the title, because the Kasem is
+/// what a reviewer is deciding about and a title is what somebody called it.
+/// Under it sits the word-for-word line, which is the only thing on a card
+/// anywhere in this desk that can be checked without opening it — if the two
+/// lines obviously do not correspond, the reviewer already knows their answer.
+class _GrammarQueueCard extends StatelessWidget {
+  const _GrammarQueueCard({required this.note});
+
+  final GrammarNote note;
+
+  @override
+  Widget build(BuildContext context) {
+    final brand = context.brand;
+    final example = note.examples.first;
+    // A correction is marked before it is opened. It carries an answer it is
+    // arguing against, so it reads differently and often faster.
+    final accent = note.isCorrection ? brand.terracotta : brand.accent;
+    final extra = note.examples.length - 1;
+
+    return GlassCard.listItem(
+      accent: accent,
+      onTap: () => Navigator.of(context).push(
+        MaterialPageRoute<bool>(
+          builder: (context) => GrammarNoteReviewScreen(note: note),
+        ),
+      ),
+      padding: const EdgeInsets.all(15),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              GlassIconPlate(
+                icon: note.isCorrection
+                    ? Icons.edit_rounded
+                    : Icons.account_tree_rounded,
+                color: accent,
+                size: 44,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      example.kasem,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      example.english,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: brand.mutedInk,
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(Icons.chevron_right_rounded, color: brand.mutedInk),
+            ],
+          ),
+          if (example.literal.isNotEmpty) ...[
+            const SizedBox(height: 9),
+            Text(
+              example.literal,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: brand.faintInk,
+                fontSize: 12.5,
+                height: 1.35,
+              ),
+            ),
+          ],
+          const SizedBox(height: 11),
+          Wrap(
+            spacing: 7,
+            runSpacing: 7,
+            children: [
+              ReviewFlag(
+                icon: note.isCorrection
+                    ? Icons.edit_outlined
+                    : Icons.school_outlined,
+                label: note.isCorrection ? 'Correction' : 'Contributed',
+                color: accent,
+              ),
+              for (final tag in note.constructions.take(2))
+                ReviewFlag(
+                  icon: Icons.sell_outlined,
+                  label: tag,
+                  color: brand.mutedInk,
+                ),
+              if (extra > 0)
+                ReviewFlag(
+                  icon: Icons.playlist_add_rounded,
+                  label: '$extra more example${extra == 1 ? '' : 's'}',
+                  color: brand.mutedInk,
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _NameQueueCard extends StatelessWidget {
   const _NameQueueCard({required this.request});
 

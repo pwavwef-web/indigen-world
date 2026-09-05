@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/domain/dictionary_entry.dart';
+import 'package:indigen_world_mobile/domain/kasem_homographs.dart';
+import 'package:indigen_world_mobile/domain/kasem_orthography.dart';
 import 'package:indigen_world_mobile/features/ads/collection_ads.dart';
 import 'package:indigen_world_mobile/features/ads/data/served_ad.dart';
 import 'package:indigen_world_mobile/features/ads/widgets/sponsored_card.dart';
@@ -142,12 +144,41 @@ class _DictionaryCollectionScreenState
                   ),
                 ),
                 data: (allEntries) {
-                  final query = _query.trim().toLowerCase();
-                  final visible = query.isEmpty
+                  // ── Ranked, not just filtered ────────────────────────────
+                  // The list was filtered and left in alphabetical order, so
+                  // typing `ni` returned every entry containing those letters
+                  // anywhere — headword, gloss, dialect or rendering — and the
+                  // entry actually headed `ni` could sit fifty rows under a
+                  // word whose English meaning happens to contain
+                  // "permission". The one thing the reader typed was the one
+                  // thing the ordering ignored.
+                  //
+                  // The query is folded ONCE here rather than per entry: at
+                  // 1200 entries and a keystroke per character, that is the
+                  // difference between a search that keeps up and one that
+                  // stutters on the UI thread.
+                  final counts = ref.watch(dictionaryHeadwordCountsProvider);
+                  final folded = foldForSearch(_query);
+                  final visible = folded.isEmpty
                       ? allEntries
-                      : allEntries
-                            .where((entry) => entry.matches(query))
+                      : (allEntries
+                              .map(
+                                (entry) => (entry, entry.rankFor(folded)),
+                              )
+                              .where((row) => row.$2 != null)
+                              .toList(growable: true)
+                            ..sort((left, right) {
+                              final byRank = left.$2!.compareTo(right.$2!);
+                              // Alphabetical within a rank, so equally good
+                              // answers stay in the order the list is
+                              // otherwise browsed in.
+                              return byRank != 0
+                                  ? byRank
+                                  : left.$1.sortKey.compareTo(right.$1.sortKey);
+                            }))
+                            .map((row) => row.$1)
                             .toList(growable: false);
+                  final query = _query.trim();
                   if (visible.isEmpty) {
                     return SliverFillRemaining(
                       hasScrollBody: false,
@@ -180,7 +211,12 @@ class _DictionaryCollectionScreenState
                             margin: EdgeInsets.zero,
                           );
                         }
-                        return _DictionaryCard(entry: row as DictionaryEntry);
+                        final entry = row as DictionaryEntry;
+                        return _DictionaryCard(
+                          entry: entry,
+                          siblings:
+                              counts[headwordKey(entry.headword)] ?? 1,
+                        );
                       },
                     ),
                   );
@@ -437,9 +473,20 @@ bool publishedReelMatches(PublishedReel item, String query) {
 }
 
 class _DictionaryCard extends StatelessWidget {
-  const _DictionaryCard({required this.entry});
+  const _DictionaryCard({required this.entry, required this.siblings});
 
   final DictionaryEntry entry;
+
+  /// How many published entries share this headword. Decides whether the
+  /// sense number is drawn — a word alone under its spelling must render bare.
+  final int siblings;
+
+  /// The headword as it should be drawn and as it should be spoken.
+  HomographDisplay get _headword => homographDisplay(
+    entry.headword,
+    homographIndex: entry.homographIndex,
+    siblingCount: siblings,
+  );
 
   @override
   Widget build(BuildContext context) => CollectionCardSurface(
@@ -449,11 +496,17 @@ class _DictionaryCard extends StatelessWidget {
     // Every meaning AND every rendering, not the ones the row had room to
     // print: the "+2 more" a sighted row falls back to is a worse answer for a
     // reader who is not constrained by the width of the card.
-    semanticLabel: entry.furtherRenderings.isEmpty
-        ? '${entry.headword}, ${entry.allTranslations}'
-        : '${entry.headword}, also '
-              '${entry.furtherRenderings.join(', ')}, '
-              '${entry.allTranslations}',
+    // The word class is in the label as well as the meanings, because it is
+    // the line that actually tells eight entries headed `ni` apart — and it
+    // was the one thing the sighted row showed that this did not.
+    semanticLabel: [
+      _headword.spoken,
+      if (entry.furtherRenderings.isNotEmpty)
+        'also ${entry.furtherRenderings.join(', ')}',
+      if (partOfSpeechLabel(entry.partOfSpeech).isNotEmpty)
+        partOfSpeechLabel(entry.partOfSpeech),
+      entry.allTranslations,
+    ].join(', '),
     onTap: () => Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (context) =>
@@ -494,17 +547,43 @@ class _DictionaryCard extends StatelessWidget {
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
                   ),
+                  // ── Which of the words spelled this way ────────────────
+                  // 478 of the 1200 published entries share a spelling with
+                  // another entry, and this row was the same string on every
+                  // one of them: a learner scrolling to `ni` met eight
+                  // consecutive identical-looking rows with no way to tell
+                  // which was which, or that they were different at all.
+                  //
+                  // Outside the Flexible above, so the number is never the
+                  // thing that gets ellipsised away — a truncated headword is
+                  // recoverable by tapping, a headword that has silently lost
+                  // its sense number is not.
+                  if (siblings > 1 && entry.homographIndex > 0)
+                    Text(
+                      superscript(entry.homographIndex),
+                      style: TextStyle(
+                        color: context.brand.accent,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
                   // A count rather than the words themselves, for the same
                   // reason the meanings below are counted: a row that grows to
                   // fit its longest entry is a list nobody can scan.
+                  //
+                  // The word "forms" is spelled out because the two counts on
+                  // this card used to be visually identical — same colour,
+                  // same size, same weight — while meaning opposite things:
+                  // this one counts alternative Kasem spellings, the one under
+                  // it counts English senses.
                   if (entry.furtherRenderings.isNotEmpty) ...[
                     const SizedBox(width: 6),
                     Text(
-                      '+${entry.furtherRenderings.length}',
+                      '+${entry.furtherRenderings.length} forms',
                       style: TextStyle(
-                        color: context.brand.accent,
+                        color: context.brand.mutedInk,
                         fontSize: 11,
-                        fontWeight: FontWeight.w800,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
                   ],

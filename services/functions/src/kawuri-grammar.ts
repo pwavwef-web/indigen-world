@@ -2,30 +2,11 @@ import { getFirestore } from 'firebase-admin/firestore';
 import { logger } from 'firebase-functions';
 
 import { grammarTerms, normaliseTerm } from './kawuri-dictionary.js';
+import { allowed, exampleQuality, type EvidenceNote } from './kasem-evidence.js';
+import { heldOutEvidenceIds } from './kasem-dataset.js';
 
-/**
- * The half of a Kasem question that the dictionary structurally cannot answer.
- *
- * ── The gap this closes ───────────────────────────────────────────────────
- * `kawuri-dictionary.ts` drops `the`, `a`, `of`, `to`, `in`, `and` and `is` as
- * stop words, and it is right to: they carry no meaning to look up. The
- * consequence is that "how do you say *the* in Kasem?" produced no briefing at
- * all, and a model with no briefing answers from whatever it believes about a
- * language it has read very little of.
- *
- * There is no entry to find, and there never will be. Definiteness in Kasem is
- * marked on the noun rather than by a separate word, so the answer is a rule,
- * not a row — which is why `grammarRules` exists and why this module is its
- * reader. Between the two, every one of those seven words now has somewhere
- * real to come from.
- *
- * ── Deliberately shaped like its neighbour ────────────────────────────────
- * Same in-process cache, same TTL, same never-throwing contract, same refusal
- * to let a miss pass silently. The point of the resemblance is that anybody
- * who has understood one has understood both, and that the two briefings
- * cannot drift into contradicting each other about how confident Kawuri is
- * allowed to be.
- */
+/** Scoped grammar claims checked against current supporting evidence.
+ * Missing or disputed claims produce an explicit unsupported-answer briefing. */
 
 /** One published rule, in the shape a briefing is written from. */
 export interface GrammarRecord {
@@ -35,6 +16,7 @@ export interface GrammarRecord {
   summary: string;
   pattern: string;
   note: string;
+  dialect?: string;
   /** The English words this rule speaks for — `the`, `a`, `of` and so on. */
   triggers: string[];
   examples: { kasem: string; english: string; note: string }[];
@@ -51,8 +33,6 @@ export interface GrammarRecord {
  */
 const MAX_CACHED_RULES = 200;
 
-/** How long a loaded set of rules is trusted before it is read again. */
-const CACHE_TTL_MS = 15 * 60 * 1000;
 
 /** Rules quoted into one answer. Grammar answers are prose; two is plenty. */
 const MAX_BRIEFING_RULES = 3;
@@ -71,6 +51,8 @@ export function grammarRecordFrom(
   data: Record<string, unknown>,
 ): GrammarRecord | null {
   const summary = text(data.summary);
+  if (id === 'indefiniteness' && data.claimStatus !== 'supported') return null;
+  if (['disputed', 'retired', 'hypothesis'].includes(text(data.claimStatus))) return null;
   // A rule with no summary has nothing to tell anybody. Draft rows exist
   // precisely in that state — several were seeded only to carry the triggers
   // that take an unanswerable word out of the word queue — and quoting one
@@ -106,6 +88,7 @@ export function grammarRecordFrom(
     summary,
     pattern: text(data.pattern),
     note: text(data.note),
+    dialect: text(data.dialect),
     triggers: stringList(data.englishTriggers).map(normaliseTerm).filter(Boolean),
     examples,
     nounClasses,
@@ -147,6 +130,8 @@ function briefingBlock(record: GrammarRecord, index: number): string {
     `${index + 1}. ${record.title || record.topic}`,
     `   ${record.summary}`,
     record.pattern ? `   Pattern: ${record.pattern}` : '',
+    record.note ? `   Scope and uncertainty: ${record.note}` : '',
+    record.dialect ? `   Dialect: ${record.dialect}` : '',
     ...record.examples.map(
       (example) =>
         `   Example: ${example.kasem}${example.english ? ` — ${example.english}` : ''}` +
@@ -195,34 +180,45 @@ How to use them:
 • If the rule does not actually answer what was asked, say so instead of stretching it to fit.`;
 }
 
-/** The cached rules for this instance. */
-let cache: { records: GrammarRecord[]; loadedAt: number } | null = null;
 
 /** Drops the cache. For tests, and for anything that needs a cold read. */
 export function resetGrammarCache(): void {
-  cache = null;
+  // Claims are checked against current evidence on every lookup.
 }
 
 async function loadGrammar(): Promise<GrammarRecord[]> {
-  const now = Date.now();
-  if (cache && now - cache.loadedAt < CACHE_TTL_MS) return cache.records;
-
+  if (process.env.KASEM_EVIDENCE_RETRIEVAL === 'false') return [];
   const snapshot = await getFirestore()
     .collection('grammarRules')
     // Drafts are excluded here as well as by the security rules. This runs as
     // the Admin SDK, which those rules do not constrain, so "staff can read a
     // draft" must not quietly become "Kawuri teaches from a draft".
-    .where('status', '==', 'published')
+    .where('status', 'in', ['published', 'reviewed-private'])
     .limit(MAX_CACHED_RULES)
     .get();
 
   const records: GrammarRecord[] = [];
+  let heldOut = new Set<string>();
+  if (snapshot.docs.some(doc => doc.get('claimId'))) {
+    const allEvidence = await getFirestore().collection('kasemEvidence').where('schemaVersion', '==', 2).limit(3001).get();
+    if (allEvidence.size > 3000) throw new Error('Corpus needs a paginated retrieval index.');
+    heldOut = heldOutEvidenceIds(allEvidence.docs.map(doc => doc.data() as EvidenceNote));
+  }
   for (const doc of snapshot.docs) {
+    if (doc.get('claimId')) {
+      const revisions = doc.get('evidenceRevisions') as Record<string, number>;
+      if (!revisions || !Object.keys(revisions).length) continue;
+      const evidence = await Promise.all(Object.keys(revisions).map(id => getFirestore().collection('kasemEvidence').doc(id).get()));
+      if (evidence.some(d => {
+        const n = d.data() as EvidenceNote | undefined;
+        return !n || n.revision !== revisions[d.id] || heldOut.has(n.id) || !allowed(n, 'providerRetrieval', new Date().toISOString())
+          || !n.examples.some((_, i) => exampleQuality(n, i).approved);
+      })) continue;
+    }
     const record = grammarRecordFrom(doc.id, doc.data() as Record<string, unknown>);
     if (record) records.push(record);
   }
 
-  cache = { records, loadedAt: now };
   return records;
 }
 
@@ -242,7 +238,7 @@ export async function grammarContextFor(question: string): Promise<string> {
     const records = await loadGrammar();
     return grammarBriefing(terms, matchGrammar(records, terms));
   } catch (error) {
-    logger.warn('Grammar lookup failed; answering without it', { error: String(error) });
-    return '';
+    logger.warn('Grammar lookup failed; withholding unsupported claims', { errorType: error instanceof Error ? error.name : 'unknown' });
+    return grammarBriefing(terms, []);
   }
 }

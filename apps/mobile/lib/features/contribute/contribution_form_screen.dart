@@ -11,6 +11,7 @@ import 'package:indigen_world_mobile/features/contribute/collection_contribution
 import 'package:indigen_world_mobile/features/contribute/contribution_kinds.dart';
 import 'package:indigen_world_mobile/features/contribute/contribution_received_screen.dart';
 import 'package:indigen_world_mobile/features/contribute/contribution_upload.dart';
+import 'package:indigen_world_mobile/features/contribute/draft_assist.dart';
 import 'package:indigen_world_mobile/features/contribute/pronunciation_recorder.dart';
 import 'package:indigen_world_mobile/features/contribute/words/data/parts_of_speech.dart';
 import 'package:indigen_world_mobile/features/contribute/words/widgets/part_of_speech_picker.dart';
@@ -91,6 +92,17 @@ class _ContributionFormScreenState
   bool _saving = false;
   String? _submitError;
 
+  /// What the backend noticed about this draft, or empty.
+  ///
+  /// Advice only — the send button below never consults it. See
+  /// `draft_assist.dart` for why that boundary is not negotiable.
+  List<AssistCheck> _assistChecks = const <AssistCheck>[];
+
+  /// Guards against a slow reply overwriting a newer one. The two fields are
+  /// checked on every keystroke and the replies can arrive out of order, so
+  /// each request carries a sequence number and only the newest is drawn.
+  int _assistSequence = 0;
+
   /// The song, narration or manuscript itself, chosen but not yet uploaded.
   ///
   /// Staged rather than uploaded on selection so that backing out of the form
@@ -109,6 +121,30 @@ class _ContributionFormScreenState
   void initState() {
     super.initState();
     _titleController = TextEditingController(text: widget.initialSource);
+  }
+
+  /// Asks the backend what it notices, when there is enough to ask about.
+  ///
+  /// Fired from the two fields that matter rather than on a timer, and only on
+  /// the dictionary path — a song has no headword to collide with. It is
+  /// deliberately not debounced into invisibility: the callable is cheap, and
+  /// advice that arrives after somebody has already pressed send is advice
+  /// nobody reads.
+  Future<void> _refreshAssist() async {
+    if (_kind != CollectionKind.dictionary) return;
+    final sequence = ++_assistSequence;
+    final checks = await ref
+        .read(draftAssistServiceProvider)
+        .review(
+          // Title is the English side and body is the Kasem, which is the
+          // direction the whole pipeline reads them in — see
+          // `buildCollectionContributionReceipt`.
+          kasem: _bodyController.text,
+          english: _titleController.text,
+          partOfSpeech: _partOfSpeech?.id ?? _format ?? '',
+        );
+    if (!mounted || sequence != _assistSequence) return;
+    setState(() => _assistChecks = checks);
   }
 
   @override
@@ -151,6 +187,9 @@ class _ContributionFormScreenState
                 _ContributionFields(
                   formKey: _formKey,
                   kind: _kind,
+                  onDraftChanged: _kind == CollectionKind.dictionary
+                      ? _refreshAssist
+                      : null,
                   lexicalKind: widget.lexicalKind,
                   partOfSpeech: _partOfSpeech,
                   onPartOfSpeechChanged: (value) => setState(() {
@@ -197,6 +236,10 @@ class _ContributionFormScreenState
                   onThirdPartyMaterialChanged: (value) =>
                       setState(() => _usesThirdPartyMaterial = value),
                 ),
+                if (_assistChecks.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  DraftAssistNotices(checks: _assistChecks),
+                ],
                 if (_submitError != null) ...[
                   const SizedBox(height: 14),
                   _SubmitError(message: _submitError!),
@@ -489,6 +532,7 @@ class _ContributionFields extends StatelessWidget {
     required this.onClearCover,
     required this.onRightsChanged,
     required this.onPublicationChanged,
+    this.onDraftChanged,
     required this.onParticipantConsentChanged,
     required this.onThirdPartyMaterialChanged,
   });
@@ -523,6 +567,11 @@ class _ContributionFields extends StatelessWidget {
   final VoidCallback onClearCover;
   final ValueChanged<bool> onRightsChanged;
   final ValueChanged<bool> onPublicationChanged;
+
+  /// Fired when the two fields a draft check reads have changed. Null on every
+  /// kind but the dictionary, which is the only one with a headword that can
+  /// collide with anything.
+  final VoidCallback? onDraftChanged;
   final ValueChanged<bool> onParticipantConsentChanged;
   final ValueChanged<bool?> onThirdPartyMaterialChanged;
 
@@ -552,6 +601,11 @@ class _ContributionFields extends StatelessWidget {
             hintText: _titleHint,
             prefixIcon: Icon(contributionKindIcon(kind)),
           ),
+          // Checked when the field is left rather than on every keystroke: the
+          // question being asked is "does the archive already hold this", and
+          // asking it of half a word answers about a word nobody typed.
+          onEditingComplete: onDraftChanged,
+          onFieldSubmitted: (_) => onDraftChanged?.call(),
           validator: _required,
         ),
         const SizedBox(height: 13),
@@ -620,6 +674,7 @@ class _ContributionFields extends StatelessWidget {
             alignLabelWithHint: true,
             prefixIcon: const Icon(Icons.notes_rounded),
           ),
+          onEditingComplete: onDraftChanged,
           validator: _required,
         ),
         if (_isDictionary) ...[

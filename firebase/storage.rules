@@ -61,6 +61,17 @@ service firebase.storage {
     }
 
     // ---- Raw creator submissions: private, owner-writable -------------------
+    match /grammarAudio/{uid}/{fileName} {
+      // Reviewers use readGrammarAudio so withdrawal and revision are checked.
+      allow read: if isSignedIn() && request.auth.uid == uid;
+      allow create: if isSignedIn() && request.auth.uid == uid && !isBlockedCreator()
+        && resource == null
+        && request.resource.size < 20 * 1024 * 1024
+        && request.resource.contentType.matches('audio/.*');
+      allow delete: if isSignedIn() && request.auth.uid == uid;
+      allow update: if false;
+    }
+
     // creator-submissions/{uid}/{campaignId}/{submissionId}/{fileName}
     //
     // Any signed-in account that is not suspended may upload into its OWN

@@ -28,11 +28,11 @@ import {
 
 // ── The rule that needs no data ─────────────────────────────────────────────
 
-test('the indefinite is the noun and then mo, for any noun', () => {
+test('the disputed blanket indefinite rule does not synthesize forms', () => {
   assert.equal(KASEM_INDEFINITE_PARTICLE, 'mo');
-  assert.equal(indefiniteForm('bu'), 'bu mo');
-  assert.equal(indefiniteForm('  nia  '), 'nia mo');
-  assert.equal(indefiniteForm('rain water'), 'rain water mo');
+  assert.equal(indefiniteForm('bu'), '');
+  assert.equal(indefiniteForm('  nia  '), '');
+  assert.equal(indefiniteForm('rain water'), '');
 });
 
 test('an entry with no headword gets no indefinite rather than a bare particle', () => {

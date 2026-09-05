@@ -721,10 +721,13 @@ class _ReelFeedViewState extends ConsumerState<ReelFeedView>
       );
       return;
     }
-    if (!reel.isLive) {
-      await _openPreviewComments(context, reel);
-      return;
-    }
+    // A reel that is not live has no comment thread and never had one. It used
+    // to open a popup headed "426 community replies" over two invented people
+    // — Amina and Nyaaba — and a reply box that answered "Your local Kasem
+    // reply was added to this preview" and then discarded what was typed.
+    //
+    // Nothing here is a comment on anything, so there is nothing to open.
+    if (!reel.isLive) return;
     await showReelCommentsSheet(context, reelId: reel.id, title: reel.title);
     if (mounted) ref.invalidate(reelCountsProvider(reel.id));
   }
@@ -802,50 +805,6 @@ class _ReelFeedViewState extends ConsumerState<ReelFeedView>
 
   /// The curated preview keeps its illustrative sample thread, clearly
   /// labelled as sample copy.
-  Future<void> _openPreviewComments(BuildContext context, Reel reel) async {
-    final replyController = TextEditingController();
-    await showGlassPopup<void>(
-      context: context,
-      title: '${reel.comments} community replies',
-      subtitle: 'Preview · sample copy',
-      builder: (popupContext) => Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const _PreviewComment(author: 'Amina', text: 'Ko gara.'),
-          const _PreviewComment(author: 'Nyaaba', text: 'De N lei.'),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: replyController,
-                  decoration: const InputDecoration(
-                    hintText: 'Reply in Kasem…',
-                    isDense: true,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              IconButton.filled(
-                tooltip: 'Add reply',
-                onPressed: () {
-                  if (replyController.text.trim().isEmpty) return;
-                  Navigator.pop(popupContext);
-                  showGlassToast(
-                    context,
-                    'Your local Kasem reply was added to this preview.',
-                  );
-                },
-                icon: const Icon(Icons.arrow_upward_rounded),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-    replyController.dispose();
-  }
 }
 
 const kReelSheetEyebrow = TextStyle(
@@ -1783,47 +1742,6 @@ class ReelCreatorAvatar extends StatelessWidget {
         fontSize: 12,
         fontWeight: FontWeight.w900,
       ),
-    ),
-  );
-}
-
-class _PreviewComment extends StatelessWidget {
-  const _PreviewComment({required this.author, required this.text});
-
-  final String author;
-  final String text;
-
-  @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(bottom: 12),
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        CircleAvatar(
-          radius: 18,
-          backgroundColor: context.brand.accentFill,
-          child: Text(
-            author.characters.first,
-            style: const TextStyle(color: Colors.white),
-          ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                author,
-                style: const TextStyle(
-                  fontWeight: FontWeight.w800,
-                  fontSize: 12,
-                ),
-              ),
-              Text(text, style: const TextStyle(fontSize: 15)),
-            ],
-          ),
-        ),
-      ],
     ),
   );
 }

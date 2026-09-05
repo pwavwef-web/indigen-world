@@ -27,7 +27,6 @@ const _zaanem = DictionaryEntry(
   example: 'De zaanem.',
   exampleTranslation: 'Good evening to you.',
   attribution: 'Paga elders',
-  isSynthetic: false,
 );
 
 Widget _harness(Widget child, {List<DictionaryEntry> entries = const []}) =>
@@ -73,9 +72,40 @@ void main() {
       await Future<void>.delayed(Duration.zero);
 
       final index = container.read(dictionaryIndexProvider);
-      expect(index[normaliseWord('Zaanem,')], _zaanem);
-      expect(index[normaliseWord('«ZAANEM»')], _zaanem);
+      expect(index[normaliseWord('Zaanem,')], [_zaanem]);
+      expect(index[normaliseWord('«ZAANEM»')], [_zaanem]);
       expect(index['gara'], isNull);
+    });
+
+    test('every word under one spelling is kept, not the last one written', () async {
+      // 478 of the 1200 published entries share a spelling with another entry
+      // — eight are headed `ni`, eight `dɩ`. The index used to be
+      // `index[headword] = entry`, so all but one of each run was unreachable
+      // from the tap-a-word feature, and WHICH one survived depended on the
+      // order a Firestore snapshot happened to arrive in. A reader tapping
+      // `ni` was shown one of eight different words, with nothing to say it
+      // was a choice, and could be shown a different one an hour later.
+      final first = _zaanem.copyWith(id: 'ni-1', homographIndex: 1);
+      final second = _zaanem.copyWith(id: 'ni-2', homographIndex: 2);
+      final container = ProviderContainer(
+        overrides: [
+          publishedDictionaryEntriesProvider.overrideWith(
+            // Deliberately out of sense order, because the index is what puts
+            // them back in it.
+            (ref) => Stream.value([second, first]),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+      // Listen first, then let the event loop turn — the same dance the test
+      // above does. A StreamProvider read before its stream has emitted is
+      // empty, not pending.
+      container.listen(dictionaryIndexProvider, (_, _) {});
+      await Future<void>.delayed(Duration.zero);
+
+      final senses = container.read(dictionaryIndexProvider)['zaanem'];
+      expect(senses, hasLength(2));
+      expect(senses!.map((entry) => entry.homographIndex), [1, 2]);
     });
 
     test('a word is every letter and the marks on it, and nothing else', () {
