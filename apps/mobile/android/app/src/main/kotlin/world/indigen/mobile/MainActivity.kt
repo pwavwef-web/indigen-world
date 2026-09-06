@@ -56,6 +56,10 @@ class MainActivity : AudioServiceActivity() {
         // same reason the line above avoids holding it at all.
         RestoreCredentialChannel(this)
             .attachTo(flutterEngine.dartExecutor.binaryMessenger)
+        // Keyboard setup and preferences only. The IME writes straight to the
+        // active app; no typed text is ever passed through this Flutter engine.
+        KasemKeyboardChannel(this)
+            .attachTo(flutterEngine.dartExecutor.binaryMessenger)
     }
 
     private fun signature(): Map<String, Any?> {

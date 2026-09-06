@@ -127,6 +127,22 @@
                 <data android:scheme="indigen"/>
             </intent-filter>
         </activity>
+        <!-- The Kasem system keyboard. BIND_INPUT_METHOD is a signature-level
+             permission, so only Android itself can connect to this exported
+             service. The IME is offline-first and never forwards typed text
+             into Flutter, Firebase or any other service. -->
+        <service
+            android:name=".KasemInputMethodService"
+            android:exported="true"
+            android:label="@string/kasem_keyboard_name"
+            android:permission="android.permission.BIND_INPUT_METHOD">
+            <intent-filter>
+                <action android:name="android.view.InputMethod"/>
+            </intent-filter>
+            <meta-data
+                android:name="android.view.im"
+                android:resource="@xml/kasem_input_method"/>
+        </service>
         <!-- ── The music playback service ───────────────────────────────────
              Everything below belongs to audio_service. The service is the
              process that outlives the Activity: it holds the media session

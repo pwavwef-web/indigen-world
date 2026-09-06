@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<input-method xmlns:android="http://schemas.android.com/apk/res/android"
+    android:settingsActivity="world.indigen.mobile.MainActivity"
+    android:supportsSwitchingToNextInputMethod="true">
+    <subtype
+        android:icon="@mipmap/ic_launcher"
+        android:imeSubtypeLocale="kss_GH"
+        android:imeSubtypeMode="keyboard"
+        android:isAsciiCapable="true"
+        android:label="@string/kasem_keyboard_subtype" />
+</input-method>
+

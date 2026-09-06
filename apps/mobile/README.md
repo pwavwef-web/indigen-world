@@ -353,6 +353,29 @@ contribution can be published under (kept in step with
 `publicationLicenceAllowed` in `firebase/firestore.rules`), the terms that apply
 to community posts, and Flutter's generated open-source licence page.
 
+### Kasem system keyboard (Android)
+
+The Android build includes an offline-first Input Method Editor (IME), reached
+from **Settings → Preferences → Kasem keyboard**. The setup page opens Android's
+keyboard settings and picker; Android deliberately requires the owner of the
+phone to enable and select every third-party keyboard themselves.
+
+The MVP is intentionally a text-entry tool, not a language model:
+
+- QWERTY-derived Kasem and English layouts, with a one-tap EN / KA switch;
+- direct Ɛ, Ɔ and Ŋ keys, plus draft long-press shortcuts for Ch, Ny, Kw, Gw,
+  Pw and Ŋw;
+- shift, double-tap caps lock, numbers and symbols, backspace, space and
+  editor-aware enter actions;
+- native preferences for the starting language, key vibration and key sounds;
+- no prediction, typed-text storage, analytics or network path from the IME.
+
+The draft inventory is isolated in
+`android/app/src/main/kotlin/world/indigen/mobile/KasemKeyboardLayout.kt` so the
+alphabet, digraph treatment and key positions can be revised after review with
+fluent Kasem speakers. Do not describe the layout as linguistically final until
+that review is complete.
+
 ## Build
 
 Run commands from `apps/mobile` (prefix Flutter commands with `fvm` when using FVM):

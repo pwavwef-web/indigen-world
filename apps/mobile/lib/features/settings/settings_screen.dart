@@ -31,6 +31,7 @@ import 'package:indigen_world_mobile/features/notifications/notification_setting
 import 'package:indigen_world_mobile/features/notifications/notifications_screen.dart';
 import 'package:indigen_world_mobile/features/notifications/push_messaging.dart';
 import 'package:indigen_world_mobile/features/rating/rating_service.dart';
+import 'package:indigen_world_mobile/features/settings/kasem_keyboard_screen.dart';
 import 'package:indigen_world_mobile/features/settings/licences_screen.dart';
 import 'package:indigen_world_mobile/features/settings/policy_screen.dart';
 import 'package:indigen_world_mobile/features/settings/settings_widgets.dart';
@@ -274,6 +275,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     : languageEndonym(locale),
                 onTap: _chooseLanguage,
               ),
+              if (Platform.isAndroid)
+                SettingsRow(
+                  icon: Icons.keyboard_alt_outlined,
+                  title: 'Kasem keyboard',
+                  subtitle: 'Type Kasem in messages, browsers and other apps',
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (context) => const KasemKeyboardScreen(),
+                    ),
+                  ),
+                ),
               SettingsRow(
                 icon: themeModeIcon(themeMode),
                 title: l10n.settingsAppearance,
