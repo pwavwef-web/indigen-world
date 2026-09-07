@@ -12,6 +12,15 @@
  * this notice covers all three surfaces. Product-specific sections
  * describe what each collects rather than pretending one flat policy
  * fits a marketing site, a consumer app, and a contributor workspace.
+ *
+ * The keyboard section is not optional decoration. Google Play requires an
+ * app that ships an input method to disclose how typed text is handled, and
+ * this notice is the disclosure the Play listing points at. The claims in it
+ * are enforced by the code: KasemInputMethodService writes to the active app's
+ * InputConnection and holds no reference to Firebase, to the network, or to
+ * the Flutter engine, and KasemKeyboardChannel carries settings only — it has
+ * no method that accepts or returns typed text. If that ever changes, this
+ * section has to change first.
  */
 import { useDocumentMeta } from "../lib/useDocumentMeta";
 import { ROUTES_BY_PATH } from "../content/navigation";
@@ -85,6 +94,42 @@ export function PrivacyPage() {
             underlying contribution — we store the contribution and its review state, not a promise
             of payment. Dictionary fixtures shipped in the beta are clearly labelled synthetic data,
             not real community language data.
+          </p>
+
+          <h2>The Kasem keyboard</h2>
+          <p>
+            The Android app includes an optional Kasem keyboard — a system input method you can
+            switch on in Android's own keyboard settings. Android requires you to enable and select
+            it yourself; it is never turned on for you.
+          </p>
+          <p>
+            <strong>The keyboard does not collect anything.</strong> It has no learning
+            dictionary, no prediction, no typing history and no analytics. What you type goes
+            directly to the app you are typing into and nowhere else. It is never stored, never
+            sent to Indigen World or any other server, and never passed into the rest of the
+            Indigen app — there is no code path from the keyboard to our backend, and the keyboard
+            works with no network connection at all.
+          </p>
+          <p>
+            The only things it saves are the three settings on its own page: which language it
+            starts in, and whether key presses vibrate or make a sound. Those stay on your device.
+            This applies wherever you use it — in Indigen, in a messaging app, in a browser, or
+            anywhere else you can type.
+          </p>
+
+          <h2>Recordings, and playing music in the background</h2>
+          <p>
+            The app asks for your microphone only at the moment you choose to record — saying a
+            word for a dictionary entry, or recording audio for a contribution. Nothing is captured
+            before you start a recording or after you stop it, and a recording stays on your device
+            until you submit it. If you submit one, it travels with the contribution it belongs to
+            and is reviewed like any other contribution.
+          </p>
+          <p>
+            When you play something from the music library, playback continues while the app is in
+            the background or your screen is off, and a notification with the usual controls is
+            shown for as long as it is playing. That is the only reason the app runs a background
+            service, and it runs only while there is something playing.
           </p>
 
           <h2>TribeStudio</h2>
