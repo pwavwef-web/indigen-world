@@ -142,7 +142,15 @@ class _AppShellState extends ConsumerState<AppShell>
   Widget _screenAt(int index) {
     if (!_visited.contains(index)) return const SizedBox.shrink();
     return switch (index) {
-      _exploreIndex => ExploreScreen(isActive: _selectedIndex == index),
+      // Explore is told outright whether it is the tab in front of the member,
+      // and given the way back to where they came from. It draws its own nav
+      // bar over the video — the shell's rail is deliberately absent here, and
+      // until Explore had one of its own the only way out was a system back
+      // gesture that nothing on screen mentioned.
+      _exploreIndex => ExploreScreen(
+        isActive: _selectedIndex == index,
+        onExit: _returnFromExplore,
+      ),
       kLearnTabIndex => const LearnScreen(),
       kCommunityTabIndex => const CommunityScreen(),
       _collectionIndex => const CollectionScreen(),
@@ -326,7 +334,13 @@ class _AppShellState extends ConsumerState<AppShell>
                 left: 16,
                 right: 16,
                 bottom: onExplore
-                    ? MediaQuery.paddingOf(context).bottom + 28
+                    // Above Explore's own nav bar, which the shell does not
+                    // draw and therefore has to be told the height of. A
+                    // banner behind that bar is a banner about a lost
+                    // connection that nobody can read.
+                    ? MediaQuery.paddingOf(context).bottom +
+                          kExploreNavBarHeight +
+                          12
                     : chromeVisible
                     ? shellBottomReserve(context) + 6
                     : MediaQuery.paddingOf(context).bottom + 16,

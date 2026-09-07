@@ -18,12 +18,24 @@ import 'package:indigen_world_mobile/l10n/app_localizations.dart';
 
 const _link = 'https://example.test/harvest';
 
-CommunityPost _post(String text, {List<CommunityMedia> media = const []}) =>
+/// A post by a member whose number has been checked.
+///
+/// Verified by default, and that is load-bearing rather than incidental: an
+/// unverified author's links are masked and their preview card is suppressed
+/// outright, so a fixture without [authorPhoneVerified] would be testing the
+/// scam guard rather than the card. The suppression has a test of its own at
+/// the bottom of the group.
+CommunityPost _post(
+  String text, {
+  List<CommunityMedia> media = const [],
+  bool verified = true,
+}) =>
     CommunityPost(
       id: 'post-1',
       authorId: 'author-1',
       authorName: 'Ayine',
       authorUsername: 'ayine',
+      authorPhoneVerified: verified,
       text: text,
       media: media,
       likeCount: 0,
@@ -35,6 +47,7 @@ Future<void> _pumpPost(
   WidgetTester tester, {
   LinkPreview? preview,
   List<CommunityMedia> media = const [],
+  bool verified = true,
 }) async {
   await tester.pumpWidget(
     ProviderScope(
@@ -50,7 +63,11 @@ Future<void> _pumpPost(
           body: ListView(
             children: [
               CommunityPostCard(
-                post: _post('Worth reading. $_link', media: media),
+                post: _post(
+                  'Worth reading. $_link',
+                  media: media,
+                  verified: verified,
+                ),
                 liked: false,
                 saved: false,
                 onLike: () {},
@@ -294,6 +311,36 @@ void main() {
 
       expect(find.byIcon(Icons.link_rounded), findsOneWidget);
       expect(find.text('example.test'), findsOneWidget);
+    });
+
+    testWidgets('is not drawn at all for an unverified author', (tester) async {
+      // ── Suppressed, not drawn-and-disabled ─────────────────────────────
+      // The card *is* the link's own headline, picture and pitch, fetched from
+      // the page and reprinted on our timeline. Drawing it for an account
+      // nobody has checked would hand a scam the most persuasive surface in
+      // the feed and then politely decline to open it — which stops nobody,
+      // because the reader can read the address off the writing and type it in
+      // themselves. The writing is where the address belongs, struck through,
+      // with the reason underneath.
+      await _pumpPost(
+        tester,
+        verified: false,
+        preview: const LinkPreview(
+          url: _link,
+          host: 'example.test',
+          status: 'ok',
+          title: 'Harvest drumming at Paga',
+          imageUrl: 'https://example.test/og.jpg',
+        ),
+      );
+
+      expect(find.byType(CommunityLinkPreview), findsNothing);
+      expect(find.text('Harvest drumming at Paga'), findsNothing);
+      // And the reader is told why, once, under the post.
+      expect(
+        find.textContaining('not tappable', findRichText: true),
+        findsOneWidget,
+      );
     });
   });
 }

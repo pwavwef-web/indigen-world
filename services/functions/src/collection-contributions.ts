@@ -8,16 +8,28 @@ import {
   type CollectionKind,
 } from './publication.js';
 import {
-  type NounForms,
-  hasNounForms,
-  parseNounForms,
+  type LexicalForms,
+  hasLexicalForms,
+  parseLexicalForms,
+  storableForms,
 } from './kasem-morphology.js';
 import {
+  MAX_ETYMOLOGY_LENGTH,
+  MAX_KASEM_DEFINITION_LENGTH,
   canonicalLexicalKind,
   canonicalPartOfSpeech,
   normaliseTranslations,
+  parseAlsoUsedAs,
+  parseIpa,
+  parseProse,
   type LexicalKind,
 } from './lexical-kinds.js';
+import {
+  hasSenses,
+  parseSenses,
+  storableSenses,
+  type LexicalSense,
+} from './lexical-senses.js';
 
 const REGION = 'us-central1';
 export const COLLECTION_CAMPAIGN_ID = 'collection-contributions';
@@ -83,15 +95,49 @@ export interface CollectionContributionInput {
   kasemExample: string;
   englishExample: string;
   /**
-   * The definite and plural forms of a noun; empty for everything else.
+   * The paradigm — a noun's definite, plural and counted forms, a verb's
+   * tenses, or both on a word that is used both ways. Empty for everything
+   * else.
    *
    * Here as well as on the queue's own input because the open form reaches the
-   * same review desk and the same published entry, and a noun contributed
-   * through it should not silently lose the one piece of structure that makes
-   * definiteness answerable. See `kasem-morphology.ts` for why the indefinite
-   * is not among them.
+   * same review desk and the same published entry, and a word contributed
+   * through it should not silently lose the structure that makes the entry
+   * worth reading. See `kasem-morphology.ts` for why the indefinite is not
+   * among them, and why the counted form is asked for at all.
    */
-  forms: NounForms;
+  forms: LexicalForms;
+  /**
+   * How the headword is said, in IPA, without its delimiters.
+   *
+   * Not a substitute for the recording and not ranked above it — a learner
+   * plays the sound, and the transcription is what survives when there is no
+   * speaker to ask. Both, wherever both can be had.
+   */
+  ipa: string;
+  /** What the word means, said in Kasem. See MAX_KASEM_DEFINITION_LENGTH. */
+  kasemDefinition: string;
+  /** Where the word comes from, where anybody knows. Usually empty. */
+  etymology: string;
+  /** The other word classes this word is also used as. */
+  alsoUsedAs: string[];
+  /**
+   * Every distinct meaning this word carries, with its own examples, register
+   * and subject field.
+   *
+   * ── Why this is not simply a longer `translations` list ────────────────
+   * Because `translations` is a list of English words and a sense is a list of
+   * *meanings*, and the difference is everything the entry is for. English
+   * *toy* is a plaything, a trinket and a small breed of dog before it is a
+   * verb, and each of those takes a different example sentence. Flattened into
+   * one comma-separated string the sentences have nowhere to attach and the
+   * reader cannot tell which meaning is being illustrated.
+   *
+   * Empty on every kind but the dictionary, and empty on a dictionary
+   * contribution from a client that predates the field — in which case the
+   * publication projection lifts the flat gloss into a single sense on read.
+   * See `sensesOrLegacy`.
+   */
+  senses: LexicalSense[];
   rightsConfirmed: true;
   publicationPermission: boolean;
 }
@@ -291,6 +337,11 @@ export function parseCollectionContributionInput(
     ? normaliseTranslations(data.translations)
     : (kind === 'dictionary' ? normaliseTranslations(body) : []);
 
+  // Read before the return because the paradigm parser needs it: which slots
+  // are storable depends on every class the word claims, not only the one in
+  // the dropdown.
+  const alsoUsedAs = parseAlsoUsedAs(data.alsoUsedAs);
+
   return {
     collectionKind: kind as CollectionKind,
     lexicalKind: canonicalLexicalKind(data.lexicalKind),
@@ -312,10 +363,55 @@ export function parseCollectionContributionInput(
     englishExample: optionalText(data, 'englishExample', 4000),
     // `format` is the word class on the dictionary path, and it arrives as a
     // label ("Noun") from this form rather than as an id, so it is canonicalised
-    // before being asked whether this is a noun at all.
-    forms: parseNounForms(data.forms, canonicalPartOfSpeech(data.format)),
+    // before being asked which paradigm applies.
+    //
+    // The declared class and everything in `alsoUsedAs` are passed together,
+    // which is what lets a noun somebody has told us is also used as a verb
+    // keep both halves of its paradigm instead of losing the tenses to the
+    // dropdown at the top of the form.
+    forms: parseLexicalForms(data.forms, [
+      canonicalPartOfSpeech(data.format),
+      ...alsoUsedAs,
+    ]),
+    ipa: parseIpa(data.ipa),
+    kasemDefinition: parseProse(data.kasemDefinition, MAX_KASEM_DEFINITION_LENGTH),
+    etymology: parseProse(data.etymology, MAX_ETYMOLOGY_LENGTH),
+    alsoUsedAs,
+    // Only the dictionary path can carry senses. A song's "meanings" are its
+    // lyrics, and accepting an array here for a music contribution would let a
+    // client put a dictionary shape on a record nothing will ever read it from.
+    senses: kind === 'dictionary' ? parseSenses(data.senses) : [],
     rightsConfirmed: true,
     publicationPermission: data.publicationPermission,
+  };
+}
+
+/**
+ * The advanced-entry fields, written only where somebody answered them.
+ *
+ * One helper for both documents — the reviewer's canonical submission and the
+ * contributor's own receipt — because they have to agree. A field that reached
+ * the review desk but not the receipt is a field a contributor cannot see was
+ * recorded, and one that reached the receipt but not the desk is a field that
+ * silently fails to publish.
+ *
+ * Spread rather than assigned so an unanswered question leaves no key at all.
+ * Firestore has no way to say "asked and left blank", and an empty string in
+ * `etymology` on fifteen thousand rows would read as fifteen thousand words
+ * whose origin somebody looked into and found nothing — which is a claim, and
+ * a false one.
+ */
+function lexicalDetailFields(input: CollectionContributionInput): Record<string, unknown> {
+  return {
+    ...(input.ipa ? { ipa: input.ipa } : {}),
+    ...(input.kasemDefinition ? { kasemDefinition: input.kasemDefinition } : {}),
+    ...(input.etymology ? { etymology: input.etymology } : {}),
+    ...(input.alsoUsedAs.length > 0 ? { alsoUsedAs: input.alsoUsedAs } : {}),
+    // Written only where a contributor actually gave more than one meaning, or
+    // gave one meaning with detail attached to it. A single bare sense says
+    // exactly what `translations` already says, and storing it would put an
+    // array on every row to repeat one string.
+    ...(hasSenses(input.senses) ? { senses: storableSenses(input.senses) } : {}),
   };
 }
 
@@ -357,7 +453,13 @@ export function buildCollectionSubmissionDocument(
     // On the canonical submission as well as the receipt, because publication
     // reads this document and the forms have to survive the journey to the
     // dictionary entry — they are the whole reason the queue asks for them.
-    ...(hasNounForms(input.forms) ? { forms: input.forms } : {}),
+    //
+    // Only the answered slots are written. The paradigm has eleven of them and
+    // the median word fills none, so storing the shape whole would put nine
+    // empty strings on every row and make "not asked" indistinguishable from
+    // "answered with nothing" to anybody reading the raw document.
+    ...(hasLexicalForms(input.forms) ? { forms: storableForms(input.forms) } : {}),
+    ...lexicalDetailFields(input),
     primaryLanguage: 'xsm',
     dialect: input.dialect,
     // The public mobile details currently render description. Retain body too,
@@ -502,9 +604,10 @@ export function buildCollectionContributionReceipt(
     kasemExample: input.kasemExample,
     englishExample: input.englishExample,
     // Omitted entirely when there is nothing in it, so the overwhelming
-    // majority of contributions — every verb, every adjective, every noun
-    // whose contributor did not elaborate — carry no empty map at all.
-    ...(hasNounForms(input.forms) ? { forms: input.forms } : {}),
+    // majority of contributions — every adjective, every word whose
+    // contributor did not elaborate — carry no empty map at all.
+    ...(hasLexicalForms(input.forms) ? { forms: storableForms(input.forms) } : {}),
+    ...lexicalDetailFields(input),
     rightsConfirmed: true,
     publicationPermission: input.publicationPermission,
     status: 'submitted',

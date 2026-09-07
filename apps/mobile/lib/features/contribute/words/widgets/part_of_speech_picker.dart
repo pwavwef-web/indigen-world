@@ -172,12 +172,35 @@ class PartOfSpeechField extends StatelessWidget {
     required this.value,
     required this.onChanged,
     this.enabled = true,
+    this.labelText = 'Word class',
+    this.helperText,
+    this.isRequired = true,
     super.key,
   });
 
   final PartOfSpeech? value;
   final ValueChanged<PartOfSpeech> onChanged;
   final bool enabled;
+
+  /// What the field is called. Overridable because the same picker now answers
+  /// two different questions: the word's own class, and the class of one
+  /// particular meaning of it.
+  final String labelText;
+
+  /// The line under the field. Used by the per-meaning copy to say that
+  /// leaving it blank means "the same as the word itself", which is the answer
+  /// almost every meaning wants and the one a blank field otherwise looks like
+  /// a mistake for.
+  final String? helperText;
+
+  /// Whether an answer is compulsory.
+  ///
+  /// True at the top of the contribution form, where a word with no class is
+  /// an entry nobody can file. False on a sense, where blank is a real answer
+  /// meaning "the same as the entry" -- and a validator that refused it would
+  /// force every contributor with three meanings to state the class three
+  /// times.
+  final bool isRequired;
 
   @override
   Widget build(BuildContext context) {
@@ -191,7 +214,8 @@ class PartOfSpeechField extends StatelessWidget {
       // rather than asking every caller for a key means no caller can forget.
       key: ValueKey('part-of-speech-${value?.id ?? ''}'),
       initialValue: value,
-      validator: (chosen) => chosen == null ? 'Choose a word class.' : null,
+      validator: (chosen) =>
+          isRequired && chosen == null ? 'Choose a word class.' : null,
       builder: (field) => InkWell(
         borderRadius: BorderRadius.circular(16),
         onTap: enabled
@@ -211,7 +235,9 @@ class PartOfSpeechField extends StatelessWidget {
         child: InputDecorator(
           isEmpty: value == null,
           decoration: InputDecoration(
-            labelText: 'Word class',
+            labelText: labelText,
+            helperText: helperText,
+            helperMaxLines: 2,
             errorText: field.errorText,
             prefixIcon: const Icon(Icons.category_outlined),
             suffixIcon: const Icon(Icons.expand_more_rounded),

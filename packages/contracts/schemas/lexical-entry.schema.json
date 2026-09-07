@@ -42,19 +42,51 @@
       "description": "The noun class this entry belongs to, or null when it has not been established. Null rather than a guess: an unrecognised definite ending means the class inventory has not yet been attested, and a plausible-looking invented class is worse for the language record than an admitted gap.",
       "oneOf": [{ "type": "string", "minLength": 1 }, { "type": "null" }]
     },
+    "alsoUsedAs": {
+      "type": "array",
+      "description": "The other word classes this entry is also used as — most often `verb` on a noun. A Kasem word routinely belongs to more than one class, and a single `partOfSpeech` forced every such word to pretend otherwise. Values are ids from the same enum as partOfSpeech; `other` and `unknown` are refused because this field drives a rendered paradigm rather than recording a contributor's own words. An entry's own class does not appear here.",
+      "maxItems": 4,
+      "items": { "type": "string", "minLength": 1 }
+    },
     "forms": {
       "type": "object",
-      "description": "Morphological forms that cannot be derived from the headword.\n\nThe indefinite is deliberately absent. In Kasem it is invariantly the noun followed by the particle `mo`, which makes it a rule rather than per-entry data; storing it on every row would denormalise a fact about the language into thousands of copies that all become wrong the day the rule is refined. It is derived on read by indefiniteForm() in services/functions/src/kasem-morphology.ts.\n\nThe definite is here because it is the one form that genuinely varies: it changes with the noun class, and it is what nounClass is induced from.",
+      "description": "The paradigm: the forms of this word that cannot be derived from the headword. One flat map rather than a noun map beside a verb map, because a Kasem word is routinely both and asking the data model to choose forces a choice the language does not make. Every slot is optional; a slot that does not apply is absent rather than empty.\n\nThe indefinite is deliberately absent and must not be added. In Kasem it was believed to be invariantly the noun followed by the particle `mo`; that reading was withdrawn by a speaker on 2026-09-05 (`mo` is a focus particle) and no form is synthesized while the construction is disputed. Either way it would be a rule rather than per-entry data — storing it on every row would denormalise a fact about the language into thousands of copies that all become wrong together.\n\nThe definite is the one noun form that genuinely varies with the class, and it is what nounClass is induced from. The counted form — the noun said with *two* — reads the same class off a second surface: six forms of *two* are attested (balei, yalei, nlei, selei, telei, delei) and the noun in front chooses which. The plural definite exists because the singular and plural may sit in different classes (`dɛ dem` \"the day\" beside `da yam` \"the days\"), which is unobservable without it. The pronoun is a third reading and the cheapest to elicit.\n\nNone of the three is induced from beyond the definite: which noun takes which prefix is exactly the open question, and a class derived from a pair of forms is a claim that belongs in grammarClaims, not a silent server-side inference.",
       "properties": {
-        "definite": { "type": "string" },
-        "plural": { "type": "string" }
+        "definite": { "type": "string", "description": "The noun said with *the* — \"the boy\"." },
+        "plural": { "type": "string", "description": "The noun said for many — \"boys\"." },
+        "pluralDefinite": { "type": "string", "description": "The plural said with *the* — \"the boys\"." },
+        "counted": { "type": "string", "description": "The noun said with *two* — \"two boys\"." },
+        "pronoun": { "type": "string", "description": "The pronoun that stands in for this noun. Recorded as the word, never as a person/number label: \"what do you call him afterwards\" is a question about talking, and \"third person singular animate\" is a question about grammar." },
+        "article": { "type": "string", "description": "The determiner alone, where a contributor gave it separately. Usually redundant — it is read off the definite form — and here for the entry whose definite is written solid." },
+        "present": { "type": "string", "description": "The verb as it is said now." },
+        "past": { "type": "string", "description": "The verb said of yesterday." },
+        "future": { "type": "string", "description": "The verb said of tomorrow." },
+        "pluralSubject": { "type": "string", "description": "The verb said of several doers. Kept apart from `plural`, which is a noun's." },
+        "imperative": { "type": "string", "description": "The verb said as an instruction." },
+        "agreeingOne": { "type": "string", "description": "The word used with one thing — for an adjective, quantifier, numeral, determiner, article or pronoun, whose form is chosen by the noun it attaches to or stands for. Two examples rather than named grammatical cells, because naming the cells would mean inventing the class inventory: an adjective paradigm with made-up cells would publish a structure nobody has established, on entries a learner has no reason to doubt. Attested by a speaker on 2026-09-06 for quantifiers (`te maama, ya maama, se maama, de maama`), who added that it works \"just like the numbers\"." },
+        "agreeingTwo": { "type": "string", "description": "The same word used with something different. Two rather than one for the same reason the counted form sits beside the definite: one form is a form, and two forms of one word either carry the same marker or they do not. The pair is the evidence." }
       },
       "additionalProperties": false
+    },
+    "definiteArticle": {
+      "type": "string",
+      "description": "Which of the eight attested determiners (kam kom dem tem bam yam sem wom) appears in the recorded definite form. A restatement of what a contributor typed, not a claim about which article the noun takes. Absent whenever nothing matched — never guessed."
+    },
+    "numeralSeries": {
+      "type": "string",
+      "description": "Which attested word for *two* appears in the recorded counted form (balei / yalei / nlei / selei / telei / delei / kalei). Absent whenever nothing matched. `kalei` was added on 2026-09-06 on a speaker's direct answer, having been refused the day before precisely because the pattern predicted it — a shape being predicted is not evidence that it is said. No form is attested for the `kom` or `wom` articles and they stay absent; `nlei` matches no article at all, so the marker lists are related rather than identical and completing the pattern by invention is exactly what this field must not do."
+    },
+    "numeralPrefix": {
+      "type": "string",
+      "description": "The class prefix carried by numeralSeries — ba, ya, n, se, te or de."
     },
     "pronunciation": {
       "type": "object",
       "properties": {
-        "ipa": { "type": "string" },
+        "ipa": {
+          "type": "string",
+          "description": "How the headword is said, in IPA, stored WITHOUT its delimiters. The slashes are notation rather than content and half of contributors type them; storing what was typed makes the field unqueryable and renders three different ways on one screen. The one renderer that shows a transcription adds them back."
+        },
         "audio": {
           "oneOf": [
             { "$ref": "common.schema.json#/$defs/reference" },
@@ -64,16 +96,41 @@
       },
       "additionalProperties": false
     },
+    "kasemDefinition": {
+      "type": "string",
+      "description": "What the word means, stated in Kasem — what a speaker would say to a child who asked. The only field on this record written IN the language rather than about it, and the reason it exists: a dictionary that explains Kasem only in English treats English as the language you think in. It also carries usage, register and collocation that a one-word English equivalent throws away."
+    },
+    "etymology": {
+      "type": "string",
+      "description": "Where the word comes from, where anybody knows. Usually absent, and absent is the honest answer — for most of this vocabulary nobody has written it down. An absent field says so; a fabricated one would not."
+    },
     "senses": {
       "type": "array",
       "minItems": 1,
+      "description": "The several things this word means, in the order the contributor gave them.\n\nA sense is not a homograph, and the distinction is load-bearing. `homographIndex` numbers entries that are DIFFERENT WORDS sharing a spelling — mo¹ the focus particle beside mo² — and those get separate documents and a permanent number, because a citation has to keep pointing at the same word for ever. These are the several meanings of ONE word: one document, one headword, one etymology, numbered inside the entry. Both render as \"1.\" and \"2.\" on the page and only one of them is a stable identity, which is why conflating them is the commonest way a dictionary schema goes wrong.\n\nAn entry with one bare sense is the ordinary case and says exactly what the flat gloss says. The array earns its place when a word means several things — English *toy* is a plaything, a trinket and a small breed of dog before it is a verb, and each of those takes its own example sentence, which a comma-separated gloss has nowhere to attach.\n\nMirrors `parseSenses` in services/functions/src/lexical-senses.ts, `EntrySense` in apps/mobile/lib/domain/entry_sense.dart and `SENSE_REGISTERS` in apps/tribestudio/src/creator/lexicon.ts; all four must agree.",
       "items": {
         "type": "object",
         "properties": {
           "definition": { "type": "string", "minLength": 1 },
+          "partOfSpeech": {
+            "type": "string",
+            "description": "The word class this particular sense belongs to, where it differs from the entry's own. Absent means \"the same as the entry\", which is what the great majority of senses say. It exists because the entry-level class cannot describe a word that is a noun in its first two senses and a verb in its third, which is ordinary rather than exotic: `alsoUsedAs` records THAT a word crosses classes, and this records WHICH MEANING does the crossing, which is what lets a renderer group senses the way a printed dictionary does. Values are ids from the same enum as partOfSpeech."
+          },
           "register": {
             "type": "string",
-            "description": "Usage register (e.g. formal, colloquial, archaic)."
+            "description": "How it is said, and to whom — one of the ids in SENSE_REGISTERS (everyday, respectful, formal, colloquial, old, new, joking, figurative, childspeak, avoided). Deliberately not the standard lexicographic abbreviations: \"colloq.\" is a vocabulary a contributor has to be taught, and this field is answered by speakers rather than by lexicographers. `avoided` is not called \"vulgar\" for the same reason — what a speaker will actually tell you is who they would not say it in front of."
+          },
+          "domain": {
+            "type": "string",
+            "description": "The subject field this sense belongs to — one of the ids in SENSE_DOMAINS. A closed list rather than free tags, because free tags produce \"farming\", \"farm\", \"Farming\" and \"agric\" on four entries that mean the same thing, which defeats the one query the field exists to serve: show me the vocabulary of the farm."
+          },
+          "kasemDefinition": {
+            "type": "string",
+            "description": "This sense's meaning stated in Kasem. The entry-level `kasemDefinition` covers the word; this covers one meaning of it, for the word whose senses are far enough apart that one Kasem gloss cannot serve both."
+          },
+          "usageNote": {
+            "type": "string",
+            "description": "When to say it, when not to, and what it goes with. Prose, and usually absent."
           },
           "translations": {
             "type": "array",
@@ -89,7 +146,30 @@
           },
           "examples": {
             "type": "array",
-            "items": { "type": "string" }
+            "description": "Sentences showing THIS sense in use.\n\nTwo shapes are accepted because two exist. A bare string is a sentence in Kasem and is what every record written before senses carried per-sense translations holds; the object form carries the sentence and its English together, which is what a reader needs and what a contributor is now asked for. Neither is rewritten into the other — an entry that validated last year still validates unchanged.\n\nAn object with only one half filled is valid: a contributor who wrote the Kasem and left the translation for a reviewer has given the archive the part nobody else can supply.",
+            "items": {
+              "oneOf": [
+                { "type": "string" },
+                {
+                  "type": "object",
+                  "properties": {
+                    "kasem": { "type": "string" },
+                    "english": { "type": "string" }
+                  },
+                  "additionalProperties": false
+                }
+              ]
+            }
+          },
+          "synonyms": {
+            "type": "array",
+            "description": "Other words that mean roughly this, as written in Kasem. Stored as the words themselves rather than as entry references, because the word a speaker offers as a synonym very often has no entry yet — and refusing to record it until it does would lose exactly the vocabulary the cross-reference was pointing at. A renderer resolves what it can and shows the rest as plain text.",
+            "items": { "type": "string", "minLength": 1 }
+          },
+          "antonyms": {
+            "type": "array",
+            "description": "Words that mean the opposite, on the same terms as synonyms.",
+            "items": { "type": "string", "minLength": 1 }
           }
         },
         "required": ["definition"],

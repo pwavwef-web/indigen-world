@@ -36,6 +36,7 @@ const LAZY_PAGES = [
   'StudioVideoPage',
   'NotificationsPage',
   'LexiconWorkspace',
+  'DictionaryPage',
 ];
 for (const page of LAZY_PAGES) {
   assert.match(app, new RegExp(`const ${page} = named\\(`), `${page} is lazy-loaded in App.tsx`);
@@ -51,6 +52,21 @@ assert.match(creatorStyles, /backdrop-filter:\s*blur/, 'navigation retains its g
 assert.match(profilePage, /className="profile-hero"/, 'profile has a clear identity hero');
 assert.match(profilePage, /aria-label="Profile sections"/, 'profile has section navigation');
 assert.match(profilePage, /className="profile-savebar"/, 'profile has a persistent save surface');
+
+// The dictionary desk: a contributor at a keyboard cannot type ɩ, ʋ, ɛ, ɔ, ŋ or
+// ə, and 785 of the 1200 published entries carry at least one of them. A form
+// without the palette is one on which two thirds of the language is entered
+// wrongly, so its presence is an invariant rather than a nicety.
+const dictionaryPage = read('src/creator/pages/DictionaryPage.tsx');
+assert.match(dictionaryPage, /KasemPalette/, 'the dictionary desk offers the Kasem letters');
+assert.match(dictionaryPage, /aria-label="Kasem letters"/, 'the letter palette is labelled for screen readers');
+assert.match(dictionaryPage, /Add another meaning/, 'the dictionary desk takes more than one meaning');
+assert.match(dictionaryPage, /EntryPreview/, 'the dictionary desk previews the published entry');
+// Guidance, never a gate: nothing in the completeness meter may block a send.
+assert.ok(
+  !/disabled=\{[^}]*progress\.score/.test(dictionaryPage),
+  'the completeness meter never blocks submission',
+);
 
 // Governance: AI-training permission is off by default in the submission wizard.
 const wizard = read('src/creator/pages/SubmissionNewPage.tsx');

@@ -360,21 +360,52 @@ from **Settings → Preferences → Kasem keyboard**. The setup page opens Andro
 keyboard settings and picker; Android deliberately requires the owner of the
 phone to enable and select every third-party keyboard themselves.
 
-The MVP is intentionally a text-entry tool, not a language model:
+It is intentionally a text-entry tool, not a language model:
 
 - QWERTY-derived Kasem and English layouts, with a one-tap EN / KA switch;
-- direct Ɛ, Ɔ and Ŋ keys, plus draft long-press shortcuts for Ch, Ny, Kw, Gw,
-  Pw and Ŋw;
-- shift, double-tap caps lock, numbers and symbols, backspace, space and
-  editor-aware enter actions;
+- **a dedicated row for ɩ ʋ ə ɔ ŋ ɛ**, always visible in Kasem mode, plus
+  long-press on the matching vowel (E, I, O, U, A) as a second route, the
+  high-tone mark on each Kasem vowel, and draft digraph shortcuts on C, K, G,
+  P and Ŋ for Ch, Kw, Gw, Pw and Ŋw;
+- a corner hint on every key that has a long-press alternate;
+- shift, double-tap caps lock, numbers and symbols, backspace that repeats when
+  held, space, and editor-aware enter actions;
+- 48dp keys in portrait, shorter in landscape, in the phone's own light or dark
+  theme;
 - native preferences for the starting language, key vibration and key sounds;
 - no prediction, typed-text storage, analytics or network path from the IME.
 
-The draft inventory is isolated in
-`android/app/src/main/kotlin/world/indigen/mobile/KasemKeyboardLayout.kt` so the
-alphabet, digraph treatment and key positions can be revised after review with
-fluent Kasem speakers. Do not describe the layout as linguistically final until
-that review is complete.
+### Why the extended row is not negotiable
+
+785 of the 1200 published dictionary entries carry at least one letter that
+does not exist on a stock English keyboard — ɩ in 640 headwords, ʋ in 195, ə in
+177, ɔ in 156, ŋ in 115, ɛ in 9 (counted in `lib/domain/kasem_orthography.dart`).
+
+The first cut of this keyboard shipped with direct keys for ɛ, ɔ and ŋ and no
+way at all to produce ɩ, ʋ or ə — the three commonest of the six, including the
+one that appears in more than half of all headwords. The workaround that leaves
+is the one that does the damage: type `i` for ɩ, and the word is filed under a
+spelling that is a different word. Every extended letter now has its own key,
+because reachability through an undiscoverable gesture is not reachability.
+
+The alphabet is settled. The digraph shortcuts and the key positions are still
+a draft pending review with fluent Kasem speakers — they are isolated in
+`android/app/src/main/kotlin/world/indigen/mobile/KasemKeyboardLayout.kt` so
+that review changes one file. Do not describe the digraph treatment as final
+until it is done.
+
+### Two things to know before touching the IME
+
+- **The subtype locale is `xsm`, not `kss`.** ISO 639-3 `kss` is Southern Kisi,
+  a different language in a different country. `xsm` is Kasem and is what the
+  rest of this repo uses (`packages/contracts/schemas/common.schema.json`, and
+  `primaryLanguage: 'xsm'` on every submission). Android matches on it.
+- **There is deliberately no `settingsActivity`.** It pointed at `MainActivity`,
+  which Android launches with a plain ACTION_MAIN intent — indistinguishable
+  from a launcher tap — so the gear beside "Kasem keyboard" in Android's
+  settings dropped people on the app home screen with no way back. The
+  keyboard's settings live in-app at **Settings → Preferences → Kasem
+  keyboard**.
 
 ## Build
 

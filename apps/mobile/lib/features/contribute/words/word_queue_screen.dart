@@ -7,11 +7,13 @@ import 'package:indigen_world_mobile/features/auth/sign_in_sheet.dart';
 import 'package:indigen_world_mobile/features/collection/collection_data.dart';
 import 'package:indigen_world_mobile/features/contribute/contribution_form_screen.dart';
 import 'package:indigen_world_mobile/features/contribute/contribution_kinds.dart';
-import 'package:indigen_world_mobile/features/contribute/words/data/kasem_morphology.dart';
+import 'package:indigen_world_mobile/features/contribute/contribution_upload.dart';
+import 'package:indigen_world_mobile/features/contribute/pronunciation_recorder.dart';
 import 'package:indigen_world_mobile/features/contribute/words/data/parts_of_speech.dart';
 import 'package:indigen_world_mobile/features/contribute/words/data/translation_parser.dart';
 import 'package:indigen_world_mobile/features/contribute/words/data/word_queue_controller.dart';
 import 'package:indigen_world_mobile/features/contribute/words/data/word_queue_models.dart';
+import 'package:indigen_world_mobile/features/contribute/words/widgets/lexical_detail_fields.dart';
 import 'package:indigen_world_mobile/features/contribute/words/widgets/part_of_speech_picker.dart';
 import 'package:indigen_world_mobile/features/contribute/words/widgets/queue_word_card.dart';
 import 'package:indigen_world_mobile/features/contribute/words/widgets/translation_field.dart';
@@ -52,17 +54,49 @@ class _WordQueueScreenState extends ConsumerState<WordQueueScreen> {
   final _kasemExample = TextEditingController();
   final _notes = TextEditingController();
 
-  /// The noun said with *the*, and said for many.
+  /// The whole paradigm, plus the three fields that turn a row into an entry.
   ///
-  /// Both optional, both shown only for Noun. They are the answer to a
-  /// question this app used to ask fifteen thousand times and could never get
-  /// an answer to: definiteness in Kasem is a property of the noun rather than
-  /// a word of its own, so there is no Kasem for "the" — there is only the
-  /// form a speaker says. See `kasem_morphology.dart`.
-  final _definiteForm = TextEditingController();
-  final _pluralForm = TextEditingController();
+  /// ── One holder rather than thirteen loose controllers ────────────────
+  /// The forms this screen collects went from two to thirteen, and thirteen
+  /// fields declared, cleared and disposed by hand is three lists that have to
+  /// be kept in step — the kind of bookkeeping where the missed line is always
+  /// the `dispose`. [LexicalFormsControllers] owns all three lists, and the
+  /// same holder is used by the open contribution form so the two paths cannot
+  /// drift into collecting different things about the same word.
+  ///
+  /// What is in it: the noun said with *the*, for many, the many with *the*,
+  /// for two, and what you call it afterwards; the verb said now, yesterday,
+  /// tomorrow, of several doers and as an instruction; and the transcription,
+  /// the Kasem meaning and the etymology. All optional. See
+  /// `lexical_detail_fields.dart` for why each one is asked the way it is.
+  final _forms = LexicalFormsControllers();
 
   PartOfSpeech? _partOfSpeech;
+
+  /// The other classes the member said this word is also used as.
+  ///
+  /// Empty for the overwhelming majority of words, and the control that fills
+  /// it is a chip rather than a picker: "is this also used as an action?" is a
+  /// question somebody either has an answer to instantly or does not.
+  var _alsoUsedAs = <String>{};
+
+  /// The take, before and after it goes up.
+  ///
+  /// ── Why the queue can record at all ──────────────────────────────────
+  /// A dictionary entry's whole point is a sound. The open contribution form
+  /// has had a recorder since the play button on a published word stopped
+  /// being a stub — but the guided queue, which produces nearly every entry
+  /// that arrives, could only ever send text. So the archive was filling with
+  /// words nobody can hear, and the person who knows how a word is said is the
+  /// person answering the queue.
+  ///
+  /// Optional, and visibly so. Somewhere with no quiet room, no microphone
+  /// permission to give, or no data to spend must still be able to answer the
+  /// word.
+  PickedContributionFile? _recording;
+
+  /// Upload progress while a take is on its way, or null.
+  double? _uploadProgress;
 
   /// Kept across words on purpose.
   ///
@@ -88,16 +122,22 @@ class _WordQueueScreenState extends ConsumerState<WordQueueScreen> {
   String? _idiomPrompt;
 
   /// Empties everything that was an answer to the word that has just gone.
+  ///
+  /// The recording goes with the rest. A take of somebody saying "boy" is an
+  /// answer to *boy*, and carrying it onto the next word would publish the
+  /// wrong sound on a word nobody would think to check.
   void _clearAnswer() {
     _translations.clear();
     _kasemExample.clear();
     _notes.clear();
-    _definiteForm.clear();
-    _pluralForm.clear();
+    _forms.clear();
     if (mounted) {
       setState(() {
         _partOfSpeech = null;
         _sentenceFit = WordQueueSentenceFit.fits;
+        _alsoUsedAs = <String>{};
+        _recording = null;
+        _uploadProgress = null;
       });
     }
   }
@@ -107,8 +147,7 @@ class _WordQueueScreenState extends ConsumerState<WordQueueScreen> {
     _translations.dispose();
     _kasemExample.dispose();
     _notes.dispose();
-    _definiteForm.dispose();
-    _pluralForm.dispose();
+    _forms.dispose();
     super.dispose();
   }
 
@@ -262,19 +301,40 @@ class _WordQueueScreenState extends ConsumerState<WordQueueScreen> {
               PartOfSpeechField(
                 value: _partOfSpeech,
                 enabled: !state.sending,
-                onChanged: (value) => setState(() => _partOfSpeech = value),
+                onChanged: (value) => setState(() {
+                  _partOfSpeech = value;
+                  // The offers are per class — "also an action" on a noun,
+                  // "also a thing" on a verb — so a selection made under one
+                  // class is meaningless under another. Cleared rather than
+                  // carried, because a hidden chip that is still selected
+                  // sends a claim nobody can see they made.
+                  _alsoUsedAs = <String>{};
+                }),
               ),
-              // Shown only for a noun, and never required. Everything else —
-              // every verb, every adjective, every noun whose contributor does
-              // not want to elaborate — costs exactly zero extra keystrokes.
-              if (_partOfSpeech?.id == 'noun') ...[
-                const SizedBox(height: 13),
-                _NounForms(
-                  definite: _definiteForm,
-                  plural: _pluralForm,
-                  enabled: !state.sending,
-                ),
-              ],
+              // Drawn only for the classes it belongs to, and never required.
+              // Everything else — every adjective, every word whose
+              // contributor does not want to elaborate — costs exactly zero
+              // extra keystrokes.
+              LexicalFormsSection(
+                controllers: _forms,
+                declaredClass: _partOfSpeech?.id ?? '',
+                alsoUsedAs: _alsoUsedAs,
+                enabled: !state.sending,
+                onAlsoUsedAsChanged: (value) =>
+                    setState(() => _alsoUsedAs = value),
+              ),
+              const SizedBox(height: 13),
+              // Directly under the word class and above the dialect: the
+              // order somebody would do it in. Saying the word is the natural
+              // next thing after deciding what kind of word it is, and it is
+              // the one answer this screen collects that cannot be typed.
+              PronunciationRecorderField(
+                file: _recording,
+                progress: _uploadProgress,
+                enabled: !state.sending && _uploadProgress == null,
+                onRecorded: (file) => setState(() => _recording = file),
+                onCleared: () => setState(() => _recording = null),
+              ),
               const SizedBox(height: 13),
               DropdownButtonFormField<String>(
                 initialValue: _dialect,
@@ -321,6 +381,17 @@ class _WordQueueScreenState extends ConsumerState<WordQueueScreen> {
                   prefixIcon: Icon(Icons.fact_check_outlined),
                 ),
               ),
+              const SizedBox(height: 6),
+              // Last in the form and collapsed, because none of the three is
+              // answerable in the rhythm the queue runs at. They are for the
+              // member who has stopped on a word they care about — and the
+              // Kasem meaning among them is the most valuable string this
+              // project can collect, so it needs somewhere to go even if most
+              // words never get one.
+              AdvancedDetailSection(
+                controllers: _forms,
+                enabled: !state.sending,
+              ),
             ],
           ),
         ),
@@ -345,6 +416,8 @@ class _WordQueueScreenState extends ConsumerState<WordQueueScreen> {
         const _PointsNote(),
         const SizedBox(height: 18),
         _SkipControls(enabled: !state.sending, onSkip: _skip),
+        const SizedBox(height: 18),
+        _OwnWordOffer(enabled: !state.sending, onTap: _addOwnWord),
         // Said only when it is reassuring. "1 more ready" would draw attention
         // to a buffer that is about to be topped up anyway; a healthy number
         // tells a member on a wavering signal that they can keep going.
@@ -371,6 +444,14 @@ class _WordQueueScreenState extends ConsumerState<WordQueueScreen> {
     final fit = _sentenceFit;
     final sentence = ref.read(wordQueueControllerProvider).word?.sentence ?? '';
 
+    // The recording goes to Storage first and separately, because the callable
+    // is handed a path rather than the bytes. A failed upload must not take
+    // the typed answer down with it — the words are the contribution and the
+    // sound is a bonus — so this returns null on failure, says so, and the
+    // answer is sent without it.
+    final uploaded = await _uploadRecording();
+    if (!mounted) return;
+
     final sent = await ref
         .read(wordQueueControllerProvider.notifier)
         .submit(
@@ -383,12 +464,37 @@ class _WordQueueScreenState extends ConsumerState<WordQueueScreen> {
             kasemExample: _kasemExample.text.trim(),
             sentenceFit: fit,
             // Sent whatever the word class currently says. The fields are only
-            // reachable for a noun, and the server drops them for anything
-            // else rather than erroring — so a member who typed a definite
-            // form and then changed their mind about the class loses the form
-            // quietly instead of losing the whole submission.
-            definiteForm: _definiteForm.text.trim(),
-            pluralForm: _pluralForm.text.trim(),
+            // reachable for the class they belong to, and the server drops
+            // them for anything else rather than erroring — so a member who
+            // typed a definite form and then changed their mind about the
+            // class loses the form quietly instead of losing the whole
+            // submission.
+            //
+            // Everything below the plural is sent whenever it has something in
+            // it, even if the field that revealed it has since been cleared. A
+            // member only ever sees those boxes after answering the plural, so
+            // anything in them was typed on purpose, and dropping a real
+            // answer over a later edit to a different field would be the worse
+            // of the two mistakes.
+            definiteForm: _forms.definiteText,
+            pluralForm: _forms.pluralText,
+            pluralDefiniteForm: _forms.pluralDefiniteText,
+            countedForm: _forms.countedText,
+            pronounForm: _forms.pronounText,
+            presentForm: _forms.presentText,
+            pastForm: _forms.pastText,
+            futureForm: _forms.futureText,
+            pluralSubjectForm: _forms.pluralSubjectText,
+            imperativeForm: _forms.imperativeText,
+            agreeingOneForm: _forms.agreeingOneText,
+            agreeingTwoForm: _forms.agreeingTwoText,
+            alsoUsedAs: _alsoUsedAs.toList(growable: false),
+            ipa: _forms.ipaText,
+            kasemDefinition: _forms.kasemDefinitionText,
+            etymology: _forms.etymologyText,
+            recordingStoragePath: uploaded?.storagePath ?? '',
+            recordingMimeType: uploaded?.mimeType ?? '',
+            recordingSizeBytes: uploaded?.sizeBytes ?? 0,
           ),
         );
     if (!sent || !mounted) return;
@@ -405,6 +511,58 @@ class _WordQueueScreenState extends ConsumerState<WordQueueScreen> {
     // The fields have already emptied — the word changed, and the listener in
     // `build` owns that. All that is left is where the member is looking.
     await _scrollToTop();
+  }
+
+  /// Sends the take to Storage, or returns null and says why.
+  ///
+  /// ── A failed recording must never cost the answer ────────────────────
+  /// The words are the contribution. A member on a village connection whose
+  /// upload times out has still typed a translation, chosen a class and
+  /// possibly filled in a paradigm, and refusing the whole submission over the
+  /// optional part of it would be the worst trade this screen could make. So
+  /// this swallows the failure into a message, hands back null, and the answer
+  /// goes without the sound.
+  ///
+  /// The take is left attached on failure rather than cleared, so a member who
+  /// wants to try again on a better signal still has it.
+  Future<UploadedContributionFile?> _uploadRecording() async {
+    final take = _recording;
+    if (take == null) return null;
+    final uid = ref.read(firebaseAuthProvider)?.currentUser?.uid;
+    if (uid == null) return null;
+
+    setState(() => _uploadProgress = 0);
+    try {
+      return await const ContributionUploader().upload(
+        uid: uid,
+        file: take,
+        onProgress: (value) {
+          if (mounted) setState(() => _uploadProgress = value);
+        },
+      );
+    } on ContributionUploadFailure catch (failure) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${failure.message} The word was sent without it.'),
+          ),
+        );
+      }
+      return null;
+    } on Object {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'The recording did not upload. The word was sent without it.',
+            ),
+          ),
+        );
+      }
+      return null;
+    } finally {
+      if (mounted) setState(() => _uploadProgress = null);
+    }
   }
 
   /// Passes on the word on screen, and puts the next one in front of the eyes
@@ -444,6 +602,37 @@ class _WordQueueScreenState extends ConsumerState<WordQueueScreen> {
     );
   }
 
+  /// Takes a word the member thought of, whether or not the queue holds it.
+  ///
+  /// ── The gap this closes ──────────────────────────────────────────────
+  /// The queue is fifteen thousand English words in frequency order, and it
+  /// hands them out in that order. Somebody who thinks of a word while
+  /// answering — the word for a tool their father used, a word they realised
+  /// is missing — had two options and both were bad: skip until it came round,
+  /// which for a word at rank 9,000 is never, or leave the queue, find
+  /// Contribute, find the dictionary offer, and start a form. Most people did
+  /// neither and the word was lost.
+  ///
+  /// So it is a button on the screen they are already on. The queue keeps its
+  /// place — this is a pushed route, and the word behind it is still there on
+  /// the way back — and the open form is the one that already knows how to
+  /// take a word nobody prompted for.
+  ///
+  /// It does not add to `wordQueue`. That collection is the English backlog
+  /// being worked through, and a Kasem word somebody volunteered is not a
+  /// prompt for anybody; it is a contribution, and it goes to the same review
+  /// desk as every other one.
+  Future<void> _addOwnWord() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => const ContributionFormScreen(
+          kind: CollectionKind.dictionary,
+          lexicalKind: LexicalKind.word,
+        ),
+      ),
+    );
+  }
+
   /// Hands the saying the member just spotted to the open contribution form.
   ///
   /// Navigation rather than a second form on this screen, and no new backend
@@ -469,90 +658,81 @@ class _WordQueueScreenState extends ConsumerState<WordQueueScreen> {
   }
 }
 
-/// The two forms that make "the" answerable, and the one that never needs to be.
+/// "Know a word we have not asked for?"
 ///
-/// ── Why this asks for words and not for a noun class ─────────────────────
-/// The obvious design was a noun-class picker. It would have been far less
-/// work and it would have collected almost nothing: most fluent speakers of
-/// any language cannot name their own noun classes, and a picker somebody
-/// cannot answer is a picker they set to the first item. So this asks two
-/// questions any Kasem speaker answers without thinking — say it with *the*,
-/// say it for many — and the class is worked out from the answer on the
-/// server. Nobody using this app ever sees the phrase "noun class".
+/// ── The word that used to be lost ────────────────────────────────────────
+/// The queue is fifteen thousand English words in frequency order and it hands
+/// them out in that order. Somebody who thinks of a word while answering — the
+/// word for a tool their father used, a word they have just realised is
+/// missing — had two options and both were bad: skip until it came round,
+/// which for a word at rank nine thousand is never, or leave the queue, find
+/// Contribute, find the dictionary offer and start a form from a cold screen.
+/// Most people did neither, and the word was lost.
 ///
-/// ── Why the plain form is stated rather than asked for ───────────────────
-/// The indefinite is invariant: the noun, then `mo`. Asking fifteen thousand
-/// times for a form that follows a single rule is exactly the pattern this
-/// whole change exists to stop. Saying it out loud instead does two useful
-/// things for free — it teaches the member something true about their own
-/// language, and it stops them typing "bu mo" into the meaning box above.
-class _NounForms extends StatelessWidget {
-  const _NounForms({
-    required this.definite,
-    required this.plural,
-    required this.enabled,
-  });
+/// So the offer sits under the skip controls, at the bottom, where somebody
+/// who has finished with the word in front of them already is. Quiet on
+/// purpose: it is a door, not an instruction, and the queue is still the thing
+/// this screen is for.
+class _OwnWordOffer extends StatelessWidget {
+  const _OwnWordOffer({required this.enabled, required this.onTap});
 
-  final TextEditingController definite;
-  final TextEditingController plural;
   final bool enabled;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final brand = context.brand;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Container(
-          padding: const EdgeInsets.fromLTRB(11, 9, 11, 9),
-          decoration: BoxDecoration(
-            color: brand.accent.withValues(alpha: 0.07),
-            borderRadius: BorderRadius.circular(11),
-          ),
+    return GlassSurface(
+      blur: false,
+      lifted: false,
+      radius: 14,
+      padding: EdgeInsets.zero,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: enabled ? onTap : null,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(14, 13, 14, 13),
           child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(Icons.lightbulb_outline_rounded, size: 15, color: brand.accent),
-              const SizedBox(width: 8),
+              Icon(Icons.lightbulb_outline_rounded, size: 18, color: brand.gold),
+              const SizedBox(width: 11),
               Expanded(
-                child: Text(
-                  'The plain form is just the word and $kIndefiniteParticle — '
-                  'that is automatic in Kasem, so you never need to type it. '
-                  'These two are the ones that change.',
-                  style: TextStyle(
-                    color: brand.mutedInk,
-                    fontSize: 11.5,
-                    height: 1.45,
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Thought of a word we have not asked for?',
+                      style: TextStyle(
+                        color: brand.ink,
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      'Add it now — you do not have to wait for its turn.',
+                      style: TextStyle(
+                        color: brand.mutedInk,
+                        fontSize: 11.5,
+                        height: 1.4,
+                      ),
+                    ),
+                  ],
                 ),
+              ),
+              Icon(
+                Icons.chevron_right_rounded,
+                size: 20,
+                color: brand.mutedInk,
               ),
             ],
           ),
         ),
-        const SizedBox(height: 11),
-        TextFormField(
-          controller: definite,
-          enabled: enabled,
-          decoration: const InputDecoration(
-            labelText: 'Say it with “the” (optional)',
-            hintText: 'the boy → …',
-            prefixIcon: Icon(Icons.label_important_outline_rounded),
-          ),
-        ),
-        const SizedBox(height: 11),
-        TextFormField(
-          controller: plural,
-          enabled: enabled,
-          decoration: const InputDecoration(
-            labelText: 'Say it for many (optional)',
-            hintText: 'boys → …',
-            prefixIcon: Icon(Icons.groups_outlined),
-          ),
-        ),
-      ],
+      ),
     );
   }
 }
+
 
 /// "Did that sentence actually show the word?"
 ///

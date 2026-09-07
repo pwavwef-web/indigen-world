@@ -482,6 +482,85 @@ test('a dictionary hit is handed over whole, with its alternates and example', (
   assert.match(briefing, /ONLY Kasem you may state as confirmed/);
 });
 
+// -- The advanced entry, as the model is given it ---------------------------
+//
+// The point of collecting a paradigm at all is that a model asked "how do you
+// say two boys" stops inventing one. Six Kasem words for *two* are attested and
+// which noun takes which is exactly the open question, so anything constructed
+// will look right, be wrong, and be repeated. These tests hold both halves of
+// that: the forms a speaker gave are handed over as quotations, and the
+// instruction to build nothing beyond them is in the briefing.
+
+const BOY = dictionaryRecordFrom('e5', {
+  kasemText: 'bakeira',
+  englishText: 'boy',
+  partOfSpeech: 'noun',
+  ipa: 'bàkéːrà',
+  kasemDefinition: 'Nabiinu we o na de bu',
+  etymology: 'From the root for child.',
+  alsoUsedAs: ['verb'],
+  forms: {
+    definite: 'bakeira kam',
+    plural: 'bakeiru',
+    pluralDefinite: 'bakeiru bam',
+    counted: 'bakeiru balei',
+    pronoun: 'o',
+  },
+});
+
+test('recorded forms reach the briefing as words, not as field names', () => {
+  // `pluralDefinite: buga bam` is a database column. "the many: buga bam" is a
+  // fact about Kasem, and it is what has to be quotable back to somebody who
+  // asked how to say it.
+  assert.deepEqual(BOY.forms, [
+    'with "the": bakeira kam',
+    'for many: bakeiru',
+    'the many: bakeiru bam',
+    'for two: bakeiru balei',
+    'called afterwards: o',
+  ]);
+
+  const briefing = dictionaryBriefing(['boy'], [BOY]);
+  assert.match(briefing, /Forms recorded/);
+  assert.match(briefing, /for two: bakeiru balei/);
+  assert.match(briefing, /In Kasem: Nabiinu we o na de bu/);
+  assert.match(briefing, /Said: \/bàkéːrà\//);
+  assert.match(briefing, /Also used as: verb/);
+  assert.match(briefing, /Origin: From the root for child\./);
+});
+
+test('the briefing forbids building a form nobody recorded', () => {
+  // THE instruction. Without it a model handed `bakeira` and asked for "two
+  // boys" produces a plausible plural and a plausible numeral, and both read
+  // as confirmed answers.
+  const briefing = dictionaryBriefing(['boy'], [BOY]);
+  assert.match(briefing, /ONLY forms of that word you may state/);
+  assert.match(briefing, /do NOT build one/);
+});
+
+test('an entry with no forms recorded says nothing about forms', () => {
+  // The whole legacy archive takes this path, and a briefing that quietly
+  // filled the gap would be worse than one that admits it.
+  assert.deepEqual(WATER.forms, []);
+  assert.equal(WATER.kasemDefinition, '');
+  const briefing = dictionaryBriefing(['water'], [WATER]);
+  assert.equal(/Forms recorded/.test(briefing), false);
+  assert.equal(/In Kasem:/.test(briefing), false);
+});
+
+test('junk in the new fields is read as absent, not as content', () => {
+  const odd = dictionaryRecordFrom('e6', {
+    kasemText: 'na',
+    englishText: 'water',
+    forms: 'bukam',
+    alsoUsedAs: 'verb',
+    kasemDefinition: 42,
+  });
+  assert.deepEqual(odd.forms, []);
+  assert.deepEqual(odd.alsoUsedAs, []);
+  assert.equal(odd.kasemDefinition, '');
+});
+
 test('normaliseTerm folds what a sentence hangs off a word', () => {
   assert.equal(normaliseTerm('  Water?  '), 'water');
   assert.equal(normaliseTerm('“Zaanem,”'), 'zaanem');

@@ -207,6 +207,92 @@ export function canonicalLexicalKind(value: unknown): LexicalKind {
 }
 
 /**
+ * The other word classes an entry is also used as.
+ *
+ * ── Why a word needs more than one class ─────────────────────────────────
+ * Because Kasem words routinely have more than one, and the six-item dropdown
+ * that preceded all of this forced every such word to pretend otherwise. A
+ * learner who looks up a noun and is told only that it is a noun has been told
+ * something incomplete about their own language, and the app had no way to
+ * record the rest even when the contributor knew it.
+ *
+ * Deliberately a list of the *same* ids as [PARTS_OF_SPEECH] rather than a
+ * `canAlsoBeAVerb` boolean. The verb case is the one that prompted this and it
+ * is the common one, but "this noun is also used as an adjective" is an
+ * ordinary thing to want to say, and a boolean would have to be found and
+ * widened the first time somebody did.
+ *
+ * Capped, de-duplicated, and the entry's own class is *not* filtered out here
+ * — the caller knows what that is and this function does not. Readers exclude
+ * it when rendering.
+ */
+export const MAX_ALSO_USED_AS = 4;
+
+export function parseAlsoUsedAs(raw: unknown): string[] {
+  const values = Array.isArray(raw)
+    ? raw
+    : typeof raw === 'string'
+      ? raw.split(/[,\n\r]+/)
+      : [];
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const value of values) {
+    const id = canonicalPartOfSpeech(value);
+    // Unrecognised is dropped rather than kept verbatim, which is the opposite
+    // of what `partOfSpeech` itself does. The difference is that the primary
+    // class is a contributor's own statement about their word and deserves to
+    // survive a list this app has not caught up with, while this one drives a
+    // rendered paradigm — an unrecognised value here would render a section
+    // headed by a string nobody can read, on somebody else's entry.
+    if (!id || id === 'unknown' || id === 'other') continue;
+    if (seen.has(id)) continue;
+    seen.add(id);
+    out.push(id);
+    if (out.length >= MAX_ALSO_USED_AS) break;
+  }
+  return out;
+}
+
+/**
+ * The most characters a phonetic transcription may carry.
+ *
+ * Generous for a headword and tight enough that a pasted paragraph is
+ * obviously not one. A Kasem headword in IPA with tone marks runs to perhaps
+ * twenty characters; the room above that is for a transcription that also
+ * covers a two-word entry.
+ */
+export const MAX_IPA_LENGTH = 120;
+
+/**
+ * A phonetic transcription, stored without its delimiters.
+ *
+ * ── Why the slashes are stripped and then put back ───────────────────────
+ * Because the slashes are notation, not content, and half the people who fill
+ * this box will type them while the other half will not. Storing what was
+ * typed means the dictionary renders `/bàkéːrà/` beside `//bàkéːrà//` beside
+ * `bàkéːrà` depending on who contributed the entry, and no query over the
+ * field can be trusted. So the delimiters are removed on the way in and the
+ * one renderer that shows a transcription adds them on the way out — which
+ * also means a broad transcription in `/ /` and a narrow one in `[ ]` cannot
+ * be told apart, and that is a real loss the field is too coarse to carry
+ * anyway.
+ *
+ * Nothing validates the symbols. IPA is a large alphabet, a Kasem
+ * transcription needs tone diacritics most keyboards do not offer, and a
+ * validator that rejected an unfamiliar combining mark would reject exactly
+ * the careful transcriptions this field exists for.
+ */
+export function parseIpa(raw: unknown): string {
+  if (typeof raw !== 'string') return '';
+  const trimmed = raw.trim().replace(/\s+/g, ' ');
+  const stripped = trimmed
+    .replace(/^[/[]+/, '')
+    .replace(/[/\]]+$/, '')
+    .trim();
+  return stripped.slice(0, MAX_IPA_LENGTH).trim();
+}
+
+/**
  * The most translations one entry may carry.
  *
  * Eight is past the point of usefulness for a dictionary row and well short of
@@ -286,4 +372,34 @@ export function normaliseTranslations(raw: unknown): string[] {
     );
   }
   return typeof raw === 'string' ? parseTranslations(raw) : [];
+}
+
+/**
+ * The two long-form fields an advanced entry carries, and their ceilings.
+ *
+ * ── The Kasem definition is the one that changes what this archive is ────
+ * A dictionary that explains Kasem only in English is a dictionary that treats
+ * English as the language you think in. `kasemDefinition` is the entry's
+ * meaning stated *in Kasem* — what a speaker would say to a child who asked —
+ * and it is the only field on the record whose value is written in the
+ * language being documented rather than about it. It is also, incidentally,
+ * the highest-value text this project can collect for anything that later
+ * wants to learn the language from the archive: a monolingual gloss carries
+ * usage, register and collocation that a one-word English equivalent throws
+ * away.
+ *
+ * Both are prose and both are optional. A word with no etymology recorded is
+ * the ordinary case, not a deficiency — the honest answer to "where does this
+ * come from" is usually "nobody has written that down", and an empty field
+ * says so where a fabricated one would not.
+ */
+export const MAX_KASEM_DEFINITION_LENGTH = 2000;
+
+/** Room for a real note about a borrowing or a compound, not for an essay. */
+export const MAX_ETYMOLOGY_LENGTH = 1200;
+
+/** Collapses whitespace and truncates; never throws, never rejects. */
+export function parseProse(raw: unknown, max: number): string {
+  if (typeof raw !== 'string') return '';
+  return raw.trim().replace(/[ \t]+/g, ' ').slice(0, max).trim();
 }

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
@@ -12,10 +13,13 @@ import 'package:indigen_world_mobile/features/ads/data/served_ad.dart';
 import 'package:indigen_world_mobile/features/ads/widgets/sponsored_card.dart';
 import 'package:indigen_world_mobile/features/community/community_actions.dart';
 import 'package:indigen_world_mobile/features/community/community_profile_screen.dart';
+import 'package:indigen_world_mobile/features/community/compose_post_screen.dart';
 import 'package:indigen_world_mobile/features/community/data/chat_providers.dart';
 import 'package:indigen_world_mobile/features/community/data/community_models.dart';
 import 'package:indigen_world_mobile/features/community/data/community_providers.dart';
 import 'package:indigen_world_mobile/features/community/data/community_repository.dart';
+import 'package:indigen_world_mobile/features/community/data/compose_draft_store.dart';
+import 'package:indigen_world_mobile/features/community/media_picker.dart';
 import 'package:indigen_world_mobile/features/community/people_screen.dart';
 import 'package:indigen_world_mobile/features/community/post_detail_screen.dart';
 import 'package:indigen_world_mobile/features/community/saved_posts_screen.dart';
@@ -89,6 +93,125 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
   final _scaffoldKey = GlobalKey<ScaffoldState>();
 
   Object? _loggedFeedFailure;
+
+  @override
+  void initState() {
+    super.initState();
+    // Deferred to after the first frame: this may push a route, and a
+    // Navigator cannot be used from initState.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _resumeLostDraft());
+  }
+
+  /// Puts back the post Android threw away while the camera was open.
+  ///
+  /// ── The bug, and why the fix cannot live in the composer ─────────────
+  /// Taking a photograph hands the screen to the camera's activity, and on a
+  /// phone with little memory to spare Android is entitled to destroy this
+  /// whole process while it waits. It frequently does — the camera is heavy,
+  /// and this app may be holding a video decoder and an image cache at the
+  /// same moment. The member takes the picture, the camera finishes, and the
+  /// app cold-starts on this tab with the post they were writing gone and the
+  /// photograph gone with it.
+  ///
+  /// None of that is repairable inside the composer, because by then the
+  /// composer does not exist. It is repairable only from the screen that comes
+  /// back up, which is this one, using two things the system kept for us: the
+  /// draft the composer wrote down on its way to the picker, and the file
+  /// Android is still holding and will hand over exactly once if asked.
+  ///
+  /// A draft surviving *is* the signal. The composer clears it on the way out
+  /// however it closes, so one that is still here belongs to a composer that
+  /// never got to run its own teardown.
+  ///
+  /// Reopens the composer rather than announcing anything. Somebody who has
+  /// just taken a photograph for a post is trying to finish the post; a banner
+  /// offering to restore it is one more tap between them and the thing they
+  /// were already doing.
+  Future<void> _resumeLostDraft() async {
+    const store = ComposeDraftStore();
+    final draft = await store.read();
+    if (draft == null || !mounted) return;
+
+    // Asked for whether or not the draft mentions an attachment: the process
+    // can be killed between the camera returning and the composer hearing
+    // about it, in which case the draft knows nothing about the picture and
+    // Android is holding it anyway.
+    final recovered = await const CommunityMediaPicker().recoverLostMedia();
+    if (!mounted) return;
+
+    // Anything staged before the interruption, minus whatever the system has
+    // since cleaned out of the cache directory. A path that no longer resolves
+    // would reach the uploader as a missing file and fail the whole post.
+    final staged = <PendingUpload>[
+      for (final path in draft.attachmentPaths)
+        if (File(path).existsSync())
+          PendingUpload(path: path, isVideo: _looksLikeVideo(path)),
+      ...recovered,
+    ];
+    if (draft.text.trim().isEmpty && staged.isEmpty) {
+      await store.clear();
+      return;
+    }
+
+    // Cleared before the composer opens, not after. The composer clears it
+    // again on the way out, and doing it here as well means a rescue that
+    // somehow crashes cannot put the app into a loop of reopening the same
+    // draft on every launch.
+    await store.clear();
+    if (!mounted) return;
+    final replyTo = await _postById(draft.replyToId);
+    final quoteTo = await _postById(draft.quoteToId);
+    if (!mounted) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute<bool>(
+        builder: (context) => ComposePostScreen(
+          replyTo: replyTo,
+          quoteTo: quoteTo,
+          initialText: draft.text,
+          initialAttachments: staged,
+          initialKasemConfirmed: draft.kasemConfirmed,
+        ),
+      ),
+    );
+  }
+
+  /// The post a rescued draft was replying to or quoting, or null.
+  ///
+  /// Fetched fresh rather than restored from the draft: the post is a live
+  /// document that may have been edited or deleted while the app was gone, and
+  /// showing a stale copy would have somebody replying to writing that no
+  /// longer says that. An id that no longer resolves simply restores as an
+  /// ordinary post, which loses the thread but keeps the words.
+  Future<CommunityPost?> _postById(String? id) async {
+    if (id == null || id.isEmpty) return null;
+    final repository = ref.read(communityRepositoryProvider);
+    if (repository == null) return null;
+    try {
+      // The repository directly rather than `postProvider`: awaiting a
+      // StreamProvider's `.future` here would keep a live listener on a
+      // document this screen has no other reason to watch, for the whole life
+      // of a rescue that happens once.
+      return await repository.watchPost(id).first;
+    } on Object {
+      return null;
+    }
+  }
+
+  /// Whether a recovered path is a clip rather than a photograph.
+  ///
+  /// By extension, because the shape and duration a staged clip normally
+  /// carries were measured by the picker in a process that no longer exists.
+  /// Getting this wrong costs a wrong aspect ratio on one attachment; getting
+  /// the alternative wrong — dropping the file — costs the member the thing
+  /// they came back for.
+  static bool _looksLikeVideo(String path) {
+    final lower = path.toLowerCase();
+    return lower.endsWith('.mp4') ||
+        lower.endsWith('.mov') ||
+        lower.endsWith('.m4v') ||
+        lower.endsWith('.webm') ||
+        lower.endsWith('.3gp');
+  }
 
   @override
   void dispose() {

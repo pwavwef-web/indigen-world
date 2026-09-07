@@ -87,6 +87,14 @@ export const CONSTRUCTIONS = [
   'possession',
   'definiteness',
   'plural',
+  // Counting, and it is its own tag rather than a corner of `plural` because
+  // the numeral is where Kasem shows the noun's class most plainly: Francis
+  // gave six forms of *two* on 2026-09-05 — balei, yalei, nlei, selei, telei,
+  // delei — selected by the noun being counted. Sentences that show one are
+  // the raw material for that question and there was no way to ask the corpus
+  // for them; `plural` would have buried them among ordinary plurals, which is
+  // exactly the retrieval failure this list exists to prevent.
+  'numeral',
   'adjective',
   'negation',
   'question',

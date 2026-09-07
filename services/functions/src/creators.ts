@@ -14,8 +14,30 @@ import {
   submissionLexicalKind,
   submissionTranslations,
 } from './publication.js';
-import { canonicalPartOfSpeech } from './lexical-kinds.js';
-import { hasNounForms, induceNounClass, parseNounForms } from './kasem-morphology.js';
+import {
+  MAX_ETYMOLOGY_LENGTH,
+  MAX_KASEM_DEFINITION_LENGTH,
+  canonicalPartOfSpeech,
+  parseAlsoUsedAs,
+  parseIpa,
+  parseProse,
+  parseTranslations,
+} from './lexical-kinds.js';
+import {
+  parseSenses,
+  sensesAddDetail,
+  sensesOrLegacy,
+  sensesToTranslations,
+  storableSenses,
+} from './lexical-senses.js';
+import {
+  articleIn,
+  hasLexicalForms,
+  induceNounClass,
+  numeralSeriesIn,
+  parseLexicalForms,
+  storableForms,
+} from './kasem-morphology.js';
 import {
   type HomographPeer,
   MAX_HOMOGRAPH_PEERS,
@@ -763,6 +785,31 @@ export const decideSubmission = onCall(
             // `translation` as English keep working untouched — this branch
             // simply stops adding new ones with the opposite meaning.
             const translations = submissionTranslations(submission, collectionKind);
+            // ── The several things this word means ────────────────────────
+            // A contribution written before senses existed carries one gloss
+            // and one example sentence; `sensesOrLegacy` lifts that into a
+            // single sense on read, so the projection below has exactly one
+            // shape to think about and no stored row has to be migrated.
+            //
+            // `englishText` stays the flat summary line every existing reader
+            // consults, and `englishTranslations` carries the same list split —
+            // the field `collection_data.dart` already reads first and that
+            // nothing has written until now. So an app build that has never
+            // heard of senses shows "toy, plaything, small dog" exactly as it
+            // always did, and a build that has shows the three meanings with
+            // their own examples underneath.
+            const englishText = asString(submission.title, 180).trim();
+            const senses = sensesOrLegacy({
+              senses: parseSenses(submission.senses),
+              translations: parseTranslations(englishText),
+              kasemExample: asString(submission.kasemExample, 4000).trim(),
+              englishExample: asString(submission.englishExample, 4000).trim(),
+              kasemDefinition: parseProse(
+                submission.kasemDefinition,
+                MAX_KASEM_DEFINITION_LENGTH,
+              ),
+            });
+            const senseGlosses = sensesToTranslations(senses);
             // The morphology, and the class it implies.
             //
             // ── Why the class is worked out here rather than asked for ─────
@@ -778,10 +825,35 @@ export const decideSubmission = onCall(
             // `validator`, a re-publish carries the human answer forward rather
             // than overwriting it with a fresh induction, the same way
             // `audioUrl` and `createdAt` above survive a re-publish.
-            const submittedForms = parseNounForms(
-              submission.forms,
-              canonicalPartOfSpeech(submission.partOfSpeechId ?? submission.format),
+            const declaredClass = canonicalPartOfSpeech(
+              submission.partOfSpeechId ?? submission.format,
             );
+            // Every class this word claims, so a noun that is also used as a
+            // verb publishes with both halves of its paradigm intact.
+            const alsoUsedAs = parseAlsoUsedAs(submission.alsoUsedAs)
+              .filter((id) => id !== declaredClass);
+            const submittedForms = parseLexicalForms(submission.forms, [
+              declaredClass,
+              ...alsoUsedAs,
+            ]);
+            // ── Read off the forms, never inferred into a class ──────────
+            // The member wrote "bu kam" and "buga balei"; these two say which
+            // article and which numeral series are *in those strings*, which
+            // is a restatement of what they typed. Neither writes `nounClass`,
+            // and `induceNounClass` reads neither of them.
+            //
+            // The distinction is the one the whole module turns on: storing a
+            // form a speaker said is a record, and generalising from two of
+            // them to "this noun belongs to class X" is a claim that has to go
+            // through `kasem-claims.ts` with two independent supporters. The
+            // correspondence between the article and the numeral prefix is a
+            // live hypothesis with a single direct observation behind it —
+            // `da yam` beside `da yalei` — and collecting both halves openly
+            // is exactly how it stays falsifiable.
+            const recordedArticle = submittedForms.article
+              || articleIn(submittedForms.definite)
+              || '';
+            const recordedNumeral = numeralSeriesIn(submittedForms.counted);
             const validatorClassed =
               existingDictionary.exists &&
               existingDictionary.get('nounClassSource') === 'validator';
@@ -801,22 +873,66 @@ export const decideSubmission = onCall(
               // typo in an example sentence cannot renumber the word.
               homographIndex: assignHomographIndex(dictionaryRef.id, homographPeers),
               translations,
-              ...(hasNounForms(submittedForms) ? { forms: submittedForms } : {}),
+              // Only the answered slots. See `storableForms` — nine empty
+              // strings on every row would make an unanswered question look
+              // like one answered with nothing.
+              ...(hasLexicalForms(submittedForms)
+                ? { forms: storableForms(submittedForms) }
+                : {}),
+              // Descriptive readings of the forms above, stored so a reader
+              // does not have to re-parse them and so a query can ask "which
+              // entries were counted with the ya- series" without scanning.
+              // Absent, never guessed, when nothing matched.
+              ...(recordedArticle ? { definiteArticle: recordedArticle } : {}),
+              ...(recordedNumeral
+                ? {
+                    numeralSeries: recordedNumeral.form,
+                    numeralPrefix: recordedNumeral.prefix,
+                  }
+                : {}),
               ...(validatorClassed
                 ? {
                     nounClass: existingDictionary.get('nounClass') ?? null,
                     nounClassMarker: existingDictionary.get('nounClassMarker') ?? '',
                     nounClassSource: 'validator',
                   }
-                : hasNounForms(submittedForms)
+                : hasLexicalForms(submittedForms)
                   ? {
                       nounClass: induced?.id ?? null,
                       nounClassMarker: induced?.marker ?? '',
                       nounClassSource: 'induced',
                     }
                   : {}),
+              // The advanced entry's own prose. Written only where somebody
+              // answered, so an absent key stays "nobody has said" rather than
+              // becoming an assertion that there is nothing to say.
+              ...(parseIpa(submission.ipa) ? { ipa: parseIpa(submission.ipa) } : {}),
+              ...(parseProse(submission.kasemDefinition, MAX_KASEM_DEFINITION_LENGTH)
+                ? {
+                    kasemDefinition: parseProse(
+                      submission.kasemDefinition,
+                      MAX_KASEM_DEFINITION_LENGTH,
+                    ),
+                  }
+                : {}),
+              ...(parseProse(submission.etymology, MAX_ETYMOLOGY_LENGTH)
+                ? { etymology: parseProse(submission.etymology, MAX_ETYMOLOGY_LENGTH) }
+                : {}),
+              ...(alsoUsedAs.length > 0 ? { alsoUsedAs } : {}),
               lexicalKind: submissionLexicalKind(submission),
-              englishText: asString(submission.title, 180).trim(),
+              // Written only when the senses say more than the flat gloss
+              // already says. One sense carrying nothing but a definition that
+              // is already in `englishText` is the legacy shape wearing a new
+              // name, and storing it would put an array on fifteen thousand
+              // rows to repeat one string.
+              ...(sensesAddDetail(senses) ? { senses: storableSenses(senses) } : {}),
+              // The English side as a list, for the reader that wants it split
+              // without re-deriving the split itself. Always written where
+              // there is anything to write: it costs one small array and it is
+              // what stops a three-sense entry rendering as one run-on line on
+              // a surface that has not been taught about senses.
+              ...(senseGlosses.length > 0 ? { englishTranslations: senseGlosses } : {}),
+              englishText,
               kasemExample: asString(submission.kasemExample, 4000).trim(),
               englishExample: asString(submission.englishExample, 4000).trim(),
               partOfSpeech: asString(submission.format, 80).trim(),

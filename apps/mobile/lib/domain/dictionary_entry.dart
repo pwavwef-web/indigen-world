@@ -1,4 +1,5 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:indigen_world_mobile/domain/entry_sense.dart';
 import 'package:indigen_world_mobile/domain/kasem_orthography.dart';
 import 'package:indigen_world_mobile/features/contribute/words/data/kasem_morphology.dart';
 
@@ -120,6 +121,154 @@ abstract class DictionaryEntry with _$DictionaryEntry {
     @Default('') String definiteForm,
     @Default('') String pluralForm,
 
+    /// The plural said with *the* — "the boys".
+    ///
+    /// ── Why the plural needs its own definite ────────────────────────────
+    /// Because the singular and the plural may well sit in *different*
+    /// classes. `dɛ dem` "the day" beside `da yam` "the days", if `dɛ` and
+    /// `da` are one lexeme, is ordinary Gur singular/plural class pairing —
+    /// and without this form the pairing is unobservable, because the definite
+    /// form reads the singular's class while the numeral agrees with the
+    /// plural. The two probes were describing different halves of the word and
+    /// nothing on the entry said so.
+    @Default('') String pluralDefiniteForm,
+
+    /// The noun said with *two* — "two boys".
+    ///
+    /// A Kasem numeral agrees with what it counts: six forms of *two* are
+    /// attested — balei, yalei, nlei, selei, telei, delei — and which one a
+    /// speaker uses is chosen by the noun in front of it. So this is the same
+    /// class the definite form points at, read off a second surface, and the
+    /// two together are checkable in a way either alone is not.
+    ///
+    /// Shown here rather than kept on the contribution because a form nobody
+    /// can see is a form nobody can correct, and correcting it is the point.
+    @Default('') String countedForm,
+
+    /// The pronoun that stands in for this noun — "the boy … *he*".
+    ///
+    /// The third surface the same class marker appears on, and by some way the
+    /// easiest to elicit: a speaker who has just written "the boy" produces
+    /// "he came" without stopping, where "two boys" makes some people count.
+    ///
+    /// Stored as the word, never as a person/number label. "Third person
+    /// singular animate" is a question about grammar that almost nobody can
+    /// answer about their own language; "what do you call him afterwards" is a
+    /// question about talking.
+    @Default('') String pronounForm,
+
+    /// The determiner alone — `kam`, `kom`, `dem` … — where one is known.
+    ///
+    /// Usually read off [definiteForm] by `articleIn` rather than stored, and
+    /// stored only when a contributor or a reviewer said it separately. Empty
+    /// means *nothing matched*, which on this field is extremely common and
+    /// entirely honest: most definite forms in the archive were never
+    /// collected at all.
+    @Default('') String definiteArticle,
+
+    /// Which attested word for *two* the counted form used — `yalei` — and the
+    /// class prefix it carries — `ya`.
+    ///
+    /// Both empty unless the counted form contained one of the six words a
+    /// speaker has actually given. Never completed by pattern: no form is
+    /// attested for the `kam` or `kom` articles, and `nlei` matches no article
+    /// at all, so the three marker lists are related rather than identical and
+    /// filling the gaps in would be inventing grammar.
+    @Default('') String numeralSeries,
+    @Default('') String numeralPrefix,
+
+    /// The verb said now, yesterday and tomorrow.
+    ///
+    /// ── Why three tenses and not a tense system ─────────────────────────
+    /// Because three is what a speaker can answer and a tense system is not.
+    /// Kasem marks aspect as well as time, and the full picture is a research
+    /// question; "say it for now / for yesterday / for tomorrow" are three
+    /// questions anybody who speaks the language answers in seconds. Three
+    /// filled boxes per verb is a paradigm this dictionary has never had a
+    /// single row of.
+    ///
+    /// What comes back is evidence, not a conjugation table. Nothing in the
+    /// app generates a fourth form from these three.
+    @Default('') String presentForm,
+    @Default('') String pastForm,
+    @Default('') String futureForm,
+
+    /// The verb said of several doers — "they eat".
+    ///
+    /// Kept apart from [pluralForm], which is a noun's plural, because an
+    /// entry can be both a noun and a verb and folding the two together would
+    /// put a noun's plural and a verb's agreement in one field.
+    @Default('') String pluralSubjectForm,
+
+    /// The verb said as an instruction — "eat!".
+    @Default('') String imperativeForm,
+
+    /// The word used with one thing, then with a different thing.
+    ///
+    /// ── For every word whose form is chosen by what it attaches to ──────
+    /// An adjective, a quantifier, a numeral, a determiner, an article and a
+    /// pronoun all change with the noun in front of them, and until these two
+    /// existed the dictionary had nowhere to record that for any of them — a
+    /// quantifier got exactly what a preposition got, which was nothing.
+    ///
+    /// Francis said it outright on 2026-09-06: *"everything will be either te
+    /// maama, ya maama, se maama, de maama etc depending on what you are
+    /// talking about … it is just like the numbers"*.
+    ///
+    /// ── Two examples, not a set of named cells ─────────────────────────
+    /// Naming the cells would mean naming the classes, and nobody has written
+    /// the inventory down. An adjective paradigm with invented cells would be
+    /// this project publishing a structure it made up, on entries a learner
+    /// has no reason to doubt. Two examples of the same word beside two
+    /// different nouns are a record; what they have in common is a question
+    /// for the review path, not for a render.
+    @Default('') String agreeingOneForm,
+    @Default('') String agreeingTwoForm,
+
+    /// The other word classes this entry is also used as.
+    ///
+    /// Most often `verb` on a noun, which is the case that prompted the field:
+    /// a learner who looks up a noun and is told only that it is a noun has
+    /// been told something incomplete about their own language, and until now
+    /// the app had no way to record the rest even when the contributor knew
+    /// it.
+    ///
+    /// Stable ids, never labels, and never containing this entry's own class.
+    @Default(<String>[]) List<String> alsoUsedAs,
+
+    /// How the headword is said, in IPA, stored **without** its delimiters.
+    ///
+    /// ── Why the slashes are not in the data ─────────────────────────────
+    /// Because they are notation rather than content, and half the people who
+    /// fill this in will type them while the other half will not. Storing what
+    /// was typed renders `/bàkéːrà/` beside `//bàkéːrà//` beside `bàkéːrà` on
+    /// one screen and makes the field unqueryable. [ipaDisplay] is the one
+    /// place the delimiters are added.
+    ///
+    /// Not a substitute for [audioUrl] and not ranked above it: a learner
+    /// plays the sound, and the transcription is what survives when there is
+    /// no speaker to ask. Both, wherever both can be had.
+    @Default('') String ipa,
+
+    /// What the word means, said in Kasem.
+    ///
+    /// ── The field that changes what this archive is ─────────────────────
+    /// A dictionary that explains Kasem only in English is a dictionary that
+    /// treats English as the language you think in. This is the entry's
+    /// meaning as a speaker would put it to a child who asked — the only text
+    /// on the record written *in* the language rather than about it. It also
+    /// carries usage, register and collocation that a one-word English
+    /// equivalent throws away, which is exactly what anything later hoping to
+    /// learn Kasem from this archive needs and cannot get from a gloss.
+    @Default('') String kasemDefinition,
+
+    /// Where the word comes from, where anybody knows.
+    ///
+    /// Empty on nearly everything, and empty is the honest answer: for most of
+    /// this vocabulary nobody has written the origin down. An empty field says
+    /// so. A plausible one would not, and would be repeated.
+    @Default('') String etymology,
+
     /// The noun class, worked out from [definiteForm] when it could be.
     ///
     /// Empty means *not established*, which is the honest answer and by far
@@ -144,6 +293,28 @@ abstract class DictionaryEntry with _$DictionaryEntry {
     /// target moves is worse than none. Whether it is *shown* is the derived
     /// half, and depends on how many entries share the headword.
     @Default(0) int homographIndex,
+
+    /// The several things this word means, each with its own examples.
+    ///
+    /// -- Why this is not simply a longer [translations] ------------------
+    /// Because [translations] is a list of English *words* and this is a list
+    /// of *meanings*, and the difference is everything the entry is for.
+    /// English *toy* is a plaything, a trinket and a small breed of dog before
+    /// it is a verb, and each of those takes a different example sentence.
+    /// Flattened into one comma-separated line the sentences have nowhere to
+    /// attach, and a learner cannot tell which meaning is being illustrated.
+    ///
+    /// Empty on every entry published before the field existed -- which is all
+    /// of them -- so nothing reads this directly. [displaySenses] lifts the
+    /// legacy shape into a single sense on read, which is why no row had to be
+    /// migrated and an entry approved last year still renders as it did.
+    ///
+    /// Not to be confused with [homographIndex], which numbers entries that
+    /// are *different words* sharing one spelling. Both draw "1." and "2." on
+    /// the page and only one of them is a stable identity.
+    @EntrySenseListConverter()
+    @Default(<EntrySense>[])
+    List<EntrySense> senses,
   }) = _DictionaryEntry;
 
   factory DictionaryEntry.fromJson(Map<String, Object?> json) =>
@@ -157,8 +328,155 @@ abstract class DictionaryEntry with _$DictionaryEntry {
     return form.isEmpty ? null : form;
   }
 
-  /// Whether this entry has any collected morphology worth a line of its own.
-  bool get hasForms => definiteForm.isNotEmpty || pluralForm.isNotEmpty;
+  /// Whether anybody has actually recorded a form for this entry.
+  ///
+  /// Deliberately not `nounForms.isNotEmpty`. [nounForms] opens with the
+  /// headword — a paradigm that starts at its *second* form is one a learner
+  /// has to assemble in their head — so on every noun in the archive that list
+  /// has one row in it whether or not a single form was ever collected.
+  /// Reading this from that list would report the entire legacy dictionary as
+  /// having morphology it does not have.
+  bool get hasForms =>
+      definiteForm.isNotEmpty ||
+      pluralForm.isNotEmpty ||
+      pluralDefiniteForm.isNotEmpty ||
+      countedForm.isNotEmpty ||
+      pronounForm.isNotEmpty ||
+      verbForms.isNotEmpty ||
+      agreementForms.isNotEmpty;
+
+  /// Every word class this entry claims — its own first, then the others.
+  ///
+  /// One list so no screen has to write `[partOfSpeech, ...alsoUsedAs]` and
+  /// get the de-duplication wrong the third time. The declared class leads
+  /// because it is the one the contributor chose when asked outright.
+  List<String> get wordClasses {
+    final own = partOfSpeech.trim().toLowerCase();
+    return [
+      if (own.isNotEmpty) own,
+      for (final id in alsoUsedAs)
+        if (id.trim().toLowerCase() != own) id.trim().toLowerCase(),
+    ];
+  }
+
+  /// Whether this entry behaves as a noun — declared, or said to be also used
+  /// as one.
+  bool get isNoun =>
+      wordClasses.contains('noun') || wordClasses.contains('proper-noun');
+
+  /// Whether this entry behaves as a verb, by either route.
+  bool get isVerb =>
+      wordClasses.contains('verb') || wordClasses.contains('auxiliary-verb');
+
+  /// Whether this entry's form is chosen by the word it attaches to.
+  ///
+  /// The list is the one in `kasem-morphology.ts`, and it is short on purpose:
+  /// every class on it is covered by a speaker's own statement, and the ten
+  /// that are not — adverb, preposition, particle, ideophone and the rest —
+  /// stay off it rather than being given an invented paradigm.
+  bool get agrees => wordClasses.any(
+    (id) => const {
+      'adjective',
+      'quantifier',
+      'numeral',
+      'determiner',
+      'article',
+      'pronoun',
+    }.contains(id),
+  );
+
+  /// The word beside two different nouns, where anybody has recorded it.
+  ///
+  /// Labelled by what they are — two uses — rather than by a grammatical cell,
+  /// because which cells exist is exactly what is not known. See
+  /// [agreeingOneForm].
+  List<({String label, String form})> get agreementForms => [
+    if (agreeingOneForm.isNotEmpty) (label: 'Used with', form: agreeingOneForm),
+    if (agreeingTwoForm.isNotEmpty)
+      (label: 'And with', form: agreeingTwoForm),
+  ].where((row) => row.form.trim().isNotEmpty).toList(growable: false);
+
+  /// The noun paradigm, as label/form pairs, in the order a reader wants them.
+  ///
+  /// ── Why the order is singular → definite → plural → counted ───────────
+  /// It is the order somebody learns a noun in, not the order the fields were
+  /// added. The headword first because it is what they looked up; the definite
+  /// next because "the boy" is the first thing anybody says about a boy; the
+  /// plural and then the counted plural because counting starts from the
+  /// plural. A table sorted by when the questions were invented reads as a
+  /// changelog.
+  ///
+  /// The headword itself is in here rather than left implicit. A paradigm that
+  /// begins at the *second* form is a paradigm a learner has to assemble in
+  /// their head from two places on the screen.
+  List<({String label, String form})> get nounForms => [
+    if (isNoun) (label: 'One', form: headword),
+    if (definiteForm.isNotEmpty) (label: 'The one', form: definiteForm),
+    if (pluralForm.isNotEmpty) (label: 'Many', form: pluralForm),
+    if (pluralDefiniteForm.isNotEmpty)
+      (label: 'The many', form: pluralDefiniteForm),
+    if (countedForm.isNotEmpty) (label: 'Two', form: countedForm),
+    if (pronounForm.isNotEmpty) (label: 'Stands for it', form: pronounForm),
+  ].where((row) => row.form.trim().isNotEmpty).toList(growable: false);
+
+  /// The verb paradigm, in the order a reader wants them.
+  List<({String label, String form})> get verbForms => [
+    if (presentForm.isNotEmpty) (label: 'Now', form: presentForm),
+    if (pastForm.isNotEmpty) (label: 'Yesterday', form: pastForm),
+    if (futureForm.isNotEmpty) (label: 'Tomorrow', form: futureForm),
+    if (pluralSubjectForm.isNotEmpty)
+      (label: 'Several doing it', form: pluralSubjectForm),
+    if (imperativeForm.isNotEmpty) (label: 'Telling somebody', form: imperativeForm),
+  ].where((row) => row.form.trim().isNotEmpty).toList(growable: false);
+
+  /// Whether the noun table has anything in it beyond the headword.
+  ///
+  /// Guards the card: a lone "One: bakeira" row is the headword restated an
+  /// inch below itself, which is furniture rather than grammar.
+  bool get hasNounParadigm => nounForms.length > 1;
+
+  /// The determiner this noun was recorded with, or null.
+  ///
+  /// Stored where a contributor gave it separately, read off the definite form
+  /// otherwise, and null when neither says anything — which is the common case
+  /// and must render as *nothing*, not as a guess.
+  String? get article {
+    if (definiteArticle.trim().isNotEmpty) return definiteArticle.trim();
+    return articleIn(definiteForm);
+  }
+
+  /// The word for *two* this noun was counted with, or null.
+  ///
+  /// ── Stated as an observation, never as a rule ────────────────────────
+  /// The entry says "counted with `yalei`" because that is the word somebody
+  /// wrote in the counted form. It does not say the noun *takes* the `ya`
+  /// series, which would be a generalisation over speakers that only the
+  /// review path in `kasem-claims.ts` may make. The wording on screen carries
+  /// that distinction and it is not decoration: the correspondence between
+  /// the article and the numeral prefix is a live hypothesis with one direct
+  /// observation behind it, and it stays falsifiable only while the two are
+  /// reported separately.
+  KasemNumeralSeries? get numeral {
+    if (numeralSeries.trim().isNotEmpty) {
+      final stored = numeralSeries.trim().toLowerCase();
+      for (final series in kNumeralTwoForms) {
+        if (series.form == stored) return series;
+      }
+      // A stored series this build has never heard of is still what somebody
+      // recorded. It renders with the prefix the document carries rather than
+      // being dropped for failing to match a list that may simply be older
+      // than the data.
+      return KasemNumeralSeries(stored, numeralPrefix.trim().toLowerCase());
+    }
+    return numeralSeriesIn(countedForm);
+  }
+
+  /// The transcription with its delimiters, or null where there is none.
+  ///
+  /// The slashes live here and nowhere else — see [ipa] for why they are not
+  /// in the data. Null rather than empty so a caller cannot accidentally
+  /// render a bare `//`.
+  String? get ipaDisplay => ipa.trim().isEmpty ? null : '/${ipa.trim()}/';
 
   /// The meaning to show when there is only room for one.
   ///
@@ -171,6 +489,104 @@ abstract class DictionaryEntry with _$DictionaryEntry {
   /// The meanings after the first, for the surfaces that show all of them.
   List<String> get furtherTranslations =>
       translations.length < 2 ? const <String>[] : translations.sublist(1);
+
+  /// The senses to render, whichever shape this entry actually carries.
+  ///
+  /// -- The whole back-compatibility story is this one getter --------------
+  /// An entry contributed before senses existed has one meaning, possibly
+  /// several English words for it, and one example sentence. That *is* a
+  /// single-sense entry, so rather than teach every screen a second code path,
+  /// the legacy shape is lifted into the new one here: on read, costing
+  /// nothing, and changeable without touching a single stored row.
+  ///
+  /// The consequence worth stating plainly is that a screen written against
+  /// this getter renders the entire archive correctly on the day it ships,
+  /// including the fifteen thousand entries nobody is ever going to
+  /// re-contribute.
+  ///
+  /// Mirrors `sensesOrLegacy` in `services/functions/src/lexical-senses.ts`.
+  List<EntrySense> get displaySenses {
+    if (senses.isNotEmpty) return senses;
+    final gloss = translations.isEmpty ? translation : translations.join(', ');
+    if (gloss.trim().isEmpty) return const <EntrySense>[];
+    return [
+      EntrySense(
+        definition: gloss,
+        kasemDefinition: kasemDefinition,
+        examples: example.isEmpty && exampleTranslation.isEmpty
+            ? const <SenseExample>[]
+            : [SenseExample(kasem: example, english: exampleTranslation)],
+      ),
+    ];
+  }
+
+  /// Whether somebody actually distinguished this entry's meanings.
+  ///
+  /// Deliberately not `displaySenses.length > 1`. A legacy entry with three
+  /// comma-separated glosses lifts into ONE sense, and `TranslationList`
+  /// already numbers those perfectly well; drawing the senses block for it
+  /// would print the same three words twice on one screen. This asks the
+  /// narrower question the block exists to answer -- did a contributor
+  /// separate the meanings, and give any of them its own example or label?
+  bool get hasStructuredSenses =>
+      senses.length > 1 || (senses.length == 1 && senses.first.hasDetail);
+
+  /// The senses grouped by the word class each belongs to, the entry's own
+  /// class leading.
+  ///
+  /// -- Why the grouping lives here rather than in the widget --------------
+  /// Because "noun senses before verb senses" is a fact about the entry, not a
+  /// layout preference, and more than one screen needs it. A word that is a
+  /// noun in its first two senses and a verb in its third is the ordinary case
+  /// -- it is the reason [EntrySense.partOfSpeech] exists at all -- and a
+  /// reader scanning the entry needs the classes kept apart, exactly as a
+  /// printed dictionary keeps them.
+  ///
+  /// A sense that names no class of its own belongs to the entry's declared
+  /// class, which is what the great majority of senses say. Order is the order
+  /// the contributor gave, except that the declared class leads: the class
+  /// somebody chose when asked outright is the one the learner came for.
+  List<({String partOfSpeech, List<EntrySense> senses})> get sensesByClass {
+    final all = displaySenses;
+    if (all.isEmpty) return const [];
+    final own = partOfSpeech.trim().toLowerCase();
+    final grouped = <String, List<EntrySense>>{};
+    final order = <String>[];
+    for (final sense in all) {
+      final key = sense.partOfSpeech.isEmpty ? own : sense.partOfSpeech;
+      if (!grouped.containsKey(key)) {
+        grouped[key] = <EntrySense>[];
+        order.add(key);
+      }
+      grouped[key]!.add(sense);
+    }
+    // A stable partition rather than a sort: the declared class first, then
+    // everything else in the order it was given. `sort` on a comparator that
+    // returns 0 for unrelated pairs is not stable in Dart, so the groups are
+    // partitioned by hand instead.
+    final ordered = <String>[
+      for (final key in order)
+        if (key == own) key,
+      for (final key in order)
+        if (key != own) key,
+    ];
+    return [
+      for (final key in ordered)
+        (
+          partOfSpeech: key,
+          senses: List<EntrySense>.unmodifiable(grouped[key]!),
+        ),
+    ];
+  }
+
+  /// Whether any sense carries an example of its own.
+  ///
+  /// Guards the old entry-level Example card: a modern entry prints its
+  /// sentences under the senses they illustrate, and printing the first one
+  /// again lower down would have a reader wondering which sense it belonged
+  /// to -- which is the exact confusion senses were added to remove.
+  bool get hasSenseExamples =>
+      senses.any((sense) => sense.examples.isNotEmpty);
 
   /// Every meaning as one line, for a semantic label.
   ///
@@ -243,18 +659,39 @@ abstract class DictionaryEntry with _$DictionaryEntry {
   /// filter them, and so the folding of the query happens once per keystroke
   /// instead of once per entry per keystroke — at 1200 entries that difference
   /// is the whole cost of the search.
-  int? rankFor(String foldedQuery) => searchRank(
-    foldedQuery: foldedQuery,
-    headword: headword,
-    renderings: renderings,
-    // The split list where there is one, and the raw gloss where there is not
-    // — the same fallback [primaryTranslation] makes, so a legacy row whose
-    // meanings were never split is still searchable by what it says.
-    translations: translations.isEmpty ? [translation] : translations,
-    dialect: dialect,
-    definiteForm: definiteForm,
-    pluralForm: pluralForm,
-  );
+  int? rankFor(String foldedQuery) {
+    final direct = searchRank(
+      foldedQuery: foldedQuery,
+      headword: headword,
+      renderings: renderings,
+      // The split list where there is one, and the raw gloss where there is
+      // not -- the same fallback [primaryTranslation] makes, so a legacy row
+      // whose meanings were never split is still searchable by what it says.
+      translations: translations.isEmpty ? [translation] : translations,
+      dialect: dialect,
+      definiteForm: definiteForm,
+      pluralForm: pluralForm,
+    );
+    if (direct != null) return direct;
+
+    // -- Every meaning is searchable, not only the summary line ----------
+    // A three-sense entry whose SECOND meaning is the one somebody wanted did
+    // not exist for them until this branch. `translations` carries the flat
+    // summary; a sense's own Kasem gloss, its usage note and its synonyms are
+    // not in it, and those are exactly the words a learner reaches for when
+    // they half-remember a meaning.
+    //
+    // Ranked below every direct hit on purpose. A word whose headword matches
+    // must always outrank a word that merely mentions the query in a note four
+    // senses down, or the search stops answering the question it was asked.
+    if (foldedQuery.isEmpty) return null;
+    for (final sense in senses) {
+      if (foldForSearch(sense.searchableText).contains(foldedQuery)) {
+        return kSenseMatchRank;
+      }
+    }
+    return null;
+  }
 
   /// The headword in Kasem alphabetical order, where ɛ files after e, ɩ after
   /// i, ŋ after n, ɔ after o and ʋ after u.

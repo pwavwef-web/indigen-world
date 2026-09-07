@@ -63,6 +63,12 @@ class CollectionContributionDraft {
     this.kasemExample = '',
     this.englishExample = '',
     this.relatedEntryId,
+    this.forms = const <String, String>{},
+    this.alsoUsedAs = const <String>[],
+    this.ipa = '',
+    this.kasemDefinition = '',
+    this.etymology = '',
+    this.senses = const <Map<String, Object?>>[],
   });
 
   final CollectionKind kind;
@@ -94,6 +100,46 @@ class CollectionContributionDraft {
   final String kasemExample;
   final String englishExample;
   final String? relatedEntryId;
+
+  /// The paradigm, as answered slots only.
+  ///
+  /// ── Why this is a map rather than thirteen named fields ──────────────
+  /// Because the draft is a courier and the server owns the vocabulary. The
+  /// slot names — `definite`, `pluralDefinite`, `past` — are validated against
+  /// `FORM_SLOTS` in `kasem-morphology.ts` and anything else is dropped, so a
+  /// field added on the server needs no change here at all. Naming each one on
+  /// this class would put the same list in a third place and guarantee it
+  /// falls behind the other two.
+  ///
+  /// Empty for every kind but the dictionary, and for most dictionary words.
+  final Map<String, String> forms;
+
+  /// The other word classes this word is also used as. Stable ids.
+  final List<String> alsoUsedAs;
+
+  /// How the word is said, in IPA. Sent as typed; the server strips any
+  /// delimiters, because half of people type them and half do not.
+  final String ipa;
+
+  /// What the word means, said in Kasem, and where it came from. Both prose,
+  /// both optional, and the first of the two is the most valuable string this
+  /// project collects — see `MAX_KASEM_DEFINITION_LENGTH` on the server.
+  final String kasemDefinition;
+  final String etymology;
+
+  /// Every distinct meaning this word carries, already shaped for the wire.
+  ///
+  /// ── Why a list of maps rather than a list of a typed class ───────────
+  /// Same reason [forms] is a map: the draft is a courier and the server owns
+  /// the vocabulary. `parseSenses` in `lexical-senses.ts` validates every key
+  /// and drops what it does not recognise, so a field added on the server
+  /// needs no change on this class at all. A typed mirror here would be a
+  /// third copy of the same shape, and it is the copy that falls behind.
+  ///
+  /// Empty for every kind but the dictionary, and — where a contributor gave
+  /// exactly one meaning with no detail on it — the server drops it again
+  /// rather than storing an array to repeat one string.
+  final List<Map<String, Object?>> senses;
 }
 
 class CollectionContributionRepository {
@@ -129,6 +175,17 @@ class CollectionContributionRepository {
       'kasemExample': draft.kasemExample.trim(),
       'englishExample': draft.englishExample.trim(),
       'relatedEntryId': draft.relatedEntryId,
+      // Omitted rather than sent empty. The callable treats an absent key as
+      // "not asked" and an empty one as "answered with nothing", and on a
+      // song or a poem none of these was ever asked.
+      if (draft.forms.isNotEmpty) 'forms': draft.forms,
+      if (draft.alsoUsedAs.isNotEmpty) 'alsoUsedAs': draft.alsoUsedAs,
+      if (draft.ipa.trim().isNotEmpty) 'ipa': draft.ipa.trim(),
+      if (draft.kasemDefinition.trim().isNotEmpty)
+        'kasemDefinition': draft.kasemDefinition.trim(),
+      if (draft.etymology.trim().isNotEmpty) 'etymology': draft.etymology.trim(),
+      // Omitted rather than sent empty, on the same terms as `forms` above.
+      if (draft.senses.isNotEmpty) 'senses': draft.senses,
       'rightsConfirmed': true,
       'publicationPermission': draft.publicationPermission,
       'involvesMinors': draft.involvesMinors,

@@ -2,30 +2,110 @@
   "id": "lex-nia-water",
   "headword": "nia",
   "partOfSpeech": "noun",
-  "pronunciation": { "ipa": "ni.a", "audio": null },
+  "alsoUsedAs": [
+    "verb"
+  ],
+  "pronunciation": {
+    "ipa": "ni.a",
+    "audio": null
+  },
   "senses": [
     {
       "definition": "water",
       "register": "everyday",
-      "translations": [{ "languageCode": "en", "text": "water" }],
-      "examples": ["Nia pe yogo."]
+      "domain": "food",
+      "translations": [
+        {
+          "languageCode": "en",
+          "text": "water"
+        }
+      ],
+      "examples": [
+        {
+          "kasem": "Nia pe yogo.",
+          "english": "The water is cold."
+        }
+      ],
+      "synonyms": [
+        "nyu"
+      ]
+    },
+    {
+      "definition": "rain",
+      "register": "everyday",
+      "domain": "weather",
+      "usageNote": "USAGE-NOTE-PLACEHOLDER",
+      "translations": [
+        {
+          "languageCode": "en",
+          "text": "rain"
+        }
+      ],
+      "examples": [
+        "Nia to."
+      ]
+    },
+    {
+      "definition": "to water something",
+      "partOfSpeech": "verb",
+      "register": "everyday",
+      "examples": [
+        {
+          "kasem": "SENTENCE-PLACEHOLDER",
+          "english": ""
+        }
+      ],
+      "antonyms": [
+        "ANTONYM-PLACEHOLDER"
+      ]
     }
   ],
+  "kasemDefinition": "KASEM-DEFINITION-PLACEHOLDER",
+  "etymology": "ETYMOLOGY-PLACEHOLDER",
   "nounClass": null,
   "forms": {
     "definite": "nia-DEF",
-    "plural": "nia-PL"
+    "plural": "nia-PL",
+    "pluralDefinite": "nia-PL-DEF",
+    "counted": "nia-PL nia-TWO",
+    "pronoun": "nia-PRO",
+    "present": "nia-PRES",
+    "past": "nia-PAST",
+    "future": "nia-FUT",
+    "pluralSubject": "nia-PRES-PL",
+    "imperative": "nia-IMP",
+    "agreeingOne": "nia-AGR-1",
+    "agreeingTwo": "nia-AGR-2"
   },
-  "tags": ["nature", "basic-vocabulary", "synthetic-fixture"],
+  "tags": [
+    "nature",
+    "basic-vocabulary",
+    "synthetic-fixture"
+  ],
   "governance": {
     "source": "Contributor submission (synthetic)",
-    "contributor": { "collection": "contributors", "id": "contributor-ama" },
-    "language": { "collection": "languages", "id": "kasem" },
-    "dialect": { "collection": "dialects", "id": "kasem-nankana" },
+    "contributor": {
+      "collection": "contributors",
+      "id": "contributor-ama"
+    },
+    "language": {
+      "collection": "languages",
+      "id": "kasem"
+    },
+    "dialect": {
+      "collection": "dialects",
+      "id": "kasem-nankana"
+    },
     "validationStatus": "validated",
-    "validator": { "collection": "validators", "id": "validator-elder-1" },
+    "validator": {
+      "collection": "validators",
+      "id": "validator-elder-1"
+    },
     "consentStatus": "granted",
-    "consent": { "collection": "consentRecords", "id": "consent-ama-2026" },
+    "consent": {
+      "collection": "consentRecords",
+      "id": "consent-ama-2026"
+    },
     "licence": "community_restricted",
     "culturalPermissionTier": "public"
   },
@@ -33,6 +113,11 @@
     "createdAt": "2026-08-02T11:00:00Z",
     "updatedAt": "2026-08-03T08:30:00Z",
     "version": 2,
-    "auditRefs": [{ "collection": "auditLogs", "id": "audit-0001" }]
+    "auditRefs": [
+      {
+        "collection": "auditLogs",
+        "id": "audit-0001"
+      }
+    ]
   }
 }

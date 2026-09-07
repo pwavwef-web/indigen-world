@@ -267,6 +267,23 @@ class WordTranslationDraft {
     this.sentenceFit = WordQueueSentenceFit.fits,
     this.definiteForm = '',
     this.pluralForm = '',
+    this.pluralDefiniteForm = '',
+    this.countedForm = '',
+    this.pronounForm = '',
+    this.presentForm = '',
+    this.pastForm = '',
+    this.futureForm = '',
+    this.pluralSubjectForm = '',
+    this.imperativeForm = '',
+    this.agreeingOneForm = '',
+    this.agreeingTwoForm = '',
+    this.alsoUsedAs = const <String>[],
+    this.ipa = '',
+    this.kasemDefinition = '',
+    this.etymology = '',
+    this.recordingStoragePath = '',
+    this.recordingMimeType = '',
+    this.recordingSizeBytes = 0,
   });
 
   final String wordId;
@@ -315,11 +332,135 @@ class WordTranslationDraft {
   /// The noun said for many. Optional on the same terms as [definiteForm].
   final String pluralForm;
 
+  /// The noun said with *two* — "boys" → "two boys".
+  ///
+  /// ── Why a third question, and why only after the plural ──────────────
+  /// A Kasem numeral carries a marker chosen by the noun it counts: Francis
+  /// gave six forms of *two* on 2026-09-05 — balei, yalei, nlei, selei,
+  /// telei, delei — and Genesis 1 shows `da yam` "the days" beside
+  /// `da yalei` "two days", the same `ya` on the article and on the numeral.
+  /// So this is a second, independent reading of the class the definite form
+  /// already hints at, and the two together are checkable in a way either
+  /// alone is not.
+  ///
+  /// It is asked only once the member has answered [pluralForm], because
+  /// counting starts from the plural — a speaker who has just typed "boys"
+  /// can say "two boys" without stopping to think, and one who skipped the
+  /// plural would be being asked to invent it. That keeps the median word at
+  /// zero extra taps, which is the bar every addition to this screen has to
+  /// clear.
+  final String countedForm;
+
+  /// The plural said with *the* — "the boys".
+  ///
+  /// Asked because the singular and the plural may sit in different classes:
+  /// `dɛ dem` "the day" beside `da yam` "the days" is ordinary Gur sg/pl class
+  /// pairing, and without this form the pairing cannot be seen at all — the
+  /// definite reads the singular's class while the numeral agrees with the
+  /// plural.
+  final String pluralDefiniteForm;
+
+  /// The pronoun that stands in for the noun — "the boy … *he*".
+  ///
+  /// The third reading of the same marker and the cheapest to elicit: a
+  /// speaker who has just written "the boy" says "he came" without stopping,
+  /// where "two boys" makes some people count.
+  final String pronounForm;
+
+  /// The verb said now, yesterday and tomorrow.
+  ///
+  /// ── Three, because three is what somebody can answer ─────────────────
+  /// Kasem marks aspect as well as time and the full paradigm is a research
+  /// question. "Say it for now / for yesterday / for tomorrow" are three
+  /// questions any speaker answers in seconds, and three filled boxes per verb
+  /// is a paradigm this dictionary has never had a single row of. What comes
+  /// back is evidence, and nothing anywhere generates a fourth form from it.
+  final String presentForm;
+  final String pastForm;
+  final String futureForm;
+
+  /// The verb said of several doers, and said as an instruction.
+  final String pluralSubjectForm;
+  final String imperativeForm;
+
+  /// The word used with one thing, and then with a different thing.
+  ///
+  /// For an adjective, a quantifier, a numeral, a determiner, an article or a
+  /// pronoun — every class whose form is chosen by what it attaches to. Until
+  /// these two existed the queue asked all of them nothing at all, which is
+  /// most of the words a learner needs in order to say anything *about* a
+  /// noun. Two examples rather than named cells, because naming the cells
+  /// would mean inventing the class inventory; see `kasem-morphology.ts`.
+  final String agreeingOneForm;
+  final String agreeingTwoForm;
+
+  /// The other word classes the member said this word is also used as.
+  ///
+  /// Stable ids, never labels. The server drops anything it does not
+  /// recognise, and drops the entry's own class if it appears here.
+  final List<String> alsoUsedAs;
+
+  /// How the word is said, in IPA. Sent without delimiters; the server strips
+  /// any the member typed anyway, because half of people type them.
+  final String ipa;
+
+  /// What the word means, said in Kasem, and where it comes from.
+  ///
+  /// Both live behind a collapsed "more detail" section on the queue screen,
+  /// which is the only reason they can exist there at all: the median word has
+  /// to stay at zero extra taps, and two prose boxes in the main column would
+  /// end a sitting at four words instead of twenty.
+  final String kasemDefinition;
+  final String etymology;
+
+  /// A recording of the word being said, already uploaded to the member's own
+  /// private submission prefix. Empty on nearly every answer.
+  ///
+  /// ── Why the queue can take a recording at all ────────────────────────
+  /// A dictionary entry's whole point is a sound, and for as long as the
+  /// guided queue has been the main way words arrive it has been the one
+  /// contribution path with no way to record one. The open form has had a
+  /// recorder since the play button on a published entry stopped being a stub;
+  /// the queue — which produces the overwhelming majority of entries — sent
+  /// text only, so the archive filled up with words nobody can hear.
+  final String recordingStoragePath;
+  final String recordingMimeType;
+  final int recordingSizeBytes;
+
+  /// True when a take is attached and worth sending.
+  bool get hasRecording => recordingStoragePath.isNotEmpty;
+
+  /// Every form slot with something in it, or null when there are none.
+  ///
+  /// Built here rather than inline in [toPayload] so the "send nothing rather
+  /// than a map of empty strings" rule is written once. It matters more now
+  /// than it did with three slots: eleven empty strings on every answer would
+  /// be eleven fields of nothing on fifteen thousand review documents.
+  Map<String, Object?>? get _forms {
+    final forms = <String, Object?>{
+      if (definiteForm.isNotEmpty) 'definite': definiteForm,
+      if (pluralForm.isNotEmpty) 'plural': pluralForm,
+      if (pluralDefiniteForm.isNotEmpty) 'pluralDefinite': pluralDefiniteForm,
+      if (countedForm.isNotEmpty) 'counted': countedForm,
+      if (pronounForm.isNotEmpty) 'pronoun': pronounForm,
+      if (presentForm.isNotEmpty) 'present': presentForm,
+      if (pastForm.isNotEmpty) 'past': pastForm,
+      if (futureForm.isNotEmpty) 'future': futureForm,
+      if (pluralSubjectForm.isNotEmpty) 'pluralSubject': pluralSubjectForm,
+      if (imperativeForm.isNotEmpty) 'imperative': imperativeForm,
+      if (agreeingOneForm.isNotEmpty) 'agreeingOne': agreeingOneForm,
+      if (agreeingTwoForm.isNotEmpty) 'agreeingTwo': agreeingTwoForm,
+    };
+    return forms.isEmpty ? null : forms;
+  }
+
   /// The indefinite is **not** here, and must not be added.
   ///
-  /// It is the noun plus `mo`, invariantly, so it is derived wherever it is
-  /// shown ([indefiniteForm]) rather than stored. Sending a copy would let the
-  /// copy and the rule disagree, and the server refuses one for that reason.
+  /// It was believed to be the noun plus `mo`, invariantly — a rule, so
+  /// derived wherever it is shown rather than stored. A speaker withdrew that
+  /// reading on 2026-09-05 (`mo` is a focus particle), so nothing is derived
+  /// either; and the server refuses a client-supplied copy in both worlds,
+  /// because a stored copy of a rule is free to disagree with the rule.
   Map<String, Object?> toPayload() => <String, Object?>{
     'wordId': wordId,
     'translations': translations,
@@ -329,12 +470,22 @@ class WordTranslationDraft {
     'kasemExample': kasemExample,
     'englishExample': englishExample,
     'sentenceFit': sentenceFit.wire,
-    // Omitted entirely when there is nothing in it, so the great majority of
-    // answers send no forms key at all rather than a map of empty strings.
-    if (definiteForm.isNotEmpty || pluralForm.isNotEmpty)
-      'forms': <String, Object?>{
-        'definite': definiteForm,
-        'plural': pluralForm,
+    // Every one of these is omitted when empty, so the great majority of
+    // answers send exactly the keys they always did.
+    'forms': ?_forms,
+    if (alsoUsedAs.isNotEmpty) 'alsoUsedAs': alsoUsedAs,
+    if (ipa.isNotEmpty) 'ipa': ipa,
+    if (kasemDefinition.isNotEmpty) 'kasemDefinition': kasemDefinition,
+    if (etymology.isNotEmpty) 'etymology': etymology,
+    if (hasRecording)
+      'media': <String, Object?>{
+        'storagePath': recordingStoragePath,
+        'mimeType': recordingMimeType,
+        'sizeBytes': recordingSizeBytes,
+        // Always audio from this path. The server validates the value against
+        // its own list rather than trusting it, and refuses a path that is not
+        // inside the caller's own upload folder.
+        'mediaType': 'audio',
       },
   };
 }

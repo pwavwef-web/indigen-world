@@ -98,7 +98,125 @@ mixin _$DictionaryEntry {
 /// is only the form a speaker says, which is what these hold. Empty on
 /// every entry contributed before the queue started asking, and on every
 /// entry that is not a noun.
- String get definiteForm; String get pluralForm;/// The noun class, worked out from [definiteForm] when it could be.
+ String get definiteForm; String get pluralForm;/// The plural said with *the* — "the boys".
+///
+/// ── Why the plural needs its own definite ────────────────────────────
+/// Because the singular and the plural may well sit in *different*
+/// classes. `dɛ dem` "the day" beside `da yam` "the days", if `dɛ` and
+/// `da` are one lexeme, is ordinary Gur singular/plural class pairing —
+/// and without this form the pairing is unobservable, because the definite
+/// form reads the singular's class while the numeral agrees with the
+/// plural. The two probes were describing different halves of the word and
+/// nothing on the entry said so.
+ String get pluralDefiniteForm;/// The noun said with *two* — "two boys".
+///
+/// A Kasem numeral agrees with what it counts: six forms of *two* are
+/// attested — balei, yalei, nlei, selei, telei, delei — and which one a
+/// speaker uses is chosen by the noun in front of it. So this is the same
+/// class the definite form points at, read off a second surface, and the
+/// two together are checkable in a way either alone is not.
+///
+/// Shown here rather than kept on the contribution because a form nobody
+/// can see is a form nobody can correct, and correcting it is the point.
+ String get countedForm;/// The pronoun that stands in for this noun — "the boy … *he*".
+///
+/// The third surface the same class marker appears on, and by some way the
+/// easiest to elicit: a speaker who has just written "the boy" produces
+/// "he came" without stopping, where "two boys" makes some people count.
+///
+/// Stored as the word, never as a person/number label. "Third person
+/// singular animate" is a question about grammar that almost nobody can
+/// answer about their own language; "what do you call him afterwards" is a
+/// question about talking.
+ String get pronounForm;/// The determiner alone — `kam`, `kom`, `dem` … — where one is known.
+///
+/// Usually read off [definiteForm] by `articleIn` rather than stored, and
+/// stored only when a contributor or a reviewer said it separately. Empty
+/// means *nothing matched*, which on this field is extremely common and
+/// entirely honest: most definite forms in the archive were never
+/// collected at all.
+ String get definiteArticle;/// Which attested word for *two* the counted form used — `yalei` — and the
+/// class prefix it carries — `ya`.
+///
+/// Both empty unless the counted form contained one of the six words a
+/// speaker has actually given. Never completed by pattern: no form is
+/// attested for the `kam` or `kom` articles, and `nlei` matches no article
+/// at all, so the three marker lists are related rather than identical and
+/// filling the gaps in would be inventing grammar.
+ String get numeralSeries; String get numeralPrefix;/// The verb said now, yesterday and tomorrow.
+///
+/// ── Why three tenses and not a tense system ─────────────────────────
+/// Because three is what a speaker can answer and a tense system is not.
+/// Kasem marks aspect as well as time, and the full picture is a research
+/// question; "say it for now / for yesterday / for tomorrow" are three
+/// questions anybody who speaks the language answers in seconds. Three
+/// filled boxes per verb is a paradigm this dictionary has never had a
+/// single row of.
+///
+/// What comes back is evidence, not a conjugation table. Nothing in the
+/// app generates a fourth form from these three.
+ String get presentForm; String get pastForm; String get futureForm;/// The verb said of several doers — "they eat".
+///
+/// Kept apart from [pluralForm], which is a noun's plural, because an
+/// entry can be both a noun and a verb and folding the two together would
+/// put a noun's plural and a verb's agreement in one field.
+ String get pluralSubjectForm;/// The verb said as an instruction — "eat!".
+ String get imperativeForm;/// The word used with one thing, then with a different thing.
+///
+/// ── For every word whose form is chosen by what it attaches to ──────
+/// An adjective, a quantifier, a numeral, a determiner, an article and a
+/// pronoun all change with the noun in front of them, and until these two
+/// existed the dictionary had nowhere to record that for any of them — a
+/// quantifier got exactly what a preposition got, which was nothing.
+///
+/// Francis said it outright on 2026-09-06: *"everything will be either te
+/// maama, ya maama, se maama, de maama etc depending on what you are
+/// talking about … it is just like the numbers"*.
+///
+/// ── Two examples, not a set of named cells ─────────────────────────
+/// Naming the cells would mean naming the classes, and nobody has written
+/// the inventory down. An adjective paradigm with invented cells would be
+/// this project publishing a structure it made up, on entries a learner
+/// has no reason to doubt. Two examples of the same word beside two
+/// different nouns are a record; what they have in common is a question
+/// for the review path, not for a render.
+ String get agreeingOneForm; String get agreeingTwoForm;/// The other word classes this entry is also used as.
+///
+/// Most often `verb` on a noun, which is the case that prompted the field:
+/// a learner who looks up a noun and is told only that it is a noun has
+/// been told something incomplete about their own language, and until now
+/// the app had no way to record the rest even when the contributor knew
+/// it.
+///
+/// Stable ids, never labels, and never containing this entry's own class.
+ List<String> get alsoUsedAs;/// How the headword is said, in IPA, stored **without** its delimiters.
+///
+/// ── Why the slashes are not in the data ─────────────────────────────
+/// Because they are notation rather than content, and half the people who
+/// fill this in will type them while the other half will not. Storing what
+/// was typed renders `/bàkéːrà/` beside `//bàkéːrà//` beside `bàkéːrà` on
+/// one screen and makes the field unqueryable. [ipaDisplay] is the one
+/// place the delimiters are added.
+///
+/// Not a substitute for [audioUrl] and not ranked above it: a learner
+/// plays the sound, and the transcription is what survives when there is
+/// no speaker to ask. Both, wherever both can be had.
+ String get ipa;/// What the word means, said in Kasem.
+///
+/// ── The field that changes what this archive is ─────────────────────
+/// A dictionary that explains Kasem only in English is a dictionary that
+/// treats English as the language you think in. This is the entry's
+/// meaning as a speaker would put it to a child who asked — the only text
+/// on the record written *in* the language rather than about it. It also
+/// carries usage, register and collocation that a one-word English
+/// equivalent throws away, which is exactly what anything later hoping to
+/// learn Kasem from this archive needs and cannot get from a gloss.
+ String get kasemDefinition;/// Where the word comes from, where anybody knows.
+///
+/// Empty on nearly everything, and empty is the honest answer: for most of
+/// this vocabulary nobody has written the origin down. An empty field says
+/// so. A plausible one would not, and would be repeated.
+ String get etymology;/// The noun class, worked out from [definiteForm] when it could be.
 ///
 /// Empty means *not established*, which is the honest answer and by far
 /// the common one — the class inventory is being built from contributed
@@ -119,7 +237,25 @@ mixin _$DictionaryEntry {
 /// writing `mo²` in their notes is making a citation, and a citation whose
 /// target moves is worse than none. Whether it is *shown* is the derived
 /// half, and depends on how many entries share the headword.
- int get homographIndex;
+ int get homographIndex;/// The several things this word means, each with its own examples.
+///
+/// -- Why this is not simply a longer [translations] ------------------
+/// Because [translations] is a list of English *words* and this is a list
+/// of *meanings*, and the difference is everything the entry is for.
+/// English *toy* is a plaything, a trinket and a small breed of dog before
+/// it is a verb, and each of those takes a different example sentence.
+/// Flattened into one comma-separated line the sentences have nowhere to
+/// attach, and a learner cannot tell which meaning is being illustrated.
+///
+/// Empty on every entry published before the field existed -- which is all
+/// of them -- so nothing reads this directly. [displaySenses] lifts the
+/// legacy shape into a single sense on read, which is why no row had to be
+/// migrated and an entry approved last year still renders as it did.
+///
+/// Not to be confused with [homographIndex], which numbers entries that
+/// are *different words* sharing one spelling. Both draw "1." and "2." on
+/// the page and only one of them is a stable identity.
+@EntrySenseListConverter() List<EntrySense> get senses;
 /// Create a copy of DictionaryEntry
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -132,16 +268,16 @@ $DictionaryEntryCopyWith<DictionaryEntry> get copyWith => _$DictionaryEntryCopyW
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is DictionaryEntry&&(identical(other.id, id) || other.id == id)&&(identical(other.headword, headword) || other.headword == headword)&&(identical(other.translation, translation) || other.translation == translation)&&const DeepCollectionEquality().equals(other.translations, translations)&&const DeepCollectionEquality().equals(other.renderings, renderings)&&(identical(other.partOfSpeech, partOfSpeech) || other.partOfSpeech == partOfSpeech)&&(identical(other.dialect, dialect) || other.dialect == dialect)&&(identical(other.pronunciation, pronunciation) || other.pronunciation == pronunciation)&&(identical(other.example, example) || other.example == example)&&(identical(other.exampleTranslation, exampleTranslation) || other.exampleTranslation == exampleTranslation)&&(identical(other.sentenceSource, sentenceSource) || other.sentenceSource == sentenceSource)&&(identical(other.tatoebaId, tatoebaId) || other.tatoebaId == tatoebaId)&&(identical(other.tatoebaContributor, tatoebaContributor) || other.tatoebaContributor == tatoebaContributor)&&(identical(other.sentenceLicence, sentenceLicence) || other.sentenceLicence == sentenceLicence)&&(identical(other.attribution, attribution) || other.attribution == attribution)&&(identical(other.culturalNote, culturalNote) || other.culturalNote == culturalNote)&&(identical(other.audioUrl, audioUrl) || other.audioUrl == audioUrl)&&(identical(other.definiteForm, definiteForm) || other.definiteForm == definiteForm)&&(identical(other.pluralForm, pluralForm) || other.pluralForm == pluralForm)&&(identical(other.nounClass, nounClass) || other.nounClass == nounClass)&&(identical(other.homographIndex, homographIndex) || other.homographIndex == homographIndex));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is DictionaryEntry&&(identical(other.id, id) || other.id == id)&&(identical(other.headword, headword) || other.headword == headword)&&(identical(other.translation, translation) || other.translation == translation)&&const DeepCollectionEquality().equals(other.translations, translations)&&const DeepCollectionEquality().equals(other.renderings, renderings)&&(identical(other.partOfSpeech, partOfSpeech) || other.partOfSpeech == partOfSpeech)&&(identical(other.dialect, dialect) || other.dialect == dialect)&&(identical(other.pronunciation, pronunciation) || other.pronunciation == pronunciation)&&(identical(other.example, example) || other.example == example)&&(identical(other.exampleTranslation, exampleTranslation) || other.exampleTranslation == exampleTranslation)&&(identical(other.sentenceSource, sentenceSource) || other.sentenceSource == sentenceSource)&&(identical(other.tatoebaId, tatoebaId) || other.tatoebaId == tatoebaId)&&(identical(other.tatoebaContributor, tatoebaContributor) || other.tatoebaContributor == tatoebaContributor)&&(identical(other.sentenceLicence, sentenceLicence) || other.sentenceLicence == sentenceLicence)&&(identical(other.attribution, attribution) || other.attribution == attribution)&&(identical(other.culturalNote, culturalNote) || other.culturalNote == culturalNote)&&(identical(other.audioUrl, audioUrl) || other.audioUrl == audioUrl)&&(identical(other.definiteForm, definiteForm) || other.definiteForm == definiteForm)&&(identical(other.pluralForm, pluralForm) || other.pluralForm == pluralForm)&&(identical(other.pluralDefiniteForm, pluralDefiniteForm) || other.pluralDefiniteForm == pluralDefiniteForm)&&(identical(other.countedForm, countedForm) || other.countedForm == countedForm)&&(identical(other.pronounForm, pronounForm) || other.pronounForm == pronounForm)&&(identical(other.definiteArticle, definiteArticle) || other.definiteArticle == definiteArticle)&&(identical(other.numeralSeries, numeralSeries) || other.numeralSeries == numeralSeries)&&(identical(other.numeralPrefix, numeralPrefix) || other.numeralPrefix == numeralPrefix)&&(identical(other.presentForm, presentForm) || other.presentForm == presentForm)&&(identical(other.pastForm, pastForm) || other.pastForm == pastForm)&&(identical(other.futureForm, futureForm) || other.futureForm == futureForm)&&(identical(other.pluralSubjectForm, pluralSubjectForm) || other.pluralSubjectForm == pluralSubjectForm)&&(identical(other.imperativeForm, imperativeForm) || other.imperativeForm == imperativeForm)&&(identical(other.agreeingOneForm, agreeingOneForm) || other.agreeingOneForm == agreeingOneForm)&&(identical(other.agreeingTwoForm, agreeingTwoForm) || other.agreeingTwoForm == agreeingTwoForm)&&const DeepCollectionEquality().equals(other.alsoUsedAs, alsoUsedAs)&&(identical(other.ipa, ipa) || other.ipa == ipa)&&(identical(other.kasemDefinition, kasemDefinition) || other.kasemDefinition == kasemDefinition)&&(identical(other.etymology, etymology) || other.etymology == etymology)&&(identical(other.nounClass, nounClass) || other.nounClass == nounClass)&&(identical(other.homographIndex, homographIndex) || other.homographIndex == homographIndex)&&const DeepCollectionEquality().equals(other.senses, senses));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hashAll([runtimeType,id,headword,translation,const DeepCollectionEquality().hash(translations),const DeepCollectionEquality().hash(renderings),partOfSpeech,dialect,pronunciation,example,exampleTranslation,sentenceSource,tatoebaId,tatoebaContributor,sentenceLicence,attribution,culturalNote,audioUrl,definiteForm,pluralForm,nounClass,homographIndex]);
+int get hashCode => Object.hashAll([runtimeType,id,headword,translation,const DeepCollectionEquality().hash(translations),const DeepCollectionEquality().hash(renderings),partOfSpeech,dialect,pronunciation,example,exampleTranslation,sentenceSource,tatoebaId,tatoebaContributor,sentenceLicence,attribution,culturalNote,audioUrl,definiteForm,pluralForm,pluralDefiniteForm,countedForm,pronounForm,definiteArticle,numeralSeries,numeralPrefix,presentForm,pastForm,futureForm,pluralSubjectForm,imperativeForm,agreeingOneForm,agreeingTwoForm,const DeepCollectionEquality().hash(alsoUsedAs),ipa,kasemDefinition,etymology,nounClass,homographIndex,const DeepCollectionEquality().hash(senses)]);
 
 @override
 String toString() {
-  return 'DictionaryEntry(id: $id, headword: $headword, translation: $translation, translations: $translations, renderings: $renderings, partOfSpeech: $partOfSpeech, dialect: $dialect, pronunciation: $pronunciation, example: $example, exampleTranslation: $exampleTranslation, sentenceSource: $sentenceSource, tatoebaId: $tatoebaId, tatoebaContributor: $tatoebaContributor, sentenceLicence: $sentenceLicence, attribution: $attribution, culturalNote: $culturalNote, audioUrl: $audioUrl, definiteForm: $definiteForm, pluralForm: $pluralForm, nounClass: $nounClass, homographIndex: $homographIndex)';
+  return 'DictionaryEntry(id: $id, headword: $headword, translation: $translation, translations: $translations, renderings: $renderings, partOfSpeech: $partOfSpeech, dialect: $dialect, pronunciation: $pronunciation, example: $example, exampleTranslation: $exampleTranslation, sentenceSource: $sentenceSource, tatoebaId: $tatoebaId, tatoebaContributor: $tatoebaContributor, sentenceLicence: $sentenceLicence, attribution: $attribution, culturalNote: $culturalNote, audioUrl: $audioUrl, definiteForm: $definiteForm, pluralForm: $pluralForm, pluralDefiniteForm: $pluralDefiniteForm, countedForm: $countedForm, pronounForm: $pronounForm, definiteArticle: $definiteArticle, numeralSeries: $numeralSeries, numeralPrefix: $numeralPrefix, presentForm: $presentForm, pastForm: $pastForm, futureForm: $futureForm, pluralSubjectForm: $pluralSubjectForm, imperativeForm: $imperativeForm, agreeingOneForm: $agreeingOneForm, agreeingTwoForm: $agreeingTwoForm, alsoUsedAs: $alsoUsedAs, ipa: $ipa, kasemDefinition: $kasemDefinition, etymology: $etymology, nounClass: $nounClass, homographIndex: $homographIndex, senses: $senses)';
 }
 
 
@@ -152,7 +288,7 @@ abstract mixin class $DictionaryEntryCopyWith<$Res>  {
   factory $DictionaryEntryCopyWith(DictionaryEntry value, $Res Function(DictionaryEntry) _then) = _$DictionaryEntryCopyWithImpl;
 @useResult
 $Res call({
- String id, String headword, String translation, List<String> translations, List<String> renderings, String partOfSpeech, String dialect, String pronunciation, String example, String exampleTranslation, String sentenceSource, String tatoebaId, String tatoebaContributor, String sentenceLicence, String attribution, String? culturalNote, String audioUrl, String definiteForm, String pluralForm, String nounClass, int homographIndex
+ String id, String headword, String translation, List<String> translations, List<String> renderings, String partOfSpeech, String dialect, String pronunciation, String example, String exampleTranslation, String sentenceSource, String tatoebaId, String tatoebaContributor, String sentenceLicence, String attribution, String? culturalNote, String audioUrl, String definiteForm, String pluralForm, String pluralDefiniteForm, String countedForm, String pronounForm, String definiteArticle, String numeralSeries, String numeralPrefix, String presentForm, String pastForm, String futureForm, String pluralSubjectForm, String imperativeForm, String agreeingOneForm, String agreeingTwoForm, List<String> alsoUsedAs, String ipa, String kasemDefinition, String etymology, String nounClass, int homographIndex,@EntrySenseListConverter() List<EntrySense> senses
 });
 
 
@@ -169,7 +305,7 @@ class _$DictionaryEntryCopyWithImpl<$Res>
 
 /// Create a copy of DictionaryEntry
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? headword = null,Object? translation = null,Object? translations = null,Object? renderings = null,Object? partOfSpeech = null,Object? dialect = null,Object? pronunciation = null,Object? example = null,Object? exampleTranslation = null,Object? sentenceSource = null,Object? tatoebaId = null,Object? tatoebaContributor = null,Object? sentenceLicence = null,Object? attribution = null,Object? culturalNote = freezed,Object? audioUrl = null,Object? definiteForm = null,Object? pluralForm = null,Object? nounClass = null,Object? homographIndex = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? headword = null,Object? translation = null,Object? translations = null,Object? renderings = null,Object? partOfSpeech = null,Object? dialect = null,Object? pronunciation = null,Object? example = null,Object? exampleTranslation = null,Object? sentenceSource = null,Object? tatoebaId = null,Object? tatoebaContributor = null,Object? sentenceLicence = null,Object? attribution = null,Object? culturalNote = freezed,Object? audioUrl = null,Object? definiteForm = null,Object? pluralForm = null,Object? pluralDefiniteForm = null,Object? countedForm = null,Object? pronounForm = null,Object? definiteArticle = null,Object? numeralSeries = null,Object? numeralPrefix = null,Object? presentForm = null,Object? pastForm = null,Object? futureForm = null,Object? pluralSubjectForm = null,Object? imperativeForm = null,Object? agreeingOneForm = null,Object? agreeingTwoForm = null,Object? alsoUsedAs = null,Object? ipa = null,Object? kasemDefinition = null,Object? etymology = null,Object? nounClass = null,Object? homographIndex = null,Object? senses = null,}) {
   return _then(DictionaryEntry(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,headword: null == headword ? _self.headword : headword // ignore: cast_nullable_to_non_nullable
@@ -190,9 +326,27 @@ as String,culturalNote: freezed == culturalNote ? _self.culturalNote : culturalN
 as String?,audioUrl: null == audioUrl ? _self.audioUrl : audioUrl // ignore: cast_nullable_to_non_nullable
 as String,definiteForm: null == definiteForm ? _self.definiteForm : definiteForm // ignore: cast_nullable_to_non_nullable
 as String,pluralForm: null == pluralForm ? _self.pluralForm : pluralForm // ignore: cast_nullable_to_non_nullable
+as String,pluralDefiniteForm: null == pluralDefiniteForm ? _self.pluralDefiniteForm : pluralDefiniteForm // ignore: cast_nullable_to_non_nullable
+as String,countedForm: null == countedForm ? _self.countedForm : countedForm // ignore: cast_nullable_to_non_nullable
+as String,pronounForm: null == pronounForm ? _self.pronounForm : pronounForm // ignore: cast_nullable_to_non_nullable
+as String,definiteArticle: null == definiteArticle ? _self.definiteArticle : definiteArticle // ignore: cast_nullable_to_non_nullable
+as String,numeralSeries: null == numeralSeries ? _self.numeralSeries : numeralSeries // ignore: cast_nullable_to_non_nullable
+as String,numeralPrefix: null == numeralPrefix ? _self.numeralPrefix : numeralPrefix // ignore: cast_nullable_to_non_nullable
+as String,presentForm: null == presentForm ? _self.presentForm : presentForm // ignore: cast_nullable_to_non_nullable
+as String,pastForm: null == pastForm ? _self.pastForm : pastForm // ignore: cast_nullable_to_non_nullable
+as String,futureForm: null == futureForm ? _self.futureForm : futureForm // ignore: cast_nullable_to_non_nullable
+as String,pluralSubjectForm: null == pluralSubjectForm ? _self.pluralSubjectForm : pluralSubjectForm // ignore: cast_nullable_to_non_nullable
+as String,imperativeForm: null == imperativeForm ? _self.imperativeForm : imperativeForm // ignore: cast_nullable_to_non_nullable
+as String,agreeingOneForm: null == agreeingOneForm ? _self.agreeingOneForm : agreeingOneForm // ignore: cast_nullable_to_non_nullable
+as String,agreeingTwoForm: null == agreeingTwoForm ? _self.agreeingTwoForm : agreeingTwoForm // ignore: cast_nullable_to_non_nullable
+as String,alsoUsedAs: null == alsoUsedAs ? _self.alsoUsedAs : alsoUsedAs // ignore: cast_nullable_to_non_nullable
+as List<String>,ipa: null == ipa ? _self.ipa : ipa // ignore: cast_nullable_to_non_nullable
+as String,kasemDefinition: null == kasemDefinition ? _self.kasemDefinition : kasemDefinition // ignore: cast_nullable_to_non_nullable
+as String,etymology: null == etymology ? _self.etymology : etymology // ignore: cast_nullable_to_non_nullable
 as String,nounClass: null == nounClass ? _self.nounClass : nounClass // ignore: cast_nullable_to_non_nullable
 as String,homographIndex: null == homographIndex ? _self.homographIndex : homographIndex // ignore: cast_nullable_to_non_nullable
-as int,
+as int,senses: null == senses ? _self.senses : senses // ignore: cast_nullable_to_non_nullable
+as List<EntrySense>,
   ));
 }
 
@@ -277,10 +431,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String headword,  String translation,  List<String> translations,  List<String> renderings,  String partOfSpeech,  String dialect,  String pronunciation,  String example,  String exampleTranslation,  String sentenceSource,  String tatoebaId,  String tatoebaContributor,  String sentenceLicence,  String attribution,  String? culturalNote,  String audioUrl,  String definiteForm,  String pluralForm,  String nounClass,  int homographIndex)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String headword,  String translation,  List<String> translations,  List<String> renderings,  String partOfSpeech,  String dialect,  String pronunciation,  String example,  String exampleTranslation,  String sentenceSource,  String tatoebaId,  String tatoebaContributor,  String sentenceLicence,  String attribution,  String? culturalNote,  String audioUrl,  String definiteForm,  String pluralForm,  String pluralDefiniteForm,  String countedForm,  String pronounForm,  String definiteArticle,  String numeralSeries,  String numeralPrefix,  String presentForm,  String pastForm,  String futureForm,  String pluralSubjectForm,  String imperativeForm,  String agreeingOneForm,  String agreeingTwoForm,  List<String> alsoUsedAs,  String ipa,  String kasemDefinition,  String etymology,  String nounClass,  int homographIndex, @EntrySenseListConverter()  List<EntrySense> senses)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _DictionaryEntry() when $default != null:
-return $default(_that.id,_that.headword,_that.translation,_that.translations,_that.renderings,_that.partOfSpeech,_that.dialect,_that.pronunciation,_that.example,_that.exampleTranslation,_that.sentenceSource,_that.tatoebaId,_that.tatoebaContributor,_that.sentenceLicence,_that.attribution,_that.culturalNote,_that.audioUrl,_that.definiteForm,_that.pluralForm,_that.nounClass,_that.homographIndex);case _:
+return $default(_that.id,_that.headword,_that.translation,_that.translations,_that.renderings,_that.partOfSpeech,_that.dialect,_that.pronunciation,_that.example,_that.exampleTranslation,_that.sentenceSource,_that.tatoebaId,_that.tatoebaContributor,_that.sentenceLicence,_that.attribution,_that.culturalNote,_that.audioUrl,_that.definiteForm,_that.pluralForm,_that.pluralDefiniteForm,_that.countedForm,_that.pronounForm,_that.definiteArticle,_that.numeralSeries,_that.numeralPrefix,_that.presentForm,_that.pastForm,_that.futureForm,_that.pluralSubjectForm,_that.imperativeForm,_that.agreeingOneForm,_that.agreeingTwoForm,_that.alsoUsedAs,_that.ipa,_that.kasemDefinition,_that.etymology,_that.nounClass,_that.homographIndex,_that.senses);case _:
   return orElse();
 
 }
@@ -298,10 +452,10 @@ return $default(_that.id,_that.headword,_that.translation,_that.translations,_th
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String headword,  String translation,  List<String> translations,  List<String> renderings,  String partOfSpeech,  String dialect,  String pronunciation,  String example,  String exampleTranslation,  String sentenceSource,  String tatoebaId,  String tatoebaContributor,  String sentenceLicence,  String attribution,  String? culturalNote,  String audioUrl,  String definiteForm,  String pluralForm,  String nounClass,  int homographIndex)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String headword,  String translation,  List<String> translations,  List<String> renderings,  String partOfSpeech,  String dialect,  String pronunciation,  String example,  String exampleTranslation,  String sentenceSource,  String tatoebaId,  String tatoebaContributor,  String sentenceLicence,  String attribution,  String? culturalNote,  String audioUrl,  String definiteForm,  String pluralForm,  String pluralDefiniteForm,  String countedForm,  String pronounForm,  String definiteArticle,  String numeralSeries,  String numeralPrefix,  String presentForm,  String pastForm,  String futureForm,  String pluralSubjectForm,  String imperativeForm,  String agreeingOneForm,  String agreeingTwoForm,  List<String> alsoUsedAs,  String ipa,  String kasemDefinition,  String etymology,  String nounClass,  int homographIndex, @EntrySenseListConverter()  List<EntrySense> senses)  $default,) {final _that = this;
 switch (_that) {
 case _DictionaryEntry():
-return $default(_that.id,_that.headword,_that.translation,_that.translations,_that.renderings,_that.partOfSpeech,_that.dialect,_that.pronunciation,_that.example,_that.exampleTranslation,_that.sentenceSource,_that.tatoebaId,_that.tatoebaContributor,_that.sentenceLicence,_that.attribution,_that.culturalNote,_that.audioUrl,_that.definiteForm,_that.pluralForm,_that.nounClass,_that.homographIndex);case _:
+return $default(_that.id,_that.headword,_that.translation,_that.translations,_that.renderings,_that.partOfSpeech,_that.dialect,_that.pronunciation,_that.example,_that.exampleTranslation,_that.sentenceSource,_that.tatoebaId,_that.tatoebaContributor,_that.sentenceLicence,_that.attribution,_that.culturalNote,_that.audioUrl,_that.definiteForm,_that.pluralForm,_that.pluralDefiniteForm,_that.countedForm,_that.pronounForm,_that.definiteArticle,_that.numeralSeries,_that.numeralPrefix,_that.presentForm,_that.pastForm,_that.futureForm,_that.pluralSubjectForm,_that.imperativeForm,_that.agreeingOneForm,_that.agreeingTwoForm,_that.alsoUsedAs,_that.ipa,_that.kasemDefinition,_that.etymology,_that.nounClass,_that.homographIndex,_that.senses);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -318,10 +472,10 @@ return $default(_that.id,_that.headword,_that.translation,_that.translations,_th
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String headword,  String translation,  List<String> translations,  List<String> renderings,  String partOfSpeech,  String dialect,  String pronunciation,  String example,  String exampleTranslation,  String sentenceSource,  String tatoebaId,  String tatoebaContributor,  String sentenceLicence,  String attribution,  String? culturalNote,  String audioUrl,  String definiteForm,  String pluralForm,  String nounClass,  int homographIndex)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String headword,  String translation,  List<String> translations,  List<String> renderings,  String partOfSpeech,  String dialect,  String pronunciation,  String example,  String exampleTranslation,  String sentenceSource,  String tatoebaId,  String tatoebaContributor,  String sentenceLicence,  String attribution,  String? culturalNote,  String audioUrl,  String definiteForm,  String pluralForm,  String pluralDefiniteForm,  String countedForm,  String pronounForm,  String definiteArticle,  String numeralSeries,  String numeralPrefix,  String presentForm,  String pastForm,  String futureForm,  String pluralSubjectForm,  String imperativeForm,  String agreeingOneForm,  String agreeingTwoForm,  List<String> alsoUsedAs,  String ipa,  String kasemDefinition,  String etymology,  String nounClass,  int homographIndex, @EntrySenseListConverter()  List<EntrySense> senses)?  $default,) {final _that = this;
 switch (_that) {
 case _DictionaryEntry() when $default != null:
-return $default(_that.id,_that.headword,_that.translation,_that.translations,_that.renderings,_that.partOfSpeech,_that.dialect,_that.pronunciation,_that.example,_that.exampleTranslation,_that.sentenceSource,_that.tatoebaId,_that.tatoebaContributor,_that.sentenceLicence,_that.attribution,_that.culturalNote,_that.audioUrl,_that.definiteForm,_that.pluralForm,_that.nounClass,_that.homographIndex);case _:
+return $default(_that.id,_that.headword,_that.translation,_that.translations,_that.renderings,_that.partOfSpeech,_that.dialect,_that.pronunciation,_that.example,_that.exampleTranslation,_that.sentenceSource,_that.tatoebaId,_that.tatoebaContributor,_that.sentenceLicence,_that.attribution,_that.culturalNote,_that.audioUrl,_that.definiteForm,_that.pluralForm,_that.pluralDefiniteForm,_that.countedForm,_that.pronounForm,_that.definiteArticle,_that.numeralSeries,_that.numeralPrefix,_that.presentForm,_that.pastForm,_that.futureForm,_that.pluralSubjectForm,_that.imperativeForm,_that.agreeingOneForm,_that.agreeingTwoForm,_that.alsoUsedAs,_that.ipa,_that.kasemDefinition,_that.etymology,_that.nounClass,_that.homographIndex,_that.senses);case _:
   return null;
 
 }
@@ -333,7 +487,7 @@ return $default(_that.id,_that.headword,_that.translation,_that.translations,_th
 @JsonSerializable()
 
 class _DictionaryEntry extends DictionaryEntry {
-  const _DictionaryEntry({required this.id, required this.headword, required this.translation,  List<String> translations = const <String>[],  List<String> renderings = const <String>[], required this.partOfSpeech, required this.dialect, required this.pronunciation, required this.example, required this.exampleTranslation, this.sentenceSource = '', this.tatoebaId = '', this.tatoebaContributor = '', this.sentenceLicence = '', required this.attribution, this.culturalNote, this.audioUrl = '', this.definiteForm = '', this.pluralForm = '', this.nounClass = '', this.homographIndex = 0}): _translations = translations,_renderings = renderings,super._();
+  const _DictionaryEntry({required this.id, required this.headword, required this.translation,  List<String> translations = const <String>[],  List<String> renderings = const <String>[], required this.partOfSpeech, required this.dialect, required this.pronunciation, required this.example, required this.exampleTranslation, this.sentenceSource = '', this.tatoebaId = '', this.tatoebaContributor = '', this.sentenceLicence = '', required this.attribution, this.culturalNote, this.audioUrl = '', this.definiteForm = '', this.pluralForm = '', this.pluralDefiniteForm = '', this.countedForm = '', this.pronounForm = '', this.definiteArticle = '', this.numeralSeries = '', this.numeralPrefix = '', this.presentForm = '', this.pastForm = '', this.futureForm = '', this.pluralSubjectForm = '', this.imperativeForm = '', this.agreeingOneForm = '', this.agreeingTwoForm = '',  List<String> alsoUsedAs = const <String>[], this.ipa = '', this.kasemDefinition = '', this.etymology = '', this.nounClass = '', this.homographIndex = 0, @EntrySenseListConverter()  List<EntrySense> senses = const <EntrySense>[]}): _translations = translations,_renderings = renderings,_alsoUsedAs = alsoUsedAs,_senses = senses,super._();
   factory _DictionaryEntry.fromJson(Map<String, dynamic> json) => _$DictionaryEntryFromJson(json);
 
 @override final  String id;
@@ -483,6 +637,156 @@ class _DictionaryEntry extends DictionaryEntry {
 /// entry that is not a noun.
 @override@JsonKey() final  String definiteForm;
 @override@JsonKey() final  String pluralForm;
+/// The plural said with *the* — "the boys".
+///
+/// ── Why the plural needs its own definite ────────────────────────────
+/// Because the singular and the plural may well sit in *different*
+/// classes. `dɛ dem` "the day" beside `da yam` "the days", if `dɛ` and
+/// `da` are one lexeme, is ordinary Gur singular/plural class pairing —
+/// and without this form the pairing is unobservable, because the definite
+/// form reads the singular's class while the numeral agrees with the
+/// plural. The two probes were describing different halves of the word and
+/// nothing on the entry said so.
+@override@JsonKey() final  String pluralDefiniteForm;
+/// The noun said with *two* — "two boys".
+///
+/// A Kasem numeral agrees with what it counts: six forms of *two* are
+/// attested — balei, yalei, nlei, selei, telei, delei — and which one a
+/// speaker uses is chosen by the noun in front of it. So this is the same
+/// class the definite form points at, read off a second surface, and the
+/// two together are checkable in a way either alone is not.
+///
+/// Shown here rather than kept on the contribution because a form nobody
+/// can see is a form nobody can correct, and correcting it is the point.
+@override@JsonKey() final  String countedForm;
+/// The pronoun that stands in for this noun — "the boy … *he*".
+///
+/// The third surface the same class marker appears on, and by some way the
+/// easiest to elicit: a speaker who has just written "the boy" produces
+/// "he came" without stopping, where "two boys" makes some people count.
+///
+/// Stored as the word, never as a person/number label. "Third person
+/// singular animate" is a question about grammar that almost nobody can
+/// answer about their own language; "what do you call him afterwards" is a
+/// question about talking.
+@override@JsonKey() final  String pronounForm;
+/// The determiner alone — `kam`, `kom`, `dem` … — where one is known.
+///
+/// Usually read off [definiteForm] by `articleIn` rather than stored, and
+/// stored only when a contributor or a reviewer said it separately. Empty
+/// means *nothing matched*, which on this field is extremely common and
+/// entirely honest: most definite forms in the archive were never
+/// collected at all.
+@override@JsonKey() final  String definiteArticle;
+/// Which attested word for *two* the counted form used — `yalei` — and the
+/// class prefix it carries — `ya`.
+///
+/// Both empty unless the counted form contained one of the six words a
+/// speaker has actually given. Never completed by pattern: no form is
+/// attested for the `kam` or `kom` articles, and `nlei` matches no article
+/// at all, so the three marker lists are related rather than identical and
+/// filling the gaps in would be inventing grammar.
+@override@JsonKey() final  String numeralSeries;
+@override@JsonKey() final  String numeralPrefix;
+/// The verb said now, yesterday and tomorrow.
+///
+/// ── Why three tenses and not a tense system ─────────────────────────
+/// Because three is what a speaker can answer and a tense system is not.
+/// Kasem marks aspect as well as time, and the full picture is a research
+/// question; "say it for now / for yesterday / for tomorrow" are three
+/// questions anybody who speaks the language answers in seconds. Three
+/// filled boxes per verb is a paradigm this dictionary has never had a
+/// single row of.
+///
+/// What comes back is evidence, not a conjugation table. Nothing in the
+/// app generates a fourth form from these three.
+@override@JsonKey() final  String presentForm;
+@override@JsonKey() final  String pastForm;
+@override@JsonKey() final  String futureForm;
+/// The verb said of several doers — "they eat".
+///
+/// Kept apart from [pluralForm], which is a noun's plural, because an
+/// entry can be both a noun and a verb and folding the two together would
+/// put a noun's plural and a verb's agreement in one field.
+@override@JsonKey() final  String pluralSubjectForm;
+/// The verb said as an instruction — "eat!".
+@override@JsonKey() final  String imperativeForm;
+/// The word used with one thing, then with a different thing.
+///
+/// ── For every word whose form is chosen by what it attaches to ──────
+/// An adjective, a quantifier, a numeral, a determiner, an article and a
+/// pronoun all change with the noun in front of them, and until these two
+/// existed the dictionary had nowhere to record that for any of them — a
+/// quantifier got exactly what a preposition got, which was nothing.
+///
+/// Francis said it outright on 2026-09-06: *"everything will be either te
+/// maama, ya maama, se maama, de maama etc depending on what you are
+/// talking about … it is just like the numbers"*.
+///
+/// ── Two examples, not a set of named cells ─────────────────────────
+/// Naming the cells would mean naming the classes, and nobody has written
+/// the inventory down. An adjective paradigm with invented cells would be
+/// this project publishing a structure it made up, on entries a learner
+/// has no reason to doubt. Two examples of the same word beside two
+/// different nouns are a record; what they have in common is a question
+/// for the review path, not for a render.
+@override@JsonKey() final  String agreeingOneForm;
+@override@JsonKey() final  String agreeingTwoForm;
+/// The other word classes this entry is also used as.
+///
+/// Most often `verb` on a noun, which is the case that prompted the field:
+/// a learner who looks up a noun and is told only that it is a noun has
+/// been told something incomplete about their own language, and until now
+/// the app had no way to record the rest even when the contributor knew
+/// it.
+///
+/// Stable ids, never labels, and never containing this entry's own class.
+ final  List<String> _alsoUsedAs;
+/// The other word classes this entry is also used as.
+///
+/// Most often `verb` on a noun, which is the case that prompted the field:
+/// a learner who looks up a noun and is told only that it is a noun has
+/// been told something incomplete about their own language, and until now
+/// the app had no way to record the rest even when the contributor knew
+/// it.
+///
+/// Stable ids, never labels, and never containing this entry's own class.
+@override@JsonKey() List<String> get alsoUsedAs {
+  if (_alsoUsedAs is EqualUnmodifiableListView) return _alsoUsedAs;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_alsoUsedAs);
+}
+
+/// How the headword is said, in IPA, stored **without** its delimiters.
+///
+/// ── Why the slashes are not in the data ─────────────────────────────
+/// Because they are notation rather than content, and half the people who
+/// fill this in will type them while the other half will not. Storing what
+/// was typed renders `/bàkéːrà/` beside `//bàkéːrà//` beside `bàkéːrà` on
+/// one screen and makes the field unqueryable. [ipaDisplay] is the one
+/// place the delimiters are added.
+///
+/// Not a substitute for [audioUrl] and not ranked above it: a learner
+/// plays the sound, and the transcription is what survives when there is
+/// no speaker to ask. Both, wherever both can be had.
+@override@JsonKey() final  String ipa;
+/// What the word means, said in Kasem.
+///
+/// ── The field that changes what this archive is ─────────────────────
+/// A dictionary that explains Kasem only in English is a dictionary that
+/// treats English as the language you think in. This is the entry's
+/// meaning as a speaker would put it to a child who asked — the only text
+/// on the record written *in* the language rather than about it. It also
+/// carries usage, register and collocation that a one-word English
+/// equivalent throws away, which is exactly what anything later hoping to
+/// learn Kasem from this archive needs and cannot get from a gloss.
+@override@JsonKey() final  String kasemDefinition;
+/// Where the word comes from, where anybody knows.
+///
+/// Empty on nearly everything, and empty is the honest answer: for most of
+/// this vocabulary nobody has written the origin down. An empty field says
+/// so. A plausible one would not, and would be repeated.
+@override@JsonKey() final  String etymology;
 /// The noun class, worked out from [definiteForm] when it could be.
 ///
 /// Empty means *not established*, which is the honest answer and by far
@@ -506,6 +810,49 @@ class _DictionaryEntry extends DictionaryEntry {
 /// target moves is worse than none. Whether it is *shown* is the derived
 /// half, and depends on how many entries share the headword.
 @override@JsonKey() final  int homographIndex;
+/// The several things this word means, each with its own examples.
+///
+/// -- Why this is not simply a longer [translations] ------------------
+/// Because [translations] is a list of English *words* and this is a list
+/// of *meanings*, and the difference is everything the entry is for.
+/// English *toy* is a plaything, a trinket and a small breed of dog before
+/// it is a verb, and each of those takes a different example sentence.
+/// Flattened into one comma-separated line the sentences have nowhere to
+/// attach, and a learner cannot tell which meaning is being illustrated.
+///
+/// Empty on every entry published before the field existed -- which is all
+/// of them -- so nothing reads this directly. [displaySenses] lifts the
+/// legacy shape into a single sense on read, which is why no row had to be
+/// migrated and an entry approved last year still renders as it did.
+///
+/// Not to be confused with [homographIndex], which numbers entries that
+/// are *different words* sharing one spelling. Both draw "1." and "2." on
+/// the page and only one of them is a stable identity.
+ final  List<EntrySense> _senses;
+/// The several things this word means, each with its own examples.
+///
+/// -- Why this is not simply a longer [translations] ------------------
+/// Because [translations] is a list of English *words* and this is a list
+/// of *meanings*, and the difference is everything the entry is for.
+/// English *toy* is a plaything, a trinket and a small breed of dog before
+/// it is a verb, and each of those takes a different example sentence.
+/// Flattened into one comma-separated line the sentences have nowhere to
+/// attach, and a learner cannot tell which meaning is being illustrated.
+///
+/// Empty on every entry published before the field existed -- which is all
+/// of them -- so nothing reads this directly. [displaySenses] lifts the
+/// legacy shape into a single sense on read, which is why no row had to be
+/// migrated and an entry approved last year still renders as it did.
+///
+/// Not to be confused with [homographIndex], which numbers entries that
+/// are *different words* sharing one spelling. Both draw "1." and "2." on
+/// the page and only one of them is a stable identity.
+@override@JsonKey()@EntrySenseListConverter() List<EntrySense> get senses {
+  if (_senses is EqualUnmodifiableListView) return _senses;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_senses);
+}
+
 
 /// Create a copy of DictionaryEntry
 /// with the given fields replaced by the non-null parameter values.
@@ -520,16 +867,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _DictionaryEntry&&(identical(other.id, id) || other.id == id)&&(identical(other.headword, headword) || other.headword == headword)&&(identical(other.translation, translation) || other.translation == translation)&&const DeepCollectionEquality().equals(other._translations, _translations)&&const DeepCollectionEquality().equals(other._renderings, _renderings)&&(identical(other.partOfSpeech, partOfSpeech) || other.partOfSpeech == partOfSpeech)&&(identical(other.dialect, dialect) || other.dialect == dialect)&&(identical(other.pronunciation, pronunciation) || other.pronunciation == pronunciation)&&(identical(other.example, example) || other.example == example)&&(identical(other.exampleTranslation, exampleTranslation) || other.exampleTranslation == exampleTranslation)&&(identical(other.sentenceSource, sentenceSource) || other.sentenceSource == sentenceSource)&&(identical(other.tatoebaId, tatoebaId) || other.tatoebaId == tatoebaId)&&(identical(other.tatoebaContributor, tatoebaContributor) || other.tatoebaContributor == tatoebaContributor)&&(identical(other.sentenceLicence, sentenceLicence) || other.sentenceLicence == sentenceLicence)&&(identical(other.attribution, attribution) || other.attribution == attribution)&&(identical(other.culturalNote, culturalNote) || other.culturalNote == culturalNote)&&(identical(other.audioUrl, audioUrl) || other.audioUrl == audioUrl)&&(identical(other.definiteForm, definiteForm) || other.definiteForm == definiteForm)&&(identical(other.pluralForm, pluralForm) || other.pluralForm == pluralForm)&&(identical(other.nounClass, nounClass) || other.nounClass == nounClass)&&(identical(other.homographIndex, homographIndex) || other.homographIndex == homographIndex));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _DictionaryEntry&&(identical(other.id, id) || other.id == id)&&(identical(other.headword, headword) || other.headword == headword)&&(identical(other.translation, translation) || other.translation == translation)&&const DeepCollectionEquality().equals(other._translations, _translations)&&const DeepCollectionEquality().equals(other._renderings, _renderings)&&(identical(other.partOfSpeech, partOfSpeech) || other.partOfSpeech == partOfSpeech)&&(identical(other.dialect, dialect) || other.dialect == dialect)&&(identical(other.pronunciation, pronunciation) || other.pronunciation == pronunciation)&&(identical(other.example, example) || other.example == example)&&(identical(other.exampleTranslation, exampleTranslation) || other.exampleTranslation == exampleTranslation)&&(identical(other.sentenceSource, sentenceSource) || other.sentenceSource == sentenceSource)&&(identical(other.tatoebaId, tatoebaId) || other.tatoebaId == tatoebaId)&&(identical(other.tatoebaContributor, tatoebaContributor) || other.tatoebaContributor == tatoebaContributor)&&(identical(other.sentenceLicence, sentenceLicence) || other.sentenceLicence == sentenceLicence)&&(identical(other.attribution, attribution) || other.attribution == attribution)&&(identical(other.culturalNote, culturalNote) || other.culturalNote == culturalNote)&&(identical(other.audioUrl, audioUrl) || other.audioUrl == audioUrl)&&(identical(other.definiteForm, definiteForm) || other.definiteForm == definiteForm)&&(identical(other.pluralForm, pluralForm) || other.pluralForm == pluralForm)&&(identical(other.pluralDefiniteForm, pluralDefiniteForm) || other.pluralDefiniteForm == pluralDefiniteForm)&&(identical(other.countedForm, countedForm) || other.countedForm == countedForm)&&(identical(other.pronounForm, pronounForm) || other.pronounForm == pronounForm)&&(identical(other.definiteArticle, definiteArticle) || other.definiteArticle == definiteArticle)&&(identical(other.numeralSeries, numeralSeries) || other.numeralSeries == numeralSeries)&&(identical(other.numeralPrefix, numeralPrefix) || other.numeralPrefix == numeralPrefix)&&(identical(other.presentForm, presentForm) || other.presentForm == presentForm)&&(identical(other.pastForm, pastForm) || other.pastForm == pastForm)&&(identical(other.futureForm, futureForm) || other.futureForm == futureForm)&&(identical(other.pluralSubjectForm, pluralSubjectForm) || other.pluralSubjectForm == pluralSubjectForm)&&(identical(other.imperativeForm, imperativeForm) || other.imperativeForm == imperativeForm)&&(identical(other.agreeingOneForm, agreeingOneForm) || other.agreeingOneForm == agreeingOneForm)&&(identical(other.agreeingTwoForm, agreeingTwoForm) || other.agreeingTwoForm == agreeingTwoForm)&&const DeepCollectionEquality().equals(other._alsoUsedAs, _alsoUsedAs)&&(identical(other.ipa, ipa) || other.ipa == ipa)&&(identical(other.kasemDefinition, kasemDefinition) || other.kasemDefinition == kasemDefinition)&&(identical(other.etymology, etymology) || other.etymology == etymology)&&(identical(other.nounClass, nounClass) || other.nounClass == nounClass)&&(identical(other.homographIndex, homographIndex) || other.homographIndex == homographIndex)&&const DeepCollectionEquality().equals(other._senses, _senses));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hashAll([runtimeType,id,headword,translation,const DeepCollectionEquality().hash(_translations),const DeepCollectionEquality().hash(_renderings),partOfSpeech,dialect,pronunciation,example,exampleTranslation,sentenceSource,tatoebaId,tatoebaContributor,sentenceLicence,attribution,culturalNote,audioUrl,definiteForm,pluralForm,nounClass,homographIndex]);
+int get hashCode => Object.hashAll([runtimeType,id,headword,translation,const DeepCollectionEquality().hash(_translations),const DeepCollectionEquality().hash(_renderings),partOfSpeech,dialect,pronunciation,example,exampleTranslation,sentenceSource,tatoebaId,tatoebaContributor,sentenceLicence,attribution,culturalNote,audioUrl,definiteForm,pluralForm,pluralDefiniteForm,countedForm,pronounForm,definiteArticle,numeralSeries,numeralPrefix,presentForm,pastForm,futureForm,pluralSubjectForm,imperativeForm,agreeingOneForm,agreeingTwoForm,const DeepCollectionEquality().hash(_alsoUsedAs),ipa,kasemDefinition,etymology,nounClass,homographIndex,const DeepCollectionEquality().hash(_senses)]);
 
 @override
 String toString() {
-  return 'DictionaryEntry(id: $id, headword: $headword, translation: $translation, translations: $translations, renderings: $renderings, partOfSpeech: $partOfSpeech, dialect: $dialect, pronunciation: $pronunciation, example: $example, exampleTranslation: $exampleTranslation, sentenceSource: $sentenceSource, tatoebaId: $tatoebaId, tatoebaContributor: $tatoebaContributor, sentenceLicence: $sentenceLicence, attribution: $attribution, culturalNote: $culturalNote, audioUrl: $audioUrl, definiteForm: $definiteForm, pluralForm: $pluralForm, nounClass: $nounClass, homographIndex: $homographIndex)';
+  return 'DictionaryEntry(id: $id, headword: $headword, translation: $translation, translations: $translations, renderings: $renderings, partOfSpeech: $partOfSpeech, dialect: $dialect, pronunciation: $pronunciation, example: $example, exampleTranslation: $exampleTranslation, sentenceSource: $sentenceSource, tatoebaId: $tatoebaId, tatoebaContributor: $tatoebaContributor, sentenceLicence: $sentenceLicence, attribution: $attribution, culturalNote: $culturalNote, audioUrl: $audioUrl, definiteForm: $definiteForm, pluralForm: $pluralForm, pluralDefiniteForm: $pluralDefiniteForm, countedForm: $countedForm, pronounForm: $pronounForm, definiteArticle: $definiteArticle, numeralSeries: $numeralSeries, numeralPrefix: $numeralPrefix, presentForm: $presentForm, pastForm: $pastForm, futureForm: $futureForm, pluralSubjectForm: $pluralSubjectForm, imperativeForm: $imperativeForm, agreeingOneForm: $agreeingOneForm, agreeingTwoForm: $agreeingTwoForm, alsoUsedAs: $alsoUsedAs, ipa: $ipa, kasemDefinition: $kasemDefinition, etymology: $etymology, nounClass: $nounClass, homographIndex: $homographIndex, senses: $senses)';
 }
 
 
@@ -540,7 +887,7 @@ abstract mixin class _$DictionaryEntryCopyWith<$Res> implements $DictionaryEntry
   factory _$DictionaryEntryCopyWith(_DictionaryEntry value, $Res Function(_DictionaryEntry) _then) = __$DictionaryEntryCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String headword, String translation, List<String> translations, List<String> renderings, String partOfSpeech, String dialect, String pronunciation, String example, String exampleTranslation, String sentenceSource, String tatoebaId, String tatoebaContributor, String sentenceLicence, String attribution, String? culturalNote, String audioUrl, String definiteForm, String pluralForm, String nounClass, int homographIndex
+ String id, String headword, String translation, List<String> translations, List<String> renderings, String partOfSpeech, String dialect, String pronunciation, String example, String exampleTranslation, String sentenceSource, String tatoebaId, String tatoebaContributor, String sentenceLicence, String attribution, String? culturalNote, String audioUrl, String definiteForm, String pluralForm, String pluralDefiniteForm, String countedForm, String pronounForm, String definiteArticle, String numeralSeries, String numeralPrefix, String presentForm, String pastForm, String futureForm, String pluralSubjectForm, String imperativeForm, String agreeingOneForm, String agreeingTwoForm, List<String> alsoUsedAs, String ipa, String kasemDefinition, String etymology, String nounClass, int homographIndex,@EntrySenseListConverter() List<EntrySense> senses
 });
 
 
@@ -557,7 +904,7 @@ class __$DictionaryEntryCopyWithImpl<$Res>
 
 /// Create a copy of DictionaryEntry
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? headword = null,Object? translation = null,Object? translations = null,Object? renderings = null,Object? partOfSpeech = null,Object? dialect = null,Object? pronunciation = null,Object? example = null,Object? exampleTranslation = null,Object? sentenceSource = null,Object? tatoebaId = null,Object? tatoebaContributor = null,Object? sentenceLicence = null,Object? attribution = null,Object? culturalNote = freezed,Object? audioUrl = null,Object? definiteForm = null,Object? pluralForm = null,Object? nounClass = null,Object? homographIndex = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? headword = null,Object? translation = null,Object? translations = null,Object? renderings = null,Object? partOfSpeech = null,Object? dialect = null,Object? pronunciation = null,Object? example = null,Object? exampleTranslation = null,Object? sentenceSource = null,Object? tatoebaId = null,Object? tatoebaContributor = null,Object? sentenceLicence = null,Object? attribution = null,Object? culturalNote = freezed,Object? audioUrl = null,Object? definiteForm = null,Object? pluralForm = null,Object? pluralDefiniteForm = null,Object? countedForm = null,Object? pronounForm = null,Object? definiteArticle = null,Object? numeralSeries = null,Object? numeralPrefix = null,Object? presentForm = null,Object? pastForm = null,Object? futureForm = null,Object? pluralSubjectForm = null,Object? imperativeForm = null,Object? agreeingOneForm = null,Object? agreeingTwoForm = null,Object? alsoUsedAs = null,Object? ipa = null,Object? kasemDefinition = null,Object? etymology = null,Object? nounClass = null,Object? homographIndex = null,Object? senses = null,}) {
   return _then(_DictionaryEntry(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,headword: null == headword ? _self.headword : headword // ignore: cast_nullable_to_non_nullable
@@ -578,9 +925,27 @@ as String,culturalNote: freezed == culturalNote ? _self.culturalNote : culturalN
 as String?,audioUrl: null == audioUrl ? _self.audioUrl : audioUrl // ignore: cast_nullable_to_non_nullable
 as String,definiteForm: null == definiteForm ? _self.definiteForm : definiteForm // ignore: cast_nullable_to_non_nullable
 as String,pluralForm: null == pluralForm ? _self.pluralForm : pluralForm // ignore: cast_nullable_to_non_nullable
+as String,pluralDefiniteForm: null == pluralDefiniteForm ? _self.pluralDefiniteForm : pluralDefiniteForm // ignore: cast_nullable_to_non_nullable
+as String,countedForm: null == countedForm ? _self.countedForm : countedForm // ignore: cast_nullable_to_non_nullable
+as String,pronounForm: null == pronounForm ? _self.pronounForm : pronounForm // ignore: cast_nullable_to_non_nullable
+as String,definiteArticle: null == definiteArticle ? _self.definiteArticle : definiteArticle // ignore: cast_nullable_to_non_nullable
+as String,numeralSeries: null == numeralSeries ? _self.numeralSeries : numeralSeries // ignore: cast_nullable_to_non_nullable
+as String,numeralPrefix: null == numeralPrefix ? _self.numeralPrefix : numeralPrefix // ignore: cast_nullable_to_non_nullable
+as String,presentForm: null == presentForm ? _self.presentForm : presentForm // ignore: cast_nullable_to_non_nullable
+as String,pastForm: null == pastForm ? _self.pastForm : pastForm // ignore: cast_nullable_to_non_nullable
+as String,futureForm: null == futureForm ? _self.futureForm : futureForm // ignore: cast_nullable_to_non_nullable
+as String,pluralSubjectForm: null == pluralSubjectForm ? _self.pluralSubjectForm : pluralSubjectForm // ignore: cast_nullable_to_non_nullable
+as String,imperativeForm: null == imperativeForm ? _self.imperativeForm : imperativeForm // ignore: cast_nullable_to_non_nullable
+as String,agreeingOneForm: null == agreeingOneForm ? _self.agreeingOneForm : agreeingOneForm // ignore: cast_nullable_to_non_nullable
+as String,agreeingTwoForm: null == agreeingTwoForm ? _self.agreeingTwoForm : agreeingTwoForm // ignore: cast_nullable_to_non_nullable
+as String,alsoUsedAs: null == alsoUsedAs ? _self._alsoUsedAs : alsoUsedAs // ignore: cast_nullable_to_non_nullable
+as List<String>,ipa: null == ipa ? _self.ipa : ipa // ignore: cast_nullable_to_non_nullable
+as String,kasemDefinition: null == kasemDefinition ? _self.kasemDefinition : kasemDefinition // ignore: cast_nullable_to_non_nullable
+as String,etymology: null == etymology ? _self.etymology : etymology // ignore: cast_nullable_to_non_nullable
 as String,nounClass: null == nounClass ? _self.nounClass : nounClass // ignore: cast_nullable_to_non_nullable
 as String,homographIndex: null == homographIndex ? _self.homographIndex : homographIndex // ignore: cast_nullable_to_non_nullable
-as int,
+as int,senses: null == senses ? _self._senses : senses // ignore: cast_nullable_to_non_nullable
+as List<EntrySense>,
   ));
 }
 

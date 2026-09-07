@@ -5,14 +5,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
+import 'package:indigen_world_mobile/features/community/data/community_links.dart';
 import 'package:indigen_world_mobile/features/community/data/community_models.dart';
 import 'package:indigen_world_mobile/features/community/data/community_providers.dart';
 import 'package:indigen_world_mobile/features/community/data/community_repository.dart';
+import 'package:indigen_world_mobile/features/community/data/compose_draft_store.dart';
 import 'package:indigen_world_mobile/features/community/media_picker.dart';
 import 'package:indigen_world_mobile/features/community/mentions.dart';
+import 'package:indigen_world_mobile/features/community/phone_verification_screen.dart';
 import 'package:indigen_world_mobile/features/community/widgets/community_avatar.dart';
 import 'package:indigen_world_mobile/features/community/widgets/kasem_key_bar.dart';
 import 'package:indigen_world_mobile/features/community/widgets/people_widgets.dart';
+import 'package:indigen_world_mobile/shared/glass_popup.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
 
@@ -25,6 +29,8 @@ class ComposePostScreen extends ConsumerStatefulWidget {
     this.replyTo,
     this.quoteTo,
     this.initialText = '',
+    this.initialAttachments = const <PendingUpload>[],
+    this.initialKasemConfirmed = false,
     super.key,
   });
 
@@ -36,6 +42,19 @@ class ComposePostScreen extends ConsumerStatefulWidget {
   /// something to say, so they land on a draft rather than a blank page.
   final String initialText;
 
+  /// Photographs and clips already staged when this screen opens.
+  ///
+  /// Empty for every ordinary use. Non-empty only on the rescue path, where
+  /// Android destroyed the process while the camera was up and both the draft
+  /// and the picture have just been recovered — see `ComposeDraftStore` and
+  /// `CommunityMediaPicker.recoverLostMedia`.
+  final List<PendingUpload> initialAttachments;
+
+  /// Restored with the rest of a rescued draft, because a member who had
+  /// already ticked it should not have to find and tick it again after an
+  /// interruption that was not their doing.
+  final bool initialKasemConfirmed;
+
   @override
   ConsumerState<ComposePostScreen> createState() => _ComposePostScreenState();
 }
@@ -45,11 +64,11 @@ class _ComposePostScreenState extends ConsumerState<ComposePostScreen> {
   // Watches the caret so an `@` being typed offers handles to complete —
   // including Kawuri's, which answers in the thread.
   late final _mentions = MentionComposerController(_controller);
-  final _attachments = <PendingUpload>[];
+  late final _attachments = <PendingUpload>[...widget.initialAttachments];
   final _pollOptions = [TextEditingController(), TextEditingController()];
   final _recorder = AudioRecorder();
 
-  var _kasemConfirmed = false;
+  late var _kasemConfirmed = widget.initialKasemConfirmed;
   var _publishing = false;
   var _showPoll = false;
   var _pollDuration = const Duration(days: 1);
@@ -63,6 +82,14 @@ class _ComposePostScreenState extends ConsumerState<ComposePostScreen> {
 
   @override
   void dispose() {
+    // ── Clearing here is what makes a surviving draft mean something ────
+    // The composer runs this whichever way it closes: posted, cancelled,
+    // backed out of. So a draft still on disk at the next launch is one whose
+    // composer never got to run its own teardown — which is exactly and only
+    // the case where Android killed the process out from under the camera.
+    // Clearing anywhere more specific would leave drafts behind after ordinary
+    // exits, and the app would start offering to restore posts nobody wants.
+    unawaited(const ComposeDraftStore().clear());
     _recordingTicker?.cancel();
     unawaited(_recorder.dispose());
     _mentions.dispose();
@@ -170,13 +197,49 @@ class _ComposePostScreenState extends ConsumerState<ComposePostScreen> {
       );
       return;
     }
+    // ── Written down before the app leaves the screen ──────────────────
+    // The camera and the gallery are other people's activities, and on a phone
+    // with little memory to spare Android is entitled to destroy this whole
+    // process while one of them is up. It does, often. Without this line the
+    // member comes back to a cold start, no draft and no photograph; with it,
+    // the community screen finds the draft on the next launch, asks Android
+    // for the picture it is still holding, and puts both back.
+    //
+    // Saved here rather than on every keystroke because this is the one moment
+    // the app *knows* it is about to be suspended. See `ComposeDraftStore`.
+    await _saveDraft();
+    if (!mounted) return;
     final picked = await showMediaPickerSheet(
       context,
       remainingSlots: remaining,
     );
-    if (picked.isEmpty || !mounted) return;
+    if (!mounted) return;
+    if (picked.isEmpty) {
+      // Nothing came back, so nothing was interrupted — the member changed
+      // their mind at the picker. The draft on disk is now a rescue that will
+      // never be needed, and leaving it would have the next launch offer to
+      // restore a post that is still open on this screen.
+      unawaited(const ComposeDraftStore().clear());
+      return;
+    }
     setState(() => _attachments.addAll(picked.take(remaining)));
+    // Kept up to date with what came back, so a second trip to the camera does
+    // not lose the first photograph.
+    await _saveDraft();
   }
+
+  /// Writes what is on this screen down, in case it is about to stop existing.
+  Future<void> _saveDraft() => const ComposeDraftStore().save(
+    ComposeDraft(
+      text: _controller.text,
+      replyToId: widget.replyTo?.id,
+      quoteToId: widget.quoteTo?.id,
+      attachmentPaths: [
+        for (final upload in _attachments) upload.path,
+      ],
+      kasemConfirmed: _kasemConfirmed,
+    ),
+  );
 
   /// Sends one staged photo back through the cropper.
   ///
@@ -191,6 +254,60 @@ class _ComposePostScreenState extends ConsumerState<ComposePostScreen> {
     final at = _attachments.indexOf(original);
     if (at < 0) return;
     setState(() => _attachments[at] = cropped);
+  }
+
+  /// Offers verification to somebody about to post a link without it.
+  ///
+  /// Returns true when the post should go ahead — which is every path except
+  /// the member choosing to go and verify, where the composer stays up with
+  /// their draft intact so they come back to it rather than retyping.
+  ///
+  /// ── Why this asks rather than refuses ────────────────────────────────
+  /// A refusal teaches a scammer to write "wa dot me slash 233" instead, which
+  /// no pattern can mask and every reader can still follow. Masking keeps the
+  /// address visible and dead, which is the outcome that actually protects
+  /// somebody. So the honest member gets one screen explaining a minute's work
+  /// that makes their link live, and the member who does not want a phone
+  /// number attached gets a post that does not do what they posted it for.
+  ///
+  /// Costs nothing to anybody who is already verified, or whose post has no
+  /// link in it — which is nearly every post.
+  Future<bool> _confirmLinkPost(CommunityProfile profile) async {
+    if (profile.mark != VerifiedMark.none) return true;
+    if (!containsCommunityLink(_controller.text)) return true;
+
+    final choice = await showGlassActionSheet<_LinkChoice>(
+      context: context,
+      title: kVerifyToPostLinksTitle,
+      subtitle: kVerifyToPostLinksBody,
+      actions: const [
+        GlassAction(
+          value: _LinkChoice.verify,
+          icon: Icons.verified_outlined,
+          label: 'Verify my number',
+          description: 'One minute, and your links work',
+        ),
+        GlassAction(
+          value: _LinkChoice.postAnyway,
+          icon: Icons.link_off_rounded,
+          label: 'Post without a live link',
+          description: 'The address shows but cannot be tapped',
+        ),
+      ],
+    );
+    if (!mounted || choice == null) return false;
+    if (choice == _LinkChoice.postAnyway) return true;
+
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (context) => const PhoneVerificationScreen(),
+      ),
+    );
+    // Deliberately does not publish on the way back, even when the
+    // verification succeeded. Somebody returning from a two-step flow should
+    // see their own draft and press Post themselves — a post that appears
+    // because they finished an unrelated screen is a post they did not send.
+    return false;
   }
 
   Future<void> _publish() async {
@@ -238,6 +355,14 @@ class _ComposePostScreenState extends ConsumerState<ComposePostScreen> {
             endsAt: DateTime.now().add(_pollDuration),
           )
         : null;
+
+    // ── The link gate ───────────────────────────────────────────────────
+    // Last of the checks, and deliberately the only one that does not stop
+    // the post. Everything above this refuses; this one explains and then
+    // lets the member decide. See `community_links.dart` for why masking
+    // beats a ban — a refusal here pushes the same scammer into spelling the
+    // address out in words, which nothing can see and nothing can mask.
+    if (!await _confirmLinkPost(profile)) return;
 
     setState(() {
       _publishing = true;
@@ -888,3 +1013,6 @@ class _PollComposer extends StatelessWidget {
     ),
   );
 }
+
+/// What somebody chose when told their link would not be tappable.
+enum _LinkChoice { verify, postAnyway }

@@ -645,3 +645,161 @@ test('an explicit list on a submission wins over anything derived from the body'
   };
   assert.deepEqual(submissionTranslations(submission, 'dictionary'), ['kʋm', 'nɩ']);
 });
+
+
+// ── The advanced entry, as the queue collects it ─────────────────────────────
+//
+// Everything below this line is optional, and the tests exist to hold it that
+// way as much as to check it works. The guided queue's whole economy is that
+// the median word costs zero extra taps; a field that quietly became required
+// would not break a build, it would just end every sitting at four words.
+
+test('an answer that says nothing extra carries nothing extra', () => {
+  const parsed = parseWordTranslationInput(answer());
+  assert.equal(parsed.ipa, '');
+  assert.equal(parsed.kasemDefinition, '');
+  assert.equal(parsed.etymology, '');
+  assert.deepEqual(parsed.alsoUsedAs, []);
+  assert.equal(parsed.media, null);
+
+  // And none of it reaches the review document, so the great majority of
+  // contributions look exactly as they did before any of this existed.
+  const input = buildWordQueueContributionInput(row(), parsed);
+  const submission = buildCollectionSubmissionDocument('c1', 'uid-1', input, NOW);
+  for (const key of ['ipa', 'kasemDefinition', 'etymology', 'alsoUsedAs', 'forms']) {
+    assert.equal(key in submission, false, `${key} should be absent`);
+  }
+});
+
+test('the meaning stated in Kasem survives to the review desk', () => {
+  // The only field on the record written IN the language rather than about it,
+  // and the reason the advanced entry is worth building at all.
+  const parsed = parseWordTranslationInput(
+    answer({
+      kasemDefinition: '  Nabiinu   we o na de bu  ',
+      etymology: 'From the root for child.',
+      ipa: '/bàkéːrà/',
+    }),
+  );
+  assert.equal(parsed.kasemDefinition, 'Nabiinu we o na de bu');
+  assert.equal(parsed.etymology, 'From the root for child.');
+  // Stored without its delimiters. Half the people who fill this in type the
+  // slashes and half do not; keeping what was typed makes the field unqueryable
+  // and renders three ways on one screen.
+  assert.equal(parsed.ipa, 'bàkéːrà');
+
+  const submission = buildCollectionSubmissionDocument(
+    'c1',
+    'uid-1',
+    buildWordQueueContributionInput(row(), parsed),
+    NOW,
+  );
+  assert.equal(submission.kasemDefinition, 'Nabiinu we o na de bu');
+  assert.equal(submission.ipa, 'bàkéːrà');
+});
+
+test('a noun also used as a verb keeps both halves of its paradigm', () => {
+  // The case a single word class could not express. Kasem words routinely
+  // belong to more than one, and every contributor who knew that had to pick
+  // one and throw the rest away.
+  const parsed = parseWordTranslationInput(
+    answer({
+      partOfSpeech: 'noun',
+      alsoUsedAs: ['verb'],
+      forms: { definite: 'bukam', plural: 'buga', past: 'di-PAST' },
+    }),
+  );
+  assert.deepEqual(parsed.alsoUsedAs, ['verb']);
+  assert.equal(parsed.forms.definite, 'bukam');
+  assert.equal(parsed.forms.past, 'di-PAST');
+
+  // Without the cross-class declaration the tenses are dropped, quietly — the
+  // fields only render for the class they belong to, so their presence
+  // elsewhere is stale client state and must not fail a good answer.
+  const nounOnly = parseWordTranslationInput(
+    answer({ partOfSpeech: 'noun', forms: { definite: 'bukam', past: 'di-PAST' } }),
+  );
+  assert.equal(nounOnly.forms.definite, 'bukam');
+  assert.equal(nounOnly.forms.past, '');
+});
+
+test('an entry never claims to also be the class it already is', () => {
+  const parsed = parseWordTranslationInput(
+    answer({ partOfSpeech: 'noun', alsoUsedAs: ['noun', 'verb'] }),
+  );
+  assert.deepEqual(parsed.alsoUsedAs, ['verb']);
+});
+
+test('a word class this backend has never heard of is dropped, not echoed', () => {
+  // The opposite of what `partOfSpeech` itself does, and deliberately. The
+  // primary class is a contributor's own statement and survives a list this
+  // backend has not caught up with; this one drives a rendered paradigm, and an
+  // unrecognised value would head a section with a string nobody can read.
+  const parsed = parseWordTranslationInput(
+    answer({ alsoUsedAs: ['thingummy', 'other', 'unknown', 'adjective'] }),
+  );
+  assert.deepEqual(parsed.alsoUsedAs, ['adjective']);
+});
+
+// ── The recording ────────────────────────────────────────────────────────────
+
+const RECORDING = {
+  storagePath: 'creator-submissions/uid-1/collection-contributions/f/word.m4a',
+  mimeType: 'audio/mp4',
+  sizeBytes: 90_000,
+  mediaType: 'audio',
+};
+
+test('a recording travels with the answer and reaches publication as media', () => {
+  // A dictionary entry's whole point is a sound, and for as long as the guided
+  // queue has been the main way words arrive it was the one path with no way to
+  // record one — so the archive filled up with words nobody can hear.
+  const parsed = parseWordTranslationInput(
+    answer({ media: RECORDING }),
+    'uid-1',
+  );
+  assert.deepEqual(parsed.media, RECORDING);
+
+  // It goes out as the contribution's own `media`, which is the exact field
+  // decideSubmission already copies to the public path and lands on the entry
+  // as `audioUrl` — not a second pipeline built beside the first.
+  const input = buildWordQueueContributionInput(row(), parsed);
+  assert.deepEqual(input.media, RECORDING);
+});
+
+test('a recording in somebody else’s folder is refused', () => {
+  // Storage rules stop a member writing into another member's prefix, but
+  // nothing stops them naming one here — and an answer that pointed a reviewer
+  // at somebody else's private upload would be a disclosure the rules never
+  // saw.
+  assert.throws(
+    () => parseWordTranslationInput(
+      answer({
+        media: {
+          ...RECORDING,
+          storagePath: 'creator-submissions/uid-2/collection-contributions/f/w.m4a',
+        },
+      }),
+      'uid-1',
+    ),
+    /own submission folder/,
+  );
+});
+
+test('a recording with nothing to check it against is refused, not trusted', () => {
+  // The parser is callable from a unit test with no auth in sight. A payload
+  // that carries media in that case has no owner to be checked against, and
+  // silently accepting it would make the ownership check optional.
+  assert.throws(
+    () => parseWordTranslationInput(answer({ media: RECORDING })),
+    /own submission folder/,
+  );
+});
+
+test('an answer with no recording is the ordinary case and stays cheap', () => {
+  assert.equal(parseWordTranslationInput(answer(), 'uid-1').media, null);
+  assert.equal(
+    buildWordQueueContributionInput(row(), parseWordTranslationInput(answer(), 'uid-1')).media,
+    null,
+  );
+});

@@ -250,4 +250,111 @@ void main() {
   test('a row with neither a Kasem nor an English term is still dropped', () {
     expect(dictionaryEntryFromData('empty', {'isPublished': true}), isNull);
   });
+
+  group('the advanced entry, read off a published document', () {
+    test('every paradigm slot is read, and an absent one is not an error', () {
+      // The backend stores only the answered slots — eleven keys of which the
+      // median entry fills none would put ten empty strings on every row — so
+      // an absent key and an empty string mean the same thing here.
+      final entry = dictionaryEntryFromData('bakeira', {
+        'kasemText': 'bakeira',
+        'englishText': 'boy',
+        'partOfSpeech': 'noun',
+        'isPublished': true,
+        'forms': {
+          'definite': 'bakeira kam',
+          'plural': 'bakeiru',
+          'pluralDefinite': 'bakeiru bam',
+          'counted': 'bakeiru balei',
+          'pronoun': 'o',
+        },
+        'ipa': 'bàkéːrà',
+        'kasemDefinition': 'Nabiinu we o na de bu',
+        'etymology': 'From the root for child.',
+        'alsoUsedAs': ['verb'],
+      })!;
+
+      expect(entry.definiteForm, 'bakeira kam');
+      expect(entry.pluralDefiniteForm, 'bakeiru bam');
+      expect(entry.pronounForm, 'o');
+      expect(entry.hasNounParadigm, isTrue);
+      // Nothing was recorded for the verb half, so no verb table is drawn even
+      // though the entry says it is also used as one.
+      expect(entry.verbForms, isEmpty);
+      expect(entry.ipaDisplay, '/bàkéːrà/');
+      expect(entry.kasemDefinition, 'Nabiinu we o na de bu');
+      expect(entry.etymology, 'From the root for child.');
+      expect(entry.alsoUsedAs, ['verb']);
+    });
+
+    test('a verb published with its tenses reads them back', () {
+      final entry = dictionaryEntryFromData('di', {
+        'kasemText': 'di',
+        'englishText': 'eat',
+        'partOfSpeech': 'verb',
+        'isPublished': true,
+        'forms': {'present': 'o di', 'past': 'o di-PAST', 'imperative': 'di!'},
+      })!;
+
+      expect(entry.presentForm, 'o di');
+      expect(entry.pastForm, 'o di-PAST');
+      expect(entry.imperativeForm, 'di!');
+      // Nobody answered "for tomorrow", and an absent slot is not a form.
+      expect(entry.futureForm, '');
+      expect(entry.verbForms, hasLength(3));
+    });
+
+    test('the stored readings of the forms are preferred to re-parsing them', () {
+      final entry = dictionaryEntryFromData('da', {
+        'kasemText': 'da',
+        'englishText': 'days',
+        'partOfSpeech': 'noun',
+        'isPublished': true,
+        'forms': {'definite': 'da yam', 'counted': 'da yalei'},
+        'definiteArticle': 'yam',
+        'numeralSeries': 'yalei',
+        'numeralPrefix': 'ya',
+      })!;
+
+      expect(entry.article, 'yam');
+      expect(entry.numeral?.prefix, 'ya');
+    });
+
+    test('an entry from before any of this reads as having none of it', () {
+      // Fifteen thousand rows, and not one of them is going to be back-filled.
+      // Every new field has to read as an honest absence rather than as an
+      // empty claim.
+      final legacy = dictionaryEntryFromData('legacy', {
+        'kasemText': 'Na',
+        'englishText': 'water',
+        'partOfSpeech': 'noun',
+        'isPublished': true,
+      })!;
+
+      expect(legacy.hasForms, isFalse);
+      expect(legacy.hasNounParadigm, isFalse);
+      expect(legacy.ipaDisplay, isNull);
+      expect(legacy.kasemDefinition, '');
+      expect(legacy.etymology, '');
+      expect(legacy.alsoUsedAs, isEmpty);
+      expect(legacy.article, isNull);
+      expect(legacy.numeral, isNull);
+    });
+
+    test('junk in the new fields reads as absent rather than as content', () {
+      final odd = dictionaryEntryFromData('odd', {
+        'kasemText': 'Na',
+        'englishText': 'water',
+        'partOfSpeech': 'noun',
+        'isPublished': true,
+        'forms': 'bukam',
+        'alsoUsedAs': 'verb',
+        'ipa': 42,
+      })!;
+
+      expect(odd.definiteForm, '');
+      expect(odd.alsoUsedAs, isEmpty);
+      expect(odd.ipaDisplay, isNull);
+    });
+  });
 }

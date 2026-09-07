@@ -20,6 +20,7 @@ const sentenceConstructionLabels = {
   'possession': 'Possession',
   'definiteness': 'The / a',
   'plural': 'Plural',
+  'numeral': 'Counting',
   'adjective': 'Description',
   'negation': 'Negation',
   'question': 'Questions',

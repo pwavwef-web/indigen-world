@@ -188,6 +188,23 @@ String collationKey(String raw) {
   return buffer.toString();
 }
 
+/// The rank given to an entry matched only somewhere inside one of its senses.
+///
+/// -- Why it sits below every rank [searchRank] can return ----------------
+/// Because a sense match is the weakest evidence the index has. It fires on a
+/// usage note, a Kasem gloss four senses down, or a listed synonym -- text
+/// that describes the word rather than being it. An entry whose *headword* is
+/// what somebody typed must never be pushed below an entry that merely
+/// mentions the query in a note, and giving sense hits a rank of their own
+/// below 5 is what guarantees that without the two paths having to know about
+/// each other.
+///
+/// It is deliberately a single rank rather than a graded family. Ranking a
+/// synonym hit above a usage-note hit would be inventing a preference nobody
+/// has evidence for; the useful distinction is "the word you typed" versus
+/// "somewhere in the small print", and that is exactly one boundary.
+const kSenseMatchRank = 6;
+
 /// How well [entry] answers [foldedQuery], lower being better, or null.
 ///
 /// ── Why ranking and not just filtering ───────────────────────────────────
@@ -205,6 +222,7 @@ String collationKey(String raw) {
 ///   3  the headword starts with it
 ///   4  a meaning starts with it
 ///   5  it appears anywhere else that is searched
+///   6  it appears inside one of the entry's senses -- see [kSenseMatchRank]
 int? searchRank({
   required String foldedQuery,
   required String headword,

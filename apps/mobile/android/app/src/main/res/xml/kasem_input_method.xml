@@ -1,12 +1,34 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+    The Kasem input method's declaration to Android.
+
+    ── The locale is xsm, not kss ───────────────────────────────────────────
+    This file first shipped declaring `kss_GH`. ISO 639-3 `kss` is Southern
+    Kisi, a Mel language of Sierra Leone and Liberia; Kasem is `xsm`, which is
+    the code this project's own contract already uses (see
+    packages/contracts/schemas/common.schema.json, and `primaryLanguage: 'xsm'`
+    on every submission the backend writes). Declaring the wrong language to
+    the system is not cosmetic: it is what Android matches against when it
+    decides which keyboard to offer for a field, and it is what an accessibility
+    service reads the subtype out as.
+
+    ── There is deliberately no settingsActivity ────────────────────────────
+    It pointed at MainActivity, the app's Flutter host. Android launches a
+    settings activity with a plain ACTION_MAIN intent, indistinguishable from a
+    launcher tap, so tapping the gear beside "Kasem keyboard" in Android's
+    keyboard settings dropped the user on the app's home screen with no
+    explanation and no way back to what they were doing. A link that goes
+    somewhere misleading is worse than no link; the keyboard's own settings
+    live at Settings → Preferences → Kasem keyboard inside the app, which is
+    reachable, correct, and where the setup flow already sends people.
+-->
 <input-method xmlns:android="http://schemas.android.com/apk/res/android"
-    android:settingsActivity="world.indigen.mobile.MainActivity"
     android:supportsSwitchingToNextInputMethod="true">
     <subtype
         android:icon="@mipmap/ic_launcher"
-        android:imeSubtypeLocale="kss_GH"
+        android:imeSubtypeLocale="xsm_GH"
+        android:languageTag="xsm-GH"
         android:imeSubtypeMode="keyboard"
         android:isAsciiCapable="true"
         android:label="@string/kasem_keyboard_subtype" />
 </input-method>
-

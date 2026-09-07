@@ -61,6 +61,37 @@ export interface DictionaryRecord {
    * gets copied into somebody's notes and taught on.
    */
   homographIndex: number;
+  /**
+   * The forms this entry actually records, already worded for the briefing.
+   *
+   * ── Why the model is handed forms rather than left to derive them ────────
+   * Because deriving them is exactly what it must not do. Asked for "two boys"
+   * with only `bakeira` in front of it, a model produces a plausible Kasem
+   * plural and a plausible numeral, and both are inventions that read as
+   * confirmed answers — which is the failure this whole module exists to
+   * prevent. Handing over the forms a speaker actually gave replaces the
+   * invention with a quotation, and an entry that carries none says so, which
+   * is a complete and honest answer.
+   *
+   * Empty for the overwhelming majority of the archive, and that is the point:
+   * a briefing that quietly filled the gap would be worse than one that admits
+   * it.
+   */
+  forms: string[];
+  /**
+   * The meaning as a Kasem speaker stated it, in Kasem.
+   *
+   * The most valuable line in a briefing when there is one. An English gloss is
+   * a translation of the meaning; this is the meaning, in the language, with
+   * the register and collocation an equivalent throws away.
+   */
+  kasemDefinition: string;
+  /** Where the word comes from, where anybody has written it down. */
+  etymology: string;
+  /** How the headword is said, without delimiters. */
+  ipa: string;
+  /** Other word classes the entry is also used as. */
+  alsoUsedAs: string[];
 }
 
 /** How many entries one instance will hold. */
@@ -376,7 +407,59 @@ export function dictionaryRecordFrom(
     kasemExample: firstText(data, ['kasemExample', 'example']),
     englishExample: firstText(data, ['englishExample', 'exampleTranslation']),
     homographIndex: Number(data.homographIndex ?? 0) || 0,
+    forms: recordedForms(data.forms),
+    kasemDefinition: text(data.kasemDefinition),
+    etymology: text(data.etymology),
+    ipa: text(data.ipa),
+    alsoUsedAs: Array.isArray(data.alsoUsedAs)
+      ? data.alsoUsedAs.filter((item): item is string => typeof item === 'string')
+      : [],
   };
+}
+
+/**
+ * The paradigm slots, and how a person would say each one.
+ *
+ * ── Labels, not field names ──────────────────────────────────────────────
+ * `pluralDefinite: buga bam` is a database column. *the many: buga bam* is a
+ * fact about Kasem, and it is what a model has to be able to quote back to
+ * somebody who asked how to say it. The wording matches the entry screen's, so
+ * a member who reads an answer and then opens the word sees the same words
+ * describing the same forms.
+ */
+const FORM_LABELS: readonly (readonly [string, string])[] = [
+  ['definite', 'with "the"'],
+  ['plural', 'for many'],
+  ['pluralDefinite', 'the many'],
+  ['counted', 'for two'],
+  ['pronoun', 'called afterwards'],
+  ['present', 'now'],
+  ['past', 'yesterday'],
+  ['future', 'tomorrow'],
+  ['pluralSubject', 'several doing it'],
+  ['imperative', 'as an instruction'],
+  // Concord. Labelled as two uses rather than as grammatical cells, because
+  // which cells exist is exactly what nobody has established — see
+  // AGREEING_CLASSES in kasem-morphology.ts.
+  ['agreeingOne', 'used with'],
+  ['agreeingTwo', 'and with'],
+];
+
+/**
+ * Only the answered slots, in the order somebody learns them.
+ *
+ * An empty list means nobody has recorded a form for this word, which the
+ * briefing says out loud rather than papering over.
+ */
+function recordedForms(raw: unknown): string[] {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return [];
+  const source = raw as Record<string, unknown>;
+  const out: string[] = [];
+  for (const [slot, label] of FORM_LABELS) {
+    const value = text(source[slot]);
+    if (value) out.push(`${label}: ${value}`);
+  }
+  return out;
 }
 
 /** The senses on the English side of an entry, split apart.
@@ -469,7 +552,17 @@ function briefingLine(
   const example = entry.kasemExample
     ? `\n   Example: ${entry.kasemExample}${entry.englishExample ? ` — ${entry.englishExample}` : ''}`
     : '';
-  return `${parts.join(' — ')}${example}`;
+  // Each on its own line rather than run into the first. A paradigm folded into
+  // a comma list reads as one long alternative spelling, and the whole reason
+  // these are here is that they are separate facts about the word.
+  const detail = [
+    entry.ipa ? `\n   Said: /${entry.ipa}/` : '',
+    entry.kasemDefinition ? `\n   In Kasem: ${entry.kasemDefinition}` : '',
+    entry.forms.length > 0 ? `\n   Forms recorded — ${entry.forms.join('; ')}` : '',
+    entry.alsoUsedAs.length > 0 ? `\n   Also used as: ${entry.alsoUsedAs.join(', ')}` : '',
+    entry.etymology ? `\n   Origin: ${entry.etymology}` : '',
+  ].join('');
+  return `${parts.join(' — ')}${example}${detail}`;
 }
 
 /**
@@ -523,6 +616,7 @@ How to use them:
 • Lead with the word itself, then the meaning. Quote the spelling exactly as written above — every character, every mark.
 • Where an entry lists more than one Kasem rendering, give them all and say they are alternatives.
 • Where an entry carries an example sentence, include it; it is what makes the word usable.
+• Where an entry lists recorded forms, those are the ONLY forms of that word you may state. If somebody asks for a plural, a tense or a counted form that is not listed, say it has not been recorded — do NOT build one. Kasem plurals and numerals agree with the noun in ways nobody has written down yet, so a form you construct will look right, be wrong, and be repeated.
 • If the entry does not actually answer what was asked, say that instead of stretching it to fit.
 • Do not add any further Kasem word from memory. Anything not listed above is unattested, and saying so is a complete answer.${homographNote}`;
 }

@@ -1,0 +1,4780 @@
+{
+ "source": {
+  "work": "Genesis 1",
+  "kasem": "Ghana Kasem orthography, supplied by contributor",
+  "english": "NET Bible",
+  "lexicalCheck": "Niggli, Dictionnaire Kasɩm-Français-English, SIL 2015 (Burkina orthography)"
+ },
+ "examples": [
+  {
+   "ref": "1:1",
+   "kasem": "Boboa kam ne to mo Wɛ naane wɛyuu de tega baŋa.",
+   "literal": "beginning the in that FOC God created sky and earth surface",
+   "english": "In the beginning God created the heavens and the earth.",
+   "constructions": [
+    "focus",
+    "word-order"
+   ],
+   "note": "mo is a focus particle (speaker, 5 Sept). to closes the phrase before it; the same closer as in relative clauses.",
+   "confidence": "high"
+  },
+  {
+   "ref": "1:2a",
+   "kasem": "Tega baŋa kam maama déem jage jeiga maama mo.",
+   "literal": "earth surface the all at-that-point was-scattered place all FOC",
+   "english": "The whole surface of the earth was formless and empty.",
+   "constructions": [
+    "focus",
+    "word-order"
+   ],
+   "note": "jage = scatter/spread (Burkina jagɩ).",
+   "confidence": "high"
+  },
+  {
+   "ref": "1:2b",
+   "kasem": "Kolokolo ya ta tera ka baŋa ne.",
+   "literal": "nothing yet still absent it surface on",
+   "english": "Nothing at all was yet on its surface.",
+   "constructions": [
+    "negation",
+    "word-order"
+   ],
+   "note": "Confirmed reinforcement (speaker): tera = not available / the absence of something, and kolokolo really is nothing, not anything - anything would be kolo maama.",
+   "confidence": "high"
+  },
+  {
+   "ref": "1:2c",
+   "kasem": "Na-fɔrɔ kom baŋa maama ye lim yerane.",
+   "literal": "great-waters the surface all was darkness only",
+   "english": "The whole surface of the watery deep was darkness only.",
+   "constructions": [
+    "word-order"
+   ],
+   "note": "ye here is the copula (Burkina yɩ be), not the connective ye = and.",
+   "confidence": "high"
+  },
+  {
+   "ref": "1:2d",
+   "kasem": "Wɛ Siu kom maa kare wɛɛne ko via na bam baŋa ne.",
+   "literal": "God Breath the was moving above it went water the surface on",
+   "english": "The Breath of God was moving above, going over the surface of the water.",
+   "constructions": [
+    "serial-verb",
+    "word-order"
+   ],
+   "note": "siu = breath (speaker), so this is the Breath of God, not the Spirit - which is what the Hebrew ruach does too. maa = progressive. kare ... via is a serial pair: moving, went.",
+   "confidence": "high"
+  },
+  {
+   "ref": "1:3a",
+   "kasem": "Wɛ ma ta o we, Pa se pwooni taa wora!",
+   "literal": "God then said he says let that light keep be-there",
+   "english": "God said, Let there be light.",
+   "constructions": [
+    "command",
+    "word-order"
+   ],
+   "note": "Quotative frame ta ... o we = said ... he says. pa se = causative plus subjunctive.",
+   "confidence": "high"
+  },
+  {
+   "ref": "1:3b",
+   "kasem": "Pwooni ma seene de ba.",
+   "literal": "light then really and came",
+   "english": "And there was light!",
+   "constructions": [
+    "word-order"
+   ],
+   "note": "seene recurs in the It was so formula; de ba may be one unit.",
+   "confidence": "medium"
+  },
+  {
+   "ref": "1:4a",
+   "kasem": "Wɛ ma na we pwooni dem lana, ye o wo pwoli.",
+   "literal": "God then saw that light the is-good and he was happy",
+   "english": "God saw that the light was good, and he was pleased.",
+   "constructions": [
+    "word-order"
+   ],
+   "note": "wo pwoli = happy, and pwoli does not stand alone for happiness (speaker) - recorded as an idiom. The phrase has no counterpart in the English; the Kasem adds it all six times.",
+   "confidence": "high"
+  },
+  {
+   "ref": "1:4b",
+   "kasem": "O déem ma pa se pwooni dem de lim dem pɔɔre daane.",
+   "literal": "he at-that-point then caused that light the and darkness the separate each-other",
+   "english": "So he separated the light from the darkness.",
+   "constructions": [
+    "word-order"
+   ],
+   "note": "poore ... daane = separate ... from each other; the pair frames the clause.",
+   "confidence": "high"
+  },
+  {
+   "ref": "1:5a",
+   "kasem": "Wɛ déem ma bwoŋi pwooni dem we wea, ye o daare o bwoŋi lim dem we tete.",
+   "literal": "God at-that-point then called light the say day and he again he called darkness the say night",
+   "english": "God called the light day and the darkness night.",
+   "constructions": [
+    "word-order"
+   ],
+   "note": "Naming frame: bwoŋi X we Y = call X saying Y.",
+   "confidence": "high"
+  },
+  {
+   "ref": "1:5b",
+   "kasem": "Tega ma ba ka yi ye ka daare ka poore.",
+   "literal": "earth then came it reached and it again it woke",
+   "english": "The day came to an end, and it broke again.",
+   "constructions": [
+    "tense",
+    "word-order"
+   ],
+   "note": "Carries TWO idioms, both recorded separately as idioms in their own right: tega ... yi = the day has ended / it is night (also tega ma yi past, tega ba yi future), and tega ... poore = daybreak. The word-for-word line stands because the individual words do keep their meanings (speaker) - but the sentence meaning is not their sum, so do not derive a rule from this row. Note pɔɔre separate is a different word from poore wake.",
+   "confidence": "medium"
+  },
+  {
+   "ref": "1:5c",
+   "kasem": "Boboa dɛ dem mo konto.",
+   "literal": "beginning day the FOC that-is",
+   "english": "That was the first day.",
+   "constructions": [
+    "focus"
+   ],
+   "note": "konto = Burkina kʋntʋ that one. Day-count formula, six times.",
+   "confidence": "high"
+  },
+  {
+   "ref": "1:6",
+   "kasem": "Wɛ déem daa ma ta o we, Pa se laŋa taa wora na bam tetare ne se ba pɔɔre yera yera kuni belei.",
+   "literal": "God at-that-point again then said he says let that expanse keep be-there water the middle in that they separate separately separately times two",
+   "english": "God said, Let there be an expanse in the midst of the waters to separate water from water.",
+   "constructions": [
+    "command",
+    "word-order",
+    "numeral"
+   ],
+   "note": "yera yera is a fixed pair meaning individually / separately, and commonly follows pɔɔre divide (speaker). It is NOT yera name doubled, and is not read word for word. kuni belei = two times; belei is the b- form agreeing with kuni.",
+   "confidence": "high"
+  },
+  {
+   "ref": "1:7a",
+   "kasem": "Wɛ ma ke laŋa o ma pɔɔre na balo na wo ka kuri ne to, de na balo na wo ka baŋa ne to daane.",
+   "literal": "God then made expanse he then separated water those that are it bottom in that and water those that are it top in that each-other",
+   "english": "So God made the expanse and separated the water under it from the water above it.",
+   "constructions": [
+    "relative-clause",
+    "serial-verb",
+    "word-order"
+   ],
+   "note": "Two parallel relative clauses, each opened by na and closed by to.",
+   "confidence": "high"
+  },
+  {
+   "ref": "1:7b",
+   "kasem": "Ko ma seene ko ke konto.",
+   "literal": "it then really it did that-way",
+   "english": "It was so.",
+   "constructions": [
+    "word-order"
+   ],
+   "note": "Fixed formula, six times in the chapter.",
+   "confidence": "high"
+  },
+  {
+   "ref": "1:8a",
+   "kasem": "Wɛ ma bwoŋi laŋa kam we wɛyuu.",
+   "literal": "God then called expanse the say sky",
+   "english": "God called the expanse sky.",
+   "constructions": [
+    "word-order"
+   ],
+   "note": "",
+   "confidence": "high"
+  },
+  {
+   "ref": "1:8b",
+   "kasem": "Tega ma ba ka yi ye ka daare ka poore.",
+   "literal": "earth then came it reached and it again it woke",
+   "english": "The day came to an end, and it broke again.",
+   "constructions": [
+    "tense",
+    "word-order"
+   ],
+   "note": "Carries TWO idioms, both recorded separately as idioms in their own right: tega ... yi = the day has ended / it is night (also tega ma yi past, tega ba yi future), and tega ... poore = daybreak. The word-for-word line stands because the individual words do keep their meanings (speaker) - but the sentence meaning is not their sum, so do not derive a rule from this row. Note pɔɔre separate is a different word from poore wake.",
+   "confidence": "medium"
+  },
+  {
+   "ref": "1:8c",
+   "kasem": "Da yalei dɛ dem mo konto.",
+   "literal": "day two day the FOC that-is",
+   "english": "That was the second day.",
+   "constructions": [
+    "focus",
+    "numeral"
+   ],
+   "note": "balei, yalei, nlei, selei, telei, delei all mean two in Ghana Kasem; the preceding word picks which (speaker). Concord, not variants.",
+   "confidence": "high"
+  },
+  {
+   "ref": "1:9a",
+   "kasem": "Wɛ daa ma ta o we, Pa se na balo na wo wɛyuu kom kuri ne to la ba tigisi jeiga dedoa ba daare se te-kora taa wora.",
+   "literal": "God again then said he says let that water those that are sky the bottom in that gather they assemble place one they again that dry-ground keep be-there",
+   "english": "God said, Let the water under the sky be gathered to one place, and let dry ground appear.",
+   "constructions": [
+    "command",
+    "relative-clause",
+    "numeral"
+   ],
+   "note": "te-kora = Burkina tɩ-kʋra dry soil. la = gather (speaker; la also means draw and write). la ba tigisi is a serial pair.",
+   "confidence": "high"
+  },
+  {
+   "ref": "1:9b",
+   "kasem": "Ko ma seene ko ke konto.",
+   "literal": "it then really it did that-way",
+   "english": "It was so.",
+   "constructions": [
+    "word-order"
+   ],
+   "note": "",
+   "confidence": "high"
+  },
+  {
+   "ref": "1:10a",
+   "kasem": "Wɛ ma bwoŋi te-kora kam we tega baŋa, ye o daare o bwoŋi na-fɔrɔ kom na lage daane to we naneo.",
+   "literal": "God then called dry-ground the say earth surface and he again he called great-waters the that gathered each-other that say sea",
+   "english": "God called the dry ground land and the gathered waters he called seas.",
+   "constructions": [
+    "relative-clause",
+    "word-order"
+   ],
+   "note": "lage here is the gathering of the waters (speaker); lage also means want. naneo = Burkina nanɩʋ lake.",
+   "confidence": "high"
+  },
+  {
+   "ref": "1:10b",
+   "kasem": "Wɛ ma na we ko lana, ye o wo pwoli.",
+   "literal": "God then saw that it is-good and he was happy",
+   "english": "God saw that it was good.",
+   "constructions": [
+    "word-order"
+   ],
+   "note": "",
+   "confidence": "high"
+  },
+  {
+   "ref": "1:11a",
+   "kasem": "Wɛ laam ma ta o we, Pa se gaaro de teeni puli tega kam baŋa ne,",
+   "literal": "God then then said he says let that grass and trees spring-up earth the surface on",
+   "english": "God said, Let the land produce vegetation:",
+   "constructions": [
+    "command",
+    "word-order"
+   ],
+   "note": "wo- in wo-dwa is things (speaker), so a seed is a thing-of-sowing. laam ma versus ma alone. The speaker's impression, offered as a feeling and not as fact: laam ma tells the listener the action is not the last in the queue, more is coming, where ma alone reads as just then, with nothing expected to follow. Recorded as evidence to test, not as a rule. puli = spring up / rise. teeni = plural of tio tree.",
+   "confidence": "high"
+  },
+  {
+   "ref": "1:11b",
+   "kasem": "gaaro telo na tiŋi te wo-dwa to, dedaane teeni na leiri bia de ba wo-dwa to, tio maama de ko dwi.",
+   "literal": "grass which that put-down their seed that and trees which bear fruit with their seed that tree every with its kind",
+   "english": "plants yielding seeds according to their kinds, and trees bearing fruit with seed in it, each tree according to its kind.",
+   "constructions": [
+    "relative-clause",
+    "possession"
+   ],
+   "note": "leiri = bear fruit (Burkina ləgi). bia = children/fruit. tiŋi unconfirmed in this sense.",
+   "confidence": "medium"
+  },
+  {
+   "ref": "1:11c",
+   "kasem": "Ko ma seene ko ke konto.",
+   "literal": "it then really it did that-way",
+   "english": "It was so.",
+   "constructions": [
+    "word-order"
+   ],
+   "note": "",
+   "confidence": "high"
+  },
+  {
+   "ref": "1:12a",
+   "kasem": "Tega kam maa puli ga-lɛɛro dwi maama, de teeni dwi maama na leiri bia to, dedaane te wo-dwa dwi dwi.",
+   "literal": "earth the was sprouting weeds kind every and trees kind every that bear fruit that and their seed kind kind",
+   "english": "The land produced vegetation, plants of every kind, and trees of every kind bearing fruit with seed in it, each according to its kind.",
+   "constructions": [
+    "relative-clause",
+    "plural"
+   ],
+   "note": "ga-lɛɛro = weeds (speaker). dwi dwi reduplicated = kind by kind.",
+   "confidence": "high"
+  },
+  {
+   "ref": "1:12b",
+   "kasem": "Wɛ ma na we, o na ke kolo to lana, ye o wo pwoli.",
+   "literal": "God then saw that he that made which that is-good and he was happy",
+   "english": "God saw that what he had made was good.",
+   "constructions": [
+    "relative-clause",
+    "word-order"
+   ],
+   "note": "",
+   "confidence": "high"
+  },
+  {
+   "ref": "1:13a",
+   "kasem": "Tega ma ba ka yi ye ka daare ka poore.",
+   "literal": "earth then came it reached and it again it woke",
+   "english": "The day came to an end, and it broke again.",
+   "constructions": [
+    "tense",
+    "word-order"
+   ],
+   "note": "Carries TWO idioms, both recorded separately as idioms in their own right: tega ... yi = the day has ended / it is night (also tega ma yi past, tega ba yi future), and tega ... poore = daybreak. The word-for-word line stands because the individual words do keep their meanings (speaker) - but the sentence meaning is not their sum, so do not derive a rule from this row. Note pɔɔre separate is a different word from poore wake.",
+   "confidence": "medium"
+  },
+  {
+   "ref": "1:13b",
+   "kasem": "Da yatɔ dɛ dem mo konto.",
+   "literal": "day three day the FOC that-is",
+   "english": "That was the third day.",
+   "constructions": [
+    "focus",
+    "numeral"
+   ],
+   "note": "",
+   "confidence": "high"
+  },
+  {
+   "ref": "1:14a",
+   "kasem": "Wɛ daa ma ta o we, Pa se wonnu telo na nyeene to dwi dwi taa wo wɛyuu kom ne se te pɔɔre wea de tete daane.",
+   "literal": "God again then said he says let that things which that shine that kind kind keep be sky the in that they separate day and night each-other",
+   "english": "God said, Let there be lights in the expanse of the sky to separate the day from the night,",
+   "constructions": [
+    "command",
+    "relative-clause"
+   ],
+   "note": "wonnu telo na nyeene to = things which shine - the Kasem has no single word for light-body.",
+   "confidence": "high"
+  },
+  {
+   "ref": "1:14b",
+   "kasem": "Te wó taa ye memaŋa te bere yadɛ dedaane te-pwoŋa.",
+   "literal": "they will keep be signs they show rainy-season and dry-season",
+   "english": "and let them be signs to mark the rainy season and the dry season.",
+   "constructions": [
+    "tense"
+   ],
+   "note": "There is no single Kasem word for seasons, so the two are named: yadɛ rainy, te-pwoŋa dry (speaker). bere = show.",
+   "confidence": "high"
+  },
+  {
+   "ref": "1:14c",
+   "kasem": "Te ta wó taa bere da yam, de bena yam, dedaane chane sem maŋa maama.",
+   "literal": "they also will keep show day the and years the and months the time every",
+   "english": "They will also mark the days, the years, and every season of the months.",
+   "constructions": [
+    "plural",
+    "tense"
+   ],
+   "note": "chane = months, sg. chana (speaker); Burkina cana2 mois, pl. canɩ. Days, years and months, where the English has seasons, days and years.",
+   "confidence": "high"
+  },
+  {
+   "ref": "1:15a",
+   "kasem": "Te wó taa nyeene wɛyuu ne se te taa pae pwooni tega kam baŋa ne.",
+   "literal": "they will keep shine sky in that they keep give light earth the surface on",
+   "english": "And let them serve as lights in the sky to give light on the earth.",
+   "constructions": [
+    "tense",
+    "word-order"
+   ],
+   "note": "",
+   "confidence": "high"
+  },
+  {
+   "ref": "1:15b",
+   "kasem": "Ko ma seene ko ke konto.",
+   "literal": "it then really it did that-way",
+   "english": "It was so.",
+   "constructions": [
+    "word-order"
+   ],
+   "note": "",
+   "confidence": "high"
+  },
+  {
+   "ref": "1:16a",
+   "kasem": "Wɛ déem ma ke wo-nyen-kamuna yalei pa se kolo na nyeene ko gaale to yeini ko taa nyeena wea ne, ye kolo na muri to taa nyeena tete ne.",
+   "literal": "God at-that-point then made shining-thing-big two let that which that shines it exceeds that usually it keeps shining day in and which that is-lesser that keeps shining night in",
+   "english": "God made two great lights, the greater light to rule the day and the lesser light to rule the night.",
+   "constructions": [
+    "relative-clause",
+    "comparison",
+    "numeral"
+   ],
+   "note": "gaale = exceed (Burkina gaalɩ) and muri = be lesser (Burkina muri) - the comparison is two verbs, not adjectives.",
+   "confidence": "high"
+  },
+  {
+   "ref": "1:16b",
+   "kasem": "O daa ta ma ke chalechwe sem de o woli da.",
+   "literal": "he again also then made stars the and he added there",
+   "english": "He made the stars also.",
+   "constructions": [
+    "word-order"
+   ],
+   "note": "chalechwe = Burkina calɩcwɩ, plural of calɩcʋa star. woli = add (Burkina wəli).",
+   "confidence": "high"
+  },
+  {
+   "ref": "1:17",
+   "kasem": "Wɛ ma ke wo-nyenno tem konto o zege wɛyuu ne se te taa pae pwooni yi tega kam baŋa.",
+   "literal": "God then made shining-things the that-way he set sky in that they keep give light reach earth the surface",
+   "english": "God placed the lights in the expanse of the sky to shine on the earth,",
+   "constructions": [
+    "word-order"
+   ],
+   "note": "yi = reach (speaker), one word here and in the evening formula of 1:5.",
+   "confidence": "high"
+  },
+  {
+   "ref": "1:18a",
+   "kasem": "Te wó taa nii wea de tete baŋa ne ye te ta wó pɔɔre pwooni de lim daane.",
+   "literal": "they will keep watch day and night over on and they also will separate light and darkness each-other",
+   "english": "to preside over the day and the night, and to separate the light from the darkness.",
+   "constructions": [
+    "tense",
+    "word-order"
+   ],
+   "note": "nii = look at / watch over (Burkina nii).",
+   "confidence": "high"
+  },
+  {
+   "ref": "1:18b",
+   "kasem": "Wɛ ma na we, o na ke kolo to lana, ye o wo pwoli.",
+   "literal": "God then saw that he that made which that is-good and he was happy",
+   "english": "God saw that it was good.",
+   "constructions": [
+    "relative-clause",
+    "word-order"
+   ],
+   "note": "",
+   "confidence": "high"
+  },
+  {
+   "ref": "1:19a",
+   "kasem": "Tega ma ba ka yi ye ka daare ka poore.",
+   "literal": "earth then came it reached and it again it woke",
+   "english": "The day came to an end, and it broke again.",
+   "constructions": [
+    "tense",
+    "word-order"
+   ],
+   "note": "Carries TWO idioms, both recorded separately as idioms in their own right: tega ... yi = the day has ended / it is night (also tega ma yi past, tega ba yi future), and tega ... poore = daybreak. The word-for-word line stands because the individual words do keep their meanings (speaker) - but the sentence meaning is not their sum, so do not derive a rule from this row. Note pɔɔre separate is a different word from poore wake.",
+   "confidence": "medium"
+  },
+  {
+   "ref": "1:19b",
+   "kasem": "Da yana dɛ dem mo konto.",
+   "literal": "day four day the FOC that-is",
+   "english": "That was the fourth day.",
+   "constructions": [
+    "focus",
+    "numeral"
+   ],
+   "note": "",
+   "confidence": "high"
+  },
+  {
+   "ref": "1:20",
+   "kasem": "Wɛ daa ma ta o we, Pa se na-fɔrɔ kom wo su de wonnu telo na ŋwe to dwi maama, se zuna de taa jaana ba beera wɛyuu kom jei sem maama ne.",
+   "literal": "God again then said he says let that great-waters the be full with things which that live that kind every that birds and keep fly they roam sky the places the every in",
+   "english": "God said, Let the water swarm with living creatures of every kind, and let birds fly across the whole expanse of the sky.",
+   "constructions": [
+    "command",
+    "relative-clause"
+   ],
+   "note": "zuna = birds and jaana = fly, both from the Burkina example Zunə jaana. sem unresolved.",
+   "confidence": "medium"
+  },
+  {
+   "ref": "1:21a",
+   "kasem": "Wɛ déem ma naane naneo wo vare-kamuna de wonnu telo na kare te yɛ na wone to dwi maama.",
+   "literal": "God at-that-point then created sea of large-animals and things which that move they are water inside that kind every",
+   "english": "God created the great sea creatures and every kind of living, moving thing with which the water swarmed.",
+   "constructions": [
+    "relative-clause",
+    "possession"
+   ],
+   "note": "wo here is the genitive linker, not the verb wo = be located.",
+   "confidence": "high"
+  },
+  {
+   "ref": "1:21b",
+   "kasem": "O ta ma naane zuna balo na kare ba jaane wɛyuu ne to ba dwi ba dwi.",
+   "literal": "he also then created birds those that move they fly sky in that their kind their kind",
+   "english": "He also created every winged bird according to its kind.",
+   "constructions": [
+    "relative-clause",
+    "plural"
+   ],
+   "note": "",
+   "confidence": "high"
+  },
+  {
+   "ref": "1:21c",
+   "kasem": "Wɛ ma na we, o na ke kolo to lana, ye o wo pwoli.",
+   "literal": "God then saw that he that made which that is-good and he was happy",
+   "english": "God saw that it was good.",
+   "constructions": [
+    "relative-clause",
+    "word-order"
+   ],
+   "note": "",
+   "confidence": "high"
+  },
+  {
+   "ref": "1:22a",
+   "kasem": "Wɛ ma daare o swɛ te maama swolim ye o we,",
+   "literal": "God then again he bathed them all blessing and he says",
+   "english": "God blessed them and said,",
+   "constructions": [
+    "word-order"
+   ],
+   "note": "swɛ = bathe (speaker), so swɛ ... swolim is literally to bathe someone in a blessing - recorded as an idiom in its own right. swolim = Burkina swəlim, blessing (ritual).",
+   "confidence": "high"
+  },
+  {
+   "ref": "1:22b",
+   "kasem": "Ta-á lore-na á puli á su naneero tem wo maama.",
+   "literal": "keep-you give-birth you increase you fill oceans the inside all",
+   "english": "Be fruitful and multiply and fill the waters in the seas.",
+   "constructions": [
+    "command",
+    "plural"
+   ],
+   "note": "lore, root lo, = to give birth (speaker). The -na is still MY inference as a plural imperative, on the strength of Nii-na, di-na and Pa-na - not yet confirmed.",
+   "confidence": "high"
+  },
+  {
+   "ref": "1:22c",
+   "kasem": "Nam ta pa se zuna bam de puli ba taa daga logo baŋa ne.",
+   "literal": "then also let that birds the and increase they keep be-many world surface on",
+   "english": "And let the birds multiply on the earth.",
+   "constructions": [
+    "command"
+   ],
+   "note": "daga = be many (Burkina daga2). logo = Burkina lʋgʋ world.",
+   "confidence": "high"
+  },
+  {
+   "ref": "1:23a",
+   "kasem": "Tega ma ba ka yi ye ka daare ka poore.",
+   "literal": "earth then came it reached and it again it woke",
+   "english": "The day came to an end, and it broke again.",
+   "constructions": [
+    "tense",
+    "word-order"
+   ],
+   "note": "Carries TWO idioms, both recorded separately as idioms in their own right: tega ... yi = the day has ended / it is night (also tega ma yi past, tega ba yi future), and tega ... poore = daybreak. The word-for-word line stands because the individual words do keep their meanings (speaker) - but the sentence meaning is not their sum, so do not derive a rule from this row. Note pɔɔre separate is a different word from poore wake.",
+   "confidence": "medium"
+  },
+  {
+   "ref": "1:23b",
+   "kasem": "Da yanu dɛ dem mo konto.",
+   "literal": "day five day the FOC that-is",
+   "english": "That was the fifth day.",
+   "constructions": [
+    "focus",
+    "numeral"
+   ],
+   "note": "",
+   "confidence": "high"
+  },
+  {
+   "ref": "1:24a",
+   "kasem": "Wɛ daa ta ma ta o we, Pa se tega kam baŋa taa jege wonnu telo na ŋwe to dwi dwi, sɔŋɔ vara de ga-vara, de tega-veila dwi maama.",
+   "literal": "God again also then said he says let that earth the surface keep have things which that live that kind kind home animals and bush-animals and land-walkers kind every",
+   "english": "God said, Let the land produce living creatures of every kind: cattle, wild animals, and creeping things, each according to its kind.",
+   "constructions": [
+    "command",
+    "relative-clause"
+   ],
+   "note": "ga-vara = wild animals, straight from the Burkina example Gaa vara bam fwɛ. soŋo = home.",
+   "confidence": "high"
+  },
+  {
+   "ref": "1:24b",
+   "kasem": "Ko ma seene ko ke konto.",
+   "literal": "it then really it did that-way",
+   "english": "It was so.",
+   "constructions": [
+    "word-order"
+   ],
+   "note": "",
+   "confidence": "high"
+  },
+  {
+   "ref": "1:25a",
+   "kasem": "Wɛ déem ma ke logo baŋa vara bam konto, ba dwi ba dwi, kago-vara de sɔŋɔ vara, de tega-veila dwi maama.",
+   "literal": "God at-that-point then made world surface animals the that-way their kind their kind bush-animals and home animals and land-walkers kind every",
+   "english": "God made the wild animals according to their kinds, the cattle according to their kinds, and all the creatures that creep along the ground.",
+   "constructions": [
+    "plural",
+    "possession"
+   ],
+   "note": "kago-vara and ga-vara (1:24) are the same word (speaker); the chapter spells it two ways.",
+   "confidence": "high"
+  },
+  {
+   "ref": "1:25b",
+   "kasem": "Wɛ ma na we, o na ke kolo to lana, ye o wo pwoli.",
+   "literal": "God then saw that he that made which that is-good and he was happy",
+   "english": "God saw that it was good.",
+   "constructions": [
+    "relative-clause",
+    "word-order"
+   ],
+   "note": "",
+   "confidence": "high"
+  },
+  {
+   "ref": "1:26a",
+   "kasem": "Wɛ laam maa we, Pa-na se dé mɔ nabiina se ba taa nye de debam, ye ba jege debam tete kamɔgɔ.",
+   "literal": "God then was saying let-you that we mould humankind that they keep resemble with us and they have us own moulded-thing",
+   "english": "Then God said, Let us make humankind so that they resemble us and have our own likeness.",
+   "constructions": [
+    "command",
+    "possession"
+   ],
+   "note": "tete here = own/self, NOT night. kamɔgɔ is a statue or something moulded from clay (speaker) - so the derivation from mɔ mould is real, not a guess.",
+   "confidence": "high"
+  },
+  {
+   "ref": "1:26b",
+   "kasem": "Banto wó taa jege dam ba taa tei naneo wo ywona yam, de wɛyuu zuna bam, dedaane vara de wonnu telo maama na kare te vei tega kam baŋa ne to.",
+   "literal": "they will keep have authority they keep rule sea of fish the and sky birds the and animals and things which every that move they walk earth the surface on that",
+   "english": "They will have authority to rule over the fish of the sea and the birds of the sky, and the animals and every creature that moves on the earth.",
+   "constructions": [
+    "tense",
+    "relative-clause"
+   ],
+   "note": "tei = rule over (Burkina te2). ywona = fish has no dictionary match.",
+   "confidence": "medium"
+  },
+  {
+   "ref": "1:27a",
+   "kasem": "Wɛ déem ma seene o naane nabiina se ba taa jege o tete kamɔgɔ.",
+   "literal": "God at-that-point then really he created humankind that they keep have his own moulded-thing",
+   "english": "God created humankind so that they have his own likeness.",
+   "constructions": [
+    "word-order",
+    "possession"
+   ],
+   "note": "",
+   "confidence": "high"
+  },
+  {
+   "ref": "1:27b",
+   "kasem": "O déem naane-ba baaro de kaane mo.",
+   "literal": "he at-that-point created-them man and woman FOC",
+   "english": "He created them male and female.",
+   "constructions": [
+    "focus"
+   ],
+   "note": "Focus particle closes the clause on the pair, not on the verb.",
+   "confidence": "high"
+  },
+  {
+   "ref": "1:28a",
+   "kasem": "O ma swɛ ba swolim, ye o ta de-ba we,",
+   "literal": "he then bathed them blessing and he said to-them says",
+   "english": "He blessed them and said to them,",
+   "constructions": [
+    "word-order"
+   ],
+   "note": "",
+   "confidence": "high"
+  },
+  {
+   "ref": "1:28b",
+   "kasem": "Ta-á lore-na bia á puli dedɛ se á jage tega baŋa maama ne se á daare á ta-á tei-ko.",
+   "literal": "keep-you give-birth children you increase many that you spread earth surface all on that you again you keep-you rule-it",
+   "english": "Be fruitful and multiply greatly! Fill the whole earth and subdue it!",
+   "constructions": [
+    "command",
+    "plural"
+   ],
+   "note": "dedɛ = many (speaker). jage = spread over, the same verb as in 1:2a where it renders formless.",
+   "confidence": "high"
+  },
+  {
+   "ref": "1:28c",
+   "kasem": "Ta-á di-na dam naneo wo ywona yam, dedaane wɛyuu zuna bam, de wonnu telo maama na kare te vei tega ne to baŋa ne.",
+   "literal": "keep-you eat-you authority sea of fish the and sky birds the and things which every that move they walk earth in that surface on",
+   "english": "Rule over the fish of the sea and the birds of the sky and every creature that moves on the ground.",
+   "constructions": [
+    "command",
+    "relative-clause"
+   ],
+   "note": "di dam confirmed as an idiom (speaker): di is eat but also win or achieve, and dam is strength as well as authority.",
+   "confidence": "high"
+  },
+  {
+   "ref": "1:29a",
+   "kasem": "Wɛ ma daare o ta de-ba we,",
+   "literal": "God then again he said to-them says",
+   "english": "Then God said to them,",
+   "constructions": [
+    "word-order"
+   ],
+   "note": "",
+   "confidence": "high"
+  },
+  {
+   "ref": "1:29b",
+   "kasem": "Nii-na, a kwei gaaro telo na tiŋi te wo-dwa to, dedaane teeni na leiri bia de ba wo-dwa to,",
+   "literal": "look-you I take grass which that put-down their seed that and trees which bear fruit with their seed that",
+   "english": "Look, I give you every seed-bearing plant and every tree that has fruit with seed in it,",
+   "constructions": [
+    "command",
+    "relative-clause"
+   ],
+   "note": "kwei = take (Burkina kwe). The giving is in the next clause.",
+   "confidence": "high"
+  },
+  {
+   "ref": "1:29c",
+   "kasem": "a ke abam jeŋa ne se te taa ye wodiiru te pa abam.",
+   "literal": "I put your hand in that they keep be food they give you",
+   "english": "I put them into your hand to be food for you.",
+   "constructions": [
+    "word-order"
+   ],
+   "note": "jeŋa = hand (Burkina jɩŋa); in your hand is how the Kasem renders they will be yours.",
+   "confidence": "high"
+  },
+  {
+   "ref": "1:30a",
+   "kasem": "Ko daare ko ná ye logo baŋa vara bam maama, de wɛyuu zuna bam, de wonnu telo maama na jege ŋwea ye te kare te vei tega baŋa ne to,",
+   "literal": "it again it also is world surface animals the all and sky birds the and things which every that have life and they move they walk earth surface on that",
+   "english": "And to all the animals of the earth, and every bird of the sky, and every creature that has life in it and moves on the ground,",
+   "constructions": [
+    "relative-clause",
+    "plural"
+   ],
+   "note": "ŋwea = life (Burkina ŋwɩa). na unresolved.",
+   "confidence": "medium"
+  },
+  {
+   "ref": "1:30b",
+   "kasem": "amo kwei gaaro tem de teeni vɔɔro tem mo a pa-te se te taa di.",
+   "literal": "I-myself take grass the and trees leaves the FOC I give-them that they keep eat",
+   "english": "I give every green plant for them to eat.",
+   "constructions": [
+    "focus"
+   ],
+   "note": "mo is a focus particle (speaker). amo looks like a plus mo, but the repo draft warns against reading segmentation off spelling, so that stays an observation. vɔɔro = leaves (speaker), not green - so this is the plants and the trees' leaves.",
+   "confidence": "high"
+  },
+  {
+   "ref": "1:30c",
+   "kasem": "Ko ma seene ko ke konto.",
+   "literal": "it then really it did that-way",
+   "english": "It was so.",
+   "constructions": [
+    "word-order"
+   ],
+   "note": "",
+   "confidence": "high"
+  },
+  {
+   "ref": "1:31a",
+   "kasem": "Wɛ ma fɔge o nii kolo maama o na ke to, ye o na we ko tiini ko lamma.",
+   "literal": "God then carefully he looked which every he that made that and he saw that it exceeds it is-good",
+   "english": "God carefully looked over all that he had made, and saw that it was very good.",
+   "constructions": [
+    "relative-clause",
+    "comparison"
+   ],
+   "note": "tiini = do intensely (Burkina tiini, v.aux.) - very good is it exceeds, it is good.",
+   "confidence": "high"
+  },
+  {
+   "ref": "1:31b",
+   "kasem": "Tega ma ba ka yi ye ka daare ka poore.",
+   "literal": "earth then came it reached and it again it woke",
+   "english": "The day came to an end, and it broke again.",
+   "constructions": [
+    "tense",
+    "word-order"
+   ],
+   "note": "Carries TWO idioms, both recorded separately as idioms in their own right: tega ... yi = the day has ended / it is night (also tega ma yi past, tega ba yi future), and tega ... poore = daybreak. The word-for-word line stands because the individual words do keep their meanings (speaker) - but the sentence meaning is not their sum, so do not derive a rule from this row. Note pɔɔre separate is a different word from poore wake.",
+   "confidence": "medium"
+  },
+  {
+   "ref": "1:31c",
+   "kasem": "Da yaredo dɛ dem mo konto.",
+   "literal": "day six day the FOC that-is",
+   "english": "That was the sixth day.",
+   "constructions": [
+    "focus",
+    "numeral"
+   ],
+   "note": "",
+   "confidence": "high"
+  }
+ ],
+ "idioms": [
+  {
+   "kasem": "tega ... yi",
+   "english": "the day has ended; it is night",
+   "literalParts": "tega earth/land + yi reach",
+   "note": "Also tega ma yi (past) and tega ba yi (future). yi on its own has other senses, one of them sieve.",
+   "refs": [
+    "1:5b",
+    "1:8b",
+    "1:13a",
+    "1:19a",
+    "1:23a",
+    "1:31b"
+   ],
+   "source": "speaker"
+  },
+  {
+   "kasem": "tega ... poore",
+   "english": "daybreak",
+   "literalParts": "tega earth/land + poore wake",
+   "note": "poore on its own means to wake, or to be sharper or more versatile. Not the same word as pɔɔre, separate.",
+   "refs": [
+    "1:5b",
+    "1:8b",
+    "1:13a",
+    "1:19a",
+    "1:23a",
+    "1:31b"
+   ],
+   "source": "speaker"
+  },
+  {
+   "kasem": "yera yera",
+   "english": "individually, separately",
+   "literalParts": "yera name, doubled",
+   "note": "Commonly follows pɔɔre divide. Not yera name read twice.",
+   "refs": [
+    "1:6"
+   ],
+   "source": "speaker"
+  },
+  {
+   "kasem": "di dam",
+   "english": "to exercise rule",
+   "literalParts": "di eat + dam authority/strength",
+   "note": "Confirmed by the speaker. di is eat, but also win or achieve; dam is authority, but also strength.",
+   "refs": [
+    "1:28c"
+   ],
+   "source": "speaker"
+  },
+  {
+   "kasem": "wo pwoli",
+   "english": "to be happy",
+   "literalParts": "wo be + pwoli",
+   "note": "pwoli does not stand alone when it means happiness (speaker). Six times, always after 'God saw that it was good', and with no counterpart in the English.",
+   "refs": [
+    "1:4a",
+    "1:10b",
+    "1:12b",
+    "1:18b",
+    "1:21c",
+    "1:25b"
+   ],
+   "source": "speaker"
+  },
+  {
+   "kasem": "swɛ ... swolim",
+   "english": "to bless",
+   "literalParts": "swɛ bathe + swolim blessing",
+   "note": "Literally to bathe someone in a blessing. swɛ on its own is bath (speaker).",
+   "refs": [
+    "1:22a",
+    "1:28a"
+   ],
+   "source": "speaker"
+  }
+ ],
+ "words": [
+  {
+   "token": "ma",
+   "count": 43,
+   "glosses": [
+    {
+     "english": "then",
+     "n": 43
+    }
+   ],
+   "burkina": "ma2",
+   "burkinaGloss": "adv. ensuite, puis, alors; then, next",
+   "speaker": "",
+   "homograph": "",
+   "status": "attested",
+   "refs": [
+    "1:3a",
+    "1:3b",
+    "1:4a",
+    "1:4b",
+    "1:5a",
+    "1:5b"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "o",
+   "count": 38,
+   "glosses": [
+    {
+     "english": "he",
+     "n": 37
+    },
+    {
+     "english": "his",
+     "n": 1
+    }
+   ],
+   "burkina": "o",
+   "burkinaGloss": "pn. il, elle, son, sa",
+   "speaker": "",
+   "homograph": "",
+   "status": "attested",
+   "refs": [
+    "1:3a",
+    "1:4a",
+    "1:4b",
+    "1:5a",
+    "1:6",
+    "1:7a"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "na",
+   "count": 37,
+   "glosses": [
+    {
+     "english": "that",
+     "n": 22
+    },
+    {
+     "english": "saw",
+     "n": 7
+    },
+    {
+     "english": "water",
+     "n": 6
+    },
+    {
+     "english": "which",
+     "n": 2
+    }
+   ],
+   "burkina": "na1 / na / nii",
+   "burkinaGloss": "pt.g. subordinator — and na 'eau; water' — and nii 'regarder; see'",
+   "speaker": "",
+   "homograph": "relative particle vs water vs see — three words",
+   "status": "attested",
+   "refs": [
+    "1:2d",
+    "1:4a",
+    "1:6",
+    "1:7a",
+    "1:9a",
+    "1:10a"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "de",
+   "count": 30,
+   "glosses": [
+    {
+     "english": "and",
+     "n": 25
+    },
+    {
+     "english": "with",
+     "n": 5
+    }
+   ],
+   "burkina": "dɩ",
+   "burkinaGloss": "cj. et; and",
+   "speaker": "",
+   "homograph": "",
+   "status": "attested",
+   "refs": [
+    "1:1",
+    "1:3b",
+    "1:4b",
+    "1:7a",
+    "1:11a",
+    "1:11b"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "wɛ",
+   "count": 28,
+   "glosses": [
+    {
+     "english": "God",
+     "n": 28
+    }
+   ],
+   "burkina": "Wɛ",
+   "burkinaGloss": "God; cf. wɛyuu sky",
+   "speaker": "",
+   "homograph": "",
+   "status": "attested",
+   "refs": [
+    "1:1",
+    "1:2d",
+    "1:3a",
+    "1:4a",
+    "1:5a",
+    "1:6"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "to",
+   "count": 25,
+   "glosses": [
+    {
+     "english": "that",
+     "n": 25
+    }
+   ],
+   "burkina": "tɩn",
+   "burkinaGloss": "relative-clause closer",
+   "speaker": "",
+   "homograph": "",
+   "status": "attested",
+   "refs": [
+    "1:1",
+    "1:7a",
+    "1:9a",
+    "1:10a",
+    "1:11b",
+    "1:12a"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "ye",
+   "count": 25,
+   "glosses": [
+    {
+     "english": "and",
+     "n": 21
+    },
+    {
+     "english": "be",
+     "n": 2
+    },
+    {
+     "english": "was",
+     "n": 1
+    },
+    {
+     "english": "is",
+     "n": 1
+    }
+   ],
+   "burkina": "yɩ",
+   "burkinaGloss": "v. être; be (copula) — distinct from ye 'and'",
+   "speaker": "",
+   "homograph": "and (connective) vs be/was (copula) — two words",
+   "status": "attested",
+   "refs": [
+    "1:2c",
+    "1:4a",
+    "1:5a",
+    "1:5b",
+    "1:8b",
+    "1:10a"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "ba",
+   "count": 24,
+   "glosses": [
+    {
+     "english": "they",
+     "n": 10
+    },
+    {
+     "english": "came",
+     "n": 7
+    },
+    {
+     "english": "their",
+     "n": 6
+    },
+    {
+     "english": "them",
+     "n": 1
+    }
+   ],
+   "burkina": "ba1 / ba2",
+   "burkinaGloss": "pn. ils/elles — and ba2 v. venir; come",
+   "speaker": "",
+   "homograph": "",
+   "status": "attested",
+   "refs": [
+    "1:3b",
+    "1:5b",
+    "1:6",
+    "1:8b",
+    "1:9a",
+    "1:11b"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "ne",
+   "count": 24,
+   "glosses": [
+    {
+     "english": "in",
+     "n": 14
+    },
+    {
+     "english": "on",
+     "n": 10
+    }
+   ],
+   "burkina": "nɩ",
+   "burkinaGloss": "postp. dans, à; in, at",
+   "speaker": "",
+   "homograph": "",
+   "status": "attested",
+   "refs": [
+    "1:1",
+    "1:2b",
+    "1:2d",
+    "1:6",
+    "1:7a",
+    "1:9a"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "se",
+   "count": 23,
+   "glosses": [
+    {
+     "english": "that",
+     "n": 23
+    }
+   ],
+   "burkina": "sɩ",
+   "burkinaGloss": "so that, subjunctive",
+   "speaker": "",
+   "homograph": "",
+   "status": "attested",
+   "refs": [
+    "1:3a",
+    "1:4b",
+    "1:6",
+    "1:9a",
+    "1:11a",
+    "1:14a"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "we",
+   "count": 23,
+   "glosses": [
+    {
+     "english": "says",
+     "n": 10
+    },
+    {
+     "english": "that",
+     "n": 7
+    },
+    {
+     "english": "say",
+     "n": 5
+    },
+    {
+     "english": "saying",
+     "n": 1
+    }
+   ],
+   "burkina": "we",
+   "burkinaGloss": "say (quotative)",
+   "speaker": "",
+   "homograph": "",
+   "status": "attested",
+   "refs": [
+    "1:3a",
+    "1:4a",
+    "1:5a",
+    "1:6",
+    "1:8a",
+    "1:9a"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "ka",
+   "count": 21,
+   "glosses": [
+    {
+     "english": "it",
+     "n": 21
+    }
+   ],
+   "burkina": "",
+   "burkinaGloss": "",
+   "speaker": "",
+   "homograph": "",
+   "status": "inferred",
+   "refs": [
+    "1:2b",
+    "1:5b",
+    "1:7a",
+    "1:8b",
+    "1:13a",
+    "1:19a"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "ko",
+   "count": 21,
+   "glosses": [
+    {
+     "english": "it",
+     "n": 20
+    },
+    {
+     "english": "its",
+     "n": 1
+    }
+   ],
+   "burkina": "",
+   "burkinaGloss": "",
+   "speaker": "",
+   "homograph": "",
+   "status": "inferred",
+   "refs": [
+    "1:2d",
+    "1:7b",
+    "1:9b",
+    "1:10b",
+    "1:11b",
+    "1:11c"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "taa",
+   "count": 21,
+   "glosses": [
+    {
+     "english": "keep",
+     "n": 19
+    },
+    {
+     "english": "keeps",
+     "n": 2
+    }
+   ],
+   "burkina": "",
+   "burkinaGloss": "",
+   "speaker": "",
+   "homograph": "",
+   "status": "inferred",
+   "refs": [
+    "1:3a",
+    "1:6",
+    "1:9a",
+    "1:14a",
+    "1:14b",
+    "1:14c"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "te",
+   "count": 21,
+   "glosses": [
+    {
+     "english": "they",
+     "n": 17
+    },
+    {
+     "english": "their",
+     "n": 3
+    },
+    {
+     "english": "them",
+     "n": 1
+    }
+   ],
+   "burkina": "",
+   "burkinaGloss": "",
+   "speaker": "",
+   "homograph": "",
+   "status": "inferred",
+   "refs": [
+    "1:11b",
+    "1:12a",
+    "1:14a",
+    "1:14b",
+    "1:14c",
+    "1:15a"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "maama",
+   "count": 20,
+   "glosses": [
+    {
+     "english": "every",
+     "n": 13
+    },
+    {
+     "english": "all",
+     "n": 7
+    }
+   ],
+   "burkina": "maama",
+   "burkinaGloss": "adj. tous, tout; all, every",
+   "speaker": "",
+   "homograph": "",
+   "status": "attested",
+   "refs": [
+    "1:2a",
+    "1:2c",
+    "1:11b",
+    "1:12a",
+    "1:14c",
+    "1:20"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "baŋa",
+   "count": 19,
+   "glosses": [
+    {
+     "english": "surface",
+     "n": 17
+    },
+    {
+     "english": "top",
+     "n": 1
+    },
+    {
+     "english": "over",
+     "n": 1
+    }
+   ],
+   "burkina": "baŋa1",
+   "burkinaGloss": "haut, surface; top, surface",
+   "speaker": "",
+   "homograph": "",
+   "status": "attested",
+   "refs": [
+    "1:1",
+    "1:2a",
+    "1:2b",
+    "1:2c",
+    "1:2d",
+    "1:7a"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "tega",
+   "count": 18,
+   "glosses": [
+    {
+     "english": "earth",
+     "n": 18
+    }
+   ],
+   "burkina": "tɩga",
+   "burkinaGloss": "ground, earth",
+   "speaker": "",
+   "homograph": "",
+   "status": "attested",
+   "refs": [
+    "1:1",
+    "1:2a",
+    "1:5b",
+    "1:8b",
+    "1:10a",
+    "1:11a"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "dwi",
+   "count": 17,
+   "glosses": [
+    {
+     "english": "kind",
+     "n": 17
+    }
+   ],
+   "burkina": "dwi",
+   "burkinaGloss": "n. sorte, race, espèce; kind, race, species",
+   "speaker": "",
+   "homograph": "",
+   "status": "attested",
+   "refs": [
+    "1:11b",
+    "1:12a",
+    "1:14a",
+    "1:20",
+    "1:21a",
+    "1:21b"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "ke",
+   "count": 17,
+   "glosses": [
+    {
+     "english": "made",
+     "n": 10
+    },
+    {
+     "english": "did",
+     "n": 6
+    },
+    {
+     "english": "put",
+     "n": 1
+    }
+   ],
+   "burkina": "",
+   "burkinaGloss": "",
+   "speaker": "",
+   "homograph": "",
+   "status": "inferred",
+   "refs": [
+    "1:7a",
+    "1:7b",
+    "1:9b",
+    "1:11c",
+    "1:12b",
+    "1:15b"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "ta",
+   "count": 16,
+   "glosses": [
+    {
+     "english": "said",
+     "n": 9
+    },
+    {
+     "english": "also",
+     "n": 6
+    },
+    {
+     "english": "still",
+     "n": 1
+    }
+   ],
+   "burkina": "ta1 / ta3",
+   "burkinaGloss": "v. dire; say — and adv. encore; still, also",
+   "speaker": "",
+   "homograph": "",
+   "status": "attested",
+   "refs": [
+    "1:2b",
+    "1:3a",
+    "1:6",
+    "1:9a",
+    "1:11a",
+    "1:14a"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "wo",
+   "count": 15,
+   "glosses": [
+    {
+     "english": "was",
+     "n": 6
+    },
+    {
+     "english": "are",
+     "n": 3
+    },
+    {
+     "english": "of",
+     "n": 3
+    },
+    {
+     "english": "be",
+     "n": 2
+    },
+    {
+     "english": "inside",
+     "n": 1
+    }
+   ],
+   "burkina": "wɩ2 / wʋ",
+   "burkinaGloss": "v. se trouver, être; be located",
+   "speaker": "",
+   "homograph": "",
+   "status": "attested",
+   "refs": [
+    "1:4a",
+    "1:7a",
+    "1:9a",
+    "1:10b",
+    "1:12b",
+    "1:14a"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "konto",
+   "count": 14,
+   "glosses": [
+    {
+     "english": "that-way",
+     "n": 8
+    },
+    {
+     "english": "that-is",
+     "n": 6
+    }
+   ],
+   "burkina": "kʋntʋ",
+   "burkinaGloss": "dém. celui-ci/cela; that one",
+   "speaker": "",
+   "homograph": "",
+   "status": "attested",
+   "refs": [
+    "1:5c",
+    "1:7b",
+    "1:8c",
+    "1:9b",
+    "1:11c",
+    "1:13b"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "daare",
+   "count": 13,
+   "glosses": [
+    {
+     "english": "again",
+     "n": 13
+    }
+   ],
+   "burkina": "daga1 / daa",
+   "burkinaGloss": "adv. encore, de nouveau; again",
+   "speaker": "",
+   "homograph": "",
+   "status": "attested",
+   "refs": [
+    "1:5a",
+    "1:5b",
+    "1:8b",
+    "1:9a",
+    "1:10a",
+    "1:13a"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "dem",
+   "count": 11,
+   "glosses": [
+    {
+     "english": "the",
+     "n": 11
+    }
+   ],
+   "burkina": "dɩm1",
+   "burkinaGloss": "dét. le/la/les, article défini",
+   "speaker": "",
+   "homograph": "",
+   "status": "attested",
+   "refs": [
+    "1:4a",
+    "1:4b",
+    "1:5a",
+    "1:5c",
+    "1:8c",
+    "1:13b"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "pa",
+   "count": 11,
+   "glosses": [
+    {
+     "english": "let",
+     "n": 9
+    },
+    {
+     "english": "caused",
+     "n": 1
+    },
+    {
+     "english": "give",
+     "n": 1
+    }
+   ],
+   "burkina": "pa2 / pa3",
+   "burkinaGloss": "causatif 'cause to' — and 'give/do for'",
+   "speaker": "",
+   "homograph": "",
+   "status": "attested",
+   "refs": [
+    "1:3a",
+    "1:4b",
+    "1:6",
+    "1:9a",
+    "1:11a",
+    "1:14a"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "wɛyuu",
+   "count": 11,
+   "glosses": [
+    {
+     "english": "sky",
+     "n": 11
+    }
+   ],
+   "burkina": "wɛyuu",
+   "burkinaGloss": "en haut, au ciel; high up, in the sky",
+   "speaker": "",
+   "homograph": "",
+   "status": "attested",
+   "refs": [
+    "1:1",
+    "1:8a",
+    "1:9a",
+    "1:14a",
+    "1:15a",
+    "1:17"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "kam",
+   "count": 10,
+   "glosses": [
+    {
+     "english": "the",
+     "n": 10
+    }
+   ],
+   "burkina": "kam",
+   "burkinaGloss": "dét. le/la, article défini genre C",
+   "speaker": "",
+   "homograph": "",
+   "status": "attested",
+   "refs": [
+    "1:1",
+    "1:2a",
+    "1:8a",
+    "1:10a",
+    "1:11a",
+    "1:12a"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "mo",
+   "count": 10,
+   "glosses": [
+    {
+     "english": "FOC",
+     "n": 10
+    }
+   ],
+   "burkina": "mʋ",
+   "burkinaGloss": "pt.g. particule de focalisation; focus marker",
+   "speaker": "focus particle — confirmed by speaker 2026-09-05",
+   "homograph": "",
+   "status": "speaker",
+   "refs": [
+    "1:1",
+    "1:2a",
+    "1:5c",
+    "1:8c",
+    "1:13b",
+    "1:19b"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "déem",
+   "count": 9,
+   "glosses": [
+    {
+     "english": "at-that-point",
+     "n": 9
+    }
+   ],
+   "burkina": "",
+   "burkinaGloss": "",
+   "speaker": "then, at that point",
+   "homograph": "",
+   "status": "speaker",
+   "refs": [
+    "1:2a",
+    "1:4b",
+    "1:5a",
+    "1:6",
+    "1:16a",
+    "1:21a"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "telo",
+   "count": 9,
+   "glosses": [
+    {
+     "english": "which",
+     "n": 9
+    }
+   ],
+   "burkina": "tɩlʋ",
+   "burkinaGloss": "rel. qui, lesquels (genre D)",
+   "speaker": "",
+   "homograph": "",
+   "status": "attested",
+   "refs": [
+    "1:11b",
+    "1:14a",
+    "1:20",
+    "1:21a",
+    "1:24a",
+    "1:26b"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "bam",
+   "count": 8,
+   "glosses": [
+    {
+     "english": "the",
+     "n": 8
+    }
+   ],
+   "burkina": "bam3",
+   "burkinaGloss": "dét. les",
+   "speaker": "",
+   "homograph": "",
+   "status": "attested",
+   "refs": [
+    "1:2d",
+    "1:6",
+    "1:22c",
+    "1:25a",
+    "1:26b",
+    "1:28c"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "pwooni",
+   "count": 8,
+   "glosses": [
+    {
+     "english": "light",
+     "n": 8
+    }
+   ],
+   "burkina": "",
+   "burkinaGloss": "",
+   "speaker": "light",
+   "homograph": "",
+   "status": "speaker",
+   "refs": [
+    "1:3a",
+    "1:3b",
+    "1:4a",
+    "1:4b",
+    "1:5a",
+    "1:15a"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "seene",
+   "count": 8,
+   "glosses": [
+    {
+     "english": "really",
+     "n": 8
+    }
+   ],
+   "burkina": "",
+   "burkinaGloss": "",
+   "speaker": "really",
+   "homograph": "",
+   "status": "speaker",
+   "refs": [
+    "1:3b",
+    "1:7b",
+    "1:9b",
+    "1:11c",
+    "1:15b",
+    "1:24b"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "da",
+   "count": 7,
+   "glosses": [
+    {
+     "english": "day",
+     "n": 6
+    },
+    {
+     "english": "there",
+     "n": 1
+    }
+   ],
+   "burkina": "da3",
+   "burkinaGloss": "adv. là, là-bas; there",
+   "speaker": "",
+   "homograph": "",
+   "status": "attested",
+   "refs": [
+    "1:8c",
+    "1:13b",
+    "1:14c",
+    "1:16b",
+    "1:19b",
+    "1:23b"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "dedaane",
+   "count": 7,
+   "glosses": [
+    {
+     "english": "and",
+     "n": 7
+    }
+   ],
+   "burkina": "dɩdaanɩ2",
+   "burkinaGloss": "cj. avec, et; with, and",
+   "speaker": "",
+   "homograph": "",
+   "status": "attested",
+   "refs": [
+    "1:11b",
+    "1:12a",
+    "1:14b",
+    "1:14c",
+    "1:26b",
+    "1:28c"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "kolo",
+   "count": 7,
+   "glosses": [
+    {
+     "english": "which",
+     "n": 7
+    }
+   ],
+   "burkina": "kʋlʋ2",
+   "burkinaGloss": "rel. que, qui, lequel (genre E et D)",
+   "speaker": "",
+   "homograph": "",
+   "status": "attested",
+   "refs": [
+    "1:12b",
+    "1:16a",
+    "1:18b",
+    "1:21c",
+    "1:25b",
+    "1:31a"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "kom",
+   "count": 7,
+   "glosses": [
+    {
+     "english": "the",
+     "n": 7
+    }
+   ],
+   "burkina": "kʋm",
+   "burkinaGloss": "dét. le/la, genre E et D",
+   "speaker": "",
+   "homograph": "",
+   "status": "attested",
+   "refs": [
+    "1:2c",
+    "1:2d",
+    "1:9a",
+    "1:10a",
+    "1:14a",
+    "1:20"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "wonnu",
+   "count": 7,
+   "glosses": [
+    {
+     "english": "things",
+     "n": 7
+    }
+   ],
+   "burkina": "",
+   "burkinaGloss": "",
+   "speaker": "things",
+   "homograph": "",
+   "status": "speaker",
+   "refs": [
+    "1:14a",
+    "1:20",
+    "1:21a",
+    "1:24a",
+    "1:26b",
+    "1:28c"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "yi",
+   "count": 7,
+   "glosses": [
+    {
+     "english": "reached",
+     "n": 6
+    },
+    {
+     "english": "reach",
+     "n": 1
+    }
+   ],
+   "burkina": "",
+   "burkinaGloss": "",
+   "speaker": "to reach; but tega ... yi is an idiom for nightfall and yi alone has other senses, one of them sieve",
+   "homograph": "",
+   "status": "speaker",
+   "refs": [
+    "1:5b",
+    "1:8b",
+    "1:13a",
+    "1:17",
+    "1:19a",
+    "1:23a"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "daa",
+   "count": 6,
+   "glosses": [
+    {
+     "english": "again",
+     "n": 6
+    }
+   ],
+   "burkina": "daa",
+   "burkinaGloss": "adv. encore; again",
+   "speaker": "",
+   "homograph": "",
+   "status": "attested",
+   "refs": [
+    "1:6",
+    "1:9a",
+    "1:14a",
+    "1:16b",
+    "1:20",
+    "1:24a"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "dɛ",
+   "count": 6,
+   "glosses": [
+    {
+     "english": "day",
+     "n": 6
+    }
+   ],
+   "burkina": "dɛ",
+   "burkinaGloss": "n. jour; day — 'Dɛ dɩdwɩ' one day",
+   "speaker": "",
+   "homograph": "",
+   "status": "attested",
+   "refs": [
+    "1:5c",
+    "1:8c",
+    "1:13b",
+    "1:19b",
+    "1:23b",
+    "1:31c"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "kare",
+   "count": 6,
+   "glosses": [
+    {
+     "english": "move",
+     "n": 5
+    },
+    {
+     "english": "moving",
+     "n": 1
+    }
+   ],
+   "burkina": "",
+   "burkinaGloss": "",
+   "speaker": "",
+   "homograph": "",
+   "status": "inferred",
+   "refs": [
+    "1:2d",
+    "1:21a",
+    "1:21b",
+    "1:26b",
+    "1:28c",
+    "1:30a"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "lana",
+   "count": 6,
+   "glosses": [
+    {
+     "english": "is-good",
+     "n": 6
+    }
+   ],
+   "burkina": "lana",
+   "burkinaGloss": "v. être beau/bon; be good",
+   "speaker": "",
+   "homograph": "",
+   "status": "attested",
+   "refs": [
+    "1:4a",
+    "1:10b",
+    "1:12b",
+    "1:18b",
+    "1:21c",
+    "1:25b"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "poore",
+   "count": 6,
+   "glosses": [
+    {
+     "english": "woke",
+     "n": 6
+    }
+   ],
+   "burkina": "",
+   "burkinaGloss": "",
+   "speaker": "after tega, daybreak; alone, to wake or to be sharper / more versatile. A different word from pɔɔre, separate — confirmed, not a mishearing",
+   "homograph": "",
+   "status": "speaker",
+   "refs": [
+    "1:5b",
+    "1:8b",
+    "1:13a",
+    "1:19a",
+    "1:23a",
+    "1:31b"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "pwoli",
+   "count": 6,
+   "glosses": [
+    {
+     "english": "happy",
+     "n": 6
+    }
+   ],
+   "burkina": "",
+   "burkinaGloss": "",
+   "speaker": "happy — but wo pwoli is the unit; pwoli does not stand alone for happiness",
+   "homograph": "",
+   "status": "speaker",
+   "refs": [
+    "1:4a",
+    "1:10b",
+    "1:12b",
+    "1:18b",
+    "1:21c",
+    "1:25b"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "tete",
+   "count": 6,
+   "glosses": [
+    {
+     "english": "night",
+     "n": 4
+    },
+    {
+     "english": "own",
+     "n": 2
+    }
+   ],
+   "burkina": "tɩtɩɩ / tɩtɩ",
+   "burkinaGloss": "n. nuit; night — and pn. soi-même; self",
+   "speaker": "",
+   "homograph": "night vs own/self — two words",
+   "status": "attested",
+   "refs": [
+    "1:5a",
+    "1:14a",
+    "1:16a",
+    "1:18a",
+    "1:26a",
+    "1:27a"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "wó",
+   "count": 6,
+   "glosses": [
+    {
+     "english": "will",
+     "n": 6
+    }
+   ],
+   "burkina": "wʋ",
+   "burkinaGloss": "adv. futur affirmatif; will",
+   "speaker": "",
+   "homograph": "",
+   "status": "attested",
+   "refs": [
+    "1:14b",
+    "1:14c",
+    "1:15a",
+    "1:18a",
+    "1:26b"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "zuna",
+   "count": 6,
+   "glosses": [
+    {
+     "english": "birds",
+     "n": 6
+    }
+   ],
+   "burkina": "zunə",
+   "burkinaGloss": "n. oiseaux; birds — 'Zunə jaana' the birds fly",
+   "speaker": "",
+   "homograph": "",
+   "status": "attested",
+   "refs": [
+    "1:20",
+    "1:21b",
+    "1:22c",
+    "1:26b",
+    "1:28c",
+    "1:30a"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "á",
+   "count": 6,
+   "glosses": [
+    {
+     "english": "you",
+     "n": 6
+    }
+   ],
+   "burkina": "",
+   "burkinaGloss": "",
+   "speaker": "",
+   "homograph": "",
+   "status": "inferred",
+   "refs": [
+    "1:22b",
+    "1:28b"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "bwoŋi",
+   "count": 5,
+   "glosses": [
+    {
+     "english": "called",
+     "n": 5
+    }
+   ],
+   "burkina": "",
+   "burkinaGloss": "",
+   "speaker": "call, mention",
+   "homograph": "",
+   "status": "speaker",
+   "refs": [
+    "1:5a",
+    "1:8a",
+    "1:10a"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "daane",
+   "count": 5,
+   "glosses": [
+    {
+     "english": "each-other",
+     "n": 5
+    }
+   ],
+   "burkina": "dɩdaanɩ",
+   "burkinaGloss": "cj. avec, et; each other, together",
+   "speaker": "",
+   "homograph": "",
+   "status": "attested",
+   "refs": [
+    "1:4b",
+    "1:7a",
+    "1:10a",
+    "1:14a",
+    "1:18a"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "jege",
+   "count": 5,
+   "glosses": [
+    {
+     "english": "have",
+     "n": 5
+    }
+   ],
+   "burkina": "jɩgɩ",
+   "burkinaGloss": "v. avoir, posséder; have, possess",
+   "speaker": "",
+   "homograph": "",
+   "status": "attested",
+   "refs": [
+    "1:24a",
+    "1:26a",
+    "1:26b",
+    "1:27a",
+    "1:30a"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "puli",
+   "count": 5,
+   "glosses": [
+    {
+     "english": "increase",
+     "n": 3
+    },
+    {
+     "english": "spring-up",
+     "n": 1
+    },
+    {
+     "english": "sprouting",
+     "n": 1
+    }
+   ],
+   "burkina": "puli",
+   "burkinaGloss": "v. se lever, sortir; rise — 'Wɩa puli' the sun rises",
+   "speaker": "",
+   "homograph": "",
+   "status": "attested",
+   "refs": [
+    "1:11a",
+    "1:12a",
+    "1:22b",
+    "1:22c",
+    "1:28b"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "pɔɔre",
+   "count": 5,
+   "glosses": [
+    {
+     "english": "separate",
+     "n": 4
+    },
+    {
+     "english": "separated",
+     "n": 1
+    }
+   ],
+   "burkina": "pɔɔrɩ1",
+   "burkinaGloss": "v. trier, séparer, diviser; separate, divide",
+   "speaker": "separate, divide — NOT the same word as poore, wake / daybreak",
+   "homograph": "",
+   "status": "speaker",
+   "refs": [
+    "1:4b",
+    "1:6",
+    "1:7a",
+    "1:14a",
+    "1:18a"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "teeni",
+   "count": 5,
+   "glosses": [
+    {
+     "english": "trees",
+     "n": 5
+    }
+   ],
+   "burkina": "tiu (sg.)",
+   "burkinaGloss": "n. arbre; tree — teeni is the plural",
+   "speaker": "",
+   "homograph": "",
+   "status": "attested",
+   "refs": [
+    "1:11a",
+    "1:11b",
+    "1:12a",
+    "1:29b",
+    "1:30b"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "vara",
+   "count": 5,
+   "glosses": [
+    {
+     "english": "animals",
+     "n": 5
+    }
+   ],
+   "burkina": "vara",
+   "burkinaGloss": "n. animaux; animals — 'Gaa vara bam' wild animals",
+   "speaker": "",
+   "homograph": "",
+   "status": "attested",
+   "refs": [
+    "1:24a",
+    "1:25a",
+    "1:26b",
+    "1:30a"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "wo-dwa",
+   "count": 5,
+   "glosses": [
+    {
+     "english": "seed",
+     "n": 5
+    }
+   ],
+   "burkina": "",
+   "burkinaGloss": "",
+   "speaker": "seed — the wo- is wonnu, things",
+   "homograph": "",
+   "status": "speaker",
+   "refs": [
+    "1:11b",
+    "1:12a",
+    "1:29b"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "balo",
+   "count": 4,
+   "glosses": [
+    {
+     "english": "those",
+     "n": 4
+    }
+   ],
+   "burkina": "balʋ",
+   "burkinaGloss": "rel. ceux qui (genre A)",
+   "speaker": "",
+   "homograph": "",
+   "status": "attested",
+   "refs": [
+    "1:7a",
+    "1:9a",
+    "1:21b"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "bia",
+   "count": 4,
+   "glosses": [
+    {
+     "english": "fruit",
+     "n": 3
+    },
+    {
+     "english": "children",
+     "n": 1
+    }
+   ],
+   "burkina": "biə",
+   "burkinaGloss": "n. enfants; children",
+   "speaker": "",
+   "homograph": "",
+   "status": "attested",
+   "refs": [
+    "1:11b",
+    "1:12a",
+    "1:28b",
+    "1:29b"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "gaaro",
+   "count": 4,
+   "glosses": [
+    {
+     "english": "grass",
+     "n": 4
+    }
+   ],
+   "burkina": "",
+   "burkinaGloss": "",
+   "speaker": "grass",
+   "homograph": "",
+   "status": "speaker",
+   "refs": [
+    "1:11a",
+    "1:11b",
+    "1:29b",
+    "1:30b"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "lim",
+   "count": 4,
+   "glosses": [
+    {
+     "english": "darkness",
+     "n": 4
+    }
+   ],
+   "burkina": "lim",
+   "burkinaGloss": "n. obscurité, ténèbres; darkness",
+   "speaker": "",
+   "homograph": "",
+   "status": "attested",
+   "refs": [
+    "1:2c",
+    "1:4b",
+    "1:5a",
+    "1:18a"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "naane",
+   "count": 4,
+   "glosses": [
+    {
+     "english": "created",
+     "n": 4
+    }
+   ],
+   "burkina": "naanɩ",
+   "burkinaGloss": "créer; create — ex. 'Wɛ naanɩ lʋgʋ'",
+   "speaker": "",
+   "homograph": "",
+   "status": "attested",
+   "refs": [
+    "1:1",
+    "1:21a",
+    "1:21b",
+    "1:27a"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "naneo",
+   "count": 4,
+   "glosses": [
+    {
+     "english": "sea",
+     "n": 4
+    }
+   ],
+   "burkina": "nanɩʋ",
+   "burkinaGloss": "n. lac; lake",
+   "speaker": "sea, ocean (singular)",
+   "homograph": "",
+   "status": "speaker",
+   "refs": [
+    "1:10a",
+    "1:21a",
+    "1:26b",
+    "1:28c"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "ta-á",
+   "count": 4,
+   "glosses": [
+    {
+     "english": "keep-you",
+     "n": 4
+    }
+   ],
+   "burkina": "",
+   "burkinaGloss": "",
+   "speaker": "",
+   "homograph": "",
+   "status": "inferred",
+   "refs": [
+    "1:22b",
+    "1:28b",
+    "1:28c"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "tem",
+   "count": 4,
+   "glosses": [
+    {
+     "english": "the",
+     "n": 4
+    }
+   ],
+   "burkina": "tɩm",
+   "burkinaGloss": "dét. le/la, genre T",
+   "speaker": "",
+   "homograph": "",
+   "status": "attested",
+   "refs": [
+    "1:17",
+    "1:22b",
+    "1:30b"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "wea",
+   "count": 4,
+   "glosses": [
+    {
+     "english": "day",
+     "n": 4
+    }
+   ],
+   "burkina": "wɩa1",
+   "burkinaGloss": "n. soleil, clarté; sun, sunlight",
+   "speaker": "",
+   "homograph": "",
+   "status": "attested",
+   "refs": [
+    "1:5a",
+    "1:14a",
+    "1:16a",
+    "1:18a"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "yam",
+   "count": 4,
+   "glosses": [
+    {
+     "english": "the",
+     "n": 4
+    }
+   ],
+   "burkina": "yam",
+   "burkinaGloss": "dét. les, article défini genre B",
+   "speaker": "",
+   "homograph": "",
+   "status": "attested",
+   "refs": [
+    "1:14c",
+    "1:26b",
+    "1:28c"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "a",
+   "count": 3,
+   "glosses": [
+    {
+     "english": "I",
+     "n": 3
+    }
+   ],
+   "burkina": "",
+   "burkinaGloss": "",
+   "speaker": "",
+   "homograph": "",
+   "status": "inferred",
+   "refs": [
+    "1:29b",
+    "1:29c",
+    "1:30b"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "laŋa",
+   "count": 3,
+   "glosses": [
+    {
+     "english": "expanse",
+     "n": 3
+    }
+   ],
+   "burkina": "laŋa1",
+   "burkinaGloss": "n. espace, domaine; space, expanse",
+   "speaker": "",
+   "homograph": "",
+   "status": "attested",
+   "refs": [
+    "1:6",
+    "1:7a",
+    "1:8a"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "leiri",
+   "count": 3,
+   "glosses": [
+    {
+     "english": "bear",
+     "n": 3
+    }
+   ],
+   "burkina": "ləgi2",
+   "burkinaGloss": "v. porté du fruit; bore fruit",
+   "speaker": "",
+   "homograph": "",
+   "status": "attested",
+   "refs": [
+    "1:11b",
+    "1:12a",
+    "1:29b"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "logo",
+   "count": 3,
+   "glosses": [
+    {
+     "english": "world",
+     "n": 3
+    }
+   ],
+   "burkina": "lʋgʋ",
+   "burkinaGloss": "n. monde; world",
+   "speaker": "",
+   "homograph": "",
+   "status": "attested",
+   "refs": [
+    "1:22c",
+    "1:25a",
+    "1:30a"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "maa",
+   "count": 3,
+   "glosses": [
+    {
+     "english": "was",
+     "n": 3
+    }
+   ],
+   "burkina": "maa1",
+   "burkinaGloss": "adv. « en train de »; progressive",
+   "speaker": "",
+   "homograph": "",
+   "status": "attested",
+   "refs": [
+    "1:2d",
+    "1:12a",
+    "1:26a"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "na-fɔrɔ",
+   "count": 3,
+   "glosses": [
+    {
+     "english": "great-waters",
+     "n": 3
+    }
+   ],
+   "burkina": "",
+   "burkinaGloss": "",
+   "speaker": "huge bodies of water",
+   "homograph": "",
+   "status": "speaker",
+   "refs": [
+    "1:2c",
+    "1:10a",
+    "1:20"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "nyeene",
+   "count": 3,
+   "glosses": [
+    {
+     "english": "shine",
+     "n": 2
+    },
+    {
+     "english": "shines",
+     "n": 1
+    }
+   ],
+   "burkina": "nyɩ3",
+   "burkinaGloss": "v. briller; shine, give light",
+   "speaker": "",
+   "homograph": "",
+   "status": "attested",
+   "refs": [
+    "1:14a",
+    "1:15a",
+    "1:16a"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "sem",
+   "count": 3,
+   "glosses": [
+    {
+     "english": "the",
+     "n": 3
+    }
+   ],
+   "burkina": "",
+   "burkinaGloss": "",
+   "speaker": "the (definite article); with wom that makes eight — kam kom dem tem bam yam sem wom",
+   "homograph": "",
+   "status": "speaker",
+   "refs": [
+    "1:14c",
+    "1:16b",
+    "1:20"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "vei",
+   "count": 3,
+   "glosses": [
+    {
+     "english": "walk",
+     "n": 3
+    }
+   ],
+   "burkina": "",
+   "burkinaGloss": "",
+   "speaker": "walk, went",
+   "homograph": "",
+   "status": "speaker",
+   "refs": [
+    "1:26b",
+    "1:28c",
+    "1:30a"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "wora",
+   "count": 3,
+   "glosses": [
+    {
+     "english": "be-there",
+     "n": 3
+    }
+   ],
+   "burkina": "",
+   "burkinaGloss": "",
+   "speaker": "",
+   "homograph": "",
+   "status": "inferred",
+   "refs": [
+    "1:3a",
+    "1:6",
+    "1:9a"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "abam",
+   "count": 2,
+   "glosses": [
+    {
+     "english": "your",
+     "n": 1
+    },
+    {
+     "english": "you",
+     "n": 1
+    }
+   ],
+   "burkina": "abam",
+   "burkinaGloss": "pn. vous, votre; you, your (pl.)",
+   "speaker": "",
+   "homograph": "",
+   "status": "attested",
+   "refs": [
+    "1:29c"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "bere",
+   "count": 2,
+   "glosses": [
+    {
+     "english": "show",
+     "n": 2
+    }
+   ],
+   "burkina": "",
+   "burkinaGloss": "",
+   "speaker": "to show",
+   "homograph": "",
+   "status": "speaker",
+   "refs": [
+    "1:14b",
+    "1:14c"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "boboa",
+   "count": 2,
+   "glosses": [
+    {
+     "english": "beginning",
+     "n": 2
+    }
+   ],
+   "burkina": "bʋbʋa",
+   "burkinaGloss": "beginning (cf. pulim, sɩŋɩm)",
+   "speaker": "",
+   "homograph": "",
+   "status": "attested",
+   "refs": [
+    "1:1",
+    "1:5c"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "dam",
+   "count": 2,
+   "glosses": [
+    {
+     "english": "authority",
+     "n": 2
+    }
+   ],
+   "burkina": "dam",
+   "burkinaGloss": "n. force, dureté; strength, power",
+   "speaker": "authority; also strength",
+   "homograph": "",
+   "status": "speaker",
+   "refs": [
+    "1:26b",
+    "1:28c"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "de-ba",
+   "count": 2,
+   "glosses": [
+    {
+     "english": "to-them",
+     "n": 2
+    }
+   ],
+   "burkina": "",
+   "burkinaGloss": "",
+   "speaker": "",
+   "homograph": "",
+   "status": "inferred",
+   "refs": [
+    "1:28a",
+    "1:29a"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "debam",
+   "count": 2,
+   "glosses": [
+    {
+     "english": "us",
+     "n": 2
+    }
+   ],
+   "burkina": "",
+   "burkinaGloss": "",
+   "speaker": "us — the object form of we, though it can also stand as subject",
+   "homograph": "",
+   "status": "speaker",
+   "refs": [
+    "1:26a"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "jage",
+   "count": 2,
+   "glosses": [
+    {
+     "english": "was-scattered",
+     "n": 1
+    },
+    {
+     "english": "spread",
+     "n": 1
+    }
+   ],
+   "burkina": "jagɩ",
+   "burkinaGloss": "v. disperser, éparpiller; scatter",
+   "speaker": "",
+   "homograph": "",
+   "status": "attested",
+   "refs": [
+    "1:2a",
+    "1:28b"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "jeiga",
+   "count": 2,
+   "glosses": [
+    {
+     "english": "place",
+     "n": 2
+    }
+   ],
+   "burkina": "jəgə",
+   "burkinaGloss": "n. lieu, place; place, space",
+   "speaker": "",
+   "homograph": "",
+   "status": "attested",
+   "refs": [
+    "1:2a",
+    "1:9a"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "kamɔgɔ",
+   "count": 2,
+   "glosses": [
+    {
+     "english": "moulded-thing",
+     "n": 2
+    }
+   ],
+   "burkina": "",
+   "burkinaGloss": "",
+   "speaker": "a statue, something made of clay — hence image",
+   "homograph": "",
+   "status": "speaker",
+   "refs": [
+    "1:26a",
+    "1:27a"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "kuri",
+   "count": 2,
+   "glosses": [
+    {
+     "english": "bottom",
+     "n": 2
+    }
+   ],
+   "burkina": "",
+   "burkinaGloss": "",
+   "speaker": "to choose; the bottom of something",
+   "homograph": "",
+   "status": "speaker",
+   "refs": [
+    "1:7a",
+    "1:9a"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "kwei",
+   "count": 2,
+   "glosses": [
+    {
+     "english": "take",
+     "n": 2
+    }
+   ],
+   "burkina": "kwe1",
+   "burkinaGloss": "v. prendre; take",
+   "speaker": "",
+   "homograph": "",
+   "status": "attested",
+   "refs": [
+    "1:29b",
+    "1:30b"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "laam",
+   "count": 2,
+   "glosses": [
+    {
+     "english": "then",
+     "n": 2
+    }
+   ],
+   "burkina": "",
+   "burkinaGloss": "",
+   "speaker": "then — the speaker's impression, offered as a feeling not a fact: laam ma tells the listener more actions are still coming, where ma alone expects nothing to follow",
+   "homograph": "",
+   "status": "speaker",
+   "refs": [
+    "1:11a",
+    "1:26a"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "lore-na",
+   "count": 2,
+   "glosses": [
+    {
+     "english": "give-birth",
+     "n": 2
+    }
+   ],
+   "burkina": "",
+   "burkinaGloss": "",
+   "speaker": "give birth (root lo); the -na suffix is still unconfirmed",
+   "homograph": "",
+   "status": "speaker",
+   "refs": [
+    "1:22b",
+    "1:28b"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "nabiina",
+   "count": 2,
+   "glosses": [
+    {
+     "english": "humankind",
+     "n": 2
+    }
+   ],
+   "burkina": "nabiinu",
+   "burkinaGloss": "n. être humain; human being",
+   "speaker": "",
+   "homograph": "",
+   "status": "attested",
+   "refs": [
+    "1:26a",
+    "1:27a"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "nii",
+   "count": 2,
+   "glosses": [
+    {
+     "english": "watch",
+     "n": 1
+    },
+    {
+     "english": "looked",
+     "n": 1
+    }
+   ],
+   "burkina": "nii",
+   "burkinaGloss": "v. regarder, observer; look at, observe",
+   "speaker": "",
+   "homograph": "",
+   "status": "attested",
+   "refs": [
+    "1:18a",
+    "1:31a"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "nyeena",
+   "count": 2,
+   "glosses": [
+    {
+     "english": "shining",
+     "n": 2
+    }
+   ],
+   "burkina": "",
+   "burkinaGloss": "",
+   "speaker": "",
+   "homograph": "",
+   "status": "inferred",
+   "refs": [
+    "1:16a"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "pae",
+   "count": 2,
+   "glosses": [
+    {
+     "english": "give",
+     "n": 2
+    }
+   ],
+   "burkina": "",
+   "burkinaGloss": "",
+   "speaker": "",
+   "homograph": "",
+   "status": "inferred",
+   "refs": [
+    "1:15a",
+    "1:17"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "su",
+   "count": 2,
+   "glosses": [
+    {
+     "english": "full",
+     "n": 1
+    },
+    {
+     "english": "fill",
+     "n": 1
+    }
+   ],
+   "burkina": "suuri2",
+   "burkinaGloss": "v. remplir; fill",
+   "speaker": "",
+   "homograph": "",
+   "status": "attested",
+   "refs": [
+    "1:20",
+    "1:22b"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "swolim",
+   "count": 2,
+   "glosses": [
+    {
+     "english": "blessing",
+     "n": 2
+    }
+   ],
+   "burkina": "swəlim",
+   "burkinaGloss": "n. bénédiction (rituel); blessing (ritual)",
+   "speaker": "",
+   "homograph": "",
+   "status": "attested",
+   "refs": [
+    "1:22a",
+    "1:28a"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "swɛ",
+   "count": 2,
+   "glosses": [
+    {
+     "english": "bathed",
+     "n": 2
+    }
+   ],
+   "burkina": "",
+   "burkinaGloss": "",
+   "speaker": "bath — so swɛ ... swolim is to bathe someone in a blessing",
+   "homograph": "",
+   "status": "speaker",
+   "refs": [
+    "1:22a",
+    "1:28a"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "sɔŋɔ",
+   "count": 2,
+   "glosses": [
+    {
+     "english": "home",
+     "n": 2
+    }
+   ],
+   "burkina": "sɔŋɔ",
+   "burkinaGloss": "n. maison, chez soi; home — cf. Wɛ-sɔŋɔ heaven",
+   "speaker": "",
+   "homograph": "",
+   "status": "attested",
+   "refs": [
+    "1:24a",
+    "1:25a"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "te-kora",
+   "count": 2,
+   "glosses": [
+    {
+     "english": "dry-ground",
+     "n": 2
+    }
+   ],
+   "burkina": "tɩ-kʋra",
+   "burkinaGloss": "n. terre sèche; dry soil",
+   "speaker": "",
+   "homograph": "",
+   "status": "attested",
+   "refs": [
+    "1:9a",
+    "1:10a"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "tega-veila",
+   "count": 2,
+   "glosses": [
+    {
+     "english": "land-walkers",
+     "n": 2
+    }
+   ],
+   "burkina": "",
+   "burkinaGloss": "",
+   "speaker": "things that walk on land",
+   "homograph": "",
+   "status": "speaker",
+   "refs": [
+    "1:24a",
+    "1:25a"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "tiŋi",
+   "count": 2,
+   "glosses": [
+    {
+     "english": "put-down",
+     "n": 2
+    }
+   ],
+   "burkina": "",
+   "burkinaGloss": "",
+   "speaker": "to put down",
+   "homograph": "",
+   "status": "speaker",
+   "refs": [
+    "1:11b",
+    "1:29b"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "yalei",
+   "count": 2,
+   "glosses": [
+    {
+     "english": "two",
+     "n": 2
+    }
+   ],
+   "burkina": "bale",
+   "burkinaGloss": "num. deux; two (genre A ba-)",
+   "speaker": "two; balei/yalei/nlei/selei/telei/delei are all two, picked by the preceding word",
+   "homograph": "",
+   "status": "speaker",
+   "refs": [
+    "1:8c",
+    "1:16a"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "yera",
+   "count": 2,
+   "glosses": [
+    {
+     "english": "separately",
+     "n": 2
+    }
+   ],
+   "burkina": "",
+   "burkinaGloss": "",
+   "speaker": "name — but the doubled yera yera is a fixed pair meaning individually / separately, and is not read word for word",
+   "homograph": "",
+   "status": "speaker",
+   "refs": [
+    "1:6"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "ywona",
+   "count": 2,
+   "glosses": [
+    {
+     "english": "fish",
+     "n": 2
+    }
+   ],
+   "burkina": "",
+   "burkinaGloss": "",
+   "speaker": "fish",
+   "homograph": "",
+   "status": "speaker",
+   "refs": [
+    "1:26b",
+    "1:28c"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "ŋwe",
+   "count": 2,
+   "glosses": [
+    {
+     "english": "live",
+     "n": 2
+    }
+   ],
+   "burkina": "ŋwɩ1",
+   "burkinaGloss": "v. vivre, être vivant; live",
+   "speaker": "",
+   "homograph": "",
+   "status": "attested",
+   "refs": [
+    "1:20",
+    "1:24a"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "amo",
+   "count": 1,
+   "glosses": [
+    {
+     "english": "I-myself",
+     "n": 1
+    }
+   ],
+   "burkina": "amʋ",
+   "burkinaGloss": "pn. moi (emphatique) — a + mʋ",
+   "speaker": "",
+   "homograph": "",
+   "status": "attested",
+   "refs": [
+    "1:30b"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "baaro",
+   "count": 1,
+   "glosses": [
+    {
+     "english": "man",
+     "n": 1
+    }
+   ],
+   "burkina": "",
+   "burkinaGloss": "",
+   "speaker": "",
+   "homograph": "",
+   "status": "inferred",
+   "refs": [
+    "1:27b"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "banto",
+   "count": 1,
+   "glosses": [
+    {
+     "english": "they",
+     "n": 1
+    }
+   ],
+   "burkina": "bantʋ",
+   "burkinaGloss": "dém. ceux-là; those ones",
+   "speaker": "",
+   "homograph": "",
+   "status": "attested",
+   "refs": [
+    "1:26b"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "beera",
+   "count": 1,
+   "glosses": [
+    {
+     "english": "roam",
+     "n": 1
+    }
+   ],
+   "burkina": "beeri2",
+   "burkinaGloss": "v. promener, voyager; travel, wander",
+   "speaker": "",
+   "homograph": "",
+   "status": "attested",
+   "refs": [
+    "1:20"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "belei",
+   "count": 1,
+   "glosses": [
+    {
+     "english": "two",
+     "n": 1
+    }
+   ],
+   "burkina": "bale",
+   "burkinaGloss": "num. deux; two",
+   "speaker": "two; the b- form, agreeing with kuni",
+   "homograph": "",
+   "status": "speaker",
+   "refs": [
+    "1:6"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "bena",
+   "count": 1,
+   "glosses": [
+    {
+     "english": "years",
+     "n": 1
+    }
+   ],
+   "burkina": "bɩna2",
+   "burkinaGloss": "n. années; years",
+   "speaker": "",
+   "homograph": "",
+   "status": "attested",
+   "refs": [
+    "1:14c"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "chalechwe",
+   "count": 1,
+   "glosses": [
+    {
+     "english": "stars",
+     "n": 1
+    }
+   ],
+   "burkina": "calɩcwɩ",
+   "burkinaGloss": "n. étoiles; stars (sg. calɩcʋa)",
+   "speaker": "",
+   "homograph": "",
+   "status": "attested",
+   "refs": [
+    "1:16b"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "chane",
+   "count": 1,
+   "glosses": [
+    {
+     "english": "months",
+     "n": 1
+    }
+   ],
+   "burkina": "",
+   "burkinaGloss": "",
+   "speaker": "months (plural); chana is the singular. Also means bitterness. NOT stars.",
+   "homograph": "months (sg. chana) vs bitterness — Burkina has cana2 month, cana1 moon, cana4 be bitter",
+   "status": "speaker",
+   "refs": [
+    "1:14c"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "daga",
+   "count": 1,
+   "glosses": [
+    {
+     "english": "be-many",
+     "n": 1
+    }
+   ],
+   "burkina": "daga2",
+   "burkinaGloss": "v. être beaucoup/nombreux; be many",
+   "speaker": "",
+   "homograph": "",
+   "status": "attested",
+   "refs": [
+    "1:22c"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "dedoa",
+   "count": 1,
+   "glosses": [
+    {
+     "english": "one",
+     "n": 1
+    }
+   ],
+   "burkina": "dɩdʋa / dɩdwɩ",
+   "burkinaGloss": "num. un, une; one",
+   "speaker": "",
+   "homograph": "",
+   "status": "attested",
+   "refs": [
+    "1:9a"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "dedɛ",
+   "count": 1,
+   "glosses": [
+    {
+     "english": "many",
+     "n": 1
+    }
+   ],
+   "burkina": "",
+   "burkinaGloss": "",
+   "speaker": "many",
+   "homograph": "",
+   "status": "speaker",
+   "refs": [
+    "1:28b"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "di",
+   "count": 1,
+   "glosses": [
+    {
+     "english": "eat",
+     "n": 1
+    }
+   ],
+   "burkina": "di2",
+   "burkinaGloss": "v. manger; eat",
+   "speaker": "eat; also to win or to achieve",
+   "homograph": "",
+   "status": "speaker",
+   "refs": [
+    "1:30b"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "di-na",
+   "count": 1,
+   "glosses": [
+    {
+     "english": "eat-you",
+     "n": 1
+    }
+   ],
+   "burkina": "",
+   "burkinaGloss": "",
+   "speaker": "",
+   "homograph": "",
+   "status": "inferred",
+   "refs": [
+    "1:28c"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "dé",
+   "count": 1,
+   "glosses": [
+    {
+     "english": "we",
+     "n": 1
+    }
+   ],
+   "burkina": "",
+   "burkinaGloss": "",
+   "speaker": "we — subject only, never object",
+   "homograph": "",
+   "status": "speaker",
+   "refs": [
+    "1:26a"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "fɔge",
+   "count": 1,
+   "glosses": [
+    {
+     "english": "carefully",
+     "n": 1
+    }
+   ],
+   "burkina": "fɔgɩ",
+   "burkinaGloss": "v. faire soigneusement; do properly, carefully",
+   "speaker": "",
+   "homograph": "",
+   "status": "attested",
+   "refs": [
+    "1:31a"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "ga-lɛɛro",
+   "count": 1,
+   "glosses": [
+    {
+     "english": "weeds",
+     "n": 1
+    }
+   ],
+   "burkina": "",
+   "burkinaGloss": "",
+   "speaker": "weeds",
+   "homograph": "",
+   "status": "speaker",
+   "refs": [
+    "1:12a"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "ga-vara",
+   "count": 1,
+   "glosses": [
+    {
+     "english": "bush-animals",
+     "n": 1
+    }
+   ],
+   "burkina": "gaa vara",
+   "burkinaGloss": "animaux sauvages; wild animals",
+   "speaker": "wild animals — the same word as kago-vara",
+   "homograph": "",
+   "status": "speaker",
+   "refs": [
+    "1:24a"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "gaale",
+   "count": 1,
+   "glosses": [
+    {
+     "english": "exceeds",
+     "n": 1
+    }
+   ],
+   "burkina": "gaalɩ",
+   "burkinaGloss": "v. dépasser, franchir; surpass, exceed",
+   "speaker": "",
+   "homograph": "",
+   "status": "attested",
+   "refs": [
+    "1:16a"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "jaana",
+   "count": 1,
+   "glosses": [
+    {
+     "english": "fly",
+     "n": 1
+    }
+   ],
+   "burkina": "jaana",
+   "burkinaGloss": "v. voler; fly",
+   "speaker": "",
+   "homograph": "",
+   "status": "attested",
+   "refs": [
+    "1:20"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "jaane",
+   "count": 1,
+   "glosses": [
+    {
+     "english": "fly",
+     "n": 1
+    }
+   ],
+   "burkina": "",
+   "burkinaGloss": "",
+   "speaker": "",
+   "homograph": "",
+   "status": "inferred",
+   "refs": [
+    "1:21b"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "jei",
+   "count": 1,
+   "glosses": [
+    {
+     "english": "places",
+     "n": 1
+    }
+   ],
+   "burkina": "",
+   "burkinaGloss": "",
+   "speaker": "place, venue",
+   "homograph": "",
+   "status": "speaker",
+   "refs": [
+    "1:20"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "jeŋa",
+   "count": 1,
+   "glosses": [
+    {
+     "english": "hand",
+     "n": 1
+    }
+   ],
+   "burkina": "jɩŋa",
+   "burkinaGloss": "n. main; hand",
+   "speaker": "",
+   "homograph": "",
+   "status": "attested",
+   "refs": [
+    "1:29c"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "kaane",
+   "count": 1,
+   "glosses": [
+    {
+     "english": "woman",
+     "n": 1
+    }
+   ],
+   "burkina": "",
+   "burkinaGloss": "",
+   "speaker": "",
+   "homograph": "",
+   "status": "inferred",
+   "refs": [
+    "1:27b"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "kago-vara",
+   "count": 1,
+   "glosses": [
+    {
+     "english": "bush-animals",
+     "n": 1
+    }
+   ],
+   "burkina": "",
+   "burkinaGloss": "",
+   "speaker": "wild animals — the same word as ga-vara",
+   "homograph": "",
+   "status": "speaker",
+   "refs": [
+    "1:25a"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "kolokolo",
+   "count": 1,
+   "glosses": [
+    {
+     "english": "nothing",
+     "n": 1
+    }
+   ],
+   "burkina": "kʋlʋkʋlʋ",
+   "burkinaGloss": "ind. rien; nothing",
+   "speaker": "nothing (anything would be kolo maama)",
+   "homograph": "",
+   "status": "speaker",
+   "refs": [
+    "1:2b"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "kuni",
+   "count": 1,
+   "glosses": [
+    {
+     "english": "times",
+     "n": 1
+    }
+   ],
+   "burkina": "kuni / naniə2",
+   "burkinaGloss": "n. fois; times",
+   "speaker": "",
+   "homograph": "",
+   "status": "attested",
+   "refs": [
+    "1:6"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "la",
+   "count": 1,
+   "glosses": [
+    {
+     "english": "gather",
+     "n": 1
+    }
+   ],
+   "burkina": "",
+   "burkinaGloss": "",
+   "speaker": "gather here; la also means to draw and to write",
+   "homograph": "",
+   "status": "speaker",
+   "refs": [
+    "1:9a"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "lage",
+   "count": 1,
+   "glosses": [
+    {
+     "english": "gathered",
+     "n": 1
+    }
+   ],
+   "burkina": "",
+   "burkinaGloss": "",
+   "speaker": "gather — that is the sense here, of the waters gathering; lage also means want",
+   "homograph": "",
+   "status": "speaker",
+   "refs": [
+    "1:10a"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "lamma",
+   "count": 1,
+   "glosses": [
+    {
+     "english": "is-good",
+     "n": 1
+    }
+   ],
+   "burkina": "lamma",
+   "burkinaGloss": "cf. lana; good",
+   "speaker": "",
+   "homograph": "",
+   "status": "attested",
+   "refs": [
+    "1:31a"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "maŋa",
+   "count": 1,
+   "glosses": [
+    {
+     "english": "time",
+     "n": 1
+    }
+   ],
+   "burkina": "mɩmaŋa2",
+   "burkinaGloss": "n. moment, temps; time, season",
+   "speaker": "",
+   "homograph": "",
+   "status": "attested",
+   "refs": [
+    "1:14c"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "memaŋa",
+   "count": 1,
+   "glosses": [
+    {
+     "english": "signs",
+     "n": 1
+    }
+   ],
+   "burkina": "mɩmaŋa1",
+   "burkinaGloss": "n. illustration, signe; illustration, sign",
+   "speaker": "",
+   "homograph": "",
+   "status": "attested",
+   "refs": [
+    "1:14b"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "muri",
+   "count": 1,
+   "glosses": [
+    {
+     "english": "is-lesser",
+     "n": 1
+    }
+   ],
+   "burkina": "muri",
+   "burkinaGloss": "v. être insuffisant, inférieur; be lesser",
+   "speaker": "",
+   "homograph": "",
+   "status": "attested",
+   "refs": [
+    "1:16a"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "mɔ",
+   "count": 1,
+   "glosses": [
+    {
+     "english": "mould",
+     "n": 1
+    }
+   ],
+   "burkina": "mɔ1",
+   "burkinaGloss": "v. fabriquer, créer, tailler, former; mould, make",
+   "speaker": "",
+   "homograph": "",
+   "status": "attested",
+   "refs": [
+    "1:26a"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "naane-ba",
+   "count": 1,
+   "glosses": [
+    {
+     "english": "created-them",
+     "n": 1
+    }
+   ],
+   "burkina": "",
+   "burkinaGloss": "",
+   "speaker": "",
+   "homograph": "",
+   "status": "inferred",
+   "refs": [
+    "1:27b"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "nam",
+   "count": 1,
+   "glosses": [
+    {
+     "english": "then",
+     "n": 1
+    }
+   ],
+   "burkina": "",
+   "burkinaGloss": "",
+   "speaker": "then, almost like laam",
+   "homograph": "",
+   "status": "speaker",
+   "refs": [
+    "1:22c"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "naneero",
+   "count": 1,
+   "glosses": [
+    {
+     "english": "oceans",
+     "n": 1
+    }
+   ],
+   "burkina": "",
+   "burkinaGloss": "",
+   "speaker": "oceans (plural of naneo)",
+   "homograph": "",
+   "status": "speaker",
+   "refs": [
+    "1:22b"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "nii-na",
+   "count": 1,
+   "glosses": [
+    {
+     "english": "look-you",
+     "n": 1
+    }
+   ],
+   "burkina": "",
+   "burkinaGloss": "",
+   "speaker": "",
+   "homograph": "",
+   "status": "inferred",
+   "refs": [
+    "1:29b"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "nye",
+   "count": 1,
+   "glosses": [
+    {
+     "english": "resemble",
+     "n": 1
+    }
+   ],
+   "burkina": "nyɩ1",
+   "burkinaGloss": "v. ressembler; resemble",
+   "speaker": "",
+   "homograph": "",
+   "status": "attested",
+   "refs": [
+    "1:26a"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "ná",
+   "count": 1,
+   "glosses": [
+    {
+     "english": "also",
+     "n": 1
+    }
+   ],
+   "burkina": "",
+   "burkinaGloss": "",
+   "speaker": "also",
+   "homograph": "",
+   "status": "speaker",
+   "refs": [
+    "1:30a"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "pa-na",
+   "count": 1,
+   "glosses": [
+    {
+     "english": "let-you",
+     "n": 1
+    }
+   ],
+   "burkina": "",
+   "burkinaGloss": "",
+   "speaker": "",
+   "homograph": "",
+   "status": "inferred",
+   "refs": [
+    "1:26a"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "pa-te",
+   "count": 1,
+   "glosses": [
+    {
+     "english": "give-them",
+     "n": 1
+    }
+   ],
+   "burkina": "",
+   "burkinaGloss": "",
+   "speaker": "",
+   "homograph": "",
+   "status": "inferred",
+   "refs": [
+    "1:30b"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "siu",
+   "count": 1,
+   "glosses": [
+    {
+     "english": "Breath",
+     "n": 1
+    }
+   ],
+   "burkina": "",
+   "burkinaGloss": "",
+   "speaker": "breath",
+   "homograph": "",
+   "status": "speaker",
+   "refs": [
+    "1:2d"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "te-pwoŋa",
+   "count": 1,
+   "glosses": [
+    {
+     "english": "dry-season",
+     "n": 1
+    }
+   ],
+   "burkina": "",
+   "burkinaGloss": "",
+   "speaker": "dry season",
+   "homograph": "",
+   "status": "speaker",
+   "refs": [
+    "1:14b"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "tei",
+   "count": 1,
+   "glosses": [
+    {
+     "english": "rule",
+     "n": 1
+    }
+   ],
+   "burkina": "te2",
+   "burkinaGloss": "v. posséder, régner sur; reign over, have authority",
+   "speaker": "",
+   "homograph": "",
+   "status": "attested",
+   "refs": [
+    "1:26b"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "tei-ko",
+   "count": 1,
+   "glosses": [
+    {
+     "english": "rule-it",
+     "n": 1
+    }
+   ],
+   "burkina": "",
+   "burkinaGloss": "",
+   "speaker": "",
+   "homograph": "",
+   "status": "inferred",
+   "refs": [
+    "1:28b"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "tera",
+   "count": 1,
+   "glosses": [
+    {
+     "english": "absent",
+     "n": 1
+    }
+   ],
+   "burkina": "",
+   "burkinaGloss": "",
+   "speaker": "not available, the absence of something",
+   "homograph": "",
+   "status": "speaker",
+   "refs": [
+    "1:2b"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "tetare",
+   "count": 1,
+   "glosses": [
+    {
+     "english": "middle",
+     "n": 1
+    }
+   ],
+   "burkina": "tɩtarɩ",
+   "burkinaGloss": "n. centre, milieu; middle",
+   "speaker": "",
+   "homograph": "",
+   "status": "attested",
+   "refs": [
+    "1:6"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "tigisi",
+   "count": 1,
+   "glosses": [
+    {
+     "english": "assemble",
+     "n": 1
+    }
+   ],
+   "burkina": "tigisi",
+   "burkinaGloss": "v. rassembler; gather, assemble",
+   "speaker": "",
+   "homograph": "",
+   "status": "attested",
+   "refs": [
+    "1:9a"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "tiini",
+   "count": 1,
+   "glosses": [
+    {
+     "english": "exceeds",
+     "n": 1
+    }
+   ],
+   "burkina": "tiini",
+   "burkinaGloss": "v.aux. faire intensément; do intensely",
+   "speaker": "",
+   "homograph": "",
+   "status": "attested",
+   "refs": [
+    "1:31a"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "tio",
+   "count": 1,
+   "glosses": [
+    {
+     "english": "tree",
+     "n": 1
+    }
+   ],
+   "burkina": "tiu",
+   "burkinaGloss": "n. arbre; tree",
+   "speaker": "",
+   "homograph": "",
+   "status": "attested",
+   "refs": [
+    "1:11b"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "vare-kamuna",
+   "count": 1,
+   "glosses": [
+    {
+     "english": "large-animals",
+     "n": 1
+    }
+   ],
+   "burkina": "",
+   "burkinaGloss": "",
+   "speaker": "large animals",
+   "homograph": "",
+   "status": "speaker",
+   "refs": [
+    "1:21a"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "via",
+   "count": 1,
+   "glosses": [
+    {
+     "english": "went",
+     "n": 1
+    }
+   ],
+   "burkina": "",
+   "burkinaGloss": "",
+   "speaker": "went",
+   "homograph": "",
+   "status": "speaker",
+   "refs": [
+    "1:2d"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "vɔɔro",
+   "count": 1,
+   "glosses": [
+    {
+     "english": "leaves",
+     "n": 1
+    }
+   ],
+   "burkina": "",
+   "burkinaGloss": "",
+   "speaker": "leaves — not green",
+   "homograph": "",
+   "status": "speaker",
+   "refs": [
+    "1:30b"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "wo-nyen-kamuna",
+   "count": 1,
+   "glosses": [
+    {
+     "english": "shining-thing-big",
+     "n": 1
+    }
+   ],
+   "burkina": "",
+   "burkinaGloss": "",
+   "speaker": "big shining thing — the wo- is wonnu, things",
+   "homograph": "",
+   "status": "speaker",
+   "refs": [
+    "1:16a"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "wo-nyenno",
+   "count": 1,
+   "glosses": [
+    {
+     "english": "shining-things",
+     "n": 1
+    }
+   ],
+   "burkina": "",
+   "burkinaGloss": "",
+   "speaker": "shining things — the wo- is wonnu, things",
+   "homograph": "",
+   "status": "speaker",
+   "refs": [
+    "1:17"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "wodiiru",
+   "count": 1,
+   "glosses": [
+    {
+     "english": "food",
+     "n": 1
+    }
+   ],
+   "burkina": "wʋdiiru",
+   "burkinaGloss": "n. nourriture; food",
+   "speaker": "",
+   "homograph": "",
+   "status": "attested",
+   "refs": [
+    "1:29c"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "woli",
+   "count": 1,
+   "glosses": [
+    {
+     "english": "added",
+     "n": 1
+    }
+   ],
+   "burkina": "wəli",
+   "burkinaGloss": "v. ajouter; add",
+   "speaker": "",
+   "homograph": "",
+   "status": "attested",
+   "refs": [
+    "1:16b"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "wone",
+   "count": 1,
+   "glosses": [
+    {
+     "english": "inside",
+     "n": 1
+    }
+   ],
+   "burkina": "wʋnɩ",
+   "burkinaGloss": "dans (wʋ 'intérieur' + nɩ)",
+   "speaker": "",
+   "homograph": "",
+   "status": "attested",
+   "refs": [
+    "1:21a"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "wɛɛne",
+   "count": 1,
+   "glosses": [
+    {
+     "english": "above",
+     "n": 1
+    }
+   ],
+   "burkina": "wɛɛnɩ",
+   "burkinaGloss": "en haut (wɛ 'ciel' + nɩ)",
+   "speaker": "",
+   "homograph": "",
+   "status": "attested",
+   "refs": [
+    "1:2d"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "ya",
+   "count": 1,
+   "glosses": [
+    {
+     "english": "yet",
+     "n": 1
+    }
+   ],
+   "burkina": "ya",
+   "burkinaGloss": "irrealis / past particle",
+   "speaker": "",
+   "homograph": "",
+   "status": "attested",
+   "refs": [
+    "1:2b"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "yadɛ",
+   "count": 1,
+   "glosses": [
+    {
+     "english": "rainy-season",
+     "n": 1
+    }
+   ],
+   "burkina": "",
+   "burkinaGloss": "",
+   "speaker": "rainy season",
+   "homograph": "",
+   "status": "speaker",
+   "refs": [
+    "1:14b"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "yana",
+   "count": 1,
+   "glosses": [
+    {
+     "english": "four",
+     "n": 1
+    }
+   ],
+   "burkina": "bana1",
+   "burkinaGloss": "num. quatre; four",
+   "speaker": "",
+   "homograph": "",
+   "status": "attested",
+   "refs": [
+    "1:19b"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "yanu",
+   "count": 1,
+   "glosses": [
+    {
+     "english": "five",
+     "n": 1
+    }
+   ],
+   "burkina": "banu",
+   "burkinaGloss": "num. cinq; five",
+   "speaker": "",
+   "homograph": "",
+   "status": "attested",
+   "refs": [
+    "1:23b"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "yaredo",
+   "count": 1,
+   "glosses": [
+    {
+     "english": "six",
+     "n": 1
+    }
+   ],
+   "burkina": "bardʋ",
+   "burkinaGloss": "num. six; six",
+   "speaker": "",
+   "homograph": "",
+   "status": "attested",
+   "refs": [
+    "1:31c"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "yatɔ",
+   "count": 1,
+   "glosses": [
+    {
+     "english": "three",
+     "n": 1
+    }
+   ],
+   "burkina": "batɔ",
+   "burkinaGloss": "num. trois; three",
+   "speaker": "",
+   "homograph": "",
+   "status": "attested",
+   "refs": [
+    "1:13b"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "yeini",
+   "count": 1,
+   "glosses": [
+    {
+     "english": "usually",
+     "n": 1
+    }
+   ],
+   "burkina": "yəni",
+   "burkinaGloss": "adv. d'habitude; usually",
+   "speaker": "",
+   "homograph": "",
+   "status": "attested",
+   "refs": [
+    "1:16a"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "yerane",
+   "count": 1,
+   "glosses": [
+    {
+     "english": "only",
+     "n": 1
+    }
+   ],
+   "burkina": "yɩranɩ1",
+   "burkinaGloss": "adv. seulement; only",
+   "speaker": "",
+   "homograph": "",
+   "status": "attested",
+   "refs": [
+    "1:2c"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "yɛ",
+   "count": 1,
+   "glosses": [
+    {
+     "english": "are",
+     "n": 1
+    }
+   ],
+   "burkina": "",
+   "burkinaGloss": "",
+   "speaker": "",
+   "homograph": "",
+   "status": "inferred",
+   "refs": [
+    "1:21a"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "zege",
+   "count": 1,
+   "glosses": [
+    {
+     "english": "set",
+     "n": 1
+    }
+   ],
+   "burkina": "zɩgɩ1",
+   "burkinaGloss": "v. être debout, se tenir; stand, be set",
+   "speaker": "",
+   "homograph": "",
+   "status": "attested",
+   "refs": [
+    "1:17"
+   ],
+   "pos": ""
+  },
+  {
+   "token": "ŋwea",
+   "count": 1,
+   "glosses": [
+    {
+     "english": "life",
+     "n": 1
+    }
+   ],
+   "burkina": "ŋwɩa",
+   "burkinaGloss": "n. vie; life",
+   "speaker": "",
+   "homograph": "",
+   "status": "attested",
+   "refs": [
+    "1:30a"
+   ],
+   "pos": ""
+  }
+ ]
+}

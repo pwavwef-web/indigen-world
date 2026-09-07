@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -36,9 +37,39 @@ class _CreateReelScreenState extends ConsumerState<CreateReelScreen> {
   String? _error;
 
   @override
+  void initState() {
+    super.initState();
+    unawaited(_recoverLostClip());
+  }
+
+  @override
   void dispose() {
     _captionController.dispose();
     super.dispose();
+  }
+
+  /// Picks up a clip Android took away with the app.
+  ///
+  /// ── Same bug as the composer's, smaller blast radius ─────────────────
+  /// Recording hands the screen to the camera's activity, and on a phone with
+  /// little memory to spare Android is entitled to destroy this process while
+  /// it waits. The clip is not lost when that happens — the system holds the
+  /// result and hands it over on request — but without this request it is
+  /// discarded, silently, and the member is left believing their recording
+  /// failed.
+  ///
+  /// Less is at stake here than in the composer, which is why this needs no
+  /// draft on disk: this screen holds one clip and a caption nobody has usually
+  /// typed yet, so recovering the clip recovers the work. A caption typed
+  /// *before* recording would still be lost, and that is the rarer order.
+  ///
+  /// Only fills an empty slot. A member who has already chosen a clip since the
+  /// interruption chose it on purpose, and replacing it with an older take
+  /// would be the app overruling them.
+  Future<void> _recoverLostClip() async {
+    final recovered = await _picker.recoverLostMedia();
+    if (!mounted || recovered.isEmpty || _clip != null) return;
+    setState(() => _clip = recovered.first);
   }
 
   Future<void> _choose(ImageSource source) async {

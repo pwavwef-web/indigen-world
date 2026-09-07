@@ -9,6 +9,7 @@ import 'package:indigen_world_mobile/data/repositories.dart';
 import 'package:indigen_world_mobile/domain/dictionary_entry.dart';
 import 'package:indigen_world_mobile/domain/kasem_homographs.dart';
 import 'package:indigen_world_mobile/features/collection/collection_data.dart';
+import 'package:indigen_world_mobile/features/dictionary/sense_list.dart';
 import 'package:indigen_world_mobile/features/dictionary/sentence_credit.dart';
 import 'package:indigen_world_mobile/features/dictionary/translation_display.dart';
 import 'package:indigen_world_mobile/shared/app_widgets.dart';
@@ -224,11 +225,28 @@ class EntryDetailScreen extends ConsumerWidget {
             // first still set in the type the single one had — this is the
             // screen a member came to for the whole entry, so it is the one
             // place that shows all of it rather than a count.
+            // The headline gloss. On an entry with structured senses this is
+            // the summary line — every meaning in one place, which is what a
+            // reader glancing at the top of the entry wants — and the numbered
+            // senses below carry the detail.
             TranslationList(
               entry: resolvedEntry,
               primaryStyle: Theme.of(context).textTheme.titleLarge
                   ?.copyWith(color: context.brand.terracotta),
             ),
+            // -- The several things this word means ----------------------
+            // Directly under the summary line and above everything else,
+            // because it is the entry. The paradigm, the etymology and the
+            // rights block are all facts ABOUT the word; this is what the word
+            // means, and a reader who came to find that out should not have to
+            // scroll past a conjugation table to reach it.
+            //
+            // Drawn only when a contributor actually separated the meanings.
+            // A legacy entry with three comma-separated glosses is already
+            // rendered above, and drawing it again as one numbered card would
+            // print the same three words twice on one screen.
+            if (resolvedEntry.hasStructuredSenses)
+              SenseList(entry: resolvedEntry),
             const SizedBox(height: 16),
             Wrap(
               spacing: 8,
@@ -265,32 +283,105 @@ class EntryDetailScreen extends ConsumerWidget {
             // which is what lets these guards mean something. An entry with
             // nothing recorded is shorter, rather than padded with prose about
             // what it does not have.
+            // ── How it is said ───────────────────────────────────────────
+            // The recording, the transcription and the written guide are one
+            // card because they are one question. A learner wants to know how
+            // to say the word; which of the three answers the entry happens to
+            // carry is an accident of who contributed it.
             if (resolvedEntry.pronunciation.isNotEmpty ||
-                resolvedEntry.audioUrl.isNotEmpty)
-              _DetailCard(
-                icon: Icons.volume_up_outlined,
-                title: 'Pronunciation',
-                body: resolvedEntry.pronunciation.isEmpty
-                    ? 'Recorded by a speaker. No written guide yet.'
-                    : resolvedEntry.pronunciation,
-                trailing: PronunciationButton(audioUrl: resolvedEntry.audioUrl),
-              ),
-            // ── The forms a noun takes ───────────────────────────────────
-            // Grammar shown where a learner already is, rather than on a
-            // grammar screen they would have to decide to visit. The plain
-            // form is computed from the headword rather than stored, so this
-            // card appears on every noun in the collection — including the
-            // ones contributed years before anybody thought to ask for the
-            // other two — and simply grows as members fill them in.
-            if (_formsBody(resolvedEntry) case final body?) ...[
+                resolvedEntry.audioUrl.isNotEmpty ||
+                resolvedEntry.ipaDisplay != null)
+              _PronunciationCard(entry: resolvedEntry),
+            // ── What it means, in Kasem ──────────────────────────────────
+            // Directly under the English, and deliberately not further down
+            // among the notes. A dictionary that explains Kasem only in
+            // English treats English as the language you think in; putting the
+            // Kasem gloss below "Source and rights" would say the same thing
+            // more quietly.
+            // Suppressed once the senses carry their own Kasem gloss: on a
+            // single-sense entry `displaySenses` lifts this very string into
+            // the sense above, so drawing the card as well would print it
+            // twice, six lines apart, under two different headings.
+            if (resolvedEntry.kasemDefinition.isNotEmpty &&
+                !resolvedEntry.hasStructuredSenses) ...[
               const SizedBox(height: 12),
               _DetailCard(
-                icon: Icons.account_tree_outlined,
-                title: 'Forms',
-                body: body,
+                icon: Icons.translate_rounded,
+                title: 'In Kasem',
+                body: resolvedEntry.kasemDefinition,
               ),
             ],
-            if (resolvedEntry.example.isNotEmpty) ...[
+            // ── The forms this word takes ────────────────────────────────
+            // Grammar shown where a learner already is, rather than on a
+            // grammar screen they would have to decide to visit. A word that
+            // is both a noun and a verb draws both tables — which is the whole
+            // reason the paradigm is one flat map rather than a noun object
+            // beside a verb object.
+            if (resolvedEntry.hasNounParadigm) ...[
+              const SizedBox(height: 12),
+              _ParadigmCard(
+                icon: Icons.account_tree_outlined,
+                title: 'As a thing',
+                rows: resolvedEntry.nounForms,
+                footer: _ConcordNote(entry: resolvedEntry),
+              ),
+            ],
+            if (resolvedEntry.verbForms.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              _ParadigmCard(
+                icon: Icons.schedule_rounded,
+                title: 'As an action',
+                rows: resolvedEntry.verbForms,
+              ),
+            ],
+            // ── The words that change with what they go with ─────────────
+            // An adjective, a quantifier, a numeral, a determiner or a pronoun
+            // takes its form from the noun beside it. Two recorded uses is
+            // what a learner needs in order to see that happen — a single
+            // example looks like a sentence rather than a pattern.
+            if (resolvedEntry.agreementForms.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              _ParadigmCard(
+                icon: Icons.compare_arrows_rounded,
+                title: 'Changes with the word it goes with',
+                rows: resolvedEntry.agreementForms,
+                footer: const _AgreementNote(),
+              ),
+            ],
+            // ── The other lives this word leads ──────────────────────────
+            // Said in a sentence rather than as a row of class names: "also
+            // used as a verb" is a fact about the word, and `verb` on its own
+            // in a chip is a label a learner has to decode.
+            if (_alsoUsedAsLine(resolvedEntry) case final line?) ...[
+              const SizedBox(height: 12),
+              _DetailCard(
+                icon: Icons.alt_route_rounded,
+                title: 'Also used as',
+                body: line,
+              ),
+            ],
+            if (resolvedEntry.etymology.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              _DetailCard(
+                icon: Icons.history_edu_outlined,
+                title: 'Where it comes from',
+                body: resolvedEntry.etymology,
+              ),
+            ],
+            // -- Only where the sentence has nowhere better to be ---------
+            // A modern entry prints each sentence under the meaning it
+            // illustrates, which is the whole point of attaching it to a
+            // sense. Printing the first one again down here would leave a
+            // reader working out which of four meanings it belonged to -- the
+            // exact confusion senses were added to remove.
+            //
+            // The guard asks whether any SENSE carries an example rather than
+            // whether the entry has structured senses at all, because a
+            // contributor may well give three meanings and hang the one
+            // sentence they have off the entry instead. That sentence still
+            // deserves to be shown.
+            if (resolvedEntry.example.isNotEmpty &&
+                !resolvedEntry.hasSenseExamples) ...[
             const SizedBox(height: 12),
             _DetailCard(
               icon: Icons.chat_bubble_outline_rounded,
@@ -347,25 +438,289 @@ class EntryDetailScreen extends ConsumerWidget {
 
 }
 
-/// The forms card's text, or null when there is nothing true to say.
+/// "Also used as a verb", or null when the entry claims only one class.
 ///
-/// ── Why the plain form is enough on its own ──────────────────────────────
-/// A noun with no contributed morphology still gets this card, because the
-/// indefinite is a rule rather than a record: it is the word and `mo`, always.
-/// That single line is worth showing on its own — it is the answer to the
-/// question the dictionary could never answer before, and the reason the queue
-/// stopped asking members for the Kasem for "the".
+/// Written as a sentence rather than a row of class ids. `verb` in a chip is a
+/// label a learner has to decode; "This word is also used as a verb" is the
+/// thing the chip was standing in for, and it costs one line.
+String? _alsoUsedAsLine(DictionaryEntry entry) {
+  final others = entry.alsoUsedAs
+      .map(partOfSpeechLabel)
+      .where((label) => label.trim().isNotEmpty)
+      .map((label) => label.toLowerCase())
+      .toList();
+  if (others.isEmpty) return null;
+  final list = others.length == 1
+      ? others.single
+      : '${others.sublist(0, others.length - 1).join(', ')} and ${others.last}';
+  return 'This word is also used as ${_article(list)}$list. '
+      'The forms above cover every way it is used.';
+}
+
+/// "a" or "an", picked on the sound the label starts with.
 ///
-/// Null for anything that is not a noun, so no screen has to re-test the word
-/// class to decide whether to draw the card.
-String? _formsBody(DictionaryEntry entry) {
-  final plain = entry.indefinite;
-  if (plain == null) return null;
-  return [
-    'Plain: $plain',
-    if (entry.definiteForm.isNotEmpty) 'With “the”: ${entry.definiteForm}',
-    if (entry.pluralForm.isNotEmpty) 'Many: ${entry.pluralForm}',
-  ].join('\n');
+/// Only ever sees the two dozen class labels, all of which start with an
+/// ordinary consonant or vowel, so the naive rule is exactly right here and
+/// the general problem it fails at cannot arise.
+String _article(String word) =>
+    'aeiou'.contains(word.isEmpty ? 'x' : word[0]) ? 'an ' : 'a ';
+
+/// How the word is said: the recording, the transcription, the written guide.
+///
+/// One card for all three because they are one question. Which of them an
+/// entry carries is an accident of who contributed it, and three separate
+/// cards would make a well-documented word look like three unrelated facts.
+///
+/// ── The transcription sits above the prose guide ─────────────────────────
+/// A learner who reads IPA gets an exact answer from one line; a learner who
+/// does not skips it and reads the sentence underneath. Putting the prose
+/// first would make the reader who came for the transcription hunt for it.
+class _PronunciationCard extends StatelessWidget {
+  const _PronunciationCard({required this.entry});
+
+  final DictionaryEntry entry;
+
+  @override
+  Widget build(BuildContext context) {
+    final brand = context.brand;
+    final ipa = entry.ipaDisplay;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(Icons.volume_up_outlined, color: brand.accent),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'How it is said',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  if (ipa != null) ...[
+                    const SizedBox(height: 7),
+                    // Selectable for the same reason the headword is: somebody
+                    // copying a transcription into their notes is the ordinary
+                    // use of this line, and an inert `Text` refuses it.
+                    SelectableText(
+                      ipa,
+                      style: TextStyle(
+                        fontFamily: 'monospace',
+                        fontSize: 16,
+                        color: brand.ink,
+                        height: 1.3,
+                      ),
+                      // A screen reader saying "slash b a k e slash" helps
+                      // nobody. It is told what the line is instead.
+                      semanticsLabel: 'Written in the phonetic alphabet',
+                    ),
+                  ],
+                  if (entry.pronunciation.isNotEmpty) ...[
+                    const SizedBox(height: 7),
+                    Text(entry.pronunciation),
+                  ],
+                  // Only when the card would otherwise be a heading with a
+                  // play button and nothing between them.
+                  if (ipa == null && entry.pronunciation.isEmpty) ...[
+                    const SizedBox(height: 7),
+                    Text(
+                      'Recorded by a speaker. No written guide yet.',
+                      style: TextStyle(color: brand.mutedInk),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            PronunciationButton(audioUrl: entry.audioUrl),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// A paradigm, laid out as label-and-form rows.
+///
+/// ── Why a table and not the run-on line this replaced ────────────────────
+/// The forms used to be joined with newlines into one string — "With “the”:
+/// bukam\nMany: buga" — which is a table drawn with a colon. At three rows it
+/// was tolerable; at six it is a paragraph a reader has to parse, and the one
+/// thing somebody scanning a paradigm does is run their eye down the *forms*
+/// column, which a run-on line does not have.
+///
+/// The forms are selectable and the labels are not. Copying "the boy" out of a
+/// dictionary is an ordinary thing to want; copying the word "Many" is not.
+class _ParadigmCard extends StatelessWidget {
+  const _ParadigmCard({
+    required this.icon,
+    required this.title,
+    required this.rows,
+    this.footer,
+  });
+
+  final IconData icon;
+  final String title;
+  final List<({String label, String form})> rows;
+
+  /// Sits under the table, inside the card. What the forms are evidence *of*
+  /// belongs with them rather than in a card of its own — see [_ConcordNote].
+  final Widget? footer;
+
+  @override
+  Widget build(BuildContext context) {
+    final brand = context.brand;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, color: brand.accent),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: Theme.of(context).textTheme.titleMedium),
+                  const SizedBox(height: 9),
+                  for (final row in rows) ...[
+                    Semantics(
+                      // One label per row, so a screen reader reads
+                      // "The one, bukam" rather than two unrelated fragments
+                      // it has to associate by position.
+                      label: '${row.label}, ${row.form}',
+                      excludeSemantics: true,
+                      child: Padding(
+                        padding: const EdgeInsets.only(bottom: 6),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            SizedBox(
+                              width: 108,
+                              child: Text(
+                                row.label,
+                                style: TextStyle(
+                                  color: brand.mutedInk,
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w700,
+                                  height: 1.45,
+                                ),
+                              ),
+                            ),
+                            Expanded(
+                              child: SelectableText(
+                                row.form,
+                                style: TextStyle(
+                                  color: brand.ink,
+                                  fontSize: 15,
+                                  height: 1.35,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                  ?footer,
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// What the recorded forms show about concord, stated as observation.
+///
+/// ── Read the wording before changing it ──────────────────────────────────
+/// This says *"counted with `yalei`"*, not *"belongs to the ya class"*, and
+/// the difference is the difference between a record and a claim. Six forms of
+/// *two* are attested — balei, yalei, nlei, selei, telei, delei — and which
+/// noun takes which is exactly what nobody has established. Harvesting a fully
+/// glossed chapter of Genesis produced one noun observed with both an article
+/// and a numeral in seventy clauses, which is why these forms are collected
+/// from speakers directly and why the entry reports them rather than
+/// concluding from them.
+///
+/// The correspondence between the article and the numeral prefix — `da yam`
+/// "the days" beside `da yalei` "two days", the same `ya` twice — is a live
+/// hypothesis with one direct observation behind it. It is falsifiable, and a
+/// screen that quietly turned two forms into a class would be the thing that
+/// stopped anybody being able to falsify it.
+///
+/// Renders nothing when neither form yielded a match, which is the common
+/// case. Nothing, not a hedge: an entry that says "class not established" on
+/// every row teaches a reader to stop reading the line.
+class _ConcordNote extends StatelessWidget {
+  const _ConcordNote({required this.entry});
+
+  final DictionaryEntry entry;
+
+  @override
+  Widget build(BuildContext context) {
+    final article = entry.article;
+    final numeral = entry.numeral;
+    if (article == null && numeral == null) return const SizedBox.shrink();
+
+    final parts = <String>[
+      if (article != null) 'takes “$article” for “the”',
+      if (numeral != null) 'counts with “${numeral.form}”',
+    ];
+    // Said only when both halves are present and agree. One form alone is an
+    // ending; two that carry the same marker are the pair this collection
+    // exists to gather, and saying so is what tells a contributor their second
+    // answer was worth typing.
+    final agrees = article != null &&
+        numeral != null &&
+        numeral.prefix.isNotEmpty &&
+        article.startsWith(numeral.prefix);
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: Text(
+        '${parts.join(' and ')}${agrees ? ' — the same marker both times' : ''}. '
+        'Read from the forms above, as recorded.',
+        style: TextStyle(
+          color: context.brand.faintInk,
+          fontSize: 11.5,
+          height: 1.45,
+        ),
+      ),
+    );
+  }
+}
+
+/// What two recorded uses of an agreeing word do and do not show.
+///
+/// ── The wording is the whole point ───────────────────────────────────────
+/// It says these are *uses somebody recorded*, not cells in a paradigm. Which
+/// cells exist — how many forms this word has, what picks between them — is
+/// exactly what nobody has established, and a card that quietly implied a
+/// two-cell system would be inventing one. See `AGREEING_CLASSES` in
+/// `kasem-morphology.ts`.
+class _AgreementNote extends StatelessWidget {
+  const _AgreementNote();
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(top: 4),
+    child: Text(
+      'Two uses a speaker recorded. There may well be more forms than these '
+      'two — which ones a word has, and what picks between them, has not been '
+      'established for Kasem yet.',
+      style: TextStyle(
+        color: context.brand.faintInk,
+        fontSize: 11.5,
+        height: 1.45,
+      ),
+    ),
+  );
 }
 
 /// The play button beside a word's pronunciation.
@@ -513,14 +868,12 @@ class _DetailCard extends StatelessWidget {
     required this.icon,
     required this.title,
     required this.body,
-    this.trailing,
     this.footer,
   });
 
   final IconData icon;
   final String title;
   final String body;
-  final Widget? trailing;
 
   /// Sits under the body, inside the card. The example's licence credit is the
   /// only thing that uses it, and it belongs inside because a credit that has
@@ -547,7 +900,6 @@ class _DetailCard extends StatelessWidget {
               ],
             ),
           ),
-          ?trailing,
         ],
       ),
     ),

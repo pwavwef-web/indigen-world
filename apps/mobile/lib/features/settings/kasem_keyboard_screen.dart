@@ -286,12 +286,12 @@ class _KeyboardStatusCard extends StatelessWidget {
             ),
             alignment: Alignment.center,
             child: const Text(
-              'Ɛ Ɔ\nŊ',
+              'Ɩ Ʋ\nƆ Ŋ',
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: Colors.white,
-                fontSize: 17,
-                height: 1.05,
+                fontSize: 15,
+                height: 1.1,
                 fontWeight: FontWeight.w900,
               ),
             ),
@@ -352,14 +352,23 @@ class _LanguageNote extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           const Text(
-            'Ɛ, Ɔ and Ŋ have direct keys. Hold C, N, K, G, P or Ŋ for '
-            'Ch, Ny, Kw, Gw, Pw or Ŋw.',
+            'Every Kasem letter has its own key: ɩ, ʋ, ə, ɔ, ŋ and ɛ sit on '
+            'their own row above the alphabet whenever the keyboard is in '
+            'Kasem mode.',
+          ),
+          const SizedBox(height: 9),
+          const Text(
+            'Holding a vowel gives the same letter a second way — hold E, I, '
+            'O, U or A for ɛ, ɩ, ɔ, ʋ or ə — and holding one of the Kasem '
+            'vowels adds its high tone. Hold C, K, G, P or Ŋ for Ch, Kw, Gw, '
+            'Pw or Ŋw. Keys that do something extra show it in small type in '
+            'the corner.',
           ),
           const SizedBox(height: 9),
           Text(
-            'This is the project draft layout. Its alphabet, digraphs and '
-            'key positions still need review with fluent Kasem speakers '
-            'before the production layout is frozen.',
+            'The alphabet is settled; the digraph shortcuts and the key '
+            'positions still need review with fluent Kasem speakers before '
+            'the layout is frozen.',
             style: TextStyle(color: context.brand.mutedInk),
           ),
         ],

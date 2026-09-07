@@ -15,14 +15,21 @@ import {
   buildCollectionCampaignDocument,
   buildCollectionContributionReceipt,
   buildCollectionSubmissionDocument,
+  parseContributionMedia,
   type CollectionContributionInput,
+  type CollectionContributionMedia,
 } from './collection-contributions.js';
 import {
-  type NounForms,
-  parseNounForms,
+  type LexicalForms,
+  parseLexicalForms,
 } from './kasem-morphology.js';
 import {
+  MAX_ETYMOLOGY_LENGTH,
+  MAX_KASEM_DEFINITION_LENGTH,
   canonicalPartOfSpeech,
+  parseAlsoUsedAs,
+  parseIpa,
+  parseProse,
   parseTranslations,
   partOfSpeechLabel,
 } from './lexical-kinds.js';
@@ -764,18 +771,58 @@ export interface WordTranslationInput {
   /** Whether the prompt sentence showed the word's plain meaning. See [SENTENCE_FITS]. */
   readonly sentenceFit: SentenceFit;
   /**
-   * The definite and plural forms, on a noun. Empty for every other class.
+   * The paradigm: a noun's definite, plural, counted and pronoun forms, a
+   * verb's tenses, or both on a word used both ways. Empty for every other
+   * class.
    *
    * This is the data that makes "the" answerable at all: definiteness in Kasem
    * is a property of the noun rather than a separate word, so the queue asks
    * for a form the member says without thinking and the class is induced from
-   * it. See `kasem-morphology.ts`.
+   * it. The counted form — "two boys" — is a second probe of the same class
+   * and is deliberately *not* induced from; see `kasem-morphology.ts`.
    */
-  readonly forms: NounForms;
+  readonly forms: LexicalForms;
+  /** How the word is said, in IPA, without its delimiters. Usually empty. */
+  readonly ipa: string;
+  /** What the word means, said in Kasem. Usually empty. */
+  readonly kasemDefinition: string;
+  /** Where the word comes from, where the member knows. Usually empty. */
+  readonly etymology: string;
+  /** The other word classes this word is also used as. Usually empty. */
+  readonly alsoUsedAs: string[];
+  /**
+   * The recording of the word being said, already uploaded to the member's
+   * own private submission prefix.
+   *
+   * ── Why the queue takes a file at all ────────────────────────────────────
+   * Because a dictionary entry's whole point is a sound, and for as long as
+   * the guided queue has been the main way words arrive it has been the one
+   * contribution path with no way to record one. The open form has had a
+   * recorder since the play button on a published entry stopped being a stub;
+   * the queue — which produces the overwhelming majority of entries — sent
+   * text only, so the archive was filling up with words nobody can hear.
+   *
+   * Null on every answer that does not carry one, which is most of them: it is
+   * optional for the same reason every other field here is, and a member in a
+   * noisy room or without microphone permission must still be able to answer
+   * the word.
+   */
+  readonly media: CollectionContributionMedia | null;
 }
 
-/** Pure payload validation, so the whole shape can be exercised without Firestore. */
-export function parseWordTranslationInput(raw: unknown): WordTranslationInput {
+/**
+ * Pure payload validation, so the whole shape can be exercised without
+ * Firestore.
+ *
+ * [uid] is needed only to check that an offered recording sits in the caller's
+ * *own* private upload folder. Storage rules stop a member writing into
+ * somebody else's prefix, but nothing stops them naming one here, and an
+ * answer that pointed a reviewer at another member's private file would be a
+ * disclosure the rules never saw. It defaults to empty so the parser stays
+ * callable from a unit test with no auth in sight; a payload that carries
+ * media with no uid to check it against is refused rather than trusted.
+ */
+export function parseWordTranslationInput(raw: unknown, uid = ''): WordTranslationInput {
   const data = asRecord(raw, 'A word and its translation are required.');
   const wordId = requiredId(data.wordId, 'wordId');
 
@@ -807,6 +854,9 @@ export function parseWordTranslationInput(raw: unknown): WordTranslationInput {
     throw new HttpsError('invalid-argument', 'dialect is required.');
   }
 
+  // Read before the return because the paradigm parser needs it.
+  const alsoUsedAs = parseAlsoUsedAs(data.alsoUsedAs).filter((id) => id !== partOfSpeech);
+
   return {
     wordId,
     translations,
@@ -825,12 +875,44 @@ export function parseWordTranslationInput(raw: unknown): WordTranslationInput {
     // Absent on a client that predates the field, which is why this defaults
     // rather than throwing. See [parseSentenceFit].
     sentenceFit: parseSentenceFit(data.sentenceFit),
-    // Silently empty for anything that is not a noun rather than an error:
-    // the fields only render for Noun, so their presence elsewhere is stale
-    // client state, and a member's good answer must not fail over it.
-    forms: parseNounForms(data.forms, partOfSpeech),
+    // Silently empty for a class that takes no paradigm rather than an error:
+    // the fields only render for the class they belong to, so their presence
+    // elsewhere is stale client state, and a member's good answer must not
+    // fail over it.
+    //
+    // The declared class and everything the member said the word is *also*
+    // used as go in together, so a noun that is also a verb keeps its plural
+    // and its tenses rather than losing whichever half the dropdown did not
+    // name.
+    forms: parseLexicalForms(data.forms, [partOfSpeech, ...alsoUsedAs]),
+    ipa: parseIpa(data.ipa),
+    kasemDefinition: parseProse(data.kasemDefinition, MAX_KASEM_DEFINITION_LENGTH),
+    etymology: parseProse(data.etymology, MAX_ETYMOLOGY_LENGTH),
+    alsoUsedAs,
+    // A recording is refused rather than dropped when it cannot be checked
+    // against an owner — see the note on [uid] above. `parseContributionMedia`
+    // raises `permission-denied` for a path outside the caller's own prefix,
+    // and an empty uid makes every path outside it.
+    media: data.media == null
+      ? null
+      : parseContributionMedia(data.media, uid, {
+          label: 'recording',
+          maxBytes: MAX_PRONUNCIATION_BYTES,
+        }),
   };
 }
+
+/**
+ * The ceiling on a pronunciation recording sent with a queue answer.
+ *
+ * The recorder caps a take at thirty seconds, which is a few hundred kilobytes
+ * of AAC; eight megabytes is far above anything it can produce and far below
+ * anything that would hurt a member on a metered village connection. It exists
+ * because the field accepts a file from a phone, and the general contribution
+ * ceiling — sized for a master recording of a song — is the wrong number by
+ * two orders of magnitude for a word said once.
+ */
+export const MAX_PRONUNCIATION_BYTES = 8 * 1024 * 1024;
 
 /**
  * A queue answer, expressed as an ordinary Collection contribution.
@@ -858,7 +940,13 @@ export function buildWordQueueContributionInput(
     dialect: input.dialect,
     source: wordQueueSourceLine(row),
     mediaUrl: '',
-    media: null,
+    // The recording, where the member made one. It travels as the
+    // contribution's `media`, which is the exact field `decideSubmission`
+    // already copies out to the public path and lands on the entry as
+    // `audioUrl` — so a queue answer with a recording publishes with sound
+    // through the path that was already there, rather than through a second
+    // one built beside it.
+    media: input.media,
     cover: null,
     notes: input.notes,
     relatedEntryId: null,
@@ -870,6 +958,23 @@ export function buildWordQueueContributionInput(
     kasemExample: input.kasemExample,
     englishExample: input.englishExample,
     forms: input.forms,
+    ipa: input.ipa,
+    kasemDefinition: input.kasemDefinition,
+    etymology: input.etymology,
+    alsoUsedAs: input.alsoUsedAs,
+    // ── The queue is deliberately single-sense ─────────────────────────
+    // It prompts with one English word and asks what the Kasem for it is, so
+    // the answer is one meaning by construction: a member shown "bottle" is
+    // not being asked about every other thing the Kasem word might mean. The
+    // several-meanings form is the open contribution screen, where the member
+    // brings the word and therefore knows how many senses it has. Adding a
+    // sense editor here would cost every one of fifteen thousand queued words
+    // a question almost none of them need — which is the exact failure the
+    // guided queue exists to avoid.
+    //
+    // The publication projection lifts this into a single sense on read, so a
+    // queue answer still publishes with the same shape as everything else.
+    senses: [],
     rightsConfirmed: true,
     publicationPermission: input.publicationPermission,
   };
@@ -888,7 +993,7 @@ export function buildWordQueueContributionInput(
 export const submitWordTranslation = onCall(CALLABLE_OPTIONS, async (req) => {
   const uid = requireAuth(req);
   await consumeRateLimit('submitWordTranslation', uid, 60);
-  const input = parseWordTranslationInput(req.data);
+  const input = parseWordTranslationInput(req.data, uid);
 
   const db = getFirestore();
   const wordRef = db.collection(WORD_QUEUE_COLLECTION).doc(input.wordId);

@@ -319,6 +319,8 @@ class ReelFeedView extends ConsumerStatefulWidget {
     this.isActive = true,
     this.initialIndex = 0,
     this.header,
+    this.footer,
+    this.bottomInset = 0,
     this.onNearEnd,
     super.key,
   });
@@ -337,6 +339,23 @@ class ReelFeedView extends ConsumerStatefulWidget {
 
   /// Optional chrome pinned over the top of the feed.
   final Widget? header;
+
+  /// Optional chrome pinned over the bottom of the feed — Explore's nav bar.
+  ///
+  /// A slot rather than a widget this file owns, because three surfaces show
+  /// this feed and only one of them has anywhere else to navigate to. A
+  /// creator's page and a search result are lists somebody arrived at from
+  /// somewhere; putting Explore's own bar under them would offer a member
+  /// looking at one creator a switch between For you and Following.
+  final Widget? footer;
+
+  /// How much room the footer needs at the bottom of every card.
+  ///
+  /// Passed as a number rather than measured, because the caption, the action
+  /// rail and the progress bar are positioned absolutely inside each card and
+  /// have to move *before* the footer is drawn over them — a bar that overlaps
+  /// the caption is a bar that hides the one line saying what the clip is.
+  final double bottomInset;
 
   /// Called once the member is within [kReelLoadAheadPages] of the last reel.
   ///
@@ -579,6 +598,7 @@ class _ReelFeedViewState extends ConsumerState<ReelFeedView>
               };
               return _ReelCard(
                 reel: reel,
+                bottomInset: widget.bottomInset,
                 isActive: index == activeIndex,
                 isPlaying: index == activeIndex && _playing,
                 onScreen: onScreen,
@@ -599,6 +619,13 @@ class _ReelFeedViewState extends ConsumerState<ReelFeedView>
               left: 0,
               right: 0,
               child: SafeArea(bottom: false, child: header),
+            ),
+          if (widget.footer case final footer?)
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: SafeArea(top: false, child: footer),
             ),
           // No "3 of 40" rail along the bottom any more. An endless feed has
           // no meaningful length to be three-fortieths of, and the one bar
@@ -857,6 +884,7 @@ class ReelContextBlock extends StatelessWidget {
 class _ReelCard extends ConsumerStatefulWidget {
   const _ReelCard({
     required this.reel,
+    required this.bottomInset,
     required this.isActive,
     required this.isPlaying,
     required this.onScreen,
@@ -871,6 +899,10 @@ class _ReelCard extends ConsumerStatefulWidget {
   });
 
   final Reel reel;
+
+  /// Room reserved at the bottom of this card for chrome drawn over it.
+  final double bottomInset;
+
   final bool isActive;
 
   /// The member's own intent: they have not tapped this reel to a stop.
@@ -1123,7 +1155,7 @@ class _ReelCardState extends ConsumerState<_ReelCard> {
               // rail, so it does not hold a column of empty screen open beside
               // itself.
               right: reel.isSponsored ? 18 : 82,
-              bottom: 42,
+              bottom: 42 + widget.bottomInset,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -1215,7 +1247,7 @@ class _ReelCardState extends ConsumerState<_ReelCard> {
             if (!reel.isSponsored)
               Positioned(
                 right: 11,
-                bottom: 44,
+                bottom: 44 + widget.bottomInset,
                 child: Column(
                   children: [
                     ReelCreatorAvatar(
@@ -1284,7 +1316,11 @@ class _ReelCardState extends ConsumerState<_ReelCard> {
               Positioned(
                 left: 0,
                 right: 0,
-                bottom: 0,
+                // Above the nav bar rather than under it: where you are in the
+                // clip is the last thing a full-bleed video should hide, and a
+                // progress bar behind a glass strip is a progress bar nobody
+                // can read.
+                bottom: widget.bottomInset,
                 child: SafeArea(
                   top: false,
                   child: ReelProgressBar(controller: controller),

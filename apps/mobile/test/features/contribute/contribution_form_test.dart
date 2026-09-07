@@ -12,12 +12,14 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:indigen_world_mobile/app/app_theme.dart';
 import 'package:indigen_world_mobile/features/collection/collection_data.dart';
 import 'package:indigen_world_mobile/features/contribute/contribution_form_screen.dart';
+import 'package:indigen_world_mobile/features/contribute/contribution_kinds.dart';
 import 'package:indigen_world_mobile/l10n/app_localizations.dart';
 
 Future<void> pumpForm(
   WidgetTester tester,
   CollectionKind kind, {
   String? relatedEntryId,
+  LexicalKind? lexicalKind,
 }) async {
   tester.view.physicalSize = const Size(800, 1200);
   tester.view.devicePixelRatio = 1;
@@ -32,6 +34,7 @@ Future<void> pumpForm(
         theme: buildIndigenTheme(),
         home: ContributionFormScreen(
           kind: kind,
+          lexicalKind: lexicalKind,
           relatedEntryId: relatedEntryId,
         ),
       ),
@@ -44,10 +47,27 @@ void main() {
   testWidgets('a word is asked what a word needs', (tester) async {
     await pumpForm(tester, CollectionKind.dictionary);
 
-    expect(find.text('English or source word'), findsOneWidget);
+    // The English side is the first MEANING now, not a single "word" box.
+    // A word has as many meanings as it has, and the form that asked once
+    // stored "toy, plaything, small dog" as one meaning with one sentence
+    // attached to none of them.
+    expect(find.text('What it means in English'), findsOneWidget);
+    expect(find.text('English or source word'), findsNothing);
     expect(find.text('Kasem word or phrase'), findsOneWidget);
+
+    // The example boxes moved inside the meaning they illustrate. There is
+    // exactly one meaning on a fresh form, so they are not numbered yet.
     expect(find.text('Kasem example (optional)'), findsOneWidget);
-    expect(find.text('English example (optional)'), findsOneWidget);
+    expect(find.text('English for that sentence (optional)'), findsOneWidget);
+
+    // One meaning costs no extra taps: no number, no detail boxes, and the
+    // offer of a second meaning phrased as an invitation rather than a step.
+    expect(find.text('Meaning 1'), findsNothing);
+    expect(find.text('How is it said?'), findsNothing);
+    expect(
+      find.text('This word means something else too'),
+      findsOneWidget,
+    );
 
     // A dictionary word carries nobody else's work, and has nothing for a
     // cover to be the cover of.
@@ -67,6 +87,75 @@ void main() {
       findsOneWidget,
     );
     await tester.pump(const Duration(milliseconds: 500));
+  });
+
+  testWidgets('a word can be given several meanings, each with its own '
+      'example', (tester) async {
+    await pumpForm(tester, CollectionKind.dictionary);
+
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'What it means in English'),
+      'plaything',
+    );
+    await tester.pump();
+
+    await tester.tap(find.text('This word means something else too'));
+    await tester.pumpAndSettle();
+
+    // Both meanings are now numbered, and the second one asks for its own
+    // sentence by number so a contributor can see which it belongs to.
+    expect(find.text('Meaning 1'), findsOneWidget);
+    expect(find.text('Meaning 2'), findsOneWidget);
+    expect(find.text('What else it means'), findsOneWidget);
+    expect(find.text('Kasem example for meaning 2 (optional)'), findsOneWidget);
+
+    // The button relabels once there is a list to add to.
+    expect(find.text('Add another meaning'), findsOneWidget);
+
+    // A second meaning opens its detail already unfolded, because somebody who
+    // pressed Add is telling this meaning apart from the first and the labels
+    // are how they do it.
+    expect(find.text('How is it said?'), findsOneWidget);
+    expect(find.text('What is it about?'), findsOneWidget);
+    expect(
+      find.text('Word class for this meaning (optional)'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('an empty extra meaning is removed without a confirmation', (
+    tester,
+  ) async {
+    await pumpForm(tester, CollectionKind.dictionary);
+
+    await tester.tap(find.text('This word means something else too'));
+    await tester.pumpAndSettle();
+    expect(find.text('Meaning 2'), findsOneWidget);
+
+    // The cross on the second meaning. Nothing has been typed into it, so it
+    // goes without a dialog -- a confirmation about discarding nothing is the
+    // case that happens most, and it is the one worth not asking about.
+    await tester.tap(find.byTooltip('Remove this meaning').last);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Meaning 2'), findsNothing);
+    expect(find.text('Meaning 1'), findsNothing);
+    expect(find.text('What it means in English'), findsOneWidget);
+  });
+
+  testWidgets('a saying is not offered several meanings', (tester) async {
+    await pumpForm(
+      tester,
+      CollectionKind.dictionary,
+      lexicalKind: LexicalKind.proverb,
+    );
+
+    // A proverb has a meaning rather than a translation, and it very rarely
+    // has several. Four numbered senses on a proverb is almost always somebody
+    // misreading the box.
+    expect(find.text('What it means in English'), findsOneWidget);
+    expect(find.text('This word means something else too'), findsNothing);
+    expect(find.text('Add another meaning'), findsNothing);
   });
 
   testWidgets('a song is asked for the recording and its artwork', (

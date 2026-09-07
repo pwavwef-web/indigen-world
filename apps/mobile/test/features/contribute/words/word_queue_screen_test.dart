@@ -49,6 +49,33 @@ Future<void> pumpQueue(
   await tester.pump(const Duration(milliseconds: 400));
 }
 
+/// Picks a word class from the searchable picker.
+///
+/// A helper rather than six copies of the same five lines, because the picker
+/// is a route: it has to be opened, settled, tapped and settled again, and a
+/// test that gets one of those pumps wrong fails on a timer rather than on the
+/// thing it was checking.
+Future<void> chooseClass(WidgetTester tester, String label) async {
+  await tester.tap(find.text('Word class'));
+  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 400));
+  // The list runs to twenty-five classes, so anything past the first handful
+  // is below the fold on a test-sized surface. Typing into the picker's own
+  // search box is both how a member reaches those and the only way a finder
+  // can — and it exercises the search rather than routing around it.
+  if (find.text(label).evaluate().isEmpty) {
+    await tester.enterText(
+      find.widgetWithText(TextField, 'noun, verb, ideophone…'),
+      label,
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+  }
+  await tester.tap(find.text(label).last);
+  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 400));
+}
+
 /// Answers the word on screen with [translation].
 Future<void> answer(WidgetTester tester, String translation) async {
   await tester.enterText(find.byType(TextFormField).first, translation);
@@ -403,12 +430,16 @@ void main() {
     expect(find.text('Record that saying too?'), findsOneWidget);
   });
 
-  // ── Noun forms ────────────────────────────────────────────────────────────
+  // -- The paradigm ---------------------------------------------------------
   //
   // The queue used to ask for the Kasem for "the", fifteen thousand times, and
-  // there is no such word — definiteness is a property of the noun. These tests
-  // hold the replacement: two optional fields that cost nothing to ignore, and
-  // a plain form stated rather than asked for.
+  // there is no such word - definiteness is a property of the noun. These tests
+  // hold the replacement: optional fields that cost nothing to ignore, drawn
+  // only for the class they belong to, and deepening only once the shallower
+  // question has an answer.
+  //
+  // The bar every one of them has to clear: a queue that grows a field per word
+  // is a queue people answer four words in instead of twenty.
 
   testWidgets('the form fields appear only once the word is a noun', (
     tester,
@@ -416,23 +447,147 @@ void main() {
     final api = FakeWordQueueApi([batchOf(2)]);
     await pumpQueue(tester, api);
 
-    // Nothing until a word class is chosen: a verb must cost zero extra
+    // Nothing until a word class is chosen: an adjective must cost zero extra
     // keystrokes, and so must a noun whose contributor does not elaborate.
-    expect(find.text('Say it with “the” (optional)'), findsNothing);
-    expect(find.text('Say it for many (optional)'), findsNothing);
+    expect(find.text('Say it with “the”'), findsNothing);
+    expect(find.text('Say it for many'), findsNothing);
 
-    await tester.tap(find.text('Word class'));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 400));
-    await tester.tap(find.text('Noun'));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 400));
+    await chooseClass(tester, 'Noun');
 
-    expect(find.text('Say it with “the” (optional)'), findsOneWidget);
-    expect(find.text('Say it for many (optional)'), findsOneWidget);
-    // The rule is stated, never asked for. A member who reads this line has
-    // learnt something true and will not type "bu mo" into the meaning box.
-    expect(find.textContaining('just the word and mo'), findsOneWidget);
+    expect(find.text('Say it with “the”'), findsOneWidget);
+    expect(find.text('Say it for many'), findsOneWidget);
+    // The pronoun is the cheapest of the three to elicit - somebody who has
+    // just written "the boy" says "he came" without stopping - so it is asked
+    // up front rather than behind the plural.
+    expect(find.text('What you call it afterwards'), findsOneWidget);
+    // Counting starts from the plural, so the last two questions wait for it.
+    // A member who skipped the plural would be being asked to invent one.
+    expect(find.text('Say it for two'), findsNothing);
+    expect(find.text('Say the many with “the”'), findsNothing);
+    // No verb tenses on a noun until somebody says it is also used as one.
+    expect(find.text('Say it for yesterday'), findsNothing);
+  });
+
+  testWidgets('the counted questions follow the plural, and only it', (
+    tester,
+  ) async {
+    final api = FakeWordQueueApi([batchOf(2)]);
+    await pumpQueue(tester, api);
+    await chooseClass(tester, 'Noun');
+
+    // The definite form alone does not open them: it is the plural a numeral
+    // counts, not the singular with "the" on it.
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Say it with “the”'),
+      'bukam',
+    );
+    await tester.pump();
+    expect(find.text('Say it for two'), findsNothing);
+
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Say it for many'),
+      'buga',
+    );
+    await tester.pump();
+    expect(find.text('Say it for two'), findsOneWidget);
+    expect(find.text('Say the many with “the”'), findsOneWidget);
+  });
+
+  testWidgets('a verb is asked for tenses and never for a plural', (
+    tester,
+  ) async {
+    // The other half of the paradigm, and the half this dictionary has never
+    // held a single row of.
+    final api = FakeWordQueueApi([batchOf(2)]);
+    await pumpQueue(tester, api);
+    await chooseClass(tester, 'Verb');
+
+    expect(find.text('Say it for now'), findsOneWidget);
+    expect(find.text('Say it for yesterday'), findsOneWidget);
+    expect(find.text('Say it for tomorrow'), findsOneWidget);
+    // A verb has no definite article and no plural of its own.
+    expect(find.text('Say it with “the”'), findsNothing);
+    expect(find.text('Say it for many'), findsNothing);
+    // Two more forms exist and are behind a tap, because they are the ones
+    // that make somebody stop and think.
+    expect(find.text('Say it as an instruction'), findsNothing);
+    await tester.tap(find.text('Two more forms'));
+    await tester.pump();
+    expect(find.text('Say it as an instruction'), findsOneWidget);
+  });
+
+  testWidgets('a noun said to be used as a verb keeps both paradigms', (
+    tester,
+  ) async {
+    // -- The case a word-class dropdown could not express -------------------
+    // Kasem words routinely belong to more than one class, and every
+    // contributor who knew that had to pick one and throw the rest away.
+    final api = FakeWordQueueApi([batchOf(2)]);
+    await pumpQueue(tester, api);
+    await chooseClass(tester, 'Noun');
+
+    expect(find.text('Say it for yesterday'), findsNothing);
+    await tester.tap(find.text('an action'));
+    await tester.pump();
+
+    // Both halves, at once, on one entry.
+    expect(find.text('Say it with “the”'), findsOneWidget);
+    expect(find.text('Say it for yesterday'), findsOneWidget);
+  });
+
+  testWidgets('a quantifier is asked how it changes with what it goes with', (
+    tester,
+  ) async {
+    // -- The hole this closed --------------------------------------------
+    // Before these two boxes, an adjective, a quantifier, a numeral, a
+    // determiner, an article and a pronoun were asked NOTHING - a quantifier
+    // got exactly what a preposition got. That is most of the words a learner
+    // needs in order to say anything *about* a noun.
+    final api = FakeWordQueueApi([batchOf(2)]);
+    await pumpQueue(tester, api);
+    await chooseClass(tester, 'Quantifier');
+
+    expect(find.text('Use it with one word'), findsOneWidget);
+    expect(find.text('Now with a different word'), findsOneWidget);
+    // A quantifier has no plural of its own and no tenses. Offering either
+    // would be asking a contributor to invent one.
+    expect(find.text('Say it for many'), findsNothing);
+    expect(find.text('Say it for yesterday'), findsNothing);
+
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Use it with one word'),
+      'te maama',
+    );
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Now with a different word'),
+      'ya maama',
+    );
+    await tester.pump();
+    await answer(tester, 'maama');
+
+    expect(api.submissions.single.toPayload()['forms'], {
+      'agreeingOne': 'te maama',
+      'agreeingTwo': 'ya maama',
+    });
+  });
+
+  testWidgets('a class nobody has attested a paradigm for is asked nothing', (
+    tester,
+  ) async {
+    // Adverbs, prepositions, particles and — deliberately — ideophones. Gur
+    // ideophones often do carry intensive and reduplicated forms, and
+    // inventing a paradigm for this language's largest poorly-described class
+    // is the exact failure the whole module is written to avoid.
+    final api = FakeWordQueueApi([batchOf(2)]);
+    await pumpQueue(tester, api);
+    await chooseClass(tester, 'Ideophone');
+
+    expect(find.text('Say it with “the”'), findsNothing);
+    expect(find.text('Say it for now'), findsNothing);
+    expect(find.text('Use it with one word'), findsNothing);
+    // What every class does still get: somewhere to say what it means in
+    // Kasem, how it is said, and where it came from.
+    expect(find.text('Tell us more about this word'), findsOneWidget);
   });
 
   testWidgets('a noun answered without its forms still sends nothing extra', (
@@ -445,9 +600,13 @@ void main() {
     final sent = api.submissions.single;
     expect(sent.definiteForm, '');
     expect(sent.pluralForm, '');
+    expect(sent.countedForm, '');
     // The optionality is the whole design. If this key ever appears on an
-    // answer nobody filled in, every verb in the collection grows an empty map.
+    // answer nobody filled in, every entry in the collection grows a map of
+    // eleven empty strings.
     expect(sent.toPayload().containsKey('forms'), isFalse);
+    expect(sent.toPayload().containsKey('alsoUsedAs'), isFalse);
+    expect(sent.toPayload().containsKey('kasemDefinition'), isFalse);
   });
 
   testWidgets('the forms a member does give travel with the answer', (
@@ -455,21 +614,24 @@ void main() {
   ) async {
     final api = FakeWordQueueApi([batchOf(2)]);
     await pumpQueue(tester, api);
-
-    await tester.tap(find.text('Word class'));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 400));
-    await tester.tap(find.text('Noun'));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 400));
+    await chooseClass(tester, 'Noun');
 
     await tester.enterText(
-      find.widgetWithText(TextFormField, 'Say it with “the” (optional)'),
+      find.widgetWithText(TextFormField, 'Say it with “the”'),
       'bukam',
     );
     await tester.enterText(
-      find.widgetWithText(TextFormField, 'Say it for many (optional)'),
+      find.widgetWithText(TextFormField, 'Say it for many'),
       'buga',
+    );
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'What you call it afterwards'),
+      'o',
+    );
+    await tester.pump();
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Say it for two'),
+      'buga balei',
     );
     await tester.pump();
     await answer(tester, 'bu');
@@ -477,31 +639,89 @@ void main() {
     final sent = api.submissions.single;
     expect(sent.definiteForm, 'bukam');
     expect(sent.pluralForm, 'buga');
-    expect(sent.toPayload()['forms'], {'definite': 'bukam', 'plural': 'buga'});
+    expect(sent.countedForm, 'buga balei');
+    expect(sent.pronounForm, 'o');
+    // Only the answered slots go over the wire. The pair is the point: a
+    // definite ending on its own is an ending, and the same noun's numeral
+    // either carries the same marker or it does not.
+    expect(sent.toPayload()['forms'], {
+      'definite': 'bukam',
+      'plural': 'buga',
+      'counted': 'buga balei',
+      'pronoun': 'o',
+    });
   });
 
-  testWidgets('one word\'s forms do not follow the member to the next', (
+  testWidgets('the meaning said in Kasem reaches the review desk', (
     tester,
   ) async {
-    final api = FakeWordQueueApi([batchOf(3)]);
-    await pumpQueue(tester, api);
+    // The only field on the record written *in* the language rather than about
+    // it, and until now there was nowhere to put it.
+    // Tall enough that the whole form is laid out at once. The section under
+    // test is the last thing on a screen that scrolls well past a phone, and
+    // `scrollUntilVisible` cannot be used here — the queue has more than one
+    // Scrollable in its tree and the helper insists on exactly one.
+    tester.view.physicalSize = const Size(1200, 4200);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
 
-    await tester.tap(find.text('Word class'));
+    final api = FakeWordQueueApi([batchOf(2)]);
+    await pumpQueue(tester, api);
+    await chooseClass(tester, 'Noun');
+
+    // Collapsed by default: none of these is answerable in the rhythm the
+    // queue runs at, so they cost nothing to anybody who does not want them.
+    expect(find.text('What it means, said in Kasem'), findsNothing);
+    await tester.ensureVisible(find.text('Tell us more about this word'));
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 400));
-    await tester.tap(find.text('Noun'));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 400));
+    await tester.tap(find.text('Tell us more about this word'));
+    await tester.pumpAndSettle();
+
     await tester.enterText(
-      find.widgetWithText(TextFormField, 'Say it with “the” (optional)'),
-      'bukam',
+      find.widgetWithText(TextFormField, 'What it means, said in Kasem'),
+      'Nabiinu we o na de bu',
     );
     await tester.pump();
     await answer(tester, 'bu');
 
-    await answer(tester, 'nɩ');
-    expect(api.submissions.last.definiteForm, '');
+    expect(
+      api.submissions.single.toPayload()['kasemDefinition'],
+      'Nabiinu we o na de bu',
+    );
   });
+
+  testWidgets("one word's forms do not follow the member to the next", (
+    tester,
+  ) async {
+    final api = FakeWordQueueApi([batchOf(3)]);
+    await pumpQueue(tester, api);
+    await chooseClass(tester, 'Noun');
+
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Say it with “the”'),
+      'bukam',
+    );
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Say it for many'),
+      'buga',
+    );
+    await tester.pump();
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Say it for two'),
+      'buga balei',
+    );
+    await tester.pump();
+    await answer(tester, 'bu');
+
+    await answer(tester, 'ɲɩ');
+    expect(api.submissions.last.definiteForm, '');
+    expect(api.submissions.last.pluralForm, '');
+    // A counted form left behind would be the worst of the three to carry
+    // over: it reads as a fact about a noun the member never even saw.
+    expect(api.submissions.last.countedForm, '');
+  });
+
 
   testWidgets('no Firebase says so instead of looking like an empty queue', (
     tester,

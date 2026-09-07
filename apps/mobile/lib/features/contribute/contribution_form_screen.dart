@@ -14,7 +14,9 @@ import 'package:indigen_world_mobile/features/contribute/contribution_upload.dar
 import 'package:indigen_world_mobile/features/contribute/draft_assist.dart';
 import 'package:indigen_world_mobile/features/contribute/pronunciation_recorder.dart';
 import 'package:indigen_world_mobile/features/contribute/words/data/parts_of_speech.dart';
+import 'package:indigen_world_mobile/features/contribute/words/widgets/lexical_detail_fields.dart';
 import 'package:indigen_world_mobile/features/contribute/words/widgets/part_of_speech_picker.dart';
+import 'package:indigen_world_mobile/features/contribute/words/widgets/sense_fields.dart';
 import 'package:indigen_world_mobile/features/rating/rating_service.dart';
 import 'package:indigen_world_mobile/shared/app_widgets.dart';
 import 'package:indigen_world_mobile/shared/frosted_nav_bar.dart';
@@ -85,6 +87,42 @@ class _ContributionFormScreenState
   /// saves the submit path a lookup that could get out of step.
   PartOfSpeech? _partOfSpeech;
 
+  /// The paradigm, and the three fields that turn a row into an entry.
+  ///
+  /// The same holder the guided queue uses, deliberately. The two paths reach
+  /// the same review desk and produce the same published entry, so a word
+  /// contributed through this form has to be able to carry everything a word
+  /// answered in the queue carries — otherwise which fields an entry has
+  /// depends on which door its contributor came through, and nobody would
+  /// notice until they compared two entries side by side.
+  ///
+  /// Rendered only on the dictionary path. On a song these controllers exist
+  /// and are never shown, which costs thirteen empty strings and saves a
+  /// conditional around every reference to them.
+  final _forms = LexicalFormsControllers();
+
+  /// Every meaning this word carries.
+  ///
+  /// -- Why the form no longer has a single "what it means" box ----------
+  /// Because a word does not have a single meaning. English *toy* is a
+  /// plaything, a trinket and a small breed of dog before it is a verb, and
+  /// the form used to ask for that once and store the comma-separated answer
+  /// as one meaning -- with one example sentence attached to none of them.
+  ///
+  /// This owns every meaning including the first, which is why
+  /// [_titleController] is now kept in step with it rather than typed into.
+  /// The alternative -- keep the old box for meaning one and offer a section
+  /// for the rest -- would have made an entry's FIRST sense the only one that
+  /// could not carry a register, a subject field or its own sentence.
+  ///
+  /// Only rendered on the dictionary path. On a song these controllers exist
+  /// and are never shown, which costs one empty draft and saves a conditional
+  /// around every reference to them.
+  final _senses = SensesController();
+
+  /// The other classes the contributor said this word is also used as.
+  var _alsoUsedAs = <String>{};
+
   bool _rightsConfirmed = false;
   bool _publicationPermission = false;
   bool _participantConsentConfirmed = false;
@@ -121,6 +159,23 @@ class _ContributionFormScreenState
   void initState() {
     super.initState();
     _titleController = TextEditingController(text: widget.initialSource);
+    // The English side of the record is the first meaning, so the two are one
+    // value with two readers rather than two fields somebody has to keep in
+    // agreement. Everything downstream -- the draft check, the validator, the
+    // callable, the review desk -- goes on reading `title` and never learns
+    // that it is now typed into a different box.
+    _senses.first.definition.text = widget.initialSource;
+    _senses.first.definition.addListener(_syncTitleFromSenses);
+  }
+
+  /// Copies the first meaning into the field the pipeline reads as English.
+  ///
+  /// Deliberately not `setState`: nothing on screen renders [_titleController]
+  /// on the dictionary path, so rebuilding the form on every keystroke of the
+  /// meaning box would cost a frame to change nothing visible.
+  void _syncTitleFromSenses() {
+    if (_kind != CollectionKind.dictionary) return;
+    _titleController.text = _senses.primaryDefinition;
   }
 
   /// Asks the backend what it notices, when there is enough to ask about.
@@ -149,12 +204,15 @@ class _ContributionFormScreenState
 
   @override
   void dispose() {
+    _senses.first.definition.removeListener(_syncTitleFromSenses);
+    _senses.dispose();
     _titleController.dispose();
     _bodyController.dispose();
     _sourceController.dispose();
     _notesController.dispose();
     _kasemExampleController.dispose();
     _englishExampleController.dispose();
+    _forms.dispose();
     super.dispose();
   }
 
@@ -200,7 +258,18 @@ class _ContributionFormScreenState
                     // Writing the id here would put "proper-noun" in a field
                     // the review desk prints verbatim.
                     _format = value.label;
+                    // The offers are per class — "also an action" on a noun,
+                    // "also a thing" on a verb — so a selection made under one
+                    // class means nothing under another. Cleared rather than
+                    // carried: a hidden chip that is still selected sends a
+                    // claim nobody can see they made.
+                    _alsoUsedAs = <String>{};
                   }),
+                  forms: _forms,
+                  senses: _senses,
+                  alsoUsedAs: _alsoUsedAs,
+                  onAlsoUsedAsChanged: (value) =>
+                      setState(() => _alsoUsedAs = value),
                   titleController: _titleController,
                   bodyController: _bodyController,
                   sourceController: _sourceController,
@@ -321,6 +390,31 @@ class _ContributionFormScreenState
     }
   }
 
+  /// Every paradigm slot with something in it.
+  ///
+  /// Keyed by the slot names the server validates against `FORM_SLOTS` in
+  /// `kasem-morphology.ts`. Empty slots are omitted rather than sent blank:
+  /// eleven keys of which the median word fills none would put ten empty
+  /// strings on every review document, and make an unanswered question
+  /// indistinguishable from one answered with nothing.
+  Map<String, String> _answeredForms() {
+    final answered = <String, String>{
+      'definite': _forms.definiteText,
+      'plural': _forms.pluralText,
+      'pluralDefinite': _forms.pluralDefiniteText,
+      'counted': _forms.countedText,
+      'pronoun': _forms.pronounText,
+      'present': _forms.presentText,
+      'past': _forms.pastText,
+      'future': _forms.futureText,
+      'pluralSubject': _forms.pluralSubjectText,
+      'imperative': _forms.imperativeText,
+      'agreeingOne': _forms.agreeingOneText,
+      'agreeingTwo': _forms.agreeingTwoText,
+    }..removeWhere((_, value) => value.isEmpty);
+    return answered;
+  }
+
   Future<void> _submit() async {
     FocusScope.of(context).unfocus();
     final isValid = _formKey.currentState?.validate() ?? false;
@@ -411,9 +505,40 @@ class _ContributionFormScreenState
           involvesMinors: null,
           usesThirdPartyMaterial: _usesThirdPartyMaterial ?? false,
           participantConsentConfirmed: _participantConsentConfirmed,
-          kasemExample: _kasemExampleController.text,
-          englishExample: _englishExampleController.text,
+          // -- The two legacy example fields are still filled -----------
+          // On the dictionary path the sentences now live on the meanings
+          // they illustrate, and these two carry the first of them forward.
+          // They are read by the review desk, by every app build that predates
+          // senses, and by the published entry's own Example card; leaving
+          // them empty on a contribution that plainly has an example would
+          // make a well-documented word look bare on three surfaces at once.
+          // The entry screen suppresses the duplicate at render time instead.
+          kasemExample: _kind == CollectionKind.dictionary
+              ? _senses.legacyExample.kasem
+              : _kasemExampleController.text,
+          englishExample: _kind == CollectionKind.dictionary
+              ? _senses.legacyExample.english
+              : _englishExampleController.text,
+          senses: _kind == CollectionKind.dictionary
+              ? _senses.payload()
+              : const <Map<String, Object?>>[],
           relatedEntryId: widget.relatedEntryId,
+          // Only on the dictionary path, and only the answered slots. On a
+          // song these controllers were never rendered, so anything in them
+          // would be state left over from a previous life of the screen rather
+          // than something a member said.
+          forms: _kind == CollectionKind.dictionary
+              ? _answeredForms()
+              : const <String, String>{},
+          alsoUsedAs: _kind == CollectionKind.dictionary
+              ? _alsoUsedAs.toList(growable: false)
+              : const <String>[],
+          ipa: _kind == CollectionKind.dictionary ? _forms.ipaText : '',
+          kasemDefinition: _kind == CollectionKind.dictionary
+              ? _forms.kasemDefinitionText
+              : '',
+          etymology:
+              _kind == CollectionKind.dictionary ? _forms.etymologyText : '',
         ),
       );
       ref.invalidate(myCollectionContributionsProvider);
@@ -423,6 +548,13 @@ class _ContributionFormScreenState
       _notesController.clear();
       _kasemExampleController.clear();
       _englishExampleController.clear();
+      // The listener is re-attached because `reset` replaces the first draft
+      // with a new one; without this the title would silently stop tracking
+      // the meaning box and the next contribution would submit with the
+      // previous word's English side.
+      _senses.first.definition.removeListener(_syncTitleFromSenses);
+      _senses.reset();
+      _senses.first.definition.addListener(_syncTitleFromSenses);
       if (widget.initialSource.isEmpty) _titleController.clear();
       setState(() {
         _rightsConfirmed = false;
@@ -507,6 +639,10 @@ class _ContributionFields extends StatelessWidget {
     required this.lexicalKind,
     required this.partOfSpeech,
     required this.onPartOfSpeechChanged,
+    required this.forms,
+    required this.senses,
+    required this.alsoUsedAs,
+    required this.onAlsoUsedAsChanged,
     required this.titleController,
     required this.bodyController,
     required this.sourceController,
@@ -540,6 +676,16 @@ class _ContributionFields extends StatelessWidget {
   final GlobalKey<FormState> formKey;
   final CollectionKind kind;
   final LexicalKind? lexicalKind;
+
+  /// The paradigm and the advanced detail boxes, shared with the guided queue.
+  final LexicalFormsControllers forms;
+
+  /// Every meaning this word carries. Rendered only on the dictionary path.
+  final SensesController senses;
+
+  /// The other classes this word is also used as, and the way to change them.
+  final Set<String> alsoUsedAs;
+  final ValueChanged<Set<String>> onAlsoUsedAsChanged;
   final PartOfSpeech? partOfSpeech;
   final ValueChanged<PartOfSpeech> onPartOfSpeechChanged;
   final TextEditingController titleController;
@@ -593,33 +739,72 @@ class _ContributionFields extends StatelessWidget {
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        TextFormField(
-          controller: titleController,
-          textCapitalization: TextCapitalization.sentences,
-          decoration: InputDecoration(
-            labelText: _titleLabel,
-            hintText: _titleHint,
-            prefixIcon: Icon(contributionKindIcon(kind)),
+        // -- The English side --------------------------------------------
+        // On every kind but the dictionary this is one box: a song has one
+        // title. A word has as many meanings as it has, so the dictionary path
+        // gets the meanings section instead -- which owns the first meaning as
+        // well as the rest, and keeps `titleController` in step with it.
+        if (!_isDictionary)
+          TextFormField(
+            controller: titleController,
+            textCapitalization: TextCapitalization.sentences,
+            decoration: InputDecoration(
+              labelText: _titleLabel,
+              hintText: _titleHint,
+              prefixIcon: Icon(contributionKindIcon(kind)),
+            ),
+            // Checked when the field is left rather than on every keystroke:
+            // the question being asked is "does the archive already hold
+            // this", and asking it of half a word answers about a word nobody
+            // typed.
+            onEditingComplete: onDraftChanged,
+            onFieldSubmitted: (_) => onDraftChanged?.call(),
+            validator: _required,
           ),
-          // Checked when the field is left rather than on every keystroke: the
-          // question being asked is "does the archive already hold this", and
-          // asking it of half a word answers about a word nobody typed.
-          onEditingComplete: onDraftChanged,
-          onFieldSubmitted: (_) => onDraftChanged?.call(),
-          validator: _required,
-        ),
-        const SizedBox(height: 13),
+        if (!_isDictionary) const SizedBox(height: 13),
         // The dictionary gets the searchable word-class picker; everything
         // else keeps its short dropdown. The difference is the length of the
         // list: five music types fit in a menu, and twenty-five word classes
         // are a list somebody has to be able to type at. See the note on
         // [showPartOfSpeechPicker].
-        if (_isDictionary)
+        if (_isDictionary) ...[
           PartOfSpeechField(
             value: partOfSpeech,
             onChanged: onPartOfSpeechChanged,
-          )
-        else
+          ),
+          const SizedBox(height: 16),
+          // -- What the word means, however many things that is ----------
+          // Directly under the word class and above the paradigm, because it
+          // is the entry: a contributor who fills in this section and nothing
+          // else has given the archive a usable word, and everything below is
+          // detail on top of it.
+          //
+          // The class picker sits ABOVE rather than below so that a meaning
+          // asked "is this one a verb instead?" has something to be compared
+          // with. Asking for the exception before the rule reads as a trick
+          // question.
+          SensesSection(
+            controller: senses,
+            declaredClass: partOfSpeech?.id ?? '',
+            enabled: uploadProgress == null,
+            isSaying: _isSaying,
+            onChanged: onDraftChanged,
+          ),
+          const SizedBox(height: 4),
+          // The same paradigm the guided queue collects, on the same terms:
+          // drawn only for the classes it belongs to, never required, and
+          // deepening only once the shallower question has an answer. A word
+          // contributed here must be able to carry everything a word answered
+          // in the queue carries, or which fields an entry has would depend on
+          // which door its contributor came through.
+          LexicalFormsSection(
+            controllers: forms,
+            declaredClass: partOfSpeech?.id ?? '',
+            alsoUsedAs: alsoUsedAs,
+            enabled: uploadProgress == null,
+            onAlsoUsedAsChanged: onAlsoUsedAsChanged,
+          ),
+        ] else
           DropdownButtonFormField<String>(
             key: ValueKey('format-${kind.name}'),
             initialValue: format,
@@ -689,31 +874,27 @@ class _ContributionFields extends StatelessWidget {
             onRecorded: onPronunciationRecorded,
             onCleared: onClearFile,
           ),
-          const SizedBox(height: 13),
-          TextFormField(
-            controller: kasemExampleController,
-            minLines: 2,
-            maxLines: 4,
-            decoration: InputDecoration(
-              labelText: 'Kasem example (optional)',
-              hintText: _isSaying
-                  ? 'Show it being said, or the occasion for it'
-                  : 'Use the word naturally in a sentence',
-              alignLabelWithHint: true,
-              prefixIcon: const Icon(Icons.chat_bubble_outline_rounded),
-            ),
-          ),
-          const SizedBox(height: 13),
-          TextFormField(
-            controller: englishExampleController,
-            minLines: 2,
-            maxLines: 4,
-            decoration: const InputDecoration(
-              labelText: 'English example (optional)',
-              hintText: 'Translate the example sentence',
-              alignLabelWithHint: true,
-              prefixIcon: Icon(Icons.translate_rounded),
-            ),
+          // -- The example boxes moved, they did not disappear -----------
+          // They are inside each meaning now, because that is the question
+          // they were always trying to ask: not "give a sentence for this
+          // word" but "give a sentence for THIS meaning of it". A single pair
+          // of boxes at the bottom of the form could only ever illustrate one
+          // of several meanings, and never said which.
+          //
+          // `kasemExampleController` and `englishExampleController` still
+          // exist and are still sent -- see the submit path, which fills them
+          // from the first meaning that has a sentence so no older reader
+          // loses its example.
+          const SizedBox(height: 6),
+          // Collapsed, and last among the questions about the word itself.
+          // Somebody who came here to add one proverb should not have to scroll
+          // past three prose boxes to reach the rights pledge — but somebody
+          // who has stopped on a word they care about now has somewhere to put
+          // what they know, including the meaning stated in Kasem, which is the
+          // single most valuable string this project can collect.
+          AdvancedDetailSection(
+            controllers: forms,
+            enabled: uploadProgress == null,
           ),
         ],
 

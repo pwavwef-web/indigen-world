@@ -70,13 +70,56 @@ class CommunityMediaPicker {
       maxDuration: maxVideoDuration,
     );
     if (file == null) return null;
-    final shape = await _videoShape(file.path);
+    return _stageVideo(file.path);
+  }
+
+  /// The photograph or clip Android took away with the app.
+  ///
+  /// ── The bug ──────────────────────────────────────────────────────────
+  /// Opening the camera hands the screen to another activity, and on a phone
+  /// with little memory to spare Android is entitled to destroy this whole
+  /// process while it waits — which it does, often, because the camera is
+  /// heavy and this app may be holding a video decoder and an image cache at
+  /// the same moment. The member takes the picture, the camera finishes, and
+  /// the app cold-starts with the picture gone. It was never lost by the
+  /// system: Android holds the result and hands it over on request, and this
+  /// is the request. Without this call it is discarded, silently, every time.
+  ///
+  /// Returns null in the ordinary case, which is that nothing was interrupted.
+  /// Safe to call at any point and on any platform — iOS has no such
+  /// mechanism and the plugin answers with an empty response there.
+  ///
+  /// A failure inside the picker is swallowed. This runs on the way *into* a
+  /// screen, and an error dialog about a recovery nobody asked for, in front
+  /// of somebody who has just opened the app, is worse than the lost file.
+  Future<List<PendingUpload>> recoverLostMedia() async {
+    try {
+      final response = await _picker.retrieveLostData();
+      if (response.isEmpty) return const <PendingUpload>[];
+      final files = response.files ?? const <XFile>[];
+      final staged = <PendingUpload>[];
+      for (final file in files) {
+        staged.add(
+          response.type == RetrieveType.video
+              ? await _stageVideo(file.path)
+              : await stagePhoto(file.path),
+        );
+      }
+      return staged;
+    } on Object {
+      return const <PendingUpload>[];
+    }
+  }
+
+  /// Wraps a clip as an attachment, measuring its real shape and cover frame.
+  Future<PendingUpload> _stageVideo(String path) async {
+    final shape = await _videoShape(path);
     return PendingUpload(
-      path: file.path,
+      path: path,
       isVideo: true,
       aspectRatio: shape.aspectRatio,
       durationSeconds: shape.durationSeconds,
-      posterPath: await _videoPoster(file.path),
+      posterPath: await _videoPoster(path),
     );
   }
 

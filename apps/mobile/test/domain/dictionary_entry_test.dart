@@ -165,6 +165,7 @@ void main() {
       // its indefinite, because the indefinite is a rule and not a record.
       expect(_oneMeaning.definiteForm, '');
       expect(_oneMeaning.pluralForm, '');
+      expect(_oneMeaning.countedForm, '');
       expect(_oneMeaning.hasForms, isFalse);
       expect(_oneMeaning.indefinite, isNull);
     });
@@ -190,13 +191,24 @@ void main() {
       final recorded = _oneMeaning.copyWith(
         definiteForm: 'konkwolokam',
         pluralForm: 'konkwoli',
+        countedForm: 'konkwoli balei',
       );
       expect(recorded.hasForms, isTrue);
       expect(recorded.definiteForm, 'konkwolokam');
       expect(recorded.pluralForm, 'konkwoli');
+      expect(recorded.countedForm, 'konkwoli balei');
       // Still computed from the headword, never read from a stored field, so
       // the two can never come to disagree.
       expect(recorded.indefinite, isNull);
+    });
+
+    test('a counted form on its own is collected morphology', () {
+      // The half of the pair that is hardest to come by. A whole glossed
+      // chapter of Genesis produced one noun seen both with its article and
+      // with a numeral, so an entry carrying only the numeral side is worth
+      // exactly as much shelf space as one carrying only the definite side.
+      final counted = _oneMeaning.copyWith(countedForm: 'konkwoli balei');
+      expect(counted.hasForms, isTrue);
     });
 
     test('an unestablished noun class reads empty, which is not "no class"', () {
@@ -214,5 +226,200 @@ void main() {
     expect(restored.translations, ['water', 'rain water', 'to drink']);
     expect(restored.tatoebaId, '1818');
     expect(restored.exampleCredit, 'Tatoeba #1818 · CK');
+  });
+
+  // -- The advanced entry --------------------------------------------------
+  //
+  // Everything a learner should be able to find out about one word: how it is
+  // said, every form it takes, what it means in its own language, and where it
+  // came from. The tests below are as much about what the entry *refuses* to
+  // say as about what it shows: the whole discipline of this project's language
+  // work is that a plausible-looking invented form is worse than an admitted
+  // gap, because it gets published, taught and repeated and nothing downstream
+  // can tell it from a real one.
+
+  group('the paradigm a learner reads', () {
+    const noun = DictionaryEntry(
+      id: 'bakeira',
+      headword: 'bakeira',
+      translation: 'boy',
+      partOfSpeech: 'noun',
+      dialect: 'Navrongo',
+      pronunciation: '',
+      example: '',
+      exampleTranslation: '',
+      attribution: 'Project Kassena community dictionary',
+      definiteForm: 'bakeira kam',
+      pluralForm: 'bakeiru',
+      pluralDefiniteForm: 'bakeiru bam',
+      countedForm: 'bakeiru balei',
+      pronounForm: 'o',
+    );
+
+    test('the table opens with the headword, not with the second form', () {
+      // A paradigm that begins at the *second* form is one a learner has to
+      // assemble in their head from two places on the screen.
+      expect(noun.nounForms.first.label, 'One');
+      expect(noun.nounForms.first.form, 'bakeira');
+      expect(
+        noun.nounForms.map((row) => row.form).toList(),
+        ['bakeira', 'bakeira kam', 'bakeiru', 'bakeiru bam', 'bakeiru balei', 'o'],
+      );
+    });
+
+    test('a noun nobody has recorded a form for draws no table', () {
+      // The headword row exists for every noun, so a card gated on the list
+      // being non-empty would draw on the whole legacy dictionary — a row
+      // restating the headword an inch below itself.
+      expect(_oneMeaning.nounForms.length, 1);
+      expect(_oneMeaning.hasNounParadigm, isFalse);
+      expect(_oneMeaning.hasForms, isFalse);
+      expect(noun.hasNounParadigm, isTrue);
+    });
+
+    test('a verb is asked about time, not about number', () {
+      const verb = DictionaryEntry(
+        id: 'di',
+        headword: 'di',
+        translation: 'eat',
+        partOfSpeech: 'verb',
+        dialect: 'Navrongo',
+        pronunciation: '',
+        example: '',
+        exampleTranslation: '',
+        attribution: 'Project Kassena community dictionary',
+        presentForm: 'o di',
+        pastForm: 'o di-PAST',
+        futureForm: 'o di-FUT',
+      );
+      expect(verb.verbForms.map((row) => row.label).toList(), [
+        'Now',
+        'Yesterday',
+        'Tomorrow',
+      ]);
+      // A verb has no plural of its own, so its table has none.
+      expect(verb.nounForms, isEmpty);
+      expect(verb.hasForms, isTrue);
+    });
+
+    test('a word used both ways draws both tables', () {
+      // The case a single word class could not express, and the reason the
+      // paradigm is one flat map rather than a noun object beside a verb one.
+      final both = noun.copyWith(
+        alsoUsedAs: const ['verb'],
+        pastForm: 'o bakeira-PAST',
+      );
+      expect(both.isNoun, isTrue);
+      expect(both.isVerb, isTrue);
+      expect(both.hasNounParadigm, isTrue);
+      expect(both.verbForms, hasLength(1));
+      // And the declared class leads, so a screen listing them says "noun,
+      // also a verb" rather than the other way round.
+      expect(both.wordClasses, ['noun', 'verb']);
+    });
+
+    test('an entry never lists its own class among the others', () {
+      final odd = noun.copyWith(alsoUsedAs: const ['noun', 'verb']);
+      expect(odd.wordClasses, ['noun', 'verb']);
+    });
+  });
+
+  group('what the forms are allowed to say about concord', () {
+    const noun = DictionaryEntry(
+      id: 'da',
+      headword: 'da',
+      translation: 'days',
+      partOfSpeech: 'noun',
+      dialect: 'Navrongo',
+      pronunciation: '',
+      example: '',
+      exampleTranslation: '',
+      attribution: 'Project Kassena community dictionary',
+      definiteForm: 'da yam',
+      countedForm: 'da yalei',
+    );
+
+    test('the article and the numeral are read off the recorded forms', () {
+      // Reading, not inferring. The member wrote "da yam" and "da yalei"; the
+      // entry restates which article and which numeral are in those strings.
+      expect(noun.article, 'yam');
+      expect(noun.numeral?.form, 'yalei');
+      expect(noun.numeral?.prefix, 'ya');
+    });
+
+    test('a form nothing matches yields nothing, never a guess', () {
+      // THE guard. Six words for *two* are attested and which noun takes which
+      // is exactly the open question; a seventh invented to complete a pattern
+      // would be indistinguishable downstream from one somebody actually says.
+      // `kolei` rather than `kalei`: the latter was attested on 2026-09-06 and
+      // is now recognised. `kom` is one of the two articles with no numeral
+      // form attested, and it must stay that way until somebody says one.
+      final unknown = noun.copyWith(
+        definiteForm: 'da zzq',
+        countedForm: 'da kolei',
+      );
+      expect(unknown.article, isNull);
+      expect(unknown.numeral, isNull);
+      expect(_oneMeaning.article, isNull);
+      expect(_oneMeaning.numeral, isNull);
+    });
+
+    test('a stored reading wins over one read off the form', () {
+      // Written by the publication path so a query need not re-parse, and by a
+      // reviewer correcting one that was read wrong.
+      final stored = noun.copyWith(
+        definiteArticle: 'kam',
+        numeralSeries: 'balei',
+        numeralPrefix: 'ba',
+      );
+      expect(stored.article, 'kam');
+      expect(stored.numeral?.prefix, 'ba');
+    });
+
+    test('reading a marker is never the same as establishing a class', () {
+      // `nounClass` stays empty — "not established", which is the honest answer
+      // and by far the common one. A class derived from two forms is a claim
+      // and belongs in the review path, not on a render.
+      expect(noun.article, 'yam');
+      expect(noun.numeral, isNotNull);
+      expect(noun.nounClass, '');
+    });
+  });
+
+  group('how the word is said and what it means in Kasem', () {
+    test('the slashes live on the render, never in the data', () {
+      // Half the people who fill this in type them and half do not. Storing
+      // what was typed renders three ways on one screen and makes the field
+      // unqueryable.
+      final entry = _oneMeaning.copyWith(ipa: 'kɔ̃.kwo.lo');
+      expect(entry.ipa, 'kɔ̃.kwo.lo');
+      expect(entry.ipaDisplay, '/kɔ̃.kwo.lo/');
+    });
+
+    test('no transcription draws nothing, not an empty pair of slashes', () {
+      expect(_oneMeaning.ipaDisplay, isNull);
+      expect(_oneMeaning.copyWith(ipa: '   ').ipaDisplay, isNull);
+    });
+
+    test('the meaning in Kasem and the etymology survive a round trip', () {
+      // The Kasem definition is the only text on the record written *in* the
+      // language rather than about it.
+      final restored = DictionaryEntry.fromJson(
+        _oneMeaning
+            .copyWith(
+              kasemDefinition: 'Nabiinu we o na de bu',
+              etymology: 'From the root for child.',
+              ipa: 'bàkéːrà',
+              alsoUsedAs: const ['verb'],
+              pronounForm: 'o',
+            )
+            .toJson(),
+      );
+      expect(restored.kasemDefinition, 'Nabiinu we o na de bu');
+      expect(restored.etymology, 'From the root for child.');
+      expect(restored.ipaDisplay, '/bàkéːrà/');
+      expect(restored.alsoUsedAs, ['verb']);
+      expect(restored.pronounForm, 'o');
+    });
   });
 }

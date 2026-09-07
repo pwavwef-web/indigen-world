@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/firebase_ready.dart';
 import 'package:indigen_world_mobile/domain/dictionary_entry.dart';
+import 'package:indigen_world_mobile/domain/entry_sense.dart';
 import 'package:indigen_world_mobile/domain/kasem_homographs.dart';
 import 'package:indigen_world_mobile/features/explore/published_content.dart';
 
@@ -120,6 +121,39 @@ final dictionaryHeadwordCountsProvider = Provider<Map<String, int>>((ref) {
 /// because it draws no number.
 int dictionarySiblingCount(WidgetRef ref, String headword) =>
     ref.watch(dictionaryHeadwordCountsProvider)[headwordKey(headword)] ?? 1;
+
+/// Which published entry a cross-referenced word points at, keyed by
+/// [headwordKey], or absent when the archive has no entry for it.
+///
+/// ── Why a synonym is stored as a word and resolved here ─────────────────
+/// A speaker asked for a word that means roughly the same thing answers with a
+/// word, and that word very often has no entry yet. Storing entry ids would
+/// have meant refusing to record the answer until the referenced word had been
+/// contributed, reviewed and published — which loses exactly the vocabulary
+/// the cross-reference was pointing at, and loses it silently.
+///
+/// So the record keeps the word and the renderer resolves what it can. A
+/// synonym with an entry becomes a chip that opens it; one without becomes
+/// plain text a learner can still read and a future contributor can still be
+/// prompted with. Derived from the same stream the list is built from, so a
+/// reference cannot point at an entry that has since been unpublished.
+///
+/// The first id wins where several entries share a spelling. That is a real
+/// limitation and it is the honest one: a cross-reference recorded as bare
+/// text cannot say which of `mo¹` and `mo²` was meant, and inventing a choice
+/// would be worse than opening the first and letting the reader see the number.
+final dictionaryEntryIdsByHeadwordProvider = Provider<Map<String, String>>((
+  ref,
+) {
+  final entries =
+      ref.watch(publishedDictionaryEntriesProvider).asData?.value ??
+      const <DictionaryEntry>[];
+  final ids = <String, String>{};
+  for (final entry in entries) {
+    ids.putIfAbsent(headwordKey(entry.headword), () => entry.id);
+  }
+  return ids;
+});
 
 final publishedDictionaryEntryProvider =
     StreamProvider.family<DictionaryEntry?, String>((ref, entryId) {
@@ -266,8 +300,46 @@ DictionaryEntry? dictionaryEntryFromData(String id, Map<String, dynamic> data) {
       'source',
       'contributorName',
     ], fallback: 'Project Kassena community dictionary'),
+    // ── The paradigm ────────────────────────────────────────────────────
+    // Every slot is read whether or not the document carries it. The backend
+    // stores only the answered ones — eleven keys of which the median entry
+    // fills none would put nine empty strings on every row — so an absent key
+    // and an empty string mean the same thing here and neither is an error.
     definiteForm: _formsValue(data, 'definite'),
     pluralForm: _formsValue(data, 'plural'),
+    pluralDefiniteForm: _formsValue(data, 'pluralDefinite'),
+    countedForm: _formsValue(data, 'counted'),
+    pronounForm: _formsValue(data, 'pronoun'),
+    presentForm: _formsValue(data, 'present'),
+    pastForm: _formsValue(data, 'past'),
+    futureForm: _formsValue(data, 'future'),
+    pluralSubjectForm: _formsValue(data, 'pluralSubject'),
+    imperativeForm: _formsValue(data, 'imperative'),
+    // Concord, for the words whose form is chosen by what they attach to —
+    // adjectives, quantifiers, numerals, determiners, articles, pronouns.
+    agreeingOneForm: _formsValue(data, 'agreeingOne'),
+    agreeingTwoForm: _formsValue(data, 'agreeingTwo'),
+    // Top-level rather than inside `forms`, because they are *readings of* the
+    // forms rather than forms themselves — the article that appears in the
+    // definite string, the numeral word that appears in the counted one. They
+    // are stored so a query can ask for them without a scan, and the entry
+    // falls back to reading them off the forms for every row published before
+    // they existed.
+    definiteArticle: _firstText(data, const ['definiteArticle']),
+    numeralSeries: _firstText(data, const ['numeralSeries']),
+    numeralPrefix: _firstText(data, const ['numeralPrefix']),
+    // Every other class this word is used as. `alsoUsedAs` is a list of stable
+    // ids; anything else in the field is ignored rather than rendered, because
+    // this drives a paradigm and a junk value would head a section with a
+    // string nobody can read.
+    alsoUsedAs: _stringList(data['alsoUsedAs']),
+    // Stored without its delimiters — the entry adds the slashes. See
+    // `DictionaryEntry.ipa`.
+    ipa: _prose(data, 'ipa'),
+    // The meaning stated in Kasem. The only text on the record written in the
+    // language rather than about it.
+    kasemDefinition: _prose(data, 'kasemDefinition'),
+    etymology: _prose(data, 'etymology'),
     // Empty means *not established*, never "no class". The inventory is being
     // built from contributed definite forms rather than assumed in advance, so
     // most entries will read empty here for a long while and that is the
@@ -278,6 +350,21 @@ DictionaryEntry? dictionaryEntryFromData(String id, Map<String, dynamic> data) {
     // sense index. Absent on every row the backfill has not reached, and 0 is
     // the honest reading of absent: not numbered.
     homographIndex: _intValue(data, 'homographIndex'),
+    // ── The several things this word means ──────────────────────────────
+    // Absent on every row published before the field existed, which is all of
+    // them, and absent is read as empty rather than as an error. Nothing on
+    // screen reads this list directly: `DictionaryEntry.displaySenses` lifts a
+    // legacy entry's flat gloss and single example into one sense, so the same
+    // widget renders the whole archive and no document had to be migrated.
+    //
+    // Note the name collision this does NOT have. `translations` on the
+    // document is the Kasem side and `englishText` is the English; `senses` is
+    // neither — it is the structured form of the English side, and the
+    // publication projection writes `englishTranslations` beside it as the
+    // flat list. That is the field `_translations` above already reads first,
+    // which is why a three-sense entry shows three meanings on a build that
+    // has never heard of senses.
+    senses: EntrySense.listFrom(data['senses']),
   );
 }
 
@@ -528,4 +615,20 @@ String _firstText(
 String? _nullableText(Map<String, dynamic> data, List<String> keys) {
   final value = _firstText(data, keys);
   return value.isEmpty ? null : value;
+}
+
+/// A prose field, read as text or not at all.
+///
+/// ── Why these three do not go through [_firstText] ────────────────────────
+/// Because that reader stringifies a number, which is right for the fields it
+/// was written for — a Tatoeba id stored as an integer by a JSON tool that
+/// "helpfully" fixed a numeric string is still that id, and losing it would be
+/// a licensing failure caused by a type. It is wrong here. `ipa: 42` on a
+/// corrupt document would render as the pronunciation `/42/`: a false and
+/// unfalsifiable statement about how a Kasem word is said, on an entry a
+/// learner has no reason to doubt. Nothing is the honest reading of junk in a
+/// field whose whole content is prose.
+String _prose(Map<String, dynamic> data, String key) {
+  final value = data[key];
+  return value is String ? value.trim() : '';
 }

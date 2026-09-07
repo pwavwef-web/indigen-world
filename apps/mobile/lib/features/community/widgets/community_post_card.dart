@@ -107,6 +107,11 @@ class CommunityPostCard extends ConsumerWidget {
     final authorAvatar = liveAuthor?.avatarUrl ?? post.authorAvatarUrl;
     final authorInitials = liveAuthor?.initials ?? post.initials;
     final authorMark = liveAuthor?.mark ?? post.authorMark;
+    // Whether this author's links may be tapped. `VerifiedMark.none` is the
+    // only value that means "nobody has checked"; every other mark rests on a
+    // verified phone number — see `resolveVerifiedMark`, which will not return
+    // `member` or above without one.
+    final linksAreLive = authorMark != VerifiedMark.none;
     // The live profile first, exactly as the verification mark does. A profile
     // read is what makes a badge disappear the day a subscription lapses; the
     // stamp on the post is only the fallback for a feed drawn before the
@@ -196,6 +201,25 @@ class CommunityPostCard extends ConsumerWidget {
                                       fontSize: compact ? 14.5 : 15.5,
                                       onOpenHandle: onOpenHandle,
                                       onOpenLink: onOpenLink,
+                                      // ── Who is allowed a live link ─────
+                                      // Nobody the community cannot put a
+                                      // real person behind. Scams travel on
+                                      // links and a link only works if it can
+                                      // be tapped, so an unverified account's
+                                      // links render struck through with a
+                                      // line saying why — see
+                                      // `community_links.dart` for why this
+                                      // is masking rather than a ban.
+                                      //
+                                      // `authorMark` is the live profile's
+                                      // mark where there is one, exactly as
+                                      // the badge beside the name is. The
+                                      // stamp on the post is what the
+                                      // author's client wrote at the time,
+                                      // and a member who verified this
+                                      // morning must not have last week's
+                                      // posts still masked.
+                                      linksEnabled: linksAreLive,
                                     ),
                                   ],
                                   // Not when the post brought its own picture.
@@ -206,8 +230,16 @@ class CommunityPostCard extends ConsumerWidget {
                                   // somebody chose wins, and the link stays a
                                   // link in the writing above it, where it is
                                   // still tappable.
+                                  // Suppressed outright for an unverified
+                                  // author, rather than drawn and made
+                                  // untappable. The card *is* the link's own
+                                  // headline, picture and pitch, fetched from
+                                  // the page and reprinted on our timeline —
+                                  // showing it would hand a scam the most
+                                  // persuasive surface in the feed and then
+                                  // politely decline to open it.
                                   if (post.firstLink case final link?
-                                      when !post.hasMedia) ...[
+                                      when !post.hasMedia && linksAreLive) ...[
                                     const SizedBox(height: 10),
                                     CommunityLinkPreview(
                                       url: link,
