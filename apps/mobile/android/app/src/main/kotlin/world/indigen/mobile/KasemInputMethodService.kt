@@ -21,6 +21,7 @@ import android.view.Gravity
 import android.view.HapticFeedbackConstants
 import android.view.KeyEvent
 import android.view.View
+import android.view.WindowInsets
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
 import android.widget.Button
@@ -86,11 +87,55 @@ class KasemInputMethodService : InputMethodService() {
         dark = isNightMode()
         keyboardRoot = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(6), dp(6), dp(6), dp(8))
+            setPadding(dp(6), dp(6), dp(6), dp(BASE_BOTTOM_PADDING_DP))
             setBackgroundColor(palette().background)
         }
+        applyNavigationBarInset(keyboardRoot)
         drawKeyboard()
         return keyboardRoot
+    }
+
+    /**
+     * Keeps the bottom row clear of the navigation bar.
+     *
+     * ── Why an input method has to do this for itself ────────────────────
+     * From Android 15, a window belonging to an app that targets SDK 35 or
+     * above is laid out edge to edge, and an IME's input view is such a window
+     * — it is our app's window, governed by our app's target. Without this the
+     * bottom row of keys is drawn *underneath* the gesture handle, so on a
+     * gesture-navigation phone the space bar and the enter key share their
+     * lower half with the system's own swipe target. The user's tap goes to
+     * whichever wins.
+     *
+     * Written against the platform API rather than `WindowInsetsCompat` so it
+     * costs no dependency, and it is deliberately safe in both directions: on a
+     * device or an Android version where the system already insets the IME
+     * window, `navigationBars()` reports zero here and the padding is exactly
+     * what it was. So this is a no-op where it is not needed rather than a
+     * second correction stacked on top of the system's.
+     *
+     * The base padding is re-read from a constant rather than from the view, so
+     * repeated inset callbacks cannot accumulate.
+     */
+    private fun applyNavigationBarInset(root: View) {
+        root.setOnApplyWindowInsetsListener { view, insets ->
+            val bottom = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                insets.getInsets(WindowInsets.Type.navigationBars()).bottom
+            } else {
+                @Suppress("DEPRECATION")
+                insets.systemWindowInsetBottom
+            }
+            view.setPadding(
+                view.paddingLeft,
+                view.paddingTop,
+                view.paddingRight,
+                dp(BASE_BOTTOM_PADDING_DP) + bottom,
+            )
+            // Returned unconsumed: nothing else is competing for it, and
+            // swallowing insets is how a child stops receiving them later.
+            insets
+        }
+        root.requestApplyInsets()
     }
 
     override fun onStartInputView(info: EditorInfo?, restarting: Boolean) {
@@ -549,6 +594,9 @@ class KasemInputMethodService : InputMethodService() {
 
     private companion object {
         const val DOUBLE_TAP_MS = 360L
+
+        /** The keyboard's own bottom padding, before any navigation-bar inset. */
+        const val BASE_BOTTOM_PADDING_DP = 8
 
         /** How fast a held backspace deletes. Slow enough to stop on a word. */
         const val REPEAT_INTERVAL_MS = 55L
