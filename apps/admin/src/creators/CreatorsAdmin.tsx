@@ -29,6 +29,11 @@ import {
   type CommunityMemberRow,
   type VerifiedKind,
 } from './data';
+import {
+  NOUN_FORM_SLOTS,
+  OTHER_FORM_SLOTS,
+  pronounCheck,
+} from './kasem-morphology';
 
 type Tab = 'overview' | 'applications' | 'creators' | 'members' | 'campaigns' | 'review' | 'config' | 'audit';
 
@@ -577,6 +582,70 @@ function CampaignsTab({ role, notify }: { role: AdminRole; notify: (m: string) =
 
 // ---------------------------------------------------------------------------
 
+/**
+ * The paradigm a contributor recorded, and what the determiner rule makes of it.
+ *
+ * ── Why the review desk shows the forms at all ───────────────────────────
+ * It did not, until now. `forms` has been written to the canonical submission
+ * since the advanced entry shipped and read by the publication projection, so
+ * the paradigm was travelling all the way to a published dictionary entry
+ * without ever passing in front of the person approving it. A reviewer was
+ * approving a headword and a gloss, and inheriting a plural nobody had looked
+ * at.
+ *
+ * ── And why the pronoun line is the one with an opinion ──────────────────
+ * Because it is the only slot the archive can say anything about. A speaker
+ * stated that the determiner decides the pronoun, so a definite form ending in
+ * `kam` predicts `ka` — see `kasem-morphology.ts`. Every other slot is
+ * unexaminable: nothing in this project knows what the plural of a word it has
+ * never seen ought to be, and pretending otherwise is how invented grammar
+ * gets published.
+ *
+ * `differs` is a question, never a verdict. The rule is eight rows old and the
+ * contributor is a speaker, so the likelier correction runs the other way —
+ * and the exception is the most valuable row the project can collect. Nothing
+ * here disables a button.
+ */
+function LexicalForms({ forms }: { forms?: Record<string, string> }) {
+  if (!forms) return null;
+  const answered = [...NOUN_FORM_SLOTS, ...OTHER_FORM_SLOTS].filter(
+    (slot) => (forms[slot.id] ?? '').trim().length > 0,
+  );
+  if (answered.length === 0) return null;
+
+  const check = pronounCheck(forms.definite, forms.pronoun);
+  const note =
+    check.status === 'differs'
+      ? `Said with “${check.article}”, so the rule expects “${check.expected}” — the contributor wrote “${check.given}”. Worth a look: either a slip, or an exception worth keeping.`
+      : check.status === 'absent'
+        ? `Said with “${check.article}”, so the pronoun would be “${check.expected}”. Not recorded — nothing to correct, only nothing to publish.`
+        : null;
+
+  return (
+    <div className="review-card__forms">
+      <dt>Forms recorded</dt>
+      <dd>
+        <ul className="review-forms">
+          {answered.map((slot) => (
+            <li key={slot.id}>
+              <span className="review-forms__label">{slot.label}</span>
+              <span className="review-forms__value">{forms[slot.id]}</span>
+              {slot.id === 'pronoun' && check.status === 'agrees' ? (
+                <span className="review-forms__ok" title={`Matches the determiner “${check.article}”`}>
+                  ✓ matches “{check.article}”
+                </span>
+              ) : null}
+            </li>
+          ))}
+        </ul>
+        {note ? (
+          <p className={`review-forms__note review-forms__note--${check.status}`}>{note}</p>
+        ) : null}
+      </dd>
+    </div>
+  );
+}
+
 function ReviewTab({ notify }: { notify: (m: string) => void }) {
   const [rows, setRows] = useState<Submission[]>([]);
   const [loading, setLoading] = useState(true);
@@ -660,6 +729,7 @@ function ReviewTab({ notify }: { notify: (m: string) => void }) {
                   </div>
                 ) : null}
                 {s.translationNotes ? <div><dt>Reviewer context</dt><dd>{s.translationNotes}</dd></div> : null}
+                <LexicalForms forms={s.forms} />
                 {s.translation?.translatedContent ? <div className="review-card__content"><dt>Translation</dt><dd>{contentDetails(s.translation.translatedContent, 'translation')}</dd></div> : null}
                 <div><dt>English summary</dt><dd>{s.englishSummary || '—'}</dd></div>
                 {/* Null means the form never put the question — a dictionary

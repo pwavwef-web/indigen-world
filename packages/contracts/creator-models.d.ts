@@ -254,6 +254,27 @@ export interface Submission {
   collectionKind?: CollectionKind;
   collectionContribution?: Reference | null;
   relatedEntryId?: string | null;
+  /**
+   * What kind of lexical thing a dictionary contribution is.
+   *
+   * Carried on the canonical submission because the review desk is where the
+   * difference matters: a reviewer assessing a proverb is answering a
+   * different question from one checking a noun.
+   */
+  lexicalKind?: 'word' | 'phrase' | 'idiom' | 'proverb';
+  /**
+   * The paradigm a contributor recorded — `definite`, `plural`, `pronoun` and
+   * the rest of the slots in `services/functions/src/kasem-morphology.ts`.
+   *
+   * Only the answered slots are present: the map has eleven possible keys and
+   * the median word fills none, so an absent key means the question was never
+   * answered. Readers must treat a missing key and an empty string alike.
+   *
+   * Written by `submitCollectionContribution` and read by the review desk and
+   * the publication projection. It was on the document long before it was on
+   * this type, which is why a reviewer could not see it.
+   */
+  forms?: Record<string, string>;
   format?: string;
   kasemExample?: string;
   englishExample?: string;

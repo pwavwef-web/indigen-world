@@ -250,6 +250,59 @@ label.stack textarea {
   min-width: 0;
   text-align: left;
 }
+/* -- The recorded paradigm, and the determiner rule's opinion of it ------
+   The forms travelled to a published dictionary entry without ever passing in
+   front of the reviewer approving them. This is the full-width block that
+   fixes that; the pronoun line is the only one carrying a judgement, because
+   the pronoun is the only slot the archive can predict. */
+.review-card dl > .review-card__forms {
+  display: grid;
+  gap: 6px;
+}
+.review-forms {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+  text-align: left;
+}
+.review-forms li {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.review-forms__label {
+  color: var(--text-soft);
+  min-width: 118px;
+  flex: none;
+}
+.review-forms__value {
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+.review-forms__ok {
+  color: var(--text-soft);
+  font-size: 0.78rem;
+}
+/* Deliberately not red and deliberately not an icon shaped like an error. A
+   contributor who disagrees with an eight-row rule is more likely to be right
+   than the rule is, and nothing here blocks a decision. */
+.review-forms__note {
+  margin: 4px 0 0;
+  padding: 7px 9px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--surface) 82%, var(--plaster-cream));
+  color: var(--text-soft);
+  font-size: 0.8rem;
+  line-height: 1.45;
+  text-align: left;
+}
+.review-forms__note--differs {
+  border-color: color-mix(in srgb, var(--indigo) 40%, var(--border));
+}
+
 .review-content-details {
   border: 1px solid var(--border);
   border-radius: 9px;
