@@ -31,6 +31,7 @@ import {
   PARTS_OF_SPEECH,
   SENSE_DOMAINS,
   SENSE_REGISTERS,
+  articleIn,
   clearDraft,
   completeness,
   domainLabel,
@@ -39,6 +40,7 @@ import {
   formGroupsFor,
   loadDraft,
   partOfSpeechLabel,
+  pronounForDefinite,
   registerLabel,
   saveDraft,
   splitList,
@@ -540,6 +542,12 @@ export function DictionaryPage() {
                             placeholder={slot.hint}
                             autoComplete="off"
                           />
+                          {slot.id === 'pronoun' ? (
+                            <PronounNote
+                              definite={draft.forms.definite ?? ''}
+                              pronoun={draft.forms.pronoun ?? ''}
+                            />
+                          ) : null}
                         </div>
                       ))}
                     </div>
@@ -1192,6 +1200,35 @@ function EntryPreview({ draft }: { draft: EntryDraft }) {
         <p>{draft.source.trim() || 'Not yet stated'}</p>
       </div>
     </div>
+  );
+}
+
+/**
+ * What the determiner rule makes of the pronoun that was typed.
+ *
+ * ── Why it never fills the box in ────────────────────────────────────────
+ * A speaker stated that the determiner decides the pronoun, so the desk can
+ * work out what to expect as soon as the definite form is typed. Writing it
+ * into the field would put a *derivation* into the archive wearing the clothes
+ * of an *attestation* — and an attestation is the only thing that could ever
+ * correct the rule. So it shows, and the contributor decides.
+ *
+ * Silent for the four determiners with no pronoun on record, and silent when
+ * the answer already agrees. The disagreement is the interesting case, and it
+ * is phrased as a question rather than a warning: the contributor is a speaker
+ * and the rule is four rows old.
+ */
+function PronounNote({ definite, pronoun }: { definite: string; pronoun: string }) {
+  const expected = pronounForDefinite(definite);
+  if (!expected) return null;
+  const given = pronoun.trim().toLowerCase();
+  if (given === expected) return null;
+  const article = articleIn(definite);
+  return (
+    <p className="dict__pronoun-note">
+      Words said with “{article}” are usually called “{expected}” afterwards.
+      {given ? ' If that is not what you say, keep yours — the exception is worth more than the rule.' : ''}
+    </p>
   );
 }
 

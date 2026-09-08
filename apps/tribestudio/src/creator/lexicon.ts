@@ -127,6 +127,55 @@ export const FORM_SLOTS: readonly {
   { id: 'agreeingTwo', label: 'And used with another', hint: 'ya maama', group: 'agreement' },
 ];
 
+/**
+ * The definite determiners a Kasem speaker has stated, and the pronoun each
+ * one carries.
+ *
+ * Mirrors `DEFINITE_ARTICLES` and `DETERMINER_PRONOUNS` in
+ * `services/functions/src/kasem-morphology.ts`, which is canonical; the desk
+ * needs them locally to say something useful while somebody is still typing.
+ *
+ * The pronoun rule was stated by Francis on 2026-09-08: the determiner decides
+ * the pronoun. All eight are on record, each one said rather than derived —
+ * seven are the article minus its `-m`, and `wom` is not (it gives `o`, not
+ * `wo`), which is why this is a table and not a string operation.
+ */
+export const DEFINITE_ARTICLES: readonly string[] = [
+  'kam', 'kom', 'dem', 'tem', 'bam', 'yam', 'sem', 'wom',
+];
+
+export const DETERMINER_PRONOUNS: Readonly<Record<string, string>> = {
+  kam: 'ka',
+  kom: 'ko',
+  dem: 'de',
+  tem: 'te',
+  bam: 'ba',
+  yam: 'ya',
+  sem: 'se',
+  wom: 'o',
+};
+
+/** The determiner inside a recorded definite form, or null. Reading, not inferring. */
+export function articleIn(definite: string): string | null {
+  const form = (definite ?? '').trim().toLowerCase().replace(/[\s_]+/g, ' ');
+  if (!form) return null;
+  const tokens = form.split(' ').filter(Boolean);
+  const last = tokens[tokens.length - 1] ?? '';
+  const ordered = [...DEFINITE_ARTICLES].sort((a, b) => b.length - a.length);
+  for (const article of ordered) {
+    // A bare `kam` is the article itself, not a noun said with one.
+    if (last === article && tokens.length > 1) return article;
+    if (last !== article && last.endsWith(article)) return article;
+  }
+  return null;
+}
+
+/** The pronoun a noun takes, read off its definite form. Null, never a guess. */
+export function pronounForDefinite(definite: string): string | null {
+  const article = articleIn(definite);
+  return article ? (DETERMINER_PRONOUNS[article] ?? null) : null;
+}
+
 const NOUN_CLASSES = new Set(['noun', 'proper-noun']);
 const VERB_CLASSES = new Set(['verb', 'auxiliary-verb']);
 const AGREEING_CLASSES = new Set([

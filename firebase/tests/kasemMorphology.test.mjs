@@ -26,6 +26,7 @@ import {
   KASEM_INDEFINITE_PARTICLE,
   MAX_FORM_LENGTH,
   NOUN_CLASSES,
+  DETERMINER_PRONOUNS,
   NUMERAL_TWO_FORMS,
   articleIn,
   hasLexicalForms,
@@ -33,6 +34,9 @@ import {
   induceNounClass,
   numeralSeriesIn,
   parseLexicalForms,
+  pronounCheck,
+  pronounForArticle,
+  pronounForDefinite,
   readStoredForms,
   storableForms,
 } from '../../services/functions/lib/kasem-morphology.js';
@@ -367,11 +371,13 @@ test('the numeral set is exactly the seven a speaker stated', () => {
 });
 
 test('the numeral list is still not the article list', () => {
-  // `kalei` sharpens the article/numeral correspondence without settling it.
-  // Six of seven prefixes now match an article — but `n-` matches none, and
-  // two articles have no numeral, so the marker lists remain related rather
-  // than identical. The day this test can be deleted is the day somebody has
-  // actually established the class system.
+  // Six of seven prefixes match an article, and on 2026-09-08 `n-` stopped
+  // being a counter-example: "nlei is often used in countdowns" — counting
+  // where there is no noun to agree with. It stays on the list and stays
+  // recognised, because "often used in countdowns" is not "never agrees".
+  // Two articles still have no numeral at all, so the marker lists remain
+  // related rather than identical. The day this test can be deleted is the day
+  // somebody has actually established the class system.
   const prefixes = NUMERAL_TWO_FORMS.map((entry) => entry.prefix);
   assert.ok(prefixes.includes('n'));
   assert.equal(DEFINITE_ARTICLES.some((article) => article.startsWith('n')), false);
@@ -441,4 +447,74 @@ test('reading a marker never becomes inducing a class', () => {
   assert.deepEqual(numeralSeriesIn(forms.counted), { form: 'balei', prefix: 'ba' });
   assert.equal(induceNounClass('bu', forms.definite), null);
   assert.equal(induceNounClass('bu', forms.counted), null);
+});
+
+// ── The determiner decides the pronoun ──────────────────────────────────────
+//
+// A rule a speaker stated outright, which is why it may be applied at all. The
+// tests below are mostly about the four determiners it does NOT cover: the
+// table is half empty, and the half that is empty has to stay empty rather
+// than be completed by the pattern the filled half suggests.
+
+test('a pronoun is read off the determiner in a definite form', () => {
+  assert.equal(pronounForDefinite('bu wom'), 'o');
+  assert.equal(pronounForDefinite('bukam'), 'ka');
+  assert.equal(pronounForDefinite('dɩɩ dem'), 'de');
+  assert.equal(pronounForDefinite('ka sem'), 'se');
+});
+
+test('every determiner a speaker stated has the pronoun he gave for it', () => {
+  // All eight, completed on 2026-09-08. Written out rather than looped so that
+  // changing one is a visible edit to a stated fact and not a passing test.
+  assert.deepEqual(
+    Object.fromEntries(DETERMINER_PRONOUNS.map((e) => [e.article, e.pronoun])),
+    { kam: 'ka', kom: 'ko', dem: 'de', tem: 'te', bam: 'ba', yam: 'ya', sem: 'se', wom: 'o' },
+  );
+  for (const article of DEFINITE_ARTICLES) {
+    assert.ok(pronounForArticle(article), `${article} has a pronoun on record`);
+  }
+});
+
+test('the pronoun is stored per determiner, not computed off the spelling', () => {
+  // THE test that keeps this a record instead of a generalisation. Seven of
+  // the eight are the article minus its `-m`, and `wom` is not — so an
+  // implementation that sliced the last letter would pass every other case
+  // here and be wrong about exactly one real word.
+  assert.equal(pronounForArticle('wom'), 'o', 'not "wo"');
+  // And it must stay silent about a determiner nobody has attested, rather
+  // than confidently slicing an `-m` off it.
+  assert.equal(pronounForArticle('nam'), null, 'nam is not an attested determiner');
+  assert.equal(pronounForArticle('zom'), null);
+});
+
+test('the pronoun table only ever names a real determiner', () => {
+  // Guards the drift that would break `pronounForDefinite` silently: the
+  // lookup runs through `articleIn`, so a row naming an article that is not on
+  // DEFINITE_ARTICLES could never be reached and would read as a working rule.
+  for (const { article, pronoun } of DETERMINER_PRONOUNS) {
+    assert.ok(DEFINITE_ARTICLES.includes(article), `${article} is on the article list`);
+    assert.ok(pronoun.length > 0, `${article} has a pronoun`);
+  }
+  assert.equal(DETERMINER_PRONOUNS.length, DEFINITE_ARTICLES.length);
+});
+
+test('an unrecognised or absent definite form yields no pronoun', () => {
+  assert.equal(pronounForDefinite('the boy'), null);
+  assert.equal(pronounForDefinite(''), null);
+  assert.equal(pronounForDefinite(null), null);
+  // A bare article is the article itself, not a noun said with one — the same
+  // rule `articleIn` applies, inherited rather than restated.
+  assert.equal(pronounForDefinite('kam'), null);
+});
+
+test('the check reports on a written pronoun and never replaces it', () => {
+  assert.deepEqual(pronounCheck('bukam', 'ka'), { status: 'agrees', expected: 'ka' });
+  assert.deepEqual(pronounCheck('bukam', ''), { status: 'absent', expected: 'ka' });
+  assert.deepEqual(pronounCheck('bukam', 'de'), {
+    status: 'differs', expected: 'ka', given: 'de',
+  });
+  // The case that must never become an error: no determiner is recognised, so
+  // whatever a speaker wrote stands unquestioned.
+  assert.deepEqual(pronounCheck('the boy', 'he'), { status: 'unknown' });
+  assert.deepEqual(pronounCheck('', 'ka'), { status: 'unknown' });
 });

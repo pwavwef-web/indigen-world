@@ -373,6 +373,7 @@ class _NounParadigm extends StatelessWidget {
           hint: 'the boy came, then … came again',
           icon: Icons.person_outline_rounded,
         ),
+        _PronounNote(definite: controllers.definite, pronoun: controllers.pronoun),
         // Listens to the plural rather than asking the screen to rebuild, so
         // the follow-ups appear as the member types and no state above this
         // widget has to know that these fields are related.
@@ -750,6 +751,75 @@ class _FormField extends StatelessWidget {
 }
 
 /// A tinted line above a group of boxes, saying what the group is for.
+/// What the determiner rule makes of the pronoun the member typed.
+///
+/// ── Why this asks instead of filling the box in ──────────────────────────
+/// A speaker stated that the determiner decides the pronoun, so the app can
+/// work out what to expect the moment the definite form is typed. Filling the
+/// box with it would be the wrong move: a prefilled answer is accepted without
+/// being read, and the archive would then hold a derivation that is
+/// indistinguishable from something somebody actually said — which is exactly
+/// the evidence that would one day correct the rule.
+///
+/// So it never writes, never blocks, and disappears entirely for the four
+/// determiners no pronoun has been stated for. The `differs` case is the one
+/// worth showing: the member is right often enough that the rule, not the
+/// member, is what deserves the doubt.
+class _PronounNote extends StatelessWidget {
+  const _PronounNote({required this.definite, required this.pronoun});
+
+  final TextEditingController definite;
+  final TextEditingController pronoun;
+
+  @override
+  Widget build(BuildContext context) {
+    final brand = context.brand;
+    return AnimatedBuilder(
+      animation: Listenable.merge([definite, pronoun]),
+      builder: (context, _) {
+        final expected = pronounForDefinite(definite.text);
+        final check = pronounCheck(definite.text, pronoun.text);
+        if (expected == null || check == PronounCheck.agrees) {
+          return const SizedBox.shrink();
+        }
+        final differs = check == PronounCheck.differs;
+        final text = differs
+            ? 'Words said with “${articleIn(definite.text)}” are usually called '
+                  '“$expected” afterwards. If “${pronoun.text.trim()}” is what you '
+                  'say, keep it — we would rather have the exception.'
+            : 'Words said with “${articleIn(definite.text)}” are usually called '
+                  '“$expected” afterwards.';
+        return Padding(
+          padding: const EdgeInsets.only(top: 7),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(
+                differs
+                    ? Icons.help_outline_rounded
+                    : Icons.lightbulb_outline_rounded,
+                size: 14,
+                color: brand.mutedInk,
+              ),
+              const SizedBox(width: 7),
+              Expanded(
+                child: Text(
+                  text,
+                  style: TextStyle(
+                    color: brand.mutedInk,
+                    fontSize: 11,
+                    height: 1.4,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
 class _SectionHint extends StatelessWidget {
   const _SectionHint({required this.icon, required this.text});
 

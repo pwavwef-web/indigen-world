@@ -2905,6 +2905,16 @@ a.button {
   gap: 10px;
 }
 
+/* What the determiner rule expects the pronoun to be. Never a validation
+   error: it is a four-row rule and the contributor is a speaker, so it is
+   styled as a remark and not as a warning. */
+.dict__pronoun-note {
+  margin: 5px 0 0;
+  font-size: 0.74rem;
+  line-height: 1.45;
+  color: rgba(26, 29, 28, 0.6);
+}
+
 /* -- Chips that toggle ---------------------------------------------- */
 
 .chip--on {

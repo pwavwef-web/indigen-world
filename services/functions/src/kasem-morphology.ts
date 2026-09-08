@@ -118,6 +118,68 @@ export const DEFINITE_ARTICLES: readonly string[] = [
   'kam', 'kom', 'dem', 'tem', 'bam', 'yam', 'sem', 'wom',
 ];
 
+/** A determiner, and the pronoun a noun taking it is referred to by. */
+export interface DeterminerPronoun {
+  /** One of [DEFINITE_ARTICLES]. */
+  readonly article: string;
+  /** What you call the noun afterwards. */
+  readonly pronoun: string;
+}
+
+/**
+ * The pronoun that goes with each definite determiner.
+ *
+ * Stated by Francis (a Kasem speaker) on 2026-09-08, unprompted: "here the
+ * pronoun is determined by the determiner. so if the definite determiner of a
+ * noun is wom, the pronoun is o / kam — ka / dem — de / sem — se".
+ *
+ * ── Why this is a rule and the numeral series is not ─────────────────────
+ * The correspondence between an article and a numeral prefix is a *hypothesis*
+ * — see [NUMERAL_TWO_FORMS] — because nobody has said it; it was noticed in
+ * the shape of two lists. This one was stated outright, as a rule, by a
+ * speaker describing his own language: the determiner **decides** the pronoun.
+ * So the four rows below are attestations, and the derivation built on them
+ * ([pronounForDefinite]) is licensed in a way that deriving a noun class from
+ * a spelling is not.
+ *
+ * The remaining four — `kom` → `ko`, `tem` → `te`, `bam` → `ba`, `yam` → `ya`
+ * — were given on the same day, in answer to a direct question. The table is
+ * therefore **complete**: every one of the eight determiners has a pronoun,
+ * and every row is something a speaker said rather than something a pattern
+ * suggested. For a few hours it held only four, and the other four were
+ * withheld *precisely because* they were the shape the pattern predicted.
+ * They turning out right does not retrospectively license the guess.
+ *
+ * ── Why this stays a table and does not become `article.slice(0, -1)` ────
+ * Because seven of the eight are the article minus its `-m` and the eighth is
+ * not: `wom` gives **o**, not `wo`. A string operation would be a claim about
+ * every determiner, including the ninth nobody has found yet — it would answer
+ * confidently for a form no speaker has ever been asked about, which is the one
+ * thing this module exists to refuse. Eight attested rows are a record; a rule
+ * inferred from seven of them is a generalisation, and generalisations go
+ * through `kasem-claims.ts`.
+ *
+ * ── What the completed set corroborates ──────────────────────────────────
+ * Six markers — `ba`, `ya`, `se`, `te`, `de`, `ka` — are now observed on all
+ * three surfaces: article, numeral prefix and pronoun. `ko` and `o` appear on
+ * two, having no attested numeral. That is a materially stronger correspondence
+ * than the one [numeralSeriesIn] describes, and it still is not the class
+ * inventory: knowing that a marker recurs is not knowing which noun takes it.
+ * [NOUN_CLASSES] stays empty.
+ */
+export const DETERMINER_PRONOUNS: readonly DeterminerPronoun[] = [
+  { article: 'kam', pronoun: 'ka' },
+  { article: 'kom', pronoun: 'ko' },
+  { article: 'dem', pronoun: 'de' },
+  { article: 'tem', pronoun: 'te' },
+  { article: 'bam', pronoun: 'ba' },
+  { article: 'yam', pronoun: 'ya' },
+  { article: 'sem', pronoun: 'se' },
+  // The one that is not the article minus its `-m`, and the reason the seven
+  // above are stored rather than computed.
+  { article: 'wom', pronoun: 'o' },
+];
+
 /**
  * The attested Ghana-Kasem forms of *two*, and the class prefix each carries.
  *
@@ -144,12 +206,25 @@ export const DEFINITE_ARTICLES: readonly string[] = [
  *
  * Still missing: any form for the `kom` and `wom` articles. They stay missing.
  *
- * `n-` remains the mirror-image warning, and `kalei` sharpens rather than
- * settles it. Six of seven prefixes now match an article (ba↔bam, ya↔yam,
- * se↔sem, te↔tem, de↔dem, ka↔kam), which is a stronger correspondence than
- * the five-of-six it replaced — but `n-` still matches nothing, so the lists
- * are still related rather than identical, and this is still a hypothesis
- * with one noun (`da`) directly observed both ways.
+ * ── What `n-` turned out to be ───────────────────────────────────────────
+ * For three days `nlei` was the standing objection to the whole
+ * article/numeral correspondence: six of the seven prefixes match an article
+ * (ba↔bam, ya↔yam, se↔sem, te↔tem, de↔dem, ka↔kam) and `n-` matched nothing,
+ * so the two lists had to be called related rather than identical.
+ *
+ * Francis, on 2026-09-08: **"nlei is often used in countdowns."** That is a
+ * different job from the other six. They are chosen by the noun being counted;
+ * this one is reached for when counting itself is the activity and there is no
+ * noun to agree with. An orphan prefix and a form that agrees with nothing are
+ * the same observation seen from two sides.
+ *
+ * Recorded as what was said, and no further. "Often used in countdowns" is not
+ * "never agrees with a noun", so `nlei` stays on this list and
+ * [numeralSeriesIn] keeps recognising it: a member who writes `dɩɩ nlei` has
+ * said something, and the reading of it does not change. What has changed is
+ * that its absence from the article list is no longer evidence *against* the
+ * correspondence — which makes that correspondence six-for-six among the forms
+ * that do agree, still with one noun (`da`) directly observed both ways.
  */
 export interface NumeralSeries {
   /** The whole word for *two* in this series. */
@@ -200,6 +275,72 @@ export function articleIn(definite: unknown): string | null {
     if (last !== article && last.endsWith(article)) return article;
   }
   return null;
+}
+
+/** The pronoun recorded for a determiner, or null where none has been stated. */
+export function pronounForArticle(article: unknown): string | null {
+  const value = normalise(article);
+  if (!value) return null;
+  const match = DETERMINER_PRONOUNS.find((entry) => entry.pronoun && entry.article === value);
+  return match ? match.pronoun : null;
+}
+
+/**
+ * The pronoun a noun takes, read out of its definite form.
+ *
+ * Two steps, both of which can fail and both of which fail to null: find the
+ * determiner inside what the speaker wrote ([articleIn]), then look up the
+ * pronoun stated for it ([DETERMINER_PRONOUNS]). A noun whose definite form
+ * ends in `tem` returns null today and will return `te` on the day somebody
+ * says so — the gap is in the table, not in the code, which is where a gap in
+ * what is known ought to live.
+ *
+ * ── Why this may be derived when a noun class may not ────────────────────
+ * Because a speaker stated the rule. [induceNounClass] refuses to guess
+ * because no one has said which noun belongs to which class; here somebody has
+ * said that the determiner decides the pronoun, so applying it is repeating
+ * what he said rather than inventing a step he did not take.
+ */
+export function pronounForDefinite(definite: unknown): string | null {
+  return pronounForArticle(articleIn(definite));
+}
+
+/**
+ * What the determiner rule makes of a pronoun somebody wrote down.
+ *
+ * ── Why this reports rather than corrects ────────────────────────────────
+ * The obvious use of the rule is to fill the pronoun box in for the
+ * contributor, and it is the one use this module deliberately does not
+ * support. A prefilled box gets accepted without being read, and the moment
+ * that happens a *derivation* is stored as an *attestation* — indistinguishable
+ * afterwards from a form a speaker actually said, and therefore useless as the
+ * evidence that would ever correct the rule. The same reasoning as the header
+ * of [NOUN_CLASSES], one surface out.
+ *
+ * So the clients ask as they always did, and use `differs` to raise a question
+ * — never to block a submission and never to overwrite an answer. A speaker
+ * who writes a pronoun the table does not predict is the single most valuable
+ * row this project can collect: either a mistake, or the counter-example that
+ * shows the rule is narrower than it looks. Both need a human to look.
+ */
+export type PronounCheck =
+  /** No determiner was recognised, or none has a pronoun recorded yet. */
+  | { readonly status: 'unknown' }
+  /** The rule predicts a pronoun and nobody wrote one down. */
+  | { readonly status: 'absent'; readonly expected: string }
+  /** What was written is what the rule predicts. */
+  | { readonly status: 'agrees'; readonly expected: string }
+  /** What was written is not what the rule predicts. Worth a human's eye. */
+  | { readonly status: 'differs'; readonly expected: string; readonly given: string };
+
+export function pronounCheck(definite: unknown, pronoun: unknown): PronounCheck {
+  const expected = pronounForDefinite(definite);
+  if (!expected) return { status: 'unknown' };
+  const given = normalise(pronoun);
+  if (!given) return { status: 'absent', expected };
+  return given === expected
+    ? { status: 'agrees', expected }
+    : { status: 'differs', expected, given };
 }
 
 /**
