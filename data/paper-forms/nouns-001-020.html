@@ -1,0 +1,2558 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<title>Kasem word sheets — nouns — Batch 1 · twenty words</title>
+<style>
+@page { size: A4; margin: 11mm 12mm; }
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: #fff; color: #000;
+  /* A stack that actually carries ɩ ʋ ə ɣ ŋ ɔ ɛ. Most of these live in the IPA
+     Extensions block, which Times New Roman ships on Windows and macOS; the SIL
+     faces are named first for anybody who has them installed. */
+  font-family: 'Charis SIL', 'Gentium Plus', 'Doulos SIL', 'Times New Roman', serif;
+  font-size: 10pt; line-height: 1.25;
+}
+.page { page-break-after: always; height: 275mm; display: flex; flex-direction: column; }
+.page:last-child { page-break-after: auto; }
+
+.phead { display: flex; justify-content: space-between; align-items: baseline;
+  border-bottom: 0.5pt solid #000; padding-bottom: 1.5mm; font-size: 7.5pt;
+  letter-spacing: .02em; text-transform: uppercase; }
+.phead b { font-size: 9.5pt; }
+.qid { font-family: 'Courier New', monospace; font-size: 6.5pt; color: #555;
+  margin-left: 3mm; text-transform: none; letter-spacing: 0; }
+
+.prompt { display: flex; gap: 5mm; align-items: flex-start; border: 0.8pt solid #000;
+  padding: 2.5mm 3mm; margin: 3mm 0 3.5mm; }
+.pw { font-size: 21pt; font-weight: 700; line-height: 1; white-space: nowrap; }
+.ps { flex: 1; }
+.ps-lab { font-size: 7pt; text-transform: uppercase; letter-spacing: .04em; color: #444; }
+.ps-sent { font-size: 9.5pt; font-style: italic; }
+.credit { font-size: 6.5pt; color: #666; margin-top: 0.5mm; }
+
+.row { display: flex; align-items: flex-end; gap: 2mm; }
+.lab { font-size: 8pt; padding-bottom: 0.8mm; line-height: 1.1; flex: none; }
+.lab.mid { text-align: right; }
+.lab.wide { width: auto; }
+.lab i { display: block; font-size: 6.8pt; color: #666; font-style: italic; }
+.rule { flex: 1; border-bottom: 0.5pt solid #000; height: 100%; }
+.rule.solo { width: 100%; }
+.blk .lab { padding-bottom: 0.3mm; }
+
+.sect { font-size: 7.5pt; text-transform: uppercase; letter-spacing: .06em;
+  border-bottom: 0.8pt solid #000; margin: 3mm 0 1.5mm; padding-bottom: 1mm; font-weight: 700; }
+.sect em { text-transform: none; letter-spacing: 0; font-weight: 400; color: #555; }
+
+.meaning { border: 0.5pt solid #999; padding: 2mm 2.5mm 1.5mm; margin-top: 3mm; }
+.meaning.compact { border-style: dashed; margin-top: 2mm; }
+.mhead { font-size: 8.5pt; font-weight: 700; margin-bottom: 1mm; }
+.mhead em { font-weight: 400; font-style: italic; color: #555; font-size: 7.5pt; }
+.codes .code { display: inline-flex; align-items: flex-end; gap: 1.5mm; margin-right: 9mm; }
+.code-lab { font-size: 8pt; font-weight: 700; padding-bottom: 0.8mm; }
+.box { display: inline-block; width: 17mm; height: 7mm; border: 0.5pt solid #000; }
+
+.ticks { display: flex; gap: 3.5mm; font-size: 8pt; align-items: flex-end;
+  padding-bottom: 0.8mm; flex: none; }
+
+.pfoot { margin-top: auto; border-top: 0.8pt solid #000; padding-top: 2mm; }
+.consent { font-size: 8pt; margin-top: 1mm; }
+
+/* ── the front page ── */
+.cover h1 { font-size: 19pt; margin: 0; }
+.cover .lede { font-size: 9.5pt; color: #444; margin: 1mm 0 4mm; }
+.cover h2 { font-size: 9.5pt; text-transform: uppercase; letter-spacing: .05em;
+  border-bottom: 0.8pt solid #000; padding-bottom: 1mm; margin: 0 0 2mm; overflow: hidden; }
+.cover h2.blank { border-color: #fff; }
+.cover h2 .k { text-transform: none; letter-spacing: 0; font-weight: 400;
+  font-size: 8pt; color: #555; float: right; font-style: italic; }
+.cover h2 + h2 { margin-top: 4mm; }
+.two { display: grid; grid-template-columns: 1.15fr 1fr; gap: 8mm; }
+.two ol { margin: 0 0 4mm; padding-left: 5mm; font-size: 9pt; }
+.two li { margin-bottom: 1.6mm; }
+.two p { margin: 0 0 3mm; }
+.small { font-size: 8pt; color: #333; }
+.letters { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.5mm; margin-bottom: 4mm; }
+.letters div { border: 0.5pt solid #000; text-align: center; padding: 1mm 0 1.5mm; }
+.glyph { display: block; font-size: 17pt; line-height: 1.1; }
+.letters span:last-child { font-size: 6.5pt; color: #555; }
+.tones { grid-template-columns: repeat(3, 1fr); width: 62%; }
+.ref { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6mm; margin-top: 5mm; }
+.codes-list { list-style: none; margin: 0; padding: 0; font-size: 8.5pt; }
+.codes-list li { margin-bottom: 0.9mm; }
+.codes-list b { display: inline-block; width: 8mm; }
+.worked { margin-top: 5mm; }
+.wgrid { display: grid; grid-template-columns: 0.7fr 1.15fr 1.15fr; gap: 6mm;
+  border: 0.5pt solid #999; padding: 2.5mm 3mm; }
+.wword { font-size: 15pt; font-weight: 700; line-height: 1; }
+.wnote { font-size: 7.5pt; color: #444; margin-top: 1.5mm; line-height: 1.3; }
+.wrow { display: flex; justify-content: space-between; gap: 3mm; font-size: 8.5pt;
+  border-bottom: 0.4pt dotted #999; padding-bottom: 0.6mm; margin-bottom: 1.2mm; }
+.wrow span { color: #555; }
+.wrow b { text-align: right; }
+
+.contents { margin-top: auto; border-top: 0.8pt solid #000; padding-top: 2mm; }
+.contents h2 { border: 0; margin-bottom: 1mm; }
+</style></head>
+<body>
+
+  <section class="page cover">
+    <h1>Kasem word sheets — nouns</h1>
+    <p class="lede">Batch 1 · twenty words · one word to a page · keep this page beside you while you write</p>
+
+    <div class="two">
+      <div>
+        <h2>How to fill in a sheet</h2>
+        <ol>
+          <li>Read the English word at the top, then read the sentence under it.
+              The sentence is there to show <b>which</b> meaning is being asked
+              about — “water” the thing you drink, not “water” the garden.</li>
+          <li>Write the Kasem word on the first line, large.</li>
+          <li>For each form, <b>say the whole phrase out loud first</b>, then write
+              down exactly what you said. Do not try to work it out as grammar.</li>
+          <li>Write <b>the whole phrase</b>, not only the part that changed. The
+              word that goes with a noun changes to match it, and that is most of
+              what these lines are for — writing only the noun throws it away.</li>
+          <li>Fill in Meaning 1. Use Meaning 2 only if the word really means a
+              second, different thing.</li>
+          <li>Any line you are not sure about, <b>leave it empty</b>. An empty line
+              is honest. A guess becomes a dictionary entry that teaches somebody
+              the wrong thing.</li>
+          <li>Sign the bottom and write where you are from. If more than one person
+              worked on a sheet, write both names.</li>
+        </ol>
+        <h2>If you run out of room</h2>
+        <p class="small">Write on the back of the sheet, and put the sheet code
+           (<b>N01</b>, <b>N02</b>…) at the top of what you write there.</p>
+        <h2>When the batch is done</h2>
+        <p class="small">Keep the sheets in order and send them back together. Do
+           not throw away a sheet you could not answer — an unanswered word is
+           something worth knowing too.</p>
+      </div>
+      <div>
+        <h2>The Kasem letters</h2>
+        <p class="small">Write these by hand exactly as they are printed. Using the
+           nearest English letter instead files the word under a spelling that is a
+           different word.</p>
+        <div class="letters">
+          <div><span class="glyph">ɛ</span><span>open e</span></div><div><span class="glyph">Ɛ</span><span>open E</span></div><div><span class="glyph">ɩ</span><span>iota</span></div><div><span class="glyph">Ɩ</span><span>capital iota</span></div><div><span class="glyph">ŋ</span><span>eng</span></div><div><span class="glyph">Ŋ</span><span>capital eng</span></div><div><span class="glyph">ɔ</span><span>open o</span></div><div><span class="glyph">Ɔ</span><span>open O</span></div><div><span class="glyph">ʋ</span><span>v with hook</span></div><div><span class="glyph">Ʋ</span><span>capital v</span></div><div><span class="glyph">ə</span><span>schwa</span></div><div><span class="glyph">ɣ</span><span>gamma</span></div>
+        </div>
+        <h2>Tone marks</h2>
+        <p class="small">They sit on top of the letter before them. Only mark tone
+           where it changes the word.</p>
+        <div class="letters tones">
+          <div><span class="glyph">a&#769;</span><span>high</span></div>
+          <div><span class="glyph">a&#768;</span><span>low</span></div>
+          <div><span class="glyph">a&#772;</span><span>mid</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="ref">
+      <div>
+        <h2>How it is said <span class="k">write the R code</span></h2>
+        <ul class="codes-list">
+          <li><b>R1</b> Everyday speech</li><li><b>R2</b> Said with respect</li><li><b>R3</b> Formal or ceremonial</li><li><b>R4</b> Casual, among friends</li><li><b>R5</b> Old people’s word</li><li><b>R6</b> Newer word</li><li><b>R7</b> Said jokingly</li><li><b>R8</b> Figurative</li><li><b>R9</b> Said to children</li><li><b>R10</b> Not said in front of elders</li>
+        </ul>
+      </div>
+      <div>
+        <h2>What it is about <span class="k">write the S code</span></h2>
+        <ul class="codes-list">
+          <li><b>S1</b> Farming and land</li><li><b>S2</b> Food and cooking</li><li><b>S3</b> Family and kinship</li><li><b>S4</b> The body and health</li><li><b>S5</b> Animals</li><li><b>S6</b> Plants and trees</li><li><b>S7</b> Weather and seasons</li><li><b>S8</b> Market and trade</li><li><b>S9</b> House and compound</li>
+        </ul>
+      </div>
+      <div>
+        <h2 class="blank">&nbsp;</h2>
+        <ul class="codes-list">
+          <li><b>S10</b> Clothing and adornment</li><li><b>S11</b> Ritual and belief</li><li><b>S12</b> Chieftaincy and custom</li><li><b>S13</b> Greetings and address</li><li><b>S14</b> Music and dance</li><li><b>S15</b> Work and craft</li><li><b>S16</b> Travel and place</li><li><b>S17</b> Time and counting</li><li><b>S18</b> Speech and storytelling</li>
+        </ul>
+      </div>
+    </div>
+
+    
+    <div class="worked">
+      <h2>What a filled-in sheet looks like <span class="k">in English — yours will be in Kasem</span></h2>
+      <div class="wgrid">
+        <div>
+          <div class="wword">boy</div>
+          <div class="wnote">Every answer below is written the way it is
+            <b>said</b>, as a whole phrase.</div>
+        </div>
+        <div>
+          <div class="wrow"><span>Say it with “the”</span><b>the boy</b></div><div class="wrow"><span>Say it for many</span><b>boys</b></div><div class="wrow"><span>Say the many with “the”</span><b>the boys</b></div><div class="wrow"><span>Say it with “two”</span><b>two boys</b></div><div class="wrow"><span>What you call it afterwards</span><b>he</b></div>
+        </div>
+        <div>
+          <div class="wrow"><span>What it means</span><b>a young male child</b></div>
+          <div class="wrow"><span>How it is said</span><b>R1</b></div>
+          <div class="wrow"><span>What it is about</span><b>S3</b></div>
+          <div class="wnote">Nothing was known about where the word comes from,
+            so that line was <b>left empty</b> — which is the right answer.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="contents">
+      <h2>The twenty words in this batch</h2>
+      <p class="small"><b>N01</b>&nbsp;water · <b>N02</b>&nbsp;child · <b>N03</b>&nbsp;house · <b>N04</b>&nbsp;woman · <b>N05</b>&nbsp;man · <b>N06</b>&nbsp;food · <b>N07</b>&nbsp;name · <b>N08</b>&nbsp;hand · <b>N09</b>&nbsp;eye · <b>N10</b>&nbsp;day · <b>N11</b>&nbsp;night · <b>N12</b>&nbsp;fire · <b>N13</b>&nbsp;dog · <b>N14</b>&nbsp;tree · <b>N15</b>&nbsp;road · <b>N16</b>&nbsp;mother · <b>N17</b>&nbsp;father · <b>N18</b>&nbsp;head · <b>N19</b>&nbsp;money · <b>N20</b>&nbsp;village</p>
+    </div>
+  </section>
+
+  <section class="page">
+    <header class="phead">
+      <div>Kasem word sheets — nouns · Batch 1 · twenty words</div>
+      <div>Sheet <b>N01</b> of 20 <span class="qid">water-6d5a45</span></div>
+    </header>
+
+    <div class="prompt">
+      <div class="pw">water</div>
+      <div class="ps">
+        <div class="ps-lab">the word as it is used here —</div>
+        <div class="ps-sent">“I water the flowers in the garden every day.”</div>
+        <div class="credit">Tatoeba #261851, CK · CC BY 2.0 FR</div>
+      </div>
+    </div>
+
+    <div class="row" style="height:13mm">
+     <div class="lab" style="width:46mm"><b>The word in Kasem</b><i>write it large and clearly</i></div>
+     <div class="rule"></div>
+   </div>
+    <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">How it sounds, if you can write it<i>leave blank if unsure</i></div>
+     <div class="rule"></div>
+   </div>
+
+    <div class="sect">The forms of the word <em>— say each one out loud, then write down what you said</em></div>
+    <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Say it with “the”<i>the boy</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Say it for many<i>boys</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Say the many with “the”<i>the boys</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Say it with “two”<i>two boys</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">What you call it afterwards<i>he, it</i></div>
+     <div class="rule"></div>
+   </div>
+
+    
+    <div class="meaning">
+      <div class="mhead">Meaning 1</div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">What it means in English</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row codes" style="height:8mm">
+        <div class="lab" style="width:46mm">How it is said · what it is about<i>codes from the front page</i></div>
+        <span class="code"><span class="code-lab">R</span><span class="box"></span></span><span class="code"><span class="code-lab">S</span><span class="box"></span></span>
+      </div>
+      <div class="blk"><div class="lab wide">Say what it means <b>in Kasem</b></div><div class="rule solo" style="height:8mm"></div><div class="rule solo" style="height:8mm"></div></div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">When it is said, when it is not</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Example sentence in Kasem</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">…and what that sentence means</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row" style="height:9mm">
+        <div class="lab" style="width:46mm">Words that mean nearly the same</div><div class="rule"></div>
+        <div class="lab mid" style="width:26mm">…and the opposite</div><div class="rule"></div>
+      </div>
+    </div>
+    
+    <div class="meaning compact">
+      <div class="mhead">Meaning 2 <em>— only if the word means a second, different thing</em></div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">What it means in English</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row codes" style="height:8mm">
+        <div class="lab" style="width:46mm">How it is said · what it is about<i>codes from the front page</i></div>
+        <span class="code"><span class="code-lab">R</span><span class="box"></span></span><span class="code"><span class="code-lab">S</span><span class="box"></span></span>
+      </div>
+      
+      
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Example sentence in Kasem</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">…and what that sentence means</div>
+     <div class="rule"></div>
+   </div>
+      
+    </div>
+
+    <div class="row" style="height:8mm">
+      <div class="lab" style="width:46mm">Is the word also used as</div>
+      <div class="ticks">
+        <span>☐ verb</span><span>☐ adjective</span><span>☐ adverb</span>
+        <span>☐ a name</span><span>☐ something else:</span>
+      </div>
+      <div class="rule"></div>
+    </div>
+    <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Where the word comes from, if known<i>a borrowing, two words joined</i></div>
+     <div class="rule"></div>
+   </div>
+
+    <footer class="pfoot">
+      <div class="row" style="height:9mm">
+        <div class="lab" style="width:26mm">Written by</div><div class="rule"></div>
+        <div class="lab mid" style="width:24mm">Community</div><div class="rule"></div>
+        <div class="lab mid" style="width:12mm">Date</div><div class="rule" style="max-width:26mm"></div>
+      </div>
+      <div class="consent">☐ Anyone whose knowledge this is has agreed to it being shared.</div>
+    </footer>
+  </section>
+
+  <section class="page">
+    <header class="phead">
+      <div>Kasem word sheets — nouns · Batch 1 · twenty words</div>
+      <div>Sheet <b>N02</b> of 20 <span class="qid">child-0e9306</span></div>
+    </header>
+
+    <div class="prompt">
+      <div class="pw">child</div>
+      <div class="ps">
+        <div class="ps-lab">the word as it is used here —</div>
+        <div class="ps-sent">“She scolded the child for coming home so late.”</div>
+        <div class="credit">Tatoeba #20455, CK · CC BY 2.0 FR</div>
+      </div>
+    </div>
+
+    <div class="row" style="height:13mm">
+     <div class="lab" style="width:46mm"><b>The word in Kasem</b><i>write it large and clearly</i></div>
+     <div class="rule"></div>
+   </div>
+    <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">How it sounds, if you can write it<i>leave blank if unsure</i></div>
+     <div class="rule"></div>
+   </div>
+
+    <div class="sect">The forms of the word <em>— say each one out loud, then write down what you said</em></div>
+    <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Say it with “the”<i>the boy</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Say it for many<i>boys</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Say the many with “the”<i>the boys</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Say it with “two”<i>two boys</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">What you call it afterwards<i>he, it</i></div>
+     <div class="rule"></div>
+   </div>
+
+    
+    <div class="meaning">
+      <div class="mhead">Meaning 1</div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">What it means in English</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row codes" style="height:8mm">
+        <div class="lab" style="width:46mm">How it is said · what it is about<i>codes from the front page</i></div>
+        <span class="code"><span class="code-lab">R</span><span class="box"></span></span><span class="code"><span class="code-lab">S</span><span class="box"></span></span>
+      </div>
+      <div class="blk"><div class="lab wide">Say what it means <b>in Kasem</b></div><div class="rule solo" style="height:8mm"></div><div class="rule solo" style="height:8mm"></div></div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">When it is said, when it is not</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Example sentence in Kasem</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">…and what that sentence means</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row" style="height:9mm">
+        <div class="lab" style="width:46mm">Words that mean nearly the same</div><div class="rule"></div>
+        <div class="lab mid" style="width:26mm">…and the opposite</div><div class="rule"></div>
+      </div>
+    </div>
+    
+    <div class="meaning compact">
+      <div class="mhead">Meaning 2 <em>— only if the word means a second, different thing</em></div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">What it means in English</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row codes" style="height:8mm">
+        <div class="lab" style="width:46mm">How it is said · what it is about<i>codes from the front page</i></div>
+        <span class="code"><span class="code-lab">R</span><span class="box"></span></span><span class="code"><span class="code-lab">S</span><span class="box"></span></span>
+      </div>
+      
+      
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Example sentence in Kasem</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">…and what that sentence means</div>
+     <div class="rule"></div>
+   </div>
+      
+    </div>
+
+    <div class="row" style="height:8mm">
+      <div class="lab" style="width:46mm">Is the word also used as</div>
+      <div class="ticks">
+        <span>☐ verb</span><span>☐ adjective</span><span>☐ adverb</span>
+        <span>☐ a name</span><span>☐ something else:</span>
+      </div>
+      <div class="rule"></div>
+    </div>
+    <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Where the word comes from, if known<i>a borrowing, two words joined</i></div>
+     <div class="rule"></div>
+   </div>
+
+    <footer class="pfoot">
+      <div class="row" style="height:9mm">
+        <div class="lab" style="width:26mm">Written by</div><div class="rule"></div>
+        <div class="lab mid" style="width:24mm">Community</div><div class="rule"></div>
+        <div class="lab mid" style="width:12mm">Date</div><div class="rule" style="max-width:26mm"></div>
+      </div>
+      <div class="consent">☐ Anyone whose knowledge this is has agreed to it being shared.</div>
+    </footer>
+  </section>
+
+  <section class="page">
+    <header class="phead">
+      <div>Kasem word sheets — nouns · Batch 1 · twenty words</div>
+      <div>Sheet <b>N03</b> of 20 <span class="qid">house-5be934</span></div>
+    </header>
+
+    <div class="prompt">
+      <div class="pw">house</div>
+      <div class="ps">
+        <div class="ps-lab">the word as it is used here —</div>
+        <div class="ps-sent">“A car drew up in front of my house.”</div>
+        <div class="credit">Tatoeba #27497, CK · CC BY 2.0 FR</div>
+      </div>
+    </div>
+
+    <div class="row" style="height:13mm">
+     <div class="lab" style="width:46mm"><b>The word in Kasem</b><i>write it large and clearly</i></div>
+     <div class="rule"></div>
+   </div>
+    <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">How it sounds, if you can write it<i>leave blank if unsure</i></div>
+     <div class="rule"></div>
+   </div>
+
+    <div class="sect">The forms of the word <em>— say each one out loud, then write down what you said</em></div>
+    <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Say it with “the”<i>the boy</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Say it for many<i>boys</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Say the many with “the”<i>the boys</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Say it with “two”<i>two boys</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">What you call it afterwards<i>he, it</i></div>
+     <div class="rule"></div>
+   </div>
+
+    
+    <div class="meaning">
+      <div class="mhead">Meaning 1</div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">What it means in English</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row codes" style="height:8mm">
+        <div class="lab" style="width:46mm">How it is said · what it is about<i>codes from the front page</i></div>
+        <span class="code"><span class="code-lab">R</span><span class="box"></span></span><span class="code"><span class="code-lab">S</span><span class="box"></span></span>
+      </div>
+      <div class="blk"><div class="lab wide">Say what it means <b>in Kasem</b></div><div class="rule solo" style="height:8mm"></div><div class="rule solo" style="height:8mm"></div></div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">When it is said, when it is not</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Example sentence in Kasem</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">…and what that sentence means</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row" style="height:9mm">
+        <div class="lab" style="width:46mm">Words that mean nearly the same</div><div class="rule"></div>
+        <div class="lab mid" style="width:26mm">…and the opposite</div><div class="rule"></div>
+      </div>
+    </div>
+    
+    <div class="meaning compact">
+      <div class="mhead">Meaning 2 <em>— only if the word means a second, different thing</em></div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">What it means in English</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row codes" style="height:8mm">
+        <div class="lab" style="width:46mm">How it is said · what it is about<i>codes from the front page</i></div>
+        <span class="code"><span class="code-lab">R</span><span class="box"></span></span><span class="code"><span class="code-lab">S</span><span class="box"></span></span>
+      </div>
+      
+      
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Example sentence in Kasem</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">…and what that sentence means</div>
+     <div class="rule"></div>
+   </div>
+      
+    </div>
+
+    <div class="row" style="height:8mm">
+      <div class="lab" style="width:46mm">Is the word also used as</div>
+      <div class="ticks">
+        <span>☐ verb</span><span>☐ adjective</span><span>☐ adverb</span>
+        <span>☐ a name</span><span>☐ something else:</span>
+      </div>
+      <div class="rule"></div>
+    </div>
+    <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Where the word comes from, if known<i>a borrowing, two words joined</i></div>
+     <div class="rule"></div>
+   </div>
+
+    <footer class="pfoot">
+      <div class="row" style="height:9mm">
+        <div class="lab" style="width:26mm">Written by</div><div class="rule"></div>
+        <div class="lab mid" style="width:24mm">Community</div><div class="rule"></div>
+        <div class="lab mid" style="width:12mm">Date</div><div class="rule" style="max-width:26mm"></div>
+      </div>
+      <div class="consent">☐ Anyone whose knowledge this is has agreed to it being shared.</div>
+    </footer>
+  </section>
+
+  <section class="page">
+    <header class="phead">
+      <div>Kasem word sheets — nouns · Batch 1 · twenty words</div>
+      <div>Sheet <b>N04</b> of 20 <span class="qid">woman-edb1f4</span></div>
+    </header>
+
+    <div class="prompt">
+      <div class="pw">woman</div>
+      <div class="ps">
+        <div class="ps-lab">the word as it is used here —</div>
+        <div class="ps-sent">“The old woman fell and could not get up.”</div>
+        <div class="credit">Tatoeba #43320, CK · CC BY 2.0 FR</div>
+      </div>
+    </div>
+
+    <div class="row" style="height:13mm">
+     <div class="lab" style="width:46mm"><b>The word in Kasem</b><i>write it large and clearly</i></div>
+     <div class="rule"></div>
+   </div>
+    <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">How it sounds, if you can write it<i>leave blank if unsure</i></div>
+     <div class="rule"></div>
+   </div>
+
+    <div class="sect">The forms of the word <em>— say each one out loud, then write down what you said</em></div>
+    <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Say it with “the”<i>the boy</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Say it for many<i>boys</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Say the many with “the”<i>the boys</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Say it with “two”<i>two boys</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">What you call it afterwards<i>he, it</i></div>
+     <div class="rule"></div>
+   </div>
+
+    
+    <div class="meaning">
+      <div class="mhead">Meaning 1</div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">What it means in English</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row codes" style="height:8mm">
+        <div class="lab" style="width:46mm">How it is said · what it is about<i>codes from the front page</i></div>
+        <span class="code"><span class="code-lab">R</span><span class="box"></span></span><span class="code"><span class="code-lab">S</span><span class="box"></span></span>
+      </div>
+      <div class="blk"><div class="lab wide">Say what it means <b>in Kasem</b></div><div class="rule solo" style="height:8mm"></div><div class="rule solo" style="height:8mm"></div></div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">When it is said, when it is not</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Example sentence in Kasem</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">…and what that sentence means</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row" style="height:9mm">
+        <div class="lab" style="width:46mm">Words that mean nearly the same</div><div class="rule"></div>
+        <div class="lab mid" style="width:26mm">…and the opposite</div><div class="rule"></div>
+      </div>
+    </div>
+    
+    <div class="meaning compact">
+      <div class="mhead">Meaning 2 <em>— only if the word means a second, different thing</em></div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">What it means in English</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row codes" style="height:8mm">
+        <div class="lab" style="width:46mm">How it is said · what it is about<i>codes from the front page</i></div>
+        <span class="code"><span class="code-lab">R</span><span class="box"></span></span><span class="code"><span class="code-lab">S</span><span class="box"></span></span>
+      </div>
+      
+      
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Example sentence in Kasem</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">…and what that sentence means</div>
+     <div class="rule"></div>
+   </div>
+      
+    </div>
+
+    <div class="row" style="height:8mm">
+      <div class="lab" style="width:46mm">Is the word also used as</div>
+      <div class="ticks">
+        <span>☐ verb</span><span>☐ adjective</span><span>☐ adverb</span>
+        <span>☐ a name</span><span>☐ something else:</span>
+      </div>
+      <div class="rule"></div>
+    </div>
+    <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Where the word comes from, if known<i>a borrowing, two words joined</i></div>
+     <div class="rule"></div>
+   </div>
+
+    <footer class="pfoot">
+      <div class="row" style="height:9mm">
+        <div class="lab" style="width:26mm">Written by</div><div class="rule"></div>
+        <div class="lab mid" style="width:24mm">Community</div><div class="rule"></div>
+        <div class="lab mid" style="width:12mm">Date</div><div class="rule" style="max-width:26mm"></div>
+      </div>
+      <div class="consent">☐ Anyone whose knowledge this is has agreed to it being shared.</div>
+    </footer>
+  </section>
+
+  <section class="page">
+    <header class="phead">
+      <div>Kasem word sheets — nouns · Batch 1 · twenty words</div>
+      <div>Sheet <b>N05</b> of 20 <span class="qid">man-8175e3</span></div>
+    </header>
+
+    <div class="prompt">
+      <div class="pw">man</div>
+      <div class="ps">
+        <div class="ps-lab">the word as it is used here —</div>
+        <div class="ps-sent">“Do you know the man standing on the bridge?”</div>
+        <div class="credit">Tatoeba #18988, CK · CC BY 2.0 FR</div>
+      </div>
+    </div>
+
+    <div class="row" style="height:13mm">
+     <div class="lab" style="width:46mm"><b>The word in Kasem</b><i>write it large and clearly</i></div>
+     <div class="rule"></div>
+   </div>
+    <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">How it sounds, if you can write it<i>leave blank if unsure</i></div>
+     <div class="rule"></div>
+   </div>
+
+    <div class="sect">The forms of the word <em>— say each one out loud, then write down what you said</em></div>
+    <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Say it with “the”<i>the boy</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Say it for many<i>boys</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Say the many with “the”<i>the boys</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Say it with “two”<i>two boys</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">What you call it afterwards<i>he, it</i></div>
+     <div class="rule"></div>
+   </div>
+
+    
+    <div class="meaning">
+      <div class="mhead">Meaning 1</div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">What it means in English</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row codes" style="height:8mm">
+        <div class="lab" style="width:46mm">How it is said · what it is about<i>codes from the front page</i></div>
+        <span class="code"><span class="code-lab">R</span><span class="box"></span></span><span class="code"><span class="code-lab">S</span><span class="box"></span></span>
+      </div>
+      <div class="blk"><div class="lab wide">Say what it means <b>in Kasem</b></div><div class="rule solo" style="height:8mm"></div><div class="rule solo" style="height:8mm"></div></div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">When it is said, when it is not</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Example sentence in Kasem</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">…and what that sentence means</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row" style="height:9mm">
+        <div class="lab" style="width:46mm">Words that mean nearly the same</div><div class="rule"></div>
+        <div class="lab mid" style="width:26mm">…and the opposite</div><div class="rule"></div>
+      </div>
+    </div>
+    
+    <div class="meaning compact">
+      <div class="mhead">Meaning 2 <em>— only if the word means a second, different thing</em></div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">What it means in English</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row codes" style="height:8mm">
+        <div class="lab" style="width:46mm">How it is said · what it is about<i>codes from the front page</i></div>
+        <span class="code"><span class="code-lab">R</span><span class="box"></span></span><span class="code"><span class="code-lab">S</span><span class="box"></span></span>
+      </div>
+      
+      
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Example sentence in Kasem</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">…and what that sentence means</div>
+     <div class="rule"></div>
+   </div>
+      
+    </div>
+
+    <div class="row" style="height:8mm">
+      <div class="lab" style="width:46mm">Is the word also used as</div>
+      <div class="ticks">
+        <span>☐ verb</span><span>☐ adjective</span><span>☐ adverb</span>
+        <span>☐ a name</span><span>☐ something else:</span>
+      </div>
+      <div class="rule"></div>
+    </div>
+    <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Where the word comes from, if known<i>a borrowing, two words joined</i></div>
+     <div class="rule"></div>
+   </div>
+
+    <footer class="pfoot">
+      <div class="row" style="height:9mm">
+        <div class="lab" style="width:26mm">Written by</div><div class="rule"></div>
+        <div class="lab mid" style="width:24mm">Community</div><div class="rule"></div>
+        <div class="lab mid" style="width:12mm">Date</div><div class="rule" style="max-width:26mm"></div>
+      </div>
+      <div class="consent">☐ Anyone whose knowledge this is has agreed to it being shared.</div>
+    </footer>
+  </section>
+
+  <section class="page">
+    <header class="phead">
+      <div>Kasem word sheets — nouns · Batch 1 · twenty words</div>
+      <div>Sheet <b>N06</b> of 20 <span class="qid">food-39ccb3</span></div>
+    </header>
+
+    <div class="prompt">
+      <div class="pw">food</div>
+      <div class="ps">
+        <div class="ps-lab">the word as it is used here —</div>
+        <div class="ps-sent">“We have reserved a lot of food for emergencies.”</div>
+        <div class="credit">Tatoeba #18792, CK · CC BY 2.0 FR</div>
+      </div>
+    </div>
+
+    <div class="row" style="height:13mm">
+     <div class="lab" style="width:46mm"><b>The word in Kasem</b><i>write it large and clearly</i></div>
+     <div class="rule"></div>
+   </div>
+    <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">How it sounds, if you can write it<i>leave blank if unsure</i></div>
+     <div class="rule"></div>
+   </div>
+
+    <div class="sect">The forms of the word <em>— say each one out loud, then write down what you said</em></div>
+    <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Say it with “the”<i>the boy</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Say it for many<i>boys</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Say the many with “the”<i>the boys</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Say it with “two”<i>two boys</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">What you call it afterwards<i>he, it</i></div>
+     <div class="rule"></div>
+   </div>
+
+    
+    <div class="meaning">
+      <div class="mhead">Meaning 1</div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">What it means in English</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row codes" style="height:8mm">
+        <div class="lab" style="width:46mm">How it is said · what it is about<i>codes from the front page</i></div>
+        <span class="code"><span class="code-lab">R</span><span class="box"></span></span><span class="code"><span class="code-lab">S</span><span class="box"></span></span>
+      </div>
+      <div class="blk"><div class="lab wide">Say what it means <b>in Kasem</b></div><div class="rule solo" style="height:8mm"></div><div class="rule solo" style="height:8mm"></div></div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">When it is said, when it is not</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Example sentence in Kasem</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">…and what that sentence means</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row" style="height:9mm">
+        <div class="lab" style="width:46mm">Words that mean nearly the same</div><div class="rule"></div>
+        <div class="lab mid" style="width:26mm">…and the opposite</div><div class="rule"></div>
+      </div>
+    </div>
+    
+    <div class="meaning compact">
+      <div class="mhead">Meaning 2 <em>— only if the word means a second, different thing</em></div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">What it means in English</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row codes" style="height:8mm">
+        <div class="lab" style="width:46mm">How it is said · what it is about<i>codes from the front page</i></div>
+        <span class="code"><span class="code-lab">R</span><span class="box"></span></span><span class="code"><span class="code-lab">S</span><span class="box"></span></span>
+      </div>
+      
+      
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Example sentence in Kasem</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">…and what that sentence means</div>
+     <div class="rule"></div>
+   </div>
+      
+    </div>
+
+    <div class="row" style="height:8mm">
+      <div class="lab" style="width:46mm">Is the word also used as</div>
+      <div class="ticks">
+        <span>☐ verb</span><span>☐ adjective</span><span>☐ adverb</span>
+        <span>☐ a name</span><span>☐ something else:</span>
+      </div>
+      <div class="rule"></div>
+    </div>
+    <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Where the word comes from, if known<i>a borrowing, two words joined</i></div>
+     <div class="rule"></div>
+   </div>
+
+    <footer class="pfoot">
+      <div class="row" style="height:9mm">
+        <div class="lab" style="width:26mm">Written by</div><div class="rule"></div>
+        <div class="lab mid" style="width:24mm">Community</div><div class="rule"></div>
+        <div class="lab mid" style="width:12mm">Date</div><div class="rule" style="max-width:26mm"></div>
+      </div>
+      <div class="consent">☐ Anyone whose knowledge this is has agreed to it being shared.</div>
+    </footer>
+  </section>
+
+  <section class="page">
+    <header class="phead">
+      <div>Kasem word sheets — nouns · Batch 1 · twenty words</div>
+      <div>Sheet <b>N07</b> of 20 <span class="qid">name-6ae999</span></div>
+    </header>
+
+    <div class="prompt">
+      <div class="pw">name</div>
+      <div class="ps">
+        <div class="ps-lab">the word as it is used here —</div>
+        <div class="ps-sent">“I'm trying hard, but can't think of her name.”</div>
+        <div class="credit">Tatoeba #27587, CK · CC BY 2.0 FR</div>
+      </div>
+    </div>
+
+    <div class="row" style="height:13mm">
+     <div class="lab" style="width:46mm"><b>The word in Kasem</b><i>write it large and clearly</i></div>
+     <div class="rule"></div>
+   </div>
+    <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">How it sounds, if you can write it<i>leave blank if unsure</i></div>
+     <div class="rule"></div>
+   </div>
+
+    <div class="sect">The forms of the word <em>— say each one out loud, then write down what you said</em></div>
+    <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Say it with “the”<i>the boy</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Say it for many<i>boys</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Say the many with “the”<i>the boys</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Say it with “two”<i>two boys</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">What you call it afterwards<i>he, it</i></div>
+     <div class="rule"></div>
+   </div>
+
+    
+    <div class="meaning">
+      <div class="mhead">Meaning 1</div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">What it means in English</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row codes" style="height:8mm">
+        <div class="lab" style="width:46mm">How it is said · what it is about<i>codes from the front page</i></div>
+        <span class="code"><span class="code-lab">R</span><span class="box"></span></span><span class="code"><span class="code-lab">S</span><span class="box"></span></span>
+      </div>
+      <div class="blk"><div class="lab wide">Say what it means <b>in Kasem</b></div><div class="rule solo" style="height:8mm"></div><div class="rule solo" style="height:8mm"></div></div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">When it is said, when it is not</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Example sentence in Kasem</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">…and what that sentence means</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row" style="height:9mm">
+        <div class="lab" style="width:46mm">Words that mean nearly the same</div><div class="rule"></div>
+        <div class="lab mid" style="width:26mm">…and the opposite</div><div class="rule"></div>
+      </div>
+    </div>
+    
+    <div class="meaning compact">
+      <div class="mhead">Meaning 2 <em>— only if the word means a second, different thing</em></div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">What it means in English</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row codes" style="height:8mm">
+        <div class="lab" style="width:46mm">How it is said · what it is about<i>codes from the front page</i></div>
+        <span class="code"><span class="code-lab">R</span><span class="box"></span></span><span class="code"><span class="code-lab">S</span><span class="box"></span></span>
+      </div>
+      
+      
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Example sentence in Kasem</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">…and what that sentence means</div>
+     <div class="rule"></div>
+   </div>
+      
+    </div>
+
+    <div class="row" style="height:8mm">
+      <div class="lab" style="width:46mm">Is the word also used as</div>
+      <div class="ticks">
+        <span>☐ verb</span><span>☐ adjective</span><span>☐ adverb</span>
+        <span>☐ a name</span><span>☐ something else:</span>
+      </div>
+      <div class="rule"></div>
+    </div>
+    <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Where the word comes from, if known<i>a borrowing, two words joined</i></div>
+     <div class="rule"></div>
+   </div>
+
+    <footer class="pfoot">
+      <div class="row" style="height:9mm">
+        <div class="lab" style="width:26mm">Written by</div><div class="rule"></div>
+        <div class="lab mid" style="width:24mm">Community</div><div class="rule"></div>
+        <div class="lab mid" style="width:12mm">Date</div><div class="rule" style="max-width:26mm"></div>
+      </div>
+      <div class="consent">☐ Anyone whose knowledge this is has agreed to it being shared.</div>
+    </footer>
+  </section>
+
+  <section class="page">
+    <header class="phead">
+      <div>Kasem word sheets — nouns · Batch 1 · twenty words</div>
+      <div>Sheet <b>N08</b> of 20 <span class="qid">hand-9621a2</span></div>
+    </header>
+
+    <div class="prompt">
+      <div class="pw">hand</div>
+      <div class="ps">
+        <div class="ps-lab">the word as it is used here —</div>
+        <div class="ps-sent">“The thief forced her to hand over the money.”</div>
+        <div class="credit">Tatoeba #19197, CK · CC BY 2.0 FR</div>
+      </div>
+    </div>
+
+    <div class="row" style="height:13mm">
+     <div class="lab" style="width:46mm"><b>The word in Kasem</b><i>write it large and clearly</i></div>
+     <div class="rule"></div>
+   </div>
+    <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">How it sounds, if you can write it<i>leave blank if unsure</i></div>
+     <div class="rule"></div>
+   </div>
+
+    <div class="sect">The forms of the word <em>— say each one out loud, then write down what you said</em></div>
+    <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Say it with “the”<i>the boy</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Say it for many<i>boys</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Say the many with “the”<i>the boys</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Say it with “two”<i>two boys</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">What you call it afterwards<i>he, it</i></div>
+     <div class="rule"></div>
+   </div>
+
+    
+    <div class="meaning">
+      <div class="mhead">Meaning 1</div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">What it means in English</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row codes" style="height:8mm">
+        <div class="lab" style="width:46mm">How it is said · what it is about<i>codes from the front page</i></div>
+        <span class="code"><span class="code-lab">R</span><span class="box"></span></span><span class="code"><span class="code-lab">S</span><span class="box"></span></span>
+      </div>
+      <div class="blk"><div class="lab wide">Say what it means <b>in Kasem</b></div><div class="rule solo" style="height:8mm"></div><div class="rule solo" style="height:8mm"></div></div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">When it is said, when it is not</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Example sentence in Kasem</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">…and what that sentence means</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row" style="height:9mm">
+        <div class="lab" style="width:46mm">Words that mean nearly the same</div><div class="rule"></div>
+        <div class="lab mid" style="width:26mm">…and the opposite</div><div class="rule"></div>
+      </div>
+    </div>
+    
+    <div class="meaning compact">
+      <div class="mhead">Meaning 2 <em>— only if the word means a second, different thing</em></div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">What it means in English</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row codes" style="height:8mm">
+        <div class="lab" style="width:46mm">How it is said · what it is about<i>codes from the front page</i></div>
+        <span class="code"><span class="code-lab">R</span><span class="box"></span></span><span class="code"><span class="code-lab">S</span><span class="box"></span></span>
+      </div>
+      
+      
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Example sentence in Kasem</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">…and what that sentence means</div>
+     <div class="rule"></div>
+   </div>
+      
+    </div>
+
+    <div class="row" style="height:8mm">
+      <div class="lab" style="width:46mm">Is the word also used as</div>
+      <div class="ticks">
+        <span>☐ verb</span><span>☐ adjective</span><span>☐ adverb</span>
+        <span>☐ a name</span><span>☐ something else:</span>
+      </div>
+      <div class="rule"></div>
+    </div>
+    <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Where the word comes from, if known<i>a borrowing, two words joined</i></div>
+     <div class="rule"></div>
+   </div>
+
+    <footer class="pfoot">
+      <div class="row" style="height:9mm">
+        <div class="lab" style="width:26mm">Written by</div><div class="rule"></div>
+        <div class="lab mid" style="width:24mm">Community</div><div class="rule"></div>
+        <div class="lab mid" style="width:12mm">Date</div><div class="rule" style="max-width:26mm"></div>
+      </div>
+      <div class="consent">☐ Anyone whose knowledge this is has agreed to it being shared.</div>
+    </footer>
+  </section>
+
+  <section class="page">
+    <header class="phead">
+      <div>Kasem word sheets — nouns · Batch 1 · twenty words</div>
+      <div>Sheet <b>N09</b> of 20 <span class="qid">eye-79df4b</span></div>
+    </header>
+
+    <div class="prompt">
+      <div class="pw">eye</div>
+      <div class="ps">
+        <div class="ps-lab">the word as it is used here —</div>
+        <div class="ps-sent">“Keep an eye on my bag for a while.”</div>
+        <div class="credit">Tatoeba #40001, CK · CC BY 2.0 FR</div>
+      </div>
+    </div>
+
+    <div class="row" style="height:13mm">
+     <div class="lab" style="width:46mm"><b>The word in Kasem</b><i>write it large and clearly</i></div>
+     <div class="rule"></div>
+   </div>
+    <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">How it sounds, if you can write it<i>leave blank if unsure</i></div>
+     <div class="rule"></div>
+   </div>
+
+    <div class="sect">The forms of the word <em>— say each one out loud, then write down what you said</em></div>
+    <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Say it with “the”<i>the boy</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Say it for many<i>boys</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Say the many with “the”<i>the boys</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Say it with “two”<i>two boys</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">What you call it afterwards<i>he, it</i></div>
+     <div class="rule"></div>
+   </div>
+
+    
+    <div class="meaning">
+      <div class="mhead">Meaning 1</div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">What it means in English</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row codes" style="height:8mm">
+        <div class="lab" style="width:46mm">How it is said · what it is about<i>codes from the front page</i></div>
+        <span class="code"><span class="code-lab">R</span><span class="box"></span></span><span class="code"><span class="code-lab">S</span><span class="box"></span></span>
+      </div>
+      <div class="blk"><div class="lab wide">Say what it means <b>in Kasem</b></div><div class="rule solo" style="height:8mm"></div><div class="rule solo" style="height:8mm"></div></div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">When it is said, when it is not</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Example sentence in Kasem</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">…and what that sentence means</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row" style="height:9mm">
+        <div class="lab" style="width:46mm">Words that mean nearly the same</div><div class="rule"></div>
+        <div class="lab mid" style="width:26mm">…and the opposite</div><div class="rule"></div>
+      </div>
+    </div>
+    
+    <div class="meaning compact">
+      <div class="mhead">Meaning 2 <em>— only if the word means a second, different thing</em></div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">What it means in English</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row codes" style="height:8mm">
+        <div class="lab" style="width:46mm">How it is said · what it is about<i>codes from the front page</i></div>
+        <span class="code"><span class="code-lab">R</span><span class="box"></span></span><span class="code"><span class="code-lab">S</span><span class="box"></span></span>
+      </div>
+      
+      
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Example sentence in Kasem</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">…and what that sentence means</div>
+     <div class="rule"></div>
+   </div>
+      
+    </div>
+
+    <div class="row" style="height:8mm">
+      <div class="lab" style="width:46mm">Is the word also used as</div>
+      <div class="ticks">
+        <span>☐ verb</span><span>☐ adjective</span><span>☐ adverb</span>
+        <span>☐ a name</span><span>☐ something else:</span>
+      </div>
+      <div class="rule"></div>
+    </div>
+    <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Where the word comes from, if known<i>a borrowing, two words joined</i></div>
+     <div class="rule"></div>
+   </div>
+
+    <footer class="pfoot">
+      <div class="row" style="height:9mm">
+        <div class="lab" style="width:26mm">Written by</div><div class="rule"></div>
+        <div class="lab mid" style="width:24mm">Community</div><div class="rule"></div>
+        <div class="lab mid" style="width:12mm">Date</div><div class="rule" style="max-width:26mm"></div>
+      </div>
+      <div class="consent">☐ Anyone whose knowledge this is has agreed to it being shared.</div>
+    </footer>
+  </section>
+
+  <section class="page">
+    <header class="phead">
+      <div>Kasem word sheets — nouns · Batch 1 · twenty words</div>
+      <div>Sheet <b>N10</b> of 20 <span class="qid">day-a2620c</span></div>
+    </header>
+
+    <div class="prompt">
+      <div class="pw">day</div>
+      <div class="ps">
+        <div class="ps-lab">the word as it is used here —</div>
+        <div class="ps-sent">“Not feeling well, I stayed home on that day.”</div>
+        <div class="credit">Tatoeba #20294, CK · CC BY 2.0 FR</div>
+      </div>
+    </div>
+
+    <div class="row" style="height:13mm">
+     <div class="lab" style="width:46mm"><b>The word in Kasem</b><i>write it large and clearly</i></div>
+     <div class="rule"></div>
+   </div>
+    <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">How it sounds, if you can write it<i>leave blank if unsure</i></div>
+     <div class="rule"></div>
+   </div>
+
+    <div class="sect">The forms of the word <em>— say each one out loud, then write down what you said</em></div>
+    <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Say it with “the”<i>the boy</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Say it for many<i>boys</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Say the many with “the”<i>the boys</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Say it with “two”<i>two boys</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">What you call it afterwards<i>he, it</i></div>
+     <div class="rule"></div>
+   </div>
+
+    
+    <div class="meaning">
+      <div class="mhead">Meaning 1</div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">What it means in English</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row codes" style="height:8mm">
+        <div class="lab" style="width:46mm">How it is said · what it is about<i>codes from the front page</i></div>
+        <span class="code"><span class="code-lab">R</span><span class="box"></span></span><span class="code"><span class="code-lab">S</span><span class="box"></span></span>
+      </div>
+      <div class="blk"><div class="lab wide">Say what it means <b>in Kasem</b></div><div class="rule solo" style="height:8mm"></div><div class="rule solo" style="height:8mm"></div></div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">When it is said, when it is not</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Example sentence in Kasem</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">…and what that sentence means</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row" style="height:9mm">
+        <div class="lab" style="width:46mm">Words that mean nearly the same</div><div class="rule"></div>
+        <div class="lab mid" style="width:26mm">…and the opposite</div><div class="rule"></div>
+      </div>
+    </div>
+    
+    <div class="meaning compact">
+      <div class="mhead">Meaning 2 <em>— only if the word means a second, different thing</em></div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">What it means in English</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row codes" style="height:8mm">
+        <div class="lab" style="width:46mm">How it is said · what it is about<i>codes from the front page</i></div>
+        <span class="code"><span class="code-lab">R</span><span class="box"></span></span><span class="code"><span class="code-lab">S</span><span class="box"></span></span>
+      </div>
+      
+      
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Example sentence in Kasem</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">…and what that sentence means</div>
+     <div class="rule"></div>
+   </div>
+      
+    </div>
+
+    <div class="row" style="height:8mm">
+      <div class="lab" style="width:46mm">Is the word also used as</div>
+      <div class="ticks">
+        <span>☐ verb</span><span>☐ adjective</span><span>☐ adverb</span>
+        <span>☐ a name</span><span>☐ something else:</span>
+      </div>
+      <div class="rule"></div>
+    </div>
+    <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Where the word comes from, if known<i>a borrowing, two words joined</i></div>
+     <div class="rule"></div>
+   </div>
+
+    <footer class="pfoot">
+      <div class="row" style="height:9mm">
+        <div class="lab" style="width:26mm">Written by</div><div class="rule"></div>
+        <div class="lab mid" style="width:24mm">Community</div><div class="rule"></div>
+        <div class="lab mid" style="width:12mm">Date</div><div class="rule" style="max-width:26mm"></div>
+      </div>
+      <div class="consent">☐ Anyone whose knowledge this is has agreed to it being shared.</div>
+    </footer>
+  </section>
+
+  <section class="page">
+    <header class="phead">
+      <div>Kasem word sheets — nouns · Batch 1 · twenty words</div>
+      <div>Sheet <b>N11</b> of 20 <span class="qid">night-1be2a4</span></div>
+    </header>
+
+    <div class="prompt">
+      <div class="pw">night</div>
+      <div class="ps">
+        <div class="ps-lab">the word as it is used here —</div>
+        <div class="ps-sent">“We would often sit up all night discussing politics.”</div>
+        <div class="credit">Tatoeba #27292, CK · CC BY 2.0 FR</div>
+      </div>
+    </div>
+
+    <div class="row" style="height:13mm">
+     <div class="lab" style="width:46mm"><b>The word in Kasem</b><i>write it large and clearly</i></div>
+     <div class="rule"></div>
+   </div>
+    <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">How it sounds, if you can write it<i>leave blank if unsure</i></div>
+     <div class="rule"></div>
+   </div>
+
+    <div class="sect">The forms of the word <em>— say each one out loud, then write down what you said</em></div>
+    <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Say it with “the”<i>the boy</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Say it for many<i>boys</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Say the many with “the”<i>the boys</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Say it with “two”<i>two boys</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">What you call it afterwards<i>he, it</i></div>
+     <div class="rule"></div>
+   </div>
+
+    
+    <div class="meaning">
+      <div class="mhead">Meaning 1</div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">What it means in English</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row codes" style="height:8mm">
+        <div class="lab" style="width:46mm">How it is said · what it is about<i>codes from the front page</i></div>
+        <span class="code"><span class="code-lab">R</span><span class="box"></span></span><span class="code"><span class="code-lab">S</span><span class="box"></span></span>
+      </div>
+      <div class="blk"><div class="lab wide">Say what it means <b>in Kasem</b></div><div class="rule solo" style="height:8mm"></div><div class="rule solo" style="height:8mm"></div></div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">When it is said, when it is not</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Example sentence in Kasem</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">…and what that sentence means</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row" style="height:9mm">
+        <div class="lab" style="width:46mm">Words that mean nearly the same</div><div class="rule"></div>
+        <div class="lab mid" style="width:26mm">…and the opposite</div><div class="rule"></div>
+      </div>
+    </div>
+    
+    <div class="meaning compact">
+      <div class="mhead">Meaning 2 <em>— only if the word means a second, different thing</em></div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">What it means in English</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row codes" style="height:8mm">
+        <div class="lab" style="width:46mm">How it is said · what it is about<i>codes from the front page</i></div>
+        <span class="code"><span class="code-lab">R</span><span class="box"></span></span><span class="code"><span class="code-lab">S</span><span class="box"></span></span>
+      </div>
+      
+      
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Example sentence in Kasem</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">…and what that sentence means</div>
+     <div class="rule"></div>
+   </div>
+      
+    </div>
+
+    <div class="row" style="height:8mm">
+      <div class="lab" style="width:46mm">Is the word also used as</div>
+      <div class="ticks">
+        <span>☐ verb</span><span>☐ adjective</span><span>☐ adverb</span>
+        <span>☐ a name</span><span>☐ something else:</span>
+      </div>
+      <div class="rule"></div>
+    </div>
+    <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Where the word comes from, if known<i>a borrowing, two words joined</i></div>
+     <div class="rule"></div>
+   </div>
+
+    <footer class="pfoot">
+      <div class="row" style="height:9mm">
+        <div class="lab" style="width:26mm">Written by</div><div class="rule"></div>
+        <div class="lab mid" style="width:24mm">Community</div><div class="rule"></div>
+        <div class="lab mid" style="width:12mm">Date</div><div class="rule" style="max-width:26mm"></div>
+      </div>
+      <div class="consent">☐ Anyone whose knowledge this is has agreed to it being shared.</div>
+    </footer>
+  </section>
+
+  <section class="page">
+    <header class="phead">
+      <div>Kasem word sheets — nouns · Batch 1 · twenty words</div>
+      <div>Sheet <b>N12</b> of 20 <span class="qid">fire-1da840</span></div>
+    </header>
+
+    <div class="prompt">
+      <div class="pw">fire</div>
+      <div class="ps">
+        <div class="ps-lab">the word as it is used here —</div>
+        <div class="ps-sent">“Though it was cold, he didn't light the fire.”</div>
+        <div class="credit">Tatoeba #21151, CK · CC BY 2.0 FR</div>
+      </div>
+    </div>
+
+    <div class="row" style="height:13mm">
+     <div class="lab" style="width:46mm"><b>The word in Kasem</b><i>write it large and clearly</i></div>
+     <div class="rule"></div>
+   </div>
+    <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">How it sounds, if you can write it<i>leave blank if unsure</i></div>
+     <div class="rule"></div>
+   </div>
+
+    <div class="sect">The forms of the word <em>— say each one out loud, then write down what you said</em></div>
+    <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Say it with “the”<i>the boy</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Say it for many<i>boys</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Say the many with “the”<i>the boys</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Say it with “two”<i>two boys</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">What you call it afterwards<i>he, it</i></div>
+     <div class="rule"></div>
+   </div>
+
+    
+    <div class="meaning">
+      <div class="mhead">Meaning 1</div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">What it means in English</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row codes" style="height:8mm">
+        <div class="lab" style="width:46mm">How it is said · what it is about<i>codes from the front page</i></div>
+        <span class="code"><span class="code-lab">R</span><span class="box"></span></span><span class="code"><span class="code-lab">S</span><span class="box"></span></span>
+      </div>
+      <div class="blk"><div class="lab wide">Say what it means <b>in Kasem</b></div><div class="rule solo" style="height:8mm"></div><div class="rule solo" style="height:8mm"></div></div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">When it is said, when it is not</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Example sentence in Kasem</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">…and what that sentence means</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row" style="height:9mm">
+        <div class="lab" style="width:46mm">Words that mean nearly the same</div><div class="rule"></div>
+        <div class="lab mid" style="width:26mm">…and the opposite</div><div class="rule"></div>
+      </div>
+    </div>
+    
+    <div class="meaning compact">
+      <div class="mhead">Meaning 2 <em>— only if the word means a second, different thing</em></div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">What it means in English</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row codes" style="height:8mm">
+        <div class="lab" style="width:46mm">How it is said · what it is about<i>codes from the front page</i></div>
+        <span class="code"><span class="code-lab">R</span><span class="box"></span></span><span class="code"><span class="code-lab">S</span><span class="box"></span></span>
+      </div>
+      
+      
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Example sentence in Kasem</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">…and what that sentence means</div>
+     <div class="rule"></div>
+   </div>
+      
+    </div>
+
+    <div class="row" style="height:8mm">
+      <div class="lab" style="width:46mm">Is the word also used as</div>
+      <div class="ticks">
+        <span>☐ verb</span><span>☐ adjective</span><span>☐ adverb</span>
+        <span>☐ a name</span><span>☐ something else:</span>
+      </div>
+      <div class="rule"></div>
+    </div>
+    <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Where the word comes from, if known<i>a borrowing, two words joined</i></div>
+     <div class="rule"></div>
+   </div>
+
+    <footer class="pfoot">
+      <div class="row" style="height:9mm">
+        <div class="lab" style="width:26mm">Written by</div><div class="rule"></div>
+        <div class="lab mid" style="width:24mm">Community</div><div class="rule"></div>
+        <div class="lab mid" style="width:12mm">Date</div><div class="rule" style="max-width:26mm"></div>
+      </div>
+      <div class="consent">☐ Anyone whose knowledge this is has agreed to it being shared.</div>
+    </footer>
+  </section>
+
+  <section class="page">
+    <header class="phead">
+      <div>Kasem word sheets — nouns · Batch 1 · twenty words</div>
+      <div>Sheet <b>N13</b> of 20 <span class="qid">dog-e49512</span></div>
+    </header>
+
+    <div class="prompt">
+      <div class="pw">dog</div>
+      <div class="ps">
+        <div class="ps-lab">the word as it is used here —</div>
+        <div class="ps-sent">“The dog hid under the bed whenever lightning flashed.”</div>
+        <div class="credit">Tatoeba #27166, CK · CC BY 2.0 FR</div>
+      </div>
+    </div>
+
+    <div class="row" style="height:13mm">
+     <div class="lab" style="width:46mm"><b>The word in Kasem</b><i>write it large and clearly</i></div>
+     <div class="rule"></div>
+   </div>
+    <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">How it sounds, if you can write it<i>leave blank if unsure</i></div>
+     <div class="rule"></div>
+   </div>
+
+    <div class="sect">The forms of the word <em>— say each one out loud, then write down what you said</em></div>
+    <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Say it with “the”<i>the boy</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Say it for many<i>boys</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Say the many with “the”<i>the boys</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Say it with “two”<i>two boys</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">What you call it afterwards<i>he, it</i></div>
+     <div class="rule"></div>
+   </div>
+
+    
+    <div class="meaning">
+      <div class="mhead">Meaning 1</div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">What it means in English</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row codes" style="height:8mm">
+        <div class="lab" style="width:46mm">How it is said · what it is about<i>codes from the front page</i></div>
+        <span class="code"><span class="code-lab">R</span><span class="box"></span></span><span class="code"><span class="code-lab">S</span><span class="box"></span></span>
+      </div>
+      <div class="blk"><div class="lab wide">Say what it means <b>in Kasem</b></div><div class="rule solo" style="height:8mm"></div><div class="rule solo" style="height:8mm"></div></div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">When it is said, when it is not</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Example sentence in Kasem</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">…and what that sentence means</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row" style="height:9mm">
+        <div class="lab" style="width:46mm">Words that mean nearly the same</div><div class="rule"></div>
+        <div class="lab mid" style="width:26mm">…and the opposite</div><div class="rule"></div>
+      </div>
+    </div>
+    
+    <div class="meaning compact">
+      <div class="mhead">Meaning 2 <em>— only if the word means a second, different thing</em></div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">What it means in English</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row codes" style="height:8mm">
+        <div class="lab" style="width:46mm">How it is said · what it is about<i>codes from the front page</i></div>
+        <span class="code"><span class="code-lab">R</span><span class="box"></span></span><span class="code"><span class="code-lab">S</span><span class="box"></span></span>
+      </div>
+      
+      
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Example sentence in Kasem</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">…and what that sentence means</div>
+     <div class="rule"></div>
+   </div>
+      
+    </div>
+
+    <div class="row" style="height:8mm">
+      <div class="lab" style="width:46mm">Is the word also used as</div>
+      <div class="ticks">
+        <span>☐ verb</span><span>☐ adjective</span><span>☐ adverb</span>
+        <span>☐ a name</span><span>☐ something else:</span>
+      </div>
+      <div class="rule"></div>
+    </div>
+    <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Where the word comes from, if known<i>a borrowing, two words joined</i></div>
+     <div class="rule"></div>
+   </div>
+
+    <footer class="pfoot">
+      <div class="row" style="height:9mm">
+        <div class="lab" style="width:26mm">Written by</div><div class="rule"></div>
+        <div class="lab mid" style="width:24mm">Community</div><div class="rule"></div>
+        <div class="lab mid" style="width:12mm">Date</div><div class="rule" style="max-width:26mm"></div>
+      </div>
+      <div class="consent">☐ Anyone whose knowledge this is has agreed to it being shared.</div>
+    </footer>
+  </section>
+
+  <section class="page">
+    <header class="phead">
+      <div>Kasem word sheets — nouns · Batch 1 · twenty words</div>
+      <div>Sheet <b>N14</b> of 20 <span class="qid">tree-80655d</span></div>
+    </header>
+
+    <div class="prompt">
+      <div class="pw">tree</div>
+      <div class="ps">
+        <div class="ps-lab">the word as it is used here —</div>
+        <div class="ps-sent">“I stood under a tree to avoid getting wet.”</div>
+        <div class="credit">Tatoeba #281990, CK · CC BY 2.0 FR</div>
+      </div>
+    </div>
+
+    <div class="row" style="height:13mm">
+     <div class="lab" style="width:46mm"><b>The word in Kasem</b><i>write it large and clearly</i></div>
+     <div class="rule"></div>
+   </div>
+    <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">How it sounds, if you can write it<i>leave blank if unsure</i></div>
+     <div class="rule"></div>
+   </div>
+
+    <div class="sect">The forms of the word <em>— say each one out loud, then write down what you said</em></div>
+    <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Say it with “the”<i>the boy</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Say it for many<i>boys</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Say the many with “the”<i>the boys</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Say it with “two”<i>two boys</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">What you call it afterwards<i>he, it</i></div>
+     <div class="rule"></div>
+   </div>
+
+    
+    <div class="meaning">
+      <div class="mhead">Meaning 1</div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">What it means in English</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row codes" style="height:8mm">
+        <div class="lab" style="width:46mm">How it is said · what it is about<i>codes from the front page</i></div>
+        <span class="code"><span class="code-lab">R</span><span class="box"></span></span><span class="code"><span class="code-lab">S</span><span class="box"></span></span>
+      </div>
+      <div class="blk"><div class="lab wide">Say what it means <b>in Kasem</b></div><div class="rule solo" style="height:8mm"></div><div class="rule solo" style="height:8mm"></div></div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">When it is said, when it is not</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Example sentence in Kasem</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">…and what that sentence means</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row" style="height:9mm">
+        <div class="lab" style="width:46mm">Words that mean nearly the same</div><div class="rule"></div>
+        <div class="lab mid" style="width:26mm">…and the opposite</div><div class="rule"></div>
+      </div>
+    </div>
+    
+    <div class="meaning compact">
+      <div class="mhead">Meaning 2 <em>— only if the word means a second, different thing</em></div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">What it means in English</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row codes" style="height:8mm">
+        <div class="lab" style="width:46mm">How it is said · what it is about<i>codes from the front page</i></div>
+        <span class="code"><span class="code-lab">R</span><span class="box"></span></span><span class="code"><span class="code-lab">S</span><span class="box"></span></span>
+      </div>
+      
+      
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Example sentence in Kasem</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">…and what that sentence means</div>
+     <div class="rule"></div>
+   </div>
+      
+    </div>
+
+    <div class="row" style="height:8mm">
+      <div class="lab" style="width:46mm">Is the word also used as</div>
+      <div class="ticks">
+        <span>☐ verb</span><span>☐ adjective</span><span>☐ adverb</span>
+        <span>☐ a name</span><span>☐ something else:</span>
+      </div>
+      <div class="rule"></div>
+    </div>
+    <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Where the word comes from, if known<i>a borrowing, two words joined</i></div>
+     <div class="rule"></div>
+   </div>
+
+    <footer class="pfoot">
+      <div class="row" style="height:9mm">
+        <div class="lab" style="width:26mm">Written by</div><div class="rule"></div>
+        <div class="lab mid" style="width:24mm">Community</div><div class="rule"></div>
+        <div class="lab mid" style="width:12mm">Date</div><div class="rule" style="max-width:26mm"></div>
+      </div>
+      <div class="consent">☐ Anyone whose knowledge this is has agreed to it being shared.</div>
+    </footer>
+  </section>
+
+  <section class="page">
+    <header class="phead">
+      <div>Kasem word sheets — nouns · Batch 1 · twenty words</div>
+      <div>Sheet <b>N15</b> of 20 <span class="qid">road-4adfa5</span></div>
+    </header>
+
+    <div class="prompt">
+      <div class="pw">road</div>
+      <div class="ps">
+        <div class="ps-lab">the word as it is used here —</div>
+        <div class="ps-sent">“I'm getting tired of driving on this winding road.”</div>
+        <div class="credit">Tatoeba #54102, CK · CC BY 2.0 FR</div>
+      </div>
+    </div>
+
+    <div class="row" style="height:13mm">
+     <div class="lab" style="width:46mm"><b>The word in Kasem</b><i>write it large and clearly</i></div>
+     <div class="rule"></div>
+   </div>
+    <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">How it sounds, if you can write it<i>leave blank if unsure</i></div>
+     <div class="rule"></div>
+   </div>
+
+    <div class="sect">The forms of the word <em>— say each one out loud, then write down what you said</em></div>
+    <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Say it with “the”<i>the boy</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Say it for many<i>boys</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Say the many with “the”<i>the boys</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Say it with “two”<i>two boys</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">What you call it afterwards<i>he, it</i></div>
+     <div class="rule"></div>
+   </div>
+
+    
+    <div class="meaning">
+      <div class="mhead">Meaning 1</div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">What it means in English</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row codes" style="height:8mm">
+        <div class="lab" style="width:46mm">How it is said · what it is about<i>codes from the front page</i></div>
+        <span class="code"><span class="code-lab">R</span><span class="box"></span></span><span class="code"><span class="code-lab">S</span><span class="box"></span></span>
+      </div>
+      <div class="blk"><div class="lab wide">Say what it means <b>in Kasem</b></div><div class="rule solo" style="height:8mm"></div><div class="rule solo" style="height:8mm"></div></div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">When it is said, when it is not</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Example sentence in Kasem</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">…and what that sentence means</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row" style="height:9mm">
+        <div class="lab" style="width:46mm">Words that mean nearly the same</div><div class="rule"></div>
+        <div class="lab mid" style="width:26mm">…and the opposite</div><div class="rule"></div>
+      </div>
+    </div>
+    
+    <div class="meaning compact">
+      <div class="mhead">Meaning 2 <em>— only if the word means a second, different thing</em></div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">What it means in English</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row codes" style="height:8mm">
+        <div class="lab" style="width:46mm">How it is said · what it is about<i>codes from the front page</i></div>
+        <span class="code"><span class="code-lab">R</span><span class="box"></span></span><span class="code"><span class="code-lab">S</span><span class="box"></span></span>
+      </div>
+      
+      
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Example sentence in Kasem</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">…and what that sentence means</div>
+     <div class="rule"></div>
+   </div>
+      
+    </div>
+
+    <div class="row" style="height:8mm">
+      <div class="lab" style="width:46mm">Is the word also used as</div>
+      <div class="ticks">
+        <span>☐ verb</span><span>☐ adjective</span><span>☐ adverb</span>
+        <span>☐ a name</span><span>☐ something else:</span>
+      </div>
+      <div class="rule"></div>
+    </div>
+    <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Where the word comes from, if known<i>a borrowing, two words joined</i></div>
+     <div class="rule"></div>
+   </div>
+
+    <footer class="pfoot">
+      <div class="row" style="height:9mm">
+        <div class="lab" style="width:26mm">Written by</div><div class="rule"></div>
+        <div class="lab mid" style="width:24mm">Community</div><div class="rule"></div>
+        <div class="lab mid" style="width:12mm">Date</div><div class="rule" style="max-width:26mm"></div>
+      </div>
+      <div class="consent">☐ Anyone whose knowledge this is has agreed to it being shared.</div>
+    </footer>
+  </section>
+
+  <section class="page">
+    <header class="phead">
+      <div>Kasem word sheets — nouns · Batch 1 · twenty words</div>
+      <div>Sheet <b>N16</b> of 20 <span class="qid">mother-5116e4</span></div>
+    </header>
+
+    <div class="prompt">
+      <div class="pw">mother</div>
+      <div class="ps">
+        <div class="ps-lab">the word as it is used here —</div>
+        <div class="ps-sent">“The mother was reluctant to leave her children alone.”</div>
+        <div class="credit">Tatoeba #44054, CK · CC BY 2.0 FR</div>
+      </div>
+    </div>
+
+    <div class="row" style="height:13mm">
+     <div class="lab" style="width:46mm"><b>The word in Kasem</b><i>write it large and clearly</i></div>
+     <div class="rule"></div>
+   </div>
+    <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">How it sounds, if you can write it<i>leave blank if unsure</i></div>
+     <div class="rule"></div>
+   </div>
+
+    <div class="sect">The forms of the word <em>— say each one out loud, then write down what you said</em></div>
+    <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Say it with “the”<i>the boy</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Say it for many<i>boys</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Say the many with “the”<i>the boys</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Say it with “two”<i>two boys</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">What you call it afterwards<i>he, it</i></div>
+     <div class="rule"></div>
+   </div>
+
+    
+    <div class="meaning">
+      <div class="mhead">Meaning 1</div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">What it means in English</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row codes" style="height:8mm">
+        <div class="lab" style="width:46mm">How it is said · what it is about<i>codes from the front page</i></div>
+        <span class="code"><span class="code-lab">R</span><span class="box"></span></span><span class="code"><span class="code-lab">S</span><span class="box"></span></span>
+      </div>
+      <div class="blk"><div class="lab wide">Say what it means <b>in Kasem</b></div><div class="rule solo" style="height:8mm"></div><div class="rule solo" style="height:8mm"></div></div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">When it is said, when it is not</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Example sentence in Kasem</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">…and what that sentence means</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row" style="height:9mm">
+        <div class="lab" style="width:46mm">Words that mean nearly the same</div><div class="rule"></div>
+        <div class="lab mid" style="width:26mm">…and the opposite</div><div class="rule"></div>
+      </div>
+    </div>
+    
+    <div class="meaning compact">
+      <div class="mhead">Meaning 2 <em>— only if the word means a second, different thing</em></div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">What it means in English</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row codes" style="height:8mm">
+        <div class="lab" style="width:46mm">How it is said · what it is about<i>codes from the front page</i></div>
+        <span class="code"><span class="code-lab">R</span><span class="box"></span></span><span class="code"><span class="code-lab">S</span><span class="box"></span></span>
+      </div>
+      
+      
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Example sentence in Kasem</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">…and what that sentence means</div>
+     <div class="rule"></div>
+   </div>
+      
+    </div>
+
+    <div class="row" style="height:8mm">
+      <div class="lab" style="width:46mm">Is the word also used as</div>
+      <div class="ticks">
+        <span>☐ verb</span><span>☐ adjective</span><span>☐ adverb</span>
+        <span>☐ a name</span><span>☐ something else:</span>
+      </div>
+      <div class="rule"></div>
+    </div>
+    <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Where the word comes from, if known<i>a borrowing, two words joined</i></div>
+     <div class="rule"></div>
+   </div>
+
+    <footer class="pfoot">
+      <div class="row" style="height:9mm">
+        <div class="lab" style="width:26mm">Written by</div><div class="rule"></div>
+        <div class="lab mid" style="width:24mm">Community</div><div class="rule"></div>
+        <div class="lab mid" style="width:12mm">Date</div><div class="rule" style="max-width:26mm"></div>
+      </div>
+      <div class="consent">☐ Anyone whose knowledge this is has agreed to it being shared.</div>
+    </footer>
+  </section>
+
+  <section class="page">
+    <header class="phead">
+      <div>Kasem word sheets — nouns · Batch 1 · twenty words</div>
+      <div>Sheet <b>N17</b> of 20 <span class="qid">father-32c8bb</span></div>
+    </header>
+
+    <div class="prompt">
+      <div class="pw">father</div>
+      <div class="ps">
+        <div class="ps-lab">the word as it is used here —</div>
+        <div class="ps-sent">“The doctor advised my father to give up smoking.”</div>
+        <div class="credit">Tatoeba #27962, CK · CC BY 2.0 FR</div>
+      </div>
+    </div>
+
+    <div class="row" style="height:13mm">
+     <div class="lab" style="width:46mm"><b>The word in Kasem</b><i>write it large and clearly</i></div>
+     <div class="rule"></div>
+   </div>
+    <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">How it sounds, if you can write it<i>leave blank if unsure</i></div>
+     <div class="rule"></div>
+   </div>
+
+    <div class="sect">The forms of the word <em>— say each one out loud, then write down what you said</em></div>
+    <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Say it with “the”<i>the boy</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Say it for many<i>boys</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Say the many with “the”<i>the boys</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Say it with “two”<i>two boys</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">What you call it afterwards<i>he, it</i></div>
+     <div class="rule"></div>
+   </div>
+
+    
+    <div class="meaning">
+      <div class="mhead">Meaning 1</div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">What it means in English</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row codes" style="height:8mm">
+        <div class="lab" style="width:46mm">How it is said · what it is about<i>codes from the front page</i></div>
+        <span class="code"><span class="code-lab">R</span><span class="box"></span></span><span class="code"><span class="code-lab">S</span><span class="box"></span></span>
+      </div>
+      <div class="blk"><div class="lab wide">Say what it means <b>in Kasem</b></div><div class="rule solo" style="height:8mm"></div><div class="rule solo" style="height:8mm"></div></div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">When it is said, when it is not</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Example sentence in Kasem</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">…and what that sentence means</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row" style="height:9mm">
+        <div class="lab" style="width:46mm">Words that mean nearly the same</div><div class="rule"></div>
+        <div class="lab mid" style="width:26mm">…and the opposite</div><div class="rule"></div>
+      </div>
+    </div>
+    
+    <div class="meaning compact">
+      <div class="mhead">Meaning 2 <em>— only if the word means a second, different thing</em></div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">What it means in English</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row codes" style="height:8mm">
+        <div class="lab" style="width:46mm">How it is said · what it is about<i>codes from the front page</i></div>
+        <span class="code"><span class="code-lab">R</span><span class="box"></span></span><span class="code"><span class="code-lab">S</span><span class="box"></span></span>
+      </div>
+      
+      
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Example sentence in Kasem</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">…and what that sentence means</div>
+     <div class="rule"></div>
+   </div>
+      
+    </div>
+
+    <div class="row" style="height:8mm">
+      <div class="lab" style="width:46mm">Is the word also used as</div>
+      <div class="ticks">
+        <span>☐ verb</span><span>☐ adjective</span><span>☐ adverb</span>
+        <span>☐ a name</span><span>☐ something else:</span>
+      </div>
+      <div class="rule"></div>
+    </div>
+    <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Where the word comes from, if known<i>a borrowing, two words joined</i></div>
+     <div class="rule"></div>
+   </div>
+
+    <footer class="pfoot">
+      <div class="row" style="height:9mm">
+        <div class="lab" style="width:26mm">Written by</div><div class="rule"></div>
+        <div class="lab mid" style="width:24mm">Community</div><div class="rule"></div>
+        <div class="lab mid" style="width:12mm">Date</div><div class="rule" style="max-width:26mm"></div>
+      </div>
+      <div class="consent">☐ Anyone whose knowledge this is has agreed to it being shared.</div>
+    </footer>
+  </section>
+
+  <section class="page">
+    <header class="phead">
+      <div>Kasem word sheets — nouns · Batch 1 · twenty words</div>
+      <div>Sheet <b>N18</b> of 20 <span class="qid">head-1a9546</span></div>
+    </header>
+
+    <div class="prompt">
+      <div class="pw">head</div>
+      <div class="ps">
+        <div class="ps-lab">the word as it is used here —</div>
+        <div class="ps-sent">“The swimmer raised his head and gasped for breath.”</div>
+        <div class="credit">Tatoeba #26407, CK · CC BY 2.0 FR</div>
+      </div>
+    </div>
+
+    <div class="row" style="height:13mm">
+     <div class="lab" style="width:46mm"><b>The word in Kasem</b><i>write it large and clearly</i></div>
+     <div class="rule"></div>
+   </div>
+    <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">How it sounds, if you can write it<i>leave blank if unsure</i></div>
+     <div class="rule"></div>
+   </div>
+
+    <div class="sect">The forms of the word <em>— say each one out loud, then write down what you said</em></div>
+    <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Say it with “the”<i>the boy</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Say it for many<i>boys</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Say the many with “the”<i>the boys</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Say it with “two”<i>two boys</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">What you call it afterwards<i>he, it</i></div>
+     <div class="rule"></div>
+   </div>
+
+    
+    <div class="meaning">
+      <div class="mhead">Meaning 1</div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">What it means in English</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row codes" style="height:8mm">
+        <div class="lab" style="width:46mm">How it is said · what it is about<i>codes from the front page</i></div>
+        <span class="code"><span class="code-lab">R</span><span class="box"></span></span><span class="code"><span class="code-lab">S</span><span class="box"></span></span>
+      </div>
+      <div class="blk"><div class="lab wide">Say what it means <b>in Kasem</b></div><div class="rule solo" style="height:8mm"></div><div class="rule solo" style="height:8mm"></div></div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">When it is said, when it is not</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Example sentence in Kasem</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">…and what that sentence means</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row" style="height:9mm">
+        <div class="lab" style="width:46mm">Words that mean nearly the same</div><div class="rule"></div>
+        <div class="lab mid" style="width:26mm">…and the opposite</div><div class="rule"></div>
+      </div>
+    </div>
+    
+    <div class="meaning compact">
+      <div class="mhead">Meaning 2 <em>— only if the word means a second, different thing</em></div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">What it means in English</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row codes" style="height:8mm">
+        <div class="lab" style="width:46mm">How it is said · what it is about<i>codes from the front page</i></div>
+        <span class="code"><span class="code-lab">R</span><span class="box"></span></span><span class="code"><span class="code-lab">S</span><span class="box"></span></span>
+      </div>
+      
+      
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Example sentence in Kasem</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">…and what that sentence means</div>
+     <div class="rule"></div>
+   </div>
+      
+    </div>
+
+    <div class="row" style="height:8mm">
+      <div class="lab" style="width:46mm">Is the word also used as</div>
+      <div class="ticks">
+        <span>☐ verb</span><span>☐ adjective</span><span>☐ adverb</span>
+        <span>☐ a name</span><span>☐ something else:</span>
+      </div>
+      <div class="rule"></div>
+    </div>
+    <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Where the word comes from, if known<i>a borrowing, two words joined</i></div>
+     <div class="rule"></div>
+   </div>
+
+    <footer class="pfoot">
+      <div class="row" style="height:9mm">
+        <div class="lab" style="width:26mm">Written by</div><div class="rule"></div>
+        <div class="lab mid" style="width:24mm">Community</div><div class="rule"></div>
+        <div class="lab mid" style="width:12mm">Date</div><div class="rule" style="max-width:26mm"></div>
+      </div>
+      <div class="consent">☐ Anyone whose knowledge this is has agreed to it being shared.</div>
+    </footer>
+  </section>
+
+  <section class="page">
+    <header class="phead">
+      <div>Kasem word sheets — nouns · Batch 1 · twenty words</div>
+      <div>Sheet <b>N19</b> of 20 <span class="qid">money-c95259</span></div>
+    </header>
+
+    <div class="prompt">
+      <div class="pw">money</div>
+      <div class="ps">
+        <div class="ps-lab">the word as it is used here —</div>
+        <div class="ps-sent">“Luckily he had enough money to pay the bill.”</div>
+        <div class="credit">Tatoeba #26533, CK · CC BY 2.0 FR</div>
+      </div>
+    </div>
+
+    <div class="row" style="height:13mm">
+     <div class="lab" style="width:46mm"><b>The word in Kasem</b><i>write it large and clearly</i></div>
+     <div class="rule"></div>
+   </div>
+    <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">How it sounds, if you can write it<i>leave blank if unsure</i></div>
+     <div class="rule"></div>
+   </div>
+
+    <div class="sect">The forms of the word <em>— say each one out loud, then write down what you said</em></div>
+    <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Say it with “the”<i>the boy</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Say it for many<i>boys</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Say the many with “the”<i>the boys</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Say it with “two”<i>two boys</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">What you call it afterwards<i>he, it</i></div>
+     <div class="rule"></div>
+   </div>
+
+    
+    <div class="meaning">
+      <div class="mhead">Meaning 1</div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">What it means in English</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row codes" style="height:8mm">
+        <div class="lab" style="width:46mm">How it is said · what it is about<i>codes from the front page</i></div>
+        <span class="code"><span class="code-lab">R</span><span class="box"></span></span><span class="code"><span class="code-lab">S</span><span class="box"></span></span>
+      </div>
+      <div class="blk"><div class="lab wide">Say what it means <b>in Kasem</b></div><div class="rule solo" style="height:8mm"></div><div class="rule solo" style="height:8mm"></div></div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">When it is said, when it is not</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Example sentence in Kasem</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">…and what that sentence means</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row" style="height:9mm">
+        <div class="lab" style="width:46mm">Words that mean nearly the same</div><div class="rule"></div>
+        <div class="lab mid" style="width:26mm">…and the opposite</div><div class="rule"></div>
+      </div>
+    </div>
+    
+    <div class="meaning compact">
+      <div class="mhead">Meaning 2 <em>— only if the word means a second, different thing</em></div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">What it means in English</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row codes" style="height:8mm">
+        <div class="lab" style="width:46mm">How it is said · what it is about<i>codes from the front page</i></div>
+        <span class="code"><span class="code-lab">R</span><span class="box"></span></span><span class="code"><span class="code-lab">S</span><span class="box"></span></span>
+      </div>
+      
+      
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Example sentence in Kasem</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">…and what that sentence means</div>
+     <div class="rule"></div>
+   </div>
+      
+    </div>
+
+    <div class="row" style="height:8mm">
+      <div class="lab" style="width:46mm">Is the word also used as</div>
+      <div class="ticks">
+        <span>☐ verb</span><span>☐ adjective</span><span>☐ adverb</span>
+        <span>☐ a name</span><span>☐ something else:</span>
+      </div>
+      <div class="rule"></div>
+    </div>
+    <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Where the word comes from, if known<i>a borrowing, two words joined</i></div>
+     <div class="rule"></div>
+   </div>
+
+    <footer class="pfoot">
+      <div class="row" style="height:9mm">
+        <div class="lab" style="width:26mm">Written by</div><div class="rule"></div>
+        <div class="lab mid" style="width:24mm">Community</div><div class="rule"></div>
+        <div class="lab mid" style="width:12mm">Date</div><div class="rule" style="max-width:26mm"></div>
+      </div>
+      <div class="consent">☐ Anyone whose knowledge this is has agreed to it being shared.</div>
+    </footer>
+  </section>
+
+  <section class="page">
+    <header class="phead">
+      <div>Kasem word sheets — nouns · Batch 1 · twenty words</div>
+      <div>Sheet <b>N20</b> of 20 <span class="qid">village-3bdc3e</span></div>
+    </header>
+
+    <div class="prompt">
+      <div class="pw">village</div>
+      <div class="ps">
+        <div class="ps-lab">the word as it is used here —</div>
+        <div class="ps-sent">“Most people in the village objected to the plan.”</div>
+        <div class="credit">Tatoeba #45569, CK · CC BY 2.0 FR</div>
+      </div>
+    </div>
+
+    <div class="row" style="height:13mm">
+     <div class="lab" style="width:46mm"><b>The word in Kasem</b><i>write it large and clearly</i></div>
+     <div class="rule"></div>
+   </div>
+    <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">How it sounds, if you can write it<i>leave blank if unsure</i></div>
+     <div class="rule"></div>
+   </div>
+
+    <div class="sect">The forms of the word <em>— say each one out loud, then write down what you said</em></div>
+    <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Say it with “the”<i>the boy</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Say it for many<i>boys</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Say the many with “the”<i>the boys</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Say it with “two”<i>two boys</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">What you call it afterwards<i>he, it</i></div>
+     <div class="rule"></div>
+   </div>
+
+    
+    <div class="meaning">
+      <div class="mhead">Meaning 1</div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">What it means in English</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row codes" style="height:8mm">
+        <div class="lab" style="width:46mm">How it is said · what it is about<i>codes from the front page</i></div>
+        <span class="code"><span class="code-lab">R</span><span class="box"></span></span><span class="code"><span class="code-lab">S</span><span class="box"></span></span>
+      </div>
+      <div class="blk"><div class="lab wide">Say what it means <b>in Kasem</b></div><div class="rule solo" style="height:8mm"></div><div class="rule solo" style="height:8mm"></div></div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">When it is said, when it is not</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Example sentence in Kasem</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">…and what that sentence means</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row" style="height:9mm">
+        <div class="lab" style="width:46mm">Words that mean nearly the same</div><div class="rule"></div>
+        <div class="lab mid" style="width:26mm">…and the opposite</div><div class="rule"></div>
+      </div>
+    </div>
+    
+    <div class="meaning compact">
+      <div class="mhead">Meaning 2 <em>— only if the word means a second, different thing</em></div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">What it means in English</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row codes" style="height:8mm">
+        <div class="lab" style="width:46mm">How it is said · what it is about<i>codes from the front page</i></div>
+        <span class="code"><span class="code-lab">R</span><span class="box"></span></span><span class="code"><span class="code-lab">S</span><span class="box"></span></span>
+      </div>
+      
+      
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Example sentence in Kasem</div>
+     <div class="rule"></div>
+   </div>
+      <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">…and what that sentence means</div>
+     <div class="rule"></div>
+   </div>
+      
+    </div>
+
+    <div class="row" style="height:8mm">
+      <div class="lab" style="width:46mm">Is the word also used as</div>
+      <div class="ticks">
+        <span>☐ verb</span><span>☐ adjective</span><span>☐ adverb</span>
+        <span>☐ a name</span><span>☐ something else:</span>
+      </div>
+      <div class="rule"></div>
+    </div>
+    <div class="row" style="height:9mm">
+     <div class="lab" style="width:46mm">Where the word comes from, if known<i>a borrowing, two words joined</i></div>
+     <div class="rule"></div>
+   </div>
+
+    <footer class="pfoot">
+      <div class="row" style="height:9mm">
+        <div class="lab" style="width:26mm">Written by</div><div class="rule"></div>
+        <div class="lab mid" style="width:24mm">Community</div><div class="rule"></div>
+        <div class="lab mid" style="width:12mm">Date</div><div class="rule" style="max-width:26mm"></div>
+      </div>
+      <div class="consent">☐ Anyone whose knowledge this is has agreed to it being shared.</div>
+    </footer>
+  </section>
+</body></html>

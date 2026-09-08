@@ -1,0 +1,415 @@
+{
+  "batch": "nouns-001-020",
+  "partOfSpeech": "noun",
+  "builtFrom": "data/word-seed/word-queue.ndjson",
+  "codes": {
+    "register": [
+      [
+        "R1",
+        "everyday",
+        "Everyday speech"
+      ],
+      [
+        "R2",
+        "respectful",
+        "Said with respect"
+      ],
+      [
+        "R3",
+        "formal",
+        "Formal or ceremonial"
+      ],
+      [
+        "R4",
+        "colloquial",
+        "Casual, among friends"
+      ],
+      [
+        "R5",
+        "old",
+        "Old people’s word"
+      ],
+      [
+        "R6",
+        "new",
+        "Newer word"
+      ],
+      [
+        "R7",
+        "joking",
+        "Said jokingly"
+      ],
+      [
+        "R8",
+        "figurative",
+        "Figurative"
+      ],
+      [
+        "R9",
+        "childspeak",
+        "Said to children"
+      ],
+      [
+        "R10",
+        "avoided",
+        "Not said in front of elders"
+      ]
+    ],
+    "domain": [
+      [
+        "S1",
+        "farming",
+        "Farming and land"
+      ],
+      [
+        "S2",
+        "food",
+        "Food and cooking"
+      ],
+      [
+        "S3",
+        "kinship",
+        "Family and kinship"
+      ],
+      [
+        "S4",
+        "body",
+        "The body and health"
+      ],
+      [
+        "S5",
+        "animals",
+        "Animals"
+      ],
+      [
+        "S6",
+        "plants",
+        "Plants and trees"
+      ],
+      [
+        "S7",
+        "weather",
+        "Weather and seasons"
+      ],
+      [
+        "S8",
+        "market",
+        "Market and trade"
+      ],
+      [
+        "S9",
+        "house",
+        "House and compound"
+      ],
+      [
+        "S10",
+        "clothing",
+        "Clothing and adornment"
+      ],
+      [
+        "S11",
+        "ritual",
+        "Ritual and belief"
+      ],
+      [
+        "S12",
+        "chieftaincy",
+        "Chieftaincy and custom"
+      ],
+      [
+        "S13",
+        "greeting",
+        "Greetings and address"
+      ],
+      [
+        "S14",
+        "music",
+        "Music and dance"
+      ],
+      [
+        "S15",
+        "work",
+        "Work and craft"
+      ],
+      [
+        "S16",
+        "travel",
+        "Travel and place"
+      ],
+      [
+        "S17",
+        "time",
+        "Time and counting"
+      ],
+      [
+        "S18",
+        "speech",
+        "Speech and storytelling"
+      ]
+    ]
+  },
+  "formSlots": [
+    {
+      "id": "definite",
+      "label": "Say it with “the”"
+    },
+    {
+      "id": "plural",
+      "label": "Say it for many"
+    },
+    {
+      "id": "pluralDefinite",
+      "label": "Say the many with “the”"
+    },
+    {
+      "id": "counted",
+      "label": "Say it with “two”"
+    },
+    {
+      "id": "pronoun",
+      "label": "What you call it afterwards"
+    }
+  ],
+  "sheets": [
+    {
+      "sheet": "N01",
+      "wordQueueId": "water-6d5a45",
+      "word": "water",
+      "sentence": "I water the flowers in the garden every day.",
+      "attribution": {
+        "tatoebaId": "261851",
+        "contributor": "CK",
+        "licence": "CC BY 2.0 FR"
+      },
+      "answers": null
+    },
+    {
+      "sheet": "N02",
+      "wordQueueId": "child-0e9306",
+      "word": "child",
+      "sentence": "She scolded the child for coming home so late.",
+      "attribution": {
+        "tatoebaId": "20455",
+        "contributor": "CK",
+        "licence": "CC BY 2.0 FR"
+      },
+      "answers": null
+    },
+    {
+      "sheet": "N03",
+      "wordQueueId": "house-5be934",
+      "word": "house",
+      "sentence": "A car drew up in front of my house.",
+      "attribution": {
+        "tatoebaId": "27497",
+        "contributor": "CK",
+        "licence": "CC BY 2.0 FR"
+      },
+      "answers": null
+    },
+    {
+      "sheet": "N04",
+      "wordQueueId": "woman-edb1f4",
+      "word": "woman",
+      "sentence": "The old woman fell and could not get up.",
+      "attribution": {
+        "tatoebaId": "43320",
+        "contributor": "CK",
+        "licence": "CC BY 2.0 FR"
+      },
+      "answers": null
+    },
+    {
+      "sheet": "N05",
+      "wordQueueId": "man-8175e3",
+      "word": "man",
+      "sentence": "Do you know the man standing on the bridge?",
+      "attribution": {
+        "tatoebaId": "18988",
+        "contributor": "CK",
+        "licence": "CC BY 2.0 FR"
+      },
+      "answers": null
+    },
+    {
+      "sheet": "N06",
+      "wordQueueId": "food-39ccb3",
+      "word": "food",
+      "sentence": "We have reserved a lot of food for emergencies.",
+      "attribution": {
+        "tatoebaId": "18792",
+        "contributor": "CK",
+        "licence": "CC BY 2.0 FR"
+      },
+      "answers": null
+    },
+    {
+      "sheet": "N07",
+      "wordQueueId": "name-6ae999",
+      "word": "name",
+      "sentence": "I'm trying hard, but can't think of her name.",
+      "attribution": {
+        "tatoebaId": "27587",
+        "contributor": "CK",
+        "licence": "CC BY 2.0 FR"
+      },
+      "answers": null
+    },
+    {
+      "sheet": "N08",
+      "wordQueueId": "hand-9621a2",
+      "word": "hand",
+      "sentence": "The thief forced her to hand over the money.",
+      "attribution": {
+        "tatoebaId": "19197",
+        "contributor": "CK",
+        "licence": "CC BY 2.0 FR"
+      },
+      "answers": null
+    },
+    {
+      "sheet": "N09",
+      "wordQueueId": "eye-79df4b",
+      "word": "eye",
+      "sentence": "Keep an eye on my bag for a while.",
+      "attribution": {
+        "tatoebaId": "40001",
+        "contributor": "CK",
+        "licence": "CC BY 2.0 FR"
+      },
+      "answers": null
+    },
+    {
+      "sheet": "N10",
+      "wordQueueId": "day-a2620c",
+      "word": "day",
+      "sentence": "Not feeling well, I stayed home on that day.",
+      "attribution": {
+        "tatoebaId": "20294",
+        "contributor": "CK",
+        "licence": "CC BY 2.0 FR"
+      },
+      "answers": null
+    },
+    {
+      "sheet": "N11",
+      "wordQueueId": "night-1be2a4",
+      "word": "night",
+      "sentence": "We would often sit up all night discussing politics.",
+      "attribution": {
+        "tatoebaId": "27292",
+        "contributor": "CK",
+        "licence": "CC BY 2.0 FR"
+      },
+      "answers": null
+    },
+    {
+      "sheet": "N12",
+      "wordQueueId": "fire-1da840",
+      "word": "fire",
+      "sentence": "Though it was cold, he didn't light the fire.",
+      "attribution": {
+        "tatoebaId": "21151",
+        "contributor": "CK",
+        "licence": "CC BY 2.0 FR"
+      },
+      "answers": null
+    },
+    {
+      "sheet": "N13",
+      "wordQueueId": "dog-e49512",
+      "word": "dog",
+      "sentence": "The dog hid under the bed whenever lightning flashed.",
+      "attribution": {
+        "tatoebaId": "27166",
+        "contributor": "CK",
+        "licence": "CC BY 2.0 FR"
+      },
+      "answers": null
+    },
+    {
+      "sheet": "N14",
+      "wordQueueId": "tree-80655d",
+      "word": "tree",
+      "sentence": "I stood under a tree to avoid getting wet.",
+      "attribution": {
+        "tatoebaId": "281990",
+        "contributor": "CK",
+        "licence": "CC BY 2.0 FR"
+      },
+      "answers": null
+    },
+    {
+      "sheet": "N15",
+      "wordQueueId": "road-4adfa5",
+      "word": "road",
+      "sentence": "I'm getting tired of driving on this winding road.",
+      "attribution": {
+        "tatoebaId": "54102",
+        "contributor": "CK",
+        "licence": "CC BY 2.0 FR"
+      },
+      "answers": null
+    },
+    {
+      "sheet": "N16",
+      "wordQueueId": "mother-5116e4",
+      "word": "mother",
+      "sentence": "The mother was reluctant to leave her children alone.",
+      "attribution": {
+        "tatoebaId": "44054",
+        "contributor": "CK",
+        "licence": "CC BY 2.0 FR"
+      },
+      "answers": null
+    },
+    {
+      "sheet": "N17",
+      "wordQueueId": "father-32c8bb",
+      "word": "father",
+      "sentence": "The doctor advised my father to give up smoking.",
+      "attribution": {
+        "tatoebaId": "27962",
+        "contributor": "CK",
+        "licence": "CC BY 2.0 FR"
+      },
+      "answers": null
+    },
+    {
+      "sheet": "N18",
+      "wordQueueId": "head-1a9546",
+      "word": "head",
+      "sentence": "The swimmer raised his head and gasped for breath.",
+      "attribution": {
+        "tatoebaId": "26407",
+        "contributor": "CK",
+        "licence": "CC BY 2.0 FR"
+      },
+      "answers": null
+    },
+    {
+      "sheet": "N19",
+      "wordQueueId": "money-c95259",
+      "word": "money",
+      "sentence": "Luckily he had enough money to pay the bill.",
+      "attribution": {
+        "tatoebaId": "26533",
+        "contributor": "CK",
+        "licence": "CC BY 2.0 FR"
+      },
+      "answers": null
+    },
+    {
+      "sheet": "N20",
+      "wordQueueId": "village-3bdc3e",
+      "word": "village",
+      "sentence": "Most people in the village objected to the plan.",
+      "attribution": {
+        "tatoebaId": "45569",
+        "contributor": "CK",
+        "licence": "CC BY 2.0 FR"
+      },
+      "answers": null
+    }
+  ]
+}
