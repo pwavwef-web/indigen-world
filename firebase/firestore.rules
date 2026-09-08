@@ -913,6 +913,26 @@ service cloud.firestore {
       return edgeId == uid + '_' + otherId;
     }
 
+    // A birthday on a community profile is a month and a day, never a year.
+    //
+    // Profiles are world-readable, so a full date of birth on one is the single
+    // most useful field somebody impersonating a member could take off it. The
+    // app asks for the two halves the community actually wants — whose day it
+    // is — and there is nowhere here for the third, so a client that sent one
+    // would simply be writing a field nothing reads.
+    //
+    // 0 means "not said", which is why the floor is 0 rather than 1. The day
+    // ceiling is a flat 31: without a year there is no February to be strict
+    // about, and the client already refuses 31 April.
+    function validCommunityBirthday(data) {
+      return data.get('birthMonth', 0) is int
+        && data.get('birthMonth', 0) >= 0
+        && data.get('birthMonth', 0) <= 12
+        && data.get('birthDay', 0) is int
+        && data.get('birthDay', 0) >= 0
+        && data.get('birthDay', 0) <= 31;
+    }
+
     function validCommunityText(value, max) {
       return value is string && value.size() <= max;
     }
@@ -1007,7 +1027,8 @@ service cloud.firestore {
         && request.resource.data.get('phoneVerified', false) == false
         // A supporter mark is bought, not declared. It arrives only from
         // subscriptions.ts once Play has confirmed a purchase.
-        && request.resource.data.get('supporterMark', '') == '';
+        && request.resource.data.get('supporterMark', '') == ''
+        && validCommunityBirthday(request.resource.data);
       // Handle, uid and verification are frozen after creation. The kind is
       // staff's to give; the phone flag is the verification callable's to set,
       // and it runs with admin credentials — so neither can move on a write the
@@ -1026,6 +1047,7 @@ service cloud.firestore {
         && validCommunityText(request.resource.data.get('bio', ''), 300)
         && validCommunityText(request.resource.data.get('location', ''), 80)
         && validCommunityText(request.resource.data.get('dialect', ''), 80)
+        && validCommunityBirthday(request.resource.data)
       );
       allow delete: if isAdmin();
     }

@@ -186,6 +186,55 @@ void main() {
       expect(_disabled(tester, _sendButton), isTrue);
     });
 
+    testWidgets('the button is live as soon as the name gives a handle', (
+      tester,
+    ) async {
+      // The complaint this fixes: the button held itself off until the "who
+      // bears this name?" box had ten characters in it, and said so nowhere.
+      // Somebody who wrote the name, wrote what it means and stopped was left
+      // with a grey button, no message, and nothing on screen that had changed.
+      await _pump(
+        tester,
+        child: const RequestKasemNameScreen(),
+        repository: _FakeRequests(),
+      );
+
+      await tester.enterText(
+        find.byKey(const Key('request-name-field')),
+        'Awɛlɩmwɛ',
+      );
+      await tester.pump();
+
+      expect(_disabled(tester, _sendButton), isFalse);
+      // And what is still needed is on screen before the button is pressed.
+      expect(find.textContaining('Say who bears this name'), findsOneWidget);
+    });
+
+    testWidgets('pressing it without a note answers rather than doing nothing', (
+      tester,
+    ) async {
+      final repository = _FakeRequests();
+      await _pump(
+        tester,
+        child: const RequestKasemNameScreen(),
+        repository: repository,
+      );
+
+      await tester.enterText(
+        find.byKey(const Key('request-name-field')),
+        'Awɛlɩmwɛ',
+      );
+      await tester.pump();
+      await tester.tap(_sendButton);
+      await tester.pumpAndSettle();
+
+      // Refused, because the callable refuses it too -- but refused out loud,
+      // and without spending the round trip to hear it.
+      expect(repository.sent, isEmpty);
+      expect(find.textContaining('Say who bears this name'), findsWidgets);
+      expect(find.text('Sent for review'), findsNothing);
+    });
+
     testWidgets('sends what was typed and then stops', (tester) async {
       final repository = _FakeRequests();
       await _pump(

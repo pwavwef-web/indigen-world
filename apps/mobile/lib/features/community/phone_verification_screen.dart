@@ -14,7 +14,16 @@ import 'package:indigen_world_mobile/features/community/widgets/verified_badge.d
 /// one-way hash, which is all the community needs in order to say that somebody
 /// real is behind an account.
 class PhoneVerificationScreen extends ConsumerStatefulWidget {
-  const PhoneVerificationScreen({super.key});
+  const PhoneVerificationScreen({this.embedded = false, this.onDone, super.key});
+
+  /// Renders the two steps alone, for a host that supplies its own chrome --
+  /// [AccountSetupFlow] puts them inside its own page with its own progress
+  /// header, and a second Scaffold would paint over both.
+  final bool embedded;
+
+  /// Called instead of popping when the member finishes or is done looking.
+  /// `true` when the number was verified.
+  final ValueChanged<bool>? onDone;
 
   @override
   ConsumerState<PhoneVerificationScreen> createState() =>
@@ -70,12 +79,30 @@ class _PhoneVerificationScreenState
     }
   }
 
+  /// Where the screen ends: a pop for the pushed route, a callback for a host
+  /// that is going to advance to a step of its own.
+  void _finish({required bool verified}) {
+    final onDone = widget.onDone;
+    if (onDone != null) {
+      onDone(verified);
+      return;
+    }
+    Navigator.of(context).pop(verified);
+  }
+
   @override
   Widget build(BuildContext context) {
-    final brand = context.brand;
+    final body = _buildBody(context);
+    if (widget.embedded) return body;
     return Scaffold(
       appBar: AppBar(title: const Text('Verify your number')),
-      body: SafeArea(
+      body: body,
+    );
+  }
+
+  Widget _buildBody(BuildContext context) {
+    final brand = context.brand;
+    return SafeArea(
         child: Align(
           alignment: Alignment.topCenter,
           child: ConstrainedBox(
@@ -159,7 +186,8 @@ class _PhoneVerificationScreenState
                   )
                 else
                   FilledButton(
-                    onPressed: () => Navigator.of(context).pop(true),
+                    key: const Key('phone-verification-done'),
+                    onPressed: () => _finish(verified: true),
                     style: FilledButton.styleFrom(
                       minimumSize: const Size(0, 50),
                     ),
@@ -169,8 +197,7 @@ class _PhoneVerificationScreenState
             ),
           ),
         ),
-      ),
-    );
+      );
   }
 
   Future<void> _submit() async {

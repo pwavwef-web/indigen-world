@@ -30,6 +30,15 @@ bool isCommunityBackendPending(Object error) =>
     error is FirebaseException &&
     (error.code == 'permission-denied' || error.code == 'failed-precondition');
 
+/// Whether a month/day pair is a birthday at all.
+///
+/// Both halves or neither, and the day has to exist in the month -- 31 April is
+/// a date nobody has. February takes 29 because there is no year here to make
+/// it a leap year or not, and somebody born on the 29th has to be able to say
+/// so.
+bool _validBirthday(int month, int day) =>
+    month >= 1 && month <= 12 && day >= 1 && day <= daysInBirthMonth(month);
+
 /// A staged attachment that has been chosen on the device but not uploaded yet.
 class PendingUpload {
   const PendingUpload({
@@ -176,6 +185,8 @@ class CommunityRepository {
     String location = '',
     String dialect = '',
     String? avatarUrl,
+    int birthMonth = 0,
+    int birthDay = 0,
   }) async {
     final reason = validateUsername(username);
     if (reason != null) throw CommunityFailure(reason);
@@ -194,6 +205,10 @@ class CommunityRepository {
       location: location.trim(),
       dialect: dialect.trim(),
       avatarUrl: avatarUrl,
+      // Both halves or neither: a month with no day is a birthday nothing can
+      // be drawn from, and the rules would take it anyway.
+      birthMonth: _validBirthday(birthMonth, birthDay) ? birthMonth : 0,
+      birthDay: _validBirthday(birthMonth, birthDay) ? birthDay : 0,
     );
 
     final batch = _firestore.batch()
@@ -228,10 +243,13 @@ class CommunityRepository {
     required String dialect,
     String? avatarUrl,
     String? bannerUrl,
+    int birthMonth = 0,
+    int birthDay = 0,
   }) async {
     if (displayName.trim().isEmpty) {
       throw const CommunityFailure('Add the name the community will see.');
     }
+    final born = _validBirthday(birthMonth, birthDay);
     await _profiles.doc(uid).update({
       'displayName': displayName.trim(),
       'displayNameLower': displayName.trim().toLowerCase(),
@@ -240,6 +258,25 @@ class CommunityRepository {
       'dialect': dialect.trim(),
       'avatarUrl': ?avatarUrl,
       'bannerUrl': ?bannerUrl,
+      // Written on every save, cleared included: the editor is the only place
+      // a birthday can be taken back off a profile.
+      'birthMonth': born ? birthMonth : 0,
+      'birthDay': born ? birthDay : 0,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  /// Writes just the birthday, for the setup flow where the rest of the profile
+  /// was saved a step earlier and must not be rewritten from stale controllers.
+  Future<void> setBirthday({
+    required String uid,
+    required int month,
+    required int day,
+  }) async {
+    final born = _validBirthday(month, day);
+    await _profiles.doc(uid).update({
+      'birthMonth': born ? month : 0,
+      'birthDay': born ? day : 0,
       'updatedAt': FieldValue.serverTimestamp(),
     });
   }

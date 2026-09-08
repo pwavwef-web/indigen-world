@@ -186,23 +186,45 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
     // A reel is a community post, and a community post needs the handle it
     // will be published under. Sending somebody to the recorder first and
     // asking for a name afterwards would lose the clip.
-    if (ref.read(myCommunityProfileProvider).asData?.value == null) {
+    if (await _hasProfile()) {
       if (!mounted) return;
       await Navigator.of(context).push(
-        MaterialPageRoute<void>(
-          builder: (context) => const CommunitySetupScreen(),
-        ),
+        MaterialPageRoute<bool>(builder: (context) => const CreateReelScreen()),
       );
-      if (!mounted ||
-          ref.read(myCommunityProfileProvider).asData?.value == null) {
-        return;
-      }
+      return;
     }
+    if (!mounted) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (context) => const CommunitySetupScreen(),
+      ),
+    );
+    if (!mounted || !await _hasProfile()) return;
     if (!mounted) return;
     await Navigator.of(context).push(
       MaterialPageRoute<bool>(builder: (context) => const CreateReelScreen()),
     );
   });
+
+  /// Whether this member already has a community profile.
+  ///
+  /// Read through the repository rather than off `myCommunityProfileProvider`:
+  /// for a second or two after a sign-in that stream is still carrying the
+  /// guest's null, and taking that as the answer sends somebody who has just
+  /// claimed a handle back to the form to claim it again — where the registry
+  /// refuses them their own name.
+  Future<bool> _hasProfile() async {
+    if (ref.read(myCommunityProfileProvider).asData?.value != null) return true;
+    final repository = ref.read(communityRepositoryProvider);
+    final uid = ref.read(currentUidProvider);
+    if (repository == null || uid == null) return false;
+    try {
+      return await repository.getProfile(uid) != null;
+    } on Object {
+      // A profile that cannot be read is not a profile that does not exist.
+      return false;
+    }
+  }
 
   /// What happens when the member reaches the end of the feed.
   ///

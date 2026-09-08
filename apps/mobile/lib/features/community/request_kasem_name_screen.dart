@@ -15,6 +15,21 @@ import 'package:indigen_world_mobile/shared/glass_surface.dart';
 /// name" — true, and useless, because there was nowhere to say the list was
 /// wrong. This is that place.
 ///
+/// ── Why the button is not the gate ────────────────────────────────────────
+/// The send button used to switch itself off until the "who bears this name?"
+/// box held ten characters, and said so nowhere. Somebody who wrote the name,
+/// wrote what it means and stopped — which is the natural thing to do, because
+/// those are the two fields that look like the question — was left with a grey
+/// button, no message, and nothing on screen that had changed. It reads as a
+/// broken screen, and there was no way to find out otherwise.
+///
+/// It is still refused, because the callable refuses it too. But it is refused
+/// *out loud*: the note carries its requirement in the field itself, a line
+/// under the button says what is still missing, and pressing it anyway answers.
+/// The two things the button does still hold — a fold too short to be a handle,
+/// and a name already in the queue — each say so in their own words on the
+/// screen above it, so a disabled button there is never unexplained.
+///
 /// ── Why the fold is shown ─────────────────────────────────────────────────
 /// The whole feature turns on one invisible step: `Awɛlɩmwɛ` is a name, and
 /// `awelimwe` is what a handle can hold. A member who cannot see that happening
@@ -59,7 +74,27 @@ class _RequestKasemNameScreenState
     super.dispose();
   }
 
+  /// The smallest note a reviewer can act on, mirroring `MIN_NOTE` in
+  /// `kasem-name-requests.ts`. Checked here so the refusal arrives before the
+  /// round trip rather than after it.
+  static const _minNote = 10;
+
+  /// What is still missing, in the member's words, or null when nothing is.
+  String? get _missing {
+    if (_note.text.trim().length < _minNote) {
+      return 'Say who bears this name before sending it — a reviewer cannot '
+          'tell from the spelling alone.';
+    }
+    return null;
+  }
+
   Future<void> _send() async {
+    // Said here rather than by a button that silently will not press. The
+    // sentence is the same one the callable would answer with, minus the wait.
+    if (_missing case final reason?) {
+      setState(() => _error = reason);
+      return;
+    }
     final repository = ref.read(kasemNameRequestsRepositoryProvider);
     if (repository == null) {
       setState(
@@ -101,8 +136,10 @@ class _RequestKasemNameScreenState
     // Asked for before and still waiting. Said here rather than discovered at
     // the callable, which refuses a second ask and would look like a bug.
     final alreadyAsked = ref.watch(pendingKasemNameAsciiProvider).contains(ascii);
-    final ready =
-        ascii.length >= 3 && _note.text.trim().length >= 10 && !alreadyAsked;
+    // Only the two refusals the screen already explains above the button keep
+    // it switched off. Everything else is said when it is pressed.
+    final ready = ascii.length >= 3 && !alreadyAsked;
+    final missing = _missing;
 
     return Scaffold(
       backgroundColor: brand.background,
@@ -165,7 +202,10 @@ class _RequestKasemNameScreenState
                         maxLength: 1000,
                         onChanged: (_) => setState(() => _error = null),
                         decoration: const InputDecoration(
-                          labelText: 'Who bears this name?',
+                          // Marked required in the label itself. It is the one
+                          // field a reviewer actually decides on, and it was
+                          // the one that looked optional.
+                          labelText: 'Who bears this name? (required)',
                           helperText:
                               'Where it is from, whose name it is. A reviewer '
                               'cannot tell from the spelling alone.',
@@ -202,6 +242,18 @@ class _RequestKasemNameScreenState
                         ),
                         child: Text(_busy ? 'Sending…' : 'Send for review'),
                       ),
+                      // What is left to do, under the button that will do it.
+                      // Drawn while the button is live, because a live button
+                      // that answers with a refusal is only fair if the reason
+                      // was on screen before it was pressed.
+                      if (ready && missing != null) ...[
+                        const SizedBox(height: 10),
+                        _Notice(
+                          icon: Icons.edit_note_rounded,
+                          color: brand.mutedInk,
+                          message: missing,
+                        ),
+                      ],
                     ],
                   ),
           ),

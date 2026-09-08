@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/core/connectivity.dart';
 import 'package:indigen_world_mobile/features/auth/auth_repository.dart';
+import 'package:indigen_world_mobile/features/onboarding/account_setup_flow.dart';
 import 'package:indigen_world_mobile/shared/glass_popup.dart';
 
 /// Opens the sign-in / create-account card. Resolves to `true` when the user
@@ -12,13 +13,31 @@ import 'package:indigen_world_mobile/shared/glass_popup.dart';
 /// presentation moved — from a bottom sheet clinging to the edge under the
 /// floating rail, to a centered glass card. The heading lives inside the body
 /// rather than in the popup header because it changes with the mode.
-Future<bool?> showSignInSheet(BuildContext context) => showGlassPopup<bool>(
-  context: context,
-  // The form scrolls itself, so the card must not wrap it in a second
-  // viewport — nesting two would hand the inner one unbounded height.
-  scrollable: false,
-  builder: (_) => const _SignInSheet(),
-);
+///
+/// ── Why setting up an account happens here ────────────────────────────────
+/// A brand-new account used to arrive back on the screen it left from with
+/// nothing to show for it: no handle, no name the community knew, no mark, and
+/// an empty feed. Every one of those was reachable and none of them was ever
+/// offered, so signing in and nothing happening looked the same.
+///
+/// The hand-over is here rather than at the ten call sites because that is the
+/// one place all ten agree on. A caller that only wanted a uid still gets one;
+/// it just gets it from somebody who has been through setup. Nothing at all
+/// happens for an account that already has a profile.
+Future<bool?> showSignInSheet(BuildContext context) async {
+  final signedIn = await showGlassPopup<bool>(
+    context: context,
+    // The form scrolls itself, so the card must not wrap it in a second
+    // viewport — nesting two would hand the inner one unbounded height.
+    scrollable: false,
+    builder: (_) => const _SignInSheet(),
+  );
+  if (signedIn != true || !context.mounted) return signedIn;
+  await ensureAccountSetup(context);
+  // Still true whether or not they finished setting up: they are signed in,
+  // which is the only question this function was asked.
+  return true;
+}
 
 enum _Mode { signIn, register }
 

@@ -6,14 +6,45 @@ import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/features/community/data/community_models.dart';
 import 'package:indigen_world_mobile/features/community/data/community_providers.dart';
 import 'package:indigen_world_mobile/features/community/data/community_repository.dart';
+import 'package:indigen_world_mobile/features/community/widgets/birthday_field.dart';
 import 'package:indigen_world_mobile/features/community/widgets/kasem_name_panel.dart';
 import 'package:indigen_world_mobile/features/community/widgets/people_widgets.dart';
 
 /// One-time handle claim. A signed-in member needs a `communityProfiles` record
 /// before they can post, follow or be followed, and the handle registry makes
 /// the handle unique across the community.
+///
+/// -- Why it can be embedded ------------------------------------------------
+/// This is the same form whether somebody arrived at it from the Profile tab
+/// months after joining, or is walking through it as the second step of
+/// [AccountSetupFlow] the minute they signed in. Two copies of a form that
+/// debounces a handle check, normalises what was typed and races a registry
+/// write would be two places for the same bug, so the flow embeds this one:
+/// [embedded] drops the Scaffold and the app bar, and [onCreated] replaces the
+/// pop that a pushed route ends with.
 class CommunitySetupScreen extends ConsumerStatefulWidget {
-  const CommunitySetupScreen({super.key});
+  const CommunitySetupScreen({
+    this.initialHandle = '',
+    this.embedded = false,
+    this.onCreated,
+    this.submitLabel,
+    super.key,
+  });
+
+  /// A handle to start from -- the fold of a Kassena name chosen a step
+  /// earlier. Empty for the standalone screen, which derives one from the
+  /// signed-in account's display name instead.
+  final String initialHandle;
+
+  /// Renders the form alone, for a host that supplies its own chrome.
+  final bool embedded;
+
+  /// Called with the new profile instead of popping. Required in [embedded]
+  /// mode, where there is no route of this screen's own to pop.
+  final ValueChanged<CommunityProfile>? onCreated;
+
+  /// Overrides the wording on the button that creates the profile.
+  final String? submitLabel;
 
   @override
   ConsumerState<CommunitySetupScreen> createState() =>
@@ -31,17 +62,22 @@ class _CommunitySetupScreenState extends ConsumerState<CommunitySetupScreen> {
   bool? _handleAvailable;
   var _checkingHandle = false;
   var _saving = false;
+  var _birthMonth = 0;
+  var _birthDay = 0;
 
   @override
   void initState() {
     super.initState();
     final displayName = ref.read(currentDisplayNameProvider)?.trim() ?? '';
     _nameController.text = displayName;
-    if (displayName.isNotEmpty) {
-      _handleController.text = normaliseUsername(
-        displayName.replaceAll(' ', ''),
-      );
-      _scheduleHandleCheck(_handleController.text);
+    // A Kassena name chosen a step earlier wins over one derived from the
+    // Google account's display name: the member has already decided.
+    final seed = widget.initialHandle.trim().isNotEmpty
+        ? normaliseUsername(widget.initialHandle)
+        : normaliseUsername(displayName.replaceAll(' ', ''));
+    if (seed.isNotEmpty) {
+      _handleController.text = seed;
+      _scheduleHandleCheck(seed);
     }
   }
 
@@ -95,6 +131,15 @@ class _CommunitySetupScreenState extends ConsumerState<CommunitySetupScreen> {
 
   Future<void> _submit() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
+    // Half a birthday is not one. Caught here rather than dropped silently at
+    // the write, which would leave somebody sure they had given it.
+    if ((_birthMonth == 0) != (_birthDay == 0)) {
+      showCommunityMessage(
+        context,
+        'Finish your birthday -- a month and a day -- or clear both.',
+      );
+      return;
+    }
     final repository = ref.read(communityRepositoryProvider);
     final uid = ref.read(currentUidProvider);
     if (repository == null || uid == null) {
@@ -104,15 +149,22 @@ class _CommunitySetupScreenState extends ConsumerState<CommunitySetupScreen> {
 
     setState(() => _saving = true);
     try {
-      await repository.createProfile(
+      final profile = await repository.createProfile(
         uid: uid,
         username: normaliseUsername(_handleController.text),
         displayName: _nameController.text,
         bio: _bioController.text,
         location: _locationController.text,
         avatarUrl: ref.read(currentPhotoUrlProvider),
+        birthMonth: _birthMonth,
+        birthDay: _birthDay,
       );
       if (!mounted) return;
+      final onCreated = widget.onCreated;
+      if (onCreated != null) {
+        onCreated(profile);
+        return;
+      }
       Navigator.of(context).pop(true);
     } on CommunityFailure catch (error) {
       if (mounted) {
@@ -129,10 +181,19 @@ class _CommunitySetupScreenState extends ConsumerState<CommunitySetupScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final handle = normaliseUsername(_handleController.text);
+    final form = _buildForm(context);
+    // Embedded, the host owns the page: its own progress header sits above this
+    // and its own ground behind it, so a second Scaffold would paint over both.
+    if (widget.embedded) return form;
     return Scaffold(
       appBar: AppBar(title: const Text('Join the community')),
-      body: Form(
+      body: form,
+    );
+  }
+
+  Widget _buildForm(BuildContext context) {
+    final handle = normaliseUsername(_handleController.text);
+    return Form(
         key: _formKey,
         child: ListView(
           // Named so it keeps its place across a rebuild, and so a test can say
@@ -240,6 +301,15 @@ class _CommunitySetupScreenState extends ConsumerState<CommunitySetupScreen> {
                 hintText: 'Paga, Navrongo, Chiana…',
               ),
             ),
+            const SizedBox(height: 22),
+            BirthdayField(
+              month: _birthMonth,
+              day: _birthDay,
+              onChanged: (month, day) => setState(() {
+                _birthMonth = month;
+                _birthDay = day;
+              }),
+            ),
             const SizedBox(height: 26),
             FilledButton.icon(
               key: const Key('community-setup-submit'),
@@ -255,12 +325,13 @@ class _CommunitySetupScreenState extends ConsumerState<CommunitySetupScreen> {
                     )
                   : const Icon(Icons.groups_rounded),
               label: Text(
-                _saving ? 'Creating…' : 'Create my community profile',
+                _saving
+                    ? 'Creating…'
+                    : widget.submitLabel ?? 'Create my community profile',
               ),
             ),
           ],
         ),
-      ),
-    );
+      );
   }
 }

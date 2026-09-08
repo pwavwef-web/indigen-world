@@ -201,6 +201,39 @@ test('and cannot be given to yourself afterwards', async () => {
   );
 });
 
+test('a birthday is a month and a day, and never a year', async () => {
+  const born = env.authenticatedContext('born-uid');
+  const store = db(born);
+
+  // A profile is world-readable. A full date of birth on one is the single
+  // most useful field somebody impersonating a member could take off it, so
+  // the app asks for the two halves the community actually wants and there is
+  // nowhere here for the third.
+  await assertSucceeds(
+    setDoc(doc(store, 'communityProfiles/born-uid'), makeProfile('born-uid', 'born', { birthMonth: 3, birthDay: 27 })),
+  );
+  // 0 is "not said", which is why the floor is 0 rather than 1.
+  await assertSucceeds(
+    setDoc(doc(store, 'communityProfiles/born-uid'), makeProfile('born-uid', 'born', { birthMonth: 0, birthDay: 0 })),
+  );
+  await assertSucceeds(
+    updateDoc(doc(store, 'communityProfiles/born-uid'), { birthMonth: 12, birthDay: 31 }),
+  );
+
+  await assertFails(
+    setDoc(doc(store, 'communityProfiles/rogue-month'), makeProfile('rogue-month', 'rogue', { birthMonth: 13, birthDay: 1 })),
+  );
+  await assertFails(
+    updateDoc(doc(store, 'communityProfiles/born-uid'), { birthDay: 32 }),
+  );
+  await assertFails(
+    updateDoc(doc(store, 'communityProfiles/born-uid'), { birthMonth: -1 }),
+  );
+  await assertFails(
+    updateDoc(doc(store, 'communityProfiles/born-uid'), { birthMonth: 'March' }),
+  );
+});
+
 test('the codes behind a verification belong to nobody', async () => {
   const amina = db(env.authenticatedContext(AMINA));
   const anon = db(env.unauthenticatedContext());

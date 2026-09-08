@@ -258,6 +258,8 @@ class CommunityProfile {
     this.verifiedKind = '',
     this.supporterMark = SupporterMark.none,
     this.phoneVerified = false,
+    this.birthMonth = 0,
+    this.birthDay = 0,
     this.usernameChangedAt,
     this.createdAt,
   });
@@ -284,6 +286,26 @@ class CommunityProfile {
   /// Whether an SMS code was answered from this account's number. Written only
   /// by the verification callable.
   final bool phoneVerified;
+
+  /// The month a member was born in, 1-12, or 0 when they did not say.
+  ///
+  /// -- Why there is no year -------------------------------------------------
+  /// A profile is world-readable, and a full date of birth is the single most
+  /// useful field somebody impersonating a member can take off one. The day is
+  /// enough for the only thing the community wants it for -- knowing whose day
+  /// it is -- so the year is never asked for and there is nowhere to put it.
+  final int birthMonth;
+
+  /// The day of that month, 1-31, or 0 when they did not say.
+  final int birthDay;
+
+  /// Whether a birthday was given at all. Both halves, or neither.
+  bool get hasBirthday =>
+      birthMonth >= 1 && birthMonth <= 12 && birthDay >= 1 && birthDay <= 31;
+
+  /// `27 March`, or null when there is no birthday to draw.
+  String? get birthdayLabel =>
+      hasBirthday ? '$birthDay ${monthNames[birthMonth - 1]}' : null;
 
   /// When the one-time Kassena name claim was used, or null while it is still
   /// available. Written only by `claimKasemHandle`.
@@ -331,6 +353,8 @@ class CommunityProfile {
     String? bannerUrl,
     String? location,
     String? dialect,
+    int? birthMonth,
+    int? birthDay,
   }) => CommunityProfile(
     uid: uid,
     username: username ?? this.username,
@@ -343,6 +367,8 @@ class CommunityProfile {
     verifiedKind: verifiedKind,
     supporterMark: supporterMark,
     phoneVerified: phoneVerified,
+    birthMonth: birthMonth ?? this.birthMonth,
+    birthDay: birthDay ?? this.birthDay,
     usernameChangedAt: usernameChangedAt,
     createdAt: createdAt,
   );
@@ -385,6 +411,8 @@ class CommunityProfile {
           : (data['isVerified'] == true ? 'project' : ''),
       supporterMark: SupporterMark.fromName(data['supporterMark']),
       phoneVerified: data['phoneVerified'] == true,
+      birthMonth: _asInt(data['birthMonth']),
+      birthDay: _asInt(data['birthDay']),
       usernameChangedAt: (data['usernameChangedAt'] as Timestamp?)?.toDate(),
       createdAt: (data['createdAt'] as Timestamp?)?.toDate(),
     );
@@ -406,6 +434,10 @@ class CommunityProfile {
     'supporterMark': '',
     'phoneVerified': false,
     'isVerified': false,
+    // 0 means "not said". Written on create rather than left absent so every
+    // profile has the shape the editor later writes back.
+    'birthMonth': birthMonth,
+    'birthDay': birthDay,
     'createdAt': FieldValue.serverTimestamp(),
     'updatedAt': FieldValue.serverTimestamp(),
   };
@@ -746,3 +778,33 @@ String? validateUsername(String username) {
   }
   return null;
 }
+
+/// Month names as the community reads them, indexed 0-11.
+///
+/// Deliberately not `DateFormat`: a birthday here is a month and a day with no
+/// year behind it, so there is no `DateTime` to format, and inventing one would
+/// mean picking a year nobody gave.
+const monthNames = <String>[
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+];
+
+/// How many days [month] (1-12) can hold.
+///
+/// February gets 29. Without a year there is no leap year to check against, and
+/// somebody born on the 29th has to be able to say so.
+int daysInBirthMonth(int month) => switch (month) {
+  2 => 29,
+  4 || 6 || 9 || 11 => 30,
+  _ => 31,
+};

@@ -44,6 +44,7 @@ class FakeCommunityRepository implements CommunityRepository {
   final Object? feedError;
 
   /// Calls recorded for assertions.
+  final createdProfiles = <CommunityProfile>[];
   final toggledLikes = <String>[];
   final toggledSaves = <String>[];
   final toggledFollows = <String>[];
@@ -267,6 +268,39 @@ class FakeCommunityRepository implements CommunityRepository {
   @override
   Future<bool> isUsernameAvailable(String username) async =>
       !_profiles.values.any((profile) => profile.username == username);
+
+  @override
+  Future<CommunityProfile> createProfile({
+    required String uid,
+    required String username,
+    required String displayName,
+    String bio = '',
+    String location = '',
+    String dialect = '',
+    String? avatarUrl,
+    int birthMonth = 0,
+    int birthDay = 0,
+  }) async {
+    final reason = validateUsername(username);
+    if (reason != null) throw CommunityFailure(reason);
+    if (!await isUsernameAvailable(username)) {
+      throw const CommunityFailure('That handle is already taken.');
+    }
+    final profile = CommunityProfile(
+      uid: uid,
+      username: username,
+      displayName: displayName.trim(),
+      bio: bio.trim(),
+      location: location.trim(),
+      dialect: dialect.trim(),
+      avatarUrl: avatarUrl,
+      birthMonth: birthMonth,
+      birthDay: birthDay,
+    );
+    _profiles[uid] = profile;
+    createdProfiles.add(profile);
+    return profile;
+  }
 
   @override
   Future<void> reportPost({

@@ -8,6 +8,7 @@ import 'package:indigen_world_mobile/features/community/data/community_models.da
 import 'package:indigen_world_mobile/features/community/data/community_providers.dart';
 import 'package:indigen_world_mobile/features/community/data/community_repository.dart';
 import 'package:indigen_world_mobile/features/community/media_picker.dart';
+import 'package:indigen_world_mobile/features/community/widgets/birthday_field.dart';
 import 'package:indigen_world_mobile/features/community/widgets/community_avatar.dart';
 import 'package:indigen_world_mobile/features/community/widgets/people_widgets.dart';
 
@@ -40,6 +41,8 @@ class _EditCommunityProfileScreenState
   PendingUpload? _newAvatar;
   PendingUpload? _newBanner;
   var _saving = false;
+  late var _birthMonth = widget.profile.birthMonth;
+  late var _birthDay = widget.profile.birthDay;
 
   @override
   void dispose() {
@@ -65,6 +68,15 @@ class _EditCommunityProfileScreenState
 
   Future<void> _save() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
+    // Half a birthday is not one, and the write would drop it silently — which
+    // leaves somebody certain they gave it and a profile that says otherwise.
+    if ((_birthMonth == 0) != (_birthDay == 0)) {
+      showCommunityMessage(
+        context,
+        'Finish your birthday — a month and a day — or clear both.',
+      );
+      return;
+    }
     final repository = ref.read(communityRepositoryProvider);
     if (repository == null) {
       showCommunityMessage(context, 'You need a connection to save changes.');
@@ -94,6 +106,8 @@ class _EditCommunityProfileScreenState
         dialect: _dialectController.text,
         avatarUrl: avatarUrl,
         bannerUrl: bannerUrl,
+        birthMonth: _birthMonth,
+        birthDay: _birthDay,
       );
       if (!mounted) return;
       showCommunityMessage(context, 'Profile updated.');
@@ -182,6 +196,18 @@ class _EditCommunityProfileScreenState
               labelText: 'Dialect you speak',
               hintText: 'Paga, Navrongo, Chiana…',
             ),
+          ),
+          const SizedBox(height: 22),
+          // The only way back to a birthday given — or skipped — during setup.
+          // A field that can be set once and never corrected is a field with a
+          // typo in it forever.
+          BirthdayField(
+            month: _birthMonth,
+            day: _birthDay,
+            onChanged: (month, day) => setState(() {
+              _birthMonth = month;
+              _birthDay = day;
+            }),
           ),
         ],
       ),

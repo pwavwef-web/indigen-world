@@ -218,5 +218,130 @@ void main() {
 
       expect(find.byIcon(Icons.check_circle_rounded), findsOneWidget);
     });
+
+    /// Opens [dropdown] and chooses [option].
+    ///
+    /// Both halves have to be *hit-testable*, not merely built. `ensureVisible`
+    /// on the field because `scrollUntilVisible` stops as soon as a target
+    /// enters the ListView's cache extent, which can be a couple of hundred
+    /// pixels below the fold where a tap lands on nothing; and a drag inside
+    /// the open menu because a thirty-one-day list is taller than the test
+    /// surface, so the day somebody wants is often below its last visible row.
+    ///
+    /// `.last` because the closed button draws the chosen value too, so the
+    /// text is on screen twice the moment the menu is open.
+    Future<void> choose(
+      WidgetTester tester,
+      Key dropdown,
+      String option,
+    ) async {
+      await tester.ensureVisible(find.byKey(dropdown));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(dropdown));
+      await tester.pumpAndSettle();
+      final target = find.text(option).hitTestable();
+      if (target.evaluate().isEmpty) {
+        await tester.dragUntilVisible(
+          target,
+          find.byType(Scrollable).last,
+          const Offset(0, -60),
+        );
+      }
+      await tester.tap(target.last);
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('asks for a birthday, and keeps the year out of it', (
+      tester,
+    ) async {
+      final repository = FakeCommunityRepository();
+      await pumpSetup(tester, repository);
+
+      await tester.enterText(find.byKey(const Key('community-handle')), 'awine');
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Display name'),
+        'Awine Atulley',
+      );
+      await tester.pump(const Duration(milliseconds: 600));
+
+      await tester.scrollUntilVisible(
+        find.byKey(const Key('birthday-month')),
+        140,
+        scrollable: setupScroll(),
+      );
+      await choose(tester, const Key('birthday-month'), 'March');
+      await choose(tester, const Key('birthday-day'), '27');
+
+      await tester.scrollUntilVisible(
+        find.byKey(const Key('community-setup-submit')),
+        140,
+        scrollable: setupScroll(),
+      );
+      await tester.tap(find.byKey(const Key('community-setup-submit')));
+      await tester.pumpAndSettle();
+
+      expect(repository.createdProfiles, hasLength(1));
+      final created = repository.createdProfiles.single;
+      expect(created.birthMonth, 3);
+      expect(created.birthDay, 27);
+      expect(created.birthdayLabel, '27 March');
+    });
+
+    testWidgets('will not take half a birthday', (tester) async {
+      // A month with no day is a date nothing can be drawn from, and the write
+      // would drop it silently -- which leaves somebody sure they gave it.
+      final repository = FakeCommunityRepository();
+      await pumpSetup(tester, repository);
+
+      await tester.enterText(find.byKey(const Key('community-handle')), 'awine');
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Display name'),
+        'Awine Atulley',
+      );
+      await tester.pump(const Duration(milliseconds: 600));
+
+      await tester.scrollUntilVisible(
+        find.byKey(const Key('birthday-month')),
+        140,
+        scrollable: setupScroll(),
+      );
+      await choose(tester, const Key('birthday-month'), 'March');
+
+      expect(find.byKey(const Key('birthday-incomplete')), findsOneWidget);
+
+      await tester.scrollUntilVisible(
+        find.byKey(const Key('community-setup-submit')),
+        140,
+        scrollable: setupScroll(),
+      );
+      await tester.tap(find.byKey(const Key('community-setup-submit')));
+      await tester.pumpAndSettle();
+
+      expect(repository.createdProfiles, isEmpty);
+      expect(find.textContaining('Finish your birthday'), findsOneWidget);
+    });
+
+    testWidgets('a day the month cannot hold is dropped, not refused later', (
+      tester,
+    ) async {
+      // 31 April is not a date. Narrowing the day list the moment the month is
+      // known is the only place this can be said without a refusal afterwards.
+      await pumpSetup(tester, FakeCommunityRepository());
+
+      await tester.scrollUntilVisible(
+        find.byKey(const Key('birthday-month')),
+        140,
+        scrollable: setupScroll(),
+      );
+      await choose(tester, const Key('birthday-month'), 'March');
+      await choose(tester, const Key('birthday-day'), '31');
+      await choose(tester, const Key('birthday-month'), 'February');
+
+      // The 31st went with it rather than being carried into a month that has
+      // no 31st, and the screen says the birthday is unfinished. February gets
+      // 29 rather than 28: there is no year here to make it a leap year or
+      // not, and somebody born on the 29th has to be able to say so.
+      expect(find.byKey(const Key('birthday-incomplete')), findsOneWidget);
+    });
   });
 }
