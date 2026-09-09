@@ -12,11 +12,6 @@ import { useDocumentMeta } from "../lib/useDocumentMeta";
 const route = ROUTES_BY_PATH.dictionary;
 const SAVED_WORDS_KEY = "indigen-world:saved-dictionary-entries";
 const PAGE_SIZE = 60;
-const ALPHABET = "ABCDEFGHIJKLMNOƆPQRSTUVWXYZ".split("");
-
-function initialLetter(value: string): string {
-  return value.normalize("NFD").replace(/^[^A-Za-zƆɔ]+/g, "").charAt(0).toUpperCase();
-}
 
 function readSavedWords(): Set<string> {
   try {
@@ -239,8 +234,6 @@ export function DictionaryPage() {
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [retryKey, setRetryKey] = useState(0);
   const [queryText, setQueryText] = useState("");
-  const [activeLetter, setActiveLetter] = useState<string | null>(null);
-  const [savedOnly, setSavedOnly] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [mobileDetailOpen, setMobileDetailOpen] = useState(false);
   const [visibleLimit, setVisibleLimit] = useState(PAGE_SIZE);
@@ -261,39 +254,19 @@ export function DictionaryPage() {
     if (!selectedId && entries.length) setSelectedId(entries[0].id);
   }, [entries, selectedId]);
 
-  useEffect(() => setVisibleLimit(PAGE_SIZE), [queryText, activeLetter, savedOnly]);
+  useEffect(() => setVisibleLimit(PAGE_SIZE), [queryText]);
 
   const normalizedQuery = queryText.trim().toLocaleLowerCase();
-  const availableLetters = useMemo(
-    () => new Set(entries.map((entry) => initialLetter(entry.headword)).filter(Boolean)),
-    [entries]
-  );
   const filteredEntries = useMemo(() => {
-    return entries.filter((entry) => {
-      const matchesQuery = !normalizedQuery ||
-        [entry.headword, entry.translation, entry.dialect, entry.partOfSpeech]
-          .some((value) => value.toLocaleLowerCase().includes(normalizedQuery));
-      const matchesLetter = !activeLetter || initialLetter(entry.headword) === activeLetter;
-      const matchesSaved = !savedOnly || savedWords.has(entry.id);
-      return matchesQuery && matchesLetter && matchesSaved;
-    });
-  }, [activeLetter, entries, normalizedQuery, savedOnly, savedWords]);
+    if (!normalizedQuery) return entries;
+    return entries.filter((entry) =>
+      [entry.headword, entry.translation, entry.dialect]
+        .some((value) => value.toLocaleLowerCase().includes(normalizedQuery))
+    );
+  }, [entries, normalizedQuery]);
   const visibleEntries = filteredEntries.slice(0, visibleLimit);
   const selectedEntry = filteredEntries.find((entry) => entry.id === selectedId) ?? null;
   const closeMobileDetail = useCallback(() => setMobileDetailOpen(false), []);
-  const hasActiveFilters = Boolean(normalizedQuery || activeLetter || savedOnly);
-
-  useEffect(() => {
-    if (filteredEntries.length && !filteredEntries.some((entry) => entry.id === selectedId)) {
-      setSelectedId(filteredEntries[0].id);
-    }
-  }, [filteredEntries, selectedId]);
-
-  const clearFilters = () => {
-    setQueryText("");
-    setActiveLetter(null);
-    setSavedOnly(false);
-  };
 
   const toggleSaved = () => {
     if (!selectedEntry) return;
@@ -310,33 +283,25 @@ export function DictionaryPage() {
     <section className="dictionary-page">
       <div className="dictionary-page__masthead">
         <div className="container dictionary-page__intro">
-          <div className="dictionary-brand">
-            <span className="dictionary-brand__mark" aria-hidden="true"><Icon name="book" size={29} /></span>
-            <div>
-              <p className="eyebrow">Project Kassena</p>
-              <h1>Kasena Dictionary</h1>
-              <p className="dictionary-brand__languages">Kasem <span aria-hidden="true">↔</span> English</p>
-            </div>
-          </div>
-          <div className="dictionary-page__welcome">
-            <p>Find a Kasem word, its English meaning, pronunciation and use in context.</p>
+          <div>
+            <p className="eyebrow">Collection · Dictionary</p>
+            <h1>Words with a living context.</h1>
+            <p>Search the community-published Kasem dictionary by Kasem, English, or dialect.</p>
             <p className="dictionary-page__role">
-              Every visible entry has passed the publication review. {" "}
-              <Link to="get-involved?route=language-contributor">Help review the collection</Link>.
+              Use the website for quick search and sharing. The mobile app carries the same
+              reviewed entries into an offline-friendly learning experience. {" "}
+              <Link to="get-involved?route=mobile-app-waitlist">Join the mobile app waitlist</Link>.
             </p>
           </div>
 
           <label className="dictionary-search">
-            <span className="sr-only">Search the Kasena Dictionary</span>
+            <span className="sr-only">Search Kasem, English, or dialect</span>
             <Icon name="search" size={22} />
             <input
               type="search"
               value={queryText}
-              onChange={(event) => {
-                setQueryText(event.target.value);
-                setActiveLetter(null);
-              }}
-              placeholder="Search a Kasem or English word"
+              onChange={(event) => setQueryText(event.target.value)}
+              placeholder="Search Kasem, English, or dialect"
               autoComplete="off"
             />
             {queryText && (
@@ -350,54 +315,9 @@ export function DictionaryPage() {
 
       <div className="container dictionary-workspace">
         <section className="dictionary-results" aria-labelledby="dictionary-results-heading">
-          <div className="dictionary-tools">
-            <div className="dictionary-view-toggle" role="group" aria-label="Dictionary view">
-              <button
-                type="button"
-                className={!savedOnly ? "is-active" : ""}
-                aria-pressed={!savedOnly}
-                onClick={() => setSavedOnly(false)}
-              >
-                All words
-              </button>
-              <button
-                type="button"
-                className={savedOnly ? "is-active" : ""}
-                aria-pressed={savedOnly}
-                onClick={() => setSavedOnly(true)}
-              >
-                <Icon name="bookmark" size={15} /> Saved{savedWords.size ? ` ${savedWords.size}` : ""}
-              </button>
-            </div>
-            <span className="dictionary-live-source"><Icon name="check" size={14} /> Firebase collection</span>
-          </div>
-
-          <div className="dictionary-alphabet" aria-label="Browse Kasem headwords by first letter">
-            <button
-              type="button"
-              className={activeLetter === null ? "is-active" : ""}
-              aria-pressed={activeLetter === null}
-              onClick={() => setActiveLetter(null)}
-            >
-              All
-            </button>
-            {ALPHABET.map((letter) => (
-              <button
-                key={letter}
-                type="button"
-                className={activeLetter === letter ? "is-active" : ""}
-                aria-pressed={activeLetter === letter}
-                disabled={status === "ready" && !availableLetters.has(letter)}
-                onClick={() => setActiveLetter(letter)}
-              >
-                {letter}
-              </button>
-            ))}
-          </div>
-
           <div className="dictionary-results__heading">
             <div>
-              <p className="eyebrow">{activeLetter ? `${activeLetter} words` : savedOnly ? "Your word list" : "Published collection"}</p>
+              <p className="eyebrow">Published collection</p>
               <h2 id="dictionary-results-heading">
                 {status === "ready" ? `${filteredEntries.length.toLocaleString()} ${filteredEntries.length === 1 ? "entry" : "entries"}` : "Dictionary entries"}
               </h2>
@@ -422,10 +342,10 @@ export function DictionaryPage() {
 
           {status === "ready" && filteredEntries.length === 0 && (
             <div className="dictionary-state">
-              <Icon name={savedOnly ? "bookmark" : "search"} size={34} />
-              <h3>{hasActiveFilters ? "No matching words" : "No entries have been published yet"}</h3>
-              <p>{savedOnly ? "Save a word from its definition page to find it here." : hasActiveFilters ? "Try another Kasem or English word, or clear the current filters." : "Published, community-reviewed entries will appear here."}</p>
-              {hasActiveFilters && <button type="button" onClick={clearFilters}>Clear filters</button>}
+              <Icon name="search" size={34} />
+              <h3>{normalizedQuery ? "No matching words" : "No entries have been published yet"}</h3>
+              <p>{normalizedQuery ? "Try a different Kasem word, English translation, or dialect." : "Published, community-reviewed entries will appear here."}</p>
+              {normalizedQuery && <button type="button" onClick={() => setQueryText("")}>Clear search</button>}
             </div>
           )}
 
