@@ -45,10 +45,10 @@ export const ROUTES: AppRoute[] = [
   },
   {
     path: "dictionary",
-    navLabel: "Dictionary",
-    title: "Kasem Dictionary",
+    navLabel: "Kasena Dictionary",
+    title: "Kasena Dictionary",
     description:
-      "Search Project Kassena's public web dictionary by Kasem, English or dialect, with pronunciation, examples, cultural context and attribution.",
+      "Search the Kasena Dictionary by Kasem, English or dialect, with pronunciation, examples, cultural context and attribution.",
   },
   {
     path: "impact-governance",

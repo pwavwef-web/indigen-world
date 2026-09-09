@@ -80,7 +80,9 @@ assert.match(read("src/features/forms/NewsletterForm.tsx"), /consent/, "newslett
 assert.ok(!getInvolvedPage.includes("NewsletterForm"), "Get Involved does not duplicate the footer newsletter form");
 assert.match(contactPage, /mailto:hi@indigenworld\.com/, "contact page provides a fallback email route");
 assert.match(contactPage, /within five working days/, "contact page sets a response expectation");
-assert.match(dictionaryPage, /Search Kasem, English, or dialect/, "dictionary exposes the mobile app search journey");
+assert.match(dictionaryPage, /Search a Kasem or English word/, "dictionary exposes the bilingual search journey");
+assert.match(dictionaryPage, /Kasena Dictionary/, "dictionary uses its public product name");
+assert.match(dictionaryPage, /ALPHABET/, "dictionary supports alphabetical browsing");
 assert.match(dictionaryData, /where\("isPublished", "==", true\)/, "dictionary requests published records only");
 assert.match(dictionaryPage, /SAVED_WORDS_KEY/, "dictionary saves words on the visitor's device");
 assert.match(dictionaryPage, /role=\{mobileOpen \? "dialog" : undefined\}/, "mobile dictionary details use dialog semantics");
