@@ -71,17 +71,27 @@ if (existsSync(decoy)) {
 // ── 2. Build ─────────────────────────────────────────────────────────────
 const started = Date.now();
 say('· flutter build appbundle --flavor production --dart-define=APP_ENV=production');
-const build = spawnSync(
-  'flutter',
-  [
-    'build',
-    'appbundle',
-    '--flavor',
-    'production',
-    '--dart-define=APP_ENV=production',
-  ],
-  { cwd: mobile, stdio: 'inherit', shell: process.platform === 'win32' },
-);
+// `flutter` on Windows is a .bat, and since Node 20 a .bat cannot be spawned
+// without a shell at all — it fails EINVAL. So Windows gets a shell and one
+// command *string*: passing an args array alongside `shell: true` is what Node
+// deprecates, because the array is concatenated rather than escaped. Every
+// argument here is a literal in this file, so there is nothing to escape, and
+// writing it as a string says that rather than hiding it.
+const FLAGS = [
+  'build',
+  'appbundle',
+  '--flavor',
+  'production',
+  '--dart-define=APP_ENV=production',
+];
+const build =
+  process.platform === 'win32'
+    ? spawnSync(`flutter ${FLAGS.join(' ')}`, {
+        cwd: mobile,
+        stdio: 'inherit',
+        shell: true,
+      })
+    : spawnSync('flutter', FLAGS, { cwd: mobile, stdio: 'inherit' });
 if (build.status !== 0) process.exit(build.status ?? 1);
 const seconds = ((Date.now() - started) / 1000).toFixed(1);
 
