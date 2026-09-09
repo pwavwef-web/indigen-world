@@ -54,6 +54,27 @@ const Map<String, String> _searchFolding = {
   'ɛ': 'e', // U+025B LATIN SMALL LETTER OPEN E — 9
   'ɣ': 'g',
   'ʒ': 'z',
+  // ── Tone, written as one character rather than two ────────────────────
+  // Kasem is a three-tone language and the pedagogical forms carry acute,
+  // grave and macron. [_combiningMarks] already strips those when they arrive
+  // as a base letter followed by a combining mark — which is how a Kasem
+  // keyboard produces them — but the same word pasted from a document, typed
+  // on iOS, or imported from a source that normalised to NFC arrives as a
+  // single precomposed code point, and no amount of stripping combining marks
+  // touches it.
+  //
+  // The effect of leaving them out was that `bù` was reachable by typing `bù`
+  // and by nothing else, which is a word only somebody who already knows the
+  // tone can look up — the exact failure this whole file exists to prevent.
+  // Dart has no Unicode normalisation in its core library and this is a
+  // five-vowel language, so the table is written out rather than a dependency
+  // added for ten entries.
+  'à': 'a', 'á': 'a', 'ā': 'a', 'â': 'a', 'ã': 'a', 'ä': 'a',
+  'è': 'e', 'é': 'e', 'ē': 'e', 'ê': 'e', 'ë': 'e',
+  'ì': 'i', 'í': 'i', 'ī': 'i', 'î': 'i', 'ï': 'i',
+  'ò': 'o', 'ó': 'o', 'ō': 'o', 'ô': 'o', 'õ': 'o', 'ö': 'o',
+  'ù': 'u', 'ú': 'u', 'ū': 'u', 'û': 'u', 'ü': 'u',
+  'ǹ': 'n', 'ń': 'n', 'ñ': 'n',
 };
 
 /// Combining marks — tone, nasalisation — stripped for search only.

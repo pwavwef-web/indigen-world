@@ -146,6 +146,16 @@ class ReviewItem {
 
   bool get hasMedia => (mediaStoragePath ?? '').isNotEmpty;
 
+  /// Whether this is a word for the dictionary rather than a song or a story.
+  ///
+  /// Decided on the collection kind, which `submitCollectionContribution`
+  /// writes, and read case-insensitively because the field has carried both
+  /// `dictionary` and older aliases over the years. What it gates is the
+  /// duplicate check on the review screen — and asking that question of a song
+  /// would search the dictionary for a title.
+  bool get isDictionaryWord =>
+      collectionKind.trim().toLowerCase() == 'dictionary' && body.isNotEmpty;
+
   /// Which decisions make sense from where this item currently is.
   ///
   /// Publishing is only offered on already-approved work whose contributor

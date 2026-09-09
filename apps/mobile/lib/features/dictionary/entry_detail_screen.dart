@@ -9,6 +9,8 @@ import 'package:indigen_world_mobile/data/repositories.dart';
 import 'package:indigen_world_mobile/domain/dictionary_entry.dart';
 import 'package:indigen_world_mobile/domain/kasem_homographs.dart';
 import 'package:indigen_world_mobile/features/collection/collection_data.dart';
+import 'package:indigen_world_mobile/features/dictionary/data/dictionary_admin.dart';
+import 'package:indigen_world_mobile/features/dictionary/entry_editor_screen.dart';
 import 'package:indigen_world_mobile/features/dictionary/sense_list.dart';
 import 'package:indigen_world_mobile/features/dictionary/sentence_credit.dart';
 import 'package:indigen_world_mobile/features/dictionary/translation_display.dart';
@@ -78,6 +80,16 @@ class EntryDetailScreen extends ConsumerWidget {
       );
     }
 
+    // ── A word that was folded into another one ──────────────────────────
+    // The document is still here precisely so this can happen: a saved word or
+    // a shared link naming the duplicate leads to the word it became rather
+    // than to a missing page. Drawn instead of the entry, not above it — the
+    // content on a retired row is a copy of what is on the row it points at,
+    // and showing both invites a reader to cite the one that is going away.
+    if (resolvedEntry.mergedIntoId.isNotEmpty) {
+      return _MergedAwayScreen(entry: resolvedEntry);
+    }
+
     // How many published entries share this spelling. Decides whether the
     // sense number is drawn at all — see `kasem_homographs.dart`.
     final siblings = dictionarySiblingCount(ref, resolvedEntry.headword);
@@ -91,6 +103,20 @@ class EntryDetailScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('Dictionary entry'),
         actions: [
+          // ── The correction path for somebody who may take it ────────────
+          // Offered only to the roles the callable will accept. A pencil that
+          // always ends in "validator access is required" teaches a member
+          // that the app is broken rather than that the action is not theirs.
+          if (ref.watch(canEditDictionaryProvider))
+            IconButton(
+              tooltip: 'Edit this entry',
+              onPressed: () => Navigator.of(context).push<bool>(
+                MaterialPageRoute(
+                  builder: (_) => EntryEditorScreen(entry: resolvedEntry),
+                ),
+              ),
+              icon: const Icon(Icons.edit_rounded),
+            ),
           IconButton(
             tooltip: isSaved ? 'Remove from saved words' : 'Save word',
             onPressed: () async {
@@ -122,10 +148,20 @@ class EntryDetailScreen extends ConsumerWidget {
           children: [
             Row(
               children: [
+                // Withdrawn entries reach this screen now, because staff read
+                // the document directly and a validator has to be able to see
+                // what they are putting back. Saying "PUBLISHED ENTRY" over one
+                // would be the screen asserting the opposite of the truth.
                 StatusPill(
-                  icon: Icons.verified_outlined,
-                  label: 'PUBLISHED ENTRY',
-                  color: context.brand.success,
+                  icon: resolvedEntry.isPublished
+                      ? Icons.verified_outlined
+                      : Icons.visibility_off_outlined,
+                  label: resolvedEntry.isPublished
+                      ? 'PUBLISHED ENTRY'
+                      : 'NOT PUBLISHED',
+                  color: resolvedEntry.isPublished
+                      ? context.brand.success
+                      : context.brand.mutedInk,
                 ),
                 const SizedBox(width: 12),
                 // Whatever the entry says its class is, rendered as itself when
@@ -436,6 +472,86 @@ class EntryDetailScreen extends ConsumerWidget {
     );
   }
 
+}
+
+/// Where a word went when two entries for it were folded into one.
+///
+/// ── Why this screen exists at all ─────────────────────────────────────────
+/// Merging could have deleted the duplicate, and the archive would be tidier
+/// for it. What that tidiness costs is every pointer at the id: a member's
+/// saved word, a link somebody sent in a message, a Kawuri answer that cited
+/// the entry, a note a learner wrote. None of those can be found and updated,
+/// and all of them would lead to "this entry could not be loaded" — which
+/// reads as *the dictionary lost this word*, not as *these were one word all
+/// along*.
+///
+/// So the duplicate stays, unpublished, holding a forwarding address, and this
+/// is the page at the end of the old link. It is short on purpose: the reader
+/// asked for a word, and the answer is one tap away.
+class _MergedAwayScreen extends ConsumerWidget {
+  const _MergedAwayScreen({required this.entry});
+
+  final DictionaryEntry entry;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final target = ref.watch(
+      publishedDictionaryEntryProvider(entry.mergedIntoId),
+    ).asData?.value;
+    return Scaffold(
+      appBar: AppBar(title: const Text('Dictionary entry')),
+      body: ScreenContainer(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.merge_rounded,
+                  size: 40,
+                  color: context.brand.accent,
+                ),
+                const SizedBox(height: 14),
+                Text(
+                  '“${entry.headword}” is now part of another entry.',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'The dictionary held two entries for this word, and a '
+                  'reviewer folded them together. Everything both of them said '
+                  'is on the entry below.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: context.brand.mutedInk,
+                    fontSize: 13,
+                    height: 1.45,
+                  ),
+                ),
+                const SizedBox(height: 18),
+                FilledButton.icon(
+                  onPressed: () =>
+                      context.push('/entry/${entry.mergedIntoId}'),
+                  icon: const Icon(Icons.arrow_forward_rounded),
+                  // The word it became, once it has loaded. Named rather than
+                  // "Open the entry", because a reader following a link they
+                  // half remember wants to see that it is the word they meant
+                  // before they tap again.
+                  label: Text(
+                    target == null
+                        ? 'Open the entry it became'
+                        : 'Open “${target.headword}”',
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 /// "Also used as a verb", or null when the entry claims only one class.

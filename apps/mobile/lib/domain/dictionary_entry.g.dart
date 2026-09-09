@@ -61,6 +61,8 @@ _DictionaryEntry _$DictionaryEntryFromJson(Map<String, dynamic> json) =>
       senses: json['senses'] == null
           ? const <EntrySense>[]
           : const EntrySenseListConverter().fromJson(json['senses']),
+      isPublished: json['isPublished'] as bool? ?? true,
+      mergedIntoId: json['mergedIntoId'] as String? ?? '',
     );
 
 Map<String, dynamic> _$DictionaryEntryToJson(_DictionaryEntry instance) =>
@@ -104,4 +106,6 @@ Map<String, dynamic> _$DictionaryEntryToJson(_DictionaryEntry instance) =>
       'nounClass': instance.nounClass,
       'homographIndex': instance.homographIndex,
       'senses': const EntrySenseListConverter().toJson(instance.senses),
+      'isPublished': instance.isPublished,
+      'mergedIntoId': instance.mergedIntoId,
     };

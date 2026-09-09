@@ -193,12 +193,31 @@ Build these on a machine with the pinned Flutter toolchain (see
 4. **Build the production app bundle:**
 
    ```bash
-   cd apps/mobile
-   flutter build appbundle --flavor production \
-     --dart-define=APP_ENV=production
+   npm run build:mobile-aab
    ```
 
-   Output: `build/app/outputs/bundle/productionRelease/app-production-release.aab`.
+   Output: `apps/mobile/build/app/outputs/bundle/productionRelease/app-production-release.aab`.
+
+   The script runs the same `flutter build appbundle --flavor production
+   --dart-define=APP_ENV=production` and does two things around it that kept
+   being missed by hand.
+
+   **Before:** it deletes
+   `android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java`.
+   That file is generated and gitignored; a test or debug run writes one that
+   registers `integration_test`, a dev dependency; and a release build that
+   reuses it fails with `package dev.flutter.plugins.integration_test does not
+   exist` — an error that names nothing anybody wrote, and which appears only
+   when a release build follows a test run, which is the order a release goes
+   in. Deleting it makes Flutter regenerate it for the release variant.
+
+   **After:** it reads the size, SHA-256, package, versionName, versionCode, SDK
+   levels and ABIs back out of the artefact and its merged manifest, and runs
+   `jarsigner -verify`. Those are the lines every release note opens with, and
+   reading them from the bundle is what stops a note claiming something the
+   bundle does not.
+
+   Build it by hand only if you also do both of those by hand.
 5. **Play Console:** create the app, upload the AAB to **Internal testing**, add
    your testers' Google account emails, and share the opt-in link.
 

@@ -315,6 +315,30 @@ abstract class DictionaryEntry with _$DictionaryEntry {
     @EntrySenseListConverter()
     @Default(<EntrySense>[])
     List<EntrySense> senses,
+
+    /// Whether this entry is in the dictionary.
+    ///
+    /// ── Why a reader that only ever sees published rows needs this ───────
+    /// Because staff do not only see published rows. The list query is
+    /// `where('isPublished', isEqualTo: true)` and always will be, but a
+    /// validator opening one entry reads the document directly — and the
+    /// editor's Published switch has to open showing what the entry actually
+    /// is, or a reviewer who came to fix a typo republishes a word somebody
+    /// had deliberately withdrawn.
+    ///
+    /// Defaults to true because every caller that built an entry before this
+    /// field existed was, by construction, holding a published one.
+    @Default(true) bool isPublished,
+
+    /// The entry this one was folded into, or empty.
+    ///
+    /// ── A forwarding address, not a tombstone ───────────────────────────
+    /// A duplicate merged away is unpublished and keeps this pointer, because
+    /// every saved word, shared `/entry/…` link and Kawuri citation that named
+    /// it is still out there. A reader who follows one is sent to the word it
+    /// became rather than shown a missing page — which is the whole reason
+    /// merging retires the duplicate instead of deleting it.
+    @Default('') String mergedIntoId,
   }) = _DictionaryEntry;
 
   factory DictionaryEntry.fromJson(Map<String, Object?> json) =>

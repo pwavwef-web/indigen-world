@@ -36,6 +36,7 @@
     "build:tribestudio": "npm run build --workspace @indigen-world/tribestudio",
     "build:team-francis-pwavwe": "npm run build --workspace @indigen-world/team-francis-pwavwe",
     "build:functions": "npm run build --workspace @indigen-world/functions",
+    "build:mobile-aab": "node scripts/build-mobile-aab.mjs",
     "validate:updates-blog": "node apps/updates-blog/scripts/validate-theme.mjs",
     "build:updates-blog-preview": "npm run validate:updates-blog && node apps/updates-blog/scripts/build-preview.mjs",
     "typecheck:website": "npm run typecheck --workspace @indigen-world/website",
@@ -45,11 +46,12 @@
     "test:contracts": "npm test --workspace @indigen-world/contracts",
     "test:rules": "firebase emulators:exec --project demo-indigen-world --only firestore \"node --test firebase/tests/firestore.rules.test.mjs firebase/tests/creator.rules.test.mjs firebase/tests/community.rules.test.mjs firebase/tests/reelsAndChats.rules.test.mjs firebase/tests/learningAndShop.rules.test.mjs firebase/tests/ads.rules.test.mjs firebase/tests/subscriptions.rules.test.mjs\"",
     "test:storage-rules": "firebase emulators:exec --project demo-indigen-world --only auth,storage \"node --test firebase/tests/storage.rules.test.mjs\"",
-    "test:e2e": "npm run build:functions && cross-env FUNCTIONS_DISCOVERY_TIMEOUT=120 firebase emulators:exec --project demo-indigen-world --only auth,firestore,functions \"node --test firebase/tests/decideReview.test.mjs firebase/tests/creatorFunctions.test.mjs firebase/tests/publicForms.test.mjs\"",
-    "test:function-helpers": "npm run build:functions && node --test firebase/tests/functionHelpers.test.mjs firebase/tests/studioVideo.test.mjs firebase/tests/playBilling.test.mjs firebase/tests/collectionContributions.test.mjs firebase/tests/adminAudiobooks.test.mjs firebase/tests/communityNotifications.test.mjs firebase/tests/kasemNameRequests.test.mjs firebase/tests/wordQueue.test.mjs firebase/tests/lexicalSenses.test.mjs firebase/tests/kasemMorphology.test.mjs firebase/tests/kasemHomographs.test.mjs firebase/tests/contributionAssist.test.mjs firebase/tests/grammarRules.test.mjs firebase/tests/kasemCorpus.test.mjs firebase/tests/contributorScores.test.mjs firebase/tests/restoreCredentials.test.mjs firebase/tests/kasemEvidence.test.mjs firebase/tests/kasemDatasetCli.test.mjs",
+    "test:e2e": "npm run build:functions && cross-env FUNCTIONS_DISCOVERY_TIMEOUT=120 firebase emulators:exec --project demo-indigen-world --only auth,firestore,functions \"node --test firebase/tests/decideReview.test.mjs firebase/tests/creatorFunctions.test.mjs firebase/tests/publicForms.test.mjs firebase/tests/dictionaryAdmin.test.mjs\"",
+    "test:function-helpers": "npm run build:functions && node --test firebase/tests/functionHelpers.test.mjs firebase/tests/studioVideo.test.mjs firebase/tests/playBilling.test.mjs firebase/tests/collectionContributions.test.mjs firebase/tests/adminAudiobooks.test.mjs firebase/tests/communityNotifications.test.mjs firebase/tests/kasemNameRequests.test.mjs firebase/tests/wordQueue.test.mjs firebase/tests/lexicalSenses.test.mjs firebase/tests/kasemMorphology.test.mjs firebase/tests/kasemHomographs.test.mjs firebase/tests/dictionaryEdits.test.mjs firebase/tests/contributionAssist.test.mjs firebase/tests/grammarRules.test.mjs firebase/tests/kasemCorpus.test.mjs firebase/tests/contributorScores.test.mjs firebase/tests/restoreCredentials.test.mjs firebase/tests/kasemEvidence.test.mjs firebase/tests/kasemDatasetCli.test.mjs",
     "test:kasem-evidence": "npm run build:functions && node --test firebase/tests/kasemEvidence.test.mjs firebase/tests/kasemDatasetCli.test.mjs firebase/tests/kasemCorpus.test.mjs firebase/tests/grammarRules.test.mjs firebase/tests/kasemMorphology.test.mjs",
     "test:kasem-evidence:integration": "npm run build:functions && firebase emulators:exec --project demo-indigen-world --only auth,firestore,storage \"node --test firebase/tests/kasemEvidence.integration.test.mjs firebase/tests/storage.rules.test.mjs\"",
-    "kasem:dataset": "node services/functions/scripts/kasem-dataset.mjs"
+    "kasem:dataset": "node services/functions/scripts/kasem-dataset.mjs",
+    "audit:duplicate-check": "node services/functions/scripts/audit-duplicate-check.mjs"
   },
   "devDependencies": {
     "cross-env": "7.0.3",

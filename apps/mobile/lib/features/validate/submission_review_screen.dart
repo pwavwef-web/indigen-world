@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
+import 'package:indigen_world_mobile/features/dictionary/data/dictionary_admin.dart';
+import 'package:indigen_world_mobile/features/dictionary/entry_detail_screen.dart';
 import 'package:indigen_world_mobile/features/validate/data/review_queue.dart';
 import 'package:indigen_world_mobile/features/validate/validate_screen.dart'
     show ReviewFlag;
@@ -83,6 +85,94 @@ class _SubmissionReviewScreenState
     }
   }
 
+  /// Publishes this contribution and immediately folds it into [existing].
+  ///
+  /// ── Why it is two steps and not a new callable ────────────────────────
+  /// Because the contribution has no entry to merge *from* until it is
+  /// published — a submission is not a dictionary entry, and the id the merge
+  /// needs (`collection_<submissionId>`) does not exist before the publish
+  /// writes it. Composing the two callables that already exist means the
+  /// publish is exactly the publish every other contribution gets, the
+  /// contributor is credited on the record exactly as they would have been,
+  /// and the merge is exactly the merge a reviewer runs from the entry screen.
+  ///
+  /// The direction is deliberate and is the opposite of what the screen order
+  /// suggests: the *existing* entry is what stays, and the freshly published
+  /// one folds into it. The existing entry is the one with the saved copies,
+  /// the shared links and the citations; the new one is seconds old and has
+  /// none. Its content moves across; its id would take nothing with it.
+  Future<void> _publishAndMerge(ExistingEntry existing) async {
+    final reviews = ref.read(reviewRepositoryProvider);
+    final dictionary = ref.read(dictionaryAdminRepositoryProvider);
+    if (reviews == null || dictionary == null) return;
+    final reason = _feedbackController.text.trim();
+    if (reason.length < 10) {
+      setState(
+        () => _error =
+            'Say why these are the same word — it is the only record of the merge.',
+      );
+      return;
+    }
+    final confirmed = await showGlassConfirm(
+      context: context,
+      title: 'Merge into “${existing.kasemText}”?',
+      message:
+          'This contribution is published and credited to its contributor, and '
+          'then folded into the entry that is already there. The existing entry '
+          'keeps its link and its saved copies.',
+      confirmLabel: 'Publish and merge',
+    );
+    if (confirmed != true || !mounted) return;
+
+    setState(() {
+      _deciding = true;
+      _error = null;
+    });
+    try {
+      // Approve first where the queue has not already: `decideSubmission`
+      // refuses to publish anything that is not APPROVED, and a reviewer who
+      // has decided these are one word should not have to press three buttons
+      // in the right order to say so.
+      if (widget.item.availableDecisions.contains(ReviewDecision.approve)) {
+        await reviews.decide(
+          submissionId: widget.item.id,
+          decision: ReviewDecision.approve,
+          feedback: reason,
+        );
+      }
+      await reviews.decide(
+        submissionId: widget.item.id,
+        decision: ReviewDecision.publish,
+        feedback: reason,
+      );
+      await dictionary.merge(
+        targetId: existing.id,
+        // The id `decideSubmission` writes a dictionary contribution to. The
+        // one place this string is spelled out on the client; if the backend's
+        // key ever changes, this is what breaks and a merge simply reports
+        // "the duplicate was not found" rather than merging the wrong word.
+        sourceId: 'collection_${widget.item.id}',
+        reason: reason,
+      );
+      ref.invalidate(reviewQueueProvider);
+      if (!mounted) return;
+      Navigator.of(context).pop();
+      showGlassToast(context, 'Published and merged into “${existing.kasemText}”.');
+    } on ReviewFailure catch (failure) {
+      if (mounted) setState(() => _error = failure.message);
+    } on DictionaryAdminFailure catch (failure) {
+      if (mounted) {
+        setState(
+          () => _error =
+              'Published, but the merge did not run: ${failure.message} '
+              'The entry is live — merge it from the dictionary.',
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _deciding = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final item = widget.item;
@@ -133,6 +223,20 @@ class _SubmissionReviewScreenState
                       ),
                   ],
                 ),
+                // ── Is this word already in the dictionary? ──────────────
+                // Asked before anything else on the screen, because it is the
+                // question that changes what the rest of the review is for: a
+                // reviewer reading a definition carefully and then publishing
+                // a second copy of a word the archive already holds has done
+                // the work and still made the archive worse.
+                if (item.isDictionaryWord) ...[
+                  const SizedBox(height: 16),
+                  _AlreadyExists(
+                    item: item,
+                    busy: _deciding,
+                    onMerge: _publishAndMerge,
+                  ),
+                ],
                 if (item.hasMedia) ...[
                   const SizedBox(height: 16),
                   _MediaBlock(item: item),
@@ -522,6 +626,232 @@ class _MediaBlockState extends ConsumerState<_MediaBlock> {
               ),
             ),
           ],
+        ],
+      ),
+    );
+  }
+}
+
+/// What the archive already holds under the word being reviewed.
+///
+/// ── Prompt, never block ───────────────────────────────────────────────────
+/// Two entries under one spelling is a homograph — `mo¹` the particle beside
+/// `mo²` the focus marker — and it is a distinction the language makes rather
+/// than a mistake to be prevented. A desk that refused the second `mo` would
+/// make the dictionary unable to hold something true about Kasem. So this says
+/// what is there, shows enough of each existing entry for a reviewer to tell
+/// "same word" from "different word, same spelling", and offers the merge as
+/// one of the ways forward rather than as the only one.
+///
+/// ── Why it is drawn before the work itself ────────────────────────────────
+/// Because it changes what the rest of the review is for. A reviewer who reads
+/// a definition carefully, checks the consent, and then publishes a second copy
+/// of a word the archive already holds has done all the work and still left the
+/// archive worse than they found it.
+class _AlreadyExists extends ConsumerWidget {
+  const _AlreadyExists({
+    required this.item,
+    required this.busy,
+    required this.onMerge,
+  });
+
+  final ReviewItem item;
+  final bool busy;
+  final ValueChanged<ExistingEntry> onMerge;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final brand = context.brand;
+    final existing = ref.watch(existingEntriesProvider(item.body));
+    return existing.when(
+      // Silence while it loads and silence if it fails. The check is an aid to
+      // a decision, not a precondition for one — a reviewer must never be left
+      // looking at a spinner where a verdict should be, and a lookup that could
+      // not run is a missing banner rather than a blocked review.
+      loading: () => const SizedBox.shrink(),
+      error: (_, _) => const SizedBox.shrink(),
+      data: (matches) {
+        if (matches.isEmpty) return const SizedBox.shrink();
+        final exact = matches.exactCount;
+        return GlassSurface(
+          accent: exact > 0 ? brand.gold : brand.mutedInk,
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    Icons.content_copy_rounded,
+                    size: 18,
+                    color: exact > 0 ? brand.gold : brand.mutedInk,
+                  ),
+                  const SizedBox(width: 9),
+                  Expanded(
+                    child: Text(
+                      exact > 0
+                          ? '“${item.body}” is already in the dictionary'
+                          : 'Something very like “${item.body}” is already here',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 14.5,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                exact > 0
+                    ? 'If this is the same word, merge them — the contributor '
+                          'is still credited and the existing entry keeps its '
+                          'link. If they are different words that happen to '
+                          'share a spelling, publish it as usual and it will be '
+                          'numbered as a second sense.'
+                    : 'Close enough to be a retyping. Look before you decide — '
+                          'in Kasem a single letter is very often a different '
+                          'word.',
+                style: TextStyle(
+                  color: brand.mutedInk,
+                  fontSize: 12.5,
+                  height: 1.45,
+                ),
+              ),
+              const SizedBox(height: 12),
+              for (final row in matches.matches) ...[
+                _ExistingEntryCard(
+                  row: row,
+                  // Offered only where publishing is actually available. The
+                  // merge publishes first, and `decideSubmission` refuses to
+                  // publish a rejected or withdrawn submission — a button that
+                  // is going to be refused is worse than no button.
+                  onMerge: busy || !_canPublish ? null : () => onMerge(row),
+                ),
+                if (row != matches.matches.last) const SizedBox(height: 8),
+              ],
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  bool get _canPublish {
+    final decisions = item.availableDecisions;
+    return decisions.contains(ReviewDecision.publish) ||
+        decisions.contains(ReviewDecision.approve);
+  }
+}
+
+class _ExistingEntryCard extends StatelessWidget {
+  const _ExistingEntryCard({required this.row, required this.onMerge});
+
+  final ExistingEntry row;
+  final VoidCallback? onMerge;
+
+  @override
+  Widget build(BuildContext context) {
+    final brand = context.brand;
+    return GlassSurface(
+      blur: false,
+      padding: const EdgeInsets.all(13),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      row.kasemText,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w900,
+                        fontSize: 15.5,
+                      ),
+                    ),
+                    if (row.englishText.isNotEmpty)
+                      Text(
+                        row.englishText,
+                        style: TextStyle(
+                          color: brand.mutedInk,
+                          fontSize: 12.5,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              if (!row.exact)
+                GlassPill(
+                  label: '${(row.similarity * 100).round()}% alike',
+                  icon: Icons.compare_arrows_rounded,
+                  dense: true,
+                ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: [
+              if (row.partOfSpeech.isNotEmpty)
+                GlassPill(
+                  label: row.partOfSpeech,
+                  icon: Icons.style_rounded,
+                  dense: true,
+                ),
+              if (row.dialect.isNotEmpty)
+                GlassPill(
+                  label: row.dialect,
+                  icon: Icons.place_rounded,
+                  dense: true,
+                ),
+              if (row.homographIndex > 0)
+                GlassPill(
+                  label: 'Sense ${row.homographIndex}',
+                  icon: Icons.numbers_rounded,
+                  dense: true,
+                ),
+              if (row.hasAudio)
+                const GlassPill(
+                  label: 'Recorded',
+                  icon: Icons.volume_up_rounded,
+                  dense: true,
+                ),
+              if (!row.isPublished)
+                const GlassPill(
+                  label: 'Not published',
+                  icon: Icons.visibility_off_rounded,
+                  dense: true,
+                ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => EntryDetailScreen(entryId: row.id),
+                    ),
+                  ),
+                  icon: const Icon(Icons.open_in_new_rounded, size: 17),
+                  label: const Text('Look at it'),
+                ),
+              ),
+              const SizedBox(width: 9),
+              Expanded(
+                child: FilledButton.icon(
+                  onPressed: onMerge,
+                  icon: const Icon(Icons.merge_rounded, size: 17),
+                  label: const Text('Merge'),
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );

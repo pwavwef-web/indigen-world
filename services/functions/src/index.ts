@@ -54,6 +54,13 @@ export {
   deleteAdminAudiobook,
 } from './admin-collection.js';
 export {
+  findDictionaryEntryMatches,
+  previewDictionaryMerge,
+  editDictionaryEntry,
+  mergeDictionaryEntries,
+  deleteDictionaryEntry,
+} from './dictionary-admin.js';
+export {
   submitAdCampaign,
   updateAdCampaign,
   cancelAdCampaign,

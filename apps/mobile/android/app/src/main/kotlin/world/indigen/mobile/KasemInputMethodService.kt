@@ -20,12 +20,15 @@ import android.text.style.SuperscriptSpan
 import android.view.Gravity
 import android.view.HapticFeedbackConstants
 import android.view.KeyEvent
+import android.view.MotionEvent
 import android.view.View
+import android.view.ViewGroup
 import android.view.WindowInsets
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
 import android.widget.Button
 import android.widget.LinearLayout
+import android.widget.PopupWindow
 import android.widget.TextView
 import android.inputmethodservice.InputMethodService
 
@@ -161,7 +164,87 @@ class KasemInputMethodService : InputMethodService() {
         // A held backspace that outlives the view would keep deleting into
         // whatever the user opened next.
         stopRepeat()
+        hidePreview()
         super.onFinishInputView(finishingInput)
+    }
+
+    override fun onDestroy() {
+        stopRepeat()
+        hidePreview()
+        super.onDestroy()
+    }
+
+    // ── The key-press preview ────────────────────────────────────────────
+    //
+    // The letter, drawn above the finger that is covering it.
+    //
+    // Every stock Android keyboard does this and it is not decoration: on a
+    // 720p phone a key is about eight millimetres wide and a thumb is wider, so
+    // at the moment of the press the only person who cannot see which key was
+    // hit is the person pressing it. That matters more here than on a QWERTY
+    // keyboard, because the letters this keyboard exists for are the ones
+    // nobody has muscle memory for — `ɩ` beside `ɪ`, `ʋ` beside `v`, and a
+    // long-press alternate printed in superscript in the corner of the same
+    // key. Typing `dɩ` and getting `di` is a word the dictionary cannot match,
+    // and without a preview the first sign of it is the wrong word on screen.
+    //
+    // Deliberately only on the character keys. Shift, backspace, enter and the
+    // language switch change state rather than emit a letter, and floating
+    // their glyph over the row would say nothing about what they did — which is
+    // why the stock keyboards do not preview them either.
+
+    private var preview: PopupWindow? = null
+    private var previewLabel: TextView? = null
+
+    private fun showPreview(anchor: View, glyph: String) {
+        val label = previewLabel ?: TextView(this).also { view ->
+            view.gravity = Gravity.CENTER
+            view.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.BOLD))
+            view.setPadding(dp(10), dp(4), dp(10), dp(8))
+            previewLabel = view
+        }
+        label.text = glyph
+        label.textSize = 30f
+        label.setTextColor(palette().ink)
+        label.background = GradientDrawable().apply {
+            cornerRadius = dp(10).toFloat()
+            setColor(palette().keySurface)
+            setStroke(dp(1), palette().keyBorder)
+        }
+
+        val window = preview ?: PopupWindow(this).also { popup ->
+            popup.contentView = label
+            popup.isTouchable = false
+            popup.isFocusable = false
+            // Otherwise the popup swallows the very touch that opened it on
+            // some launchers, and the key never fires.
+            popup.isClippingEnabled = false
+            popup.width = ViewGroup.LayoutParams.WRAP_CONTENT
+            popup.height = ViewGroup.LayoutParams.WRAP_CONTENT
+            preview = popup
+        }
+
+        val location = IntArray(2)
+        anchor.getLocationInWindow(location)
+        label.measure(
+            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
+            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
+        )
+        // Centred over the key and lifted clear of it, so the finger is not on
+        // top of the answer.
+        val x = location[0] + (anchor.width - label.measuredWidth) / 2
+        val y = location[1] - label.measuredHeight - dp(4)
+        if (window.isShowing) {
+            window.update(x, y, -1, -1)
+        } else {
+            window.showAtLocation(anchor, Gravity.NO_GRAVITY, x, y)
+        }
+    }
+
+    private fun hidePreview() {
+        // `isShowing` is checked because dismissing a popup that was never
+        // shown throws on some OEM builds.
+        preview?.takeIf { it.isShowing }?.dismiss()
     }
 
     override fun onEvaluateFullscreenMode(): Boolean = false
@@ -256,6 +339,7 @@ class KasemInputMethodService : InputMethodService() {
             longPress = alternate?.let { text ->
                 { commit(KasemKeyboardLayout.applyCase(text, shift)) }
             },
+            preview = { KasemKeyboardLayout.applyCase(raw, shift) },
         ) { commit(output) }
         letterKeys.add(button to raw)
         applyLabel(button, output, alternate)
@@ -357,7 +441,8 @@ class KasemInputMethodService : InputMethodService() {
         repeatRunnable = null
     }
 
-    private fun textKey(text: String): View = key(text, description = text) { commit(text) }
+    private fun textKey(text: String): View =
+        key(text, description = text, preview = { text }) { commit(text) }
 
     private fun key(
         label: String,
@@ -365,6 +450,15 @@ class KasemInputMethodService : InputMethodService() {
         special: Boolean = false,
         description: String,
         longPress: (() -> Unit)? = null,
+        /**
+         * What to float above the finger while this key is held, read at press
+         * time rather than captured — a letter key's glyph changes with the
+         * shift, and a preview showing the case that was current when the
+         * keyboard was drawn would be a lie exactly when it matters.
+         *
+         * Null on the keys that change state rather than emit a letter.
+         */
+        preview: (() -> String)? = null,
         action: () -> Unit,
     ): Button = Button(this).apply {
         this.text = label
@@ -389,6 +483,19 @@ class KasemInputMethodService : InputMethodService() {
                 feedback(it)
                 longPress()
                 true
+            }
+        }
+        if (preview != null) {
+            // Returns false throughout: this listener only draws, and the
+            // button's own click and long-press handling must still run.
+            setOnTouchListener { view, event ->
+                when (event.actionMasked) {
+                    MotionEvent.ACTION_DOWN -> showPreview(view, preview())
+                    MotionEvent.ACTION_UP,
+                    MotionEvent.ACTION_CANCEL,
+                    -> hidePreview()
+                }
+                false
             }
         }
         layoutParams = LinearLayout.LayoutParams(0, keyHeight(), weight).apply {

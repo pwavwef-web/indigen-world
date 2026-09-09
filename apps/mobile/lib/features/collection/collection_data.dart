@@ -74,13 +74,33 @@ class FirestoreDictionaryRepository {
         return List.unmodifiable(entries);
       });
 
+  /// One entry, live.
+  ///
+  /// ── Why an unpublished row can come back ────────────────────────────────
+  /// It used to return null for anything not published, which was right while
+  /// the only readers were learners. Two of them are not:
+  ///
+  ///   * A duplicate that a validator folded into another entry is unpublished
+  ///     and carries `mergedInto`. Every saved word and shared link that names
+  ///     it is still out there, and the point of retiring rather than deleting
+  ///     is that those still lead somewhere — which they cannot if the reader
+  ///     drops the document before the screen sees the pointer.
+  ///   * A validator who withdraws an entry from the editor would otherwise be
+  ///     unable to put it back, because the screen holding the switch would
+  ///     stop resolving the moment they used it.
+  ///
+  /// The Security Rule decides who may actually read one: a merged row is
+  /// world-readable *because* it is a forwarding address, and any other
+  /// unpublished row is staff-only. So this returns what the caller is allowed
+  /// to have and the screen decides how to draw it — which is the split that
+  /// belongs at the boundary rather than in a query.
   Stream<DictionaryEntry?> watchPublishedEntry(String entryId) => _firestore
       .collection('dictionaryEntries')
       .doc(entryId)
       .snapshots()
       .map((document) {
         final data = document.data();
-        if (data == null || data['isPublished'] != true) return null;
+        if (data == null) return null;
         return dictionaryEntryFromData(document.id, data);
       });
 }
@@ -365,7 +385,29 @@ DictionaryEntry? dictionaryEntryFromData(String id, Map<String, dynamic> data) {
     // which is why a three-sense entry shows three meanings on a build that
     // has never heard of senses.
     senses: EntrySense.listFrom(data['senses']),
+    // Read rather than assumed, because staff read this document directly and
+    // the list query does not. See `DictionaryEntry.isPublished`: the editor's
+    // Published switch has to open showing what the entry actually is.
+    isPublished: data['isPublished'] == true,
+    // Where a duplicate went. Only ever set on an entry a validator folded into
+    // another one, and it is why that document is still readable at all — see
+    // the `dictionaryEntries` rule in firestore.rules.
+    mergedIntoId: _pointerId(data['mergedInto']),
   );
+}
+
+/// The id inside a stored `{collection, id}` pointer, or empty.
+///
+/// Written defensively because a pointer is the one shape in these documents
+/// that a hand-run script can plausibly write as a bare string, and a reader
+/// that threw on one would take down the entry screen over a field that is
+/// absent on 99% of rows.
+String _pointerId(Object? value) {
+  if (value is Map) {
+    final id = value['id'];
+    return id is String ? id.trim() : '';
+  }
+  return value is String ? value.trim() : '';
 }
 
 /// Phrases that mark a note as process boilerplate rather than cultural

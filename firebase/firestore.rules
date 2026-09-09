@@ -337,8 +337,26 @@ service cloud.firestore {
     // Legacy Project Kassena dictionary used by the mobile Collection. The app
     // deliberately queries `isPublished == true`, so drafts and approved-but-
     // not-yet-published rows remain private to staff.
+    //
+    // ── The one unpublished row anybody may read ──────────────────────────
+    // An entry folded into another one by `mergeDictionaryEntries` is
+    // unpublished and carries `mergedInto`. It stays readable because it is a
+    // forwarding address: a member's saved word, a shared link and a Kawuri
+    // citation all point at the id it used to have, and a reader who followed
+    // one has to be told where the word went rather than shown "this entry
+    // could not be loaded". The document was published — merging it is why it
+    // no longer is — so nothing is disclosed that was ever private.
+    //
+    // Writes stay closed to every client. Editing, merging and deleting a
+    // published word all run through the callables in `dictionary-admin.ts`,
+    // because every rule they enforce — a headword is never blanked, a
+    // homograph number is never silently reused, a deletion carries the whole
+    // document into the audit log first — is a rule about the shape of the
+    // archive that a Security Rule cannot express.
     match /dictionaryEntries/{entryId} {
-      allow read: if resource.data.get('isPublished', false) == true || isStaff();
+      allow read: if resource.data.get('isPublished', false) == true
+        || resource.data.get('mergedInto', null) != null
+        || isStaff();
       allow write: if false;
     }
 

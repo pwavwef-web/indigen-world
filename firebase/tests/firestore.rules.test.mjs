@@ -91,6 +91,10 @@ before(async () => {
     await setDoc(doc(db, 'dictionaryEntries/private-word'), {
       kasemText: 'Draft', englishText: 'Draft', isPublished: false,
     });
+    await setDoc(doc(db, 'dictionaryEntries/merged-word'), {
+      kasemText: 'Konkwolo', englishText: 'Bottle', isPublished: false,
+      mergedInto: { collection: 'dictionaryEntries', id: 'published-word' },
+    });
     await setDoc(doc(db, 'grammarRules/definiteness'), {
       id: 'definiteness', topic: 'definiteness', status: 'published',
       summary: 'There is no Kasem word for "the".', englishTriggers: ['the'],
@@ -246,6 +250,30 @@ test('only published legacy dictionary rows are publicly readable', async () => 
   await assertSucceeds(getDoc(doc(db(anon), 'dictionaryEntries/published-word')));
   await assertFails(getDoc(doc(db(anon), 'dictionaryEntries/private-word')));
   await assertSucceeds(getDoc(doc(db(validator), 'dictionaryEntries/private-word')));
+});
+
+test('an entry merged into another one stays readable, because it is a signpost', async () => {
+  // A duplicate folded into another entry is unpublished and keeps a
+  // `mergedInto` pointer. Every saved word, shared /entry/ link and Kawuri
+  // citation that named it is still out there, and the whole reason merging
+  // retires rather than deletes is that those still lead somewhere. If the
+  // rule hid it like any other unpublished row, a reader following one of
+  // those links would be told the dictionary could not load the entry —
+  // which reads as the archive having lost a word.
+  const anon = env.unauthenticatedContext();
+  await assertSucceeds(getDoc(doc(db(anon), 'dictionaryEntries/merged-word')));
+});
+
+test('nobody writes to the dictionary directly, whatever their role', async () => {
+  // Editing, merging and deleting a published word all go through the
+  // callables in `dictionary-admin.ts`, because every rule they enforce is a
+  // rule about the shape of the archive that a Security Rule cannot express.
+  const admin = env.authenticatedContext('admin-dictionary', { role: 'admin' });
+  await assertFails(
+    setDoc(doc(db(admin), 'dictionaryEntries/published-word'), {
+      kasemText: 'Konkwolo', englishText: 'Rewritten', isPublished: true,
+    }),
+  );
 });
 
 test('a published grammar rule is public; a draft one about a language is not', async () => {

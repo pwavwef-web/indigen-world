@@ -4,9 +4,6 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
-import 'package:indigen_world_mobile/domain/dictionary_entry.dart';
-import 'package:indigen_world_mobile/domain/kasem_homographs.dart';
-import 'package:indigen_world_mobile/domain/kasem_orthography.dart';
 import 'package:indigen_world_mobile/features/ads/collection_ads.dart';
 import 'package:indigen_world_mobile/features/ads/data/served_ad.dart';
 import 'package:indigen_world_mobile/features/ads/widgets/sponsored_card.dart';
@@ -14,8 +11,7 @@ import 'package:indigen_world_mobile/features/collection/collection_data.dart';
 import 'package:indigen_world_mobile/features/collection/widgets/collection_card_surface.dart';
 import 'package:indigen_world_mobile/features/community/widgets/community_avatar.dart';
 import 'package:indigen_world_mobile/features/contribute/contribute_screen.dart';
-import 'package:indigen_world_mobile/features/dictionary/entry_detail_screen.dart';
-import 'package:indigen_world_mobile/features/dictionary/translation_display.dart';
+import 'package:indigen_world_mobile/features/dictionary/dictionary_screen.dart';
 import 'package:indigen_world_mobile/features/explore/published_content.dart';
 import 'package:indigen_world_mobile/features/music/music_controller.dart';
 import 'package:indigen_world_mobile/features/music/music_providers.dart';
@@ -70,164 +66,23 @@ class VideoCollectionScreen extends ConsumerWidget {
       );
 }
 
-class DictionaryCollectionScreen extends ConsumerStatefulWidget {
+/// The Collection's Dictionary tile, which is now a screen of its own.
+///
+/// ── Why this is four lines and a comment ─────────────────────────────────
+/// It used to be the dictionary: a search box over a filtered, ranked list, in
+/// the middle of the file that draws Music, Literature, Audiobooks and Video.
+/// That was right while the dictionary was one more channel in the Collection
+/// and stopped being right when it grew an alphabet, a saved list and a
+/// validator's editor — none of which a song has.
+///
+/// The name stays because two screens push it and because the Collection grid
+/// is where a member looks for the dictionary. What is behind it is
+/// [DictionaryScreen].
+class DictionaryCollectionScreen extends StatelessWidget {
   const DictionaryCollectionScreen({super.key});
 
   @override
-  ConsumerState<DictionaryCollectionScreen> createState() =>
-      _DictionaryCollectionScreenState();
-}
-
-class _DictionaryCollectionScreenState
-    extends ConsumerState<DictionaryCollectionScreen> {
-  final _searchController = TextEditingController();
-  String _query = '';
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final entries = ref.watch(publishedDictionaryEntriesProvider);
-    return Scaffold(
-      appBar: AppBar(title: const Text('Kasem dictionary')),
-      body: ScreenContainer(
-        child: RefreshIndicator(
-          onRefresh: () async {
-            ref.invalidate(publishedDictionaryEntriesProvider);
-            await ref.read(publishedDictionaryEntriesProvider.future);
-          },
-          child: CustomScrollView(
-            slivers: [
-              const SliverToBoxAdapter(
-                child: BrandHeader(
-                  eyebrow: 'Collection · Dictionary',
-                  title: 'Words with a living context.',
-                ),
-              ),
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-                  child: TextField(
-                    controller: _searchController,
-                    onChanged: (value) => setState(() => _query = value),
-                    decoration: InputDecoration(
-                      hintText: 'Search Kasem, English, or dialect',
-                      prefixIcon: const Icon(Icons.search_rounded),
-                      suffixIcon: _query.isEmpty
-                          ? null
-                          : IconButton(
-                              tooltip: 'Clear search',
-                              onPressed: () {
-                                _searchController.clear();
-                                setState(() => _query = '');
-                              },
-                              icon: const Icon(Icons.close_rounded),
-                            ),
-                    ),
-                  ),
-                ),
-              ),
-              entries.when(
-                loading: () => const SliverFillRemaining(
-                  hasScrollBody: false,
-                  child: Center(child: CircularProgressIndicator()),
-                ),
-                error: (_, _) => SliverFillRemaining(
-                  hasScrollBody: false,
-                  child: _CollectionLoadError(
-                    onRetry: () =>
-                        ref.invalidate(publishedDictionaryEntriesProvider),
-                  ),
-                ),
-                data: (allEntries) {
-                  // ── Ranked, not just filtered ────────────────────────────
-                  // The list was filtered and left in alphabetical order, so
-                  // typing `ni` returned every entry containing those letters
-                  // anywhere — headword, gloss, dialect or rendering — and the
-                  // entry actually headed `ni` could sit fifty rows under a
-                  // word whose English meaning happens to contain
-                  // "permission". The one thing the reader typed was the one
-                  // thing the ordering ignored.
-                  //
-                  // The query is folded ONCE here rather than per entry: at
-                  // 1200 entries and a keystroke per character, that is the
-                  // difference between a search that keeps up and one that
-                  // stutters on the UI thread.
-                  final counts = ref.watch(dictionaryHeadwordCountsProvider);
-                  final folded = foldForSearch(_query);
-                  final visible = folded.isEmpty
-                      ? allEntries
-                      : (allEntries
-                              .map(
-                                (entry) => (entry, entry.rankFor(folded)),
-                              )
-                              .where((row) => row.$2 != null)
-                              .toList(growable: true)
-                            ..sort((left, right) {
-                              final byRank = left.$2!.compareTo(right.$2!);
-                              // Alphabetical within a rank, so equally good
-                              // answers stay in the order the list is
-                              // otherwise browsed in.
-                              return byRank != 0
-                                  ? byRank
-                                  : left.$1.sortKey.compareTo(right.$1.sortKey);
-                            }))
-                            .map((row) => row.$1)
-                            .toList(growable: false);
-                  final query = _query.trim();
-                  if (visible.isEmpty) {
-                    return SliverFillRemaining(
-                      hasScrollBody: false,
-                      child: _CollectionEmptyState(
-                        kind: CollectionKind.dictionary,
-                        searching: query.isNotEmpty,
-                      ),
-                    );
-                  }
-                  // Same rule as every other channel: adverts over the whole
-                  // dictionary, none over a search. Somebody who has typed a
-                  // word is looking for that word.
-                  final rows = query.isEmpty
-                      ? collectionRowsWithAds(
-                          items: visible,
-                          ads: ref.watch(collectionAdsProvider),
-                        )
-                      : List<Object>.of(visible);
-                  return SliverPadding(
-                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 40),
-                    sliver: SliverList.separated(
-                      itemCount: rows.length,
-                      separatorBuilder: (_, _) => const SizedBox(height: 10),
-                      itemBuilder: (context, index) {
-                        final row = rows[index];
-                        if (row is ServedAd) {
-                          return SponsoredCard(
-                            ad: row,
-                            slot: 'dictionary-$index',
-                            margin: EdgeInsets.zero,
-                          );
-                        }
-                        final entry = row as DictionaryEntry;
-                        return _DictionaryCard(
-                          entry: entry,
-                          siblings:
-                              counts[headwordKey(entry.headword)] ?? 1,
-                        );
-                      },
-                    ),
-                  );
-                },
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => const DictionaryScreen();
 }
 
 /// One published channel, as a searchable list.
@@ -470,160 +325,6 @@ bool publishedReelMatches(PublishedReel item, String query) {
     if (value.toLowerCase().contains(query)) return true;
   }
   return false;
-}
-
-class _DictionaryCard extends StatelessWidget {
-  const _DictionaryCard({required this.entry, required this.siblings});
-
-  final DictionaryEntry entry;
-
-  /// How many published entries share this headword. Decides whether the
-  /// sense number is drawn — a word alone under its spelling must render bare.
-  final int siblings;
-
-  /// The headword as it should be drawn and as it should be spoken.
-  HomographDisplay get _headword => homographDisplay(
-    entry.headword,
-    homographIndex: entry.homographIndex,
-    siblingCount: siblings,
-  );
-
-  @override
-  Widget build(BuildContext context) => CollectionCardSurface(
-    // Every meaning, not the one the row had room to print: the "+2 more" the
-    // sighted row falls back to is a worse answer for a reader who is not
-    // constrained by the width of the card.
-    // Every meaning AND every rendering, not the ones the row had room to
-    // print: the "+2 more" a sighted row falls back to is a worse answer for a
-    // reader who is not constrained by the width of the card.
-    // The word class is in the label as well as the meanings, because it is
-    // the line that actually tells eight entries headed `ni` apart — and it
-    // was the one thing the sighted row showed that this did not.
-    semanticLabel: [
-      _headword.spoken,
-      if (entry.furtherRenderings.isNotEmpty)
-        'also ${entry.furtherRenderings.join(', ')}',
-      if (partOfSpeechLabel(entry.partOfSpeech).isNotEmpty)
-        partOfSpeechLabel(entry.partOfSpeech),
-      entry.allTranslations,
-    ].join(', '),
-    onTap: () => Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (context) =>
-            EntryDetailScreen(entryId: entry.id, entry: entry),
-      ),
-    ),
-    padding: const EdgeInsets.all(16),
-    child: Row(
-      children: [
-        Container(
-          width: 50,
-          height: 50,
-          decoration: BoxDecoration(
-            color: context.brand.accent.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Icon(
-            Icons.translate_rounded,
-            color: context.brand.accent,
-          ),
-        ),
-        const SizedBox(width: 14),
-        // A Kasem headword can be long and a translation longer still, and the
-        // row between a 50px glyph and a chevron has only so much width. Each
-        // line ellipsises rather than growing the card into a paragraph; the
-        // entry screen is where the full text belongs.
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Flexible(
-                    child: Text(
-                      entry.headword,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                  ),
-                  // ── Which of the words spelled this way ────────────────
-                  // 478 of the 1200 published entries share a spelling with
-                  // another entry, and this row was the same string on every
-                  // one of them: a learner scrolling to `ni` met eight
-                  // consecutive identical-looking rows with no way to tell
-                  // which was which, or that they were different at all.
-                  //
-                  // Outside the Flexible above, so the number is never the
-                  // thing that gets ellipsised away — a truncated headword is
-                  // recoverable by tapping, a headword that has silently lost
-                  // its sense number is not.
-                  if (siblings > 1 && entry.homographIndex > 0)
-                    Text(
-                      superscript(entry.homographIndex),
-                      style: TextStyle(
-                        color: context.brand.accent,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  // A count rather than the words themselves, for the same
-                  // reason the meanings below are counted: a row that grows to
-                  // fit its longest entry is a list nobody can scan.
-                  //
-                  // The word "forms" is spelled out because the two counts on
-                  // this card used to be visually identical — same colour,
-                  // same size, same weight — while meaning opposite things:
-                  // this one counts alternative Kasem spellings, the one under
-                  // it counts English senses.
-                  if (entry.furtherRenderings.isNotEmpty) ...[
-                    const SizedBox(width: 6),
-                    Text(
-                      '+${entry.furtherRenderings.length} forms',
-                      style: TextStyle(
-                        color: context.brand.mutedInk,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-              const SizedBox(height: 3),
-              // The first meaning and a count of the rest. Wrapping all of them
-              // into the row was the alternative and it makes a list whose
-              // every row is a different height — unscannable, and for the sake
-              // of text the entry screen shows properly one tap away.
-              TranslationSummary(
-                entry: entry,
-                style: TextStyle(color: context.brand.mutedInk),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                // Through the label helper: an unfamiliar word class shows as
-                // itself here, and the row is never filtered on it, so an
-                // `ideophone` is neither renamed nor hidden by the list that
-                // predates it.
-                [
-                  if (partOfSpeechLabel(entry.partOfSpeech).isNotEmpty)
-                    partOfSpeechLabel(entry.partOfSpeech),
-                  if (entry.dialect.isNotEmpty) entry.dialect,
-                ].join(' · '),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: context.brand.terracotta,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ],
-          ),
-        ),
-        const Icon(Icons.chevron_right_rounded),
-      ],
-    ),
-  );
 }
 
 class _PublishedCollectionCard extends StatelessWidget {

@@ -225,6 +225,57 @@ class SensesController extends ChangeNotifier {
     return (kasem: '', english: '');
   }
 
+  /// Fills the section from meanings that already exist.
+  ///
+  /// ── Why the contribution form and the editor share this controller ─────
+  /// Because a validator correcting a published word is doing the same job a
+  /// contributor did when they wrote it, on the same fields, and two sense
+  /// editors would drift apart on the first day one of them gained a box. The
+  /// contribution form starts empty and this starts from what was published;
+  /// everything below that first difference is identical.
+  ///
+  /// An entry with no stored senses loads as one empty meaning rather than
+  /// none, so a validator adding the first structured meaning to a legacy word
+  /// starts in a box rather than at a button. `displaySenses` on the entry is
+  /// what the caller should pass for that: it lifts a legacy gloss into a
+  /// single sense on read, so the editor opens showing the meaning the reader
+  /// sees rather than an empty form for a word that plainly has one.
+  void loadFrom(Iterable<EntrySense> senses) {
+    for (final draft in drafts) {
+      draft.dispose();
+    }
+    drafts.clear();
+    for (final sense in senses.take(kMaxSenses)) {
+      final draft = SenseDraft()
+        ..definition.text = sense.definition
+        ..kasemDefinition.text = sense.kasemDefinition
+        ..usageNote.text = sense.usageNote
+        ..synonyms.text = sense.synonyms.join(', ')
+        ..antonyms.text = sense.antonyms.join(', ')
+        ..register = sense.register
+        ..domain = sense.domain
+        ..partOfSpeech = partOfSpeechById(sense.partOfSpeech)
+        // Open where there is something to see. A meaning whose usage note and
+        // register are folded away behind a closed disclosure is a meaning a
+        // validator will not notice they are about to publish unchanged.
+        ..expanded = sense.hasDetail;
+      // The first example only. The form offers one pair of boxes per meaning
+      // and a sense may carry up to four sentences, so loading them all would
+      // need a second editor — and silently dropping the rest on save would
+      // lose sentences somebody recorded. Preserved instead: see
+      // `EntryEditorScreen`, which leaves the senses out of the patch entirely
+      // when nobody touched them.
+      final example = sense.examples.isEmpty ? null : sense.examples.first;
+      if (example != null) {
+        draft.kasemExample.text = example.kasem;
+        draft.englishExample.text = example.english;
+      }
+      drafts.add(draft);
+    }
+    if (drafts.isEmpty) drafts.add(SenseDraft());
+    notifyListeners();
+  }
+
   /// Clears every meaning back to one empty box, after a successful send.
   void reset() {
     for (final draft in drafts) {
