@@ -1,0 +1,1545 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<title>Kasem number sheets — counting one to ten — Batch 1 · ten things to count · one page each</title>
+<style>
+@page { size: A4; margin: 11mm 12mm; }
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: #fff; color: #000;
+  /* A stack that actually carries ɩ ʋ ə ɣ ŋ ɔ ɛ. Most of these live in the IPA
+     Extensions block, which Times New Roman ships on Windows and macOS; the SIL
+     faces are named first for anybody who has them installed. */
+  font-family: 'Charis SIL', 'Gentium Plus', 'Doulos SIL', 'Times New Roman', serif;
+  font-size: 10pt; line-height: 1.25;
+}
+.page { page-break-after: always; height: 275mm; display: flex; flex-direction: column; }
+.page:last-child { page-break-after: auto; }
+
+.phead { display: flex; justify-content: space-between; align-items: baseline;
+  border-bottom: 0.5pt solid #000; padding-bottom: 1.5mm; font-size: 7.5pt;
+  letter-spacing: .02em; text-transform: uppercase; }
+.phead b { font-size: 9.5pt; }
+
+.prompt { display: flex; gap: 5mm; align-items: flex-start; border: 0.8pt solid #000;
+  padding: 2.5mm 3mm; margin: 3mm 0 3.5mm; }
+.pw { font-size: 21pt; font-weight: 700; line-height: 1; white-space: nowrap; }
+.ps { flex: 1; }
+.ps-lab { font-size: 7pt; text-transform: uppercase; letter-spacing: .04em; color: #444; }
+.ps-sent { font-size: 9pt; }
+
+.row { display: flex; align-items: flex-end; gap: 2mm; }
+.lab { font-size: 8pt; padding-bottom: 0.8mm; line-height: 1.1; flex: none; }
+.lab.mid { text-align: right; }
+.lab i { display: block; font-size: 6.8pt; color: #666; font-style: italic; }
+.rule { flex: 1; border-bottom: 0.5pt solid #000; height: 100%; }
+
+/* The figure in front of a counting line. Set in the same serif as everything
+   else and not boxed: it is a label on a line, not an answer to be written in. */
+.cnt .num { width: 7mm; flex: none; font-size: 10.5pt; font-weight: 700;
+  text-align: right; padding-bottom: 0.8mm; }
+
+.sect { font-size: 7.5pt; text-transform: uppercase; letter-spacing: .06em;
+  border-bottom: 0.8pt solid #000; margin: 3.5mm 0 1.5mm; padding-bottom: 1mm; font-weight: 700; }
+.sect em { text-transform: none; letter-spacing: 0; font-weight: 400; color: #555; }
+
+.cols { display: grid; grid-template-columns: 1fr 1fr; gap: 8mm; }
+.colhead { font-size: 7.5pt; color: #555; font-style: italic; margin-bottom: 1mm; }
+
+.pfoot { margin-top: auto; border-top: 0.8pt solid #000; padding-top: 2mm; }
+.consent { font-size: 8pt; margin-top: 1mm; }
+
+/* ── the front page ── */
+.cover h1 { font-size: 19pt; margin: 0; }
+.cover .lede { font-size: 9.5pt; color: #444; margin: 1mm 0 4mm; }
+.cover h2 { font-size: 9.5pt; text-transform: uppercase; letter-spacing: .05em;
+  border-bottom: 0.8pt solid #000; padding-bottom: 1mm; margin: 0 0 2mm; overflow: hidden; }
+.cover h2 .k { text-transform: none; letter-spacing: 0; font-weight: 400;
+  font-size: 8pt; color: #555; float: right; font-style: italic; }
+.cover h2 + h2, .cover ol + h2, .cover p + h2, .cover ul + h2,
+.cover .letters + h2 { margin-top: 4mm; }
+.two { display: grid; grid-template-columns: 1.15fr 1fr; gap: 8mm; }
+.two ol { margin: 0 0 4mm; padding-left: 5mm; font-size: 9pt; }
+.two li { margin-bottom: 1.6mm; }
+.two p { margin: 0 0 3mm; }
+.small { font-size: 8pt; color: #333; }
+.letters { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.5mm; margin-bottom: 4mm; }
+.letters div { border: 0.5pt solid #000; text-align: center; padding: 1mm 0 1.5mm; }
+.glyph { display: block; font-size: 17pt; line-height: 1.1; }
+.letters span:last-child { font-size: 6.5pt; color: #555; }
+.tones { grid-template-columns: repeat(3, 1fr); width: 62%; }
+/* One column, not two: at two the C1 row wraps mid-phrase, and a contents
+   list that breaks its own lines reads as a mistake on a page whose whole job
+   is to look like it was made carefully. */
+.sheets { list-style: none; margin: 0 0 3mm; padding: 0; font-size: 8.5pt; }
+.sheets li { margin-bottom: 0.8mm; }
+.sheets b { display: inline-block; width: 9mm; }
+.worked { margin-top: auto; }
+.wgrid { display: grid; grid-template-columns: 0.7fr 0.9fr 1.4fr; gap: 6mm;
+  border: 0.5pt solid #999; padding: 2.5mm 3mm; }
+.wword { font-size: 15pt; font-weight: 700; line-height: 1; }
+.wnote { font-size: 7.5pt; color: #444; margin-top: 1.5mm; line-height: 1.3; }
+.wrow { display: flex; justify-content: space-between; gap: 3mm; font-size: 8.5pt;
+  border-bottom: 0.4pt dotted #999; padding-bottom: 0.6mm; margin-bottom: 1.2mm; }
+.wrow span { color: #555; }
+.wrow b { text-align: right; }
+</style></head>
+<body>
+
+  <section class="page cover">
+    <h1>Kasem number sheets — counting one to ten</h1>
+    <p class="lede">Batch 1 · ten things to count · one page each · keep this page beside you while you write</p>
+
+    <div class="two">
+      <div>
+        <h2>What these sheets are for</h2>
+        <p class="small">A number in Kasem is not always said the same way. Which
+          way it is said depends on <b>what is being counted</b> — so the question
+          “how do you say two?” has no single answer, and nobody has ever written
+          down the whole of it. Each sheet gives you one ordinary thing and asks
+          you to count it from one to ten. Put side by side afterwards, the twelve
+          sheets show something no single sheet can.</p>
+        <h2>How to fill in a sheet</h2>
+        <ol>
+          <li>Read the word at the top of the sheet. Write it in Kasem on the
+              first line, large.</li>
+          <li>Answer the short questions about the word itself.</li>
+          <li>Then count. <b>Say the whole phrase out loud first</b>, then write
+              down exactly what you said. Do not work it out as grammar — say it.</li>
+          <li>Write <b>the number and the word together</b>, every line, even when
+              it feels repetitive. Writing only the part that changed is what
+              would make these sheets worthless.</li>
+          <li>If a number can be said in more than one way for that word, write
+              both, and say underneath when each one is used.</li>
+          <li>Any line you are not sure about, <b>leave it empty</b>. A guess
+              becomes a dictionary entry that teaches somebody the wrong thing.</li>
+          <li>Sign the bottom and write where you are from. If more than one
+              person worked on a sheet, write both names.</li>
+        </ol>
+        <h2>The last two sheets are yours</h2>
+        <p class="small"><b>N11</b> and <b>N12</b> have no word printed on them.
+          Choose your own — and if you know a word that is counted differently
+          from the ten here, that is the one worth writing. A word somebody
+          noticed is worth more than a word off a list.</p>
+        <h2>If you run out of room</h2>
+        <p class="small">Write on the back, and put the sheet code
+          (<b>C1</b>, <b>N01</b>, <b>N02</b>…) at the top of what you write there.
+          Keep the sheets in order and send them back together — including any you
+          could not answer. A sheet nobody could fill in is something worth
+          knowing too.</p>
+      </div>
+      <div>
+        <h2>The Kasem letters</h2>
+        <p class="small">Write these by hand exactly as they are printed. Using the
+           nearest English letter instead files the word under a spelling that is a
+           different word.</p>
+        <div class="letters">
+          <div><span class="glyph">ɛ</span><span>open e</span></div><div><span class="glyph">Ɛ</span><span>open E</span></div><div><span class="glyph">ɩ</span><span>iota</span></div><div><span class="glyph">Ɩ</span><span>capital iota</span></div><div><span class="glyph">ŋ</span><span>eng</span></div><div><span class="glyph">Ŋ</span><span>capital eng</span></div><div><span class="glyph">ɔ</span><span>open o</span></div><div><span class="glyph">Ɔ</span><span>open O</span></div><div><span class="glyph">ʋ</span><span>v with hook</span></div><div><span class="glyph">Ʋ</span><span>capital v</span></div><div><span class="glyph">ə</span><span>schwa</span></div><div><span class="glyph">ɣ</span><span>gamma</span></div>
+        </div>
+        <h2>Tone marks</h2>
+        <p class="small">They sit on top of the letter before them. Only mark tone
+           where it changes the word.</p>
+        <div class="letters tones">
+          <div><span class="glyph">a&#769;</span><span>high</span></div>
+          <div><span class="glyph">a&#768;</span><span>low</span></div>
+          <div><span class="glyph">a&#772;</span><span>mid</span></div>
+        </div>
+        <h2>The sheets in this batch</h2>
+        <ul class="sheets">
+          <li><b>C1</b> the numbers alone</li>
+          <li><b>N01</b> child</li><li><b>N02</b> woman</li><li><b>N03</b> man</li><li><b>N04</b> house</li><li><b>N05</b> dog</li><li><b>N06</b> goat</li><li><b>N07</b> tree</li><li><b>N08</b> stone</li><li><b>N09</b> day</li><li><b>N10</b> year</li>
+          <li><b>N11</b> <i>a word you choose</i></li><li><b>N12</b> <i>a word you choose</i></li>
+        </ul>
+        <p class="small">13 pages of writing in all. They do not have to be
+          done in one sitting, or in order, or by one person.</p>
+      </div>
+    </div>
+
+    
+    <div class="worked">
+      <h2>What a filled-in line looks like <span class="k">in English — yours will be in Kasem</span></h2>
+      <div class="wgrid">
+        <div>
+          <div class="wword">dog</div>
+          <div class="wnote">Written out <b>in full every time</b>, the number and
+            the word together — never just the part that changed.</div>
+        </div>
+        <div>
+          <div class="wrow"><span>1</span><b>one dog</b></div><div class="wrow"><span>2</span><b>two dogs</b></div><div class="wrow"><span>3</span><b>three dogs</b></div><div class="wrow"><span>4</span><b>four dogs</b></div>
+        </div>
+        <div>
+          <div class="wnote"><b>Why in full.</b> In English the number never
+            changes — <i>two</i> is <i>two</i> whatever is being counted, and only
+            the word for the thing changes. That is the part these sheets cannot
+            assume. If the number itself sounds different when you count
+            different things, the only way anybody will ever know is if you have
+            written the number out each time.</div>
+          <div class="wnote">If you are unsure of a line, <b>leave it empty</b>.
+            An empty line is honest.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="page">
+    <header class="phead">
+      <div>Kasem number sheets — counting one to ten</div>
+      <div>Sheet <b>C1</b> of 13</div>
+    </header>
+
+    <div class="prompt">
+      <div class="pw">1 &ndash; 10</div>
+      <div class="ps">
+        <div class="ps-lab">the numbers with nothing attached to them</div>
+        <div class="ps-sent">Count out loud, as you would when you are just
+          counting — nothing being counted, only the numbers.</div>
+      </div>
+    </div>
+
+    <div class="sect">Counting <em>— up, and then back down again</em></div>
+    <div class="cols">
+      <div>
+        <div class="colhead">Counting up, one to ten</div>
+        <div class="row cnt" style="height:11.4mm">
+     <div class="num">1</div>
+     <div class="lab" style="width:2mm"></div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">2</div>
+     <div class="lab" style="width:2mm"></div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">3</div>
+     <div class="lab" style="width:2mm"></div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">4</div>
+     <div class="lab" style="width:2mm"></div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">5</div>
+     <div class="lab" style="width:2mm"></div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">6</div>
+     <div class="lab" style="width:2mm"></div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">7</div>
+     <div class="lab" style="width:2mm"></div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">8</div>
+     <div class="lab" style="width:2mm"></div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">9</div>
+     <div class="lab" style="width:2mm"></div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">10</div>
+     <div class="lab" style="width:2mm"></div>
+     <div class="rule"></div>
+   </div>
+      </div>
+      <div>
+        <div class="colhead">Counting down, ten to one</div>
+        <div class="row cnt" style="height:11.4mm">
+     <div class="num">10</div>
+     <div class="lab" style="width:2mm"></div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">9</div>
+     <div class="lab" style="width:2mm"></div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">8</div>
+     <div class="lab" style="width:2mm"></div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">7</div>
+     <div class="lab" style="width:2mm"></div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">6</div>
+     <div class="lab" style="width:2mm"></div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">5</div>
+     <div class="lab" style="width:2mm"></div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">4</div>
+     <div class="lab" style="width:2mm"></div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">3</div>
+     <div class="lab" style="width:2mm"></div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">2</div>
+     <div class="lab" style="width:2mm"></div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">1</div>
+     <div class="lab" style="width:2mm"></div>
+     <div class="rule"></div>
+   </div>
+      </div>
+    </div>
+
+    <div class="sect">Answering “how many?” <em>— the number said on its own, as an answer</em></div>
+    <div class="row" style="height:9.4mm">
+     <div class="lab" style="width:62mm">“How many children are there?” — <b>one</b></div>
+     <div class="rule"></div>
+   </div>
+    <div class="row" style="height:9.4mm">
+     <div class="lab" style="width:62mm">“How many children are there?” — <b>two</b></div>
+     <div class="rule"></div>
+   </div>
+    <div class="row" style="height:9.4mm">
+     <div class="lab" style="width:62mm">“How many children are there?” — <b>three</b></div>
+     <div class="rule"></div>
+   </div>
+
+    <div class="sect">Counting particular things <em>— only if you would say these differently</em></div>
+    <div class="row" style="height:10mm">
+     <div class="lab" style="width:52mm">Counting money — one, two, three</div>
+     <div class="rule"></div>
+   </div>
+    <div class="row" style="height:10mm">
+     <div class="lab" style="width:52mm">Counting people — one, two, three</div>
+     <div class="rule"></div>
+   </div>
+    <div class="row" style="height:10mm">
+     <div class="lab" style="width:52mm">Counting days — one, two, three</div>
+     <div class="rule"></div>
+   </div>
+
+    <div class="sect">Another way <em>— only if there is one</em></div>
+    <div class="row" style="height:10mm">
+     <div class="lab" style="width:52mm">Is any number said in more than one way?<i>write both, and say when each is used</i></div>
+     <div class="rule"></div>
+   </div>
+    <div class="row" style="height:10mm">
+     <div class="lab" style="width:52mm"></div>
+     <div class="rule"></div>
+   </div>
+
+    <footer class="pfoot">
+      <div class="row" style="height:9mm">
+        <div class="lab" style="width:26mm">Written by</div><div class="rule"></div>
+        <div class="lab mid" style="width:24mm">Community</div><div class="rule"></div>
+        <div class="lab mid" style="width:12mm">Date</div><div class="rule" style="max-width:26mm"></div>
+      </div>
+      <div class="consent">☐ Anyone whose knowledge this is has agreed to it being shared.</div>
+    </footer>
+  </section>
+
+  <section class="page">
+    <header class="phead">
+      <div>Kasem number sheets — counting one to ten</div>
+      <div>Sheet <b>N01</b> of 13</div>
+    </header>
+
+    <div class="prompt">
+      <div class="pw">child</div>
+      <div class="ps">
+        <div class="ps-lab">count these from one to ten</div>
+        <div class="ps-sent">Say each whole phrase out loud first — <i>one child, two children, three children</i> — then write down what you said.</div>
+      </div>
+    </div>
+
+    <div class="row" style="height:12mm">
+     <div class="lab" style="width:52mm"><b>The word in Kasem</b><i>write it large and clearly</i></div>
+     <div class="rule"></div>
+   </div>
+
+    <div class="sect">The word itself <em>— say each one out loud, then write down what you said</em></div>
+    <div class="row" style="height:10mm">
+     <div class="lab" style="width:52mm">Say it with “the”<i>the child</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:10mm">
+     <div class="lab" style="width:52mm">Say it for many<i>children</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:10mm">
+     <div class="lab" style="width:52mm">Say the many with “the”<i>the children</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:10mm">
+     <div class="lab" style="width:52mm">What you call it afterwards<i>he, she, it</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:10mm">
+     <div class="lab" style="width:52mm">Say “all of them”<i>all the children</i></div>
+     <div class="rule"></div>
+   </div>
+
+    <div class="sect">Counting them <em>— write the whole thing, the word and the number together</em></div>
+    <div class="row cnt" style="height:11.4mm">
+     <div class="num">1</div>
+     <div class="lab" style="width:34mm">one child</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">2</div>
+     <div class="lab" style="width:34mm">two children</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">3</div>
+     <div class="lab" style="width:34mm">three children</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">4</div>
+     <div class="lab" style="width:34mm">four children</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">5</div>
+     <div class="lab" style="width:34mm">five children</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">6</div>
+     <div class="lab" style="width:34mm">six children</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">7</div>
+     <div class="lab" style="width:34mm">seven children</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">8</div>
+     <div class="lab" style="width:34mm">eight children</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">9</div>
+     <div class="lab" style="width:34mm">nine children</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">10</div>
+     <div class="lab" style="width:34mm">ten children</div>
+     <div class="rule"></div>
+   </div>
+
+    <div class="sect">Anything else</div>
+    <div class="row" style="height:10mm">
+     <div class="lab" style="width:52mm">Is any of these also said another way?<i>write both, and say when each is used</i></div>
+     <div class="rule"></div>
+   </div>
+    <div class="row" style="height:10mm">
+     <div class="lab" style="width:52mm"></div>
+     <div class="rule"></div>
+   </div>
+
+    <footer class="pfoot">
+      <div class="row" style="height:9mm">
+        <div class="lab" style="width:26mm">Written by</div><div class="rule"></div>
+        <div class="lab mid" style="width:24mm">Community</div><div class="rule"></div>
+        <div class="lab mid" style="width:12mm">Date</div><div class="rule" style="max-width:26mm"></div>
+      </div>
+      <div class="consent">☐ Anyone whose knowledge this is has agreed to it being shared.</div>
+    </footer>
+  </section>
+
+  <section class="page">
+    <header class="phead">
+      <div>Kasem number sheets — counting one to ten</div>
+      <div>Sheet <b>N02</b> of 13</div>
+    </header>
+
+    <div class="prompt">
+      <div class="pw">woman</div>
+      <div class="ps">
+        <div class="ps-lab">count these from one to ten</div>
+        <div class="ps-sent">Say each whole phrase out loud first — <i>one woman, two women, three women</i> — then write down what you said.</div>
+      </div>
+    </div>
+
+    <div class="row" style="height:12mm">
+     <div class="lab" style="width:52mm"><b>The word in Kasem</b><i>write it large and clearly</i></div>
+     <div class="rule"></div>
+   </div>
+
+    <div class="sect">The word itself <em>— say each one out loud, then write down what you said</em></div>
+    <div class="row" style="height:10mm">
+     <div class="lab" style="width:52mm">Say it with “the”<i>the woman</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:10mm">
+     <div class="lab" style="width:52mm">Say it for many<i>women</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:10mm">
+     <div class="lab" style="width:52mm">Say the many with “the”<i>the women</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:10mm">
+     <div class="lab" style="width:52mm">What you call it afterwards<i>he, she, it</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:10mm">
+     <div class="lab" style="width:52mm">Say “all of them”<i>all the women</i></div>
+     <div class="rule"></div>
+   </div>
+
+    <div class="sect">Counting them <em>— write the whole thing, the word and the number together</em></div>
+    <div class="row cnt" style="height:11.4mm">
+     <div class="num">1</div>
+     <div class="lab" style="width:34mm">one woman</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">2</div>
+     <div class="lab" style="width:34mm">two women</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">3</div>
+     <div class="lab" style="width:34mm">three women</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">4</div>
+     <div class="lab" style="width:34mm">four women</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">5</div>
+     <div class="lab" style="width:34mm">five women</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">6</div>
+     <div class="lab" style="width:34mm">six women</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">7</div>
+     <div class="lab" style="width:34mm">seven women</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">8</div>
+     <div class="lab" style="width:34mm">eight women</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">9</div>
+     <div class="lab" style="width:34mm">nine women</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">10</div>
+     <div class="lab" style="width:34mm">ten women</div>
+     <div class="rule"></div>
+   </div>
+
+    <div class="sect">Anything else</div>
+    <div class="row" style="height:10mm">
+     <div class="lab" style="width:52mm">Is any of these also said another way?<i>write both, and say when each is used</i></div>
+     <div class="rule"></div>
+   </div>
+    <div class="row" style="height:10mm">
+     <div class="lab" style="width:52mm"></div>
+     <div class="rule"></div>
+   </div>
+
+    <footer class="pfoot">
+      <div class="row" style="height:9mm">
+        <div class="lab" style="width:26mm">Written by</div><div class="rule"></div>
+        <div class="lab mid" style="width:24mm">Community</div><div class="rule"></div>
+        <div class="lab mid" style="width:12mm">Date</div><div class="rule" style="max-width:26mm"></div>
+      </div>
+      <div class="consent">☐ Anyone whose knowledge this is has agreed to it being shared.</div>
+    </footer>
+  </section>
+
+  <section class="page">
+    <header class="phead">
+      <div>Kasem number sheets — counting one to ten</div>
+      <div>Sheet <b>N03</b> of 13</div>
+    </header>
+
+    <div class="prompt">
+      <div class="pw">man</div>
+      <div class="ps">
+        <div class="ps-lab">count these from one to ten</div>
+        <div class="ps-sent">Say each whole phrase out loud first — <i>one man, two men, three men</i> — then write down what you said.</div>
+      </div>
+    </div>
+
+    <div class="row" style="height:12mm">
+     <div class="lab" style="width:52mm"><b>The word in Kasem</b><i>write it large and clearly</i></div>
+     <div class="rule"></div>
+   </div>
+
+    <div class="sect">The word itself <em>— say each one out loud, then write down what you said</em></div>
+    <div class="row" style="height:10mm">
+     <div class="lab" style="width:52mm">Say it with “the”<i>the man</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:10mm">
+     <div class="lab" style="width:52mm">Say it for many<i>men</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:10mm">
+     <div class="lab" style="width:52mm">Say the many with “the”<i>the men</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:10mm">
+     <div class="lab" style="width:52mm">What you call it afterwards<i>he, she, it</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:10mm">
+     <div class="lab" style="width:52mm">Say “all of them”<i>all the men</i></div>
+     <div class="rule"></div>
+   </div>
+
+    <div class="sect">Counting them <em>— write the whole thing, the word and the number together</em></div>
+    <div class="row cnt" style="height:11.4mm">
+     <div class="num">1</div>
+     <div class="lab" style="width:34mm">one man</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">2</div>
+     <div class="lab" style="width:34mm">two men</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">3</div>
+     <div class="lab" style="width:34mm">three men</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">4</div>
+     <div class="lab" style="width:34mm">four men</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">5</div>
+     <div class="lab" style="width:34mm">five men</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">6</div>
+     <div class="lab" style="width:34mm">six men</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">7</div>
+     <div class="lab" style="width:34mm">seven men</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">8</div>
+     <div class="lab" style="width:34mm">eight men</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">9</div>
+     <div class="lab" style="width:34mm">nine men</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">10</div>
+     <div class="lab" style="width:34mm">ten men</div>
+     <div class="rule"></div>
+   </div>
+
+    <div class="sect">Anything else</div>
+    <div class="row" style="height:10mm">
+     <div class="lab" style="width:52mm">Is any of these also said another way?<i>write both, and say when each is used</i></div>
+     <div class="rule"></div>
+   </div>
+    <div class="row" style="height:10mm">
+     <div class="lab" style="width:52mm"></div>
+     <div class="rule"></div>
+   </div>
+
+    <footer class="pfoot">
+      <div class="row" style="height:9mm">
+        <div class="lab" style="width:26mm">Written by</div><div class="rule"></div>
+        <div class="lab mid" style="width:24mm">Community</div><div class="rule"></div>
+        <div class="lab mid" style="width:12mm">Date</div><div class="rule" style="max-width:26mm"></div>
+      </div>
+      <div class="consent">☐ Anyone whose knowledge this is has agreed to it being shared.</div>
+    </footer>
+  </section>
+
+  <section class="page">
+    <header class="phead">
+      <div>Kasem number sheets — counting one to ten</div>
+      <div>Sheet <b>N04</b> of 13</div>
+    </header>
+
+    <div class="prompt">
+      <div class="pw">house</div>
+      <div class="ps">
+        <div class="ps-lab">count these from one to ten</div>
+        <div class="ps-sent">Say each whole phrase out loud first — <i>one house, two houses, three houses</i> — then write down what you said.</div>
+      </div>
+    </div>
+
+    <div class="row" style="height:12mm">
+     <div class="lab" style="width:52mm"><b>The word in Kasem</b><i>write it large and clearly</i></div>
+     <div class="rule"></div>
+   </div>
+
+    <div class="sect">The word itself <em>— say each one out loud, then write down what you said</em></div>
+    <div class="row" style="height:10mm">
+     <div class="lab" style="width:52mm">Say it with “the”<i>the house</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:10mm">
+     <div class="lab" style="width:52mm">Say it for many<i>houses</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:10mm">
+     <div class="lab" style="width:52mm">Say the many with “the”<i>the houses</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:10mm">
+     <div class="lab" style="width:52mm">What you call it afterwards<i>he, she, it</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:10mm">
+     <div class="lab" style="width:52mm">Say “all of them”<i>all the houses</i></div>
+     <div class="rule"></div>
+   </div>
+
+    <div class="sect">Counting them <em>— write the whole thing, the word and the number together</em></div>
+    <div class="row cnt" style="height:11.4mm">
+     <div class="num">1</div>
+     <div class="lab" style="width:34mm">one house</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">2</div>
+     <div class="lab" style="width:34mm">two houses</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">3</div>
+     <div class="lab" style="width:34mm">three houses</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">4</div>
+     <div class="lab" style="width:34mm">four houses</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">5</div>
+     <div class="lab" style="width:34mm">five houses</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">6</div>
+     <div class="lab" style="width:34mm">six houses</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">7</div>
+     <div class="lab" style="width:34mm">seven houses</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">8</div>
+     <div class="lab" style="width:34mm">eight houses</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">9</div>
+     <div class="lab" style="width:34mm">nine houses</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">10</div>
+     <div class="lab" style="width:34mm">ten houses</div>
+     <div class="rule"></div>
+   </div>
+
+    <div class="sect">Anything else</div>
+    <div class="row" style="height:10mm">
+     <div class="lab" style="width:52mm">Is any of these also said another way?<i>write both, and say when each is used</i></div>
+     <div class="rule"></div>
+   </div>
+    <div class="row" style="height:10mm">
+     <div class="lab" style="width:52mm"></div>
+     <div class="rule"></div>
+   </div>
+
+    <footer class="pfoot">
+      <div class="row" style="height:9mm">
+        <div class="lab" style="width:26mm">Written by</div><div class="rule"></div>
+        <div class="lab mid" style="width:24mm">Community</div><div class="rule"></div>
+        <div class="lab mid" style="width:12mm">Date</div><div class="rule" style="max-width:26mm"></div>
+      </div>
+      <div class="consent">☐ Anyone whose knowledge this is has agreed to it being shared.</div>
+    </footer>
+  </section>
+
+  <section class="page">
+    <header class="phead">
+      <div>Kasem number sheets — counting one to ten</div>
+      <div>Sheet <b>N05</b> of 13</div>
+    </header>
+
+    <div class="prompt">
+      <div class="pw">dog</div>
+      <div class="ps">
+        <div class="ps-lab">count these from one to ten</div>
+        <div class="ps-sent">Say each whole phrase out loud first — <i>one dog, two dogs, three dogs</i> — then write down what you said.</div>
+      </div>
+    </div>
+
+    <div class="row" style="height:12mm">
+     <div class="lab" style="width:52mm"><b>The word in Kasem</b><i>write it large and clearly</i></div>
+     <div class="rule"></div>
+   </div>
+
+    <div class="sect">The word itself <em>— say each one out loud, then write down what you said</em></div>
+    <div class="row" style="height:10mm">
+     <div class="lab" style="width:52mm">Say it with “the”<i>the dog</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:10mm">
+     <div class="lab" style="width:52mm">Say it for many<i>dogs</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:10mm">
+     <div class="lab" style="width:52mm">Say the many with “the”<i>the dogs</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:10mm">
+     <div class="lab" style="width:52mm">What you call it afterwards<i>he, she, it</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:10mm">
+     <div class="lab" style="width:52mm">Say “all of them”<i>all the dogs</i></div>
+     <div class="rule"></div>
+   </div>
+
+    <div class="sect">Counting them <em>— write the whole thing, the word and the number together</em></div>
+    <div class="row cnt" style="height:11.4mm">
+     <div class="num">1</div>
+     <div class="lab" style="width:34mm">one dog</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">2</div>
+     <div class="lab" style="width:34mm">two dogs</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">3</div>
+     <div class="lab" style="width:34mm">three dogs</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">4</div>
+     <div class="lab" style="width:34mm">four dogs</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">5</div>
+     <div class="lab" style="width:34mm">five dogs</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">6</div>
+     <div class="lab" style="width:34mm">six dogs</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">7</div>
+     <div class="lab" style="width:34mm">seven dogs</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">8</div>
+     <div class="lab" style="width:34mm">eight dogs</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">9</div>
+     <div class="lab" style="width:34mm">nine dogs</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">10</div>
+     <div class="lab" style="width:34mm">ten dogs</div>
+     <div class="rule"></div>
+   </div>
+
+    <div class="sect">Anything else</div>
+    <div class="row" style="height:10mm">
+     <div class="lab" style="width:52mm">Is any of these also said another way?<i>write both, and say when each is used</i></div>
+     <div class="rule"></div>
+   </div>
+    <div class="row" style="height:10mm">
+     <div class="lab" style="width:52mm"></div>
+     <div class="rule"></div>
+   </div>
+
+    <footer class="pfoot">
+      <div class="row" style="height:9mm">
+        <div class="lab" style="width:26mm">Written by</div><div class="rule"></div>
+        <div class="lab mid" style="width:24mm">Community</div><div class="rule"></div>
+        <div class="lab mid" style="width:12mm">Date</div><div class="rule" style="max-width:26mm"></div>
+      </div>
+      <div class="consent">☐ Anyone whose knowledge this is has agreed to it being shared.</div>
+    </footer>
+  </section>
+
+  <section class="page">
+    <header class="phead">
+      <div>Kasem number sheets — counting one to ten</div>
+      <div>Sheet <b>N06</b> of 13</div>
+    </header>
+
+    <div class="prompt">
+      <div class="pw">goat</div>
+      <div class="ps">
+        <div class="ps-lab">count these from one to ten</div>
+        <div class="ps-sent">Say each whole phrase out loud first — <i>one goat, two goats, three goats</i> — then write down what you said.</div>
+      </div>
+    </div>
+
+    <div class="row" style="height:12mm">
+     <div class="lab" style="width:52mm"><b>The word in Kasem</b><i>write it large and clearly</i></div>
+     <div class="rule"></div>
+   </div>
+
+    <div class="sect">The word itself <em>— say each one out loud, then write down what you said</em></div>
+    <div class="row" style="height:10mm">
+     <div class="lab" style="width:52mm">Say it with “the”<i>the goat</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:10mm">
+     <div class="lab" style="width:52mm">Say it for many<i>goats</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:10mm">
+     <div class="lab" style="width:52mm">Say the many with “the”<i>the goats</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:10mm">
+     <div class="lab" style="width:52mm">What you call it afterwards<i>he, she, it</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:10mm">
+     <div class="lab" style="width:52mm">Say “all of them”<i>all the goats</i></div>
+     <div class="rule"></div>
+   </div>
+
+    <div class="sect">Counting them <em>— write the whole thing, the word and the number together</em></div>
+    <div class="row cnt" style="height:11.4mm">
+     <div class="num">1</div>
+     <div class="lab" style="width:34mm">one goat</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">2</div>
+     <div class="lab" style="width:34mm">two goats</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">3</div>
+     <div class="lab" style="width:34mm">three goats</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">4</div>
+     <div class="lab" style="width:34mm">four goats</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">5</div>
+     <div class="lab" style="width:34mm">five goats</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">6</div>
+     <div class="lab" style="width:34mm">six goats</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">7</div>
+     <div class="lab" style="width:34mm">seven goats</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">8</div>
+     <div class="lab" style="width:34mm">eight goats</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">9</div>
+     <div class="lab" style="width:34mm">nine goats</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">10</div>
+     <div class="lab" style="width:34mm">ten goats</div>
+     <div class="rule"></div>
+   </div>
+
+    <div class="sect">Anything else</div>
+    <div class="row" style="height:10mm">
+     <div class="lab" style="width:52mm">Is any of these also said another way?<i>write both, and say when each is used</i></div>
+     <div class="rule"></div>
+   </div>
+    <div class="row" style="height:10mm">
+     <div class="lab" style="width:52mm"></div>
+     <div class="rule"></div>
+   </div>
+
+    <footer class="pfoot">
+      <div class="row" style="height:9mm">
+        <div class="lab" style="width:26mm">Written by</div><div class="rule"></div>
+        <div class="lab mid" style="width:24mm">Community</div><div class="rule"></div>
+        <div class="lab mid" style="width:12mm">Date</div><div class="rule" style="max-width:26mm"></div>
+      </div>
+      <div class="consent">☐ Anyone whose knowledge this is has agreed to it being shared.</div>
+    </footer>
+  </section>
+
+  <section class="page">
+    <header class="phead">
+      <div>Kasem number sheets — counting one to ten</div>
+      <div>Sheet <b>N07</b> of 13</div>
+    </header>
+
+    <div class="prompt">
+      <div class="pw">tree</div>
+      <div class="ps">
+        <div class="ps-lab">count these from one to ten</div>
+        <div class="ps-sent">Say each whole phrase out loud first — <i>one tree, two trees, three trees</i> — then write down what you said.</div>
+      </div>
+    </div>
+
+    <div class="row" style="height:12mm">
+     <div class="lab" style="width:52mm"><b>The word in Kasem</b><i>write it large and clearly</i></div>
+     <div class="rule"></div>
+   </div>
+
+    <div class="sect">The word itself <em>— say each one out loud, then write down what you said</em></div>
+    <div class="row" style="height:10mm">
+     <div class="lab" style="width:52mm">Say it with “the”<i>the tree</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:10mm">
+     <div class="lab" style="width:52mm">Say it for many<i>trees</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:10mm">
+     <div class="lab" style="width:52mm">Say the many with “the”<i>the trees</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:10mm">
+     <div class="lab" style="width:52mm">What you call it afterwards<i>he, she, it</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:10mm">
+     <div class="lab" style="width:52mm">Say “all of them”<i>all the trees</i></div>
+     <div class="rule"></div>
+   </div>
+
+    <div class="sect">Counting them <em>— write the whole thing, the word and the number together</em></div>
+    <div class="row cnt" style="height:11.4mm">
+     <div class="num">1</div>
+     <div class="lab" style="width:34mm">one tree</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">2</div>
+     <div class="lab" style="width:34mm">two trees</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">3</div>
+     <div class="lab" style="width:34mm">three trees</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">4</div>
+     <div class="lab" style="width:34mm">four trees</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">5</div>
+     <div class="lab" style="width:34mm">five trees</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">6</div>
+     <div class="lab" style="width:34mm">six trees</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">7</div>
+     <div class="lab" style="width:34mm">seven trees</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">8</div>
+     <div class="lab" style="width:34mm">eight trees</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">9</div>
+     <div class="lab" style="width:34mm">nine trees</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">10</div>
+     <div class="lab" style="width:34mm">ten trees</div>
+     <div class="rule"></div>
+   </div>
+
+    <div class="sect">Anything else</div>
+    <div class="row" style="height:10mm">
+     <div class="lab" style="width:52mm">Is any of these also said another way?<i>write both, and say when each is used</i></div>
+     <div class="rule"></div>
+   </div>
+    <div class="row" style="height:10mm">
+     <div class="lab" style="width:52mm"></div>
+     <div class="rule"></div>
+   </div>
+
+    <footer class="pfoot">
+      <div class="row" style="height:9mm">
+        <div class="lab" style="width:26mm">Written by</div><div class="rule"></div>
+        <div class="lab mid" style="width:24mm">Community</div><div class="rule"></div>
+        <div class="lab mid" style="width:12mm">Date</div><div class="rule" style="max-width:26mm"></div>
+      </div>
+      <div class="consent">☐ Anyone whose knowledge this is has agreed to it being shared.</div>
+    </footer>
+  </section>
+
+  <section class="page">
+    <header class="phead">
+      <div>Kasem number sheets — counting one to ten</div>
+      <div>Sheet <b>N08</b> of 13</div>
+    </header>
+
+    <div class="prompt">
+      <div class="pw">stone</div>
+      <div class="ps">
+        <div class="ps-lab">count these from one to ten</div>
+        <div class="ps-sent">Say each whole phrase out loud first — <i>one stone, two stones, three stones</i> — then write down what you said.</div>
+      </div>
+    </div>
+
+    <div class="row" style="height:12mm">
+     <div class="lab" style="width:52mm"><b>The word in Kasem</b><i>write it large and clearly</i></div>
+     <div class="rule"></div>
+   </div>
+
+    <div class="sect">The word itself <em>— say each one out loud, then write down what you said</em></div>
+    <div class="row" style="height:10mm">
+     <div class="lab" style="width:52mm">Say it with “the”<i>the stone</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:10mm">
+     <div class="lab" style="width:52mm">Say it for many<i>stones</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:10mm">
+     <div class="lab" style="width:52mm">Say the many with “the”<i>the stones</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:10mm">
+     <div class="lab" style="width:52mm">What you call it afterwards<i>he, she, it</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:10mm">
+     <div class="lab" style="width:52mm">Say “all of them”<i>all the stones</i></div>
+     <div class="rule"></div>
+   </div>
+
+    <div class="sect">Counting them <em>— write the whole thing, the word and the number together</em></div>
+    <div class="row cnt" style="height:11.4mm">
+     <div class="num">1</div>
+     <div class="lab" style="width:34mm">one stone</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">2</div>
+     <div class="lab" style="width:34mm">two stones</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">3</div>
+     <div class="lab" style="width:34mm">three stones</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">4</div>
+     <div class="lab" style="width:34mm">four stones</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">5</div>
+     <div class="lab" style="width:34mm">five stones</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">6</div>
+     <div class="lab" style="width:34mm">six stones</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">7</div>
+     <div class="lab" style="width:34mm">seven stones</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">8</div>
+     <div class="lab" style="width:34mm">eight stones</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">9</div>
+     <div class="lab" style="width:34mm">nine stones</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">10</div>
+     <div class="lab" style="width:34mm">ten stones</div>
+     <div class="rule"></div>
+   </div>
+
+    <div class="sect">Anything else</div>
+    <div class="row" style="height:10mm">
+     <div class="lab" style="width:52mm">Is any of these also said another way?<i>write both, and say when each is used</i></div>
+     <div class="rule"></div>
+   </div>
+    <div class="row" style="height:10mm">
+     <div class="lab" style="width:52mm"></div>
+     <div class="rule"></div>
+   </div>
+
+    <footer class="pfoot">
+      <div class="row" style="height:9mm">
+        <div class="lab" style="width:26mm">Written by</div><div class="rule"></div>
+        <div class="lab mid" style="width:24mm">Community</div><div class="rule"></div>
+        <div class="lab mid" style="width:12mm">Date</div><div class="rule" style="max-width:26mm"></div>
+      </div>
+      <div class="consent">☐ Anyone whose knowledge this is has agreed to it being shared.</div>
+    </footer>
+  </section>
+
+  <section class="page">
+    <header class="phead">
+      <div>Kasem number sheets — counting one to ten</div>
+      <div>Sheet <b>N09</b> of 13</div>
+    </header>
+
+    <div class="prompt">
+      <div class="pw">day</div>
+      <div class="ps">
+        <div class="ps-lab">count these from one to ten</div>
+        <div class="ps-sent">Say each whole phrase out loud first — <i>one day, two days, three days</i> — then write down what you said.</div>
+      </div>
+    </div>
+
+    <div class="row" style="height:12mm">
+     <div class="lab" style="width:52mm"><b>The word in Kasem</b><i>write it large and clearly</i></div>
+     <div class="rule"></div>
+   </div>
+
+    <div class="sect">The word itself <em>— say each one out loud, then write down what you said</em></div>
+    <div class="row" style="height:10mm">
+     <div class="lab" style="width:52mm">Say it with “the”<i>the day</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:10mm">
+     <div class="lab" style="width:52mm">Say it for many<i>days</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:10mm">
+     <div class="lab" style="width:52mm">Say the many with “the”<i>the days</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:10mm">
+     <div class="lab" style="width:52mm">What you call it afterwards<i>he, she, it</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:10mm">
+     <div class="lab" style="width:52mm">Say “all of them”<i>all the days</i></div>
+     <div class="rule"></div>
+   </div>
+
+    <div class="sect">Counting them <em>— write the whole thing, the word and the number together</em></div>
+    <div class="row cnt" style="height:11.4mm">
+     <div class="num">1</div>
+     <div class="lab" style="width:34mm">one day</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">2</div>
+     <div class="lab" style="width:34mm">two days</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">3</div>
+     <div class="lab" style="width:34mm">three days</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">4</div>
+     <div class="lab" style="width:34mm">four days</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">5</div>
+     <div class="lab" style="width:34mm">five days</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">6</div>
+     <div class="lab" style="width:34mm">six days</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">7</div>
+     <div class="lab" style="width:34mm">seven days</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">8</div>
+     <div class="lab" style="width:34mm">eight days</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">9</div>
+     <div class="lab" style="width:34mm">nine days</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">10</div>
+     <div class="lab" style="width:34mm">ten days</div>
+     <div class="rule"></div>
+   </div>
+
+    <div class="sect">Anything else</div>
+    <div class="row" style="height:10mm">
+     <div class="lab" style="width:52mm">Is any of these also said another way?<i>write both, and say when each is used</i></div>
+     <div class="rule"></div>
+   </div>
+    <div class="row" style="height:10mm">
+     <div class="lab" style="width:52mm"></div>
+     <div class="rule"></div>
+   </div>
+
+    <footer class="pfoot">
+      <div class="row" style="height:9mm">
+        <div class="lab" style="width:26mm">Written by</div><div class="rule"></div>
+        <div class="lab mid" style="width:24mm">Community</div><div class="rule"></div>
+        <div class="lab mid" style="width:12mm">Date</div><div class="rule" style="max-width:26mm"></div>
+      </div>
+      <div class="consent">☐ Anyone whose knowledge this is has agreed to it being shared.</div>
+    </footer>
+  </section>
+
+  <section class="page">
+    <header class="phead">
+      <div>Kasem number sheets — counting one to ten</div>
+      <div>Sheet <b>N10</b> of 13</div>
+    </header>
+
+    <div class="prompt">
+      <div class="pw">year</div>
+      <div class="ps">
+        <div class="ps-lab">count these from one to ten</div>
+        <div class="ps-sent">Say each whole phrase out loud first — <i>one year, two years, three years</i> — then write down what you said.</div>
+      </div>
+    </div>
+
+    <div class="row" style="height:12mm">
+     <div class="lab" style="width:52mm"><b>The word in Kasem</b><i>write it large and clearly</i></div>
+     <div class="rule"></div>
+   </div>
+
+    <div class="sect">The word itself <em>— say each one out loud, then write down what you said</em></div>
+    <div class="row" style="height:10mm">
+     <div class="lab" style="width:52mm">Say it with “the”<i>the year</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:10mm">
+     <div class="lab" style="width:52mm">Say it for many<i>years</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:10mm">
+     <div class="lab" style="width:52mm">Say the many with “the”<i>the years</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:10mm">
+     <div class="lab" style="width:52mm">What you call it afterwards<i>he, she, it</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:10mm">
+     <div class="lab" style="width:52mm">Say “all of them”<i>all the years</i></div>
+     <div class="rule"></div>
+   </div>
+
+    <div class="sect">Counting them <em>— write the whole thing, the word and the number together</em></div>
+    <div class="row cnt" style="height:11.4mm">
+     <div class="num">1</div>
+     <div class="lab" style="width:34mm">one year</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">2</div>
+     <div class="lab" style="width:34mm">two years</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">3</div>
+     <div class="lab" style="width:34mm">three years</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">4</div>
+     <div class="lab" style="width:34mm">four years</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">5</div>
+     <div class="lab" style="width:34mm">five years</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">6</div>
+     <div class="lab" style="width:34mm">six years</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">7</div>
+     <div class="lab" style="width:34mm">seven years</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">8</div>
+     <div class="lab" style="width:34mm">eight years</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">9</div>
+     <div class="lab" style="width:34mm">nine years</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">10</div>
+     <div class="lab" style="width:34mm">ten years</div>
+     <div class="rule"></div>
+   </div>
+
+    <div class="sect">Anything else</div>
+    <div class="row" style="height:10mm">
+     <div class="lab" style="width:52mm">Is any of these also said another way?<i>write both, and say when each is used</i></div>
+     <div class="rule"></div>
+   </div>
+    <div class="row" style="height:10mm">
+     <div class="lab" style="width:52mm"></div>
+     <div class="rule"></div>
+   </div>
+
+    <footer class="pfoot">
+      <div class="row" style="height:9mm">
+        <div class="lab" style="width:26mm">Written by</div><div class="rule"></div>
+        <div class="lab mid" style="width:24mm">Community</div><div class="rule"></div>
+        <div class="lab mid" style="width:12mm">Date</div><div class="rule" style="max-width:26mm"></div>
+      </div>
+      <div class="consent">☐ Anyone whose knowledge this is has agreed to it being shared.</div>
+    </footer>
+  </section>
+
+  <section class="page">
+    <header class="phead">
+      <div>Kasem number sheets — counting one to ten</div>
+      <div>Sheet <b>N11</b> of 13</div>
+    </header>
+
+    <div class="prompt">
+      <div class="pw">your own word</div>
+      <div class="ps">
+        <div class="ps-lab">count these from one to ten</div>
+        <div class="ps-sent">Choose any word you like — best of all, one you know is counted differently from the words on the other sheets. Write it below, then count it.</div>
+      </div>
+    </div>
+
+    <div class="row" style="height:10mm">
+     <div class="lab" style="width:52mm"><b>The English word</b><i>what you are counting</i></div>
+     <div class="rule"></div>
+   </div>
+         <div class="row" style="height:12mm">
+     <div class="lab" style="width:52mm"><b>The word in Kasem</b><i>write it large and clearly</i></div>
+     <div class="rule"></div>
+   </div>
+
+    <div class="sect">The word itself <em>— say each one out loud, then write down what you said</em></div>
+    <div class="row" style="height:10mm">
+     <div class="lab" style="width:52mm">Say it with “the”<i>the _____</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:10mm">
+     <div class="lab" style="width:52mm">Say it for many<i>_____</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:10mm">
+     <div class="lab" style="width:52mm">Say the many with “the”<i>the _____</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:10mm">
+     <div class="lab" style="width:52mm">What you call it afterwards<i>he, she, it</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:10mm">
+     <div class="lab" style="width:52mm">Say “all of them”<i>all the _____</i></div>
+     <div class="rule"></div>
+   </div>
+
+    <div class="sect">Counting them <em>— write the whole thing, the word and the number together</em></div>
+    <div class="row cnt" style="height:11.4mm">
+     <div class="num">1</div>
+     <div class="lab" style="width:34mm">one _____</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">2</div>
+     <div class="lab" style="width:34mm">two _____</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">3</div>
+     <div class="lab" style="width:34mm">three _____</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">4</div>
+     <div class="lab" style="width:34mm">four _____</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">5</div>
+     <div class="lab" style="width:34mm">five _____</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">6</div>
+     <div class="lab" style="width:34mm">six _____</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">7</div>
+     <div class="lab" style="width:34mm">seven _____</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">8</div>
+     <div class="lab" style="width:34mm">eight _____</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">9</div>
+     <div class="lab" style="width:34mm">nine _____</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">10</div>
+     <div class="lab" style="width:34mm">ten _____</div>
+     <div class="rule"></div>
+   </div>
+
+    <div class="sect">Anything else</div>
+    <div class="row" style="height:10mm">
+     <div class="lab" style="width:52mm">Is any of these also said another way?<i>write both, and say when each is used</i></div>
+     <div class="rule"></div>
+   </div>
+    <div class="row" style="height:10mm">
+     <div class="lab" style="width:52mm"></div>
+     <div class="rule"></div>
+   </div>
+
+    <footer class="pfoot">
+      <div class="row" style="height:9mm">
+        <div class="lab" style="width:26mm">Written by</div><div class="rule"></div>
+        <div class="lab mid" style="width:24mm">Community</div><div class="rule"></div>
+        <div class="lab mid" style="width:12mm">Date</div><div class="rule" style="max-width:26mm"></div>
+      </div>
+      <div class="consent">☐ Anyone whose knowledge this is has agreed to it being shared.</div>
+    </footer>
+  </section>
+
+  <section class="page">
+    <header class="phead">
+      <div>Kasem number sheets — counting one to ten</div>
+      <div>Sheet <b>N12</b> of 13</div>
+    </header>
+
+    <div class="prompt">
+      <div class="pw">your own word</div>
+      <div class="ps">
+        <div class="ps-lab">count these from one to ten</div>
+        <div class="ps-sent">Choose any word you like — best of all, one you know is counted differently from the words on the other sheets. Write it below, then count it.</div>
+      </div>
+    </div>
+
+    <div class="row" style="height:10mm">
+     <div class="lab" style="width:52mm"><b>The English word</b><i>what you are counting</i></div>
+     <div class="rule"></div>
+   </div>
+         <div class="row" style="height:12mm">
+     <div class="lab" style="width:52mm"><b>The word in Kasem</b><i>write it large and clearly</i></div>
+     <div class="rule"></div>
+   </div>
+
+    <div class="sect">The word itself <em>— say each one out loud, then write down what you said</em></div>
+    <div class="row" style="height:10mm">
+     <div class="lab" style="width:52mm">Say it with “the”<i>the _____</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:10mm">
+     <div class="lab" style="width:52mm">Say it for many<i>_____</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:10mm">
+     <div class="lab" style="width:52mm">Say the many with “the”<i>the _____</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:10mm">
+     <div class="lab" style="width:52mm">What you call it afterwards<i>he, she, it</i></div>
+     <div class="rule"></div>
+   </div><div class="row" style="height:10mm">
+     <div class="lab" style="width:52mm">Say “all of them”<i>all the _____</i></div>
+     <div class="rule"></div>
+   </div>
+
+    <div class="sect">Counting them <em>— write the whole thing, the word and the number together</em></div>
+    <div class="row cnt" style="height:11.4mm">
+     <div class="num">1</div>
+     <div class="lab" style="width:34mm">one _____</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">2</div>
+     <div class="lab" style="width:34mm">two _____</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">3</div>
+     <div class="lab" style="width:34mm">three _____</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">4</div>
+     <div class="lab" style="width:34mm">four _____</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">5</div>
+     <div class="lab" style="width:34mm">five _____</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">6</div>
+     <div class="lab" style="width:34mm">six _____</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">7</div>
+     <div class="lab" style="width:34mm">seven _____</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">8</div>
+     <div class="lab" style="width:34mm">eight _____</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">9</div>
+     <div class="lab" style="width:34mm">nine _____</div>
+     <div class="rule"></div>
+   </div><div class="row cnt" style="height:11.4mm">
+     <div class="num">10</div>
+     <div class="lab" style="width:34mm">ten _____</div>
+     <div class="rule"></div>
+   </div>
+
+    <div class="sect">Anything else</div>
+    <div class="row" style="height:10mm">
+     <div class="lab" style="width:52mm">Is any of these also said another way?<i>write both, and say when each is used</i></div>
+     <div class="rule"></div>
+   </div>
+    <div class="row" style="height:10mm">
+     <div class="lab" style="width:52mm"></div>
+     <div class="rule"></div>
+   </div>
+
+    <footer class="pfoot">
+      <div class="row" style="height:9mm">
+        <div class="lab" style="width:26mm">Written by</div><div class="rule"></div>
+        <div class="lab mid" style="width:24mm">Community</div><div class="rule"></div>
+        <div class="lab mid" style="width:12mm">Date</div><div class="rule" style="max-width:26mm"></div>
+      </div>
+      <div class="consent">☐ Anyone whose knowledge this is has agreed to it being shared.</div>
+    </footer>
+  </section>
+</body></html>

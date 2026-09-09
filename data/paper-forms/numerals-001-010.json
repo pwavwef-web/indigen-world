@@ -1,0 +1,142 @@
+{
+  "batch": "numerals-001-010",
+  "target": "numeral-concord",
+  "builtBy": "services/functions/scripts/build-numeral-forms.mjs",
+  "formSlots": [
+    {
+      "id": "definite",
+      "label": "Say it with “the”"
+    },
+    {
+      "id": "plural",
+      "label": "Say it for many"
+    },
+    {
+      "id": "pluralDefinite",
+      "label": "Say the many with “the”"
+    },
+    {
+      "id": "pronoun",
+      "label": "What you call it afterwards"
+    },
+    {
+      "id": "quantifier",
+      "label": "Say “all of them”"
+    }
+  ],
+  "numbers": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+  ],
+  "reference": {
+    "note": "Attested already — for checking a scan against, never for printing on a sheet. Mirrors NUMERAL_TWO_FORMS and DETERMINER_PRONOUNS in services/functions/src/kasem-morphology.ts.",
+    "twoForms": [
+      "balei",
+      "yalei",
+      "nlei",
+      "selei",
+      "telei",
+      "delei",
+      "kalei"
+    ],
+    "definiteArticles": [
+      "kam",
+      "kom",
+      "dem",
+      "tem",
+      "bam",
+      "yam",
+      "sem",
+      "wom"
+    ],
+    "countdownNote": "nlei is often used in countdowns (speaker, 2026-09-08)."
+  },
+  "sheets": [
+    {
+      "sheet": "C1",
+      "kind": "numerals-alone",
+      "word": null,
+      "answers": null
+    },
+    {
+      "sheet": "N01",
+      "kind": "counted-noun",
+      "word": "child",
+      "answers": null
+    },
+    {
+      "sheet": "N02",
+      "kind": "counted-noun",
+      "word": "woman",
+      "answers": null
+    },
+    {
+      "sheet": "N03",
+      "kind": "counted-noun",
+      "word": "man",
+      "answers": null
+    },
+    {
+      "sheet": "N04",
+      "kind": "counted-noun",
+      "word": "house",
+      "answers": null
+    },
+    {
+      "sheet": "N05",
+      "kind": "counted-noun",
+      "word": "dog",
+      "answers": null
+    },
+    {
+      "sheet": "N06",
+      "kind": "counted-noun",
+      "word": "goat",
+      "answers": null
+    },
+    {
+      "sheet": "N07",
+      "kind": "counted-noun",
+      "word": "tree",
+      "answers": null
+    },
+    {
+      "sheet": "N08",
+      "kind": "counted-noun",
+      "word": "stone",
+      "answers": null
+    },
+    {
+      "sheet": "N09",
+      "kind": "counted-noun",
+      "word": "day",
+      "answers": null
+    },
+    {
+      "sheet": "N10",
+      "kind": "counted-noun",
+      "word": "year",
+      "answers": null
+    },
+    {
+      "sheet": "N11",
+      "kind": "counted-noun-open",
+      "word": null,
+      "answers": null
+    },
+    {
+      "sheet": "N12",
+      "kind": "counted-noun-open",
+      "word": null,
+      "answers": null
+    }
+  ]
+}
