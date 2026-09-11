@@ -91,9 +91,9 @@ export function App() {
     const lifecycle = new AbortController();
 
     void Promise.resolve(context.registerTool({
-      name: "search_kasena_dictionary",
-      title: "Search Kasena Dictionary",
-      description: "Search the visible Kasena Dictionary by a Kasem or English word.",
+      name: "search_kasem_dictionary",
+      title: "Search Kasem Dictionary",
+      description: "Search the visible Kasem Dictionary by a Kasem or English word.",
       inputSchema: {
         type: "object",
         properties: { query: { type: "string", minLength: 1, maxLength: 120 } },
@@ -149,9 +149,9 @@ export function App() {
   return (
     <div className="app-shell">
       <header className="app-header">
-        <a className="brand" href="/" aria-label="Kasena Dictionary home">
+        <a className="brand" href="/" aria-label="Kasem Dictionary home">
           <span className="brand__mark" aria-hidden="true">K</span>
-          <span><strong>Kasena</strong><small>Dictionary</small></span>
+          <span><strong>Kasem</strong><small>Dictionary</small></span>
         </a>
         <span className="language-pair">Kasem <b aria-hidden="true">↔</b> English</span>
       </header>
@@ -210,7 +210,7 @@ export function App() {
         </section>
       </main>
 
-      <footer><span>Kasena Dictionary</span><span>Only reviewed, published entries are shown.</span></footer>
+      <footer><span>Kasem Dictionary</span><span>Only reviewed, published entries are shown.</span></footer>
     </div>
   );
 }

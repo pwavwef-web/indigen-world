@@ -6,7 +6,7 @@ import "./styles.css";
 
 const root = document.getElementById("root");
 
-if (!root) throw new Error("Kasena Dictionary root element was not found.");
+if (!root) throw new Error("Kasem Dictionary root element was not found.");
 
 createRoot(root).render(
   <StrictMode>
