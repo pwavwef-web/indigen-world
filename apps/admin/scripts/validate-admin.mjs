@@ -11,6 +11,9 @@ const notFound = read('src/NotFoundPage.tsx');
 const styles = read('src/styles.css');
 const reports = read('src/reports/ReportsAdmin.tsx');
 const reportData = read('src/reports/data.ts');
+const consoleHome = read('src/console/ConsoleHome.tsx');
+const consoleData = read('src/console/data.ts');
+const auditViewer = read('src/console/AuditLogViewer.tsx');
 
 assert.match(navigation, /AdminScreen \| null/, 'unknown routes have an explicit nullable result');
 assert.match(navigation, /\?\? null/, 'unknown routes do not fall back to the console');
@@ -21,6 +24,12 @@ assert.match(navigation, /path: '\/reports'/, 'community reports are reachable f
 assert.match(navigation, /<ReportsAdmin/, 'the reports route renders the moderation queue');
 assert.match(reportData, /collection\(db, 'communityReports'\)/, 'the moderation queue reads community reports');
 assert.match(reports, /setCommunityReportStatus/, 'admins can move reports through moderation statuses');
+assert.match(app, /navigationGroups/, 'the primary navigation is grouped for a growing admin console');
+assert.match(consoleData, /getCountFromServer/, 'dashboard queue totals use Firestore aggregates');
+assert.match(consoleHome, /Current Firestore totals/, 'the console labels operational metrics as live data');
+assert.doesNotMatch(consoleHome, /184 new entries|84\.2%|1\.8 days/, 'the console contains no invented analytics');
+assert.match(auditViewer, /log\.occurredAt/, 'the audit viewer reads the current timestamp field');
+assert.match(auditViewer, /log\.target/, 'the audit viewer reads the current structured target field');
 
 // ── The Kasem morphology mirror may not drift from the server ──────────────
 //

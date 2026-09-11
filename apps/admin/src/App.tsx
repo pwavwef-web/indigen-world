@@ -9,6 +9,7 @@ import { useRouter } from './router';
 import { AdminNotFoundPage } from './NotFoundPage';
 
 const provider = new GoogleAuthProvider();
+const navigationGroups = ['Overview', 'Publishing', 'Community', 'Governance'] as const;
 
 /** A full-panel notice used for the sign-in gate and per-screen access denials. */
 function Notice({ title, body }: { title: string; body: string }) {
@@ -21,7 +22,7 @@ function Notice({ title, body }: { title: string; body: string }) {
 }
 
 /**
- * Application shell: brand header, account controls, the top navigation, the
+ * Application shell: brand header, account controls, grouped navigation, the
  * breadcrumb trail, and the routed content region. Each screen has a real URL
  * (see `navigation.tsx`) so it is deep-linkable and survives a refresh; this
  * component only frames and routes them.
@@ -110,61 +111,76 @@ function App() {
           </div>
         </div>
 
-        {ready && user ? (
-          <nav className="topnav" aria-label="Primary">
-            {SCREENS.map((screen) => (
-              <a
-                key={screen.id}
-                href={screen.path}
-                className={activeScreen?.id === screen.id ? 'topnav__link is-active' : 'topnav__link'}
-                aria-current={activeScreen?.id === screen.id ? 'page' : undefined}
-                onClick={linkHandler(screen.path)}
-              >
-                {screen.label}
-              </a>
-            ))}
-          </nav>
-        ) : null}
       </header>
 
-      {(ready && user) || !activeScreen ? (
-        <nav className="breadcrumbs" aria-label="Breadcrumb">
-          <a href="/" onClick={linkHandler('/')} className="crumb">Admin console</a>
-          {activeScreen?.id !== 'console' ? (
-            <>
-              <span className="crumb-sep" aria-hidden="true">›</span>
-              <span className="crumb crumb--current" aria-current="page">
-                {activeScreen?.label ?? 'Page not found'}
-              </span>
-            </>
+      <div className={ready && user ? 'admin-layout' : 'admin-layout admin-layout--single'}>
+        {ready && user ? (
+          <aside className="admin-sidebar">
+            <nav className="admin-sidebar__inner" aria-label="Primary">
+              {navigationGroups.map((group) => (
+                <div className="sidebar-group" key={group}>
+                  <span className="sidebar-group__label">{group}</span>
+                  <div className="sidebar-group__links">
+                    {SCREENS.filter((screen) => screen.group === group).map((screen) => (
+                      <a
+                        key={screen.id}
+                        href={screen.path}
+                        className={activeScreen?.id === screen.id ? 'sidebar-link is-active' : 'sidebar-link'}
+                        aria-current={activeScreen?.id === screen.id ? 'page' : undefined}
+                        onClick={linkHandler(screen.path)}
+                      >
+                        <span className="sidebar-link__marker" aria-hidden="true" />
+                        {screen.label}
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </nav>
+          </aside>
+        ) : null}
+
+        <div className="admin-main">
+          {(ready && user) || !activeScreen ? (
+            <nav className="breadcrumbs" aria-label="Breadcrumb">
+              <a href="/" onClick={linkHandler('/')} className="crumb">Admin console</a>
+              {activeScreen?.id !== 'console' ? (
+                <>
+                  <span className="crumb-sep" aria-hidden="true">›</span>
+                  <span className="crumb crumb--current" aria-current="page">
+                    {activeScreen?.label ?? 'Page not found'}
+                  </span>
+                </>
+              ) : null}
+            </nav>
           ) : null}
-        </nav>
-      ) : null}
 
-      <main id="main-content" className="content">
-        {error ? <p className="error-line">{error}</p> : null}
-        {!activeScreen ? (
-          <AdminNotFoundPage onGoHome={linkHandler('/')} />
-        ) : !ready ? (
-          <p className="muted">Loading…</p>
-        ) : !user ? (
-          <Notice
-            title="Sign in required"
-            body="Sign in with an authorised staff account to manage the Indigen World ecosystem."
-          />
-        ) : canAccessActive ? (
-          activeScreen.render({ role })
-        ) : (
-          <Notice
-            title={activeScreen.deny?.title ?? 'Access required'}
-            body={activeScreen.deny?.body ?? 'Your account does not have access to this screen.'}
-          />
-        )}
-      </main>
+          <main id="main-content" className="content">
+            {error ? <p className="error-line">{error}</p> : null}
+            {!activeScreen ? (
+              <AdminNotFoundPage onGoHome={linkHandler('/')} />
+            ) : !ready ? (
+              <p className="muted">Loading…</p>
+            ) : !user ? (
+              <Notice
+                title="Sign in required"
+                body="Sign in with an authorised staff account to manage the Indigen World ecosystem."
+              />
+            ) : canAccessActive ? (
+              activeScreen.render({ role, navigate })
+            ) : (
+              <Notice
+                title={activeScreen.deny?.title ?? 'Access required'}
+                body={activeScreen.deny?.body ?? 'Your account does not have access to this screen.'}
+              />
+            )}
+          </main>
 
-      <footer className="footer">
-        <p>© {new Date().getFullYear()} Indigen World · Admin console · Internal use only</p>
-      </footer>
+          <footer className="footer">
+            <p>© {new Date().getFullYear()} Indigen World · Admin console · Internal use only</p>
+          </footer>
+        </div>
+      </div>
     </div>
   );
 }

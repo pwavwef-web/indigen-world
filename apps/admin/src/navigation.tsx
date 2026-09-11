@@ -44,12 +44,14 @@ export interface AdminScreen {
   path: string;
   /** Label shown in the top navigation and breadcrumb trail. */
   label: string;
+  /** Sidebar section used to keep a growing console scannable. */
+  group: 'Overview' | 'Publishing' | 'Community' | 'Governance';
   /** Role gate; return false to show `deny` instead of the screen. */
   canAccess?: (role: AdminRole) => boolean;
   /** Notice rendered when `canAccess` denies the current user. */
   deny?: { title: string; body: string };
   /** Render the screen for the given signed-in role. */
-  render: (ctx: { role: AdminRole }) => ReactNode;
+  render: (ctx: { role: AdminRole; navigate: (to: string) => void }) => ReactNode;
 }
 
 export const SCREENS: AdminScreen[] = [
@@ -57,12 +59,14 @@ export const SCREENS: AdminScreen[] = [
     id: 'console',
     path: '/',
     label: 'Console',
-    render: () => <ConsoleHome />,
+    group: 'Overview',
+    render: ({ role, navigate }) => <ConsoleHome role={role} onNavigate={navigate} />,
   },
   {
     id: 'creators',
     path: '/creators',
     label: 'Creators',
+    group: 'Publishing',
     canAccess: isValidator,
     deny: { title: 'Staff access required', body: 'Your account needs a validator or admin role to manage creators.' },
     render: ({ role }) => <CreatorsAdmin role={role} />,
@@ -71,6 +75,7 @@ export const SCREENS: AdminScreen[] = [
     id: 'learning',
     path: '/learning',
     label: 'Learning',
+    group: 'Publishing',
     canAccess: isAdmin,
     deny: {
       title: 'Admin access required',
@@ -82,6 +87,7 @@ export const SCREENS: AdminScreen[] = [
     id: 'collection',
     path: '/collection',
     label: 'Collection',
+    group: 'Publishing',
     canAccess: isAdmin,
     deny: {
       title: 'Admin access required',
@@ -93,6 +99,7 @@ export const SCREENS: AdminScreen[] = [
     id: 'reports',
     path: '/reports',
     label: 'Reports',
+    group: 'Community',
     canAccess: isAdmin,
     deny: {
       title: 'Admin access required',
@@ -104,6 +111,7 @@ export const SCREENS: AdminScreen[] = [
     id: 'interests',
     path: '/interests',
     label: 'Interests',
+    group: 'Community',
     canAccess: isValidator,
     deny: { title: 'Staff access required', body: 'Your account needs a validator or admin role to view submitted interests.' },
     render: ({ role }) => <InterestsAdmin role={role} />,
@@ -112,6 +120,7 @@ export const SCREENS: AdminScreen[] = [
     id: 'teamSites',
     path: '/team-sites',
     label: 'Team sites',
+    group: 'Community',
     canAccess: isValidator,
     deny: { title: 'Staff access required', body: 'Your account needs a validator or admin role to review team site responses.' },
     render: () => <TeamSiteRequestsAdmin />,
@@ -120,6 +129,7 @@ export const SCREENS: AdminScreen[] = [
     id: 'messaging',
     path: '/messaging',
     label: 'Messaging',
+    group: 'Community',
     canAccess: isAdmin,
     deny: { title: 'Admin access required', body: 'Your account needs an admin role to send announcements and view the SMS balance.' },
     render: () => <MessagingAdmin />,
@@ -128,6 +138,7 @@ export const SCREENS: AdminScreen[] = [
     id: 'audit',
     path: '/audit',
     label: 'Audit Trail',
+    group: 'Governance',
     canAccess: isAdmin,
     deny: { title: 'Admin access required', body: 'Your account needs an admin role to inspect audit logs.' },
     render: () => <AuditLogViewer />,
@@ -136,6 +147,7 @@ export const SCREENS: AdminScreen[] = [
     id: 'exports',
     path: '/exports',
     label: 'Exports',
+    group: 'Governance',
     canAccess: isAdmin,
     deny: { title: 'Admin access required', body: 'Your account needs an admin role to generate governed exports.' },
     render: () => <ExportManager />,

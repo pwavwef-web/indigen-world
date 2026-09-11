@@ -1,136 +1,254 @@
-import { enums, schemas } from '@indigen-world/contracts';
+import { useCallback, useEffect, useMemo, useState, type MouseEvent } from 'react';
+import { isValidator, type AdminRole } from '../creators/data';
+import { fetchOperationsSnapshot, type OperationsSnapshot } from './data';
 
-// Human-readable labels for the contract's validation lifecycle.
-const statusLabels: Record<string, string> = {
-  draft: 'Draft',
-  submitted: 'Submitted',
-  in_review: 'In review',
-  needs_changes: 'Needs changes',
-  validated: 'Validated',
-  rejected: 'Rejected',
-  retired: 'Retired',
-};
+interface QueueCard {
+  key: keyof Omit<OperationsSnapshot, 'capturedAt'>;
+  label: string;
+  body: string;
+  path: string;
+  action: string;
+  tone: 'gold' | 'clay' | 'green' | 'indigo';
+}
 
-// `planned: true` marks domains whose console UI is not built yet, so the home
-// screen doesn't imply capabilities operators can't actually reach here.
-const adminDomains: { title: string; body: string; planned?: boolean }[] = [
-  { title: 'Roles & access', body: 'Assign and audit role claims for contributors, validators and staff.', planned: true },
-  { title: 'Interests & Public Intake', body: 'Review and action submitted interests from the Get Involved form, volunteer requests and public inquiries.' },
-  { title: 'Creator management', body: 'Applications, campaigns, submissions, published content and consent for TribeStudio creators.' },
-  { title: 'Validation oversight', body: 'Monitor validator queues, escalations and quality across language cells.' },
-  { title: 'Moderation', body: 'Review reported content and track community reports through resolution.' },
-  { title: 'Campaigns & rewards', body: 'Oversee bounties, reward settlement and contributor-points integrity.', planned: true },
-  { title: 'Audit & accountability', body: 'Inspect the append-only audit log of privileged actions.', planned: true },
+const queues: QueueCard[] = [
+  {
+    key: 'reviewQueue',
+    label: 'Content awaiting review',
+    body: 'Kasem words, stories and creator work ready for a custodian decision.',
+    path: '/creators',
+    action: 'Open review queue',
+    tone: 'gold',
+  },
+  {
+    key: 'creatorApplications',
+    label: 'Creator applications',
+    body: 'Submitted or in-review applications waiting for the next decision.',
+    path: '/creators',
+    action: 'Review applications',
+    tone: 'indigo',
+  },
+  {
+    key: 'openReports',
+    label: 'Community reports',
+    body: 'Open and actively reviewing moderation cases from the community.',
+    path: '/reports',
+    action: 'Moderate reports',
+    tone: 'clay',
+  },
+  {
+    key: 'newInterests',
+    label: 'New public enquiries',
+    body: 'Partnership, volunteer and community interest still needing contact.',
+    path: '/interests',
+    action: 'Open interests',
+    tone: 'green',
+  },
 ];
 
-/** Landing screen for the admin console: an overview of domains, the validation
- * lifecycle, and the shared contract entities. */
-export function ConsoleHome() {
-  const entities = Object.entries(schemas);
+const workspaces = [
+  {
+    path: '/learning',
+    eyebrow: 'Teach',
+    title: 'Kasem learning',
+    body: 'Publish lessons, exercises and the guided learning path.',
+  },
+  {
+    path: '/collection',
+    eyebrow: 'Share',
+    title: 'Cultural collection',
+    body: 'Curate apps, books, music, heroes and the community shop.',
+  },
+  {
+    path: '/messaging',
+    eyebrow: 'Reach',
+    title: 'Community messaging',
+    body: 'Send governed announcements and manage contact groups.',
+  },
+  {
+    path: '/audit',
+    eyebrow: 'Protect',
+    title: 'Governance trail',
+    body: 'Inspect the permanent record of privileged decisions.',
+  },
+] as const;
+
+function QueueSkeleton() {
   return (
-    <>
-      <section className="panel panel--notice">
-        <h1>Administration console</h1>
-        <p>
-          The internal admin app for the Indigen World ecosystem — role and access management, creator
-          management, validation oversight, moderation, reward integrity and audit. It is separate from{' '}
-          <strong>TribeStudio</strong>, the workspace for contributors and creators.
-        </p>
-      </section>
+    <div className="queue-card queue-card--loading" aria-hidden="true">
+      <span className="skeleton skeleton--number" />
+      <span className="skeleton skeleton--line" />
+      <span className="skeleton skeleton--line skeleton--short" />
+    </div>
+  );
+}
 
-      {/* Language Cell Health & Quality Visualizer */}
-      <section className="panel">
-        <h2>Language Cell Health &amp; Operational Analytics</h2>
-        <div className="analytics-grid">
-          <div className="analytics-card">
-            <h3>Submission Velocity</h3>
-            <p className="tiny muted">Weekly submissions across Project Kassena</p>
-            <div className="mini-chart">
-              <svg viewBox="0 0 200 60" className="sparkline-svg">
-                <polyline
-                  fill="none"
-                  stroke="var(--terracotta)"
-                  strokeWidth="3"
-                  points="10,50 40,42 70,46 100,28 130,32 160,18 190,12"
-                />
-                <circle cx="190" cy="12" r="4" fill="var(--terracotta)" />
-              </svg>
-              <div className="sparkline-meta">
-                <strong>+48% this month</strong>
-                <span className="tiny muted">184 new entries/wk</span>
-              </div>
-            </div>
-          </div>
+export function ConsoleHome({
+  role,
+  onNavigate,
+}: {
+  role: AdminRole;
+  onNavigate: (to: string) => void;
+}) {
+  const [snapshot, setSnapshot] = useState<OperationsSnapshot | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-          <div className="analytics-card">
-            <h3>Validation Turnaround</h3>
-            <p className="tiny muted">Average time from submission to custodian review</p>
-            <div className="metric-large">
-              <strong>1.8 days</strong>
-              <span className="tiny positive">✓ Under 48h SLA target</span>
-            </div>
-          </div>
+  const refresh = useCallback(async () => {
+    if (!isValidator(role)) return;
+    setLoading(true);
+    setError(null);
+    try {
+      setSnapshot(await fetchOperationsSnapshot());
+    } catch (reason) {
+      setError(
+        reason instanceof Error
+          ? reason.message
+          : 'The live queue totals could not be loaded.',
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, [role]);
 
-          <div className="analytics-card">
-            <h3>Audio Coverage Ratio</h3>
-            <p className="tiny muted">% of verified lexical records with native audio</p>
-            <div className="metric-large">
-              <strong>84.2%</strong>
-              <div className="meter" aria-hidden="true">
-                <span style={{ width: '84.2%', background: 'var(--success)' }} />
-              </div>
-            </div>
-          </div>
+  useEffect(() => {
+    void refresh();
+  }, [refresh]);
 
-          <div className="analytics-card">
-            <h3>Dialect Representation</h3>
-            <p className="tiny muted">Distribution of records by regional dialect</p>
-            <ul className="mini-dialect-list">
-              <li><span>Navrongo (East)</span><strong>48%</strong></li>
-              <li><span>Paga (West)</span><strong>32%</strong></li>
-              <li><span>Chiana &amp; Katiu</span><strong>12%</strong></li>
-              <li><span>Tiébélé / Pô (North)</span><strong>8%</strong></li>
-            </ul>
+  const totalAttention = useMemo(
+    () =>
+      snapshot
+        ? queues.reduce((total, queue) => total + snapshot[queue.key], 0)
+        : 0,
+    [snapshot],
+  );
+  const open = (path: string) => (event: MouseEvent<HTMLAnchorElement>) => {
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
+    event.preventDefault();
+    onNavigate(path);
+  };
+
+  return (
+    <div className="console-home">
+      <section className="console-hero">
+        <div className="console-hero__copy">
+          <p className="console-eyebrow">PROJECT KASSENA · OPERATIONS</p>
+          <h1>Keep Kasem living, useful and community-owned.</h1>
+          <p>
+            Review contributions, care for the community and publish the learning
+            experiences that carry language, stories and identity forward.
+          </p>
+          <div className="console-hero__status">
+            <span className="live-dot" aria-hidden="true" />
+            <strong>{role ? role.replace('_', ' ') : 'Access not provisioned'}</strong>
+            <span aria-hidden="true">·</span>
+            <span>Production workspace</span>
           </div>
+        </div>
+        <div className="console-hero__mark" aria-hidden="true">
+          <span>KA</span>
+          <span>SEM</span>
         </div>
       </section>
 
-      <section className="panel">
-        <h2>Administrative domains</h2>
-        <ul className="entity-grid">
-          {adminDomains.map((domain) => (
-            <li key={domain.title} className="entity-card">
-              <strong>
-                {domain.title}
-                {domain.planned ? <span className="tag tag--planned">Planned</span> : null}
-              </strong>
-              <p>{domain.body}</p>
-            </li>
-          ))}
-        </ul>
-      </section>
+      {!isValidator(role) ? (
+        <section className="panel access-callout">
+          <span className="access-callout__icon" aria-hidden="true">!</span>
+          <div>
+            <h2>Your account is signed in, but has no staff role</h2>
+            <p>
+              Ask a super administrator to grant a reviewer or administrator role,
+              then sign out and back in to refresh your access token.
+            </p>
+          </div>
+        </section>
+      ) : (
+        <>
+          <section className="section-block" aria-labelledby="attention-heading">
+            <div className="section-heading-row">
+              <div>
+                <p className="section-kicker">LIVE OPERATIONS</p>
+                <h2 id="attention-heading">Needs attention</h2>
+                <p>Current Firestore totals—no sample or estimated figures.</p>
+              </div>
+              <div className="section-heading-row__actions">
+                {snapshot ? (
+                  <span className="snapshot-time">
+                    Updated {snapshot.capturedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                ) : null}
+                <button
+                  type="button"
+                  className="button button--small"
+                  onClick={() => void refresh()}
+                  disabled={loading}
+                >
+                  {loading ? 'Refreshing…' : 'Refresh totals'}
+                </button>
+              </div>
+            </div>
 
-      <section className="panel">
-        <h2>Validation lifecycle</h2>
-        <ol className="pipeline">
-          {(enums.validationStatus as string[]).map((status) => (
-            <li key={status} className={`pipeline__step pipeline__step--${status}`}>{statusLabels[status] ?? status}</li>
-          ))}
-        </ol>
-      </section>
+            {error ? (
+              <div className="dashboard-error" role="alert">
+                <strong>Live totals unavailable.</strong>
+                <span>{error}</span>
+                <button type="button" onClick={() => void refresh()}>Try again</button>
+              </div>
+            ) : null}
 
-      <section className="panel">
-        <h2>Shared contract entities</h2>
-        <p className="panel__hint">{entities.length} entities from <code>@indigen-world/contracts</code>.</p>
-        <ul className="entity-grid">
-          {entities.map(([key, schema]) => (
-            <li key={key} className="entity-card">
-              <strong>{(schema as { title?: string }).title ?? key}</strong>
-              <p>{(schema as { description?: string }).description ?? ''}</p>
-            </li>
-          ))}
-        </ul>
-      </section>
-    </>
+            <div className="queue-grid" aria-busy={loading && !snapshot}>
+              {loading && !snapshot
+                ? queues.map((queue) => <QueueSkeleton key={queue.key} />)
+                : queues.map((queue) => (
+                    <a
+                      key={queue.key}
+                      href={queue.path}
+                      onClick={open(queue.path)}
+                      className={`queue-card queue-card--${queue.tone}`}
+                    >
+                      <span className="queue-card__number">{snapshot?.[queue.key] ?? '—'}</span>
+                      <span className="queue-card__label">{queue.label}</span>
+                      <span className="queue-card__body">{queue.body}</span>
+                      <span className="queue-card__action">{queue.action} <span aria-hidden="true">→</span></span>
+                    </a>
+                  ))}
+            </div>
+
+            {snapshot ? (
+              <p className="attention-summary">
+                <strong>{totalAttention}</strong> open items across the four primary queues
+                <span aria-hidden="true"> · </span>
+                <a href="/team-sites" onClick={open('/team-sites')}>{snapshot.teamSiteRequests} team site request{snapshot.teamSiteRequests === 1 ? '' : 's'}</a>
+              </p>
+            ) : null}
+          </section>
+
+          <section className="section-block" aria-labelledby="workspaces-heading">
+            <div className="section-heading-row">
+              <div>
+                <p className="section-kicker">PROJECT WORKSPACES</p>
+                <h2 id="workspaces-heading">Manage the ecosystem</h2>
+                <p>Move directly into a publishing, communication or governance task.</p>
+              </div>
+            </div>
+            <div className="workspace-grid">
+              {workspaces.map((workspace) => (
+                <a
+                  key={workspace.path}
+                  href={workspace.path}
+                  className="workspace-card"
+                  onClick={open(workspace.path)}
+                >
+                  <span className="workspace-card__eyebrow">{workspace.eyebrow}</span>
+                  <strong>{workspace.title}</strong>
+                  <span>{workspace.body}</span>
+                  <span className="workspace-card__arrow" aria-hidden="true">↗</span>
+                </a>
+              ))}
+            </div>
+          </section>
+        </>
+      )}
+    </div>
   );
 }

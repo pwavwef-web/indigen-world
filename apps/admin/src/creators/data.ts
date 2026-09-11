@@ -306,11 +306,12 @@ export async function saveConfig(config: PlatformConfiguration): Promise<void> {
 // Audit log
 // ---------------------------------------------------------------------------
 
-export async function fetchAuditLogs(): Promise<Record<string, unknown>[]> {
+export async function fetchAuditLogs(options?: { throwOnError?: boolean }): Promise<Record<string, unknown>[]> {
   try {
     const snap = await getDocs(query(collection(db, 'auditLogs'), orderBy('occurredAt', 'desc'), limit(50)));
-    return snap.docs.map((d) => d.data() as Record<string, unknown>);
-  } catch {
+    return snap.docs.map((d) => ({ ...d.data(), id: d.id }) as Record<string, unknown>);
+  } catch (error) {
+    if (options?.throwOnError) throw error;
     return [];
   }
 }

@@ -8,7 +8,7 @@ The assigned native-app folder is `apps/mobile`. Native work must be developed o
 
 ## What the beta includes
 
-- Animated cultural launch where artefacts and Ghana-inspired motifs assemble the Indigen World name
+- Animated Project Kassena dawn where converging paths, a Kasem seal and the language/story/community promise introduce the purpose of Indigen World
 - Five-destination glass shell: Explore, Learn, Collection, Community and Contribute, on a floating frosted rail with a stretching highlighter pill and drag-to-switch. The account moved out of the rail into a profile orb pinned to the top-right corner of every tab
 - Explore-first vertical reels that stream real published TribeStudio content (video + image) from Firestore `publishedContent`, with likes, comments, saves, attribution, and a curated preview fallback before anything is published
 - Real accounts: Google sign-in and guest mode, layered over the guest-first experience (public learning still works signed out)

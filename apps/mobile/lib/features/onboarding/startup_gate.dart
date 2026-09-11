@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/app/app_shell.dart';
@@ -129,128 +131,187 @@ class _LaunchScreenState extends State<_LaunchScreen>
     body: AnimatedBuilder(
       animation: _controller,
       builder: (context, child) {
-        final artifactProgress = CurvedAnimation(
+        final landscapeProgress = CurvedAnimation(
           parent: _controller,
-          curve: const Interval(0, 0.56, curve: Curves.easeInOutCubic),
+          curve: const Interval(0, 0.58, curve: Curves.easeOutCubic),
         ).value;
         final brandProgress = CurvedAnimation(
           parent: _controller,
-          curve: const Interval(0.34, 0.78, curve: Curves.easeOutCubic),
+          curve: const Interval(0.22, 0.7, curve: Curves.easeOutBack),
         ).value;
-        final taglineProgress = CurvedAnimation(
+        final promiseProgress = CurvedAnimation(
           parent: _controller,
-          curve: const Interval(0.68, 0.95, curve: Curves.easeOut),
+          curve: const Interval(0.6, 0.94, curve: Curves.easeOut),
         ).value;
 
-        return DecoratedBox(
-          decoration: const BoxDecoration(
-            gradient: RadialGradient(
-              radius: 1.2,
-              center: Alignment(0, -0.12),
-              colors: [Color(0xFF174B39), Color(0xFF071D17), Color(0xFF050807)],
+        return Semantics(
+          label: 'Indigen World. Project Kassena, a living home for Kasem language, stories and community.',
+          child: DecoratedBox(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Color(0xFF071D17),
+                  Color(0xFF123C2E),
+                  Color(0xFF1C4D38),
+                ],
+                stops: [0, 0.58, 1],
+              ),
             ),
-          ),
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              const _LaunchPattern(),
-              _LivingEmblem(progress: artifactProgress, reveal: brandProgress),
-              for (final artifact in _launchArtifacts)
-                _ArtifactFlight(artifact: artifact, progress: artifactProgress),
-              SafeArea(
-                child: Center(
-                  child: Transform.translate(
-                    offset: Offset(0, 16 * (1 - brandProgress)),
-                    child: Opacity(
-                      opacity: brandProgress,
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Text(
-                            'PROJECT KASENA  ·  HOME OF KASEM',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: Colors.white54,
-                              fontSize: 8,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: 1.4,
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                            'LANGUAGE  ·  STORY  ·  RHYTHM  ·  IDENTITY',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: context.brand.gold.withValues(alpha: 0.9),
-                              fontSize: 9,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: 1.5,
-                            ),
-                          ),
-                          const SizedBox(height: 18),
-                          Text(
-                            'INDIGEN',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 52,
-                              height: 0.82,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: -3 + (3 * (1 - brandProgress)),
-                            ),
-                          ),
-                          const SizedBox(height: 11),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 13,
-                              vertical: 6,
-                            ),
-                            decoration: BoxDecoration(
-                              border: Border.all(color: Colors.white54),
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: const Text(
-                              'W O R L D',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 18,
-                                fontWeight: FontWeight.w700,
-                                letterSpacing: 6,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                ExcludeSemantics(
+                  child: CustomPaint(
+                    painter: _KasenaHorizonPainter(landscapeProgress),
+                  ),
+                ),
+                SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 18, 24, 24),
+                    child: Column(
+                      children: [
+                        Opacity(
+                          opacity: landscapeProgress,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Container(
+                                width: 28,
+                                height: 1,
+                                color: context.brand.gold,
                               ),
-                            ),
-                          ),
-                          const SizedBox(height: 24),
-                          Opacity(
-                            opacity: taglineProgress,
-                            child: const Text(
-                              'Our culture is not behind us. It is becoming.',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                color: Colors.white70,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
+                              const Padding(
+                                padding: EdgeInsets.symmetric(horizontal: 10),
+                                child: Text(
+                                  'PROJECT KASSENA',
+                                  style: TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.w900,
+                                    letterSpacing: 2.2,
+                                  ),
+                                ),
                               ),
+                              Container(
+                                width: 28,
+                                height: 1,
+                                color: context.brand.gold,
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Spacer(),
+                        Transform.translate(
+                          offset: Offset(0, 18 * (1 - brandProgress)),
+                          child: Opacity(
+                            opacity: brandProgress.clamp(0, 1),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                _KasemSeal(progress: landscapeProgress),
+                                const SizedBox(height: 22),
+                                const FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Text(
+                                    'INDIGEN WORLD',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 43,
+                                      height: 0.95,
+                                      fontWeight: FontWeight.w900,
+                                      letterSpacing: -2.2,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                                Text(
+                                  'Kasem lives here.',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    color: context.brand.gold,
+                                    fontSize: 21,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: -0.2,
+                                  ),
+                                ),
+                                const SizedBox(height: 9),
+                                ConstrainedBox(
+                                  constraints: const BoxConstraints(
+                                    maxWidth: 330,
+                                  ),
+                                  child: const Text(
+                                    'Learn the language. Carry the stories. Grow the community.',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      color: Colors.white70,
+                                      fontSize: 12,
+                                      height: 1.45,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                        ],
-                      ),
+                        ),
+                        const Spacer(),
+                        Opacity(
+                          opacity: promiseProgress,
+                          child: const _ProjectPillars(),
+                        ),
+                        const SizedBox(height: 25),
+                        Opacity(
+                          opacity: promiseProgress,
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 360),
+                            child: Column(
+                              children: [
+                                Row(
+                                  children: [
+                                    Text(
+                                      'OPENING THE WORLD OF KASEM',
+                                      style: TextStyle(
+                                        color: Colors.white.withValues(
+                                          alpha: 0.56,
+                                        ),
+                                        fontSize: 8,
+                                        fontWeight: FontWeight.w800,
+                                        letterSpacing: 1.35,
+                                      ),
+                                    ),
+                                    const Spacer(),
+                                    Text(
+                                      '${(_controller.value * 100).round()}%',
+                                      style: TextStyle(
+                                        color: context.brand.gold,
+                                        fontSize: 9,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(99),
+                                  child: LinearProgressIndicator(
+                                    value: _controller.value,
+                                    minHeight: 3,
+                                    color: context.brand.gold,
+                                    backgroundColor: Colors.white12,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
-              ),
-              Positioned(
-                left: 24,
-                right: 24,
-                bottom: 26,
-                child: Opacity(
-                  opacity: taglineProgress,
-                  child: LinearProgressIndicator(
-                    minHeight: 2,
-                    color: context.brand.gold,
-                    backgroundColor: Colors.white12,
-                  ),
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         );
       },
@@ -258,224 +319,213 @@ class _LaunchScreenState extends State<_LaunchScreen>
   );
 }
 
-class _LivingEmblem extends StatelessWidget {
-  const _LivingEmblem({required this.progress, required this.reveal});
+class _KasemSeal extends StatelessWidget {
+  const _KasemSeal({required this.progress});
 
   final double progress;
-  final double reveal;
 
   @override
-  Widget build(BuildContext context) => Center(
-    child: Opacity(
-      opacity: 0.08 + (reveal * 0.12),
-      child: Transform.rotate(
-        angle: progress * 1.4,
-        child: Transform.scale(
-          scale: 0.78 + (progress * 0.25),
-          child: SizedBox.square(
-            dimension: 310,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                Container(
-                  width: 300,
-                  height: 300,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(color: context.brand.gold),
-                  ),
-                ),
-                Transform.rotate(
-                  angle: -progress * 2.6,
-                  child: Container(
-                    width: 245,
-                    height: 245,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(62),
-                      border: Border.all(color: Colors.white),
-                    ),
-                  ),
-                ),
-                Container(
-                  width: 182,
-                  height: 182,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: context.brand.terracotta,
-                      width: 2,
-                    ),
-                  ),
-                ),
-                Text(
-                  '✣',
-                  style: TextStyle(
-                    color: context.brand.gold,
-                    fontSize: 86,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ],
+  Widget build(BuildContext context) => SizedBox.square(
+    dimension: 132,
+    child: Stack(
+      alignment: Alignment.center,
+      children: [
+        Transform.rotate(
+          angle: progress * math.pi * 0.18,
+          child: Container(
+            width: 128,
+            height: 128,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(38),
+              border: Border.all(
+                color: context.brand.gold.withValues(alpha: 0.42),
+              ),
             ),
           ),
         ),
-      ),
-    ),
-  );
-}
-
-class _LaunchPattern extends StatelessWidget {
-  const _LaunchPattern();
-
-  @override
-  Widget build(BuildContext context) => Opacity(
-    opacity: 0.055,
-    child: GridPaper(
-      color: context.brand.gold,
-      interval: 42,
-      divisions: 2,
-      subdivisions: 1,
-      child: const SizedBox.expand(),
-    ),
-  );
-}
-
-class _ArtifactFlight extends StatelessWidget {
-  const _ArtifactFlight({required this.artifact, required this.progress});
-
-  final _LaunchArtifact artifact;
-  final double progress;
-
-  @override
-  Widget build(BuildContext context) {
-    final alignment = Alignment.lerp(artifact.start, artifact.end, progress)!;
-    final opacity = (progress < 0.78 ? progress : (1 - progress) * 4.5)
-        .clamp(0.0, 1.0)
-        .toDouble();
-    return Align(
-      alignment: alignment,
-      child: Transform.rotate(
-        angle: (1 - progress) * artifact.rotation,
-        child: Opacity(
-          opacity: opacity,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: artifact.size,
-                height: artifact.size,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: artifact.color.withValues(alpha: 0.14),
-                  border: Border.all(
-                    color: artifact.color.withValues(alpha: 0.7),
-                  ),
-                ),
-                child: Center(
-                  child: Text(
-                    artifact.glyph,
-                    style: TextStyle(
-                      color: artifact.color,
-                      fontSize: artifact.size * 0.5,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ),
+        Container(
+          width: 108,
+          height: 108,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: const Color(0xFF0B281F).withValues(alpha: 0.82),
+            border: Border.all(color: context.brand.gold, width: 1.5),
+            boxShadow: [
+              BoxShadow(
+                color: context.brand.gold.withValues(alpha: 0.18),
+                blurRadius: 30,
+                spreadRadius: 4,
               ),
-              const SizedBox(height: 5),
-              Text(
-                artifact.label,
-                style: const TextStyle(
-                  color: Colors.white54,
-                  fontSize: 7,
+            ],
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.language_rounded, color: context.brand.gold, size: 34),
+              const SizedBox(height: 4),
+              const Text(
+                'K A S E M',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 10,
                   fontWeight: FontWeight.w900,
-                  letterSpacing: 1,
+                  letterSpacing: 1.5,
                 ),
               ),
             ],
           ),
         ),
-      ),
-    );
-  }
+      ],
+    ),
+  );
 }
 
-class _LaunchArtifact {
-  const _LaunchArtifact({
-    required this.glyph,
-    required this.label,
-    required this.start,
-    required this.end,
-    required this.color,
-    required this.size,
-    required this.rotation,
-  });
+class _ProjectPillars extends StatelessWidget {
+  const _ProjectPillars();
 
-  final String glyph;
+  @override
+  Widget build(BuildContext context) => ConstrainedBox(
+    constraints: const BoxConstraints(maxWidth: 390),
+    child: Row(
+      children: [
+        const _ProjectPillar(
+          icon: Icons.record_voice_over_rounded,
+          label: 'LANGUAGE',
+        ),
+        _PillarDivider(color: context.brand.gold),
+        const _ProjectPillar(
+          icon: Icons.auto_stories_rounded,
+          label: 'STORIES',
+        ),
+        _PillarDivider(color: context.brand.gold),
+        const _ProjectPillar(icon: Icons.groups_rounded, label: 'COMMUNITY'),
+      ],
+    ),
+  );
+}
+
+class _ProjectPillar extends StatelessWidget {
+  const _ProjectPillar({required this.icon, required this.label});
+
+  final IconData icon;
   final String label;
-  final Alignment start;
-  final Alignment end;
-  final Color color;
-  final double size;
-  final double rotation;
+
+  @override
+  Widget build(BuildContext context) => Expanded(
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, color: Colors.white70, size: 18),
+        const SizedBox(height: 7),
+        Text(
+          label,
+          style: const TextStyle(
+            color: Colors.white60,
+            fontSize: 8,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 1.2,
+          ),
+        ),
+      ],
+    ),
+  );
 }
 
-const _launchArtifacts = [
-  _LaunchArtifact(
-    glyph: '◒',
-    label: 'CALABASH',
-    start: Alignment(-0.9, -0.84),
-    end: Alignment(-0.3, -0.12),
-    color: BrandColors.kenteGold,
-    size: 54,
-    rotation: -0.8,
-  ),
-  _LaunchArtifact(
-    glyph: '▥',
-    label: 'DRUM',
-    start: Alignment(0.92, -0.72),
-    end: Alignment(0.28, -0.12),
-    color: BrandColors.terracotta,
-    size: 60,
-    rotation: 0.7,
-  ),
-  _LaunchArtifact(
-    glyph: '◉',
-    label: 'COWRIE',
-    start: Alignment(-0.94, 0.62),
-    end: Alignment(-0.18, 0.08),
-    color: Color(0xFFFFFDF8),
-    size: 46,
-    rotation: 1.1,
-  ),
-  _LaunchArtifact(
-    glyph: '✣',
-    label: 'SYMBOL',
-    start: Alignment(0.9, 0.7),
-    end: Alignment(0.2, 0.08),
-    color: BrandColors.kenteGold,
-    size: 58,
-    rotation: -1,
-  ),
-  _LaunchArtifact(
-    glyph: '●',
-    label: 'BEAD',
-    start: Alignment(-0.72, 0.02),
-    end: Alignment(-0.08, -0.02),
-    color: BrandColors.terracotta,
-    size: 34,
-    rotation: 0.4,
-  ),
-  _LaunchArtifact(
-    glyph: '◆',
-    label: 'WEAVE',
-    start: Alignment(0.74, 0.06),
-    end: Alignment(0.08, -0.02),
-    color: Color(0xFFFFFDF8),
-    size: 38,
-    rotation: -0.5,
-  ),
-];
+class _PillarDivider extends StatelessWidget {
+  const _PillarDivider({required this.color});
+
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) =>
+      Container(width: 1, height: 28, color: color.withValues(alpha: 0.28));
+}
+
+/// A dawn over Kassena country: the shared horizon and converging paths make
+/// the project's purpose visible before a line of interface copy is read.
+class _KasenaHorizonPainter extends CustomPainter {
+  const _KasenaHorizonPainter(this.progress);
+
+  final double progress;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final gold = Paint()
+      ..color = BrandColors.kenteGold.withValues(alpha: 0.1 * progress)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1;
+    final center = Offset(size.width * 0.5, size.height * 0.36);
+
+    for (var ring = 0; ring < 3; ring++) {
+      canvas.drawCircle(center, 64 + (ring * 37 * progress), gold);
+    }
+
+    canvas.drawCircle(
+      center,
+      54 * progress,
+      Paint()..color = BrandColors.kenteGold.withValues(alpha: 0.12 * progress),
+    );
+
+    final hill = Path()
+      ..moveTo(0, size.height * 0.68)
+      ..quadraticBezierTo(
+        size.width * 0.24,
+        size.height * 0.59,
+        size.width * 0.5,
+        size.height * 0.69,
+      )
+      ..quadraticBezierTo(
+        size.width * 0.78,
+        size.height * 0.6,
+        size.width,
+        size.height * 0.67,
+      )
+      ..lineTo(size.width, size.height)
+      ..lineTo(0, size.height)
+      ..close();
+    canvas.drawPath(
+      hill,
+      Paint()
+        ..color = const Color(0xFF071D17).withValues(alpha: 0.38 * progress),
+    );
+
+    final pathPaint = Paint()
+      ..color = BrandColors.kenteGold.withValues(alpha: 0.13 * progress)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.2;
+    for (final startX in [0.05, 0.23, 0.77, 0.95]) {
+      final path = Path()
+        ..moveTo(size.width * startX, size.height)
+        ..quadraticBezierTo(
+          size.width * (0.5 + ((startX - 0.5) * 0.12)),
+          size.height * 0.76,
+          size.width * 0.5,
+          size.height * 0.64,
+        );
+      canvas.drawPath(path, pathPaint);
+    }
+
+    final motif = Paint()
+      ..color = Colors.white.withValues(alpha: 0.035 * progress)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1;
+    const step = 28.0;
+    for (double x = -step; x < size.width + step; x += step) {
+      final y = size.height * 0.86;
+      canvas.drawPath(
+        Path()
+          ..moveTo(x, y)
+          ..lineTo(x + step / 2, y + step / 2)
+          ..lineTo(x + step, y),
+        motif,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _KasenaHorizonPainter oldDelegate) =>
+      oldDelegate.progress != progress;
+}
 
 class _OnboardingScreen extends StatelessWidget {
   const _OnboardingScreen({

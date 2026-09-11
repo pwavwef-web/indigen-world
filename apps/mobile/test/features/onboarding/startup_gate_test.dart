@@ -17,6 +17,37 @@ void main() {
   setUp(() => database = AppDatabase.forTesting(NativeDatabase.memory()));
   tearDown(() => database.close());
 
+  testWidgets('the launch frame tells viewers what Project Kassena does', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({});
+    await tester.binding.setSurfaceSize(const Size(430, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          appDatabaseProvider.overrideWithValue(database),
+          firebaseReadyProvider.overrideWithValue(false),
+        ],
+        child: const IndigenWorldApp(),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 2200));
+
+    expect(find.text('PROJECT KASSENA'), findsOneWidget);
+    expect(find.text('Kasem lives here.'), findsOneWidget);
+    expect(
+      find.text('Learn the language. Carry the stories. Grow the community.'),
+      findsOneWidget,
+    );
+    expect(find.text('LANGUAGE'), findsOneWidget);
+    expect(find.text('STORIES'), findsOneWidget);
+    expect(find.text('COMMUNITY'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    // Let the startup gate's minimum display timer complete before teardown.
+    await tester.pump(const Duration(milliseconds: 1200));
+  });
+
   Future<void> launch(
     WidgetTester tester, {
     required bool firebaseReady,
