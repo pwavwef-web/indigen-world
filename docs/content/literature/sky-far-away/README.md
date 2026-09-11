@@ -1,0 +1,15 @@
+# Why the sky and clouds are far away
+
+Local illustrated review draft for the Literature collection. Open `preview.html` in a browser. `story.json` contains the editable story, English expansion, sentence-level questions, and references. The HTML embeds a copy of the JSON so it opens without a server; update that embedded copy when editing the JSON.
+
+The Kasem is incomplete. Every newly composed sentence needs fluent-speaker review. Brackets explicitly identify untranslated text. English expansions are the intended full story, not a claim that each short Kasem caption translates the whole scene. The user selected Navrongo and supplied four language contributions, recorded verbatim in story.json and included in the preview. All other draft wording needs Navrongo review. No production app content or corpus has been changed.
+
+The image was visually inspected: eight scenes, consistent cast, pestle and mortar, cloud gathering, warnings represented by light, and distant clouds at the end. The sheet's panels are not perfectly equal in height, so the CSS grid crops can include a narrow neighboring edge. Browser visual testing of the HTML was blocked by the browser's local-file URL policy; no browser layout verification is claimed.
+
+## Illustration generation
+
+Tool: built-in imagegen; one generated sheet, copied into this directory as `illustrations.png`. Text and speech bubbles are HTML, separate from the image.
+
+Exact prompt:
+
+> Use case: illustration-story. Create one continuous comic story illustration sheet with exactly 8 equal-sized rectangular panels arranged in 2 columns and 4 rows, no gutters, no borders, total portrait aspect ratio 2:3. Warm hand-painted gouache children's folktale, terracotta Kasena compound houses with geometric painted walls, savanna northern Ghana, indigo and amber and cream. Consistent cast: dark-skinned elderly woman, gray hair, indigo wrapper, long wooden pestle and wooden mortar; villagers and child in ochre clothes. The elderly woman is a folktale witch but looks human, stubborn expressive face, no European witch costume. All panels contain no lettering, no captions, no bubbles, leave upper third quiet for later editable text overlays. Read left-right then down. Panel 1: sky is a low soft blue ceiling with clouds just above villagers' heads over village. Panel 2: woman and child pluck fluffy cloud pieces into a calabash beside a cooking pot. Panel 3: elderly woman pounds fufu in courtyard, lifts very long pestle that touches low sky. Panel 4: pestle bumps sky with golden ripple, woman looks upward as divine golden light warns her; God represented only by light. Panel 5: neighbors plead with woman, she stubbornly raises pestle again. Panel 6: she strikes sky again harder, swelling golden light in clouds conveys final warning ignored. Panel 7: vast sky and clouds lift upward, villagers reaching in wonder and old woman frozen with pestle. Panel 8: peaceful evening wide distant high clouds beyond reach, child and elder gaze up beside cooking hearth. Visual narrative should clearly show clouds low in first six panels and high far away in last two. No text anywhere.

@@ -10,6 +10,8 @@ import {
   involvementAcknowledgement,
   involvementTeamAlert,
   newsletterWelcome,
+  testerRewardAcknowledgement,
+  testerRewardTeamAlert,
 } from './email-templates.js';
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -38,9 +40,9 @@ function validEmail(value: string): boolean {
 }
 
 /**
- * Same-origin public intake for the website's contact, involvement and
- * newsletter forms. Raw submissions are server-written and remain covered by
- * Firestore's default-deny client rules.
+ * Same-origin public intake for the website's contact, involvement,
+ * newsletter and private-distribution tester reward forms. Raw submissions
+ * are server-written and remain covered by Firestore's default-deny rules.
  */
 export const publicForms = onRequest(
   { cors: true, invoker: 'public', region: 'us-central1', timeoutSeconds: 15, secrets: [SMTP_PASSWORD] },
@@ -186,6 +188,83 @@ export const publicForms = onRequest(
           sends.push(sendMail({ to: contact, subject: ack.subject, html: ack.html, text: ack.text }));
         }
         await Promise.all(sends);
+
+        res.status(200).json({ accepted: true });
+        return;
+      }
+
+      if (form === 'tester-reward-claim') {
+        const certificateName = text(payload.certificateName, 160);
+        const cardName = text(payload.cardName, 160);
+        const playEmail = email(payload.playEmail);
+        const contactEmail = email(payload.contactEmail);
+        const country = text(payload.country, 80);
+        const recognitionChoice = text(payload.recognitionChoice, 3);
+        const recognitionName = text(payload.recognitionName, 160);
+        const profileUrl = text(payload.profileUrl, 500);
+        const note = text(payload.note, 2000);
+        const allConfirmed = [
+          payload.testerConfirmation,
+          payload.usageConfirmation,
+          payload.feedbackConfirmation,
+          payload.honestFeedbackConfirmation,
+        ].every((value) => value === 'confirmed');
+        const validProfileUrl = !profileUrl || /^https?:\/\/[^\s]+$/i.test(profileUrl);
+
+        if (
+          certificateName.length < 2 ||
+          cardName.length < 2 ||
+          !validEmail(playEmail) ||
+          !validEmail(contactEmail) ||
+          !country ||
+          !['yes', 'no'].includes(recognitionChoice) ||
+          !validProfileUrl ||
+          !allConfirmed ||
+          payload.privacyConsent !== 'accepted'
+        ) {
+          res.status(400).json({ error: 'invalid-tester-reward-claim' });
+          return;
+        }
+
+        // One live claim per Google Play testing address. Re-submitting with
+        // the same address corrects the details without creating duplicates.
+        const ref = db.collection('publicFormSubmissions').doc(`tester-${fingerprint(playEmail)}`);
+        await db.runTransaction(async (tx) => {
+          const existing = await tx.get(ref);
+          tx.set(ref, {
+            id: ref.id,
+            form,
+            payload: {
+              certificateName,
+              cardName,
+              playEmail,
+              contactEmail,
+              country,
+              recognitionChoice,
+              recognitionName: recognitionChoice === 'yes' ? recognitionName : '',
+              profileUrl: recognitionChoice === 'yes' ? profileUrl : '',
+              testerConfirmation: 'confirmed',
+              usageConfirmation: 'confirmed',
+              feedbackConfirmation: 'confirmed',
+              honestFeedbackConfirmation: 'confirmed',
+              privacyConsent: 'accepted',
+              note,
+            },
+            source: 'website-private-link',
+            status: existing.exists ? existing.get('status') || 'new' : 'new',
+            receivedAt: existing.exists && existing.get('receivedAt')
+              ? existing.get('receivedAt')
+              : FieldValue.serverTimestamp(),
+            updatedAt: FieldValue.serverTimestamp(),
+          });
+        });
+
+        const teamAlert = testerRewardTeamAlert({ certificateName, cardName, playEmail, contactEmail, country, recognitionChoice });
+        const acknowledgement = testerRewardAcknowledgement({ name: certificateName });
+        await Promise.all([
+          sendMail({ to: teamInbox(), subject: teamAlert.subject, html: teamAlert.html, text: teamAlert.text, replyTo: contactEmail }),
+          sendMail({ to: contactEmail, subject: acknowledgement.subject, html: acknowledgement.html, text: acknowledgement.text }),
+        ]);
 
         res.status(200).json({ accepted: true });
         return;

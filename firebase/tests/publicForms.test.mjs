@@ -9,7 +9,9 @@ const ENDPOINT = `http://127.0.0.1:5001/${PROJECT_ID}/us-central1/publicForms`;
 const TEST_EMAIL = 'venacula-e2e@example.com';
 const CONTACT_EMAIL = 'contact-form-e2e@example.com';
 const INVOLVEMENT_CONTACT = 'involvement-form-e2e@example.com';
+const TESTER_PLAY_EMAIL = 'tester-claim-e2e@example.com';
 const subscriberId = createHash('sha256').update(TEST_EMAIL).digest('hex');
+const testerClaimId = `tester-${createHash('sha256').update(TESTER_PLAY_EMAIL).digest('hex')}`;
 
 let app;
 let db;
@@ -27,6 +29,7 @@ before(async () => {
   db = getFirestore(app);
   await Promise.all([
     db.doc(`newsletterSubscribers/${subscriberId}`).delete(),
+    db.doc(`publicFormSubmissions/${testerClaimId}`).delete(),
     deletePublicFormFixtures(),
   ]);
 });
@@ -34,6 +37,7 @@ before(async () => {
 after(async () => {
   await Promise.all([
     db.doc(`newsletterSubscribers/${subscriberId}`).delete(),
+    db.doc(`publicFormSubmissions/${testerClaimId}`).delete(),
     deletePublicFormFixtures(),
   ]);
   await deleteApp(app);
@@ -112,6 +116,45 @@ test('get-involved form validates and stores the submission', async () => {
   assert.equal(stored.docs[0].get('form'), 'get-involved');
   assert.equal(stored.docs[0].get('payload.route'), 'Technical volunteer');
   assert.equal(stored.docs[0].get('status'), 'new');
+});
+
+test('tester reward claim validates confirmations, stores details and deduplicates by Play email', async () => {
+  const claim = {
+    certificateName: 'Founding Tester',
+    cardName: 'Tester One',
+    playEmail: TESTER_PLAY_EMAIL,
+    contactEmail: 'tester-contact-e2e@example.com',
+    country: 'Ghana',
+    recognitionChoice: 'yes',
+    recognitionName: 'Tester One',
+    profileUrl: 'https://example.com/tester-one',
+    testerConfirmation: 'confirmed',
+    usageConfirmation: 'confirmed',
+    feedbackConfirmation: 'confirmed',
+    honestFeedbackConfirmation: 'confirmed',
+    privacyConsent: 'accepted',
+    note: 'Automated test claim.',
+  };
+
+  const invalid = await postForm('tester-reward-claim', { ...claim, feedbackConfirmation: '' });
+  assert.equal(invalid.status, 400);
+
+  const accepted = await postForm('tester-reward-claim', claim);
+  assert.equal(accepted.status, 200);
+  assert.deepEqual(await accepted.json(), { accepted: true });
+
+  const stored = await db.doc(`publicFormSubmissions/${testerClaimId}`).get();
+  assert.equal(stored.get('form'), 'tester-reward-claim');
+  assert.equal(stored.get('payload.cardName'), 'Tester One');
+  assert.equal(stored.get('payload.recognitionChoice'), 'yes');
+  assert.equal(stored.get('status'), 'new');
+  const originalReceivedAt = stored.get('receivedAt').toMillis();
+
+  const corrected = await postForm('tester-reward-claim', { ...claim, cardName: 'Tester 01' });
+  assert.equal(corrected.status, 200);
+  const correctedClaim = await db.doc(`publicFormSubmissions/${testerClaimId}`).get();
+  assert.equal(correctedClaim.get('payload.cardName'), 'Tester 01');
+  assert.equal(correctedClaim.get('receivedAt').toMillis(), originalReceivedAt);
 });
 
 test('newsletter signup validates consent, stores a subscriber and deduplicates by email', async () => {

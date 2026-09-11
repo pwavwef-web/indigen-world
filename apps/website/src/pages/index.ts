@@ -61,6 +61,11 @@ export const PAGE_COMPONENTS: Record<string, LazyPage> = {
       ({ AdsPaymentCompletePage }) => ({ default: AdsPaymentCompletePage })
     )
   ),
+  "founding-tester-claim-7q4m9x2k": lazy(() =>
+    withRouteLoadingTiming(import("./TesterRewardClaimPage")).then(
+      ({ TesterRewardClaimPage }) => ({ default: TesterRewardClaimPage })
+    )
+  ),
 };
 
 export { NotFoundPage } from "./NotFoundPage";

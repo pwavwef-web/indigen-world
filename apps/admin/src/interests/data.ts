@@ -30,9 +30,26 @@ export interface ContactPayload {
   message: string;
 }
 
-export interface PublicFormSubmission<T = GetInvolvedPayload | ContactPayload> {
+export interface TesterRewardPayload {
+  certificateName: string;
+  cardName: string;
+  playEmail: string;
+  contactEmail: string;
+  country: string;
+  recognitionChoice: 'yes' | 'no';
+  recognitionName?: string;
+  profileUrl?: string;
+  testerConfirmation: 'confirmed';
+  usageConfirmation: 'confirmed';
+  feedbackConfirmation: 'confirmed';
+  honestFeedbackConfirmation: 'confirmed';
+  privacyConsent: 'accepted';
+  note?: string;
+}
+
+export interface PublicFormSubmission<T = GetInvolvedPayload | ContactPayload | TesterRewardPayload> {
   id: string;
-  form: 'get-involved' | 'contact' | string;
+  form: 'get-involved' | 'contact' | 'tester-reward-claim' | string;
   source: string;
   status: SubmissionStatus;
   receivedAt: Timestamp | string | { seconds: number; nanoseconds: number } | null;

@@ -111,14 +111,14 @@ export const MAX_QUEUE_BATCH = 50;
 export const MAX_PROGRESS_IDS = 2000;
 
 /**
- * The most queue rows one `nextQueueWords` call will read.
+ * The most unseen queue rows one `nextQueueWords` call will read.
  *
  * A member who has skipped a thousand of the commonest words has to be paged
  * past them, and the query cannot express "not in this list" — Firestore's
  * `not-in` caps at ten values. So the filtering is done here, over a bounded
  * scan, and a member who exhausts it gets a short batch rather than a slow one.
- * Six hundred reads is the ceiling for the worst case; the common case is one
- * page of eighty.
+ * Previously the cap included answered/skipped rows, trapping members behind
+ * their first 600 prompts forever. Allow room for their bounded history too.
  */
 const MAX_QUEUE_SCAN = 600;
 
@@ -286,9 +286,8 @@ export function progressIds(value: unknown): string[] {
  *
  * Already-present ids are left exactly where they are rather than moved to the
  * end. That makes the function idempotent, which is what lets `skipQueueWord`
- * tell a genuine skip from a retry of one — the caller compares the returned
- * length with the one it passed in, and only charges the counter when the list
- * actually grew.
+ * tell a genuine skip from a retry. Compare membership, never list lengths:
+ * appending a new ID at the cap evicts an old ID and keeps the same length.
  */
 export function appendProgressId(
   ids: readonly string[],
@@ -298,6 +297,10 @@ export function appendProgressId(
   if (ids.includes(id)) return [...ids];
   const next = [...ids, id];
   return next.length > cap ? next.slice(next.length - cap) : next;
+}
+
+export function advanceQueueProgress(ids: readonly string[], id: string) {
+  return { alreadyPresent: ids.includes(id), ids: appendProgressId(ids, id) };
 }
 
 function progressDocument(uid: string, progress: QueueProgress): JsonRecord {
@@ -375,6 +378,30 @@ export function selectQueueBatch(
     words,
     freshCount: Math.min(fresh.length, words.length),
   };
+}
+
+/** Fetch pages in rank order, allowing enough reads to pass all saved history. */
+export async function scanQueueBatch(
+  progress: QueueProgress,
+  limit: number,
+  fetchPage: (size: number) => Promise<WordQueueRow[]>,
+): Promise<QueueBatch & { exhausted: boolean }> {
+  const budget = MAX_QUEUE_SCAN + new Set([...progress.answered, ...progress.skipped]).size;
+  const pageSize = Math.min(Math.max(limit * 4, 100), 250);
+  const rows: WordQueueRow[] = [];
+  let batch = selectQueueBatch(rows, progress, limit);
+  let reachedEnd = false;
+  while (batch.freshCount < limit && rows.length < budget) {
+    const size = Math.min(pageSize, budget - rows.length);
+    const page = await fetchPage(size);
+    rows.push(...page);
+    batch = selectQueueBatch(rows, progress, limit);
+    if (page.length < size) {
+      reachedEnd = true;
+      break;
+    }
+  }
+  return { ...batch, exhausted: reachedEnd && batch.words.length === 0 };
 }
 
 export function parseQueueBatchLimit(raw: unknown): number {
@@ -555,31 +582,17 @@ export const nextQueueWords = onCall(CALLABLE_OPTIONS, async (req) => {
   const db = getFirestore();
   const progress = await readProgress(db, uid);
 
-  const pageSize = Math.min(Math.max(limit * 4, 100), 250);
-  const rows: WordQueueRow[] = [];
   let cursor: DocumentSnapshot | null = null;
-  let exhausted = false;
-  let batch = selectQueueBatch(rows, progress, limit);
-
-  while (batch.freshCount < limit && rows.length < MAX_QUEUE_SCAN) {
+  const batch = await scanQueueBatch(progress, limit, async (size) => {
     let query: Query = db.collection(WORD_QUEUE_COLLECTION)
       .where('status', '==', 'open')
       .orderBy('rank')
-      .limit(pageSize);
+      .limit(size);
     if (cursor) query = query.startAfter(cursor);
     const snap = await query.get();
-    if (snap.empty) {
-      exhausted = true;
-      break;
-    }
-    cursor = snap.docs[snap.docs.length - 1];
-    for (const doc of snap.docs) rows.push({ id: doc.id, data: doc.data() });
-    batch = selectQueueBatch(rows, progress, limit);
-    if (snap.size < pageSize) {
-      exhausted = true;
-      break;
-    }
-  }
+    if (!snap.empty) cursor = snap.docs[snap.docs.length - 1];
+    return snap.docs.map(doc => ({ id: doc.id, data: doc.data() }));
+  });
 
   return {
     words: batch.words,
@@ -590,7 +603,7 @@ export const nextQueueWords = onCall(CALLABLE_OPTIONS, async (req) => {
     // True only when the scan reached the actual end of the open rows, so the
     // client can say "you have answered everything" rather than "nothing came
     // back, try again" — which are very different messages to a volunteer.
-    exhausted: exhausted && batch.words.length === 0,
+    exhausted: batch.exhausted,
   };
 });
 
@@ -734,9 +747,9 @@ export const skipQueueWord = onCall(CALLABLE_OPTIONS, async (req) => {
       throw new HttpsError('not-found', 'That word is not in the queue.');
     }
     const skipped = progressIds(progressSnap.get('skipped'));
-    const nextSkipped = appendProgressId(skipped, wordId);
+    const nextSkipped = advanceQueueProgress(skipped, wordId);
     // A retry over a bad connection must not charge the counter twice.
-    if (nextSkipped.length === skipped.length) {
+    if (nextSkipped.alreadyPresent) {
       return { wordId, skipped: true, alreadySkipped: true };
     }
 
@@ -747,7 +760,7 @@ export const skipQueueWord = onCall(CALLABLE_OPTIONS, async (req) => {
     });
     tx.set(progressRef, progressDocument(uid, {
       answered: progressIds(progressSnap.get('answered')),
-      skipped: nextSkipped,
+      skipped: nextSkipped.ids,
     }), { merge: true });
 
     return { wordId, skipped: true, alreadySkipped: false };
@@ -1027,8 +1040,8 @@ export const submitWordTranslation = onCall(CALLABLE_OPTIONS, async (req) => {
     }
 
     const answered = progressIds(progressSnap.get('answered'));
-    const nextAnswered = appendProgressId(answered, input.wordId);
-    if (nextAnswered.length === answered.length) {
+    const nextAnswered = advanceQueueProgress(answered, input.wordId);
+    if (nextAnswered.alreadyPresent) {
       throw new HttpsError('already-exists', 'You have already answered this word.');
     }
 
@@ -1075,7 +1088,7 @@ export const submitWordTranslation = onCall(CALLABLE_OPTIONS, async (req) => {
     });
     tx.set(claimRef, claimDocument(contributionRef.id, input.wordId, 'pending'), { merge: true });
     tx.set(progressRef, progressDocument(uid, {
-      answered: nextAnswered,
+      answered: nextAnswered.ids,
       skipped: progressIds(progressSnap.get('skipped')),
     }), { merge: true });
 

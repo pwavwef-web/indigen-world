@@ -30,6 +30,8 @@ const getInvolvedPage = read("src/pages/GetInvolvedPage.tsx");
 const contactPage = read("src/pages/ContactPage.tsx");
 const dictionaryPage = read("src/pages/DictionaryPage.tsx");
 const dictionaryData = read("src/features/dictionary/dictionaryData.ts");
+const testerClaimPath = "founding-tester-claim-7q4m9x2k";
+const testerClaimPage = read("src/pages/TesterRewardClaimPage.tsx");
 const firebaseConfig = JSON.parse(read("../../firebase.json"));
 const websiteHosting = JSON.stringify(
   firebaseConfig.hosting.find((target) => target.site === "indigen-world"),
@@ -96,6 +98,11 @@ assert.ok(
   "website hosting does not rewrite unknown paths to HTTP 200"
 );
 assert.match(headerStyles, /backdrop-filter:\s*blur/, "the primary navigation retains its glass treatment");
+assert.ok(pageIndex.includes("./TesterRewardClaimPage"), "the private tester claim has a page component");
+assert.match(testerClaimPage, /noindex:\s*true/, "the private tester claim is excluded from indexing at runtime");
+assert.ok(!sitemap.includes(testerClaimPath), "the private tester claim is absent from sitemap.xml");
+assert.ok(!read("src/components/Header.tsx").includes(testerClaimPath), "the private tester claim is absent from the header");
+assert.ok(!read("src/components/Footer.tsx").includes(testerClaimPath), "the private tester claim is absent from the footer");
 
 // ── Shared post links ────────────────────────────────────────────────────────
 // The app shares https://indigenworld.com/post/<id>. Every assertion below is

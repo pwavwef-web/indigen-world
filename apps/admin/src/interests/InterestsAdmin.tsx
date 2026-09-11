@@ -11,6 +11,7 @@ import {
   type GetInvolvedPayload,
   type PublicFormSubmission,
   type SubmissionStatus,
+  type TesterRewardPayload,
 } from './data';
 import './interests.css';
 
@@ -32,20 +33,25 @@ function escapeCsv(val: unknown): string {
 }
 
 function exportSubmissionsCsv(items: PublicFormSubmission[], filename: string) {
-  const headers = ['ID', 'Form', 'Status', 'Date Received', 'Name', 'Contact', 'Country', 'Organisation', 'Route', 'Note / Message'];
+  const headers = ['ID', 'Form', 'Status', 'Date Received', 'Name', 'Card Name', 'Contact', 'Google Play Email', 'Country', 'Organisation', 'Route / Subject', 'Public Recognition', 'Recognition Name', 'Profile URL', 'Note / Message'];
   const rows = items.map((item) => {
     const isGetInvolved = item.form === 'get-involved';
-    const payload = item.payload as GetInvolvedPayload & ContactPayload;
+    const payload = item.payload as GetInvolvedPayload & ContactPayload & TesterRewardPayload;
     return [
       escapeCsv(item.id),
       escapeCsv(item.form),
       escapeCsv(item.status),
       escapeCsv(formatSubmissionDate(item.receivedAt)),
-      escapeCsv(payload.name || ''),
-      escapeCsv(payload.contact || payload.email || ''),
+      escapeCsv(payload.name || payload.certificateName || ''),
+      escapeCsv(payload.cardName || ''),
+      escapeCsv(payload.contact || payload.email || payload.contactEmail || ''),
+      escapeCsv(payload.playEmail || ''),
       escapeCsv(payload.country || ''),
       escapeCsv(payload.organisation || ''),
       escapeCsv(isGetInvolved ? payload.route : payload.subject || ''),
+      escapeCsv(payload.recognitionChoice || ''),
+      escapeCsv(payload.recognitionName || ''),
+      escapeCsv(payload.profileUrl || ''),
       escapeCsv(payload.note || payload.message || ''),
     ].join(',');
   });
@@ -76,9 +82,10 @@ function InterestDetailModal({
   onDelete: (id: string) => void;
 }) {
   const isGetInvolved = submission.form === 'get-involved';
-  const payload = submission.payload as GetInvolvedPayload & ContactPayload;
+  const isTesterReward = submission.form === 'tester-reward-claim';
+  const payload = submission.payload as GetInvolvedPayload & ContactPayload & TesterRewardPayload;
   const isPhone = payload.contact && !payload.contact.includes('@');
-  const emailAddr = payload.email || (payload.contact && payload.contact.includes('@') ? payload.contact : '');
+  const emailAddr = payload.email || payload.contactEmail || (payload.contact && payload.contact.includes('@') ? payload.contact : '');
   const [currentStatus, setCurrentStatus] = useState<SubmissionStatus>(submission.status || 'new');
   const [updating, setUpdating] = useState(false);
 
@@ -112,7 +119,7 @@ function InterestDetailModal({
       >
         <header className="interest-modal__head">
           <div>
-            <h3 id="interest-modal-title">{payload.name || 'Submission'}</h3>
+            <h3 id="interest-modal-title">{payload.name || payload.certificateName || 'Submission'}</h3>
             <p className="interest-modal__meta">
               Form: <strong>{submission.form}</strong> &middot; Received: {formatSubmissionDate(submission.receivedAt)}
             </p>
@@ -147,8 +154,8 @@ function InterestDetailModal({
 
           <div className="interest-detail-grid">
             <div className="interest-detail-item">
-              <dt>Full Name</dt>
-              <dd>{payload.name || '—'}</dd>
+              <dt>{isTesterReward ? 'Certificate Name' : 'Full Name'}</dt>
+              <dd>{payload.name || payload.certificateName || '—'}</dd>
             </div>
             <div className="interest-detail-item">
               <dt>Contact</dt>
@@ -170,7 +177,27 @@ function InterestDetailModal({
               <dt>Country</dt>
               <dd>{payload.country || '—'}</dd>
             </div>
-            {isGetInvolved ? (
+            {isTesterReward ? (
+              <>
+                <div className="interest-detail-item">
+                  <dt>Founding Tester Card</dt>
+                  <dd>{payload.cardName || '—'}</dd>
+                </div>
+                <div className="interest-detail-item">
+                  <dt>Google Play Test Email</dt>
+                  <dd><a href={`mailto:${payload.playEmail}`} className="contact-link">{payload.playEmail}</a></dd>
+                </div>
+                <div className="interest-detail-item">
+                  <dt>Public Recognition</dt>
+                  <dd>{payload.recognitionChoice === 'yes' ? `Yes — ${payload.recognitionName || payload.cardName}` : 'No — keep private'}</dd>
+                </div>
+                {payload.profileUrl ? <div className="interest-detail-item" style={{ gridColumn: 'span 2' }}><dt>Public Profile</dt><dd><a href={payload.profileUrl} target="_blank" rel="noreferrer" className="contact-link">{payload.profileUrl}</a></dd></div> : null}
+                <div className="interest-detail-item" style={{ gridColumn: 'span 2' }}>
+                  <dt>Eligibility Confirmations</dt>
+                  <dd>Play opt-in · Multiple uses · Official feedback · Honest and specific feedback · Privacy consent</dd>
+                </div>
+              </>
+            ) : isGetInvolved ? (
               <>
                 <div className="interest-detail-item">
                   <dt>Organisation</dt>
@@ -192,7 +219,7 @@ function InterestDetailModal({
           </div>
 
           <div className="interest-note-section">
-            <h4>{isGetInvolved ? 'Submitted Note / Proposal' : 'Message'}</h4>
+            <h4>{isTesterReward ? 'Additional note' : isGetInvolved ? 'Submitted Note / Proposal' : 'Message'}</h4>
             <div className="interest-note-box">{payload.note || payload.message || 'No additional note provided.'}</div>
           </div>
         </div>
@@ -202,7 +229,9 @@ function InterestDetailModal({
             {emailAddr ? (
               <a
                 href={`mailto:${emailAddr}?subject=${encodeURIComponent(
-                  `Regarding your Indigen World interest submission (${payload.route || 'Involvement'})`
+                  isTesterReward
+                    ? 'Regarding your Indigen World Founding Tester reward claim'
+                    : `Regarding your Indigen World interest submission (${payload.route || 'Involvement'})`
                 )}`}
                 className="button button--primary"
               >
@@ -243,7 +272,7 @@ function InterestDetailModal({
 export function InterestsAdmin({ role }: { role: AdminRole }) {
   const [submissions, setSubmissions] = useState<PublicFormSubmission[]>([]);
   const [loading, setLoading] = useState(true);
-  const [formFilter, setFormFilter] = useState<'get-involved' | 'contact' | 'ALL'>('get-involved');
+  const [formFilter, setFormFilter] = useState<'get-involved' | 'contact' | 'tester-reward-claim' | 'ALL'>('get-involved');
   const [routeFilter, setRouteFilter] = useState<string>('ALL');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
@@ -286,7 +315,7 @@ export function InterestsAdmin({ role }: { role: AdminRole }) {
       if (statusFilter !== 'ALL' && item.status !== statusFilter) return false;
 
       // Route filter (only applies to get-involved)
-      const payload = item.payload as GetInvolvedPayload & ContactPayload;
+      const payload = item.payload as GetInvolvedPayload & ContactPayload & TesterRewardPayload;
       if (routeFilter !== 'ALL' && item.form === 'get-involved' && payload.route !== routeFilter) {
         return false;
       }
@@ -294,19 +323,21 @@ export function InterestsAdmin({ role }: { role: AdminRole }) {
       // Search query
       if (searchQuery.trim()) {
         const queryLower = searchQuery.toLowerCase();
-        const name = (payload.name || '').toLowerCase();
-        const contact = (payload.contact || payload.email || '').toLowerCase();
+        const name = (payload.name || payload.certificateName || payload.cardName || '').toLowerCase();
+        const contact = (payload.contact || payload.email || payload.contactEmail || payload.playEmail || '').toLowerCase();
         const country = (payload.country || '').toLowerCase();
         const org = (payload.organisation || '').toLowerCase();
         const route = (payload.route || '').toLowerCase();
         const note = (payload.note || payload.message || '').toLowerCase();
+        const recognition = (payload.recognitionName || payload.profileUrl || '').toLowerCase();
         const match =
           name.includes(queryLower) ||
           contact.includes(queryLower) ||
           country.includes(queryLower) ||
           org.includes(queryLower) ||
           route.includes(queryLower) ||
-          note.includes(queryLower);
+          note.includes(queryLower) ||
+          recognition.includes(queryLower);
         if (!match) return false;
       }
 
@@ -316,20 +347,19 @@ export function InterestsAdmin({ role }: { role: AdminRole }) {
 
   // Metrics computation
   const metrics = useMemo(() => {
-    const getInvolvedItems = submissions.filter((s) => s.form === 'get-involved');
-    const newCount = getInvolvedItems.filter((s) => s.status === 'new').length;
-    const contactedCount = getInvolvedItems.filter((s) => s.status === 'contacted' || s.status === 'in_progress').length;
-    const resolvedCount = getInvolvedItems.filter((s) => s.status === 'resolved').length;
+    const newCount = submissions.filter((s) => s.status === 'new').length;
+    const contactedCount = submissions.filter((s) => s.status === 'contacted' || s.status === 'in_progress').length;
+    const resolvedCount = submissions.filter((s) => s.status === 'resolved').length;
 
     // Count by route
     const routesCount: Record<string, number> = {};
-    for (const item of getInvolvedItems) {
+    for (const item of submissions.filter((s) => s.form === 'get-involved')) {
       const r = (item.payload as GetInvolvedPayload).route || 'Unspecified';
       routesCount[r] = (routesCount[r] ?? 0) + 1;
     }
 
     return {
-      total: getInvolvedItems.length,
+      total: submissions.length,
       newCount,
       contactedCount,
       resolvedCount,
@@ -400,9 +430,9 @@ export function InterestsAdmin({ role }: { role: AdminRole }) {
     <div className="interests-admin">
       <div className="tab-head">
         <div>
-          <h2>Get Involved &amp; Interests Intake</h2>
+          <h2>Public Forms &amp; Tester Claims</h2>
           <p className="muted">
-            Submitted interests, contributor applications, partner proposals, and public intake from the website.
+            Review website enquiries, contributor interests and Founding Tester reward claims.
           </p>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
@@ -425,7 +455,7 @@ export function InterestsAdmin({ role }: { role: AdminRole }) {
       <div className="interests-metrics">
         <div className="interest-metric-card">
           <span className="metric-val">{metrics.total}</span>
-          <span className="metric-lbl">Total Interests</span>
+          <span className="metric-lbl">Total in view</span>
         </div>
         <div className="interest-metric-card interest-metric-card--highlight">
           <span className="metric-val">{metrics.newCount}</span>
@@ -457,10 +487,11 @@ export function InterestsAdmin({ role }: { role: AdminRole }) {
             <select
               className="interests-select"
               value={formFilter}
-              onChange={(e) => setFormFilter(e.target.value as 'get-involved' | 'contact' | 'ALL')}
+              onChange={(e) => setFormFilter(e.target.value as 'get-involved' | 'contact' | 'tester-reward-claim' | 'ALL')}
             >
               <option value="get-involved">Get Involved (Interests)</option>
               <option value="contact">Contact messages</option>
+              <option value="tester-reward-claim">Founding Tester reward claims</option>
               <option value="ALL">All public forms</option>
             </select>
           </label>
@@ -556,8 +587,8 @@ export function InterestsAdmin({ role }: { role: AdminRole }) {
                 />
               </th>
               <th>Received</th>
-              <th>Name &amp; Organisation</th>
-              <th>Reaching out as</th>
+              <th>Name &amp; details</th>
+              <th>Form / route</th>
               <th>Contact</th>
               <th>Country</th>
               <th>Note preview</th>
@@ -569,10 +600,12 @@ export function InterestsAdmin({ role }: { role: AdminRole }) {
             {filteredSubmissions.map((item) => {
               const isSelected = selectedIds.has(item.id);
               const isGetInvolved = item.form === 'get-involved';
-              const payload = item.payload as GetInvolvedPayload & ContactPayload;
-              const contactText = payload.contact || payload.email || '—';
+              const isTesterReward = item.form === 'tester-reward-claim';
+              const payload = item.payload as GetInvolvedPayload & ContactPayload & TesterRewardPayload;
+              const displayName = payload.name || payload.certificateName || '—';
+              const contactText = payload.contact || payload.email || payload.contactEmail || '—';
               const isPhone = payload.contact && !payload.contact.includes('@');
-              const emailAddr = payload.email || (payload.contact && payload.contact.includes('@') ? payload.contact : '');
+              const emailAddr = payload.email || payload.contactEmail || (payload.contact && payload.contact.includes('@') ? payload.contact : '');
 
               return (
                 <tr key={item.id} className={isSelected ? 'is-selected' : ''}>
@@ -581,7 +614,7 @@ export function InterestsAdmin({ role }: { role: AdminRole }) {
                       type="checkbox"
                       checked={isSelected}
                       onChange={() => toggleSelect(item.id)}
-                      aria-label={`Select ${payload.name}`}
+                      aria-label={`Select ${displayName}`}
                     />
                   </td>
                   <td>
@@ -595,14 +628,16 @@ export function InterestsAdmin({ role }: { role: AdminRole }) {
                     </button>
                   </td>
                   <td>
-                    <strong>{payload.name || '—'}</strong>
+                    <strong>{displayName}</strong>
                     {payload.organisation ? (
                       <div className="tiny muted">{payload.organisation}</div>
-                    ) : null}
+                    ) : isTesterReward ? <div className="tiny muted">Card: {payload.cardName}</div> : null}
                   </td>
                   <td>
                     {isGetInvolved && payload.route ? (
                       <span className={getRouteBadgeClass(payload.route)}>{payload.route}</span>
+                    ) : isTesterReward ? (
+                      <span className="route-badge">Tester reward</span>
                     ) : (
                       <span className="tiny muted">{payload.subject || item.form}</span>
                     )}
@@ -622,8 +657,8 @@ export function InterestsAdmin({ role }: { role: AdminRole }) {
                   </td>
                   <td>{payload.country || '—'}</td>
                   <td>
-                    <div className="note-snippet" title={payload.note || payload.message || ''}>
-                      {payload.note || payload.message || '—'}
+                    <div className="note-snippet" title={payload.note || payload.message || (isTesterReward ? `Public recognition: ${payload.recognitionChoice}` : '')}>
+                      {payload.note || payload.message || (isTesterReward ? `Public recognition: ${payload.recognitionChoice}` : '—')}
                     </div>
                   </td>
                   <td>

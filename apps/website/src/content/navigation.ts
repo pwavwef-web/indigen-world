@@ -100,6 +100,14 @@ export const ROUTES: AppRoute[] = [
       "Your Paystack checkout has closed. Return to Indigen to verify the campaign's payment status.",
     noindex: true,
   },
+  {
+    // Private-distribution tester reward claim. Intentionally omitted from
+    // site navigation and sitemap; only the testing team shares this URL.
+    path: "founding-tester-claim-7q4m9x2k",
+    title: "Founding Tester reward claim",
+    description: "Submit the details needed to prepare your Indigen World Founding Tester recognition.",
+    noindex: true,
+  },
 ];
 
 /**

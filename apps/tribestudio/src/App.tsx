@@ -236,9 +236,11 @@ function Routed() {
     if (!user) return <SignInGate />;
     if (isWorkspace) {
       return (
-        <Suspense fallback={<div className="loading">Loading…</div>}>
-          <LexiconWorkspace />
-        </Suspense>
+        <StudioLayout>
+          <Suspense fallback={<div className="loading">Loading…</div>}>
+            <LexiconWorkspace />
+          </Suspense>
+        </StudioLayout>
       );
     }
     return (

@@ -166,6 +166,45 @@ export function involvementTeamAlert(input: {
   };
 }
 
+export function testerRewardAcknowledgement(input: { name: string }): EmailContent {
+  const first = input.name.split(/\s+/)[0] || 'there';
+  const bodyHtml = `
+    <p style="margin:0 0 14px;">Hi ${escapeHtml(first)},</p>
+    <p style="margin:0 0 14px;">Thank you for completing your Founding Tester reward details. We will verify your participation before preparing your certificate and numbered tester card.</p>
+    <p style="margin:0 0 14px;">Critical feedback is welcome and never affects eligibility. If you need to correct these details, submit the form again using the same Google Play testing email.</p>
+    <p style="margin:0;">With gratitude,<br>The Indigen World team</p>`;
+  return {
+    subject: 'We received your Founding Tester details — Indigen World',
+    html: layout({ title: 'Founding Tester details received', bodyHtml, preheader: 'Your reward details are ready for verification.' }),
+    text: `Hi ${first},\n\nThank you for completing your Founding Tester reward details. We will verify your participation before preparing your certificate and numbered tester card.\n\nCritical feedback is welcome and never affects eligibility. If you need to correct these details, submit the form again using the same Google Play testing email.\n\nWith gratitude,\nThe Indigen World team`,
+  };
+}
+
+export function testerRewardTeamAlert(input: {
+  certificateName: string;
+  cardName: string;
+  playEmail: string;
+  contactEmail: string;
+  country: string;
+  recognitionChoice: string;
+}): EmailContent {
+  const bodyHtml = `
+    <p style="margin:0 0 14px;">A Founding Tester reward claim is ready for verification.</p>
+    <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;font-size:14px;">
+      <tr><td style="padding:4px 0;color:${BRAND.muted};width:130px;">Certificate</td><td style="padding:4px 0;">${escapeHtml(input.certificateName)}</td></tr>
+      <tr><td style="padding:4px 0;color:${BRAND.muted};">Tester card</td><td style="padding:4px 0;">${escapeHtml(input.cardName)}</td></tr>
+      <tr><td style="padding:4px 0;color:${BRAND.muted};">Play email</td><td style="padding:4px 0;">${escapeHtml(input.playEmail)}</td></tr>
+      <tr><td style="padding:4px 0;color:${BRAND.muted};">Contact email</td><td style="padding:4px 0;">${escapeHtml(input.contactEmail)}</td></tr>
+      <tr><td style="padding:4px 0;color:${BRAND.muted};">Country</td><td style="padding:4px 0;">${escapeHtml(input.country)}</td></tr>
+      <tr><td style="padding:4px 0;color:${BRAND.muted};">Public listing</td><td style="padding:4px 0;">${escapeHtml(input.recognitionChoice)}</td></tr>
+    </table>`;
+  return {
+    subject: `[Tester reward] ${input.certificateName}`,
+    html: layout({ title: 'New Founding Tester reward claim', bodyHtml, preheader: `${input.certificateName} · ${input.country}` }),
+    text: `New Founding Tester reward claim\n\nCertificate: ${input.certificateName}\nTester card: ${input.cardName}\nPlay email: ${input.playEmail}\nContact email: ${input.contactEmail}\nCountry: ${input.country}\nPublic listing: ${input.recognitionChoice}`,
+  };
+}
+
 export function newsletterWelcome(): EmailContent {
   const bodyHtml = `
     <p style="margin:0 0 14px;">Thank you for subscribing to the Indigen World newsletter.</p>

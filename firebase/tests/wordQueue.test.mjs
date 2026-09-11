@@ -30,6 +30,8 @@ import {
   MAX_PROGRESS_IDS,
   SENTENCE_FITS,
   appendProgressId,
+  advanceQueueProgress,
+  scanQueueBatch,
   buildWordQueueContributionInput,
   nextQueueRowState,
   parseQueueBatchLimit,
@@ -57,6 +59,58 @@ import {
 
 const NOW = '2026-09-02T09:00:00.000Z';
 const uid = 'member-1';
+
+test('new answers and skips at the history cap are accepted; retries are not', () => {
+  const full = Array.from({ length: MAX_PROGRESS_IDS }, (_, i) => `w${i}`);
+  const next = advanceQueueProgress(full, 'new-word');
+  assert.equal(next.alreadyPresent, false);
+  assert.equal(next.ids.length, MAX_PROGRESS_IDS);
+  assert.equal(next.ids.includes('w0'), false);
+  assert.equal(next.ids.at(-1), 'new-word');
+  const retry = advanceQueueProgress(next.ids, 'new-word');
+  assert.equal(retry.alreadyPresent, true);
+  assert.deepEqual(retry.ids, next.ids);
+});
+
+function pageReader(rows) {
+  let offset = 0;
+  return async size => {
+    const page = rows.slice(offset, offset + size);
+    offset += page.length;
+    return page;
+  };
+}
+
+test('queue reaches fresh words beyond both full progress lists', async () => {
+  const rows = Array.from({ length: 4050 }, (_, i) => ({ id: `w${i}`, data: row({ rank: i + 1 }) }));
+  const batch = await scanQueueBatch({
+    answered: rows.slice(0, 2000).map(r => r.id),
+    skipped: rows.slice(2000, 4000).map(r => r.id),
+  }, 20, pageReader(rows));
+  assert.equal(batch.words.length, 20);
+  assert.equal(batch.words[0].id, 'w4000');
+  assert.equal(batch.exhausted, false);
+});
+
+test('pending backlog returns work within the exact scan budget', async () => {
+  let reads = 0;
+  const fetch = pageReader(Array.from({ length: 1000 }, (_, i) => ({ id: `w${i}`, data: row({ pendingCount: 1 }) })));
+  const batch = await scanQueueBatch({ answered: [], skipped: [] }, 40, async size => {
+    const page = await fetch(size);
+    reads += page.length;
+    return page;
+  });
+  assert.equal(reads, 600);
+  assert.equal(batch.words.length, 40);
+  assert.equal(batch.exhausted, false);
+});
+
+test('exhaustion requires reaching the end with no usable words', async () => {
+  const batch = await scanQueueBatch({ answered: ['done'], skipped: [] }, 20,
+    pageReader([{ id: 'done', data: row() }]));
+  assert.equal(batch.exhausted, true);
+  assert.deepEqual(batch.words, []);
+});
 
 /** A seeded row, in the exact shape data/word-seed/word-queue.ndjson ships. */
 function row(overrides = {}) {

@@ -1,4 +1,4 @@
-export type PublicFormName = "contact" | "get-involved" | "newsletter";
+export type PublicFormName = "contact" | "get-involved" | "newsletter" | "tester-reward-claim";
 
 export interface PublicFormPayloads {
   contact: {
@@ -19,6 +19,22 @@ export interface PublicFormPayloads {
     email: string;
     country: string;
     consent: string;
+  };
+  "tester-reward-claim": {
+    certificateName: string;
+    cardName: string;
+    playEmail: string;
+    contactEmail: string;
+    country: string;
+    recognitionChoice: string;
+    recognitionName: string;
+    profileUrl: string;
+    testerConfirmation: string;
+    usageConfirmation: string;
+    feedbackConfirmation: string;
+    honestFeedbackConfirmation: string;
+    privacyConsent: string;
+    note: string;
   };
 }
 

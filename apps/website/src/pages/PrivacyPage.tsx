@@ -53,14 +53,17 @@ export function PrivacyPage() {
 
           <h2>This website</h2>
           <p>
-            When you use a form on this site — Contact, Get Involved, or Venacula, the Indigen World newsletter — we
-            collect only the fields shown on that form: your name, contact details, and the
-            message or note you provide.
+            When you use a form on this site — including Contact, Get Involved, tester programme
+            administration, or Venacula, the Indigen World newsletter — we collect only the fields
+            shown on that form. Depending on the form, this may include your name, contact details,
+            testing email, country, consent choices, and the message or note you provide.
           </p>
 
           <h2>How we use it</h2>
           <p>
             Contact and Get Involved submissions are used to respond to you and route your request.
+            Tester programme details are used to verify participation and prepare, deliver and
+            administer the recognition or rewards described on the relevant form.
             If you subscribe to Venacula, we use your email only to send the newsletter and related
             Indigen World updates. We do not sell this information or publish form responses.
             Newsletter delivery will not begin until every email can include a working unsubscribe
