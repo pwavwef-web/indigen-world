@@ -210,9 +210,12 @@ export function ProfilePage() {
               <input value={profile.public.username ? `@${profile.public.username}` : 'Not set'} disabled />
             </Field>
             <Field label="Public profile preference">
-              <label className="checkbox">
+              <label className="checkbox checkbox--profile">
                 <input type="checkbox" checked={isPublic} onChange={(e) => setIsPublic(e.target.checked)} />
-                Allow a public creator profile after programme approval.
+                <span>
+                  <strong>Show my creator profile publicly</strong>
+                  <small>Your profile becomes visible only after programme approval.</small>
+                </span>
               </label>
             </Field>
             <Field label="Short bio" htmlFor="bio">
@@ -332,8 +335,8 @@ export function ProfilePage() {
                 <p>Choose which first-party programme updates should reach you.</p>
               </div>
             </div>
-            <label className="checkbox"><input type="checkbox" checked={inAppPref} onChange={(e) => setInAppPref(e.target.checked)} /> In-app notifications</label>
-            <label className="checkbox"><input type="checkbox" checked={emailPref} onChange={(e) => setEmailPref(e.target.checked)} /> Email notifications</label>
+            <label className="checkbox"><input type="checkbox" checked={inAppPref} onChange={(e) => setInAppPref(e.target.checked)} /> <span>In-app notifications</span></label>
+            <label className="checkbox"><input type="checkbox" checked={emailPref} onChange={(e) => setEmailPref(e.target.checked)} /> <span>Email notifications</span></label>
             <p className="tiny">WhatsApp Channel updates are external and opt-in.</p>
           </section>
         </div>
