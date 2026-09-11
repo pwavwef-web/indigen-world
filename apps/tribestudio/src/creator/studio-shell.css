@@ -1,0 +1,1210 @@
+/* ==========================================================================
+   TribeStudio — workspace shell
+   --------------------------------------------------------------------------
+   The frame a creator works inside: the navigation rail, the command bar, the
+   content column and the status rail along the bottom. Component styling comes
+   from @indigen-world/console-ui; this file owns the chrome and the ground.
+
+   The public creator pages (`/creators`, the landing page, guidelines, FAQ and
+   the join flow) are marketing surfaces with their own identity and are not
+   styled from here — the kit is scoped to `.iwx`, which only the workspace
+   shell carries.
+   ========================================================================== */
+
+:root {
+  /* The workspace speaks the same blue as the admin console: someone who works
+     in both should not have to relearn what a status or a control looks like.
+     The ramp itself lives in the kit; these map the app's older token names
+     onto it so pages written against `--indigo` or `--gold` still land. */
+  --bg: var(--ad-mist);
+  --surface: var(--ad-paper);
+  --surface-elevated: #f7faff;
+  --text: var(--ad-ink);
+  --text-soft: var(--ad-slate);
+  --text-muted: var(--ad-slate-2);
+  --border: var(--glass-line);
+  --border-subtle: var(--glass-line-soft);
+  --indigo: var(--ad-blue);
+  --indigo-deep: var(--ad-ink);
+  --indigo-light: var(--ad-blue-300);
+  --terracotta: var(--ad-blue);
+  --gold: var(--ad-blue);
+  --gold-soft: var(--ad-blue-200);
+  --gold-glow: rgba(47, 107, 255, 0.2);
+  --plaster-cream: var(--ad-blue-50);
+  --sand: var(--ad-mist-2);
+  --focus: var(--ad-blue);
+  --success: var(--ad-green);
+  --warning: var(--ad-amber);
+  --danger: var(--ad-red);
+  --shadow-sm: var(--lift-1);
+  --shadow-md: var(--lift-2);
+  --shadow-lg: var(--lift-3);
+}
+
+html {
+  background: var(--ad-mist);
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  min-width: 320px;
+  /* `clip`, not `hidden`: it contains stray width without turning the viewport
+     into a scroll container, which would break every sticky header below. */
+  overflow-x: clip;
+  color: var(--ad-ink);
+}
+
+/* -- Global overflow guards ---------------------------------------------
+   Grid and flex children default to `min-width: auto`, which is what lets one
+   long Kasem headword or a pasted URL push a whole page sideways. */
+.studio :where(main, section, article, header, footer, div, li, td, th) {
+  min-width: 0;
+}
+
+:where(img, svg, video, canvas, iframe) {
+  max-width: 100%;
+}
+
+:where(pre, code, kbd, samp) {
+  overflow-wrap: anywhere;
+}
+
+:where(p, li, dd, dt, h1, h2, h3, h4, blockquote) {
+  overflow-wrap: break-word;
+}
+
+:where(a[href^='mailto:'], a[href^='tel:'], a[href^='http']) {
+  overflow-wrap: anywhere;
+}
+
+/* ==========================================================================
+   Shell grid and ground
+   ========================================================================== */
+.studio {
+  min-height: 100svh;
+  display: grid;
+  grid-template-columns: 264px minmax(0, 1fr);
+  background:
+    radial-gradient(ellipse 70rem 40rem at 78% -8%, rgba(47, 107, 255, 0.13), transparent 70%),
+    radial-gradient(ellipse 50rem 40rem at 4% 4%, rgba(18, 181, 207, 0.09), transparent 68%),
+    linear-gradient(rgba(16, 31, 78, 0.045) 1px, transparent 1px) 0 0 / 100% 34px,
+    linear-gradient(90deg, rgba(16, 31, 78, 0.045) 1px, transparent 1px) 0 0 / 34px 100%,
+    var(--ad-mist);
+  background-attachment: fixed;
+  transition: grid-template-columns var(--motion-normal);
+}
+
+.studio--collapsed {
+  grid-template-columns: 74px minmax(0, 1fr);
+}
+
+/* ==========================================================================
+   Navigation rail
+   ========================================================================== */
+.studio__side {
+  position: sticky;
+  z-index: 40;
+  top: 0;
+  height: 100svh;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(244, 248, 255, 0.82)),
+    rgba(255, 255, 255, 0.6);
+  box-shadow:
+    1px 0 0 var(--glass-line-soft),
+    14px 0 40px -30px rgba(16, 50, 124, 0.55);
+  -webkit-backdrop-filter: blur(24px) saturate(170%);
+  backdrop-filter: blur(24px) saturate(170%);
+  scrollbar-width: thin;
+}
+
+.studio__brand {
+  min-height: 62px;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 16px 16px 10px;
+  color: var(--ad-ink);
+  text-decoration: none;
+}
+
+.studio__brand-mark {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 12px;
+  background: linear-gradient(160deg, var(--ad-blue-400), var(--ad-blue-700));
+  box-shadow:
+    0 6px 16px -6px rgba(31, 80, 214, 0.9),
+    inset 0 1px 0 rgba(255, 255, 255, 0.45);
+}
+
+.studio__brand-mark svg {
+  width: 25px;
+  height: 25px;
+  fill: none;
+  stroke: #fff;
+  stroke-width: 2.3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.studio__brand-copy {
+  min-width: 0;
+  display: grid;
+  gap: 1px;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.studio__brand-copy strong {
+  color: var(--ad-ink);
+  font-size: 0.92rem;
+  letter-spacing: -0.02em;
+}
+
+.studio__brand-copy small {
+  color: var(--ad-slate-2);
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* The rail's own filter: eight destinations today, more as the studio grows. */
+.studio__filter {
+  position: relative;
+  margin: 0 14px 10px;
+}
+
+.studio__filter svg {
+  position: absolute;
+  top: 50%;
+  left: 10px;
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: var(--ad-slate-2);
+  stroke-width: 2;
+  stroke-linecap: round;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.studio .studio__filter input {
+  min-height: 33px;
+  padding: 0 30px;
+  font-size: 0.78rem;
+}
+
+.studio__filter .kbd {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.studio__collapse {
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  margin: 0 14px 10px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: rgba(16, 31, 78, 0.04);
+  box-shadow: inset 0 0 0 1px var(--glass-line-soft);
+  color: var(--ad-slate-2);
+  font: inherit;
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: color var(--motion-fast), background var(--motion-fast), box-shadow var(--motion-fast);
+}
+
+.studio__collapse:hover {
+  background: rgba(47, 107, 255, 0.07);
+  box-shadow: inset 0 0 0 1px rgba(47, 107, 255, 0.3);
+  color: var(--ad-blue-700);
+}
+
+.studio__nav {
+  display: grid;
+  align-content: start;
+  flex: 1;
+  gap: 16px;
+  padding: 2px 12px 16px;
+}
+
+.studio__nav-group {
+  min-width: 0;
+}
+
+.studio__nav-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 9px 7px;
+  color: var(--ad-slate-2);
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.studio__nav-label::after {
+  flex: 1;
+  height: 1px;
+  content: '';
+  background: linear-gradient(90deg, var(--glass-line), transparent);
+}
+
+.studio__nav-links {
+  display: grid;
+  gap: 2px;
+}
+
+.studio__link {
+  position: relative;
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 8px 10px;
+  border-radius: var(--r-sm);
+  color: var(--ad-slate);
+  font-size: 0.815rem;
+  font-weight: 620;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background var(--motion-fast), color var(--motion-fast), box-shadow var(--motion-fast);
+}
+
+.studio__link:hover,
+.studio__link:focus-visible {
+  background: rgba(16, 31, 78, 0.05);
+  color: var(--ad-ink);
+}
+
+.studio__link.is-active {
+  background: linear-gradient(180deg, rgba(47, 107, 255, 0.16), rgba(47, 107, 255, 0.08));
+  box-shadow:
+    inset 0 0 0 1px rgba(47, 107, 255, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7),
+    0 6px 14px -10px rgba(31, 80, 214, 0.9);
+  color: var(--ad-blue-700);
+  font-weight: 740;
+}
+
+/* The active marker doubles as the rail's only piece of hard geometry. */
+.studio__link.is-active::before {
+  position: absolute;
+  top: 50%;
+  left: -12px;
+  width: 3px;
+  height: 20px;
+  content: '';
+  border-radius: 0 3px 3px 0;
+  background: linear-gradient(180deg, var(--ad-blue), var(--ad-cyan));
+  box-shadow: 0 0 12px rgba(47, 107, 255, 0.8);
+  transform: translateY(-50%);
+}
+
+.studio__link-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.studio__nav-icon {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.studio__link.is-active .studio__nav-icon {
+  stroke-width: 2.1;
+}
+
+.studio__nav-empty {
+  padding: 10px 12px;
+  color: var(--ad-slate-2);
+  font-size: 0.76rem;
+}
+
+.studio__account {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  margin: 0 12px;
+  padding: 12px 4px 14px;
+  border-top: 1px solid var(--glass-line-soft);
+}
+
+.studio__account-orb {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  flex: 0 0 auto;
+  overflow: hidden;
+  place-items: center;
+  border-radius: 11px;
+  background: linear-gradient(160deg, var(--ad-blue-400), var(--ad-blue-700));
+  box-shadow:
+    0 5px 12px -6px rgba(31, 80, 214, 0.9),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 800;
+}
+
+.studio__account-orb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.studio__account-copy {
+  min-width: 0;
+  display: grid;
+  gap: 1px;
+}
+
+.studio__user {
+  overflow: hidden;
+  color: var(--ad-ink);
+  font-size: 0.75rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.studio__account-copy small {
+  overflow: hidden;
+  color: var(--ad-slate-2);
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.studio__signout {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  /* An icon button sizes itself: the kit's label padding would crush the glyph. */
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--ad-slate-2);
+  cursor: pointer;
+  transition: background var(--motion-fast), color var(--motion-fast);
+}
+
+.studio__signout:hover {
+  background: var(--ad-red-surface);
+  color: var(--ad-red);
+}
+
+/* -- Collapsed rail ------------------------------------------------------ */
+.studio--collapsed .studio__brand {
+  justify-content: center;
+  padding-inline: 10px;
+}
+
+.studio--collapsed .studio__brand-copy,
+.studio--collapsed .studio__nav-label,
+.studio--collapsed .studio__link-label,
+.studio--collapsed .studio__collapse span,
+.studio--collapsed .studio__filter,
+.studio--collapsed .studio__account-copy,
+.studio--collapsed .studio__signout {
+  display: none;
+}
+
+.studio--collapsed .studio__collapse {
+  margin-inline: 11px;
+  padding-inline: 0;
+}
+
+.studio--collapsed .studio__collapse .studio__nav-icon {
+  transform: rotate(180deg);
+}
+
+.studio--collapsed .studio__nav {
+  padding-inline: 10px;
+}
+
+.studio--collapsed .studio__link {
+  justify-content: center;
+  padding-inline: 8px;
+}
+
+.studio--collapsed .studio__link.is-active::before {
+  left: -10px;
+}
+
+.studio--collapsed .studio__account {
+  display: flex;
+  justify-content: center;
+  margin-inline: 10px;
+}
+
+/* ==========================================================================
+   Content column, command bar and status rail
+   ========================================================================== */
+.studio__content-shell {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  width: 100%;
+  padding: 16px clamp(14px, 2.4vw, 34px) 0;
+}
+
+/* The command bar: where you are, what you can press, and who you are. */
+.studio__workspace-header {
+  position: sticky;
+  z-index: 30;
+  top: 12px;
+  min-height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+  padding: 9px 10px 9px 15px;
+  border-radius: var(--r-md);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(240, 245, 255, 0.8));
+  box-shadow:
+    0 0 0 1px var(--glass-line-soft),
+    0 10px 30px -18px rgba(16, 50, 124, 0.5),
+    var(--glass-hi);
+  -webkit-backdrop-filter: blur(20px) saturate(170%);
+  backdrop-filter: blur(20px) saturate(170%);
+}
+
+.studio__workspace-header > div {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+/* The route, spelled the way it appears in the address bar. */
+.studio__workspace-header > div > p {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  margin: 0;
+  color: var(--ad-slate-2);
+  font-family: var(--mono);
+  font-size: 0.64rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+}
+
+.studio__workspace-header h1 {
+  margin: 0;
+  overflow: hidden;
+  color: var(--ad-ink);
+  font-size: 1rem;
+  letter-spacing: -0.02em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.studio__tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+/* The ⌘K affordance: a search field that is really a button, because the
+   palette owns the input once it opens. */
+.studio .studio__command {
+  min-width: 210px;
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  padding: 0 8px 0 11px;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(246, 249, 255, 0.85));
+  box-shadow: 0 0 0 1px var(--glass-line), inset 0 1px 0 #fff;
+  color: var(--ad-slate-2);
+  font: inherit;
+  font-size: 0.79rem;
+  font-weight: 550;
+  cursor: pointer;
+  transition: box-shadow var(--motion-fast), color var(--motion-fast);
+}
+
+.studio .studio__command:hover {
+  box-shadow: 0 0 0 1px rgba(47, 107, 255, 0.36), inset 0 1px 0 #fff;
+  color: var(--ad-blue-700);
+  transform: none;
+}
+
+.studio__command .studio__nav-icon {
+  width: 15px;
+  height: 15px;
+}
+
+.studio__command .kbd {
+  margin-left: auto;
+}
+
+.studio__role {
+  padding: 4px 10px;
+  border-radius: var(--r-pill);
+  background: linear-gradient(180deg, rgba(47, 107, 255, 0.14), rgba(47, 107, 255, 0.08));
+  box-shadow: inset 0 0 0 1px rgba(47, 107, 255, 0.22);
+  color: var(--ad-blue-700);
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.studio__main {
+  flex: 1;
+  width: 100%;
+  max-width: 1440px;
+  min-width: 0;
+  margin: 0 auto;
+  /* Clears the status rail, which floats over the bottom of the column. */
+  padding: 0 0 46px;
+}
+
+.studio .page {
+  max-width: none;
+  min-width: 0;
+}
+
+/* -- Status rail: the workspace's bottom line ---------------------------- */
+.studio__status {
+  position: sticky;
+  bottom: 0;
+  z-index: 25;
+  width: 100%;
+  max-width: 1440px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin: 0 auto;
+  padding: 7px 12px;
+  border-radius: var(--r-sm) var(--r-sm) 0 0;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(238, 243, 255, 0.92));
+  box-shadow:
+    0 0 0 1px var(--glass-line-soft),
+    0 -8px 24px -18px rgba(16, 50, 124, 0.6),
+    var(--glass-hi);
+  color: var(--ad-slate-2);
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.02em;
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+  backdrop-filter: blur(18px) saturate(160%);
+}
+
+.studio__status-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.studio__status-item strong {
+  color: var(--ad-ink-2);
+  font-weight: 700;
+}
+
+.studio__status-item--push {
+  margin-left: auto;
+}
+
+.studio__status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--ad-green);
+  box-shadow: 0 0 0 3px rgba(15, 122, 90, 0.16);
+}
+
+.studio__status-dot--offline {
+  background: var(--ad-amber);
+  box-shadow: 0 0 0 3px rgba(138, 90, 4, 0.16);
+}
+
+.studio__footer {
+  padding: 14px 10px 18px;
+  border: 0;
+  color: var(--ad-slate-2);
+  font-size: 0.68rem;
+  text-align: center;
+}
+
+/* ==========================================================================
+   Page furniture
+   ========================================================================== */
+.studio .page__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  flex-wrap: wrap;
+  min-width: 0;
+  margin-bottom: 18px;
+}
+
+.studio .page h1 {
+  margin: 0 0 6px;
+  color: var(--ad-ink);
+  font-size: 1.42rem;
+  letter-spacing: -0.028em;
+  line-height: 1.2;
+}
+
+.studio .page h2 {
+  color: var(--ad-ink);
+  font-size: 1.06rem;
+  letter-spacing: -0.02em;
+}
+
+.studio .page__head-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+/* ==========================================================================
+   Mobile shell
+   ========================================================================== */
+.studio__menu-button,
+.studio__backdrop {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .studio,
+  .studio--collapsed {
+    display: block;
+  }
+
+  .studio__side {
+    position: fixed;
+    z-index: 60;
+    left: 0;
+    width: min(276px, calc(100vw - 48px));
+    box-shadow: 20px 0 60px -24px rgba(10, 19, 39, 0.55);
+    transform: translateX(-104%);
+    transition: transform var(--motion-normal);
+  }
+
+  .studio__side.is-open {
+    transform: translateX(0);
+  }
+
+  .studio__menu-button {
+    position: fixed;
+    z-index: 70;
+    top: 13px;
+    left: 13px;
+    width: 42px;
+    height: 42px;
+    display: grid;
+    place-items: center;
+    min-height: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 13px;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(238, 243, 255, 0.92));
+    box-shadow: var(--lift-2), var(--glass-hi);
+    color: var(--ad-ink);
+    cursor: pointer;
+    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(16px);
+  }
+
+  .studio__backdrop {
+    position: fixed;
+    z-index: 50;
+    inset: 0;
+    display: block;
+    border: 0;
+    background: rgba(10, 19, 39, 0.5);
+    cursor: pointer;
+    -webkit-backdrop-filter: blur(3px);
+    backdrop-filter: blur(3px);
+  }
+
+  .studio__collapse {
+    display: none;
+  }
+
+  /* Collapsing is a desktop affordance; on a phone the drawer is the full rail. */
+  .studio--collapsed .studio__brand {
+    justify-content: flex-start;
+    padding-inline: 16px;
+  }
+
+  .studio--collapsed .studio__brand-copy,
+  .studio--collapsed .studio__link-label,
+  .studio--collapsed .studio__filter,
+  .studio--collapsed .studio__account-copy,
+  .studio--collapsed .studio__signout {
+    display: grid;
+  }
+
+  .studio--collapsed .studio__nav-label {
+    display: flex;
+  }
+
+  .studio--collapsed .studio__nav {
+    padding-inline: 12px;
+  }
+
+  .studio--collapsed .studio__link {
+    justify-content: flex-start;
+    padding-inline: 10px;
+  }
+
+  .studio--collapsed .studio__account {
+    display: grid;
+    justify-content: stretch;
+    margin-inline: 12px;
+  }
+
+  .studio__content-shell {
+    padding: 12px 13px 0;
+  }
+
+  .studio__workspace-header {
+    top: 8px;
+    padding-left: 62px;
+  }
+}
+
+@media (max-width: 640px) {
+  .studio__workspace-header {
+    align-items: flex-start;
+    gap: 10px;
+    min-height: 52px;
+  }
+
+  .studio__command span:not(.kbd) {
+    display: none;
+  }
+
+  .studio .studio__command {
+    min-width: 0;
+    padding-inline: 10px;
+  }
+
+  .studio .page h1 {
+    font-size: 1.2rem;
+  }
+
+  .studio__status {
+    gap: 8px 12px;
+    font-size: 0.6rem;
+  }
+
+  .studio__status-item--push {
+    margin-left: 0;
+  }
+}
+
+@supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  .studio__side,
+  .studio__workspace-header,
+  .studio__status {
+    background: rgba(255, 255, 255, 0.98);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .studio,
+  .studio__side,
+  .studio__link {
+    transition: none;
+  }
+}
+
+/* ==========================================================================
+   The app's own control classes, inside the workspace
+   --------------------------------------------------------------------------
+   `.button` and `.field` are shared with the public creator pages, which keep
+   their own identity. These rules re-point them at the kit's treatment for the
+   workspace only — the kit's baseline deliberately carries no specificity, so
+   an app class always wins and has to say what it wants.
+   ========================================================================== */
+.studio .button {
+  min-height: var(--control-h);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: linear-gradient(180deg, #ffffff, #f1f5ff);
+  box-shadow:
+    0 0 0 1px var(--glass-line),
+    0 1px 2px rgba(10, 19, 39, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  color: var(--ad-ink-2);
+  font: inherit;
+  font-size: 0.81rem;
+  font-weight: 640;
+  line-height: 1;
+  white-space: nowrap;
+  text-decoration: none;
+  justify-self: start;
+  transition:
+    box-shadow var(--motion-fast),
+    transform var(--motion-fast),
+    background var(--motion-fast),
+    color var(--motion-fast);
+}
+
+.studio .button:hover:not(:disabled) {
+  background: linear-gradient(180deg, #ffffff, #e8effe);
+  box-shadow:
+    0 0 0 1px rgba(47, 107, 255, 0.32),
+    0 2px 5px rgba(16, 50, 124, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  color: var(--ad-blue-700);
+  transform: translateY(-1px);
+}
+
+.studio .button:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow:
+    0 0 0 1px rgba(47, 107, 255, 0.34),
+    inset 0 2px 4px rgba(16, 50, 124, 0.16);
+}
+
+.studio .button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.studio .button--primary {
+  background: linear-gradient(180deg, var(--ad-blue-400), var(--ad-blue-600));
+  box-shadow:
+    0 0 0 1px rgba(16, 50, 124, 0.4),
+    0 6px 16px -8px rgba(31, 80, 214, 0.85),
+    inset 0 1px 0 rgba(255, 255, 255, 0.42);
+  color: #fff;
+}
+
+.studio .button--primary:hover:not(:disabled) {
+  background: linear-gradient(180deg, var(--ad-blue), var(--ad-blue-700));
+  color: #fff;
+}
+
+.studio .button--small {
+  min-height: 31px;
+  padding: 0 11px;
+  font-size: 0.76rem;
+}
+
+.studio .button--ghost,
+.studio .button--ghost-dark {
+  background: linear-gradient(180deg, #ffffff, #f1f5ff);
+  color: var(--ad-ink-2);
+}
+
+.studio .button--approve {
+  background: var(--ad-green-surface);
+  box-shadow: inset 0 0 0 1px rgba(15, 122, 90, 0.24);
+  color: var(--ad-green);
+}
+
+.studio .button--reject,
+.studio .button--danger {
+  background: var(--ad-red-surface);
+  box-shadow: inset 0 0 0 1px rgba(176, 42, 48, 0.24);
+  color: var(--ad-red);
+}
+
+/* Form fields: the label is a small caps marker, the control is the kit's. */
+.studio .field label {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--ad-slate);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.studio .field input,
+.studio .field select,
+.studio .field textarea {
+  width: 100%;
+  max-width: 100%;
+  min-height: var(--control-h);
+  padding: 9px 11px;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: linear-gradient(180deg, #f7f9ff, #ffffff);
+  box-shadow:
+    0 0 0 1px var(--glass-line),
+    inset 0 1px 2px rgba(16, 31, 78, 0.06);
+  color: var(--ad-ink);
+  font: inherit;
+  font-size: 0.84rem;
+}
+
+.studio .field input:focus,
+.studio .field select:focus,
+.studio .field textarea:focus {
+  outline: none;
+  box-shadow:
+    0 0 0 1px var(--ad-blue),
+    var(--focus-ring),
+    inset 0 1px 2px rgba(16, 31, 78, 0.05);
+}
+
+/* Surfaces the workspace already had, re-cut in glass. */
+.studio .panel,
+.studio .tile,
+.studio .shortcut-card,
+.studio .camp-card,
+.studio .list__item,
+.studio .empty,
+.studio .callout,
+.studio .wa-card {
+  border: 0;
+  border-radius: var(--r-lg);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(246, 249, 255, 0.92));
+  box-shadow: var(--lift-1), var(--glass-hi);
+}
+
+.studio .pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: rgba(16, 31, 78, 0.06);
+  box-shadow: inset 0 0 0 1px rgba(16, 31, 78, 0.09);
+  color: var(--ad-slate);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.studio .pill--ok {
+  background: var(--ad-green-surface);
+  box-shadow: inset 0 0 0 1px rgba(15, 122, 90, 0.24);
+  color: var(--ad-green);
+}
+
+.studio .pill--info {
+  background: var(--ad-blue-100);
+  box-shadow: inset 0 0 0 1px rgba(47, 107, 255, 0.24);
+  color: var(--ad-blue-700);
+}
+
+.studio .pill--warn {
+  background: var(--ad-amber-surface);
+  box-shadow: inset 0 0 0 1px rgba(138, 90, 4, 0.24);
+  color: var(--ad-amber);
+}
+
+.studio .pill--err {
+  background: var(--ad-red-surface);
+  box-shadow: inset 0 0 0 1px rgba(176, 42, 48, 0.24);
+  color: var(--ad-red);
+}
+
+/* -- Warm leftovers -------------------------------------------------------
+   A handful of studio surfaces still carry the cream the workspace used to be
+   painted in. The public creator pages keep theirs; inside the workspace they
+   are re-cut in the same blue-and-white as everything else. */
+.studio .notice {
+  border: 0;
+  border-radius: var(--r-md);
+  background: var(--ad-blue-50);
+  box-shadow: inset 0 0 0 1px rgba(47, 107, 255, 0.18);
+  color: var(--ad-blue-800);
+}
+
+.studio .dict__preview {
+  border: 0;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(246, 249, 255, 0.92));
+  box-shadow: var(--lift-1), var(--glass-hi);
+}
+
+.studio .dict__pv-card {
+  border: 0;
+  background: #fff;
+  box-shadow: inset 0 0 0 1px var(--glass-line-soft);
+}
+
+.studio .dict__pv-card--muted {
+  background: rgba(16, 31, 78, 0.035);
+}
+
+.studio .callout--warn {
+  border: 0;
+  background: var(--ad-amber-surface);
+  box-shadow: inset 0 0 0 1px rgba(138, 90, 4, 0.22);
+  color: #74490a;
+}
+
+.studio .callout--info {
+  border: 0;
+  background: var(--ad-blue-50);
+  box-shadow: inset 0 0 0 1px rgba(47, 107, 255, 0.22);
+  color: var(--ad-blue-800);
+}
+
+.studio .callout--ok {
+  border: 0;
+  background: var(--ad-green-surface);
+  box-shadow: inset 0 0 0 1px rgba(15, 122, 90, 0.22);
+  color: #0c5e45;
+}
+
+/* The recorded-forms table in the learner preview: the kit's table, in the
+   narrow column it actually lives in. */
+.studio .dict__pv-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.8rem;
+}
+
+.studio .dict__pv-table td {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--glass-line-soft);
+}
+
+.studio .dict__pv-table tr:last-child td {
+  border-bottom: 0;
+}
+
+.studio .dict__pv-table td:first-child {
+  color: var(--ad-slate-2);
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  white-space: nowrap;
+}
+
+/* ==========================================================================
+   Public creator pages and sign-in
+   --------------------------------------------------------------------------
+   These surfaces keep their own marketing identity and sit outside `.iwx`, so
+   the kit never reaches them. What they take from here is only the blue the
+   rest of the ecosystem now speaks: their primary action, their brand mark and
+   the gate a creator passes through on the way in.
+   ========================================================================== */
+.public__bar {
+  background: rgba(15, 24, 48, 0.92);
+}
+
+.public .button--primary,
+.signin .button--primary {
+  border: 0;
+  background: linear-gradient(180deg, var(--ad-blue-400), var(--ad-blue-600));
+  box-shadow:
+    0 0 0 1px rgba(16, 50, 124, 0.4),
+    0 8px 20px -10px rgba(31, 80, 214, 0.9),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  color: #fff;
+}
+
+.public .brand__mark svg {
+  stroke: var(--ad-blue-300);
+}
+
+.signin {
+  min-height: 100svh;
+  padding: 24px;
+  background:
+    radial-gradient(circle at 50% 0, rgba(47, 107, 255, 0.26), transparent 34rem),
+    linear-gradient(145deg, #0b1225, #142657 62%, #183a8b);
+}
+
+.signin__card {
+  width: min(100%, 440px);
+  max-width: none;
+  padding: clamp(28px, 5vw, 42px);
+  border: 0;
+  border-radius: var(--r-xl);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.97), rgba(240, 245, 255, 0.94));
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.25),
+    0 40px 90px -32px rgba(0, 0, 0, 0.62),
+    inset 0 1px 0 #fff;
+}
+
+.signin__card .brand__mark {
+  width: 54px;
+  height: 54px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 15px;
+  background: linear-gradient(160deg, var(--ad-blue-400), var(--ad-blue-700));
+  box-shadow:
+    0 8px 20px -8px rgba(31, 80, 214, 0.9),
+    inset 0 1px 0 rgba(255, 255, 255, 0.45);
+}
+
+.signin__card .brand__mark svg {
+  stroke: #fff;
+}
+
+/* The hero has been a light surface since the workspace was repainted blue,
+   but its secondary call to action still wore the white-on-dark ghost styling
+   it was drawn for — white text on a near-white panel. It reads now. */
+.hero .button--ghost {
+  border: 0;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 0 0 1px var(--glass-line), inset 0 1px 0 #fff;
+  color: var(--ad-blue-700);
+}
+
+.hero .button--ghost:hover {
+  background: #fff;
+  box-shadow: 0 0 0 1px rgba(47, 107, 255, 0.36), inset 0 1px 0 #fff;
+}

@@ -15,8 +15,7 @@ import { TeamSiteIntakePage } from './team-sites/TeamSiteIntake';
 import { SCREENS, screenForPath, type ViewId } from './navigation';
 import { useRouter } from './router';
 import { AdminNotFoundPage } from './NotFoundPage';
-import { CommandPalette, useCommandPalette, type Command } from './ui/CommandPalette';
-import { Kbd } from './ui/primitives';
+import { type Command, CommandPalette, Kbd, useCommandPalette } from '@indigen-world/console-ui';
 
 const provider = new GoogleAuthProvider();
 const navigationGroups = ['Overview', 'Publishing', 'Community', 'Governance'] as const;
@@ -202,7 +201,7 @@ function App() {
   }
 
   return (
-    <div className={`admin-app-shell${collapsed ? ' sidebar-collapsed' : ''}`}>
+    <div className={`admin-app-shell iwx${collapsed ? ' sidebar-collapsed' : ''}`}>
       <a href="#main-content" className="skip-link">Skip to dashboard content</a>
       <button className="mobile-menu-button" type="button" aria-label={sidebarOpen ? 'Close admin menu' : 'Open admin menu'} aria-expanded={sidebarOpen} onClick={() => setSidebarOpen((value) => !value)}><Icon name="menu" /></button>
       {sidebarOpen ? <button type="button" className="sidebar-backdrop" aria-label="Close admin menu" onClick={() => setSidebarOpen(false)} /> : null}

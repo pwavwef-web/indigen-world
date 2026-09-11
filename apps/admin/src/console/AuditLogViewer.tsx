@@ -1,15 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { fetchAuditLogs } from '../creators/data';
-import { DataTable, type DataColumn } from '../ui/DataTable';
-import {
-  CopyId,
-  PageHeader,
-  Panel,
-  SegmentedControl,
-  Spinner,
-  StatusPill,
-  toneForStatus,
-} from '../ui/primitives';
+import { CopyId, type DataColumn, DataTable, PageHeader, Panel, SegmentedControl, Spinner, StatusPill, toneForStatus } from '@indigen-world/console-ui';
 
 interface AuditReference {
   collection?: string;

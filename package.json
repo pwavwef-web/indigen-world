@@ -10,6 +10,7 @@
     "packages/contracts",
     "packages/design-tokens",
     "packages/web-ui",
+    "packages/console-ui",
     "apps/kasena-dictionary",
     "apps/website",
     "apps/admin",

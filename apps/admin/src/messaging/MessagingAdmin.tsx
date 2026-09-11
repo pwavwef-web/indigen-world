@@ -15,7 +15,7 @@ import {
   type ContactGroup,
   type SmsBalance,
 } from './data';
-import { EmptyState, Loading, TableShell } from '../ui/primitives';
+import { EmptyState, Loading, TableShell } from '@indigen-world/console-ui';
 
 /**
  * Messaging console. Beyond the SMS balance and a one-off test message, admins

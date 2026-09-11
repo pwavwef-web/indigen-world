@@ -64,14 +64,22 @@ assert.deepEqual(unwrappedTables, [],
   'every JSX table is wrapped in <TableShell> so it scrolls instead of widening the page');
 
 // ── The console keeps one table, one control set and one command surface ───
-const dataTable = read('src/ui/DataTable.tsx');
-const kit = read('src/ui/ui.css');
-const palette = read('src/ui/CommandPalette.tsx');
+//
+// The kit is shared with the TribeStudio workspace, so it is read from the
+// package rather than from this app: a change that breaks the contract breaks
+// it for both consoles, and this is one of the two places that notices.
+const kitDir = resolve(root, '../../packages/console-ui/src');
+const readKit = (file) => readFileSync(resolve(kitDir, file), 'utf8');
+const dataTable = readKit('DataTable.tsx');
+const kit = readKit('kit.css');
+const palette = readKit('CommandPalette.tsx');
 
 assert.match(kit, /\.data-table, \.admin-table, \.collection-table, \.learning-table/,
   'the kit styles the legacy table classes alongside the standard one');
 assert.match(kit, /\.table-shell \{[\s\S]*?overflow-x: auto/,
   'the table shell is the only element allowed to scroll sideways');
+assert.match(app, /admin-app-shell iwx/,
+  'the shell carries the kit scope class the package styles hang off');
 assert.match(styles, /overflow-x: clip/,
   'the page body contains stray width instead of scrolling sideways');
 assert.match(dataTable, /aria-sort/, 'sortable columns report their sort state');

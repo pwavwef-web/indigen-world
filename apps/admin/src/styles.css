@@ -480,6 +480,9 @@ body {
   height: 32px;
   display: grid;
   place-items: center;
+  /* An icon button sizes itself: the kit's label padding would crush the glyph. */
+  min-height: 0;
+  padding: 0;
   border: 0;
   border-radius: var(--r-sm);
   background: transparent;
@@ -1862,6 +1865,8 @@ a.queue-card:hover .queue-card__action span[aria-hidden] {
     height: 42px;
     display: grid;
     place-items: center;
+    min-height: 0;
+    padding: 0;
     border: 0;
     border-radius: 13px;
     background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(238, 243, 255, 0.92));
@@ -2007,4 +2012,256 @@ a.queue-card:hover .queue-card__action span[aria-hidden] {
   .status-rail__dot--busy {
     animation: none;
   }
+}
+/* ==========================================================================
+   Legacy class normalisation
+   --------------------------------------------------------------------------
+   Screens written before the kit keep their markup; these rules pull the
+   remaining cream-and-gold leftovers onto the blue-and-white system.
+   ========================================================================== */
+.admin-app-shell .badge2,
+.admin-app-shell .route-badge,
+.admin-app-shell .chip,
+.admin-app-shell .collection-status,
+.admin-app-shell .learning-status,
+.admin-app-shell .status-badge,
+.admin-app-shell .report-status,
+.admin-app-shell .tag--planned {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  padding: 3px 9px;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: rgba(16, 31, 78, 0.06);
+  box-shadow: inset 0 0 0 1px rgba(16, 31, 78, 0.09);
+  color: var(--ad-slate);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+.admin-app-shell :where(.badge2--info, .route-badge, .badge2.status-scheduled) {
+  background: var(--ad-blue-100);
+  box-shadow: inset 0 0 0 1px rgba(47, 107, 255, 0.24);
+  color: var(--ad-blue-700);
+}
+
+.admin-app-shell :where(
+  .chip--ok, .badge2.status-sent, .collection-status--live, .learning-status--live,
+  .status-badge--resolved, .report-status--resolved
+) {
+  background: var(--ad-green-surface);
+  box-shadow: inset 0 0 0 1px rgba(15, 122, 90, 0.24);
+  color: var(--ad-green);
+}
+
+.admin-app-shell :where(
+  .chip--bad, .badge2.status-failed, .status-badge--new, .report-status--open
+) {
+  background: var(--ad-red-surface);
+  box-shadow: inset 0 0 0 1px rgba(176, 42, 48, 0.24);
+  color: var(--ad-red);
+}
+
+.admin-app-shell :where(
+  .badge2.status-partial, .status-badge--in_progress, .report-status--reviewing
+) {
+  background: var(--ad-amber-surface);
+  box-shadow: inset 0 0 0 1px rgba(138, 90, 4, 0.24);
+  color: var(--ad-amber);
+}
+
+.admin-app-shell :where(.status-badge--contacted) {
+  background: var(--ad-blue-100);
+  box-shadow: inset 0 0 0 1px rgba(47, 107, 255, 0.24);
+  color: var(--ad-blue-700);
+}
+
+.admin-app-shell :where(.route-badge--researcher, .route-badge--validator) {
+  background: var(--ad-violet-surface);
+  box-shadow: inset 0 0 0 1px rgba(91, 69, 196, 0.22);
+  color: var(--ad-violet);
+}
+
+.admin-app-shell :where(.route-badge--contributor, .route-badge--school) {
+  background: var(--ad-green-surface);
+  box-shadow: inset 0 0 0 1px rgba(15, 122, 90, 0.2);
+  color: var(--ad-green);
+}
+
+.admin-app-shell :where(.route-badge--sponsor) {
+  background: var(--ad-amber-surface);
+  box-shadow: inset 0 0 0 1px rgba(138, 90, 4, 0.2);
+  color: var(--ad-amber);
+}
+
+.admin-app-shell .role-chip {
+  margin-left: 8px;
+  padding: 2px 9px;
+  border-radius: var(--r-pill);
+  background: linear-gradient(180deg, var(--ad-blue-400), var(--ad-blue-600));
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.admin-app-shell .muted,
+.admin-app-shell .tiny.muted {
+  color: var(--ad-slate-2);
+}
+
+.admin-app-shell .tiny,
+.admin-app-shell .small {
+  font-size: 0.75rem;
+}
+
+.admin-app-shell .admin-flash {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 11px 14px;
+  border: 0;
+  border-radius: var(--r-md);
+  background: var(--ad-green-surface);
+  box-shadow: inset 0 0 0 1px rgba(15, 122, 90, 0.22);
+  color: #0c5e45;
+  font-size: 0.83rem;
+  font-weight: 600;
+}
+
+.admin-app-shell .error-line {
+  margin: 0 0 10px;
+  padding: 10px 13px;
+  border-radius: var(--r-md);
+  background: var(--ad-red-surface);
+  box-shadow: inset 0 0 0 1px rgba(176, 42, 48, 0.22);
+  color: #7d2025;
+  font-size: 0.83rem;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.admin-app-shell :where(.batch-toolbar, .interests-toolbar, .interest-status-updater) {
+  border: 0;
+  border-radius: var(--r-md);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(238, 243, 255, 0.9));
+  box-shadow: var(--lift-1), var(--glass-hi);
+}
+
+.admin-app-shell .batch-toolbar {
+  position: sticky;
+  z-index: 12;
+  top: 86px;
+  box-shadow: var(--lift-2), var(--glass-hi);
+}
+
+.admin-app-shell :where(.metric, .interest-metric-card, .analytics-card, .export-card, .entity-card, .review-card, .collection-order, .collection-upload, .admin-form, .reported-post, .interest-detail-grid, .interest-note-box) {
+  border: 0;
+  border-radius: var(--r-md);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(246, 249, 255, 0.92));
+  box-shadow: var(--lift-1), var(--glass-hi);
+}
+
+.admin-app-shell :where(.metric__value, .interest-metric-card .metric-val, .metric-large strong) {
+  color: var(--ad-ink);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.03em;
+}
+
+.admin-app-shell :where(.metric__label, .interest-metric-card .metric-lbl) {
+  color: var(--ad-slate-2);
+  font-family: var(--mono);
+  font-size: 0.64rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.admin-app-shell :where(.subtab) {
+  min-height: 34px;
+  padding: 0 13px;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--ad-slate);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 640;
+  cursor: pointer;
+  transition: background var(--motion-fast), color var(--motion-fast), box-shadow var(--motion-fast);
+}
+
+.admin-app-shell :where(.subtab):hover {
+  background: rgba(16, 31, 78, 0.05);
+  color: var(--ad-ink);
+}
+
+.admin-app-shell :where(.subtab.is-active) {
+  background: linear-gradient(180deg, #fff, #eef3ff);
+  box-shadow: 0 1px 3px rgba(16, 50, 124, 0.18), inset 0 0 0 1px rgba(47, 107, 255, 0.24);
+  color: var(--ad-blue-700);
+}
+
+.admin-app-shell .subtabs {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  padding: 4px;
+  border: 0;
+  border-radius: var(--r-md);
+  background: rgba(16, 31, 78, 0.05);
+  box-shadow: inset 0 1px 2px rgba(16, 31, 78, 0.07);
+}
+
+.admin-app-shell :where(.report-filter) {
+  min-height: 32px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: linear-gradient(180deg, #fff, #f3f6ff);
+  box-shadow: 0 0 0 1px var(--glass-line), inset 0 1px 0 #fff;
+  color: var(--ad-slate);
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.admin-app-shell :where(.report-filter.is-active) {
+  background: linear-gradient(180deg, var(--ad-blue-400), var(--ad-blue-600));
+  box-shadow: 0 6px 14px -8px rgba(31, 80, 214, 0.9);
+  color: #fff;
+}
+
+.admin-app-shell :where(.report-filter span) {
+  background: rgba(16, 31, 78, 0.07);
+  font-family: var(--mono);
+}
+
+.admin-app-shell :where(.report-filter.is-active span) {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.admin-app-shell :where(.audit-json-box) {
+  border-radius: var(--r-md);
+  background:
+    linear-gradient(180deg, rgba(47, 107, 255, 0.14), transparent 40%),
+    var(--ad-blue-900);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  color: #d6e3ff;
+  font-family: var(--mono);
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.admin-app-shell code {
+  border-radius: var(--r-xs);
+  background: rgba(16, 31, 78, 0.05);
+  color: var(--ad-blue-800);
+  font-family: var(--mono);
+  overflow-wrap: anywhere;
 }

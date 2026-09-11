@@ -13,8 +13,7 @@ import {
   type SubmissionStatus,
   type TesterRewardPayload,
 } from './data';
-import { DataTable, type DataColumn } from '../ui/DataTable';
-import { PageHeader, Spinner, Stat, StatGrid, toneForStatus } from '../ui/primitives';
+import { type DataColumn, DataTable, PageHeader, Spinner, Stat, StatGrid, toneForStatus } from '@indigen-world/console-ui';
 import './interests.css';
 
 /** Milliseconds for sorting, from any of the three shapes `receivedAt` takes. */

@@ -12,7 +12,7 @@ import {
   type LessonQuestion,
 } from './data';
 import { answerImageSlot, promptImageSlot, uploadLessonImage } from './imageUpload';
-import { Loading, TableShell } from '../ui/primitives';
+import { Loading, TableShell } from '@indigen-world/console-ui';
 import './learning.css';
 
 /**

@@ -11,8 +11,8 @@
  *  - no visitor-facing console.log leaks into the creator pages
  */
 import assert from 'node:assert/strict';
-import { readdirSync, readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { join, relative, resolve } from 'node:path';
 
 const root = resolve(import.meta.dirname, '..');
 const read = (path) => readFileSync(resolve(root, path), 'utf8');
@@ -23,6 +23,7 @@ const publicLayout = read('src/creator/PublicLayout.tsx');
 const studioLayout = read('src/creator/StudioLayout.tsx');
 const profilePage = read('src/creator/pages/ProfilePage.tsx');
 const creatorStyles = read('src/creator/creator.css');
+const shellStyles = read('src/creator/studio-shell.css');
 
 // Route-based code-splitting: pages must be lazy-loaded, not statically imported.
 const LAZY_PAGES = [
@@ -48,7 +49,7 @@ assert.match(app, /<PublicLayout><NotFoundPage/, 'unknown public routes render t
 assert.match(notFound, /aria-label="Error 404"/, 'the not-found page exposes an accessible 404 code');
 assert.match(publicLayout, /aria-current=/, 'public navigation exposes its active route');
 assert.match(studioLayout, /aria-current=/, 'studio navigation exposes its active route');
-assert.match(creatorStyles, /backdrop-filter:\s*blur/, 'navigation retains its glass treatment');
+assert.match(shellStyles, /backdrop-filter:\s*blur/, 'navigation retains its glass treatment');
 assert.match(profilePage, /className="profile-hero"/, 'profile has a clear identity hero');
 assert.match(profilePage, /aria-label="Profile sections"/, 'profile has section navigation');
 assert.match(profilePage, /className="profile-savebar"/, 'profile has a persistent save surface');
@@ -67,6 +68,50 @@ assert.ok(
   !/disabled=\{[^}]*progress\.score/.test(dictionaryPage),
   'the completeness meter never blocks submission',
 );
+
+// ── The workspace runs on the shared console kit ───────────────────────────
+//
+// The kit is shared with the admin console, so it is read from the package:
+// a change that breaks the contract breaks both consoles, and this is one of
+// the two places that notices.
+const kitDir = resolve(root, '../../packages/console-ui/src');
+const readKit = (file) => readFileSync(resolve(kitDir, file), 'utf8');
+const kit = readKit('kit.css');
+
+assert.match(studioLayout, /className={`studio iwx/,
+  'the workspace shell carries the kit scope class the package styles hang off');
+assert.match(studioLayout, /CommandPalette/, 'the workspace mounts the command palette');
+assert.match(studioLayout, /studio__status/, 'the workspace reports its state in a status rail');
+assert.match(shellStyles, /overflow-x: clip/,
+  'the page body contains stray width instead of scrolling sideways');
+assert.match(kit, /\.table-shell \{[\s\S]*?overflow-x: auto/,
+  'the table shell is the only element allowed to scroll sideways');
+
+// No table may escape its scroll container. A table is the one piece of markup
+// routinely wider than the window: wrapped it scrolls inside its own box,
+// unwrapped it widens the page for every other screen too.
+const sourceFiles = [];
+(function walk(dir) {
+  for (const entry of readdirSync(dir)) {
+    const full = join(dir, entry);
+    if (statSync(full).isDirectory()) walk(full);
+    else if (entry.endsWith('.tsx')) sourceFiles.push(full);
+  }
+})(resolve(root, 'src'));
+
+const unwrappedTables = [];
+for (const file of sourceFiles) {
+  const fileLines = readFileSync(file, 'utf8').split('\n');
+  fileLines.forEach((line, index) => {
+    if (!/^\s*<table className=/.test(line)) return;
+    const preceding = fileLines.slice(Math.max(0, index - 3), index).join(' ');
+    if (!preceding.includes('<TableShell')) {
+      unwrappedTables.push(`${relative(root, file)}:${index + 1}`);
+    }
+  });
+}
+assert.deepEqual(unwrappedTables, [],
+  'every JSX table is wrapped in <TableShell> so it scrolls instead of widening the page');
 
 // Governance: AI-training permission is off by default in the submission wizard.
 const wizard = read('src/creator/pages/SubmissionNewPage.tsx');
@@ -92,4 +137,8 @@ for (const file of loaderPages) {
   assert.ok(!read(`src/creator/pages/${file}`).includes('console.log'), `${file} has no console.log`);
 }
 
-console.log(`Validated TribeStudio: ${LAZY_PAGES.length} lazy routes, ${errorStatePages} data pages with error states.`);
+console.log(
+  `Validated TribeStudio: ${LAZY_PAGES.length} lazy routes, ${errorStatePages} data pages with ` +
+    `error states, and the shared console kit across ${sourceFiles.length} screens ` +
+    `(every table contained).`,
+);

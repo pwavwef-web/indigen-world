@@ -53,8 +53,7 @@ import {
   type AudiobookSlot,
   type StoredFile,
 } from './audiobookUpload';
-import { EmptyState, Loading, TableShell } from '../ui/primitives';
-import { DataTable, type DataColumn } from '../ui/DataTable';
+import { type DataColumn, DataTable, EmptyState, Loading, TableShell } from '@indigen-world/console-ui';
 import './collection.css';
 
 type Tab = 'heroes' | 'names' | 'apps' | 'audiobooks' | 'shop' | 'orders';

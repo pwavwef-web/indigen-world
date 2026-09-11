@@ -53,6 +53,7 @@ import {
   renderings,
   submitDictionaryEntry,
 } from '../dictionary-data';
+import { TableShell } from '@indigen-world/console-ui';
 
 const TIERS = enums.culturalPermissionTier as readonly string[];
 const TIER_LABELS: Record<string, string> = {
@@ -1159,22 +1160,24 @@ function EntryPreview({ draft }: { draft: EntryDraft }) {
       {answered.length > 0 ? (
         <div className="dict__pv-card">
           <b>{groups.has('noun') ? 'As a thing' : 'The forms it takes'}</b>
-          <table className="dict__pv-table">
-            <tbody>
-              {groups.has('noun') && draft.partOfSpeech === 'noun' ? (
-                <tr>
-                  <td>One</td>
-                  <td>{headword}</td>
-                </tr>
-              ) : null}
-              {answered.map((slot) => (
-                <tr key={slot.id}>
-                  <td>{previewFormLabel(slot.id)}</td>
-                  <td>{draft.forms[slot.id]}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <TableShell label="Recorded forms">
+            <table className="dict__pv-table">
+              <tbody>
+                {groups.has('noun') && draft.partOfSpeech === 'noun' ? (
+                  <tr>
+                    <td>One</td>
+                    <td>{headword}</td>
+                  </tr>
+                ) : null}
+                {answered.map((slot) => (
+                  <tr key={slot.id}>
+                    <td>{previewFormLabel(slot.id)}</td>
+                    <td>{draft.forms[slot.id]}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </TableShell>
         </div>
       ) : null}
 

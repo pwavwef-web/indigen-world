@@ -6,7 +6,7 @@ import {
   type TeamSiteRequest,
   type TeamSiteRequestInput,
 } from '../creators/data';
-import { EmptyState, Loading, TableShell } from '../ui/primitives';
+import { EmptyState, Loading, TableShell } from '@indigen-world/console-ui';
 
 const fieldLabels: Record<keyof TeamSiteRequest['fields'], string> = {
   fullName: 'Full name',

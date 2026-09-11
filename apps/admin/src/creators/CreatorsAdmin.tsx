@@ -34,7 +34,7 @@ import {
   OTHER_FORM_SLOTS,
   pronounCheck,
 } from './kasem-morphology';
-import { EmptyState, Loading, TableShell } from '../ui/primitives';
+import { EmptyState, Loading, TableShell } from '@indigen-world/console-ui';
 
 type Tab = 'overview' | 'applications' | 'creators' | 'members' | 'campaigns' | 'review' | 'config' | 'audit';
 
