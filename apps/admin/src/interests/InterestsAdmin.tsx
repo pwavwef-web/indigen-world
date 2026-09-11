@@ -272,7 +272,7 @@ function InterestDetailModal({
 export function InterestsAdmin({ role }: { role: AdminRole }) {
   const [submissions, setSubmissions] = useState<PublicFormSubmission[]>([]);
   const [loading, setLoading] = useState(true);
-  const [formFilter, setFormFilter] = useState<'get-involved' | 'contact' | 'tester-reward-claim' | 'ALL'>('get-involved');
+  const [formFilter, setFormFilter] = useState<'get-involved' | 'contact' | 'tester-reward-claim' | 'ALL'>('ALL');
   const [routeFilter, setRouteFilter] = useState<string>('ALL');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
@@ -430,9 +430,9 @@ export function InterestsAdmin({ role }: { role: AdminRole }) {
     <div className="interests-admin">
       <div className="tab-head">
         <div>
-          <h2>Public Forms &amp; Tester Claims</h2>
+          <h2>Form responses &amp; tester claims</h2>
           <p className="muted">
-            Review website enquiries, contributor interests and Founding Tester reward claims.
+            All website responses appear here. Use the Form filter to show only Founding Tester reward claims.
           </p>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
@@ -489,10 +489,10 @@ export function InterestsAdmin({ role }: { role: AdminRole }) {
               value={formFilter}
               onChange={(e) => setFormFilter(e.target.value as 'get-involved' | 'contact' | 'tester-reward-claim' | 'ALL')}
             >
-              <option value="get-involved">Get Involved (Interests)</option>
+              <option value="ALL">All form responses</option>
+              <option value="get-involved">Get Involved responses</option>
               <option value="contact">Contact messages</option>
               <option value="tester-reward-claim">Founding Tester reward claims</option>
-              <option value="ALL">All public forms</option>
             </select>
           </label>
 

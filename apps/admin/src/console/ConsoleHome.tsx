@@ -38,10 +38,10 @@ const queues: QueueCard[] = [
   },
   {
     key: 'newInterests',
-    label: 'New public enquiries',
-    body: 'Partnership, volunteer and community interest still needing contact.',
+    label: 'New form responses',
+    body: 'Website enquiries, community interests and Founding Tester claims still needing attention.',
     path: '/interests',
-    action: 'Open interests',
+    action: 'Open forms & claims',
     tone: 'green',
   },
 ];

@@ -110,10 +110,10 @@ export const SCREENS: AdminScreen[] = [
   {
     id: 'interests',
     path: '/interests',
-    label: 'Interests',
+    label: 'Forms & claims',
     group: 'Community',
     canAccess: isValidator,
-    deny: { title: 'Staff access required', body: 'Your account needs a validator or admin role to view submitted interests.' },
+    deny: { title: 'Staff access required', body: 'Your account needs a validator or admin role to view public form responses and tester claims.' },
     render: ({ role }) => <InterestsAdmin role={role} />,
   },
   {
