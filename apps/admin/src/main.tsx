@@ -7,6 +7,9 @@ import './styles.css';
 import './creators/creators-admin.css';
 import './team-sites/team-sites.css';
 import './messaging/messaging.css';
+// The component kit is loaded last so its standardised table, control and
+// status treatments settle over anything a screen stylesheet declared first.
+import './ui/ui.css';
 import './firebase';
 
 createRoot(document.getElementById('root')!).render(

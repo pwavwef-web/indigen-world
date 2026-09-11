@@ -24,7 +24,9 @@ export const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const functions = getFunctions(app);
-const usingEmulators = import.meta.env.VITE_USE_EMULATORS === 'true';
+/** True when the console is pointed at the local Firebase emulator suite.
+ * Surfaced in the status rail so nobody mistakes emulator data for production. */
+export const usingEmulators = import.meta.env.VITE_USE_EMULATORS === 'true';
 
 // Callable Functions (role assignment, application and submission decisions)
 // enforce App Check outside the emulator. Configure the same reCAPTCHA Enterprise

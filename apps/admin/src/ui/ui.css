@@ -1,0 +1,1941 @@
+/* ==========================================================================
+   Indigen World Admin — console UI kit
+   --------------------------------------------------------------------------
+   One design system for every admin screen: glass surfaces over a blue-white
+   ground, layered (rather than flat) elevation, and the dense, monospaced
+   metadata of a developer console.
+
+   Three rules hold the kit together:
+
+   1. Nothing is allowed to widen the page. Every wide thing — a table, a code
+      block, a long identifier — scrolls or wraps inside its own box.
+   2. Depth is drawn with light, not with borders: a hairline ring, a top
+      highlight, and a two-stage shadow (contact + ambient).
+   3. Legacy class names (`.admin-table`, `.collection-table`,
+      `.learning-table`) are styled alongside the new `.data-table`, so the
+      screens look like one product without every screen being rewritten.
+   ========================================================================== */
+
+:root {
+  /* -- Ground and ink ---------------------------------------------------- */
+  --ad-ink: #0a1327;
+  --ad-ink-2: #16233f;
+  --ad-slate: #4a5878;
+  --ad-slate-2: #6b7794;
+  --ad-mist: #eef2fb;
+  --ad-mist-2: #e3eaf8;
+  --ad-paper: #ffffff;
+
+  /* -- Blue ramp --------------------------------------------------------- */
+  --ad-blue-50: #f2f6ff;
+  --ad-blue-100: #e2ecff;
+  --ad-blue-200: #c3d7ff;
+  --ad-blue-300: #9cbcff;
+  --ad-blue-400: #6d99ff;
+  --ad-blue: #2f6bff;
+  --ad-blue-600: #1f50d6;
+  --ad-blue-700: #1a3ea8;
+  --ad-blue-800: #16327c;
+  --ad-blue-900: #101f4e;
+  --ad-cyan: #12b5cf;
+
+  /* -- Signal ------------------------------------------------------------ */
+  --ad-green: #0f7a5a;
+  --ad-green-surface: #e2f6ef;
+  --ad-amber: #8a5a04;
+  --ad-amber-surface: #fdf2dd;
+  --ad-red: #b02a30;
+  --ad-red-surface: #fdecec;
+  --ad-violet: #5b45c4;
+  --ad-violet-surface: #efecfd;
+
+  /* -- Glass ------------------------------------------------------------- */
+  --glass: rgba(255, 255, 255, 0.76);
+  --glass-strong: rgba(255, 255, 255, 0.9);
+  --glass-line: rgba(16, 31, 78, 0.13);
+  --glass-line-soft: rgba(16, 31, 78, 0.08);
+  --glass-blur: blur(22px) saturate(165%);
+  --glass-hi: inset 0 1px 0 rgba(255, 255, 255, 0.92);
+
+  /* -- Elevation: contact shadow + ambient shadow + hairline ring --------- */
+  --lift-0: 0 0 0 1px var(--glass-line-soft);
+  --lift-1:
+    0 0 0 1px var(--glass-line-soft),
+    0 1px 2px rgba(10, 19, 39, 0.05),
+    0 6px 16px -10px rgba(16, 50, 124, 0.35);
+  --lift-2:
+    0 0 0 1px var(--glass-line-soft),
+    0 2px 4px rgba(10, 19, 39, 0.05),
+    0 14px 30px -16px rgba(16, 50, 124, 0.42);
+  --lift-3:
+    0 0 0 1px var(--glass-line-soft),
+    0 4px 8px rgba(10, 19, 39, 0.05),
+    0 28px 60px -26px rgba(16, 50, 124, 0.5);
+  --focus-ring: 0 0 0 3px rgba(47, 107, 255, 0.28);
+
+  /* -- Shape ------------------------------------------------------------- */
+  --r-xs: 6px;
+  --r-sm: 9px;
+  --r-md: 13px;
+  --r-lg: 18px;
+  --r-xl: 24px;
+  --r-pill: 999px;
+
+  /* -- Rhythm ------------------------------------------------------------ */
+  --row-h: 42px;
+  --control-h: 38px;
+  --mono: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+}
+
+/* ==========================================================================
+   Surfaces
+   ========================================================================== */
+.iwx-surface,
+.panel {
+  position: relative;
+  min-width: 0;
+  border: 0;
+  border-radius: var(--r-lg);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(255, 255, 255, 0.88)),
+    var(--ad-paper);
+  box-shadow: var(--lift-1), var(--glass-hi);
+}
+
+/* The sheen: a single diagonal highlight that reads as a pane of glass rather
+   than as a gradient fill. Kept behind content and out of the a11y tree. */
+.iwx-surface::before,
+.panel::before {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  content: '';
+  border-radius: inherit;
+  background: linear-gradient(150deg, rgba(255, 255, 255, 0.7) 0%, rgba(255, 255, 255, 0) 38%);
+  pointer-events: none;
+}
+
+.iwx-surface > *,
+.panel > * {
+  position: relative;
+  z-index: 1;
+}
+
+.iwx-surface--flush {
+  padding: 0;
+  overflow: hidden;
+}
+
+.iwx-surface--tint {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(242, 246, 255, 0.92)),
+    var(--ad-paper);
+}
+
+/* A console block: dark, monospaced, and explicitly not a content surface. */
+.iwx-console {
+  overflow: auto;
+  max-height: 320px;
+  padding: 13px 15px;
+  border-radius: var(--r-md);
+  background:
+    linear-gradient(180deg, rgba(47, 107, 255, 0.12), transparent 42%),
+    var(--ad-blue-900);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  color: #d6e3ff;
+  font-family: var(--mono);
+  font-size: 0.74rem;
+  line-height: 1.6;
+  tab-size: 2;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+/* ==========================================================================
+   Page header — the first block on every screen
+   ========================================================================== */
+.iwx-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+  min-width: 0;
+  margin-bottom: 18px;
+}
+
+.iwx-head__copy {
+  min-width: 0;
+  max-width: 72ch;
+}
+
+.iwx-kicker {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0 0 7px;
+  color: var(--ad-blue-600);
+  font-family: var(--mono);
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.iwx-kicker::before {
+  width: 5px;
+  height: 5px;
+  content: '';
+  border-radius: 2px;
+  background: var(--ad-blue);
+  box-shadow: 0 0 0 3px rgba(47, 107, 255, 0.16);
+}
+
+.iwx-head h1,
+.iwx-head h2 {
+  margin: 0;
+  color: var(--ad-ink);
+  font-size: 1.42rem;
+  letter-spacing: -0.028em;
+  line-height: 1.2;
+}
+
+.iwx-head__body {
+  margin: 8px 0 0;
+  color: var(--ad-slate);
+  font-size: 0.86rem;
+  line-height: 1.55;
+}
+
+.iwx-head__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+/* ==========================================================================
+   Controls — one baseline for every button, input and select in the console.
+   `:where()` keeps specificity at zero so any screen-specific rule still wins.
+   ========================================================================== */
+.admin-app-shell :where(button):not(
+  .iw-button, .sidebar-link, .sidebar-collapse, .signout-button, .mobile-menu-button,
+  .sidebar-backdrop, .row-select, .iwx-bare, .iwx-tab, .iwx-seg__option, .iwx-pal__item,
+  .dt__sort, .dt__page, .report-filter, .subtab, .seg, .learning-layout button,
+  .interest-modal__close, .response-modal__close, .iwx-copy, .iwx-chip__x
+) {
+  min-height: var(--control-h);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: linear-gradient(180deg, #ffffff, #f1f5ff);
+  box-shadow:
+    0 0 0 1px var(--glass-line),
+    0 1px 2px rgba(10, 19, 39, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  color: var(--ad-ink-2);
+  font: inherit;
+  font-size: 0.81rem;
+  font-weight: 640;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  /* A button is the size of its label, even when its parent is a grid that
+     would otherwise stretch it across the column. */
+  justify-self: start;
+  transition:
+    box-shadow var(--motion-fast),
+    transform var(--motion-fast),
+    background var(--motion-fast),
+    color var(--motion-fast);
+}
+
+.admin-app-shell :where(button):not(
+  .iw-button, .sidebar-link, .sidebar-collapse, .signout-button, .mobile-menu-button,
+  .sidebar-backdrop, .row-select, .iwx-bare, .iwx-tab, .iwx-seg__option, .iwx-pal__item,
+  .dt__sort, .dt__page, .report-filter, .subtab, .seg, .learning-layout button,
+  .interest-modal__close, .response-modal__close, .iwx-copy, .iwx-chip__x
+):hover:not(:disabled) {
+  background: linear-gradient(180deg, #ffffff, #e8effe);
+  box-shadow:
+    0 0 0 1px rgba(47, 107, 255, 0.32),
+    0 2px 5px rgba(16, 50, 124, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  color: var(--ad-blue-700);
+  transform: translateY(-1px);
+}
+
+.admin-app-shell :where(button):not(
+  .iw-button, .sidebar-link, .sidebar-collapse, .signout-button, .mobile-menu-button,
+  .sidebar-backdrop, .row-select, .iwx-bare, .iwx-tab, .iwx-seg__option, .iwx-pal__item,
+  .dt__sort, .dt__page, .report-filter, .subtab, .seg, .learning-layout button,
+  .interest-modal__close, .response-modal__close, .iwx-copy, .iwx-chip__x
+):active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow:
+    0 0 0 1px rgba(47, 107, 255, 0.34),
+    inset 0 2px 4px rgba(16, 50, 124, 0.16);
+}
+
+.admin-app-shell :where(button):disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* Primary / destructive intent, available to legacy and new markup alike. */
+.admin-app-shell :where(button.button--primary, button.primary, button.iwx-btn--primary) {
+  background: linear-gradient(180deg, var(--ad-blue-400), var(--ad-blue-600));
+  box-shadow:
+    0 0 0 1px rgba(16, 50, 124, 0.4),
+    0 6px 16px -8px rgba(31, 80, 214, 0.85),
+    inset 0 1px 0 rgba(255, 255, 255, 0.42);
+  color: #fff;
+}
+
+.admin-app-shell :where(button.button--primary, button.primary, button.iwx-btn--primary):hover:not(:disabled) {
+  background: linear-gradient(180deg, var(--ad-blue), var(--ad-blue-700));
+  box-shadow:
+    0 0 0 1px rgba(16, 50, 124, 0.5),
+    0 10px 22px -10px rgba(31, 80, 214, 0.9),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  color: #fff;
+}
+
+.admin-app-shell :where(button.danger, button.btn-danger, button.iwx-btn--danger) {
+  background: linear-gradient(180deg, #fff, #fdeeee);
+  box-shadow:
+    0 0 0 1px rgba(176, 42, 48, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  color: var(--ad-red);
+}
+
+.admin-app-shell :where(button.danger, button.btn-danger, button.iwx-btn--danger):hover:not(:disabled) {
+  background: linear-gradient(180deg, #fff, #fbe2e2);
+  box-shadow:
+    0 0 0 1px rgba(176, 42, 48, 0.44),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  color: #8d2126;
+}
+
+.admin-app-shell :where(button.button--small, button.iwx-btn--sm) {
+  min-height: 31px;
+  padding: 0 11px;
+  font-size: 0.76rem;
+}
+
+.iwx-bare {
+  border: 0;
+  background: none;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+/* Inputs, selects and textareas share the button's inset-light treatment so a
+   filter row reads as one instrument panel. */
+.admin-app-shell :where(input:not([type='checkbox'], [type='radio'], [type='file']), select, textarea) {
+  min-height: var(--control-h);
+  width: 100%;
+  max-width: 100%;
+  padding: 8px 11px;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: linear-gradient(180deg, #f7f9ff, #ffffff);
+  box-shadow:
+    0 0 0 1px var(--glass-line),
+    inset 0 1px 2px rgba(16, 31, 78, 0.06);
+  color: var(--ad-ink);
+  font: inherit;
+  font-size: 0.84rem;
+  transition: box-shadow var(--motion-fast);
+}
+
+.admin-app-shell :where(select) {
+  padding-right: 30px;
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--ad-slate) 50%),
+    linear-gradient(135deg, var(--ad-slate) 50%, transparent 50%),
+    linear-gradient(180deg, #f7f9ff, #ffffff);
+  background-position: calc(100% - 15px) center, calc(100% - 10px) center, 0 0;
+  background-size: 5px 5px, 5px 5px, 100% 100%;
+  background-repeat: no-repeat;
+  appearance: none;
+}
+
+.admin-app-shell :where(input, select, textarea):focus {
+  outline: none;
+  box-shadow:
+    0 0 0 1px var(--ad-blue),
+    var(--focus-ring),
+    inset 0 1px 2px rgba(16, 31, 78, 0.05);
+}
+
+.admin-app-shell :where(textarea) {
+  min-height: 92px;
+  line-height: 1.55;
+  resize: vertical;
+}
+
+.admin-app-shell :where(input[type='checkbox'], input[type='radio']) {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+  accent-color: var(--ad-blue);
+  cursor: pointer;
+}
+
+.admin-app-shell :where(input[type='file']) {
+  max-width: 100%;
+  font-size: 0.8rem;
+}
+
+/* A checkbox row is a row, whatever the surrounding form grid says about
+   labels. The element selector outranks the `.admin-form label` rule that
+   would otherwise stack and upper-case it. */
+.admin-app-shell label.checkbox,
+.admin-app-shell label.inline-check,
+.admin-app-shell label.collection-checkbox,
+.admin-app-shell label.learning-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+  color: var(--ad-ink-2);
+  font-size: 0.82rem;
+  font-weight: 550;
+  letter-spacing: 0;
+  line-height: 1.45;
+  text-transform: none;
+}
+
+.admin-app-shell ::placeholder {
+  color: var(--ad-slate-2);
+  font-weight: 400;
+  opacity: 1;
+}
+
+/* Field label pattern used by every form grid. */
+.iwx-field {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  color: var(--ad-slate);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.iwx-field--inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 0.78rem;
+}
+
+.iwx-field__hint {
+  color: var(--ad-slate-2);
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+/* The shared web-ui button ships the public site's palette; inside the
+   console it wears the console's. */
+.admin-app-shell .iw-button--primary,
+.auth-card .iw-button--primary {
+  border-color: transparent;
+  background: linear-gradient(180deg, var(--ad-blue-400), var(--ad-blue-600));
+  box-shadow:
+    0 0 0 1px rgba(16, 50, 124, 0.4),
+    0 8px 20px -10px rgba(31, 80, 214, 0.9),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  color: #fff;
+}
+
+.admin-app-shell .iw-button--primary:hover:not(:disabled),
+.auth-card .iw-button--primary:hover:not(:disabled) {
+  background: linear-gradient(180deg, var(--ad-blue), var(--ad-blue-700));
+  color: #fff;
+}
+
+.admin-app-shell .iw-button--ghost,
+.admin-app-shell .iw-button--secondary {
+  border-color: var(--glass-line);
+  background: linear-gradient(180deg, #ffffff, #f1f5ff);
+  color: var(--ad-ink-2);
+}
+
+.admin-app-shell .iw-button--ghost:hover:not(:disabled),
+.admin-app-shell .iw-button--secondary:hover:not(:disabled) {
+  border-color: rgba(47, 107, 255, 0.36);
+  color: var(--ad-blue-700);
+}
+
+/* ==========================================================================
+   Toolbar — filters on the left, counts and actions on the right
+   ========================================================================== */
+.iwx-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  min-width: 0;
+  padding: 11px 13px;
+  border-radius: var(--r-md);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(238, 243, 255, 0.9));
+  box-shadow: var(--lift-1), var(--glass-hi);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+}
+
+.iwx-toolbar__group {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.iwx-toolbar__count {
+  color: var(--ad-slate-2);
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  white-space: nowrap;
+}
+
+.iwx-toolbar__count strong {
+  color: var(--ad-ink);
+}
+
+/* Search field with a leading glyph. */
+.iwx-search {
+  position: relative;
+  flex: 1 1 220px;
+  min-width: 0;
+  max-width: 340px;
+}
+
+.iwx-search svg {
+  position: absolute;
+  top: 50%;
+  left: 11px;
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: var(--ad-slate-2);
+  stroke-width: 2;
+  stroke-linecap: round;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.admin-app-shell .iwx-search input {
+  padding-left: 33px;
+}
+
+/* ==========================================================================
+   Segmented control & tabs
+   ========================================================================== */
+.iwx-seg {
+  display: inline-flex;
+  gap: 2px;
+  max-width: 100%;
+  overflow-x: auto;
+  padding: 3px;
+  border-radius: var(--r-sm);
+  background: rgba(16, 31, 78, 0.06);
+  box-shadow: inset 0 1px 2px rgba(16, 31, 78, 0.08);
+  scrollbar-width: none;
+}
+
+.iwx-seg::-webkit-scrollbar {
+  display: none;
+}
+
+.admin-app-shell .iwx-seg__option {
+  min-height: 29px;
+  flex: 0 0 auto;
+  padding: 0 13px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--ad-slate);
+  font: inherit;
+  font-size: 0.77rem;
+  font-weight: 640;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background var(--motion-fast), color var(--motion-fast), box-shadow var(--motion-fast);
+}
+
+.admin-app-shell .iwx-seg__option:hover {
+  color: var(--ad-ink);
+}
+
+.admin-app-shell .iwx-seg__option[aria-pressed='true'],
+.admin-app-shell .iwx-seg__option.is-active {
+  background: linear-gradient(180deg, #fff, #f4f7ff);
+  box-shadow: 0 1px 3px rgba(16, 50, 124, 0.18), inset 0 1px 0 #fff;
+  color: var(--ad-blue-700);
+}
+
+.iwx-seg__count {
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: var(--r-pill);
+  background: rgba(16, 31, 78, 0.08);
+  font-family: var(--mono);
+  font-size: 0.66rem;
+}
+
+.iwx-seg__option[aria-pressed='true'] .iwx-seg__count,
+.iwx-seg__option.is-active .iwx-seg__count {
+  background: rgba(47, 107, 255, 0.14);
+  color: var(--ad-blue-700);
+}
+
+/* Screen-level tab strip (Creators, Collection). */
+.iwx-tabs {
+  display: flex;
+  gap: 3px;
+  max-width: 100%;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  border-bottom: 1px solid var(--glass-line-soft);
+  scrollbar-width: thin;
+}
+
+.admin-app-shell .iwx-tab {
+  position: relative;
+  min-height: 36px;
+  flex: 0 0 auto;
+  padding: 0 14px;
+  border: 0;
+  background: transparent;
+  color: var(--ad-slate);
+  font: inherit;
+  font-size: 0.83rem;
+  font-weight: 640;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color var(--motion-fast);
+}
+
+.admin-app-shell .iwx-tab:hover {
+  color: var(--ad-ink);
+}
+
+.admin-app-shell .iwx-tab.is-active {
+  color: var(--ad-blue-700);
+}
+
+.admin-app-shell .iwx-tab.is-active::after {
+  position: absolute;
+  right: 10px;
+  bottom: -1px;
+  left: 10px;
+  height: 2px;
+  content: '';
+  border-radius: 2px 2px 0 0;
+  background: linear-gradient(90deg, var(--ad-blue), var(--ad-cyan));
+  box-shadow: 0 0 10px rgba(47, 107, 255, 0.5);
+}
+
+/* ==========================================================================
+   Tables
+   --------------------------------------------------------------------------
+   Every table in the console — new `.data-table` and the three legacy class
+   names alike — is rendered by these rules, and every one of them lives inside
+   a `.table-shell`. The shell is the only thing allowed to scroll sideways:
+   the page itself never does.
+   ========================================================================== */
+.table-shell {
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  border-radius: var(--r-md);
+  background: var(--ad-paper);
+  box-shadow: var(--lift-1), var(--glass-hi);
+  overscroll-behavior-x: contain;
+  scrollbar-color: rgba(16, 31, 78, 0.28) transparent;
+  scrollbar-width: thin;
+}
+
+.table-shell::-webkit-scrollbar {
+  height: 9px;
+}
+
+.table-shell::-webkit-scrollbar-track {
+  background: rgba(16, 31, 78, 0.04);
+  border-radius: var(--r-pill);
+}
+
+.table-shell::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: var(--r-pill);
+  background: rgba(16, 31, 78, 0.24);
+  background-clip: content-box;
+}
+
+.table-shell::-webkit-scrollbar-thumb:hover {
+  background: rgba(47, 107, 255, 0.5);
+  background-clip: content-box;
+}
+
+/* A scrolled-off edge should look scrolled-off. The fade is painted by the
+   shell itself, so it works for legacy tables with no extra markup. */
+.table-shell--scrollable {
+  background-image: linear-gradient(to left, rgba(16, 31, 78, 0.08), transparent 34px);
+  background-repeat: no-repeat;
+  background-position: right center;
+  background-size: 34px 100%;
+  background-attachment: local;
+}
+
+.admin-app-shell :where(.data-table, .admin-table, .collection-table, .learning-table) {
+  width: 100%;
+  min-width: 100%;
+  border: 0;
+  border-collapse: separate;
+  border-spacing: 0;
+  margin: 0;
+  background: transparent;
+  color: var(--ad-ink-2);
+  font-size: 0.82rem;
+  font-variant-numeric: tabular-nums;
+  text-align: left;
+}
+
+/* -- Header ------------------------------------------------------------- */
+.admin-app-shell :where(.data-table, .admin-table, .collection-table, .learning-table) thead th {
+  position: sticky;
+  z-index: 2;
+  top: 0;
+  padding: 0 13px;
+  height: 38px;
+  border: 0;
+  border-bottom: 1px solid var(--glass-line);
+  background: linear-gradient(180deg, #f7f9ff, #eef3fe);
+  box-shadow: inset 0 1px 0 #fff;
+  color: var(--ad-slate);
+  font-family: var(--mono);
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-align: left;
+  text-transform: uppercase;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.admin-app-shell :where(.data-table, .admin-table, .collection-table, .learning-table) thead th:first-child {
+  border-top-left-radius: var(--r-md);
+}
+
+.admin-app-shell :where(.data-table, .admin-table, .collection-table, .learning-table) thead th:last-child {
+  border-top-right-radius: var(--r-md);
+}
+
+/* -- Body --------------------------------------------------------------- */
+.admin-app-shell :where(.data-table, .admin-table, .collection-table, .learning-table) tbody td {
+  padding: 9px 12px;
+  border: 0;
+  border-bottom: 1px solid var(--glass-line-soft);
+  color: var(--ad-ink-2);
+  line-height: 1.5;
+  vertical-align: top;
+}
+
+.admin-app-shell :where(.data-table, .admin-table, .collection-table, .learning-table) tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.admin-app-shell :where(.data-table, .admin-table, .collection-table, .learning-table) tbody tr {
+  transition: background var(--motion-fast);
+}
+
+.admin-app-shell :where(.data-table, .admin-table, .collection-table, .learning-table) tbody tr:nth-child(even) {
+  background: rgba(238, 243, 255, 0.44);
+}
+
+.admin-app-shell :where(.data-table, .admin-table, .collection-table, .learning-table) tbody tr:hover {
+  background: rgba(47, 107, 255, 0.07);
+}
+
+.admin-app-shell :where(.data-table, .admin-table, .collection-table, .learning-table) tbody tr.is-selected,
+.admin-app-shell :where(.data-table, .admin-table, .collection-table, .learning-table) tbody tr.is-expanded {
+  background: rgba(47, 107, 255, 0.1);
+  box-shadow: inset 3px 0 0 var(--ad-blue);
+}
+
+.admin-app-shell :where(.data-table, .admin-table, .collection-table, .learning-table) tfoot td {
+  padding: 10px 13px;
+  border-top: 1px solid var(--glass-line);
+  background: rgba(238, 243, 255, 0.6);
+  color: var(--ad-slate);
+  font-size: 0.76rem;
+}
+
+/* Cells hold real content, so they get sensible defaults rather than each
+   screen inventing its own. A primary line and a secondary line stack tightly
+   instead of inheriting paragraph spacing. */
+.admin-app-shell :where(.data-table, .admin-table, .collection-table, .learning-table) td strong {
+  display: block;
+  color: var(--ad-ink);
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.admin-app-shell :where(.data-table, .admin-table, .collection-table, .learning-table) td :where(.tiny, .muted, .small) {
+  display: block;
+  color: var(--ad-slate-2);
+  font-size: 0.72rem;
+  line-height: 1.35;
+}
+
+.admin-app-shell :where(.data-table, .admin-table, .collection-table, .learning-table) td code,
+.admin-app-shell :where(.data-table, .admin-table, .collection-table, .learning-table) td .mono {
+  background: rgba(16, 31, 78, 0.05);
+  color: var(--ad-blue-800);
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  overflow-wrap: anywhere;
+}
+
+.admin-app-shell :where(.data-table, .admin-table, .collection-table, .learning-table) :where(select, input) {
+  min-height: 30px;
+  font-size: 0.76rem;
+}
+
+/* Column behaviour, set per cell by the table component. */
+.dt-col--num,
+.dt-col--end {
+  text-align: right;
+}
+
+.dt-col--center {
+  text-align: center;
+}
+
+.dt-col--mono {
+  font-family: var(--mono);
+  font-size: 0.74rem;
+}
+
+.dt-col--tight {
+  white-space: nowrap;
+}
+
+.dt-col--wrap {
+  min-width: 180px;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.dt-col--check {
+  width: 40px;
+  padding-right: 0 !important;
+}
+
+/* Actions sit at the trailing edge and stay on one line: a column that wraps
+   its buttons sets the height of every row in the table. */
+.admin-app-shell :where(.data-table, .admin-table, .collection-table, .learning-table) .row-actions,
+.admin-app-shell :where(.collection-table__actions, .learning-table__actions),
+.dt-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: nowrap;
+  justify-content: flex-end;
+  white-space: nowrap;
+}
+
+.admin-app-shell :where(.data-table, .admin-table, .collection-table, .learning-table) :where(select) {
+  width: auto;
+  min-width: 116px;
+  max-width: 100%;
+}
+
+.admin-app-shell :where(.data-table, .admin-table, .collection-table, .learning-table) tbody td > :where(button, a) {
+  vertical-align: middle;
+}
+
+/* -- Density -------------------------------------------------------------
+   Compact trades breathing room for rows on screen; the choice is remembered
+   for the operator, not for the screen. */
+.dt--compact :where(.data-table) tbody td {
+  padding: 6px 11px;
+  font-size: 0.78rem;
+}
+
+.dt--compact :where(.data-table) thead th {
+  height: 32px;
+  padding: 0 11px;
+}
+
+.dt--compact .iwx-pill,
+.dt--compact .badge2,
+.dt--compact .route-badge {
+  padding-block: 1px;
+}
+
+.admin-app-shell .dt__density {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  padding: 0;
+  place-items: center;
+  border-radius: var(--r-xs);
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--glass-line-soft);
+  color: var(--ad-slate);
+}
+
+.admin-app-shell .dt__density[aria-pressed='true'] {
+  background: rgba(47, 107, 255, 0.1);
+  box-shadow: inset 0 0 0 1px rgba(47, 107, 255, 0.32);
+  color: var(--ad-blue-700);
+}
+
+/* Three stacked rules: the icon is the thing it toggles. */
+.dt__density-mark {
+  width: 13px;
+  height: 11px;
+  background:
+    linear-gradient(currentColor, currentColor) 0 0 / 100% 2px no-repeat,
+    linear-gradient(currentColor, currentColor) 0 50% / 100% 2px no-repeat,
+    linear-gradient(currentColor, currentColor) 0 100% / 100% 2px no-repeat;
+}
+
+.dt--compact .dt__density-mark {
+  height: 8px;
+}
+
+/* A status cell that is also the control that changes it. The pill's colour
+   carries the scan; the select carries the edit. One column, not two. */
+.dt-status {
+  display: block;
+  min-width: 0;
+}
+
+.admin-app-shell .dt-status select {
+  width: 100%;
+  min-width: 0;
+  min-height: 28px;
+  padding: 0 26px 0 10px;
+  border-radius: var(--r-pill);
+  background-image:
+    linear-gradient(45deg, transparent 50%, currentColor 50%),
+    linear-gradient(135deg, currentColor 50%, transparent 50%);
+  background-position: calc(100% - 14px) center, calc(100% - 9px) center;
+  background-size: 4px 4px, 4px 4px;
+  background-repeat: no-repeat;
+  box-shadow: inset 0 0 0 1px currentColor;
+  font-size: 0.71rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.dt-status--info select { background-color: var(--ad-blue-100); color: var(--ad-blue-700); }
+.dt-status--success select { background-color: var(--ad-green-surface); color: var(--ad-green); }
+.dt-status--warning select { background-color: var(--ad-amber-surface); color: var(--ad-amber); }
+.dt-status--danger select { background-color: var(--ad-red-surface); color: var(--ad-red); }
+.dt-status--violet select { background-color: var(--ad-violet-surface); color: var(--ad-violet); }
+.dt-status--neutral select { background-color: rgba(16, 31, 78, 0.06); color: var(--ad-slate); }
+
+/* -- Truncation: long free text stays on one line and reveals on hover --- */
+.dt-clamp {
+  display: block;
+  max-width: 26ch;
+  overflow: hidden;
+  color: var(--ad-slate);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ==========================================================================
+   DataTable chrome (bar, footer, sorting, pagination)
+   ========================================================================== */
+.dt {
+  display: grid;
+  gap: 11px;
+  min-width: 0;
+}
+
+.dt__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.dt__bar-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.admin-app-shell .dt__sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  cursor: pointer;
+}
+
+.admin-app-shell .dt__sort:hover {
+  color: var(--ad-blue-700);
+}
+
+.dt__caret {
+  display: inline-grid;
+  gap: 1px;
+  opacity: 0.35;
+}
+
+.dt__caret::before,
+.dt__caret::after {
+  content: '';
+  border: 3px solid transparent;
+}
+
+.dt__caret::before {
+  border-bottom-color: currentColor;
+}
+
+.dt__caret::after {
+  border-top-color: currentColor;
+}
+
+.dt__sort[aria-sort='ascending'] .dt__caret,
+.dt__sort[aria-sort='descending'] .dt__caret {
+  color: var(--ad-blue);
+  opacity: 1;
+}
+
+.dt__sort[aria-sort='ascending'] .dt__caret::after,
+.dt__sort[aria-sort='descending'] .dt__caret::before {
+  opacity: 0.2;
+}
+
+.dt__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  min-width: 0;
+  color: var(--ad-slate-2);
+  font-family: var(--mono);
+  font-size: 0.72rem;
+}
+
+.dt__pager {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.admin-app-shell .dt__page {
+  min-width: 30px;
+  height: 30px;
+  display: inline-grid;
+  padding: 0 8px;
+  place-items: center;
+  border: 0;
+  border-radius: var(--r-xs);
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--glass-line-soft);
+  color: var(--ad-slate);
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 650;
+  cursor: pointer;
+  transition: box-shadow var(--motion-fast), color var(--motion-fast), background var(--motion-fast);
+}
+
+.admin-app-shell .dt__page:hover:not(:disabled) {
+  background: rgba(47, 107, 255, 0.08);
+  box-shadow: inset 0 0 0 1px rgba(47, 107, 255, 0.36);
+  color: var(--ad-blue-700);
+}
+
+.admin-app-shell .dt__page[aria-current='page'] {
+  background: linear-gradient(180deg, var(--ad-blue-400), var(--ad-blue-600));
+  box-shadow: 0 4px 10px -5px rgba(31, 80, 214, 0.9);
+  color: #fff;
+}
+
+.admin-app-shell .dt__page:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.dt__gap {
+  padding: 0 2px;
+  color: var(--ad-slate-2);
+}
+
+/* Loading rows keep the table's geometry instead of collapsing the layout. */
+.dt__skeleton {
+  display: block;
+  height: 11px;
+  border-radius: var(--r-pill);
+  background: linear-gradient(90deg, rgba(16, 31, 78, 0.07) 25%, rgba(16, 31, 78, 0.03) 45%, rgba(16, 31, 78, 0.07) 65%);
+  background-size: 240% 100%;
+  animation: dt-shimmer 1.25s linear infinite;
+}
+
+@keyframes dt-shimmer {
+  to { background-position: -240% 0; }
+}
+
+/* ==========================================================================
+   Status pills, badges and chips
+   ========================================================================== */
+.iwx-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 100%;
+  padding: 3px 9px;
+  border-radius: var(--r-pill);
+  background: rgba(16, 31, 78, 0.06);
+  box-shadow: inset 0 0 0 1px rgba(16, 31, 78, 0.08);
+  color: var(--ad-slate);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  line-height: 1.45;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.iwx-pill::before {
+  width: 5px;
+  height: 5px;
+  flex: 0 0 auto;
+  content: '';
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.5);
+}
+
+.iwx-pill--plain::before {
+  display: none;
+}
+
+.iwx-pill--info {
+  background: var(--ad-blue-100);
+  box-shadow: inset 0 0 0 1px rgba(47, 107, 255, 0.24);
+  color: var(--ad-blue-700);
+}
+
+.iwx-pill--success {
+  background: var(--ad-green-surface);
+  box-shadow: inset 0 0 0 1px rgba(15, 122, 90, 0.24);
+  color: var(--ad-green);
+}
+
+.iwx-pill--warning {
+  background: var(--ad-amber-surface);
+  box-shadow: inset 0 0 0 1px rgba(138, 90, 4, 0.24);
+  color: var(--ad-amber);
+}
+
+.iwx-pill--danger {
+  background: var(--ad-red-surface);
+  box-shadow: inset 0 0 0 1px rgba(176, 42, 48, 0.24);
+  color: var(--ad-red);
+}
+
+.iwx-pill--violet {
+  background: var(--ad-violet-surface);
+  box-shadow: inset 0 0 0 1px rgba(91, 69, 196, 0.22);
+  color: var(--ad-violet);
+}
+
+/* A monospaced identifier with click-to-copy. IDs are the currency of an
+   admin console; reading one off the screen by hand is a bug. */
+.iwx-id {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.admin-app-shell .iwx-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 100%;
+  min-width: 0;
+  padding: 2px 7px;
+  border: 0;
+  border-radius: var(--r-xs);
+  background: rgba(16, 31, 78, 0.05);
+  box-shadow: inset 0 0 0 1px var(--glass-line-soft);
+  color: var(--ad-blue-800);
+  font-family: var(--mono);
+  font-size: 0.71rem;
+  cursor: copy;
+  transition: background var(--motion-fast), box-shadow var(--motion-fast), color var(--motion-fast);
+}
+
+.admin-app-shell .iwx-copy:hover {
+  background: rgba(47, 107, 255, 0.1);
+  box-shadow: inset 0 0 0 1px rgba(47, 107, 255, 0.3);
+  color: var(--ad-blue-700);
+}
+
+.iwx-copy__text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.iwx-copy__state {
+  color: var(--ad-green);
+  font-size: 0.66rem;
+  font-weight: 700;
+}
+
+/* ==========================================================================
+   Stat tiles
+   ========================================================================== */
+.iwx-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 12px;
+  min-width: 0;
+}
+
+.iwx-stat {
+  position: relative;
+  display: grid;
+  align-content: start;
+  gap: 5px;
+  min-width: 0;
+  overflow: hidden;
+  padding: 15px 16px;
+  border-radius: var(--r-md);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(244, 248, 255, 0.9));
+  box-shadow: var(--lift-1), var(--glass-hi);
+}
+
+.iwx-stat::after {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  content: '';
+  background: linear-gradient(90deg, var(--ad-blue), rgba(47, 107, 255, 0));
+}
+
+.iwx-stat--accent::after { background: linear-gradient(90deg, var(--ad-cyan), rgba(18, 181, 207, 0)); }
+.iwx-stat--warning::after { background: linear-gradient(90deg, var(--ad-amber), rgba(138, 90, 4, 0)); }
+.iwx-stat--danger::after { background: linear-gradient(90deg, var(--ad-red), rgba(176, 42, 48, 0)); }
+.iwx-stat--success::after { background: linear-gradient(90deg, var(--ad-green), rgba(15, 122, 90, 0)); }
+
+.iwx-stat__value {
+  color: var(--ad-ink);
+  font-size: 1.75rem;
+  font-weight: 780;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.04em;
+  line-height: 1.05;
+}
+
+.iwx-stat__label {
+  color: var(--ad-slate-2);
+  font-family: var(--mono);
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.iwx-stat__note {
+  color: var(--ad-slate);
+  font-size: 0.74rem;
+  line-height: 1.45;
+}
+
+/* ==========================================================================
+   Empty, loading and error states
+   ========================================================================== */
+.iwx-empty {
+  display: grid;
+  justify-items: center;
+  gap: 7px;
+  padding: 40px 20px;
+  border-radius: var(--r-md);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.7), rgba(238, 243, 255, 0.55)),
+    repeating-linear-gradient(45deg, rgba(16, 31, 78, 0.028) 0 8px, transparent 8px 16px);
+  box-shadow: inset 0 0 0 1px var(--glass-line-soft);
+  text-align: center;
+}
+
+.iwx-empty__mark {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  margin-bottom: 4px;
+  place-items: center;
+  border-radius: var(--r-md);
+  background: linear-gradient(180deg, #fff, #e8effe);
+  box-shadow: var(--lift-1), var(--glass-hi);
+  color: var(--ad-blue);
+}
+
+.iwx-empty__mark svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.iwx-empty strong {
+  color: var(--ad-ink);
+  font-size: 0.95rem;
+}
+
+.iwx-empty p {
+  max-width: 46ch;
+  margin: 0;
+  color: var(--ad-slate);
+  font-size: 0.82rem;
+  line-height: 1.55;
+}
+
+.iwx-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+  padding: 11px 13px;
+  border-radius: var(--r-md);
+  background: var(--ad-red-surface);
+  box-shadow: inset 0 0 0 1px rgba(176, 42, 48, 0.22);
+  color: #7d2025;
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.iwx-alert strong {
+  display: block;
+}
+
+.iwx-alert__body {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.iwx-alert--info {
+  background: var(--ad-blue-50);
+  box-shadow: inset 0 0 0 1px rgba(47, 107, 255, 0.22);
+  color: var(--ad-blue-800);
+}
+
+.iwx-alert--success {
+  background: var(--ad-green-surface);
+  box-shadow: inset 0 0 0 1px rgba(15, 122, 90, 0.22);
+  color: #0c5e45;
+}
+
+.iwx-alert--warning {
+  background: var(--ad-amber-surface);
+  box-shadow: inset 0 0 0 1px rgba(138, 90, 4, 0.22);
+  color: #74490a;
+}
+
+.iwx-alert__mark {
+  display: grid;
+  width: 20px;
+  height: 20px;
+  flex: 0 0 auto;
+  margin-top: 1px;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.65);
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.iwx-alert button {
+  margin-left: auto;
+}
+
+.iwx-loading {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0;
+  padding: 22px 4px;
+  color: var(--ad-slate-2);
+  font-family: var(--mono);
+  font-size: 0.78rem;
+}
+
+/* Inline spinner for buttons and headers. */
+.iwx-spin {
+  width: 13px;
+  height: 13px;
+  flex: 0 0 auto;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+  border-right-color: transparent;
+  animation: iwx-spin 0.7s linear infinite;
+  opacity: 0.7;
+}
+
+@keyframes iwx-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .iwx-spin,
+  .dt__skeleton {
+    animation: none;
+  }
+}
+
+/* ==========================================================================
+   Command palette (⌘K)
+   ========================================================================== */
+.iwx-pal__backdrop {
+  position: fixed;
+  z-index: 200;
+  inset: 0;
+  display: grid;
+  align-items: start;
+  justify-items: center;
+  padding: clamp(12px, 9vh, 110px) 16px 16px;
+  background: rgba(10, 19, 39, 0.44);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+
+.iwx-pal {
+  width: min(620px, 100%);
+  max-height: min(70vh, 560px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: var(--r-lg);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.97), rgba(243, 247, 255, 0.95));
+  box-shadow:
+    0 0 0 1px rgba(16, 31, 78, 0.16),
+    0 40px 90px -30px rgba(10, 19, 39, 0.55),
+    var(--glass-hi);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+}
+
+.iwx-pal__field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 13px 15px;
+  border-bottom: 1px solid var(--glass-line-soft);
+}
+
+.iwx-pal__prompt {
+  color: var(--ad-blue);
+  font-family: var(--mono);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.admin-app-shell .iwx-pal__field input {
+  flex: 1;
+  min-height: 26px;
+  padding: 0;
+  background: none;
+  box-shadow: none;
+  color: var(--ad-ink);
+  font-size: 0.95rem;
+}
+
+.admin-app-shell .iwx-pal__field input:focus {
+  box-shadow: none;
+}
+
+.iwx-pal__list {
+  list-style: none;
+  overflow-y: auto;
+  flex: 1;
+  margin: 0;
+  padding: 7px;
+  overscroll-behavior: contain;
+}
+
+.iwx-pal__section {
+  padding: 9px 10px 4px;
+  color: var(--ad-slate-2);
+  font-family: var(--mono);
+  font-size: 0.61rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.admin-app-shell .iwx-pal__item {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  min-height: 40px;
+  padding: 7px 10px;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--ad-ink-2);
+  font: inherit;
+  font-size: 0.85rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.admin-app-shell .iwx-pal__item[aria-selected='true'] {
+  background: linear-gradient(180deg, rgba(47, 107, 255, 0.14), rgba(47, 107, 255, 0.08));
+  box-shadow: inset 0 0 0 1px rgba(47, 107, 255, 0.26);
+  color: var(--ad-blue-800);
+}
+
+.iwx-pal__item .nav-icon {
+  color: var(--ad-blue);
+}
+
+.iwx-pal__item-copy {
+  min-width: 0;
+  display: grid;
+  gap: 1px;
+}
+
+.iwx-pal__item-copy strong {
+  font-weight: 650;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.iwx-pal__item-copy small {
+  color: var(--ad-slate-2);
+  font-size: 0.71rem;
+}
+
+.iwx-pal__trail {
+  margin-left: auto;
+  color: var(--ad-slate-2);
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  white-space: nowrap;
+}
+
+.iwx-pal__foot {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 9px 14px;
+  border-top: 1px solid var(--glass-line-soft);
+  background: rgba(238, 243, 255, 0.6);
+  color: var(--ad-slate-2);
+  font-size: 0.7rem;
+}
+
+.iwx-pal__empty {
+  padding: 26px 14px;
+  color: var(--ad-slate-2);
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+/* Keycap. Used in the palette, the topbar trigger and the shortcut sheet. */
+.kbd {
+  display: inline-grid;
+  min-width: 19px;
+  height: 19px;
+  padding: 0 5px;
+  place-items: center;
+  border-radius: 5px;
+  background: linear-gradient(180deg, #fff, #e9eefb);
+  box-shadow:
+    0 0 0 1px rgba(16, 31, 78, 0.16),
+    0 1px 0 rgba(16, 31, 78, 0.14),
+    inset 0 1px 0 #fff;
+  color: var(--ad-slate);
+  font-family: var(--mono);
+  font-size: 0.66rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* ==========================================================================
+   Layout helpers
+   ========================================================================== */
+.iwx-stack {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+}
+
+.iwx-stack--tight {
+  gap: 11px;
+}
+
+.iwx-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.iwx-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 13px;
+  min-width: 0;
+}
+
+.iwx-grid > * {
+  min-width: 0;
+}
+
+.iwx-divider {
+  height: 1px;
+  border: 0;
+  margin: 0;
+  background: linear-gradient(90deg, var(--glass-line), transparent);
+}
+
+.iwx-mono {
+  font-family: var(--mono);
+  font-size: 0.76rem;
+  overflow-wrap: anywhere;
+}
+
+.iwx-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ==========================================================================
+   Legacy class normalisation
+   --------------------------------------------------------------------------
+   Screens written before the kit keep their markup; these rules pull the
+   remaining cream-and-gold leftovers onto the blue-and-white system.
+   ========================================================================== */
+.admin-app-shell .badge2,
+.admin-app-shell .route-badge,
+.admin-app-shell .chip,
+.admin-app-shell .collection-status,
+.admin-app-shell .learning-status,
+.admin-app-shell .status-badge,
+.admin-app-shell .report-status,
+.admin-app-shell .tag--planned {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  padding: 3px 9px;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: rgba(16, 31, 78, 0.06);
+  box-shadow: inset 0 0 0 1px rgba(16, 31, 78, 0.09);
+  color: var(--ad-slate);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+.admin-app-shell :where(.badge2--info, .route-badge, .badge2.status-scheduled) {
+  background: var(--ad-blue-100);
+  box-shadow: inset 0 0 0 1px rgba(47, 107, 255, 0.24);
+  color: var(--ad-blue-700);
+}
+
+.admin-app-shell :where(
+  .chip--ok, .badge2.status-sent, .collection-status--live, .learning-status--live,
+  .status-badge--resolved, .report-status--resolved
+) {
+  background: var(--ad-green-surface);
+  box-shadow: inset 0 0 0 1px rgba(15, 122, 90, 0.24);
+  color: var(--ad-green);
+}
+
+.admin-app-shell :where(
+  .chip--bad, .badge2.status-failed, .status-badge--new, .report-status--open
+) {
+  background: var(--ad-red-surface);
+  box-shadow: inset 0 0 0 1px rgba(176, 42, 48, 0.24);
+  color: var(--ad-red);
+}
+
+.admin-app-shell :where(
+  .badge2.status-partial, .status-badge--in_progress, .report-status--reviewing
+) {
+  background: var(--ad-amber-surface);
+  box-shadow: inset 0 0 0 1px rgba(138, 90, 4, 0.24);
+  color: var(--ad-amber);
+}
+
+.admin-app-shell :where(.status-badge--contacted) {
+  background: var(--ad-blue-100);
+  box-shadow: inset 0 0 0 1px rgba(47, 107, 255, 0.24);
+  color: var(--ad-blue-700);
+}
+
+.admin-app-shell :where(.route-badge--researcher, .route-badge--validator) {
+  background: var(--ad-violet-surface);
+  box-shadow: inset 0 0 0 1px rgba(91, 69, 196, 0.22);
+  color: var(--ad-violet);
+}
+
+.admin-app-shell :where(.route-badge--contributor, .route-badge--school) {
+  background: var(--ad-green-surface);
+  box-shadow: inset 0 0 0 1px rgba(15, 122, 90, 0.2);
+  color: var(--ad-green);
+}
+
+.admin-app-shell :where(.route-badge--sponsor) {
+  background: var(--ad-amber-surface);
+  box-shadow: inset 0 0 0 1px rgba(138, 90, 4, 0.2);
+  color: var(--ad-amber);
+}
+
+.admin-app-shell .role-chip {
+  margin-left: 8px;
+  padding: 2px 9px;
+  border-radius: var(--r-pill);
+  background: linear-gradient(180deg, var(--ad-blue-400), var(--ad-blue-600));
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.admin-app-shell .muted,
+.admin-app-shell .tiny.muted {
+  color: var(--ad-slate-2);
+}
+
+.admin-app-shell .tiny,
+.admin-app-shell .small {
+  font-size: 0.75rem;
+}
+
+.admin-app-shell .admin-flash {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 11px 14px;
+  border: 0;
+  border-radius: var(--r-md);
+  background: var(--ad-green-surface);
+  box-shadow: inset 0 0 0 1px rgba(15, 122, 90, 0.22);
+  color: #0c5e45;
+  font-size: 0.83rem;
+  font-weight: 600;
+}
+
+.admin-app-shell .error-line {
+  margin: 0 0 10px;
+  padding: 10px 13px;
+  border-radius: var(--r-md);
+  background: var(--ad-red-surface);
+  box-shadow: inset 0 0 0 1px rgba(176, 42, 48, 0.22);
+  color: #7d2025;
+  font-size: 0.83rem;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.admin-app-shell :where(.batch-toolbar, .interests-toolbar, .interest-status-updater) {
+  border: 0;
+  border-radius: var(--r-md);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(238, 243, 255, 0.9));
+  box-shadow: var(--lift-1), var(--glass-hi);
+}
+
+.admin-app-shell .batch-toolbar {
+  position: sticky;
+  z-index: 12;
+  top: 86px;
+  box-shadow: var(--lift-2), var(--glass-hi);
+}
+
+.admin-app-shell :where(.metric, .interest-metric-card, .analytics-card, .export-card, .entity-card, .review-card, .collection-order, .collection-upload, .admin-form, .reported-post, .interest-detail-grid, .interest-note-box) {
+  border: 0;
+  border-radius: var(--r-md);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(246, 249, 255, 0.92));
+  box-shadow: var(--lift-1), var(--glass-hi);
+}
+
+.admin-app-shell :where(.metric__value, .interest-metric-card .metric-val, .metric-large strong) {
+  color: var(--ad-ink);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.03em;
+}
+
+.admin-app-shell :where(.metric__label, .interest-metric-card .metric-lbl) {
+  color: var(--ad-slate-2);
+  font-family: var(--mono);
+  font-size: 0.64rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.admin-app-shell :where(.subtab) {
+  min-height: 34px;
+  padding: 0 13px;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--ad-slate);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 640;
+  cursor: pointer;
+  transition: background var(--motion-fast), color var(--motion-fast), box-shadow var(--motion-fast);
+}
+
+.admin-app-shell :where(.subtab):hover {
+  background: rgba(16, 31, 78, 0.05);
+  color: var(--ad-ink);
+}
+
+.admin-app-shell :where(.subtab.is-active) {
+  background: linear-gradient(180deg, #fff, #eef3ff);
+  box-shadow: 0 1px 3px rgba(16, 50, 124, 0.18), inset 0 0 0 1px rgba(47, 107, 255, 0.24);
+  color: var(--ad-blue-700);
+}
+
+.admin-app-shell .subtabs {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  padding: 4px;
+  border: 0;
+  border-radius: var(--r-md);
+  background: rgba(16, 31, 78, 0.05);
+  box-shadow: inset 0 1px 2px rgba(16, 31, 78, 0.07);
+}
+
+.admin-app-shell :where(.report-filter) {
+  min-height: 32px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: linear-gradient(180deg, #fff, #f3f6ff);
+  box-shadow: 0 0 0 1px var(--glass-line), inset 0 1px 0 #fff;
+  color: var(--ad-slate);
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.admin-app-shell :where(.report-filter.is-active) {
+  background: linear-gradient(180deg, var(--ad-blue-400), var(--ad-blue-600));
+  box-shadow: 0 6px 14px -8px rgba(31, 80, 214, 0.9);
+  color: #fff;
+}
+
+.admin-app-shell :where(.report-filter span) {
+  background: rgba(16, 31, 78, 0.07);
+  font-family: var(--mono);
+}
+
+.admin-app-shell :where(.report-filter.is-active span) {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.admin-app-shell :where(.audit-json-box) {
+  border-radius: var(--r-md);
+  background:
+    linear-gradient(180deg, rgba(47, 107, 255, 0.14), transparent 40%),
+    var(--ad-blue-900);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  color: #d6e3ff;
+  font-family: var(--mono);
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.admin-app-shell code {
+  border-radius: var(--r-xs);
+  background: rgba(16, 31, 78, 0.05);
+  color: var(--ad-blue-800);
+  font-family: var(--mono);
+  overflow-wrap: anywhere;
+}
+
+/* ==========================================================================
+   Narrow screens
+   ========================================================================== */
+@media (max-width: 720px) {
+  .iwx-head h1,
+  .iwx-head h2 {
+    font-size: 1.2rem;
+  }
+
+  .iwx-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .iwx-search {
+    max-width: none;
+  }
+
+  .iwx-stat__value {
+    font-size: 1.5rem;
+  }
+
+  .dt__foot {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .admin-app-shell .batch-toolbar {
+    top: 72px;
+  }
+}
