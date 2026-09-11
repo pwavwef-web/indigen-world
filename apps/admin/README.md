@@ -33,8 +33,9 @@ The console is marked `noindex` and must not be publicly discoverable.
 
 ## Console UI
 
-Every screen is built from one kit in [`src/ui`](src/ui), so a new screen
-inherits the console's behaviour instead of restating it:
+Every screen is built from one kit — [`@indigen-world/console-ui`](../../packages/console-ui),
+shared with the TribeStudio workspace — so a new screen inherits the console's
+behaviour instead of restating it:
 
 | Piece | What it owns |
 |---|---|
@@ -42,7 +43,7 @@ inherits the console's behaviour instead of restating it:
 | `TableShell` | The one element allowed to scroll sideways; it reports its own overflow so the edge fade appears only when something is hidden |
 | `CommandPalette` | ⌘K / Ctrl-K navigation and privileged actions, ranked by subsequence match |
 | `primitives.tsx` | `Panel`, `PageHeader`, `Toolbar`, `Stat`, `StatusPill`, `EmptyState`, `Alert`, `Loading`, `CopyId`, `SegmentedControl` |
-| `ui.css` | The design system: glass surfaces on a blue-and-white ground, layered elevation, and one control baseline for every button, input and select |
+| `kit.css` | The design system: glass surfaces on a blue-and-white ground, layered elevation, and one control baseline for every button, input and select |
 
 Three rules hold it together, and `npm test --workspace @indigen-world/admin`
 enforces them:
@@ -53,8 +54,10 @@ enforces them:
 2. **One table.** `.data-table` and the legacy `.admin-table`,
    `.collection-table` and `.learning-table` are all styled by the same rules,
    so screens written before the kit still look like the rest of the console.
-3. **Controls are not restyled per screen.** The baseline in `ui.css` uses
-   `:where()`, so it carries zero specificity and any screen rule still wins.
+3. **Controls are not restyled per screen.** The baseline in `kit.css` sits
+   inside `:where()`, so it carries zero specificity: it dresses controls
+   nobody has styled and loses to any rule that has an opinion. The shell's
+   own chrome keeps its look without the kit knowing those class names.
 
 Keyboard: `⌘K` / `Ctrl-K` opens the palette, `/` focuses the rail's screen
 filter, and the row-density toggle above any table is remembered per browser.

@@ -15,6 +15,7 @@
     "check": "npm run typecheck && npm test && npm run build"
   },
   "dependencies": {
+    "@indigen-world/console-ui": "*",
     "@indigen-world/contracts": "*",
     "@indigen-world/design-tokens": "*",
     "firebase": "^11.3.0",

@@ -33,6 +33,34 @@ The current build is the first end-to-end vertical for the Kasem language cell:
 - Contributors create Kasem lexical entries as drafts and submit them for review (writing to `lexicalEntries`, enforced by Security Rules).
 - Validators work a queue of submitted entries and approve / reject / request changes via the trusted `decideReview` function, which records a review and an audit entry.
 
+## Workspace UI
+
+The authenticated workspace (`/studio`, `/workspace`) is built from
+[`@indigen-world/console-ui`](../../packages/console-ui), the kit it shares with
+the admin console — `DataTable`, `TableShell`, the ⌘K command palette and the
+surface, pill, stat and empty-state primitives. A creator who also works in the
+admin console should not have to relearn what a table, a status or a control
+looks like.
+
+The kit is scoped to `.iwx`, which `StudioLayout` puts on the shell's root
+alongside `.studio`. That scope is deliberate: **the public creator pages**
+(`/creators`, the landing page, guidelines, FAQ and the join flow) **are
+marketing surfaces with their own identity and the kit never reaches them.**
+They share only the blue — their primary action, their brand mark and the
+sign-in gate.
+
+Layout chrome lives in [`src/creator/studio-shell.css`](src/creator/studio-shell.css):
+the navigation rail, the command bar, the status rail and the app's own
+`.button`/`.field` classes re-pointed at the kit's treatment inside the
+workspace. Page styling stays in `creator.css`.
+
+Keyboard: `⌘K` / `Ctrl-K` opens the palette, `/` focuses the rail's section
+filter, and the row-density toggle above any table is remembered per browser.
+
+`npm test --workspace @indigen-world/tribestudio` fails the build if a table
+escapes its `TableShell`, if the body loses its overflow guard, or if the shell
+loses the palette, the status rail or the kit's scope class.
+
 ## Local development
 
 ```bash

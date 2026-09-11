@@ -480,6 +480,9 @@ body {
   height: 32px;
   display: grid;
   place-items: center;
+  /* An icon button sizes itself: the kit's label padding would crush the glyph. */
+  min-height: 0;
+  padding: 0;
   border: 0;
   border-radius: var(--r-sm);
   background: transparent;
@@ -1862,6 +1865,8 @@ a.queue-card:hover .queue-card__action span[aria-hidden] {
     height: 42px;
     display: grid;
     place-items: center;
+    min-height: 0;
+    padding: 0;
     border: 0;
     border-radius: 13px;
     background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(238, 243, 255, 0.92));

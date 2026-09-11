@@ -91,6 +91,20 @@
   --mono: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
 }
 
+/* The kit's own components emit visually-hidden text — a table caption, the
+   label on a density toggle — so the kit, not each app, owns the rule that
+   hides it. Without this a consuming app shows "Row density" as body text. */
+.iwx .sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
 /* ==========================================================================
    Surfaces
    ========================================================================== */
@@ -220,15 +234,19 @@
 }
 
 /* ==========================================================================
-   Controls — one baseline for every button, input and select in the console.
-   `:where()` keeps specificity at zero so any screen-specific rule still wins.
+   Controls — one baseline for every button, input and select in a console.
+   --------------------------------------------------------------------------
+   The whole selector sits inside `:where()`, so the baseline carries zero
+   specificity: it dresses controls nobody has styled, and loses to any app or
+   screen rule that has an opinion. That is what lets a shell keep its own
+   chrome — a menu button it hides, a rail link it draws itself — without the
+   kit having to know those class names. Only the kit's own components are
+   named below; add `.iwx-bare` to opt anything else out explicitly.
    ========================================================================== */
-.iwx :where(button):not(
-  .iw-button, .sidebar-link, .sidebar-collapse, .signout-button, .mobile-menu-button,
-  .sidebar-backdrop, .row-select, .iwx-bare, .iwx-tab, .iwx-seg__option, .iwx-pal__item,
-  .dt__sort, .dt__page, .report-filter, .subtab, .seg, .learning-layout button,
-  .interest-modal__close, .response-modal__close, .iwx-copy, .iwx-chip__x
-) {
+:where(.iwx button:not(
+  .iw-button, .iwx-bare, .iwx-tab, .iwx-seg__option, .iwx-pal__item,
+  .dt__sort, .dt__page, .iwx-copy
+)) {
   min-height: var(--control-h);
   display: inline-flex;
   align-items: center;
@@ -259,12 +277,10 @@
     color var(--motion-fast);
 }
 
-.iwx :where(button):not(
-  .iw-button, .sidebar-link, .sidebar-collapse, .signout-button, .mobile-menu-button,
-  .sidebar-backdrop, .row-select, .iwx-bare, .iwx-tab, .iwx-seg__option, .iwx-pal__item,
-  .dt__sort, .dt__page, .report-filter, .subtab, .seg, .learning-layout button,
-  .interest-modal__close, .response-modal__close, .iwx-copy, .iwx-chip__x
-):hover:not(:disabled) {
+:where(.iwx button:not(
+  .iw-button, .iwx-bare, .iwx-tab, .iwx-seg__option, .iwx-pal__item,
+  .dt__sort, .dt__page, .iwx-copy
+)):hover:not(:disabled) {
   background: linear-gradient(180deg, #ffffff, #e8effe);
   box-shadow:
     0 0 0 1px rgba(47, 107, 255, 0.32),
@@ -274,19 +290,17 @@
   transform: translateY(-1px);
 }
 
-.iwx :where(button):not(
-  .iw-button, .sidebar-link, .sidebar-collapse, .signout-button, .mobile-menu-button,
-  .sidebar-backdrop, .row-select, .iwx-bare, .iwx-tab, .iwx-seg__option, .iwx-pal__item,
-  .dt__sort, .dt__page, .report-filter, .subtab, .seg, .learning-layout button,
-  .interest-modal__close, .response-modal__close, .iwx-copy, .iwx-chip__x
-):active:not(:disabled) {
+:where(.iwx button:not(
+  .iw-button, .iwx-bare, .iwx-tab, .iwx-seg__option, .iwx-pal__item,
+  .dt__sort, .dt__page, .iwx-copy
+)):active:not(:disabled) {
   transform: translateY(0);
   box-shadow:
     0 0 0 1px rgba(47, 107, 255, 0.34),
     inset 0 2px 4px rgba(16, 50, 124, 0.16);
 }
 
-.iwx :where(button):disabled {
+:where(.iwx button):disabled {
   cursor: not-allowed;
   opacity: 0.5;
 }
@@ -343,7 +357,7 @@
 
 /* Inputs, selects and textareas share the button's inset-light treatment so a
    filter row reads as one instrument panel. */
-.iwx :where(input:not([type='checkbox'], [type='radio'], [type='file']), select, textarea) {
+:where(.iwx input:not([type='checkbox'], [type='radio'], [type='file']), .iwx select, .iwx textarea) {
   min-height: var(--control-h);
   width: 100%;
   max-width: 100%;
@@ -360,7 +374,7 @@
   transition: box-shadow var(--motion-fast);
 }
 
-.iwx :where(select) {
+:where(.iwx select) {
   padding-right: 30px;
   background-image:
     linear-gradient(45deg, transparent 50%, var(--ad-slate) 50%),
@@ -372,7 +386,7 @@
   appearance: none;
 }
 
-.iwx :where(input, select, textarea):focus {
+:where(.iwx input, .iwx select, .iwx textarea):focus {
   outline: none;
   box-shadow:
     0 0 0 1px var(--ad-blue),
@@ -380,13 +394,13 @@
     inset 0 1px 2px rgba(16, 31, 78, 0.05);
 }
 
-.iwx :where(textarea) {
+:where(.iwx textarea) {
   min-height: 92px;
   line-height: 1.55;
   resize: vertical;
 }
 
-.iwx :where(input[type='checkbox'], input[type='radio']) {
+:where(.iwx input[type='checkbox'], .iwx input[type='radio']) {
   width: 16px;
   height: 16px;
   flex: 0 0 auto;
@@ -394,7 +408,7 @@
   cursor: pointer;
 }
 
-.iwx :where(input[type='file']) {
+:where(.iwx input[type='file']) {
   max-width: 100%;
   font-size: 0.8rem;
 }
@@ -418,7 +432,7 @@
   text-transform: none;
 }
 
-.iwx ::placeholder {
+:where(.iwx) ::placeholder {
   color: var(--ad-slate-2);
   font-weight: 400;
   opacity: 1;
