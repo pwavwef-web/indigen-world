@@ -411,8 +411,16 @@ export interface CategoryOption {
 }
 
 export interface GuidelineSection {
+  /**
+   * Thematic grouping heading, e.g. `Before you create`. Sections are rendered
+   * in array order and the group heading is shown once, above the first section
+   * that carries it — so sections sharing a group must be adjacent.
+   */
+  group?: string;
   heading: string;
   body: string;
+  /** Concrete, checkable detail rendered as a list beneath the body. */
+  points?: string[];
 }
 
 export interface PlatformConfiguration {

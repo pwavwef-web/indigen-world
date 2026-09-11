@@ -44,8 +44,20 @@
     "acceptedMimeTypes": ["video/mp4", "audio/mpeg", "image/jpeg", "image/png"]
   },
   "guidelines": [
-    { "heading": "Eligible content", "body": "Original Kasem-language content across the listed categories." },
-    { "heading": "Originality requirements", "body": "Content must be your own or used with permission." }
+    {
+      "group": "Before you create",
+      "heading": "Eligible content",
+      "body": "Original Kasem-language content across the listed categories.",
+      "points": [
+        "Everyday life counts as much as formal performance.",
+        "Some campaigns ask for a specific category — read the campaign page first."
+      ]
+    },
+    {
+      "group": "Rights, consent and people",
+      "heading": "Originality requirements",
+      "body": "Content must be your own or used with permission."
+    }
   ],
   "faqs": [
     { "question": "Who may join?", "answer": "Anyone with a connection to Kasem language or culture." }

@@ -62,3 +62,8 @@ export const enums: {
   publicationStatus: string[];
   creatorConsentScope: string[];
 };
+
+import type { GuidelineSection } from './creator-models.js';
+
+/** The canonical Founding Creators guideline sections (content, not schema). */
+export const creatorGuidelines: GuidelineSection[];

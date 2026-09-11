@@ -19,12 +19,14 @@
     },
     "./schemas/*.json": "./schemas/*.json",
     "./examples/*.json": "./examples/*.json",
-    "./package.json": "./package.json"
+    "./package.json": "./package.json",
+    "./content/creator-guidelines.mjs": "./content/creator-guidelines.mjs"
   },
   "files": [
     "index.mjs",
     "index.d.ts",
     "creator-models.d.ts",
+    "content",
     "schemas",
     "examples"
   ],

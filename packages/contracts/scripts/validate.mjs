@@ -56,5 +56,27 @@ for (const file of exampleFiles) {
   }
 }
 
-console.log(`\n${checked - failures}/${checked} examples valid across ${schemaFiles.length} schemas.`);
+// The shipped guideline content is written straight into the platform
+// configuration document by the seed scripts, so it has to satisfy the same
+// schema the document does.
+const { creatorGuidelines } = await import('../content/creator-guidelines.mjs');
+const guidelineSections = ajv.compile({
+  $schema: 'https://json-schema.org/draft/2020-12/schema',
+  ...readJson(join(schemasDir, 'platform-configuration.schema.json')).properties.guidelines,
+});
+checked += 1;
+if (!Array.isArray(creatorGuidelines) || creatorGuidelines.length === 0) {
+  failures += 1;
+  console.error('✗ creator-guidelines.mjs: expected a non-empty array of sections');
+} else if (guidelineSections(creatorGuidelines)) {
+  console.log(`✓ creator-guidelines.mjs (${creatorGuidelines.length} sections)`);
+} else {
+  failures += 1;
+  console.error('✗ creator-guidelines.mjs');
+  for (const err of guidelineSections.errors ?? []) {
+    console.error(`    ${err.instancePath || '/'} ${err.message}`);
+  }
+}
+
+console.log(`\n${checked - failures}/${checked} fixtures valid across ${schemaFiles.length} schemas.`);
 if (failures > 0) process.exit(1);

@@ -8,6 +8,7 @@
 
 import { initializeApp, applicationDefault } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
+import { creatorGuidelines } from '@indigen-world/contracts';
 
 const projectId = process.argv[2] || process.env.GCLOUD_PROJECT;
 if (!projectId) { console.error('Usage: node prod-bootstrap.mjs <projectId>'); process.exit(1); }
@@ -62,10 +63,7 @@ async function run() {
       { key: 'technical', label: 'Technical quality' },
     ],
     mediaRestrictions: { maxFileBytes: 524288000, acceptedMimeTypes: ['video/mp4', 'audio/mpeg', 'image/jpeg', 'image/png'] },
-    guidelines: [
-      { heading: 'Eligible content', body: 'Original Kasem-language content across the listed categories.' },
-      { heading: 'Originality requirements', body: 'Content must be your own or used with permission.' },
-    ],
+    guidelines: creatorGuidelines,
     faqs: [
       { question: 'Who may join?', answer: 'Anyone with a connection to Kasem language or culture. You do not need to be a professional creator.' },
       { question: 'Is joining free?', answer: 'Yes. Joining the founding creators programme is always free.' },

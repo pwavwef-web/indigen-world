@@ -109,3 +109,12 @@ export const enums = {
   publicationStatus: defs.publicationStatus.enum,
   creatorConsentScope: defs.creatorConsentScope.enum,
 };
+
+/**
+ * The canonical Founding Creators guideline sections.
+ *
+ * Content, not schema — but it lives here for the same reason the schemas do:
+ * the seed scripts write it to `platformConfiguration/creators` and TribeStudio
+ * renders it as the fallback, and those two must never disagree.
+ */
+export { creatorGuidelines } from './content/creator-guidelines.mjs';

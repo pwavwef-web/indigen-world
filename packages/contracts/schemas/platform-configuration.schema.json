@@ -80,8 +80,18 @@
       "items": {
         "type": "object",
         "properties": {
+          "group": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Thematic grouping heading, e.g. 'Before you create'. Sections render in array order and the group heading is shown once, above the first section carrying it."
+          },
           "heading": { "type": "string", "minLength": 1 },
-          "body": { "type": "string", "minLength": 1 }
+          "body": { "type": "string", "minLength": 1 },
+          "points": {
+            "type": "array",
+            "description": "Concrete, checkable detail rendered as a list beneath the body.",
+            "items": { "type": "string", "minLength": 1 }
+          }
         },
         "required": ["heading", "body"],
         "additionalProperties": false
