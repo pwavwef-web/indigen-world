@@ -24,6 +24,17 @@
   color: white;
 }
 
+.dictionary-page__masthead::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: url("/images/header-participation.jpg") center / cover no-repeat;
+  opacity: 0.86;
+  -webkit-mask-image: linear-gradient(90deg, transparent 16%, #000 72%);
+  mask-image: linear-gradient(90deg, transparent 16%, #000 72%);
+}
+
 .dictionary-page__masthead::after {
   content: "";
   position: absolute;

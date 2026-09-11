@@ -14,7 +14,6 @@ import { HOME_ECOSYSTEM_HIGHLIGHTS } from "../content/ecosystem";
 import { IMPACT_TARGETS } from "../content/kasena";
 import { Button } from "../components/Button";
 import { Icon } from "../components/Icon";
-import { BrandMark } from "../components/BrandMark";
 import { SectionHeading } from "../components/SectionHeading";
 import { ProductCard } from "../components/ProductCard";
 import { ResponsiveDisclosure } from "../components/ResponsiveDisclosure";
@@ -81,42 +80,7 @@ export function HomePage() {
             </div>
           </div>
 
-          <div className="hero-visual" data-reveal>
-            <div className="hero-orbit hero-orbit--one" aria-hidden="true" />
-            <div className="hero-orbit hero-orbit--two" aria-hidden="true" />
-            <div className="hero-visual__core">
-              <BrandMark compact />
-              <p>INDIGEN WORLD</p>
-              <span>Language • Story • Identity</span>
-            </div>
-            <div className="floating-card floating-card--language">
-              <span className="floating-card__icon">
-                <Icon name="book" size={19} />
-              </span>
-              <div>
-                <small>Language cell 01</small>
-                <strong>Project Kassena</strong>
-              </div>
-            </div>
-            <div className="floating-card floating-card--creator">
-              <span className="floating-card__icon">
-                <Icon name="studio" size={19} />
-              </span>
-              <div>
-                <small>Creator workspace</small>
-                <strong>TribeStudio</strong>
-              </div>
-            </div>
-            <div className="floating-card floating-card--community">
-              <span className="floating-card__icon">
-                <Icon name="community" size={19} />
-              </span>
-              <div>
-                <small>Guided by</small>
-                <strong>Community custodians</strong>
-              </div>
-            </div>
-          </div>
+          <div className="hero-visual" aria-hidden="true" data-reveal />
         </div>
       </section>
 

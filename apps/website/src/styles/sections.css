@@ -197,6 +197,27 @@
   opacity: 0.55;
 }
 
+/* Cohesive generated header art. The dark-to-clear mask protects title
+   contrast and lets each illustration crop safely across breakpoints. */
+.page-hero--about::before,
+.page-hero--ecosystem::before,
+.page-hero--governance::before,
+.page-hero--legal::before {
+  opacity: 0.92;
+  background-image: url("/images/header-stewardship.jpg");
+  background-position: center;
+  background-size: cover;
+}
+
+.page-hero--kasena::before,
+.page-hero--involved::before,
+.page-hero--contact::before {
+  opacity: 0.92;
+  background-image: url("/images/header-participation.jpg");
+  background-position: center;
+  background-size: cover;
+}
+
 .section-cta {
   margin-top: var(--space-4);
   display: flex;
