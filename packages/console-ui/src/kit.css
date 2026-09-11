@@ -1,9 +1,13 @@
 /* ==========================================================================
-   Indigen World Admin — console UI kit
+   Indigen World — console UI kit
    --------------------------------------------------------------------------
-   One design system for every admin screen: glass surfaces over a blue-white
-   ground, layered (rather than flat) elevation, and the dense, monospaced
-   metadata of a developer console.
+   One design system for every dense operator surface in the ecosystem — the
+   admin console and the TribeStudio workspace: glass over a blue-white ground,
+   layered (rather than flat) elevation, and the monospaced metadata of a
+   developer console.
+
+   Everything here is scoped to `.iwx`, which each app's shell puts on its root
+   element. Nothing leaks into a marketing page that does not ask for it.
 
    Three rules hold the kit together:
 
@@ -11,9 +15,9 @@
       block, a long identifier — scrolls or wraps inside its own box.
    2. Depth is drawn with light, not with borders: a hairline ring, a top
       highlight, and a two-stage shadow (contact + ambient).
-   3. Legacy class names (`.admin-table`, `.collection-table`,
-      `.learning-table`) are styled alongside the new `.data-table`, so the
-      screens look like one product without every screen being rewritten.
+   3. Legacy table class names are styled alongside the new `.data-table`, so
+      screens written before the kit look like one product without every screen
+      being rewritten.
    ========================================================================== */
 
 :root {
@@ -219,7 +223,7 @@
    Controls — one baseline for every button, input and select in the console.
    `:where()` keeps specificity at zero so any screen-specific rule still wins.
    ========================================================================== */
-.admin-app-shell :where(button):not(
+.iwx :where(button):not(
   .iw-button, .sidebar-link, .sidebar-collapse, .signout-button, .mobile-menu-button,
   .sidebar-backdrop, .row-select, .iwx-bare, .iwx-tab, .iwx-seg__option, .iwx-pal__item,
   .dt__sort, .dt__page, .report-filter, .subtab, .seg, .learning-layout button,
@@ -255,7 +259,7 @@
     color var(--motion-fast);
 }
 
-.admin-app-shell :where(button):not(
+.iwx :where(button):not(
   .iw-button, .sidebar-link, .sidebar-collapse, .signout-button, .mobile-menu-button,
   .sidebar-backdrop, .row-select, .iwx-bare, .iwx-tab, .iwx-seg__option, .iwx-pal__item,
   .dt__sort, .dt__page, .report-filter, .subtab, .seg, .learning-layout button,
@@ -270,7 +274,7 @@
   transform: translateY(-1px);
 }
 
-.admin-app-shell :where(button):not(
+.iwx :where(button):not(
   .iw-button, .sidebar-link, .sidebar-collapse, .signout-button, .mobile-menu-button,
   .sidebar-backdrop, .row-select, .iwx-bare, .iwx-tab, .iwx-seg__option, .iwx-pal__item,
   .dt__sort, .dt__page, .report-filter, .subtab, .seg, .learning-layout button,
@@ -282,13 +286,13 @@
     inset 0 2px 4px rgba(16, 50, 124, 0.16);
 }
 
-.admin-app-shell :where(button):disabled {
+.iwx :where(button):disabled {
   cursor: not-allowed;
   opacity: 0.5;
 }
 
 /* Primary / destructive intent, available to legacy and new markup alike. */
-.admin-app-shell :where(button.button--primary, button.primary, button.iwx-btn--primary) {
+.iwx :where(button.button--primary, button.primary, button.iwx-btn--primary) {
   background: linear-gradient(180deg, var(--ad-blue-400), var(--ad-blue-600));
   box-shadow:
     0 0 0 1px rgba(16, 50, 124, 0.4),
@@ -297,7 +301,7 @@
   color: #fff;
 }
 
-.admin-app-shell :where(button.button--primary, button.primary, button.iwx-btn--primary):hover:not(:disabled) {
+.iwx :where(button.button--primary, button.primary, button.iwx-btn--primary):hover:not(:disabled) {
   background: linear-gradient(180deg, var(--ad-blue), var(--ad-blue-700));
   box-shadow:
     0 0 0 1px rgba(16, 50, 124, 0.5),
@@ -306,7 +310,7 @@
   color: #fff;
 }
 
-.admin-app-shell :where(button.danger, button.btn-danger, button.iwx-btn--danger) {
+.iwx :where(button.danger, button.btn-danger, button.iwx-btn--danger) {
   background: linear-gradient(180deg, #fff, #fdeeee);
   box-shadow:
     0 0 0 1px rgba(176, 42, 48, 0.28),
@@ -314,7 +318,7 @@
   color: var(--ad-red);
 }
 
-.admin-app-shell :where(button.danger, button.btn-danger, button.iwx-btn--danger):hover:not(:disabled) {
+.iwx :where(button.danger, button.btn-danger, button.iwx-btn--danger):hover:not(:disabled) {
   background: linear-gradient(180deg, #fff, #fbe2e2);
   box-shadow:
     0 0 0 1px rgba(176, 42, 48, 0.44),
@@ -322,7 +326,7 @@
   color: #8d2126;
 }
 
-.admin-app-shell :where(button.button--small, button.iwx-btn--sm) {
+.iwx :where(button.button--small, button.iwx-btn--sm) {
   min-height: 31px;
   padding: 0 11px;
   font-size: 0.76rem;
@@ -339,7 +343,7 @@
 
 /* Inputs, selects and textareas share the button's inset-light treatment so a
    filter row reads as one instrument panel. */
-.admin-app-shell :where(input:not([type='checkbox'], [type='radio'], [type='file']), select, textarea) {
+.iwx :where(input:not([type='checkbox'], [type='radio'], [type='file']), select, textarea) {
   min-height: var(--control-h);
   width: 100%;
   max-width: 100%;
@@ -356,7 +360,7 @@
   transition: box-shadow var(--motion-fast);
 }
 
-.admin-app-shell :where(select) {
+.iwx :where(select) {
   padding-right: 30px;
   background-image:
     linear-gradient(45deg, transparent 50%, var(--ad-slate) 50%),
@@ -368,7 +372,7 @@
   appearance: none;
 }
 
-.admin-app-shell :where(input, select, textarea):focus {
+.iwx :where(input, select, textarea):focus {
   outline: none;
   box-shadow:
     0 0 0 1px var(--ad-blue),
@@ -376,13 +380,13 @@
     inset 0 1px 2px rgba(16, 31, 78, 0.05);
 }
 
-.admin-app-shell :where(textarea) {
+.iwx :where(textarea) {
   min-height: 92px;
   line-height: 1.55;
   resize: vertical;
 }
 
-.admin-app-shell :where(input[type='checkbox'], input[type='radio']) {
+.iwx :where(input[type='checkbox'], input[type='radio']) {
   width: 16px;
   height: 16px;
   flex: 0 0 auto;
@@ -390,7 +394,7 @@
   cursor: pointer;
 }
 
-.admin-app-shell :where(input[type='file']) {
+.iwx :where(input[type='file']) {
   max-width: 100%;
   font-size: 0.8rem;
 }
@@ -398,10 +402,10 @@
 /* A checkbox row is a row, whatever the surrounding form grid says about
    labels. The element selector outranks the `.admin-form label` rule that
    would otherwise stack and upper-case it. */
-.admin-app-shell label.checkbox,
-.admin-app-shell label.inline-check,
-.admin-app-shell label.collection-checkbox,
-.admin-app-shell label.learning-checkbox {
+.iwx label.checkbox,
+.iwx label.inline-check,
+.iwx label.collection-checkbox,
+.iwx label.learning-checkbox {
   display: flex;
   align-items: center;
   gap: 9px;
@@ -414,7 +418,7 @@
   text-transform: none;
 }
 
-.admin-app-shell ::placeholder {
+.iwx ::placeholder {
   color: var(--ad-slate-2);
   font-weight: 400;
   opacity: 1;
@@ -451,7 +455,7 @@
 
 /* The shared web-ui button ships the public site's palette; inside the
    console it wears the console's. */
-.admin-app-shell .iw-button--primary,
+.iwx .iw-button--primary,
 .auth-card .iw-button--primary {
   border-color: transparent;
   background: linear-gradient(180deg, var(--ad-blue-400), var(--ad-blue-600));
@@ -462,21 +466,21 @@
   color: #fff;
 }
 
-.admin-app-shell .iw-button--primary:hover:not(:disabled),
+.iwx .iw-button--primary:hover:not(:disabled),
 .auth-card .iw-button--primary:hover:not(:disabled) {
   background: linear-gradient(180deg, var(--ad-blue), var(--ad-blue-700));
   color: #fff;
 }
 
-.admin-app-shell .iw-button--ghost,
-.admin-app-shell .iw-button--secondary {
+.iwx .iw-button--ghost,
+.iwx .iw-button--secondary {
   border-color: var(--glass-line);
   background: linear-gradient(180deg, #ffffff, #f1f5ff);
   color: var(--ad-ink-2);
 }
 
-.admin-app-shell .iw-button--ghost:hover:not(:disabled),
-.admin-app-shell .iw-button--secondary:hover:not(:disabled) {
+.iwx .iw-button--ghost:hover:not(:disabled),
+.iwx .iw-button--secondary:hover:not(:disabled) {
   border-color: rgba(47, 107, 255, 0.36);
   color: var(--ad-blue-700);
 }
@@ -540,7 +544,7 @@
   pointer-events: none;
 }
 
-.admin-app-shell .iwx-search input {
+.iwx .iwx-search input {
   padding-left: 33px;
 }
 
@@ -563,7 +567,7 @@
   display: none;
 }
 
-.admin-app-shell .iwx-seg__option {
+.iwx .iwx-seg__option {
   min-height: 29px;
   flex: 0 0 auto;
   padding: 0 13px;
@@ -579,12 +583,12 @@
   transition: background var(--motion-fast), color var(--motion-fast), box-shadow var(--motion-fast);
 }
 
-.admin-app-shell .iwx-seg__option:hover {
+.iwx .iwx-seg__option:hover {
   color: var(--ad-ink);
 }
 
-.admin-app-shell .iwx-seg__option[aria-pressed='true'],
-.admin-app-shell .iwx-seg__option.is-active {
+.iwx .iwx-seg__option[aria-pressed='true'],
+.iwx .iwx-seg__option.is-active {
   background: linear-gradient(180deg, #fff, #f4f7ff);
   box-shadow: 0 1px 3px rgba(16, 50, 124, 0.18), inset 0 1px 0 #fff;
   color: var(--ad-blue-700);
@@ -616,7 +620,7 @@
   scrollbar-width: thin;
 }
 
-.admin-app-shell .iwx-tab {
+.iwx .iwx-tab {
   position: relative;
   min-height: 36px;
   flex: 0 0 auto;
@@ -632,15 +636,15 @@
   transition: color var(--motion-fast);
 }
 
-.admin-app-shell .iwx-tab:hover {
+.iwx .iwx-tab:hover {
   color: var(--ad-ink);
 }
 
-.admin-app-shell .iwx-tab.is-active {
+.iwx .iwx-tab.is-active {
   color: var(--ad-blue-700);
 }
 
-.admin-app-shell .iwx-tab.is-active::after {
+.iwx .iwx-tab.is-active::after {
   position: absolute;
   right: 10px;
   bottom: -1px;
@@ -705,7 +709,7 @@
   background-attachment: local;
 }
 
-.admin-app-shell :where(.data-table, .admin-table, .collection-table, .learning-table) {
+.iwx :where(.data-table, .admin-table, .collection-table, .learning-table) {
   width: 100%;
   min-width: 100%;
   border: 0;
@@ -720,7 +724,7 @@
 }
 
 /* -- Header ------------------------------------------------------------- */
-.admin-app-shell :where(.data-table, .admin-table, .collection-table, .learning-table) thead th {
+.iwx :where(.data-table, .admin-table, .collection-table, .learning-table) thead th {
   position: sticky;
   z-index: 2;
   top: 0;
@@ -741,16 +745,16 @@
   vertical-align: middle;
 }
 
-.admin-app-shell :where(.data-table, .admin-table, .collection-table, .learning-table) thead th:first-child {
+.iwx :where(.data-table, .admin-table, .collection-table, .learning-table) thead th:first-child {
   border-top-left-radius: var(--r-md);
 }
 
-.admin-app-shell :where(.data-table, .admin-table, .collection-table, .learning-table) thead th:last-child {
+.iwx :where(.data-table, .admin-table, .collection-table, .learning-table) thead th:last-child {
   border-top-right-radius: var(--r-md);
 }
 
 /* -- Body --------------------------------------------------------------- */
-.admin-app-shell :where(.data-table, .admin-table, .collection-table, .learning-table) tbody td {
+.iwx :where(.data-table, .admin-table, .collection-table, .learning-table) tbody td {
   padding: 9px 12px;
   border: 0;
   border-bottom: 1px solid var(--glass-line-soft);
@@ -759,29 +763,29 @@
   vertical-align: top;
 }
 
-.admin-app-shell :where(.data-table, .admin-table, .collection-table, .learning-table) tbody tr:last-child td {
+.iwx :where(.data-table, .admin-table, .collection-table, .learning-table) tbody tr:last-child td {
   border-bottom: 0;
 }
 
-.admin-app-shell :where(.data-table, .admin-table, .collection-table, .learning-table) tbody tr {
+.iwx :where(.data-table, .admin-table, .collection-table, .learning-table) tbody tr {
   transition: background var(--motion-fast);
 }
 
-.admin-app-shell :where(.data-table, .admin-table, .collection-table, .learning-table) tbody tr:nth-child(even) {
+.iwx :where(.data-table, .admin-table, .collection-table, .learning-table) tbody tr:nth-child(even) {
   background: rgba(238, 243, 255, 0.44);
 }
 
-.admin-app-shell :where(.data-table, .admin-table, .collection-table, .learning-table) tbody tr:hover {
+.iwx :where(.data-table, .admin-table, .collection-table, .learning-table) tbody tr:hover {
   background: rgba(47, 107, 255, 0.07);
 }
 
-.admin-app-shell :where(.data-table, .admin-table, .collection-table, .learning-table) tbody tr.is-selected,
-.admin-app-shell :where(.data-table, .admin-table, .collection-table, .learning-table) tbody tr.is-expanded {
+.iwx :where(.data-table, .admin-table, .collection-table, .learning-table) tbody tr.is-selected,
+.iwx :where(.data-table, .admin-table, .collection-table, .learning-table) tbody tr.is-expanded {
   background: rgba(47, 107, 255, 0.1);
   box-shadow: inset 3px 0 0 var(--ad-blue);
 }
 
-.admin-app-shell :where(.data-table, .admin-table, .collection-table, .learning-table) tfoot td {
+.iwx :where(.data-table, .admin-table, .collection-table, .learning-table) tfoot td {
   padding: 10px 13px;
   border-top: 1px solid var(--glass-line);
   background: rgba(238, 243, 255, 0.6);
@@ -792,22 +796,22 @@
 /* Cells hold real content, so they get sensible defaults rather than each
    screen inventing its own. A primary line and a secondary line stack tightly
    instead of inheriting paragraph spacing. */
-.admin-app-shell :where(.data-table, .admin-table, .collection-table, .learning-table) td strong {
+.iwx :where(.data-table, .admin-table, .collection-table, .learning-table) td strong {
   display: block;
   color: var(--ad-ink);
   font-weight: 700;
   line-height: 1.35;
 }
 
-.admin-app-shell :where(.data-table, .admin-table, .collection-table, .learning-table) td :where(.tiny, .muted, .small) {
+.iwx :where(.data-table, .admin-table, .collection-table, .learning-table) td :where(.tiny, .muted, .small) {
   display: block;
   color: var(--ad-slate-2);
   font-size: 0.72rem;
   line-height: 1.35;
 }
 
-.admin-app-shell :where(.data-table, .admin-table, .collection-table, .learning-table) td code,
-.admin-app-shell :where(.data-table, .admin-table, .collection-table, .learning-table) td .mono {
+.iwx :where(.data-table, .admin-table, .collection-table, .learning-table) td code,
+.iwx :where(.data-table, .admin-table, .collection-table, .learning-table) td .mono {
   background: rgba(16, 31, 78, 0.05);
   color: var(--ad-blue-800);
   font-family: var(--mono);
@@ -815,7 +819,7 @@
   overflow-wrap: anywhere;
 }
 
-.admin-app-shell :where(.data-table, .admin-table, .collection-table, .learning-table) :where(select, input) {
+.iwx :where(.data-table, .admin-table, .collection-table, .learning-table) :where(select, input) {
   min-height: 30px;
   font-size: 0.76rem;
 }
@@ -852,8 +856,8 @@
 
 /* Actions sit at the trailing edge and stay on one line: a column that wraps
    its buttons sets the height of every row in the table. */
-.admin-app-shell :where(.data-table, .admin-table, .collection-table, .learning-table) .row-actions,
-.admin-app-shell :where(.collection-table__actions, .learning-table__actions),
+.iwx :where(.data-table, .admin-table, .collection-table, .learning-table) .row-actions,
+.iwx :where(.collection-table__actions, .learning-table__actions),
 .dt-actions {
   display: flex;
   align-items: center;
@@ -863,13 +867,13 @@
   white-space: nowrap;
 }
 
-.admin-app-shell :where(.data-table, .admin-table, .collection-table, .learning-table) :where(select) {
+.iwx :where(.data-table, .admin-table, .collection-table, .learning-table) :where(select) {
   width: auto;
   min-width: 116px;
   max-width: 100%;
 }
 
-.admin-app-shell :where(.data-table, .admin-table, .collection-table, .learning-table) tbody td > :where(button, a) {
+.iwx :where(.data-table, .admin-table, .collection-table, .learning-table) tbody td > :where(button, a) {
   vertical-align: middle;
 }
 
@@ -892,7 +896,7 @@
   padding-block: 1px;
 }
 
-.admin-app-shell .dt__density {
+.iwx .dt__density {
   width: 32px;
   height: 32px;
   display: grid;
@@ -904,7 +908,7 @@
   color: var(--ad-slate);
 }
 
-.admin-app-shell .dt__density[aria-pressed='true'] {
+.iwx .dt__density[aria-pressed='true'] {
   background: rgba(47, 107, 255, 0.1);
   box-shadow: inset 0 0 0 1px rgba(47, 107, 255, 0.32);
   color: var(--ad-blue-700);
@@ -931,7 +935,7 @@
   min-width: 0;
 }
 
-.admin-app-shell .dt-status select {
+.iwx .dt-status select {
   width: 100%;
   min-width: 0;
   min-height: 28px;
@@ -993,7 +997,7 @@
   min-width: 0;
 }
 
-.admin-app-shell .dt__sort {
+.iwx .dt__sort {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -1009,7 +1013,7 @@
   cursor: pointer;
 }
 
-.admin-app-shell .dt__sort:hover {
+.iwx .dt__sort:hover {
   color: var(--ad-blue-700);
 }
 
@@ -1062,7 +1066,7 @@
   gap: 4px;
 }
 
-.admin-app-shell .dt__page {
+.iwx .dt__page {
   min-width: 30px;
   height: 30px;
   display: inline-grid;
@@ -1080,19 +1084,19 @@
   transition: box-shadow var(--motion-fast), color var(--motion-fast), background var(--motion-fast);
 }
 
-.admin-app-shell .dt__page:hover:not(:disabled) {
+.iwx .dt__page:hover:not(:disabled) {
   background: rgba(47, 107, 255, 0.08);
   box-shadow: inset 0 0 0 1px rgba(47, 107, 255, 0.36);
   color: var(--ad-blue-700);
 }
 
-.admin-app-shell .dt__page[aria-current='page'] {
+.iwx .dt__page[aria-current='page'] {
   background: linear-gradient(180deg, var(--ad-blue-400), var(--ad-blue-600));
   box-shadow: 0 4px 10px -5px rgba(31, 80, 214, 0.9);
   color: #fff;
 }
 
-.admin-app-shell .dt__page:disabled {
+.iwx .dt__page:disabled {
   cursor: not-allowed;
   opacity: 0.4;
 }
@@ -1191,7 +1195,7 @@
   min-width: 0;
 }
 
-.admin-app-shell .iwx-copy {
+.iwx .iwx-copy {
   display: inline-flex;
   align-items: center;
   gap: 5px;
@@ -1209,7 +1213,7 @@
   transition: background var(--motion-fast), box-shadow var(--motion-fast), color var(--motion-fast);
 }
 
-.admin-app-shell .iwx-copy:hover {
+.iwx .iwx-copy:hover {
   background: rgba(47, 107, 255, 0.1);
   box-shadow: inset 0 0 0 1px rgba(47, 107, 255, 0.3);
   color: var(--ad-blue-700);
@@ -1479,7 +1483,7 @@
   font-weight: 700;
 }
 
-.admin-app-shell .iwx-pal__field input {
+.iwx .iwx-pal__field input {
   flex: 1;
   min-height: 26px;
   padding: 0;
@@ -1489,7 +1493,7 @@
   font-size: 0.95rem;
 }
 
-.admin-app-shell .iwx-pal__field input:focus {
+.iwx .iwx-pal__field input:focus {
   box-shadow: none;
 }
 
@@ -1512,7 +1516,7 @@
   text-transform: uppercase;
 }
 
-.admin-app-shell .iwx-pal__item {
+.iwx .iwx-pal__item {
   display: flex;
   align-items: center;
   gap: 11px;
@@ -1529,7 +1533,7 @@
   cursor: pointer;
 }
 
-.admin-app-shell .iwx-pal__item[aria-selected='true'] {
+.iwx .iwx-pal__item[aria-selected='true'] {
   background: linear-gradient(180deg, rgba(47, 107, 255, 0.14), rgba(47, 107, 255, 0.08));
   box-shadow: inset 0 0 0 1px rgba(47, 107, 255, 0.26);
   color: var(--ad-blue-800);
@@ -1656,259 +1660,6 @@
 }
 
 /* ==========================================================================
-   Legacy class normalisation
-   --------------------------------------------------------------------------
-   Screens written before the kit keep their markup; these rules pull the
-   remaining cream-and-gold leftovers onto the blue-and-white system.
-   ========================================================================== */
-.admin-app-shell .badge2,
-.admin-app-shell .route-badge,
-.admin-app-shell .chip,
-.admin-app-shell .collection-status,
-.admin-app-shell .learning-status,
-.admin-app-shell .status-badge,
-.admin-app-shell .report-status,
-.admin-app-shell .tag--planned {
-  display: inline-flex;
-  align-items: center;
-  max-width: 100%;
-  padding: 3px 9px;
-  border: 0;
-  border-radius: var(--r-pill);
-  background: rgba(16, 31, 78, 0.06);
-  box-shadow: inset 0 0 0 1px rgba(16, 31, 78, 0.09);
-  color: var(--ad-slate);
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  line-height: 1.5;
-  white-space: nowrap;
-}
-
-.admin-app-shell :where(.badge2--info, .route-badge, .badge2.status-scheduled) {
-  background: var(--ad-blue-100);
-  box-shadow: inset 0 0 0 1px rgba(47, 107, 255, 0.24);
-  color: var(--ad-blue-700);
-}
-
-.admin-app-shell :where(
-  .chip--ok, .badge2.status-sent, .collection-status--live, .learning-status--live,
-  .status-badge--resolved, .report-status--resolved
-) {
-  background: var(--ad-green-surface);
-  box-shadow: inset 0 0 0 1px rgba(15, 122, 90, 0.24);
-  color: var(--ad-green);
-}
-
-.admin-app-shell :where(
-  .chip--bad, .badge2.status-failed, .status-badge--new, .report-status--open
-) {
-  background: var(--ad-red-surface);
-  box-shadow: inset 0 0 0 1px rgba(176, 42, 48, 0.24);
-  color: var(--ad-red);
-}
-
-.admin-app-shell :where(
-  .badge2.status-partial, .status-badge--in_progress, .report-status--reviewing
-) {
-  background: var(--ad-amber-surface);
-  box-shadow: inset 0 0 0 1px rgba(138, 90, 4, 0.24);
-  color: var(--ad-amber);
-}
-
-.admin-app-shell :where(.status-badge--contacted) {
-  background: var(--ad-blue-100);
-  box-shadow: inset 0 0 0 1px rgba(47, 107, 255, 0.24);
-  color: var(--ad-blue-700);
-}
-
-.admin-app-shell :where(.route-badge--researcher, .route-badge--validator) {
-  background: var(--ad-violet-surface);
-  box-shadow: inset 0 0 0 1px rgba(91, 69, 196, 0.22);
-  color: var(--ad-violet);
-}
-
-.admin-app-shell :where(.route-badge--contributor, .route-badge--school) {
-  background: var(--ad-green-surface);
-  box-shadow: inset 0 0 0 1px rgba(15, 122, 90, 0.2);
-  color: var(--ad-green);
-}
-
-.admin-app-shell :where(.route-badge--sponsor) {
-  background: var(--ad-amber-surface);
-  box-shadow: inset 0 0 0 1px rgba(138, 90, 4, 0.2);
-  color: var(--ad-amber);
-}
-
-.admin-app-shell .role-chip {
-  margin-left: 8px;
-  padding: 2px 9px;
-  border-radius: var(--r-pill);
-  background: linear-gradient(180deg, var(--ad-blue-400), var(--ad-blue-600));
-  color: #fff;
-  font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.admin-app-shell .muted,
-.admin-app-shell .tiny.muted {
-  color: var(--ad-slate-2);
-}
-
-.admin-app-shell .tiny,
-.admin-app-shell .small {
-  font-size: 0.75rem;
-}
-
-.admin-app-shell .admin-flash {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  padding: 11px 14px;
-  border: 0;
-  border-radius: var(--r-md);
-  background: var(--ad-green-surface);
-  box-shadow: inset 0 0 0 1px rgba(15, 122, 90, 0.22);
-  color: #0c5e45;
-  font-size: 0.83rem;
-  font-weight: 600;
-}
-
-.admin-app-shell .error-line {
-  margin: 0 0 10px;
-  padding: 10px 13px;
-  border-radius: var(--r-md);
-  background: var(--ad-red-surface);
-  box-shadow: inset 0 0 0 1px rgba(176, 42, 48, 0.22);
-  color: #7d2025;
-  font-size: 0.83rem;
-  font-weight: 600;
-  overflow-wrap: anywhere;
-}
-
-.admin-app-shell :where(.batch-toolbar, .interests-toolbar, .interest-status-updater) {
-  border: 0;
-  border-radius: var(--r-md);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(238, 243, 255, 0.9));
-  box-shadow: var(--lift-1), var(--glass-hi);
-}
-
-.admin-app-shell .batch-toolbar {
-  position: sticky;
-  z-index: 12;
-  top: 86px;
-  box-shadow: var(--lift-2), var(--glass-hi);
-}
-
-.admin-app-shell :where(.metric, .interest-metric-card, .analytics-card, .export-card, .entity-card, .review-card, .collection-order, .collection-upload, .admin-form, .reported-post, .interest-detail-grid, .interest-note-box) {
-  border: 0;
-  border-radius: var(--r-md);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(246, 249, 255, 0.92));
-  box-shadow: var(--lift-1), var(--glass-hi);
-}
-
-.admin-app-shell :where(.metric__value, .interest-metric-card .metric-val, .metric-large strong) {
-  color: var(--ad-ink);
-  font-variant-numeric: tabular-nums;
-  letter-spacing: -0.03em;
-}
-
-.admin-app-shell :where(.metric__label, .interest-metric-card .metric-lbl) {
-  color: var(--ad-slate-2);
-  font-family: var(--mono);
-  font-size: 0.64rem;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-
-.admin-app-shell :where(.subtab) {
-  min-height: 34px;
-  padding: 0 13px;
-  border: 0;
-  border-radius: var(--r-sm);
-  background: transparent;
-  color: var(--ad-slate);
-  font: inherit;
-  font-size: 0.82rem;
-  font-weight: 640;
-  cursor: pointer;
-  transition: background var(--motion-fast), color var(--motion-fast), box-shadow var(--motion-fast);
-}
-
-.admin-app-shell :where(.subtab):hover {
-  background: rgba(16, 31, 78, 0.05);
-  color: var(--ad-ink);
-}
-
-.admin-app-shell :where(.subtab.is-active) {
-  background: linear-gradient(180deg, #fff, #eef3ff);
-  box-shadow: 0 1px 3px rgba(16, 50, 124, 0.18), inset 0 0 0 1px rgba(47, 107, 255, 0.24);
-  color: var(--ad-blue-700);
-}
-
-.admin-app-shell .subtabs {
-  display: flex;
-  gap: 4px;
-  flex-wrap: wrap;
-  padding: 4px;
-  border: 0;
-  border-radius: var(--r-md);
-  background: rgba(16, 31, 78, 0.05);
-  box-shadow: inset 0 1px 2px rgba(16, 31, 78, 0.07);
-}
-
-.admin-app-shell :where(.report-filter) {
-  min-height: 32px;
-  padding: 0 12px;
-  border: 0;
-  border-radius: var(--r-pill);
-  background: linear-gradient(180deg, #fff, #f3f6ff);
-  box-shadow: 0 0 0 1px var(--glass-line), inset 0 1px 0 #fff;
-  color: var(--ad-slate);
-  font: inherit;
-  font-size: 0.78rem;
-  font-weight: 650;
-  cursor: pointer;
-}
-
-.admin-app-shell :where(.report-filter.is-active) {
-  background: linear-gradient(180deg, var(--ad-blue-400), var(--ad-blue-600));
-  box-shadow: 0 6px 14px -8px rgba(31, 80, 214, 0.9);
-  color: #fff;
-}
-
-.admin-app-shell :where(.report-filter span) {
-  background: rgba(16, 31, 78, 0.07);
-  font-family: var(--mono);
-}
-
-.admin-app-shell :where(.report-filter.is-active span) {
-  background: rgba(255, 255, 255, 0.22);
-}
-
-.admin-app-shell :where(.audit-json-box) {
-  border-radius: var(--r-md);
-  background:
-    linear-gradient(180deg, rgba(47, 107, 255, 0.14), transparent 40%),
-    var(--ad-blue-900);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
-  color: #d6e3ff;
-  font-family: var(--mono);
-  overflow-wrap: anywhere;
-  white-space: pre-wrap;
-}
-
-.admin-app-shell code {
-  border-radius: var(--r-xs);
-  background: rgba(16, 31, 78, 0.05);
-  color: var(--ad-blue-800);
-  font-family: var(--mono);
-  overflow-wrap: anywhere;
-}
-
-/* ==========================================================================
    Narrow screens
    ========================================================================== */
 @media (max-width: 720px) {
@@ -1935,7 +1686,7 @@
     flex-direction: column;
   }
 
-  .admin-app-shell .batch-toolbar {
+  .iwx .batch-toolbar {
     top: 72px;
   }
 }

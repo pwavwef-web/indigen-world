@@ -9,7 +9,7 @@ import {
   type ReportedMedia,
 } from './data';
 import './reports.css';
-import { Loading } from '../ui/primitives';
+import { Loading } from '@indigen-world/console-ui';
 
 type StatusFilter = ReportStatus | 'all';
 

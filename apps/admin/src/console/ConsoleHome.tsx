@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState, type MouseEvent } from 'react';
 import { isValidator, type AdminRole } from '../creators/data';
 import { firebaseConfig, usingEmulators } from '../firebase';
-import { Alert, Kbd, Spinner } from '../ui/primitives';
+import { Alert, Kbd, Spinner } from '@indigen-world/console-ui';
 import { fetchOperationsSnapshot, type OperationsSnapshot } from './data';
 
 /** How often the queue totals re-read themselves while the console is open. */

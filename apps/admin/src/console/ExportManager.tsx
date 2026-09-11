@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { fetchApplications, fetchCampaigns, fetchReviewQueue } from '../creators/data';
 import { fetchPublicSubmissions } from '../interests/data';
-import { Alert, PageHeader, Panel, SegmentedControl, Spinner } from '../ui/primitives';
+import { Alert, PageHeader, Panel, SegmentedControl, Spinner } from '@indigen-world/console-ui';
 
 const DATASETS = [
   {
