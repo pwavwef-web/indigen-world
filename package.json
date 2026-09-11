@@ -31,7 +31,7 @@
     "check:kasena-dictionary": "npm run check --workspace @indigen-world/kasena-dictionary",
     "verify:production-main": "node scripts/verify-production-main.mjs",
     "deploy:website": "firebase deploy --only hosting:indigen-world --project project-kassena-7e026",
-    "deploy:kasena-dictionary": "firebase deploy --only hosting:kasena-dictionary --project project-kassena-7e026",
+    "deploy:kasena-dictionary": "firebase deploy --only hosting:kasem-dictionary --project project-kassena-7e026",
     "build:admin": "npm run build --workspace @indigen-world/admin",
     "build:tribestudio": "npm run build --workspace @indigen-world/tribestudio",
     "build:team-francis-pwavwe": "npm run build --workspace @indigen-world/team-francis-pwavwe",

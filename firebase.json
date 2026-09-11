@@ -94,7 +94,7 @@
       ]
     },
     {
-      "site": "kasena-dictionary",
+      "site": "kasem-dictionary",
       "public": "apps/kasena-dictionary/dist",
       "predeploy": [
         "npm run verify:production-main",
