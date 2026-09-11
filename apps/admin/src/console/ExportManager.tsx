@@ -1,6 +1,30 @@
 import { useState } from 'react';
 import { fetchApplications, fetchCampaigns, fetchReviewQueue } from '../creators/data';
 import { fetchPublicSubmissions } from '../interests/data';
+import { Alert, PageHeader, Panel, SegmentedControl, Spinner } from '../ui/primitives';
+
+const DATASETS = [
+  {
+    id: 'creators' as const,
+    title: 'Approved creators',
+    body: 'Public profiles, dialect specialities and membership credentials.',
+  },
+  {
+    id: 'campaigns' as const,
+    title: 'Campaigns & initiatives',
+    body: 'Governed bounty rules, categories and initiative targets.',
+  },
+  {
+    id: 'submissions' as const,
+    title: 'Validated submissions',
+    body: 'Publicly licensed folklore, oral recording metadata and proverbs.',
+  },
+  {
+    id: 'interests' as const,
+    title: 'Submitted interests',
+    body: 'Community enquiries, volunteer registrations and partner proposals.',
+  },
+];
 
 export function ExportManager() {
   const [exporting, setExporting] = useState(false);
@@ -70,92 +94,64 @@ export function ExportManager() {
   };
 
   return (
-    <div className="panel">
-      <div className="tab-head">
-        <div>
-          <h2>Governed Data Export &amp; Research Exchange</h2>
-          <p className="tiny muted">
-            Generate permission-safe data packages for accredited educational institutions and research partners.
-          </p>
-        </div>
-      </div>
+    <Panel>
+      <PageHeader
+        level="h1"
+        kicker="Governance"
+        title="Governed data export"
+        body="Permission-safe data packages for accredited institutions and research partners. Restricted cultural records are stripped unless an Elder Council clearance is recorded against this export."
+        actions={
+          <SegmentedControl
+            label="Export format"
+            value={format}
+            onChange={setFormat}
+            options={[
+              { id: 'json', label: 'JSON' },
+              { id: 'csv', label: 'CSV' },
+            ]}
+          />
+        }
+      />
 
       <div className="export-controls-card">
         <div className="export-settings-row">
-          <label className="filter">
-            Format:
-            <select value={format} onChange={(e) => setFormat(e.target.value as 'json' | 'csv')}>
-              <option value="json">JSON (Structured Data)</option>
-              <option value="csv">CSV (Spreadsheet)</option>
-            </select>
-          </label>
-
           <label className="checkbox">
             <input
               type="checkbox"
               checked={includeRestricted}
               onChange={(e) => setIncludeRestricted(e.target.checked)}
             />
-            Include Restricted Cultural Permission records (Requires Elder Council Clearance)
+            Include restricted cultural-permission records (requires Elder Council clearance)
           </label>
         </div>
 
+        {includeRestricted ? (
+          <Alert tone="warning" title="Restricted records will be included.">
+            Sacred metadata and private notes travel with this package. Only send it where a
+            recorded clearance covers it.
+          </Alert>
+        ) : null}
+
         <div className="export-buttons-grid">
-          <div className="export-card">
-            <strong>Approved Creators Dataset</strong>
-            <p className="tiny muted">Public profiles, dialect specialties, and membership credentials.</p>
-            <button
-              type="button"
-              className="button button--primary button--small"
-              disabled={exporting}
-              onClick={() => void handleExport('creators')}
-            >
-              📥 Export Creators ({format.toUpperCase()})
-            </button>
-          </div>
-
-          <div className="export-card">
-            <strong>Campaigns &amp; Initiatives</strong>
-            <p className="tiny muted">Governed bounty rules, categories, and initiative targets.</p>
-            <button
-              type="button"
-              className="button button--primary button--small"
-              disabled={exporting}
-              onClick={() => void handleExport('campaigns')}
-            >
-              📥 Export Campaigns ({format.toUpperCase()})
-            </button>
-          </div>
-
-          <div className="export-card">
-            <strong>Validated Submissions</strong>
-            <p className="tiny muted">Publicly licensed folklore, oral recordings metadata, and proverbs.</p>
-            <button
-              type="button"
-              className="button button--primary button--small"
-              disabled={exporting}
-              onClick={() => void handleExport('submissions')}
-            >
-              📥 Export Submissions ({format.toUpperCase()})
-            </button>
-          </div>
-
-          <div className="export-card">
-            <strong>Submitted Interests (Get Involved)</strong>
-            <p className="tiny muted">Community inquiries, volunteer registrations, and partner proposals.</p>
-            <button
-              type="button"
-              className="button button--primary button--small"
-              disabled={exporting}
-              onClick={() => void handleExport('interests')}
-            >
-              📥 Export Interests ({format.toUpperCase()})
-            </button>
-          </div>
+          {DATASETS.map((dataset) => (
+            <div className="export-card" key={dataset.id}>
+              <strong>{dataset.title}</strong>
+              <p className="tiny muted">{dataset.body}</p>
+              <button
+                type="button"
+                className="button button--primary button--small"
+                disabled={exporting}
+                onClick={() => void handleExport(dataset.id)}
+              >
+                {exporting ? <Spinner /> : null}
+                Export as {format.toUpperCase()}
+              </button>
+            </div>
+          ))}
         </div>
 
-        {exportStatus && <p className="notice notice--status">{exportStatus}</p>}
+        {exportStatus ? <p className="notice notice--status" role="status">{exportStatus}</p> : null}
       </div>
-    </div>
+    </Panel>
   );
 }

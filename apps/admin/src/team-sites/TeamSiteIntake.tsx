@@ -6,6 +6,7 @@ import {
   type TeamSiteRequest,
   type TeamSiteRequestInput,
 } from '../creators/data';
+import { EmptyState, Loading, TableShell } from '../ui/primitives';
 
 const fieldLabels: Record<keyof TeamSiteRequest['fields'], string> = {
   fullName: 'Full name',
@@ -491,28 +492,30 @@ export function TeamSiteRequestsAdmin() {
         <button type="button" onClick={load}>Refresh</button>
       </div>
 
-      {loading ? <p className="muted">Loading responses...</p> : rows.length === 0 ? <p className="muted">No team site responses yet.</p> : (
-        <table className="admin-table">
-          <thead>
-            <tr><th>Submitted</th><th>Name</th><th>Site</th><th>Purpose</th></tr>
-          </thead>
-          <tbody>
-            {rows.map((request) => (
-              <tr key={request.id} className={active?.id === request.id ? 'is-selected' : ''}>
-                <td>
-                  {/* Real button so the row is keyboard- and screen-reader-operable,
-                      not mouse-only. It opens the response in a modal dialog. */}
-                  <button type="button" className="row-select" onClick={() => setActive(request)}>
-                    {formatDate(request.submittedAt)}
-                  </button>
-                </td>
-                <td>{request.fields.fullName || request.fields.displayName || '-'}</td>
-                <td>{request.fields.siteName || '-'}</td>
-                <td>{request.fields.sitePurpose || '-'}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      {loading ? <Loading label="Loading responses..." /> : rows.length === 0 ? <EmptyState title="No team site responses yet." /> : (
+        <TableShell label="Team site responses">
+          <table className="admin-table">
+            <thead>
+              <tr><th>Submitted</th><th>Name</th><th>Site</th><th>Purpose</th></tr>
+            </thead>
+            <tbody>
+              {rows.map((request) => (
+                <tr key={request.id} className={active?.id === request.id ? 'is-selected' : ''}>
+                  <td>
+                    {/* Real button so the row is keyboard- and screen-reader-operable,
+                        not mouse-only. It opens the response in a modal dialog. */}
+                    <button type="button" className="row-select" onClick={() => setActive(request)}>
+                      {formatDate(request.submittedAt)}
+                    </button>
+                  </td>
+                  <td>{request.fields.fullName || request.fields.displayName || '-'}</td>
+                  <td>{request.fields.siteName || '-'}</td>
+                  <td>{request.fields.sitePurpose || '-'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </TableShell>
       )}
 
       {active ? (

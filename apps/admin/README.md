@@ -31,6 +31,34 @@ Privileged access must be backed by role claims, Firebase Security Rules and
 server-side checks in `services/functions` — never by client-side checks alone.
 The console is marked `noindex` and must not be publicly discoverable.
 
+## Console UI
+
+Every screen is built from one kit in [`src/ui`](src/ui), so a new screen
+inherits the console's behaviour instead of restating it:
+
+| Piece | What it owns |
+|---|---|
+| `DataTable` | Sorting, search, paging, row selection, sticky headers, the empty state, and containment — the table scrolls inside `TableShell`, never the page |
+| `TableShell` | The one element allowed to scroll sideways; it reports its own overflow so the edge fade appears only when something is hidden |
+| `CommandPalette` | ⌘K / Ctrl-K navigation and privileged actions, ranked by subsequence match |
+| `primitives.tsx` | `Panel`, `PageHeader`, `Toolbar`, `Stat`, `StatusPill`, `EmptyState`, `Alert`, `Loading`, `CopyId`, `SegmentedControl` |
+| `ui.css` | The design system: glass surfaces on a blue-and-white ground, layered elevation, and one control baseline for every button, input and select |
+
+Three rules hold it together, and `npm test --workspace @indigen-world/admin`
+enforces them:
+
+1. **Nothing widens the page.** Wide content scrolls or wraps inside its own
+   box. `styles.css` contains stray width with `overflow-x: clip` as a backstop,
+   but the fix belongs in the component.
+2. **One table.** `.data-table` and the legacy `.admin-table`,
+   `.collection-table` and `.learning-table` are all styled by the same rules,
+   so screens written before the kit still look like the rest of the console.
+3. **Controls are not restyled per screen.** The baseline in `ui.css` uses
+   `:where()`, so it carries zero specificity and any screen rule still wins.
+
+Keyboard: `⌘K` / `Ctrl-K` opens the palette, `/` focuses the rail's screen
+filter, and the row-density toggle above any table is remembered per browser.
+
 ## Local development
 
 ```bash

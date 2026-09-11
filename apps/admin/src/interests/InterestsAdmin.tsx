@@ -13,7 +13,22 @@ import {
   type SubmissionStatus,
   type TesterRewardPayload,
 } from './data';
+import { DataTable, type DataColumn } from '../ui/DataTable';
+import { PageHeader, Spinner, Stat, StatGrid, toneForStatus } from '../ui/primitives';
 import './interests.css';
+
+/** Milliseconds for sorting, from any of the three shapes `receivedAt` takes. */
+function submissionTime(value: PublicFormSubmission['receivedAt']): number {
+  if (!value) return 0;
+  if (typeof value === 'object' && 'toDate' in value && typeof value.toDate === 'function') {
+    return value.toDate().getTime();
+  }
+  if (typeof value === 'object' && 'seconds' in value && typeof value.seconds === 'number') {
+    return value.seconds * 1000;
+  }
+  const parsed = new Date(String(value)).getTime();
+  return Number.isNaN(parsed) ? 0 : parsed;
+}
 
 function getRouteBadgeClass(route: string): string {
   const r = route.toLowerCase();
@@ -275,7 +290,6 @@ export function InterestsAdmin({ role }: { role: AdminRole }) {
   const [formFilter, setFormFilter] = useState<'get-involved' | 'contact' | 'tester-reward-claim' | 'ALL'>('ALL');
   const [routeFilter, setRouteFilter] = useState<string>('ALL');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
-  const [searchQuery, setSearchQuery] = useState('');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [activeSubmission, setActiveSubmission] = useState<PublicFormSubmission | null>(null);
   const [flashMessage, setFlashMessage] = useState<string | null>(null);
@@ -305,45 +319,20 @@ export function InterestsAdmin({ role }: { role: AdminRole }) {
     loadSubmissions();
   }, [loadSubmissions]);
 
-  // Filtered submissions
-  const filteredSubmissions = useMemo(() => {
-    return submissions.filter((item) => {
-      // Form filter
-      if (formFilter !== 'ALL' && item.form !== formFilter) return false;
-
-      // Status filter
-      if (statusFilter !== 'ALL' && item.status !== statusFilter) return false;
-
-      // Route filter (only applies to get-involved)
-      const payload = item.payload as GetInvolvedPayload & ContactPayload & TesterRewardPayload;
-      if (routeFilter !== 'ALL' && item.form === 'get-involved' && payload.route !== routeFilter) {
-        return false;
-      }
-
-      // Search query
-      if (searchQuery.trim()) {
-        const queryLower = searchQuery.toLowerCase();
-        const name = (payload.name || payload.certificateName || payload.cardName || '').toLowerCase();
-        const contact = (payload.contact || payload.email || payload.contactEmail || payload.playEmail || '').toLowerCase();
-        const country = (payload.country || '').toLowerCase();
-        const org = (payload.organisation || '').toLowerCase();
-        const route = (payload.route || '').toLowerCase();
-        const note = (payload.note || payload.message || '').toLowerCase();
-        const recognition = (payload.recognitionName || payload.profileUrl || '').toLowerCase();
-        const match =
-          name.includes(queryLower) ||
-          contact.includes(queryLower) ||
-          country.includes(queryLower) ||
-          org.includes(queryLower) ||
-          route.includes(queryLower) ||
-          note.includes(queryLower) ||
-          recognition.includes(queryLower);
-        if (!match) return false;
-      }
-
-      return true;
-    });
-  }, [submissions, formFilter, statusFilter, routeFilter, searchQuery]);
+  /* The three select filters narrow the set. Free-text search is deliberately
+     not here: the table owns it, so every column that renders a value also
+     declares how that value is searched. */
+  const filteredSubmissions = useMemo(
+    () =>
+      submissions.filter((item) => {
+        if (formFilter !== 'ALL' && item.form !== formFilter) return false;
+        if (statusFilter !== 'ALL' && item.status !== statusFilter) return false;
+        const payload = item.payload as GetInvolvedPayload;
+        if (routeFilter !== 'ALL' && item.form === 'get-involved' && payload.route !== routeFilter) return false;
+        return true;
+      }),
+    [submissions, formFilter, statusFilter, routeFilter],
+  );
 
   // Metrics computation
   const metrics = useMemo(() => {
@@ -366,23 +355,6 @@ export function InterestsAdmin({ role }: { role: AdminRole }) {
       routesCount,
     };
   }, [submissions]);
-
-  const toggleSelectAll = () => {
-    if (selectedIds.size === filteredSubmissions.length) {
-      setSelectedIds(new Set());
-    } else {
-      setSelectedIds(new Set(filteredSubmissions.map((s) => s.id)));
-    }
-  };
-
-  const toggleSelect = (id: string) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  };
 
   const handleStatusChange = (id: string, newStatus: SubmissionStatus) => {
     setSubmissions((prev) =>
@@ -426,276 +398,237 @@ export function InterestsAdmin({ role }: { role: AdminRole }) {
     }
   };
 
-  return (
-    <div className="interests-admin">
-      <div className="tab-head">
-        <div>
-          <h2>Form responses &amp; tester claims</h2>
-          <p className="muted">
-            All website responses appear here. Use the Form filter to show only Founding Tester reward claims.
-          </p>
-        </div>
-        <div style={{ display: 'flex', gap: '8px' }}>
-          <button
-            type="button"
-            onClick={() => exportSubmissionsCsv(filteredSubmissions, `indigen-world-interests-${new Date().toISOString().slice(0, 10)}.csv`)}
-            disabled={filteredSubmissions.length === 0}
-          >
-            Export Filtered CSV
+  const columns: DataColumn<PublicFormSubmission>[] = useMemo(() => {
+    const read = (item: PublicFormSubmission) =>
+      item.payload as GetInvolvedPayload & ContactPayload & TesterRewardPayload;
+
+    return [
+      {
+        id: 'received',
+        header: 'Received',
+        width: '170px',
+        mono: true,
+        cell: (item) => (
+          <button type="button" className="row-select" onClick={() => setActiveSubmission(item)} title="Open the full submission">
+            {formatSubmissionDate(item.receivedAt)}
           </button>
-          <button type="button" onClick={loadSubmissions} disabled={loading}>
-            {loading ? 'Refreshing…' : 'Refresh'}
-          </button>
-        </div>
-      </div>
-
-      {flashMessage ? <div className="admin-flash">{flashMessage}</div> : null}
-
-      {/* Metrics Summary Grid */}
-      <div className="interests-metrics">
-        <div className="interest-metric-card">
-          <span className="metric-val">{metrics.total}</span>
-          <span className="metric-lbl">Total in view</span>
-        </div>
-        <div className="interest-metric-card interest-metric-card--highlight">
-          <span className="metric-val">{metrics.newCount}</span>
-          <span className="metric-lbl">New Submissions</span>
-        </div>
-        <div className="interest-metric-card">
-          <span className="metric-val">{metrics.contactedCount}</span>
-          <span className="metric-lbl">In Progress / Contacted</span>
-        </div>
-        <div className="interest-metric-card">
-          <span className="metric-val">{metrics.resolvedCount}</span>
-          <span className="metric-lbl">Resolved</span>
-        </div>
-      </div>
-
-      {/* Filter and Search Toolbar */}
-      <div className="interests-toolbar">
-        <div className="interests-filters">
-          <input
-            type="search"
-            className="interests-search-input"
-            placeholder="Search by name, contact, country, note…"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-
-          <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem' }}>
-            Form:
-            <select
-              className="interests-select"
-              value={formFilter}
-              onChange={(e) => setFormFilter(e.target.value as 'get-involved' | 'contact' | 'tester-reward-claim' | 'ALL')}
-            >
-              <option value="ALL">All form responses</option>
-              <option value="get-involved">Get Involved responses</option>
-              <option value="contact">Contact messages</option>
-              <option value="tester-reward-claim">Founding Tester reward claims</option>
-            </select>
-          </label>
-
-          {formFilter === 'get-involved' || formFilter === 'ALL' ? (
-            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem' }}>
-              Route:
+        ),
+        sort: (item) => submissionTime(item.receivedAt),
+        search: (item) => formatSubmissionDate(item.receivedAt),
+      },
+      {
+        id: 'name',
+        header: 'Name & details',
+        cell: (item) => {
+          const payload = read(item);
+          const displayName = payload.name || payload.certificateName || '—';
+          return (
+            <>
+              <strong>{displayName}</strong>
+              {payload.organisation ? (
+                <span className="tiny muted">{payload.organisation}</span>
+              ) : item.form === 'tester-reward-claim' && payload.cardName ? (
+                <span className="tiny muted">Card: {payload.cardName}</span>
+              ) : null}
+            </>
+          );
+        },
+        sort: (item) => read(item).name || read(item).certificateName || '',
+        search: (item) => `${read(item).name ?? ''} ${read(item).certificateName ?? ''} ${read(item).organisation ?? ''} ${read(item).cardName ?? ''}`,
+      },
+      {
+        id: 'route',
+        header: 'Form / route',
+        cell: (item) => {
+          const payload = read(item);
+          if (item.form === 'get-involved' && payload.route) {
+            return <span className={getRouteBadgeClass(payload.route)}>{payload.route}</span>;
+          }
+          if (item.form === 'tester-reward-claim') return <span className="route-badge">Tester reward</span>;
+          return <span className="tiny muted">{payload.subject || item.form}</span>;
+        },
+        sort: (item) => read(item).route || item.form,
+        search: (item) => `${item.form} ${read(item).route ?? ''} ${read(item).subject ?? ''}`,
+      },
+      {
+        id: 'contact',
+        header: 'Contact',
+        cell: (item) => {
+          const payload = read(item);
+          const email = payload.email || payload.contactEmail || (payload.contact?.includes('@') ? payload.contact : '');
+          if (email) return <a href={`mailto:${email}`} className="contact-link">{email}</a>;
+          if (payload.contact) return <a href={`tel:${payload.contact}`} className="contact-link">{payload.contact}</a>;
+          return <span className="muted">—</span>;
+        },
+        sort: (item) => read(item).contact || read(item).email || '',
+        search: (item) => `${read(item).contact ?? ''} ${read(item).email ?? ''} ${read(item).contactEmail ?? ''} ${read(item).playEmail ?? ''}`,
+      },
+      {
+        id: 'country',
+        header: 'Country',
+        width: '110px',
+        cell: (item) => read(item).country || '—',
+        sort: (item) => read(item).country ?? '',
+        search: (item) => read(item).country ?? '',
+      },
+      {
+        id: 'note',
+        header: 'Note preview',
+        cell: (item) => {
+          const payload = read(item);
+          const note = payload.note || payload.message
+            || (item.form === 'tester-reward-claim' ? `Public recognition: ${payload.recognitionChoice}` : '');
+          return note ? <span className="dt-clamp" title={note}>{note}</span> : <span className="muted">—</span>;
+        },
+        search: (item) => `${read(item).note ?? ''} ${read(item).message ?? ''}`,
+      },
+      {
+        id: 'status',
+        header: 'Status',
+        width: '150px',
+        cell: (item) => {
+          const status = item.status ?? 'new';
+          return (
+            <label className={`dt-status dt-status--${toneForStatus(status)}`}>
+              <span className="sr-only">Status for this submission</span>
               <select
-                className="interests-select"
-                value={routeFilter}
-                onChange={(e) => setRouteFilter(e.target.value)}
+                value={status}
+                onChange={(event) => {
+                  const next = event.target.value as SubmissionStatus;
+                  void updateSubmissionStatus(item.id, next).then(() => handleStatusChange(item.id, next));
+                }}
               >
-                <option value="ALL">All routes</option>
-                {INTEREST_ROUTES.map((route) => (
-                  <option key={route} value={route}>
-                    {route}
-                  </option>
+                {SUBMISSION_STATUSES.map((entry) => (
+                  <option key={entry.id} value={entry.id}>{entry.label}</option>
                 ))}
               </select>
             </label>
-          ) : null}
-
-          <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem' }}>
-            Status:
-            <select
-              className="interests-select"
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-            >
-              <option value="ALL">All statuses</option>
-              {SUBMISSION_STATUSES.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.label}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-
-        <span className="tiny muted">Showing {filteredSubmissions.length} of {submissions.length}</span>
-      </div>
-
-      {/* Batch Actions Toolbar */}
-      {selectedIds.size > 0 && (
-        <div className="batch-toolbar">
-          <span>
-            <strong>{selectedIds.size}</strong> item(s) selected
+          );
+        },
+        sort: (item) => item.status ?? 'new',
+        search: (item) => item.status ?? 'new',
+      },
+      {
+        id: 'actions',
+        header: 'Open',
+        align: 'end',
+        width: '86px',
+        cell: (item) => (
+          <span className="dt-actions">
+            <button type="button" className="button button--small" onClick={() => setActiveSubmission(item)}>View</button>
           </span>
+        ),
+      },
+    ];
+    // `handleStatusChange` only ever writes to state through a setter.
+  }, []);
+
+  return (
+    <div className="interests-admin">
+      <PageHeader
+        level="h1"
+        kicker="Community intake"
+        title="Form responses & tester claims"
+        body="Every website response lands here. Filter by form to isolate Founding Tester reward claims, then work the queue down to zero."
+        actions={
+          <>
+            <button
+              type="button"
+              onClick={() => exportSubmissionsCsv(filteredSubmissions, `indigen-world-interests-${new Date().toISOString().slice(0, 10)}.csv`)}
+              disabled={filteredSubmissions.length === 0}
+            >
+              Export filtered CSV
+            </button>
+            <button type="button" className="button--primary" onClick={loadSubmissions} disabled={loading}>
+              {loading ? <><Spinner /> Refreshing…</> : 'Refresh'}
+            </button>
+          </>
+        }
+      />
+
+      {flashMessage ? <div className="admin-flash" role="status">{flashMessage}</div> : null}
+
+      <StatGrid>
+        <Stat label="Total in view" value={metrics.total} />
+        <Stat label="New submissions" value={metrics.newCount} tone="warning" note="Nobody has replied to these yet." />
+        <Stat label="Contacted / in progress" value={metrics.contactedCount} tone="accent" />
+        <Stat label="Resolved" value={metrics.resolvedCount} tone="success" />
+      </StatGrid>
+
+      {selectedIds.size > 0 ? (
+        <div className="batch-toolbar" role="region" aria-label="Batch actions">
+          <span><strong>{selectedIds.size}</strong> selected</span>
           <div className="batch-actions">
-            <button
-              type="button"
-              className="button button--small"
-              disabled={busyBatch}
-              onClick={() => void handleBatchStatus('contacted')}
-            >
-              Mark Contacted
-            </button>
-            <button
-              type="button"
-              className="button button--small"
-              disabled={busyBatch}
-              onClick={() => void handleBatchStatus('resolved')}
-            >
-              Mark Resolved
-            </button>
-            <button
-              type="button"
-              className="button button--small"
-              disabled={busyBatch}
-              onClick={() => void handleBatchStatus('archived')}
-            >
-              Archive
-            </button>
+            <button type="button" className="button button--small" disabled={busyBatch} onClick={() => void handleBatchStatus('contacted')}>Mark contacted</button>
+            <button type="button" className="button button--small" disabled={busyBatch} onClick={() => void handleBatchStatus('resolved')}>Mark resolved</button>
+            <button type="button" className="button button--small" disabled={busyBatch} onClick={() => void handleBatchStatus('archived')}>Archive</button>
+            <button type="button" className="button button--small" onClick={() => setSelectedIds(new Set())}>Clear</button>
           </div>
         </div>
-      )}
+      ) : null}
 
-      {/* Main Table */}
-      {loading ? (
-        <p className="muted">Loading submitted interests…</p>
-      ) : filteredSubmissions.length === 0 ? (
-        <p className="muted">No submissions found matching the criteria.</p>
-      ) : (
-        <table className="admin-table">
-          <thead>
-            <tr>
-              <th style={{ width: '36px' }}>
-                <input
-                  type="checkbox"
-                  checked={selectedIds.size === filteredSubmissions.length && filteredSubmissions.length > 0}
-                  onChange={toggleSelectAll}
-                  aria-label="Select all rows"
-                />
-              </th>
-              <th>Received</th>
-              <th>Name &amp; details</th>
-              <th>Form / route</th>
-              <th>Contact</th>
-              <th>Country</th>
-              <th>Note preview</th>
-              <th>Status</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredSubmissions.map((item) => {
-              const isSelected = selectedIds.has(item.id);
-              const isGetInvolved = item.form === 'get-involved';
-              const isTesterReward = item.form === 'tester-reward-claim';
-              const payload = item.payload as GetInvolvedPayload & ContactPayload & TesterRewardPayload;
-              const displayName = payload.name || payload.certificateName || '—';
-              const contactText = payload.contact || payload.email || payload.contactEmail || '—';
-              const isPhone = payload.contact && !payload.contact.includes('@');
-              const emailAddr = payload.email || payload.contactEmail || (payload.contact && payload.contact.includes('@') ? payload.contact : '');
+      <DataTable
+        caption="Public form submissions"
+        columns={columns}
+        rows={filteredSubmissions}
+        rowKey={(item) => item.id}
+        loading={loading}
+        searchable
+        searchPlaceholder="Search name, contact, country, note…"
+        initialSort={{ columnId: 'received', direction: 'desc' }}
+        pageSize={25}
+        selection={{
+          selectedIds,
+          onChange: setSelectedIds,
+          rowLabel: (item) => {
+            const payload = item.payload as GetInvolvedPayload & TesterRewardPayload;
+            return payload.name || payload.certificateName || 'this submission';
+          },
+        }}
+        empty={{
+          title: 'No submissions match these filters',
+          body: 'Responses from the public website appear here as soon as they are submitted.',
+        }}
+        filters={
+          <>
+            <label className="filter">
+              <span className="sr-only">Form</span>
+              <select
+                value={formFilter}
+                onChange={(event) => setFormFilter(event.target.value as typeof formFilter)}
+              >
+                <option value="ALL">All form responses</option>
+                <option value="get-involved">Get Involved responses</option>
+                <option value="contact">Contact messages</option>
+                <option value="tester-reward-claim">Founding Tester reward claims</option>
+              </select>
+            </label>
 
-              return (
-                <tr key={item.id} className={isSelected ? 'is-selected' : ''}>
-                  <td>
-                    <input
-                      type="checkbox"
-                      checked={isSelected}
-                      onChange={() => toggleSelect(item.id)}
-                      aria-label={`Select ${displayName}`}
-                    />
-                  </td>
-                  <td>
-                    <button
-                      type="button"
-                      className="row-select"
-                      onClick={() => setActiveSubmission(item)}
-                      title="View full submission details"
-                    >
-                      {formatSubmissionDate(item.receivedAt)}
-                    </button>
-                  </td>
-                  <td>
-                    <strong>{displayName}</strong>
-                    {payload.organisation ? (
-                      <div className="tiny muted">{payload.organisation}</div>
-                    ) : isTesterReward ? <div className="tiny muted">Card: {payload.cardName}</div> : null}
-                  </td>
-                  <td>
-                    {isGetInvolved && payload.route ? (
-                      <span className={getRouteBadgeClass(payload.route)}>{payload.route}</span>
-                    ) : isTesterReward ? (
-                      <span className="route-badge">Tester reward</span>
-                    ) : (
-                      <span className="tiny muted">{payload.subject || item.form}</span>
-                    )}
-                  </td>
-                  <td>
-                    {emailAddr ? (
-                      <a href={`mailto:${emailAddr}`} className="contact-link">
-                        {emailAddr}
-                      </a>
-                    ) : isPhone ? (
-                      <a href={`tel:${payload.contact}`} className="contact-link">
-                        {payload.contact}
-                      </a>
-                    ) : (
-                      contactText
-                    )}
-                  </td>
-                  <td>{payload.country || '—'}</td>
-                  <td>
-                    <div className="note-snippet" title={payload.note || payload.message || (isTesterReward ? `Public recognition: ${payload.recognitionChoice}` : '')}>
-                      {payload.note || payload.message || (isTesterReward ? `Public recognition: ${payload.recognitionChoice}` : '—')}
-                    </div>
-                  </td>
-                  <td>
-                    <span className={`status-badge status-badge--${item.status || 'new'}`}>
-                      {item.status || 'new'}
-                    </span>
-                  </td>
-                  <td className="row-actions">
-                    <button type="button" onClick={() => setActiveSubmission(item)}>
-                      View
-                    </button>
-                    <select
-                      className="interests-select"
-                      value={item.status || 'new'}
-                      onChange={(e) => {
-                        const newSt = e.target.value as SubmissionStatus;
-                        void updateSubmissionStatus(item.id, newSt).then(() => {
-                          handleStatusChange(item.id, newSt);
-                        });
-                      }}
-                      style={{ fontSize: '0.78rem', padding: '2px 4px' }}
-                    >
-                      {SUBMISSION_STATUSES.map((s) => (
-                        <option key={s.id} value={s.id}>
-                          {s.label}
-                        </option>
-                      ))}
-                    </select>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      )}
+            {formFilter === 'get-involved' || formFilter === 'ALL' ? (
+              <label className="filter">
+                <span className="sr-only">Route</span>
+                <select value={routeFilter} onChange={(event) => setRouteFilter(event.target.value)}>
+                  <option value="ALL">All routes</option>
+                  {INTEREST_ROUTES.map((route) => (
+                    <option key={route} value={route}>{route}</option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
 
-      {/* Detail Modal */}
+            <label className="filter">
+              <span className="sr-only">Status</span>
+              <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
+                <option value="ALL">All statuses</option>
+                {SUBMISSION_STATUSES.map((status) => (
+                  <option key={status.id} value={status.id}>{status.label}</option>
+                ))}
+              </select>
+            </label>
+          </>
+        }
+      />
+
       {activeSubmission ? (
         <InterestDetailModal
           submission={activeSubmission}

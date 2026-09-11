@@ -74,22 +74,26 @@ export const SUBMISSION_STATUSES: { id: SubmissionStatus; label: string }[] = [
   { id: 'archived', label: 'Archived' },
 ];
 
+/** Medium date, short time — seconds buy nothing in a queue and cost a column
+ * of table width on every row. */
+const SUBMISSION_DATE_FORMAT: Intl.DateTimeFormatOptions = { dateStyle: 'medium', timeStyle: 'short' };
+
 /** Safe date formatter handling Firestore Timestamps, ISO strings, and dates. */
 export function formatSubmissionDate(value: unknown): string {
   if (!value) return '—';
   try {
     if (typeof value === 'object' && value !== null && 'toDate' in value && typeof (value as { toDate: () => Date }).toDate === 'function') {
-      return (value as { toDate: () => Date }).toDate().toLocaleString();
+      return (value as { toDate: () => Date }).toDate().toLocaleString([], SUBMISSION_DATE_FORMAT);
     }
     if (typeof value === 'object' && value !== null && 'seconds' in value && typeof (value as { seconds: number }).seconds === 'number') {
-      return new Date((value as { seconds: number }).seconds * 1000).toLocaleString();
+      return new Date((value as { seconds: number }).seconds * 1000).toLocaleString([], SUBMISSION_DATE_FORMAT);
     }
     if (typeof value === 'string' || typeof value === 'number') {
       const d = new Date(value);
-      return Number.isNaN(d.getTime()) ? String(value) : d.toLocaleString();
+      return Number.isNaN(d.getTime()) ? String(value) : d.toLocaleString([], SUBMISSION_DATE_FORMAT);
     }
     if (value instanceof Date) {
-      return value.toLocaleString();
+      return value.toLocaleString([], SUBMISSION_DATE_FORMAT);
     }
   } catch {
     // Fallback

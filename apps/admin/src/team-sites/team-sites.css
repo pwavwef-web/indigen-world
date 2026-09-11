@@ -1,7 +1,17 @@
+/* ==========================================================================
+   Team sites — the public intake form and the staff review screen
+   --------------------------------------------------------------------------
+   The intake page renders outside `.admin-app-shell` (it is reachable without
+   the console around it), so it carries its own control styling rather than
+   inheriting the kit's.
+   ========================================================================== */
+
 .intake-page {
   min-height: 100vh;
-  background: #f5f1e7;
-  color: var(--text);
+  background:
+    radial-gradient(ellipse 60rem 34rem at 82% -6%, rgba(47, 107, 255, 0.12), transparent 70%),
+    var(--ad-mist);
+  color: var(--ad-ink);
 }
 
 .intake-hero {
@@ -9,48 +19,65 @@
   align-items: flex-end;
   justify-content: space-between;
   gap: 20px;
-  padding: 32px max(24px, calc((100vw - 1080px) / 2)) 24px;
-  background: #15233f;
+  flex-wrap: wrap;
+  padding: 34px max(20px, calc((100vw - 1080px) / 2)) 26px;
+  background:
+    radial-gradient(circle at 88% 12%, rgba(18, 181, 207, 0.26), transparent 46%),
+    linear-gradient(135deg, #0a1327, #16327c 78%);
   color: #fff;
 }
 
 .intake-hero p {
   margin: 0 0 6px;
-  color: #d7b86f;
+  color: var(--ad-blue-200);
+  font-family: var(--mono);
+  font-size: 0.68rem;
   font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
 }
 
 .intake-hero h1 {
   margin: 0;
-  font-size: 2rem;
+  font-size: clamp(1.5rem, 4vw, 2rem);
+  letter-spacing: -0.035em;
 }
 
 .intake-hero a {
+  padding: 9px 14px;
+  border-radius: var(--r-pill);
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 0 0 1px rgba(195, 215, 255, 0.32);
   color: #fff;
+  font-size: 0.85rem;
+  font-weight: 650;
   text-decoration: none;
-  border: 1px solid rgba(255, 255, 255, 0.35);
-  border-radius: 8px;
-  padding: 8px 12px;
+}
+
+.intake-hero a:hover {
+  background: rgba(255, 255, 255, 0.18);
 }
 
 .intake-form,
 .intake-success {
-  width: min(1080px, calc(100% - 32px));
-  margin: 24px auto 48px;
+  width: min(1080px, calc(100% - 28px));
+  margin: 22px auto 46px;
 }
 
 .intake-form {
   display: grid;
-  gap: 18px;
+  gap: 16px;
+  min-width: 0;
 }
 
 .intake-form section,
 .intake-success,
 .request-detail {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 8px;
+  min-width: 0;
   padding: 20px;
+  border-radius: var(--r-lg);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.97), rgba(247, 250, 255, 0.93));
+  box-shadow: var(--lift-1), var(--glass-hi);
 }
 
 .intake-form h2,
@@ -58,24 +85,31 @@
 .team-sites-admin h2,
 .request-detail h3 {
   margin: 0 0 14px;
+  color: var(--ad-ink);
+  letter-spacing: -0.02em;
 }
 
 .intake-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
   gap: 14px;
+  min-width: 0;
 }
 
 .intake-field,
 .intake-checks {
   display: grid;
-  gap: 7px;
+  gap: 6px;
+  min-width: 0;
+  color: var(--ad-slate);
+  font-size: 0.72rem;
   font-weight: 700;
-  color: var(--indigo);
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
 }
 
 .intake-field strong {
-  color: var(--danger);
+  color: var(--ad-red);
 }
 
 .intake-field--wide {
@@ -85,41 +119,64 @@
 .intake-field input,
 .intake-field textarea {
   width: 100%;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 10px 12px;
-  color: var(--text);
-  background: #fff;
+  max-width: 100%;
+  min-height: var(--control-h);
+  padding: 9px 11px;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: linear-gradient(180deg, #f7f9ff, #ffffff);
+  box-shadow:
+    0 0 0 1px var(--glass-line),
+    inset 0 1px 2px rgba(16, 31, 78, 0.06);
+  color: var(--ad-ink);
   font: inherit;
+  font-size: 0.86rem;
   font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.intake-field input:focus,
+.intake-field textarea:focus {
+  outline: none;
+  box-shadow: 0 0 0 1px var(--ad-blue), var(--focus-ring);
 }
 
 .intake-field textarea {
+  min-height: 110px;
   resize: vertical;
 }
 
 .intake-checks {
   margin: 0 0 18px;
-  border: 0;
   padding: 0;
+  border: 0;
 }
 
 .intake-checks div {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 190px), 1fr));
   gap: 8px;
 }
 
 .intake-checks label {
   display: flex;
   align-items: center;
-  gap: 8px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: #fbfaf6;
-  padding: 9px 10px;
-  color: var(--text);
+  gap: 9px;
+  min-width: 0;
+  padding: 9px 11px;
+  border-radius: var(--r-sm);
+  background: rgba(255, 255, 255, 0.7);
+  box-shadow: inset 0 0 0 1px var(--glass-line-soft);
+  color: var(--ad-ink-2);
+  font-size: 0.82rem;
   font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.intake-checks input {
+  accent-color: var(--ad-blue);
 }
 
 .intake-actions {
@@ -128,12 +185,16 @@
 }
 
 .intake-actions button,
-.intake-success button,
-.team-sites-admin button {
+.intake-success button {
+  min-height: var(--control-h);
+  padding: 0 18px;
   border: 0;
-  border-radius: 8px;
-  padding: 10px 16px;
-  background: var(--indigo);
+  border-radius: var(--r-sm);
+  background: linear-gradient(180deg, var(--ad-blue-400), var(--ad-blue-600));
+  box-shadow:
+    0 0 0 1px rgba(16, 50, 124, 0.4),
+    0 8px 20px -10px rgba(31, 80, 214, 0.9),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
   color: #fff;
   font: inherit;
   font-weight: 700;
@@ -142,20 +203,22 @@
 
 .intake-actions button:disabled {
   cursor: not-allowed;
-  opacity: 0.58;
+  opacity: 0.55;
 }
 
+/* ==========================================================================
+   Staff review screen
+   ========================================================================== */
 .request-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 360px;
-  gap: 18px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 340px);
   align-items: start;
+  gap: 16px;
+  min-width: 0;
 }
 
-.admin-table tr.is-selected {
-  background: #f6eddb;
-}
-
+/* Rows in this table select the record shown beside them, so they advertise
+   that they are clickable. */
 .admin-table tbody tr {
   cursor: pointer;
 }
@@ -163,6 +226,7 @@
 .request-detail {
   position: sticky;
   top: 16px;
+  min-width: 0;
 }
 
 .request-detail header {
@@ -170,16 +234,20 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+  flex-wrap: wrap;
+  min-width: 0;
   margin-bottom: 12px;
 }
 
 .request-detail header span {
-  border-radius: 999px;
-  background: #e4f2ea;
-  color: var(--success);
-  padding: 4px 9px;
-  font-size: 0.76rem;
-  font-weight: 800;
+  padding: 4px 10px;
+  border-radius: var(--r-pill);
+  background: var(--ad-green-surface);
+  box-shadow: inset 0 0 0 1px rgba(15, 122, 90, 0.22);
+  color: var(--ad-green);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 
@@ -187,43 +255,55 @@
   display: grid;
   gap: 10px;
   margin: 0;
+  min-width: 0;
 }
 
 .request-detail dt {
-  color: var(--indigo);
-  font-size: 0.78rem;
-  font-weight: 800;
+  color: var(--ad-slate-2);
+  font-family: var(--mono);
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
 }
 
 .request-detail dd {
   margin: 2px 0 0;
-  color: var(--text-soft);
-  white-space: pre-wrap;
+  color: var(--ad-ink-2);
+  font-size: 0.86rem;
   overflow-wrap: anywhere;
+  white-space: pre-wrap;
 }
 
-/* Response detail modal */
+/* ==========================================================================
+   Response detail modal
+   ========================================================================== */
 .response-modal-backdrop {
   position: fixed;
+  z-index: 200;
   inset: 0;
-  z-index: 1000;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 20px;
-  background: rgba(21, 35, 63, 0.55);
+  padding: 16px;
+  background: rgba(10, 19, 39, 0.46);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
 }
 
 .response-modal {
-  display: flex;
-  flex-direction: column;
   width: min(680px, 100%);
   max-height: min(88vh, 900px);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  box-shadow: 0 24px 60px rgba(21, 35, 63, 0.28);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
   overflow: hidden;
+  border-radius: var(--r-lg);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(244, 248, 255, 0.96));
+  box-shadow:
+    0 0 0 1px rgba(16, 31, 78, 0.16),
+    0 40px 90px -30px rgba(10, 19, 39, 0.5),
+    var(--glass-hi);
 }
 
 .response-modal__head {
@@ -231,31 +311,26 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
+  min-width: 0;
   padding: 18px 20px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--glass-line-soft);
 }
 
 .response-modal__head h3 {
   margin: 0;
+  color: var(--ad-ink);
+  overflow-wrap: anywhere;
 }
 
 .response-modal__meta {
   margin: 4px 0 0;
-  color: var(--text-soft);
-  font-size: 0.82rem;
-}
-
-.response-modal__close {
-  border: 0;
-  background: transparent;
-  color: var(--text-soft);
-  font-size: 1.6rem;
-  line-height: 1;
-  padding: 0 4px;
-  cursor: pointer;
+  color: var(--ad-slate-2);
+  font-family: var(--mono);
+  font-size: 0.72rem;
 }
 
 .response-modal__body {
+  min-width: 0;
   overflow-y: auto;
   padding: 18px 20px;
 }
@@ -264,56 +339,41 @@
   display: grid;
   gap: 12px;
   margin: 0;
+  min-width: 0;
 }
 
 .response-modal__body dt {
-  color: var(--indigo);
-  font-size: 0.78rem;
-  font-weight: 800;
+  color: var(--ad-slate-2);
+  font-family: var(--mono);
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
 }
 
 .response-modal__body dd {
   margin: 2px 0 0;
-  color: var(--text-soft);
-  white-space: pre-wrap;
+  color: var(--ad-ink-2);
   overflow-wrap: anywhere;
+  white-space: pre-wrap;
 }
 
 .response-modal__foot {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  flex-wrap: wrap;
   gap: 10px;
+  flex-wrap: wrap;
+  min-width: 0;
   padding: 14px 20px;
-  border-top: 1px solid var(--border);
-  background: #fbfaf6;
+  border-top: 1px solid var(--glass-line-soft);
+  background: rgba(238, 243, 255, 0.6);
 }
 
 .response-modal__actions {
   display: flex;
   gap: 8px;
-}
-
-.response-modal__foot button {
-  border: 0;
-  border-radius: 8px;
-  padding: 9px 14px;
-  background: var(--indigo);
-  color: #fff;
-  font: inherit;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.response-modal__foot button.btn-danger {
-  background: var(--danger);
-}
-
-.response-modal__foot button.btn-ghost {
-  background: transparent;
-  color: var(--text);
-  border: 1px solid var(--border);
+  flex-wrap: wrap;
 }
 
 @media (max-width: 820px) {
@@ -324,7 +384,7 @@
 
   .intake-grid,
   .request-layout {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .request-detail {
@@ -332,11 +392,22 @@
   }
 
   .response-modal__foot {
-    flex-direction: column;
     align-items: stretch;
+    flex-direction: column;
   }
 
   .response-modal__actions {
     justify-content: space-between;
+  }
+}
+
+@media (max-width: 560px) {
+  .response-modal-backdrop {
+    padding: 0;
+  }
+
+  .response-modal {
+    max-height: 100svh;
+    border-radius: 0;
   }
 }

@@ -15,6 +15,7 @@ import {
   type ContactGroup,
   type SmsBalance,
 } from './data';
+import { EmptyState, Loading, TableShell } from '../ui/primitives';
 
 /**
  * Messaging console. Beyond the SMS balance and a one-off test message, admins
@@ -66,7 +67,7 @@ function BalancePanel() {
         Announcements and high-priority notifications are delivered by SMS through Arkesel. The account balance is shown below.
       </p>
       {loading ? (
-        <p className="muted">Loading balance…</p>
+        <Loading label="Loading balance" />
       ) : error ? (
         <p className="error-line">{error}</p>
       ) : (
@@ -392,24 +393,26 @@ function ContactGroupsPanel() {
       {error ? <p className="error-line">{error}</p> : null}
 
       {groups.length > 0 ? (
-        <table className="admin-table" style={{ marginBottom: 16 }}>
-          <thead>
-            <tr><th>Name</th><th>Numbers</th><th aria-label="actions" /></tr>
-          </thead>
-          <tbody>
-            {groups.map((g) => (
-              <tr key={g.id}>
-                <td>{g.name}</td>
-                <td><span className="badge2">{g.count}</span></td>
-                <td className="row-actions">
-                  <button type="button" className="danger" onClick={() => void remove(g.id)}>Delete</button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <TableShell label="Contact groups">
+          <table className="admin-table" style={{ marginBottom: 16 }}>
+            <thead>
+              <tr><th>Name</th><th>Numbers</th><th aria-label="actions" /></tr>
+            </thead>
+            <tbody>
+              {groups.map((g) => (
+                <tr key={g.id}>
+                  <td>{g.name}</td>
+                  <td><span className="badge2">{g.count}</span></td>
+                  <td className="row-actions">
+                    <button type="button" className="danger" onClick={() => void remove(g.id)}>Delete</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </TableShell>
       ) : (
-        <p className="muted">No saved groups yet.</p>
+        <EmptyState title="No saved groups yet." />
       )}
 
       <div className="admin-form">
@@ -482,37 +485,39 @@ function HistoryPanel() {
         <Button variant="ghost" onClick={() => void load()} disabled={loading}>Refresh</Button>
       </div>
       {loading ? (
-        <p className="muted">Loading history…</p>
+        <Loading label="Loading history" />
       ) : error ? (
         <p className="error-line">{error}</p>
       ) : campaigns.length === 0 ? (
-        <p className="muted">No announcements sent yet.</p>
+        <EmptyState title="No announcements sent yet." />
       ) : (
-        <table className="admin-table">
-          <thead>
-            <tr>
-              <th>Message</th>
-              <th>Audience</th>
-              <th>Recipients</th>
-              <th>Status</th>
-              <th>When</th>
-            </tr>
-          </thead>
-          <tbody>
-            {campaigns.map((c) => (
-              <tr key={c.id}>
-                <td>
-                  {c.message.length > 60 ? `${c.message.slice(0, 60)}…` : c.message}
-                  {c.sandbox ? <span className="badge2" style={{ marginLeft: 6 }}>sandbox</span> : null}
-                </td>
-                <td>{c.audience === 'all' ? 'Broadcast' : 'Numbers'}</td>
-                <td>{c.sentCount}/{c.recipientCount}</td>
-                <td><span className={`badge2 status-${c.status}`}>{STATUS_LABELS[c.status] ?? c.status}</span></td>
-                <td>{c.scheduledFor ? `⏱ ${formatWhen(c.scheduledFor)}` : formatWhen(c.createdAt)}</td>
+        <TableShell label="Announcement history">
+          <table className="admin-table">
+            <thead>
+              <tr>
+                <th>Message</th>
+                <th>Audience</th>
+                <th>Recipients</th>
+                <th>Status</th>
+                <th>When</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {campaigns.map((c) => (
+                <tr key={c.id}>
+                  <td>
+                    {c.message.length > 60 ? `${c.message.slice(0, 60)}…` : c.message}
+                    {c.sandbox ? <span className="badge2" style={{ marginLeft: 6 }}>sandbox</span> : null}
+                  </td>
+                  <td>{c.audience === 'all' ? 'Broadcast' : 'Numbers'}</td>
+                  <td>{c.sentCount}/{c.recipientCount}</td>
+                  <td><span className={`badge2 status-${c.status}`}>{STATUS_LABELS[c.status] ?? c.status}</span></td>
+                  <td>{c.scheduledFor ? `⏱ ${formatWhen(c.scheduledFor)}` : formatWhen(c.createdAt)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </TableShell>
       )}
     </section>
   );

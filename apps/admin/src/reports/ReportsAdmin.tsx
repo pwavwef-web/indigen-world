@@ -9,6 +9,7 @@ import {
   type ReportedMedia,
 } from './data';
 import './reports.css';
+import { Loading } from '../ui/primitives';
 
 type StatusFilter = ReportStatus | 'all';
 
@@ -117,7 +118,7 @@ export function ReportsAdmin() {
         </div>
 
         {error ? <p className="error-line" role="alert">{error}</p> : null}
-        {loading ? <p className="muted">Loading reports…</p> : null}
+        {loading ? <Loading label="Loading reports" /> : null}
         {!loading && visibleReports.length === 0 ? (
           <div className="reports-empty">
             <span aria-hidden="true">✓</span>

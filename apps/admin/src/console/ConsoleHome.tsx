@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useMemo, useState, type MouseEvent } from 'react';
 import { isValidator, type AdminRole } from '../creators/data';
+import { firebaseConfig, usingEmulators } from '../firebase';
+import { Alert, Kbd, Spinner } from '../ui/primitives';
 import { fetchOperationsSnapshot, type OperationsSnapshot } from './data';
+
+/** How often the queue totals re-read themselves while the console is open. */
+const AUTO_REFRESH_MS = 120_000;
 
 interface QueueCard {
   key: keyof Omit<OperationsSnapshot, 'capturedAt'>;
@@ -93,6 +98,7 @@ export function ConsoleHome({
   const [snapshot, setSnapshot] = useState<OperationsSnapshot | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [autoRefresh, setAutoRefresh] = useState(true);
 
   const refresh = useCallback(async () => {
     if (!isValidator(role)) return;
@@ -114,6 +120,15 @@ export function ConsoleHome({
   useEffect(() => {
     void refresh();
   }, [refresh]);
+
+  /* A console left open on a second monitor should not quietly show yesterday's
+     queue. The totals are five aggregate reads, so re-running them every couple
+     of minutes costs almost nothing — and it can be switched off. */
+  useEffect(() => {
+    if (!autoRefresh || !isValidator(role)) return;
+    const timer = window.setInterval(() => void refresh(), AUTO_REFRESH_MS);
+    return () => window.clearInterval(timer);
+  }, [autoRefresh, refresh, role]);
 
   const totalAttention = useMemo(
     () =>
@@ -142,7 +157,11 @@ export function ConsoleHome({
             <span className="live-dot" aria-hidden="true" />
             <strong>{role ? role.replace('_', ' ') : 'Access not provisioned'}</strong>
             <span aria-hidden="true">·</span>
-            <span>Production workspace</span>
+            <span>{firebaseConfig.projectId}</span>
+            <span aria-hidden="true">·</span>
+            <span>{usingEmulators ? 'emulator suite' : 'production workspace'}</span>
+            <span aria-hidden="true">·</span>
+            <span><Kbd>⌘K</Kbd> to jump anywhere</span>
           </div>
         </div>
         <div className="console-hero__mark" aria-hidden="true">
@@ -177,23 +196,32 @@ export function ConsoleHome({
                     Updated {snapshot.capturedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </span>
                 ) : null}
+                <label className="filter">
+                  <input
+                    type="checkbox"
+                    checked={autoRefresh}
+                    onChange={(event) => setAutoRefresh(event.target.checked)}
+                  />
+                  Auto-refresh
+                </label>
                 <button
                   type="button"
                   className="button button--small"
                   onClick={() => void refresh()}
                   disabled={loading}
                 >
-                  {loading ? 'Refreshing…' : 'Refresh totals'}
+                  {loading ? <><Spinner /> Refreshing…</> : 'Refresh totals'}
                 </button>
               </div>
             </div>
 
             {error ? (
-              <div className="dashboard-error" role="alert">
-                <strong>Live totals unavailable.</strong>
-                <span>{error}</span>
-                <button type="button" onClick={() => void refresh()}>Try again</button>
-              </div>
+              <Alert
+                title="Live totals unavailable."
+                action={<button type="button" className="button button--small" onClick={() => void refresh()}>Try again</button>}
+              >
+                {error}
+              </Alert>
             ) : null}
 
             <div className="queue-grid" aria-busy={loading && !snapshot}>
@@ -206,7 +234,9 @@ export function ConsoleHome({
                       onClick={open(queue.path)}
                       className={`queue-card queue-card--${queue.tone}`}
                     >
-                      <span className="queue-card__number">{snapshot?.[queue.key] ?? '—'}</span>
+                      <span className={snapshot ? 'queue-card__number' : 'queue-card__number queue-card__number--unknown'}>
+                        {snapshot?.[queue.key] ?? 'no data'}
+                      </span>
                       <span className="queue-card__label">{queue.label}</span>
                       <span className="queue-card__body">{queue.body}</span>
                       <span className="queue-card__action">{queue.action} <span aria-hidden="true">→</span></span>

@@ -1,5 +1,15 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { fetchAuditLogs } from '../creators/data';
+import { DataTable, type DataColumn } from '../ui/DataTable';
+import {
+  CopyId,
+  PageHeader,
+  Panel,
+  SegmentedControl,
+  Spinner,
+  StatusPill,
+  toneForStatus,
+} from '../ui/primitives';
 
 interface AuditReference {
   collection?: string;
@@ -31,18 +41,20 @@ function referenceLabel(
   return [collection, id].filter(Boolean).join(' / ') || '—';
 }
 
-function dateLabel(value: unknown): string {
-  if (!value) return '—';
+function toDate(value: unknown): Date | null {
+  if (!value) return null;
   if (typeof value === 'object' && value !== null) {
-    if ('toDate' in value && typeof value.toDate === 'function') {
-      return value.toDate().toLocaleString();
-    }
-    if ('seconds' in value && typeof value.seconds === 'number') {
-      return new Date(value.seconds * 1000).toLocaleString();
-    }
+    if ('toDate' in value && typeof value.toDate === 'function') return value.toDate() as Date;
+    if ('seconds' in value && typeof value.seconds === 'number') return new Date(value.seconds * 1000);
   }
   const date = new Date(String(value));
-  return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString();
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function dateLabel(value: unknown): string {
+  const date = toDate(value);
+  if (date) return date.toLocaleString();
+  return value ? String(value) : '—';
 }
 
 export function AuditLogViewer() {
@@ -50,7 +62,7 @@ export function AuditLogViewer() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filterAction, setFilterAction] = useState('ALL');
-  const [search, setSearch] = useState('');
+  const [outcomeFilter, setOutcomeFilter] = useState<'ALL' | 'ok' | 'other'>('ALL');
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -73,107 +85,135 @@ export function AuditLogViewer() {
     () => [...new Set(logs.map((log) => log.action).filter((action): action is string => Boolean(action)))].sort(),
     [logs],
   );
-  const filteredLogs = useMemo(() => {
-    const needle = search.trim().toLowerCase();
-    return logs.filter((log) => {
-      if (filterAction !== 'ALL' && log.action !== filterAction) return false;
-      if (!needle) return true;
-      const actor = referenceLabel(log.actor, undefined, log.actorUid);
-      const target = referenceLabel(log.target, log.targetCollection, log.targetId);
-      return [log.action, log.outcome, actor, target]
-        .some((value) => String(value ?? '').toLowerCase().includes(needle));
-    });
-  }, [filterAction, logs, search]);
+
+  // The action and outcome filters narrow the set; free-text search over that
+  // set is the table's own job.
+  const filteredLogs = useMemo(
+    () =>
+      logs.filter((log) => {
+        if (filterAction !== 'ALL' && log.action !== filterAction) return false;
+        if (outcomeFilter === 'ALL') return true;
+        const succeeded = /^(ok|success|granted|approved|applied)/i.test(String(log.outcome ?? ''));
+        return outcomeFilter === 'ok' ? succeeded : !succeeded;
+      }),
+    [filterAction, logs, outcomeFilter],
+  );
+
+  const columns: DataColumn<AuditLogEntry>[] = useMemo(
+    () => [
+      {
+        id: 'when',
+        header: 'When',
+        width: '180px',
+        mono: true,
+        cell: (log) => dateLabel(log.occurredAt),
+        sort: (log) => toDate(log.occurredAt),
+        search: (log) => dateLabel(log.occurredAt),
+      },
+      {
+        id: 'actor',
+        header: 'Actor',
+        cell: (log) => <CopyId value={referenceLabel(log.actor, undefined, log.actorUid)} label="actor" truncate={24} />,
+        sort: (log) => referenceLabel(log.actor, undefined, log.actorUid),
+        search: (log) => referenceLabel(log.actor, undefined, log.actorUid),
+      },
+      {
+        id: 'action',
+        header: 'Action',
+        cell: (log) => <span className="badge2 badge2--info">{log.action ?? 'unknown'}</span>,
+        sort: (log) => log.action ?? '',
+        search: (log) => log.action ?? '',
+      },
+      {
+        id: 'target',
+        header: 'Target',
+        cell: (log) => <CopyId value={referenceLabel(log.target, log.targetCollection, log.targetId)} label="target" truncate={28} />,
+        sort: (log) => referenceLabel(log.target, log.targetCollection, log.targetId),
+        search: (log) => referenceLabel(log.target, log.targetCollection, log.targetId),
+      },
+      {
+        id: 'outcome',
+        header: 'Outcome',
+        cell: (log) =>
+          log.outcome ? <StatusPill tone={toneForStatus(log.outcome)}>{log.outcome}</StatusPill> : <span className="muted">—</span>,
+        sort: (log) => log.outcome ?? '',
+        search: (log) => log.outcome ?? '',
+      },
+      {
+        id: 'inspect',
+        header: 'Record',
+        align: 'end',
+        cell: (log) => (
+          <button
+            type="button"
+            className="button button--small"
+            aria-expanded={expandedId === log.id}
+            onClick={() => setExpandedId(expandedId === log.id ? null : log.id)}
+          >
+            {expandedId === log.id ? 'Hide' : 'Inspect'}
+          </button>
+        ),
+      },
+    ],
+    [expandedId],
+  );
 
   return (
-    <div className="panel">
-      <div className="tab-head audit-heading">
-        <div>
-          <p className="section-kicker">GOVERNANCE</p>
-          <h1>Audit trail</h1>
-          <p className="tiny muted">
-            The latest 50 privileged actions, role changes and moderation decisions.
-          </p>
-        </div>
-        <button type="button" className="button button--small" onClick={() => void load()} disabled={loading}>
-          {loading ? 'Refreshing…' : 'Refresh'}
-        </button>
-      </div>
+    <Panel>
+      <PageHeader
+        level="h1"
+        kicker="Governance"
+        title="Audit trail"
+        body="The latest 50 privileged actions, role changes and moderation decisions, exactly as the append-only log recorded them."
+        actions={
+          <button type="button" className="button button--small" onClick={() => void load()} disabled={loading}>
+            {loading ? <><Spinner /> Refreshing…</> : 'Refresh'}
+          </button>
+        }
+      />
 
-      <div className="audit-controls">
-        <label className="filter">
-          Action type
-          <select value={filterAction} onChange={(event) => setFilterAction(event.target.value)}>
-            <option value="ALL">All actions ({logs.length})</option>
-            {actions.map((action) => (
-              <option key={action} value={action}>{action}</option>
-            ))}
-          </select>
-        </label>
-        <label className="filter audit-search">
-          Search actor, target or outcome
-          <input
-            type="search"
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder="e.g. identity.set_role"
-          />
-        </label>
-      </div>
-
-      {error ? (
-        <div className="dashboard-error" role="alert">
-          <strong>Audit trail unavailable.</strong>
-          <span>{error}</span>
-          <button type="button" onClick={() => void load()}>Try again</button>
-        </div>
-      ) : loading && logs.length === 0 ? (
-        <p className="muted">Loading audit records…</p>
-      ) : filteredLogs.length === 0 ? (
-        <p className="muted">No audit records match these filters.</p>
-      ) : (
-        <div className="audit-table-wrap">
-          <table className="admin-table">
-            <thead>
-              <tr>
-                <th>When</th>
-                <th>Actor</th>
-                <th>Action</th>
-                <th>Target</th>
-                <th>Outcome</th>
-                <th><span className="sr-only">Details</span></th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredLogs.map((log) => {
-                const isExpanded = expandedId === log.id;
-                return (
-                  <tr key={log.id} className={isExpanded ? 'is-expanded' : ''}>
-                    <td className="tiny">{dateLabel(log.occurredAt)}</td>
-                    <td><code>{referenceLabel(log.actor, undefined, log.actorUid)}</code></td>
-                    <td><span className="badge2 badge2--info">{log.action ?? 'unknown'}</span></td>
-                    <td><code>{referenceLabel(log.target, log.targetCollection, log.targetId)}</code></td>
-                    <td>{log.outcome ?? '—'}</td>
-                    <td>
-                      <button
-                        type="button"
-                        className="button button--small"
-                        aria-expanded={isExpanded}
-                        onClick={() => setExpandedId(isExpanded ? null : log.id)}
-                      >
-                        {isExpanded ? 'Hide' : 'Inspect'}
-                      </button>
-                      {isExpanded ? (
-                        <pre className="audit-json-box">{JSON.stringify(log, null, 2)}</pre>
-                      ) : null}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </div>
+      <DataTable
+        caption="Audit records"
+        columns={columns}
+        rows={filteredLogs}
+        rowKey={(log) => log.id}
+        loading={loading}
+        error={error}
+        onRetry={() => void load()}
+        searchable
+        searchPlaceholder="Search actor, target or outcome…"
+        initialSort={{ columnId: 'when', direction: 'desc' }}
+        pageSize={20}
+        expandedId={expandedId}
+        renderDetail={(log) => <pre className="audit-json-box">{JSON.stringify(log, null, 2)}</pre>}
+        empty={{
+          title: 'No audit records match these filters',
+          body: 'Privileged actions appear here within moments of being recorded.',
+        }}
+        filters={
+          <>
+            <label className="filter">
+              <span className="sr-only">Action type</span>
+              <select value={filterAction} onChange={(event) => setFilterAction(event.target.value)}>
+                <option value="ALL">All actions ({logs.length})</option>
+                {actions.map((action) => (
+                  <option key={action} value={action}>{action}</option>
+                ))}
+              </select>
+            </label>
+            <SegmentedControl
+              label="Filter by outcome"
+              value={outcomeFilter}
+              onChange={setOutcomeFilter}
+              options={[
+                { id: 'ALL', label: 'All' },
+                { id: 'ok', label: 'Succeeded' },
+                { id: 'other', label: 'Other' },
+              ]}
+            />
+          </>
+        }
+      />
+    </Panel>
   );
 }

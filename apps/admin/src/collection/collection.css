@@ -1,94 +1,58 @@
 /* App directory, shop catalogue and order requests.
-   Reuses the shared admin tokens/classes; only the extras live here. */
+   Tables, controls and status pills come from `ui/ui.css`; only the extras
+   this screen invents live here. */
 .collection-admin {
   display: grid;
-  gap: 20px;
+  gap: 18px;
+  min-width: 0;
 }
 
 .collection-actions {
   display: flex;
+  gap: 9px;
   flex-wrap: wrap;
-  gap: 10px;
   margin-top: 12px;
 }
 
-.collection-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 12px;
-  font-size: 0.9rem;
-}
-.collection-table th {
-  text-align: left;
-  font-size: 0.72rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--text-soft);
-  border-bottom: 1px solid var(--border);
-  padding: 6px 10px 6px 0;
-}
-.collection-table td {
-  padding: 10px 10px 10px 0;
-  border-bottom: 1px solid var(--border);
-  vertical-align: top;
-}
 .collection-table__actions {
-  display: flex;
-  gap: 6px;
   justify-content: flex-end;
 }
 
-.collection-status {
-  display: inline-block;
-  border-radius: 999px;
-  padding: 3px 11px;
-  font-size: 0.74rem;
-  font-weight: 600;
-  border: 1px solid var(--border);
-}
-.collection-status--live {
-  background: #e6f4ec;
-  border-color: #b6ddc6;
-}
-.collection-status--draft {
-  background: var(--plaster-cream, #f3efe6);
-}
-
+/* -- Editor grid --------------------------------------------------------- */
 .collection-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  gap: 13px;
+  min-width: 0;
   margin-top: 12px;
 }
+
 .collection-grid label {
   display: grid;
-  gap: 6px;
-  font-size: 0.82rem;
-  font-weight: 600;
-  color: var(--text-soft);
+  gap: 5px;
+  min-width: 0;
+  color: var(--ad-slate);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
 }
-.collection-grid input,
-.collection-grid select,
-.collection-grid textarea {
-  font: inherit;
-  padding: 9px 11px;
-  border: 1px solid var(--border);
-  border-radius: 9px;
-  background: var(--surface);
-  color: var(--text);
-}
-.collection-grid textarea {
-  resize: vertical;
-}
+
 .collection-grid__wide {
   grid-column: 1 / -1;
 }
+
 .collection-checkbox {
   display: flex !important;
   align-items: center;
   gap: 9px;
   align-self: end;
+  min-height: var(--control-h);
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+  font-size: 0.82rem !important;
 }
+
 .collection-checkbox input {
   width: auto;
 }
@@ -96,80 +60,87 @@
 /* An audiobook's narration and cover. A file input rather than a drop zone:
    the file is picked once and the bar underneath is what matters. */
 .collection-upload {
+  min-width: 0;
   margin-top: 14px;
-  padding: 12px 14px;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: var(--surface);
+  padding: 13px 15px;
 }
+
 .collection-upload__head {
   display: flex;
-  flex-wrap: wrap;
   align-items: baseline;
   gap: 10px;
+  flex-wrap: wrap;
+  min-width: 0;
   margin-bottom: 8px;
-  font-size: 0.86rem;
+  font-size: 0.84rem;
 }
+
 .collection-upload input[type='file'] {
-  font: inherit;
-  font-size: 0.85rem;
   max-width: 100%;
+  font-size: 0.8rem;
 }
+
 .collection-upload p {
   margin: 8px 0 0;
-  font-size: 0.82rem;
+  font-size: 0.8rem;
 }
 
 /* Real progress, not a spinner: a narration is a large file on a connection
    that is not, and a silent wait reads as a hung browser. */
 .collection-progress {
   position: relative;
-  margin-top: 10px;
   height: 20px;
-  border-radius: 999px;
-  border: 1px solid var(--border);
-  background: var(--plaster-cream, #f3efe6);
   overflow: hidden;
+  margin-top: 10px;
+  border-radius: var(--r-pill);
+  background: rgba(16, 31, 78, 0.07);
+  box-shadow: inset 0 1px 3px rgba(16, 31, 78, 0.12);
 }
+
 .collection-progress__bar {
   display: block;
   height: 100%;
-  background: var(--gold);
+  border-radius: var(--r-pill);
+  background: linear-gradient(90deg, var(--ad-blue), var(--ad-cyan));
+  box-shadow: 0 0 14px rgba(47, 107, 255, 0.45);
   transition: width 160ms linear;
 }
+
 .collection-progress__label {
   position: absolute;
   inset: 0;
   display: grid;
   place-items: center;
-  font-size: 0.72rem;
-  font-weight: 600;
-  color: var(--text);
+  color: var(--ad-ink);
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  font-weight: 700;
 }
 
 .collection-listen {
-  font-size: 0.8rem;
+  font-size: 0.78rem;
 }
 
+/* What still stands between this record and being publishable. */
 .collection-problems {
   margin: 14px 0 0;
-  padding: 12px 14px 12px 30px;
-  border-left: 3px solid var(--gold);
-  background: #fbf6e9;
-  border-radius: 8px;
-  font-size: 0.86rem;
-  color: var(--text);
+  padding: 11px 14px 11px 28px;
+  border-radius: var(--r-md);
+  background: var(--ad-amber-surface);
+  box-shadow: inset 0 0 0 1px rgba(138, 90, 4, 0.22);
+  color: #74490a;
+  font-size: 0.83rem;
+  line-height: 1.55;
 }
 
 /* One order request, as a small card rather than a table row: the item list
    and the member's note both need room to breathe. */
 .collection-order {
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 14px 16px;
+  min-width: 0;
   margin-top: 12px;
-  background: var(--surface);
+  padding: 15px 16px;
 }
+
 .collection-order header,
 .collection-order footer {
   display: flex;
@@ -177,22 +148,23 @@
   justify-content: space-between;
   gap: 12px;
   flex-wrap: wrap;
+  min-width: 0;
 }
+
 .collection-order ul {
   margin: 10px 0;
   padding-left: 20px;
-  font-size: 0.88rem;
+  font-size: 0.85rem;
 }
+
 .collection-order__note {
   margin: 0 0 10px;
-  font-size: 0.86rem;
-  color: var(--text-soft);
+  color: var(--ad-slate);
+  font-size: 0.84rem;
+  overflow-wrap: anywhere;
 }
+
 .collection-order footer select {
-  font: inherit;
-  padding: 7px 10px;
-  border: 1px solid var(--border);
-  border-radius: 9px;
-  background: var(--surface);
-  color: var(--text);
+  width: auto;
+  min-width: 180px;
 }

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { join, relative, resolve } from 'node:path';
 
 const root = resolve(import.meta.dirname, '..');
 const read = (path) => readFileSync(resolve(root, path), 'utf8');
@@ -30,6 +30,54 @@ assert.match(consoleHome, /Current Firestore totals/, 'the console labels operat
 assert.doesNotMatch(consoleHome, /184 new entries|84\.2%|1\.8 days/, 'the console contains no invented analytics');
 assert.match(auditViewer, /log\.occurredAt/, 'the audit viewer reads the current timestamp field');
 assert.match(auditViewer, /log\.target/, 'the audit viewer reads the current structured target field');
+
+// ── No table may escape its scroll container ───────────────────────────────
+//
+// A table is the one piece of admin markup that is routinely wider than the
+// window. Wrapped in `TableShell` it scrolls inside its own box; unwrapped it
+// widens the page, and every screen scrolls sideways for one column nobody is
+// looking at. This is cheaper to enforce than to rediscover.
+
+const sourceDir = resolve(root, 'src');
+const sourceFiles = [];
+(function walk(dir) {
+  for (const entry of readdirSync(dir)) {
+    const full = join(dir, entry);
+    if (statSync(full).isDirectory()) walk(full);
+    else if (entry.endsWith('.tsx')) sourceFiles.push(full);
+  }
+})(sourceDir);
+
+const unwrappedTables = [];
+for (const file of sourceFiles) {
+  const lines = readFileSync(file, 'utf8').split('\n');
+  lines.forEach((line, index) => {
+    // Only JSX tables; the team-site export builds HTML tables inside strings.
+    if (!/^\s*<table className=/.test(line)) return;
+    const preceding = lines.slice(Math.max(0, index - 3), index).join(' ');
+    if (!preceding.includes('<TableShell')) {
+      unwrappedTables.push(`${relative(root, file)}:${index + 1}`);
+    }
+  });
+}
+assert.deepEqual(unwrappedTables, [],
+  'every JSX table is wrapped in <TableShell> so it scrolls instead of widening the page');
+
+// ── The console keeps one table, one control set and one command surface ───
+const dataTable = read('src/ui/DataTable.tsx');
+const kit = read('src/ui/ui.css');
+const palette = read('src/ui/CommandPalette.tsx');
+
+assert.match(kit, /\.data-table, \.admin-table, \.collection-table, \.learning-table/,
+  'the kit styles the legacy table classes alongside the standard one');
+assert.match(kit, /\.table-shell \{[\s\S]*?overflow-x: auto/,
+  'the table shell is the only element allowed to scroll sideways');
+assert.match(styles, /overflow-x: clip/,
+  'the page body contains stray width instead of scrolling sideways');
+assert.match(dataTable, /aria-sort/, 'sortable columns report their sort state');
+assert.match(palette, /metaKey \|\| event\.ctrlKey/, 'the command palette is bound to ⌘K / Ctrl-K');
+assert.match(app, /CommandPalette/, 'the shell mounts the command palette');
+assert.match(app, /status-rail/, 'the shell reports environment and identity in a status rail');
 
 // ── The Kasem morphology mirror may not drift from the server ──────────────
 //
@@ -106,4 +154,7 @@ assert.match(creators, /pronounCheck\(forms\.definite, forms\.pronoun\)/,
 assert.doesNotMatch(creators, /disabled=\{[^}]*pronounCheck/,
   'the pronoun check never disables a review action');
 
-console.log('Validated admin routing, 404 recovery, navigation treatment, and the Kasem morphology mirror.');
+console.log(
+  `Validated admin routing, 404 recovery, navigation treatment, the shared console kit ` +
+    `(${sourceFiles.length} screens, every table contained), and the Kasem morphology mirror.`,
+);

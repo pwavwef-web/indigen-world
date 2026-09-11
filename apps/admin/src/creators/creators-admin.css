@@ -1,332 +1,260 @@
-/* Styles for the admin Creators console. Reuses design tokens. */
-.muted { color: var(--text-soft); }
-.role-chip {
-  margin-left: 8px;
-  background: var(--indigo);
-  color: #fff;
-  border-radius: 999px;
-  padding: 2px 9px;
-  font-size: 0.72rem;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
+/* Creators console: applications, memberships, campaigns and the review desk.
+   Table, control, badge and pill treatments come from `ui/ui.css`; what lives
+   here is the furniture unique to this screen. */
+
+.muted { color: var(--ad-slate-2); }
 
 .creators-admin {
   display: grid;
   gap: 18px;
-}
-.subtabs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  border-bottom: 1px solid var(--border);
-  padding-bottom: 8px;
-}
-.subtab {
-  border: 1px solid transparent;
-  background: none;
-  padding: 8px 14px;
-  border-radius: 8px;
-  cursor: pointer;
-  color: var(--text-soft);
-  font-size: 0.9rem;
-}
-.subtab.is-active {
-  background: var(--plaster-cream);
-  color: var(--indigo-deep);
-  border-color: var(--border);
-  font-weight: 600;
-}
-
-.admin-flash {
-  background: #e9f6ee;
-  border: 1px solid #bfe3cd;
-  color: #14663d;
-  border-radius: 8px;
-  padding: 10px 14px;
-  font-size: 0.9rem;
+  min-width: 0;
 }
 
 .metric-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(158px, 1fr));
+  gap: 12px;
+  min-width: 0;
 }
+
 .metric {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 18px;
   display: grid;
-  gap: 4px;
+  gap: 3px;
+  min-width: 0;
+  padding: 16px;
 }
+
 .metric__value {
-  font-size: 1.8rem;
-  font-weight: 700;
-  color: var(--indigo-deep);
+  font-size: 1.7rem;
+  font-weight: 780;
+  line-height: 1.1;
 }
+
 .metric__label {
-  font-size: 0.8rem;
-  color: var(--text-soft);
+  font-size: 0.72rem;
+  font-weight: 700;
 }
 
-.tab-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-.filter {
-  display: inline-flex;
-  gap: 8px;
-  align-items: center;
-  font-size: 0.85rem;
-  color: var(--text-soft);
-}
+.flag { color: var(--ad-amber); }
 
-.admin-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.9rem;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  overflow: hidden;
-}
-.admin-table th,
-.admin-table td {
-  text-align: left;
-  padding: 10px 12px;
-  border-bottom: 1px solid var(--border);
-  vertical-align: top;
-}
-.admin-table th {
-  background: var(--plaster-cream);
-  font-size: 0.74rem;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--text-soft);
-}
-.admin-table select {
-  padding: 5px 8px;
-}
-
-.badge2 {
-  display: inline-block;
-  background: #eef0f4;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  padding: 2px 10px;
-  font-size: 0.74rem;
-  font-weight: 600;
-  color: var(--text-soft);
-}
 .badge2--collection {
   margin-right: 6px;
-  border-color: rgba(197, 138, 0, 0.38);
-  background: rgba(197, 138, 0, 0.12);
-  color: var(--indigo-deep);
   text-transform: capitalize;
 }
-.flag { color: var(--warning); }
 
-.row-actions {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-.row-actions button,
-button.primary {
-  border: 1px solid var(--border);
-  background: var(--surface);
-  border-radius: 8px;
-  padding: 6px 12px;
-  cursor: pointer;
-  font-size: 0.82rem;
-  color: var(--text);
-}
-.row-actions button:hover { background: var(--plaster-cream); }
-.row-actions button.danger { color: var(--danger); border-color: #eac3c3; }
+/* -- Row actions --------------------------------------------------------
+   The publish action is the only one that carries weight, so it is the only
+   one that looks like a decision. */
 .row-actions button.button--publish {
-  border-color: rgba(197, 138, 0, 0.48);
-  background: var(--indigo-deep);
+  background: linear-gradient(180deg, var(--ad-blue-400), var(--ad-blue-600));
+  box-shadow:
+    0 0 0 1px rgba(16, 50, 124, 0.4),
+    0 6px 16px -8px rgba(31, 80, 214, 0.85),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
   color: #fff;
   font-weight: 700;
 }
-.row-actions button.button--publish:hover:not(:disabled) { background: var(--indigo); }
-.row-actions button.button--archive {
-  border-color: var(--border);
-  background: #f5f3ee;
-  color: var(--text-soft);
-  font-weight: 650;
-}
-.row-actions button.button--archive:hover:not(:disabled) {
-  background: var(--plaster-cream);
-  color: var(--text);
-}
-.row-actions button:disabled { cursor: not-allowed; opacity: 0.55; }
-button.primary {
-  background: var(--indigo);
+
+.row-actions button.button--publish:hover:not(:disabled) {
+  background: linear-gradient(180deg, var(--ad-blue), var(--ad-blue-700));
   color: #fff;
-  border-color: var(--indigo);
-  padding: 9px 16px;
-  margin-top: 8px;
 }
 
+.row-actions button.button--archive {
+  color: var(--ad-slate);
+}
+
+/* -- Forms --------------------------------------------------------------- */
 .admin-form {
-  margin-top: 24px;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 18px;
-  background: var(--surface);
   display: grid;
   gap: 12px;
+  min-width: 0;
+  margin-top: 22px;
+  padding: 18px;
 }
-.admin-form h3 { margin: 0; }
+
+.admin-form h3 {
+  margin: 0;
+  color: var(--ad-ink);
+}
+
 .form-row {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
   gap: 12px;
+  min-width: 0;
 }
-@media (max-width: 560px) { .form-row { grid-template-columns: 1fr; } }
+
 .admin-form label,
 label.stack {
   display: grid;
-  gap: 4px;
-  font-size: 0.85rem;
-  color: var(--text-soft);
-}
-label.stack { margin-bottom: 12px; }
-.admin-form input,
-.admin-form textarea,
-label.stack input,
-label.stack textarea {
-  padding: 8px 10px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  font: inherit;
-  color: var(--text);
+  gap: 5px;
+  min-width: 0;
+  color: var(--ad-slate);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
 }
 
+label.stack {
+  margin-bottom: 12px;
+}
+
+/* -- Review desk --------------------------------------------------------- */
 .review-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 310px), 1fr));
+  gap: 14px;
+  min-width: 0;
 }
+
 .review-card {
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: var(--surface);
-  padding: 16px;
   display: grid;
   gap: 12px;
+  min-width: 0;
+  padding: 16px;
 }
+
 .review-card header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+  flex-wrap: wrap;
+  min-width: 0;
 }
+
 .review-card dl {
   display: grid;
   gap: 6px;
   margin: 0;
-  font-size: 0.85rem;
+  font-size: 0.82rem;
 }
+
 .review-card dl > div {
   display: flex;
   justify-content: space-between;
   gap: 10px;
+  min-width: 0;
 }
-.review-card dt { color: var(--text-soft); }
-.review-card dd { margin: 0; text-align: right; }
-.review-card dd a { color: var(--indigo); font-weight: 650; }
-.review-card dl > .review-card__content {
+
+.review-card dt {
+  color: var(--ad-slate-2);
+  flex: 0 0 auto;
+}
+
+.review-card dd {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+  text-align: right;
+}
+
+.review-card dd a {
+  color: var(--ad-blue-600);
+  font-weight: 650;
+}
+
+.review-card dl > .review-card__content,
+.review-card dl > .review-card__forms {
   display: grid;
   gap: 6px;
 }
+
 .review-card__content dd {
   min-width: 0;
   text-align: left;
 }
+
 /* -- The recorded paradigm, and the determiner rule's opinion of it ------
    The forms travelled to a published dictionary entry without ever passing in
    front of the reviewer approving them. This is the full-width block that
    fixes that; the pronoun line is the only one carrying a judgement, because
    the pronoun is the only slot the archive can predict. */
-.review-card dl > .review-card__forms {
-  display: grid;
-  gap: 6px;
-}
 .review-forms {
   list-style: none;
-  margin: 0;
-  padding: 0;
   display: grid;
   gap: 4px;
+  margin: 0;
+  padding: 0;
   text-align: left;
 }
+
 .review-forms li {
   display: flex;
   align-items: baseline;
   gap: 8px;
+  min-width: 0;
 }
+
 .review-forms__label {
-  color: var(--text-soft);
-  min-width: 118px;
+  min-width: 112px;
   flex: none;
+  color: var(--ad-slate-2);
 }
+
 .review-forms__value {
   font-weight: 650;
   overflow-wrap: anywhere;
 }
+
 .review-forms__ok {
-  color: var(--text-soft);
-  font-size: 0.78rem;
+  color: var(--ad-slate-2);
+  font-size: 0.76rem;
 }
+
 /* Deliberately not red and deliberately not an icon shaped like an error. A
    contributor who disagrees with an eight-row rule is more likely to be right
    than the rule is, and nothing here blocks a decision. */
 .review-forms__note {
   margin: 4px 0 0;
   padding: 7px 9px;
-  border-radius: 8px;
-  border: 1px solid var(--border);
-  background: color-mix(in srgb, var(--surface) 82%, var(--plaster-cream));
-  color: var(--text-soft);
-  font-size: 0.8rem;
+  border-radius: var(--r-sm);
+  background: rgba(16, 31, 78, 0.04);
+  box-shadow: inset 0 0 0 1px var(--glass-line-soft);
+  color: var(--ad-slate);
+  font-size: 0.78rem;
   line-height: 1.45;
   text-align: left;
 }
+
 .review-forms__note--differs {
-  border-color: color-mix(in srgb, var(--indigo) 40%, var(--border));
+  background: var(--ad-blue-50);
+  box-shadow: inset 0 0 0 1px rgba(47, 107, 255, 0.24);
+  color: var(--ad-blue-800);
 }
 
 .review-content-details {
-  border: 1px solid var(--border);
-  border-radius: 9px;
-  background: color-mix(in srgb, var(--surface) 82%, var(--plaster-cream));
   overflow: hidden;
+  border-radius: var(--r-sm);
+  background: rgba(16, 31, 78, 0.035);
+  box-shadow: inset 0 0 0 1px var(--glass-line-soft);
 }
+
 .review-content-details summary {
   padding: 9px 11px;
-  cursor: pointer;
-  color: var(--text);
+  color: var(--ad-ink-2);
   line-height: 1.45;
   overflow-wrap: anywhere;
+  cursor: pointer;
 }
-.review-content-details summary::marker { color: var(--indigo); }
+
+.review-content-details summary::marker {
+  color: var(--ad-blue);
+}
+
 .review-content-details[open] summary {
-  border-bottom: 1px solid var(--border);
-  color: var(--text-soft);
+  border-bottom: 1px solid var(--glass-line-soft);
+  color: var(--ad-slate);
 }
+
 .review-content-details__full {
-  max-height: 360px;
+  max-height: 340px;
   overflow: auto;
   padding: 12px;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-  color: var(--text);
+  color: var(--ad-ink-2);
   line-height: 1.55;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
 }

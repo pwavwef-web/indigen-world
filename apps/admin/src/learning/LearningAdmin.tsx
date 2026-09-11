@@ -12,6 +12,7 @@ import {
   type LessonQuestion,
 } from './data';
 import { answerImageSlot, promptImageSlot, uploadLessonImage } from './imageUpload';
+import { Loading, TableShell } from '../ui/primitives';
 import './learning.css';
 
 /**
@@ -88,7 +89,7 @@ export function LearningAdmin() {
           </Button>
         </div>
         {error ? <p className="error-line">{error}</p> : null}
-        {loading ? <p className="muted">Loading lessons…</p> : null}
+        {loading ? <Loading label="Loading lessons" /> : null}
         {!loading && lessons.length === 0 ? (
           <p className="muted">
             No lessons configured yet. Until one is published, the app shows its bundled preview
@@ -105,65 +106,67 @@ export function LearningAdmin() {
           {unitLessons[0].unitSubtitle ? (
             <p className="panel__hint">{unitLessons[0].unitSubtitle}</p>
           ) : null}
-          <table className="learning-table">
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Lesson</th>
-                <th>Questions</th>
-                <th>XP</th>
-                <th>Status</th>
-                <th aria-label="Actions" />
-              </tr>
-            </thead>
-            <tbody>
-              {unitLessons
-                .slice()
-                .sort((a, b) => a.order - b.order)
-                .map((lesson) => (
-                  <tr key={lesson.id}>
-                    <td>{lesson.order}</td>
-                    <td>
-                      <strong>{lesson.title || 'Untitled'}</strong>
-                      <div className="muted learning-table__id">{lesson.id}</div>
-                    </td>
-                    <td>{lesson.questions.length}</td>
-                    <td>{lesson.xp}</td>
-                    <td>
-                      <span
-                        className={`learning-status learning-status--${
-                          lesson.published ? 'live' : 'draft'
-                        }`}
-                      >
-                        {lesson.published ? 'Published' : 'Draft'}
-                      </span>
-                    </td>
-                    <td className="learning-table__actions">
-                      <Button variant="ghost" onClick={() => setEditing(lesson)}>
-                        Edit
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        onClick={async () => {
-                          if (
-                            !window.confirm(
-                              `Delete "${lesson.title}"? Members keep the XP they already earned, ` +
-                                'but the lesson disappears from the path.',
-                            )
-                          ) {
-                            return;
-                          }
-                          await deleteLesson(lesson.id);
-                          await load();
-                        }}
-                      >
-                        Delete
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-            </tbody>
-          </table>
+          <TableShell label="Lessons in this unit">
+            <table className="learning-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Lesson</th>
+                  <th>Questions</th>
+                  <th>XP</th>
+                  <th>Status</th>
+                  <th aria-label="Actions" />
+                </tr>
+              </thead>
+              <tbody>
+                {unitLessons
+                  .slice()
+                  .sort((a, b) => a.order - b.order)
+                  .map((lesson) => (
+                    <tr key={lesson.id}>
+                      <td>{lesson.order}</td>
+                      <td>
+                        <strong>{lesson.title || 'Untitled'}</strong>
+                        <div className="muted learning-table__id">{lesson.id}</div>
+                      </td>
+                      <td>{lesson.questions.length}</td>
+                      <td>{lesson.xp}</td>
+                      <td>
+                        <span
+                          className={`learning-status learning-status--${
+                            lesson.published ? 'live' : 'draft'
+                          }`}
+                        >
+                          {lesson.published ? 'Published' : 'Draft'}
+                        </span>
+                      </td>
+                      <td className="learning-table__actions">
+                        <Button variant="ghost" onClick={() => setEditing(lesson)}>
+                          Edit
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          onClick={async () => {
+                            if (
+                              !window.confirm(
+                                `Delete "${lesson.title}"? Members keep the XP they already earned, ` +
+                                  'but the lesson disappears from the path.',
+                              )
+                            ) {
+                              return;
+                            }
+                            await deleteLesson(lesson.id);
+                            await load();
+                          }}
+                        >
+                          Delete
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
+          </TableShell>
         </section>
       ))}
     </div>

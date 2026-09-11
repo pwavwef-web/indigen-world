@@ -53,6 +53,8 @@ import {
   type AudiobookSlot,
   type StoredFile,
 } from './audiobookUpload';
+import { EmptyState, Loading, TableShell } from '../ui/primitives';
+import { DataTable, type DataColumn } from '../ui/DataTable';
 import './collection.css';
 
 type Tab = 'heroes' | 'names' | 'apps' | 'audiobooks' | 'shop' | 'orders';
@@ -166,52 +168,54 @@ function AppsPanel() {
         </Button>
       </div>
       {error ? <p className="error-line">{error}</p> : null}
-      {loading ? <p className="muted">Loading…</p> : null}
-      {!loading && apps.length === 0 ? <p className="muted">No apps listed yet.</p> : null}
+      {loading ? <Loading label="Loading" /> : null}
+      {!loading && apps.length === 0 ? <EmptyState title="No apps listed yet." /> : null}
       {apps.length > 0 ? (
-        <table className="collection-table">
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>App</th>
-              <th>Category</th>
-              <th>Links</th>
-              <th>Status</th>
-              <th aria-label="Actions" />
-            </tr>
-          </thead>
-          <tbody>
-            {apps.map((app) => (
-              <tr key={app.id}>
-                <td>{app.order}</td>
-                <td>
-                  <strong>{app.name}</strong>
-                  <div className="muted">{app.developer}</div>
-                </td>
-                <td>{app.category}</td>
-                <td>{Object.keys(app.links).join(', ') || '—'}</td>
-                <td>
-                  <StatusPill published={app.published} />
-                </td>
-                <td className="collection-table__actions">
-                  <Button variant="ghost" onClick={() => setEditing(app)}>
-                    Edit
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    onClick={async () => {
-                      if (!window.confirm(`Remove "${app.name}" from the directory?`)) return;
-                      await deleteApp(app.id);
-                      await load();
-                    }}
-                  >
-                    Delete
-                  </Button>
-                </td>
+        <TableShell label="Featured apps">
+          <table className="collection-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>App</th>
+                <th>Category</th>
+                <th>Links</th>
+                <th>Status</th>
+                <th aria-label="Actions" />
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {apps.map((app) => (
+                <tr key={app.id}>
+                  <td>{app.order}</td>
+                  <td>
+                    <strong>{app.name}</strong>
+                    <div className="muted">{app.developer}</div>
+                  </td>
+                  <td>{app.category}</td>
+                  <td>{Object.keys(app.links).join(', ') || '—'}</td>
+                  <td>
+                    <StatusPill published={app.published} />
+                  </td>
+                  <td className="collection-table__actions">
+                    <Button variant="ghost" onClick={() => setEditing(app)}>
+                      Edit
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      onClick={async () => {
+                        if (!window.confirm(`Remove "${app.name}" from the directory?`)) return;
+                        await deleteApp(app.id);
+                        await load();
+                      }}
+                    >
+                      Delete
+                    </Button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </TableShell>
       ) : null}
     </section>
   );
@@ -393,89 +397,91 @@ function AudiobooksPanel() {
         </Button>
       </div>
       {error ? <p className="error-line">{error}</p> : null}
-      {loading ? <p className="muted">Loading&hellip;</p> : null}
-      {!loading && books.length === 0 ? <p className="muted">Nothing recorded yet.</p> : null}
+      {loading ? <Loading label="Loading" /> : null}
+      {!loading && books.length === 0 ? <EmptyState title="Nothing recorded yet." /> : null}
       {books.length > 0 ? (
-        <table className="collection-table">
-          <thead>
-            <tr>
-              <th>Title</th>
-              <th>Format</th>
-              <th>Dialect</th>
-              <th>Source</th>
-              <th>Status</th>
-              <th aria-label="Actions" />
-            </tr>
-          </thead>
-          <tbody>
-            {books.map((book) => {
-              const ours = book.publicationRoute === 'admin';
-              return (
-                <tr key={book.id}>
-                  <td>
-                    <strong>{book.title || 'Untitled'}</strong>
-                    <div className="muted">
-                      {[book.author, book.narrator === book.author ? '' : book.narrator]
-                        .filter(Boolean)
-                        .join(' · ') || '—'}
-                    </div>
-                    {book.audioUrl ? (
-                      <a
-                        className="collection-listen"
-                        href={book.audioUrl}
-                        target="_blank"
-                        rel="noreferrer"
+        <TableShell label="Books and audiobooks">
+          <table className="collection-table">
+            <thead>
+              <tr>
+                <th>Title</th>
+                <th>Format</th>
+                <th>Dialect</th>
+                <th>Source</th>
+                <th>Status</th>
+                <th aria-label="Actions" />
+              </tr>
+            </thead>
+            <tbody>
+              {books.map((book) => {
+                const ours = book.publicationRoute === 'admin';
+                return (
+                  <tr key={book.id}>
+                    <td>
+                      <strong>{book.title || 'Untitled'}</strong>
+                      <div className="muted">
+                        {[book.author, book.narrator === book.author ? '' : book.narrator]
+                          .filter(Boolean)
+                          .join(' · ') || '—'}
+                      </div>
+                      {book.audioUrl ? (
+                        <a
+                          className="collection-listen"
+                          href={book.audioUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          Open the recording
+                        </a>
+                      ) : null}
+                    </td>
+                    <td>{book.category}</td>
+                    <td>{book.dialect}</td>
+                    <td>{ours ? 'Library' : 'Community review'}</td>
+                    <td>
+                      {book.removed ? (
+                        <span className="collection-status collection-status--draft">Taken down</span>
+                      ) : (
+                        <StatusPill published={book.published} />
+                      )}
+                    </td>
+                    <td className="collection-table__actions">
+                      <Button
+                        variant="ghost"
+                        disabled={!ours}
+                        title={ours ? undefined : 'Published through community review — edit it there.'}
+                        onClick={() => setEditing(book)}
                       >
-                        Open the recording
-                      </a>
-                    ) : null}
-                  </td>
-                  <td>{book.category}</td>
-                  <td>{book.dialect}</td>
-                  <td>{ours ? 'Library' : 'Community review'}</td>
-                  <td>
-                    {book.removed ? (
-                      <span className="collection-status collection-status--draft">Taken down</span>
-                    ) : (
-                      <StatusPill published={book.published} />
-                    )}
-                  </td>
-                  <td className="collection-table__actions">
-                    <Button
-                      variant="ghost"
-                      disabled={!ours}
-                      title={ours ? undefined : 'Published through community review — edit it there.'}
-                      onClick={() => setEditing(book)}
-                    >
-                      Edit
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      disabled={!ours || !book.published}
-                      title={ours ? undefined : 'Published through community review — unpublish it there.'}
-                      onClick={async () => {
-                        if (!window.confirm(`Take "${book.title}" off the shelf?`)) return;
-                        try {
-                          await unpublishAudiobook(book.id);
-                        } catch (err) {
-                          setError(
-                            err instanceof Error ? err.message : 'Could not unpublish that record.',
-                          );
-                          // Deliberately not reloading: load() clears the error
-                          // it just set, and the row is unchanged anyway.
-                          return;
-                        }
-                        await load();
-                      }}
-                    >
-                      Unpublish
-                    </Button>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+                        Edit
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        disabled={!ours || !book.published}
+                        title={ours ? undefined : 'Published through community review — unpublish it there.'}
+                        onClick={async () => {
+                          if (!window.confirm(`Take "${book.title}" off the shelf?`)) return;
+                          try {
+                            await unpublishAudiobook(book.id);
+                          } catch (err) {
+                            setError(
+                              err instanceof Error ? err.message : 'Could not unpublish that record.',
+                            );
+                            // Deliberately not reloading: load() clears the error
+                            // it just set, and the row is unchanged anyway.
+                            return;
+                          }
+                          await load();
+                        }}
+                      >
+                        Unpublish
+                      </Button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </TableShell>
       ) : null}
     </section>
   );
@@ -849,54 +855,56 @@ function ShopPanel() {
         </Button>
       </div>
       {error ? <p className="error-line">{error}</p> : null}
-      {loading ? <p className="muted">Loading…</p> : null}
-      {!loading && products.length === 0 ? <p className="muted">Nothing listed yet.</p> : null}
+      {loading ? <Loading label="Loading" /> : null}
+      {!loading && products.length === 0 ? <EmptyState title="Nothing listed yet." /> : null}
       {products.length > 0 ? (
-        <table className="collection-table">
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Product</th>
-              <th>Category</th>
-              <th>Price</th>
-              <th>Stock</th>
-              <th>Status</th>
-              <th aria-label="Actions" />
-            </tr>
-          </thead>
-          <tbody>
-            {products.map((product) => (
-              <tr key={product.id}>
-                <td>{product.order}</td>
-                <td>
-                  <strong>{product.name}</strong>
-                  <div className="muted">{product.summary}</div>
-                </td>
-                <td>{product.category}</td>
-                <td>{formatPrice(product.priceMinor, product.currency)}</td>
-                <td>{product.inStock ? 'In stock' : 'Out of stock'}</td>
-                <td>
-                  <StatusPill published={product.published} />
-                </td>
-                <td className="collection-table__actions">
-                  <Button variant="ghost" onClick={() => setEditing(product)}>
-                    Edit
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    onClick={async () => {
-                      if (!window.confirm(`Remove "${product.name}" from the shop?`)) return;
-                      await deleteProduct(product.id);
-                      await load();
-                    }}
-                  >
-                    Delete
-                  </Button>
-                </td>
+        <TableShell label="Shop products">
+          <table className="collection-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Product</th>
+                <th>Category</th>
+                <th>Price</th>
+                <th>Stock</th>
+                <th>Status</th>
+                <th aria-label="Actions" />
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {products.map((product) => (
+                <tr key={product.id}>
+                  <td>{product.order}</td>
+                  <td>
+                    <strong>{product.name}</strong>
+                    <div className="muted">{product.summary}</div>
+                  </td>
+                  <td>{product.category}</td>
+                  <td>{formatPrice(product.priceMinor, product.currency)}</td>
+                  <td>{product.inStock ? 'In stock' : 'Out of stock'}</td>
+                  <td>
+                    <StatusPill published={product.published} />
+                  </td>
+                  <td className="collection-table__actions">
+                    <Button variant="ghost" onClick={() => setEditing(product)}>
+                      Edit
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      onClick={async () => {
+                        if (!window.confirm(`Remove "${product.name}" from the shop?`)) return;
+                        await deleteProduct(product.id);
+                        await load();
+                      }}
+                    >
+                      Delete
+                    </Button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </TableShell>
       ) : null}
     </section>
   );
@@ -1066,8 +1074,8 @@ function OrdersPanel() {
         </Button>
       </div>
       {error ? <p className="error-line">{error}</p> : null}
-      {loading ? <p className="muted">Loading…</p> : null}
-      {!loading && orders.length === 0 ? <p className="muted">No orders yet.</p> : null}
+      {loading ? <Loading label="Loading" /> : null}
+      {!loading && orders.length === 0 ? <EmptyState title="No orders yet." /> : null}
       {orders.map((order) => (
         <article className="collection-order" key={order.id}>
           <header>
@@ -1181,52 +1189,54 @@ function HeroesPanel() {
         </Button>
       </div>
       {error ? <p className="error-line">{error}</p> : null}
-      {loading ? <p className="muted">Loading&hellip;</p> : null}
-      {!loading && heroes.length === 0 ? <p className="muted">Nobody added yet.</p> : null}
+      {loading ? <Loading label="Loading" /> : null}
+      {!loading && heroes.length === 0 ? <EmptyState title="Nobody added yet." /> : null}
       {heroes.length > 0 ? (
-        <table className="collection-table">
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Name</th>
-              <th>Remembered for</th>
-              <th>Source</th>
-              <th>Status</th>
-              <th aria-label="Actions" />
-            </tr>
-          </thead>
-          <tbody>
-            {heroes.map((hero) => (
-              <tr key={hero.id}>
-                <td>{hero.order}</td>
-                <td>
-                  <strong>{hero.name}</strong>
-                  {hero.alsoKnownAs ? <div className="muted">{hero.alsoKnownAs}</div> : null}
-                </td>
-                <td>{[hero.field, hero.era].filter(Boolean).join(' · ') || '—'}</td>
-                <td>{hero.sourceUrl ? 'Cited' : <span className="muted">None</span>}</td>
-                <td>
-                  <StatusPill published={hero.published} />
-                </td>
-                <td className="collection-table__actions">
-                  <Button variant="ghost" onClick={() => setEditing(hero)}>
-                    Edit
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    onClick={async () => {
-                      if (!window.confirm(`Remove "${hero.name}" from the heroes?`)) return;
-                      await deleteHero(hero.id);
-                      await load();
-                    }}
-                  >
-                    Delete
-                  </Button>
-                </td>
+        <TableShell label="Cultural heroes">
+          <table className="collection-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Name</th>
+                <th>Remembered for</th>
+                <th>Source</th>
+                <th>Status</th>
+                <th aria-label="Actions" />
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {heroes.map((hero) => (
+                <tr key={hero.id}>
+                  <td>{hero.order}</td>
+                  <td>
+                    <strong>{hero.name}</strong>
+                    {hero.alsoKnownAs ? <div className="muted">{hero.alsoKnownAs}</div> : null}
+                  </td>
+                  <td>{[hero.field, hero.era].filter(Boolean).join(' · ') || '—'}</td>
+                  <td>{hero.sourceUrl ? 'Cited' : <span className="muted">None</span>}</td>
+                  <td>
+                    <StatusPill published={hero.published} />
+                  </td>
+                  <td className="collection-table__actions">
+                    <Button variant="ghost" onClick={() => setEditing(hero)}>
+                      Edit
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      onClick={async () => {
+                        if (!window.confirm(`Remove "${hero.name}" from the heroes?`)) return;
+                        await deleteHero(hero.id);
+                        await load();
+                      }}
+                    >
+                      Delete
+                    </Button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </TableShell>
       ) : null}
     </section>
   );
@@ -1480,6 +1490,73 @@ function NamesPanel() {
     );
   }
 
+  const columns: DataColumn<KasemNameEntry>[] = [
+    {
+      id: 'order',
+      header: '#',
+      width: '58px',
+      mono: true,
+      cell: (entry) => entry.order,
+      sort: (entry) => entry.order,
+    },
+    {
+      id: 'name',
+      header: 'Name',
+      cell: (entry) => (
+        <>
+          <strong>{entry.name}</strong>
+          {entry.meaning ? <span className="muted">{entry.meaning}</span> : null}
+        </>
+      ),
+      sort: (entry) => entry.name,
+      search: (entry) => `${entry.name} ${entry.meaning ?? ''}`,
+    },
+    {
+      id: 'ascii',
+      header: 'As a handle',
+      cell: (entry) => <code>{entry.ascii}</code>,
+      sort: (entry) => entry.ascii,
+      search: (entry) => entry.ascii,
+    },
+    {
+      id: 'kind',
+      header: 'Kind',
+      width: '120px',
+      cell: (entry) => entry.kind,
+      sort: (entry) => entry.kind,
+      search: (entry) => entry.kind,
+    },
+    {
+      id: 'status',
+      header: 'Status',
+      width: '120px',
+      cell: (entry) => <StatusPill published={entry.published} />,
+      sort: (entry) => (entry.published ? 'published' : 'draft'),
+      search: (entry) => (entry.published ? 'published live' : 'draft unpublished'),
+    },
+    {
+      id: 'actions',
+      header: 'Actions',
+      align: 'end',
+      width: '168px',
+      cell: (entry) => (
+        <span className="dt-actions">
+          <Button variant="ghost" onClick={() => setEditing(entry)}>Edit</Button>
+          <Button
+            variant="ghost"
+            onClick={async () => {
+              if (!window.confirm(`Remove "${entry.name}" from the names?`)) return;
+              await deleteKasemName(entry.id);
+              await load();
+            }}
+          >
+            Delete
+          </Button>
+        </span>
+      ),
+    },
+  ];
+
   return (
     <section className="panel">
       <h3>Kassena names</h3>
@@ -1487,66 +1564,28 @@ function NamesPanel() {
         A member whose handle carries one of these wears the kente ring, and members who joined
         before the ring existed can take one here as their single name change.
       </p>
-      <div className="collection-actions">
-        <Button onClick={() => setEditing(emptyName(nextOrder))}>New name</Button>
-        <Button variant="ghost" onClick={() => void load()} disabled={loading}>
-          Refresh
-        </Button>
-      </div>
       {error ? <p className="error-line">{error}</p> : null}
-      {loading ? <p className="muted">Loading&hellip;</p> : null}
-      {!loading && names.length === 0 ? (
-        <p className="muted">
-          No names yet. Until there are, the app falls back to a short list bundled with it.
-        </p>
-      ) : null}
-      {names.length > 0 ? (
-        <table className="collection-table">
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Name</th>
-              <th>As a handle</th>
-              <th>Kind</th>
-              <th>Status</th>
-              <th aria-label="Actions" />
-            </tr>
-          </thead>
-          <tbody>
-            {names.map((entry) => (
-              <tr key={entry.id}>
-                <td>{entry.order}</td>
-                <td>
-                  <strong>{entry.name}</strong>
-                  {entry.meaning ? <div className="muted">{entry.meaning}</div> : null}
-                </td>
-                <td>
-                  <code>{entry.ascii}</code>
-                </td>
-                <td>{entry.kind}</td>
-                <td>
-                  <StatusPill published={entry.published} />
-                </td>
-                <td className="collection-table__actions">
-                  <Button variant="ghost" onClick={() => setEditing(entry)}>
-                    Edit
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    onClick={async () => {
-                      if (!window.confirm(`Remove "${entry.name}" from the names?`)) return;
-                      await deleteKasemName(entry.id);
-                      await load();
-                    }}
-                  >
-                    Delete
-                  </Button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      ) : null}
+      <DataTable
+        caption="Kasem names"
+        columns={columns}
+        rows={names}
+        rowKey={(entry) => entry.id}
+        loading={loading}
+        searchable
+        searchPlaceholder="Search a name, its meaning or its handle…"
+        initialSort={{ columnId: 'order', direction: 'asc' }}
+        pageSize={30}
+        actions={
+          <>
+            <Button onClick={() => setEditing(emptyName(nextOrder))}>New name</Button>
+            <Button variant="ghost" onClick={() => void load()} disabled={loading}>Refresh</Button>
+          </>
+        }
+        empty={{
+          title: 'No names yet',
+          body: 'Until there are, the app falls back to the short list bundled with it.',
+        }}
+      />
     </section>
   );
 }
