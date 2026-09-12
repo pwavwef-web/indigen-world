@@ -705,7 +705,8 @@ service cloud.firestore {
         // frozen the moment it is submitted for review.
         && resource.data.status in ['DRAFT', 'NEEDS_REVISION', 'PUBLISHED']
         && (resource.data.status != 'PUBLISHED' || !isCampaignSubmission(resource.data))
-        && request.resource.data.status in ['DRAFT', 'SUBMITTED', 'RESUBMITTED', 'WITHDRAWN']
+        && (request.resource.data.status in ['DRAFT', 'SUBMITTED', 'RESUBMITTED', 'WITHDRAWN']
+          || (resource.data.status == 'NEEDS_REVISION' && request.resource.data.status == 'NEEDS_REVISION'))
         // Moderation outcome fields are frozen to their prior values.
         && request.resource.data.get('moderation', {}) == resource.data.get('moderation', {})
         && request.resource.data.get('rewardEligible', false) == resource.data.get('rewardEligible', false)

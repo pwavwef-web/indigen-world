@@ -115,8 +115,8 @@ assert.deepEqual(unwrappedTables, [],
 
 // Governance: AI-training permission is off by default in the submission wizard.
 const wizard = read('src/creator/pages/SubmissionNewPage.tsx');
-assert.match(wizard, /useState\(false\)[^\n]*\/\/.*|const \[permAi, setPermAi\] = useState\(false\)/,
-  'AI-training permission (permAi) defaults to false');
+assert.ok(wizard.includes('const [permAi, setPermAi] = useState(existing?.permissions.aiTraining ?? false)'),
+  'AI-training permission defaults to false for new submissions');
 assert.ok(wizard.includes('never required to enter'), 'AI-training is documented as optional');
 
 // Resilience: each data screen renders a retry-able error state on failure.

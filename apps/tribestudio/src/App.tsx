@@ -198,6 +198,7 @@ function renderStudio(path: string) {
   if (matchRoute('/studio/opportunities/:id', path)) return <OpportunityDetailPage />;
   if (path === '/studio/submissions') return <SubmissionsPage />;
   if (path === '/studio/submissions/new') return <SubmissionNewPage />;
+  if (matchRoute('/studio/submissions/:id/edit', path)) return <SubmissionNewPage />;
   if (matchRoute('/studio/submissions/:id', path)) return <SubmissionDetailPage />;
   if (path === '/studio/video') return <StudioVideoPage />;
   if (path === '/studio/dictionary') return <DictionaryPage />;

@@ -420,3 +420,16 @@ test('team site intake delete is admin-only', async () => {
   await assertFails(deleteDoc(doc(db(validator), 'teamSiteRequests/requestA')));
   await assertSucceeds(deleteDoc(doc(db(admin), 'teamSiteRequests/requestA')));
 });
+
+test('a creator can save a requested revision and then resubmit without changing moderation', async () => {
+  const id = 'revision-save-test';
+  const original = submissionDoc('creatorA', { id, status: 'NEEDS_REVISION' });
+  original.moderation.feedback = 'Please clarify the source.';
+  await env.withSecurityRulesDisabled((ctx) => setDoc(doc(ctx.firestore(), 'submissions', id), original));
+  const owner = db(env.authenticatedContext('creatorA', { creatorStatus: 'approved' }));
+  const target = doc(owner, 'submissions', id);
+  await assertSucceeds(updateDoc(target, { body: 'Revised text', status: 'NEEDS_REVISION', 'lifecycle.version': 2 }));
+  await assertFails(updateDoc(target, { 'moderation.feedback': 'Erased', 'lifecycle.version': 3 }));
+  await assertSucceeds(updateDoc(target, { status: 'RESUBMITTED', 'lifecycle.version': 3 }));
+  await assertFails(updateDoc(target, { status: 'NEEDS_REVISION', 'lifecycle.version': 4 }));
+});

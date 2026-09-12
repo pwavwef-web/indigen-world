@@ -38,9 +38,8 @@ export interface PublishedHeadword {
 /**
  * Whether a row is one a contributor may be shown.
  *
- * The query cannot also filter on `isPublished` without a composite index, and
- * a warning panel is not worth an index — so the second half of the filter
- * happens here, over at most ten small documents.
+ * The query filters on `isPublished` to satisfy the public-read Security Rules.
+ * Keep this defensive check as well for malformed legacy rows.
  *
  * A withdrawn entry is deliberately excluded from the *warning* while its
  * homograph number stays spent for ever (see `kasem-homographs.ts`). Those are
@@ -72,7 +71,7 @@ export async function fetchHeadwordMatches(headword: string): Promise<PublishedH
   if (!key) return [];
   try {
     const snap = await getDocs(
-      query(collection(db, 'dictionaryEntries'), where('headwordKey', '==', key), limit(10)),
+      query(collection(db, 'dictionaryEntries'), where('headwordKey', '==', key), where('isPublished', '==', true), limit(10)),
     );
     return snap.docs
       .map((doc) => ({ id: doc.id, data: doc.data() as Record<string, unknown> }))
@@ -145,6 +144,9 @@ export async function fetchMyDictionaryContributions(
  * screen suppresses the duplicate at render time instead.
  */
 export async function submitDictionaryEntry(draft: EntryDraft): Promise<void> {
+  if (draft.culturalPermissionTier !== 'public') {
+    throw new Error('This dictionary accepts public cultural material only. Do not submit community-only, restricted or sacred material.');
+  }
   const senses = sensesPayload(draft.senses);
   const firstExample = draft.senses
     .flatMap((sense) => sense.examples)
@@ -157,6 +159,7 @@ export async function submitDictionaryEntry(draft: EntryDraft): Promise<void> {
 
   await call({
     collectionKind: 'dictionary',
+    culturalPermissionTier: draft.culturalPermissionTier,
     lexicalKind: 'word',
     // `title` is the English side and `body` is the Kasem, which is the
     // direction the whole pipeline reads them in. The first sense is the

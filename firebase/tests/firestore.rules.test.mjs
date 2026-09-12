@@ -15,7 +15,7 @@ import {
   assertSucceeds,
   initializeTestEnvironment,
 } from '@firebase/rules-unit-testing';
-import { doc, getDoc, setDoc, updateDoc, writeBatch } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, query, where, limit, setDoc, updateDoc, writeBatch } from 'firebase/firestore';
 
 const PROJECT_ID = 'demo-indigen-world';
 const host = '127.0.0.1';
@@ -86,7 +86,7 @@ before(async () => {
     await setDoc(doc(db, 'reviews/r1'), { target: { collection: 'lexicalEntries', id: 'x' }, decision: 'approved' });
     await setDoc(doc(db, 'auditLogs/a1'), { actor: { collection: 'validators', id: 'v1' }, action: 'content.validate' });
     await setDoc(doc(db, 'dictionaryEntries/published-word'), {
-      kasemText: 'Konkwolo', englishText: 'Bottle', isPublished: true,
+      kasemText: 'Konkwolo', headwordKey: 'konkwolo', englishText: 'Bottle', isPublished: true,
     });
     await setDoc(doc(db, 'dictionaryEntries/private-word'), {
       kasemText: 'Draft', englishText: 'Draft', isPublished: false,
@@ -395,3 +395,11 @@ test('public form submissions can be read and updated by staff, deleted by admin
   await assertSucceeds(getDoc(doc(db(admin), 'publicFormSubmissions/sub1')));
 });
 
+
+test('ordinary contributors can query published headword matches', async () => {
+  const contributor = db(env.authenticatedContext('dictionary-contributor'));
+  await assertSucceeds(getDocs(query(collection(contributor, 'dictionaryEntries'),
+    where('headwordKey', '==', 'konkwolo'), where('isPublished', '==', true), limit(10))));
+  await assertFails(getDocs(query(collection(contributor, 'dictionaryEntries'),
+    where('headwordKey', '==', 'konkwolo'), limit(10))));
+});

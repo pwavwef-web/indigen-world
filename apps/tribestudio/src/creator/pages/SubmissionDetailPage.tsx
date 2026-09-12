@@ -33,7 +33,12 @@ export function SubmissionDetailPage() {
       <p className="breadcrumb"><Link to="/studio/submissions">Submissions</Link> / {sub.title || 'Untitled'}</p>
       <header className="page__head">
         <div><h1>{sub.title || 'Untitled'}</h1><p className="muted">{sub.category}</p></div>
-        <StatusPill status={sub.status} labels={SUBMISSION_STATUS_LABELS} />
+        <div>
+          <StatusPill status={sub.status} labels={SUBMISSION_STATUS_LABELS} />
+          {['DRAFT', 'NEEDS_REVISION'].includes(sub.status) && !sub.collectionContribution && sub.campaign.id !== 'collection-contributions' ? (
+            <Link to={'/studio/submissions/' + encodeURIComponent(sub.id) + '/edit'} className="button button--primary">{sub.status === 'DRAFT' ? 'Continue draft' : 'Revise submission'}</Link>
+          ) : null}
+        </div>
       </header>
 
       {sub.status === 'NEEDS_REVISION' && sub.moderation?.feedback ? (

@@ -613,6 +613,7 @@ export function DictionaryPage() {
             <div className="field-row">
               <div className="field">
                 <label htmlFor="tier">Cultural permission</label>
+                <p className="tiny">This dictionary accepts public cultural material only. Community-only, restricted and sacred material cannot be submitted here.</p>
                 <select
                   id="tier"
                   value={draft.culturalPermissionTier}

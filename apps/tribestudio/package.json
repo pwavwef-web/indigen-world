@@ -11,7 +11,7 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "typecheck": "tsc -b --pretty false",
-    "test": "node ./scripts/validate-studio.mjs",
+    "test": "node ./scripts/validate-studio.mjs && node --test ./scripts/workflows.test.mjs",
     "check": "npm run typecheck && npm test && npm run build"
   },
   "dependencies": {

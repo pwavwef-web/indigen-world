@@ -277,6 +277,11 @@ export function parseCollectionContributionInput(
   }
   const data = raw as Record<string, unknown>;
   const kind = data.collectionKind;
+  // Restricted access is not implemented by the public dictionary projection.
+  // Older clients omit the field; explicit restrictions must never be dropped.
+  if (data.culturalPermissionTier != null && data.culturalPermissionTier !== 'public') {
+    throw new HttpsError('failed-precondition', 'Only public cultural material is supported by this contribution workflow.');
+  }
   if (typeof kind !== 'string' || !(COLLECTION_KINDS as readonly string[]).includes(kind)) {
     throw new HttpsError(
       'invalid-argument',

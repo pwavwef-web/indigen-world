@@ -19,6 +19,7 @@ import {
 
 interface RouteContextValue {
   path: string;
+  search: string;
   navigate: (to: string, options?: { replace?: boolean }) => void;
 }
 
@@ -30,10 +31,10 @@ function currentPath(): string {
 }
 
 export function RouterProvider({ children }: { children: ReactNode }) {
-  const [path, setPath] = useState<string>(currentPath);
+  const [location, setLocation] = useState(() => ({ path: currentPath(), search: window.location.search }));
 
   useEffect(() => {
-    const onPop = () => setPath(currentPath());
+    const onPop = () => setLocation({ path: currentPath(), search: window.location.search });
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
   }, []);
@@ -45,11 +46,11 @@ export function RouterProvider({ children }: { children: ReactNode }) {
     } else {
       window.history.pushState({}, '', `${url.pathname}${url.search}`);
     }
-    setPath(currentPath());
+    setLocation({ path: currentPath(), search: window.location.search });
     window.scrollTo({ top: 0, behavior: 'auto' });
   }, []);
 
-  const value = useMemo(() => ({ path, navigate }), [path, navigate]);
+  const value = useMemo(() => ({ ...location, navigate }), [location, navigate]);
   return <RouteContext.Provider value={value}>{children}</RouteContext.Provider>;
 }
 
@@ -61,8 +62,8 @@ export function useRoute(): RouteContextValue {
 
 /** Read a query-string parameter from the current location. */
 export function useQueryParam(key: string): string | null {
-  useRoute();
-  return new URLSearchParams(window.location.search).get(key);
+  const { search } = useRoute();
+  return new URLSearchParams(search).get(key);
 }
 
 /**
@@ -76,7 +77,11 @@ export function matchRoute(pattern: string, path: string): Record<string, string
   const params: Record<string, string> = {};
   for (let i = 0; i < pSeg.length; i += 1) {
     if (pSeg[i].startsWith(':')) {
-      params[pSeg[i].slice(1)] = decodeURIComponent(aSeg[i]);
+      try {
+        params[pSeg[i].slice(1)] = decodeURIComponent(aSeg[i]);
+      } catch {
+        return null;
+      }
     } else if (pSeg[i] !== aSeg[i]) {
       return null;
     }

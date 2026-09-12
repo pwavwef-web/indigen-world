@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { trackEvent } from '../analytics';
 import { WHATSAPP_CHANNEL_URL } from './data';
@@ -197,15 +197,41 @@ export function Field({
 /** In-Browser Voice Recorder for indigenous language & oral story recording */
 export function VoiceRecorder({ onAudioReady }: { onAudioReady: (file: File) => void }) {
   const [recording, setRecording] = useState(false);
+  const [starting, setStarting] = useState(false);
   const [seconds, setSeconds] = useState(0);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<number | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const previewRef = useRef<string | null>(null);
+  const mountedRef = useRef(false);
+  const startingRef = useRef(false);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      const recorder = mediaRecorderRef.current;
+      if (recorder) {
+        recorder.ondataavailable = null;
+        recorder.onstop = null;
+        if (recorder.state !== 'inactive') recorder.stop();
+      }
+      streamRef.current?.getTracks().forEach((track) => track.stop());
+      if (timerRef.current !== null) window.clearInterval(timerRef.current);
+      if (previewRef.current) URL.revokeObjectURL(previewRef.current);
+    };
+  }, []);
 
   const startRecording = async () => {
+    if (startingRef.current || recording) return;
+    startingRef.current = true;
+    setStarting(true);
     setError(null);
+    if (previewRef.current) URL.revokeObjectURL(previewRef.current);
+    previewRef.current = null;
     setAudioUrl(null);
     chunksRef.current = [];
     try {
@@ -213,6 +239,11 @@ export function VoiceRecorder({ onAudioReady }: { onAudioReady: (file: File) => 
         throw new Error('Microphone recording is not supported in this browser.');
       }
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      if (!mountedRef.current) {
+        stream.getTracks().forEach((track) => track.stop());
+        return;
+      }
+      streamRef.current = stream;
       const recorder = new MediaRecorder(stream);
       mediaRecorderRef.current = recorder;
 
@@ -221,14 +252,21 @@ export function VoiceRecorder({ onAudioReady }: { onAudioReady: (file: File) => 
       };
 
       recorder.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
+        if (!mountedRef.current) return;
+        const mimeType = recorder.mimeType || chunksRef.current[0]?.type || 'audio/webm';
+        const blob = new Blob(chunksRef.current, { type: mimeType });
         const url = URL.createObjectURL(blob);
+        previewRef.current = url;
         setAudioUrl(url);
-        const audioFile = new File([blob], `kasem-recording-${Date.now()}.webm`, {
-          type: 'audio/webm',
+        const audioFile = new File([blob], 'kasem-recording-' + Date.now() + (mimeType.includes('mp4') ? '.m4a' : mimeType.includes('ogg') ? '.ogg' : '.webm'), {
+          type: mimeType,
         });
-        onAudioReady(audioFile);
         stream.getTracks().forEach((track) => track.stop());
+        streamRef.current = null;
+        setRecording(false);
+        if (timerRef.current !== null) window.clearInterval(timerRef.current);
+        timerRef.current = null;
+        onAudioReady(audioFile);
       };
 
       recorder.start(200);
@@ -238,7 +276,12 @@ export function VoiceRecorder({ onAudioReady }: { onAudioReady: (file: File) => 
         setSeconds((s) => s + 1);
       }, 1000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not access microphone.');
+      streamRef.current?.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+      if (mountedRef.current) setError(err instanceof Error ? err.message : 'Could not access microphone.');
+    } finally {
+      startingRef.current = false;
+      if (mountedRef.current) setStarting(false);
     }
   };
 
@@ -263,9 +306,10 @@ export function VoiceRecorder({ onAudioReady }: { onAudioReady: (file: File) => 
           <button
             type="button"
             className="button button--primary button--small record-btn"
+            disabled={starting}
             onClick={() => void startRecording()}
           >
-            🔴 Start Recording
+            {starting ? 'Opening microphone…' : '🔴 Start Recording'}
           </button>
         ) : (
           <button

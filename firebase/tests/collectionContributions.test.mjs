@@ -195,3 +195,12 @@ test('a cover with no recording is ignored — a cover for nothing is nothing', 
   // still a text contribution, not a recording whose upload failed.
   assert.equal('media' in document, false);
 });
+
+test('cultural restrictions are refused instead of silently discarded', () => {
+  for (const tier of ['community_only', 'restricted', 'sacred_restricted', 'unknown']) {
+    assert.throws(() => parseCollectionContributionInput(song({ culturalPermissionTier: tier }), uid),
+      (error) => error?.code === 'failed-precondition');
+  }
+  assert.doesNotThrow(() => parseCollectionContributionInput(song({ culturalPermissionTier: 'public' }), uid));
+  assert.doesNotThrow(() => parseCollectionContributionInput(song(), uid));
+});

@@ -286,6 +286,7 @@ export interface SubmissionDraftInput {
 function buildSubmission(input: SubmissionDraftInput, status: Submission['status'], existing?: Submission): Submission {
   const now = new Date().toISOString();
   return {
+    ...existing,
     id: input.id,
     authUid: input.uid,
     campaign: { collection: 'campaigns', id: input.campaignId },
@@ -307,7 +308,7 @@ function buildSubmission(input: SubmissionDraftInput, status: Submission['status
     culturalContext: input.culturalContext,
     caption: input.caption,
     altText: input.altText,
-    media: input.media ?? existing?.media,
+    ...((input.media ?? existing?.media) ? { media: input.media ?? existing?.media } : {}),
     externalPostUrl: input.externalPostUrl || null,
     participants: input.participants,
     disclosures: input.disclosures,
@@ -339,11 +340,13 @@ function buildSubmission(input: SubmissionDraftInput, status: Submission['status
 export async function saveSubmission(
   input: SubmissionDraftInput,
   status: 'DRAFT' | 'SUBMITTED',
-  existing?: Submission,
+  existing?: Submission | null,
 ): Promise<void> {
-  const current = existing ?? await fetchSubmission(input.id);
-  const nextStatus = current?.status === 'NEEDS_REVISION' && status === 'SUBMITTED'
-    ? 'RESUBMITTED'
+  // A newly generated ID has no readable document yet under ownership rules.
+  // Explicit null creates it without a read; undefined refreshes a saved draft.
+  const current = existing === undefined ? await fetchSubmission(input.id) : existing;
+  const nextStatus = current?.status === 'NEEDS_REVISION'
+    ? (status === 'SUBMITTED' ? 'RESUBMITTED' : 'NEEDS_REVISION')
     : status;
   const document = buildSubmission(input, nextStatus, current ?? undefined);
   await setDoc(doc(db, 'submissions', input.id), document);
@@ -365,8 +368,12 @@ export function uploadSubmissionMedia(
       (snapshot) => onProgress(Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100)),
       reject,
       async () => {
-        const downloadUrl = await getDownloadURL(task.snapshot.ref);
-        resolve({ storagePath, downloadUrl });
+        try {
+          const downloadUrl = await getDownloadURL(task.snapshot.ref);
+          resolve({ storagePath, downloadUrl });
+        } catch (error) {
+          reject(error);
+        }
       },
     );
   });

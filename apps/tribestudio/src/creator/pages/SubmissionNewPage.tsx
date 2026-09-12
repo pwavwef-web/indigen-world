@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Campaign, Submission } from '@indigen-world/contracts/creator-models';
-import { Link, useQueryParam, useRoute } from '../../router';
+import { Link, matchRoute, useQueryParam, useRoute } from '../../router';
 import { useAuth } from '../../auth';
 import { trackEvent } from '../../analytics';
 import { useConfig } from '../CreatorProvider';
 import {
   fetchCampaign,
+  fetchSubmission,
   newSubmissionId,
   saveSubmission,
   submissionsOpen,
@@ -45,10 +46,46 @@ function mediaTypeFor(mime: string): MediaType {
 const OPEN_CAMPAIGN_ID = 'open';
 
 export function SubmissionNewPage() {
+  const { path, search } = useRoute();
+  const { user } = useAuth();
+  const id = matchRoute('/studio/submissions/:id/edit', path)?.id;
+  return <SubmissionLoader key={JSON.stringify([id, search, user?.uid])} id={id} />;
+}
+
+function SubmissionLoader({ id }: { id?: string }) {
+  const { user } = useAuth();
+  const [existing, setExisting] = useState<Submission | null>(null);
+  const [loading, setLoading] = useState(Boolean(id));
+  const [error, setError] = useState('');
+  const [retry, setRetry] = useState(0);
+  useEffect(() => {
+    if (!id || !user) return;
+    let active = true;
+    setLoading(true);
+    setError('');
+    void fetchSubmission(id).then((sub) => {
+      if (!active) return;
+      if (!sub || sub.authUid !== user.uid || !['DRAFT', 'NEEDS_REVISION'].includes(sub.status)
+        || sub.collectionContribution || sub.campaign.id === 'collection-contributions') {
+        setError('This submission is unavailable or cannot be edited.');
+      } else { setExisting(sub); }
+      setLoading(false);
+    }).catch(() => {
+      if (active) { setError('Could not load your submission. Please retry.'); setLoading(false); }
+    });
+    return () => { active = false; };
+  }, [id, user, retry]);
+  if (loading) return <div className="page"><p>Loading your submission…</p></div>;
+  if (error) return <div className="page"><p role="alert">{error}</p><button type="button" onClick={() => setRetry((n) => n + 1)}>Retry</button><p><Link to="/studio/submissions">Back to submissions</Link></p></div>;
+  return <SubmissionEditor existing={existing} />;
+}
+
+function SubmissionEditor({ existing }: { existing: Submission | null }) {
   const { user } = useAuth();
   const { config, whatsappUrl } = useConfig();
   const { navigate } = useRoute();
-  const requestedCampaign = useQueryParam('campaign') ?? '';
+  const queryCampaign = useQueryParam('campaign') ?? '';
+  const requestedCampaign = existing ? (existing.campaign.id === OPEN_CAMPAIGN_ID ? '' : existing.campaign.id) : queryCampaign;
   const generatedVideoPath = useQueryParam('generated') ?? '';
   // No campaign in the URL means this is an open post: anyone may publish it,
   // it needs no verification, and nobody reviews it before it goes live.
@@ -56,8 +93,9 @@ export function SubmissionNewPage() {
   const campaignId = isOpenPost ? OPEN_CAMPAIGN_ID : requestedCampaign;
   // Lazy-init so a fresh submission id is generated once, not on every render.
   const submissionIdRef = useRef<string>('');
-  if (!submissionIdRef.current) submissionIdRef.current = newSubmissionId();
+  if (!submissionIdRef.current) submissionIdRef.current = existing?.id ?? newSubmissionId();
   const submissionId = submissionIdRef;
+  const persistedRef = useRef(existing !== null);
 
   const [campaign, setCampaign] = useState<Campaign | null>(null);
   const [loading, setLoading] = useState(true);
@@ -67,37 +105,37 @@ export function SubmissionNewPage() {
   const [uploadPct, setUploadPct] = useState<number | null>(null);
 
   // Form state
-  const [studioType, setStudioType] = useState<StudioType>('video');
-  const [title, setTitle] = useState('');
-  const [category, setCategory] = useState('');
-  const [primaryLanguage, setPrimaryLanguage] = useState('xsm');
-  const [dialect, setDialect] = useState('');
-  const [description, setDescription] = useState('');
-  const [body, setBody] = useState('');
-  const [tags, setTags] = useState('');
-  const [targetAudience, setTargetAudience] = useState('');
-  const [sourceReferences, setSourceReferences] = useState('');
-  const [translationNotes, setTranslationNotes] = useState('');
-  const [sourceLanguage, setSourceLanguage] = useState('xsm');
-  const [targetLanguage, setTargetLanguage] = useState('en');
-  const [sourceContent, setSourceContent] = useState('');
-  const [translatedContent, setTranslatedContent] = useState('');
-  const [translatorNotes, setTranslatorNotes] = useState('');
-  const [caption, setCaption] = useState('');
-  const [altText, setAltText] = useState('');
-  const [englishSummary, setEnglishSummary] = useState('');
-  const [culturalContext, setCulturalContext] = useState('');
-  const [externalPostUrl, setExternalPostUrl] = useState('');
-  const [involvesMinors, setInvolvesMinors] = useState(false);
-  const [usesThirdParty, setUsesThirdParty] = useState(false);
-  const [sourceInfo, setSourceInfo] = useState('');
-  const [media, setMedia] = useState<Submission['media']>(undefined);
-  const [permReview, setPermReview] = useState(true);
+  const [studioType, setStudioType] = useState<StudioType>(existing?.studioType ?? 'video');
+  const [title, setTitle] = useState(existing?.title ?? '');
+  const [category, setCategory] = useState(existing?.category ?? '');
+  const [primaryLanguage, setPrimaryLanguage] = useState(existing?.primaryLanguage ?? 'xsm');
+  const [dialect, setDialect] = useState(existing?.dialect ?? '');
+  const [description, setDescription] = useState(existing?.description ?? '');
+  const [body, setBody] = useState(existing?.body ?? '');
+  const [tags, setTags] = useState(existing?.tags?.join(', ') ?? '');
+  const [targetAudience, setTargetAudience] = useState(existing?.targetAudience ?? '');
+  const [sourceReferences, setSourceReferences] = useState(existing?.sourceReferences ?? '');
+  const [translationNotes, setTranslationNotes] = useState(existing?.translationNotes ?? '');
+  const [sourceLanguage, setSourceLanguage] = useState(existing?.translation?.sourceLanguage ?? 'xsm');
+  const [targetLanguage, setTargetLanguage] = useState(existing?.translation?.targetLanguage ?? 'en');
+  const [sourceContent, setSourceContent] = useState(existing?.translation?.sourceContent ?? '');
+  const [translatedContent, setTranslatedContent] = useState(existing?.translation?.translatedContent ?? '');
+  const [translatorNotes, setTranslatorNotes] = useState(existing?.translation?.translatorNotes ?? '');
+  const [caption, setCaption] = useState(existing?.caption ?? '');
+  const [altText, setAltText] = useState(existing?.altText ?? '');
+  const [englishSummary, setEnglishSummary] = useState(existing?.englishSummary ?? '');
+  const [culturalContext, setCulturalContext] = useState(existing?.culturalContext ?? '');
+  const [externalPostUrl, setExternalPostUrl] = useState(existing?.externalPostUrl ?? '');
+  const [involvesMinors, setInvolvesMinors] = useState(existing?.disclosures.involvesMinors ?? false);
+  const [usesThirdParty, setUsesThirdParty] = useState(existing?.disclosures.usesThirdPartyMaterial ?? false);
+  const [sourceInfo, setSourceInfo] = useState(existing?.disclosures.sourceInfo ?? '');
+  const [media, setMedia] = useState<Submission['media']>(existing?.media);
+  const [permReview, setPermReview] = useState(existing?.permissions.review ?? true);
   // Publishing is the whole point of an open post, so it starts granted there
   // and stays an explicit opt-in for campaign entries.
-  const [permPublish, setPermPublish] = useState(requestedCampaign.trim() === '');
-  const [permPromo, setPermPromo] = useState(false);
-  const [permAi, setPermAi] = useState(false);
+  const [permPublish, setPermPublish] = useState(existing?.permissions.publication ?? (requestedCampaign.trim() === ''));
+  const [permPromo, setPermPromo] = useState(existing?.permissions.promotion ?? false);
+  const [permAi, setPermAi] = useState(existing?.permissions.aiTraining ?? false);
   const [attRights, setAttRights] = useState(false);
   const [attParticipants, setAttParticipants] = useState(false);
   const [attGuardian, setAttGuardian] = useState(false);
@@ -107,7 +145,7 @@ export function SubmissionNewPage() {
   // the normal publishing workflow. The owner-scoped path check prevents a URL
   // parameter from attaching another creator's media.
   useEffect(() => {
-    if (!user || !generatedVideoPath) return;
+    if (existing || !user || !generatedVideoPath) return;
     const ownOutputPrefix = `studio-video-jobs/${user.uid}/`;
     if (!generatedVideoPath.startsWith(ownOutputPrefix) || !generatedVideoPath.endsWith('/output.mp4')) return;
     setStudioType('video');
@@ -120,7 +158,7 @@ export function SubmissionNewPage() {
       captionsPath: null,
     });
     setUploadPct(100);
-  }, [generatedVideoPath, user]);
+  }, [generatedVideoPath, user, existing]);
 
   useEffect(() => {
     if (isOpenPost) { setLoading(false); return; }
@@ -177,13 +215,13 @@ export function SubmissionNewPage() {
     englishSummary,
     culturalContext,
     externalPostUrl,
-    participants: [],
+    participants: existing?.participants ?? [],
     disclosures: { involvesMinors, usesThirdPartyMaterial: usesThirdParty, sourceInfo },
     attestations: { ownsOrHasRights: attRights, participantsConsented: attParticipants, guardianPermissionForMinors: attGuardian, noUnlawfulCopyright: attCopyright },
     permissions: { review: permReview, publication: permPublish, promotion: permPromo, aiTraining: permAi },
     media,
     consentVersion: config?.termsVersion ?? 'creator-terms-unversioned',
-  }), [user, campaignId, studioType, title, category, primaryLanguage, dialect, description, body, tags, targetAudience, sourceReferences, translationNotes, sourceLanguage, targetLanguage, sourceContent, translatedContent, translatorNotes, caption, altText, englishSummary, culturalContext, externalPostUrl, involvesMinors, usesThirdParty, sourceInfo, attRights, attParticipants, attGuardian, attCopyright, permReview, permPublish, permPromo, permAi, media, config]);
+  }), [user, campaignId, studioType, title, category, primaryLanguage, dialect, description, body, tags, targetAudience, sourceReferences, translationNotes, sourceLanguage, targetLanguage, sourceContent, translatedContent, translatorNotes, caption, altText, englishSummary, culturalContext, externalPostUrl, involvesMinors, usesThirdParty, sourceInfo, attRights, attParticipants, attGuardian, attCopyright, permReview, permPublish, permPromo, permAi, media, config, existing]);
 
   if (loading) return <div className="page"><p className="muted">Loading…</p></div>;
 
@@ -193,7 +231,7 @@ export function SubmissionNewPage() {
 
   // Gate: a campaign only accepts entries while it is open. An open post has
   // no such window — the feed is always accepting.
-  if (!isOpenPost && campaign && !submissionsOpen(campaign)) {
+  if (!isOpenPost && campaign && !submissionsOpen(campaign) && existing?.status !== 'NEEDS_REVISION') {
     return (
       <div className="page">
         <h1>Submissions are not open yet</h1>
@@ -235,9 +273,12 @@ export function SubmissionNewPage() {
     setSaving(true);
     setError(null);
     try {
-      await saveSubmission(draftInput, 'DRAFT');
+      await saveSubmission(draftInput, 'DRAFT', persistedRef.current ? undefined : null);
+      persistedRef.current = true;
+      return true;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not save draft.');
+      return false;
     } finally {
       setSaving(false);
     }
@@ -265,22 +306,23 @@ export function SubmissionNewPage() {
     setSaving(true);
     setError(null);
     try {
-      await saveSubmission(draftInput, 'SUBMITTED');
+      await saveSubmission(draftInput, 'SUBMITTED', persistedRef.current ? undefined : null);
+      persistedRef.current = true;
       trackEvent('submission_completed', { campaign: campaign?.slug ?? OPEN_CAMPAIGN_ID });
       navigate(`/studio/submissions/${submissionId.current}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Submission failed. Your draft is saved.');
+      setError(err instanceof Error ? err.message : 'Submission failed. Please retry before leaving this page.');
       setSaving(false);
     }
   };
 
-  const next = () => { void saveDraft(); setStep((s) => Math.min(s + 1, 3)); };
+  const next = async () => { if (await saveDraft()) setStep((s) => Math.min(s + 1, 3)); };
   const back = () => setStep((s) => Math.max(s - 1, 0));
 
   return (
     <div className="page">
-      <p className="breadcrumb"><Link to="/studio/submissions">Submissions</Link> / New</p>
-      <h1>{isOpenPost ? 'New post' : `New submission — ${campaign?.title ?? ''}`}</h1>
+      <p className="breadcrumb"><Link to="/studio/submissions">Submissions</Link> / {existing ? 'Edit' : 'New'}</p>
+      <h1>{existing ? 'Edit submission' : isOpenPost ? 'New post' : 'New campaign submission'}</h1>
       {isOpenPost ? (
         <div className="callout callout--info">
           <strong>This publishes straight to Explore.</strong> There is no queue and
@@ -295,6 +337,7 @@ export function SubmissionNewPage() {
           this one is reviewed before it is published.
         </div>
       )}
+      {existing?.moderation?.feedback ? <div className="callout callout--warn"><strong>Reviewer feedback: </strong>{existing.moderation.feedback}</div> : null}
       <Stepper steps={STEPS} current={step} />
 
       <div className="join__card">
@@ -425,6 +468,7 @@ export function SubmissionNewPage() {
             <Field label="Original media file" hint={mediaLimits?.acceptedMimeTypes?.length ? `Accepted: ${mediaLimits.acceptedMimeTypes.join(', ')}` : 'Video, audio, image or document.'}>
               <input type="file" onChange={(e) => void handleFile(e.target.files?.[0])} />
             </Field>
+            {media && uploadPct === null ? <p className="tiny">Your saved media is attached. Upload a file to replace it.</p> : null}
             {uploadPct !== null ? (
               <div className="upload">
                 <div className="upload__bar"><span style={{ width: `${uploadPct}%` }} /></div>
