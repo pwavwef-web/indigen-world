@@ -11,7 +11,7 @@
     "packages/design-tokens",
     "packages/web-ui",
     "packages/console-ui",
-    "apps/kasena-dictionary",
+    "apps/kasem-dictionary",
     "apps/website",
     "apps/admin",
     "apps/tribestudio",

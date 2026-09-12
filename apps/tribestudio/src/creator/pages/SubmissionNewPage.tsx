@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { getDownloadURL, ref } from 'firebase/storage';
+import { storage } from '../../firebase';
 import type { Campaign, Submission } from '@indigen-world/contracts/creator-models';
 import { Link, matchRoute, useQueryParam, useRoute } from '../../router';
 import { useAuth } from '../../auth';
@@ -103,6 +105,14 @@ function SubmissionEditor({ existing }: { existing: Submission | null }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [uploadPct, setUploadPct] = useState<number | null>(null);
+  const writeBusy = useRef(false);
+  const uploadBusy = useRef(false);
+  const [failedFile, setFailedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState('');
+  const [previewError, setPreviewError] = useState('');
+  const [previewRetry, setPreviewRetry] = useState(0);
+  const [saveStatus, setSaveStatus] = useState('');
+  const [savedSnapshot, setSavedSnapshot] = useState<string | null>(null);
 
   // Form state
   const [studioType, setStudioType] = useState<StudioType>(existing?.studioType ?? 'video');
@@ -219,9 +229,52 @@ function SubmissionEditor({ existing }: { existing: Submission | null }) {
     disclosures: { involvesMinors, usesThirdPartyMaterial: usesThirdParty, sourceInfo },
     attestations: { ownsOrHasRights: attRights, participantsConsented: attParticipants, guardianPermissionForMinors: attGuardian, noUnlawfulCopyright: attCopyright },
     permissions: { review: permReview, publication: permPublish, promotion: permPromo, aiTraining: permAi },
-    media,
+    media: media ?? null,
     consentVersion: config?.termsVersion ?? 'creator-terms-unversioned',
   }), [user, campaignId, studioType, title, category, primaryLanguage, dialect, description, body, tags, targetAudience, sourceReferences, translationNotes, sourceLanguage, targetLanguage, sourceContent, translatedContent, translatorNotes, caption, altText, englishSummary, culturalContext, externalPostUrl, involvesMinors, usesThirdParty, sourceInfo, attRights, attParticipants, attGuardian, attCopyright, permReview, permPublish, permPromo, permAi, media, config, existing]);
+
+  const snapshot = JSON.stringify(draftInput);
+  const initialSnapshot = useRef(snapshot);
+  const dirty = snapshot !== (savedSnapshot ?? initialSnapshot.current);
+  const dirtyRef = useRef(false);
+  dirtyRef.current = dirty;
+
+  useEffect(() => {
+    if (!dirty || loading || saving || uploadBusy.current || saveStatus.startsWith('Not saved')) return;
+    const timer = window.setTimeout(() => { void saveDraft(); }, 1500);
+    return () => window.clearTimeout(timer);
+  }, [snapshot, dirty, loading, saving, uploadPct, saveStatus]);
+
+  useEffect(() => {
+    const warn = (event: BeforeUnloadEvent) => {
+      if (dirtyRef.current || uploadBusy.current || writeBusy.current) { event.preventDefault(); event.returnValue = ''; }
+    };
+    const leave = (event: Event) => {
+      if ((dirtyRef.current || uploadBusy.current || writeBusy.current)
+        && !window.confirm('Your latest changes have not finished saving. Leave this page?')) event.preventDefault();
+    };
+    window.addEventListener('beforeunload', warn);
+    window.addEventListener('studio:before-navigate', leave);
+    return () => { window.removeEventListener('beforeunload', warn); window.removeEventListener('studio:before-navigate', leave); };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    setPreviewUrl('');
+    setPreviewError('');
+    if (media?.storagePath) void getDownloadURL(ref(storage, media.storagePath))
+      .then((url) => { if (active) setPreviewUrl(url); })
+      .catch(() => { if (active) setPreviewError('Could not load the attachment preview.'); });
+    return () => { active = false; };
+  }, [media, previewRetry]);
+
+  const attachmentPreview = media ? <div className="submission-preview">
+    {previewError ? <p role="alert">{previewError} <button type="button" onClick={() => setPreviewRetry((n) => n + 1)}>Retry preview</button></p> : !previewUrl ? <p>Loading attachment…</p> :
+      media.mediaType === 'image' ? <img src={previewUrl} alt={altText || 'Attachment preview'} /> :
+      media.mediaType === 'audio' ? <audio controls src={previewUrl} /> :
+      media.mediaType === 'video' ? <video controls playsInline src={previewUrl} /> :
+      <a href={previewUrl} target="_blank" rel="noreferrer">Open attached document</a>}
+  </div> : null;
 
   if (loading) return <div className="page"><p className="muted">Loading…</p></div>;
 
@@ -245,7 +298,7 @@ function SubmissionEditor({ existing }: { existing: Submission | null }) {
   }
 
   const handleFile = async (file: File | undefined) => {
-    if (!file || !user) return;
+    if (!file || !user || uploadBusy.current || writeBusy.current) return;
     setError(null);
     const maxBytes = mediaLimits?.maxFileBytes ?? 500 * 1024 * 1024;
     if (file.size > maxBytes) {
@@ -257,6 +310,8 @@ function SubmissionEditor({ existing }: { existing: Submission | null }) {
       setError(`Unsupported file type (${file.type || 'unknown'}).`);
       return;
     }
+    uploadBusy.current = true;
+    setFailedFile(null);
     setUploadPct(0);
     try {
       const { storagePath } = await uploadSubmissionMedia(user.uid, campaignId, submissionId.current, file, setUploadPct);
@@ -264,59 +319,79 @@ function SubmissionEditor({ existing }: { existing: Submission | null }) {
       setUploadPct(100);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Upload failed. Please retry.');
+      setFailedFile(file);
       setUploadPct(null);
-    }
+    } finally { uploadBusy.current = false; }
   };
 
   const saveDraft = async () => {
-    if (!user) return;
+    if (!user || writeBusy.current || uploadBusy.current) return false;
+    writeBusy.current = true;
+    setSaveStatus('Saving…');
     setSaving(true);
     setError(null);
     try {
       await saveSubmission(draftInput, 'DRAFT', persistedRef.current ? undefined : null);
       persistedRef.current = true;
+      setSavedSnapshot(JSON.stringify(draftInput));
+      setSaveStatus('Saved');
       return true;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not save draft.');
+      setSaveStatus('Not saved — use Save draft to retry.');
       return false;
     } finally {
+      writeBusy.current = false;
       setSaving(false);
     }
   };
 
-  const validate = (): string | null => {
-    if (!title.trim()) return 'A content title is required.';
-    if (!category) return 'Choose a content category.';
-    if (studioType === 'writing' && body.trim().length < 40) return 'Add the written content before submitting.';
-    if (studioType === 'translation' && (sourceContent.trim().length < 10 || translatedContent.trim().length < 10)) return 'Add both source and translated content.';
-    if (['video', 'audio', 'image'].includes(studioType) && !media && !externalPostUrl.trim()) return 'Upload media or provide a link to an existing public post.';
-    if (studioType === 'image' && !altText.trim()) return 'Alternative text is required for visual submissions.';
-    if (isOpenPost && !permPublish) return 'Grant publication permission to post this publicly.';
-    if (!isOpenPost && !permReview) return 'Permission to review the submission is required to enter.';
-    if (!attRights || !attCopyright) return 'Please confirm you have the rights to submit this content.';
-    if (!attParticipants) return 'Please confirm anyone featured has consented.';
-    if (involvesMinors && !attGuardian) return 'Guardian permission is required when minors appear.';
+  const validate = (onlyStep?: number): { message: string; step: number; field: string } | null => {
+    if ((onlyStep === undefined || onlyStep === 1) && externalPostUrl.trim()) {
+      let valid = false;
+      try { valid = ['https:', 'http:'].includes(new URL(externalPostUrl.trim()).protocol); } catch { /* Invalid URL. */ }
+      if (!valid) return { message: 'Enter a valid http or https public link.', step: 1, field: 'ext' };
+    }
+    if ((onlyStep === undefined || onlyStep === 0) && (!title.trim())) return { message: 'A content title is required.', step: 0, field: 't' };
+    if ((onlyStep === undefined || onlyStep === 0) && (!category)) return { message: 'Choose a content category.', step: 0, field: 'cat' };
+    if ((onlyStep === undefined || onlyStep === 0) && (studioType === 'writing' && body.trim().length < 40)) return { message: 'Add the written content before submitting.', step: 0, field: 'body' };
+    if ((onlyStep === undefined || onlyStep === 0) && (studioType === 'translation' && (sourceContent.trim().length < 10 || translatedContent.trim().length < 10))) return { message: 'Add at least 10 characters in both source and translated text.', step: 0, field: sourceContent.trim().length < 10 ? 'sourceContent' : 'translatedContent' };
+    if ((onlyStep === undefined || onlyStep === 1) && (['video', 'audio', 'image'].includes(studioType) && !media && !externalPostUrl.trim())) return { message: 'Upload media or provide a link to an existing public post.', step: 1, field: 'media-file' };
+    if ((onlyStep === undefined || onlyStep === 0) && (studioType === 'image' && !altText.trim())) return { message: 'Alternative text is required for visual submissions.', step: 0, field: 'altText' };
+    if ((onlyStep === undefined || onlyStep === 2) && (isOpenPost && !permPublish)) return { message: 'Grant publication permission to post this publicly.', step: 2, field: 'perm-publish' };
+    if ((onlyStep === undefined || onlyStep === 2) && (!isOpenPost && !permReview)) return { message: 'Permission to review the submission is required to enter.', step: 2, field: 'perm-review' };
+    if ((onlyStep === undefined || onlyStep === 2) && (!attRights || !attCopyright)) return { message: 'Please confirm you have the rights to submit this content.', step: 2, field: !attRights ? 'att-rights' : 'att-copyright' };
+    if ((onlyStep === undefined || onlyStep === 2) && (!attParticipants)) return { message: 'Please confirm anyone featured has consented.', step: 2, field: 'att-participants' };
+    if ((onlyStep === undefined || onlyStep === 2) && (involvesMinors && !attGuardian)) return { message: 'Guardian permission is required when minors appear.', step: 2, field: 'att-guardian' };
     return null;
   };
 
   const submit = async () => {
-    if (!user) return;
+    if (!user || writeBusy.current || uploadBusy.current) return;
     const problem = validate();
-    if (problem) { setError(problem); setStep(3); return; }
+    if (problem) { showProblem(problem); return; }
+    writeBusy.current = true;
     setSaving(true);
     setError(null);
     try {
       await saveSubmission(draftInput, 'SUBMITTED', persistedRef.current ? undefined : null);
       persistedRef.current = true;
       trackEvent('submission_completed', { campaign: campaign?.slug ?? OPEN_CAMPAIGN_ID });
+      dirtyRef.current = false;
+      writeBusy.current = false;
       navigate(`/studio/submissions/${submissionId.current}`);
     } catch (err) {
+      writeBusy.current = false;
       setError(err instanceof Error ? err.message : 'Submission failed. Please retry before leaving this page.');
       setSaving(false);
     }
   };
 
-  const next = async () => { if (await saveDraft()) setStep((s) => Math.min(s + 1, 3)); };
+  const showProblem = (problem: NonNullable<ReturnType<typeof validate>>) => {
+    setError(problem.message); setStep(problem.step);
+    window.setTimeout(() => document.getElementById(problem.field)?.focus(), 0);
+  };
+  const next = async () => { const problem = validate(step); if (problem) { showProblem(problem); return; } if (await saveDraft()) setStep((s) => Math.min(s + 1, 3)); };
   const back = () => setStep((s) => Math.max(s - 1, 0));
 
   return (
@@ -338,6 +413,7 @@ function SubmissionEditor({ existing }: { existing: Submission | null }) {
         </div>
       )}
       {existing?.moderation?.feedback ? <div className="callout callout--warn"><strong>Reviewer feedback: </strong>{existing.moderation.feedback}</div> : null}
+      <p role="status" aria-live="polite">{saving ? "Saving…" : dirty ? saveStatus.startsWith("Not saved") ? saveStatus : "Unsaved changes" : saveStatus || "Drafts save automatically as you work."}</p>
       <Stepper steps={STEPS} current={step} />
 
       <div className="join__card">
@@ -420,10 +496,10 @@ function SubmissionEditor({ existing }: { existing: Submission | null }) {
                   </Field>
                 </div>
                 <div className="field-row field-row--wide">
-                  <Field label="Original Kasem / Source Text" htmlFor="sourceContent">
+                  <Field label={`${sourceLanguage === 'xsm' ? 'Kasem' : 'English'} source text`} htmlFor="sourceContent">
                     <textarea id="sourceContent" rows={6} value={sourceContent} onChange={(e) => setSourceContent(e.target.value)} placeholder="Original sentences or oral transcription..." />
                   </Field>
-                  <Field label="English Translation" htmlFor="translatedContent">
+                  <Field label={`${targetLanguage === 'xsm' ? 'Kasem' : 'English'} translation`} htmlFor="translatedContent">
                     <textarea id="translatedContent" rows={6} value={translatedContent} onChange={(e) => setTranslatedContent(e.target.value)} placeholder="Accurate contextual translation..." />
                   </Field>
                 </div>
@@ -460,14 +536,17 @@ function SubmissionEditor({ existing }: { existing: Submission | null }) {
                   <p className="tiny muted">Record oral stories, pronunciations, or songs directly from your microphone.</p>
                 </div>
               </div>
-              <VoiceRecorder onAudioReady={(file) => void handleFile(file)} />
+              <fieldset disabled={saving || (uploadPct !== null && uploadPct < 100)}><VoiceRecorder onAudioReady={(file) => void handleFile(file)} /></fieldset>
             </div>
 
             <div className="or-divider"><span>OR UPLOAD MEDIA FILE</span></div>
 
-            <Field label="Original media file" hint={mediaLimits?.acceptedMimeTypes?.length ? `Accepted: ${mediaLimits.acceptedMimeTypes.join(', ')}` : 'Video, audio, image or document.'}>
-              <input type="file" onChange={(e) => void handleFile(e.target.files?.[0])} />
+            <Field label={media ? 'Replace attachment' : 'Original media file'} htmlFor="media-file" hint={mediaLimits?.acceptedMimeTypes?.length ? `Accepted: ${mediaLimits.acceptedMimeTypes.join(', ')}` : 'Video, audio, image or document.'}>
+              <input id="media-file" type="file" disabled={saving || (uploadPct !== null && uploadPct < 100)} onChange={(e) => void handleFile(e.target.files?.[0])} />
             </Field>
+            {attachmentPreview}
+            {media ? <button type="button" className="button button--small" disabled={saving || (uploadPct !== null && uploadPct < 100)} onClick={() => { setMedia(undefined); setUploadPct(null); }}>Remove attachment</button> : null}
+            {failedFile ? <button type="button" className="button button--small" disabled={saving} onClick={() => void handleFile(failedFile)}>Retry upload: {failedFile.name}</button> : null}
             {media && uploadPct === null ? <p className="tiny">Your saved media is attached. Upload a file to replace it.</p> : null}
             {uploadPct !== null ? (
               <div className="upload">
@@ -489,26 +568,39 @@ function SubmissionEditor({ existing }: { existing: Submission | null }) {
             <h2>Permissions</h2>
             <p className="muted">Each permission is a separate, understandable choice.</p>
             {isOpenPost ? (
-              <label className="perm"><input type="checkbox" checked={permPublish} onChange={(e) => setPermPublish(e.target.checked)} /> <span><strong>Publication</strong> — publish this to the Explore feed in Indigen World. <em>(Required to post.)</em></span></label>
+              <label className="perm"><input id="perm-publish" type="checkbox" checked={permPublish} onChange={(e) => setPermPublish(e.target.checked)} /> <span><strong>Publication</strong> — publish this to the Explore feed in Indigen World. <em>(Required to post.)</em></span></label>
             ) : (
               <>
-                <label className="perm"><input type="checkbox" checked={permReview} onChange={(e) => setPermReview(e.target.checked)} /> <span><strong>Review</strong> — allow our team to review this submission. <em>(Required to enter.)</em></span></label>
-                <label className="perm"><input type="checkbox" checked={permPublish} onChange={(e) => setPermPublish(e.target.checked)} /> <span><strong>Publication</strong> — allow approved content to be published in Indigen World products.</span></label>
+                <label className="perm"><input id="perm-review" type="checkbox" checked={permReview} onChange={(e) => setPermReview(e.target.checked)} /> <span><strong>Review</strong> — allow our team to review this submission. <em>(Required to enter.)</em></span></label>
+                <label className="perm"><input id="perm-publish" type="checkbox" checked={permPublish} onChange={(e) => setPermPublish(e.target.checked)} /> <span><strong>Publication</strong> — allow approved content to be published in Indigen World products.</span></label>
               </>
             )}
             <label className="perm"><input type="checkbox" checked={permPromo} onChange={(e) => setPermPromo(e.target.checked)} /> <span><strong>Promotion</strong> — allow approved excerpts to be used for campaign promotion.</span></label>
             <label className="perm perm--ai"><input type="checkbox" checked={permAi} onChange={(e) => setPermAi(e.target.checked)} /> <span><strong>AI / machine-learning research</strong> — optional. Off by default and never required to enter.</span></label>
 
             <h2>Confirmations</h2>
-            <label className="checkbox"><input type="checkbox" checked={attRights} onChange={(e) => setAttRights(e.target.checked)} /> I created this, or have permission to submit it.</label>
-            <label className="checkbox"><input type="checkbox" checked={attParticipants} onChange={(e) => setAttParticipants(e.target.checked)} /> Anyone featured has consented.</label>
-            <label className="checkbox"><input type="checkbox" checked={attGuardian} onChange={(e) => setAttGuardian(e.target.checked)} /> Required guardian permission exists for any minors.</label>
-            <label className="checkbox"><input type="checkbox" checked={attCopyright} onChange={(e) => setAttCopyright(e.target.checked)} /> This does not unlawfully use copyrighted material.</label>
+            <label className="checkbox"><input id="att-rights" type="checkbox" checked={attRights} onChange={(e) => setAttRights(e.target.checked)} /> I created this, or have permission to submit it.</label>
+            <label className="checkbox"><input id="att-participants" type="checkbox" checked={attParticipants} onChange={(e) => setAttParticipants(e.target.checked)} /> Anyone featured has consented.</label>
+            <label className="checkbox"><input id="att-guardian" type="checkbox" checked={attGuardian} onChange={(e) => setAttGuardian(e.target.checked)} /> Required guardian permission exists for any minors.</label>
+            <label className="checkbox"><input id="att-copyright" type="checkbox" checked={attCopyright} onChange={(e) => setAttCopyright(e.target.checked)} /> This does not unlawfully use copyrighted material.</label>
           </section>
         ) : null}
 
         {step === 3 ? (
           <section>
+            <h2>Preview your post</h2>
+            <article className="submission-preview">
+              <p className="tiny muted">{user?.displayName || 'You'} · {primaryLanguage === 'xsm' ? 'Kasem' : 'English'}</p>
+              <h3>{title || 'Untitled'}</h3><p>{description}</p>
+              {attachmentPreview}
+              {caption ? <p>{caption}</p> : null}
+              {studioType === 'writing' ? <p className="submission-preview__text">{body}</p> : null}
+              {studioType === 'translation' ? <div className="field-row"><div><h4>{sourceLanguage === 'xsm' ? 'Kasem' : 'English'} source</h4><p className="submission-preview__text">{sourceContent}</p></div><div><h4>{targetLanguage === 'xsm' ? 'Kasem' : 'English'} translation</h4><p className="submission-preview__text">{translatedContent}</p></div></div> : null}
+              {englishSummary ? <p>{englishSummary}</p> : null}
+              {culturalContext ? <p>{culturalContext}</p> : null}
+              {/^https?:\/\//i.test(externalPostUrl.trim()) ? <a href={externalPostUrl.trim()} target="_blank" rel="noreferrer">Open linked post</a> : null}
+            </article>
+            <p className="tiny muted">Content preview. Explore may arrange the post differently on each device.</p>
             <h2>Review &amp; submit</h2>
             <dl className="review-list">
               <div><dt>Title</dt><dd>{title || '—'}</dd></div>
@@ -531,7 +623,7 @@ function SubmissionEditor({ existing }: { existing: Submission | null }) {
         <div className="join__actions">
           {step > 0 ? <button type="button" className="button button--ghost-dark" onClick={back} disabled={saving}>Back</button> : <span />}
           <div className="join__actions-right">
-            <button type="button" className="button button--ghost-dark" onClick={() => void saveDraft()} disabled={saving}>Save draft</button>
+            <button type="button" className="button button--ghost-dark" onClick={() => void saveDraft()} disabled={saving || (uploadPct !== null && uploadPct < 100)}>Save draft</button>
             {step < 3 ? (
               <button type="button" className="button button--primary" onClick={next} disabled={saving || (uploadPct !== null && uploadPct < 100)}>Continue</button>
             ) : (

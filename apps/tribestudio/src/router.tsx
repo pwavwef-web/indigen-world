@@ -12,6 +12,7 @@ import {
   useEffect,
   useMemo,
   useState,
+  useRef,
   type AnchorHTMLAttributes,
   type MouseEvent,
   type ReactNode,
@@ -32,20 +33,30 @@ function currentPath(): string {
 
 export function RouterProvider({ children }: { children: ReactNode }) {
   const [location, setLocation] = useState(() => ({ path: currentPath(), search: window.location.search }));
+  const previousUrl = useRef(`${window.location.pathname}${window.location.search}`);
 
   useEffect(() => {
-    const onPop = () => setLocation({ path: currentPath(), search: window.location.search });
+    const onPop = () => {
+      if (!window.dispatchEvent(new Event('studio:before-navigate', { cancelable: true }))) {
+        window.history.pushState({}, '', previousUrl.current);
+        return;
+      }
+      previousUrl.current = `${window.location.pathname}${window.location.search}`;
+      setLocation({ path: currentPath(), search: window.location.search });
+    };
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
   }, []);
 
   const navigate = useCallback((to: string, options?: { replace?: boolean }) => {
+    if (!window.dispatchEvent(new Event('studio:before-navigate', { cancelable: true }))) return;
     const url = new URL(to, window.location.origin);
     if (options?.replace) {
       window.history.replaceState({}, '', `${url.pathname}${url.search}`);
     } else {
       window.history.pushState({}, '', `${url.pathname}${url.search}`);
     }
+    previousUrl.current = `${url.pathname}${url.search}`;
     setLocation({ path: currentPath(), search: window.location.search });
     window.scrollTo({ top: 0, behavior: 'auto' });
   }, []);

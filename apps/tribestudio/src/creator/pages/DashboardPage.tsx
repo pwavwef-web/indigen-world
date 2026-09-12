@@ -6,7 +6,7 @@ import type {
   CreatorProfile,
   Submission,
 } from '@indigen-world/contracts/creator-models';
-import { ProgressBar, StreakBadge, Badge, Modal } from '@indigen-world/web-ui';
+import { ProgressBar, Badge, Modal } from '@indigen-world/web-ui';
 import { Link } from '../../router';
 import { useAuth } from '../../auth';
 import { useConfig } from '../CreatorProvider';
@@ -102,15 +102,18 @@ export function DashboardPage() {
 
   const application = applications[0] ?? null;
   const anyOpen = campaigns.some(submissionsOpen);
-  const completion = profile?.profileCompletion ?? (profile ? 60 : 0);
+  const completion = profile?.profileCompletion ?? 0;
 
   // Gamification stats calculation
   const validatedCount = submissions.filter((s) => s.status === 'APPROVED').length;
-  const totalSubmissions = submissions.length;
+  const totalSubmissions = submissions.filter((s) => s.status !== 'DRAFT').length;
   const xpPoints = totalSubmissions * 50 + validatedCount * 150;
   const currentLevel = Math.floor(xpPoints / 300) + 1;
   const nextLevelXp = currentLevel * 300;
   const currentLevelProgress = xpPoints % 300;
+  const actionableSubmissions = submissions.filter((s) => ['DRAFT', 'NEEDS_REVISION'].includes(s.status)
+    && !s.collectionContribution && s.campaign.id !== 'collection-contributions')
+    .sort((a, b) => Number(b.status === 'NEEDS_REVISION') - Number(a.status === 'NEEDS_REVISION'));
 
   const BADGES: MilestoneBadge[] = [
     {
@@ -118,7 +121,7 @@ export function DashboardPage() {
       name: 'Founding Voice',
       description: 'Applied and accepted into the Indigen World Founding Creator cohort.',
       icon: '🎙️',
-      unlocked: application?.status === 'APPROVED' || !!profile,
+      unlocked: applications.some((a) => a.status === 'APPROVED'),
       tier: 'gold',
     },
     {
@@ -132,7 +135,7 @@ export function DashboardPage() {
     {
       id: 'kasem-scholar',
       name: 'Kasem Wordsmith',
-      description: 'Contributed 5 or more validated linguistic entries.',
+      description: 'Contributed 5 or more approved submissions.',
       icon: '🏺',
       unlocked: validatedCount >= 5,
       tier: 'silver',
@@ -153,7 +156,6 @@ export function DashboardPage() {
         <div>
           <div className="head-greeting">
             <h1>Welcome, {profile?.public.displayName ?? user?.displayName ?? 'creator'}</h1>
-            <StreakBadge count={5} label="Day Streak" />
           </div>
           <p className="muted">Your founding-creator workspace &amp; cultural portfolio.</p>
         </div>
@@ -173,6 +175,21 @@ export function DashboardPage() {
         </div>
       ) : null}
 
+      <section className="panel">
+        <div className="panel__head">
+          <h2>Pick up where you left off</h2>
+          <Link to="/studio/submissions/new" className="button button--primary">Create a post</Link>
+        </div>
+        {actionableSubmissions.length > 0 ? (
+          <ul className="mini-list">
+            {actionableSubmissions.slice(0, 4).map((s) => (
+                <li key={s.id}><Link to={`/studio/submissions/${s.id}/edit`}>{s.title || 'Untitled'}</Link>
+                  <span>{s.status === 'NEEDS_REVISION' ? 'Revisions requested' : 'Continue draft'}</span></li>
+              ))}
+          </ul>
+        ) : <p className="muted">Ready for your next story, recording or translation.</p>}
+      </section>
+
       {/* Gamification Level & XP Progress Banner */}
       <section className="gamification-banner iw-glass-card">
         <div className="gamification-banner__left">
@@ -182,7 +199,7 @@ export function DashboardPage() {
           </div>
           <div className="level-info">
             <h3>{currentLevel === 1 ? 'Apprentice Storyteller' : currentLevel === 2 ? 'Kasem Wordsmith' : 'Master Custodian'}</h3>
-            <p className="tiny muted">{xpPoints} total XP earned • {nextLevelXp - currentLevelProgress} XP to Level {currentLevel + 1}</p>
+            <p className="tiny muted">{xpPoints} total XP earned • {nextLevelXp - xpPoints} XP to Level {currentLevel + 1}</p>
             <ProgressBar value={currentLevelProgress} max={300} tone="terracotta" />
           </div>
         </div>

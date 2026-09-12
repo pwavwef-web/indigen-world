@@ -203,14 +203,18 @@ export function App() {
           <span className="brand__mark" aria-hidden="true">K</span>
           <span><strong>Kasem</strong><small>Dictionary</small></span>
         </a>
-        <span className="language-pair">Kasem <b aria-hidden="true">↔</b> English</span>
+        <nav className="header-links" aria-label="Dictionary links">
+          <span className="language-pair">Kasem <b aria-hidden="true">↔</b> English</span>
+          <a href="https://indigenworld.com/dictionary">Indigen World <span aria-hidden="true">↗</span></a>
+        </nav>
       </header>
 
       <main>
         <section className="dictionary-app" aria-label="Dictionary browser">
           <div className="browse-panel">
             <section className="search-area" aria-labelledby="app-title">
-              <h1 id="app-title">Search</h1>
+              <p className="eyebrow">THE KASEM COLLECTION</p>
+              <h1 id="app-title">Look up a word</h1>
               <label className="search-box">
                 <span className="search-box__icon" aria-hidden="true">⌕</span>
                 <span className="sr-only">Search Kasem or English</span>

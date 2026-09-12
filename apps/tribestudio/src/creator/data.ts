@@ -279,14 +279,16 @@ export interface SubmissionDraftInput {
     noUnlawfulCopyright: boolean;
   };
   permissions: { review: boolean; publication: boolean; promotion: boolean; aiTraining: boolean };
-  media?: Submission['media'];
+  media?: Submission['media'] | null;
   consentVersion: string;
 }
 
 function buildSubmission(input: SubmissionDraftInput, status: Submission['status'], existing?: Submission): Submission {
   const now = new Date().toISOString();
+  const retained = { ...existing };
+  if (input.media === null) delete retained.media;
   return {
-    ...existing,
+    ...retained,
     id: input.id,
     authUid: input.uid,
     campaign: { collection: 'campaigns', id: input.campaignId },
@@ -308,7 +310,8 @@ function buildSubmission(input: SubmissionDraftInput, status: Submission['status
     culturalContext: input.culturalContext,
     caption: input.caption,
     altText: input.altText,
-    ...((input.media ?? existing?.media) ? { media: input.media ?? existing?.media } : {}),
+    ...((input.media === undefined ? existing?.media : input.media)
+      ? { media: (input.media === undefined ? existing?.media : input.media)! } : {}),
     externalPostUrl: input.externalPostUrl || null,
     participants: input.participants,
     disclosures: input.disclosures,

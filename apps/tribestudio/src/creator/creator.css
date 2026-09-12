@@ -3573,3 +3573,19 @@ a.button {
 }
 
 /* ====================================================================
+.submission-preview {
+  padding: 1rem;
+  border: 1px solid #d8dce3;
+  border-radius: 12px;
+  margin-block: 1rem;
+  overflow-wrap: anywhere;
+}
+.submission-preview img, .submission-preview video {
+  display: block;
+  max-width: 100%;
+  max-height: 420px;
+  object-fit: contain;
+  border-radius: 8px;
+}
+.submission-preview audio { width: 100%; }
+.submission-preview__text { white-space: pre-wrap; }

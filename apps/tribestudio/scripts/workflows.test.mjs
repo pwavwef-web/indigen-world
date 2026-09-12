@@ -13,7 +13,7 @@ const tick = () => new Promise((resolve) => setImmediate(resolve));
 async function load(path, names, mocks = {}) {
   const { code } = await transformWithOxc(readFileSync(resolve(root, path), 'utf8'), path, { jsx: { runtime: 'classic' } });
   const executable = code.replace(/^import[\s\S]*?;\n/gm, '').replace(/\bexport (?=(?:async )?function|const|let|class)/g, '');
-  return runInNewContext(executable + '\n;({' + names.join(',') + '})', { URL, URLSearchParams, Blob, File, console, ...mocks });
+  return runInNewContext(executable + '\n;({' + names.join(',') + '})', { URL, URLSearchParams, Blob, File, Event, console, ...mocks });
 }
 
 function hooks() {
@@ -85,6 +85,7 @@ test('text and link-only submissions omit media; saved media and metadata surviv
   prior.moderation.feedback = 'Keep the source';
   const next = buildSubmission(input, 'DRAFT', prior);
   assert.deepEqual(plain(next.media), prior.media);
+  assert.equal(Object.hasOwn(buildSubmission({ ...input, media: null }, 'DRAFT', prior), 'media'), false);
   assert.equal(next.lifecycle.version, 2);
   assert.equal(next.moderation.feedback, 'Keep the source');
 });
@@ -118,7 +119,7 @@ test('query-only navigation and browser Back update route consumers', async () =
   const events = {};
   const changeUrl = (_state, _title, path) => { const url = new URL(path, location.origin); location.pathname = url.pathname; location.search = url.search; };
   const { RouterProvider, useQueryParam, matchRoute } = await load('src/router.tsx', ['RouterProvider', 'useQueryParam', 'matchRoute'], {
-    ...h.api, window: { location, history: { pushState: changeUrl, replaceState: changeUrl }, scrollTo() {}, addEventListener: (key, fn) => { events[key] = fn; }, removeEventListener() {} },
+    ...h.api, window: { dispatchEvent: () => true, location, history: { pushState: changeUrl, replaceState: changeUrl }, scrollTo() {}, addEventListener: (key, fn) => { events[key] = fn; }, removeEventListener() {} },
   });
   let tree = h.render(RouterProvider);
   h.flush();
@@ -142,6 +143,8 @@ test('draft editor restores the original ID, text, participants and media', asyn
     ...h.api, useAuth: () => ({ user }), useConfig: () => ({ config: null }), useRoute: () => ({ navigate() {} }),
     useQueryParam: () => null, newSubmissionId: () => { throw Error('Must reuse draft ID'); },
     saveSubmission: async (value) => { saved = value; },
+    window: { addEventListener() {}, removeEventListener() {}, setTimeout, clearTimeout },
+    storage: {}, ref: () => ({}), getDownloadURL: async () => 'https://example.com/media',
     Link: 'a', Stepper: 'stepper', Field: 'field', VoiceRecorder: 'recorder', WhatsAppCard: 'whatsapp',
   });
   h.render(SubmissionEditor, { existing }); h.flush();
@@ -226,4 +229,90 @@ test('first save writes a new document without an unauthorized read of its missi
   await saveSubmission(input, 'DRAFT', null);
   assert.equal(saved.id, input.id);
   assert.equal(saved.status, 'DRAFT');
+});
+
+async function editorHarness(overrides = {}) {
+  const h = hooks(); const timers = new Map(); const events = {}; const writes = []; let timerId = 0; let focused;
+  const existing = { ...input, authUid: 'creator', campaign: { id: 'open' }, status: 'DRAFT', lifecycle: { version: 1 } };
+  const { SubmissionEditor } = await load('src/creator/pages/SubmissionNewPage.tsx', ['SubmissionEditor'], {
+    ...h.api, useAuth: () => ({ user: { uid: 'creator' } }), useConfig: () => ({ config: null }),
+    useRoute: () => ({ navigate() {} }), useQueryParam: () => null,
+    saveSubmission: async (value) => { writes.push(value); },
+    window: { addEventListener: (name, fn) => { events[name] = fn; }, removeEventListener() {}, confirm: () => false,
+      setTimeout: (fn) => { timers.set(++timerId, fn); return timerId; }, clearTimeout: (id) => timers.delete(id) },
+    document: { getElementById: (id) => ({ focus: () => { focused = id; } }) },
+    storage: {}, ref: () => ({}), getDownloadURL: async () => 'https://example.com/media',
+    Link: 'a', Stepper: 'stepper', Field: 'field', VoiceRecorder: 'recorder', WhatsAppCard: 'whatsapp', ...overrides,
+  });
+  const render = () => { const tree = h.render(SubmissionEditor, { existing }); h.flush(); return tree; };
+  render();
+  return { render, writes, events, timers, focused: () => focused, dispose: () => h.dispose(),
+    runTimers: async () => { const pending = [...timers.values()]; timers.clear(); pending.forEach((fn) => fn()); await tick(); } };
+}
+
+test('autosave persists edited text and warns while dirty, then clears the warning after saving', async () => {
+  const e = await editorHarness();
+  find(e.render(), (n) => n.props?.id === 't').props.onChange({ target: { value: 'Updated story' } });
+  e.render();
+  const before = new Event('beforeunload', { cancelable: true }); e.events.beforeunload(before);
+  assert.equal(before.defaultPrevented, true);
+  const leave = new Event('studio:before-navigate', { cancelable: true }); e.events['studio:before-navigate'](leave);
+  assert.equal(leave.defaultPrevented, true);
+  await e.runTimers(); e.render();
+  assert.equal(e.writes.length, 1); assert.equal(e.writes[0].title, 'Updated story');
+  const after = new Event('beforeunload', { cancelable: true }); e.events.beforeunload(after);
+  assert.equal(after.defaultPrevented, false); e.dispose();
+});
+
+test('Continue rejects missing details and focuses the title without advancing', async () => {
+  const e = await editorHarness();
+  find(e.render(), (n) => n.props?.id === 't').props.onChange({ target: { value: '' } });
+  const tree = e.render();
+  find(tree, (n) => n.type === 'button' && n.props.children.includes('Continue')).props.onClick();
+  await e.runTimers();
+  assert.equal(e.focused(), 't');
+  assert.equal(find(e.render(), (n) => n.type === 'stepper').props.current, 0);
+  e.dispose();
+});
+
+test('failed autosave exposes a retry and does not repeatedly write', async () => {
+  const e = await editorHarness({ saveSubmission: async () => { throw Error('Offline'); } });
+  find(e.render(), (n) => n.props?.id === 't').props.onChange({ target: { value: 'Offline edit' } });
+  e.render(); await e.runTimers();
+  const tree = e.render();
+  assert.equal(e.timers.size, 0);
+  assert.ok(find(tree, (n) => n.props?.role === 'status').props.children.flat(Infinity).join('').includes('Not saved'));
+  e.dispose();
+});
+
+
+test('upload controls prevent overlapping uploads and removal is saved explicitly', async () => {
+  let finish; let uploads = 0;
+  const e = await editorHarness({ uploadSubmissionMedia: () => { uploads++; return new Promise((resolve) => { finish = resolve; }); } });
+  find(e.render(), (n) => n.type === 'button' && n.props.children.includes('Continue')).props.onClick();
+  await tick();
+  const field = find(e.render(), (n) => n.props?.id === 'media-file');
+  const file = new File(['audio'], 'voice.webm', { type: 'audio/webm' });
+  field.props.onChange({ target: { files: [file] } });
+  field.props.onChange({ target: { files: [file] } });
+  assert.equal(uploads, 1);
+  assert.equal(find(e.render(), (n) => n.props?.id === 'media-file').props.disabled, true);
+  finish({ storagePath: 'private/voice', downloadUrl: 'https://example.com/media' }); await tick();
+  const tree = e.render();
+  find(tree, (n) => n.type === 'button' && n.props.children.includes('Remove attachment')).props.onClick();
+  find(e.render(), (n) => n.type === 'button' && n.props.children.includes('Save draft')).props.onClick();
+  await tick();
+  assert.equal(e.writes.at(-1).media, null); e.dispose();
+});
+
+test('translation field labels follow the selected source and target languages', async () => {
+  const e = await editorHarness();
+  find(e.render(), (n) => n.type === 'button' && find(n, (c) => c.type === 'strong' && c.props.children.includes('Translation'))).props.onClick();
+  let tree = e.render();
+  find(tree, (n) => n.props?.id === 'sourceLang').props.onChange({ target: { value: 'en' } });
+  find(tree, (n) => n.props?.id === 'targetLang').props.onChange({ target: { value: 'xsm' } });
+  tree = e.render();
+  assert.equal(find(tree, (n) => n.type === 'field' && n.props.htmlFor === 'sourceContent').props.label, 'English source text');
+  assert.equal(find(tree, (n) => n.type === 'field' && n.props.htmlFor === 'translatedContent').props.label, 'Kasem translation');
+  e.dispose();
 });
