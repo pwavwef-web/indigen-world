@@ -958,12 +958,18 @@ footer span:first-child {
   .definition-panel,.explore-panel {
     display:none;
   }
-  .showing-detail .browse-panel {
-    display:none;
-  }
-  .showing-detail .definition-panel,.showing-detail .explore-panel {
+  .showing-detail .definition-panel {
+    position:fixed;
+    z-index:100;
+    inset:0;
     display:block;
-    padding:24px;
+    overflow-y:auto;
+    padding:max(24px,env(safe-area-inset-top)) 24px max(24px,env(safe-area-inset-bottom));
+    background:#fff;
+    overscroll-behavior:contain;
+  }
+  .showing-detail .explore-panel {
+    display:none;
   }
   .panel-heading {
     flex-wrap:wrap;

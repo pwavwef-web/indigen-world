@@ -81,12 +81,17 @@ export function App() {
   const [recent, setRecent] = useState<string[]>(() => [...readSaved(RECENT_KEY)]);
   const [mobileDetail, setMobileDetail] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
+  const returnFocusRef = useRef<HTMLElement | null>(null);
   const openEntry = (id: string) => {
     setSelectedId(id);
-    setMobileDetail(true);
+    const mobileLayout = window.matchMedia("(max-width: 700px)").matches;
+    if (mobileLayout) {
+      returnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+      setMobileDetail(true);
+    }
     requestAnimationFrame(() => {
       document.querySelector<HTMLElement>(".definition-panel")?.scrollTo(0, 0);
-      if (window.matchMedia("(max-width: 700px)").matches) document.querySelector<HTMLElement>(".panel-heading")?.focus();
+      if (mobileLayout) document.querySelector<HTMLElement>(".panel-heading")?.focus();
     });
     setRecent(current => {
       const next = [id, ...current.filter(value => value !== id)].slice(0, 50);
@@ -94,6 +99,24 @@ export function App() {
       return next;
     });
   };
+  useEffect(() => {
+    if (!mobileDetail) return;
+
+    const previousOverflow = document.body.style.overflow;
+    const mobileLayout = window.matchMedia("(max-width: 700px)");
+    document.body.style.overflow = "hidden";
+
+    const closeWhenLayoutChanges = (event: MediaQueryListEvent) => {
+      if (!event.matches) setMobileDetail(false);
+    };
+    mobileLayout.addEventListener("change", closeWhenLayoutChanges);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      mobileLayout.removeEventListener("change", closeWhenLayoutChanges);
+      requestAnimationFrame(() => returnFocusRef.current?.focus());
+    };
+  }, [mobileDetail]);
   useEffect(() => {
     const shortcut = (event: KeyboardEvent) => {
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
@@ -273,8 +296,8 @@ export function App() {
             ))}</div>}
           </div>
 
-          <div className="definition-panel">
-            <div className="panel-heading" tabIndex={-1}><div><span className="eyebrow">KASEM · ENGLISH</span><h2>Definition</h2></div><button className="mobile-back" type="button" onClick={returnToResults}>← Results</button>
+          <div className="definition-panel" role={mobileDetail ? "dialog" : undefined} aria-modal={mobileDetail || undefined} aria-labelledby={mobileDetail ? "definition-title" : undefined}>
+            <div className="panel-heading" tabIndex={-1}><div><span className="eyebrow">KASEM · ENGLISH</span><h2 id="definition-title">Definition</h2></div><button className="mobile-back" type="button" onClick={returnToResults}>← Results</button>
               <div className="entry-navigation" aria-label="Navigate results"><button type="button" aria-label="Previous word" disabled={selectedIndex <= 0} onClick={() => openEntry(filtered[selectedIndex - 1].id)}>←</button><span>{selectedIndex >= 0 ? selectedIndex + 1 : 0} / {filtered.length}</span><button type="button" aria-label="Next word" disabled={selectedIndex < 0 || selectedIndex >= filtered.length - 1} onClick={() => openEntry(filtered[selectedIndex + 1].id)}>→</button></div>
             </div>
             <EntryDetail entry={selected} saved={selected ? saved.has(selected.id) : false} onToggleSaved={toggleSaved} />
