@@ -4,6 +4,6 @@
   "description": "An independent Kasem–English dictionary.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#f4f1e8",
-  "theme_color": "#12233f"
+  "background_color": "#f6f7fb",
+  "theme_color": "#0f1830"
 }
