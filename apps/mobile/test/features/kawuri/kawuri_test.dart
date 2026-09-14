@@ -1,7 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:indigen_world_mobile/domain/dictionary_entry.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_models.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_offline_guide.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_service.dart';
+import 'package:indigen_world_mobile/features/kawuri/kawuri_tasks.dart';
 
 void main() {
   KawuriMessage you(String text) => KawuriMessage(
@@ -17,6 +19,88 @@ void main() {
     text: text,
     sentAt: DateTime(2026, 8, 23),
   );
+
+  group('verified translation grounding', () {
+    const entry = DictionaryEntry(
+      id: 'verified-entry',
+      headword: 'test form',
+      translation: 'test meaning',
+      translations: ['test meaning', 'other meaning'],
+      partOfSpeech: 'noun',
+      dialect: 'test dialect',
+      pronunciation: '',
+      example: '',
+      exampleTranslation: '',
+      attribution: 'Approved test fixture',
+    );
+    test('matches only exact published forms or meanings', () {
+      expect(
+        KawuriService.verifiedMatches([entry], ' Test Meaning ').single.id,
+        entry.id,
+      );
+      expect(
+        KawuriService.verifiedMatches([entry], 'other meaning').single.id,
+        entry.id,
+      );
+      expect(
+        KawuriService.verifiedMatches(
+          [entry],
+          'test form',
+          toKasem: false,
+        ).single.id,
+        entry.id,
+      );
+      expect(KawuriService.verifiedMatches([entry], 'test'), isEmpty);
+      expect(KawuriService.verifiedMatches([entry], 'unknown phrase'), isEmpty);
+    });
+    test('source metadata survives message persistence', () {
+      final original = KawuriMessage(
+        id: 'translation',
+        role: KawuriRole.kawuri,
+        text: 'Published match',
+        sentAt: DateTime(2026),
+        taskType: KawuriTaskType.translation,
+        sources: [
+          {
+            'id': entry.id,
+            'source': entry.attribution,
+            'headword': entry.headword,
+          },
+        ],
+      );
+      final restored = KawuriMessage.fromJson(original.toJson());
+      expect(restored.sources.single['source'], entry.attribution);
+      expect(restored.taskType, KawuriTaskType.translation);
+    });
+  });
+  test(
+    'error copy distinguishes quota, permission, timeout and service failure',
+    () {
+      expect(
+        KawuriService.errorMessage('resource-exhausted'),
+        contains('allowance'),
+      );
+      expect(
+        KawuriService.errorMessage('permission-denied'),
+        contains('Permission denied'),
+      );
+      expect(
+        KawuriService.errorMessage('deadline-exceeded'),
+        contains('timed out'),
+      );
+      expect(
+        KawuriService.errorMessage('unavailable'),
+        contains('unavailable'),
+      );
+    },
+  );
+  test('unconfigured image and video tasks are explicitly unavailable', () {
+    expect(KawuriTaskType.imageGeneration.available, isFalse);
+    expect(KawuriTaskType.videoGeneration.available, isFalse);
+    expect(KawuriTaskType.mediaAnalysis.available, isFalse);
+    expect(KawuriTaskStatus.ready.terminal, isTrue);
+    expect(KawuriTaskStatus.generating.terminal, isFalse);
+  });
 
   group('offlineGuideAnswer', () {
     test('answers app questions it genuinely knows', () {

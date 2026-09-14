@@ -6,9 +6,10 @@ import 'package:flutter/material.dart';
 /// Two layers live here.
 ///
 /// [BrandColors] is the *identity*: the handful of fixed hues that are the same
-/// pigment whatever the light — the heritage green of the logo, the kente gold,
-/// the terracotta. Reach for these when the colour is the brand itself: a seed
-/// colour, a splash screen, a gradient over a photograph.
+/// pigment whatever the light — the ecosystem's deep indigo, the heritage
+/// green, the kente gold, the terracotta. Reach for these when the colour is
+/// the brand itself: a seed colour, a splash screen, a gradient over a
+/// photograph.
 ///
 /// [BrandPalette] is the *paint*: every semantic role a surface, a line or a
 /// word can play, resolved for the brightness the member is actually reading
@@ -22,11 +23,36 @@ import 'package:flutter/material.dart';
 /// ─────────────────────────────────────────────────────────────────────────────
 
 abstract final class BrandColors {
-  /// The logo green. Deep enough to carry white text at any size.
+  /// Deep Indigo — the ecosystem's brand colour, and the pigment every
+  /// Indigen World website is built on.
+  ///
+  /// The authority is `packages/design-tokens/colors.json`, which carries the
+  /// status `approved-ecosystem-standard`; the Website, TribeStudio and the
+  /// Kasena dictionary all resolve to it. Deep enough to carry white text at
+  /// any size, which is why the sites set their headers and hero bands in it.
+  static const indigo = Color(0xFF1E365D);
+
+  /// The dark end of the band the sites open every page with —
+  /// `linear-gradient(160deg, var(--indigo-950), var(--indigo-900))`, whose
+  /// lit end is [indigo].
+  static const indigoDeep = Color(0xFF142543);
+
+  /// The heritage green. No longer the daylight accent — the ecosystem's is
+  /// [indigo] — but still the app's own pigment after dark, where an indigo
+  /// panel sinks into the charcoal and this does not.
   static const heritageGreen = Color(0xFF0B3D2E);
   static const savannahGreen = Color(0xFF155B43);
   static const kenteGold = Color(0xFFD89B1D);
   static const terracotta = Color(0xFFB65A3A);
+
+  /// The pressed shade of [terracotta]; the sites' `--terracotta-dark`.
+  static const terracottaDark = Color(0xFF9A492E);
+
+  /// The paper the sites are printed on, and the ground of this app by day.
+  static const plasterCream = Color(0xFFFAF6ED);
+
+  /// The quieter band of that paper — form wells, notes, unselected chips.
+  static const sand = Color(0xFFF1EADA);
 
   /// Night ground for the immersive surfaces — the launch screen, Explore and
   /// Kawuri. These stay dark in *both* themes: a full-bleed reel is a cinema,
@@ -104,11 +130,16 @@ class BrandPalette extends ThemeExtension<BrandPalette> {
   final Color faintInk;
 
   /// The brand accent as a *foreground* — links, selected icons, small marks.
-  /// Deep green on plaster; a lit green on charcoal, because the logo green
-  /// disappears against a dark ground.
+  /// Deep indigo on plaster, the same pigment the websites carry the brand in;
+  /// a lit green on charcoal, because no indigo survives a dark ground.
   final Color accent;
 
   /// The brand accent as a *surface* — primary buttons, the composer FAB.
+  ///
+  /// Not the same hue as [accent] by day, and deliberately so: the websites
+  /// set `.button--primary` in terracotta and reserve indigo for the brand
+  /// itself, so the colour you press is never the colour that merely
+  /// identifies. At night the two converge on the green.
   final Color accentFill;
 
   /// Text and icons drawn on [accentFill].
@@ -152,37 +183,61 @@ class BrandPalette extends ThemeExtension<BrandPalette> {
   /// whole token would be overkill.
   T pick<T>(T light, T dark) => isDark ? dark : light;
 
-  /// Daylight: warm paper, deep green, quiet lines.
+  /// Daylight: the ecosystem's own paper and ink.
   ///
-  /// The cream is deliberately close to neutral. The old plaster was a
-  /// saturated ochre, and a saturated ground makes every accent laid on it
-  /// shout to be heard.
+  /// This is the palette the websites are built from. The authority is
+  /// `packages/design-tokens/colors.json` — the approved ecosystem standard
+  /// that the Website, TribeStudio and the Kasena dictionary all resolve to —
+  /// and the roles below are assigned the way those sites assign them:
+  ///
+  ///   * Deep Indigo is what *carries the brand*: links, selected icons,
+  ///     focus rings, secondary buttons (`.button--secondary` on a light
+  ///     section is indigo text in an indigo outline).
+  ///   * Terracotta is what you *press*: it is `.button--primary` on every
+  ///     site, so it is the filled button and the composer FAB here.
+  ///   * Gold is a highlight, never a ground.
+  ///
+  /// Two values are deliberately not the literal token-file entry:
+  ///
+  /// [background] is the sites' plaster cream rather than the token file's
+  /// near-white `--bg: #fffdf8`, for a reason the web does not have. The sites
+  /// band their pages white / cream / sand, so a white card always has an edge
+  /// to sit against; a phone has one continuous ground, and a white card on
+  /// `#fffdf8` separates at 1.02:1 — invisible. Cream holds the cards up.
+  ///
+  /// [gold] is the token file's light-mode `warning`, which is the ecosystem's
+  /// own answer to "what does kente gold become when it has to be legible on
+  /// paper". The sites spend gold as a *fill* with dark text on it; this app
+  /// spends it as small glyphs — verified marks, star ratings — and the raw
+  /// `#c58a00` reads at 2.8:1 against cream, which is not a colour you can
+  /// draw a 16px icon in. [BrandColors.kenteGold] is still the pigment for
+  /// anything gold-on-dark.
   static const light = BrandPalette(
     brightness: Brightness.light,
-    background: Color(0xFFF6F4EF),
+    background: Color(0xFFFAF6ED),
     surface: Color(0xFFFFFFFF),
-    surfaceMuted: Color(0xFFF0EEE8),
+    surfaceMuted: Color(0xFFF1EADA),
     surfaceElevated: Color(0xFFFFFFFF),
-    bar: Color(0xFFFBFAF7),
-    border: Color(0xFFE3E0D8),
-    divider: Color(0xFFEAE7E0),
-    ink: Color(0xFF1A1D1C),
-    mutedInk: Color(0xFF5F6764),
-    faintInk: Color(0xFF8B938F),
-    accent: Color(0xFF0B3D2E),
-    accentFill: Color(0xFF0B3D2E),
+    bar: Color(0xFFFFFDFA),
+    border: Color(0xFFD8D2C6),
+    divider: Color(0xFFE6E1D5),
+    ink: Color(0xFF172033),
+    mutedInk: Color(0xFF4C5568),
+    faintInk: Color(0xFF7A8293),
+    accent: Color(0xFF1E365D),
+    accentFill: Color(0xFFB65A3A),
     onAccentFill: Color(0xFFFFFFFF),
-    accentSoft: Color(0x140B3D2E),
-    gold: Color(0xFFA8801F),
-    terracotta: Color(0xFFA4553C),
-    like: Color(0xFFB4472F),
-    repost: Color(0xFF2E7D5B),
-    success: Color(0xFF2E7D5B),
+    accentSoft: Color(0x141E365D),
+    gold: Color(0xFF9A6700),
+    terracotta: Color(0xFFB65A3A),
+    like: Color(0xFF9A492E),
+    repost: Color(0xFF1F5A3A),
+    success: Color(0xFF1F6B45),
     danger: Color(0xFFA12A2A),
-    shadow: Color(0xFF0B3D2E),
+    shadow: Color(0xFF142543),
     glassFill: Color(0xFFFFFFFF),
     glassEdge: Color(0xFFFFFFFF),
-    scrim: Color(0x8A0B1410),
+    scrim: Color(0x8A0F1A2D),
   );
 
   /// Night: a charcoal with a green undertone rather than a flat grey, so the
@@ -381,12 +436,54 @@ extension BrandPaletteContext on BuildContext {
 /// Shared gradients, so the same warmth appears on every hero surface instead
 /// of each screen inventing its own three-stop blend.
 abstract final class BrandGradients {
-  /// Headers and hero cards. Brand pigment, so it does not follow brightness.
-  static const heritage = LinearGradient(
+  /// The ramp every filled hero panel is built from — deepest, mid, lit.
+  ///
+  /// This one *does* follow brightness, which is the exception in this class
+  /// and is the point of it. By day the ramp is the indigo the websites open
+  /// every page with (`linear-gradient(160deg, --indigo-950, --indigo-900)`),
+  /// so a member arriving from indigenworld.com lands on the same band. After
+  /// dark it is the heritage green: an indigo panel on a charcoal ground is a
+  /// slightly bluer charcoal, and the hero stops reading as a panel at all.
+  static List<Color> heroRamp(BrandPalette brand) => brand.isDark
+      ? const [
+          Color(0xFF082F25),
+          BrandColors.heritageGreen,
+          BrandColors.savannahGreen,
+        ]
+      : const [
+          Color(0xFF0F1A2D),
+          BrandColors.indigoDeep,
+          BrandColors.indigo,
+        ];
+
+  /// Headers and hero cards: the brand colour falling to its lit end.
+  static LinearGradient hero(BrandPalette brand) {
+    final ramp = heroRamp(brand);
+    return LinearGradient(
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+      colors: [ramp[1], ramp[2]],
+    );
+  }
+
+  /// The three-stop hero, for the large panels — a profile, the ads desk —
+  /// that want the top-left corner weighted.
+  static LinearGradient heroRich(BrandPalette brand) => LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [BrandColors.heritageGreen, BrandColors.savannahGreen],
+    colors: heroRamp(brand),
   );
+
+  /// A hero that ends in gold: the stand-in behind a community banner nobody
+  /// has uploaded a cover for yet.
+  static LinearGradient heroBanner(BrandPalette brand) {
+    final ramp = heroRamp(brand);
+    return LinearGradient(
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+      colors: [ramp[1], ramp[2], BrandColors.kenteGold],
+    );
+  }
 
   /// Accents that should feel like firelight — send buttons, highlights.
   static const ember = LinearGradient(
@@ -424,7 +521,9 @@ abstract final class BrandGradients {
   /// The lit corner of [pageWash], for the rare caller that needs the colour
   /// on its own.
   static Color pageWashTop(BrandPalette brand) => Color.alphaBlend(
-    (brand.isDark ? Colors.white : const Color(0xFFFFF6DC)).withValues(
+    // By day the lit corner is the token file's own plaster cream, so the
+    // wash lands on the same warmth the sites' `.section--cream` band has.
+    (brand.isDark ? Colors.white : const Color(0xFFFFF8E7)).withValues(
       alpha: brand.isDark ? 0.045 : 0.75,
     ),
     brand.background,

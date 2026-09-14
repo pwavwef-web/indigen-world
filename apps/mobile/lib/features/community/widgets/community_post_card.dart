@@ -7,12 +7,14 @@ import 'package:indigen_world_mobile/features/community/data/community_models.da
 import 'package:indigen_world_mobile/features/community/data/community_providers.dart';
 import 'package:indigen_world_mobile/features/community/data/link_preview.dart';
 import 'package:indigen_world_mobile/features/community/widgets/community_avatar.dart';
+import 'package:indigen_world_mobile/features/community/widgets/post_category_style.dart';
 import 'package:indigen_world_mobile/features/community/widgets/post_media_view.dart';
 import 'package:indigen_world_mobile/features/community/widgets/post_text.dart';
 import 'package:indigen_world_mobile/features/community/widgets/verified_badge.dart';
 import 'package:indigen_world_mobile/features/community/widgets/video_cover.dart';
 import 'package:indigen_world_mobile/features/subscriptions/data/subscription_catalog.dart';
 import 'package:indigen_world_mobile/features/subscriptions/widgets/supporter_badge.dart';
+import 'package:indigen_world_mobile/l10n/app_localizations.dart';
 import 'package:indigen_world_mobile/shared/glass_popup.dart';
 
 /// One complete community post surface.
@@ -53,8 +55,10 @@ class CommunityPostCard extends ConsumerWidget {
     this.onOpenHandle,
     this.onOpenLink,
     this.onPollVotes,
+    this.onOpenCommunity,
     this.showThreadLine = false,
     this.showDivider = true,
+    this.showCommunityLabel = true,
     this.compact = false,
     super.key,
   });
@@ -66,7 +70,10 @@ class CommunityPostCard extends ConsumerWidget {
   final String? votedOptionId;
   final VoidCallback onLike;
   final VoidCallback onReply;
-  final VoidCallback onSave;
+
+  /// Null where saving cannot work — a private community's posts, which the
+  /// saved list has no way to read back.
+  final VoidCallback? onSave;
   final VoidCallback onOpen;
   final VoidCallback onOpenAuthor;
   final VoidCallback onMore;
@@ -81,6 +88,9 @@ class CommunityPostCard extends ConsumerWidget {
   final ValueChanged<String>? onOpenLink;
   final VoidCallback? onPollVotes;
 
+  /// Opens the community this post was published into.
+  final VoidCallback? onOpenCommunity;
+
   /// Draws the vertical rule from this post's avatar down to the next one, for
   /// a reply that continues a thread.
   final bool showThreadLine;
@@ -88,6 +98,10 @@ class CommunityPostCard extends ConsumerWidget {
   /// The hairline that separates one post from the next. Off for the last row
   /// of a list that already ends in one.
   final bool showDivider;
+
+  /// Whether to say which community the post is in. Off inside that community,
+  /// where every post would say the same thing.
+  final bool showCommunityLabel;
 
   final bool compact;
 
@@ -121,6 +135,8 @@ class CommunityPostCard extends ConsumerWidget {
 
     final avatarSize = compact ? 34.0 : 42.0;
     final gutter = compact ? 10.0 : 12.0;
+    final category = post.category;
+    final community = showCommunityLabel ? post.community : null;
 
     return Material(
       color: Colors.transparent,
@@ -134,227 +150,350 @@ class CommunityPostCard extends ConsumerWidget {
                 ? Border(bottom: BorderSide(color: brand.divider))
                 : null,
           ),
-          child: Padding(
-            padding: EdgeInsets.fromLTRB(16, compact ? 10 : 13, 12, 4),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (post.isResharedFeedItem) ...[
-                  Padding(
-                    padding: EdgeInsets.only(left: avatarSize + gutter),
-                    child: _ActivityLabel(
-                      name: post.resharedByName ?? 'A community member',
-                      onTap: onOpenResharer,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                ],
-                Stack(
+          child: Stack(
+            children: [
+              Padding(
+                // Two on the right, not twelve: the overflow menu's 44px target
+                // needs the room, and everything else pads itself back in.
+                padding: EdgeInsets.fromLTRB(16, compact ? 10 : 13, 2, 0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // The rule from this post's avatar down to the next one.
-                    // Drawn here rather than inside the avatar's own column:
-                    // the attachment, the poll and the action bar all hang
-                    // below that row, and the rule has to run the whole height
-                    // of the post rather than the height of the byline.
-                    if (showThreadLine)
-                      Positioned(
-                        top: avatarSize + 6,
-                        bottom: 0,
-                        left: avatarSize / 2 - 1,
-                        width: 2,
-                        child: ColoredBox(color: brand.divider),
-                      ),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            CommunityAvatar(
-                              initials: authorInitials,
-                              imageUrl: authorAvatar,
-                              username: liveAuthor?.username ??
-                                  post.authorUsername,
-                              size: avatarSize,
-                              onTap: onOpenAuthor,
-                            ),
-                            SizedBox(width: gutter),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  _PostByline(
-                                    name: authorName,
-                                    handle: authorHandle,
-                                    mark: authorMark,
-                                    supporter: authorSupporter,
-                                    age: communityAgeLabel(post.createdAt),
-                                    edited: post.isEdited,
-                                    compact: compact,
-                                    onOpenAuthor: onOpenAuthor,
-                                    onMore: onMore,
-                                  ),
-                                  if (post.text.isNotEmpty) ...[
-                                    const SizedBox(height: 3),
-                                    PostText(
-                                      text: post.text,
-                                      fontSize: compact ? 14.5 : 15.5,
-                                      onOpenHandle: onOpenHandle,
-                                      onOpenLink: onOpenLink,
-                                      // ── Who is allowed a live link ─────
-                                      // Nobody the community cannot put a
-                                      // real person behind. Scams travel on
-                                      // links and a link only works if it can
-                                      // be tapped, so an unverified account's
-                                      // links render struck through with a
-                                      // line saying why — see
-                                      // `community_links.dart` for why this
-                                      // is masking rather than a ban.
-                                      //
-                                      // `authorMark` is the live profile's
-                                      // mark where there is one, exactly as
-                                      // the badge beside the name is. The
-                                      // stamp on the post is what the
-                                      // author's client wrote at the time,
-                                      // and a member who verified this
-                                      // morning must not have last week's
-                                      // posts still masked.
-                                      linksEnabled: linksAreLive,
-                                    ),
-                                  ],
-                                  // Not when the post brought its own picture.
-                                  // A card and an attachment are both a large
-                                  // image asking to be looked at, and a post
-                                  // carrying two of them says neither is the
-                                  // one that matters — so the photograph
-                                  // somebody chose wins, and the link stays a
-                                  // link in the writing above it, where it is
-                                  // still tappable.
-                                  // Suppressed outright for an unverified
-                                  // author, rather than drawn and made
-                                  // untappable. The card *is* the link's own
-                                  // headline, picture and pitch, fetched from
-                                  // the page and reprinted on our timeline —
-                                  // showing it would hand a scam the most
-                                  // persuasive surface in the feed and then
-                                  // politely decline to open it.
-                                  if (post.firstLink case final link?
-                                      when !post.hasMedia && linksAreLive) ...[
-                                    const SizedBox(height: 10),
-                                    CommunityLinkPreview(
-                                      url: link,
-                                      onTap: onOpenLink == null
-                                          ? null
-                                          : () => onOpenLink!(link),
-                                    ),
-                                  ],
-                                ],
-                              ),
-                            ),
-                          ],
+                    if (community != null) ...[
+                      Padding(
+                        padding: EdgeInsets.only(
+                          left: avatarSize + gutter,
+                          right: 10,
                         ),
+                        child: _CommunityLabel(
+                          name: community.name,
+                          isPrivate: community.isPrivate,
+                          onTap: onOpenCommunity,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                    ],
+                    if (post.isResharedFeedItem) ...[
+                      Padding(
+                        padding: EdgeInsets.only(
+                          left: avatarSize + gutter,
+                          right: 10,
+                        ),
+                        child: _ActivityLabel(
+                          name: post.resharedByName ?? 'A community member',
+                          onTap: onOpenResharer,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                    ],
+                    Stack(
+                      children: [
+                        // The rule from this post's avatar down to the next one.
+                        // Drawn here rather than inside the avatar's own column:
+                        // the attachment, the poll and the action bar all hang
+                        // below that row, and the rule has to run the whole height
+                        // of the post rather than the height of the byline.
+                        if (showThreadLine)
+                          Positioned(
+                            top: avatarSize + 6,
+                            bottom: 0,
+                            left: avatarSize / 2 - 1,
+                            width: 2,
+                            child: ColoredBox(color: brand.divider),
+                          ),
                         Padding(
-                          padding: EdgeInsets.only(left: avatarSize + gutter),
+                          padding: const EdgeInsets.only(right: 10),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              // ── Where an attachment sits ────────────────
-                              // In the column the writing is in, indented past
-                              // the avatar and stopping where the writing
-                              // stops. It briefly ran the full width of the
-                              // card instead, breaking out of this column, and
-                              // that was wrong twice over: a picture pressed
-                              // against both edges of a phone is the loudest
-                              // thing on the screen whatever is written above
-                              // it, and the gutter the avatars live in stopped
-                              // being a straight line down the feed — which is
-                              // the thing that tells a reader, without
-                              // thinking about it, where one post ends and the
-                              // next begins.
-                              //
-                              // So the gutter stays reserved the whole height
-                              // of the post, exactly as it is on X, and the
-                              // shape the picture is drawn in
-                              // ([PostMediaView.displayAspect]) is what stops
-                              // a portrait clip taking the whole screen.
-                              if (post.hasMedia) ...[
-                                const SizedBox(height: 10),
-                                PostMediaView(
-                                  media: post.media,
-                                  // The viewer can appreciate, reply to and
-                                  // share the post the picture came from, so
-                                  // somebody who opened it to look properly
-                                  // never has to close it again to say
-                                  // anything.
-                                  actions: MediaPostActions(
-                                    postId: post.id,
-                                    likeCount: post.likeCount,
-                                    replyCount: post.replyCount,
-                                    onLike: onLike,
-                                    onReply: onReply,
-                                    onShare: onShare,
-                                  ),
-                                  // And it says whose it is while they look.
-                                  // The byline the card draws above is the
-                                  // first thing a full-screen picture covers
-                                  // up, and a photograph nobody is named under
-                                  // is a photograph nobody can follow, reply
-                                  // to or trust.
-                                  author: MediaPostAuthor(
-                                    displayName: authorName,
-                                    handle: authorHandle,
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  CommunityAvatar(
                                     initials: authorInitials,
-                                    mark: authorMark,
-                                    supporterMark: authorSupporter,
-                                    avatarUrl: authorAvatar,
-                                    caption: post.text,
-                                    onOpenProfile: onOpenAuthor,
+                                    imageUrl: authorAvatar,
+                                    username:
+                                        liveAuthor?.username ??
+                                        post.authorUsername,
+                                    size: avatarSize,
+                                    onTap: onOpenAuthor,
                                   ),
+                                  SizedBox(width: gutter),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        _PostByline(
+                                          name: authorName,
+                                          handle: authorHandle,
+                                          mark: authorMark,
+                                          supporter: authorSupporter,
+                                          age: communityAgeLabel(
+                                            post.createdAt,
+                                          ),
+                                          edited: post.isEdited,
+                                          compact: compact,
+                                          onOpenAuthor: onOpenAuthor,
+                                        ),
+                                        if (category != null) ...[
+                                          const SizedBox(height: 1),
+                                          PostCategoryLabel(category: category),
+                                        ],
+                                        if (post.text.isNotEmpty) ...[
+                                          const SizedBox(height: 3),
+                                          PostText(
+                                            text: post.text,
+                                            fontSize: compact ? 14.5 : 15.5,
+                                            onOpenHandle: onOpenHandle,
+                                            onOpenLink: onOpenLink,
+                                            // ── Who is allowed a live link ─────
+                                            // Nobody the community cannot put a
+                                            // real person behind. Scams travel on
+                                            // links and a link only works if it can
+                                            // be tapped, so an unverified account's
+                                            // links render struck through with a
+                                            // line saying why — see
+                                            // `community_links.dart` for why this
+                                            // is masking rather than a ban.
+                                            //
+                                            // `authorMark` is the live profile's
+                                            // mark where there is one, exactly as
+                                            // the badge beside the name is. The
+                                            // stamp on the post is what the
+                                            // author's client wrote at the time,
+                                            // and a member who verified this
+                                            // morning must not have last week's
+                                            // posts still masked.
+                                            linksEnabled: linksAreLive,
+                                          ),
+                                        ],
+                                        // Not when the post brought its own picture.
+                                        // A card and an attachment are both a large
+                                        // image asking to be looked at, and a post
+                                        // carrying two of them says neither is the
+                                        // one that matters — so the photograph
+                                        // somebody chose wins, and the link stays a
+                                        // link in the writing above it, where it is
+                                        // still tappable.
+                                        // Suppressed outright for an unverified
+                                        // author, rather than drawn and made
+                                        // untappable. The card *is* the link's own
+                                        // headline, picture and pitch, fetched from
+                                        // the page and reprinted on our timeline —
+                                        // showing it would hand a scam the most
+                                        // persuasive surface in the feed and then
+                                        // politely decline to open it.
+                                        if (post.firstLink case final link?
+                                            when !post.hasMedia &&
+                                                linksAreLive) ...[
+                                          const SizedBox(height: 10),
+                                          CommunityLinkPreview(
+                                            url: link,
+                                            onTap: onOpenLink == null
+                                                ? null
+                                                : () => onOpenLink!(link),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              Padding(
+                                padding: EdgeInsets.only(
+                                  left: avatarSize + gutter,
                                 ),
-                              ],
-                              if (post.poll case final poll?) ...[
-                                const SizedBox(height: 10),
-                                CommunityPollCard(
-                                  poll: poll,
-                                  votedOptionId: votedOptionId,
-                                  onVote: onVote,
-                                  onViewVotes: onPollVotes,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    // ── Where an attachment sits ────────────────
+                                    // In the column the writing is in, indented past
+                                    // the avatar and stopping where the writing
+                                    // stops. It briefly ran the full width of the
+                                    // card instead, breaking out of this column, and
+                                    // that was wrong twice over: a picture pressed
+                                    // against both edges of a phone is the loudest
+                                    // thing on the screen whatever is written above
+                                    // it, and the gutter the avatars live in stopped
+                                    // being a straight line down the feed — which is
+                                    // the thing that tells a reader, without
+                                    // thinking about it, where one post ends and the
+                                    // next begins.
+                                    //
+                                    // So the gutter stays reserved the whole height
+                                    // of the post, exactly as it is on X, and the
+                                    // shape the picture is drawn in
+                                    // ([PostMediaView.displayAspect]) is what stops
+                                    // a portrait clip taking the whole screen.
+                                    if (post.hasMedia) ...[
+                                      const SizedBox(height: 10),
+                                      PostMediaView(
+                                        media: post.media,
+                                        // The viewer can appreciate, reply to and
+                                        // share the post the picture came from, so
+                                        // somebody who opened it to look properly
+                                        // never has to close it again to say
+                                        // anything.
+                                        actions: MediaPostActions(
+                                          postId: post.id,
+                                          likeCount: post.likeCount,
+                                          replyCount: post.replyCount,
+                                          onLike: onLike,
+                                          onReply: onReply,
+                                          onShare: onShare,
+                                        ),
+                                        // And it says whose it is while they look.
+                                        // The byline the card draws above is the
+                                        // first thing a full-screen picture covers
+                                        // up, and a photograph nobody is named under
+                                        // is a photograph nobody can follow, reply
+                                        // to or trust.
+                                        author: MediaPostAuthor(
+                                          displayName: authorName,
+                                          handle: authorHandle,
+                                          initials: authorInitials,
+                                          mark: authorMark,
+                                          supporterMark: authorSupporter,
+                                          avatarUrl: authorAvatar,
+                                          caption: post.text,
+                                          onOpenProfile: onOpenAuthor,
+                                        ),
+                                      ),
+                                    ],
+                                    if (post.poll case final poll?) ...[
+                                      const SizedBox(height: 10),
+                                      CommunityPollCard(
+                                        poll: poll,
+                                        votedOptionId: votedOptionId,
+                                        onVote: onVote,
+                                        onViewVotes: onPollVotes,
+                                      ),
+                                    ],
+                                    if (post.quotedPost case final quoted?) ...[
+                                      const SizedBox(height: 10),
+                                      QuotedPostPreview(
+                                        post: quoted,
+                                        onTap: onOpenQuoted ?? onOpen,
+                                      ),
+                                    ],
+                                    PostActionBar(
+                                      replyCount: post.replyCount,
+                                      repostCount: post.reshareAndQuoteCount,
+                                      likeCount: post.likeCount,
+                                      viewCount: post.viewCount,
+                                      liked: liked,
+                                      reposted: reposted,
+                                      saved: saved,
+                                      onReply: onReply,
+                                      onRepost: onRepost,
+                                      onQuote: onQuote,
+                                      onLike: onLike,
+                                      onViews: onViews,
+                                      onSave: onSave,
+                                      onShare: onShare,
+                                      // A private community's posts stay inside it.
+                                      showReshare: !post.isPrivateCommunityPost,
+                                    ),
+                                  ],
                                 ),
-                              ],
-                              if (post.quotedPost case final quoted?) ...[
-                                const SizedBox(height: 10),
-                                QuotedPostPreview(
-                                  post: quoted,
-                                  onTap: onOpenQuoted ?? onOpen,
-                                ),
-                              ],
-                              const SizedBox(height: 2),
-                              PostActionBar(
-                                replyCount: post.replyCount,
-                                repostCount: post.reshareAndQuoteCount,
-                                likeCount: post.likeCount,
-                                viewCount: post.viewCount,
-                                liked: liked,
-                                reposted: reposted,
-                                saved: saved,
-                                onReply: onReply,
-                                onRepost: onRepost,
-                                onQuote: onQuote,
-                                onLike: onLike,
-                                onViews: onViews,
-                                onSave: onSave,
-                                onShare: onShare,
                               ),
                             ],
+                          ),
+                        ),
+                        // ── The overflow menu ─────────────────────────────────
+                        // Laid over the author row rather than inside it, so its
+                        // 44px target does not push the name and the writing
+                        // apart. The glyph sits on the byline's line — below any
+                        // community or reshare label — and the rest of the target
+                        // hangs beneath it.
+                        Positioned(
+                          top: 0,
+                          right: 0,
+                          child: _IconTap(
+                            icon: Icons.more_horiz_rounded,
+                            tooltip: 'More',
+                            size: 18,
+                            onTap: onMore,
                           ),
                         ),
                       ],
                     ),
                   ],
                 ),
-              ],
-            ),
+              ),
+              // ── The category rail ─────────────────────────────────────────
+              // Three pixels down the very edge of the row, inset from the
+              // hairlines so it reads as belonging to this post and not as a
+              // stripe running down the feed. Decorative: the label under the
+              // byline is what a screen reader hears.
+              if (category != null)
+                Positioned(
+                  left: 0,
+                  top: 12,
+                  bottom: 12,
+                  width: 3,
+                  child: ExcludeSemantics(
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: category.colorOn(brand),
+                        borderRadius: const BorderRadius.horizontal(
+                          right: Radius.circular(3),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// "in Navrongo Kasem Circle" — which community a post was published into.
+class _CommunityLabel extends StatelessWidget {
+  const _CommunityLabel({
+    required this.name,
+    required this.isPrivate,
+    this.onTap,
+  });
+
+  final String name;
+  final bool isPrivate;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final brand = context.brand;
+    return InkWell(
+      borderRadius: BorderRadius.circular(6),
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 2),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              isPrivate ? Icons.lock_outline_rounded : Icons.groups_2_outlined,
+              size: 14,
+              color: brand.mutedInk,
+            ),
+            const SizedBox(width: 6),
+            Flexible(
+              child: Text(
+                AppLocalizations.of(context).communityPostedIn(name),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: brand.mutedInk,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -376,7 +515,6 @@ class _PostByline extends StatelessWidget {
     required this.edited,
     required this.compact,
     required this.onOpenAuthor,
-    required this.onMore,
   });
 
   final String name;
@@ -392,7 +530,6 @@ class _PostByline extends StatelessWidget {
   final bool edited;
   final bool compact;
   final VoidCallback onOpenAuthor;
-  final VoidCallback onMore;
 
   @override
   Widget build(BuildContext context) {
@@ -444,12 +581,8 @@ class _PostByline extends StatelessWidget {
             ),
           ),
         ),
-        _IconTap(
-          icon: Icons.more_horiz_rounded,
-          tooltip: 'More',
-          size: 18,
-          onTap: onMore,
-        ),
+        // Room for the overflow menu the card lays over this row.
+        const SizedBox(width: 30),
       ],
     );
   }
@@ -1024,6 +1157,7 @@ class PostActionBar extends StatelessWidget {
     required this.onViews,
     required this.onSave,
     required this.onShare,
+    this.showReshare = true,
     super.key,
   });
 
@@ -1039,50 +1173,65 @@ class PostActionBar extends StatelessWidget {
   final VoidCallback? onQuote;
   final VoidCallback onLike;
   final VoidCallback? onViews;
-  final VoidCallback onSave;
+  final VoidCallback? onSave;
   final VoidCallback? onShare;
+
+  /// Off where a post cannot leave the place it was written.
+  final bool showReshare;
 
   String _label(int count) => count > 0 ? communityCountLabel(count) : '';
 
   @override
   Widget build(BuildContext context) {
     final brand = context.brand;
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        _ActionButton(
-          icon: Icons.mode_comment_outlined,
-          label: _label(replyCount),
-          tooltip: 'Reply',
-          onTap: onReply,
-        ),
-        _RepostButton(
-          count: _label(repostCount),
-          reposted: reposted,
-          onRepost: onRepost,
-          onQuote: onQuote,
-        ),
-        _LikeButton(liked: liked, count: likeCount, onTap: onLike),
-        _ActionButton(
-          icon: Icons.bar_chart_rounded,
-          label: _label(viewCount),
-          tooltip: onViews == null ? 'Views' : 'View engagement',
-          onTap: onViews,
-        ),
-        _ActionButton(
-          icon: saved ? Icons.bookmark_rounded : Icons.bookmark_border_rounded,
-          label: '',
-          tooltip: saved ? 'Saved' : 'Save',
-          color: saved ? brand.accent : null,
-          onTap: onSave,
-        ),
-        _ActionButton(
-          icon: Icons.ios_share_rounded,
-          label: '',
-          tooltip: 'Share',
-          onTap: onShare,
-        ),
-      ],
+    // The counts beside the glyphs are the one part of this row that grows
+    // with the reader's text size. Past 1.3x six of them no longer fit a
+    // phone's width, and the glyphs and tooltips already say what each does.
+    return MediaQuery.withClampedTextScaling(
+      maxScaleFactor: 1.3,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          _ActionButton(
+            icon: Icons.mode_comment_outlined,
+            label: _label(replyCount),
+            tooltip: 'Reply',
+            onTap: onReply,
+          ),
+          if (showReshare)
+            _RepostButton(
+              count: _label(repostCount),
+              reposted: reposted,
+              onRepost: onRepost,
+              onQuote: onQuote,
+            ),
+          _LikeButton(liked: liked, count: likeCount, onTap: onLike),
+          if (showReshare)
+            _ActionButton(
+              icon: Icons.bar_chart_rounded,
+              label: _label(viewCount),
+              tooltip: onViews == null ? 'Views' : 'View engagement',
+              onTap: onViews,
+            ),
+          if (onSave != null)
+            _ActionButton(
+              icon: saved
+                  ? Icons.bookmark_rounded
+                  : Icons.bookmark_border_rounded,
+              label: '',
+              tooltip: saved ? 'Saved' : 'Save',
+              color: saved ? brand.accent : null,
+              onTap: onSave,
+            ),
+          if (onShare != null)
+            _ActionButton(
+              icon: Icons.ios_share_rounded,
+              label: '',
+              tooltip: 'Share',
+              onTap: onShare,
+            ),
+        ],
+      ),
     );
   }
 }
@@ -1131,8 +1280,7 @@ class _ActionButtonState extends State<_ActionButton> {
       child: InkResponse(
         radius: 22,
         onTap: widget.onTap == null ? null : _tap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+        child: _ActionTarget(
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -1180,8 +1328,7 @@ class _RepostButton extends StatelessWidget {
         onTap: onRepost == null && onQuote == null
             ? null
             : () => _showSheet(context),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+        child: _ActionTarget(
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -1283,8 +1430,7 @@ class _LikeButtonState extends State<_LikeButton>
           if (!widget.liked) _controller.forward(from: 0);
           widget.onTap();
         },
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+        child: _ActionTarget(
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -1317,6 +1463,23 @@ class _LikeButtonState extends State<_LikeButton>
   }
 }
 
+/// The hit area every action on the row shares: 44 tall and at least 36 wide,
+/// with the glyph and its count centred in it.
+class _ActionTarget extends StatelessWidget {
+  const _ActionTarget({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => ConstrainedBox(
+    constraints: const BoxConstraints(minHeight: 44, minWidth: 36),
+    child: Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 6),
+      child: Center(widthFactor: 1, child: child),
+    ),
+  );
+}
+
 /// A bare icon tap target — used where an [IconButton]'s 48px box would push
 /// the row it sits in out of alignment.
 class _IconTap extends StatelessWidget {
@@ -1338,9 +1501,16 @@ class _IconTap extends StatelessWidget {
     child: InkResponse(
       radius: 20,
       onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.all(6),
-        child: Icon(icon, size: size, color: context.brand.faintInk),
+      child: SizedBox(
+        width: 44,
+        height: 44,
+        child: Align(
+          alignment: Alignment.topCenter,
+          child: Padding(
+            padding: const EdgeInsets.only(top: 1),
+            child: Icon(icon, size: size, color: context.brand.faintInk),
+          ),
+        ),
       ),
     ),
   );

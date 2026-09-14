@@ -165,6 +165,11 @@ class _AppShellState extends ConsumerState<AppShell>
     // Feeds hide the rail while somebody reads on. The flag is the shell's
     // because the rail is, and the scroll that moves it happens a tab away.
     final chromeVisible = ref.watch(shellChromeVisibilityProvider);
+    // The rail and the orb still leave and come back for somebody who has
+    // asked the system for less motion; they just do not travel to do it.
+    final chromeDuration = MediaQuery.disableAnimationsOf(context)
+        ? Duration.zero
+        : const Duration(milliseconds: 240);
     // Registering the device for push is a shell-level concern: it has to run
     // once the member is signed in, whichever tab they happen to be on.
     ref.watch(pushRegistrationProvider);
@@ -299,11 +304,13 @@ class _AppShellState extends ConsumerState<AppShell>
                 right: kProfileOrbInset,
                 child: AnimatedSlide(
                   offset: chromeVisible ? Offset.zero : const Offset(0, -1.6),
-                  duration: const Duration(milliseconds: 240),
+                  duration: chromeDuration,
                   curve: Curves.easeOutCubic,
                   child: AnimatedOpacity(
                     opacity: chromeVisible ? 1 : 0,
-                    duration: const Duration(milliseconds: 180),
+                    duration: chromeDuration == Duration.zero
+                        ? Duration.zero
+                        : const Duration(milliseconds: 180),
                     child: IgnorePointer(
                       ignoring: !chromeVisible,
                       child: Row(
@@ -329,7 +336,7 @@ class _AppShellState extends ConsumerState<AppShell>
               // banner left hovering over the gap the rail vacated is the one
               // piece of chrome that would still be pointing at furniture.
               AnimatedPositioned(
-                duration: const Duration(milliseconds: 240),
+                duration: chromeDuration,
                 curve: Curves.easeOutCubic,
                 left: 16,
                 right: 16,
@@ -357,7 +364,7 @@ class _AppShellState extends ConsumerState<AppShell>
               // leave and come back without a single row of the feed moving.
               : AnimatedSlide(
                   offset: chromeVisible ? Offset.zero : const Offset(0, 1),
-                  duration: const Duration(milliseconds: 240),
+                  duration: chromeDuration,
                   curve: Curves.easeOutCubic,
                   child: IgnorePointer(
                     ignoring: !chromeVisible,

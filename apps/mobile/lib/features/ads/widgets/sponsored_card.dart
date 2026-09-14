@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/features/ads/data/served_ad.dart';
-import 'package:indigen_world_mobile/features/subscriptions/manage_subscription_screen.dart';
+import 'package:indigen_world_mobile/features/subscriptions/membership_screen.dart';
 import 'package:indigen_world_mobile/shared/glass_popup.dart';
 import 'package:indigen_world_mobile/shared/glass_surface.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -372,7 +372,7 @@ class _WhyThisAdvert extends StatelessWidget {
     if (seePlans != true || !context.mounted) return;
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (context) => const ManageSubscriptionScreen(),
+        builder: (context) => const MembershipScreen(),
       ),
     );
   }

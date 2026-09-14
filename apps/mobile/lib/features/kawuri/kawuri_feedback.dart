@@ -239,9 +239,9 @@ class _FeedbackButton extends StatelessWidget {
     style: TextButton.styleFrom(
       foregroundColor: context.brand.onAccentFill,
       padding: const EdgeInsets.symmetric(horizontal: 9),
-      minimumSize: const Size(0, 30),
+      minimumSize: const Size(48, 48),
       visualDensity: VisualDensity.compact,
-      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      tapTargetSize: MaterialTapTargetSize.padded,
     ),
     icon: Icon(icon, size: 14),
     label: Text(

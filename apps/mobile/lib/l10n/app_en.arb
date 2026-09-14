@@ -63,7 +63,7 @@
   "communityFindPeople": "Find people",
   "communitySavedPosts": "Saved posts",
   "communityNewPost": "New Kasem post",
-  "communityCompose": "Make a Kasem post",
+  "communityCompose": "Make a post",
   "communityNewVoices": "New voices",
   "communityNobodyNew": "Nobody new yet.",
   "communityForYou": "For you",
@@ -91,6 +91,242 @@
   "communityBackendPending": "The community service is still starting up",
   "communityFeedFailed": "The feed could not load",
   "communityTryAgain": "Try again",
+  "communityComposeIn": "Post in {community}",
+  "@communityComposeIn": {
+    "placeholders": {
+      "community": {
+        "type": "String"
+      }
+    }
+  },
+  "communityAddPhoto": "Add a photo",
+  "communityAddVideo": "Add a video",
+  "communityCommunitiesTab": "Communities",
+  "communityCommunitiesTabSemantics": "Communities. Find, join or create a community",
+  "communityPromptTitle": "Today in {language}",
+  "@communityPromptTitle": {
+    "placeholders": {
+      "language": {
+        "type": "String"
+      }
+    }
+  },
+  "communityPromptSubtitle": "Share a word from home",
+  "communityPromptHint": "Share a word from home, and what it means…",
+  "communityPromptSemantics": "{title}. {subtitle}. Opens the composer",
+  "@communityPromptSemantics": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "subtitle": {
+        "type": "String"
+      }
+    }
+  },
+  "communityNewVoicesSeeAll": "See all",
+  "communityVoiceNew": "New member",
+  "communityVoiceDialect": "Near you",
+  "communityVoiceCommunity": "In your communities",
+  "communityVoiceCreator": "Creator",
+  "communityVoiceActive": "Posting now",
+  "communityLoadingMore": "Loading more posts",
+  "communityCaughtUp": "You're all caught up",
+  "communityPostedIn": "in {community}",
+  "@communityPostedIn": {
+    "placeholders": {
+      "community": {
+        "type": "String"
+      }
+    }
+  },
+  "communityPostCategory": "Kind of post",
+  "postCategoryQuestion": "Question",
+  "postCategoryLanguage": "Language",
+  "postCategoryCulture": "Culture",
+  "postCategoryMusic": "Music",
+  "postCategoryStory": "Story",
+  "postCategoryAnnouncement": "Announcement",
+  "communitiesTitle": "Communities",
+  "communitiesSearchHint": "Search name, language, place or topic",
+  "communitiesSearchLabel": "Search communities",
+  "communitiesClearSearch": "Clear search",
+  "communitiesDiscover": "Discover",
+  "communitiesJoined": "Joined",
+  "communitiesCreate": "Create",
+  "communitiesCreateCommunity": "Create a community",
+  "communitiesMembers": "{count, plural, =1{1 member} other{{count} members}}",
+  "@communitiesMembers": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "communitiesPrivate": "Private",
+  "communitiesPublic": "Public",
+  "communitiesJoin": "Join",
+  "communitiesRequest": "Ask to join",
+  "communitiesRequested": "Requested",
+  "communitiesMember": "Joined",
+  "communitiesLeave": "Leave community",
+  "communitiesCancelRequest": "Withdraw request",
+  "communitiesNoneJoined": "You haven't joined a community yet",
+  "communitiesNoneJoinedAction": "Discover communities",
+  "communitiesNoResults": "No communities match “{query}”",
+  "@communitiesNoResults": {
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
+  "communitiesNoResultsAction": "Start one",
+  "communitiesEmpty": "No communities yet",
+  "communitiesLoadFailed": "Communities could not load",
+  "communityTabFeed": "Feed",
+  "communityTabAbout": "About",
+  "communityTabMembers": "Members",
+  "communityTabRules": "Rules",
+  "communityShareCommunity": "Share community",
+  "communityReportCommunity": "Report community",
+  "communityMoreOptions": "More options",
+  "communityPendingTitle": "Your request is waiting for approval",
+  "communityPendingBody": "A moderator will look at it soon.",
+  "communityPrivateTitle": "This community is private",
+  "communityPrivateBody": "Ask to join to see its posts and members.",
+  "communityUnavailableTitle": "This community is unavailable",
+  "communityUnavailableBody": "It may have been removed, or the link is wrong.",
+  "communityBannedTitle": "You can't take part in this community",
+  "communitySpaceEmpty": "No posts here yet",
+  "communityJoinToPost": "Join to post here",
+  "communityAboutCategory": "Category",
+  "communityAboutLanguage": "Primary language",
+  "communityAboutLocation": "Place or cultural group",
+  "communityAboutCreated": "Created",
+  "communityAboutVisibility": "Visibility",
+  "communityAboutNoDescription": "No description yet.",
+  "communityNoRules": "No rules have been written yet.",
+  "communityRequests": "Requests to join",
+  "communityApprove": "Approve",
+  "communityDecline": "Decline",
+  "communityRoleOwner": "Owner",
+  "communityRoleAdmin": "Admin",
+  "communityRoleModerator": "Moderator",
+  "communityMemberActions": "Member options",
+  "communityMakeModerator": "Make moderator",
+  "communityMakeAdmin": "Make admin",
+  "communityMakeMember": "Remove role",
+  "communityRemoveMember": "Remove from community",
+  "communityBanMember": "Ban from community",
+  "communityMembersEmpty": "No members to show",
+  "createCommunityStepBasics": "Basics",
+  "createCommunityStepDetails": "Details",
+  "createCommunityStepLook": "Look and rules",
+  "createCommunityName": "Name",
+  "createCommunityNameHint": "e.g. Navrongo Kasem Circle",
+  "createCommunityAddress": "Address",
+  "createCommunityAddressHelper": "Lowercase letters, numbers and hyphens. Can't be changed later.",
+  "createCommunityAddressChecking": "Checking the address…",
+  "createCommunityAddressFree": "This address is free",
+  "createCommunityCategory": "Category",
+  "createCommunityDescription": "Description",
+  "createCommunityDescriptionHint": "What is this community for?",
+  "createCommunityLanguage": "Primary language",
+  "createCommunityLanguageHint": "e.g. Kasem",
+  "createCommunityLocation": "Location or cultural group",
+  "createCommunityLocationHint": "e.g. Paga, Kassena-Nankana",
+  "createCommunityVisibility": "Who can read posts?",
+  "createCommunityPublicBody": "Anyone can read posts and join.",
+  "createCommunityPrivateBody": "Only approved members read posts. People ask to join.",
+  "createCommunityVisibilityLocked": "This can't be changed after the community is created.",
+  "createCommunityProfileImage": "Profile image",
+  "createCommunityCoverImage": "Cover image",
+  "createCommunityChooseImage": "Choose picture",
+  "createCommunityRemoveImage": "Remove picture",
+  "createCommunityImageHelper": "JPG, PNG or WebP, under 12 MB.",
+  "createCommunityRules": "Rules",
+  "createCommunityRuleHint": "Rule {number}",
+  "@createCommunityRuleHint": {
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "createCommunityAddRule": "Add a rule",
+  "createCommunityRemoveRule": "Remove rule",
+  "createCommunityNext": "Next",
+  "createCommunityBack": "Back",
+  "createCommunitySubmit": "Create community",
+  "createCommunitySubmitting": "Creating…",
+  "communityCategoryLanguage": "Language",
+  "communityCategoryCulture": "Culture",
+  "communityCategoryMusic": "Music",
+  "communityCategoryHistory": "History",
+  "communityCategoryFaith": "Faith",
+  "communityCategoryEducation": "Education",
+  "communityCategoryHometown": "Hometown",
+  "communityCategoryDiaspora": "Diaspora",
+  "communityCategoryYouth": "Youth",
+  "communityCategoryOther": "Other",
+  "communityOptions": "Community options",
+  "communityEditCommunity": "Edit community",
+  "communityEditSave": "Save changes",
+  "communityEditSaving": "Saving…",
+  "communityEditSaved": "Community updated.",
+  "communityEditAddressFixed": "Address: communities/{slug}. It can't be changed.",
+  "@communityEditAddressFixed": {
+    "placeholders": {
+      "slug": {
+        "type": "String"
+      }
+    }
+  },
+  "communityEditVisibilityFixed": "{visibility}. Visibility can't be changed after a community is created.",
+  "@communityEditVisibilityFixed": {
+    "placeholders": {
+      "visibility": {
+        "type": "String"
+      }
+    }
+  },
+  "communityEditDiscardTitle": "Discard your changes?",
+  "communityEditDiscardBody": "Nothing you changed here has been saved.",
+  "communityEditDiscard": "Discard",
+  "communityHandOver": "Hand over ownership",
+  "communityHandOverTitle": "Choose the new owner",
+  "communityHandOverBody": "They become the owner. You stay on as an admin, and can leave afterwards.",
+  "communityHandOverConfirm": "Make {name} the owner?",
+  "@communityHandOverConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "communityHandOverDone": "{name} now owns this community.",
+  "@communityHandOverDone": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "communityHandOverNobody": "Nobody else is in this community yet. You can close it instead.",
+  "communityClose": "Close community",
+  "communityCloseTitle": "Close {name}?",
+  "@communityCloseTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "communityCloseBody": "It stops taking members and posts, and its address stays reserved. This can't be undone from the app.",
+  "communityCloseDone": "Community closed.",
+  "communityLeaveOwnerTitle": "You own this community",
+  "communityLeaveOwnerBody": "Hand it over to another member before leaving, or close it if you are the only one here.",
   "learnDictionary": "Dictionary",
   "learnStreakClaimed": "Streak, {days} days, claimed today",
   "@learnStreakClaimed": {

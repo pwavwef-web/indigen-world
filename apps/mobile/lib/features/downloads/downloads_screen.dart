@@ -4,7 +4,7 @@ import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/data/local/app_database.dart';
 import 'package:indigen_world_mobile/features/downloads/data/downloads_providers.dart';
 import 'package:indigen_world_mobile/features/subscriptions/data/subscription_catalog.dart';
-import 'package:indigen_world_mobile/features/subscriptions/paywall_screen.dart';
+import 'package:indigen_world_mobile/features/subscriptions/membership_screen.dart';
 import 'package:indigen_world_mobile/shared/glass_popup.dart';
 import 'package:indigen_world_mobile/shared/glass_surface.dart';
 
@@ -88,7 +88,7 @@ class DownloadsScreen extends ConsumerWidget {
   Future<void> _openPaywall(BuildContext context) => Navigator.of(context).push(
     MaterialPageRoute<void>(
       builder: (context) =>
-          const PaywallScreen(highlight: SubscriptionTier.plus),
+          const MembershipScreen(highlight: SubscriptionTier.plus),
     ),
   );
 

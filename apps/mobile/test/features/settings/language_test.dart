@@ -194,8 +194,10 @@ void main() {
     expect(find.text('Communauté'), findsOneWidget);
     expect(find.text('Pour vous'), findsOneWidget);
     expect(find.text('Abonnements'), findsOneWidget);
-    expect(find.text('Écrire en kasem'), findsOneWidget);
-    expect(find.text('Nouvelles voix'), findsOneWidget);
+    expect(find.text('Communautés'), findsOneWidget);
+    expect(find.text("Aujourd'hui en Kasem"), findsOneWidget);
+    expect(find.text('Partagez un mot de chez vous'), findsOneWidget);
+    expect(find.text('Publier'), findsOneWidget);
   });
 
   testWidgets('the choice is what MaterialApp is given', (tester) async {

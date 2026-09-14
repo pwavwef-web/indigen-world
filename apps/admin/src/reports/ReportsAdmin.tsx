@@ -4,14 +4,24 @@ import {
   listCommunityReports,
   REPORT_STATUSES,
   setCommunityReportStatus,
+  setCommunitySpaceStatus,
   type CommunityReport,
+  type ReportedCommunity,
   type ReportStatus,
+  type ReportTarget,
   type ReportedMedia,
 } from './data';
 import './reports.css';
 import { Loading } from '@indigen-world/console-ui';
 
 type StatusFilter = ReportStatus | 'all';
+type TargetFilter = ReportTarget | 'all';
+
+const TARGET_FILTERS: { id: TargetFilter; label: string }[] = [
+  { id: 'all', label: 'Everything' },
+  { id: 'post', label: 'Posts' },
+  { id: 'community', label: 'Communities' },
+];
 
 function formatDate(report: CommunityReport): string {
   return report.createdAt?.toDate().toLocaleString() ?? 'Date unavailable';
@@ -33,9 +43,81 @@ function MediaPreview({ media }: { media: ReportedMedia }) {
   );
 }
 
+/** A reported community: what it says about itself, and the staff action. */
+function ReportedCommunityPanel({
+  community,
+  communityId,
+  busy,
+  onSetStatus,
+}: {
+  community: ReportedCommunity | null;
+  communityId: string;
+  busy: boolean;
+  onSetStatus: (community: ReportedCommunity, status: 'active' | 'removed') => void;
+}) {
+  if (!community) {
+    return (
+      <div className="reported-post">
+        <span className="reported-post__label">Reported community</span>
+        <p className="reported-post__missing">
+          This community no longer exists (<code>{communityId || 'no id'}</code>).
+        </p>
+      </div>
+    );
+  }
+  const statusLabel = community.status === 'active'
+    ? 'Live'
+    : community.status === 'closed' ? 'Closed by its owner' : 'Removed by staff';
+  return (
+    <div className="reported-post reported-community">
+      <span className="reported-post__label">Reported community</span>
+      <div className="reported-community__head">
+        {community.avatarUrl ? (
+          <img className="reported-community__avatar" src={community.avatarUrl} alt="" loading="lazy" />
+        ) : (
+          <span className="reported-community__avatar" aria-hidden="true">
+            {community.name.slice(0, 2).toUpperCase()}
+          </span>
+        )}
+        <div>
+          <strong>{community.name}</strong>
+          <span>
+            communities/{community.id} · {community.visibility === 'private' ? 'Private' : 'Public'} ·{' '}
+            {community.memberCount === 1 ? '1 member' : `${community.memberCount} members`}
+          </span>
+        </div>
+        <span className={`report-status report-status--community-${community.status}`}>{statusLabel}</span>
+      </div>
+      <p className="reported-post__text">{community.description || 'No description.'}</p>
+      {community.rules.length ? (
+        <ol className="reported-community__rules">
+          {community.rules.map((rule, index) => <li key={`${index}-${rule}`}>{rule}</li>)}
+        </ol>
+      ) : null}
+      <div className="reported-community__actions">
+        {community.status === 'active' ? (
+          <Button variant="danger" disabled={busy} onClick={() => onSetStatus(community, 'removed')}>
+            Remove community
+          </Button>
+        ) : null}
+        {community.status === 'removed' ? (
+          <Button variant="ghost" disabled={busy} onClick={() => onSetStatus(community, 'active')}>
+            Restore community
+          </Button>
+        ) : null}
+        <p>
+          Removing hides it in the app and on the website. Posts and members are kept, so
+          it can be restored.
+        </p>
+      </div>
+    </div>
+  );
+}
+
 export function ReportsAdmin() {
   const [reports, setReports] = useState<CommunityReport[]>([]);
   const [filter, setFilter] = useState<StatusFilter>('open');
+  const [targetFilter, setTargetFilter] = useState<TargetFilter>('all');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
@@ -56,12 +138,39 @@ export function ReportsAdmin() {
     void load();
   }, [load]);
 
+  const targeted = useMemo(() => (
+    targetFilter === 'all' ? reports : reports.filter((report) => report.target === targetFilter)
+  ), [reports, targetFilter]);
   const counts = useMemo(() => Object.fromEntries(
-    REPORT_STATUSES.map(({ id }) => [id, reports.filter((report) => report.status === id).length]),
-  ) as Record<ReportStatus, number>, [reports]);
+    REPORT_STATUSES.map(({ id }) => [id, targeted.filter((report) => report.status === id).length]),
+  ) as Record<ReportStatus, number>, [targeted]);
   const visibleReports = filter === 'all'
-    ? reports
-    : reports.filter((report) => report.status === filter);
+    ? targeted
+    : targeted.filter((report) => report.status === filter);
+
+  const changeCommunityStatus = async (
+    report: CommunityReport,
+    community: ReportedCommunity,
+    status: 'active' | 'removed',
+  ) => {
+    const verb = status === 'removed' ? 'Remove' : 'Restore';
+    if (!window.confirm(`${verb} ${community.name} (communities/${community.id})?`)) return;
+    setUpdatingId(report.id);
+    setError(null);
+    try {
+      await setCommunitySpaceStatus(community.id, status);
+      // Every report about the same community shows the same community.
+      setReports((current) => current.map((item) => (
+        item.community?.id === community.id && item.community
+          ? { ...item, community: { ...item.community, status } }
+          : item
+      )));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not update the community.');
+    } finally {
+      setUpdatingId(null);
+    }
+  };
 
   const changeStatus = async (report: CommunityReport, status: ReportStatus) => {
     if (report.status === status) return;
@@ -85,7 +194,7 @@ export function ReportsAdmin() {
         <div>
           <p className="reports-eyebrow">Community safety</p>
           <h1>Reports</h1>
-          <p>Review posts flagged by community members and track each report through resolution.</p>
+          <p>Review posts and communities flagged by members, and track each report through resolution.</p>
         </div>
         <div className="reports-summary" aria-label={`${counts.open} open reports`}>
           <strong>{counts.open}</strong>
@@ -95,13 +204,33 @@ export function ReportsAdmin() {
 
       <section className="panel">
         <div className="reports-toolbar">
+          <div className="reports-filters" role="group" aria-label="Filter reports by what was reported">
+            {TARGET_FILTERS.map((target) => (
+              <button
+                type="button"
+                key={target.id}
+                aria-pressed={targetFilter === target.id}
+                className={targetFilter === target.id ? 'report-filter is-active' : 'report-filter'}
+                onClick={() => setTargetFilter(target.id)}
+              >
+                {target.label}{' '}
+                <span>
+                  {target.id === 'all'
+                    ? reports.length
+                    : reports.filter((report) => report.target === target.id).length}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="reports-toolbar">
           <div className="reports-filters" role="group" aria-label="Filter reports by status">
             <button
               type="button"
               className={filter === 'all' ? 'report-filter is-active' : 'report-filter'}
               onClick={() => setFilter('all')}
             >
-              All <span>{reports.length}</span>
+              All <span>{targeted.length}</span>
             </button>
             {REPORT_STATUSES.map((status) => (
               <button
@@ -138,6 +267,7 @@ export function ReportsAdmin() {
                   <header className="report-card__head">
                     <div>
                       <span className={`report-status report-status--${report.status}`}>{report.status}</span>
+                      <span className="report-target">{report.target === 'community' ? 'Community' : 'Post'}</span>
                       <time dateTime={report.createdAt?.toDate().toISOString()}>{formatDate(report)}</time>
                     </div>
                     <label className="report-status-control">
@@ -160,8 +290,24 @@ export function ReportsAdmin() {
                     <blockquote>{report.reason || 'No reason was provided.'}</blockquote>
                   </div>
 
+                  {report.target === 'community' ? (
+                    <ReportedCommunityPanel
+                      community={report.community}
+                      communityId={report.communityId}
+                      busy={updatingId === report.id}
+                      onSetStatus={(community, status) => void changeCommunityStatus(report, community, status)}
+                    />
+                  ) : (
                   <div className="reported-post">
-                    <span className="reported-post__label">Reported post</span>
+                    <span className="reported-post__label">
+                      Reported post
+                      {report.community ? (
+                        <>
+                          {' '}in <strong>{report.community.name}</strong>
+                          {report.community.visibility === 'private' ? ' (private)' : ''}
+                        </>
+                      ) : null}
+                    </span>
                     {report.post ? (
                       <>
                         <div className="reported-post__author">
@@ -184,6 +330,7 @@ export function ReportsAdmin() {
                       <p className="reported-post__missing">This post is no longer available.</p>
                     )}
                   </div>
+                  )}
 
                   <footer className="report-card__footer">
                     <div>
@@ -193,7 +340,10 @@ export function ReportsAdmin() {
                       <summary>Record IDs</summary>
                       <dl>
                         <div><dt>Report</dt><dd><code>{report.id}</code></dd></div>
-                        <div><dt>Post</dt><dd><code>{report.postId}</code></dd></div>
+                        {report.postId ? <div><dt>Post</dt><dd><code>{report.postId}</code></dd></div> : null}
+                        {report.communityId ? (
+                          <div><dt>Community</dt><dd><code>{report.communityId}</code></dd></div>
+                        ) : null}
                         <div><dt>Reporter</dt><dd><code>{report.reporterId}</code></dd></div>
                       </dl>
                     </details>

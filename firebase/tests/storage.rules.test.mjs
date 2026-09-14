@@ -1,12 +1,15 @@
-// Storage Security Rules tests, run against the Auth + Storage emulators.
+// Storage Security Rules tests, run against the Auth, Storage and Firestore
+// emulators. Firestore is there for rules that read a document before allowing
+// a file: private community media checks the uploader's membership row.
 //
-//   firebase emulators:exec --project demo-indigen-world --only auth,storage \
+//   firebase emulators:exec --project demo-indigen-world --only auth,storage,firestore \
 //     "node --test firebase/tests/storage.rules.test.mjs"
 
 import assert from 'node:assert/strict';
 import { after, before, test } from 'node:test';
 import { initializeApp as adminInit, deleteApp as adminDelete } from 'firebase-admin/app';
 import { getAuth as adminAuth } from 'firebase-admin/auth';
+import { getFirestore as adminFirestore } from 'firebase-admin/firestore';
 import { getStorage as adminStorage } from 'firebase-admin/storage';
 import { deleteApp, initializeApp as clientInit } from 'firebase/app';
 import { connectAuthEmulator, getAuth as clientAuth, signInWithCustomToken } from 'firebase/auth';
@@ -312,4 +315,81 @@ test('an audiobook slot takes audio and images, and nothing else', async () => {
       { contentType: 'video/mp4' },
     ),
   );
+});
+
+test('community pictures are uploader-owned, public, and JPEG, PNG or WebP only', async () => {
+  const owner = await clientFor('space-picture-owner', 'space-picture-owner');
+  const stranger = await clientFor('space-picture-stranger', 'space-picture-stranger');
+  const anonymous = await clientFor('space-picture-anonymous', null);
+  const path = 'community-spaces/space-picture-owner/kasem-circle/avatar_1_a.png';
+
+  await uploadBytes(ref(owner, path), imageBytes(), { contentType: 'image/png' });
+  assert.equal((await getBytes(ref(anonymous, path))).byteLength, 3);
+  await uploadBytes(
+    ref(owner, 'community-spaces/space-picture-owner/kasem-circle/cover_1_b.webp'),
+    new Blob(['webp'], { type: 'image/webp' }),
+    { contentType: 'image/webp' },
+  );
+
+  await assert.rejects(uploadBytes(
+    ref(owner, 'community-spaces/space-picture-owner/kasem-circle/avatar_2.gif'),
+    new Blob(['gif'], { type: 'image/gif' }),
+    { contentType: 'image/gif' },
+  ));
+  await assert.rejects(uploadBytes(
+    ref(owner, 'community-spaces/space-picture-owner/kasem-circle/avatar_3.heic'),
+    new Blob(['heic'], { type: 'image/heic' }),
+    { contentType: 'image/heic' },
+  ));
+  await assert.rejects(uploadBytes(
+    ref(stranger, 'community-spaces/space-picture-owner/kasem-circle/avatar_4.png'),
+    imageBytes(),
+    { contentType: 'image/png' },
+  ));
+  await assert.rejects(uploadBytes(
+    ref(anonymous, 'community-spaces/space-picture-anonymous/x/avatar.png'),
+    imageBytes(),
+    { contentType: 'image/png' },
+  ));
+});
+
+test('private community media is for active members only', async () => {
+  // The rule reads the uploader's membership row from Firestore, so the rows
+  // are seeded the way the app writes them.
+  const store = adminFirestore(adminApp);
+  await store.doc('communitySpaces/closed-circle/memberships/space-private-member').set({
+    uid: 'space-private-member',
+    communityId: 'closed-circle',
+    role: 'member',
+    status: 'active',
+  });
+  await store.doc('communitySpaces/closed-circle/memberships/space-private-pending').set({
+    uid: 'space-private-pending',
+    communityId: 'closed-circle',
+    role: 'member',
+    status: 'pending',
+  });
+
+  const member = await clientFor('space-private-member', 'space-private-member');
+  const pending = await clientFor('space-private-pending', 'space-private-pending');
+  const stranger = await clientFor('space-private-stranger', 'space-private-stranger');
+  const anonymous = await clientFor('space-private-anonymous', null);
+  const path = 'community-private-media/closed-circle/space-private-member/post1/0_a.png';
+
+  await uploadBytes(ref(member, path), imageBytes(), { contentType: 'image/png' });
+  assert.equal((await getBytes(ref(member, path))).byteLength, 3);
+
+  await assert.rejects(getBytes(ref(pending, path)));
+  await assert.rejects(getBytes(ref(stranger, path)));
+  await assert.rejects(getBytes(ref(anonymous, path)));
+  await assert.rejects(uploadBytes(
+    ref(pending, 'community-private-media/closed-circle/space-private-pending/post2/0_a.png'),
+    imageBytes(),
+    { contentType: 'image/png' },
+  ));
+  await assert.rejects(uploadBytes(
+    ref(stranger, 'community-private-media/closed-circle/space-private-stranger/post3/0_a.png'),
+    imageBytes(),
+    { contentType: 'image/png' },
+  ));
 });

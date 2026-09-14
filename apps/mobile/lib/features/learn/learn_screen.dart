@@ -2622,16 +2622,12 @@ class _LessonHero extends StatelessWidget {
     padding: const EdgeInsets.all(20),
     decoration: BoxDecoration(
       borderRadius: BorderRadius.circular(25),
-      gradient: const LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [BrandColors.heritageGreen, BrandColors.savannahGreen],
-      ),
-      boxShadow: const [
+      gradient: BrandGradients.hero(context.brand),
+      boxShadow: [
         BoxShadow(
-          color: Color(0x2B0B3D2E),
+          color: context.brand.shadow.withValues(alpha: 0.17),
           blurRadius: 24,
-          offset: Offset(0, 12),
+          offset: const Offset(0, 12),
         ),
       ],
     ),

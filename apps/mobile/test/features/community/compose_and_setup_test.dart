@@ -26,7 +26,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 300));
     }
 
-    testWidgets('offers the Kasem pledge, a counter and an attach control', (
+    testWidgets('offers keyboard setup, a counter and an attach control', (
       tester,
     ) async {
       await pumpComposer(tester, repository: FakeCommunityRepository());
@@ -34,7 +34,7 @@ void main() {
       expect(find.text('New post'), findsOneWidget);
       expect(
         find.text('I confirm this post is written in Kasem.'),
-        findsOneWidget,
+        findsNothing,
       );
       expect(
         find.text('0/${CommunityRepository.maxPostLength}'),
@@ -77,24 +77,19 @@ void main() {
       );
     });
 
-    testWidgets('publishing without the Kasem pledge is refused', (
+    testWidgets('an English question publishes without a language pledge', (
       tester,
     ) async {
-      await pumpComposer(tester, repository: FakeCommunityRepository());
-
+      final repository = _PostingRepository();
+      await pumpComposer(tester, repository: repository);
       await tester.enterText(
         find.byKey(const Key('community-composer')),
-        'De zaanem.',
+        'How do I greet an elder in Kasem?',
       );
-      await tester.pump();
       await tester.tap(find.byKey(const Key('community-publish')));
       await tester.pump();
-      await tester.pump(const Duration(milliseconds: 300));
-
-      expect(
-        find.text('Confirm this post is written in Kasem.'),
-        findsOneWidget,
-      );
+      expect(repository.postedText, 'How do I greet an elder in Kasem?');
+      expect(repository.confirmed, isFalse);
     });
 
     testWidgets('reply mode shows the parent and asks about the reply', (
@@ -111,21 +106,20 @@ void main() {
       expect(find.text('De zaanem. Ko gara.'), findsOneWidget);
       expect(
         find.text('I confirm this reply is written in Kasem.'),
-        findsOneWidget,
+        findsNothing,
       );
     });
   });
 
   group('CommunitySetupScreen', () {
-  /// The form's own list. `.first` because the panel of Kassena names is a
-  /// horizontal list *inside* it, and both answer to the same descendant query.
-  Finder setupScroll() => find
-      .descendant(
-        of: find.byKey(const PageStorageKey('community-setup-scroll')),
-        matching: find.byType(Scrollable),
-      )
-      .first;
-
+    /// The form's own list. `.first` because the panel of Kassena names is a
+    /// horizontal list *inside* it, and both answer to the same descendant query.
+    Finder setupScroll() => find
+        .descendant(
+          of: find.byKey(const PageStorageKey('community-setup-scroll')),
+          matching: find.byType(Scrollable),
+        )
+        .first;
 
     Future<void> pumpSetup(
       WidgetTester tester,
@@ -257,7 +251,10 @@ void main() {
       final repository = FakeCommunityRepository();
       await pumpSetup(tester, repository);
 
-      await tester.enterText(find.byKey(const Key('community-handle')), 'awine');
+      await tester.enterText(
+        find.byKey(const Key('community-handle')),
+        'awine',
+      );
       await tester.enterText(
         find.widgetWithText(TextFormField, 'Display name'),
         'Awine Atulley',
@@ -293,7 +290,10 @@ void main() {
       final repository = FakeCommunityRepository();
       await pumpSetup(tester, repository);
 
-      await tester.enterText(find.byKey(const Key('community-handle')), 'awine');
+      await tester.enterText(
+        find.byKey(const Key('community-handle')),
+        'awine',
+      );
       await tester.enterText(
         find.widgetWithText(TextFormField, 'Display name'),
         'Awine Atulley',
@@ -344,4 +344,18 @@ void main() {
       expect(find.byKey(const Key('birthday-incomplete')), findsOneWidget);
     });
   });
+}
+
+class _PostingRepository extends FakeCommunityRepository {
+  String? postedText;
+  bool? confirmed;
+  @override
+  dynamic noSuchMethod(Invocation invocation) {
+    if (invocation.memberName == #createPost) {
+      postedText = invocation.namedArguments[#text] as String;
+      confirmed = invocation.namedArguments[#kasemConfirmed] as bool? ?? false;
+      return Future<String>.value('posted');
+    }
+    return super.noSuchMethod(invocation);
+  }
 }

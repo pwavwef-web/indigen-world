@@ -7,6 +7,7 @@ import { trackEvent } from '../../analytics';
 import { useConfig } from '../CreatorProvider';
 import { fetchPublicCampaigns, submitApplication, waitlistOpen, submissionsOpen, type ApplicationPayload } from '../data';
 import { Field, Stepper, WhatsAppCard } from '../components';
+import { RouteLoader } from '../../LoadingScreen';
 
 const STEPS = ['Account', 'About you', 'Language', 'Interests', 'Consent'];
 
@@ -253,7 +254,7 @@ export function JoinPage() {
     [campaignsLoaded, campaign],
   );
 
-  if (!ready) return <div className="join"><p className="muted">Loading…</p></div>;
+  if (!ready) return <div className="join"><RouteLoader /></div>;
 
   // Step 1: account gate.
   if (!user) {

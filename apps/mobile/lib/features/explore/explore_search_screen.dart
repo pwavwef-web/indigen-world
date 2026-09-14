@@ -5,16 +5,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
+import 'package:indigen_world_mobile/features/community/communities/community_space_screen.dart';
 import 'package:indigen_world_mobile/features/community/community_profile_screen.dart';
 import 'package:indigen_world_mobile/features/community/data/community_models.dart';
 import 'package:indigen_world_mobile/features/community/data/community_providers.dart';
+import 'package:indigen_world_mobile/features/community/data/community_space_models.dart';
+import 'package:indigen_world_mobile/features/community/data/community_space_providers.dart';
 import 'package:indigen_world_mobile/features/community/widgets/community_avatar.dart';
 import 'package:indigen_world_mobile/features/explore/explore_feed.dart';
 import 'package:indigen_world_mobile/features/explore/explore_search.dart';
 import 'package:indigen_world_mobile/features/explore/reel_view.dart';
 import 'package:indigen_world_mobile/shared/night_theme.dart';
 
-/// Search across Explore: the reels, and the people who made them.
+/// Search across Explore: the reels, the people who made them, and the
+/// communities they were shared in.
 ///
 /// The reel side is answered on the device from the feed already in memory.
 /// That is not a shortcut — it is what makes the results appear as the member
@@ -32,7 +36,7 @@ class _ExploreSearchScreenState extends ConsumerState<ExploreSearchScreen>
     with SingleTickerProviderStateMixin {
   final _controller = TextEditingController();
   final _focus = FocusNode();
-  late final TabController _tabs = TabController(length: 3, vsync: this);
+  late final TabController _tabs = TabController(length: 4, vsync: this);
 
   /// What the results are actually computed from.
   ///
@@ -120,6 +124,9 @@ class _ExploreSearchScreenState extends ConsumerState<ExploreSearchScreen>
     final people = _query.length < 2
         ? const AsyncValue<List<CommunityProfile>>.data(<CommunityProfile>[])
         : ref.watch(profileSearchProvider(_query));
+    final communities = _query.length < 2
+        ? const AsyncValue<List<CommunitySpace>>.data(<CommunitySpace>[])
+        : ref.watch(communitySearchProvider(_query));
 
     return NightTheme(
       child: Builder(
@@ -151,6 +158,7 @@ class _ExploreSearchScreenState extends ConsumerState<ExploreSearchScreen>
                       controller: _tabs,
                       reelCount: reelResults.length,
                       peopleCount: people.asData?.value.length ?? 0,
+                      communityCount: communities.asData?.value.length ?? 0,
                     ),
                     Expanded(
                       child: TabBarView(
@@ -160,16 +168,22 @@ class _ExploreSearchScreenState extends ConsumerState<ExploreSearchScreen>
                             query: _query,
                             reels: reelResults,
                             people: people,
+                            communities: communities,
                             onOpenReel: (index) =>
                                 _openReel(reelResults, index),
                             onSeeAllReels: () => _tabs.animateTo(1),
                             onSeeAllPeople: () => _tabs.animateTo(2),
+                            onSeeAllCommunities: () => _tabs.animateTo(3),
                           ),
                           _ReelGrid(
                             reels: reelResults,
                             onOpen: (index) => _openReel(reelResults, index),
                           ),
                           _PeopleList(people: people, query: _query),
+                          _CommunityList(
+                            communities: communities,
+                            query: _query,
+                          ),
                         ],
                       ),
                     ),
@@ -243,7 +257,7 @@ class _SearchField extends StatelessWidget {
                     decoration: InputDecoration(
                       isDense: true,
                       border: InputBorder.none,
-                      hintText: 'Search reels and people',
+                      hintText: 'Reels, people, communities, languages',
                       hintStyle: TextStyle(
                         color: Colors.white.withValues(alpha: 0.42),
                         fontSize: 14.5,
@@ -466,11 +480,13 @@ class _ResultTabs extends StatelessWidget {
     required this.controller,
     required this.reelCount,
     required this.peopleCount,
+    required this.communityCount,
   });
 
   final TabController controller;
   final int reelCount;
   final int peopleCount;
+  final int communityCount;
 
   @override
   Widget build(BuildContext context) => TabBar(
@@ -481,10 +497,18 @@ class _ResultTabs extends StatelessWidget {
     indicatorSize: TabBarIndicatorSize.label,
     dividerColor: Colors.white12,
     labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
+    // Four tabs do not fit a small phone at their natural width.
+    isScrollable: true,
+    tabAlignment: TabAlignment.start,
     tabs: [
       const Tab(text: 'Top'),
       Tab(text: reelCount == 0 ? 'Reels' : 'Reels · $reelCount'),
       Tab(text: peopleCount == 0 ? 'People' : 'People · $peopleCount'),
+      Tab(
+        text: communityCount == 0
+            ? 'Communities'
+            : 'Communities · $communityCount',
+      ),
     ],
   );
 }
@@ -496,25 +520,35 @@ class _TopResults extends StatelessWidget {
     required this.query,
     required this.reels,
     required this.people,
+    required this.communities,
     required this.onOpenReel,
     required this.onSeeAllReels,
     required this.onSeeAllPeople,
+    required this.onSeeAllCommunities,
   });
 
   final String query;
   final List<Reel> reels;
   final AsyncValue<List<CommunityProfile>> people;
+  final AsyncValue<List<CommunitySpace>> communities;
   final ValueChanged<int> onOpenReel;
   final VoidCallback onSeeAllReels;
   final VoidCallback onSeeAllPeople;
+  final VoidCallback onSeeAllCommunities;
 
   static const _reelPreview = 6;
   static const _peoplePreview = 3;
+  static const _communityPreview = 3;
 
   @override
   Widget build(BuildContext context) {
     final profiles = people.asData?.value ?? const <CommunityProfile>[];
-    if (reels.isEmpty && profiles.isEmpty && !people.isLoading) {
+    final spaces = communities.asData?.value ?? const <CommunitySpace>[];
+    if (reels.isEmpty &&
+        profiles.isEmpty &&
+        spaces.isEmpty &&
+        !people.isLoading &&
+        !communities.isLoading) {
       return _EmptyResults(query: query);
     }
     return ListView(
@@ -528,6 +562,17 @@ class _TopResults extends StatelessWidget {
           ),
           for (final profile in profiles.take(_peoplePreview))
             _PersonRow(profile: profile),
+          const SizedBox(height: 20),
+        ],
+        if (spaces.isNotEmpty) ...[
+          _ResultHeading(
+            label: 'Communities',
+            onSeeAll: spaces.length > _communityPreview
+                ? onSeeAllCommunities
+                : null,
+          ),
+          for (final space in spaces.take(_communityPreview))
+            _CommunityRow(space: space),
           const SizedBox(height: 20),
         ],
         if (reels.isNotEmpty) ...[
@@ -781,6 +826,120 @@ class _PersonRow extends StatelessWidget {
   );
 }
 
+class _CommunityList extends StatelessWidget {
+  const _CommunityList({required this.communities, required this.query});
+
+  final AsyncValue<List<CommunitySpace>> communities;
+  final String query;
+
+  @override
+  Widget build(BuildContext context) => switch (communities) {
+    AsyncValue(:final value?) when value.isEmpty => _EmptyResults(query: query),
+    AsyncValue(:final value?) => ListView.builder(
+      padding: const EdgeInsets.fromLTRB(14, 10, 14, 40),
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+      itemCount: value.length,
+      itemBuilder: (context, index) => _CommunityRow(space: value[index]),
+    ),
+    AsyncValue(hasError: true) => _EmptyResults(query: query),
+    _ => const Center(
+      child: SizedBox.square(
+        dimension: 26,
+        child: CircularProgressIndicator(strokeWidth: 2.4),
+      ),
+    ),
+  };
+}
+
+/// A community in the results: its picture, its name, and what it is about.
+class _CommunityRow extends StatelessWidget {
+  const _CommunityRow({required this.space});
+
+  final CommunitySpace space;
+
+  @override
+  Widget build(BuildContext context) {
+    final brand = context.brand;
+    final about = [
+      if (space.language.trim().isNotEmpty) space.language.trim(),
+      if (space.location.trim().isNotEmpty) space.location.trim(),
+      '${space.memberCount} ${space.memberCount == 1 ? 'member' : 'members'}',
+      if (space.isPrivate) 'Private',
+    ].join(' · ');
+    return InkWell(
+      borderRadius: BorderRadius.circular(14),
+      onTap: () => Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (context) => CommunitySpaceScreen(communityId: space.id),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 4),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              clipBehavior: Clip.antiAlias,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: brand.terracotta,
+                border: Border.all(color: brand.gold.withValues(alpha: 0.6)),
+              ),
+              child: space.avatarUrl != null
+                  ? CachedNetworkImage(
+                      imageUrl: space.avatarUrl!,
+                      fit: BoxFit.cover,
+                      memCacheWidth: 132,
+                      errorWidget: (context, url, error) => Icon(
+                        Icons.diversity_3_rounded,
+                        color: brand.gold,
+                        size: 20,
+                      ),
+                    )
+                  : Icon(
+                      Icons.diversity_3_rounded,
+                      color: brand.gold,
+                      size: 20,
+                    ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    space.name,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 14.5,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  Text(
+                    about,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.white54,
+                      fontSize: 12.5,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(
+              Icons.chevron_right_rounded,
+              color: Colors.white38,
+              size: 20,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _EmptyResults extends StatelessWidget {
   const _EmptyResults({required this.query});
 
@@ -808,7 +967,7 @@ class _EmptyResults extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           const Text(
-            'Try a shorter word, a place, or somebody’s name.',
+            'Try a shorter word, a language, a community or somebody’s name.',
             textAlign: TextAlign.center,
             style: TextStyle(color: Colors.white54, fontSize: 13, height: 1.4),
           ),

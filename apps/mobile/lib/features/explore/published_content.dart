@@ -1,7 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/firebase_ready.dart';
-import 'package:indigen_world_mobile/features/explore/explore_feed.dart' show exploreWindowProvider;
+import 'package:indigen_world_mobile/core/media_geometry.dart';
+import 'package:indigen_world_mobile/features/explore/explore_feed.dart'
+    show exploreWindowProvider;
 
 /// A single approved, published creator piece as consumed by the Explore feed.
 ///
@@ -26,6 +28,18 @@ class PublishedReel {
     this.dialect = '',
     this.licenceDisplay = '',
     this.publishedAt,
+    this.documentPageUrls = const [],
+    this.collectionKind = '',
+    this.tags = const [],
+    this.translations = const [],
+    this.sourceAttribution = '',
+    this.publicationRoute = '',
+    this.ageRating = '',
+    this.createdAt,
+    this.aspectRatio,
+    this.focalPoint,
+    this.communityId,
+    this.communityName,
   });
 
   final String id;
@@ -59,6 +73,55 @@ class PublishedReel {
   final String licenceDisplay;
   final String? publishedAt;
 
+  /// Full rendered document pages, in reading order, for the in-app reader.
+  final List<String> documentPageUrls;
+
+  /// Which Collection channel the workflow filed this under — `music`,
+  /// `literature`, `video` and so on. Explore reads it as a topic hint.
+  final String collectionKind;
+
+  /// Free tags the creator attached at submission, capped at twenty upstream.
+  final List<String> tags;
+
+  /// Meanings the creator declared. Mostly lexical material, but any piece
+  /// may carry them, and they are the one translation a record states outright.
+  final List<String> translations;
+
+  /// Where the creator says the material comes from: an elder, a recording, a
+  /// book. Free text, and the creator's claim rather than a verified one.
+  final String sourceAttribution;
+
+  /// How the piece reached publication: `reviewed`, `collection_review` and
+  /// `admin` all passed a human on the review desk; `open` did not.
+  final String publicationRoute;
+
+  /// `all`, or `13+` when the submission declared that minors are involved.
+  final String ageRating;
+
+  /// When the record was first created, as distinct from when it published.
+  final String? createdAt;
+
+  /// Width over height of the media, when the workflow recorded it. Lets the
+  /// feed choose a crop before the first frame has decoded.
+  final double? aspectRatio;
+
+  /// The point of the frame worth keeping when the media has to be cropped,
+  /// as fractions of its width and height. Null means "the centre".
+  final ({double x, double y})? focalPoint;
+
+  /// The sub-community this work was published for, when it was. The
+  /// publication workflow does not stamp these yet; they are read so the feed
+  /// is ready the day it does.
+  final String? communityId;
+  final String? communityName;
+
+  /// Whether a human on the review desk approved this before it was public.
+  bool get isReviewed => const {
+    'reviewed',
+    'collection_review',
+    'admin',
+  }.contains(publicationRoute);
+
   bool get isVideo => mediaType?.toLowerCase() == 'video';
   bool get isImage => mediaType?.toLowerCase() == 'image';
 
@@ -70,6 +133,12 @@ class PublishedReel {
   /// [mediaType], and three copies of a loose rule drift apart; the exact
   /// comparison lives beside [isVideo] and [isImage] so all three agree.
   bool get isAudio => mediaType?.toLowerCase() == 'audio';
+
+  /// Something to be read rather than played: a PDF of a collected story, a
+  /// scanned manuscript, an epub, a .docx. The publication workflow stamps
+  /// `document` on anything that is not audio, video or a picture, and it is
+  /// what Literature is made of.
+  bool get isDocument => mediaType?.toLowerCase() == 'document';
 
   /// Still image to show as the reel background / video poster.
   String? get posterUrl {
@@ -84,14 +153,24 @@ class PublishedReel {
   String? get videoUrl =>
       (isVideo && mediaUrl != null && mediaUrl!.isNotEmpty) ? mediaUrl : null;
 
-  static PublishedReel fromDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
-    final data = doc.data() ?? const <String, dynamic>{};
+  static PublishedReel fromDoc(DocumentSnapshot<Map<String, dynamic>> doc) =>
+      fromMap(doc.id, doc.data() ?? const <String, dynamic>{});
+
+  static PublishedReel fromMap(String docId, Map<String, dynamic> data) {
     final rawAttribution = data['creatorAttribution'];
     final attribution = rawAttribution is Map
         ? Map<String, dynamic>.from(rawAttribution)
         : const <String, dynamic>{};
+    final rawLifecycle = data['lifecycle'];
+    final lifecycle = rawLifecycle is Map
+        ? Map<String, dynamic>.from(rawLifecycle)
+        : const <String, dynamic>{};
+    final rawMedia = data['media'];
+    final media = rawMedia is Map
+        ? Map<String, dynamic>.from(rawMedia)
+        : const <String, dynamic>{};
     return PublishedReel(
-      id: _text(data['id'], fallback: doc.id),
+      id: _text(data['id'], fallback: docId),
       title: _text(data['title'], fallback: 'Untitled'),
       creatorName: _text(
         attribution['displayName'],
@@ -111,8 +190,45 @@ class PublishedReel {
       dialect: _text(data['dialect']),
       licenceDisplay: _text(data['licenceDisplay']),
       publishedAt: _dateText(data['publishedAt']),
+      documentPageUrls: documentPageUrlsFromData(data['documentPageUrls']),
+      collectionKind: _text(data['collectionKind']),
+      tags: _strings(data['tags']),
+      translations: _strings(data['translations']),
+      sourceAttribution: _text(data['sourceAttribution']),
+      publicationRoute: _text(data['publicationRoute']),
+      ageRating: _text(data['ageRating']),
+      createdAt: _dateText(lifecycle['createdAt']),
+      aspectRatio: positiveAspectRatio(
+        data['aspectRatio'] ?? media['aspectRatio'],
+      ),
+      focalPoint: parseFocalPoint(data['focalPoint'] ?? media['focalPoint']),
+      communityId: _nullableText(data['communityId']),
+      communityName: _nullableText(data['communityName']),
     );
   }
+}
+
+List<String> _strings(Object? value) {
+  if (value is! List) return const [];
+  return List.unmodifiable([
+    for (final item in value)
+      if (item is String && item.trim().isNotEmpty) item.trim(),
+  ]);
+}
+
+List<String> documentPageUrlsFromData(Object? value) {
+  if (value is! List) return const [];
+  // A missing page must not silently turn into a shorter, incomplete story.
+  final urls = <String>[];
+  for (final item in value) {
+    if (item is! String) return const [];
+    final uri = Uri.tryParse(item.trim());
+    if (uri == null || uri.scheme != 'https' || uri.host.isEmpty) {
+      return const [];
+    }
+    urls.add(item.trim());
+  }
+  return List.unmodifiable(urls);
 }
 
 String _text(Object? value, {String fallback = ''}) {
@@ -141,22 +257,28 @@ class PublishedContentRepository {
 
   static const feedLimit = 30;
 
-  /// ── Why the video filter is on the query ──────────────────────────────
-  /// Explore is a video surface, so every non-video record this returns is
-  /// thrown away by `explore_feed.dart` a moment later. Filtering only there
-  /// spends the [limit] window on documents nobody will ever see: a language
-  /// that published thirty poems this week would push every reel out of the
-  /// newest thirty and Explore would open empty.
+  /// The media types Explore can draw full screen: moving pictures and still
+  /// ones. Audio and documents have nothing to fill a screen with and belong to
+  /// the Collection channels that can play or read them.
+  static const exploreMediaTypes = <String>['video', 'image'];
+
+  /// ── Why the media filter is on the query ──────────────────────────────
+  /// Every record Explore cannot draw is thrown away by `explore_feed.dart` a
+  /// moment later. Filtering only there spends the [limit] window on documents
+  /// nobody will ever see: a language that published thirty poems this week
+  /// would push every reel out of the newest thirty and Explore would open
+  /// empty.
   ///
   /// The client filter stays all the same. This one needs a composite index
-  /// that is deployed separately from the app, and an equality filter also
-  /// quietly excludes the older records that carry no `mediaType` at all — so
-  /// what comes back is not something the feed can simply trust. The rule is
-  /// restated there, where it cannot be un-deployed.
+  /// that is deployed separately from the app — `in` is served by the same
+  /// (publicationStatus, mediaType, publishedAt) index the old equality used —
+  /// and the filter also quietly excludes older records that carry no
+  /// `mediaType` at all, so what comes back is not something the feed can
+  /// simply trust. The rule is restated there, where it cannot be un-deployed.
   Query<Map<String, dynamic>> _feedQuery(int limit) => _firestore
       .collection('publishedContent')
       .where('publicationStatus', isEqualTo: 'published')
-      .where('mediaType', isEqualTo: 'video')
+      .where('mediaType', whereIn: exploreMediaTypes)
       .orderBy('publishedAt', descending: true)
       .limit(limit);
 

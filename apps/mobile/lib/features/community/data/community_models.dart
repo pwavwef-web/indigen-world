@@ -1,4 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:indigen_world_mobile/core/clip_window.dart';
+import 'package:indigen_world_mobile/core/media_geometry.dart';
+import 'package:indigen_world_mobile/core/timed_captions.dart';
+import 'package:indigen_world_mobile/features/community/data/community_space_models.dart';
+import 'package:indigen_world_mobile/features/community/data/post_category.dart';
+import 'package:indigen_world_mobile/features/community/data/reel_post_details.dart';
 import 'package:indigen_world_mobile/features/subscriptions/data/subscription_catalog.dart';
 
 /// A single photo or video attached to a community post.
@@ -10,6 +16,11 @@ class CommunityMedia {
     this.thumbnailUrl,
     this.aspectRatio = 4 / 3,
     this.durationSeconds,
+    this.focalPoint,
+    this.trimStartMs,
+    this.trimEndMs,
+    this.originalSound = true,
+    this.captions,
   });
 
   /// Public download URL of the uploaded file.
@@ -24,6 +35,26 @@ class CommunityMedia {
   final String? thumbnailUrl;
   final double aspectRatio;
   final int? durationSeconds;
+
+  /// The part of the frame to keep when a full-screen surface has to crop it.
+  /// Null — the centre — on everything uploaded before the field existed.
+  final FocalPoint? focalPoint;
+
+  /// The part of a video its creator chose to show, in the file's own time.
+  /// The file itself is never cut on the phone — see `clip_window.dart`.
+  final int? trimStartMs;
+  final int? trimEndMs;
+
+  /// False when the creator removed the clip's own sound. Players keep the
+  /// clip silent; the audio track is still in the file until a server-side
+  /// render exists to take it out.
+  final bool originalSound;
+
+  /// Timed captions for a video, when the creator added them.
+  final CaptionTrack? captions;
+
+  /// [trimStartMs] and [trimEndMs] as a window players can honour, or null.
+  ClipWindow? get clipWindow => ClipWindow.fromMillis(trimStartMs, trimEndMs);
 
   bool get isVideo => type == 'video';
   bool get isAudio => type == 'audio';
@@ -50,8 +81,16 @@ class CommunityMedia {
       durationSeconds: raw['durationSeconds'] is num
           ? (raw['durationSeconds'] as num).toInt()
           : null,
+      focalPoint: parseFocalPoint(raw['focalPoint']),
+      trimStartMs: _nonNegativeInt(raw['trimStartMs']),
+      trimEndMs: _nonNegativeInt(raw['trimEndMs']),
+      originalSound: raw['originalSound'] != false,
+      captions: CaptionTrack.fromMap(raw['captions']),
     );
   }
+
+  static int? _nonNegativeInt(Object? raw) =>
+      raw is num && raw.isFinite && raw >= 0 ? raw.toInt() : null;
 
   Map<String, Object?> toMap() => {
     'url': url,
@@ -60,6 +99,13 @@ class CommunityMedia {
     if (thumbnailUrl != null) 'thumbnailUrl': thumbnailUrl,
     'aspectRatio': aspectRatio,
     if (durationSeconds != null) 'durationSeconds': durationSeconds,
+    if (focalPoint case final focal?)
+      'focalPoint': {'x': focal.x, 'y': focal.y},
+    'trimStartMs': ?trimStartMs,
+    'trimEndMs': ?trimEndMs,
+    if (!originalSound) 'originalSound': false,
+    if (captions case final track? when !track.isEmpty)
+      'captions': track.toMap(),
   };
 }
 
@@ -489,6 +535,9 @@ class CommunityPost {
     this.resharedByUsername,
     this.resharedByAvatarUrl,
     this.resharedAt,
+    this.community,
+    this.category,
+    this.reel,
   });
 
   final String id;
@@ -544,6 +593,27 @@ class CommunityPost {
   final String? resharedByUsername;
   final String? resharedByAvatarUrl;
   final DateTime? resharedAt;
+
+  /// The sub-community this was posted into, or null for the main feed.
+  final PostCommunityStamp? community;
+
+  /// What the author said kind of post this is, if they said.
+  final PostCategory? category;
+
+  /// The topic, context, attribution and rights declared when this post was
+  /// made through the reel creator. Null on every other post.
+  final ReelPostDetails? reel;
+
+  /// The community whose members-only collection holds this post, or null for
+  /// every post that lives in `communityPosts`.
+  ///
+  /// Everything that addresses a post by id — appreciating it, replying to it,
+  /// editing it, opening its thread — needs this to find the document, because
+  /// a private community's posts are not where the rest of the feed is.
+  String? get privateCommunityId =>
+      community?.isPrivate ?? false ? community!.id : null;
+
+  bool get isPrivateCommunityPost => privateCommunityId != null;
 
   bool get isReply => parentId != null;
   bool get hasMedia => media.isNotEmpty;
@@ -620,6 +690,17 @@ class CommunityPost {
       createdAt: (data['createdAt'] as Timestamp?)?.toDate(),
       kasemConfirmed: data['kasemConfirmed'] == true,
       editedAt: (data['editedAt'] as Timestamp?)?.toDate(),
+      community: switch ((data['communityId'], data['communityName'])) {
+        (final String id, final Object? name) when id.isNotEmpty =>
+          PostCommunityStamp(
+            id: id,
+            name: name is String && name.trim().isNotEmpty ? name.trim() : id,
+            isPrivate: data['communityVisibility'] == 'private',
+          ),
+        _ => null,
+      },
+      category: PostCategory.fromWire(data['category']),
+      reel: ReelPostDetails.fromMap(data['reel']),
     );
   }
 
@@ -658,6 +739,46 @@ class CommunityPost {
     resharedByUsername: username,
     resharedByAvatarUrl: avatarUrl,
     resharedAt: createdAt,
+    community: community,
+    category: category,
+    reel: reel,
+  );
+
+  /// This post with its appreciation total replaced — what the feed draws while
+  /// a tap is on its way to the server. Everything else is left exactly as it
+  /// arrived.
+  CommunityPost withLikeCount(int count) => CommunityPost(
+    id: id,
+    authorId: authorId,
+    authorName: authorName,
+    authorUsername: authorUsername,
+    authorAvatarUrl: authorAvatarUrl,
+    authorVerifiedKind: authorVerifiedKind,
+    authorPhoneVerified: authorPhoneVerified,
+    authorSupporterMark: authorSupporterMark,
+    text: text,
+    media: media,
+    likeCount: count < 0 ? 0 : count,
+    replyCount: replyCount,
+    repostCount: repostCount,
+    quoteCount: quoteCount,
+    viewCount: viewCount,
+    parentId: parentId,
+    rootId: rootId,
+    quotedPostId: quotedPostId,
+    quotedPost: quotedPost,
+    poll: poll,
+    createdAt: createdAt,
+    kasemConfirmed: kasemConfirmed,
+    editedAt: editedAt,
+    resharedById: resharedById,
+    resharedByName: resharedByName,
+    resharedByUsername: resharedByUsername,
+    resharedByAvatarUrl: resharedByAvatarUrl,
+    resharedAt: resharedAt,
+    community: community,
+    category: category,
+    reel: reel,
   );
 
   /// Immutable snapshot embedded in a quote post so the quote remains legible

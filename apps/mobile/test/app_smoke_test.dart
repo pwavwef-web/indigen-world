@@ -32,8 +32,12 @@ void main() {
     await tester.pump(const Duration(milliseconds: 3300));
     await tester.pump(const Duration(milliseconds: 300));
 
-    expect(find.text('New voices'), findsOneWidget);
-    expect(find.text('Make a Kasem post'), findsOneWidget);
+    // The feed opens on the daily prompt and the composer. New voices is no
+    // longer a rail above everything; with no posts to sit between, it is not
+    // shown at all.
+    expect(find.text('Today in Kasem'), findsOneWidget);
+    expect(find.text('Make a post'), findsOneWidget);
+    expect(find.text('New voices'), findsNothing);
 
     // Community is the centre destination — the app opens on it, and it is the
     // third of the five slots.
@@ -74,7 +78,7 @@ void main() {
     expect(find.bySemanticsLabel('Search Explore'), findsOneWidget);
     await tester.binding.handlePopRoute();
     await tester.pump(const Duration(milliseconds: 400));
-    expect(find.text('New voices'), findsOneWidget);
+    expect(find.text('Today in Kasem'), findsOneWidget);
     expect(find.byType(FrostedNavBar), findsOneWidget);
 
     await tester.tap(
@@ -147,8 +151,6 @@ void main() {
       findsNothing,
     );
     expect(find.byKey(const Key('collection-search-field')), findsOneWidget);
-    expect(find.text('Published'), findsOneWidget);
-    expect(find.text('Open'), findsOneWidget);
     final collectionScroll = find.descendant(
       of: find.byKey(const PageStorageKey('collection-overview-scroll')),
       matching: find.byType(Scrollable),
@@ -183,10 +185,11 @@ void main() {
     );
     await tester.pump(const Duration(milliseconds: 400));
 
-    expect(find.text('New voices'), findsOneWidget);
-    expect(find.text('Make a Kasem post'), findsOneWidget);
+    expect(find.text('Today in Kasem'), findsOneWidget);
+    expect(find.text('Make a post'), findsOneWidget);
     expect(find.text('For you'), findsWidgets);
     expect(find.text('Following'), findsWidgets);
+    expect(find.text('Communities'), findsWidgets);
 
     // The feed reads Firestore, which is unavailable in tests
     // (firebaseReadyProvider defaults to false), so it renders its empty state

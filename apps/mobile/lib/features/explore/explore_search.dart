@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:indigen_world_mobile/features/explore/explore_topics.dart';
 import 'package:indigen_world_mobile/features/explore/reel_view.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -64,10 +65,21 @@ int _fieldScore(Reel reel, String word) {
   var score = 0;
   if (_has(reel.title, word)) score += 10;
   if (_has(reel.creator, word)) score += 8;
+  if (_has(reel.handle, word)) score += 8;
   if (_has(reel.caption, word)) score += 5;
+  // A community, a language and a cultural topic are what somebody browsing
+  // an archive of this kind searches *by*, so they count like a caption.
+  if (reel.community case final community? when _has(community.name, word)) {
+    score += 5;
+  }
+  if (_has(reel.languageLabel, word) || _has(reel.dialect, word)) score += 5;
+  if (_has(reel.categoryLabel, word)) score += 4;
+  if (reelTopics(reel).any((topic) => _has(topic.label, word))) score += 4;
+  if (reel.tags.any((tag) => _has(tag, word))) score += 4;
   if (_has(reel.label, word)) score += 4;
   if (_has(reel.englishSummary, word)) score += 3;
   if (_has(reel.culturalNotes, word)) score += 3;
+  if (reel.translations.any((meaning) => _has(meaning, word))) score += 3;
   if (_has(reel.sound, word)) score += 2;
   if (_has(reel.credit, word)) score += 1;
   // A live piece outranks a curated preview card on an otherwise equal match:

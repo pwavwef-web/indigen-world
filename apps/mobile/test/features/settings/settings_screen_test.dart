@@ -46,7 +46,6 @@ void main() {
     // The list is lazy, so walk it rather than expecting everything at once.
     for (final label in const [
       'ACCOUNT',
-      'Membership',
       'Change password',
       'COMMUNITY',
       'Saved posts',

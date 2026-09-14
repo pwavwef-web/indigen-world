@@ -39,6 +39,17 @@ void main() {
       // `indigen://post/abc` parses with `post` as the host, not a segment.
       expect(routeFor('indigen://post/abc'), '/post/abc');
     });
+
+    test('a shared community link, on the web and on the custom scheme', () {
+      expect(
+        routeFor('https://indigenworld.com/communities/navrongo-kasem-circle'),
+        '/communities/navrongo-kasem-circle',
+      );
+      expect(
+        routeFor('indigen://communities/paga-elders'),
+        '/communities/paga-elders',
+      );
+    });
   });
 
   group('leaves alone', () {
@@ -57,6 +68,15 @@ void main() {
     test('a post link with no id', () {
       expect(routeFor('https://indigenworld.com/post'), isNull);
       expect(routeFor('https://indigenworld.com/post/'), isNull);
+    });
+
+    test('the communities directory itself, or a deeper community path', () {
+      // The website owns the bare listing; the app claims one community.
+      expect(routeFor('https://indigenworld.com/communities'), isNull);
+      expect(
+        routeFor('https://indigenworld.com/communities/kasem-circle/members'),
+        isNull,
+      );
     });
 
     test('a deeper path under the claimed prefix', () {

@@ -10,8 +10,9 @@ import 'package:indigen_world_mobile/l10n/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// A stand-in for the callable so no test ever reaches Firebase.
-class FakeKawuriService implements KawuriService {
-  FakeKawuriService({required this.answer, this.fromOfflineGuide = false});
+class FakeKawuriService extends KawuriService {
+  FakeKawuriService({required this.answer, this.fromOfflineGuide = false})
+    : super(null);
 
   final String answer;
   final bool fromOfflineGuide;
@@ -62,10 +63,10 @@ void main() {
     await pump(tester);
 
     expect(find.text('Kawuri'), findsOneWidget);
-    expect(find.text('Ask me anything.'), findsOneWidget);
-    expect(find.text('Greetings'), findsOneWidget);
-    expect(find.text('Festivals'), findsOneWidget);
-    expect(find.text('Ask Kawuri…'), findsOneWidget);
+    expect(find.text('What shall we create or discover?'), findsOneWidget);
+    expect(find.text('Ask Kawuri'), findsOneWidget);
+    expect(find.text('Translate'), findsOneWidget);
+    expect(find.text('Message Kawuri…'), findsOneWidget);
   });
 
   testWidgets('says plainly that it can be wrong about the language', (
@@ -74,6 +75,8 @@ void main() {
     // The dictionary and the community are the record; the assistant is not.
     await pump(tester);
 
+    await tester.drag(find.byType(ListView).first, const Offset(0, -500));
+    await tester.pump(const Duration(milliseconds: 300));
     expect(find.textContaining('Kawuri can be wrong'), findsOneWidget);
   });
 
@@ -92,15 +95,24 @@ void main() {
     expect(service.asked.single.single.text, 'How do greetings work?');
   });
 
-  testWidgets('a starter chip asks its full prompt', (tester) async {
+  testWidgets('a suggestion fills an editable draft without sending', (
+    tester,
+  ) async {
     final service = await pump(tester);
 
-    await tester.tap(find.text('Festivals'));
+    await tester.ensureVisible(
+      find.text('Explain the meaning of this festival'),
+    );
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.tap(find.text('Explain the meaning of this festival'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));
 
-    expect(service.asked, hasLength(1));
-    expect(service.asked.single.single.text, contains('Fao festival'));
+    expect(service.asked, isEmpty);
+    expect(
+      tester.widget<TextField>(find.byType(TextField)).controller!.text,
+      contains('this festival'),
+    );
   });
 
   testWidgets('an answer from the on-device guide is labelled as one', (
@@ -133,7 +145,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
 
     // Nothing was sent, so the welcome is still on screen.
-    expect(find.text('Ask me anything.'), findsOneWidget);
+    expect(find.text('What shall we create or discover?'), findsOneWidget);
   });
 
   testWidgets('Kawuri answers on the same ground as your own turn', (
@@ -164,6 +176,87 @@ void main() {
     for (final decoration in bubbles) {
       expect(decoration.color, isNull);
     }
+  });
+
+  for (final width in [320.0, 360.0, 412.0]) {
+    testWidgets('composer avoids keyboard at $width logical pixels', (
+      tester,
+    ) async {
+      tester.view.devicePixelRatio = 1;
+      tester.view.physicalSize = Size(width, 720);
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      addTearDown(tester.view.resetViewInsets);
+      await pump(tester);
+      tester.view.viewInsets = const FakeViewPadding(bottom: 280);
+      await tester.tap(find.byType(TextField));
+      await tester.enterText(
+        find.byType(TextField),
+        'A multiline draft\nwith another line',
+      );
+      await tester.pump(const Duration(milliseconds: 300));
+      final sendRect = tester.getRect(find.byTooltip('Send to Kawuri'));
+      expect(sendRect.bottom, lessThanOrEqualTo(440));
+      expect(tester.takeException(), isNull);
+    });
+  }
+
+  testWidgets(
+    'large text and narrow screen remain scrollable without overflow',
+    (tester) async {
+      tester.view.devicePixelRatio = 1;
+      tester.view.physicalSize = const Size(320, 720);
+      tester.platformDispatcher.textScaleFactorTestValue = 2;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      await pump(tester);
+      await tester.drag(find.byType(ListView).first, const Offset(0, -400));
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'attachment control explains unavailability without collecting media',
+    (tester) async {
+      final service = await pump(tester);
+      await tester.enterText(find.byType(TextField), 'Keep this draft');
+      await tester.tap(find.byTooltip('Attachments · Coming soon'));
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(find.text('Attachments · Coming soon'), findsWidgets);
+      expect(service.asked, isEmpty);
+      expect(
+        tester.widget<TextField>(find.byType(TextField)).controller!.text,
+        'Keep this draft',
+      );
+    },
+  );
+
+  testWidgets('history opens with search and deletion requires confirmation', (
+    tester,
+  ) async {
+    await pump(tester);
+    await tester.enterText(find.byType(TextField), 'Save this conversation');
+    await tester.pump();
+    await tester.tap(find.byTooltip('Send to Kawuri'));
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.tap(find.byTooltip('New conversation'));
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.tap(find.byTooltip('Past conversations'));
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.text('Search history'), findsOneWidget);
+    await tester.tap(find.byTooltip('Conversation options'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.tap(find.text('Delete'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.text('Delete conversation?'), findsOneWidget);
+    await tester.tap(find.text('Cancel'));
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.text('Save this conversation'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 
   group('KawuriText', () {

@@ -9,13 +9,17 @@ import 'package:indigen_world_mobile/features/community/data/community_links.dar
 import 'package:indigen_world_mobile/features/community/data/community_models.dart';
 import 'package:indigen_world_mobile/features/community/data/community_providers.dart';
 import 'package:indigen_world_mobile/features/community/data/community_repository.dart';
+import 'package:indigen_world_mobile/features/community/data/community_space_models.dart';
 import 'package:indigen_world_mobile/features/community/data/compose_draft_store.dart';
+import 'package:indigen_world_mobile/features/community/data/post_category.dart';
 import 'package:indigen_world_mobile/features/community/media_picker.dart';
 import 'package:indigen_world_mobile/features/community/mentions.dart';
 import 'package:indigen_world_mobile/features/community/phone_verification_screen.dart';
 import 'package:indigen_world_mobile/features/community/widgets/community_avatar.dart';
-import 'package:indigen_world_mobile/features/community/widgets/kasem_key_bar.dart';
 import 'package:indigen_world_mobile/features/community/widgets/people_widgets.dart';
+import 'package:indigen_world_mobile/features/community/widgets/post_category_style.dart';
+import 'package:indigen_world_mobile/features/settings/kasem_keyboard_toggle.dart';
+import 'package:indigen_world_mobile/l10n/app_localizations.dart';
 import 'package:indigen_world_mobile/shared/glass_popup.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
@@ -30,7 +34,11 @@ class ComposePostScreen extends ConsumerStatefulWidget {
     this.quoteTo,
     this.initialText = '',
     this.initialAttachments = const <PendingUpload>[],
-    this.initialKasemConfirmed = false,
+    this.community,
+    this.initialCategory,
+    this.hintText,
+    this.canAnnounce = false,
+    this.startWithMedia,
     super.key,
   });
 
@@ -50,10 +58,24 @@ class ComposePostScreen extends ConsumerStatefulWidget {
   /// `CommunityMediaPicker.recoverLostMedia`.
   final List<PendingUpload> initialAttachments;
 
-  /// Restored with the rest of a rescued draft, because a member who had
-  /// already ticked it should not have to find and tick it again after an
-  /// interruption that was not their doing.
-  final bool initialKasemConfirmed;
+  /// The community the post is published into, or null for the main feed.
+  /// A reply to a private community's post goes back into that community
+  /// whatever this says.
+  final PostCommunityStamp? community;
+
+  /// The label the post starts with — a prompt about words starts on Language.
+  final PostCategory? initialCategory;
+
+  /// What the empty field says, when the screen that opened this knows better
+  /// than the default.
+  final String? hintText;
+
+  /// Whether "Announcement" is on offer: staff, or a community's moderators.
+  final bool canAnnounce;
+
+  /// Opens the gallery at photos or videos as soon as the screen is up, for
+  /// the compose bar's attachment shortcuts.
+  final CommunityMediaKind? startWithMedia;
 
   @override
   ConsumerState<ComposePostScreen> createState() => _ComposePostScreenState();
@@ -68,7 +90,7 @@ class _ComposePostScreenState extends ConsumerState<ComposePostScreen> {
   final _pollOptions = [TextEditingController(), TextEditingController()];
   final _recorder = AudioRecorder();
 
-  late var _kasemConfirmed = widget.initialKasemConfirmed;
+  final _composerFocus = FocusNode();
   var _publishing = false;
   var _showPoll = false;
   var _pollDuration = const Duration(days: 1);
@@ -76,9 +98,34 @@ class _ComposePostScreenState extends ConsumerState<ComposePostScreen> {
   DateTime? _recordingStartedAt;
   Timer? _recordingTicker;
   double? _progress;
+  late var _category = widget.initialCategory;
 
   bool get _isReply => widget.replyTo != null;
   bool get _isQuote => widget.quoteTo != null;
+
+  /// Where this post will be published.
+  PostCommunityStamp? get _community {
+    final parent = widget.replyTo;
+    if (parent != null && parent.isPrivateCommunityPost) {
+      return parent.community;
+    }
+    return _isReply ? null : widget.community;
+  }
+
+  bool get _isPrivateCommunity => _community?.isPrivate ?? false;
+
+  @override
+  void initState() {
+    super.initState();
+    final kind = widget.startWithMedia;
+    if (kind != null) {
+      // After the first frame, so the picker opens over a composer that is
+      // already there to come back to.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) unawaited(_addMedia(shortcut: kind));
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -94,38 +141,11 @@ class _ComposePostScreenState extends ConsumerState<ComposePostScreen> {
     unawaited(_recorder.dispose());
     _mentions.dispose();
     _controller.dispose();
+    _composerFocus.dispose();
     for (final controller in _pollOptions) {
       controller.dispose();
     }
     super.dispose();
-  }
-
-  /// Puts one Kasem glyph in at the caret.
-  ///
-  /// Written out by hand rather than left to the keyboard, because there is no
-  /// Kasem keyboard to leave it to. Replacing the selection rather than always
-  /// appending is what makes it behave like a key: type over a wrong letter and
-  /// the right one takes its place.
-  void _insertGlyph(String glyph) {
-    if (_publishing) return;
-    final text = _controller.text;
-    final selection = _controller.selection;
-    // An unfocused field reports an invalid selection; that means the end.
-    final start = selection.start < 0 ? text.length : selection.start;
-    final end = selection.end < 0 ? text.length : selection.end;
-    if (start == end &&
-        text.characters.length >= CommunityRepository.maxPostLength) {
-      return;
-    }
-    final next = text.replaceRange(start, end, glyph);
-    _controller.value = TextEditingValue(
-      text: next,
-      selection: TextSelection.collapsed(offset: start + glyph.length),
-    );
-    HapticFeedback.selectionClick();
-    // A programmatic edit does not fire `onChanged`, and the character counter
-    // at the bottom of the composer is reading that.
-    setState(() {});
   }
 
   Future<void> _toggleRecording() async {
@@ -188,7 +208,7 @@ class _ComposePostScreenState extends ConsumerState<ComposePostScreen> {
     });
   }
 
-  Future<void> _addMedia() async {
+  Future<void> _addMedia({CommunityMediaKind? shortcut}) async {
     final remaining = CommunityRepository.maxMediaPerPost - _attachments.length;
     if (remaining <= 0) {
       showCommunityMessage(
@@ -209,10 +229,13 @@ class _ComposePostScreenState extends ConsumerState<ComposePostScreen> {
     // the app *knows* it is about to be suspended. See `ComposeDraftStore`.
     await _saveDraft();
     if (!mounted) return;
-    final picked = await showMediaPickerSheet(
-      context,
-      remainingSlots: remaining,
-    );
+    final picked = shortcut == null
+        ? await showMediaPickerSheet(context, remainingSlots: remaining)
+        : await pickCommunityMedia(
+            context,
+            kind: shortcut,
+            remainingSlots: remaining,
+          );
     if (!mounted) return;
     if (picked.isEmpty) {
       // Nothing came back, so nothing was interrupted — the member changed
@@ -234,10 +257,7 @@ class _ComposePostScreenState extends ConsumerState<ComposePostScreen> {
       text: _controller.text,
       replyToId: widget.replyTo?.id,
       quoteToId: widget.quoteTo?.id,
-      attachmentPaths: [
-        for (final upload in _attachments) upload.path,
-      ],
-      kasemConfirmed: _kasemConfirmed,
+      attachmentPaths: [for (final upload in _attachments) upload.path],
     ),
   );
 
@@ -328,13 +348,6 @@ class _ComposePostScreenState extends ConsumerState<ComposePostScreen> {
       showCommunityMessage(context, 'Write something or add a photo first.');
       return;
     }
-    if (!_kasemConfirmed) {
-      showCommunityMessage(
-        context,
-        'Confirm this ${_isReply ? 'reply' : 'post'} is written in Kasem.',
-      );
-      return;
-    }
     final pollChoices = _pollOptions
         .map((controller) => controller.text.trim())
         .where((text) => text.isNotEmpty)
@@ -378,7 +391,8 @@ class _ComposePostScreenState extends ConsumerState<ComposePostScreen> {
         rootId: widget.replyTo?.rootId ?? widget.replyTo?.id,
         quoteTo: widget.quoteTo,
         poll: poll,
-        kasemConfirmed: _kasemConfirmed,
+        community: _community,
+        category: _isReply ? null : _category,
         onUploadProgress: (value) {
           if (mounted) setState(() => _progress = value);
         },
@@ -407,6 +421,8 @@ class _ComposePostScreenState extends ConsumerState<ComposePostScreen> {
   Widget build(BuildContext context) {
     final profile = ref.watch(myCommunityProfileProvider).asData?.value;
     final length = _controller.text.characters.length;
+    final l10n = AppLocalizations.of(context);
+    final community = _community;
 
     return Scaffold(
       appBar: AppBar(
@@ -438,9 +454,7 @@ class _ComposePostScreenState extends ConsumerState<ComposePostScreen> {
               )
             : null,
       ),
-      // Sits on top of the keyboard the way a keyboard's own accessory row
-      // would, because for this language there is no keyboard to put it in.
-      bottomNavigationBar: KasemKeyBar(onInsert: _insertGlyph),
+      bottomNavigationBar: KasemKeyboardToggle(focusNode: _composerFocus),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
@@ -452,6 +466,10 @@ class _ComposePostScreenState extends ConsumerState<ComposePostScreen> {
             if (widget.quoteTo case final quoted?) ...[
               _QuoteContext(post: quoted),
               const SizedBox(height: 14),
+            ],
+            if (community != null && !_isReply) ...[
+              _CommunityContext(community: community),
+              const SizedBox(height: 12),
             ],
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -465,6 +483,7 @@ class _ComposePostScreenState extends ConsumerState<ComposePostScreen> {
                   child: TextField(
                     key: const Key('community-composer'),
                     controller: _controller,
+                    focusNode: _composerFocus,
                     autofocus: true,
                     minLines: 5,
                     maxLines: 14,
@@ -472,7 +491,12 @@ class _ComposePostScreenState extends ConsumerState<ComposePostScreen> {
                     textCapitalization: TextCapitalization.sentences,
                     onChanged: (_) => setState(() {}),
                     decoration: InputDecoration(
-                      hintText: _isReply ? 'Reply in Kasem…' : 'Bəŋə Kasem…',
+                      hintText: _isReply
+                          ? 'Write a reply…'
+                          : widget.hintText ??
+                                (community != null
+                                    ? l10n.communityComposeIn(community.name)
+                                    : 'Share something or ask a question…'),
                       filled: false,
                       border: InputBorder.none,
                       enabledBorder: InputBorder.none,
@@ -536,27 +560,19 @@ class _ComposePostScreenState extends ConsumerState<ComposePostScreen> {
                 onClose: () => setState(() => _showPoll = false),
               ),
             ],
-            const SizedBox(height: 18),
-            CheckboxListTile(
-              contentPadding: EdgeInsets.zero,
-              dense: true,
-              controlAffinity: ListTileControlAffinity.leading,
-              value: _kasemConfirmed,
-              onChanged: (value) =>
-                  setState(() => _kasemConfirmed = value ?? false),
-              title: Text(
-                'I confirm this ${_isReply ? 'reply' : 'post'} is written in Kasem.',
-                style: const TextStyle(
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w700,
+            if (!_isReply) ...[
+              const SizedBox(height: 16),
+              _CategoryPicker(
+                selected: _category,
+                choices: PostCategory.choosable(
+                  canAnnounce: widget.canAnnounce,
                 ),
+                onChanged: _publishing
+                    ? null
+                    : (category) => setState(() => _category = category),
               ),
-              subtitle: const Text(
-                'The community relies on a member pledge rather than automatic '
-                'language detection.',
-                style: TextStyle(fontSize: 10.5),
-              ),
-            ),
+            ],
+            const SizedBox(height: 18),
             const Divider(height: 26),
             Row(
               children: [
@@ -574,7 +590,9 @@ class _ComposePostScreenState extends ConsumerState<ComposePostScreen> {
                     color: _recording ? context.brand.terracotta : null,
                   ),
                 ),
-                if (!_isReply && !_isQuote) ...[
+                // A private community's polls could not be tallied: the
+                // tally function only reads public posts.
+                if (!_isReply && !_isQuote && !_isPrivateCommunity) ...[
                   const SizedBox(width: 6),
                   IconButton.filledTonal(
                     tooltip: _showPoll ? 'Remove poll' : 'Add poll',
@@ -609,6 +627,108 @@ class _ComposePostScreenState extends ConsumerState<ComposePostScreen> {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// "Posting in Navrongo Kasem Circle" above the field.
+class _CommunityContext extends StatelessWidget {
+  const _CommunityContext({required this.community});
+
+  final PostCommunityStamp community;
+
+  @override
+  Widget build(BuildContext context) {
+    final brand = context.brand;
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: brand.accentSoft,
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              community.isPrivate
+                  ? Icons.lock_outline_rounded
+                  : Icons.groups_2_outlined,
+              size: 15,
+              color: brand.accent,
+            ),
+            const SizedBox(width: 6),
+            Flexible(
+              child: Text(
+                AppLocalizations.of(context).communityComposeIn(community.name),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: brand.accent,
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The optional "kind of post" choice. Tapping the chosen one again clears it.
+class _CategoryPicker extends StatelessWidget {
+  const _CategoryPicker({
+    required this.selected,
+    required this.choices,
+    required this.onChanged,
+  });
+
+  final PostCategory? selected;
+  final List<PostCategory> choices;
+  final ValueChanged<PostCategory?>? onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final brand = context.brand;
+    final l10n = AppLocalizations.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          l10n.communityPostCategory,
+          style: TextStyle(
+            color: brand.mutedInk,
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Wrap(
+          spacing: 8,
+          runSpacing: 4,
+          children: [
+            for (final category in choices)
+              ChoiceChip(
+                key: ValueKey('post-category-${category.wire}'),
+                avatar: Icon(
+                  category.icon,
+                  size: 16,
+                  color: category.colorOn(brand),
+                ),
+                label: Text(category.label(l10n)),
+                selected: selected == category,
+                showCheckmark: false,
+                materialTapTargetSize: MaterialTapTargetSize.padded,
+                onSelected: onChanged == null
+                    ? null
+                    : (on) => onChanged!(on ? category : null),
+              ),
+          ],
+        ),
+      ],
     );
   }
 }

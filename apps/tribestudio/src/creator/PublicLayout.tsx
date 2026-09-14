@@ -1,6 +1,7 @@
 import { Suspense, type ReactNode } from 'react';
 import { Link, useRoute } from '../router';
 import { signIn, useAuth } from '../auth';
+import { RouteLoader } from '../LoadingScreen';
 
 function BrandMark() {
   return (
@@ -65,7 +66,7 @@ export function PublicLayout({ children }: { children: ReactNode }) {
         </nav>
       </header>
       <main id="main-content" tabIndex={-1}>
-        <Suspense fallback={<div className="loading">Loading…</div>}>{children}</Suspense>
+        <Suspense fallback={<RouteLoader />}>{children}</Suspense>
       </main>
       <footer className="public__footer">
         <div className="brand">

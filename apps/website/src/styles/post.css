@@ -184,3 +184,128 @@
 .post-page__footer-note {
   margin: 0;
 }
+
+/* ── Shared communities (/communities/<slug>) ─────────────────────────────── */
+
+.community-card {
+  padding: 0;
+  overflow: hidden;
+}
+
+.community-card > :not(.community-card__cover) {
+  margin-inline: var(--space-3);
+}
+
+.community-card > :last-child {
+  margin-bottom: var(--space-3);
+}
+
+.community-card__cover {
+  height: 132px;
+  background-color: var(--sand);
+  background-size: cover;
+  background-position: center;
+}
+
+/* No cover picture: the woven lozenge the app draws, in the site's earth tones. */
+.community-card__cover--pattern {
+  background-image:
+    linear-gradient(135deg, transparent 37%, var(--indigo-900) 37%, var(--indigo-900) 63%, transparent 63%),
+    linear-gradient(45deg, transparent 37%, var(--gold) 37%, var(--gold) 63%, transparent 63%);
+  background-size: 48px 48px;
+  background-color: var(--terracotta);
+}
+
+/* The picture overlaps the cover; the name sits under it, so a long name
+   wraps downwards instead of up into the cover. */
+.community-card__head {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-1);
+  margin-top: -36px;
+}
+
+.community-card__avatar {
+  width: 72px;
+  height: 72px;
+  flex: 0 0 72px;
+  border-radius: 20px;
+  border: 3px solid var(--white);
+  object-fit: cover;
+  background: var(--sand);
+}
+
+.community-card__avatar--initial {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  color: var(--white);
+  background: var(--terracotta);
+}
+
+.community-card__name {
+  margin: 0;
+  font-size: 1.35rem;
+}
+
+.community-card__facts {
+  margin: 0.15rem 0 0;
+}
+
+.community-card__private {
+  margin: 0;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  background: var(--cream);
+}
+
+.community-card__subhead {
+  margin: 0 0 var(--space-1);
+  font-size: 1rem;
+}
+
+.community-card__rules {
+  margin: 0;
+  padding-left: 1.3rem;
+  display: grid;
+  gap: 0.35rem;
+  overflow-wrap: anywhere;
+}
+
+.community-recent {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-1);
+}
+
+.community-recent__item a {
+  display: grid;
+  gap: 0.2rem;
+  padding: var(--space-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  color: inherit;
+  text-decoration: none;
+}
+
+.community-recent__item a:hover,
+.community-recent__item a:focus-visible {
+  border-color: var(--indigo-900);
+}
+
+.community-recent__author {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.community-recent__text {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

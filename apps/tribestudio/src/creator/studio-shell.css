@@ -611,6 +611,38 @@ body {
   min-width: 0;
 }
 
+/* The video editor is a working surface, not a page inside the workspace.
+   Its route takes over the viewport while keeping the authenticated studio
+   boundary around it. Navigation back to the dashboard lives in its own bar. */
+.studio--immersive,
+.studio--immersive.studio--collapsed {
+  display: block;
+  min-height: 100svh;
+  background: #090d16;
+}
+
+.studio--immersive > .studio__side,
+.studio--immersive > .studio__menu-button,
+.studio--immersive > .studio__backdrop,
+.studio--immersive .studio__workspace-header,
+.studio--immersive .studio__status,
+.studio--immersive .studio__footer {
+  display: none;
+}
+
+.studio--immersive .studio__content-shell {
+  min-height: 100svh;
+  padding: 0;
+}
+
+.studio--immersive .studio__main {
+  width: 100%;
+  max-width: none;
+  min-height: 100svh;
+  margin: 0;
+  padding: 0;
+}
+
 /* -- Status rail: the workspace's bottom line ---------------------------- */
 .studio__status {
   position: sticky;

@@ -37,3 +37,8 @@ export const APP_WAITLIST_ROUTE = "get-involved?route=mobile-app-waitlist";
 export function appLinkForPost(postId: string): string {
   return `${APP_SCHEME}://post/${encodeURIComponent(postId)}`;
 }
+
+/** The in-app location for a shared community. */
+export function appLinkForCommunity(communityId: string): string {
+  return `${APP_SCHEME}://communities/${encodeURIComponent(communityId)}`;
+}

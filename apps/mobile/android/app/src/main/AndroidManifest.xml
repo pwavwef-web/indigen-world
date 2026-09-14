@@ -112,6 +112,9 @@
                 <category android:name="android.intent.category.BROWSABLE"/>
                 <data android:scheme="https" android:host="indigenworld.com" android:pathPrefix="/post/"/>
                 <data android:scheme="https" android:host="www.indigenworld.com" android:pathPrefix="/post/"/>
+                <!-- A shared community, which also has a page on the website. -->
+                <data android:scheme="https" android:host="indigenworld.com" android:pathPrefix="/communities/"/>
+                <data android:scheme="https" android:host="www.indigenworld.com" android:pathPrefix="/communities/"/>
             </intent-filter>
             <!-- The fallback the website's post page offers when verification
                  did not take — a debug or sideloaded build signed with a key

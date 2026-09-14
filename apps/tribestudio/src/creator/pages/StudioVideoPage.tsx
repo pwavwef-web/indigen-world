@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import { useAuth } from '../../auth';
 import { Link } from '../../router';
-import { Field, LoadError, Skeleton } from '../components';
+import { Field, LoadError, Skeleton, VoiceRecorder } from '../components';
 import {
   createStudioVideoJob,
   fetchStudioVideoCapabilities,
-  loadStudioVideoOutput,
+  fetchStudioVideoJob,
+  fetchStudioVideoPlayback,
   refreshStudioVideoJob,
   uploadStudioVideoAsset,
   type CreateStudioVideoJobInput,
@@ -17,13 +18,32 @@ import {
 
 const CONSENT_VERSION = 'studio-video-r1-2026-09-01';
 const TERMINAL_STATUSES = new Set(['SUCCEEDED', 'FAILED', 'CANCELLED']);
+const POLL_INTERVAL_MS = 15_000;
+// Three misses is roughly forty-five seconds of silence: long enough not to
+// cry wolf over one dropped request, short enough that a creator is told
+// something is wrong instead of watching an honest-looking spinner.
+const POLL_FAILURES_BEFORE_WARNING = 3;
 
+// Fallback only. The capability response carries a `label` per model, so a
+// model added on the backend names itself rather than appearing as a raw id.
 const MODEL_LABELS: Record<string, string> = {
   gen4_turbo: 'Runway Gen-4 Turbo',
   'gen4.5': 'Runway Gen-4.5',
+  'veo-3.1-generate-001': 'Gemini video',
+  'veo-3.1-fast-generate-001': 'Gemini video (fast)',
   'lipsync-2': 'Sync Lipsync 2',
   'lipsync-2-pro': 'Sync Lipsync 2 Pro',
 };
+
+/** What each model is good for, in a creator's terms rather than a vendor's. */
+const MODEL_NOTES: Record<string, string> = {
+  'gen4.5': 'Strong on movement and camera work.',
+  gen4_turbo: 'Cheapest, and animates an image you supply.',
+  'veo-3.1-generate-001': 'Google’s Veo 3.1. The most realistic, and the most expensive.',
+  'veo-3.1-fast-generate-001': 'Google’s Veo 3.1 Fast. Realistic, at about a third of the price.',
+};
+
+const DEFAULT_VISUAL_MODEL = 'gen4.5';
 
 const RATIO_LABELS: Record<string, string> = {
   '1280:720': 'Landscape · 16:9',
@@ -65,11 +85,12 @@ export function StudioVideoPage() {
   const [dialect, setDialect] = useState('');
   const [loading, setLoading] = useState(true);
   const [loadFailed, setLoadFailed] = useState(false);
+  const [loadFailure, setLoadFailure] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
 
   const [operation, setOperation] = useState<StudioVideoOperation>('generate_visual');
-  const [duration, setDuration] = useState<5 | 10>(5);
-  const [visualModel, setVisualModel] = useState<'gen4_turbo' | 'gen4.5'>('gen4.5');
+  const [duration, setDuration] = useState<number>(5);
+  const [visualModel, setVisualModel] = useState<string>(DEFAULT_VISUAL_MODEL);
   const [ratio, setRatio] = useState<'1280:720' | '720:1280' | '960:960'>('1280:720');
   const [prompt, setPrompt] = useState('');
   const [referenceImage, setReferenceImage] = useState<UploadedAsset | null>(null);
@@ -95,69 +116,112 @@ export function StudioVideoPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [outputUrl, setOutputUrl] = useState<string | null>(null);
+  const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
+  const [pollTrouble, setPollTrouble] = useState<string | null>(null);
   const requestId = useRef<string | null>(null);
+
+  const jobId = job?.id ?? null;
+  const jobPending = job ? !TERMINAL_STATUSES.has(job.status) : false;
 
   useEffect(() => {
     if (!user) return;
     let active = true;
     setLoading(true);
     setLoadFailed(false);
+    setLoadFailure(null);
     void fetchStudioVideoCapabilities()
       .then((nextCapabilities) => {
         if (!active) return;
         setCapabilities(nextCapabilities);
         setLoading(false);
       })
-      .catch(() => {
+      .catch((err: unknown) => {
         if (!active) return;
+        // Keep the reason. Discarding it showed "check your connection" to a
+        // creator whose account simply has not been approved yet, next to a
+        // retry button that could never succeed.
+        setLoadFailure(errorMessage(err, 'Something went wrong reaching the video studio.'));
         setLoadFailed(true);
         setLoading(false);
       });
     return () => { active = false; };
   }, [user, reloadKey]);
 
-  // A job id in the URL makes an in-progress generation resumable after a reload.
+  // A job id in the URL makes an in-progress generation resumable after a
+  // reload. The document is read first and the provider poll is a second,
+  // optional step: recovery must not depend on the call that can fail, or a
+  // reload during an outage shows an empty builder form and invites the
+  // creator to pay for the same video twice.
   useEffect(() => {
     const resumeJobId = new URLSearchParams(window.location.search).get('job');
     if (!resumeJobId) return;
     let active = true;
     setRefreshing(true);
-    void refreshStudioVideoJob(resumeJobId)
-      .then((next) => { if (active) setJob(next); })
-      .catch((err: unknown) => { if (active) setError(errorMessage(err, 'Could not reopen this video job.')); })
+    void fetchStudioVideoJob(resumeJobId)
+      .then((existing) => {
+        if (!active) return;
+        if (existing) setJob(existing);
+        else setError('That video job could not be found on this account.');
+      })
+      .catch((err: unknown) => {
+        if (active) setError(errorMessage(err, 'Could not reopen this video job.'));
+      })
       .finally(() => { if (active) setRefreshing(false); });
     return () => { active = false; };
   }, []);
 
-  // Poll slowly enough to stay within the backend refresh allowance.
+  // A repeating interval keyed on the job id, not on the job object.
+  //
+  // The previous version scheduled a single timeout per render and swallowed
+  // its rejection, so one failed poll ended the chain: no new job object, no
+  // re-run, no further requests, and a spinner that turned forever while the
+  // finished video sat in Storage. An interval keeps asking, and a run of
+  // failures is shown to the creator rather than hidden.
   useEffect(() => {
-    if (!job || TERMINAL_STATUSES.has(job.status)) return;
+    if (!jobId || !jobPending) return;
     let active = true;
-    const timer = window.setTimeout(() => {
-      void refreshStudioVideoJob(job.id)
-        .then((next) => { if (active) setJob(next); })
-        .catch(() => { /* A transient poll failure is retried on the next manual refresh. */ });
-    }, 20_000);
-    return () => { active = false; window.clearTimeout(timer); };
-  }, [job]);
+    let failures = 0;
+    // One request at a time. The refresh call imports the finished video
+    // inline and can run for minutes, so firing a fresh one every tick would
+    // stack up dozens of importers racing to write the same object.
+    let inFlight = false;
+    const tick = async () => {
+      if (inFlight) return;
+      inFlight = true;
+      try {
+        const next = await refreshStudioVideoJob(jobId);
+        if (!active) return;
+        failures = 0;
+        setPollTrouble(null);
+        setJob(next);
+      } catch (err) {
+        if (!active) return;
+        failures += 1;
+        if (failures >= POLL_FAILURES_BEFORE_WARNING) {
+          setPollTrouble(errorMessage(err, 'We cannot reach the video service right now.'));
+        }
+      } finally {
+        inFlight = false;
+      }
+    };
+    const timer = window.setInterval(() => { void tick(); }, POLL_INTERVAL_MS);
+    return () => { active = false; window.clearInterval(timer); };
+  }, [jobId, jobPending]);
 
   useEffect(() => {
-    if (job?.status !== 'SUCCEEDED' || !job.outputStoragePath) return;
+    if (job?.status !== 'SUCCEEDED' || !job.outputStoragePath || !jobId) return;
     let active = true;
-    void loadStudioVideoOutput(job.outputStoragePath)
-      .then((url) => {
-        if (active) setOutputUrl(url);
-        else URL.revokeObjectURL(url);
+    void fetchStudioVideoPlayback(jobId)
+      .then((playback) => {
+        if (!active) return;
+        setOutputUrl(playback.playbackUrl);
+        setDownloadUrl(playback.downloadUrl);
       })
       .catch((err: unknown) => {
         if (active) setError(errorMessage(err, 'The video is ready, but its preview could not be loaded.'));
       });
     return () => { active = false; };
-  }, [job?.status, job?.outputStoragePath]);
-
-  useEffect(() => () => {
-    if (outputUrl) URL.revokeObjectURL(outputUrl);
-  }, [outputUrl]);
+  }, [job?.status, job?.outputStoragePath, jobId]);
 
   const operationCapability = capabilities?.operations.find((item) => item.operation === operation);
   const model = operation === 'generate_visual' ? visualModel : lipSyncModel;
@@ -165,11 +229,15 @@ export function StudioVideoPage() {
   const costEstimate = (modelCapability?.estimatedUsdPerSecond ?? 0) * duration;
   const referenceRequired = operation === 'generate_visual' && modelCapability?.requiresReferenceImage === true;
   const recognisableConsentRequired = containsPerson || operation === 'lip_sync';
+  const modelLabel = modelCapability?.label ?? MODEL_LABELS[model] ?? model;
+  // Per model: Runway makes 5 or 10 seconds and Gemini makes 4, 6 or 8.
+  const availableDurations = useMemo(
+    () => modelCapability?.durationsSeconds ?? capabilities?.limits.durationsSeconds ?? [5, 10],
+    [modelCapability, capabilities],
+  );
 
-  const handleUpload = async (kind: StudioVideoAssetKind, event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    event.target.value = '';
-    if (!file || !user) return;
+  const uploadAsset = useCallback(async (kind: StudioVideoAssetKind, file: File) => {
+    if (!user) return;
     setError(null);
     setUploading(kind);
     setUploadPct(0);
@@ -185,7 +253,19 @@ export function StudioVideoPage() {
     } finally {
       setUploading(null);
     }
+  }, [user]);
+
+  const handleUpload = async (kind: StudioVideoAssetKind, event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (file) await uploadAsset(kind, file);
   };
+
+  /** A browser recording arrives as a File, with no input element to clear. */
+  const uploadAudioFile = useCallback(
+    (file: File) => uploadAsset('audio', file),
+    [uploadAsset],
+  );
 
   const validate = (): string | null => {
     if (script.trim().length < 2) return 'Write the Kasem words for this video.';
@@ -201,8 +281,10 @@ export function StudioVideoPage() {
     }
     if (operation === 'generate_visual') {
       if (!prompt.trim()) return 'Describe the scene you want to create.';
-      if (referenceRequired && !referenceImage) return 'Gen-4 Turbo requires a reference image.';
-      if (!referenceImage && ratio === '960:960') return 'Square video requires a reference image.';
+      if (referenceRequired && !referenceImage) return 'This model needs a reference image.';
+      if (availableRatios.length > 0 && !availableRatios.includes(ratio)) {
+        return 'That shape is not available for the model you picked.';
+      }
     } else {
       if (!sourceVideo || !sourceAudio) return 'Upload both a source video and the matching Kasem audio.';
       if (!voiceConsent) return 'The recorded speaker must consent to AI voice processing.';
@@ -238,7 +320,9 @@ export function StudioVideoPage() {
       return {
         ...base,
         operation,
-        provider: 'runway',
+        // From the capability response: which service serves this model is the
+        // backend's decision, not a constant repeated in the browser.
+        provider: modelCapability?.provider === 'gemini' ? 'gemini' : 'runway',
         model: visualModel,
         prompt: prompt.trim(),
         ratio,
@@ -257,19 +341,33 @@ export function StudioVideoPage() {
     };
   };
 
+  /** The job id the backend will use, known before the call is made. */
+  const pendingJobId = (input: CreateStudioVideoJobInput): string | null =>
+    user ? `${user.uid}_${input.clientRequestId}` : null;
+
+  const rememberJobId = (jobId: string) => {
+    const url = new URL(window.location.href);
+    url.searchParams.set('job', jobId);
+    window.history.replaceState({}, '', `${url.pathname}${url.search}`);
+  };
+
   const submit = async () => {
     const validationError = validate();
     if (validationError) { setError(validationError); return; }
     setCreating(true);
     setError(null);
+    const input = buildInput();
+    // Written before the call, not after it. A create that commits server-side
+    // but whose response is lost would otherwise leave a job running, and
+    // billing, with nothing in the browser pointing back to it.
+    const expectedJobId = pendingJobId(input);
+    if (expectedJobId) rememberJobId(expectedJobId);
     try {
-      const next = await createStudioVideoJob(buildInput());
+      const next = await createStudioVideoJob(input);
       setJob(next);
-      const url = new URL(window.location.href);
-      url.searchParams.set('job', next.id);
-      window.history.replaceState({}, '', `${url.pathname}${url.search}`);
+      rememberJobId(next.id);
     } catch (err) {
-      setError(errorMessage(err, 'The video job could not be started. Retry keeps the same request id, so it cannot double-charge.'));
+      setError(errorMessage(err, 'The video job could not be started. Retrying keeps the same request id, so it cannot double-charge.'));
     } finally {
       setCreating(false);
     }
@@ -281,6 +379,7 @@ export function StudioVideoPage() {
     setError(null);
     try {
       setJob(await refreshStudioVideoJob(job.id));
+      setPollTrouble(null);
     } catch (err) {
       setError(errorMessage(err, 'Could not refresh the video status.'));
     } finally {
@@ -289,10 +388,11 @@ export function StudioVideoPage() {
   }, [job]);
 
   const startAnother = () => {
-    if (outputUrl) URL.revokeObjectURL(outputUrl);
     setOutputUrl(null);
+    setDownloadUrl(null);
     setJob(null);
     setError(null);
+    setPollTrouble(null);
     requestId.current = null;
     const url = new URL(window.location.href);
     url.searchParams.delete('job');
@@ -301,10 +401,11 @@ export function StudioVideoPage() {
 
   const availableRatios = useMemo(() => {
     if (!capabilities) return [];
-    if (referenceImage) return modelCapability?.imageRatios ?? capabilities.limits.ratios;
-    return modelCapability?.textRatios?.length
-      ? modelCapability.textRatios
-      : capabilities.limits.ratios;
+    const forModel = referenceImage ? modelCapability?.imageRatios : modelCapability?.textRatios;
+    if (forModel && forModel.length > 0) return forModel;
+    // Only when the model said nothing at all; a model that lists no text
+    // ratios is one that needs an image, and its own list applies then.
+    return modelCapability ? [] : capabilities.limits.ratios;
   }, [capabilities, modelCapability, referenceImage]);
 
   useEffect(() => {
@@ -313,12 +414,26 @@ export function StudioVideoPage() {
     }
   }, [availableRatios, ratio]);
 
+  // Switching model can invalidate the length. Snapped here rather than left
+  // for the backend to reject, because a rejection reads as "the video failed"
+  // for a request that was never askable.
+  useEffect(() => {
+    if (availableDurations.length > 0 && !availableDurations.includes(duration)) {
+      setDuration(availableDurations[0]);
+    }
+  }, [availableDurations, duration]);
+
   if (loading) return <div className="page"><h1>AI Video</h1><Skeleton lines={7} /></div>;
   if (loadFailed) {
     return (
       <div className="page">
         <h1>AI Video</h1>
         <LoadError title="We couldn’t open the video studio" onRetry={() => setReloadKey((key) => key + 1)} />
+        {loadFailure ? <div className="callout callout--warn" role="alert">{loadFailure}</div> : null}
+        <p className="tiny muted">
+          Video making is open to approved creators. If this keeps happening, check{' '}
+          <Link to="/studio/profile">your profile</Link> for your creator status.
+        </p>
       </div>
     );
   }
@@ -331,7 +446,10 @@ export function StudioVideoPage() {
           <h1>Create a Kasem video</h1>
           <p>Write what will be said, choose the kind of video, and create it. TribeStudio keeps your files private until you publish.</p>
         </div>
-        <span className="video-hero__mark" aria-hidden="true">▶</span>
+        <div className="video-hero__aside">
+          <Link to="/studio/video/jobs" className="button button--ghost-dark button--small">Your videos</Link>
+          <span className="video-hero__mark" aria-hidden="true">▶</span>
+        </div>
       </header>
 
       {job ? (
@@ -345,26 +463,40 @@ export function StudioVideoPage() {
             {!TERMINAL_STATUSES.has(job.status) ? <span className="video-spinner" aria-label="Generation in progress" /> : null}
           </div>
           {job.failureReason ? <div className="callout callout--warn">{job.failureReason}</div> : null}
+          {jobPending ? (
+            <p className="tiny muted">
+              You can close this page. The video keeps building and waits for you under{' '}
+              <Link to="/studio/video/jobs">your videos</Link>.
+            </p>
+          ) : null}
+          {pollTrouble ? (
+            <div className="callout callout--warn" role="status">
+              {pollTrouble} Your video is still being made — it will appear under{' '}
+              <Link to="/studio/video/jobs">your videos</Link> when it is done.
+            </div>
+          ) : null}
           {outputUrl ? (
             <div className="video-result__preview">
               <video controls playsInline src={outputUrl} aria-label="Generated Kasem video preview" />
               <div className="video-result__actions">
-                <a className="button button--primary" href={outputUrl} download={`kasem-video-${job.id}.mp4`}>Download video</a>
                 <Link
-                  to={`/studio/submissions/new?generated=${encodeURIComponent(job.outputStoragePath ?? '')}`}
-                  className="button button--ghost-dark"
+                  to={`/studio/editor?job=${encodeURIComponent(job.id)}`}
+                  className="button button--primary"
                 >
-                  Publish in a new post
+                  Edit before posting
                 </Link>
+                <a className="button button--ghost-dark" href={downloadUrl ?? outputUrl}>Download original</a>
               </div>
             </div>
           ) : null}
+          {error ? <div className="callout callout--warn" role="alert">{error}</div> : null}
           <div className="video-result__actions">
-            {!TERMINAL_STATUSES.has(job.status) ? (
+            {jobPending ? (
               <button type="button" className="button button--ghost-dark" disabled={refreshing} onClick={() => void refresh()}>
                 {refreshing ? 'Checking…' : 'Check now'}
               </button>
             ) : null}
+            <Link to="/studio/video/jobs" className="button button--ghost-dark">Your videos</Link>
             <button type="button" className="button button--ghost-dark" onClick={startAnother}>Start another video</button>
           </div>
         </section>
@@ -422,14 +554,22 @@ export function StudioVideoPage() {
                     <details className="video-advanced">
                       <summary>Quality, length and format</summary>
                       <div className="field-row">
-                        <Field label="Quality" htmlFor="visual-model">
-                          <select id="visual-model" value={visualModel} onChange={(event) => setVisualModel(event.target.value as typeof visualModel)}>
-                            {operationCapability?.models.map((item) => <option key={item.id} value={item.id}>{MODEL_LABELS[item.id] ?? item.id}</option>)}
+                        <Field
+                          label="Model"
+                          htmlFor="visual-model"
+                          hint={MODEL_NOTES[visualModel]}
+                        >
+                          <select id="visual-model" value={visualModel} onChange={(event) => setVisualModel(event.target.value)}>
+                            {operationCapability?.models.map((item) => (
+                              <option key={item.id} value={item.id}>
+                                {item.label ?? MODEL_LABELS[item.id] ?? item.id}
+                              </option>
+                            ))}
                           </select>
                         </Field>
                         <Field label="Length" htmlFor="video-duration">
-                          <select id="video-duration" value={duration} onChange={(event) => setDuration(Number(event.target.value) as 5 | 10)}>
-                            {capabilities?.limits.durationsSeconds.map((seconds) => <option key={seconds} value={seconds}>{seconds} seconds</option>)}
+                          <select id="video-duration" value={duration} onChange={(event) => setDuration(Number(event.target.value))}>
+                            {availableDurations.map((seconds) => <option key={seconds} value={seconds}>{seconds} seconds</option>)}
                           </select>
                         </Field>
                         <Field label="Format" htmlFor="video-ratio">
@@ -447,8 +587,9 @@ export function StudioVideoPage() {
                         <input id="source-video" type="file" accept="video/*" disabled={uploading !== null} onChange={(event) => void handleUpload('video', event)} />
                         {sourceVideo ? <p className="asset-ready"><span>✓</span>{sourceVideo.name}</p> : null}
                       </Field>
-                      <Field label="Kasem recording" htmlFor="source-audio" hint="Audio matching the script above, under 50 MB.">
+                      <Field label="Kasem recording" htmlFor="source-audio" hint="Record it here, or upload audio matching the script above (under 50 MB).">
                         <input id="source-audio" type="file" accept="audio/*" disabled={uploading !== null} onChange={(event) => void handleUpload('audio', event)} />
+                        <VoiceRecorder onAudioReady={(file) => void uploadAudioFile(file)} />
                         {sourceAudio ? <p className="asset-ready"><span>✓</span>{sourceAudio.name}</p> : null}
                       </Field>
                     </div>
@@ -457,12 +598,16 @@ export function StudioVideoPage() {
                       <div className="field-row">
                         <Field label="Quality" htmlFor="lipsync-model">
                           <select id="lipsync-model" value={lipSyncModel} onChange={(event) => setLipSyncModel(event.target.value as typeof lipSyncModel)}>
-                            {operationCapability?.models.map((item) => <option key={item.id} value={item.id}>{MODEL_LABELS[item.id] ?? item.id}</option>)}
+                            {operationCapability?.models.map((item) => (
+                              <option key={item.id} value={item.id}>
+                                {item.label ?? MODEL_LABELS[item.id] ?? item.id}
+                              </option>
+                            ))}
                           </select>
                         </Field>
                         <Field label="Length" htmlFor="lipsync-duration">
-                          <select id="lipsync-duration" value={duration} onChange={(event) => setDuration(Number(event.target.value) as 5 | 10)}>
-                            {capabilities?.limits.durationsSeconds.map((seconds) => <option key={seconds} value={seconds}>{seconds} seconds</option>)}
+                          <select id="lipsync-duration" value={duration} onChange={(event) => setDuration(Number(event.target.value))}>
+                            {availableDurations.map((seconds) => <option key={seconds} value={seconds}>{seconds} seconds</option>)}
                           </select>
                         </Field>
                         <Field label="If lengths differ" htmlFor="sync-mode">
@@ -508,7 +653,14 @@ export function StudioVideoPage() {
               <div><dt>Length</dt><dd>{duration} seconds</dd></div>
               <div><dt>Estimated charge</dt><dd>{formatUsd(costEstimate)}</dd></div>
             </dl>
-            <p className="tiny muted">One generation using {MODEL_LABELS[model] ?? model}. The final provider charge may vary slightly.</p>
+            <p className="tiny muted">One generation using {modelLabel}. The final provider charge may vary slightly.</p>
+            {modelCapability?.provider === 'gemini' ? (
+              <p className="tiny muted">
+                Gemini video is made without a soundtrack on purpose — a generated voice would not
+                be speaking Kasem. Add your own recording with “Sync someone speaking”, or in
+                editing.
+              </p>
+            ) : null}
             {error ? <div className="callout callout--warn" role="alert">{error}</div> : null}
             <button type="button" className="button button--primary button--block" disabled={creating || uploading !== null} onClick={() => void submit()}>
               {creating ? 'Starting securely…' : `Create for about ${formatUsd(costEstimate)}`}

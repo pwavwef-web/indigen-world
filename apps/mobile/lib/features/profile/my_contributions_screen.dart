@@ -112,7 +112,7 @@ class _ContributionCard extends StatelessWidget {
     final colour = approved
         ? context.brand.success
         : record.status.toLowerCase() == 'rejected'
-        ? const Color(0xFFA12A2A)
+        ? context.brand.danger
         : context.brand.gold;
     return GlassCard.listItem(
       accent: colour,

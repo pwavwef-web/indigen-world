@@ -345,3 +345,124 @@ body {
 .toast--err {
   background: var(--danger);
 }
+
+/* ---------------------------------------------------------------------------
+   Loading states
+   Continues the boot screen inlined in index.html: same mark, same drawing
+   animation, same words, so a cold start and an auth check read as one wait.
+   Keep the two in step -- index.html cannot import this file, because the
+   whole point of that copy is that it paints before any stylesheet arrives.
+   --------------------------------------------------------------------------- */
+.loader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+}
+.loader--full {
+  min-height: 100vh;
+  background: var(--bg);
+}
+/* Holds the content area, not the viewport: the shell around it is already
+   drawn, and covering it would be a step backwards. */
+.loader--route {
+  min-height: 52vh;
+  gap: 16px;
+}
+.loader__mark {
+  width: 64px;
+  height: 64px;
+  border-radius: 18px;
+  background: var(--indigo-deep);
+  display: grid;
+  place-items: center;
+  box-shadow: 0 12px 32px rgba(16, 28, 54, 0.18);
+}
+.loader--route .loader__mark {
+  width: 46px;
+  height: 46px;
+  border-radius: 13px;
+}
+.loader__mark svg {
+  width: 38px;
+  height: 38px;
+  fill: none;
+  stroke: var(--terracotta);
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.loader--route .loader__mark svg {
+  width: 27px;
+  height: 27px;
+}
+.loader__mark path,
+.loader__mark circle {
+  stroke-dasharray: 120;
+  animation: loader-draw 1.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+.loader__mark path:nth-child(2) {
+  animation-delay: 0.18s;
+}
+.loader__mark circle {
+  animation-delay: 0.36s;
+}
+@keyframes loader-draw {
+  0% { stroke-dashoffset: 120; opacity: 0.25; }
+  45% { stroke-dashoffset: 0; opacity: 1; }
+  85% { stroke-dashoffset: 0; opacity: 1; }
+  100% { stroke-dashoffset: 120; opacity: 0.25; }
+}
+.loader__words {
+  text-align: center;
+  display: grid;
+  gap: 6px;
+}
+.loader__name {
+  margin: 0;
+  font-size: 1.02rem;
+  font-weight: 650;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+.loader__note {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--text-soft);
+}
+.loader__bar {
+  width: 132px;
+  height: 3px;
+  border-radius: 999px;
+  background: var(--border);
+  overflow: hidden;
+}
+.loader__bar > span {
+  display: block;
+  width: 40%;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--terracotta);
+  animation: loader-slide 1.5s ease-in-out infinite;
+}
+@keyframes loader-slide {
+  0% { transform: translateX(-110%); }
+  100% { transform: translateX(330%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .loader__mark path,
+  .loader__mark circle,
+  .loader__bar > span {
+    animation: none;
+  }
+  .loader__mark path,
+  .loader__mark circle {
+    stroke-dasharray: none;
+    opacity: 1;
+  }
+  .loader__bar > span {
+    width: 100%;
+  }
+}

@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:indigen_world_mobile/features/kawuri/kawuri_tasks.dart';
 
 /// Who said it.
 enum KawuriRole { you, kawuri }
@@ -14,6 +15,11 @@ class KawuriMessage {
     this.isStreaming = false,
     this.failed = false,
     this.fromOfflineGuide = false,
+    this.taskType = KawuriTaskType.chat,
+    this.options = const {},
+    this.sources = const [],
+    this.conversationId = '',
+    this.incomplete = false,
   });
 
   final String id;
@@ -22,6 +28,11 @@ class KawuriMessage {
   final DateTime sentAt;
   final bool isStreaming;
   final bool failed;
+  final KawuriTaskType taskType;
+  final Map<String, String> options;
+  final List<Map<String, Object?>> sources;
+  final String conversationId;
+  final bool incomplete;
 
   /// True when this answer came from the on-device guide rather than the model,
   /// so the UI can label it honestly instead of passing it off as a full
@@ -35,6 +46,7 @@ class KawuriMessage {
     bool? isStreaming,
     bool? failed,
     bool? fromOfflineGuide,
+    bool? incomplete,
   }) => KawuriMessage(
     id: id,
     role: role,
@@ -43,6 +55,11 @@ class KawuriMessage {
     isStreaming: isStreaming ?? this.isStreaming,
     failed: failed ?? this.failed,
     fromOfflineGuide: fromOfflineGuide ?? this.fromOfflineGuide,
+    taskType: taskType,
+    options: options,
+    sources: sources,
+    conversationId: conversationId,
+    incomplete: incomplete ?? this.incomplete,
   );
 
   Map<String, Object?> toJson() => {
@@ -50,6 +67,11 @@ class KawuriMessage {
     'role': role.name,
     'text': text,
     'sentAt': sentAt.millisecondsSinceEpoch,
+    'capability': taskType.wireName,
+    'options': options,
+    'sources': sources,
+    'conversationId': conversationId,
+    'incomplete': incomplete,
     if (failed) 'failed': true,
     if (fromOfflineGuide) 'offline': true,
   };
@@ -64,6 +86,20 @@ class KawuriMessage {
     ),
     failed: json['failed'] == true,
     fromOfflineGuide: json['offline'] == true,
+    taskType: KawuriTaskType.parse(json['capability']),
+    options:
+        (json['options'] as Map?)?.map(
+          (key, value) => MapEntry(key.toString(), value.toString()),
+        ) ??
+        const {},
+    sources:
+        (json['sources'] as List?)
+            ?.whereType<Map>()
+            .map((row) => Map<String, Object?>.from(row))
+            .toList() ??
+        const [],
+    conversationId: json['conversationId'] as String? ?? '',
+    incomplete: json['incomplete'] == true,
   );
 }
 

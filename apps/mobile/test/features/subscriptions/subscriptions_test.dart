@@ -10,9 +10,9 @@ import 'package:indigen_world_mobile/features/ads/data/served_ad.dart';
 import 'package:indigen_world_mobile/features/community/data/community_models.dart';
 import 'package:indigen_world_mobile/features/subscriptions/data/billing_service.dart';
 import 'package:indigen_world_mobile/features/subscriptions/data/entitlement.dart';
+import 'package:indigen_world_mobile/features/subscriptions/data/offer_pricing.dart';
 import 'package:indigen_world_mobile/features/subscriptions/data/subscription_catalog.dart';
 import 'package:indigen_world_mobile/features/subscriptions/data/subscription_providers.dart';
-import 'package:indigen_world_mobile/features/subscriptions/paywall_screen.dart';
 
 /// The catalogue, the entitlement rules, and the one place a subscription
 /// actually changes what a screen draws.
@@ -240,7 +240,7 @@ void main() {
       expect(lines, contains('No adverts anywhere in the app'));
       expect(lines, contains('Up to 400 Kawuri questions a day'));
       expect(lines, contains('Keep 200 songs and chapters offline'));
-      expect(lines.any((line) => line.contains('patron')), isTrue);
+      expect(lines, contains('Patron mark beside your name'));
       // Creator tooling belongs to the creator tier alone.
       expect(lines.any((line) => line.contains('TribeStudio')), isFalse);
       expect(
@@ -253,6 +253,21 @@ void main() {
     test('the free tier still has a Kawuri allowance, and no more', () {
       final lines = benefitLinesFor(SubscriptionTier.none);
       expect(lines, ['Up to 20 Kawuri questions a day']);
+    });
+
+    test('every benefit row says what it is about, in reading order', () {
+      // The membership screen picks each line's glyph from the kind, so a
+      // reworded line keeps its icon and a new line cannot borrow another's.
+      expect(
+        benefitRowsFor(SubscriptionTier.creator).map((row) => row.$1).toList(),
+        [
+          BenefitKind.adFree,
+          BenefitKind.kawuri,
+          BenefitKind.offline,
+          BenefitKind.supporterMark,
+          BenefitKind.creatorTools,
+        ],
+      );
     });
   });
 
@@ -750,6 +765,83 @@ void main() {
         ]),
         isNull,
       );
+    });
+  });
+
+  group('the price on each plan', () {
+    SubscriptionOffer offer(
+      BillingPeriod period,
+      double rawPrice, {
+      String? price,
+      String? offerId,
+      int freeTrialDays = 0,
+    }) => SubscriptionOffer(
+      product: subscriptionProducts.first,
+      plan: SubscriptionPlan(basePlanId: 'plan', billingPeriod: period),
+      details: ProductDetails(
+        id: 'indigen_plus',
+        title: 'Indigen Plus',
+        description: '',
+        price: price ?? 'GH₵${rawPrice.toStringAsFixed(2)}',
+        rawPrice: rawPrice,
+        currencyCode: 'GHS',
+      ),
+      offerToken: 'token-${offerId ?? 'base'}',
+      offerId: offerId,
+      freeTrialDays: freeTrialDays,
+    );
+
+    test('is the base plan, not a free trial layered on it', () {
+      // Play formats an offer's first pricing phase, so a trial's price is
+      // "Free". Listing that as the plan's price would be wrong for everybody
+      // who is not eligible for the trial, and misleading for those who are.
+      final trial = offer(
+        BillingPeriod.monthly,
+        0,
+        price: 'Free',
+        offerId: 'trial',
+        freeTrialDays: 7,
+      );
+      final base = offer(BillingPeriod.monthly, 30);
+      expect(listedOffer([trial, base], BillingPeriod.monthly), same(base));
+      expect(yearlySavingsPercent([trial, base]), isNull);
+    });
+
+    test('buys the trial when Play offered this member one', () {
+      final trial = offer(
+        BillingPeriod.monthly,
+        0,
+        price: 'Free',
+        offerId: 'trial',
+        freeTrialDays: 7,
+      );
+      final base = offer(BillingPeriod.monthly, 30);
+      expect(purchaseOffer([base, trial], BillingPeriod.monthly), same(trial));
+      expect(purchaseOffer([base], BillingPeriod.monthly), same(base));
+      expect(purchaseOffer([base], BillingPeriod.yearly), isNull);
+    });
+
+    test('a year is also shown as so much a month, in Play formatting', () {
+      expect(perMonthPrice(offer(BillingPeriod.yearly, 240)), 'GH₵20.00');
+      // Monthly plans have nothing to restate.
+      expect(perMonthPrice(offer(BillingPeriod.monthly, 30)), isNull);
+      expect(perMonthPrice(offer(BillingPeriod.yearly, 0)), isNull);
+    });
+
+    test('keeps the symbol, its place and the separators Play used', () {
+      expect(restatePrice('GHS 1,200.00', 1200, 100), 'GHS 100.00');
+      expect(restatePrice('1.200,00 €', 1200, 100), '100,00 €');
+      expect(restatePrice('₦12,000', 12000, 1000), '₦1,000');
+      expect(restatePrice('\$59.99', 59.99, 5), '\$5.00');
+    });
+
+    test('refuses a string it cannot read back as the price Play reported', () {
+      // Three decimals, as some currencies have, reads exactly like a
+      // thousands group. Rather than restate one and a half dinars as a
+      // hundred and twenty-five, it restates nothing.
+      expect(restatePrice('BHD 1.500', 1.5, 0.125), isNull);
+      expect(restatePrice('GH₵240.00', 250, 20), isNull);
+      expect(restatePrice('Free', 0, 0), isNull);
     });
   });
 }

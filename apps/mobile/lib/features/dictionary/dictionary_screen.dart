@@ -12,8 +12,8 @@ import 'package:indigen_world_mobile/features/collection/collection_data.dart';
 import 'package:indigen_world_mobile/features/contribute/words/data/parts_of_speech.dart';
 import 'package:indigen_world_mobile/features/dictionary/dictionary_search.dart';
 import 'package:indigen_world_mobile/features/dictionary/entry_detail_screen.dart';
-import 'package:indigen_world_mobile/features/dictionary/kasem_key_bar.dart';
 import 'package:indigen_world_mobile/features/dictionary/result_row.dart';
+import 'package:indigen_world_mobile/features/settings/kasem_keyboard_toggle.dart';
 import 'package:indigen_world_mobile/shared/app_widgets.dart';
 import 'package:indigen_world_mobile/shared/glass_surface.dart';
 
@@ -93,20 +93,12 @@ class _DictionaryScreenState extends ConsumerState<DictionaryScreen> {
           ),
         ],
       ),
-      // ── The Kasem letters, above the keyboard, on the Look up tab ────────
-      // 785 of the published headwords carry a letter no stock keyboard
-      // produces. `foldForSearch` rescues the reader who types `di` for `dɩ`;
-      // this is for the reader who would rather type the real letter, and for
-      // every future surface where folding is not available.
+      // Opens setup or the system picker for the Kasem keyboard.
       bottomNavigationBar: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           if (_tab == _Tab.lookUp)
-            KasemKeyBar(
-              targets: {_searchController: _searchFocus},
-              onInserted: () =>
-                  setState(() => _query = _searchController.text),
-            ),
+            KasemKeyboardToggle(targets: {_searchController: _searchFocus}),
           NavigationBar(
             selectedIndex: _Tab.values.indexOf(_tab),
             onDestinationSelected: (index) =>
@@ -231,9 +223,8 @@ class _DictionaryScreenState extends ConsumerState<DictionaryScreen> {
                       _searchController.text = entry.headword;
                       setState(() => _query = entry.headword);
                     },
-                    onClearFilters: () => setState(
-                      () => _filters = const DictionaryFilters(),
-                    ),
+                    onClearFilters: () =>
+                        setState(() => _filters = const DictionaryFilters()),
                   )
                 : _ResultList(rows: rows, counts: counts),
           ),
@@ -514,11 +505,7 @@ class _NoResults extends StatelessWidget {
               : 'Tone marks and the letters ɛ ɩ ŋ ɔ ʋ are all optional — '
                     'typing what you can reach finds the word either way.',
           textAlign: TextAlign.center,
-          style: TextStyle(
-            color: brand.mutedInk,
-            fontSize: 12.5,
-            height: 1.45,
-          ),
+          style: TextStyle(color: brand.mutedInk, fontSize: 12.5, height: 1.45),
         ),
         if (narrowed) ...[
           const SizedBox(height: 14),

@@ -11,21 +11,29 @@ import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/features/ads/data/ad_campaign.dart';
 import 'package:indigen_world_mobile/features/ads/data/served_ad.dart';
 import 'package:indigen_world_mobile/features/ads/widgets/sponsored_card.dart';
+import 'package:indigen_world_mobile/features/community/communities/communities_screen.dart';
+import 'package:indigen_world_mobile/features/community/communities/community_space_screen.dart';
 import 'package:indigen_world_mobile/features/community/community_actions.dart';
 import 'package:indigen_world_mobile/features/community/community_profile_screen.dart';
 import 'package:indigen_world_mobile/features/community/compose_post_screen.dart';
 import 'package:indigen_world_mobile/features/community/data/chat_providers.dart';
 import 'package:indigen_world_mobile/features/community/data/community_models.dart';
+import 'package:indigen_world_mobile/features/community/data/community_prompt.dart';
 import 'package:indigen_world_mobile/features/community/data/community_providers.dart';
 import 'package:indigen_world_mobile/features/community/data/community_repository.dart';
+import 'package:indigen_world_mobile/features/community/data/community_space_providers.dart';
 import 'package:indigen_world_mobile/features/community/data/compose_draft_store.dart';
+import 'package:indigen_world_mobile/features/community/data/feed_discovery.dart';
+import 'package:indigen_world_mobile/features/community/data/post_category.dart';
 import 'package:indigen_world_mobile/features/community/media_picker.dart';
 import 'package:indigen_world_mobile/features/community/people_screen.dart';
 import 'package:indigen_world_mobile/features/community/post_detail_screen.dart';
 import 'package:indigen_world_mobile/features/community/saved_posts_screen.dart';
-import 'package:indigen_world_mobile/features/community/widgets/community_avatar.dart';
+import 'package:indigen_world_mobile/features/community/widgets/community_compose_bar.dart';
 import 'package:indigen_world_mobile/features/community/widgets/community_post_card.dart';
 import 'package:indigen_world_mobile/features/community/widgets/community_sidebar.dart';
+import 'package:indigen_world_mobile/features/community/widgets/daily_prompt_strip.dart';
+import 'package:indigen_world_mobile/features/community/widgets/new_voices_module.dart';
 import 'package:indigen_world_mobile/features/community/widgets/people_widgets.dart';
 import 'package:indigen_world_mobile/features/notifications/data/notification_providers.dart';
 import 'package:indigen_world_mobile/features/notifications/notifications_screen.dart';
@@ -35,8 +43,9 @@ import 'package:indigen_world_mobile/shared/frosted_nav_bar.dart';
 import 'package:indigen_world_mobile/shared/glass_surface.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
-/// The community tab: a live Firestore feed of Kasem posts with the pulse rail,
-/// composer, For you / Following switch and the full post interactions.
+/// The community tab: a live Firestore feed with the daily prompt, the
+/// composer, the For you / Following switch, the way into sub-communities, and
+/// the full post interactions.
 class CommunityScreen extends ConsumerStatefulWidget {
   const CommunityScreen({super.key});
 
@@ -45,7 +54,7 @@ class CommunityScreen extends ConsumerStatefulWidget {
 }
 
 /// How tall the pinned header is when the whole of it is showing: the title
-/// row, and the For you / Following switch under it.
+/// row, and the For you / Following / Communities row under it.
 const double _headerRowHeight = 54;
 const double _feedTabsHeight = 48;
 const double kCommunityHeaderHeight = _headerRowHeight + _feedTabsHeight;
@@ -93,6 +102,18 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
   final _scaffoldKey = GlobalKey<ScaffoldState>();
 
   Object? _loggedFeedFailure;
+
+  /// Whether this visit to the feed carries the New voices module.
+  ///
+  /// Decided once, when the screen is built, from whether the module has
+  /// already been shown this session — and then held for as long as the screen
+  /// lives. Taking it out the moment it is seen would pull a block of the feed
+  /// out from under the reader and move every post below it.
+  late final bool _offerNewVoices = !ref.read(newVoicesSeenProvider);
+
+  /// The window size a "load more" was last asked for, so one approach to the
+  /// end of the feed asks once rather than on every scroll notification.
+  int _requestedWindow = 0;
 
   @override
   void initState() {
@@ -169,7 +190,6 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
           quoteTo: quoteTo,
           initialText: draft.text,
           initialAttachments: staged,
-          initialKasemConfirmed: draft.kasemConfirmed,
         ),
       ),
     );
@@ -293,6 +313,11 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
     setState(() => _adopt(_latestFeed));
     ref.read(shellChromeVisibilityProvider.notifier).reveal();
     if (!_scroll.hasClients) return;
+    if (MediaQuery.disableAnimationsOf(context)) {
+      _lastScrollOffset = 0;
+      _scroll.jumpTo(0);
+      return;
+    }
     // A fling from three screens down takes long enough to feel like a
     // malfunction, so a very long journey starts most of the way home.
     if (_scroll.offset > 2600) _scroll.jumpTo(1200);
@@ -311,6 +336,7 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
       // The other half of the timeline has its own line to draw.
       _anchor = null;
       _knownIds.clear();
+      _requestedWindow = 0;
     });
     ref.read(shellChromeVisibilityProvider.notifier).reveal();
     if (_scroll.hasClients) _scroll.jumpTo(0);
@@ -344,6 +370,8 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
       return false;
     }
 
+    _maybeLoadMore(notification.metrics);
+
     final travelled = offset - _lastScrollOffset;
     if (travelled.abs() < _chromeScrollThreshold) return false;
     _lastScrollOffset = offset;
@@ -352,6 +380,60 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
     chrome.set(travelled < 0);
     return false;
   }
+
+  /// Widens the feed's window when the reader is within a couple of screens of
+  /// its end, and the page they have is full — a short page is the whole feed.
+  void _maybeLoadMore(ScrollMetrics metrics) {
+    if (metrics.extentAfter > 1400) return;
+    final key = _tab == 0 ? kForYouFeed : kFollowingFeed;
+    final window = _tab == 0
+        ? ref.read(communityFeedWindowProvider)
+        : ref.read(communityFeedWindowsProvider(kFollowingFeed));
+    final raw = _tab == 0
+        ? ref.read(rawCommunityFeedProvider)
+        : ref.read(rawFollowingFeedProvider);
+    final delivered = raw.value?.length ?? 0;
+    if (raw.isLoading || delivered < window || _requestedWindow >= window) {
+      return;
+    }
+    _requestedWindow = window;
+    final notifier = ref.read(communityFeedWindowsProvider(key).notifier);
+    // The For you window is shared with Explore's, which may already be the
+    // wider of the two; growing ours until it passes the one in force is what
+    // actually fetches the next page.
+    void grow() {
+      while (notifier.grow() &&
+          ref.read(communityFeedWindowsProvider(key)) <= window) {}
+    }
+
+    if (SchedulerBinding.instance.schedulerPhase ==
+        SchedulerPhase.persistentCallbacks) {
+      SchedulerBinding.instance.addPostFrameCallback((_) {
+        if (mounted) grow();
+      });
+    } else {
+      grow();
+    }
+  }
+
+  /// Opens the composer with a photo or clip already being picked.
+  Future<void> _composeWithMedia(
+    CommunityActions actions,
+    CommunityMediaKind kind,
+  ) => actions.compose(context, startWithMedia: kind);
+
+  Future<void> _answerPrompt(
+    CommunityActions actions,
+    CommunityPrompt? prompt,
+  ) => actions.compose(
+    context,
+    initialText: prompt?.initialText ?? '',
+    category: prompt == null
+        ? PostCategory.language
+        : prompt.category ?? PostCategory.language,
+    hintText:
+        prompt?.composeHint ?? AppLocalizations.of(context).communityPromptHint,
+  );
 
   void _trackVisiblePost(
     CommunityPost post,
@@ -399,6 +481,19 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
         const <String, String>{};
     final currentUid = ref.watch(currentUidProvider);
     final chromeVisible = ref.watch(shellChromeVisibilityProvider);
+    final reduceMotion = MediaQuery.disableAnimationsOf(context);
+    final rawFeed = _tab == 0
+        ? ref.watch(rawCommunityFeedProvider)
+        : ref.watch(rawFollowingFeedProvider);
+    final window = _tab == 0
+        ? ref.watch(communityFeedWindowProvider)
+        : ref.watch(communityFeedWindowsProvider(kFollowingFeed));
+    // Widening the window re-subscribes at a larger limit. While that is in
+    // flight the provider still holds the page before it, which is exactly the
+    // state to draw a spinner under.
+    final loadingMore = rawFeed.isLoading && rawFeed.hasValue;
+    final reachedEnd =
+        !rawFeed.isLoading && (rawFeed.value?.length ?? 0) < window;
     // Held back or shown, decided once — including for an empty feed, which
     // still has to clear a pill left over from the page before it.
     final shown = feed.value == null ? null : _split(feed.value!);
@@ -410,18 +505,20 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
       // The shell extends its body behind the floating glass rail, so the FAB
       // is lifted clear of it.
       floatingActionButton: Padding(
-        padding: EdgeInsets.only(
-          bottom: shellBottomReserve(context) - 24,
-        ),
+        padding: EdgeInsets.only(bottom: shellBottomReserve(context) - 24),
         // Slides down out of the frame rather than fading in place, so a
         // half-hidden button is never left sitting there to be half-tapped.
         child: AnimatedSlide(
           offset: chromeVisible ? Offset.zero : const Offset(0, 1.4),
-          duration: const Duration(milliseconds: 220),
+          duration: reduceMotion
+              ? Duration.zero
+              : const Duration(milliseconds: 220),
           curve: Curves.easeOutCubic,
           child: AnimatedOpacity(
             opacity: chromeVisible ? 1 : 0,
-            duration: const Duration(milliseconds: 180),
+            duration: reduceMotion
+                ? Duration.zero
+                : const Duration(milliseconds: 180),
             child: IgnorePointer(
               ignoring: !chromeVisible,
               child: FloatingActionButton(
@@ -449,7 +546,9 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
                     ..invalidate(rawCommunityFeedProvider)
                     ..invalidate(rawFollowingFeedProvider)
                     ..invalidate(followingIdsProvider)
-                    ..invalidate(suggestedProfilesProvider);
+                    ..invalidate(suggestedProfilesProvider)
+                    ..invalidate(voiceSuggestionsProvider);
+                  _requestedWindow = 0;
                   await ref.read(suggestedProfilesProvider.future);
                   // A pull to refresh is a request for everything, including
                   // whatever was being held back.
@@ -467,12 +566,28 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
                     const SliverToBoxAdapter(
                       child: SizedBox(height: kCommunityHeaderHeight),
                     ),
-                    const SliverToBoxAdapter(child: _CommunityPulse()),
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                        child: _HomePromptStrip(
+                          onAnswer: (prompt) => _answerPrompt(actions, prompt),
+                        ),
+                      ),
+                    ),
                     SliverToBoxAdapter(
                       child: Padding(
                         padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-                        child: _ComposeBar(
-                          onTap: () => actions.compose(context),
+                        child: CommunityComposeBar(
+                          placeholder: l10n.communityCompose,
+                          onCompose: () => actions.compose(context),
+                          onAddPhoto: () => _composeWithMedia(
+                            actions,
+                            CommunityMediaKind.photo,
+                          ),
+                          onAddVideo: () => _composeWithMedia(
+                            actions,
+                            CommunityMediaKind.video,
+                          ),
                         ),
                       ),
                     ),
@@ -511,6 +626,14 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
                             currentUid: currentUid,
                             actions: actions,
                             onSeen: _trackVisiblePost,
+                            // For you only: the Following feed is people the
+                            // reader already chose.
+                            offerNewVoices: _tab == 0 && _offerNewVoices,
+                            footer: loadingMore
+                                ? const _FeedFooter.loading()
+                                : reachedEnd && posts.length > 4
+                                ? const _FeedFooter.end()
+                                : null,
                           ),
                         ),
                       ],
@@ -535,9 +658,7 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
               // The pill rides just under the header, wherever the header
               // happens to have got to.
               Positioned(
-                top: chromeVisible
-                    ? kCommunityHeaderHeight + 10
-                    : _feedTabsHeight + 10,
+                top: chromeVisible ? kCommunityHeaderHeight + 10 : 10,
                 left: 0,
                 right: 0,
                 child: Center(
@@ -579,6 +700,8 @@ class _FeedList extends StatelessWidget {
     required this.currentUid,
     required this.actions,
     required this.onSeen,
+    this.offerNewVoices = false,
+    this.footer,
   });
 
   final List<CommunityPost> posts;
@@ -595,49 +718,123 @@ class _FeedList extends StatelessWidget {
   final CommunityActions actions;
   final void Function(CommunityPost, double, CommunityActions) onSeen;
 
+  /// Whether to place the New voices module a few posts in.
+  final bool offerNewVoices;
+
+  /// The row under the last post: a spinner while the next page loads, or a
+  /// quiet line once there is no next page.
+  final Widget? footer;
+
   @override
   Widget build(BuildContext context) {
     // Built once per build rather than resolved by arithmetic inside the
     // builder. A row's index has to mean the same thing to the item count, to
     // the key and to the reader, and index maths that skips advert slots is the
     // kind of code that quietly hands post 41 the key of post 40.
-    final rows = spliceSponsored<Object>(
+    final spliced = spliceSponsored<Object>(
       rows: posts,
       ads: ads,
       cadence: kCommunityAdCadence,
       render: (ad) => ad,
     );
+    final rows = offerNewVoices
+        ? insertDiscoveryRow(
+            rows: spliced,
+            isPost: (row) => row is CommunityPost,
+          )
+        : spliced;
     return SliverList.builder(
-      itemCount: rows.length,
+      itemCount: rows.length + (footer == null ? 0 : 1),
+      // Keyed by what the row is rather than where it is, so a post published
+      // above the reader, or the module appearing, never hands one row's state
+      // — a playing clip, a half-run animation — to the row after it.
+      findChildIndexCallback: (key) {
+        if (key is! ValueKey<String>) return null;
+        final index = rows.indexWhere((row) => _rowKey(row) == key.value);
+        return index < 0 ? null : index;
+      },
       itemBuilder: (context, index) {
+        if (index >= rows.length) return footer;
         final row = rows[index];
+        if (row is DiscoveryRow) {
+          return const KeyedSubtree(
+            key: ValueKey('row-new-voices'),
+            child: NewVoicesModule(),
+          );
+        }
         // The advert brings its own visibility detector and its own impression
         // — see [SponsoredCard]. It is emphatically not passed to [onSeen]:
         // that writes a post view against a post id, and a campaign is neither.
         if (row is ServedAd) {
-          return SponsoredCard(ad: row, slot: 'community-$index');
+          // Keyed by slot: the rotation may place one campaign in two slots.
+          return KeyedSubtree(
+            key: ValueKey('ad-slot-$index'),
+            child: SponsoredCard(ad: row, slot: 'community-$index'),
+          );
         }
         final post = row as CommunityPost;
-        return VisibilityDetector(
-          key: Key('community-post-${post.id}-$index'),
-          onVisibilityChanged: (info) =>
-              onSeen(post, info.visibleFraction, actions),
-          child: _FeedPost(
-            post: post,
-            liked: likes.contains(post.id),
-            saved: saved.contains(post.id),
-            reposted: reposts.contains(post.id),
-            votedOptionId: pollVotes[post.id],
-            isOwner: currentUid == post.authorId,
-            actions: actions,
+        return KeyedSubtree(
+          key: ValueKey(_rowKey(post)!),
+          child: VisibilityDetector(
+            key: Key('community-post-${post.id}-$index'),
+            onVisibilityChanged: (info) =>
+                onSeen(post, info.visibleFraction, actions),
+            child: _FeedPost(
+              post: post,
+              liked: likes.contains(post.id),
+              saved: saved.contains(post.id),
+              reposted: reposts.contains(post.id),
+              votedOptionId: pollVotes[post.id],
+              isOwner: currentUid == post.authorId,
+              actions: actions,
+            ),
           ),
         );
       },
     );
   }
+
+  /// A stable identity for a feed row. A reshare is the same post brought in
+  /// by somebody else, so it carries who brought it.
+  static String? _rowKey(Object row) => switch (row) {
+    final CommunityPost post => 'post-${post.id}-${post.resharedById ?? 'own'}',
+    DiscoveryRow() => 'row-new-voices',
+    _ => null,
+  };
 }
 
-class _FeedPost extends StatelessWidget {
+/// Under the last post: the next page arriving, or the end of the feed.
+class _FeedFooter extends StatelessWidget {
+  const _FeedFooter.loading() : loading = true;
+  const _FeedFooter.end() : loading = false;
+
+  final bool loading;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final brand = context.brand;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 22),
+      child: Center(
+        child: loading
+            ? Semantics(
+                label: l10n.communityLoadingMore,
+                child: const SizedBox.square(
+                  dimension: 24,
+                  child: CircularProgressIndicator(strokeWidth: 2.4),
+                ),
+              )
+            : Text(
+                l10n.communityCaughtUp,
+                style: TextStyle(color: brand.faintInk, fontSize: 13),
+              ),
+      ),
+    );
+  }
+}
+
+class _FeedPost extends ConsumerWidget {
   const _FeedPost({
     required this.post,
     required this.liked,
@@ -657,57 +854,79 @@ class _FeedPost extends StatelessWidget {
   final CommunityActions actions;
 
   @override
-  Widget build(BuildContext context) => CommunityPostCard(
-    post: post,
-    liked: liked,
-    saved: saved,
-    reposted: reposted,
-    votedOptionId: votedOptionId,
-    onLike: () => actions.toggleLike(context, post),
-    onRepost: () => actions.toggleRepost(context, post),
-    onQuote: () => actions.quote(context, post),
-    onSave: () => actions.toggleSave(context, post),
-    onShare: () => actions.share(context, post),
-    onViews: isOwner ? () => actions.openEngagement(context, post) : null,
-    onVote: (optionId) => actions.vote(context, post, optionId),
-    onPollVotes: isOwner && post.hasPoll
-        ? () => actions.openEngagement(
-            context,
-            post,
-            initialKind: CommunityEngagementKind.pollVotes,
-          )
-        : null,
-    onReply: () => actions.reply(context, post),
-    onMore: () => actions.showPostMenu(context, post),
-    onOpen: () => Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (context) => PostDetailScreen(postId: post.id),
-      ),
-    ),
-    onOpenAuthor: () => Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (context) => CommunityProfileScreen(uid: post.authorId),
-      ),
-    ),
-    onOpenQuoted: post.quotedPostId == null
-        ? null
-        : () => Navigator.of(context).push(
-            MaterialPageRoute<void>(
-              builder: (context) =>
-                  PostDetailScreen(postId: post.quotedPostId!),
-            ),
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Only this row rebuilds when a like is tapped: the override is selected
+    // down to this post, so the rest of the feed never hears about it.
+    final pending = ref.watch(
+      optimisticEngagementProvider.select((state) => state.likes[post.id]),
+    );
+    final shownLiked = pending ?? liked;
+    final shown = pending == null || pending == liked
+        ? post
+        : post.withLikeCount(post.likeCount + (pending ? 1 : -1));
+    return _card(context, shown, shownLiked);
+  }
+
+  Widget _card(BuildContext context, CommunityPost post, bool liked) =>
+      CommunityPostCard(
+        post: post,
+        liked: liked,
+        saved: saved,
+        reposted: reposted,
+        votedOptionId: votedOptionId,
+        onOpenCommunity: post.community == null
+            ? null
+            : () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (context) =>
+                      CommunitySpaceScreen(communityId: post.community!.id),
+                ),
+              ),
+        onLike: () => actions.toggleLike(context, post),
+        onRepost: () => actions.toggleRepost(context, post),
+        onQuote: () => actions.quote(context, post),
+        onSave: () => actions.toggleSave(context, post),
+        onShare: () => actions.share(context, post),
+        onViews: isOwner ? () => actions.openEngagement(context, post) : null,
+        onVote: (optionId) => actions.vote(context, post, optionId),
+        onPollVotes: isOwner && post.hasPoll
+            ? () => actions.openEngagement(
+                context,
+                post,
+                initialKind: CommunityEngagementKind.pollVotes,
+              )
+            : null,
+        onReply: () => actions.reply(context, post),
+        onMore: () => actions.showPostMenu(context, post),
+        onOpen: () => Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (context) => PostDetailScreen(postId: post.id),
           ),
-    onOpenResharer: post.resharedById == null
-        ? null
-        : () => Navigator.of(context).push(
-            MaterialPageRoute<void>(
-              builder: (context) =>
-                  CommunityProfileScreen(uid: post.resharedById!),
-            ),
+        ),
+        onOpenAuthor: () => Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (context) => CommunityProfileScreen(uid: post.authorId),
           ),
-    onOpenHandle: (handle) => actions.openHandle(context, handle),
-    onOpenLink: (url) => actions.openLink(context, url),
-  );
+        ),
+        onOpenQuoted: post.quotedPostId == null
+            ? null
+            : () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (context) =>
+                      PostDetailScreen(postId: post.quotedPostId!),
+                ),
+              ),
+        onOpenResharer: post.resharedById == null
+            ? null
+            : () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (context) =>
+                      CommunityProfileScreen(uid: post.resharedById!),
+                ),
+              ),
+        onOpenHandle: (handle) => actions.openHandle(context, handle),
+        onOpenLink: (url) => actions.openLink(context, url),
+      );
 }
 
 // ── Header ──────────────────────────────────────────────────────────────────
@@ -721,11 +940,7 @@ class _FeedPost extends StatelessWidget {
 /// come back the instant they turn around — and the header now answers to the
 /// same flag, so the whole of the app's furniture behaves as one thing.
 ///
-/// The For you / Following switch is the exception, and deliberately so: it is
-/// not chrome, it is *where you are*, and a timeline that can be scrolled far
-/// enough to forget which half of it you are reading is a timeline with a hole
-/// in it. So the title row slides up out of the frame and the switch stays,
-/// which is exactly the arrangement every timeline of this shape has landed on.
+/// The title and feed tabs leave together so posts use the full viewport.
 class _PinnedCommunityHeader extends ConsumerWidget {
   const _PinnedCommunityHeader({
     required this.tab,
@@ -744,9 +959,13 @@ class _PinnedCommunityHeader extends ConsumerWidget {
 
     return ClipRect(
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 240),
+        // Respects the system's reduce-motion setting: the header still goes,
+        // it just does not travel.
+        duration: MediaQuery.disableAnimationsOf(context)
+            ? Duration.zero
+            : const Duration(milliseconds: 240),
         curve: Curves.easeOutCubic,
-        height: visible ? kCommunityHeaderHeight : _feedTabsHeight,
+        height: visible ? kCommunityHeaderHeight : 0,
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
           child: DecoratedBox(
@@ -1071,168 +1290,31 @@ class _NotificationBell extends StatelessWidget {
   }
 }
 
-// ── Pulse rail ──────────────────────────────────────────────────────────────
+// ── Daily prompt ────────────────────────────────────────────────────────────
 
-/// The horizontal avatar rail at the top of the feed. Shows the people you
-/// follow first, then new members worth following.
-class _CommunityPulse extends ConsumerWidget {
-  const _CommunityPulse();
+/// The main feed's daily prompt: whatever staff have published for the home
+/// scope, or the built-in invitation in [kHomeFeedPromptLanguage].
+class _HomePromptStrip extends ConsumerWidget {
+  const _HomePromptStrip({required this.onAnswer});
 
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final suggested =
-        ref.watch(suggestedProfilesProvider).asData?.value ??
-        const <CommunityProfile>[];
-    final myUid = ref.watch(currentUidProvider);
-    final people = suggested
-        .where((profile) => profile.uid != myUid)
-        .toList(growable: false);
-    final l10n = AppLocalizations.of(context);
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 2, 8, 4),
-      child: Row(
-        children: [
-          Row(
-            children: [
-              const _PulseDot(),
-              const SizedBox(width: 7),
-              Text(
-                l10n.communityNewVoices,
-                style: TextStyle(
-                  color: context.brand.ink,
-                  fontSize: 13.5,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: SizedBox(
-              height: 58,
-              child: people.isEmpty
-                  ? Center(
-                      child: Text(
-                        l10n.communityNobodyNew,
-                        style: TextStyle(
-                          color: context.brand.faintInk,
-                          fontSize: 12.5,
-                        ),
-                      ),
-                    )
-                  : ListView.separated(
-                      scrollDirection: Axis.horizontal,
-                      itemCount: people.length,
-                      separatorBuilder: (context, index) =>
-                          const SizedBox(width: 9),
-                      itemBuilder: (context, index) {
-                        final profile = people[index];
-                        return Tooltip(
-                          message: profile.displayName,
-                          child: CommunityAvatar(
-                            initials: profile.initials,
-                            imageUrl: profile.avatarUrl,
-                            username: profile.username,
-                            size: 46,
-                            ringed: true,
-                            ringColor: context.brand.border,
-                            onTap: () => Navigator.of(context).push(
-                              MaterialPageRoute<void>(
-                                builder: (context) =>
-                                    CommunityProfileScreen(uid: profile.uid),
-                              ),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _PulseDot extends StatefulWidget {
-  const _PulseDot();
-
-  @override
-  State<_PulseDot> createState() => _PulseDotState();
-}
-
-class _PulseDotState extends State<_PulseDot>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 950),
-  )..repeat(reverse: true);
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) => FadeTransition(
-    opacity: Tween<double>(begin: 0.35, end: 1).animate(_controller),
-    child: Icon(Icons.circle, size: 8, color: context.brand.success),
-  );
-}
-
-// ── Composer entry ──────────────────────────────────────────────────────────
-
-class _ComposeBar extends ConsumerWidget {
-  const _ComposeBar({required this.onTap});
-
-  final VoidCallback onTap;
+  final ValueChanged<CommunityPrompt?> onAnswer;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final profile = ref.watch(myCommunityProfileProvider).asData?.value;
-    final brand = context.brand;
     final l10n = AppLocalizations.of(context);
-    return Material(
-      key: const Key('community-compose-bar'),
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(999),
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.fromLTRB(10, 8, 14, 8),
-          decoration: BoxDecoration(
-            color: brand.surfaceMuted,
-            borderRadius: BorderRadius.circular(999),
-            border: Border.all(color: brand.border),
-          ),
-          child: Row(
-            children: [
-              CommunityAvatar(
-                initials: profile?.initials ?? '··',
-                imageUrl: profile?.avatarUrl,
-                username: profile?.username,
-                size: 32,
-              ),
-              const SizedBox(width: 11),
-              Expanded(
-                child: Text(
-                  l10n.communityCompose,
-                  style: TextStyle(
-                    color: brand.faintInk,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-              Icon(Icons.image_outlined, color: brand.mutedInk, size: 20),
-              const SizedBox(width: 14),
-              Icon(Icons.videocam_outlined, color: brand.mutedInk, size: 20),
-            ],
-          ),
-        ),
-      ),
+    final prompt = ref
+        .watch(communityPromptProvider(kHomeFeedPromptScope))
+        .asData
+        ?.value;
+    final title =
+        prompt?.title ?? l10n.communityPromptTitle(kHomeFeedPromptLanguage);
+    final subtitle = prompt?.subtitle ?? l10n.communityPromptSubtitle;
+    return DailyPromptStrip(
+      title: title,
+      subtitle: subtitle,
+      imageUrl: prompt?.imageUrl,
+      semanticLabel: l10n.communityPromptSemantics(title, subtitle),
+      onTap: () => onAnswer(prompt),
     );
   }
 }
@@ -1260,6 +1342,23 @@ class _FeedTabs extends StatelessWidget {
           selected: selected == 1,
           onTap: () => onChanged(1),
         ),
+        // Not a third feed. It sits in the same row, set in the same type, so
+        // it reads as part of where you can go from here — but it has no rule
+        // under it, because it is never where you *are*: it opens the
+        // communities directory on top of the feed.
+        _FeedTab(
+          key: const Key('community-communities-tab'),
+          label: l10n.communityCommunitiesTab,
+          semanticLabel: l10n.communityCommunitiesTabSemantics,
+          leading: Icons.add_rounded,
+          selected: false,
+          selectable: false,
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (context) => const CommunitiesScreen(),
+            ),
+          ),
+        ),
       ],
     );
   }
@@ -1277,19 +1376,41 @@ class _FeedTab extends StatelessWidget {
     required this.label,
     required this.selected,
     required this.onTap,
+    this.leading,
+    this.semanticLabel,
+    this.selectable = true,
+    super.key,
   });
 
   final String label;
   final bool selected;
   final VoidCallback onTap;
 
+  /// A glyph before the label — the plus on Communities.
+  final IconData? leading;
+
+  /// Read instead of [label], for a control whose label alone undersells it.
+  final String? semanticLabel;
+
+  /// False for a control that navigates rather than filters, which must not be
+  /// announced as a tab that could be selected.
+  final bool selectable;
+
   @override
   Widget build(BuildContext context) {
     final brand = context.brand;
+    final color = selected ? brand.ink : brand.mutedInk;
+    final style = TextStyle(
+      color: color,
+      fontSize: 14.5,
+      fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+    );
     return Expanded(
       child: Semantics(
         button: true,
-        selected: selected,
+        selected: selectable ? selected : null,
+        label: semanticLabel,
+        excludeSemantics: semanticLabel != null,
         child: InkWell(
           onTap: onTap,
           child: Column(
@@ -1297,13 +1418,27 @@ class _FeedTab extends StatelessWidget {
             children: [
               Expanded(
                 child: Center(
-                  child: Text(
-                    label,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: selected ? brand.ink : brand.mutedInk,
-                      fontSize: 14.5,
-                      fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                  // Scales down rather than wrapping or clipping when a long
+                  // translation or a large text size meets a narrow phone.
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (leading != null) ...[
+                            Icon(leading, size: 18, color: brand.accent),
+                            const SizedBox(width: 3),
+                          ],
+                          Text(
+                            label,
+                            textAlign: TextAlign.center,
+                            maxLines: 1,
+                            style: style,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),

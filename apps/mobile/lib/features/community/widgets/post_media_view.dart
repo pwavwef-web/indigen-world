@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
+import 'package:indigen_world_mobile/core/clip_window.dart';
 import 'package:indigen_world_mobile/core/media_preferences.dart';
 import 'package:indigen_world_mobile/features/community/data/community_models.dart';
 import 'package:indigen_world_mobile/features/community/data/community_providers.dart';
@@ -913,7 +914,7 @@ class _ViewerPageState extends State<_ViewerPage> {
         ),
       );
     }
-    if (item.isVideo) return _ViewerVideo(url: item.url);
+    if (item.isVideo) return _ViewerVideo(item: item);
 
     final picture = CachedNetworkImage(
       imageUrl: item.url,
@@ -949,11 +950,12 @@ class _ViewerPageState extends State<_ViewerPage> {
   }
 }
 
-/// The full-screen player: the whole clip, with the sound the feed withheld.
+/// The full-screen player: the whole clip, with the sound the feed withheld —
+/// or, for a reel, the part its creator chose and only the sound they kept.
 class _ViewerVideo extends ConsumerStatefulWidget {
-  const _ViewerVideo({required this.url});
+  const _ViewerVideo({required this.item});
 
-  final String url;
+  final CommunityMedia item;
 
   @override
   ConsumerState<_ViewerVideo> createState() => _ViewerVideoState();
@@ -961,7 +963,10 @@ class _ViewerVideo extends ConsumerStatefulWidget {
 
 class _ViewerVideoState extends ConsumerState<_ViewerVideo> {
   VideoPlayerController? _controller;
+  ClipWindowGuard? _windowGuard;
   var _failed = false;
+
+  bool get _silent => !widget.item.originalSound;
 
   @override
   void initState() {
@@ -970,11 +975,17 @@ class _ViewerVideoState extends ConsumerState<_ViewerVideo> {
   }
 
   Future<void> _open() async {
-    final controller = VideoPlayerController.networkUrl(Uri.parse(widget.url));
+    final controller = VideoPlayerController.networkUrl(
+      Uri.parse(widget.item.url),
+    );
+    final window = widget.item.clipWindow;
     try {
       await controller.initialize();
       await controller.setLooping(true);
-      await controller.setVolume(ref.read(videoMutedProvider) ? 0 : 1);
+      await controller.setVolume(
+        _silent || ref.read(videoMutedProvider) ? 0 : 1,
+      );
+      if (window != null) await controller.seekTo(window.start);
       await controller.play();
     } on Object {
       await controller.dispose();
@@ -985,11 +996,15 @@ class _ViewerVideoState extends ConsumerState<_ViewerVideo> {
       await controller.dispose();
       return;
     }
+    if (window != null) {
+      _windowGuard = ClipWindowGuard(controller, window)..attach();
+    }
     setState(() => _controller = controller);
   }
 
   @override
   void dispose() {
+    _windowGuard?.detach();
     unawaited(_controller?.dispose());
     super.dispose();
   }
@@ -997,9 +1012,9 @@ class _ViewerVideoState extends ConsumerState<_ViewerVideo> {
   @override
   Widget build(BuildContext context) {
     ref.listen<bool>(videoMutedProvider, (_, muted) {
-      unawaited(_controller?.setVolume(muted ? 0 : 1));
+      unawaited(_controller?.setVolume(_silent || muted ? 0 : 1));
     });
-    final muted = ref.watch(videoMutedProvider);
+    final muted = _silent || ref.watch(videoMutedProvider);
 
     if (_failed) {
       return const Center(
@@ -1042,16 +1057,20 @@ class _ViewerVideoState extends ConsumerState<_ViewerVideo> {
                               ? controller.pause()
                               : controller.play(),
                         ),
-                        const SizedBox(width: 8),
-                        _ViewerVideoButton(
-                          icon: muted
-                              ? Icons.volume_off_rounded
-                              : Icons.volume_up_rounded,
-                          tooltip: muted ? 'Sound off' : 'Sound on',
-                          onTap: () => unawaited(
-                            ref.read(videoMutedProvider.notifier).toggle(),
+                        // A clip published without its sound has nothing to
+                        // switch on, so it offers no switch.
+                        if (!_silent) ...[
+                          const SizedBox(width: 8),
+                          _ViewerVideoButton(
+                            icon: muted
+                                ? Icons.volume_off_rounded
+                                : Icons.volume_up_rounded,
+                            tooltip: muted ? 'Sound off' : 'Sound on',
+                            onTap: () => unawaited(
+                              ref.read(videoMutedProvider.notifier).toggle(),
+                            ),
                           ),
-                        ),
+                        ],
                       ],
                     ),
                   ),

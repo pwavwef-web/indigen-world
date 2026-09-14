@@ -76,7 +76,7 @@ exactly as written.
 | --- | --- |
 | `android/.../PlayIntegrityChannel.kt` | The Standard Integrity API behind a method channel. Written here rather than taken from pub.dev — see the file's own note. |
 | `lib/core/device_integrity.dart` | Runs a check and reports the verdict. Never judges anything itself. |
-| `lib/features/subscriptions/` | Catalogue mirror, entitlement model, billing service, paywall, manage screen, supporter badge. |
+| `lib/features/subscriptions/` | Catalogue mirror, entitlement model, billing service, price arithmetic (`offer_pricing.dart`), the membership screen — plans, the member's own status and checkout in one, and the Membership tab in My Space — and the supporter badge. |
 | `lib/features/downloads/` | Offline audio, gated on the entitlement. |
 
 **New functions to deploy**: `startIntegrityCheck`, `verifyDeviceIntegrity`,
@@ -253,7 +253,10 @@ Set them in Play Console, in GHS, and let Play convert for other markets. **No
 price is written anywhere in this repository, deliberately** — the paywall
 shows `ProductDetails.price`, which is Play's own formatted string in the
 member's currency after regional pricing and tax. A price hardcoded in the app
-would be wrong for the first member who opens it outside Ghana.
+would be wrong for the first member who opens it outside Ghana. The two figures
+the screen derives — the yearly saving and the yearly plan's per-month
+equivalent — are computed from Play's prices in `offer_pricing.dart` and left
+off whenever Play's string cannot be read back as the price it reported.
 
 A sensible starting shape, given the ad-free benefit has to beat what an advert
 earns: price the monthly plan so a year of it is a little more than the yearly

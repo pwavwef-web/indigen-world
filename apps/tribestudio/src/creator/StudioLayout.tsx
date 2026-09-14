@@ -1,8 +1,9 @@
 import { Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { CommandPalette, Kbd, useCommandPalette, type Command } from '@indigen-world/console-ui';
 import { Link, useRoute } from '../router';
-import { canContribute, signOutUser, useAuth } from '../auth';
+import { canContribute, canMakeVideo, signOutUser, useAuth } from '../auth';
 import { firebaseConfig } from '../firebase';
+import { RouteLoader } from '../LoadingScreen';
 
 type StudioIcon = 'dashboard' | 'profile' | 'opportunities' | 'submissions' | 'dictionary' | 'video' | 'notifications' | 'help' | 'lexicon' | 'menu' | 'collapse' | 'logout' | 'search';
 
@@ -31,12 +32,21 @@ interface NavItem {
   hint: string;
 }
 
+// Video generation needs an approved membership, because each job buys a
+// generation from a provider. Kept out of STUDIO_NAV and added below only for
+// accounts that can actually use it.
+const VIDEO_NAV: NavItem[] = [
+  { to: '/studio/video', label: 'AI Video', icon: 'video', group: 'Create', hint: 'Draft a Kasem video with assistance' },
+  { to: '/studio/video/jobs', label: 'Your videos', icon: 'video', group: 'Create', hint: 'Every video you have made, and what it is doing' },
+];
+
 const STUDIO_NAV: NavItem[] = [
   { to: '/studio', label: 'Dashboard', icon: 'dashboard', group: 'Workspace', hint: 'Your standing, streak and what needs doing' },
   { to: '/studio/opportunities', label: 'Opportunities', icon: 'opportunities', group: 'Workspace', hint: 'Open campaigns and bounties to enter' },
+  { to: '/studio/editor', label: 'Video editor', icon: 'video', group: 'Create', hint: 'Cut, caption and finish any video before posting' },
   { to: '/studio/submissions', label: 'Submissions', icon: 'submissions', group: 'Create', hint: 'Everything you have posted, and its status' },
+  { to: '/studio/published', label: 'Published', icon: 'submissions', group: 'Create', hint: 'Your public work, and the links readers open' },
   { to: '/studio/dictionary', label: 'Dictionary', icon: 'dictionary', group: 'Create', hint: 'The Kasem entry desk, with the letter palette' },
-  { to: '/studio/video', label: 'AI Video', icon: 'video', group: 'Create', hint: 'Draft a Kasem video with assistance' },
   { to: '/studio/profile', label: 'Profile', icon: 'profile', group: 'Account', hint: 'Your public creator identity and permissions' },
   { to: '/studio/notifications', label: 'Notifications', icon: 'notifications', group: 'Account', hint: 'Decisions, campaign news and reminders' },
   { to: '/studio/help', label: 'Help', icon: 'help', group: 'Account', hint: 'How the studio works, and who to ask' },
@@ -80,7 +90,7 @@ function useOnline(): boolean {
   return online;
 }
 
-export function StudioLayout({ children }: { children: ReactNode }) {
+export function StudioLayout({ children, immersive = false }: { children: ReactNode; immersive?: boolean }) {
   const { path, navigate } = useRoute();
   const { user, role } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -92,10 +102,12 @@ export function StudioLayout({ children }: { children: ReactNode }) {
 
   const accountLabel = user?.displayName ?? user?.email ?? 'Creator';
   const accountInitials = accountLabel.split(/[\s@._-]+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join('') || 'TS';
-  const items = useMemo(
-    () => (canContribute(role) ? [...STUDIO_NAV, LEXICON_ITEM] : STUDIO_NAV),
-    [role],
-  );
+  const items = useMemo(() => {
+    const nav = [...STUDIO_NAV];
+    if (canMakeVideo(role)) nav.push(...VIDEO_NAV);
+    if (canContribute(role)) nav.push(LEXICON_ITEM);
+    return nav;
+  }, [role]);
   const activeItem = path === '/workspace'
     ? LEXICON_ITEM
     : [...items].sort((a, b) => b.to.length - a.to.length).find((item) => isActive(path, item.to));
@@ -165,7 +177,7 @@ export function StudioLayout({ children }: { children: ReactNode }) {
     : items;
 
   return (
-    <div className={`studio iwx${collapsed ? ' studio--collapsed' : ''}`}>
+    <div className={`studio iwx${collapsed ? ' studio--collapsed' : ''}${immersive ? ' studio--immersive' : ''}`}>
       <a href="#main-content" className="skip-link">Skip to workspace content</a>
       <button type="button" className="studio__menu-button" aria-label={sidebarOpen ? 'Close workspace menu' : 'Open workspace menu'} aria-expanded={sidebarOpen} onClick={() => setSidebarOpen((value) => !value)}><Icon name="menu" /></button>
       {sidebarOpen ? <button type="button" className="studio__backdrop" aria-label="Close workspace menu" onClick={() => setSidebarOpen(false)} /> : null}
@@ -246,7 +258,7 @@ export function StudioLayout({ children }: { children: ReactNode }) {
         </header>
 
         <main id="main-content" className="studio__main" tabIndex={-1}>
-          <Suspense fallback={<div className="loading">Loading…</div>}>{children}</Suspense>
+          <Suspense fallback={<RouteLoader />}>{children}</Suspense>
         </main>
 
         {/* The status rail: connection, project and identity, always in the same

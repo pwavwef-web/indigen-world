@@ -5,6 +5,7 @@ import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/features/community/data/community_models.dart';
 import 'package:indigen_world_mobile/features/community/data/community_providers.dart';
 import 'package:indigen_world_mobile/features/community/data/community_repository.dart';
+import 'package:indigen_world_mobile/features/community/data/community_space_providers.dart';
 import 'package:indigen_world_mobile/features/community/widgets/community_avatar.dart';
 import 'package:indigen_world_mobile/features/community/widgets/verified_badge.dart';
 import 'package:indigen_world_mobile/shared/glass_popup.dart';
@@ -21,6 +22,10 @@ void showCommunityMessage(BuildContext context, String message) =>
     showGlassToast(context, message);
 
 /// Follow / Following toggle. Renders nothing for your own profile.
+///
+/// Flips the moment it is tapped and takes the flip back, with a message, if
+/// the write is refused — waiting a round trip to show a follow that has
+/// almost certainly worked makes the button feel broken.
 class FollowButton extends ConsumerWidget {
   const FollowButton({required this.targetUid, this.dense = false, super.key});
 
@@ -32,14 +37,19 @@ class FollowButton extends ConsumerWidget {
     final uid = ref.watch(currentUidProvider);
     if (uid == null || uid == targetUid) return const SizedBox.shrink();
 
-    final following =
+    final serverFollowing =
         ref.watch(followingIdsProvider).asData?.value.contains(targetUid) ??
         false;
+    final following = ref
+        .watch(optimisticEngagementProvider)
+        .following(targetUid, server: serverFollowing);
 
     Future<void> toggle() async {
       final repository = ref.read(communityRepositoryProvider);
       if (repository == null) return;
       HapticFeedback.selectionClick();
+      final optimistic = ref.read(optimisticEngagementProvider.notifier)
+        ..setFollow(targetUid, !following);
       try {
         await repository.toggleFollow(
           followerId: uid,
@@ -54,13 +64,18 @@ class FollowButton extends ConsumerWidget {
         if (context.mounted) {
           showCommunityMessage(context, 'Could not update. Try again.');
         }
+      } finally {
+        // On success the follow stream already carries the change; on
+        // failure, dropping the override is the rollback.
+        optimistic.clearFollow(targetUid);
       }
     }
 
     final padding = dense
         ? const EdgeInsets.symmetric(horizontal: 14)
         : const EdgeInsets.symmetric(horizontal: 20);
-    final size = dense ? const Size(0, 36) : const Size(0, 44);
+    // 40 is the smallest a thumb target gets anywhere in the community.
+    final size = dense ? const Size(0, 40) : const Size(0, 44);
 
     return following
         ? OutlinedButton(

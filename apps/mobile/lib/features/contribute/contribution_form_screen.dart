@@ -36,6 +36,7 @@ class ContributionFormScreen extends ConsumerStatefulWidget {
     this.lexicalKind,
     this.initialSource = '',
     this.relatedEntryId,
+    this.initialAiDraft = '',
     super.key,
   });
 
@@ -57,6 +58,9 @@ class ContributionFormScreen extends ConsumerStatefulWidget {
 
   /// A word the member was already looking at when they decided to contribute.
   final String initialSource;
+
+  /// Kawuri assistance is a working note, never a verified word or source.
+  final String initialAiDraft;
 
   /// The published entry this submission is a correction to, if any.
   final String? relatedEntryId;
@@ -159,6 +163,9 @@ class _ContributionFormScreenState
   void initState() {
     super.initState();
     _titleController = TextEditingController(text: widget.initialSource);
+    if (widget.initialAiDraft.isNotEmpty) {
+      _notesController.text = widget.initialAiDraft;
+    }
     // The English side of the record is the first meaning, so the two are one
     // value with two readers rather than two fields somebody has to keep in
     // agreement. Everything downstream -- the draft check, the validator, the
@@ -497,7 +504,10 @@ class _ContributionFormScreenState
           source: _sourceController.text,
           media: uploaded,
           cover: uploadedCover,
-          notes: _notesController.text,
+          notes: [
+            if (widget.initialAiDraft.isNotEmpty) 'AI-assistance disclosure: Prepared with Kawuri. The contributor must verify the content, identify sources and confirm rights. Normal review is required.',
+            _notesController.text,
+          ].join('\n\n'),
           publicationPermission: _publicationPermission,
           // Only asked where a person is the subject of the work. Null means
           // the question was not put, which a reviewer can tell apart from a
@@ -537,8 +547,9 @@ class _ContributionFormScreenState
           kasemDefinition: _kind == CollectionKind.dictionary
               ? _forms.kasemDefinitionText
               : '',
-          etymology:
-              _kind == CollectionKind.dictionary ? _forms.etymologyText : '',
+          etymology: _kind == CollectionKind.dictionary
+              ? _forms.etymologyText
+              : '',
         ),
       );
       ref.invalidate(myCollectionContributionsProvider);
@@ -729,9 +740,7 @@ class _ContributionFields extends StatelessWidget {
   /// dictionary's own "add this word" — pushed this form without an opinion,
   /// and a headword is what those always mean.
   bool get _isSaying =>
-      _isDictionary &&
-      lexicalKind != null &&
-      lexicalKind != LexicalKind.word;
+      _isDictionary && lexicalKind != null && lexicalKind != LexicalKind.word;
 
   @override
   Widget build(BuildContext context) => Form(
@@ -1028,9 +1037,8 @@ class _ContributionFields extends StatelessWidget {
   };
 
   String get _titleHint => switch (kind) {
-    CollectionKind.dictionary => _isSaying
-        ? 'The sense of it, not word for word'
-        : 'For example: Bottle',
+    CollectionKind.dictionary =>
+      _isSaying ? 'The sense of it, not word for word' : 'For example: Bottle',
     CollectionKind.music => 'Name this piece',
     CollectionKind.literature => 'Name the story, poem, or work',
     CollectionKind.audiobooks => 'Name the narrated work',
@@ -1047,9 +1055,10 @@ class _ContributionFields extends StatelessWidget {
   };
 
   String get _bodyHint => switch (kind) {
-    CollectionKind.dictionary => _isSaying
-        ? 'Exactly as it is said, spelling and diacritics kept'
-        : 'Preserve the spelling and diacritics',
+    CollectionKind.dictionary =>
+      _isSaying
+          ? 'Exactly as it is said, spelling and diacritics kept'
+          : 'Preserve the spelling and diacritics',
     CollectionKind.music => 'Describe the sound, occasion, and meaning',
     CollectionKind.literature =>
       'Paste the work, or describe it if you attached the document',
@@ -1139,7 +1148,9 @@ class _ContributionFields extends StatelessWidget {
 
   String get _sourceLabel => switch (kind) {
     CollectionKind.dictionary =>
-      _isSaying ? 'Who says it, and where did you hear it?' : 'How do you know this word?',
+      _isSaying
+          ? 'Who says it, and where did you hear it?'
+          : 'How do you know this word?',
     CollectionKind.music => 'Artist, performer, or source',
     CollectionKind.literature => 'Author, storyteller, or source',
     CollectionKind.audiobooks => 'Author and narrator',
@@ -1147,9 +1158,10 @@ class _ContributionFields extends StatelessWidget {
   };
 
   String get _sourceHint => switch (kind) {
-    CollectionKind.dictionary => _isSaying
-        ? 'An elder, a family, an occasion it belongs to'
-        : 'Your knowledge, an elder, a book, or school',
+    CollectionKind.dictionary =>
+      _isSaying
+          ? 'An elder, a family, an occasion it belongs to'
+          : 'Your knowledge, an elder, a book, or school',
     CollectionKind.music => 'Name the rights holder and performers',
     CollectionKind.literature => 'Give clear authorship and attribution',
     CollectionKind.audiobooks => 'Name everyone whose permission is needed',

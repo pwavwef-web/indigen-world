@@ -244,15 +244,7 @@ class _CoverPicker extends StatelessWidget {
             clipBehavior: Clip.antiAlias,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(18),
-              gradient: const LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  BrandColors.heritageGreen,
-                  BrandColors.savannahGreen,
-                  BrandColors.kenteGold,
-                ],
-              ),
+              gradient: BrandGradients.heroBanner(context.brand),
             ),
             child: Stack(
               fit: StackFit.expand,

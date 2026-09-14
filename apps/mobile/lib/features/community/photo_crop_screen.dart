@@ -30,18 +30,16 @@ class PhotoCropScreen extends StatefulWidget {
   State<PhotoCropScreen> createState() => _PhotoCropScreenState();
 }
 
-/// The shapes on offer.
-///
-/// Four, not a slider. A ratio picker is a decision somebody makes in a second
-/// or does not want to make at all, and free-form handles on a phone are a
-/// fiddle — panning inside a fixed frame gets to the same crop faster.
+/// Presets and a freely resizable crop rectangle.
 enum _CropShape {
+  custom,
   original,
   square,
   portrait,
   landscape;
 
   String get label => switch (this) {
+    _CropShape.custom => 'Custom',
     _CropShape.original => 'Original',
     _CropShape.square => '1:1',
     _CropShape.portrait => '4:5',
@@ -50,7 +48,7 @@ enum _CropShape {
 
   /// The frame's width ÷ height, or null to follow the photo's own shape.
   double? get ratio => switch (this) {
-    _CropShape.original => null,
+    _CropShape.custom || _CropShape.original => null,
     _CropShape.square => 1,
     _CropShape.portrait => 4 / 5,
     _CropShape.landscape => 16 / 9,
@@ -66,7 +64,8 @@ class _PhotoCropScreenState extends State<PhotoCropScreen> {
 
   Object? _loadFailure;
   var _quarterTurns = 0;
-  var _shape = _CropShape.original;
+  var _shape = _CropShape.custom;
+  Rect _customCrop = const Rect.fromLTRB(0, 0, 1, 1);
   var _working = false;
 
   /// How far in, as a multiple of the "cover the frame" scale. Never below 1:
@@ -129,19 +128,14 @@ class _PhotoCropScreenState extends State<PhotoCropScreen> {
   }
 
   /// The scale at which the photo exactly covers [frame].
-  double _baseScale(Size frame, ui.Image image) => math.max(
-    frame.width / image.width,
-    frame.height / image.height,
-  );
+  double _baseScale(Size frame, ui.Image image) =>
+      math.max(frame.width / image.width, frame.height / image.height);
 
   /// Keeps the photo covering the frame, whatever the drag tried to do.
   Offset _clampPan(Offset pan, Size frame, Size displayed) {
     final slackX = math.max(0.0, (displayed.width - frame.width) / 2);
     final slackY = math.max(0.0, (displayed.height - frame.height) / 2);
-    return Offset(
-      pan.dx.clamp(-slackX, slackX),
-      pan.dy.clamp(-slackY, slackY),
-    );
+    return Offset(pan.dx.clamp(-slackX, slackX), pan.dy.clamp(-slackY, slackY));
   }
 
   Size _displayedSize(Size frame, ui.Image image) {
@@ -180,10 +174,7 @@ class _PhotoCropScreenState extends State<PhotoCropScreen> {
     // them, which is the whole difference between a zoom that feels attached
     // to the picture and one that feels like a slider somewhere else.
     final startScale = base * _gestureZoom;
-    final startSize = Size(
-      image.width * startScale,
-      image.height * startScale,
-    );
+    final startSize = Size(image.width * startScale, image.height * startScale);
     final centre = Offset(frame.width / 2, frame.height / 2);
     final startTopLeft =
         centre + _gesturePan - Offset(startSize.width, startSize.height) / 2;
@@ -201,6 +192,28 @@ class _PhotoCropScreenState extends State<PhotoCropScreen> {
       _zoom = zoom;
       _pan = _clampPan(pan, frame, size);
     });
+  }
+
+  void _resizeCustomCrop(int corner, Offset delta, Size frame) {
+    // Read current state for every event: several drag updates may arrive
+    // before Flutter rebuilds the handles.
+    final crop = _customCrop;
+    final dx = delta.dx / frame.width;
+    final dy = delta.dy / frame.height;
+    setState(
+      () => _customCrop = Rect.fromLTRB(
+        corner.isEven
+            ? (crop.left + dx).clamp(0.0, crop.right - .08)
+            : crop.left,
+        corner < 2 ? (crop.top + dy).clamp(0.0, crop.bottom - .08) : crop.top,
+        corner.isOdd
+            ? (crop.right + dx).clamp(crop.left + .08, 1.0)
+            : crop.right,
+        corner >= 2
+            ? (crop.bottom + dy).clamp(crop.top + .08, 1.0)
+            : crop.bottom,
+      ),
+    );
   }
 
   // ── Actions ──────────────────────────────────────────────────────────────
@@ -227,6 +240,7 @@ class _PhotoCropScreenState extends State<PhotoCropScreen> {
   void _reset() {
     _zoom = 1;
     _pan = Offset.zero;
+    _customCrop = const Rect.fromLTRB(0, 0, 1, 1);
   }
 
   /// [source] turned through [quarterTurns] right angles.
@@ -256,7 +270,19 @@ class _PhotoCropScreenState extends State<PhotoCropScreen> {
     if (image == null || _working) return;
     setState(() => _working = true);
     try {
-      final path = await _export(image, _sourceRect(frame, image));
+      final full = _sourceRect(frame, image);
+      final crop = _shape == _CropShape.custom
+          ? _customCrop
+          : const Rect.fromLTRB(0, 0, 1, 1);
+      final path = await _export(
+        image,
+        Rect.fromLTWH(
+          full.left + crop.left * full.width,
+          full.top + crop.top * full.height,
+          crop.width * full.width,
+          crop.height * full.height,
+        ),
+      );
       if (mounted) Navigator.of(context).pop(path);
     } on Object {
       if (!mounted) return;
@@ -298,15 +324,12 @@ class _PhotoCropScreenState extends State<PhotoCropScreen> {
 
     // Encoding a couple of megapixels in Dart is a visible stall on a cheap
     // phone, so it happens off the UI isolate.
-    final jpeg = await compute(
-      _encodeJpeg,
-      (
-        pixels: raw.buffer.asUint8List(),
-        width: width,
-        height: height,
-        quality: _quality,
-      ),
-    );
+    final jpeg = await compute(_encodeJpeg, (
+      pixels: raw.buffer.asUint8List(),
+      width: width,
+      height: height,
+      quality: _quality,
+    ));
 
     final directory = await getTemporaryDirectory();
     final file = File(
@@ -354,7 +377,7 @@ class _PhotoCropScreenState extends State<PhotoCropScreen> {
             builder: (context, constraints) {
               final available = Size(
                 constraints.maxWidth - 32,
-                constraints.maxHeight - 32,
+                constraints.maxHeight - 180,
               );
               if (available.width <= 0 || available.height <= 0) {
                 return const SizedBox.shrink();
@@ -372,6 +395,9 @@ class _PhotoCropScreenState extends State<PhotoCropScreen> {
 
               return Center(
                 child: _CropFrame(
+                  crop: _customCrop,
+                  onResize: (corner, delta) =>
+                      _resizeCustomCrop(corner, delta, frame),
                   frame: frame,
                   displayed: displayed,
                   pan: pan,
@@ -400,6 +426,8 @@ class _PhotoCropScreenState extends State<PhotoCropScreen> {
 /// button needs the very frame the photo was measured against.
 class _CropFrame extends StatelessWidget {
   const _CropFrame({
+    required this.crop,
+    required this.onResize,
     required this.frame,
     required this.displayed,
     required this.pan,
@@ -412,6 +440,8 @@ class _CropFrame extends StatelessWidget {
     required this.onShape,
   });
 
+  final Rect crop;
+  final void Function(int corner, Offset delta) onResize;
   final Size frame;
   final Size displayed;
   final Offset pan;
@@ -428,8 +458,6 @@ class _CropFrame extends StatelessWidget {
     mainAxisSize: MainAxisSize.min,
     children: [
       GestureDetector(
-        onScaleStart: onScaleStart,
-        onScaleUpdate: onScaleUpdate,
         child: ClipRRect(
           borderRadius: BorderRadius.circular(6),
           child: SizedBox(
@@ -445,15 +473,68 @@ class _CropFrame extends StatelessWidget {
                   height: displayed.height,
                   child: RawImage(image: image, fit: BoxFit.fill),
                 ),
-                const Positioned.fill(
-                  child: IgnorePointer(child: _RuleOfThirds()),
+                Positioned.fill(
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onScaleStart: working ? null : onScaleStart,
+                    onScaleUpdate: working ? null : onScaleUpdate,
+                  ),
                 ),
+                if (shape != _CropShape.custom)
+                  const Positioned.fill(
+                    child: IgnorePointer(child: _RuleOfThirds()),
+                  ),
+                if (shape == _CropShape.custom) ...[
+                  Positioned.fill(
+                    child: IgnorePointer(
+                      child: CustomPaint(painter: _CropMask(crop)),
+                    ),
+                  ),
+                  for (var corner = 0; corner < 4; corner++)
+                    Positioned(
+                      left:
+                          ((corner.isEven ? crop.left : crop.right) *
+                                      frame.width -
+                                  24)
+                              .clamp(0.0, math.max(0.0, frame.width - 48)),
+                      top:
+                          ((corner < 2 ? crop.top : crop.bottom) *
+                                      frame.height -
+                                  24)
+                              .clamp(0.0, math.max(0.0, frame.height - 48)),
+                      child: Semantics(
+                        label: 'Crop corner ${corner + 1}',
+                        child: GestureDetector(
+                          key: Key('crop-corner-$corner'),
+                          behavior: HitTestBehavior.opaque,
+                          onPanUpdate: working
+                              ? null
+                              : (details) => onResize(corner, details.delta),
+                          child: const SizedBox.square(
+                            dimension: 48,
+                            child: Icon(
+                              Icons.crop_free,
+                              color: Colors.white,
+                              size: 24,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
               ],
             ),
           ),
         ),
       ),
-      const SizedBox(height: 18),
+      const SizedBox(height: 8),
+      Text(
+        shape == _CropShape.custom
+            ? 'Drag the corners to crop. Pinch to zoom.'
+            : 'Drag to reposition. Pinch to zoom.',
+        style: const TextStyle(color: Colors.white70, fontSize: 12),
+      ),
+      const SizedBox(height: 10),
       Wrap(
         spacing: 8,
         alignment: WrapAlignment.center,
@@ -490,10 +571,8 @@ class _RuleOfThirds extends StatelessWidget {
   const _RuleOfThirds();
 
   @override
-  Widget build(BuildContext context) => CustomPaint(
-    painter: _ThirdsPainter(),
-    child: const SizedBox.expand(),
-  );
+  Widget build(BuildContext context) =>
+      CustomPaint(painter: _ThirdsPainter(), child: const SizedBox.expand());
 }
 
 class _ThirdsPainter extends CustomPainter {
@@ -595,8 +674,10 @@ class _CropTopBar extends StatelessWidget {
         IconButton(
           tooltip: 'Rotate',
           onPressed: busy ? null : onRotate,
-          icon: const Icon(Icons.rotate_90_degrees_ccw_rounded,
-              color: Colors.white),
+          icon: const Icon(
+            Icons.rotate_90_degrees_ccw_rounded,
+            color: Colors.white,
+          ),
         ),
       ],
     ),
@@ -677,4 +758,37 @@ Future<String> cropPhoto(BuildContext context, String path) async {
     ),
   );
   return cropped ?? path;
+}
+
+class _CropMask extends CustomPainter {
+  const _CropMask(this.crop);
+  final Rect crop;
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rect = Rect.fromLTRB(
+      crop.left * size.width,
+      crop.top * size.height,
+      crop.right * size.width,
+      crop.bottom * size.height,
+    );
+    final mask = Path()
+      ..fillType = PathFillType.evenOdd
+      ..addRect(Offset.zero & size)
+      ..addRect(rect);
+    canvas.drawPath(mask, Paint()..color = Colors.black54);
+    canvas.drawRect(
+      rect,
+      Paint()
+        ..color = Colors.white
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2,
+    );
+    canvas.save();
+    canvas.translate(rect.left, rect.top);
+    _ThirdsPainter().paint(canvas, rect.size);
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(_CropMask oldDelegate) => crop != oldDelegate.crop;
 }

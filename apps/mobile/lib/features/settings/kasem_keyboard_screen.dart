@@ -269,7 +269,7 @@ class _KeyboardStatusCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) => DecoratedBox(
     decoration: BoxDecoration(
-      gradient: BrandGradients.heritage,
+      gradient: BrandGradients.hero(context.brand),
       borderRadius: BorderRadius.circular(24),
       boxShadow: BrandShadows.card(context.brand),
     ),

@@ -1,16 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:indigen_world_mobile/app/shell_chrome.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/features/auth/sign_in_sheet.dart';
 import 'package:indigen_world_mobile/features/community/community_setup_screen.dart';
 import 'package:indigen_world_mobile/features/community/data/community_providers.dart';
 import 'package:indigen_world_mobile/features/explore/create_reel_screen.dart';
+import 'package:indigen_world_mobile/features/explore/explore_analytics.dart';
+import 'package:indigen_world_mobile/features/explore/explore_chrome.dart';
 import 'package:indigen_world_mobile/features/explore/explore_feed.dart';
+import 'package:indigen_world_mobile/features/explore/explore_ranking.dart';
 import 'package:indigen_world_mobile/features/explore/explore_search_screen.dart';
+import 'package:indigen_world_mobile/features/explore/explore_topics.dart';
 import 'package:indigen_world_mobile/features/explore/kept_reels_screen.dart';
+import 'package:indigen_world_mobile/features/explore/published_content.dart';
 import 'package:indigen_world_mobile/features/explore/reel_view.dart';
 import 'package:indigen_world_mobile/shared/night_theme.dart';
+import 'package:indigen_world_mobile/shared/profile_orb.dart';
 
 /// Which half of Explore the member is watching.
 enum ExploreTab {
@@ -36,18 +43,20 @@ enum ExploreTab {
 /// How much room [_ExploreNavBar] takes, before the device's own bottom inset.
 ///
 /// Published as a constant because two other things have to know it: every
-/// reel card reserves it under its caption and action rail, and the shell
-/// floats the connection banner above it. A bar whose height only the bar
-/// knows is a bar that covers the caption on the first phone with a different
-/// text scale.
+/// reel card reserves it under its words and action rail, and the shell floats
+/// the connection banner above it. A bar whose height only the bar knows is a
+/// bar that covers the caption on the first phone with a different text scale.
 const double kExploreNavBarHeight = 56;
 
-/// The reel feed: real published TribeStudio work when there is any, and a
-/// clearly labelled curated preview when there is not.
+/// Explore: an immersive, vertically paged feed of cultural media — published
+/// archive work and community posts, ranked for the member, narrowed by topic,
+/// and carrying its provenance, community and context with it.
 ///
-/// The feed itself — paging, playback, the action rail, appreciations and
-/// replies — lives in [ReelFeedView], because a creator's own page shows the
-/// same reels and had no business owning a second copy of the video lifecycle.
+/// The feed itself — paging, playback, the action rail, the words, the Context
+/// sheet — lives in [ReelFeedView], because a creator's own page and search
+/// results show the same reels and had no business owning a second copy of the
+/// video lifecycle. This screen owns what is Explore's alone: the topic row,
+/// the For you / Following switch, the nav bar, and when the chrome goes.
 class ExploreScreen extends ConsumerStatefulWidget {
   const ExploreScreen({super.key, this.isActive = true, this.onExit});
 
@@ -61,15 +70,6 @@ class ExploreScreen extends ConsumerStatefulWidget {
   final bool isActive;
 
   /// Takes the member back to the tab they came from.
-  ///
-  /// ── Why Explore needs a back control of its own ──────────────────────
-  /// It is the one destination the shell draws no rail under. That is right —
-  /// full-bleed video with a tab bar painted over it is a tab with chrome on
-  /// it rather than a place — but it left the way out as a *gesture*: the
-  /// system back button, which on a gesture-navigation phone is a swipe from
-  /// the edge that this feed's own horizontal drags compete with, and which
-  /// nothing on screen mentions. Somebody who opened Explore to look at one
-  /// reel had no visible way back to the conversation they were reading.
   ///
   /// The shell owns the answer because only the shell knows which tab that
   /// was. Null in a test or anywhere Explore is shown outside the shell, where
@@ -92,80 +92,123 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
   /// ask, by whether the feed is any longer than it was left.
   var _lengthAtLastAsk = -1;
 
+  /// When Explore's furniture is on screen. The shell's profile orb follows it,
+  /// so the avatar leaves and returns with the search button beside it.
+  late final ExploreChromeController _chrome = ExploreChromeController()
+    ..addListener(_onChromeChanged);
+
+  /// True while a screen this one pushed is covering the feed.
+  ///
+  /// A reel kept playing — sound and all — underneath the search screen, the
+  /// recorder and the saved list, because the feed decided whether to play
+  /// from the shell's answer to "is Explore the selected tab", and pushing a
+  /// route does not change that.
+  var _overlayOpen = false;
+
+  /// False between deactivation and disposal, when a chrome timer firing must
+  /// not reach for providers.
+  var _attached = true;
+
+  @override
+  void activate() {
+    super.activate();
+    _attached = true;
+  }
+
+  @override
+  void deactivate() {
+    _attached = false;
+    super.deactivate();
+  }
+
+  @override
+  void dispose() {
+    _chrome
+      ..removeListener(_onChromeChanged)
+      ..dispose();
+    super.dispose();
+  }
+
+  void _onChromeChanged() {
+    if (!mounted || !_attached || !widget.isActive) return;
+    ref.read(shellChromeVisibilityProvider.notifier).set(_chrome.value);
+  }
+
   @override
   void didUpdateWidget(ExploreScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (!oldWidget.isActive || widget.isActive) return;
-    // Leaving the tab puts the window back. Coming back to a feed that had
-    // grown to three hundred reels would re-open every one of those snapshot
-    // listeners at once, on a phone, to show a member the first card again.
-    //
-    // The re-queued passes go back with it, and for the same kind of reason:
-    // somebody returning to Explore is starting again, and starting again four
-    // passes deep would mean a feed that opens on reels they have already seen
-    // and never fetches the ones published since.
-    //
+    if (oldWidget.isActive == widget.isActive) return;
     // Deferred to after the frame because `didUpdateWidget` runs *inside* the
-    // build that switched tabs, and writing to a provider there is refused —
-    // rightly, since the widgets reading it have already been laid out.
+    // build that switched tabs, and writing to a provider there is refused.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted && !widget.isActive) {
+      if (!mounted) return;
+      if (!widget.isActive) {
+        // Leaving the tab puts the window back — coming back to a feed that
+        // had grown to three hundred reels would re-open every one of those
+        // snapshot listeners at once — and the re-queued passes and the topic
+        // go back with it: somebody returning to Explore is starting again.
         ref.read(exploreWindowProvider.notifier).reset();
         ref.read(exploreCyclesProvider.notifier).reset();
+        ref.read(exploreTopicProvider.notifier).reset();
         _lengthAtLastAsk = -1;
+        _chrome.interacted();
+      } else {
+        ref.read(exploreSignalsProvider.notifier).refresh();
+        _chrome.interacted();
       }
     });
   }
 
-  /// True while a screen this one pushed is covering the feed.
-  ///
-  /// ── The bug this fixes ───────────────────────────────────────────────
-  /// A reel kept playing — sound and all — underneath the search screen, the
-  /// recorder and the saved-reels list. The feed decides whether to play from
-  /// [ExploreScreen.isActive], which is the *shell's* answer to "is Explore
-  /// the selected tab", and pushing a route does not change that: Explore is
-  /// still the selected tab, it just has something on top of it. So somebody
-  /// who tapped Search got a keyboard, a list of results, and a stranger's
-  /// video talking over all of it; somebody who tapped Create got the
-  /// recorder's microphone competing with a clip they could no longer see.
-  ///
-  /// Held here rather than solved with a route observer because this screen
-  /// pushes all three routes itself and knows exactly when each returns —
-  /// where a `RouteAware` would need a navigator observer registered at the
-  /// app level for one screen's benefit.
-  var _overlayOpen = false;
-
   /// Runs [open] with the feed stopped, and starts it again afterwards.
-  ///
-  /// The guard on `mounted` is the whole reason this is a helper: every one of
-  /// these routes can outlive the screen — a member who backs out of the
-  /// recorder onto another tab, a deep link that replaces the stack — and a
-  /// `setState` after that is a crash on a screen nobody is looking at.
   Future<void> _withFeedPaused(Future<void> Function() open) async {
     setState(() => _overlayOpen = true);
     try {
       await open();
     } finally {
-      if (mounted) setState(() => _overlayOpen = false);
+      if (mounted) {
+        setState(() => _overlayOpen = false);
+        _chrome.interacted();
+      }
     }
   }
 
   /// Moves between For you and Following.
   ///
   /// The re-queue count goes back to nought on the way. The two feeds hold
-  /// different reels and are different lengths, so a count carried across would
-  /// open Following already three passes deep — repeating clips at somebody who
-  /// had not yet reached the end of it once.
+  /// different reels and are different lengths, so a count carried across
+  /// would open Following already three passes deep.
   void _changeTab(ExploreTab tab) {
     if (tab == _tab) return;
     ref.read(exploreCyclesProvider.notifier).reset();
+    ref.read(exploreSignalsProvider.notifier).refresh();
     _lengthAtLastAsk = -1;
     setState(() => _tab = tab);
+    _chrome.interacted();
+  }
+
+  /// Narrows the current feed to [topic] without leaving it.
+  void _selectTopic(ExploreTopic topic) {
+    final current = ref.read(exploreTopicProvider);
+    if (topic == current) return;
+    HapticFeedback.selectionClick();
+    ref.read(exploreCyclesProvider.notifier).reset();
+    ref.read(exploreSignalsProvider.notifier).refresh();
+    ref.read(exploreTopicProvider.notifier).select(topic);
+    ref
+        .read(exploreAnalyticsProvider)
+        .log(
+          ExploreEvent.topicFilter,
+          parameters: {'topic': topic.key, 'feed': _tab.name},
+        );
+    _lengthAtLastAsk = -1;
+    _chrome.interacted();
   }
 
   Future<void> _openSearch() => _withFeedPaused(
     () => Navigator.of(context).push(
-      MaterialPageRoute<void>(builder: (context) => const ExploreSearchScreen()),
+      MaterialPageRoute<void>(
+        builder: (context) => const ExploreSearchScreen(),
+      ),
     ),
   );
 
@@ -175,9 +218,8 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
     ),
   );
 
-  /// Explore is the only surface in the app that is nothing but video, and it
-  /// had no way to add to it: every clip in here arrived through the Community
-  /// composer, which somebody looking at reels has no reason to know about.
+  /// Explore is where cultural media is watched, so it is also somewhere to
+  /// add to it: a reel is a community post, published through the recorder.
   Future<void> _createReel() => _withFeedPaused(() async {
     if (ref.read(currentUidProvider) == null) {
       final signedIn = await showSignInSheet(context);
@@ -210,9 +252,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
   ///
   /// Read through the repository rather than off `myCommunityProfileProvider`:
   /// for a second or two after a sign-in that stream is still carrying the
-  /// guest's null, and taking that as the answer sends somebody who has just
-  /// claimed a handle back to the form to claim it again — where the registry
-  /// refuses them their own name.
+  /// guest's null.
   Future<bool> _hasProfile() async {
     if (ref.read(myCommunityProfileProvider).asData?.value != null) return true;
     final repository = ref.read(communityRepositoryProvider);
@@ -231,29 +271,31 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
   /// Fetching comes first, always: a reel somebody has not seen beats one they
   /// have. Only when the window refuses to widen — it is at its ceiling — or
   /// when the last widening brought nothing back does the feed queue what it
-  /// already holds again.
-  ///
-  /// The second of those is a guess, and it is worth being plain about which
-  /// way it goes wrong. A slow connection looks exactly like an exhausted
-  /// archive, so a member on a bad signal can get a repeat a few seconds before
-  /// the real reels land. When those reels do land the feed is longer than it
-  /// was at the last ask, the next ask widens again, and the cost of the guess
-  /// is one early repeat rather than a feed stuck in one — which is the right
-  /// way round, because the other failure is a dead end.
+  /// already holds again. A slow connection looks exactly like an exhausted
+  /// archive, so the cost of guessing wrong is one early repeat rather than a
+  /// feed stuck at a wall.
   void _loadMore() {
     final forYou = _tab == ExploreTab.forYou;
     final length = ref
-        .read(forYou ? exploreLoopedFeedProvider : exploreFollowingLoopedFeedProvider)
+        .read(
+          forYou
+              ? exploreLoopedFeedProvider
+              : exploreFollowingLoopedFeedProvider,
+        )
         .length;
     final stalled = length == _lengthAtLastAsk;
     _lengthAtLastAsk = length;
     if (!stalled && ref.read(exploreWindowProvider.notifier).grow()) return;
-    // The reels before anything is repeated: what a pass is a reordering of,
-    // and what [ExploreCycles.advance] measures against its minimum.
     final content = ref.read(
       forYou ? exploreContentProvider : exploreFollowingContentProvider,
     );
     ref.read(exploreCyclesProvider.notifier).advance(content.length);
+  }
+
+  void _retry() {
+    ref
+      ..invalidate(publishedReelsProvider)
+      ..invalidate(rawCommunityFeedProvider);
   }
 
   @override
@@ -261,33 +303,19 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
       NightTheme(child: Builder(builder: _build));
 
   Widget _build(BuildContext context) {
-    // Published TribeStudio work and community video, merged — see
-    // exploreContentProvider — then queued again in a fresh order for as long
-    // as the member keeps scrolling. The curated preview stands in only while
-    // there is genuinely nothing else, so the feed is never empty on a first
-    // launch.
-    final feed = _tab == ExploreTab.forYou
+    // Published archive work and community media, merged, ranked and narrowed
+    // to the topic — see exploreContentProvider — then queued again in a fresh
+    // order for as long as the member keeps scrolling.
+    final reels = _tab == ExploreTab.forYou
         ? ref.watch(exploreLoopedFeedProvider)
         : ref.watch(exploreFollowingLoopedFeedProvider);
-    final live = feed.isNotEmpty;
+    final topic = ref.watch(exploreTopicProvider);
 
-    // Following is allowed to be empty — that is the honest answer for
-    // somebody who follows nobody, and the curated preview would only hide it.
-    // ── There is no curated preview any more ─────────────────────────────
-    // For You used to fall back to three fixed cards when the archive had not
-    // answered: invented creators (@afi.dances, @kassena.collective,
-    // @heritage.in.motion) over Unsplash stock photographs, carrying
-    // fabricated engagement counts — 12,800 likes, 426 comments — and a
-    // comment sheet with two invented community members in it.
-    //
-    // That is not a placeholder in an app about cultural preservation. It is
-    // three fictional Ghanaian creators, with an audience they do not have,
-    // shown to every guest on first launch and to everybody whose Firebase
-    // init failed. An empty feed is the honest answer, and the empty state
-    // below now says which kind of empty it is.
-    final reels = feed;
-
-    final header = _ExploreHeader(onSearch: _openSearch);
+    final header = _ExploreHeader(
+      topic: topic,
+      onTopic: _selectTopic,
+      onSearch: _openSearch,
+    );
     final navBar = _ExploreNavBar(
       tab: _tab,
       onTabChanged: _changeTab,
@@ -296,72 +324,126 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
       onCreate: _createReel,
     );
 
+    if (reels.isEmpty) {
+      // Nothing is playing, so nothing may be hidden — including the shell's
+      // avatar, which a feed that just emptied could have left away.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || !widget.isActive) return;
+        _chrome.interacted();
+        ref.read(shellChromeVisibilityProvider.notifier).reveal();
+      });
+    }
+
+    final Widget body;
+    if (reels.isNotEmpty) {
+      body = ReelFeedView(
+        key: PageStorageKey('explore-reels-${_tab.name}-${topic.name}'),
+        reels: reels,
+        // Stopped both when Explore is not the selected tab and when something
+        // Explore itself pushed is covering it.
+        isActive: widget.isActive && !_overlayOpen,
+        header: header,
+        footer: navBar,
+        bottomInset: kExploreNavBarHeight,
+        onNearEnd: _loadMore,
+        chrome: _chrome,
+        isLoadingMore: ref.watch(exploreLoadingMoreProvider),
+        onActiveIndexChanged: (index) {
+          // The ranking stops following the member's live likes and follows
+          // once they are past the first reel, so the reels ahead of them
+          // are not reshuffled by their own taps.
+          if (index > 0) ref.read(exploreSignalsProvider.notifier).lock();
+        },
+      );
+    } else if (ref.watch(exploreFeedLoadingProvider)) {
+      body = _ExploreState(
+        header: header,
+        navBar: navBar,
+        child: const _ExploreLoading(),
+      );
+    } else if (ref.watch(exploreFeedFailedProvider)) {
+      body = _ExploreState(
+        header: header,
+        navBar: navBar,
+        child: _ExploreMessage(
+          icon: Icons.cloud_off_rounded,
+          title: 'Explore could not load',
+          message:
+              'Check your connection. Anything you have already watched will '
+              'come back from the cache once the feed can be reached.',
+          actionLabel: 'Try again',
+          onAction: _retry,
+        ),
+      );
+    } else if (topic != ExploreTopic.forYou) {
+      body = _ExploreState(
+        header: header,
+        navBar: navBar,
+        child: _ExploreMessage(
+          icon: Icons.filter_alt_off_outlined,
+          title: _tab == ExploreTab.following
+              ? 'No ${topic.label.toLowerCase()} from people you follow yet'
+              : 'No ${topic.label.toLowerCase()} here yet',
+          message:
+              'Nothing in this feed has been shared under '
+              '${topic.label}. Try everything instead.',
+          actionLabel: 'Show everything',
+          onAction: () => _selectTopic(ExploreTopic.forYou),
+        ),
+      );
+    } else if (_tab == ExploreTab.following) {
+      // Following being empty means the member follows nobody and joined no
+      // community — a different thing from the archive being empty, and it
+      // gets a different sentence and a way back to For you.
+      body = _ExploreState(
+        header: header,
+        navBar: navBar,
+        child: _ExploreMessage(
+          icon: Icons.group_add_outlined,
+          title: 'Nothing from the people you follow',
+          message:
+              'Follow a creator or join a community, and what they share '
+              'arrives here, newest first.',
+          actionLabel: 'Browse For you',
+          onAction: () => _changeTab(ExploreTab.forYou),
+        ),
+      );
+    } else {
+      body = _ExploreState(
+        header: header,
+        navBar: navBar,
+        child: const _ExploreMessage(
+          icon: Icons.movie_filter_outlined,
+          title: 'No reels have been published yet',
+          message:
+              'When somebody publishes from TribeStudio or shares cultural '
+              'media in Community, it appears here.',
+        ),
+      );
+    }
+
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.light,
-      child: reels.isEmpty
-          ? _ExploreEmpty(
-              header: header,
-              navBar: navBar,
-              tab: _tab,
-              onBrowse: () => _changeTab(ExploreTab.forYou),
-            )
-          : ReelFeedView(
-              key: PageStorageKey(
-                'explore-reels-${_tab.name}-${live ? 'live' : 'preview'}',
-              ),
-              reels: reels,
-              // Stopped both when Explore is not the selected tab and when
-              // something Explore itself pushed is covering it. The two are
-              // genuinely different questions and only the first was being
-              // asked, which is why search and the recorder used to run over a
-              // clip that was still playing.
-              isActive: widget.isActive && !_overlayOpen,
-              header: header,
-              footer: navBar,
-              bottomInset: kExploreNavBarHeight,
-              // The curated preview is three fixed cards with nothing behind
-              // them: nothing to fetch more of, and nothing worth queueing
-              // again either. Three illustrative cards on a loop would be the
-              // app insisting it has a feed when what it has is a placeholder,
-              // and the member would be scrolling past the same stock
-              // photograph every third swipe until they gave up on Explore
-              // altogether.
-              onNearEnd: live ? _loadMore : null,
-            ),
+      // The empty and loading states draw text and buttons over a bare Stack;
+      // this gives them the night theme's text style and a surface for ink.
+      child: Material(type: MaterialType.transparency, child: body),
     );
   }
 }
 
-/// What Following looks like before there is anybody in it.
-/// What Explore says when it has nothing to show.
-///
-/// It has to say two different things, and until the curated preview was
-/// removed it only ever said one of them. Following being empty means the
-/// member follows nobody — the fix is to follow somebody. For You being empty
-/// means nothing has been published yet, or this launch could not reach the
-/// archive at all — and telling that member to "follow a creator", under a
-/// button that switches to the tab they are already standing on, is advice
-/// that cannot help and a control that does nothing.
-class _ExploreEmpty extends StatelessWidget {
-  const _ExploreEmpty({
+/// The frame every non-feed state is drawn in: the same header and nav bar,
+/// always visible, because an empty or failed feed is exactly where somebody
+/// needs the way to another topic, to For you, and out of Explore.
+class _ExploreState extends StatelessWidget {
+  const _ExploreState({
     required this.header,
     required this.navBar,
-    required this.tab,
-    required this.onBrowse,
+    required this.child,
   });
 
   final Widget header;
-
-  /// Drawn on the empty state too, and that is the point. An empty Following
-  /// feed is exactly where somebody needs the way back to For you and the way
-  /// out of Explore — and until the bar existed, the empty state was a screen
-  /// with one button on it and no navigation at all.
   final Widget navBar;
-
-  final ExploreTab tab;
-  final VoidCallback onBrowse;
-
-  bool get _isFollowing => tab == ExploreTab.following;
+  final Widget child;
 
   @override
   Widget build(BuildContext context) => ColoredBox(
@@ -369,63 +451,12 @@ class _ExploreEmpty extends StatelessWidget {
     child: Stack(
       fit: StackFit.expand,
       children: [
-        Center(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(
-              36,
-              0,
-              36,
-              kExploreNavBarHeight,
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  _isFollowing
-                      ? Icons.group_add_outlined
-                      : Icons.movie_filter_outlined,
-                  color: context.brand.gold,
-                  size: 38,
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  _isFollowing
-                      ? 'Nothing from the people you follow'
-                      : 'No reels have been published yet',
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 17,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  _isFollowing
-                      ? 'Follow a creator and their reels arrive here.'
-                      : 'When somebody publishes from TribeStudio, it appears '
-                            'here. If you are offline, reels will arrive when '
-                            'you are back.',
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: Colors.white60,
-                    fontSize: 13.5,
-                    height: 1.4,
-                  ),
-                ),
-                // Offered only where it leads somewhere. On For You it would
-                // switch to the tab the member is already on.
-                if (_isFollowing) ...[
-                  const SizedBox(height: 22),
-                  FilledButton.icon(
-                    onPressed: onBrowse,
-                    icon: const Icon(Icons.explore_rounded),
-                    label: const Text('Browse For you'),
-                  ),
-                ],
-              ],
-            ),
+        Padding(
+          padding: EdgeInsets.only(
+            top: MediaQuery.paddingOf(context).top + 60,
+            bottom: MediaQuery.paddingOf(context).bottom + kExploreNavBarHeight,
           ),
+          child: child,
         ),
         Positioned(
           top: 0,
@@ -444,57 +475,294 @@ class _ExploreEmpty extends StatelessWidget {
   );
 }
 
-/// What sits over the top of the feed.
-///
-/// ── Reduced to one control, and why ──────────────────────────────────────
-/// It used to carry the whole of Explore's navigation: search on the left, the
-/// For you / Following switch in the middle, a create button on the right. All
-/// of that has moved to [_ExploreNavBar] at the bottom, where a thumb holding
-/// a phone can reach it and where there is now also a way *out* of Explore.
-/// What is left up here is search, because search is not a destination — it is
-/// a thing you do to the feed you are already in — and because the top-left is
-/// where a magnifying glass has been in this app since it had one.
-///
-/// The right inset still clears the shell's floating profile orb.
-class _ExploreHeader extends StatelessWidget {
-  const _ExploreHeader({required this.onSearch});
+class _ExploreMessage extends StatelessWidget {
+  const _ExploreMessage({
+    required this.icon,
+    required this.title,
+    required this.message,
+    this.actionLabel,
+    this.onAction,
+  });
 
-  final VoidCallback onSearch;
+  final IconData icon;
+  final String title;
+  final String message;
+  final String? actionLabel;
+  final VoidCallback? onAction;
 
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.fromLTRB(6, 6, 58, 0),
-    child: Row(
-      children: [
-        _GlassAction(
-          icon: Icons.search_rounded,
-          tooltip: 'Search Explore',
-          onTap: onSearch,
-        ),
-      ],
+  Widget build(BuildContext context) => Center(
+    child: SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 36),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: context.brand.gold, size: 38),
+          const SizedBox(height: 16),
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 17,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: Colors.white70,
+              fontSize: 13.5,
+              height: 1.4,
+            ),
+          ),
+          if (actionLabel != null && onAction != null) ...[
+            const SizedBox(height: 22),
+            FilledButton(onPressed: onAction, child: Text(actionLabel!)),
+          ],
+        ],
+      ),
     ),
   );
 }
 
+/// The first moments of Explore, while the feed's queries are in flight.
+///
+/// The outline of a reel — where the words and the rail will be — rather than
+/// a bare spinner, so the screen that arrives is the shape the member was
+/// already looking at.
+class _ExploreLoading extends StatelessWidget {
+  const _ExploreLoading();
+
+  @override
+  Widget build(BuildContext context) {
+    Widget bar(double width, double height) => Container(
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(999),
+      ),
+    );
+    return Semantics(
+      label: 'Loading Explore',
+      liveRegion: true,
+      child: Stack(
+        children: [
+          Center(
+            child: SizedBox.square(
+              dimension: 30,
+              child: CircularProgressIndicator(
+                strokeWidth: 3,
+                color: context.brand.gold,
+                backgroundColor: Colors.white12,
+              ),
+            ),
+          ),
+          Positioned(
+            left: 16,
+            bottom: 18,
+            right: 96,
+            child: ExcludeSemantics(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  bar(120, 22),
+                  const SizedBox(height: 12),
+                  bar(90, 10),
+                  const SizedBox(height: 10),
+                  bar(180, 14),
+                  const SizedBox(height: 8),
+                  bar(double.infinity, 12),
+                  const SizedBox(height: 6),
+                  bar(160, 12),
+                ],
+              ),
+            ),
+          ),
+          Positioned(
+            right: 12,
+            bottom: 18,
+            child: ExcludeSemantics(
+              child: Column(
+                children: [
+                  for (var index = 0; index < 5; index++) ...[
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white.withValues(alpha: 0.08),
+                      ),
+                    ),
+                    const SizedBox(height: 22),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// What sits over the top of the feed: search on the left, the topics in the
+/// middle, and room on the right for the shell's profile avatar, which the
+/// shell draws and which leaves and returns with this row.
+class _ExploreHeader extends StatelessWidget {
+  const _ExploreHeader({
+    required this.topic,
+    required this.onTopic,
+    required this.onSearch,
+  });
+
+  final ExploreTopic topic;
+  final ValueChanged<ExploreTopic> onTopic;
+  final VoidCallback onSearch;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.fromLTRB(
+      4,
+      2,
+      kProfileOrbInset + kProfileOrbSize + 4,
+      0,
+    ),
+    child: SizedBox(
+      height: 48,
+      child: Row(
+        children: [
+          _GlassAction(
+            icon: Icons.search_rounded,
+            tooltip: 'Search Explore',
+            onTap: onSearch,
+          ),
+          const SizedBox(width: 2),
+          Expanded(
+            child: _TopicRow(selected: topic, onSelected: onTopic),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+/// For you, Music, Stories, Traditions — on one line, scrolling sideways on a
+/// phone too narrow for all four, and never wrapping onto a second line over
+/// the picture.
+class _TopicRow extends StatelessWidget {
+  const _TopicRow({required this.selected, required this.onSelected});
+
+  final ExploreTopic selected;
+  final ValueChanged<ExploreTopic> onSelected;
+
+  @override
+  Widget build(BuildContext context) => ShaderMask(
+    // Soft edges say "there is more this way" without an arrow.
+    shaderCallback: (bounds) => const LinearGradient(
+      colors: [
+        Color(0x00FFFFFF),
+        Color(0xFFFFFFFF),
+        Color(0xFFFFFFFF),
+        Color(0x00FFFFFF),
+      ],
+      stops: [0, 0.03, 0.94, 1],
+    ).createShader(bounds),
+    blendMode: BlendMode.dstIn,
+    child: ListView.separated(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: 6),
+      itemCount: ExploreTopic.values.length,
+      separatorBuilder: (context, index) => const SizedBox(width: 6),
+      itemBuilder: (context, index) {
+        final topic = ExploreTopic.values[index];
+        return Center(
+          child: _TopicChip(
+            topic: topic,
+            selected: topic == selected,
+            onTap: () => onSelected(topic),
+          ),
+        );
+      },
+    ),
+  );
+}
+
+class _TopicChip extends StatelessWidget {
+  const _TopicChip({
+    required this.topic,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final ExploreTopic topic;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final gold = context.brand.gold;
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: '${topic.label} topic',
+      excludeSemantics: true,
+      child: Material(
+        type: MaterialType.transparency,
+        child: InkWell(
+          key: ValueKey('explore-topic-${topic.name}'),
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(999),
+          // The chip is drawn 32 high; the ink well reaches the full row so
+          // the target is 48 high.
+          child: SizedBox(
+            height: 48,
+            child: Center(
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                height: 32,
+                padding: const EdgeInsets.symmetric(horizontal: 14),
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: selected ? gold : Colors.black.withValues(alpha: 0.32),
+                  borderRadius: BorderRadius.circular(999),
+                  border: Border.all(color: selected ? gold : Colors.white24),
+                ),
+                child: Text(
+                  topic.label,
+                  maxLines: 1,
+                  softWrap: false,
+                  style: TextStyle(
+                    color: selected ? const Color(0xFF1A1206) : Colors.white,
+                    fontSize: 13,
+                    fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+                    shadows: selected
+                        ? null
+                        : const [Shadow(blurRadius: 8, color: Colors.black)],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 /// Explore's own navigation, over the video.
 ///
-/// ── Why Explore has a bar of its own ─────────────────────────────────────
 /// The shell deliberately draws no rail here: full-bleed video with a tab bar
-/// painted over it is a tab with chrome on it rather than a place. That was the
-/// right call for the *shell's* rail and it left Explore with no navigation at
-/// all — the way out was the system back gesture, which nothing on screen
-/// mentioned and which competes with the feed's own drags, and the way to
-/// anything else in Explore was two icons in opposite top corners.
+/// painted over it is a tab with chrome on it rather than a place. So Explore
+/// has its own — a shallow, translucent strip with the way home and the four
+/// places Explore goes — and it leaves with the rest of the chrome while a
+/// reel plays.
 ///
-/// So this is not the shell's rail brought back. It is Explore's own, with the
-/// four places Explore goes and the way home, drawn dark and low-contrast so
-/// the clip still owns the screen.
-///
-/// ── Back is first, and it is not a tab ───────────────────────────────────
-/// It leads out rather than within, so it is set apart: an arrow rather than a
-/// labelled destination, hard against the left edge where a back control lives
-/// on every screen in the app. Grouping it with For you and Following would
-/// make leaving Explore look like a fifth thing to browse.
+/// Back is first, and it is not a tab: it leads out rather than within, so it
+/// is set apart as an arrow hard against the left edge.
 class _ExploreNavBar extends StatelessWidget {
   const _ExploreNavBar({
     required this.tab,
@@ -508,7 +776,7 @@ class _ExploreNavBar extends StatelessWidget {
   final ValueChanged<ExploreTab> onTabChanged;
 
   /// Null where Explore is shown outside the shell and there is nothing to go
-  /// back to. A back button that goes nowhere is worse than none.
+  /// back to.
   final VoidCallback? onBack;
 
   final VoidCallback onKept;
@@ -521,15 +789,14 @@ class _ExploreNavBar extends StatelessWidget {
       height: kExploreNavBarHeight,
       padding: const EdgeInsets.symmetric(horizontal: 4),
       decoration: BoxDecoration(
-        // A gradient rather than a flat panel: the bar has to be legible over
-        // a bright frame without becoming a solid black strip across the
-        // bottom of somebody's video.
+        // A gradient rather than a flat panel: legible over a bright frame
+        // without becoming a solid black strip across somebody's video.
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [
             Colors.black.withValues(alpha: 0.0),
-            Colors.black.withValues(alpha: 0.72),
+            Colors.black.withValues(alpha: 0.62),
           ],
         ),
       ),
@@ -537,6 +804,7 @@ class _ExploreNavBar extends StatelessWidget {
         children: [
           if (onBack case final back?)
             _NavBarButton(
+              key: const ValueKey('explore-nav-back'),
               icon: Icons.arrow_back_rounded,
               label: 'Back',
               onTap: back,
@@ -545,6 +813,7 @@ class _ExploreNavBar extends StatelessWidget {
           for (final value in ExploreTab.values)
             Expanded(
               child: _NavBarButton(
+                key: ValueKey('explore-nav-${value.name}'),
                 icon: value == tab ? value.selectedIcon : value.icon,
                 label: value.label,
                 selected: value == tab,
@@ -554,6 +823,7 @@ class _ExploreNavBar extends StatelessWidget {
             ),
           Expanded(
             child: _NavBarButton(
+              key: const ValueKey('explore-nav-post'),
               icon: Icons.add_box_outlined,
               label: 'Post',
               onTap: onCreate,
@@ -561,6 +831,7 @@ class _ExploreNavBar extends StatelessWidget {
           ),
           Expanded(
             child: _NavBarButton(
+              key: const ValueKey('explore-nav-saved'),
               icon: Icons.bookmark_border_rounded,
               label: 'Saved',
               onTap: onKept,
@@ -572,15 +843,12 @@ class _ExploreNavBar extends StatelessWidget {
   }
 }
 
-/// One slot in [_ExploreNavBar].
-///
-/// Icon over label, both drawn in white with the selected one lit — the same
-/// grammar as the shell's own rail, so moving between the two does not feel
-/// like moving between two apps. The label is not optional at this size: four
-/// unlabelled icons over video is a row of guesses.
+/// One slot in [_ExploreNavBar]: icon over label, the selected one lit in the
+/// heritage gold.
 class _NavBarButton extends StatelessWidget {
   const _NavBarButton({
     required this.icon,
+    super.key,
     required this.label,
     required this.onTap,
     this.selected = false,
@@ -593,32 +861,26 @@ class _NavBarButton extends StatelessWidget {
   final VoidCallback onTap;
   final bool selected;
 
-  /// The colour a selected slot lights up in. Null on the ones that lead
-  /// somewhere else rather than switching what is under them — Post and Saved
-  /// are never "where you are", so they never light.
+  /// The colour a selected slot lights up in. Post and Saved lead somewhere
+  /// else rather than switching what is under them, so they never light.
   final Color? accent;
 
-  /// Back takes only the room it needs, so the four destinations still divide
-  /// the rest of the bar evenly between them.
+  /// Back takes only the room it needs.
   final bool compact;
 
   @override
   Widget build(BuildContext context) {
     final colour = selected
         ? (accent ?? Colors.white)
-        : Colors.white.withValues(alpha: 0.72);
+        : Colors.white.withValues(alpha: 0.78);
     return Semantics(
       button: true,
       selected: selected,
       label: label,
       excludeSemantics: true,
-      // ── Its own ink, not the Scaffold's ────────────────────────────────
-      // The bar is drawn over full-bleed video and floats above whatever
-      // Explore is currently showing — a feed, or the empty state, which is a
-      // bare Stack with no Material in it at all. An InkWell that reached for
-      // an ancestor would work in the feed and throw on the empty state, which
-      // is precisely the screen a member is most likely to be navigating away
-      // from. Transparent, so it adds a splash and nothing else.
+      // Its own ink, not the Scaffold's: the bar floats over a bare Stack on
+      // the empty states, where an InkWell reaching for an ancestor Material
+      // would throw.
       child: Material(
         type: MaterialType.transparency,
         child: InkWell(
@@ -635,7 +897,7 @@ class _NavBarButton extends StatelessWidget {
               children: [
                 Icon(
                   icon,
-                  size: 21,
+                  size: 22,
                   color: colour,
                   shadows: const [Shadow(blurRadius: 12, color: Colors.black)],
                 ),
@@ -646,7 +908,7 @@ class _NavBarButton extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: colour,
-                    fontSize: 10,
+                    fontSize: 10.5,
                     fontWeight: selected ? FontWeight.w900 : FontWeight.w600,
                     shadows: const [
                       Shadow(blurRadius: 12, color: Colors.black),
@@ -662,10 +924,8 @@ class _NavBarButton extends StatelessWidget {
   }
 }
 
-
-/// A round, smoked-glass button for the reel chrome. The header sits over
-/// full-bleed video, so its controls need their own ground to stay legible on
-/// a bright frame.
+/// A round, smoked-glass button for the header, with a 48-pixel target around
+/// its 38-pixel disc.
 class _GlassAction extends StatelessWidget {
   const _GlassAction({
     required this.icon,
@@ -680,22 +940,33 @@ class _GlassAction extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Tooltip(
     message: tooltip,
+    excludeFromSemantics: true,
     child: Semantics(
       button: true,
       label: tooltip,
+      excludeSemantics: true,
       child: Material(
-        color: Colors.black.withValues(alpha: 0.34),
-        shape: const CircleBorder(side: BorderSide(color: Colors.white24)),
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
+        type: MaterialType.transparency,
+        child: InkResponse(
           onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.all(7),
-            child: Icon(icon, color: Colors.white, size: 20),
+          radius: 26,
+          child: SizedBox.square(
+            dimension: 48,
+            child: Center(
+              child: Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.34),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white24),
+                ),
+                child: Icon(icon, color: Colors.white, size: 21),
+              ),
+            ),
           ),
         ),
       ),
     ),
   );
 }
-

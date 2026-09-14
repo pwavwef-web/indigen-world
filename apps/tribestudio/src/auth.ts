@@ -97,6 +97,20 @@ export function canValidate(role: Role): boolean {
   return role === 'validator' || role === 'reviewer' || role === 'admin' || role === 'super_admin';
 }
 
+/**
+ * Whether this account may generate video.
+ *
+ * Mirrors `requireRole(req, 'creator')` on the four studio-video callables.
+ * `ROLE_INHERITANCE.creator` lists every role, so the backend check means
+ * "holds a role claim at all" -- and that claim is written only once a
+ * membership is approved. Video generation spends real provider money per
+ * job, so gating it on approval is deliberate; what was wrong was the studio
+ * offering the page to accounts the API would refuse.
+ */
+export function canMakeVideo(role: Role): boolean {
+  return role !== null;
+}
+
 export function canContribute(role: Role): boolean {
   return role === 'contributor' || role === 'validator' || role === 'admin' || role === 'super_admin';
 }

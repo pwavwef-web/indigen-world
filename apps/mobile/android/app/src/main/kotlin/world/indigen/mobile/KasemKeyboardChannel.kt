@@ -14,7 +14,7 @@ internal class KasemKeyboardChannel(private val activity: Activity) {
     fun attachTo(messenger: BinaryMessenger) {
         MethodChannel(messenger, CHANNEL).setMethodCallHandler { call, result ->
             when (call.method) {
-                "state" -> result.success(preferences.asMap(isEnabled()))
+                "state" -> result.success(state())
                 "setPreference" -> {
                     when (val key = call.argument<String>("key")) {
                         "defaultLanguage" ->
@@ -27,7 +27,7 @@ internal class KasemKeyboardChannel(private val activity: Activity) {
                             return@setMethodCallHandler
                         }
                     }
-                    result.success(preferences.asMap(isEnabled()))
+                    result.success(state())
                 }
                 "openInputMethodSettings" -> {
                     activity.startActivity(Intent(Settings.ACTION_INPUT_METHOD_SETTINGS))
@@ -41,6 +41,12 @@ internal class KasemKeyboardChannel(private val activity: Activity) {
             }
         }
     }
+
+    private fun state(): Map<String, Any> = preferences.asMap(isEnabled()) + mapOf(
+        "selected" to (Settings.Secure.getString(
+            activity.contentResolver, Settings.Secure.DEFAULT_INPUT_METHOD
+        ) == android.content.ComponentName(activity, KasemInputMethodService::class.java).flattenToShortString())
+    )
 
     private fun isEnabled(): Boolean = inputMethodManager().enabledInputMethodList.any {
         it.serviceInfo.packageName == activity.packageName &&

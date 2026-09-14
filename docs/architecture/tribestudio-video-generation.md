@@ -26,10 +26,56 @@ The following callable Functions are exported from `services/functions`:
   applies burst/daily spend guards, and submits it to Runway or fal.
 - `refreshStudioVideoJob` polls the provider and imports successful output to
   `studio-video-jobs/{uid}/{jobId}/output.mp4`.
+- `getStudioVideoPlaybackUrl` returns short-lived signed playback and download
+  URLs for a finished job. The creator's browser never fetches the object
+  directly: a `getBlob` read is an XHR and needs bucket CORS, which failed on
+  the deployed origin and looked like a broken video rather than a missing
+  header. A signed URL also streams instead of buffering the file into the tab,
+  and expires, which a Storage download token does not.
 
-All three require an authenticated creator-equivalent role. Production App
-Check follows the same `ENFORCE_APP_CHECK` setting as the other callables.
-Provider credentials are Firebase secrets and are never returned to clients.
+And one scheduled Function:
+
+- `sweepStudioVideoJobs` (every 2 minutes) advances jobs nobody is watching.
+  Browser polling used to be the only thing that could complete a job, so
+  closing the tab abandoned a generation that had already been paid for at the
+  provider. The sweep imports the result regardless, and fails any job still
+  unfinished after 30 minutes so nothing stays non-terminal forever.
+
+  It needs the **Cloud Scheduler API** enabled on the project. After deploying,
+  confirm it exists:
+
+  ```powershell
+  firebase functions:list --project project-kassena-7e026
+  ```
+
+Both the callable and the sweep advance jobs, and both import inline, so each
+one first claims the job by compare-and-set on `advanceLeaseUntil`. Without
+that claim they raced on the same deterministic object path, and a failed
+import's cleanup could delete a file the other had just written — leaving a
+job that read SUCCEEDED with no video behind it.
+
+All callables require an authenticated creator-equivalent role — that is, an
+approved membership, because every job buys a generation. TribeStudio hides the
+video nav entries and routes to an explanatory panel for accounts without one,
+rather than offering a form whose every request is refused. Production App
+Check follows the same `ENFORCE_APP_CHECK` setting as the other callables;
+note that enforcing it requires the tribestudio build to carry
+`VITE_RECAPTCHA_ENTERPRISE_SITE_KEY`, or every video callable rejects with
+`unauthenticated`. Provider credentials are Firebase secrets and are never
+returned to clients.
+
+### Required Firestore indexes
+
+Two composite indexes on `studioVideoJobs`, both declared in
+`firebase/firestore.indexes.json` and deployed with
+`firebase deploy --only firestore:indexes`:
+
+- `ownerUid` ASC + `createdAt` DESC — the creator's own job list.
+- `status` ASC + `createdAt` ASC — the sweep, which takes the oldest in-flight
+  jobs first so no creator is starved by document-id ordering.
+
+The emulator does not enforce composite indexes, so a missing one fails only in
+production, as `FAILED_PRECONDITION` on the list query.
 
 ## Governance enforced before provider submission
 
@@ -58,17 +104,79 @@ Short-lived signed URLs are created only after these checks. Provider output is
 downloaded into the Indigen World bucket rather than relying on an expiring
 provider URL.
 
+## Providers and models
+
+Three providers serve two operations. Which provider serves a request is a
+property of the **model**, not of the operation — `generate_visual` is served by
+both Runway and Gemini — and the capability response tells the client which one
+each model belongs to, so the browser never hardcodes it.
+
+| Model | Provider | Lengths | Shapes | Rate |
+|---|---|---|---|---|
+| `gen4.5` | Runway | 5, 10s | landscape, portrait (square needs an image) | $0.12/s |
+| `gen4_turbo` | Runway | 5, 10s | any, image required | $0.05/s |
+| `veo-3.1-generate-001` | Gemini (Vertex AI) | 4, 6, 8s | landscape, portrait | $0.40/s |
+| `veo-3.1-fast-generate-001` | Gemini (Vertex AI) | 4, 6, 8s | landscape, portrait | $0.15/s |
+| `lipsync-2`, `lipsync-2-pro` | fal | 5, 10s | — | $0.05/s, $0.083/s |
+
+Lengths are **per model**: Runway takes 5 or 10 seconds and Veo takes 4, 6 or
+8, and there is no value both accept. The client reads each model's own list
+and snaps an illegal length rather than letting the provider reject it, because
+a submit-time rejection reads to a creator as "the video failed" for a request
+that was never askable. Veo has no 1:1 aspect ratio, so square is absent from
+its lists rather than offered and refused.
+
+### Gemini video specifics
+
+Reached at Vertex AI's `:predictLongRunning` and polled with
+`:fetchPredictOperation`, using the function's own Application Default
+Credentials — **there is no API key for this provider**, in Secret Manager or
+anywhere else. The project needs `aiplatform.googleapis.com` enabled and the
+runtime service account needs `roles/aiplatform.user`; Kawuri already requires
+exactly this, so a deployment running Kawuri needs nothing further.
+
+Two deliberate choices:
+
+- **`generateAudio: false`.** Veo would synthesise speech and song in a language
+  that is not Kasem, over footage meant to represent Kassena life. The Kasem the
+  creator recorded is the audio — it arrives through lip-sync or in editing, and
+  is never invented by a model. It is also cheaper, but that is not the reason.
+- **The video comes back as bytes.** Vertex returns the encoded video unless it
+  is given a Cloud Storage URI to write into, and giving it one would mean
+  granting the Vertex service agent read and write access to the prefix holding
+  creators' unpublished media. A reference image travels the same way, outbound,
+  for the same reason — which is why it is capped smaller than the bucket allows.
+
 ## Spend controls
 
 The backend currently permits at most:
 
 - 3 new jobs per creator per 10 minutes;
 - 20 new jobs per creator per fixed 24-hour window;
-- 250 new jobs platform-wide per fixed 24-hour window.
+- 250 new jobs platform-wide per fixed 24-hour window;
+- **$20 of provider spend per creator per fixed 24-hour window**;
+- **$250 of provider spend platform-wide per fixed 24-hour window.**
+
+The last two exist because counting jobs stopped being enough once the models
+stopped costing the same: an 8-second Gemini generation is over five times a
+5-second Runway one, so twenty jobs a day is a bill anywhere between $12 and
+$64 depending only on which model was picked. `consumeRateLimit` takes a
+`units` argument for this, and the video generator spends the estimate in cents
+against the same fixed window it uses to count calls.
+
+These are runaway guards, not billing quotas — generous enough that ordinary
+work never meets them. **When a membership plan covers video**, the per-creator
+ceiling becomes the number a tier supplies rather than a constant:
+`benefitsForUid` in `subscriptions.ts` already resolves a creator's tier and
+`TIER_BENEFITS` in `subscription-catalog.ts` already carries a `creatorTools`
+benefit to hang it on, so replacing `CREATOR_DAILY_SPEND_CENTS` in
+`studio-video.ts` is the whole change. Note the tier catalogue is mirrored in
+two files and both must move together.
 
 `clientRequestId` makes creation idempotent, so retrying a request returns the
-existing job instead of purchasing another generation. These are safety
-ceilings, not billing quotas. Configure hard provider-account budgets as well.
+existing job instead of purchasing another generation — unless that job never
+reached a provider, in which case it is resubmitted, because nothing was bought.
+Configure hard provider-account budgets as well.
 
 Planning rates are snapshotted as `2026-09-01` in
 `studio-video-policy.ts`. Update and re-test them when provider pricing changes.
@@ -79,6 +187,10 @@ Planning rates are snapshotted as `2026-09-01` in
    create a server API key.
 2. Create a fal team/account, add prepaid credit, and create an **API-scoped**
    key. An Admin key is not required for model calls.
+2b. Gemini video needs **no key**. Enable `aiplatform.googleapis.com` and give
+   the functions runtime service account `roles/aiplatform.user`. If Kawuri
+   already answers on this project, this is already done. Veo models may also
+   need to be enabled for the project in Vertex AI Model Garden.
 3. Store the values without printing or committing them:
 
    ```powershell
@@ -90,7 +202,18 @@ Planning rates are snapshotted as `2026-09-01` in
    Functions, Firestore, and Storage are enabled.
 5. Ensure the runtime service account can sign short-lived Storage URLs. It
    needs `iam.serviceAccounts.signBlob`; Google's predefined role is Service
-   Account Token Creator (`roles/iam.serviceAccountTokenCreator`).
+   Account Token Creator (`roles/iam.serviceAccountTokenCreator`), granted on
+   the runtime account itself:
+
+   ```powershell
+   gcloud iam service-accounts add-iam-policy-binding PROJECT_NUMBER-compute@developer.gserviceaccount.com --member="serviceAccount:PROJECT_NUMBER-compute@developer.gserviceaccount.com" --role="roles/iam.serviceAccountTokenCreator"
+   ```
+
+   Skipping this breaks nothing at deploy time. Every finished video then
+   refuses to preview or download ("could not be opened"), lip-sync and
+   reference-media jobs fail to start, and the function log shows
+   `Permission 'iam.serviceAccounts.signBlob' denied`. Production shipped
+   without it until 2026-09-12.
 6. Deploy Functions and rules only after emulator tests pass.
 
 Never use a `VITE_*` variable for either provider key and never paste a key into
@@ -106,5 +229,13 @@ The deployed interface provides a short creator flow:
 - confirm rights, cultural permission, provider processing, and participant consent;
 - review the cost estimate and explicitly create the job.
 
-The UI polls `refreshStudioVideoJob`, shows the private output, and can attach it
-directly to TribeStudio's normal post editor.
+The UI polls `refreshStudioVideoJob` every 15 seconds with a single request in
+flight at a time, shows the private output through a signed playback URL, and
+can attach it directly to TribeStudio's normal post editor.
+
+`/studio/video/jobs` lists every job this creator has started, newest first,
+and refreshes itself while any is running. A ready video can be watched there
+in place, downloaded, or sent to the post editor — it is private until
+published, so this list is the only place its maker can see it. It is the recovery path: before it
+existed a job lived only in the `?job=` parameter of the tab that started it, so
+a reload or a closed laptop left a paid-for video with no way back to it.

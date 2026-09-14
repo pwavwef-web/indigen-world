@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:indigen_world_mobile/features/ads/ads_screen.dart';
 import 'package:indigen_world_mobile/features/collection/collection_data.dart';
 import 'package:indigen_world_mobile/features/community/chat_thread_loader.dart';
+import 'package:indigen_world_mobile/features/community/communities/communities_screen.dart';
+import 'package:indigen_world_mobile/features/community/communities/community_space_screen.dart';
 import 'package:indigen_world_mobile/features/community/messages_screen.dart';
 import 'package:indigen_world_mobile/features/community/post_detail_screen.dart';
 import 'package:indigen_world_mobile/features/contribute/contribute_screen.dart';
@@ -13,8 +15,7 @@ import 'package:indigen_world_mobile/features/kawuri/kawuri_screen.dart';
 import 'package:indigen_world_mobile/features/music/now_playing_screen.dart';
 import 'package:indigen_world_mobile/features/notifications/notifications_screen.dart';
 import 'package:indigen_world_mobile/features/onboarding/startup_gate.dart';
-import 'package:indigen_world_mobile/features/subscriptions/manage_subscription_screen.dart';
-import 'package:indigen_world_mobile/features/subscriptions/paywall_screen.dart';
+import 'package:indigen_world_mobile/features/subscriptions/membership_screen.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   final router = GoRouter(
@@ -35,6 +36,19 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/post/:postId',
         builder: (context, state) =>
             PostDetailScreen(postId: state.pathParameters['postId']!),
+      ),
+      // The communities directory, and one community by its address. Shared
+      // community links use the app's own scheme (`indigen://communities/x`)
+      // until the website has a page for them.
+      GoRoute(
+        path: '/communities',
+        builder: (context, state) => const CommunitiesScreen(),
+      ),
+      GoRoute(
+        path: '/communities/:communityId',
+        builder: (context, state) => CommunitySpaceScreen(
+          communityId: state.pathParameters['communityId']!,
+        ),
       ),
       GoRoute(
         path: '/messages',
@@ -61,11 +75,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       // and a finished download at the list it landed in.
       GoRoute(
         path: '/subscribe',
-        builder: (context, state) => const PaywallScreen(),
+        builder: (context, state) => const MembershipScreen(),
       ),
       GoRoute(
         path: '/subscription',
-        builder: (context, state) => const ManageSubscriptionScreen(),
+        builder: (context, state) => const MembershipScreen(),
       ),
       GoRoute(
         path: '/downloads',

@@ -35,10 +35,6 @@ import 'package:indigen_world_mobile/features/settings/kasem_keyboard_screen.dar
 import 'package:indigen_world_mobile/features/settings/licences_screen.dart';
 import 'package:indigen_world_mobile/features/settings/policy_screen.dart';
 import 'package:indigen_world_mobile/features/settings/settings_widgets.dart';
-import 'package:indigen_world_mobile/features/subscriptions/data/entitlement.dart';
-import 'package:indigen_world_mobile/features/subscriptions/data/subscription_catalog.dart';
-import 'package:indigen_world_mobile/features/subscriptions/data/subscription_providers.dart';
-import 'package:indigen_world_mobile/features/subscriptions/manage_subscription_screen.dart';
 import 'package:indigen_world_mobile/l10n/app_localizations.dart';
 import 'package:indigen_world_mobile/shared/glass_popup.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -59,7 +55,15 @@ final appVersionProvider = FutureProvider<String>((ref) async {
 /// its privacy policy is not where anybody looks for them at the moment their
 /// phone will not stop.
 class SettingsScreen extends ConsumerStatefulWidget {
-  const SettingsScreen({super.key});
+  const SettingsScreen({
+    this.embedded = false,
+    this.bottomPadding = 40,
+    super.key,
+  });
+
+  /// Drops its own title and background when My Space supplies the page chrome.
+  final bool embedded;
+  final double bottomPadding;
 
   @override
   ConsumerState<SettingsScreen> createState() => _SettingsScreenState();
@@ -84,16 +88,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final locale = ref.watch(localeProvider);
     final l10n = AppLocalizations.of(context);
     final signature = ref.watch(appSignatureProvider).asData?.value;
-    final entitlement =
-        ref.watch(entitlementProvider).asData?.value ?? Entitlement.none;
     final downloadCount = ref.watch(downloadedIdsProvider).length;
     final mutedAlerts =
         ref.watch(notificationPreferencesProvider).asData?.value.mutedCount ?? 0;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Settings')),
+      backgroundColor: widget.embedded ? Colors.transparent : null,
+      appBar: widget.embedded ? null : AppBar(title: const Text('Settings')),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(18, 10, 18, 40),
+        key: widget.embedded
+            ? const PageStorageKey('profile-settings-scroll')
+            : null,
+        padding: EdgeInsets.fromLTRB(18, 10, 18, widget.bottomPadding),
         children: [
           // ── Identity card ────────────────────────────────────────────
           //
@@ -172,24 +178,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 },
                 enabled: signedIn && profile != null && !(profile.phoneVerified),
                 onTap: _verifyPhone,
-              ),
-              // Between verification and the account controls, because that is
-              // what it is about: what this account is entitled to. The row
-              // reads the entitlement rather than guessing, so a member whose
-              // renewal has failed sees that here rather than discovering it
-              // when the adverts come back.
-              SettingsRow(
-                icon: entitlement.isActive
-                    ? Icons.volunteer_activism_rounded
-                    : Icons.favorite_border_rounded,
-                title: entitlement.isActive
-                    ? productForId(entitlement.productId)?.name ??
-                          'Your membership'
-                    : 'Membership',
-                subtitle: entitlement.isActive
-                    ? entitlement.status.description
-                    : 'No adverts, offline listening, and more of Kawuri',
-                onTap: _openSubscription,
               ),
               SettingsRow(
                 icon: Icons.lock_outline_rounded,
@@ -553,12 +541,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       _message('Your name is yours. Wear it well.');
     }
   }
-
-  Future<void> _openSubscription() => Navigator.of(context).push(
-    MaterialPageRoute<void>(
-      builder: (context) => const ManageSubscriptionScreen(),
-    ),
-  );
 
   Future<void> _openDownloads() => Navigator.of(context).push(
     MaterialPageRoute<void>(builder: (context) => const DownloadsScreen()),

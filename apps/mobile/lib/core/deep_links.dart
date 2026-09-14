@@ -27,8 +27,9 @@ const _appScheme = 'indigen';
 /// the three have to agree: a path claimed in the manifest but missing here
 /// opens the app on the router's error screen, and a path claimed by the app
 /// but with no page on the website leaves anybody without the app on a 404.
-/// `/post/` is the only link the app actually shares today.
-const _claimedPrefixes = <String>{'post'};
+/// The app shares two kinds of link today: a post (`/post/<id>`) and a
+/// community (`/communities/<slug>`). Both have a page on the website.
+const _claimedPrefixes = <String>{'post', 'communities'};
 
 /// The in-app route for an incoming [uri], or null when this is not a link the
 /// app should answer for.

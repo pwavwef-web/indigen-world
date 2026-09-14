@@ -273,6 +273,15 @@ export interface SenseDraft {
 }
 
 /** The whole entry, as the editor holds it. */
+/** A file already uploaded into this contributor's own submission prefix. */
+export interface DraftPronunciation {
+  storagePath: string;
+  mimeType: string;
+  sizeBytes: number;
+  mediaType: 'audio';
+  name: string;
+}
+
 export interface EntryDraft {
   headword: string;
   partOfSpeech: string;
@@ -289,6 +298,8 @@ export interface EntryDraft {
   licence: string;
   consentGranted: boolean;
   publicationPermission: boolean;
+  /** A recording of the headword being said. Null until one is made. */
+  pronunciation?: DraftPronunciation | null;
 }
 
 let senseKeySeed = 0;

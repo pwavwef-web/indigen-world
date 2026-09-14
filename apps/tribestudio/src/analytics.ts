@@ -15,6 +15,8 @@ export type CreatorEvent =
   | 'campaign_viewed'
   | 'submission_started'
   | 'submission_completed'
+  | 'submission_updated'
+  | 'submission_withdrawn'
   | 'revision_submitted';
 
 export function trackEvent(event: CreatorEvent, params: Record<string, string | number> = {}): void {

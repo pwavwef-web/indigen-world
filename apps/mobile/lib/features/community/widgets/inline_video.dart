@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
+import 'package:indigen_world_mobile/core/clip_window.dart';
 import 'package:indigen_world_mobile/core/media_preferences.dart';
 import 'package:indigen_world_mobile/features/community/data/community_models.dart';
 import 'package:indigen_world_mobile/features/community/widgets/video_cover.dart';
@@ -76,6 +77,13 @@ class _InlineVideoTileState extends ConsumerState<InlineVideoTile> {
   var _generation = 0;
   var _fraction = 0.0;
 
+  /// Keeps a clip trimmed in the reel creator inside its chosen part.
+  ClipWindowGuard? _windowGuard;
+
+  /// A clip whose creator removed its sound stays silent whatever the feed's
+  /// mute switch says.
+  bool get _silent => !widget.item.originalSound;
+
   /// Whether this tile has the floor *and* is meant to be running. Kept apart
   /// from the controller's own flag so the overlay can settle before the
   /// platform has caught up.
@@ -116,11 +124,16 @@ class _InlineVideoTileState extends ConsumerState<InlineVideoTile> {
     _controller = controller;
     try {
       await controller.initialize();
-      await controller.setVolume(ref.read(videoMutedProvider) ? 0 : 1);
+      await controller.setVolume(
+        _silent || ref.read(videoMutedProvider) ? 0 : 1,
+      );
       await controller.setLooping(true);
       // Phone recordings often open on a black or half-exposed frame, so a clip
-      // that has not started yet still shows the shot rather than a hole.
-      await controller.seekTo(const Duration(milliseconds: 200));
+      // that has not started yet still shows the shot rather than a hole. A
+      // trimmed clip opens where its creator's selection starts.
+      await controller.seekTo(
+        widget.item.clipWindow?.start ?? const Duration(milliseconds: 200),
+      );
     } on Object {
       _discard(controller);
       if (_isStale(generation)) return;
@@ -130,6 +143,9 @@ class _InlineVideoTileState extends ConsumerState<InlineVideoTile> {
     if (_isStale(generation)) {
       _discard(controller);
       return;
+    }
+    if (widget.item.clipWindow case final window?) {
+      _windowGuard = ClipWindowGuard(controller, window)..attach();
     }
     setState(() => _ready = true);
     _syncPlayback();
@@ -142,6 +158,8 @@ class _InlineVideoTileState extends ConsumerState<InlineVideoTile> {
     _controller = null;
     _ready = false;
     _playing = false;
+    _windowGuard?.detach();
+    _windowGuard = null;
     _releaseSlot();
     unawaited(controller.dispose());
   }
@@ -240,12 +258,12 @@ class _InlineVideoTileState extends ConsumerState<InlineVideoTile> {
     // Both switches steer a player that is already open, so a change has to
     // reach it without waiting for the next scroll.
     ref.listen<bool>(videoMutedProvider, (_, muted) {
-      unawaited(_controller?.setVolume(muted ? 0 : 1));
+      unawaited(_controller?.setVolume(_silent || muted ? 0 : 1));
     });
     ref.listen<bool>(videoAutoplayProvider, (_, _) => _syncPlayback());
     ref.listen<int>(fullScreenMediaProvider, (_, _) => _syncPlayback());
     ref.listen<bool>(musicIsPlayingProvider, (_, _) => _syncPlayback());
-    final muted = ref.watch(videoMutedProvider);
+    final muted = _silent || ref.watch(videoMutedProvider);
     final controller = _controller;
     final showPlayer = _ready && controller != null;
     final poster = widget.item.thumbnailUrl ?? '';
@@ -288,9 +306,11 @@ class _InlineVideoTileState extends ConsumerState<InlineVideoTile> {
 
             _VideoChrome(
               controller: showPlayer ? controller : null,
+              window: widget.item.clipWindow,
               fallbackSeconds: widget.item.durationSeconds,
               muted: muted,
-              onToggleMute: _toggleMute,
+              // Nothing to unmute on a clip published without its sound.
+              onToggleMute: _silent ? null : _toggleMute,
               borderRadius: widget.borderRadius,
             ),
           ],
@@ -327,6 +347,7 @@ class PlayGlyph extends StatelessWidget {
 class _VideoChrome extends StatelessWidget {
   const _VideoChrome({
     required this.controller,
+    required this.window,
     required this.fallbackSeconds,
     required this.muted,
     required this.onToggleMute,
@@ -335,12 +356,17 @@ class _VideoChrome extends StatelessWidget {
 
   final VideoPlayerController? controller;
 
+  /// The trimmed part the clock and progress line measure, when there is one.
+  final ClipWindow? window;
+
   /// The length recorded when the clip was posted, shown until the player has
   /// opened and can say for itself.
   final int? fallbackSeconds;
 
   final bool muted;
-  final VoidCallback onToggleMute;
+
+  /// Null when the clip has no sound to turn on.
+  final VoidCallback? onToggleMute;
   final BorderRadius borderRadius;
 
   @override
@@ -355,14 +381,13 @@ class _VideoChrome extends StatelessWidget {
     return ValueListenableBuilder<VideoPlayerValue>(
       valueListenable: player,
       builder: (context, value, _) {
-        final total = value.duration;
-        final left = total - value.position;
+        final window = this.window;
+        final total = window?.lengthWithin(value.duration) ?? value.duration;
+        final into = value.position - (window?.start ?? Duration.zero);
+        final left = total - into;
         final progress = total.inMilliseconds <= 0
             ? 0.0
-            : (value.position.inMilliseconds / total.inMilliseconds).clamp(
-                0.0,
-                1.0,
-              );
+            : (into.inMilliseconds / total.inMilliseconds).clamp(0.0, 1.0);
         return _layout(
           remaining: mediaClockLabel(left.isNegative ? Duration.zero : left),
           progress: progress,
@@ -467,20 +492,27 @@ class _MuteButton extends StatelessWidget {
   const _MuteButton({required this.muted, required this.onTap});
 
   final bool muted;
-  final VoidCallback onTap;
+
+  /// Null for a clip published without its sound: the mark still says the
+  /// clip is silent, but there is nothing to switch on.
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) => Semantics(
-    button: true,
-    label: muted ? 'Unmute clip' : 'Mute clip',
+    button: onTap != null,
+    label: onTap == null
+        ? 'Published without sound'
+        : (muted ? 'Unmute clip' : 'Mute clip'),
     excludeSemantics: true,
     child: Tooltip(
-      message: muted ? 'Sound off' : 'Sound on',
+      message: onTap == null
+          ? 'No original sound'
+          : (muted ? 'Sound off' : 'Sound on'),
       child: GestureDetector(
         // The surface underneath opens the viewer, and a tap meant for the
         // speaker must never do that instead.
         behavior: HitTestBehavior.opaque,
-        onTap: onTap,
+        onTap: onTap ?? () {},
         child: Container(
           width: 32,
           height: 32,

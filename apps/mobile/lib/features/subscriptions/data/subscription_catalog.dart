@@ -302,16 +302,36 @@ const tierBenefits = <SubscriptionTier, TierBenefits>{
   ),
 };
 
-/// The benefit lines shown on the paywall for a tier, in reading order.
-List<String> benefitLinesFor(SubscriptionTier tier) {
+/// What one benefit line is about, so a screen can give each its own glyph
+/// without matching on the wording.
+enum BenefitKind { adFree, kawuri, offline, supporterMark, creatorTools }
+
+/// The benefit lines shown on the membership screen for a tier, in reading
+/// order, each with what it is about.
+List<(BenefitKind, String)> benefitRowsFor(SubscriptionTier tier) {
   final benefits = tierBenefits[tier] ?? TierBenefits.free;
-  return <String>[
-    if (benefits.adFree) 'No adverts anywhere in the app',
-    'Up to ${benefits.kawuriDailyMessages} Kawuri questions a day',
+  return [
+    if (benefits.adFree) (BenefitKind.adFree, 'No adverts anywhere in the app'),
+    (
+      BenefitKind.kawuri,
+      'Up to ${benefits.kawuriDailyMessages} Kawuri questions a day',
+    ),
     if (benefits.offlineDownloadLimit > 0)
-      'Keep ${benefits.offlineDownloadLimit} songs and chapters offline',
+      (
+        BenefitKind.offline,
+        'Keep ${benefits.offlineDownloadLimit} songs and chapters offline',
+      ),
     if (benefits.supporterMark != SupporterMark.none)
-      'The ${benefits.supporterMark.label.toLowerCase()} mark beside your name',
-    if (benefits.creatorTools) 'Raised TribeStudio quotas and creator tools',
+      (
+        BenefitKind.supporterMark,
+        '${benefits.supporterMark.label} mark beside your name',
+      ),
+    if (benefits.creatorTools)
+      (BenefitKind.creatorTools, 'Raised TribeStudio quotas and creator tools'),
   ];
 }
+
+/// The benefit lines for a tier, as plain sentences.
+List<String> benefitLinesFor(SubscriptionTier tier) => [
+  for (final (_, line) in benefitRowsFor(tier)) line,
+];

@@ -86,7 +86,8 @@
   "apple": {
     "appIds": [],
     "paths": [
-      "/post/*"
+      "/post/*",
+      "/communities/*"
     ]
   }
 }

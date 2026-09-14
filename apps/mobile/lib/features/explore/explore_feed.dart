@@ -6,6 +6,11 @@ import 'package:indigen_world_mobile/features/ads/data/ad_campaign.dart';
 import 'package:indigen_world_mobile/features/ads/data/served_ad.dart';
 import 'package:indigen_world_mobile/features/community/data/community_models.dart';
 import 'package:indigen_world_mobile/features/community/data/community_providers.dart';
+import 'package:indigen_world_mobile/features/community/data/community_space_models.dart';
+import 'package:indigen_world_mobile/features/community/data/community_space_providers.dart';
+import 'package:indigen_world_mobile/features/explore/explore_preferences.dart';
+import 'package:indigen_world_mobile/features/explore/explore_ranking.dart';
+import 'package:indigen_world_mobile/features/explore/explore_topics.dart';
 import 'package:indigen_world_mobile/features/explore/published_content.dart';
 import 'package:indigen_world_mobile/features/explore/reel_view.dart';
 
@@ -91,25 +96,40 @@ final exploreCanLoadMoreProvider = Provider<bool>(
 );
 
 /// Community posts that are whole, public, and carry a video.
+///
+/// ── Video only, whatever the post is filed under ─────────────────────────
+/// A community picture never reaches Explore — not a screenshot, not a flyer,
+/// and not a photograph filed under Culture or Story either. Explore is where
+/// members watch what the community filmed; its photographs stay in the feed
+/// they were posted to. A post carrying both is shown by its video, and a post
+/// carrying only pictures is left out entirely.
 List<Reel> communityReels(List<CommunityPost> posts, {required int limit}) {
   final reels = <Reel>[];
+  final seen = <String>{};
   for (final post in posts) {
     if (post.parentId != null) continue;
-    final video = post.media.where((item) => item.isVideo).firstOrNull;
+    // Members-only posts never reach the public feed this reads, but the rule
+    // is restated where the reel is made rather than trusted from upstream.
+    if (post.isPrivateCommunityPost) continue;
+    // A reshare is the same post arriving twice; the feed shows it once.
+    if (!seen.add(post.id)) continue;
     // A post can carry several files; the first video is the one the feed
     // opens on, exactly as the community card does.
-    if (video == null || video.url.isEmpty) continue;
+    final video = post.media
+        .where((item) => item.isVideo && item.url.isNotEmpty)
+        .firstOrNull;
+    if (video == null) continue;
     reels.add(Reel.fromCommunityPost(post, video));
     if (reels.length >= limit) break;
   }
   return reels;
 }
 
-/// Published records that belong on a video surface.
+/// Published records that belong on a full-screen surface.
 ///
 /// ── Why this repeats the query ────────────────────────────────────────────
-/// `PublishedContentRepository` already asks Firestore for `mediaType ==
-/// 'video'` and this filters the answer again. Neither half is enough alone.
+/// `PublishedContentRepository` already asks Firestore for video and image
+/// records and this filters the answer again. Neither half is enough alone.
 ///
 /// The query is what keeps Explore's window worth having: filter only here and
 /// the newest thirty published records can be thirty poems, of which the feed
@@ -117,14 +137,47 @@ List<Reel> communityReels(List<CommunityPost> posts, {required int limit}) {
 /// it needs a composite index deployed separately from the app, and
 /// `mediaType` is null on everything published before the workflow began
 /// inferring it (see `inferredMediaType` in
-/// services/functions/src/publication.ts), which an equality filter treats as
+/// services/functions/src/publication.ts), which an `in` filter treats as
 /// absent rather than as unknown. This is the rule itself, and it is what
 /// stops music, audiobooks and literature documents arriving as silent,
 /// imageless full-screen cards.
 List<Reel> publishedReels(Iterable<PublishedReel> published) => published
-    .where((reel) => reel.isVideo)
+    .where(
+      (reel) =>
+          reel.videoUrl != null ||
+          (reel.isImage && (reel.posterUrl?.isNotEmpty ?? false)),
+    )
     .map(Reel.fromPublished)
     .toList(growable: false);
+
+/// [reels] without anything the member has asked not to see: reels marked not
+/// interested, creators hidden, muted or blocked, communities hidden.
+///
+/// Community posts by muted and blocked authors are already gone upstream —
+/// [communityFeedProvider] filters them — so the creator rule here is what
+/// extends the same choice to the published archive.
+List<Reel> withoutHidden(
+  Iterable<Reel> reels, {
+  required ExploreHiddenState hidden,
+  Set<String> silencedCreators = const <String>{},
+}) => [
+  for (final reel in reels)
+    if (!hidden.reelIds.contains(reel.id) &&
+        !hidden.creatorIds.contains(reel.creatorId) &&
+        !silencedCreators.contains(reel.creatorId) &&
+        !(reel.community != null &&
+            hidden.communityIds.contains(reel.community!.id)))
+      reel,
+];
+
+/// Each reel once, first occurrence kept.
+List<Reel> uniqueReels(Iterable<Reel> reels) {
+  final seen = <String>{};
+  return [
+    for (final reel in reels)
+      if (seen.add(reel.id)) reel,
+  ];
+}
 
 // ── Whose turn it is ────────────────────────────────────────────────────────
 //
@@ -221,100 +274,151 @@ int creatorOrderSeed(String creatorId) {
 /// front of a quarter of it would be the worst ratio in the app.
 const int kExploreAdCadence = 6;
 
-/// Everything Explore can show right now, in order, before adverts and before
-/// anything is repeated.
+/// Everything Explore holds for this member, before topics, ranking, adverts
+/// and repeats: both sources merged, each reel once, nothing hidden.
 ///
-/// Split out from [exploreFeedProvider] because two things need the reels
-/// themselves rather than the finished rows: the advert splice, which places
-/// its cards *between* them, and the re-queue, which reorders them. Shuffling
-/// an already-spliced list would scatter the paid cards to arbitrary positions
-/// and let two of them land side by side — the one arrangement
-/// [spliceSponsored] exists to prevent.
-final exploreContentProvider = Provider<List<Reel>>((ref) {
+/// Search reads this — through [exploreFeedProvider] — because a search is a
+/// question about the whole archive, not about the topic somebody last tapped.
+final exploreCatalogueProvider = Provider<List<Reel>>((ref) {
   final window = ref.watch(exploreWindowProvider);
   final published = ref.watch(publishedReelsProvider).asData?.value;
   final community = ref.watch(communityFeedProvider).asData?.value;
-
-  // Varied within each half rather than across both, so "published work leads"
-  // survives: interleaving the two would put a clip somebody filmed this
-  // morning ahead of the archive the tab exists to show.
-  return List.unmodifiable(<Reel>[
-    if (published != null) ...variedByCreator(publishedReels(published)),
-    ...?community.let(
-      (posts) => variedByCreator(communityReels(posts, limit: window)),
+  return List.unmodifiable(
+    withoutHidden(
+      uniqueReels([
+        if (published != null) ...publishedReels(published),
+        if (community != null) ...communityReels(community, limit: window),
+      ]),
+      hidden: ref.watch(exploreHiddenProvider),
+      silencedCreators: ref.watch(_silencedCreatorsProvider),
     ),
-  ]);
+  );
 });
 
-/// One pass through the Explore feed: published work first, then community
-/// video, with paid placements spliced in.
+/// Authors this member muted or blocked. Community posts by them are filtered
+/// upstream; this carries the same choice over to published work.
+final _silencedCreatorsProvider = Provider<Set<String>>(
+  (ref) => {
+    ...?ref.watch(myMutedProfilesProvider).asData?.value,
+    ...?ref.watch(myBlockedProfilesProvider).asData?.value,
+  },
+);
+
+/// What For you shows right now, in order, before adverts and before anything
+/// is repeated: the catalogue narrowed to the selected topic and ranked for
+/// this member.
+///
+/// Split out from [exploreLoopedFeedProvider] because two things need the
+/// reels themselves rather than the finished rows: the advert splice, which
+/// places its cards *between* them, and the re-queue, which reorders them.
+/// Shuffling an already-spliced list would scatter the paid cards to arbitrary
+/// positions and let two of them land side by side — the one arrangement
+/// [spliceSponsored] exists to prevent.
+///
+/// ── What changed about the order ─────────────────────────────────────────
+/// Published work used to lead unconditionally, then community video, each
+/// half dealt round-robin by creator. It is now one ranked list — see
+/// [rankForYou] — in which being reviewed, carrying context and being in a
+/// community the member joined all count, and in which no creator, community
+/// or language is allowed a run of the feed. The round-robin is still
+/// available as [variedByCreator] for anything that wants arrival order.
+final exploreContentProvider = Provider<List<Reel>>((ref) {
+  final catalogue = ref.watch(exploreCatalogueProvider);
+  final topic = ref.watch(exploreTopicProvider);
+  final signals = ref.watch(exploreSignalsProvider);
+  return List.unmodifiable(
+    rankForYou(reelsForTopic(catalogue, topic), signals),
+  );
+});
+
+/// One pass through the whole catalogue, with paid placements spliced in, and
+/// no topic applied.
 ///
 /// The adverts are spliced *around* [publishedReels] rather than through it. A
 /// sponsored reel is not a published record and has no `mediaType` to be
-/// filtered on, so passing one through the video-only rule would mean widening
-/// that rule — and the whole point of it is that it is not wide.
+/// filtered on, so passing one through the media rule would mean widening that
+/// rule — and the whole point of it is that it is not wide.
 ///
 /// This is the feed as everything *except* the reel pager wants it: search
 /// matches against it (see `searchReels`), and [exploreHasContentProvider] asks
 /// it whether the archive has anything at all. Both of those want each reel
-/// once. The pager wants [exploreLoopedFeedProvider] instead.
+/// once, whatever topic is selected. The pager wants
+/// [exploreLoopedFeedProvider] instead.
 final exploreFeedProvider = Provider<List<Reel>>(
   (ref) => loopedExploreFeed(
-    content: ref.watch(exploreContentProvider),
+    content: ref.watch(exploreCatalogueProvider),
     ads: ref.watch(placedAdsProvider(AdPlacement.explore)),
     cadence: kExploreAdCadence,
     cycles: 0,
   ),
 );
 
-extension<T> on T? {
-  /// Applies [transform] when this is not null. Saves the feed a nullable
-  /// branch for each source without pretending an absent stream is an empty
-  /// one — the difference matters to [exploreHasContentProvider].
-  R? let<R>(R Function(T value) transform) {
-    final value = this;
-    return value == null ? null : transform(value);
-  }
-}
-
-/// Whether Explore has anything real to show, or should fall back to the
-/// curated preview cards.
+/// Whether Explore has anything real to show at all, whatever topic is picked.
 final exploreHasContentProvider = Provider<bool>(
   (ref) => ref.watch(exploreFeedProvider).isNotEmpty,
 );
 
-/// The same feed, narrowed to the people this member follows.
+/// The same feed, narrowed to the people this member follows and the
+/// communities they joined.
 ///
 /// Explore's two halves are the two questions a video feed answers: show me
 /// something, and show me *them*. Following is built from the same two sources
 /// as the main feed so a followed creator's published work and their community
 /// clips arrive together — following somebody and then not seeing half of what
-/// they make would be the wrong kind of surprise.
+/// they make would be the wrong kind of surprise. Joining a community is the
+/// same kind of statement, so its public posts arrive here too.
 ///
-/// Empty is a real answer here, and the header says so rather than quietly
+/// Followed languages and followed cultural topics are not part of it, because
+/// the app has no way to follow either yet.
+///
+/// Empty is a real answer here, and the screen says so rather than quietly
 /// falling back to everything: a member who follows nobody has an empty
 /// Following feed, and pretending otherwise hides the thing they would need to
 /// do about it.
 final exploreFollowingContentProvider = Provider<List<Reel>>((ref) {
-  final following = ref.watch(followingIdsProvider).asData?.value;
-  if (following == null || following.isEmpty) return const <Reel>[];
+  final following = ref.watch(followingIdsProvider).asData?.value ?? const [];
+  final memberships =
+      ref.watch(myMembershipsProvider).asData?.value ??
+      const <CommunityMembership>[];
+  final joined = {
+    for (final membership in memberships)
+      if (membership.isActive) membership.communityId,
+  };
+  if (following.isEmpty && joined.isEmpty) return const <Reel>[];
   final follows = following.toSet();
 
   final published = ref.watch(publishedReelsProvider).asData?.value;
   final community = ref.watch(followingFeedProvider).asData?.value;
+  final everyone = joined.isEmpty
+      ? null
+      : ref.watch(communityFeedProvider).asData?.value;
 
   final window = ref.watch(exploreWindowProvider);
-  return List.unmodifiable(<Reel>[
-    if (published != null)
-      ...variedByCreator(
-        publishedReels(
+  final reels = withoutHidden(
+    uniqueReels([
+      if (published != null)
+        ...publishedReels(
           published.where((reel) => follows.contains(reel.creatorId)),
         ),
-      ),
-    ...?community.let(
-      (posts) => variedByCreator(communityReels(posts, limit: window)),
-    ),
-  ]);
+      if (community != null) ...communityReels(community, limit: window),
+      if (everyone != null)
+        ...communityReels(
+          everyone
+              .where(
+                (post) =>
+                    post.community != null &&
+                    joined.contains(post.community!.id),
+              )
+              .toList(growable: false),
+          limit: window,
+        ),
+    ]),
+    hidden: ref.watch(exploreHiddenProvider),
+    silencedCreators: ref.watch(_silencedCreatorsProvider),
+  );
+  return List.unmodifiable(
+    rankFollowing(reelsForTopic(reels, ref.watch(exploreTopicProvider))),
+  );
 });
 
 /// One pass through the Following feed.
@@ -674,3 +778,39 @@ class _LoopedReelFeed extends ListBase<Reel> {
   void operator []=(int index, Reel value) =>
       throw UnsupportedError('The Explore feed cannot be written to.');
 }
+
+// ── Whether anything is still on its way ────────────────────────────────────
+
+/// True until either source has answered once.
+///
+/// An empty feed used to say "No reels have been published yet" for the first
+/// second of every launch, while the queries were still in flight — a sentence
+/// that is false for everybody who waits one more second. Loading and empty
+/// are different states and are now drawn differently.
+final exploreFeedLoadingProvider = Provider<bool>((ref) {
+  final published = ref.watch(publishedReelsProvider);
+  final community = ref.watch(communityFeedProvider);
+  return !published.hasValue &&
+      !community.hasValue &&
+      !published.hasError &&
+      !community.hasError;
+});
+
+/// True when both sources failed and there is nothing at all to show.
+final exploreFeedFailedProvider = Provider<bool>((ref) {
+  final published = ref.watch(publishedReelsProvider);
+  final community = ref.watch(communityFeedProvider);
+  return published.hasError &&
+      !published.hasValue &&
+      community.hasError &&
+      !community.hasValue;
+});
+
+/// True while a widened window is being fetched behind reels already shown —
+/// the "loading the next item" state at the tail of the feed.
+final exploreLoadingMoreProvider = Provider<bool>((ref) {
+  final published = ref.watch(publishedReelsProvider);
+  final community = ref.watch(rawCommunityFeedProvider);
+  return (published.isLoading && published.hasValue) ||
+      (community.isLoading && community.hasValue);
+});

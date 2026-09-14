@@ -1,10 +1,11 @@
 import { Suspense, lazy, useEffect, useRef, useState, type ComponentType, type ReactNode } from 'react';
 import type { CreatorApplication, CreatorMembership, CreatorProfile } from '@indigen-world/contracts/creator-models';
 import { ToastProvider } from '@indigen-world/web-ui';
-import { RouterProvider, matchRoute, useRoute } from './router';
-import { signIn, useAuth } from './auth';
+import { Link, RouterProvider, matchRoute, useRoute } from './router';
+import { canMakeVideo, signIn, useAuth } from './auth';
 import { ErrorBoundary } from './ErrorBoundary';
 import { NotFoundPage } from './NotFoundPage';
+import { FullPageLoader, RouteLoader } from './LoadingScreen';
 import { CreatorProvider } from './creator/CreatorProvider';
 import { PublicLayout } from './creator/PublicLayout';
 import { StudioLayout } from './creator/StudioLayout';
@@ -32,6 +33,9 @@ const SubmissionsPage = named(() => import('./creator/pages/SubmissionsPage'), '
 const SubmissionNewPage = named(() => import('./creator/pages/SubmissionNewPage'), 'SubmissionNewPage');
 const SubmissionDetailPage = named(() => import('./creator/pages/SubmissionDetailPage'), 'SubmissionDetailPage');
 const StudioVideoPage = named(() => import('./creator/pages/StudioVideoPage'), 'StudioVideoPage');
+const StudioVideoJobsPage = named(() => import('./creator/pages/StudioVideoJobsPage'), 'StudioVideoJobsPage');
+const VideoEditorPage = named(() => import('./creator/pages/VideoEditorPage'), 'VideoEditorPage');
+const PublishedPage = named(() => import('./creator/pages/PublishedPage'), 'PublishedPage');
 const DictionaryPage = named(() => import('./creator/pages/DictionaryPage'), 'DictionaryPage');
 const NotificationsPage = named(() => import('./creator/pages/NotificationsPage'), 'NotificationsPage');
 const HelpPage = named(() => import('./creator/pages/HelpPage'), 'HelpPage');
@@ -134,7 +138,7 @@ function ApplicationStatusGate({ children }: { children: ReactNode }) {
   }, [loading, blocked, user, profile]);
 
   if (loading) {
-    return <div className="loading">Opening your studio...</div>;
+    return <FullPageLoader note="Checking your creator access…" />;
   }
 
   if (!blocked) {
@@ -191,16 +195,51 @@ const STATUS_LABELS: Record<string, string> = {
   WITHDRAWN: 'Withdrawn',
 };
 
-function renderStudio(path: string) {
+/**
+ * Shown where the AI video pages would be for an account without an approved
+ * membership. The callables behind those pages require a role claim only
+ * approval grants, so rendering them would have offered a form whose every
+ * request came back permission-denied.
+ */
+function VideoNotYetAvailable() {
+  return (
+    <div className="page">
+      <h1>Video making opens with approval</h1>
+      <div className="callout callout--info">
+        <strong>Everything else in the studio is already yours.</strong> Posting to Explore, the
+        dictionary desk and your profile need no approval. Making a video does, because each one
+        buys a generation from a video provider.
+      </div>
+      <p className="muted">
+        If you have applied already, approval is the only thing outstanding — you will see this
+        section appear on its own. Your current status is on your profile.
+      </p>
+      <p className="section__more">
+        <Link to="/studio/profile" className="button button--primary button--small">Check your status</Link>{' '}
+        <Link to="/studio/submissions/new" className="button button--ghost-dark button--small">Post something now</Link>
+      </p>
+    </div>
+  );
+}
+
+function renderStudio(path: string, canVideo: boolean) {
   if (path === '/studio') return <DashboardPage />;
   if (path === '/studio/profile') return <ProfilePage />;
   if (path === '/studio/opportunities') return <OpportunitiesPage />;
   if (matchRoute('/studio/opportunities/:id', path)) return <OpportunityDetailPage />;
   if (path === '/studio/submissions') return <SubmissionsPage />;
+  if (path === '/studio/published') return <PublishedPage />;
+  // Editing personal footage is available to every creator. Only paid AI
+  // generation below needs the approved-creator role.
+  if (path === '/studio/editor') return <VideoEditorPage />;
   if (path === '/studio/submissions/new') return <SubmissionNewPage />;
+  // Before the :id route, which would otherwise swallow "/edit" as an id.
   if (matchRoute('/studio/submissions/:id/edit', path)) return <SubmissionNewPage />;
   if (matchRoute('/studio/submissions/:id', path)) return <SubmissionDetailPage />;
-  if (path === '/studio/video') return <StudioVideoPage />;
+  if (path === '/studio/video' || path === '/studio/video/jobs') {
+    if (!canVideo) return <VideoNotYetAvailable />;
+    return path === '/studio/video' ? <StudioVideoPage /> : <StudioVideoJobsPage />;
+  }
   if (path === '/studio/dictionary') return <DictionaryPage />;
   if (path === '/studio/notifications') return <NotificationsPage />;
   if (path === '/studio/help') return <HelpPage />;
@@ -209,7 +248,7 @@ function renderStudio(path: string) {
 
 function Routed() {
   const { path } = useRoute();
-  const { user, ready } = useAuth();
+  const { user, ready, role } = useAuth();
   const hasMounted = useRef(false);
 
   // Move keyboard/screen-reader focus to the main region on route change so
@@ -233,12 +272,12 @@ function Routed() {
   const isStudio = path === '/studio' || path.startsWith('/studio/');
   const isWorkspace = path === '/workspace';
   if (isStudio || isWorkspace) {
-    if (!ready) return <div className="loading">Loading…</div>;
+    if (!ready) return <FullPageLoader />;
     if (!user) return <SignInGate />;
     if (isWorkspace) {
       return (
         <StudioLayout>
-          <Suspense fallback={<div className="loading">Loading…</div>}>
+          <Suspense fallback={<RouteLoader note="Opening the lexicon workspace" />}>
             <LexiconWorkspace />
           </Suspense>
         </StudioLayout>
@@ -246,7 +285,7 @@ function Routed() {
     }
     return (
       <ApplicationStatusGate>
-        <StudioLayout>{renderStudio(path)}</StudioLayout>
+        <StudioLayout immersive={path === '/studio/editor'}>{renderStudio(path, canMakeVideo(role))}</StudioLayout>
       </ApplicationStatusGate>
     );
   }

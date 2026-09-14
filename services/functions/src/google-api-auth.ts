@@ -27,6 +27,15 @@ import { logger } from 'firebase-functions';
 
 export const PLAY_INTEGRITY_SCOPE = 'https://www.googleapis.com/auth/playintegrity';
 export const ANDROID_PUBLISHER_SCOPE = 'https://www.googleapis.com/auth/androidpublisher';
+/**
+ * Vertex AI, for Gemini video generation and for Kawuri.
+ *
+ * Needs `aiplatform.googleapis.com` enabled on the project and
+ * `roles/aiplatform.user` on the runtime service account. Unlike the two Play
+ * scopes above there is nothing to grant in another console: it is the same
+ * project, so enabling the API and holding the role is the whole setup.
+ */
+export const CLOUD_PLATFORM_SCOPE = 'https://www.googleapis.com/auth/cloud-platform';
 
 /**
  * One `GoogleAuth` per scope, kept for the life of the instance.
@@ -47,6 +56,16 @@ function authFor(scope: string): GoogleAuth {
 }
 
 /** Raised when this deployment simply has no credentials for a scope. */
+/** The Cloud project this function is deployed into. */
+export function googleProjectId(): string {
+  return (
+    process.env.GCLOUD_PROJECT ||
+    process.env.GOOGLE_CLOUD_PROJECT ||
+    process.env.FIREBASE_PROJECT ||
+    ''
+  );
+}
+
 export class GoogleApiAuthError extends Error {
   constructor(message: string) {
     super(message);

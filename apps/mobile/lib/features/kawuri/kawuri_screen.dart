@@ -1,15 +1,24 @@
+import 'dart:async';
 import 'dart:math' as math;
-import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
+import 'package:indigen_world_mobile/core/connectivity.dart';
+import 'package:indigen_world_mobile/features/collection/collection_data.dart';
+import 'package:indigen_world_mobile/features/contribute/contribution_form_screen.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_controller.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_feedback.dart';
+import 'package:indigen_world_mobile/features/kawuri/kawuri_home.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_models.dart';
+import 'package:indigen_world_mobile/features/kawuri/kawuri_report.dart';
+import 'package:indigen_world_mobile/features/kawuri/kawuri_tasks.dart';
+import 'package:indigen_world_mobile/features/kawuri/kawuri_translation_card.dart';
+import 'package:indigen_world_mobile/features/subscriptions/membership_screen.dart';
 import 'package:indigen_world_mobile/shared/glass_popup.dart';
 import 'package:indigen_world_mobile/shared/night_theme.dart';
+import 'package:share_plus/share_plus.dart';
 
 /// Kawuri — the Indigen World guide.
 ///
@@ -24,27 +33,63 @@ class KawuriScreen extends ConsumerStatefulWidget {
   ConsumerState<KawuriScreen> createState() => _KawuriScreenState();
 }
 
-class _KawuriScreenState extends ConsumerState<KawuriScreen> {
+class _KawuriScreenState extends ConsumerState<KawuriScreen>
+    with WidgetsBindingObserver {
   final _input = TextEditingController();
   final _scroll = ScrollController();
   final _inputFocus = FocusNode();
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    ref.listenManual(kawuriControllerProvider.select((s) => s.draft), (
+      _,
+      draft,
+    ) {
+      if (_input.text != draft) {
+        _input.value = TextEditingValue(
+          text: draft,
+          selection: TextSelection.collapsed(offset: draft.length),
+        );
+      }
+    }, fireImmediately: true);
+    _input.addListener(
+      () =>
+          ref.read(kawuriControllerProvider.notifier).updateDraft(_input.text),
+    );
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _input.dispose();
     _scroll.dispose();
     _inputFocus.dispose();
     super.dispose();
   }
 
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.paused) {
+      unawaited(ref.read(kawuriControllerProvider.notifier).flush());
+    }
+  }
+
   Future<void> _send([String? preset]) async {
     final text = (preset ?? _input.text).trim();
-    if (text.isEmpty) return;
+    final state = ref.read(kawuriControllerProvider);
+    if (text.isEmpty ||
+        state.thinking ||
+        !state.restored ||
+        !state.mode.available) {
+      return;
+    }
     _input.clear();
     HapticFeedback.lightImpact();
     _scrollToLatest();
     await ref.read(kawuriControllerProvider.notifier).send(text);
-    _scrollToLatest();
   }
 
   /// The list is reversed, so "latest" is offset zero.
@@ -54,7 +99,9 @@ class _KawuriScreenState extends ConsumerState<KawuriScreen> {
       if (!_scroll.hasClients) return;
       _scroll.animateTo(
         0,
-        duration: const Duration(milliseconds: 280),
+        duration: MediaQuery.disableAnimationsOf(context)
+            ? Duration.zero
+            : const Duration(milliseconds: 280),
         curve: Curves.easeOutCubic,
       );
     });
@@ -66,6 +113,10 @@ class _KawuriScreenState extends ConsumerState<KawuriScreen> {
 
   Widget _build(BuildContext context) {
     final state = ref.watch(kawuriControllerProvider);
+    final pinNotice =
+        MediaQuery.viewInsetsOf(context).bottom == 0 &&
+        MediaQuery.textScalerOf(context).scale(1) <= 1.3 &&
+        MediaQuery.sizeOf(context).height >= 600;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.light,
@@ -90,31 +141,249 @@ class _KawuriScreenState extends ConsumerState<KawuriScreen> {
                     _KawuriBar(
                       thinking: state.thinking,
                       historyCount: state.history.length,
-                      canStartNew: state.messages.isNotEmpty,
+                      canStartNew: state.restored,
                       onNew: () => ref
                           .read(kawuriControllerProvider.notifier)
                           .startNewConversation(),
                       onHistory: _openHistory,
                     ),
+                    if (!ref.watch(isOnlineProvider))
+                      const Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 4,
+                        ),
+                        child: Text(
+                          'Offline · Saved history and the on-device guide are available.',
+                          style: TextStyle(
+                            color: Color(0xFFE7C574),
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
                     Expanded(
                       child: state.isEmpty
-                          ? _Welcome(restored: state.restored, onPrompt: _send)
+                          ? KawuriHome(
+                              restored: state.restored,
+                              showNotice: !pinNotice,
+                              mode: state.mode,
+                              onMode: _selectMode,
+                              onPrompt: (mode, prompt) {
+                                ref
+                                    .read(kawuriControllerProvider.notifier)
+                                    .configure(mode, draft: prompt);
+                                _inputFocus.requestFocus();
+                              },
+                              onLibrary: _openLibrary,
+                            )
                           : _Conversation(
                               state: state,
+                              showNotice: !pinNotice,
                               controller: _scroll,
                               onRetry: () => ref
                                   .read(kawuriControllerProvider.notifier)
                                   .retryLast(),
                             ),
                     ),
-                    _Composer(
+                    if (pinNotice)
+                      const Padding(
+                        padding: EdgeInsets.fromLTRB(12, 4, 12, 4),
+                        child: KawuriAccuracyNotice(),
+                      ),
+                    if (state.storageError case final error?)
+                      Padding(
+                        padding: const EdgeInsets.all(8),
+                        child: Text(
+                          error,
+                          style: const TextStyle(color: Colors.amber),
+                        ),
+                      ),
+                    KawuriComposer(
                       controller: _input,
                       focusNode: _inputFocus,
                       busy: state.thinking,
                       onSend: _send,
+                      mode: state.mode,
+                      onStop: () =>
+                          ref.read(kawuriControllerProvider.notifier).stop(),
+                      onTools: _openTools,
+                      onConfigure: () => _selectMode(state.mode),
+                      onUnavailable: _unavailable,
                     ),
                   ],
                 ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _unavailable(String capability) {
+    showGlassPopup<void>(
+      context: context,
+      title: '$capability · Coming soon',
+      builder: (_) => const Text(
+        'This capability is not available in Kawuri yet. You can keep chatting or develop your idea as a story.',
+      ),
+    );
+  }
+
+  void _openTools() {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => SafeArea(
+        child: SizedBox(
+          height: MediaQuery.sizeOf(context).height * .65,
+          child: ListView(
+            children: [
+              ListTile(
+                leading: const Icon(Icons.workspace_premium_outlined),
+                title: const Text('Membership'),
+                subtitle: const Text('View your plan and Kawuri allowance'),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.of(this.context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const MembershipScreen(),
+                    ),
+                  );
+                },
+              ),
+              for (final type in kawuriCapabilities)
+                ListTile(
+                  leading: Icon(capabilityIcon(type)),
+                  title: Text(type.label),
+                  subtitle: type.available ? null : const Text('Coming soon'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _selectMode(type);
+                  },
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _selectMode(KawuriTaskType type) {
+    if (!type.available) {
+      _unavailable(type.label);
+      return;
+    }
+    ref.read(kawuriControllerProvider.notifier).configure(type);
+    if (type != KawuriTaskType.translation &&
+        type != KawuriTaskType.languagePractice) {
+      return;
+    }
+    final options = Map<String, String>.of(
+      ref.read(kawuriControllerProvider).options,
+    );
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => StatefulBuilder(
+        builder: (context, update) {
+          Widget choice(String key, String label, List<String> values) =>
+              Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: DropdownButtonFormField<String>(
+                  initialValue: options[key] ?? values.first,
+                  isExpanded: true,
+                  decoration: InputDecoration(labelText: label),
+                  items: [
+                    for (final value in values)
+                      DropdownMenuItem(value: value, child: Text(value)),
+                  ],
+                  onChanged: (value) {
+                    if (value == null) return;
+                    update(() => options[key] = value);
+                    ref
+                        .read(kawuriControllerProvider.notifier)
+                        .configure(type, options: Map.of(options));
+                  },
+                ),
+              );
+          return SafeArea(
+            child: SingleChildScrollView(
+              padding: EdgeInsets.fromLTRB(
+                20,
+                20,
+                20,
+                20 + MediaQuery.viewInsetsOf(context).bottom,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    type.label,
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  const SizedBox(height: 16),
+                  if (type == KawuriTaskType.translation)
+                    choice('direction', 'Language direction', [
+                      'English → Kasem',
+                      'Kasem → English',
+                    ])
+                  else ...[
+                    const Text(
+                      'Language: Kasem · Published examples are the record.',
+                    ),
+                    const SizedBox(height: 16),
+                    choice('level', 'Level', [
+                      'Beginner',
+                      'Intermediate',
+                      'Advanced',
+                    ]),
+                    choice('practice', 'Practice type', [
+                      'Guided conversation',
+                      'Vocabulary',
+                      'Role-play',
+                      'Explain a correction',
+                    ]),
+                    const Text(
+                      'Use your message to choose a topic. Nothing is saved to Learn automatically.',
+                    ),
+                  ],
+                  FilledButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Done'),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  void _openLibrary() {
+    showModalBottomSheet<void>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'Your creations',
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'No creations yet. Image, video and media analysis tools are coming soon. Your conversations are available in History.',
+              ),
+              const SizedBox(height: 16),
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Back to Kawuri'),
               ),
             ],
           ),
@@ -199,7 +468,7 @@ class _KawuriBar extends StatelessWidget {
               AnimatedSwitcher(
                 duration: const Duration(milliseconds: 220),
                 child: Text(
-                  thinking ? 'Thinking…' : 'Your guide through Indigen World',
+                  thinking ? 'Thinking…' : 'Ask · Create · Learn',
                   key: ValueKey(thinking),
                   style: TextStyle(
                     color: thinking
@@ -257,8 +526,8 @@ class _BarAction extends StatelessWidget {
         customBorder: const CircleBorder(),
         onTap: enabled ? onTap : null,
         child: Container(
-          width: 38,
-          height: 38,
+          width: 48,
+          height: 48,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             color: Colors.white.withValues(alpha: enabled ? 0.09 : 0.04),
@@ -321,6 +590,16 @@ class _KawuriOrbState extends State<KawuriOrb>
   )..repeat();
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (MediaQuery.disableAnimationsOf(context)) {
+      _controller.stop();
+    } else if (!_controller.isAnimating) {
+      _controller.repeat();
+    }
+  }
+
+  @override
   void dispose() {
     _controller.dispose();
     super.dispose();
@@ -343,6 +622,10 @@ class _KawuriOrbState extends State<KawuriOrb>
             style: TextStyle(
               color: BrandColors.kenteGold,
               fontSize: widget.size * 0.42,
+              fontFamilyFallback: const [
+                'Noto Sans Symbols',
+                'Noto Sans Symbols 2',
+              ],
               fontWeight: FontWeight.w900,
               height: 1,
             ),
@@ -414,141 +697,25 @@ class _OrbitPainter extends CustomPainter {
 // Welcome
 // ═══════════════════════════════════════════════════════════════════════════
 
-class _Welcome extends StatelessWidget {
-  const _Welcome({required this.restored, required this.onPrompt});
-
-  final bool restored;
-  final ValueChanged<String> onPrompt;
-
-  @override
-  Widget build(BuildContext context) => AnimatedOpacity(
-    // Waits for the restore read so a saved chat does not flash the welcome.
-    opacity: restored ? 1 : 0,
-    duration: const Duration(milliseconds: 260),
-    child: ListView(
-      padding: const EdgeInsets.fromLTRB(24, 18, 24, 12),
-      children: [
-        const Center(child: KawuriOrb(size: 118)),
-        const SizedBox(height: 26),
-        const Text(
-          'Ask me anything.',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 27,
-            height: 1.12,
-            letterSpacing: -0.9,
-            fontWeight: FontWeight.w900,
-          ),
-        ),
-        const SizedBox(height: 10),
-        Text(
-          'I am Kawuri. I can walk you through Kassena culture, help you learn, '
-          'and show you how to contribute well.',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: Colors.white.withValues(alpha: 0.68),
-            fontSize: 13.5,
-            height: 1.5,
-          ),
-        ),
-        const SizedBox(height: 26),
-        Wrap(
-          spacing: 9,
-          runSpacing: 9,
-          alignment: WrapAlignment.center,
-          children: [
-            for (final prompt in kawuriPrompts)
-              _PromptChip(prompt: prompt, onTap: () => onPrompt(prompt.prompt)),
-          ],
-        ),
-        const SizedBox(height: 24),
-        Center(
-          child: Text(
-            'Kawuri can be wrong. For the language itself, the dictionary and '
-            'the community are the record.',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.36),
-              fontSize: 10.5,
-              height: 1.5,
-            ),
-          ),
-        ),
-      ],
-    ),
-  );
-}
-
-class _PromptChip extends StatelessWidget {
-  const _PromptChip({required this.prompt, required this.onTap});
-
-  final KawuriPrompt prompt;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) => Material(
-    color: Colors.white.withValues(alpha: 0.07),
-    borderRadius: BorderRadius.circular(999),
-    child: InkWell(
-      borderRadius: BorderRadius.circular(999),
-      onTap: onTap,
-      child: Ink(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.16)),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(13, 9, 15, 9),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                prompt.glyph,
-                style: const TextStyle(
-                  color: BrandColors.kenteGold,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w900,
-                  height: 1,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                prompt.label,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    ),
-  );
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// Conversation
-// ═══════════════════════════════════════════════════════════════════════════
-
 class _Conversation extends StatelessWidget {
   const _Conversation({
     required this.state,
     required this.controller,
     required this.onRetry,
+    required this.showNotice,
   });
 
   final KawuriState state;
   final ScrollController controller;
   final VoidCallback onRetry;
+  final bool showNotice;
 
   @override
   Widget build(BuildContext context) {
     // Reversed so new turns appear at the bottom without measuring anything,
     // and so the keyboard opening never scrolls the thread away.
     final rows = <Widget>[
+      if (showNotice) const KawuriAccuracyNotice(),
       if (state.thinking) const _ThinkingBubble(),
       for (final entry in state.messages.asMap().entries.toList().reversed)
         _MessageBubble(
@@ -561,7 +728,10 @@ class _Conversation extends StatelessWidget {
           question: entry.value.isYou
               ? ''
               : _questionBefore(state.messages, entry.key),
-          onRetry: entry.value == state.messages.last && !entry.value.isYou
+          onRetry:
+              !state.thinking &&
+                  entry.value == state.messages.last &&
+                  !entry.value.isYou
               ? onRetry
               : null,
         ),
@@ -611,7 +781,11 @@ String _questionBefore(List<KawuriMessage> messages, int index) {
 }
 
 class _MessageBubble extends StatelessWidget {
-  const _MessageBubble({required this.message, this.question = '', this.onRetry});
+  const _MessageBubble({
+    required this.message,
+    this.question = '',
+    this.onRetry,
+  });
 
   final KawuriMessage message;
 
@@ -639,6 +813,71 @@ class _MessageBubble extends StatelessWidget {
               onLongPress: () => _copy(context),
               child: isYou ? _yourBubble() : _kawuriBubble(),
             ),
+            if (!isYou && message.sources.isNotEmpty)
+              for (final source in message.sources)
+                KawuriTranslationCard(source: source),
+            if (!isYou &&
+                !message.failed &&
+                !message.fromOfflineGuide &&
+                message.sources.isEmpty)
+              const Padding(
+                padding: EdgeInsets.only(top: 6),
+                child: Text(
+                  'AI guidance · Verify cultural and language claims with the dictionary or community.',
+                  style: TextStyle(color: Color(0xFFB8C9C2), fontSize: 11),
+                ),
+              ),
+            if (!isYou)
+              Wrap(
+                children: [
+                  IconButton(
+                    tooltip: 'Copy response',
+                    onPressed: () => _copy(context),
+                    icon: const Icon(Icons.copy_outlined, size: 18),
+                  ),
+                  IconButton(
+                    tooltip: 'Share response',
+                    onPressed: () => Share.share(
+                      'Kawuri · AI-assisted response\n\n${message.text}\n\n$kawuriNotice',
+                    ),
+                    icon: const Icon(Icons.ios_share_rounded, size: 18),
+                  ),
+                ],
+              ),
+            if (!isYou &&
+                !message.failed &&
+                !message.fromOfflineGuide &&
+                (message.taskType == KawuriTaskType.contributionHelp ||
+                    message.taskType == KawuriTaskType.storyHelp))
+              TextButton.icon(
+                onPressed: () => _contribution(context),
+                icon: const Icon(Icons.edit_note_rounded),
+                label: const Text('Use in contribution'),
+              ),
+            if (!isYou &&
+                !message.fromOfflineGuide &&
+                !message.failed &&
+                question.isNotEmpty)
+              TextButton.icon(
+                onPressed: () => showGlassPopup<void>(
+                  context: context,
+                  title: 'Report response',
+                  builder: (_) => KawuriReportForm(
+                    question: question,
+                    answer: message.text,
+                  ),
+                ),
+                icon: const Icon(Icons.flag_outlined, size: 16),
+                label: const Text('Report response'),
+              ),
+            if (message.incomplete)
+              const Padding(
+                padding: EdgeInsets.all(8),
+                child: Text(
+                  'This response reached its output limit. Ask “Continue response” to continue from the saved text.',
+                  style: TextStyle(color: Colors.amber),
+                ),
+              ),
             if (message.fromOfflineGuide) ...[
               const SizedBox(height: 6),
               const _OfflineTag(),
@@ -664,9 +903,12 @@ class _MessageBubble extends StatelessWidget {
                   visualDensity: VisualDensity.compact,
                 ),
                 icon: const Icon(Icons.refresh_rounded, size: 15),
-                label: const Text(
-                  'Ask again',
-                  style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800),
+                label: Text(
+                  message.failed ? 'Retry' : 'Regenerate',
+                  style: const TextStyle(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
               ),
             ],
@@ -727,6 +969,43 @@ class _MessageBubble extends StatelessWidget {
     ),
     child: KawuriText(text: message.text),
   );
+
+  Future<void> _contribution(BuildContext context) async {
+    final kind = await showDialog<CollectionKind>(
+      context: context,
+      builder: (context) => SimpleDialog(
+        title: const Text('Prepare a contribution draft'),
+        children: [
+          const Padding(
+            padding: EdgeInsets.all(20),
+            child: Text(
+              'The response becomes an editable working note with AI assistance disclosed. Add your sources, community context and rights before submitting for review.',
+            ),
+          ),
+          for (final kind in [
+            CollectionKind.dictionary,
+            CollectionKind.literature,
+            CollectionKind.music,
+            CollectionKind.video,
+          ])
+            SimpleDialogOption(
+              onPressed: () => Navigator.pop(context, kind),
+              child: Text(kind.label),
+            ),
+        ],
+      ),
+    );
+    if (kind == null || !context.mounted) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => ContributionFormScreen(
+          kind: kind,
+          initialAiDraft:
+              'My request: $question\n\nKawuri working note (verify before use):\n${message.text}',
+        ),
+      ),
+    );
+  }
 
   void _copy(BuildContext context) {
     Clipboard.setData(ClipboardData(text: message.text));
@@ -897,6 +1176,16 @@ class _ThinkingBubbleState extends State<_ThinkingBubble>
   )..repeat();
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (MediaQuery.disableAnimationsOf(context)) {
+      _controller.stop();
+    } else if (!_controller.isAnimating) {
+      _controller.repeat();
+    }
+  }
+
+  @override
   void dispose() {
     _controller.dispose();
     super.dispose();
@@ -963,264 +1252,148 @@ class _ThinkingBubbleState extends State<_ThinkingBubble>
 // Composer
 // ═══════════════════════════════════════════════════════════════════════════
 
-class _Composer extends StatefulWidget {
-  const _Composer({
-    required this.controller,
-    required this.focusNode,
-    required this.busy,
-    required this.onSend,
-  });
-
-  final TextEditingController controller;
-  final FocusNode focusNode;
-  final bool busy;
-  final VoidCallback onSend;
-
-  @override
-  State<_Composer> createState() => _ComposerState();
-}
-
-class _ComposerState extends State<_Composer> {
-  var _hasText = false;
-
-  @override
-  void initState() {
-    super.initState();
-    widget.controller.addListener(_syncHasText);
-  }
-
-  @override
-  void dispose() {
-    widget.controller.removeListener(_syncHasText);
-    super.dispose();
-  }
-
-  void _syncHasText() {
-    final next = widget.controller.text.trim().isNotEmpty;
-    if (next != _hasText) setState(() => _hasText = next);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final canSend = _hasText && !widget.busy;
-    return Padding(
-      // The scaffold resizes for the keyboard, so the composer only needs its
-      // own resting inset.
-      padding: const EdgeInsets.fromLTRB(14, 4, 14, 10),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(26),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(26),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
-            ),
-            padding: const EdgeInsets.fromLTRB(18, 5, 5, 5),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: widget.controller,
-                    focusNode: widget.focusNode,
-                    minLines: 1,
-                    maxLines: 5,
-                    textInputAction: TextInputAction.send,
-                    onSubmitted: (_) => canSend ? widget.onSend() : null,
-                    textCapitalization: TextCapitalization.sentences,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 14.5,
-                      height: 1.4,
-                    ),
-                    cursorColor: BrandColors.kenteGold,
-                    decoration: InputDecoration(
-                      isDense: true,
-                      filled: false,
-                      border: InputBorder.none,
-                      enabledBorder: InputBorder.none,
-                      focusedBorder: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(vertical: 13),
-                      hintText: 'Ask Kawuri…',
-                      hintStyle: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.42),
-                        fontSize: 14.5,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 6),
-                _SendButton(
-                  enabled: canSend,
-                  busy: widget.busy,
-                  onTap: widget.onSend,
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _SendButton extends StatelessWidget {
-  const _SendButton({
-    required this.enabled,
-    required this.busy,
-    required this.onTap,
-  });
-
-  final bool enabled;
-  final bool busy;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) => Semantics(
-    button: true,
-    enabled: enabled,
-    label: 'Send to Kawuri',
-    child: AnimatedContainer(
-      duration: const Duration(milliseconds: 220),
-      curve: Curves.easeOut,
-      width: 44,
-      height: 44,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        gradient: enabled
-            ? const LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [BrandColors.kenteGold, BrandColors.terracotta],
-              )
-            : null,
-        color: enabled ? null : Colors.white.withValues(alpha: 0.08),
-        boxShadow: enabled
-            ? [
-                BoxShadow(
-                  color: BrandColors.kenteGold.withValues(alpha: 0.4),
-                  blurRadius: 16,
-                  spreadRadius: 1,
-                ),
-              ]
-            : null,
-      ),
-      child: Material(
-        color: Colors.transparent,
-        shape: const CircleBorder(),
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: enabled ? onTap : null,
-          child: Center(
-            child: busy
-                ? const SizedBox(
-                    width: 17,
-                    height: 17,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white70,
-                    ),
-                  )
-                : Icon(
-                    Icons.arrow_upward_rounded,
-                    size: 21,
-                    color: enabled
-                        ? Colors.white
-                        : Colors.white.withValues(alpha: 0.35),
-                  ),
-          ),
-        ),
-      ),
-    ),
-  );
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// History
-// ═══════════════════════════════════════════════════════════════════════════
-
-/// The past conversations, inside the history popup.
-///
-/// The rows are ink on plaster rather than the screen's white-on-night: the
-/// card they sit on now is cut from the app's light glass, and Kawuri's own
-/// night palette would be invisible on it.
-class _HistoryList extends StatefulWidget {
+class _HistoryList extends ConsumerStatefulWidget {
   const _HistoryList({required this.sessions, required this.onDelete});
-
   final List<KawuriSession> sessions;
   final ValueChanged<KawuriSession> onDelete;
-
   @override
-  State<_HistoryList> createState() => _HistoryListState();
+  ConsumerState<_HistoryList> createState() => _HistoryListState();
 }
 
-class _HistoryListState extends State<_HistoryList> {
-  late var _sessions = widget.sessions;
-
+class _HistoryListState extends ConsumerState<_HistoryList> {
+  String _search = '';
+  int _limit = 20;
   @override
-  Widget build(BuildContext context) => ListView.separated(
-    // The card gives this a bounded height and its own padding, so the list
-    // only has to be as tall as its rows until it runs out of room.
-    shrinkWrap: true,
-    padding: EdgeInsets.zero,
-    itemCount: _sessions.length,
-    separatorBuilder: (context, index) => const SizedBox(height: 8),
-    itemBuilder: (context, index) {
-      final session = _sessions[index];
-      return Material(
-        color: context.brand.accent.withValues(alpha: 0.06),
-        borderRadius: BorderRadius.circular(16),
-        child: ListTile(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+  Widget build(BuildContext context) {
+    final sessions = ref
+        .watch(kawuriControllerProvider)
+        .history
+        .where(
+          (s) =>
+              s.title.toLowerCase().contains(_search) ||
+              s.messages.any((m) => m.text.toLowerCase().contains(_search)),
+        )
+        .toList();
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        TextField(
+          decoration: const InputDecoration(
+            labelText: 'Search history',
+            prefixIcon: Icon(Icons.search),
           ),
-          leading: const Icon(
-            Icons.forum_outlined,
-            color: BrandColors.terracotta,
-            size: 20,
-          ),
-          title: Text(
-            session.title,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: context.brand.ink,
-              fontSize: 13.5,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          subtitle: Text(
-            '${session.messages.length} messages',
-            style: TextStyle(color: context.brand.mutedInk, fontSize: 11),
-          ),
-          trailing: IconButton(
-            tooltip: 'Delete',
-            onPressed: () {
-              widget.onDelete(session);
-              setState(
-                () => _sessions = _sessions
-                    .where((item) => item.id != session.id)
-                    .toList(growable: false),
+          onChanged: (value) => setState(() {
+            _search = value.toLowerCase();
+            _limit = 20;
+          }),
+        ),
+        const Padding(
+          padding: EdgeInsets.symmetric(vertical: 10),
+          child: Text('Private history on this device'),
+        ),
+        Flexible(
+          child: ListView.builder(
+            shrinkWrap: true,
+            itemCount:
+                sessions.length.clamp(0, _limit) +
+                (sessions.length > _limit ? 1 : 0),
+            itemBuilder: (context, index) {
+              if (index == _limit) {
+                return TextButton(
+                  onPressed: () => setState(() => _limit += 20),
+                  child: const Text('Load more'),
+                );
+              }
+              final session = sessions[index];
+              final type =
+                  session.messages.firstOrNull?.taskType ?? KawuriTaskType.chat;
+              return ListTile(
+                leading: Icon(capabilityIcon(type)),
+                title: Text(
+                  session.title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                subtitle: Text(
+                  '${type.label} · ${session.messages.length} messages',
+                ),
+                onTap: () => Navigator.pop(context, session),
+                trailing: PopupMenuButton<String>(
+                  tooltip: 'Conversation options',
+                  onSelected: (action) =>
+                      action == 'delete' ? _delete(session) : _rename(session),
+                  itemBuilder: (_) => const [
+                    PopupMenuItem(value: 'rename', child: Text('Rename')),
+                    PopupMenuItem(value: 'delete', child: Text('Delete')),
+                  ],
+                ),
               );
             },
-            icon: Icon(
-              Icons.delete_outline_rounded,
-              color: context.brand.mutedInk,
-              size: 19,
-            ),
           ),
-          onTap: () => Navigator.pop(context, session),
         ),
-      );
-    },
-  );
-}
+        if (sessions.isEmpty)
+          const Padding(
+            padding: EdgeInsets.all(20),
+            child: Text('No matching conversations.'),
+          ),
+      ],
+    );
+  }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// Backdrop
-// ═══════════════════════════════════════════════════════════════════════════
+  Future<void> _delete(KawuriSession session) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete conversation?'),
+        content: Text('“${session.title}” will be removed from this device.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) widget.onDelete(session);
+  }
+
+  Future<void> _rename(KawuriSession session) async {
+    final input = TextEditingController(text: session.title);
+    final title = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Rename conversation'),
+        content: TextField(
+          controller: input,
+          maxLength: 80,
+          decoration: const InputDecoration(labelText: 'Title'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, input.text),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+    if (title != null && mounted) {
+      await ref
+          .read(kawuriControllerProvider.notifier)
+          .renameSession(session, title);
+    }
+    // The dialog's closing transition can still read its controller.
+    await Future<void>.delayed(const Duration(milliseconds: 300));
+    input.dispose();
+  }
+}
 
 class _AmbientWeave extends StatelessWidget {
   const _AmbientWeave();

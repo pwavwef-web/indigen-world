@@ -38,7 +38,7 @@ const runtimeJs = between(xml, "<script>//<![CDATA[", "//]]></script>", { from: 
 
 /* ------------------------------------------------- resolve $(...) tokens */
 
-// <Variable name="brand.gold" ... default="#c58a00" .../>
+// <Variable name="brand.gold" ... default="#22d3ee" .../>
 const vars = new Map();
 for (const m of skin.matchAll(/<Variable\s+name="([^"]+)"[^>]*?default="([^"]*)"/g)) {
   vars.set(m[1], m[2]);
@@ -89,13 +89,13 @@ const MARK = `<svg aria-hidden="true" class="iw-mark" focusable="false" viewBox=
   <circle class="iw-mark__sun" cx="32" cy="14" r="4"/>
 </svg>`;
 
-/** A woven, brand-coloured stand-in so the preview needs no network. */
+/** A woven stand-in in the website's blues, so the preview needs no network. */
 function plate(seed) {
   const tones = [
-    ["#24406e", "#101c36", "#c58a00"],
-    ["#1f5a3a", "#101c36", "#f0d99c"],
-    ["#7a3f2c", "#191024", "#c58a00"],
-    ["#1e365d", "#0d1524", "#b65a3a"],
+    ["#2457d6", "#0b1225", "#22d3ee"],
+    ["#0f6b5c", "#0b1225", "#cfe0ff"],
+    ["#19327f", "#0f1830", "#8eb4ff"],
+    ["#2f6bff", "#0b1225", "#22d3ee"],
   ][seed % 4];
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450">
     <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
@@ -159,6 +159,33 @@ const POSTS = [
       "Kasem dialect areas are drawn against real district lines, so contributors can place an entry precisely where it was collected.",
     image: false,
   },
+  {
+    title: "The website has a clearer ecosystem map",
+    label: "Website",
+    date: "2026-07-22",
+    shown: "22 Jul 2026",
+    snippet:
+      "A revised ecosystem page now connects the public website, mobile app, dictionary and creator tools without making visitors learn the organisation first.",
+    image: true,
+  },
+  {
+    title: "Dictionary search now handles Kasem variants",
+    label: "Dictionary",
+    date: "2026-07-15",
+    shown: "15 Jul 2026",
+    snippet:
+      "Search results now bring spelling and dialect variants together while keeping every reviewed form and its source visible.",
+    image: true,
+  },
+  {
+    title: "TribeStudio publishing receipts are easier to review",
+    label: "TribeStudio",
+    date: "2026-07-08",
+    shown: "8 Jul 2026",
+    snippet:
+      "Editors can now inspect publication receipts, source records and validation decisions from one compact release view.",
+    image: false,
+  },
 ];
 
 function card(post, index) {
@@ -167,7 +194,7 @@ function card(post, index) {
   const media = post.image
     ? `<img alt="" decoding="async" fetchpriority="${index === 0 ? "high" : "auto"}" height="506" loading="${index === 0 ? "eager" : "lazy"}" src="${plate(index)}" width="900"/>`
     : `<span class="iw-card__motif">${MARK}</span>`;
-  return `      <article class="iw-card${index === 0 ? " iw-card--lead" : ""}">
+  return `      <article class="iw-card">
         <div class="iw-card__media">${media}</div>
         <div class="iw-card__body">
           <div class="iw-chips"><a class="iw-chip" data-label="${post.label}" href="#">${post.label}</a></div>
@@ -186,11 +213,22 @@ const NAV = `      <div class="iw-nav" id="iw-nav">
           <div class="section" id="mainnav"><div class="widget PageList">
             <ul class="iw-navlist">
               <li><a href="index.html">Latest</a></li>
-              <li><a href="post.html">Releases</a></li>
-              <li><a href="#">Features</a></li>
-              <li><a href="#">Engineering</a></li>
               <li><a href="#">About</a></li>
             </ul>
+          </div><div class="widget Label">
+            <details class="iw-filter" id="iw-filter">
+              <summary>
+                <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M4 6h16M7 12h10M10 18h4"/></svg>
+                <span>Filter</span>
+              </summary>
+              <div aria-label="Filter updates by topic" class="iw-filter__menu">
+                <a class="iw-filter__option is-current" href="index.html">All updates</a>
+                <a class="iw-filter__option" data-label="Mobile app" href="label.html"><span>Mobile app</span><span class="iw-filter__count">8</span></a>
+                <a class="iw-filter__option" data-label="Website" href="label.html"><span>Website</span><span class="iw-filter__count">6</span></a>
+                <a class="iw-filter__option" data-label="Dictionary" href="label.html"><span>Dictionary</span><span class="iw-filter__count">4</span></a>
+                <a class="iw-filter__option" data-label="TribeStudio" href="label.html"><span>TribeStudio</span><span class="iw-filter__count">3</span></a>
+              </div>
+            </details>
           </div></div>
         </div>
       </div>`;
@@ -362,7 +400,7 @@ const FOOTER = `  <footer class="iw-foot">
 
 const THEME_INIT = `<script>${between(xml, "<script>//<![CDATA[", "//]]></script>").text}</script>`;
 
-const BANNER = `  <div class="iw-preview-banner" style="background:#101c36;color:#f0d99c;font:600 12px/1.5 'Noto Sans',sans-serif;letter-spacing:.06em;text-transform:uppercase;text-align:center;padding:8px 16px">
+const BANNER = `  <div class="iw-preview-banner" style="background:#0b1225;color:#bcd2ff;font:600 12px/1.5 'Noto Sans',sans-serif;letter-spacing:.06em;text-transform:uppercase;text-align:center;padding:8px 16px">
     Local preview &#183; generated from theme/indigen-world-updates.xml
   </div>`;
 
@@ -372,7 +410,7 @@ function page({ title, ogTitle, bodyClass = "iw", content, ogType = "website", o
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1, viewport-fit=cover" name="viewport"/>
-<meta content="#1e365d" name="theme-color"/>
+<meta content="#0f1830" name="theme-color"/>
 <title>${title}</title>
 <meta content="Indigen World Updates" property="og:site_name"/>
 <meta content="${ogTitle || title}" property="og:title"/>
@@ -404,6 +442,9 @@ ${runtimeJs}
 
 /* -------------------------------------------------------------- homepage */
 
+const homeCards = POSTS.slice(0, 7).map(card).join("\n");
+const listingCards = POSTS.map(card).join("\n");
+
 const home = page({
   title: "Indigen World Updates",
   content: `${HEADER}
@@ -414,7 +455,7 @@ const home = page({
       <h1 class="iw-hero__title">Indigen World Updates</h1>
       <p class="iw-hero__lede">What we are building, shipping and learning across the Indigen World ecosystem &#8212; the website, TribeStudio, the mobile app and Project Kassena.</p>
       <div class="iw-hero__actions">
-        <a class="iw-btn iw-btn--gold" href="#iw-content">Browse updates
+        <a class="iw-btn iw-btn--primary" href="#iw-content">Browse updates
           <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M12 5v14M6 13l6 6 6-6"/></svg>
         </a>
         <a class="iw-btn iw-btn--ghost" href="#">
@@ -428,9 +469,10 @@ const home = page({
   <main class="iw-main" id="iw-content">
     <div class="iw-shell">
       <div class="iw-layout iw-layout--index">
+        <aside aria-label="Share this update" class="iw-share-rail" hidden id="iw-share-rail"></aside>
         <div class="section" id="main"><div class="widget Blog">
           <div class="iw-grid" id="iw-grid">
-${POSTS.map(card).join("\n")}
+${homeCards}
           </div>
           <nav class="iw-pager">
             <a class="iw-pager__link iw-pager__link--next" href="#" rel="next">
@@ -460,6 +502,7 @@ const article = page({
   <main class="iw-main" id="iw-content">
     <div class="iw-shell">
       <div class="iw-layout iw-layout--article">
+        <aside aria-label="Share this update" class="iw-share-rail" hidden id="iw-share-rail"></aside>
         <div class="section" id="main"><div class="widget Blog">
           <article class="iw-article">
             <header class="iw-article__head">
@@ -619,7 +662,9 @@ writeFileSync(join(root, "preview", "index.html"), home, "utf8");
 writeFileSync(join(root, "preview", "post.html"), article, "utf8");
 
 // Exercise the non-homepage view headers and hidden/empty grid treatment too.
-const listing = home.replace(/  <section class="iw-hero">[\s\S]*?<\/section>/, "");
+const listing = home
+  .replace(/  <section class="iw-hero">[\s\S]*?<\/section>/, "")
+  .replace(homeCards, listingCards);
 for (const [name, eyebrow, title, empty] of [
   ["label", "Topic", "Engineering", false],
   ["archive", "Archive", "August 2026", false],
@@ -628,7 +673,6 @@ for (const [name, eyebrow, title, empty] of [
 ]) {
   const viewhead = `<header class="iw-viewhead"><p class="iw-eyebrow">${eyebrow}</p><h1 class="iw-viewhead__title">${title}</h1><p class="iw-viewhead__count">${empty ? "0" : POSTS.length} updates</p></header>`;
   let listingPage = listing.replace('<div class="iw-grid" id="iw-grid">', `${viewhead}<div class="iw-grid" id="iw-grid">`);
-  listingPage = listingPage.replaceAll("iw-card iw-card--lead", "iw-card");
   if (empty) {
     listingPage = listingPage.replace(/<div class="iw-grid" id="iw-grid">[\s\S]*?<\/nav>/, '<div class="iw-grid" id="iw-grid"></div><div class="iw-empty" hidden id="iw-empty"><h2>No updates found</h2><p>Try a different search or browse all updates.</p></div>');
   }

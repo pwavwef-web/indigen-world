@@ -5,6 +5,7 @@ import 'package:indigen_world_mobile/core/firebase_ready.dart';
 import 'package:indigen_world_mobile/features/auth/auth_repository.dart';
 import 'package:indigen_world_mobile/features/community/data/community_models.dart';
 import 'package:indigen_world_mobile/features/community/data/community_repository.dart';
+import 'package:indigen_world_mobile/features/community/data/feed_fairness.dart';
 import 'package:indigen_world_mobile/features/explore/explore_feed.dart' show exploreWindowProvider;
 
 /// The community data layer, or `null` when Firebase is unavailable this
@@ -70,6 +71,51 @@ final profileCountsProvider =
 
 // ── Feeds ───────────────────────────────────────────────────────────────────
 
+/// How far a feed's window grows each time the reader nears its end.
+const int kCommunityFeedWindowStep = CommunityRepository.feedPageSize;
+
+/// The ceiling. A live listener over more than this many posts on a phone
+/// costs more than the next page is worth.
+const int kCommunityFeedWindowMax = 300;
+
+/// The window key for the main For you feed.
+const String kForYouFeed = 'for-you';
+
+/// The window key for the Following feed.
+const String kFollowingFeed = 'following';
+
+/// How many posts one feed listens to.
+///
+/// Pages by widening a live query rather than stitching cursors, for the same
+/// reason Explore does (see `ExploreWindow`): a post published mid-scroll can
+/// neither be shown twice nor fall through a seam, and Firestore serves the
+/// posts it already holds from cache and fetches only the new tail.
+class CommunityFeedWindow extends Notifier<int> {
+  CommunityFeedWindow(this.feed);
+
+  /// Which feed this window belongs to: [kForYouFeed], [kFollowingFeed], or a
+  /// community's slug.
+  final String feed;
+
+  @override
+  int build() => kCommunityFeedWindowStep;
+
+  /// Widens by one step. Returns false at the ceiling.
+  bool grow() {
+    if (state >= kCommunityFeedWindowMax) return false;
+    state = (state + kCommunityFeedWindowStep).clamp(
+      kCommunityFeedWindowStep,
+      kCommunityFeedWindowMax,
+    );
+    return true;
+  }
+}
+
+final communityFeedWindowsProvider =
+    NotifierProvider.family<CommunityFeedWindow, int, String>(
+      CommunityFeedWindow.new,
+    );
+
 final rawCommunityFeedProvider = StreamProvider<List<CommunityPost>>((ref) {
   final repository = ref.watch(communityRepositoryProvider);
   if (repository == null) return Stream.value(const <CommunityPost>[]);
@@ -84,7 +130,9 @@ final rawCommunityFeedProvider = StreamProvider<List<CommunityPost>>((ref) {
 /// Shared with Explore, whose infinite scroll widens it. The Community tab
 /// reads whatever it happens to be, which is never smaller than its own page.
 final communityFeedWindowProvider = Provider<int>((ref) {
-  final window = ref.watch(exploreWindowProvider);
+  final explore = ref.watch(exploreWindowProvider);
+  final forYou = ref.watch(communityFeedWindowsProvider(kForYouFeed));
+  final window = explore > forYou ? explore : forYou;
   return window < CommunityRepository.feedPageSize
       ? CommunityRepository.feedPageSize
       : window;
@@ -102,7 +150,7 @@ final communityFeedWindowProvider = Provider<int>((ref) {
 ///
 /// Precedence is deliberate and matches what the screen wants: a page we
 /// already hold beats an error, and an error beats a spinner.
-AsyncValue<List<CommunityPost>> _visibleFeed(
+AsyncValue<List<CommunityPost>> visibleCommunityFeed(
   AsyncValue<List<CommunityPost>> raw, {
   required Set<String> hidden,
   required Set<String> muted,
@@ -118,7 +166,9 @@ AsyncValue<List<CommunityPost>> _visibleFeed(
 
   final posts = raw.value;
   if (posts != null) {
-    return AsyncData(posts.where(visible).toList(growable: false));
+    return AsyncData(
+      preventPostBurial(posts.where(visible).toList(growable: false)),
+    );
   }
   final error = raw.error;
   if (error != null) {
@@ -134,7 +184,7 @@ final communityFeedProvider = Provider<AsyncValue<List<CommunityPost>>>((ref) {
       ref.watch(myMutedProfilesProvider).asData?.value ?? const <String>{};
   final blocked =
       ref.watch(myBlockedProfilesProvider).asData?.value ?? const <String>{};
-  return _visibleFeed(
+  return visibleCommunityFeed(
     ref.watch(rawCommunityFeedProvider),
     hidden: hidden,
     muted: muted,
@@ -158,7 +208,7 @@ final rawFollowingFeedProvider = StreamProvider<List<CommunityPost>>((ref) {
   }
   return repository.watchFollowingFeed(
     following,
-    limit: ref.watch(communityFeedWindowProvider),
+    limit: ref.watch(communityFeedWindowsProvider(kFollowingFeed)),
   );
 });
 
@@ -169,7 +219,7 @@ final followingFeedProvider = Provider<AsyncValue<List<CommunityPost>>>((ref) {
       ref.watch(myMutedProfilesProvider).asData?.value ?? const <String>{};
   final blocked =
       ref.watch(myBlockedProfilesProvider).asData?.value ?? const <String>{};
-  return _visibleFeed(
+  return visibleCommunityFeed(
     ref.watch(rawFollowingFeedProvider),
     hidden: hidden,
     muted: muted,
@@ -219,6 +269,32 @@ final postProvider = StreamProvider.family<CommunityPost?, String>((
   if (repository == null) return Stream<CommunityPost?>.value(null);
   return repository.watchPost(postId);
 });
+
+/// Where a post lives: its id, and the private community holding it if any.
+typedef PostAddress = ({String postId, String? privateCommunityId});
+
+/// A post read from wherever it lives — `communityPosts`, or under its private
+/// community. The conversation screen reads through this so a members-only
+/// thread opens exactly like any other.
+final addressedPostProvider =
+    StreamProvider.family<CommunityPost?, PostAddress>((ref, address) {
+      final repository = ref.watch(communityRepositoryProvider);
+      if (repository == null) return Stream<CommunityPost?>.value(null);
+      return repository.watchPost(
+        address.postId,
+        privateCommunityId: address.privateCommunityId,
+      );
+    });
+
+final addressedRepliesProvider =
+    StreamProvider.family<List<CommunityPost>, PostAddress>((ref, address) {
+      final repository = ref.watch(communityRepositoryProvider);
+      if (repository == null) return Stream.value(const <CommunityPost>[]);
+      return repository.watchReplies(
+        address.postId,
+        privateCommunityId: address.privateCommunityId,
+      );
+    });
 
 final repliesProvider = StreamProvider.family<List<CommunityPost>, String>((
   ref,

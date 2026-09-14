@@ -139,15 +139,7 @@ class _AdsHero extends StatelessWidget {
     padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
     decoration: BoxDecoration(
       borderRadius: BorderRadius.circular(26),
-      gradient: const LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [
-          Color(0xFF082F25),
-          BrandColors.heritageGreen,
-          Color(0xFF17644C),
-        ],
-      ),
+      gradient: BrandGradients.heroRich(context.brand),
       boxShadow: glassShadows(context.brand, onDark: true),
     ),
     child: Stack(

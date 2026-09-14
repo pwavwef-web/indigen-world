@@ -146,6 +146,42 @@ service firebase.storage {
       allow delete: if isSignedIn() && (request.auth.uid == uid || isStaff());
     }
 
+    // ---- Sub-community pictures: world-readable, uploader-owned -------------
+    // A community's profile picture and cover, uploaded before the community
+    // document exists — which is why the prefix is the uploader's uid rather
+    // than something a rule would have to look up. Community profiles are
+    // public, private communities included, so these are too. JPEG, PNG and
+    // WebP only: the app refuses anything else before upload, and so does this.
+    match /community-spaces/{uid}/{communityId}/{fileName} {
+      allow read: if true;
+      allow write: if isSignedIn()
+        && request.auth.uid == uid
+        && request.resource.size < 12 * 1024 * 1024
+        && request.resource.contentType.matches('image/(jpeg|png|webp)');
+      allow delete: if isSignedIn() && (request.auth.uid == uid || isStaff());
+    }
+
+    // ---- Private community media: members only ------------------------------
+    // Photos and clips posted inside a private community. The public
+    // community-media prefix is world-readable and listable, so a private
+    // post's files cannot live there. These rules read the member's row in
+    // Firestore (cross-service rules), which the first deploy asks permission
+    // to enable.
+    function isPrivateSpaceMember(communityId) {
+      return isSignedIn()
+        && firestore.exists(/databases/(default)/documents/communitySpaces/$(communityId)/memberships/$(request.auth.uid))
+        && firestore.get(/databases/(default)/documents/communitySpaces/$(communityId)/memberships/$(request.auth.uid)).data.status == 'active';
+    }
+
+    match /community-private-media/{communityId}/{uid}/{postId}/{fileName} {
+      allow read: if isPrivateSpaceMember(communityId) || isStaff();
+      allow write: if isSignedIn()
+        && request.auth.uid == uid
+        && communityPostMediaOk()
+        && isPrivateSpaceMember(communityId);
+      allow delete: if isSignedIn() && (request.auth.uid == uid || isStaff());
+    }
+
     // ---- Lesson pictures: world-readable, admin-written ---------------------
     // "Which of these is a goat" needs the goat. These are uploaded from the
     // admin console rather than copied in by a Function, because the person

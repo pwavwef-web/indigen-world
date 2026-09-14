@@ -42,6 +42,8 @@ import {
 import {
   buildPublishedContentDocument,
   canonicalCollectionKind,
+  collectionKindForSubmission,
+  publishedCollectionKind,
 } from '../../services/functions/lib/publication.js';
 import {
   buildCollectionSubmissionDocument,
@@ -299,6 +301,85 @@ test('Audiobooks retain an approved external recording and infer audio media', (
   assert.equal(published.collectionKind, 'audiobooks');
   assert.equal(published.mediaType, 'audio');
   assert.equal(published.mediaUrl, 'https://media.example.org/story.mp3');
+});
+
+// ── Literature holds nothing you watch ─────────────────────────────────────
+//
+// TribeStudio asks for a category, not a channel, and every storytelling
+// category resolves to Literature — so a filmed story published into the
+// reading channel and a member scrolling stories found silent video cards.
+
+test('a filmed story publishes to Video however its category reads', () => {
+  const uploaded = { category: 'storytelling', media: { mediaType: 'video' } };
+  assert.equal(publishedCollectionKind(uploaded), 'video');
+  // A TribeStudio post that links to a video hosted elsewhere carries no
+  // media object at all; the studio the creator chose is the only evidence.
+  const linked = { category: 'oral-history', studioType: 'video', externalPostUrl: 'https://example.test/v' };
+  assert.equal(publishedCollectionKind(linked), 'video');
+  // Explicitly filed as Literature and still a film. The file wins.
+  assert.equal(
+    publishedCollectionKind({ collectionKind: 'literature', media: { mediaType: 'video' } }),
+    'video',
+  );
+});
+
+test('written and document stories are left in Literature', () => {
+  assert.equal(publishedCollectionKind({ category: 'storytelling' }), 'literature');
+  assert.equal(
+    publishedCollectionKind({ collectionKind: 'literature', media: { mediaType: 'document' } }),
+    'literature',
+  );
+  // A recorded reading is not a film and keeps the channel it was filed under.
+  assert.equal(
+    publishedCollectionKind({ collectionKind: 'literature', media: { mediaType: 'audio' } }),
+    'literature',
+  );
+  // Every other channel is untouched: a video filed as Video stays there, and
+  // a song is still a song.
+  assert.equal(publishedCollectionKind({ collectionKind: 'video', media: { mediaType: 'video' } }), 'video');
+  assert.equal(publishedCollectionKind({ collectionKind: 'music', media: { mediaType: 'audio' } }), 'music');
+});
+
+test('what a contribution was filed as is asked separately from where it publishes', () => {
+  // The review pipeline compares `collectionKindForSubmission` against the
+  // linked contribution record to catch a client that sent two answers. If the
+  // media rule leaked into it, every historical Literature contribution
+  // carrying a film would fail that comparison and become unreviewable.
+  const filmedStory = { collectionKind: 'literature', media: { mediaType: 'video' } };
+  assert.equal(collectionKindForSubmission(filmedStory), 'literature');
+  assert.equal(publishedCollectionKind(filmedStory), 'video');
+});
+
+test('a published Literature record never carries a video mediaType', () => {
+  const published = buildPublishedContentDocument({
+    submissionId: 'sub-film',
+    publishedId: 'pub_sub-film',
+    submission: { collectionKind: 'literature', category: 'folklore', media: { mediaType: 'video' }, title: 'Told at the baobab' },
+    creatorId: 'member-film',
+    displayName: 'Community contributor',
+    avatarUrl: null,
+    publicationStatus: 'published',
+    now: '2026-09-11T00:00:00.000Z',
+  });
+  assert.equal(published.collectionKind, 'video');
+  assert.equal(published.mediaType, 'video');
+});
+
+test('Literature refuses a video upload at the door', () => {
+  assert.throws(
+    () => parseCollectionContributionInput(
+      collectionInput({
+        media: {
+          storagePath: 'creator-submissions/member-1/collection-contributions/story.mp4',
+          mimeType: 'video/mp4',
+          sizeBytes: 1024,
+          mediaType: 'video',
+        },
+      }),
+      'member-1',
+    ),
+    /Video collection/,
+  );
 });
 
 test('collection aliases resolve while unknown categories stay unclassified', () => {

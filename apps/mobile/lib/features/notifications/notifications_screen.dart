@@ -14,13 +14,14 @@ import 'package:indigen_world_mobile/features/community/widgets/people_widgets.d
 import 'package:indigen_world_mobile/features/notifications/data/notification_models.dart';
 import 'package:indigen_world_mobile/features/notifications/data/notification_providers.dart';
 import 'package:indigen_world_mobile/features/notifications/notification_settings_screen.dart';
+import 'package:indigen_world_mobile/shared/glass_popup.dart';
 
 /// The notifications centre: everything that happened to you, newest first,
 /// grouped into Today / This week / Earlier.
 ///
 /// Rows are written server-side (a like, a reply, a follow, a publication) and
-/// are read-only here apart from the `read` flag, so nothing on this screen can
-/// be forged by a client.
+/// can only be marked or removed by their recipient, so nothing on this screen
+/// can be forged by a client.
 class NotificationsScreen extends ConsumerStatefulWidget {
   const NotificationsScreen({super.key});
 
@@ -36,6 +37,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     final feed = ref.watch(notificationFeedProvider);
     final unread =
         ref.watch(unreadNotificationCountProvider).asData?.value ?? 0;
+    final hasNotifications = feed.value?.isNotEmpty ?? false;
 
     return Scaffold(
       backgroundColor: context.brand.background,
@@ -43,10 +45,29 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
         title: const Text('Notifications'),
         actions: [
           if (unread > 0)
-            TextButton.icon(
+            IconButton(
+              tooltip: 'Mark all read',
               onPressed: _markAllRead,
-              icon: const Icon(Icons.done_all_rounded, size: 19),
-              label: const Text('Mark all read'),
+              icon: const Icon(Icons.done_all_rounded),
+            ),
+          if (hasNotifications)
+            PopupMenuButton<_NotificationMenuAction>(
+              tooltip: 'Notification actions',
+              onSelected: (action) {
+                if (action == _NotificationMenuAction.clearAll) {
+                  _clearAll();
+                }
+              },
+              itemBuilder: (context) => const [
+                PopupMenuItem(
+                  value: _NotificationMenuAction.clearAll,
+                  child: ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: Icon(Icons.delete_sweep_outlined),
+                    title: Text('Clear notifications'),
+                  ),
+                ),
+              ],
             ),
           IconButton(
             tooltip: 'Alert settings',
@@ -65,6 +86,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                 AsyncValue(:final value?) => _NotificationList(
                   notifications: value,
                   onOpen: _open,
+                  onDelete: _deleteOne,
                 ),
                 AsyncValue(hasError: true) => const _ErrorState(),
                 _ => const _LoadingState(),
@@ -83,6 +105,50 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     } on Object {
       if (mounted) {
         showCommunityMessage(context, 'Could not update. Try again.');
+      }
+    }
+  }
+
+  Future<void> _deleteOne(IndigenNotification notification) async {
+    final repository = ref.read(notificationsRepositoryProvider);
+    if (repository == null) return;
+    final confirmed = await showGlassConfirm(
+      context: context,
+      title: 'Delete this notification?',
+      message: 'It will be removed from your notification history.',
+      confirmLabel: 'Delete',
+      isDestructive: true,
+    );
+    if (confirmed != true) return;
+    try {
+      await repository.deleteNotification(notification.id);
+    } on Object {
+      if (mounted) {
+        showCommunityMessage(context, 'Could not delete it. Try again.');
+      }
+    }
+  }
+
+  Future<void> _clearAll() async {
+    final uid = ref.read(currentUidProvider);
+    final repository = ref.read(notificationsRepositoryProvider);
+    if (uid == null || repository == null) return;
+    final confirmed = await showGlassConfirm(
+      context: context,
+      title: 'Clear all notifications?',
+      message: 'Your notification history will be permanently removed.',
+      confirmLabel: 'Clear all',
+      isDestructive: true,
+    );
+    if (confirmed != true) return;
+    try {
+      await repository.clearAll(uid);
+    } on Object {
+      if (mounted) {
+        showCommunityMessage(
+          context,
+          'Could not clear notifications. Try again.',
+        );
       }
     }
   }
@@ -131,11 +197,18 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
 
 // ── List ────────────────────────────────────────────────────────────────────
 
+enum _NotificationMenuAction { clearAll }
+
 class _NotificationList extends StatelessWidget {
-  const _NotificationList({required this.notifications, required this.onOpen});
+  const _NotificationList({
+    required this.notifications,
+    required this.onOpen,
+    required this.onDelete,
+  });
 
   final List<IndigenNotification> notifications;
   final ValueChanged<IndigenNotification> onOpen;
+  final ValueChanged<IndigenNotification> onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -150,6 +223,7 @@ class _NotificationList extends StatelessWidget {
             _NotificationRow(
               notification: notification,
               onTap: () => onOpen(notification),
+              onDelete: () => onDelete(notification),
             ),
             const SizedBox(height: 8),
           ],
@@ -197,10 +271,15 @@ class _BucketHeading extends StatelessWidget {
 }
 
 class _NotificationRow extends StatelessWidget {
-  const _NotificationRow({required this.notification, required this.onTap});
+  const _NotificationRow({
+    required this.notification,
+    required this.onTap,
+    required this.onDelete,
+  });
 
   final IndigenNotification notification;
   final VoidCallback onTap;
+  final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -302,6 +381,16 @@ class _NotificationRow extends StatelessWidget {
                           ),
                           child: const SizedBox(width: 8, height: 8),
                         ),
+                      const SizedBox(height: 3),
+                      IconButton(
+                        tooltip: 'Delete notification',
+                        visualDensity: VisualDensity.compact,
+                        onPressed: onDelete,
+                        icon: const Icon(
+                          Icons.delete_outline_rounded,
+                          size: 19,
+                        ),
+                      ),
                     ],
                   ),
                 ],

@@ -16,6 +16,7 @@ import {
   type SubmissionDraftInput,
 } from '../data';
 import { Field, Stepper, VoiceRecorder, WhatsAppCard } from '../components';
+import { RouteLoader } from '../../LoadingScreen';
 
 const STEPS = ['Details', 'Media', 'Permissions', 'Review'];
 
@@ -77,7 +78,7 @@ function SubmissionLoader({ id }: { id?: string }) {
     });
     return () => { active = false; };
   }, [id, user, retry]);
-  if (loading) return <div className="page"><p>Loading your submission…</p></div>;
+  if (loading) return <div className="page"><RouteLoader note="Opening your post" /></div>;
   if (error) return <div className="page"><p role="alert">{error}</p><button type="button" onClick={() => setRetry((n) => n + 1)}>Retry</button><p><Link to="/studio/submissions">Back to submissions</Link></p></div>;
   return <SubmissionEditor existing={existing} />;
 }
@@ -151,17 +152,24 @@ function SubmissionEditor({ existing }: { existing: Submission | null }) {
   const [attGuardian, setAttGuardian] = useState(false);
   const [attCopyright, setAttCopyright] = useState(false);
 
-  // A completed AI-video job can hand its private Firebase output straight to
-  // the normal publishing workflow. The owner-scoped path check prevents a URL
-  // parameter from attaching another creator's media.
+  // A completed AI-video job or a browser-rendered editor export can hand its
+  // private Firebase output straight to the normal publishing workflow. Both
+  // prefixes are owner-scoped so a URL parameter cannot attach another
+  // creator's media.
   useEffect(() => {
     if (existing || !user || !generatedVideoPath) return;
-    const ownOutputPrefix = `studio-video-jobs/${user.uid}/`;
-    if (!generatedVideoPath.startsWith(ownOutputPrefix) || !generatedVideoPath.endsWith('/output.mp4')) return;
+    const ownAiOutput = generatedVideoPath.startsWith(`studio-video-jobs/${user.uid}/`)
+      && generatedVideoPath.endsWith('/output.mp4');
+    const ownEditorOutput = generatedVideoPath.startsWith(`creator-submissions/${user.uid}/studio-video/`)
+      && /\.(mp4|webm|mov)$/i.test(generatedVideoPath);
+    if (!ownAiOutput && !ownEditorOutput) return;
+    const mimeType = generatedVideoPath.toLowerCase().endsWith('.webm') ? 'video/webm'
+      : generatedVideoPath.toLowerCase().endsWith('.mov') ? 'video/quicktime'
+        : 'video/mp4';
     setStudioType('video');
     setMedia({
       storagePath: generatedVideoPath,
-      mimeType: 'video/mp4',
+      mimeType,
       sizeBytes: 0,
       mediaType: 'video',
       thumbnailPath: null,
@@ -376,7 +384,7 @@ function SubmissionEditor({ existing }: { existing: Submission | null }) {
     try {
       await saveSubmission(draftInput, 'SUBMITTED', persistedRef.current ? undefined : null);
       persistedRef.current = true;
-      trackEvent('submission_completed', { campaign: campaign?.slug ?? OPEN_CAMPAIGN_ID });
+      trackEvent(existing ? 'submission_updated' : 'submission_completed', { campaign: campaign?.slug ?? OPEN_CAMPAIGN_ID });
       dirtyRef.current = false;
       writeBusy.current = false;
       navigate(`/studio/submissions/${submissionId.current}`);

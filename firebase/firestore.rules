@@ -734,8 +734,11 @@ service cloud.firestore {
     }
 
     // AI-assisted Studio video jobs are created and advanced only by callable
-    // Functions. Creators can observe their own queue without seeing provider
-    // task URLs, signed media URLs, or another creator's generation metadata.
+    // Functions. A creator reads their own jobs in full -- including the
+    // provider task id and queue URLs, which are useless without the provider
+    // key the backend never hands out -- and no one else's. Anything that must
+    // stay unreadable by its own owner does not belong in this document; put
+    // it in a subcollection, which the default deny below already covers.
     match /studioVideoJobs/{jobId} {
       allow read: if isStaff() || (
         isSignedIn() && resource.data.ownerUid == request.auth.uid
@@ -956,6 +959,124 @@ service cloud.firestore {
       return value is string && value.size() <= max;
     }
 
+    // ---- Sub-communities: helpers -------------------------------------------
+    //
+    // A membership row lives at communitySpaces/{slug}/memberships/{uid}. Keeping
+    // the community id in the PATH is what lets these helpers work for list
+    // queries too: a rule may call get() on a path built from a wildcard, but
+    // not on one built from a field of the documents a query might return.
+    function spacePath(communityId) {
+      return /databases/$(database)/documents/communitySpaces/$(communityId);
+    }
+
+    function spaceMemberPath(communityId, uid) {
+      return /databases/$(database)/documents/communitySpaces/$(communityId)/memberships/$(uid);
+    }
+
+    function isActiveSpaceMember(communityId) {
+      return isSignedIn()
+        && exists(spaceMemberPath(communityId, request.auth.uid))
+        && get(spaceMemberPath(communityId, request.auth.uid)).data.status == 'active';
+    }
+
+    function spaceRoleIn(communityId, roles) {
+      return isActiveSpaceMember(communityId)
+        && get(spaceMemberPath(communityId, request.auth.uid)).data.role in roles;
+    }
+
+    function isSpaceModerator(communityId) {
+      return spaceRoleIn(communityId, ['owner', 'admin', 'moderator']);
+    }
+
+    function isSpaceAdmin(communityId) {
+      return spaceRoleIn(communityId, ['owner', 'admin']);
+    }
+
+    function isOpenSpace(communityId, visibility) {
+      return exists(spacePath(communityId))
+        && get(spacePath(communityId)).data.status == 'active'
+        && get(spacePath(communityId)).data.visibility == visibility;
+    }
+
+    // The member count moves by exactly one, in the same commit as the
+    // membership row that justifies it.
+    function spaceCountAfter(communityId, delta) {
+      return getAfter(spacePath(communityId)).data.memberCount
+        == get(spacePath(communityId)).data.memberCount + delta;
+    }
+
+    // A post category is optional. "Announcement" is the one label that says
+    // something is official, so on the main feed only staff may use it and
+    // inside a community only its moderators.
+    function validPostCategory(data, communityId) {
+      return data.get('category', '') in
+          ['', 'question', 'language', 'culture', 'music', 'story', 'announcement']
+        && (data.get('category', '') != 'announcement'
+          || isStaff()
+          || (communityId != null && isSpaceModerator(communityId)));
+    }
+
+    // What a reel made in the mobile reel creator declares about itself: its
+    // topic, the creator's account of what is happening, whose work it is, and
+    // the contributor's right to publish it. Optional — every other post has no
+    // `reel` — but when present the rights declaration is not: a reel cannot
+    // reach the feed without one. Someone who says another person made the
+    // media cannot also say they created it. Immutable once written: the
+    // author's own update rule only lets text and editedAt change.
+    //
+    // Trim points, sound and captions travel on the media items instead; list
+    // items cannot be inspected here, and the media list is already capped.
+    function validReelDetails(data) {
+      return data.get('reel', null) == null
+        || (data.reel is map
+          && data.reel.keys().hasOnly(['version', 'topic', 'rights', 'context',
+            'originalCreator', 'sourceOrganisation', 'ownWork', 'draftId'])
+          && data.reel.get('version', 1) == 1
+          && data.reel.get('topic', '') in ['storytelling', 'music', 'dance',
+            'traditions', 'food', 'clothing', 'craft', 'history',
+            'community_life', 'other']
+          && data.reel.get('rights', '') in ['created', 'permission', 'lawful_reuse']
+          && validCommunityText(data.reel.get('context', ''), 1000)
+          && validCommunityText(data.reel.get('originalCreator', ''), 120)
+          && validCommunityText(data.reel.get('sourceOrganisation', ''), 120)
+          && data.reel.get('ownWork', true) is bool
+          && validCommunityText(data.reel.get('draftId', ''), 100)
+          && !(data.reel.get('ownWork', true) == false
+            && data.reel.rights == 'created'));
+    }
+
+    // What a post in a PUBLIC community must carry, and who may write it.
+    // A post with no communityId is an ordinary main-feed post.
+    function validPublicSpacePost(data) {
+      return data.get('communityId', null) == null
+        ? (data.get('communityVisibility', 'public') == 'public'
+          && validPostCategory(data, null))
+        : (data.communityId is string
+          && data.get('communityVisibility', '') == 'public'
+          && validCommunityText(data.get('communityName', ''), 60)
+          && isOpenSpace(data.communityId, 'public')
+          && isActiveSpaceMember(data.communityId)
+          && validPostCategory(data, data.communityId));
+    }
+
+    function validSpaceFields(data) {
+      return data.name is string
+        && data.name.size() >= 3
+        && data.name.size() <= 60
+        && data.nameLower == data.name.lower()
+        && validCommunityText(data.get('description', ''), 500)
+        && data.category in ['language', 'culture', 'music', 'history', 'faith',
+          'education', 'hometown', 'diaspora', 'youth', 'other']
+        && validCommunityText(data.get('language', ''), 60)
+        && validCommunityText(data.get('location', ''), 80)
+        && (data.get('avatarUrl', null) == null || data.avatarUrl is string)
+        && (data.get('coverUrl', null) == null || data.coverUrl is string)
+        && data.get('rules', []) is list
+        && data.get('rules', []).size() <= 10
+        && data.get('searchTokens', []) is list
+        && data.get('searchTokens', []).size() <= 120;
+    }
+
     function communityLikePath(postId) {
       return /databases/$(database)/documents/communityLikes/$(request.auth.uid + '_' + postId);
     }
@@ -1126,6 +1247,8 @@ service cloud.firestore {
             && request.resource.data.poll.endsAt is timestamp))
         && (request.resource.data.parentId == null
           || request.resource.data.parentId is string)
+        && validPublicSpacePost(request.resource.data)
+        && validReelDetails(request.resource.data)
         && supporterMarkIsEarned(request.resource.data);
       // The author may edit their own body text; anyone signed in may move a
       // counter by one step under the constraints above.
@@ -1146,8 +1269,12 @@ service cloud.firestore {
       ) || (
         isSignedIn() && communityViewDelta(postId)
       ) || isStaff();
+      // A public community's moderators may take a post out of it.
       allow delete: if isSignedIn()
-        && (resource.data.authorId == request.auth.uid || isStaff());
+        && (resource.data.authorId == request.auth.uid
+          || isStaff()
+          || (resource.data.get('communityId', null) is string
+            && isSpaceModerator(resource.data.communityId)));
     }
 
     match /communityLikes/{likeId} {
@@ -1311,12 +1438,12 @@ service cloud.firestore {
       allow write: if false;
     }
 
-    // ---- Community notifications: server-authored, owner reads and marks ----
+    // ---- Community notifications: server-authored, recipient-managed --------
     // Every row is written by a Cloud Functions trigger in response to
     // something that actually happened (a like, a reply, a follow, a mention, a
     // publication). A client may never create one — an alert is a channel
     // straight to somebody's lock screen, and forging one must be impossible —
-    // and may only ever flip `read` on its own rows.
+    // and may only flip `read` or remove its own rows.
     match /communityNotifications/{notificationId} {
       allow read: if isSignedIn() && resource.data.recipientId == request.auth.uid;
       allow create: if false;
@@ -1324,7 +1451,8 @@ service cloud.firestore {
         && resource.data.recipientId == request.auth.uid
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read'])
         && request.resource.data.read is bool;
-      allow delete: if false;
+      allow delete: if isSignedIn()
+        && resource.data.recipientId == request.auth.uid;
     }
 
     // ---- Push registrations: one row per device, owned by one account -------
@@ -1351,10 +1479,287 @@ service cloud.firestore {
       allow create: if isSignedIn()
         && request.resource.data.reporterId == request.auth.uid
         && request.resource.data.postId is string
+        // A report names a post, or a whole community with an empty postId.
+        && (request.resource.data.postId != ''
+          || (request.resource.data.get('communityId', '') is string
+            && request.resource.data.get('communityId', '') != ''))
         && validCommunityText(request.resource.data.reason, 300)
         && request.resource.data.get('status', 'open') == 'open';
       allow update: if isStaff();
       allow delete: if isAdmin();
+    }
+
+    // ======================================================================
+    // Sub-communities
+    // ======================================================================
+    //
+    //   communitySpaces/{slug}                    — the community, world-readable
+    //   communitySpaces/{slug}/memberships/{uid}  — members, requests and bans
+    //   communitySpaces/{slug}/posts/{postId}     — a PRIVATE community's posts
+    //
+    // Not `communities`: that name belongs to the cultural registry above
+    // (packages/contracts), which is admin-managed and means something else.
+    //
+    // A public community's posts are ordinary communityPosts carrying its
+    // communityId (see validPublicSpacePost). A private community's cannot be:
+    // rules are not filters, so one members-only document in communityPosts
+    // would make the public feed query unprovable for everybody.
+
+    match /communitySpaces/{communityId} {
+      // Discoverable, private ones included — somebody has to be able to find
+      // a private community in order to ask to join it. Its posts and member
+      // list are what stay private.
+      allow read: if true;
+
+      // Created together with the owner's membership row. The slug is the
+      // document id, so a second community cannot be created over the first:
+      // a set on an existing document is an update, which is refused below.
+      allow create: if isSignedIn()
+        && communityId.matches('^[a-z0-9][a-z0-9-]{1,38}[a-z0-9]$')
+        && !communityId.matches('.*--.*')
+        && request.resource.data.slug == communityId
+        && request.resource.data.keys().hasOnly([
+          'slug', 'name', 'nameLower', 'description', 'category', 'language',
+          'location', 'visibility', 'ownerId', 'memberCount', 'rules', 'status',
+          'searchTokens', 'avatarUrl', 'coverUrl', 'createdAt', 'updatedAt'])
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.ownerId == request.auth.uid
+        && exists(/databases/$(database)/documents/communityProfiles/$(request.auth.uid))
+        && validSpaceFields(request.resource.data)
+        && request.resource.data.visibility in ['public', 'private']
+        && request.resource.data.memberCount == 1
+        && request.resource.data.status == 'active'
+        && existsAfter(spaceMemberPath(communityId, request.auth.uid))
+        && getAfter(spaceMemberPath(communityId, request.auth.uid)).data.role == 'owner'
+        && getAfter(spaceMemberPath(communityId, request.auth.uid)).data.status == 'active';
+
+      allow update: if (
+        // Owners and admins edit the profile. Identity, ownership, visibility
+        // and the count are frozen: switching a community between public and
+        // private would strand every post on the wrong side of the wall.
+        isSpaceAdmin(communityId)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'name', 'nameLower', 'description', 'category', 'language',
+          'location', 'avatarUrl', 'coverUrl', 'rules', 'searchTokens',
+          'updatedAt'])
+        && validSpaceFields(request.resource.data)
+      ) || (
+        // Joining or leaving, proven by the caller's own membership row
+        // appearing or disappearing in the same commit.
+        isSignedIn()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['memberCount'])
+        && (
+          (request.resource.data.memberCount == resource.data.memberCount + 1
+            && !exists(spaceMemberPath(communityId, request.auth.uid))
+            && existsAfter(spaceMemberPath(communityId, request.auth.uid))
+            && getAfter(spaceMemberPath(communityId, request.auth.uid)).data.status == 'active')
+          || (request.resource.data.memberCount == resource.data.memberCount - 1
+            && exists(spaceMemberPath(communityId, request.auth.uid))
+            && get(spaceMemberPath(communityId, request.auth.uid)).data.status == 'active'
+            && !existsAfter(spaceMemberPath(communityId, request.auth.uid)))
+        )
+      ) || (
+        // Approvals and removals move somebody else's row, which this rule
+        // cannot name — so the count step is trusted to moderators, and the
+        // membership rules check the pair from the other side.
+        isSpaceModerator(communityId)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['memberCount'])
+        && (request.resource.data.memberCount == resource.data.memberCount + 1
+          || request.resource.data.memberCount == resource.data.memberCount - 1)
+      ) || (
+        // Handing the community over. Only the owner, only to somebody already
+        // an active member, and only in the commit that makes their row the
+        // owner's and takes the owner role off the caller's own.
+        isSignedIn()
+        && resource.data.ownerId == request.auth.uid
+        && request.resource.data.ownerId != request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ownerId', 'updatedAt'])
+        && exists(spaceMemberPath(communityId, request.resource.data.ownerId))
+        && get(spaceMemberPath(communityId, request.resource.data.ownerId)).data.status == 'active'
+        && getAfter(spaceMemberPath(communityId, request.resource.data.ownerId)).data.role == 'owner'
+        && getAfter(spaceMemberPath(communityId, request.auth.uid)).data.role != 'owner'
+      ) || (
+        // Closing it. An owner alone in their community may shut it down,
+        // leaving in the same commit. The address stays taken and every link
+        // to it says it is unavailable.
+        isSignedIn()
+        && resource.data.ownerId == request.auth.uid
+        && resource.data.status == 'active'
+        && resource.data.memberCount == 1
+        && request.resource.data.status == 'closed'
+        && request.resource.data.memberCount == 0
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'memberCount', 'updatedAt'])
+        && !existsAfter(spaceMemberPath(communityId, request.auth.uid))
+      ) || isStaff();
+
+      allow delete: if isAdmin();
+
+      match /memberships/{memberUid} {
+        // A public community's members are public. A private community's are
+        // visible to its members, to the person the row belongs to, and staff.
+        allow read: if (exists(spacePath(communityId))
+            && get(spacePath(communityId)).data.visibility == 'public')
+          || isActiveSpaceMember(communityId)
+          || (isSignedIn() && memberUid == request.auth.uid)
+          || isStaff();
+
+        allow create: if isSignedIn()
+          && memberUid == request.auth.uid
+          && request.resource.data.uid == request.auth.uid
+          && request.resource.data.communityId == communityId
+          && exists(/databases/$(database)/documents/communityProfiles/$(request.auth.uid))
+          && request.resource.data.keys().hasOnly(
+            ['uid', 'communityId', 'role', 'status', 'createdAt', 'updatedAt'])
+          && (
+            // The owner's row, written in the batch that creates the community.
+            (request.resource.data.role == 'owner'
+              && request.resource.data.status == 'active'
+              && !exists(spacePath(communityId))
+              && getAfter(spacePath(communityId)).data.ownerId == request.auth.uid)
+            // Joining a public community, counted in the same commit.
+            || (request.resource.data.role == 'member'
+              && request.resource.data.status == 'active'
+              && isOpenSpace(communityId, 'public')
+              && spaceCountAfter(communityId, 1))
+            // Asking to join a private one. Nothing is counted until approval.
+            || (request.resource.data.role == 'member'
+              && request.resource.data.status == 'pending'
+              && isOpenSpace(communityId, 'private'))
+          );
+
+        allow update: if (
+          // Approving a request.
+          isSpaceModerator(communityId)
+          && resource.data.status == 'pending'
+          && request.resource.data.status == 'active'
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt'])
+          && spaceCountAfter(communityId, 1)
+        ) || (
+          // Banning somebody below the moderator's own rank. An active member
+          // stops being counted; a pending request never was.
+          isSpaceModerator(communityId)
+          && memberUid != request.auth.uid
+          && request.resource.data.status == 'banned'
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt'])
+          && (resource.data.role == 'member' || (isSpaceAdmin(communityId) && resource.data.role == 'moderator'))
+          && (resource.data.status == 'pending'
+            || (resource.data.status == 'active' && spaceCountAfter(communityId, -1)))
+        ) || (
+          // Owners and admins promote and demote, never to or from owner.
+          isSpaceAdmin(communityId)
+          && memberUid != request.auth.uid
+          && resource.data.status == 'active'
+          && resource.data.role != 'owner'
+          && request.resource.data.role in ['admin', 'moderator', 'member']
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['role', 'updatedAt'])
+        ) || (
+          // Receiving ownership: the current owner names this member as owner
+          // on the community in the same commit.
+          isSignedIn()
+          && memberUid != request.auth.uid
+          && resource.data.status == 'active'
+          && resource.data.role != 'owner'
+          && request.resource.data.role == 'owner'
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['role', 'updatedAt'])
+          && get(spacePath(communityId)).data.ownerId == request.auth.uid
+          && getAfter(spacePath(communityId)).data.ownerId == memberUid
+        ) || (
+          // Giving it up: the outgoing owner steps down to admin in the same
+          // commit that names somebody else as owner.
+          isSignedIn()
+          && memberUid == request.auth.uid
+          && resource.data.role == 'owner'
+          && request.resource.data.role == 'admin'
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['role', 'updatedAt'])
+          && getAfter(spacePath(communityId)).data.ownerId != request.auth.uid
+        ) || isStaff();
+
+        allow delete: if (
+          // Leaving, or withdrawing a request. Owners stay; a ban cannot be
+          // lifted by the person it was placed on.
+          isSignedIn()
+          && memberUid == request.auth.uid
+          && resource.data.role != 'owner'
+          && (resource.data.status == 'pending'
+            || (resource.data.status == 'active' && spaceCountAfter(communityId, -1)))
+        ) || (
+          // An owner leaves only by closing a community they are alone in —
+          // see the closing branch of the community's update rule.
+          isSignedIn()
+          && memberUid == request.auth.uid
+          && resource.data.role == 'owner'
+          && getAfter(spacePath(communityId)).data.status == 'closed'
+        ) || (
+          // Declining a request, removing a member, or lifting a ban.
+          isSpaceModerator(communityId)
+          && memberUid != request.auth.uid
+          && (resource.data.role == 'member' || (isSpaceAdmin(communityId) && resource.data.role in ['admin', 'moderator']))
+          && (resource.data.status in ['pending', 'banned']
+            || (resource.data.status == 'active' && spaceCountAfter(communityId, -1)))
+        ) || isStaff();
+      }
+
+      match /posts/{postId} {
+        // Members only — the whole reason these are not in communityPosts.
+        allow read: if isActiveSpaceMember(communityId) || isStaff();
+
+        allow create: if isSignedIn()
+          && request.resource.data.authorId == request.auth.uid
+          && isActiveSpaceMember(communityId)
+          && isOpenSpace(communityId, 'private')
+          && request.resource.data.communityId == communityId
+          && request.resource.data.communityVisibility == 'private'
+          && validCommunityText(request.resource.data.get('communityName', ''), 60)
+          && exists(/databases/$(database)/documents/communityProfiles/$(request.auth.uid))
+          && validCommunityText(request.resource.data.text, 500)
+          && request.resource.data.likeCount == 0
+          && request.resource.data.replyCount == 0
+          && request.resource.data.get('repostCount', 0) == 0
+          && request.resource.data.get('quoteCount', 0) == 0
+          && request.resource.data.get('viewCount', 0) == 0
+          && request.resource.data.media is list
+          && request.resource.data.media.size() <= 4
+          // A quote would copy the post into the public feed, and the poll
+          // tally only reads public posts.
+          && request.resource.data.get('quotedPostId', null) == null
+          && request.resource.data.get('poll', null) == null
+          && (request.resource.data.parentId == null
+            || request.resource.data.parentId is string)
+          && validPostCategory(request.resource.data, communityId)
+          && validReelDetails(request.resource.data)
+          && supporterMarkIsEarned(request.resource.data);
+
+        allow update: if (
+          isSignedIn()
+          && resource.data.authorId == request.auth.uid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text', 'editedAt'])
+          && validCommunityText(request.resource.data.text, 500)
+        ) || (
+          isActiveSpaceMember(communityId) && communityLikeDelta(postId)
+        ) || (
+          isActiveSpaceMember(communityId) && communityReplyDelta()
+        ) || isStaff();
+
+        allow delete: if isSignedIn()
+          && (resource.data.authorId == request.auth.uid
+            || isSpaceModerator(communityId)
+            || isStaff());
+      }
+    }
+
+    // "Which communities am I in?" is a collection-group query over every
+    // community's memberships. A member may list their own rows wherever they
+    // live, and nothing else through this path.
+    match /{path=**}/memberships/{memberUid} {
+      allow read: if isSignedIn() && resource.data.uid == request.auth.uid;
+    }
+
+    // ---- Daily prompts: staff-written, read by everybody ---------------------
+    // One document per scope — `home` for the main feed or a community's slug.
+    // The app falls back to a built-in invitation when there is none.
+    match /communityPrompts/{scope} {
+      allow read: if true;
+      allow write: if isStaff();
     }
 
     // ======================================================================

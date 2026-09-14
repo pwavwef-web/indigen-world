@@ -3,11 +3,12 @@
 A custom Blogger theme for **Indigen World Updates**, the blog where we publish
 release notes, feature updates and notes from the field across the ecosystem.
 
-It is a single, self-contained XML file you paste into Blogger. The palette,
-typeface and cultural motifs come from
-[`packages/design-tokens`](../../packages/design-tokens), so the blog reads as
-part of the same family as the website, TribeStudio, the admin console and the
-mobile app.
+It is a single, self-contained XML file you paste into Blogger. It wears the
+public website's theme — deep navy and electric blue with a cyan accent, glass
+header, blue-white ground — taken from
+[`apps/website/src/styles/comitia-theme.css`](../website/src/styles/comitia-theme.css),
+so the blog reads as part of indigenworld.com. The validator fails if the
+theme's brand colours drift from that file.
 
 ```text
 apps/updates-blog/
@@ -39,13 +40,21 @@ npm run validate:updates-blog
 4. Go to **Settings** and set the **Blog title** (shown in the header and hero)
    and the **Blog description**, then turn on **Meta tags → Enable search
    description** and write one. The description becomes the hero subtitle and
-   the default social-share text.
+   the default social-share text. Under **Posts**, set **Max posts shown on main
+   page** to **7**; Blogger must supply seven posts before the theme can render
+   the seven-update homepage.
 5. Go to **Layout** and check the pre-built widgets. Everything is already
    placed; you only need to edit the text.
 
 The theme carries a full set of widgets on install — navigation, search, an
 about box, topics, most-read, archive, and three footer columns — so the blog
 looks finished from the first post.
+
+The main **Blog Posts** widget renders the homepage cards. If Blogger retains
+an old **Featured Post** gadget during a restore, the theme hides it when the
+main feed succeeds. If Blogger rejects the feed markup, that gadget instead
+becomes a large-image fallback card rather than a long excerpt with a 72px
+thumbnail.
 
 ## What it gives you
 
@@ -59,19 +68,26 @@ looks finished from the first post.
 
 **Index**
 
-- Hero masthead with the woven Gurunsi/kente motif, carried over from the
-  website's footer treatment.
+- Hero masthead in the website's home-hero style: navy into electric blue with
+  a cyan glow and a faint dot grid, sitting under a floating glass header.
 - Card grid, with the most recent update promoted to a full-width lead card.
-- Posts with no image get a woven brand placeholder rather than a blank box.
+- A homepage showing the seven newest updates, led by the latest post and its
+  featured image; label, search and archive views show all matching cards.
+- Posts with no image get a blue brand placeholder rather than a blank box.
 
 **Throughout**
 
 - Light and dark, following the device setting with a manual toggle that
-  persists. Gold and terracotta are lifted in dark so they keep their contrast.
+  persists. The website has no dark mode, so dark uses the navy of its hero and
+  footer, with the blues lifted so links and accents keep their contrast.
 - Colour-coded topic chips (see below).
+- A header filter populated from Blogger labels, so visitors can jump straight
+  to updates for the mobile app, website, dictionary or any label you publish.
 - Related posts pulled from the blog's own feed by the post's first label.
 - Share row (X, LinkedIn, WhatsApp, copy link, and the native share sheet where
-  the device offers one).
+  the device offers one). From 1180 CSS pixels it becomes a sticky left rail while
+  the table of contents stays on the right; on smaller screens both return to
+  the article flow.
 - Open Graph and Twitter card tags — with a real 1200×630 PNG fallback, and
   no duplicates of the tags Blogger writes for itself.
 - Structured data: a site-level `WebSite` (with an on-site `SearchAction`) and
@@ -91,7 +107,7 @@ looks finished from the first post.
 
 | Group | What it changes |
 |---|---|
-| Brand palette | Deep Indigo, Kente Gold, Terracotta, Savannah Green, Plaster Cream, Sand |
+| Brand palette | Royal blue, Deep navy, Cyan accent, Soft blue, Electric blue, Green, Page ground, Blue mist |
 | Typography | Interface font and article body font (family and size) |
 | Layout | Page width, article column width, corner radius |
 
@@ -102,10 +118,17 @@ set *Article body font* to Noto Sans in that panel; nothing else changes.
 Dark-mode colours are fixed in the stylesheet rather than exposed as variables,
 because they are contrast-tuned against the dark surfaces.
 
-The default brand colours match the shared palette. Semantic text, focus,
-and control colours are tuned separately for contrast; gold decoration is
-not used directly as small text on light surfaces. Plaster Cream colours
-the light callout panels. The interface font size also scales rem-based UI.
+The default brand colours match the website theme. Semantic text, focus,
+and control colours are tuned separately for contrast: small accent text and
+links use a deeper blue (`#1f50d6`), and buttons with white labels use
+`#2c66f5`, because the website's `#2f6bff` measures 4.49:1 against white,
+just under AA. Cyan is decoration only. Changing a Theme Designer colour moves
+the page away from the website; the validator only checks the defaults. The
+interface font size also scales rem-based UI.
+
+Internally the stylesheet keeps its original token names — `--gold` is the
+cyan accent and `--terracotta` the electric blue — exactly as the website's
+theme layer does, so the two files read the same way.
 
 ## Label conventions
 
@@ -113,12 +136,18 @@ Topic chips are colour-coded by label name, case-insensitively:
 
 | Label | Dot colour |
 |---|---|
-| `Release`, `Releases`, `Shipped` | Savannah Green |
-| `Feature`, `Features`, `Product` | Kente Gold |
-| `Engineering`, `Platform` | Deep Indigo |
-| `Community`, `Governance` | Terracotta |
+| `Release`, `Releases`, `Shipped` | Green |
+| `Feature`, `Features`, `Product` | Cyan |
+| `Engineering`, `Platform` | Electric blue |
+| `Community`, `Governance` | Amber |
 | `Language`, `Venacula`, `Kasem` | Violet |
-| anything else | Kente Gold |
+| `Mobile app` | Green |
+| `Website` | Electric blue |
+| `Dictionary` | Violet |
+| `TribeStudio` | Cyan |
+| anything else | Cyan |
+
+The dot colours are the `--topic-*` tokens, with lifted values in dark.
 
 To add your own, copy one of the `.iw-chip[data-label="..." i]` rules in the
 `<b:skin>` block. The `i` flag makes the match case-insensitive, so `release`
@@ -177,7 +206,7 @@ npm run validate:updates-blog
 
 It exits non-zero on failure, so it can gate a commit or CI step. The preview
 build runs it first and refuses to generate from a broken theme.
-It also checks shared brand defaults, equality of system and explicit dark
+It also checks that the brand defaults match the website theme, equality of system and explicit dark
 palettes, and 64 text/control colour pairings per scheme (4.5:1 for normal
 text; 3:1 for control boundaries and focus rings). These checks cover the
 default palette, not arbitrary Theme Designer overrides or images.

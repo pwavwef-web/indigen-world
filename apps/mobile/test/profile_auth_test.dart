@@ -53,7 +53,7 @@ void main() {
     expect(find.text('Create your account'), findsOneWidget);
   });
 
-  testWidgets('profile has four working destinations, ending in adverts', (
+  testWidgets('profile has membership and direct settings destinations', (
     tester,
   ) async {
     await tester.pumpWidget(
@@ -77,6 +77,7 @@ void main() {
       'Overview',
       'Profile',
       'Adverts',
+      'Membership',
       'Settings',
     ]);
     // The saved library now hangs off the overview's own stat cards, so the
@@ -106,16 +107,34 @@ void main() {
     await tester.tap(
       find.descendant(
         of: find.byType(FrostedNavBar),
+        matching: find.text('Membership'),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 320));
+    // The tab is the plans themselves, not a status card with a button in
+    // front of them.
+    expect(find.text('Support the archive'), findsOneWidget);
+    expect(find.text('Patron'), findsOneWidget);
+    expect(find.text('See the plans'), findsNothing);
+
+    await tester.tap(
+      find.descendant(
+        of: find.byType(FrostedNavBar),
         matching: find.text('Settings'),
       ),
     );
     await tester.pump(const Duration(milliseconds: 320));
-    expect(find.text('Private by design.'), findsOneWidget);
-    expect(find.text('App settings'), findsOneWidget);
+    expect(find.text('ACCOUNT'), findsOneWidget);
+    expect(find.text('App settings'), findsNothing);
     // The three ways into the community profile are down to one, on the
     // Profile tab. None of them is here any more.
     expect(find.text('Manage community profile'), findsNothing);
     expect(find.text('Community profile setup'), findsNothing);
+
+    // Settings owns live Drift-backed download state. Give its zero-delay
+    // stream cleanup timer a frame after the tab is removed.
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(milliseconds: 1));
   });
 
   testWidgets('the Profile tab is the only door to the community identity', (

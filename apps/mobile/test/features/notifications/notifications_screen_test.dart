@@ -99,7 +99,17 @@ void main() {
   ) async {
     await pump(tester, feed: [notification(id: 'a')], unread: 1);
 
-    expect(find.text('Mark all read'), findsOneWidget);
+    expect(find.byTooltip('Mark all read'), findsOneWidget);
+    expect(find.byTooltip('Delete notification'), findsOneWidget);
+  });
+
+  testWidgets('offers to clear the whole notification history', (tester) async {
+    await pump(tester, feed: [notification(id: 'a', read: true)]);
+
+    await tester.tap(find.byTooltip('Notification actions'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Clear notifications'), findsOneWidget);
   });
 
   testWidgets('hides the mark-all action once nothing is unread', (
@@ -107,7 +117,7 @@ void main() {
   ) async {
     await pump(tester, feed: [notification(id: 'a', read: true)]);
 
-    expect(find.text('Mark all read'), findsNothing);
+    expect(find.byTooltip('Mark all read'), findsNothing);
   });
 
   testWidgets('quotes the post a row is about', (tester) async {

@@ -3,12 +3,67 @@ import { HttpsError } from 'firebase-functions/v2/https';
 export const STUDIO_VIDEO_PRICING_VERSION = '2026-09-01';
 
 export const RUNWAY_VIDEO_MODELS = ['gen4_turbo', 'gen4.5'] as const;
+/**
+ * Google's video models, reached through Vertex AI.
+ *
+ * Named for the API ids rather than "Gemini" because that is what the endpoint
+ * accepts; the creator-facing label says Gemini, which is what a creator calls
+ * it. No secret is involved: Vertex is reached with the function's own
+ * Application Default Credentials, exactly as Kawuri is.
+ */
+export const GEMINI_VIDEO_MODELS = [
+  'veo-3.1-generate-001',
+  'veo-3.1-fast-generate-001',
+] as const;
 export const FAL_LIPSYNC_MODELS = ['lipsync-2', 'lipsync-2-pro'] as const;
 export const VIDEO_RATIOS = ['1280:720', '720:1280', '960:960'] as const;
 
 export type RunwayVideoModel = (typeof RUNWAY_VIDEO_MODELS)[number];
+export type GeminiVideoModel = (typeof GEMINI_VIDEO_MODELS)[number];
+export type VisualModel = RunwayVideoModel | GeminiVideoModel;
 export type FalLipsyncModel = (typeof FAL_LIPSYNC_MODELS)[number];
 export type StudioVideoRatio = (typeof VIDEO_RATIOS)[number];
+
+/**
+ * Lengths each model will actually produce.
+ *
+ * Per model, not per platform. Runway takes 5 or 10 seconds and Veo takes 4, 6
+ * or 8 — there is no length the two agree on, so one global list could only
+ * have been wrong for one of them. A duration the model does not accept is a
+ * submit-time rejection, which the creator would have read as "the video
+ * failed" for a request that was never valid.
+ */
+const RUNWAY_DURATIONS: readonly number[] = [5, 10];
+const GEMINI_DURATIONS: readonly number[] = [4, 6, 8];
+
+export function isGeminiVideoModel(model: unknown): model is GeminiVideoModel {
+  return (GEMINI_VIDEO_MODELS as readonly unknown[]).includes(model);
+}
+
+export function isRunwayVideoModel(model: unknown): model is RunwayVideoModel {
+  return (RUNWAY_VIDEO_MODELS as readonly unknown[]).includes(model);
+}
+
+export function durationsForVisualModel(model: unknown): readonly number[] {
+  return isGeminiVideoModel(model) ? GEMINI_DURATIONS : RUNWAY_DURATIONS;
+}
+
+/**
+ * Shapes a model will frame.
+ *
+ * Veo 3.1 offers landscape and portrait only — square is not one of its
+ * aspect ratios — so it is absent from both lists rather than offered and
+ * rejected. Runway keeps its existing split: square needs a reference image
+ * because text-only Gen-4.5 does not frame it.
+ */
+export function ratiosForVisualModel(
+  model: unknown,
+  hasReferenceImage: boolean,
+): readonly string[] {
+  if (isGeminiVideoModel(model)) return ['1280:720', '720:1280'];
+  if (hasReferenceImage) return VIDEO_RATIOS;
+  return model === 'gen4.5' ? ['1280:720', '720:1280'] : [];
+}
 
 export interface StudioVideoGovernance {
   aiProcessingPermission: true;
@@ -32,15 +87,16 @@ export interface KasemContext {
 
 interface StudioVideoInputBase {
   clientRequestId: string;
-  durationSeconds: 5 | 10;
+  /** Validated against the chosen model, which is the only authority on it. */
+  durationSeconds: number;
   governance: StudioVideoGovernance;
   kasem: KasemContext;
 }
 
 export interface GenerateVisualInput extends StudioVideoInputBase {
   operation: 'generate_visual';
-  provider: 'runway';
-  model: RunwayVideoModel;
+  provider: 'runway' | 'gemini';
+  model: VisualModel;
   prompt: string;
   ratio: StudioVideoRatio;
   referenceImageStoragePath: string | null;
@@ -67,6 +123,15 @@ export interface StudioVideoCostEstimate {
 const RUNWAY_RATE_USD_PER_SECOND: Record<RunwayVideoModel, number> = {
   gen4_turbo: 0.05,
   'gen4.5': 0.12,
+};
+
+/**
+ * Google's published Veo 3.1 rates, audio off. Audio raises them, and it is
+ * off — see the submission in studio-video-providers.ts for why.
+ */
+const GEMINI_RATE_USD_PER_SECOND: Record<GeminiVideoModel, number> = {
+  'veo-3.1-generate-001': 0.40,
+  'veo-3.1-fast-generate-001': 0.15,
 };
 
 const FAL_RATE_USD_PER_SECOND: Record<FalLipsyncModel, number> = {
@@ -233,19 +298,31 @@ export function parseStudioVideoInput(raw: unknown, uid: string): StudioVideoInp
       'clientRequestId must contain 8–80 letters, numbers, underscores, or hyphens.',
     );
   }
-  const durationSeconds = data.durationSeconds;
-  if (durationSeconds !== 5 && durationSeconds !== 10) {
-    throw new HttpsError('invalid-argument', 'durationSeconds must be 5 or 10.');
-  }
+  const durationSeconds = typeof data.durationSeconds === 'number'
+    ? data.durationSeconds
+    : Number.NaN;
   const governance = parseGovernance(data.governance, operation);
   const kasem = parseKasem(data.kasem, operation);
 
   if (operation === 'generate_visual') {
-    if (data.provider !== 'runway') {
-      throw new HttpsError('invalid-argument', 'Visual generation uses the Runway provider.');
+    const gemini = isGeminiVideoModel(data.model);
+    const expectedProvider = gemini ? 'gemini' : 'runway';
+    if (!isRunwayVideoModel(data.model) && !gemini) {
+      throw new HttpsError('invalid-argument', 'Unknown video model.');
     }
-    if (!(RUNWAY_VIDEO_MODELS as readonly unknown[]).includes(data.model)) {
-      throw new HttpsError('invalid-argument', 'Unknown Runway video model.');
+    if (data.provider !== expectedProvider) {
+      throw new HttpsError(
+        'invalid-argument',
+        `That model is served by the ${expectedProvider} provider.`,
+      );
+    }
+    const model = data.model as VisualModel;
+    const allowedDurations = durationsForVisualModel(model);
+    if (!allowedDurations.includes(durationSeconds)) {
+      throw new HttpsError(
+        'invalid-argument',
+        `This model makes videos of ${allowedDurations.join(', ')} seconds.`,
+      );
     }
     if (!(VIDEO_RATIOS as readonly unknown[]).includes(data.ratio)) {
       throw new HttpsError('invalid-argument', 'Unsupported video ratio.');
@@ -253,19 +330,21 @@ export function parseStudioVideoInput(raw: unknown, uid: string): StudioVideoInp
     const reference = typeof data.referenceImageStoragePath === 'string'
       ? data.referenceImageStoragePath.trim()
       : '';
-    if (data.model === 'gen4_turbo' && !reference) {
+    if (model === 'gen4_turbo' && !reference) {
       throw new HttpsError('failed-precondition', 'Gen-4 Turbo requires a reference image.');
     }
-    if (!reference && data.ratio === '960:960') {
+    if (!ratiosForVisualModel(model, Boolean(reference)).includes(String(data.ratio))) {
       throw new HttpsError(
         'invalid-argument',
-        'Text-only Gen-4.5 supports landscape or portrait; square requires a reference image.',
+        gemini
+          ? 'Gemini video is made in landscape or portrait.'
+          : 'Text-only Gen-4.5 supports landscape or portrait; square requires a reference image.',
       );
     }
     return {
       operation,
-      provider: 'runway',
-      model: data.model as RunwayVideoModel,
+      provider: expectedProvider,
+      model,
       prompt: textField(data, 'prompt', 1_000),
       ratio: data.ratio as StudioVideoRatio,
       durationSeconds,
@@ -276,6 +355,10 @@ export function parseStudioVideoInput(raw: unknown, uid: string): StudioVideoInp
         ? assertStudioAssetPath(reference, uid, 'input')
         : null,
     };
+  }
+
+  if (!durationsForVisualModel(null).includes(durationSeconds)) {
+    throw new HttpsError('invalid-argument', 'durationSeconds must be 5 or 10.');
   }
 
   if (data.provider !== 'fal') {
@@ -310,9 +393,15 @@ export function parseStudioVideoInput(raw: unknown, uid: string): StudioVideoInp
   };
 }
 
+export function visualRateUsdPerSecond(model: VisualModel): number {
+  return isGeminiVideoModel(model)
+    ? GEMINI_RATE_USD_PER_SECOND[model]
+    : RUNWAY_RATE_USD_PER_SECOND[model as RunwayVideoModel];
+}
+
 export function estimateStudioVideoCost(input: StudioVideoInput): StudioVideoCostEstimate {
   const rateUsd = input.operation === 'generate_visual'
-    ? RUNWAY_RATE_USD_PER_SECOND[input.model]
+    ? visualRateUsdPerSecond(input.model)
     : FAL_RATE_USD_PER_SECOND[input.model];
   return {
     amountUsd: Number((rateUsd * input.durationSeconds).toFixed(4)),
@@ -354,23 +443,125 @@ export function studioVideoCapabilities() {
     operations: [
       {
         operation: 'generate_visual',
-        provider: 'runway',
-        models: RUNWAY_VIDEO_MODELS.map((model) => ({
-          id: model,
-          estimatedUsdPerSecond: RUNWAY_RATE_USD_PER_SECOND[model],
-          requiresReferenceImage: model === 'gen4_turbo',
-          textRatios: model === 'gen4.5' ? ['1280:720', '720:1280'] : [],
-          imageRatios: VIDEO_RATIOS,
-        })),
+        // `provider` now belongs to the model, not the operation: one operation
+        // is served by two providers, and the client has to know which one it
+        // is asking for.
+        models: [
+          ...RUNWAY_VIDEO_MODELS.map((model) => ({
+            id: model,
+            provider: 'runway' as const,
+            label: model === 'gen4.5' ? 'Runway Gen-4.5' : 'Runway Gen-4 Turbo',
+            estimatedUsdPerSecond: RUNWAY_RATE_USD_PER_SECOND[model],
+            requiresReferenceImage: model === 'gen4_turbo',
+            durationsSeconds: RUNWAY_DURATIONS,
+            textRatios: ratiosForVisualModel(model, false),
+            imageRatios: ratiosForVisualModel(model, true),
+          })),
+          ...GEMINI_VIDEO_MODELS.map((model) => ({
+            id: model,
+            provider: 'gemini' as const,
+            label: model === 'veo-3.1-fast-generate-001'
+              ? 'Gemini video (fast)'
+              : 'Gemini video',
+            estimatedUsdPerSecond: GEMINI_RATE_USD_PER_SECOND[model],
+            requiresReferenceImage: false,
+            durationsSeconds: GEMINI_DURATIONS,
+            textRatios: ratiosForVisualModel(model, false),
+            imageRatios: ratiosForVisualModel(model, true),
+          })),
+        ],
       },
       {
         operation: 'lip_sync',
-        provider: 'fal',
         models: FAL_LIPSYNC_MODELS.map((model) => ({
           id: model,
+          provider: 'fal' as const,
+          label: model === 'lipsync-2-pro' ? 'Sync Lipsync 2 Pro' : 'Sync Lipsync 2',
           estimatedUsdPerSecond: FAL_RATE_USD_PER_SECOND[model],
+          requiresReferenceImage: false,
+          durationsSeconds: RUNWAY_DURATIONS,
+          textRatios: [] as readonly string[],
+          imageRatios: [] as readonly string[],
         })),
       },
     ],
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Job progress: the pure half of polling
+// ---------------------------------------------------------------------------
+//
+// The generator only ever reaches a creator through these two functions, and
+// both used to live inline in the callable where nothing could test them. That
+// is how `providerTask.id` survived: the submission writes `providerTaskId`,
+// the poller read `id`, and every poll threw `failed-precondition` while the
+// browser showed a spinner. A job could never finish. They are pure and
+// exported now so the field names are asserted by the test suite instead of
+// by a creator waiting on a video that was already sitting at the provider.
+
+export type StudioVideoProviderState =
+  | 'queued'
+  | 'running'
+  | 'succeeded'
+  | 'failed'
+  | 'cancelled';
+
+export type StudioVideoJobStatus =
+  | 'SUBMITTING'
+  | 'QUEUED'
+  | 'RUNNING'
+  | 'SUCCEEDED'
+  | 'FAILED'
+  | 'CANCELLED';
+
+export const TERMINAL_STUDIO_VIDEO_STATUSES: readonly StudioVideoJobStatus[] = [
+  'SUCCEEDED',
+  'FAILED',
+  'CANCELLED',
+];
+
+export function isTerminalStudioVideoStatus(status: unknown): boolean {
+  return (TERMINAL_STUDIO_VIDEO_STATUSES as readonly string[]).includes(String(status));
+}
+
+export function providerStateToJobStatus(
+  state: StudioVideoProviderState,
+): StudioVideoJobStatus {
+  switch (state) {
+    case 'succeeded': return 'SUCCEEDED';
+    case 'failed': return 'FAILED';
+    case 'cancelled': return 'CANCELLED';
+    case 'running': return 'RUNNING';
+    default: return 'QUEUED';
+  }
+}
+
+export interface StoredProviderTask {
+  providerTaskId: string;
+  statusUrl: string | null;
+  responseUrl: string | null;
+}
+
+/**
+ * Reads the provider handle back off a job document.
+ *
+ * `providerTaskId` is what submission writes. `id` is accepted as well so that
+ * jobs created before this was fixed — which are stranded mid-flight, not
+ * broken — still resolve once their owner opens them again.
+ */
+export function readStoredProviderTask(raw: unknown): StoredProviderTask | null {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  const task = raw as Record<string, unknown>;
+  const id = typeof task.providerTaskId === 'string' && task.providerTaskId
+    ? task.providerTaskId
+    : typeof task.id === 'string' && task.id
+      ? task.id
+      : '';
+  if (!id) return null;
+  return {
+    providerTaskId: id,
+    statusUrl: typeof task.statusUrl === 'string' && task.statusUrl ? task.statusUrl : null,
+    responseUrl: typeof task.responseUrl === 'string' && task.responseUrl ? task.responseUrl : null,
   };
 }

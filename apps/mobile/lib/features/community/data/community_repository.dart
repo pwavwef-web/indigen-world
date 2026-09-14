@@ -5,6 +5,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
 import 'package:indigen_world_mobile/features/community/data/community_models.dart';
+import 'package:indigen_world_mobile/features/community/data/community_space_models.dart';
+import 'package:indigen_world_mobile/features/community/data/post_category.dart';
+import 'package:indigen_world_mobile/features/community/data/reel_post_details.dart';
 
 /// Posts whose impression this session has already committed.
 ///
@@ -79,6 +82,7 @@ class PendingUpload {
       'mov' => 'video/quicktime',
       'webm' => 'video/webm',
       'm4v' => 'video/x-m4v',
+      '3gp' => 'video/3gpp',
       'm4a' => 'audio/mp4',
       'aac' => 'audio/aac',
       'mp3' => 'audio/mpeg',
@@ -147,6 +151,24 @@ class CommunityRepository {
       _firestore.collection('communityBlocks');
 
   static String edgeId(String from, String to) => '${from}_$to';
+
+  /// A private community's members-only posts. See
+  /// `community_space_models.dart` for why they cannot share `communityPosts`
+  /// with everything else.
+  CollectionReference<Map<String, dynamic>> _privatePosts(String communityId) =>
+      _firestore
+          .collection('communitySpaces')
+          .doc(communityId)
+          .collection('posts');
+
+  /// Where the post [postId] lives: under its private community when
+  /// [privateCommunityId] is set, in `communityPosts` otherwise.
+  DocumentReference<Map<String, dynamic>> _postRef(
+    String postId, {
+    String? privateCommunityId,
+  }) => privateCommunityId == null
+      ? _posts.doc(postId)
+      : _privatePosts(privateCommunityId).doc(postId);
 
   // ── Profiles ──────────────────────────────────────────────────────────────
 
@@ -494,6 +516,27 @@ class CommunityRepository {
     return controller.stream;
   }
 
+  /// The top-level posts of one community, newest first.
+  ///
+  /// A public community's posts are ordinary `communityPosts` tagged with its
+  /// id, so they also reach For you and their authors' profiles; a private
+  /// community's are read from under it, where only members may.
+  Stream<List<CommunityPost>> watchCommunityPosts(
+    String communityId, {
+    required bool isPrivate,
+    int limit = feedPageSize,
+  }) {
+    final query = isPrivate
+        ? _privatePosts(communityId)
+              .where('isReply', isEqualTo: false)
+              .orderBy('createdAt', descending: true)
+        : _posts
+              .where('communityId', isEqualTo: communityId)
+              .where('isReply', isEqualTo: false)
+              .orderBy('createdAt', descending: true);
+    return query.limit(limit).snapshots().map(_mapPosts);
+  }
+
   Stream<List<CommunityPost>> watchAuthorPosts(
     String uid, {
     int limit = feedPageSize,
@@ -527,17 +570,24 @@ class CommunityRepository {
       .snapshots()
       .map(_mapPosts);
 
-  Stream<List<CommunityPost>> watchReplies(String postId) => _posts
-      .where('parentId', isEqualTo: postId)
-      .orderBy('createdAt')
-      .limit(200)
-      .snapshots()
-      .map(_mapPosts);
+  Stream<List<CommunityPost>> watchReplies(
+    String postId, {
+    String? privateCommunityId,
+  }) =>
+      (privateCommunityId == null ? _posts : _privatePosts(privateCommunityId))
+          .where('parentId', isEqualTo: postId)
+          .orderBy('createdAt')
+          .limit(200)
+          .snapshots()
+          .map(_mapPosts);
 
-  Stream<CommunityPost?> watchPost(String postId) => _posts
-      .doc(postId)
-      .snapshots()
-      .map((doc) => doc.exists ? CommunityPost.fromDoc(doc) : null);
+  Stream<CommunityPost?> watchPost(
+    String postId, {
+    String? privateCommunityId,
+  }) => _postRef(
+    postId,
+    privateCommunityId: privateCommunityId,
+  ).snapshots().map((doc) => doc.exists ? CommunityPost.fromDoc(doc) : null);
 
   /// Resolves an explicit list of post ids, preserving the given order. Used by
   /// the likes and saved tabs, which start from edge documents.
@@ -571,6 +621,12 @@ class CommunityRepository {
 
   /// Writes a post (or a reply when [parentId] is set), uploading any staged
   /// attachments first so the document is only created once its media resolves.
+  ///
+  /// The reel creator uploads its own files, with pause, resume and progress
+  /// the plain attachment path has no use for, and so passes them already
+  /// stored as [uploadedMedia] under the id it reserved with [reservePostId].
+  /// Those files belong to the caller: a refused write leaves them in place so
+  /// a retry does not have to send the video again.
   Future<String> createPost({
     required CommunityProfile author,
     required String text,
@@ -580,11 +636,25 @@ class CommunityRepository {
     CommunityPost? quoteTo,
     CommunityPoll? poll,
     bool kasemConfirmed = false,
+    PostCommunityStamp? community,
+    PostCategory? category,
     void Function(double progress)? onUploadProgress,
+    String? postId,
+    List<CommunityMedia>? uploadedMedia,
+    ReelPostDetails? reel,
   }) async {
+    if (uploadedMedia != null && attachments.isNotEmpty) {
+      throw ArgumentError(
+        'Pass either attachments to upload or media already uploaded, not both.',
+      );
+    }
     final body = text.trim();
+    final privateCommunityId = community?.isPrivate ?? false
+        ? community!.id
+        : null;
     if (body.isEmpty &&
         attachments.isEmpty &&
+        (uploadedMedia?.isEmpty ?? true) &&
         quoteTo == null &&
         poll == null) {
       throw const CommunityFailure('Write something or add media first.');
@@ -594,13 +664,21 @@ class CommunityRepository {
         'Posts are limited to $maxPostLength characters.',
       );
     }
-    if (attachments.length > maxMediaPerPost) {
+    if (attachments.length + (uploadedMedia?.length ?? 0) > maxMediaPerPost) {
       throw const CommunityFailure(
         'You can attach up to $maxMediaPerPost items.',
       );
     }
     if (parentId != null && quoteTo != null) {
       throw const CommunityFailure('A reply cannot also be a quote post.');
+    }
+    if (privateCommunityId != null && (quoteTo != null || poll != null)) {
+      // Neither can work behind a members-only wall: a quote copies the post
+      // out into the public feed, and polls are tallied by a backend function
+      // that only reads public posts.
+      throw const CommunityFailure(
+        'Quotes and polls are not available in private communities.',
+      );
     }
     if (poll != null) {
       if (poll.options.length < 2 || poll.options.length > 4) {
@@ -621,13 +699,19 @@ class CommunityRepository {
       throw const CommunityFailure('You have already quoted this post.');
     }
 
-    final doc = _posts.doc();
-    final media = await _uploadAttachments(
-      uid: author.uid,
-      postId: doc.id,
-      attachments: attachments,
-      onProgress: onUploadProgress,
-    );
+    final collection = privateCommunityId == null
+        ? _posts
+        : _privatePosts(privateCommunityId);
+    final doc = postId == null ? collection.doc() : collection.doc(postId);
+    final media =
+        uploadedMedia ??
+        await _uploadAttachments(
+          uid: author.uid,
+          postId: doc.id,
+          attachments: attachments,
+          privateCommunityId: privateCommunityId,
+          onProgress: onUploadProgress,
+        );
 
     try {
       final data = <String, Object?>{
@@ -650,6 +734,13 @@ class CommunityRepository {
         'quotedPost': quoteTo?.toQuoteSnapshot(),
         'poll': poll?.toMap(),
         'kasemConfirmed': kasemConfirmed,
+        if (community != null) ...{
+          'communityId': community.id,
+          'communityName': community.name,
+          'communityVisibility': community.isPrivate ? 'private' : 'public',
+        },
+        'category': ?category?.wire,
+        'reel': ?reel?.toMap(),
         'createdAt': FieldValue.serverTimestamp(),
       };
       if (quoteTo == null) {
@@ -669,8 +760,9 @@ class CommunityRepository {
         await batch.commit();
       }
     } on FirebaseException catch (error) {
-      // The document never landed — drop the orphaned uploads.
-      await _deleteMedia(media);
+      // The document never landed — drop the orphaned uploads, unless they
+      // are the caller's to keep for a retry.
+      if (uploadedMedia == null) await _deleteMedia(media);
       throw CommunityFailure(_storageMessage(error));
     }
 
@@ -678,9 +770,10 @@ class CommunityRepository {
       // Best-effort: a missed increment only affects a displayed count, never
       // the reply itself, so a failure here must not fail the post.
       try {
-        await _posts.doc(parentId).update({
-          'replyCount': FieldValue.increment(1),
-        });
+        await _postRef(
+          parentId,
+          privateCommunityId: privateCommunityId,
+        ).update({'replyCount': FieldValue.increment(1)});
       } on FirebaseException {
         // Parent removed or counter write rejected — leave the reply in place.
       }
@@ -689,11 +782,14 @@ class CommunityRepository {
   }
 
   Future<void> deletePost(CommunityPost post) async {
-    final batch = _firestore.batch()..delete(_posts.doc(post.id));
+    final privateCommunityId = post.privateCommunityId;
+    final self = _postRef(post.id, privateCommunityId: privateCommunityId);
+    final batch = _firestore.batch()..delete(self);
     if (post.parentId != null) {
-      batch.update(_posts.doc(post.parentId!), {
-        'replyCount': FieldValue.increment(-1),
-      });
+      batch.update(
+        _postRef(post.parentId!, privateCommunityId: privateCommunityId),
+        {'replyCount': FieldValue.increment(-1)},
+      );
     }
     if (post.quotedPostId != null) {
       batch
@@ -709,7 +805,7 @@ class CommunityRepository {
       // to remove their own card, but only fall back to a plain delete after
       // the atomic counter path failed.
       try {
-        await _posts.doc(post.id).delete();
+        await self.delete();
       } on FirebaseException {
         throw CommunityFailure(_storageMessage(error));
       }
@@ -717,25 +813,31 @@ class CommunityRepository {
     await _deleteMedia(post.media);
   }
 
-  Future<void> editPost({required String postId, required String text}) async {
+  Future<void> editPost({
+    required String postId,
+    required String text,
+    String? privateCommunityId,
+  }) async {
     final body = text.trim();
     if (body.length > maxPostLength) {
       throw const CommunityFailure(
         'Posts are limited to $maxPostLength characters.',
       );
     }
-    await _posts.doc(postId).update({
-      'text': body,
-      'editedAt': FieldValue.serverTimestamp(),
-    });
+    await _postRef(
+      postId,
+      privateCommunityId: privateCommunityId,
+    ).update({'text': body, 'editedAt': FieldValue.serverTimestamp()});
   }
 
   Future<void> reportPost({
     required String postId,
     required String reporterId,
     required String reason,
+    String? communityId,
   }) => _reports.add({
     'postId': postId,
+    'communityId': ?communityId,
     'reporterId': reporterId,
     'reason': reason,
     'status': 'open',
@@ -758,13 +860,15 @@ class CommunityRepository {
     required String uid,
     required String postId,
     required bool liked,
+    String? privateCommunityId,
   }) async {
     final edge = _likes.doc(edgeId(uid, postId));
+    final post = _postRef(postId, privateCommunityId: privateCommunityId);
     final batch = _firestore.batch();
     if (liked) {
       batch
         ..delete(edge)
-        ..update(_posts.doc(postId), {'likeCount': FieldValue.increment(-1)});
+        ..update(post, {'likeCount': FieldValue.increment(-1)});
     } else {
       batch
         ..set(edge, {
@@ -772,7 +876,7 @@ class CommunityRepository {
           'postId': postId,
           'createdAt': FieldValue.serverTimestamp(),
         })
-        ..update(_posts.doc(postId), {'likeCount': FieldValue.increment(1)});
+        ..update(post, {'likeCount': FieldValue.increment(1)});
     }
     await batch.commit();
   }
@@ -1122,6 +1226,79 @@ class CommunityRepository {
 
   // ── Storage ───────────────────────────────────────────────────────────────
 
+  /// Where a post's files live.
+  ///
+  /// A private community's files go under a prefix whose Storage rule checks
+  /// membership. The public prefix is world-readable and listable, which
+  /// would leave a private photograph one directory listing away.
+  static String mediaFolder({
+    required String uid,
+    required String postId,
+    String? privateCommunityId,
+  }) => privateCommunityId == null
+      ? 'community-media/$uid/$postId'
+      : 'community-private-media/$privateCommunityId/$uid/$postId';
+
+  /// A fresh post id, reserved before anything is uploaded so every file and
+  /// every retry of one reel point at the same post.
+  ///
+  /// Firestore ids are random, so one drawn from `communityPosts` is as good
+  /// in a private community's collection.
+  String reservePostId() => _posts.doc().id;
+
+  /// Whether a post with [postId] has already been written.
+  Future<bool> postExists(String postId, {String? privateCommunityId}) async {
+    final doc = await _postRef(
+      postId,
+      privateCommunityId: privateCommunityId,
+    ).get();
+    return doc.exists;
+  }
+
+  /// Starts sending [file] to [storagePath] and hands back the live task, for
+  /// callers that pause, resume or cancel it.
+  UploadTask startFileUpload({
+    required String storagePath,
+    required File file,
+    required String contentType,
+  }) => _storage
+      .ref(storagePath)
+      .putFile(file, SettableMetadata(contentType: contentType));
+
+  Future<String> downloadUrl(String storagePath) =>
+      _storage.ref(storagePath).getDownloadURL();
+
+  /// Deletes stored files, ignoring any that are already gone.
+  Future<void> deleteStoragePaths(List<String> paths) => _deletePaths(paths);
+
+  /// A sentence for a member whose post write was refused.
+  String describeFailure(FirebaseException error) => _storageMessage(error);
+
+  /// A sentence for a member whose file of [mediaType] (`video`, `image`,
+  /// `audio`) was refused.
+  String describeUploadFailure(
+    FirebaseException error, {
+    required String mediaType,
+  }) {
+    final kind = switch (mediaType) {
+      'audio' => 'Voice notes',
+      'video' => 'Videos',
+      _ => 'Photos',
+    };
+    return switch (error.code) {
+      'unauthorized' || 'permission-denied' =>
+        '$kind cannot be uploaded right now. This is a problem on our side, '
+            'not with your account — please report it and post without the '
+            'attachment for now.',
+      'unauthenticated' => 'Sign in to take part in the community.',
+      'canceled' => 'Upload cancelled.',
+      'quota-exceeded' => 'Storage is full. Please contact the project team.',
+      'unavailable' || 'network-request-failed' || 'retry-limit-exceeded' =>
+        'Network problem. Check your connection and try again.',
+      _ => error.message ?? 'That attachment could not be uploaded.',
+    };
+  }
+
   Future<String> uploadAvatar({
     required String uid,
     required PendingUpload upload,
@@ -1161,8 +1338,14 @@ class CommunityRepository {
     required String uid,
     required String postId,
     required List<PendingUpload> attachments,
+    String? privateCommunityId,
     void Function(double progress)? onProgress,
   }) async {
+    final folder = mediaFolder(
+      uid: uid,
+      postId: postId,
+      privateCommunityId: privateCommunityId,
+    );
     if (attachments.isEmpty) return const [];
     final uploaded = <CommunityMedia>[];
     // Poster frames are not [CommunityMedia] of their own, so they need their
@@ -1191,7 +1374,7 @@ class CommunityRepository {
         }
 
         final reference = _storage.ref(
-          'community-media/$uid/$postId/${index}_${_stamped(attachment)}',
+          '$folder/${index}_${_stamped(attachment)}',
         );
         final task = reference.putFile(
           file,
@@ -1213,8 +1396,7 @@ class CommunityRepository {
         await task;
         final poster = await _uploadPoster(
           attachment: attachment,
-          uid: uid,
-          postId: postId,
+          folder: folder,
           index: index,
         );
         if (poster != null) posters.add(poster.storagePath);
@@ -1238,7 +1420,7 @@ class CommunityRepository {
       debugPrint(
         'Community upload refused (${error.code}): '
         'type=${attachment?.contentType}, '
-        'path=community-media/$uid/$postId/, '
+        'path=$folder/, '
         'message=${error.message}',
       );
       throw CommunityFailure(
@@ -1262,8 +1444,7 @@ class CommunityRepository {
   /// before covers existed. Returns null whenever there is nothing to show.
   Future<({String url, String storagePath})?> _uploadPoster({
     required PendingUpload attachment,
-    required String uid,
-    required String postId,
+    required String folder,
     required int index,
   }) async {
     final posterPath = attachment.posterPath;
@@ -1271,9 +1452,7 @@ class CommunityRepository {
     try {
       final file = File(posterPath);
       if (!await file.exists()) return null;
-      final reference = _storage.ref(
-        'community-media/$uid/$postId/${index}_poster.jpg',
-      );
+      final reference = _storage.ref('$folder/${index}_poster.jpg');
       await reference.putFile(
         file,
         SettableMetadata(contentType: 'image/jpeg'),
@@ -1328,25 +1507,8 @@ class CommunityRepository {
   /// `unauthorized` where Firestore says `permission-denied`, so the two are
   /// distinguishable; the media type is named because it is the part that
   /// tells whoever reads the report which rule to look at.
-  String _uploadMessage(FirebaseException error, PendingUpload attachment) {
-    final kind = switch (attachment.mediaType) {
-      'audio' => 'Voice notes',
-      'video' => 'Videos',
-      _ => 'Photos',
-    };
-    return switch (error.code) {
-      'unauthorized' || 'permission-denied' =>
-        '$kind cannot be uploaded right now. This is a problem on our side, '
-            'not with your account — please report it and post without the '
-            'attachment for now.',
-      'unauthenticated' => 'Sign in to take part in the community.',
-      'canceled' => 'Upload cancelled.',
-      'quota-exceeded' => 'Storage is full. Please contact the project team.',
-      'unavailable' || 'network-request-failed' || 'retry-limit-exceeded' =>
-        'Network problem. Check your connection and try again.',
-      _ => error.message ?? 'That attachment could not be uploaded.',
-    };
-  }
+  String _uploadMessage(FirebaseException error, PendingUpload attachment) =>
+      describeUploadFailure(error, mediaType: attachment.mediaType);
 }
 
 class _CommunityRepost {

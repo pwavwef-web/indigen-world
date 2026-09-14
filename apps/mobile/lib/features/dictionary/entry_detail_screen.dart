@@ -851,9 +851,13 @@ class _AgreementNote extends StatelessWidget {
 /// absence explained in a sentence tells somebody the entry is incomplete,
 /// where a missing control just looks like a feature that is not there.
 class PronunciationButton extends ConsumerStatefulWidget {
-  const PronunciationButton({required this.audioUrl, super.key});
+  const PronunciationButton({required this.audioUrl, this.onPlay, super.key});
 
   final String audioUrl;
+
+  /// Told each time a recording actually starts — so a surface playing its own
+  /// media, like an Explore reel, can stand down while the word is said.
+  final VoidCallback? onPlay;
 
   @override
   ConsumerState<PronunciationButton> createState() =>
@@ -939,6 +943,7 @@ class _PronunciationButtonState extends ConsumerState<PronunciationButton> {
         await player.seek(Duration.zero);
       }
       _claim();
+      widget.onPlay?.call();
       unawaited(player.play());
     } on Object {
       _release();

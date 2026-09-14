@@ -6,6 +6,24 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev", "--workspace", "@indigen-world/tribestudio", "--", "--port", "5199"],
       "port": 5199
+    },
+    {
+      "name": "website",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--workspace", "@indigen-world/website", "--", "--port", "5180", "--strictPort"],
+      "port": 5180
+    },
+    {
+      "name": "kasem-dictionary",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--workspace", "@indigen-world/kasena-dictionary", "--", "--port", "5181", "--strictPort"],
+      "port": 5181
+    },
+    {
+      "name": "updates-blog-preview",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["--yes", "serve", "apps/updates-blog/preview", "-l", "5182"],
+      "port": 5182
     }
   ]
 }

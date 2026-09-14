@@ -99,8 +99,8 @@
     },
     "collectionKind": {
       "type": "string",
-      "description": "Canonical destination in the mobile Collection library.",
-      "enum": ["music", "dictionary", "literature", "audiobooks"]
+      "description": "Canonical destination in the mobile Collection library. Video is where a filmed story lands, including one a creator filed under a storytelling category — Literature is the reading channel and holds documents and written work only.",
+      "enum": ["music", "dictionary", "literature", "audiobooks", "video"]
     },
     "campaignStatus": {
       "type": "string",

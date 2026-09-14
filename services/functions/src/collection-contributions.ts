@@ -329,6 +329,18 @@ export function parseCollectionContributionInput(
   if (!media && !mediaUrl && (kind === 'music' || kind === 'audiobooks' || kind === 'video')) {
     throw new HttpsError('failed-precondition', 'Upload the recording before submitting.');
   }
+  // Literature is a reading channel: a document, or the written work itself.
+  // The mobile form only ever offers a document here, so this refuses a client
+  // that has assembled the call by hand — and it refuses it at the door rather
+  // than at publication, because `publishedCollectionKind` would send the film
+  // to the Video channel and the contribution record would still say
+  // Literature. The two disagreeing is what makes a contribution unreviewable.
+  if (kind === 'literature' && media?.mediaType === 'video') {
+    throw new HttpsError(
+      'invalid-argument',
+      'Literature holds written work. Send a filmed story to the Video collection instead.',
+    );
+  }
 
   const body = requiredText(data, 'body', 12_000);
   // Back-compatibility, and the only reason this is conditional: an older

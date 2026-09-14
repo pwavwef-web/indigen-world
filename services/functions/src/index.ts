@@ -88,6 +88,8 @@ export {
   getStudioVideoCapabilities,
   createStudioVideoJob,
   refreshStudioVideoJob,
+  getStudioVideoPlaybackUrl,
+  sweepStudioVideoJobs,
 } from './studio-video.js';
 export { startIntegrityCheck, verifyDeviceIntegrity } from './play-integrity.js';
 export {

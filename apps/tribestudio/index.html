@@ -11,10 +11,162 @@
     />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>TribeStudio — Indigen World</title>
+    <!--
+      Boot screen.
+
+      Inlined rather than imported so it paints on the first frame, before the
+      stylesheet or the app bundle has been fetched. The studio ships a ~400KB
+      Firebase chunk and its palette lives in a CSS file the browser has not
+      read yet, so both the markup and the colours are literal here: on a slow
+      connection this used to be a blank white page for several seconds, which
+      reads as a broken link rather than as loading.
+
+      Removed by src/main.tsx once React has mounted.
+    -->
+    <style>
+      #boot {
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 22px;
+        background: #fffdf8;
+        font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        /* Faded out by main.tsx, so the app is never revealed mid-paint. */
+        transition: opacity 260ms cubic-bezier(0.2, 0.8, 0.2, 1);
+      }
+      #boot[data-leaving="true"] {
+        opacity: 0;
+        pointer-events: none;
+      }
+      .boot__mark {
+        width: 68px;
+        height: 68px;
+        border-radius: 18px;
+        background: #101c36;
+        display: grid;
+        place-items: center;
+        box-shadow: 0 12px 32px rgba(16, 28, 54, 0.18);
+      }
+      .boot__mark svg {
+        width: 40px;
+        height: 40px;
+        fill: none;
+        stroke: #b65a3a;
+        stroke-width: 2.6;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+      /* The roof line draws itself, so the wait reads as progress. */
+      .boot__mark path,
+      .boot__mark circle {
+        stroke-dasharray: 120;
+        animation: boot-draw 1.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+      }
+      .boot__mark path:nth-child(2) {
+        animation-delay: 0.18s;
+      }
+      .boot__mark circle {
+        animation-delay: 0.36s;
+      }
+      @keyframes boot-draw {
+        0% {
+          stroke-dashoffset: 120;
+          opacity: 0.25;
+        }
+        45% {
+          stroke-dashoffset: 0;
+          opacity: 1;
+        }
+        85% {
+          stroke-dashoffset: 0;
+          opacity: 1;
+        }
+        100% {
+          stroke-dashoffset: 120;
+          opacity: 0.25;
+        }
+      }
+      .boot__words {
+        text-align: center;
+        display: grid;
+        gap: 6px;
+      }
+      .boot__name {
+        margin: 0;
+        font-size: 1.02rem;
+        font-weight: 650;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: #172033;
+      }
+      .boot__note {
+        margin: 0;
+        font-size: 0.86rem;
+        color: #4c5568;
+      }
+      .boot__bar {
+        width: 132px;
+        height: 3px;
+        border-radius: 999px;
+        background: #d8d2c6;
+        overflow: hidden;
+      }
+      .boot__bar span {
+        display: block;
+        width: 40%;
+        height: 100%;
+        border-radius: 999px;
+        background: #b65a3a;
+        animation: boot-slide 1.5s ease-in-out infinite;
+      }
+      @keyframes boot-slide {
+        0% {
+          transform: translateX(-110%);
+        }
+        100% {
+          transform: translateX(330%);
+        }
+      }
+      /* Someone who asked for less motion gets a still screen, not a jittery
+         one: the mark and the bar simply sit there. */
+      @media (prefers-reduced-motion: reduce) {
+        .boot__mark path,
+        .boot__mark circle,
+        .boot__bar span {
+          animation: none;
+        }
+        .boot__mark path,
+        .boot__mark circle {
+          stroke-dasharray: none;
+          opacity: 1;
+        }
+        .boot__bar span {
+          width: 100%;
+        }
+      }
+    </style>
   </head>
   <body>
     <a class="skip-link" href="#main-content">Skip to main content</a>
     <div id="root"></div>
+    <div id="boot" role="status" aria-live="polite">
+      <span class="boot__mark" aria-hidden="true">
+        <svg viewBox="0 0 64 64">
+          <path d="M15 47V23l17-9 17 9v24" />
+          <path d="M24 44V29m8 15V24m8 20V29" />
+          <circle cx="32" cy="14" r="4" />
+        </svg>
+      </span>
+      <span class="boot__words">
+        <p class="boot__name">TribeStudio</p>
+        <p class="boot__note">Opening your workspace…</p>
+      </span>
+      <span class="boot__bar" aria-hidden="true"><span></span></span>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

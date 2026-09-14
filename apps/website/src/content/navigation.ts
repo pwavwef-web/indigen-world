@@ -92,6 +92,16 @@ export const ROUTES: AppRoute[] = [
     noindex: true,
   },
   {
+    // Where a community shared out of the app lands. Like the post page: no
+    // navLabel, and noindex because the prerendered HTML cannot describe any
+    // one community.
+    path: "communities",
+    title: "Community on Indigen",
+    description:
+      "A community on Indigen World. Open it in the Indigen app to join, ask to join a private community, and post.",
+    noindex: true,
+  },
+  {
     // Where Paystack returns an advertiser after checkout. No navLabel: it is
     // a destination people are sent to, never one they would go looking for.
     path: "ads/payment-complete",
@@ -118,7 +128,10 @@ export const ROUTES: AppRoute[] = [
  * page. Every entry here needs a matching Hosting rewrite in firebase.json —
  * Hosting serves files, and `dist/post/abc123/index.html` does not exist.
  */
-export const DYNAMIC_ROUTES: DynamicRoute[] = [{ path: "post", param: "postId" }];
+export const DYNAMIC_ROUTES: DynamicRoute[] = [
+  { path: "post", param: "postId" },
+  { path: "communities", param: "communityId" },
+];
 
 /** Routes shown in the header navigation, in display order. */
 export const NAV_ROUTES: AppRoute[] = ROUTES.filter((route) => route.navLabel !== undefined);

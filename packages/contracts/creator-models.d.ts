@@ -52,7 +52,7 @@ export type SubmissionStatus =
   | 'ARCHIVED';
 
 export type ContentStudioType = 'writing' | 'video' | 'audio' | 'image' | 'translation';
-export type CollectionKind = 'music' | 'dictionary' | 'literature' | 'audiobooks';
+export type CollectionKind = 'music' | 'dictionary' | 'literature' | 'audiobooks' | 'video';
 
 export type PaymentStatus =
   | 'NOT_ELIGIBLE'

@@ -182,10 +182,39 @@ final publishedDictionaryEntryProvider =
       return repository.watchPublishedEntry(entryId);
     });
 
+/// Whether a published record belongs on [kind]'s shelves.
+///
+/// ── Why the channel is asked twice ────────────────────────────────────────
+/// The query already asks Firestore for `collectionKind == 'literature'`, and
+/// this asks again what the record actually is. The query is a statement about
+/// how a document was filed; this is the rule about what the channel holds,
+/// and they disagree for every story that was filed before the publication
+/// workflow learned the difference.
+///
+/// TribeStudio asks a creator for a category rather than a channel, and
+/// `storytelling`, `folklore`, `oral-history` and `proverb` all resolve to
+/// Literature — so a video of an elder telling a story published into the
+/// reading channel. `publishedCollectionKind` in
+/// services/functions/src/publication.ts now sends new ones to Video, but
+/// nothing rewrites the records already sitting there, and a client that
+/// waited for a backfill would show films among the stories until it ran.
+///
+/// So the rule lives here, where it applies to every record the moment the app
+/// starts, and it is stated once for the four channel providers, the Collection
+/// grid's count and the channel's own search, which all read through them.
+bool belongsInCollection(PublishedReel item, CollectionKind kind) =>
+    !(kind == CollectionKind.literature && item.isVideo);
+
 Stream<List<PublishedReel>> _watchCollection(Ref ref, CollectionKind kind) {
   final repository = ref.watch(publishedContentRepositoryProvider);
   if (repository == null) return Stream.value(const <PublishedReel>[]);
-  return repository.watchCollection(kind.name);
+  return repository
+      .watchCollection(kind.name)
+      .map(
+        (items) => items
+            .where((item) => belongsInCollection(item, kind))
+            .toList(growable: false),
+      );
 }
 
 final musicCollectionProvider = StreamProvider<List<PublishedReel>>(

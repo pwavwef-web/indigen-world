@@ -6,17 +6,19 @@ import type {
   CreatorProfile,
   Submission,
 } from '@indigen-world/contracts/creator-models';
-import { ProgressBar, Badge, Modal } from '@indigen-world/web-ui';
+import { ProgressBar, StreakBadge, Badge, Modal } from '@indigen-world/web-ui';
 import { Link } from '../../router';
 import { useAuth } from '../../auth';
 import { useConfig } from '../CreatorProvider';
 import {
   fetchMyApplications,
+  fetchMyContributorScore,
   fetchMyNotifications,
   fetchMyProfile,
   fetchMySubmissions,
   fetchPublicCampaigns,
   submissionsOpen,
+  type ContributorScore,
 } from '../data';
 import {
   APPLICATION_STATUS_LABELS,
@@ -48,6 +50,7 @@ export function DashboardPage() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [notifications, setNotifications] = useState<CreatorNotification[]>([]);
+  const [score, setScore] = useState<ContributorScore | null>(null);
   const [selectedBadge, setSelectedBadge] = useState<MilestoneBadge | null>(null);
 
   useEffect(() => {
@@ -61,14 +64,16 @@ export function DashboardPage() {
       fetchPublicCampaigns(),
       fetchMySubmissions(user.uid),
       fetchMyNotifications(user.uid),
+      fetchMyContributorScore(user.uid),
     ])
-      .then(([p, a, c, s, n]) => {
+      .then(([p, a, c, s, n, sc]) => {
         if (!active) return;
         setProfile(p);
         setApplications(a);
         setCampaigns(c);
         setSubmissions(s);
         setNotifications(n);
+        setScore(sc);
         setLoading(false);
       })
       .catch(() => {
@@ -104,10 +109,19 @@ export function DashboardPage() {
   const anyOpen = campaigns.some(submissionsOpen);
   const completion = profile?.profileCompletion ?? 0;
 
-  // Gamification stats calculation
-  const validatedCount = submissions.filter((s) => s.status === 'APPROVED').length;
+  // Standing, as the backend awarded it. `contributorScores/{uid}` is written
+  // only when a contribution is accepted, so these are the same numbers the
+  // phone leaderboard shows for this person. Posts that exist but have not
+  // been accepted earn nothing here, which is the honest answer.
+  // Unfinished drafts are not submissions yet.
   const totalSubmissions = submissions.filter((s) => s.status !== 'DRAFT').length;
-  const xpPoints = totalSubmissions * 50 + validatedCount * 150;
+  const publishedCount = submissions.filter(
+    (s) => s.status === 'PUBLISHED' || s.status === 'APPROVED',
+  ).length;
+  const acceptedCount = score?.approvedCount ?? 0;
+  const wordCount = score?.wordCount ?? 0;
+  const streakDays = score?.streakDays ?? 0;
+  const xpPoints = score?.points ?? 0;
   const currentLevel = Math.floor(xpPoints / 300) + 1;
   const nextLevelXp = currentLevel * 300;
   const currentLevelProgress = xpPoints % 300;
@@ -135,15 +149,15 @@ export function DashboardPage() {
     {
       id: 'kasem-scholar',
       name: 'Kasem Wordsmith',
-      description: 'Contributed 5 or more approved submissions.',
+      description: 'Contributed 5 or more accepted Kasem words.',
       icon: '🏺',
-      unlocked: validatedCount >= 5,
+      unlocked: wordCount >= 5,
       tier: 'silver',
     },
     {
       id: 'guardian-culture',
       name: 'Dialect Guardian',
-      description: 'Earned 500+ XP in language preservation activities.',
+      description: 'Earned 500 or more contribution points.',
       icon: '🛡️',
       unlocked: xpPoints >= 500,
       tier: 'gold',
@@ -156,6 +170,7 @@ export function DashboardPage() {
         <div>
           <div className="head-greeting">
             <h1>Welcome, {profile?.public.displayName ?? user?.displayName ?? 'creator'}</h1>
+            {streakDays > 0 ? <StreakBadge count={streakDays} label="Day Streak" /> : null}
           </div>
           <p className="muted">Your founding-creator workspace &amp; cultural portfolio.</p>
         </div>
@@ -199,7 +214,11 @@ export function DashboardPage() {
           </div>
           <div className="level-info">
             <h3>{currentLevel === 1 ? 'Apprentice Storyteller' : currentLevel === 2 ? 'Kasem Wordsmith' : 'Master Custodian'}</h3>
-            <p className="tiny muted">{xpPoints} total XP earned • {nextLevelXp - xpPoints} XP to Level {currentLevel + 1}</p>
+            <p className="tiny muted">
+              {xpPoints === 0
+                ? 'Points arrive when a contribution is accepted.'
+                : `${xpPoints} contribution points • ${nextLevelXp - xpPoints} to Level ${currentLevel + 1}`}
+            </p>
             <ProgressBar value={currentLevelProgress} max={300} tone="terracotta" />
           </div>
         </div>
@@ -239,12 +258,20 @@ export function DashboardPage() {
           </div>
         </div>
         <div className="tile">
-          <span className="tile__label">Submissions</span>
+          <span className="tile__label">Posts</span>
           <span className="tile__value">{submissions.length}</span>
         </div>
         <div className="tile">
-          <span className="tile__label">Validated Material</span>
-          <span className="tile__value">{validatedCount}</span>
+          <span className="tile__label">Live in Explore</span>
+          <span className="tile__value">{publishedCount}</span>
+        </div>
+        <div className="tile">
+          <span className="tile__label">Accepted contributions</span>
+          <span className="tile__value">{acceptedCount}</span>
+        </div>
+        <div className="tile">
+          <span className="tile__label">Kasem words accepted</span>
+          <span className="tile__value">{wordCount}</span>
         </div>
       </div>
 
@@ -252,6 +279,13 @@ export function DashboardPage() {
       <section className="creation-shortcuts">
         <h2>Quick Creation Tools</h2>
         <div className="shortcuts-grid">
+          <Link to="/studio/editor" className="shortcut-card shortcut-card--video">
+            <span className="shortcut-card__icon">✂️</span>
+            <div>
+              <strong>Edit a video</strong>
+              <p className="tiny muted">Cut, caption and finish footage before posting</p>
+            </div>
+          </Link>
           <Link to="/studio/video" className="shortcut-card shortcut-card--video">
             <span className="shortcut-card__icon">🎬</span>
             <div>
@@ -259,11 +293,11 @@ export function DashboardPage() {
               <p className="tiny muted">Runway visuals and consented Kasem lip-sync</p>
             </div>
           </Link>
-          <Link to="/workspace" className="shortcut-card">
+          <Link to="/studio/dictionary" className="shortcut-card">
             <span className="shortcut-card__icon">🎙️</span>
             <div>
               <strong>Record Kasem Headword</strong>
-              <p className="tiny muted">Voice pronunciation with dialect tags</p>
+              <p className="tiny muted">Write the entry and say the word aloud</p>
             </div>
           </Link>
           <Link to="/studio/opportunities" className="shortcut-card">

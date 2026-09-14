@@ -1,5 +1,19 @@
 # Why the sky and clouds are far away
 
+## Published edition
+
+The completed Navrongo translation is preserved in `story-published.json`, extracted from the user's returned Word worksheet. This supersedes the provisional text in `story.json` and the old review preview below.
+
+Eight standalone illustrations are saved in `individual-scenes/`. Each was generated individually with the built-in imagegen tool, rather than cut from the original sheet. `generation-manifest.json` records the prompts. Scene 2 received a further imagegen edit to remove a generated signature; its full composition was retained.
+
+The final nine-page PDF, full reader pages, cover, and publication receipt are under `output/pdf/sky-folktale/` at the repository root. `build_story_pdf.py` builds these from the completed worksheet and checks every translated publishing row against extracted PDF text. All nine rendered pages were visually inspected. The PDF embeds fonts supporting the supplied Kasem characters.
+
+`firebase/seed/seed-sky-folktale.mjs` validates locally by default; `--commit` uploads immutable assets and publishes the fixed record `publishedContent/kasem-sky-far-away`. The live project is read from `.firebaserc`. Publication succeeded and was verified with an unauthenticated Literature query and public HTTP checks of all eleven assets. Re-running with the same files reuses the assets and preserves the original publication time.
+
+The mobile app now supports document page manifests with a swipe-and-zoom reader and a separate document-opening action. These code changes require an updated app build. Existing builds can already display the seeded cover and full Kasem text. Five targeted reader/model tests pass; static analysis found no issues in the reader, model, and collection detail screen.
+
+## Earlier review draft
+
 Local illustrated review draft for the Literature collection. Open `preview.html` in a browser. `story.json` contains the editable story, English expansion, sentence-level questions, and references. The HTML embeds a copy of the JSON so it opens without a server; update that embedded copy when editing the JSON.
 
 The Kasem is incomplete. Every newly composed sentence needs fluent-speaker review. Brackets explicitly identify untranslated text. English expansions are the intended full story, not a claim that each short Kasem caption translates the whole scene. The user selected Navrongo and supplied four language contributions, recorded verbatim in story.json and included in the preview. All other draft wording needs Navrongo review. No production app content or corpus has been changed.

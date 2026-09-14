@@ -147,6 +147,7 @@ export async function submitDictionaryEntry(draft: EntryDraft): Promise<void> {
   if (draft.culturalPermissionTier !== 'public') {
     throw new Error('This dictionary accepts public cultural material only. Do not submit community-only, restricted or sacred material.');
   }
+  const pronunciation = draft.pronunciation ?? null;
   const senses = sensesPayload(draft.senses);
   const firstExample = draft.senses
     .flatMap((sense) => sense.examples)
@@ -181,6 +182,9 @@ export async function submitDictionaryEntry(draft: EntryDraft): Promise<void> {
     ...(draft.ipa.trim() ? { ipa: draft.ipa.trim() } : {}),
     ...(draft.kasemDefinition.trim() ? { kasemDefinition: draft.kasemDefinition.trim() } : {}),
     ...(draft.etymology.trim() ? { etymology: draft.etymology.trim() } : {}),
+    // A spoken take of the headword, which is what fills `audioUrl` on the
+    // published entry. Optional: an entry without one is still a good entry.
+    ...(pronunciation ? { media: pronunciation } : {}),
     rightsConfirmed: true,
     publicationPermission: draft.publicationPermission,
     // A word has no participants, so the question is not put and a
@@ -189,6 +193,81 @@ export async function submitDictionaryEntry(draft: EntryDraft): Promise<void> {
     usesThirdPartyMaterial: false,
     participantConsentConfirmed: draft.consentGranted,
   });
+}
+
+export type AssistSeverity = 'ask' | 'warn' | 'note';
+
+export interface AssistCheck {
+  id: string;
+  severity: AssistSeverity;
+  title: string;
+  detail: string;
+  entries?: { id: string; kasem: string; english: string; homographIndex: number }[];
+}
+
+/**
+ * Advice on a draft entry: a duplicate headword, a homograph worth numbering,
+ * the Kasem and English boxes filled the wrong way round.
+ *
+ * Advice, never a gate. The callable returns an empty list rather than
+ * throwing when it cannot judge a draft, and this wrapper keeps that contract:
+ * a form that refused a speaker's own word because a heuristic disagreed would
+ * have put the heuristic above the person. It exists so the mistake is caught
+ * in the moment instead of costing a round trip through the review desk, which
+ * is the project's scarcest resource.
+ */
+export async function reviewDraft(input: {
+  kasem: string;
+  english: string;
+  partOfSpeech: string;
+}): Promise<AssistCheck[]> {
+  try {
+    const call = httpsCallable<typeof input, { checks: AssistCheck[] }>(
+      functions,
+      'reviewContributionDraft',
+    );
+    const response = await call(input);
+    return Array.isArray(response.data?.checks) ? response.data.checks : [];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Withdraws a contribution, or revokes the publication of one already live.
+ *
+ * The callable behind this has been deployed all along and was reachable only
+ * from the phone, so whether a contributor could retract their own word
+ * depended on which device they happened to own. It commits the queue, the
+ * submission, the public projection, the audit row and the notification in one
+ * transaction, so a success genuinely means nothing of it is public any more.
+ */
+export async function withdrawDictionaryContribution(contributionId: string): Promise<void> {
+  const call = httpsCallable<{ contributionId: string }, unknown>(
+    functions,
+    'withdrawCollectionContribution',
+  );
+  await call({ contributionId });
+}
+
+/**
+ * Statuses a contributor can still pull back.
+ *
+ * `published` is included deliberately: revoking a publication is the case the
+ * callable was written for, and it is the one that matters when a family
+ * changes its mind about a word being public.
+ */
+const WITHDRAWABLE_CONTRIBUTION_STATUSES = new Set([
+  'submitted',
+  'queued',
+  'in_review',
+  'needs_info',
+  'published',
+  'approved',
+]);
+
+export function canWithdrawContribution(status: string): boolean {
+  return WITHDRAWABLE_CONTRIBUTION_STATUSES.has(status.trim().toLowerCase());
 }
 
 /** Every Kasem rendering of the headword, as the reader will split it. */

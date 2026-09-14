@@ -78,7 +78,8 @@ void main() {
 
     // The four places Explore goes, labelled. Four unlabelled icons over video
     // is a row of guesses.
-    expect(find.text('For you'), findsOneWidget);
+    expect(find.byKey(const ValueKey('explore-nav-forYou')), findsOneWidget);
+    expect(find.byKey(const ValueKey('explore-nav-following')), findsOneWidget);
     expect(find.text('Following'), findsOneWidget);
     expect(find.text('Post'), findsOneWidget);
     expect(find.text('Saved'), findsOneWidget);
@@ -118,16 +119,19 @@ void main() {
     expect(find.text('Back'), findsNothing);
     // The destinations are all still there — losing the way out must not lose
     // the way around.
-    expect(find.text('For you'), findsOneWidget);
+    expect(find.byKey(const ValueKey('explore-nav-forYou')), findsOneWidget);
     expect(find.text('Saved'), findsOneWidget);
   });
 
-  testWidgets('the feed switch moved into the bar and is not drawn twice', (
+  testWidgets('the feed switch lives in the bar, and the header holds topics', (
     tester,
   ) async {
-    // It used to sit in the header as well. Two switches for one piece of
-    // state is two things that can disagree, and a member who taps the one
-    // that did not move learns the app is broken.
+    // The For you / Following switch used to sit in the header as well. Two
+    // switches for one piece of state is two things that can disagree. The
+    // header now carries the *topic* row instead, whose first chip is also
+    // called For you — a different question ("everything") asked of the same
+    // feed — so "For you" is written twice, once in each role, and Following
+    // exactly once.
     tester.view.physicalSize = const Size(1200, 2400);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
@@ -135,8 +139,10 @@ void main() {
 
     await _pumpExplore(tester, onExit: () {});
 
-    expect(find.text('For you'), findsOneWidget);
     expect(find.text('Following'), findsOneWidget);
+    expect(find.byKey(const ValueKey('explore-nav-forYou')), findsOneWidget);
+    expect(find.byKey(const ValueKey('explore-topic-forYou')), findsOneWidget);
+    expect(find.text('For you'), findsNWidgets(2));
   });
 
   testWidgets('switching to Following changes what the screen says', (

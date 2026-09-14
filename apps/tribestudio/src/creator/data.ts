@@ -11,7 +11,7 @@ import {
   where,
 } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
-import { getBlob, getDownloadURL, ref, uploadBytesResumable } from 'firebase/storage';
+import { getDownloadURL, ref, uploadBytesResumable } from 'firebase/storage';
 import type {
   Campaign,
   CreatorApplication,
@@ -19,6 +19,7 @@ import type {
   CreatorNotification,
   CreatorProfile,
   PlatformConfiguration,
+  PublishedContent,
   Submission,
 } from '@indigen-world/contracts/creator-models';
 import { db, functions, storage } from '../firebase';
@@ -355,6 +356,129 @@ export async function saveSubmission(
   await setDoc(doc(db, 'submissions', input.id), document);
 }
 
+/**
+ * The public record of this creator's work, as readers see it.
+ *
+ * A creator could previously see only that a private submission row said
+ * PUBLISHED — not the published page, not the thumbnail, not the attribution
+ * line, and not the shareable link. The composite index for exactly this query
+ * (publicationStatus + creatorAttribution.creatorId + publishedAt) is already
+ * deployed, and the read rule already allows anyone to read a published row.
+ */
+export async function fetchMyPublished(creatorId: string): Promise<PublishedContent[]> {
+  const snap = await getDocs(
+    query(
+      collection(db, 'publishedContent'),
+      where('publicationStatus', '==', 'published'),
+      where('creatorAttribution.creatorId', '==', creatorId),
+      orderBy('publishedAt', 'desc'),
+      limit(60),
+    ),
+  );
+  return snap.docs.map((d) => d.data() as PublishedContent);
+}
+
+/**
+ * Points, counts and streak as the backend computed them.
+ *
+ * Mirrors `ContributorScoreState` in services/functions/src/contributor-scores.ts.
+ * The dashboard used to invent all of this from the length of the submissions
+ * array, so the web workspace and the phone leaderboard described the same
+ * person differently — and a creator with ten unreviewed posts was congratulated
+ * for work nobody had accepted yet.
+ */
+export interface ContributorScore {
+  points: number;
+  approvedCount: number;
+  wordCount: number;
+  otherCount: number;
+  streakDays: number;
+  lastContributionDay: string | null;
+}
+
+const EMPTY_CONTRIBUTOR_SCORE: ContributorScore = {
+  points: 0,
+  approvedCount: 0,
+  wordCount: 0,
+  otherCount: 0,
+  streakDays: 0,
+  lastContributionDay: null,
+};
+
+/**
+ * A contributor with no accepted work has no score row, which is not an error:
+ * it is a zero. The document is world-readable and server-written only.
+ */
+export async function fetchMyContributorScore(uid: string): Promise<ContributorScore> {
+  try {
+    const snap = await getDoc(doc(db, 'contributorScores', uid));
+    if (!snap.exists()) return EMPTY_CONTRIBUTOR_SCORE;
+    const data = snap.data() as Record<string, unknown>;
+    return {
+      points: Number(data.points ?? 0),
+      approvedCount: Number(data.approvedCount ?? 0),
+      wordCount: Number(data.wordCount ?? 0),
+      otherCount: Number(data.otherCount ?? 0),
+      streakDays: Number(data.streakDays ?? 0),
+      lastContributionDay: typeof data.lastContributionDay === 'string'
+        ? data.lastContributionDay
+        : null,
+    };
+  } catch {
+    return EMPTY_CONTRIBUTOR_SCORE;
+  }
+}
+
+/**
+ * Whether a post belongs to a campaign rather than the open feed.
+ *
+ * Mirrors `isCampaignSubmission` in services/functions/src/open-publishing.ts:
+ * an empty id, `open` or `none` all mean "not a campaign".
+ */
+export function isCampaignSubmission(submission: Pick<Submission, 'campaign'>): boolean {
+  const id = submission.campaign?.id;
+  if (typeof id !== 'string') return false;
+  const trimmed = id.trim().toLowerCase();
+  return trimmed.length > 0 && trimmed !== 'open' && trimmed !== 'none';
+}
+
+/**
+ * Whether this creator may still change this post from their own browser.
+ *
+ * Not a product opinion — this is what firestore.rules permits: an update is
+ * allowed only from DRAFT, NEEDS_REVISION or PUBLISHED, and the PUBLISHED case
+ * only for an open post, because a campaign entry freezes when it is entered.
+ * Offering the action anywhere else would be a button that always fails.
+ */
+export function canEditSubmission(submission: Pick<Submission, 'status' | 'campaign'>): boolean {
+  if (submission.status === 'DRAFT' || submission.status === 'NEEDS_REVISION') return true;
+  return submission.status === 'PUBLISHED' && !isCampaignSubmission(submission);
+}
+
+/** Withdrawal is the same rule: it is an update, to the WITHDRAWN status. */
+export function canWithdrawSubmission(
+  submission: Pick<Submission, 'status' | 'campaign'>,
+): boolean {
+  return canEditSubmission(submission);
+}
+
+/**
+ * Takes a post down.
+ *
+ * For a published open post this is a consent revocation, and the deployed
+ * `onSubmissionWritten` trigger unpublishes the public record in the same
+ * invocation. Only `status` and the lifecycle move: the rules require
+ * `moderation` and `rewardEligible` to be byte-identical to their previous
+ * values, and an updateDoc that never mentions them satisfies that exactly.
+ */
+export async function withdrawSubmission(submission: Submission): Promise<void> {
+  await updateDoc(doc(db, 'submissions', submission.id), {
+    status: 'WITHDRAWN',
+    'lifecycle.updatedAt': new Date().toISOString(),
+    'lifecycle.version': (submission.lifecycle?.version ?? 0) + 1,
+  });
+}
+
 /** Resumable upload of raw submission media into the private, structured Storage path. */
 export function uploadSubmissionMedia(
   uid: string,
@@ -395,10 +519,21 @@ export type StudioVideoStatus =
   | 'FAILED'
   | 'CANCELLED';
 
+export type StudioVideoProvider = 'runway' | 'fal' | 'gemini';
+
 export interface StudioVideoModelCapability {
   id: string;
+  /** Which service serves this model. Chosen by the model, not the operation. */
+  provider: StudioVideoProvider;
+  /** What to call it in front of a creator. */
+  label?: string;
   estimatedUsdPerSecond: number;
   requiresReferenceImage?: boolean;
+  /**
+   * Lengths this model will make. Runway takes 5 or 10 seconds and Gemini
+   * takes 4, 6 or 8, so there is no single list to offer.
+   */
+  durationsSeconds?: number[];
   textRatios?: string[];
   imageRatios?: string[];
 }
@@ -406,7 +541,7 @@ export interface StudioVideoModelCapability {
 export interface StudioVideoCapabilities {
   pricingVersion: string;
   limits: {
-    durationsSeconds: Array<5 | 10>;
+    durationsSeconds: number[];
     ratios: string[];
     minorsSupported: false;
     thirdPartyMaterialSupported: false;
@@ -414,7 +549,6 @@ export interface StudioVideoCapabilities {
   };
   operations: Array<{
     operation: StudioVideoOperation;
-    provider: 'runway' | 'fal';
     models: StudioVideoModelCapability[];
   }>;
 }
@@ -429,7 +563,7 @@ export interface StudioVideoCostEstimate {
 export interface StudioVideoJob {
   id: string;
   operation: StudioVideoOperation;
-  provider: 'runway' | 'fal';
+  provider: StudioVideoProvider;
   model: string;
   status: StudioVideoStatus;
   outputStoragePath: string | null;
@@ -437,6 +571,8 @@ export interface StudioVideoJob {
   failureReason: string | null;
   createdAt: string;
   updatedAt: string;
+  /** Present on documents read directly for the job list, not on callable results. */
+  prompt?: string;
 }
 
 export interface StudioVideoGovernanceInput {
@@ -454,7 +590,7 @@ export interface StudioVideoGovernanceInput {
 
 interface StudioVideoInputBase {
   clientRequestId: string;
-  durationSeconds: 5 | 10;
+  durationSeconds: number;
   governance: StudioVideoGovernanceInput;
   kasem: {
     languageCode: 'xsm';
@@ -467,8 +603,8 @@ interface StudioVideoInputBase {
 export type CreateStudioVideoJobInput = StudioVideoInputBase & (
   | {
     operation: 'generate_visual';
-    provider: 'runway';
-    model: 'gen4_turbo' | 'gen4.5';
+    provider: 'runway' | 'gemini';
+    model: string;
     prompt: string;
     ratio: '1280:720' | '720:1280' | '960:960';
     referenceImageStoragePath: string | null;
@@ -512,6 +648,57 @@ export async function refreshStudioVideoJob(jobId: string): Promise<StudioVideoJ
   return response.data;
 }
 
+/** Shapes a raw job document into the same view the callables return. */
+function toStudioVideoJob(id: string, data: Record<string, unknown>): StudioVideoJob {
+  const input = data.input as Record<string, unknown> | undefined;
+  return {
+    id,
+    operation: data.operation as StudioVideoJob['operation'],
+    provider: data.provider as StudioVideoJob['provider'],
+    model: String(data.model ?? ''),
+    status: data.status as StudioVideoJob['status'],
+    outputStoragePath: (data.outputStoragePath as string | null) ?? null,
+    costEstimate: data.costEstimate as StudioVideoJob['costEstimate'],
+    failureReason: (data.failureReason as string | null) ?? null,
+    createdAt: String(data.createdAt ?? ''),
+    updatedAt: String(data.updatedAt ?? ''),
+    prompt: typeof input?.prompt === 'string' ? input.prompt : '',
+  };
+}
+
+/**
+ * Every video this creator has asked for, newest first.
+ *
+ * Read straight from Firestore rather than through a callable: the rules on
+ * `studioVideoJobs` already scope a read to `ownerUid`, and a job that is
+ * still running must be findable without spending a provider poll to list it.
+ */
+export async function fetchMyStudioVideoJobs(uid: string): Promise<StudioVideoJob[]> {
+  const snap = await getDocs(
+    query(
+      collection(db, 'studioVideoJobs'),
+      where('ownerUid', '==', uid),
+      orderBy('createdAt', 'desc'),
+      limit(60),
+    ),
+  );
+  return snap.docs.map((d) => toStudioVideoJob(d.id, d.data() as Record<string, unknown>));
+}
+
+/**
+ * Reads one job document without contacting a provider.
+ *
+ * Reopening a job used to go through `refreshStudioVideoJob`, which meant a
+ * single failed poll — an exhausted allowance, a provider outage — rendered
+ * the builder form again as though no job existed. A creator would then pay
+ * for a second generation of a video already being made. The document read is
+ * the source of truth for what exists; advancing it is a separate concern.
+ */
+export async function fetchStudioVideoJob(jobId: string): Promise<StudioVideoJob | null> {
+  const snap = await getDoc(doc(db, 'studioVideoJobs', jobId));
+  return snap.exists() ? toStudioVideoJob(snap.id, snap.data() as Record<string, unknown>) : null;
+}
+
 const STUDIO_ASSET_LIMITS = {
   image: 20 * 1024 * 1024,
   audio: 50 * 1024 * 1024,
@@ -548,10 +735,29 @@ export function uploadStudioVideoAsset(
   });
 }
 
-/** Reads a private generated output with the signed-in user's Storage authorization. */
-export async function loadStudioVideoOutput(storagePath: string): Promise<string> {
-  const blob = await getBlob(ref(storage, storagePath), 200 * 1024 * 1024);
-  return URL.createObjectURL(blob);
+export interface StudioVideoPlayback {
+  playbackUrl: string;
+  downloadUrl: string;
+  expiresAt: string;
+}
+
+/**
+ * Short-lived signed URLs for a finished video.
+ *
+ * Replaces a `getBlob` read. That was an XHR, so it was subject to bucket CORS
+ * and failed on the deployed origin before Storage authorization was even
+ * consulted — the creator was told the preview could not be loaded for a video
+ * that was perfectly fine. It also pulled up to 200MB into the tab before
+ * anything could play. A signed URL is loaded directly by the <video> element,
+ * streams, and expires.
+ */
+export async function fetchStudioVideoPlayback(jobId: string): Promise<StudioVideoPlayback> {
+  const call = httpsCallable<{ jobId: string }, StudioVideoPlayback>(
+    functions,
+    'getStudioVideoPlaybackUrl',
+  );
+  const response = await call({ jobId });
+  return response.data;
 }
 
 // ---------------------------------------------------------------------------

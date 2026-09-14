@@ -1,7 +1,22 @@
 # Shared post links
 
-What happens when somebody taps **Share** on a Community post, and what still
-needs a console change to finish.
+What happens when somebody taps **Share** on a Community post or a community,
+and what still needs a console change to finish.
+
+**Two links share this machinery (added 2026-09-13):**
+
+| Shared thing | Link | Web page | App route |
+| --- | --- | --- | --- |
+| A post | `https://indigenworld.com/post/<id>` | `apps/website/src/pages/PostPage.tsx` | `/post/:postId` |
+| A community | `https://indigenworld.com/communities/<slug>` | `apps/website/src/pages/CommunityPage.tsx` | `/communities/:communityId` |
+
+Everything below about posts applies to communities in the same way: the
+Hosting rewrite (`/communities/**`), the Android App Links `pathPrefix`, the
+`indigen://communities/<slug>` fallback, and the claim in
+`core/deep_links.dart`. The community page reads `communitySpaces/<slug>`,
+never a private community's posts or members, and shows up to three recent
+posts only for a public community. It needs the Firestore rules for
+`communitySpaces` deployed — until then it reads as "could not be loaded".
 
 **Project facts:** production Android application id `world.indigen.mobile`
 (the `.dev` and `.staging` suffixes are the other flavours), site
@@ -151,8 +166,9 @@ Four places have to agree, and the site's test asserts most of it:
 1. `_claimedPrefixes` in `apps/mobile/lib/core/deep_links.dart`.
 2. The `pathPrefix` in the Android manifest's App Links filter.
 3. `apple.paths` in `apps/website/config/app-links.json`.
-4. **A real page on the website for it.** This is the one that is easy to forget
-   and the reason `/entry/<id>` is *not* claimed today: the app has a
+4. **A real page on the website for it.** `/post/` and `/communities/` have
+   one. This is the one that is easy to forget and the reason `/entry/<id>` is
+   *not* claimed today: the app has a
    dictionary-entry route, but the website has no page for one, so claiming it
    would strand everybody without the app on a 404 — the original bug, moved.
 

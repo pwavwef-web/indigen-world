@@ -25,7 +25,7 @@ const _dictionary = [
     example: 'Nia zaanem',
     exampleTranslation: 'Greeting in the morning',
     attribution: 'Project Kassena community dictionary',
-    ),
+  ),
 ];
 
 const _literature = [
@@ -174,8 +174,9 @@ void main() {
     expect(find.text('Kasem Collections'), findsOneWidget);
     expect(find.byKey(const Key('collection-search-field')), findsOneWidget);
     for (final label in const ['All', 'Published', 'Open']) {
-      expect(find.text(label), findsOneWidget);
+      expect(find.text(label), findsNothing);
     }
+    expect(find.byKey(const Key('place-story-pages')), findsOneWidget);
 
     expect(find.text('Music'), findsOneWidget);
     expect(find.text('Dictionary'), findsOneWidget);
@@ -230,20 +231,10 @@ void main() {
     expect(find.text('Dictionary'), findsOneWidget);
   });
 
-  testWidgets('published and open filters keep their distinct meanings', (
+  testWidgets('empty categories remain accessible without filter pills', (
     tester,
   ) async {
     await _pumpCollection(tester);
-
-    await tester.tap(find.byKey(const Key('collection-filter-published')));
-    await tester.pump(const Duration(milliseconds: 220));
-
-    expect(find.text('Music'), findsOneWidget);
-    expect(find.text('Audiobooks'), findsNothing);
-
-    await tester.tap(find.byKey(const Key('collection-filter-open')));
-    await tester.pump(const Duration(milliseconds: 220));
-
     await _show(tester, 'Audiobooks');
     expect(find.text('Audiobooks'), findsOneWidget);
     expect(find.text('0 published'), findsOneWidget);
@@ -254,8 +245,6 @@ void main() {
   ) async {
     await _pumpCollection(tester);
 
-    await tester.tap(find.byKey(const Key('collection-filter-published')));
-    await tester.pump(const Duration(milliseconds: 220));
     await tester.enterText(
       find.byKey(const Key('collection-search-field')),
       'rain',
@@ -283,7 +272,7 @@ void main() {
       'Audiobooks',
     );
     await tester.pump(const Duration(milliseconds: 320));
-    expect(find.text('No results for "Audiobooks"'), findsOneWidget);
+    expect(find.text('Audiobooks', skipOffstage: true), findsNWidgets(2));
   });
 
   testWidgets('shows polished skeletons while count streams load', (

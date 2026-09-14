@@ -8,6 +8,7 @@ import 'package:indigen_world_mobile/features/ads/collection_ads.dart';
 import 'package:indigen_world_mobile/features/ads/data/served_ad.dart';
 import 'package:indigen_world_mobile/features/ads/widgets/sponsored_card.dart';
 import 'package:indigen_world_mobile/features/collection/collection_data.dart';
+import 'package:indigen_world_mobile/features/collection/illustrated_document_screen.dart';
 import 'package:indigen_world_mobile/features/collection/widgets/collection_card_surface.dart';
 import 'package:indigen_world_mobile/features/community/widgets/community_avatar.dart';
 import 'package:indigen_world_mobile/features/contribute/contribute_screen.dart';
@@ -553,6 +554,25 @@ class CollectionItemDetailScreen extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(item.title, style: Theme.of(context).textTheme.headlineMedium),
+          if (item.isDocument) ...[
+            const SizedBox(height: 16),
+            if (item.documentPageUrls.isNotEmpty)
+              FilledButton.icon(
+                icon: const Icon(Icons.auto_stories_outlined),
+                label: const Text('Read illustrated story'),
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => IllustratedDocumentScreen(item: item),
+                  ),
+                ),
+              ),
+            if (item.mediaUrl?.isNotEmpty ?? false)
+              OutlinedButton.icon(
+                icon: const Icon(Icons.open_in_new),
+                label: const Text('Open document'),
+                onPressed: () => openPublishedDocument(context, item.mediaUrl),
+              ),
+          ],
           const SizedBox(height: 8),
           Text(
             'By ${item.creatorName}',
@@ -716,8 +736,16 @@ class _CollectionMediaState extends State<_CollectionMedia> {
   /// Video only now. Audio goes to the shared player — see
   /// [_CollectionAudioHeader] — so this widget no longer opens a
   /// `VideoPlayerController` for a file that has no pictures in it.
+  ///
+  /// And never on Literature, whatever the record claims to be. A reading
+  /// channel has no player: a piece that reached this screen from a saved item
+  /// or a shared link still gets the book cover and its text rather than a
+  /// film. [belongsInCollection] keeps them out of the list; this keeps them
+  /// out of the one place a list is not what opened the screen.
   bool get _canPlay =>
-      widget.item.mediaUrl != null && widget.item.isVideo;
+      widget.item.mediaUrl != null &&
+      widget.item.isVideo &&
+      widget.kind != CollectionKind.literature;
 
   @override
   void initState() {
@@ -845,13 +873,7 @@ class _MediaFallback extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => DecoratedBox(
-    decoration: const BoxDecoration(
-      gradient: LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [BrandColors.heritageGreen, BrandColors.savannahGreen],
-      ),
-    ),
+    decoration: BoxDecoration(gradient: BrandGradients.hero(context.brand)),
     child: Center(
       child: Icon(
         switch (kind) {

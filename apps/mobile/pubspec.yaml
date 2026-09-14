@@ -1,7 +1,7 @@
 name: indigen_world_mobile
 description: Offline-first mobile experience for Indigen World and Project Kassena.
 publish_to: none
-version: 0.1.17+26
+version: 0.1.19+28
 
 environment:
   sdk: ^3.13.0
@@ -73,5 +73,6 @@ flutter:
   generate: true
   uses-material-design: true
   assets:
+    - assets/places/
     - assets/characters/kawuri/
     - assets/characters/kawuri/celebrate/

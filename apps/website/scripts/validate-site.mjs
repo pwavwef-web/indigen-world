@@ -116,7 +116,7 @@ const shareLink = read("../../apps/mobile/lib/features/community/community_actio
 
 assert.match(shareLink, /https:\/\/indigenworld\.com\/post\/\$\{post\.id\}/, "the app shares /post/<id> on this domain");
 assert.match(navigationSource, /path: "post"/, "the post route has prerendered metadata");
-assert.match(navigationSource, /DYNAMIC_ROUTES: DynamicRoute\[\] = \[\{ path: "post", param: "postId" \}\]/, "the router knows /post/<id> carries an id");
+assert.match(navigationSource, /DYNAMIC_ROUTES: DynamicRoute\[\] = \[[\s\S]*?\{ path: "post", param: "postId" \}/, "the router knows /post/<id> carries an id");
 assert.match(read("src/app/router.tsx"), /export function matchRoute/, "the router resolves dynamic routes");
 assert.match(read("src/pages/index.ts"), /post: lazy\(/, "the post route has a page component");
 assert.match(
@@ -144,4 +144,32 @@ assert.match(
   "an unconfigured association file is skipped rather than shipped wrong"
 );
 
-console.log(`Validated ${routes.length} public routes, the shared-post link chain, and core privacy/safety invariants.`);
+// ── Shared community links ───────────────────────────────────────────────────
+// The app shares https://indigenworld.com/communities/<slug>. Same chain as a
+// post, with one extra promise: a private community's posts and members are
+// never requested from this site.
+const communityPage = read("src/pages/CommunityPage.tsx");
+const communityData = read("src/features/community/communityData.ts");
+const communityShare = read("../../apps/mobile/lib/features/community/communities/community_space_actions.dart");
+const deepLinks = read("../../apps/mobile/lib/core/deep_links.dart");
+const manifest = read("../../apps/mobile/android/app/src/main/AndroidManifest.xml");
+
+assert.match(communityShare, /https:\/\/indigenworld\.com\/communities\//, "the app shares /communities/<slug> on this domain");
+assert.match(deepLinks, /_claimedPrefixes = <String>\{'post', 'communities'\}/, "the app claims community links");
+assert.match(manifest, /android:pathPrefix="\/communities\/"/, "Android hands community links to the app");
+assert.match(read("config/app-links.json"), /"\/communities\/\*"/, "the iOS association claims community paths");
+assert.match(navigationSource, /path: "communities"/, "the community route has prerendered metadata");
+assert.match(navigationSource, /\{ path: "communities", param: "communityId" \}/, "the router knows /communities/<slug> carries a slug");
+assert.match(read("src/pages/index.ts"), /communities: lazy\(/, "the community route has a page component");
+assert.match(
+  websiteHosting,
+  /"source":\s*"\/communities\/\*\*"[\s\S]*?"destination":\s*"\/communities\/index\.html"/,
+  "hosting serves the community page for every slug"
+);
+assert.match(communityPage, /noindex: route\.noindex/, "the community route is excluded from indexing");
+assert.match(communityData, /COMMUNITY_SPACES = "communitySpaces"/, "communities are read from communitySpaces, not the cultural registry");
+assert.match(communityData, /community\.isPrivate \? \[\] : await recentPublicPosts/, "a private community's posts are never requested");
+assert.ok(!communityData.includes("memberships"), "the community page never reads a member list");
+assert.match(communityPage, /status === "closed"/, "a closed or removed community is explained, not shown");
+
+console.log(`Validated ${routes.length} public routes, the shared post and community link chains, and core privacy/safety invariants.`);

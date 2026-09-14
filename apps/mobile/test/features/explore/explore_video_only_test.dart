@@ -1,9 +1,13 @@
-// Explore is a video surface, and for a long time only half of it knew that.
-// The community half filtered for video from the day it was merged in; the
-// published half mapped every record straight through, so a song, an audiobook
-// chapter or a literature document arrived as a silent, imageless full-screen
-// card. These tests hold the rule on the published half, at the provider, so it
-// cannot quietly come back the next time the query changes.
+// Explore is a full-screen visual surface: video and pictures. For a long time
+// only half of it knew what it was. The published half once mapped every record
+// straight through, so a song, an audiobook chapter or a literature document
+// arrived as a silent, imageless full-screen card. These tests hold the rule on
+// the published half, at the provider, so it cannot quietly come back the next
+// time the query changes.
+//
+// The rule widened in the Explore upgrade: pictures belong here now, alongside
+// video. Audio and documents still do not — they have nothing to fill a screen
+// with, and the Collection channels can actually play or read them.
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -73,14 +77,15 @@ Future<void> _settle(ProviderContainer container, Provider<List<Reel>> of) async
 
 void main() {
   group('the published half of Explore', () {
-    test('shows the video and nothing else', () async {
+    test('shows the video and the picture, and nothing else', () async {
       final container = _container();
       await _settle(container, exploreFeedProvider);
 
       final ids = container.read(exploreFeedProvider).map((reel) => reel.id);
-      expect(ids, contains('reel'));
+      expect(ids, unorderedEquals(['reel', 'photo']));
       expect(ids, isNot(contains('song')));
-      expect(ids, ['reel']);
+      expect(ids, isNot(contains('poem')));
+      expect(ids, isNot(contains('legacy')));
     });
 
     test('holds the same rule in the Following feed', () async {
@@ -89,14 +94,17 @@ void main() {
 
       expect(
         container.read(exploreFollowingFeedProvider).map((reel) => reel.id),
-        ['reel'],
+        unorderedEquals(['reel', 'photo']),
       );
     });
 
     test('the filter is the media type, not the presence of media', () {
       // Every record here carries a mediaUrl, so a feed that filtered on
       // "has media" would have let all five through.
-      expect(publishedReels(_everything).map((reel) => reel.id), ['reel']);
+      expect(publishedReels(_everything).map((reel) => reel.id), [
+        'reel',
+        'photo',
+      ]);
       expect(_everything.where((reel) => reel.isAudio).map((reel) => reel.id), [
         'song',
       ]);

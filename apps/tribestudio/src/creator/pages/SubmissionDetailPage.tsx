@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react';
 import type { Submission } from '@indigen-world/contracts/creator-models';
 import { Link, matchRoute, useRoute } from '../../router';
-import { fetchSubmission } from '../data';
+import { trackEvent } from '../../analytics';
+import {
+  canWithdrawSubmission,
+  fetchSubmission,
+  withdrawSubmission,
+} from '../data';
 import { LoadError, Skeleton, StatusPill, SUBMISSION_STATUS_LABELS, useReloadable } from '../components';
-
-const WITHDRAWABLE = new Set(['DRAFT', 'SUBMITTED', 'NEEDS_REVISION', 'RESUBMITTED', 'UNDER_REVIEW']);
 
 export function SubmissionDetailPage() {
   const { path } = useRoute();
@@ -12,6 +15,9 @@ export function SubmissionDetailPage() {
   const { reloadKey, failed, setFailed, retry } = useReloadable();
   const [sub, setSub] = useState<Submission | null>(null);
   const [loading, setLoading] = useState(true);
+  const [confirmingWithdraw, setConfirmingWithdraw] = useState(false);
+  const [withdrawing, setWithdrawing] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -24,6 +30,24 @@ export function SubmissionDetailPage() {
     return () => { active = false; };
   }, [id, reloadKey, setFailed]);
 
+  const withdraw = async () => {
+    if (!sub) return;
+    setWithdrawing(true);
+    setActionError(null);
+    try {
+      await withdrawSubmission(sub);
+      trackEvent('submission_withdrawn');
+      setConfirmingWithdraw(false);
+      retry();
+    } catch (err) {
+      setActionError(err instanceof Error
+        ? err.message
+        : 'That could not be withdrawn. Please try again.');
+    } finally {
+      setWithdrawing(false);
+    }
+  };
+
   if (failed) return <div className="page"><LoadError onRetry={retry} /></div>;
   if (loading) return <div className="page"><Skeleton lines={6} /></div>;
   if (!sub) return <div className="page"><h1>Submission not found</h1><Link to="/studio/submissions" className="button button--ghost-dark">Back</Link></div>;
@@ -33,10 +57,15 @@ export function SubmissionDetailPage() {
       <p className="breadcrumb"><Link to="/studio/submissions">Submissions</Link> / {sub.title || 'Untitled'}</p>
       <header className="page__head">
         <div><h1>{sub.title || 'Untitled'}</h1><p className="muted">{sub.category}</p></div>
-        <div>
+        <div className="page__head-actions">
           <StatusPill status={sub.status} labels={SUBMISSION_STATUS_LABELS} />
+          {/* The editor autosaves as a draft, so it only opens drafts and revisions:
+              a live post opened there would be unpublished by its first autosave.
+              Collection contributions are edited from the app, not this form. */}
           {['DRAFT', 'NEEDS_REVISION'].includes(sub.status) && !sub.collectionContribution && sub.campaign.id !== 'collection-contributions' ? (
-            <Link to={'/studio/submissions/' + encodeURIComponent(sub.id) + '/edit'} className="button button--primary">{sub.status === 'DRAFT' ? 'Continue draft' : 'Revise submission'}</Link>
+            <Link to={'/studio/submissions/' + encodeURIComponent(sub.id) + '/edit'} className="button button--small button--primary">
+              {sub.status === 'DRAFT' ? 'Continue draft' : 'Revise submission'}
+            </Link>
           ) : null}
         </div>
       </header>
@@ -48,6 +77,9 @@ export function SubmissionDetailPage() {
         </div>
       ) : null}
       {sub.status === 'PUBLISHED' ? <div className="callout callout--ok"><strong>Published.</strong> Your content is live in Indigen World.</div> : null}
+      {sub.status === 'DRAFT' ? <div className="callout callout--info"><strong>Unfinished draft.</strong> Nobody can see this yet. Continue it whenever you are ready.</div> : null}
+      {sub.status === 'WITHDRAWN' ? <div className="callout callout--info"><strong>Withdrawn.</strong> This is no longer public anywhere in Indigen World.</div> : null}
+      {actionError ? <div className="callout callout--warn" role="alert">{actionError}</div> : null}
       {sub.status === 'REJECTED' && sub.moderation?.feedback ? <div className="callout callout--warn"><strong>Not accepted.</strong> {sub.moderation.feedback}</div> : null}
 
       <div className="cols">
@@ -94,12 +126,53 @@ export function SubmissionDetailPage() {
               <li><span>AI training</span><span className="muted">{sub.permissions.aiTraining ? 'Granted' : 'Off'}</span></li>
             </ul>
           </section>
-          {WITHDRAWABLE.has(sub.status) ? (
+          {canWithdrawSubmission(sub) ? (
             <section className="panel">
-              <p className="tiny">Need to withdraw? Contact support from the Help page.</p>
+              <h2>Take it down</h2>
+              <p className="tiny">
+                {sub.status === 'PUBLISHED'
+                  ? 'Withdrawing removes this from Explore straight away. Use it if someone in this piece has changed their mind, or if it should not be public.'
+                  : 'Withdrawing closes this post. It stays in your list, marked withdrawn.'}
+              </p>
+              {confirmingWithdraw ? (
+                <>
+                  <p className="tiny"><strong>Withdraw “{sub.title || 'Untitled'}”?</strong> You can post it again later, but the current public record is removed.</p>
+                  <button
+                    type="button"
+                    className="button button--danger button--block"
+                    disabled={withdrawing}
+                    onClick={() => void withdraw()}
+                  >
+                    {withdrawing ? 'Withdrawing…' : 'Yes, withdraw it'}
+                  </button>
+                  <button
+                    type="button"
+                    className="button button--ghost-dark button--block"
+                    disabled={withdrawing}
+                    onClick={() => setConfirmingWithdraw(false)}
+                  >
+                    Keep it
+                  </button>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  className="button button--ghost-dark button--block"
+                  onClick={() => setConfirmingWithdraw(true)}
+                >
+                  Withdraw this post
+                </button>
+              )}
+            </section>
+          ) : (
+            <section className="panel">
+              <p className="tiny">
+                A campaign entry and a post under review cannot be changed from here. Ask on the
+                Help page if something needs correcting.
+              </p>
               <Link to="/studio/help" className="button button--ghost-dark button--block">Get help</Link>
             </section>
-          ) : null}
+          )}
         </aside>
       </div>
     </div>

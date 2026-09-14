@@ -7,8 +7,8 @@ import 'package:indigen_world_mobile/features/contribute/words/data/parts_of_spe
 import 'package:indigen_world_mobile/features/contribute/words/widgets/part_of_speech_picker.dart';
 import 'package:indigen_world_mobile/features/contribute/words/widgets/sense_fields.dart';
 import 'package:indigen_world_mobile/features/dictionary/data/dictionary_admin.dart';
-import 'package:indigen_world_mobile/features/dictionary/kasem_key_bar.dart';
 import 'package:indigen_world_mobile/features/dictionary/merge_screen.dart';
+import 'package:indigen_world_mobile/features/settings/kasem_keyboard_toggle.dart';
 import 'package:indigen_world_mobile/shared/glass_popup.dart';
 import 'package:indigen_world_mobile/shared/glass_surface.dart';
 
@@ -83,7 +83,9 @@ class _EntryEditorScreenState extends ConsumerState<EntryEditorScreen> {
     'present': TextEditingController(text: widget.entry.presentForm),
     'past': TextEditingController(text: widget.entry.pastForm),
     'future': TextEditingController(text: widget.entry.futureForm),
-    'pluralSubject': TextEditingController(text: widget.entry.pluralSubjectForm),
+    'pluralSubject': TextEditingController(
+      text: widget.entry.pluralSubjectForm,
+    ),
     'imperative': TextEditingController(text: widget.entry.imperativeForm),
     'agreeingOne': TextEditingController(text: widget.entry.agreeingOneForm),
     'agreeingTwo': TextEditingController(text: widget.entry.agreeingTwoForm),
@@ -177,11 +179,7 @@ class _EntryEditorScreenState extends ConsumerState<EntryEditorScreen> {
   EntryPatch _buildPatch() {
     final entry = widget.entry;
     var patch = const EntryPatch.empty()
-        .withField(
-          'kasemText',
-          _headword.text.trim(),
-          original: entry.headword,
-        )
+        .withField('kasemText', _headword.text.trim(), original: entry.headword)
         .withField(
           'englishText',
           _english.text.trim(),
@@ -238,22 +236,22 @@ class _EntryEditorScreenState extends ConsumerState<EntryEditorScreen> {
       for (final row in _forms.entries)
         if (row.value.text.trim().isNotEmpty) row.key: row.value.text.trim(),
     };
-    final originalForms = <String, String>{
-      for (final row in _forms.entries) row.key: '',
-    }..addAll({
-      'definite': entry.definiteForm,
-      'plural': entry.pluralForm,
-      'pluralDefinite': entry.pluralDefiniteForm,
-      'counted': entry.countedForm,
-      'pronoun': entry.pronounForm,
-      'present': entry.presentForm,
-      'past': entry.pastForm,
-      'future': entry.futureForm,
-      'pluralSubject': entry.pluralSubjectForm,
-      'imperative': entry.imperativeForm,
-      'agreeingOne': entry.agreeingOneForm,
-      'agreeingTwo': entry.agreeingTwoForm,
-    });
+    final originalForms =
+        <String, String>{for (final row in _forms.entries) row.key: ''}
+          ..addAll({
+            'definite': entry.definiteForm,
+            'plural': entry.pluralForm,
+            'pluralDefinite': entry.pluralDefiniteForm,
+            'counted': entry.countedForm,
+            'pronoun': entry.pronounForm,
+            'present': entry.presentForm,
+            'past': entry.pastForm,
+            'future': entry.futureForm,
+            'pluralSubject': entry.pluralSubjectForm,
+            'imperative': entry.imperativeForm,
+            'agreeingOne': entry.agreeingOneForm,
+            'agreeingTwo': entry.agreeingTwoForm,
+          });
     originalForms.removeWhere((_, value) => value.isEmpty);
     patch = patch.withField('forms', forms, original: originalForms);
 
@@ -405,14 +403,8 @@ class _EntryEditorScreenState extends ConsumerState<EntryEditorScreen> {
             ),
         ],
       ),
-      // The character bar sits above the keyboard rather than in the form. 785
-      // of the published headwords carry a letter no stock keyboard produces,
-      // and a validator correcting a spelling is the person who needs those
-      // letters most.
-      bottomNavigationBar: KasemKeyBar(
-        targets: _kasemFocus,
-        onInserted: () => setState(() {}),
-      ),
+      // Opens setup or the system picker for the Kasem keyboard.
+      bottomNavigationBar: KasemKeyboardToggle(targets: _kasemFocus),
       body: SafeArea(
         bottom: false,
         child: Align(
@@ -439,7 +431,8 @@ class _EntryEditorScreenState extends ConsumerState<EntryEditorScreen> {
                 duplicates.when(
                   loading: () => const SizedBox.shrink(),
                   error: (_, _) => const SizedBox.shrink(),
-                  data: (existing) => existing.matches
+                  data: (existing) =>
+                      existing.matches
                           .where((row) => row.id != widget.entry.id)
                           .isEmpty
                       ? const SizedBox.shrink()
@@ -495,10 +488,7 @@ class _EntryEditorScreenState extends ConsumerState<EntryEditorScreen> {
                       label: 'IPA',
                       helper: 'Without the slashes — the entry adds them.',
                     ),
-                    _Field(
-                      controller: _pronunciation,
-                      label: 'Written guide',
-                    ),
+                    _Field(controller: _pronunciation, label: 'Written guide'),
                   ],
                 ),
                 _FieldGroup(
@@ -768,10 +758,7 @@ class _ExistingRow extends StatelessWidget {
                     if (row.englishText.isNotEmpty)
                       Text(
                         row.englishText,
-                        style: TextStyle(
-                          color: brand.mutedInk,
-                          fontSize: 12.5,
-                        ),
+                        style: TextStyle(color: brand.mutedInk, fontSize: 12.5),
                       ),
                   ],
                 ),

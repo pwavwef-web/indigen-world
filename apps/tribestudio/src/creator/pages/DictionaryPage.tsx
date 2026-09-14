@@ -52,8 +52,14 @@ import {
   fetchMyDictionaryContributions,
   renderings,
   submitDictionaryEntry,
+  withdrawDictionaryContribution,
+  canWithdrawContribution,
+  reviewDraft,
+  type AssistCheck,
 } from '../dictionary-data';
 import { TableShell } from '@indigen-world/console-ui';
+import { VoiceRecorder } from '../components';
+import { uploadSubmissionMedia } from '../data';
 
 const TIERS = enums.culturalPermissionTier as readonly string[];
 const TIER_LABELS: Record<string, string> = {
@@ -88,6 +94,10 @@ export function DictionaryPage() {
   const [toast, setToast] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null);
   const [matches, setMatches] = useState<PublishedHeadword[]>([]);
   const [mine, setMine] = useState<MyDictionaryContribution[]>([]);
+  const [audioPct, setAudioPct] = useState<number | null>(null);
+  const [withdrawing, setWithdrawing] = useState<string | null>(null);
+  const [confirmWithdraw, setConfirmWithdraw] = useState<string | null>(null);
+  const [assist, setAssist] = useState<AssistCheck[]>([]);
   const [loadingMine, setLoadingMine] = useState(true);
   const [restored] = useState(() => loadDraft() != null);
 
@@ -280,6 +290,70 @@ export function DictionaryPage() {
     Boolean(draft.source.trim()) &&
     draft.consentGranted;
 
+  // Debounced, because the callable is rate-limited per minute and because
+  // advice that arrives on every keystroke is noise. Both sides have to carry
+  // something before there is anything to judge.
+  const assistKasem = draft.headword.trim();
+  const assistEnglish = draft.senses[0]?.definition.trim() ?? '';
+  const assistPos = draft.partOfSpeech;
+  useEffect(() => {
+    if (assistKasem.length < 2 || assistEnglish.length < 2) {
+      setAssist([]);
+      return;
+    }
+    let active = true;
+    const timer = window.setTimeout(() => {
+      void reviewDraft({ kasem: assistKasem, english: assistEnglish, partOfSpeech: assistPos })
+        .then((checks) => { if (active) setAssist(checks); });
+    }, 800);
+    return () => { active = false; window.clearTimeout(timer); };
+  }, [assistKasem, assistEnglish, assistPos]);
+
+  /**
+   * Uploads a headword recording into this contributor's own submission
+   * prefix, which is the only prefix submitCollectionContribution will accept.
+   * The same helper the post wizard uses, with the collection campaign id.
+   */
+  const attachPronunciation = async (file: File) => {
+    if (!user) return;
+    setAudioPct(0);
+    try {
+      const { storagePath } = await uploadSubmissionMedia(
+        user.uid,
+        'collection-contributions',
+        `pronunciation-${Date.now()}`,
+        file,
+        setAudioPct,
+      );
+      update('pronunciation', {
+        storagePath,
+        mimeType: file.type || 'audio/webm',
+        sizeBytes: file.size,
+        mediaType: 'audio' as const,
+        name: file.name,
+      });
+      setAudioPct(100);
+      flash('ok', 'Pronunciation attached. It will play on the published entry.');
+    } catch (err) {
+      setAudioPct(null);
+      flash('err', err instanceof Error ? err.message : 'The recording could not be uploaded.');
+    }
+  };
+
+  const withdraw = async (contributionId: string) => {
+    setWithdrawing(contributionId);
+    try {
+      await withdrawDictionaryContribution(contributionId);
+      setConfirmWithdraw(null);
+      flash('ok', 'Withdrawn. It is no longer in the queue or published anywhere.');
+      await loadMine();
+    } catch (err) {
+      flash('err', err instanceof Error ? err.message : 'That could not be withdrawn.');
+    } finally {
+      setWithdrawing(null);
+    }
+  };
+
   const submit = async () => {
     if (!canSubmit) {
       flash(
@@ -367,6 +441,55 @@ export function DictionaryPage() {
                 Exactly as it is said and spelled. Several spellings of the same word can be
                 separated with commas — the first becomes the headword.
               </p>
+            </div>
+
+            {assist.length > 0 ? (
+              <div className="dict__assist" role="status">
+                <p className="tiny muted">Before you send — worth a look:</p>
+                <ul>
+                  {assist.map((check) => (
+                    <li key={check.id} className={`dict__assist-item dict__assist-item--${check.severity}`}>
+                      <strong>{check.title}</strong>
+                      <p>{check.detail}</p>
+                      {check.entries && check.entries.length > 0 ? (
+                        <p className="tiny muted">
+                          {check.entries
+                            .map((entry) => `${entry.kasem} — ${entry.english}`)
+                            .join(' · ')}
+                        </p>
+                      ) : null}
+                    </li>
+                  ))}
+                </ul>
+                <p className="tiny muted">
+                  This is advice, not a rule. If your word is right, send it.
+                </p>
+              </div>
+            ) : null}
+
+            <div className="field">
+              <label htmlFor="pronunciation">Say the word (optional)</label>
+              <p className="field__hint">
+                A recording of the headword being said. It becomes the pronunciation a reader
+                hears on the published entry, so a word entered at a desk is no more silent than
+                one entered on a phone.
+              </p>
+              <VoiceRecorder onAudioReady={(file) => void attachPronunciation(file)} />
+              {audioPct !== null && audioPct < 100 ? (
+                <div className="upload"><div className="upload__bar"><span style={{ width: `${audioPct}%` }} /></div><span className="tiny">Uploading… {audioPct}%</span></div>
+              ) : null}
+              {draft.pronunciation ? (
+                <p className="asset-ready">
+                  <span>✓</span>{draft.pronunciation.name}
+                  <button
+                    type="button"
+                    className="button button--small button--ghost-dark"
+                    onClick={() => { update('pronunciation', null); setAudioPct(null); }}
+                  >
+                    Remove
+                  </button>
+                </p>
+              ) : null}
             </div>
 
             {matches.length > 0 ? (
@@ -692,7 +815,7 @@ export function DictionaryPage() {
       <section className="panel dict__mine">
         <h2>Entries you have sent</h2>
         {loadingMine ? (
-          <p className="notice">Loading…</p>
+          <p className="notice">Loading your entries…</p>
         ) : mine.length === 0 ? (
           <p className="notice">Nothing yet. The first entry you send appears here.</p>
         ) : (
@@ -711,6 +834,36 @@ export function DictionaryPage() {
                 </div>
                 <div className="list__side">
                   <span className={`badge badge--${item.status}`}>{item.status}</span>
+                  {canWithdrawContribution(item.status) ? (
+                    confirmWithdraw === item.id ? (
+                      <>
+                        <button
+                          type="button"
+                          className="button button--small button--danger"
+                          disabled={withdrawing === item.id}
+                          onClick={() => void withdraw(item.id)}
+                        >
+                          {withdrawing === item.id ? 'Withdrawing…' : 'Confirm'}
+                        </button>
+                        <button
+                          type="button"
+                          className="button button--small button--ghost-dark"
+                          disabled={withdrawing === item.id}
+                          onClick={() => setConfirmWithdraw(null)}
+                        >
+                          Keep
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        type="button"
+                        className="button button--small button--ghost-dark"
+                        onClick={() => setConfirmWithdraw(item.id)}
+                      >
+                        {item.status.toLowerCase() === 'published' ? 'Revoke publication' : 'Withdraw'}
+                      </button>
+                    )
+                  ) : null}
                 </div>
               </li>
             ))}

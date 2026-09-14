@@ -73,6 +73,43 @@ class CommunityMediaPicker {
     return _stageVideo(file.path);
   }
 
+  /// The path of a recorded or chosen clip, without staging it.
+  ///
+  /// For the reel creator, which measures the clip in milliseconds, draws its
+  /// own cover and moves the file into a draft folder — everything [pickVideo]
+  /// does, in a different shape. Null when the member backed out.
+  Future<String?> pickVideoFile({required ImageSource source}) async {
+    final file = await _picker.pickVideo(
+      source: source,
+      maxDuration: maxVideoDuration,
+    );
+    return file?.path;
+  }
+
+  /// A picture from the gallery, resized like every other upload. Null when
+  /// the member backed out.
+  Future<String?> pickImageFile() async {
+    final file = await _picker.pickImage(
+      source: ImageSource.gallery,
+      maxWidth: _maxImageDimension,
+      maxHeight: _maxImageDimension,
+      imageQuality: _imageQuality,
+    );
+    return file?.path;
+  }
+
+  /// The clip Android took away with the app, as a path — see
+  /// [recoverLostMedia]. Null in the ordinary case.
+  Future<String?> recoverLostVideoFile() async {
+    try {
+      final response = await _picker.retrieveLostData();
+      if (response.isEmpty || response.type != RetrieveType.video) return null;
+      return response.files?.firstOrNull?.path ?? response.file?.path;
+    } on Object {
+      return null;
+    }
+  }
+
   /// The photograph or clip Android took away with the app.
   ///
   /// ── The bug ──────────────────────────────────────────────────────────
@@ -199,6 +236,32 @@ class CommunityMediaPicker {
 
 /// Which of the four routes into the device the member chose.
 enum _MediaChoice { gallery, photo, video, reel }
+
+/// The two shortcuts the feed's compose bar offers.
+enum CommunityMediaKind { photo, video }
+
+/// Opens the gallery straight at photos or at videos, skipping the choice
+/// card — the member already said which by tapping that icon on the compose
+/// bar. A single photo still goes through the cropper, exactly as it does from
+/// the card.
+Future<List<PendingUpload>> pickCommunityMedia(
+  BuildContext context, {
+  required CommunityMediaKind kind,
+  required int remainingSlots,
+}) async {
+  const picker = CommunityMediaPicker();
+  final picked = switch (kind) {
+    CommunityMediaKind.photo => await picker.pickImages(limit: remainingSlots),
+    CommunityMediaKind.video => [
+      ?await picker.pickVideo(source: ImageSource.gallery),
+    ],
+  };
+  if (picked.length == 1 && picked.single.mediaType == 'image') {
+    if (!context.mounted) return picked;
+    return [await cropAttachment(context, picked.single)];
+  }
+  return picked;
+}
 
 /// Centered glass card offering camera / gallery for photos and videos.
 /// Returns the staged uploads, or an empty list when dismissed.

@@ -62,8 +62,7 @@ import 'app_localizations_fr.dart';
 /// be consistent with the languages listed in the AppLocalizations.supportedLocales
 /// property.
 abstract class AppLocalizations {
-  AppLocalizations(String locale)
-    : localeName = intl.Intl.canonicalizedLocale(locale.toString());
+  AppLocalizations(String locale) : localeName = intl.Intl.canonicalizedLocale(locale.toString());
 
   final String localeName;
 
@@ -71,8 +70,7 @@ abstract class AppLocalizations {
     return Localizations.of<AppLocalizations>(context, AppLocalizations)!;
   }
 
-  static const LocalizationsDelegate<AppLocalizations> delegate =
-      _AppLocalizationsDelegate();
+  static const LocalizationsDelegate<AppLocalizations> delegate = _AppLocalizationsDelegate();
 
   /// A list of this localizations delegate along with the default localizations
   /// delegates.
@@ -84,18 +82,17 @@ abstract class AppLocalizations {
   /// Additional delegates can be added by appending to this list in
   /// MaterialApp. This list does not have to be used at all if a custom list
   /// of delegates is preferred or required.
-  static const List<LocalizationsDelegate<dynamic>> localizationsDelegates =
-      <LocalizationsDelegate<dynamic>>[
-        delegate,
-        GlobalMaterialLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-      ];
+  static const List<LocalizationsDelegate<dynamic>> localizationsDelegates = <LocalizationsDelegate<dynamic>>[
+    delegate,
+    GlobalMaterialLocalizations.delegate,
+    GlobalCupertinoLocalizations.delegate,
+    GlobalWidgetsLocalizations.delegate,
+  ];
 
   /// A list of this localizations delegate's supported locales.
   static const List<Locale> supportedLocales = <Locale>[
     Locale('en'),
-    Locale('fr'),
+    Locale('fr')
   ];
 
   /// The app's name. Not translated — it is a brand.
@@ -311,7 +308,7 @@ abstract class AppLocalizations {
   /// No description provided for @communityCompose.
   ///
   /// In en, this message translates to:
-  /// **'Make a Kasem post'**
+  /// **'Make a post'**
   String get communityCompose;
 
   /// No description provided for @communityNewVoices.
@@ -385,6 +382,900 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Try again'**
   String get communityTryAgain;
+
+  /// No description provided for @communityComposeIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Post in {community}'**
+  String communityComposeIn(String community);
+
+  /// No description provided for @communityAddPhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a photo'**
+  String get communityAddPhoto;
+
+  /// No description provided for @communityAddVideo.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a video'**
+  String get communityAddVideo;
+
+  /// No description provided for @communityCommunitiesTab.
+  ///
+  /// In en, this message translates to:
+  /// **'Communities'**
+  String get communityCommunitiesTab;
+
+  /// No description provided for @communityCommunitiesTabSemantics.
+  ///
+  /// In en, this message translates to:
+  /// **'Communities. Find, join or create a community'**
+  String get communityCommunitiesTabSemantics;
+
+  /// No description provided for @communityPromptTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Today in {language}'**
+  String communityPromptTitle(String language);
+
+  /// No description provided for @communityPromptSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Share a word from home'**
+  String get communityPromptSubtitle;
+
+  /// No description provided for @communityPromptHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Share a word from home, and what it means…'**
+  String get communityPromptHint;
+
+  /// No description provided for @communityPromptSemantics.
+  ///
+  /// In en, this message translates to:
+  /// **'{title}. {subtitle}. Opens the composer'**
+  String communityPromptSemantics(String title, String subtitle);
+
+  /// No description provided for @communityNewVoicesSeeAll.
+  ///
+  /// In en, this message translates to:
+  /// **'See all'**
+  String get communityNewVoicesSeeAll;
+
+  /// No description provided for @communityVoiceNew.
+  ///
+  /// In en, this message translates to:
+  /// **'New member'**
+  String get communityVoiceNew;
+
+  /// No description provided for @communityVoiceDialect.
+  ///
+  /// In en, this message translates to:
+  /// **'Near you'**
+  String get communityVoiceDialect;
+
+  /// No description provided for @communityVoiceCommunity.
+  ///
+  /// In en, this message translates to:
+  /// **'In your communities'**
+  String get communityVoiceCommunity;
+
+  /// No description provided for @communityVoiceCreator.
+  ///
+  /// In en, this message translates to:
+  /// **'Creator'**
+  String get communityVoiceCreator;
+
+  /// No description provided for @communityVoiceActive.
+  ///
+  /// In en, this message translates to:
+  /// **'Posting now'**
+  String get communityVoiceActive;
+
+  /// No description provided for @communityLoadingMore.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading more posts'**
+  String get communityLoadingMore;
+
+  /// No description provided for @communityCaughtUp.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re all caught up'**
+  String get communityCaughtUp;
+
+  /// No description provided for @communityPostedIn.
+  ///
+  /// In en, this message translates to:
+  /// **'in {community}'**
+  String communityPostedIn(String community);
+
+  /// No description provided for @communityPostCategory.
+  ///
+  /// In en, this message translates to:
+  /// **'Kind of post'**
+  String get communityPostCategory;
+
+  /// No description provided for @postCategoryQuestion.
+  ///
+  /// In en, this message translates to:
+  /// **'Question'**
+  String get postCategoryQuestion;
+
+  /// No description provided for @postCategoryLanguage.
+  ///
+  /// In en, this message translates to:
+  /// **'Language'**
+  String get postCategoryLanguage;
+
+  /// No description provided for @postCategoryCulture.
+  ///
+  /// In en, this message translates to:
+  /// **'Culture'**
+  String get postCategoryCulture;
+
+  /// No description provided for @postCategoryMusic.
+  ///
+  /// In en, this message translates to:
+  /// **'Music'**
+  String get postCategoryMusic;
+
+  /// No description provided for @postCategoryStory.
+  ///
+  /// In en, this message translates to:
+  /// **'Story'**
+  String get postCategoryStory;
+
+  /// No description provided for @postCategoryAnnouncement.
+  ///
+  /// In en, this message translates to:
+  /// **'Announcement'**
+  String get postCategoryAnnouncement;
+
+  /// No description provided for @communitiesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Communities'**
+  String get communitiesTitle;
+
+  /// No description provided for @communitiesSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search name, language, place or topic'**
+  String get communitiesSearchHint;
+
+  /// No description provided for @communitiesSearchLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Search communities'**
+  String get communitiesSearchLabel;
+
+  /// No description provided for @communitiesClearSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear search'**
+  String get communitiesClearSearch;
+
+  /// No description provided for @communitiesDiscover.
+  ///
+  /// In en, this message translates to:
+  /// **'Discover'**
+  String get communitiesDiscover;
+
+  /// No description provided for @communitiesJoined.
+  ///
+  /// In en, this message translates to:
+  /// **'Joined'**
+  String get communitiesJoined;
+
+  /// No description provided for @communitiesCreate.
+  ///
+  /// In en, this message translates to:
+  /// **'Create'**
+  String get communitiesCreate;
+
+  /// No description provided for @communitiesCreateCommunity.
+  ///
+  /// In en, this message translates to:
+  /// **'Create a community'**
+  String get communitiesCreateCommunity;
+
+  /// No description provided for @communitiesMembers.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 member} other{{count} members}}'**
+  String communitiesMembers(int count);
+
+  /// No description provided for @communitiesPrivate.
+  ///
+  /// In en, this message translates to:
+  /// **'Private'**
+  String get communitiesPrivate;
+
+  /// No description provided for @communitiesPublic.
+  ///
+  /// In en, this message translates to:
+  /// **'Public'**
+  String get communitiesPublic;
+
+  /// No description provided for @communitiesJoin.
+  ///
+  /// In en, this message translates to:
+  /// **'Join'**
+  String get communitiesJoin;
+
+  /// No description provided for @communitiesRequest.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask to join'**
+  String get communitiesRequest;
+
+  /// No description provided for @communitiesRequested.
+  ///
+  /// In en, this message translates to:
+  /// **'Requested'**
+  String get communitiesRequested;
+
+  /// No description provided for @communitiesMember.
+  ///
+  /// In en, this message translates to:
+  /// **'Joined'**
+  String get communitiesMember;
+
+  /// No description provided for @communitiesLeave.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave community'**
+  String get communitiesLeave;
+
+  /// No description provided for @communitiesCancelRequest.
+  ///
+  /// In en, this message translates to:
+  /// **'Withdraw request'**
+  String get communitiesCancelRequest;
+
+  /// No description provided for @communitiesNoneJoined.
+  ///
+  /// In en, this message translates to:
+  /// **'You haven\'t joined a community yet'**
+  String get communitiesNoneJoined;
+
+  /// No description provided for @communitiesNoneJoinedAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Discover communities'**
+  String get communitiesNoneJoinedAction;
+
+  /// No description provided for @communitiesNoResults.
+  ///
+  /// In en, this message translates to:
+  /// **'No communities match “{query}”'**
+  String communitiesNoResults(String query);
+
+  /// No description provided for @communitiesNoResultsAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Start one'**
+  String get communitiesNoResultsAction;
+
+  /// No description provided for @communitiesEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No communities yet'**
+  String get communitiesEmpty;
+
+  /// No description provided for @communitiesLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Communities could not load'**
+  String get communitiesLoadFailed;
+
+  /// No description provided for @communityTabFeed.
+  ///
+  /// In en, this message translates to:
+  /// **'Feed'**
+  String get communityTabFeed;
+
+  /// No description provided for @communityTabAbout.
+  ///
+  /// In en, this message translates to:
+  /// **'About'**
+  String get communityTabAbout;
+
+  /// No description provided for @communityTabMembers.
+  ///
+  /// In en, this message translates to:
+  /// **'Members'**
+  String get communityTabMembers;
+
+  /// No description provided for @communityTabRules.
+  ///
+  /// In en, this message translates to:
+  /// **'Rules'**
+  String get communityTabRules;
+
+  /// No description provided for @communityShareCommunity.
+  ///
+  /// In en, this message translates to:
+  /// **'Share community'**
+  String get communityShareCommunity;
+
+  /// No description provided for @communityReportCommunity.
+  ///
+  /// In en, this message translates to:
+  /// **'Report community'**
+  String get communityReportCommunity;
+
+  /// No description provided for @communityMoreOptions.
+  ///
+  /// In en, this message translates to:
+  /// **'More options'**
+  String get communityMoreOptions;
+
+  /// No description provided for @communityPendingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your request is waiting for approval'**
+  String get communityPendingTitle;
+
+  /// No description provided for @communityPendingBody.
+  ///
+  /// In en, this message translates to:
+  /// **'A moderator will look at it soon.'**
+  String get communityPendingBody;
+
+  /// No description provided for @communityPrivateTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'This community is private'**
+  String get communityPrivateTitle;
+
+  /// No description provided for @communityPrivateBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask to join to see its posts and members.'**
+  String get communityPrivateBody;
+
+  /// No description provided for @communityUnavailableTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'This community is unavailable'**
+  String get communityUnavailableTitle;
+
+  /// No description provided for @communityUnavailableBody.
+  ///
+  /// In en, this message translates to:
+  /// **'It may have been removed, or the link is wrong.'**
+  String get communityUnavailableBody;
+
+  /// No description provided for @communityBannedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'You can\'t take part in this community'**
+  String get communityBannedTitle;
+
+  /// No description provided for @communitySpaceEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No posts here yet'**
+  String get communitySpaceEmpty;
+
+  /// No description provided for @communityJoinToPost.
+  ///
+  /// In en, this message translates to:
+  /// **'Join to post here'**
+  String get communityJoinToPost;
+
+  /// No description provided for @communityAboutCategory.
+  ///
+  /// In en, this message translates to:
+  /// **'Category'**
+  String get communityAboutCategory;
+
+  /// No description provided for @communityAboutLanguage.
+  ///
+  /// In en, this message translates to:
+  /// **'Primary language'**
+  String get communityAboutLanguage;
+
+  /// No description provided for @communityAboutLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Place or cultural group'**
+  String get communityAboutLocation;
+
+  /// No description provided for @communityAboutCreated.
+  ///
+  /// In en, this message translates to:
+  /// **'Created'**
+  String get communityAboutCreated;
+
+  /// No description provided for @communityAboutVisibility.
+  ///
+  /// In en, this message translates to:
+  /// **'Visibility'**
+  String get communityAboutVisibility;
+
+  /// No description provided for @communityAboutNoDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'No description yet.'**
+  String get communityAboutNoDescription;
+
+  /// No description provided for @communityNoRules.
+  ///
+  /// In en, this message translates to:
+  /// **'No rules have been written yet.'**
+  String get communityNoRules;
+
+  /// No description provided for @communityRequests.
+  ///
+  /// In en, this message translates to:
+  /// **'Requests to join'**
+  String get communityRequests;
+
+  /// No description provided for @communityApprove.
+  ///
+  /// In en, this message translates to:
+  /// **'Approve'**
+  String get communityApprove;
+
+  /// No description provided for @communityDecline.
+  ///
+  /// In en, this message translates to:
+  /// **'Decline'**
+  String get communityDecline;
+
+  /// No description provided for @communityRoleOwner.
+  ///
+  /// In en, this message translates to:
+  /// **'Owner'**
+  String get communityRoleOwner;
+
+  /// No description provided for @communityRoleAdmin.
+  ///
+  /// In en, this message translates to:
+  /// **'Admin'**
+  String get communityRoleAdmin;
+
+  /// No description provided for @communityRoleModerator.
+  ///
+  /// In en, this message translates to:
+  /// **'Moderator'**
+  String get communityRoleModerator;
+
+  /// No description provided for @communityMemberActions.
+  ///
+  /// In en, this message translates to:
+  /// **'Member options'**
+  String get communityMemberActions;
+
+  /// No description provided for @communityMakeModerator.
+  ///
+  /// In en, this message translates to:
+  /// **'Make moderator'**
+  String get communityMakeModerator;
+
+  /// No description provided for @communityMakeAdmin.
+  ///
+  /// In en, this message translates to:
+  /// **'Make admin'**
+  String get communityMakeAdmin;
+
+  /// No description provided for @communityMakeMember.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove role'**
+  String get communityMakeMember;
+
+  /// No description provided for @communityRemoveMember.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from community'**
+  String get communityRemoveMember;
+
+  /// No description provided for @communityBanMember.
+  ///
+  /// In en, this message translates to:
+  /// **'Ban from community'**
+  String get communityBanMember;
+
+  /// No description provided for @communityMembersEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No members to show'**
+  String get communityMembersEmpty;
+
+  /// No description provided for @createCommunityStepBasics.
+  ///
+  /// In en, this message translates to:
+  /// **'Basics'**
+  String get createCommunityStepBasics;
+
+  /// No description provided for @createCommunityStepDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Details'**
+  String get createCommunityStepDetails;
+
+  /// No description provided for @createCommunityStepLook.
+  ///
+  /// In en, this message translates to:
+  /// **'Look and rules'**
+  String get createCommunityStepLook;
+
+  /// No description provided for @createCommunityName.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get createCommunityName;
+
+  /// No description provided for @createCommunityNameHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. Navrongo Kasem Circle'**
+  String get createCommunityNameHint;
+
+  /// No description provided for @createCommunityAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'Address'**
+  String get createCommunityAddress;
+
+  /// No description provided for @createCommunityAddressHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Lowercase letters, numbers and hyphens. Can\'t be changed later.'**
+  String get createCommunityAddressHelper;
+
+  /// No description provided for @createCommunityAddressChecking.
+  ///
+  /// In en, this message translates to:
+  /// **'Checking the address…'**
+  String get createCommunityAddressChecking;
+
+  /// No description provided for @createCommunityAddressFree.
+  ///
+  /// In en, this message translates to:
+  /// **'This address is free'**
+  String get createCommunityAddressFree;
+
+  /// No description provided for @createCommunityCategory.
+  ///
+  /// In en, this message translates to:
+  /// **'Category'**
+  String get createCommunityCategory;
+
+  /// No description provided for @createCommunityDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Description'**
+  String get createCommunityDescription;
+
+  /// No description provided for @createCommunityDescriptionHint.
+  ///
+  /// In en, this message translates to:
+  /// **'What is this community for?'**
+  String get createCommunityDescriptionHint;
+
+  /// No description provided for @createCommunityLanguage.
+  ///
+  /// In en, this message translates to:
+  /// **'Primary language'**
+  String get createCommunityLanguage;
+
+  /// No description provided for @createCommunityLanguageHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. Kasem'**
+  String get createCommunityLanguageHint;
+
+  /// No description provided for @createCommunityLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Location or cultural group'**
+  String get createCommunityLocation;
+
+  /// No description provided for @createCommunityLocationHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. Paga, Kassena-Nankana'**
+  String get createCommunityLocationHint;
+
+  /// No description provided for @createCommunityVisibility.
+  ///
+  /// In en, this message translates to:
+  /// **'Who can read posts?'**
+  String get createCommunityVisibility;
+
+  /// No description provided for @createCommunityPublicBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Anyone can read posts and join.'**
+  String get createCommunityPublicBody;
+
+  /// No description provided for @createCommunityPrivateBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Only approved members read posts. People ask to join.'**
+  String get createCommunityPrivateBody;
+
+  /// No description provided for @createCommunityVisibilityLocked.
+  ///
+  /// In en, this message translates to:
+  /// **'This can\'t be changed after the community is created.'**
+  String get createCommunityVisibilityLocked;
+
+  /// No description provided for @createCommunityProfileImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile image'**
+  String get createCommunityProfileImage;
+
+  /// No description provided for @createCommunityCoverImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Cover image'**
+  String get createCommunityCoverImage;
+
+  /// No description provided for @createCommunityChooseImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose picture'**
+  String get createCommunityChooseImage;
+
+  /// No description provided for @createCommunityRemoveImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove picture'**
+  String get createCommunityRemoveImage;
+
+  /// No description provided for @createCommunityImageHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'JPG, PNG or WebP, under 12 MB.'**
+  String get createCommunityImageHelper;
+
+  /// No description provided for @createCommunityRules.
+  ///
+  /// In en, this message translates to:
+  /// **'Rules'**
+  String get createCommunityRules;
+
+  /// No description provided for @createCommunityRuleHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Rule {number}'**
+  String createCommunityRuleHint(int number);
+
+  /// No description provided for @createCommunityAddRule.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a rule'**
+  String get createCommunityAddRule;
+
+  /// No description provided for @createCommunityRemoveRule.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove rule'**
+  String get createCommunityRemoveRule;
+
+  /// No description provided for @createCommunityNext.
+  ///
+  /// In en, this message translates to:
+  /// **'Next'**
+  String get createCommunityNext;
+
+  /// No description provided for @createCommunityBack.
+  ///
+  /// In en, this message translates to:
+  /// **'Back'**
+  String get createCommunityBack;
+
+  /// No description provided for @createCommunitySubmit.
+  ///
+  /// In en, this message translates to:
+  /// **'Create community'**
+  String get createCommunitySubmit;
+
+  /// No description provided for @createCommunitySubmitting.
+  ///
+  /// In en, this message translates to:
+  /// **'Creating…'**
+  String get createCommunitySubmitting;
+
+  /// No description provided for @communityCategoryLanguage.
+  ///
+  /// In en, this message translates to:
+  /// **'Language'**
+  String get communityCategoryLanguage;
+
+  /// No description provided for @communityCategoryCulture.
+  ///
+  /// In en, this message translates to:
+  /// **'Culture'**
+  String get communityCategoryCulture;
+
+  /// No description provided for @communityCategoryMusic.
+  ///
+  /// In en, this message translates to:
+  /// **'Music'**
+  String get communityCategoryMusic;
+
+  /// No description provided for @communityCategoryHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'History'**
+  String get communityCategoryHistory;
+
+  /// No description provided for @communityCategoryFaith.
+  ///
+  /// In en, this message translates to:
+  /// **'Faith'**
+  String get communityCategoryFaith;
+
+  /// No description provided for @communityCategoryEducation.
+  ///
+  /// In en, this message translates to:
+  /// **'Education'**
+  String get communityCategoryEducation;
+
+  /// No description provided for @communityCategoryHometown.
+  ///
+  /// In en, this message translates to:
+  /// **'Hometown'**
+  String get communityCategoryHometown;
+
+  /// No description provided for @communityCategoryDiaspora.
+  ///
+  /// In en, this message translates to:
+  /// **'Diaspora'**
+  String get communityCategoryDiaspora;
+
+  /// No description provided for @communityCategoryYouth.
+  ///
+  /// In en, this message translates to:
+  /// **'Youth'**
+  String get communityCategoryYouth;
+
+  /// No description provided for @communityCategoryOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Other'**
+  String get communityCategoryOther;
+
+  /// No description provided for @communityOptions.
+  ///
+  /// In en, this message translates to:
+  /// **'Community options'**
+  String get communityOptions;
+
+  /// No description provided for @communityEditCommunity.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit community'**
+  String get communityEditCommunity;
+
+  /// No description provided for @communityEditSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save changes'**
+  String get communityEditSave;
+
+  /// No description provided for @communityEditSaving.
+  ///
+  /// In en, this message translates to:
+  /// **'Saving…'**
+  String get communityEditSaving;
+
+  /// No description provided for @communityEditSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Community updated.'**
+  String get communityEditSaved;
+
+  /// No description provided for @communityEditAddressFixed.
+  ///
+  /// In en, this message translates to:
+  /// **'Address: communities/{slug}. It can\'t be changed.'**
+  String communityEditAddressFixed(String slug);
+
+  /// No description provided for @communityEditVisibilityFixed.
+  ///
+  /// In en, this message translates to:
+  /// **'{visibility}. Visibility can\'t be changed after a community is created.'**
+  String communityEditVisibilityFixed(String visibility);
+
+  /// No description provided for @communityEditDiscardTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard your changes?'**
+  String get communityEditDiscardTitle;
+
+  /// No description provided for @communityEditDiscardBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing you changed here has been saved.'**
+  String get communityEditDiscardBody;
+
+  /// No description provided for @communityEditDiscard.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard'**
+  String get communityEditDiscard;
+
+  /// No description provided for @communityHandOver.
+  ///
+  /// In en, this message translates to:
+  /// **'Hand over ownership'**
+  String get communityHandOver;
+
+  /// No description provided for @communityHandOverTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose the new owner'**
+  String get communityHandOverTitle;
+
+  /// No description provided for @communityHandOverBody.
+  ///
+  /// In en, this message translates to:
+  /// **'They become the owner. You stay on as an admin, and can leave afterwards.'**
+  String get communityHandOverBody;
+
+  /// No description provided for @communityHandOverConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Make {name} the owner?'**
+  String communityHandOverConfirm(String name);
+
+  /// No description provided for @communityHandOverDone.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} now owns this community.'**
+  String communityHandOverDone(String name);
+
+  /// No description provided for @communityHandOverNobody.
+  ///
+  /// In en, this message translates to:
+  /// **'Nobody else is in this community yet. You can close it instead.'**
+  String get communityHandOverNobody;
+
+  /// No description provided for @communityClose.
+  ///
+  /// In en, this message translates to:
+  /// **'Close community'**
+  String get communityClose;
+
+  /// No description provided for @communityCloseTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Close {name}?'**
+  String communityCloseTitle(String name);
+
+  /// No description provided for @communityCloseBody.
+  ///
+  /// In en, this message translates to:
+  /// **'It stops taking members and posts, and its address stays reserved. This can\'t be undone from the app.'**
+  String get communityCloseBody;
+
+  /// No description provided for @communityCloseDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Community closed.'**
+  String get communityCloseDone;
+
+  /// No description provided for @communityLeaveOwnerTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'You own this community'**
+  String get communityLeaveOwnerTitle;
+
+  /// No description provided for @communityLeaveOwnerBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Hand it over to another member before leaving, or close it if you are the only one here.'**
+  String get communityLeaveOwnerBody;
 
   /// No description provided for @learnDictionary.
   ///
@@ -675,8 +1566,7 @@ abstract class AppLocalizations {
   String get collectionShop;
 }
 
-class _AppLocalizationsDelegate
-    extends LocalizationsDelegate<AppLocalizations> {
+class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {
   const _AppLocalizationsDelegate();
 
   @override
@@ -685,26 +1575,25 @@ class _AppLocalizationsDelegate
   }
 
   @override
-  bool isSupported(Locale locale) =>
-      <String>['en', 'fr'].contains(locale.languageCode);
+  bool isSupported(Locale locale) => <String>['en', 'fr'].contains(locale.languageCode);
 
   @override
   bool shouldReload(_AppLocalizationsDelegate old) => false;
 }
 
 AppLocalizations lookupAppLocalizations(Locale locale) {
+
+
   // Lookup logic when only language code is specified.
   switch (locale.languageCode) {
-    case 'en':
-      return AppLocalizationsEn();
-    case 'fr':
-      return AppLocalizationsFr();
+    case 'en': return AppLocalizationsEn();
+    case 'fr': return AppLocalizationsFr();
   }
 
   throw FlutterError(
     'AppLocalizations.delegate failed to load unsupported locale "$locale". This is likely '
     'an issue with the localizations generation tool. Please file an issue '
     'on GitHub with a reproducible sample app and the gen-l10n configuration '
-    'that was used.',
+    'that was used.'
   );
 }

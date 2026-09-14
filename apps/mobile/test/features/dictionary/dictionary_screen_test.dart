@@ -22,7 +22,7 @@ import 'package:indigen_world_mobile/domain/dictionary_entry.dart';
 import 'package:indigen_world_mobile/features/ads/collection_ads.dart';
 import 'package:indigen_world_mobile/features/collection/collection_data.dart';
 import 'package:indigen_world_mobile/features/dictionary/dictionary_screen.dart';
-import 'package:indigen_world_mobile/features/dictionary/kasem_key_bar.dart';
+import 'package:indigen_world_mobile/features/settings/kasem_keyboard_toggle.dart';
 
 /// A 720p phone in logical pixels — the device this app is built for.
 const _phone = Size(360, 640);
@@ -122,13 +122,13 @@ void main() {
     await pumpDictionary(tester);
 
     // Nothing until a Kasem box has the cursor.
-    expect(tester.getSize(find.byType(KasemKeyBar)).height, 0);
+    expect(find.text('Use Kasem keyboard'), findsOneWidget);
 
     await tester.tap(find.byType(TextField));
     await tester.pump();
     await tester.pump();
 
-    final bar = tester.getSize(find.byType(KasemKeyBar));
+    final bar = tester.getSize(find.byType(KasemKeyboardToggle));
     expect(bar.height, greaterThan(0), reason: 'the letters are offered');
     expect(
       bar.height,
@@ -142,7 +142,7 @@ void main() {
       _phone.height,
     );
     expect(
-      tester.getBottomLeft(find.byType(KasemKeyBar)).dy,
+      tester.getBottomLeft(find.byType(KasemKeyboardToggle)).dy,
       lessThanOrEqualTo(tester.getTopLeft(find.byType(NavigationBar)).dy + 0.5),
       reason: 'the letters sit above the rail, not over it',
     );
@@ -151,14 +151,14 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('a Kasem letter typed from the bar searches with it', (
+  testWidgets('a Kasem letter typed with the keyboard searches with it', (
     tester,
   ) async {
     await pumpDictionary(tester);
 
     await tester.tap(find.byType(TextField));
     await tester.pump();
-    await tester.tap(find.byTooltip('ɩ — open i'));
+    await tester.enterText(find.byType(TextField), 'ɩ');
     await tester.pump();
     await tester.pump();
 

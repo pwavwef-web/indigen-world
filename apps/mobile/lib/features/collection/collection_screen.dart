@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/domain/dictionary_entry.dart';
@@ -15,11 +14,13 @@ import 'package:indigen_world_mobile/features/collection/collection_data.dart';
 import 'package:indigen_world_mobile/features/collection/collection_detail_screens.dart';
 import 'package:indigen_world_mobile/features/collection/shop_screen.dart';
 import 'package:indigen_world_mobile/features/collection/widgets/collection_card_surface.dart';
+import 'package:indigen_world_mobile/features/collection/widgets/place_story_carousel.dart';
 import 'package:indigen_world_mobile/features/explore/published_content.dart';
 import 'package:indigen_world_mobile/features/heroes/heroes_data.dart';
 import 'package:indigen_world_mobile/features/heroes/heroes_screen.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_fab.dart';
 import 'package:indigen_world_mobile/features/music/music_screen.dart';
+import 'package:indigen_world_mobile/features/subscriptions/data/subscription_providers.dart';
 import 'package:indigen_world_mobile/l10n/app_localizations.dart';
 import 'package:indigen_world_mobile/shared/app_widgets.dart';
 import 'package:indigen_world_mobile/shared/frosted_nav_bar.dart';
@@ -38,7 +39,6 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen>
   final _searchController = TextEditingController();
   Timer? _searchDebounce;
   var _query = '';
-  var _filter = _CollectionFilter.all;
 
   @override
   bool get wantKeepAlive => true;
@@ -66,18 +66,11 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen>
     if (_query.isNotEmpty) setState(() => _query = '');
   }
 
-  void _setFilter(_CollectionFilter filter) {
-    if (_filter == filter) return;
-    HapticFeedback.selectionClick();
-    setState(() => _filter = filter);
-  }
-
   void _resetFilters() {
     _searchDebounce?.cancel();
     _searchController.clear();
     setState(() {
       _query = '';
-      _filter = _CollectionFilter.all;
     });
   }
 
@@ -172,13 +165,10 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen>
 
     final query = _normalise(_query);
     final visiblePortals = portals
-        .where((portal) => portal.matchesFilter(_filter))
         .where((portal) => portal.matchesSearch(query))
         .toList(growable: false);
     final hasLoading = portals.any((portal) => portal.loading);
     final hasErrors = portals.any((portal) => portal.failed);
-    final searchOrFilterActive =
-        query.isNotEmpty || _filter != _CollectionFilter.all;
     final sponsored = ref.watch(placedAdsProvider(AdPlacement.collection));
 
     return Scaffold(
@@ -200,19 +190,18 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen>
                 onClear: _clearSearch,
               ),
             ),
-            SliverToBoxAdapter(
-              child: _CollectionFilterBar(
-                selected: _filter,
-                onSelected: _setFilter,
+            if (query.isEmpty)
+              SliverToBoxAdapter(
+                child: PlaceStoryCarousel(
+                  ad: !ref.watch(adsAllowedProvider)
+                      ? null
+                      : sponsored.isNotEmpty
+                      ? SponsoredTile(ad: sponsored.first)
+                      : const _CollectionHouseAd(),
+                ),
               ),
-            ),
             if (visiblePortals.isNotEmpty)
-              _CollectionGrid(
-                portals: visiblePortals,
-                sponsored: !searchOrFilterActive && sponsored.isNotEmpty
-                    ? SponsoredTile(ad: sponsored.first)
-                    : null,
-              )
+              _CollectionGrid(portals: visiblePortals)
             else if (hasLoading)
               const _CollectionGridSkeleton()
             else if (hasErrors)
@@ -225,7 +214,6 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen>
                 hasScrollBody: false,
                 child: _CollectionEmptySearchState(
                   query: _query,
-                  filter: _filter,
                   onReset: _resetFilters,
                 ),
               ),
@@ -274,16 +262,6 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen>
   }
 }
 
-enum _CollectionFilter { all, published, open }
-
-extension _CollectionFilterLabel on _CollectionFilter {
-  String get label => switch (this) {
-    _CollectionFilter.all => 'All',
-    _CollectionFilter.published => 'Published',
-    _CollectionFilter.open => 'Open',
-  };
-}
-
 class _CollectionPortal {
   const _CollectionPortal({
     required this.title,
@@ -313,12 +291,6 @@ class _CollectionPortal {
 
   bool get isOpen => available && onTap != null;
   bool get hasPublished => count != null && count! > 0;
-
-  bool matchesFilter(_CollectionFilter filter) => switch (filter) {
-    _CollectionFilter.all => true,
-    _CollectionFilter.published => loading || hasPublished,
-    _CollectionFilter.open => isOpen,
-  };
 
   bool matchesSearch(String query) {
     if (query.isEmpty) return true;
@@ -428,102 +400,10 @@ class _CollectionSearchField extends StatelessWidget {
   }
 }
 
-class _CollectionFilterBar extends StatelessWidget {
-  const _CollectionFilterBar({
-    required this.selected,
-    required this.onSelected,
-  });
-
-  final _CollectionFilter selected;
-  final ValueChanged<_CollectionFilter> onSelected;
-
-  @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
-    child: Wrap(
-      spacing: 10,
-      runSpacing: 10,
-      children: [
-        for (final filter in _CollectionFilter.values)
-          _CollectionFilterChip(
-            key: Key('collection-filter-${filter.name}'),
-            filter: filter,
-            selected: selected == filter,
-            onTap: () => onSelected(filter),
-          ),
-      ],
-    ),
-  );
-}
-
-class _CollectionFilterChip extends StatelessWidget {
-  const _CollectionFilterChip({
-    required this.filter,
-    required this.selected,
-    required this.onTap,
-    super.key,
-  });
-
-  final _CollectionFilter filter;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final brand = context.brand;
-    final foreground = selected ? brand.accent : brand.mutedInk;
-    return Semantics(
-      button: true,
-      selected: selected,
-      label: '${filter.label} collections',
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(999),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(999),
-          onTap: onTap,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 180),
-            curve: Curves.easeOutCubic,
-            constraints: const BoxConstraints(minHeight: 48, minWidth: 74),
-            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-            decoration: BoxDecoration(
-              color: selected
-                  ? brand.accent.withValues(alpha: brand.isDark ? 0.16 : 0.08)
-                  : brand.surfaceMuted.withValues(
-                      alpha: brand.isDark ? 0.62 : 1,
-                    ),
-              borderRadius: BorderRadius.circular(999),
-              border: Border.all(
-                color: selected
-                    ? brand.accent.withValues(alpha: 0.9)
-                    : brand.border,
-                width: selected ? 1.4 : 1,
-              ),
-            ),
-            child: Text(
-              filter.label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: foreground,
-                fontWeight: FontWeight.w800,
-                fontSize: 14,
-                letterSpacing: 0,
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 class _CollectionGrid extends StatelessWidget {
-  const _CollectionGrid({required this.portals, this.sponsored});
+  const _CollectionGrid({required this.portals});
 
   final List<_CollectionPortal> portals;
-  final Widget? sponsored;
 
   @override
   Widget build(BuildContext context) {
@@ -532,7 +412,6 @@ class _CollectionGrid extends StatelessWidget {
         portal.loading
             ? const _CollectionPortalSkeleton()
             : _CollectionPortalCard(portal: portal),
-      ?sponsored,
     ];
     return _CollectionGridLayout(children: children);
   }
@@ -755,19 +634,16 @@ class _CollectionPortalSkeleton extends StatelessWidget {
 class _CollectionEmptySearchState extends StatelessWidget {
   const _CollectionEmptySearchState({
     required this.query,
-    required this.filter,
     required this.onReset,
   });
 
   final String query;
-  final _CollectionFilter filter;
   final VoidCallback onReset;
 
   @override
   Widget build(BuildContext context) {
-    final filtered = filter != _CollectionFilter.all;
     final title = query.trim().isEmpty
-        ? 'No collections match ${filter.label.toLowerCase()}'
+        ? 'No collections found'
         : 'No results for "${query.trim()}"';
     return _CollectionStatePanel(
       icon: Icons.search_off_rounded,
@@ -776,7 +652,7 @@ class _CollectionEmptySearchState extends StatelessWidget {
         key: const Key('collection-reset-filters'),
         onPressed: onReset,
         icon: const Icon(Icons.restart_alt_rounded),
-        label: Text(filtered ? 'Reset filters' : 'Clear search'),
+        label: const Text('Clear search'),
       ),
     );
   }
@@ -898,4 +774,57 @@ bool _shopProductMatches(ShopProduct product, String query) {
     if (_contains(value, query)) return true;
   }
   return false;
+}
+
+/// Seeded house promotion, replaced by one served campaign when available.
+class _CollectionHouseAd extends StatelessWidget {
+  const _CollectionHouseAd();
+  @override
+  Widget build(BuildContext context) => Material(
+    color: context.brand.accentFill,
+    borderRadius: BorderRadius.circular(22),
+    clipBehavior: Clip.antiAlias,
+    child: InkWell(
+      onTap: () => Navigator.of(context).push<void>(
+        MaterialPageRoute(builder: (_) => const ShopCollectionScreen()),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(22),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              'AD · INDIGEN WORLD',
+              style: TextStyle(
+                color: context.brand.onAccentFill,
+                fontSize: 11,
+                letterSpacing: 1.5,
+              ),
+            ),
+            const SizedBox(height: 14),
+            Icon(
+              Icons.storefront_outlined,
+              color: context.brand.onAccentFill,
+              size: 34,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Discover the community shop',
+              style: TextStyle(
+                color: context.brand.onAccentFill,
+                fontSize: 23,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Explore the collection →',
+              style: TextStyle(color: context.brand.onAccentFill),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
 }

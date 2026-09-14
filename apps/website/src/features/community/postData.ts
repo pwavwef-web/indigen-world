@@ -108,7 +108,7 @@ function createdAtFrom(value: unknown): string | null {
   return null;
 }
 
-function postFromData(id: string, data: DocumentData): CommunityPost {
+export function postFromData(id: string, data: DocumentData): CommunityPost {
   const profile = author(data);
   const displayName = text(profile, "displayName");
   const username = text(profile, "username");

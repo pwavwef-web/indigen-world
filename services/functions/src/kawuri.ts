@@ -2,6 +2,7 @@ import { HttpsError, onCall } from 'firebase-functions/v2/https';
 import { applicationDefault } from 'firebase-admin/app';
 import { logger } from 'firebase-functions';
 import { consumeRateLimit } from './rate-limit.js';
+import { googleProjectId } from './google-api-auth.js';
 import { dictionaryContextFor } from './kawuri-dictionary.js';
 import { grammarContextFor } from './kawuri-grammar.js';
 import { corpusContextFor } from './kawuri-corpus.js';
@@ -189,15 +190,15 @@ export function normaliseTurns(raw: unknown): Turn[] {
   return tail;
 }
 
-/** The project the function is deployed into. */
-export function projectId(): string {
-  return (
-    process.env.GCLOUD_PROJECT ||
-    process.env.GOOGLE_CLOUD_PROJECT ||
-    process.env.FIREBASE_PROJECT ||
-    ''
-  );
-}
+/**
+ * The project the function is deployed into.
+ *
+ * Defined in `google-api-auth`, which is where calling a Google API as this
+ * service account lives, and re-exported here because callers and tests know
+ * it by this name. Two copies of "which project am I in" is two things to keep
+ * in step.
+ */
+export const projectId = googleProjectId;
 
 /**
  * A cached OAuth access token for the runtime service account.

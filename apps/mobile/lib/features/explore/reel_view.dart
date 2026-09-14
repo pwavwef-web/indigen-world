@@ -1,32 +1,48 @@
-import 'dart:ui' show ImageFilter;
+import 'dart:async';
 
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
+import 'package:indigen_world_mobile/core/clip_window.dart';
+import 'package:indigen_world_mobile/core/media_geometry.dart';
 import 'package:indigen_world_mobile/core/media_preferences.dart';
 import 'package:indigen_world_mobile/data/repositories.dart';
 import 'package:indigen_world_mobile/features/ads/data/served_ad.dart';
 import 'package:indigen_world_mobile/features/ads/widgets/sponsored_card.dart';
+import 'package:indigen_world_mobile/features/community/communities/community_space_screen.dart';
 import 'package:indigen_world_mobile/features/community/community_actions.dart';
 import 'package:indigen_world_mobile/features/community/community_profile_screen.dart';
 import 'package:indigen_world_mobile/features/community/data/community_models.dart';
 import 'package:indigen_world_mobile/features/community/data/community_providers.dart';
+import 'package:indigen_world_mobile/features/community/data/community_repository.dart';
+import 'package:indigen_world_mobile/features/community/data/community_space_models.dart';
+import 'package:indigen_world_mobile/features/community/data/community_space_providers.dart';
 import 'package:indigen_world_mobile/features/community/post_detail_screen.dart';
+import 'package:indigen_world_mobile/features/dictionary/word_lookup.dart';
 import 'package:indigen_world_mobile/features/explore/creator_profile_screen.dart';
+import 'package:indigen_world_mobile/features/explore/explore_analytics.dart';
+import 'package:indigen_world_mobile/features/explore/explore_chrome.dart';
+import 'package:indigen_world_mobile/features/explore/explore_preferences.dart';
 import 'package:indigen_world_mobile/features/explore/published_content.dart';
+import 'package:indigen_world_mobile/features/explore/reel_caption_overlay.dart';
 import 'package:indigen_world_mobile/features/explore/reel_comments_sheet.dart';
+import 'package:indigen_world_mobile/features/explore/reel_context_sheet.dart';
+import 'package:indigen_world_mobile/features/explore/reel_details.dart';
 import 'package:indigen_world_mobile/features/explore/reel_engagement.dart';
 import 'package:indigen_world_mobile/features/explore/reel_keeps.dart';
+import 'package:indigen_world_mobile/features/explore/reel_media.dart';
+import 'package:indigen_world_mobile/features/explore/reel_overflow_menu.dart';
+import 'package:indigen_world_mobile/features/explore/reel_rail.dart';
 import 'package:indigen_world_mobile/shared/glass_popup.dart';
 import 'package:video_player/video_player.dart';
 
 /// One card in a vertical reel feed.
 ///
-/// Public because two surfaces show the same reel: Explore's newest-first feed
-/// and a creator's own page. Duplicating the card would have meant duplicating
-/// the video lifecycle with it, and that is the part that has to be right.
+/// Public because several surfaces show the same reel: Explore's feed, a
+/// creator's own page, search results and the keeps list. Duplicating the card
+/// would have meant duplicating the video lifecycle with it, and that is the
+/// part that has to be right.
 class Reel {
   const Reel({
     required this.id,
@@ -50,6 +66,25 @@ class Reel {
     this.communityPostId,
     this.servedAd,
     this.cycle = 0,
+    this.mediaAspectRatio,
+    this.focalPoint,
+    this.community,
+    this.category = '',
+    this.handle = '',
+    this.language = '',
+    this.dialect = '',
+    this.tags = const <String>[],
+    this.translations = const <String>[],
+    this.collectionKind = '',
+    this.postCategory,
+    this.sourceAttribution = '',
+    this.publicationRoute = '',
+    this.ageRating = '',
+    this.createdAt,
+    this.publishedAt,
+    this.viewCount = 0,
+    this.communityPost,
+    this.communityMedia,
   });
 
   /// Stable across rebuilds, so an appreciation stays attached to the piece
@@ -77,25 +112,25 @@ class Reel {
   final String sound;
   final String credit;
 
-  /// Illustrative totals for the curated preview only. Live reels read their
-  /// numbers from the server.
+  /// Totals carried on the source record: a community post's denormalised
+  /// counters. Published reels read theirs from the engagement collections.
   final int likes;
   final int comments;
 
-  /// The English summary and cultural notes shown in the context card.
+  /// The English summary and cultural notes shown in the Context sheet.
   final String englishSummary;
   final String culturalNotes;
 
   final Alignment alignment;
 
-  /// Playable video URL for published video reels; null for image reels.
+  /// Playable video URL for video reels; null for pictures.
   final String? videoUrl;
 
   /// Creator avatar image; null falls back to initials.
   final String? avatarUrl;
 
-  /// True when this reel is real content rather than the curated preview,
-  /// which changes both the copy and where its numbers come from.
+  /// True when this reel is real content rather than an illustration, which
+  /// changes both the copy and where its numbers come from.
   final bool isLive;
 
   /// The community post this reel *is*, when it came from the Community feed
@@ -121,22 +156,140 @@ class Reel {
   /// archive shows it, 1 the first time it comes round again, and so on.
   ///
   /// It exists so a repeat can be told apart from the reel it repeats without
-  /// touching [id], which everything that counts anything reads. What it is
-  /// deliberately *not* used for is a widget key: the pager keys its pages by
-  /// position, as it always has, and the one list that would need unique keys
-  /// is the one that cannot promise them — an advert can legitimately fill two
-  /// slots of the same pass when the rotation holds fewer campaigns than the
-  /// pass has room for, and a keyed sliver refuses duplicates outright.
+  /// touching [id], which everything that counts anything reads. The pager keys
+  /// its pages by (id, cycle), so a card keeps its player when a live snapshot
+  /// moves it; adverts, which can legitimately fill two slots of one pass, are
+  /// keyed by position instead.
   final int cycle;
+
+  // ── Provenance and presentation ──────────────────────────────────────────
+
+  /// Width over height of the media, when the source recorded it. Lets the
+  /// card choose between a crop and a framed layout before a frame decodes.
+  final double? mediaAspectRatio;
+
+  /// The part of the frame to keep when the card crops. Null is the centre.
+  final FocalPoint? focalPoint;
+
+  /// The sub-community this was posted in, when it was.
+  final PostCommunityStamp? community;
+
+  /// The creator's own word for what this is — `storytelling`, `oral-history`
+  /// — before it is tidied into [categoryLabel].
+  final String category;
+
+  /// The creator's @handle without the @, when one is known at build time.
+  final String handle;
+
+  /// A language code or name, and the dialect, as the source stated them.
+  final String language;
+  final String dialect;
+
+  final List<String> tags;
+
+  /// Meanings the creator declared for this piece.
+  final List<String> translations;
+
+  /// The Collection channel a published piece was filed under.
+  final String collectionKind;
+
+  /// The wire value of a community post's category, when it has one.
+  final String? postCategory;
+
+  /// Where the creator says the material came from.
+  final String sourceAttribution;
+
+  /// How a published piece reached the public; see [isReviewed].
+  final String publicationRoute;
+
+  /// `13+` when the submission declared that minors are involved.
+  final String ageRating;
+
+  /// When the source record was created, and when it became public.
+  final DateTime? createdAt;
+  final DateTime? publishedAt;
+
+  /// The post's own view counter, for community reels. Published reels have no
+  /// public view total — `reelViews` is readable only by each viewer.
+  final int viewCount;
+
+  /// The post a community reel was built from, kept whole so moderation —
+  /// reporting, muting, blocking — acts on exactly what the member saw.
+  final CommunityPost? communityPost;
+
+  /// The item of [communityPost] this reel plays, carrying what its creator
+  /// chose in the reel creator: the part of the file to show, whether its own
+  /// sound plays, and its captions.
+  final CommunityMedia? communityMedia;
+
+  /// The trimmed part of a community clip, when its creator trimmed it.
+  ClipWindow? get clipWindow => communityMedia?.clipWindow;
+
+  /// False when the creator took the clip's own sound away.
+  bool get playsOriginalSound => communityMedia?.originalSound ?? true;
 
   /// True when the member has watched everything and the feed has come round.
   bool get isReplay => cycle > 0;
 
+  bool get isVideo => videoUrl?.isNotEmpty ?? false;
+
+  /// A still picture rather than a clip.
+  bool get isImage => !isVideo && imageUrl.isNotEmpty;
+
+  /// Whether a human on the Indigen World review desk approved this before it
+  /// was public. Community posts are published by their authors and never are.
+  bool get isReviewed => const {
+    'reviewed',
+    'collection_review',
+    'admin',
+  }.contains(publicationRoute);
+
+  bool get isCommunity => communityPostId != null;
+
+  /// True when nothing on this card belongs to a member: no creator page, no
+  /// appreciation, no replies, and an impression that is counted against a
+  /// campaign instead of against a reel.
+  bool get isSponsored => servedAd != null;
+
+  /// Where this came from, in words.
+  String get sourceLabel => isSponsored
+      ? 'Paid placement'
+      : isCommunity
+      ? 'Community post'
+      : isLive
+      ? 'Published archive'
+      : 'Preview';
+
+  /// The short category line over the byline: `STORYTELLING`.
+  String get categoryLabel {
+    if (isSponsored) return 'SPONSORED';
+    if (isCommunity) {
+      // A reel made in the creator names its own topic — DANCE, not MUSIC.
+      if (communityPost?.reel case final details?) {
+        return details.topic.label.toUpperCase();
+      }
+      return switch (postCategory) {
+        'story' => 'STORYTELLING',
+        'music' => 'MUSIC',
+        'culture' => 'CULTURE',
+        'language' => 'LANGUAGE',
+        'question' => 'QUESTION',
+        'announcement' => 'ANNOUNCEMENT',
+        _ => 'COMMUNITY',
+      };
+    }
+    final raw = category.trim().isNotEmpty ? category : collectionKind;
+    final tidy = raw.replaceAll(RegExp(r'[-_]+'), ' ').trim().toUpperCase();
+    return tidy.isEmpty ? 'CULTURAL WORK' : tidy;
+  }
+
+  /// The language, named for people rather than for databases.
+  String get languageLabel => exploreLanguageName(language);
+
   /// This same reel, queued again on pass [cycle].
   ///
-  /// Spelt out field by field rather than through a general `copyWith`, because
-  /// there is exactly one field a repeat is allowed to differ in and a copier
-  /// that could change any of them would be an invitation to change [id].
+  /// Every field is carried across and only [cycle] differs; a general
+  /// `copyWith` would be an invitation to change [id].
   Reel replayed(int cycle) => Reel(
     id: id,
     imageUrl: imageUrl,
@@ -159,44 +312,86 @@ class Reel {
     communityPostId: communityPostId,
     servedAd: servedAd,
     cycle: cycle,
+    mediaAspectRatio: mediaAspectRatio,
+    focalPoint: focalPoint,
+    community: community,
+    category: category,
+    handle: handle,
+    language: language,
+    dialect: dialect,
+    tags: tags,
+    translations: translations,
+    collectionKind: collectionKind,
+    postCategory: postCategory,
+    sourceAttribution: sourceAttribution,
+    publicationRoute: publicationRoute,
+    ageRating: ageRating,
+    createdAt: createdAt,
+    publishedAt: publishedAt,
+    viewCount: viewCount,
+    communityPost: communityPost,
+    communityMedia: communityMedia,
   );
 
-  bool get isCommunity => communityPostId != null;
-
-  /// True when nothing on this card belongs to a member: no creator page, no
-  /// appreciation, no replies, and an impression that is counted against a
-  /// campaign instead of against a reel.
-  bool get isSponsored => servedAd != null;
-
-  /// A community post as a reel.
+  /// A community post as a reel, opening on [media] — its first video, or a
+  /// picture when it has none.
   ///
-  /// Only posts that actually carry a video reach here — see
-  /// [exploreFeedProvider] — so the video URL is present by construction and
-  /// the caller does not have to defend against a caption-only post arriving
-  /// in a video feed.
-  static Reel fromCommunityPost(CommunityPost post, CommunityMedia video) {
+  /// Only posts that actually carry media reach here — see `communityReels` —
+  /// so the caller does not have to defend against a caption-only post arriving
+  /// in a full-screen feed.
+  static Reel fromCommunityPost(CommunityPost post, CommunityMedia media) {
     final caption = post.text.trim();
+    final category = post.category?.wire;
+    // What the reel creator asked for: a topic, the creator's account of what
+    // is happening, whose work it is and on what terms. Ordinary posts carry
+    // none of it and read exactly as before.
+    final details = post.reel;
     return Reel(
       id: 'community:${post.id}',
       communityPostId: post.id,
-      imageUrl: video.thumbnailUrl ?? '',
-      videoUrl: video.url,
+      communityPost: post,
+      communityMedia: media,
+      culturalNotes: details?.context ?? '',
+      sourceAttribution: details?.attributionLine ?? '',
+      imageUrl: media.isVideo ? (media.thumbnailUrl ?? '') : media.url,
+      videoUrl: media.isVideo ? media.url : null,
+      mediaAspectRatio: positiveAspectRatio(media.aspectRatio),
+      focalPoint: media.focalPoint,
       avatarUrl: post.authorAvatarUrl,
       creatorId: post.authorId,
       isLive: true,
-      label: 'FROM THE COMMUNITY',
+      label: details != null
+          ? details.topic.label.toUpperCase()
+          : switch (category) {
+              'story' => 'STORYTELLING',
+              'music' => 'MUSIC',
+              'culture' => 'CULTURE',
+              'language' => 'LANGUAGE',
+              _ => 'FROM THE COMMUNITY',
+            },
       // A post has no title, and inventing one from its first line would put
       // words in somebody's mouth. The caption carries the whole message.
-      title: caption.isEmpty ? 'A moment from the community' : caption,
+      title: caption,
       creator: post.authorName,
+      handle: post.authorUsername,
       initials: reelInitials(post.authorName),
       caption: caption,
       likes: post.likeCount,
       comments: post.replyCount,
-      sound: 'Original sound',
-      credit: 'Posted by @${post.authorUsername} in Community',
-      englishSummary: '',
-      culturalNotes: '',
+      viewCount: post.viewCount,
+      sound: !media.isVideo
+          ? 'Photo · @${post.authorUsername}'
+          : media.originalSound
+          ? 'Original sound · @${post.authorUsername}'
+          : 'No original sound · @${post.authorUsername}',
+      credit:
+          details?.rights.credit ??
+          'Posted by @${post.authorUsername} in Community',
+      category: details?.topic.wire ?? '',
+      community: post.community,
+      postCategory: category,
+      createdAt: post.createdAt,
+      publishedAt: post.createdAt,
     );
   }
 
@@ -206,14 +401,15 @@ class Reel {
         : published.englishSummary.trim();
     final where = [
       published.dialect,
-      published.language,
+      exploreLanguageName(published.language),
     ].where((value) => value.trim().isNotEmpty).join(' · ');
     final label = published.category.trim().isNotEmpty
         ? '${published.category.trim().toUpperCase()}'
-              '${where.isNotEmpty ? ' · $where' : ''}'
+              '${where.isNotEmpty ? ' · ${where.toUpperCase()}' : ''}'
         : (where.isNotEmpty
               ? where.toUpperCase()
               : 'PUBLISHED ON INDIGEN WORLD');
+    final communityId = published.communityId;
     return Reel(
       id: published.id,
       imageUrl: published.posterUrl ?? '',
@@ -228,12 +424,32 @@ class Reel {
       creator: published.creatorName,
       initials: reelInitials(published.creatorName),
       caption: caption,
-      sound: published.category.trim().isNotEmpty
-          ? published.category.trim()
-          : 'Cultural reel',
+      sound: published.isImage
+          ? 'Photograph · ${published.creatorName}'
+          : 'Original sound · ${published.creatorName}',
       credit: published.licenceDisplay.trim().isNotEmpty
           ? published.licenceDisplay.trim()
           : 'Published with permission · Indigen World',
+      mediaAspectRatio: published.aspectRatio,
+      focalPoint: published.focalPoint,
+      community: communityId == null
+          ? null
+          : PostCommunityStamp(
+              id: communityId,
+              name: published.communityName ?? communityId,
+              isPrivate: false,
+            ),
+      category: published.category,
+      language: published.language,
+      dialect: published.dialect,
+      tags: published.tags,
+      translations: published.translations,
+      collectionKind: published.collectionKind,
+      sourceAttribution: published.sourceAttribution,
+      publicationRoute: published.publicationRoute,
+      ageRating: published.ageRating,
+      createdAt: DateTime.tryParse(published.createdAt ?? ''),
+      publishedAt: DateTime.tryParse(published.publishedAt ?? ''),
     );
   }
 
@@ -266,6 +482,21 @@ class Reel {
     sound: '',
     credit: 'Sponsored · paid placement on Indigen World',
   );
+}
+
+/// A language as people name it. The publication workflow stores ISO codes —
+/// `xsm` by default — which nobody watching a reel should have to decode.
+String exploreLanguageName(String raw) {
+  final value = raw.trim();
+  return switch (value.toLowerCase()) {
+    '' => '',
+    'xsm' || 'kasem' || 'kasena' => 'Kasem',
+    'en' || 'eng' => 'English',
+    'fr' || 'fra' => 'French',
+    'tw' || 'twi' => 'Twi',
+    'ha' || 'hau' => 'Hausa',
+    _ => value,
+  };
 }
 
 String reelInitials(String name) {
@@ -312,6 +543,41 @@ bool reelFeedShouldAskForMore({
   return length != lastAskLength || index > lastAskIndex;
 }
 
+/// The key a page is built under, so a card — and the player inside it —
+/// follows its reel when a live snapshot moves it to another position.
+///
+/// Adverts are keyed by position: the same campaign can fill two slots of one
+/// pass, and a keyed sliver refuses duplicate keys outright.
+String reelPageKey(Reel reel, int index) =>
+    reel.isSponsored ? 'ad@$index' : '${reel.id}#${reel.cycle}';
+
+/// Where [anchor] now sits in [reels], searching outwards from [near].
+///
+/// Bounded, because the list may be an endless feed whose rows are computed
+/// on demand; a reel that moved further than this has effectively gone.
+int? reelIndexNear(List<Reel> reels, Reel anchor, int near, {int reach = 40}) {
+  if (reels.isEmpty) return null;
+  final key = reelPageKey(anchor, near);
+  for (var distance = 0; distance <= reach; distance++) {
+    for (final index in {near - distance, near + distance}) {
+      if (index < 0 || index >= reels.length) continue;
+      if (reelPageKey(reels[index], index) == key) return index;
+    }
+  }
+  return null;
+}
+
+/// Makes the player for one clip.
+///
+/// A provider rather than a direct constructor call so the playback rules —
+/// one clip playing, the next one opened and waiting, everything further away
+/// released — can be tested against a player that needs no platform plugin.
+final reelVideoControllerFactoryProvider =
+    Provider<VideoPlayerController Function(String url)>(
+      (ref) =>
+          (url) => VideoPlayerController.networkUrl(Uri.parse(url)),
+    );
+
 /// A full-bleed, vertically paged reel feed with its action rail.
 class ReelFeedView extends ConsumerStatefulWidget {
   const ReelFeedView({
@@ -322,6 +588,9 @@ class ReelFeedView extends ConsumerStatefulWidget {
     this.footer,
     this.bottomInset = 0,
     this.onNearEnd,
+    this.chrome,
+    this.isLoadingMore = false,
+    this.onActiveIndexChanged,
     super.key,
   });
 
@@ -342,28 +611,33 @@ class ReelFeedView extends ConsumerStatefulWidget {
 
   /// Optional chrome pinned over the bottom of the feed — Explore's nav bar.
   ///
-  /// A slot rather than a widget this file owns, because three surfaces show
-  /// this feed and only one of them has anywhere else to navigate to. A
-  /// creator's page and a search result are lists somebody arrived at from
-  /// somewhere; putting Explore's own bar under them would offer a member
-  /// looking at one creator a switch between For you and Following.
+  /// A slot rather than a widget this file owns, because several surfaces show
+  /// this feed and only one of them has anywhere else to navigate to.
   final Widget? footer;
 
   /// How much room the footer needs at the bottom of every card.
   ///
-  /// Passed as a number rather than measured, because the caption, the action
+  /// Passed as a number rather than measured, because the words, the action
   /// rail and the progress bar are positioned absolutely inside each card and
-  /// have to move *before* the footer is drawn over them — a bar that overlaps
-  /// the caption is a bar that hides the one line saying what the clip is.
+  /// have to clear the footer before it is drawn over them.
   final double bottomInset;
 
   /// Called once the member is within [kReelLoadAheadPages] of the last reel.
   ///
-  /// A callback rather than a provider read, because three surfaces show this
-  /// feed and only one of them — Explore — has more to fetch. A creator's page
-  /// and a search result are finite lists, and asking them to grow would be
-  /// asking for reels that are deliberately not theirs to show.
+  /// A callback rather than a provider read, because only Explore has more to
+  /// fetch. A creator's page and a search result are finite lists.
   final VoidCallback? onNearEnd;
+
+  /// When given, the header, footer and every card's words and rail get out of
+  /// the way during playback and scrolling — see [ExploreChromeController].
+  /// Without one they stay put, which is how the creator page, search results
+  /// and keeps keep their controls.
+  final ExploreChromeController? chrome;
+
+  /// Whether more reels are being fetched behind the last one.
+  final bool isLoadingMore;
+
+  final ValueChanged<int>? onActiveIndexChanged;
 
   @override
   ConsumerState<ReelFeedView> createState() => _ReelFeedViewState();
@@ -375,39 +649,58 @@ class _ReelFeedViewState extends ConsumerState<ReelFeedView>
   late final PageController _controller = PageController(
     initialPage: widget.initialIndex,
   );
+
+  /// The member's own intent for the active reel: they have not tapped it to a
+  /// stop. Reset to true on every new reel.
   var _playing = true;
   var _foreground = true;
 
-  /// Reels whose impression has already been written this session, so drifting
-  /// back to one does not spend a round trip re-asserting what the server
-  /// already knows.
+  /// True while a full screen this feed pushed — a creator's page, a thread, a
+  /// community — covers it. Pushing a route does not change [ReelFeedView.
+  /// isActive], so without this a reel played on under the page it opened.
+  var _covered = false;
+
+  /// True while the Context sheet covers most of the frame.
+  var _sheetPaused = false;
+
+  /// True after a word's pronunciation was played, until its panel closes, so
+  /// the reel's sound never talks over the word.
+  var _audioPaused = false;
+
+  /// Appreciations and keeps tapped whose writes have not settled, by reel id.
+  /// Drawn ahead of the server and dropped when the write settles either way:
+  /// on success the stream already carries the change, on failure dropping it
+  /// is the rollback.
+  final _pendingLikes = <String, bool>{};
+  final _pendingSaves = <String, bool>{};
+
+  /// Reels whose server-side view has already been written this session.
   final _trackedViews = <String>{};
 
   /// The feed's length, and how deep into it the member had gone, when more was
-  /// last asked for.
-  ///
-  /// ── Why this is no longer "ask once per length" ────────────────────────
-  /// It used to be exactly that: growing re-subscribes two live queries, so the
-  /// ask was made once per arrival at the end rather than once per page turn
-  /// inside the same tail, and a feed that had not grown since the last ask was
-  /// a feed where asking again changed nothing.
-  ///
-  /// That was true while the only answer to "there is nothing left" was to
-  /// stop. It is now the *question*: a feed with nothing left to fetch queues
-  /// what it holds again instead, and the way [ExploreScreen] tells a window
-  /// still filling from an archive already exhausted is that a second ask
-  /// arrives with the feed no longer than the first one left it. A guard that
-  /// refused to ask twice at the same length was refusing to ask the one
-  /// question that had a new answer, and the member hit a wall three swipes
-  /// later.
-  ///
-  /// So the ask is made once per *page* instead. Every fresh page inside the
-  /// tail asks again — at most [kReelLoadAheadPages] asks before the feed either
-  /// grows or comes round — while a member scrolling back up through pages they
-  /// have already asked from is still silent, which is what the old guard was
-  /// really protecting.
+  /// last asked for. Asked once per page of the tail — see
+  /// [reelFeedShouldAskForMore].
   var _lastAskLength = -1;
   var _lastAskIndex = -1;
+
+  // ── One continuous look at the active reel ────────────────────────────────
+
+  static const _tick = Duration(milliseconds: 250);
+  Timer? _dwellTicker;
+  var _visitOnScreen = Duration.zero;
+  var _visitWatched = Duration.zero;
+  var _visitImpression = false;
+  var _visitQualified = false;
+  var _visitCompletions = 0;
+  var _videoPlaying = false;
+  Duration? _videoLength;
+
+  /// Where the current drag started and how far it has gone.
+  int? _dragStartIndex;
+  var _dragDistance = 0.0;
+
+  /// Keys of the pages near the active one, for the pager to find a moved card.
+  var _keyIndex = const <String, int>{};
 
   @override
   void initState() {
@@ -417,37 +710,121 @@ class _ReelFeedViewState extends ConsumerState<ReelFeedView>
     // state to read, and a launching app is on its way to the foreground.
     final lifecycle = WidgetsBinding.instance.lifecycleState;
     _foreground = lifecycle == null || lifecycle == AppLifecycleState.resumed;
-    WidgetsBinding.instance.addPostFrameCallback((_) => _trackActiveView());
   }
 
   /// Whether this feed is currently holding the audio claim.
   ///
-  /// Explore is the loudest surface in the app and until now it claimed
-  /// nothing: it played video with sound while a song carried on underneath it,
-  /// which is two soundtracks at once — exactly what
-  /// [fullScreenMediaProvider] was built to prevent for community clips.
+  /// Explore is the loudest surface in the app: without the claim it played
+  /// video with sound while a song carried on underneath it.
   var _claimedAudio = false;
 
   late final FullScreenMediaCount _audioFocus = ref.read(
     fullScreenMediaProvider.notifier,
   );
 
-  /// Takes or gives back the claim as the feed comes and goes.
-  ///
-  /// Driven from `build` through a post-frame callback rather than called
-  /// inline: `onScreen` is computed during layout and moving another provider
-  /// there would be mutating state mid-build.
   void _syncAudioClaim(bool onScreen) {
     if (onScreen == _claimedAudio) return;
     _claimedAudio = onScreen;
     onScreen ? _audioFocus.enter() : _audioFocus.leave();
   }
 
+  bool get _onScreen => widget.isActive && _foreground && !_covered;
+
+  void _syncTicker(bool onScreen) {
+    if (onScreen && _dwellTicker == null) {
+      _dwellTicker = Timer.periodic(_tick, (_) => _tickDwell());
+    } else if (!onScreen && _dwellTicker != null) {
+      _dwellTicker!.cancel();
+      _dwellTicker = null;
+    }
+  }
+
+  var _lastChromePlaying = false;
+
+  void _syncChrome(bool onScreen) {
+    final chrome = widget.chrome;
+    if (chrome == null || widget.reels.isEmpty) return;
+    chrome.alwaysVisible = MediaQuery.accessibleNavigationOf(context);
+    final playing = onScreen && _effectivePlaying;
+    if (playing != _lastChromePlaying) {
+      _lastChromePlaying = playing;
+      chrome.setPlaying(playing);
+    }
+  }
+
+  bool get _effectivePlaying => _playing && !_sheetPaused && !_audioPaused;
+
+  @override
+  void didUpdateWidget(ReelFeedView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _keepActiveReelInPlace(oldWidget.reels, widget.reels);
+  }
+
+  /// Keeps the member on the reel they are watching when the list changes
+  /// under them.
+  ///
+  /// The feed is live: a reel published while somebody scrolls, a snapshot that
+  /// reorders, a creator they just hid. The pager addresses reels by position,
+  /// so any of those used to swap the video under their thumb. Now the active
+  /// reel is found again by its key and the pager's offset corrected to it —
+  /// silently, without a scroll animation or a page-change event — and the
+  /// card, keyed the same way, keeps its player.
+  void _keepActiveReelInPlace(List<Reel> previous, List<Reel> next) {
+    if (identical(previous, next) || previous.isEmpty || next.isEmpty) return;
+    final oldIndex = _activeIndex.clamp(0, previous.length - 1);
+    final anchor = previous[oldIndex];
+    if (oldIndex < next.length &&
+        reelPageKey(next[oldIndex], oldIndex) ==
+            reelPageKey(anchor, oldIndex)) {
+      return;
+    }
+    final found = anchor.isSponsored
+        ? null
+        : reelIndexNear(next, anchor, oldIndex);
+    if (found == null) {
+      // The reel is gone — hidden, removed, or moved out of reach. The next
+      // one slides into its place and is a new look, not a continuation.
+      _activeIndex = oldIndex.clamp(0, next.length - 1);
+      _playing = true;
+      _startVisit();
+      return;
+    }
+    _activeIndex = found;
+    if (_controller.hasClients) {
+      final position = _controller.position;
+      if (position.hasViewportDimension) {
+        position.correctPixels(found * position.viewportDimension);
+      }
+    }
+  }
+
+  @override
+  void deactivate() {
+    // A deactivated feed is on its way out — a topic switch builds a new one
+    // in its place — and a tick landing between now and dispose would reach
+    // for providers through a context that is no longer safe to use.
+    _dwellTicker?.cancel();
+    _dwellTicker = null;
+    super.deactivate();
+  }
+
   @override
   void dispose() {
     // Leaving the tab with the claim still held would silence the music for
-    // the rest of the session.
-    if (_claimedAudio) _audioFocus.leave();
+    // the rest of the session. Given back after the frame: dispose runs while
+    // the tree is being finalised, where changing a provider is refused.
+    if (_claimedAudio) {
+      _claimedAudio = false;
+      final focus = _audioFocus;
+      scheduleMicrotask(() {
+        try {
+          focus.leave();
+        } on Object {
+          // The whole scope went with the feed; there is no claim left to give.
+        }
+      });
+    }
+    _dwellTicker?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     _controller.dispose();
     super.dispose();
@@ -466,13 +843,27 @@ class _ReelFeedViewState extends ConsumerState<ReelFeedView>
   int get _clampedIndex =>
       widget.reels.isEmpty ? 0 : _activeIndex.clamp(0, widget.reels.length - 1);
 
+  Reel? get _activeReel =>
+      widget.reels.isEmpty ? null : widget.reels[_clampedIndex];
+
+  void _onPageChanged(int index) {
+    if (index == _activeIndex) return;
+    setState(() {
+      _activeIndex = index;
+      _playing = true;
+      _sheetPaused = false;
+      _audioPaused = false;
+    });
+    _startVisit();
+    _maybeLoadMore(index);
+    widget.onActiveIndexChanged?.call(index);
+  }
+
   /// Asks for more reels once the end of the feed is in sight.
   void _maybeLoadMore(int index) {
     final onNearEnd = widget.onNearEnd;
     if (onNearEnd == null) return;
     final length = widget.reels.length;
-    // Asked once per page of the tail, and not again for a page already asked
-    // from — see [_lastAskLength] for why this is not once per length.
     if (!reelFeedShouldAskForMore(
       index: index,
       length: length,
@@ -486,51 +877,163 @@ class _ReelFeedViewState extends ConsumerState<ReelFeedView>
     onNearEnd();
   }
 
-  /// Impressions are telemetry: written best-effort, never spoken about, and
-  /// never allowed to interrupt watching.
-  Future<void> _trackActiveView() async {
-    if (widget.reels.isEmpty || !widget.isActive) return;
-    final reel = widget.reels[_clampedIndex];
-    // A sponsored reel is not a reel anybody published, so it has no view
-    // document and belongs in none of the engagement collections. Its
-    // impression goes to the advertiser's own counter instead, guarded by
-    // [ServedAdTelemetry] rather than by [_trackedViews] — the campaign must
-    // stay counted once even if the member leaves Explore and comes back to a
-    // freshly built feed.
-    //
-    // That guard is also what makes an endless feed safe to charge from. It is
-    // keyed by campaign and lives for the session, so an advert the re-queue
-    // happens to place a second time cannot be counted a second time — an
-    // advertiser is charged for reaching a member, not for how long that member
-    // kept scrolling.
+  // ── Measuring ─────────────────────────────────────────────────────────────
+
+  void _startVisit() {
+    _visitOnScreen = Duration.zero;
+    _visitWatched = Duration.zero;
+    _visitImpression = false;
+    _visitQualified = false;
+    _visitCompletions = 0;
+    _videoPlaying = false;
+    _videoLength = null;
+  }
+
+  /// Counts time on screen and time watched for the active reel, and records
+  /// the impression and the qualified view as each is reached.
+  ///
+  /// A fling past a reel never reaches either, which is the point: see
+  /// [exploreDwellFor].
+  void _tickDwell() {
+    final reel = _activeReel;
+    if (!mounted || reel == null || !_onScreen) return;
+    _visitOnScreen += _tick;
+    final watching = reel.isVideo ? _videoPlaying : true;
+    if (watching) _visitWatched += _tick;
+    final dwell = exploreDwellFor(
+      onScreen: _visitOnScreen,
+      watched: _visitWatched,
+      videoLength: reel.isVideo ? _videoLength : null,
+    );
+    if (dwell.impression && !_visitImpression) {
+      _visitImpression = true;
+      _recordImpression(reel);
+    }
+    if (dwell.qualified && !_visitQualified) {
+      _visitQualified = true;
+      unawaited(_recordQualifiedView(reel));
+    }
+  }
+
+  void _recordImpression(Reel reel) {
+    ref.read(exploreAnalyticsProvider).logReel(ExploreEvent.impression, reel);
+    // A sponsored reel's impression goes to the advertiser's own counter,
+    // guarded by [ServedAdTelemetry] — keyed by campaign for the session — so
+    // an advert the re-queue places twice is still charged once.
     if (reel.servedAd case final ad?) {
-      await ref.read(servedAdTelemetryProvider).recordImpression(ad.campaignId);
+      unawaited(
+        ref.read(servedAdTelemetryProvider).recordImpression(ad.campaignId),
+      );
+    }
+  }
+
+  Future<void> _recordQualifiedView(Reel reel) async {
+    if (reel.isSponsored) return;
+    ref
+        .read(exploreAnalyticsProvider)
+        .logReel(ExploreEvent.qualifiedView, reel);
+    if (reel.communityPost case final post?) {
+      await CommunityActions(ref).trackView(post);
       return;
     }
     // [_trackedViews] holds ids, and a re-queued reel keeps the id of the reel
-    // it repeats, so the same discipline covers the loop: watching a clip for
-    // the second time on the third pass is the view it already was.
-    if (!reel.isLive || reel.isCommunity || !_trackedViews.add(reel.id)) {
-      return;
-    }
+    // it repeats, so watching a clip again on a later pass is the view it
+    // already was.
+    if (!reel.isLive || !_trackedViews.add(reel.id)) return;
     final uid = ref.read(currentUidProvider);
     final repository = ref.read(reelEngagementRepositoryProvider);
     if (uid == null || repository == null) return;
     try {
       await repository.trackView(uid: uid, reelId: reel.id);
-      ref.invalidate(reelCountsProvider(reel.id));
+      if (mounted) ref.invalidate(reelCountsProvider(reel.id));
     } on Object {
       // Nothing about a view is worth a word to the member.
     }
   }
 
+  void _onVideoLooped(Reel reel) {
+    _visitCompletions++;
+    ref
+        .read(exploreAnalyticsProvider)
+        .logReel(
+          _visitCompletions == 1
+              ? ExploreEvent.completion
+              : ExploreEvent.replay,
+          reel,
+          extra: {'loop': _visitCompletions},
+        );
+  }
+
+  // ── Scrolling and the chrome ──────────────────────────────────────────────
+
+  bool _onScroll(ScrollNotification notification) {
+    final chrome = widget.chrome;
+    if (chrome == null || notification.depth != 0) return false;
+    switch (notification) {
+      case ScrollStartNotification(dragDetails: _?):
+        _dragStartIndex = _activeIndex;
+        _dragDistance = 0;
+      case ScrollUpdateNotification(dragDetails: _?, :final scrollDelta?):
+        _dragDistance += scrollDelta;
+        if (_dragDistance > 14) {
+          chrome.dragged(towardsPrevious: false);
+        } else if (_dragDistance < -14) {
+          chrome.dragged(towardsPrevious: true);
+        }
+      case ScrollEndNotification():
+        chrome.settled(changedReel: _dragStartIndex != _activeIndex);
+        _dragStartIndex = null;
+      default:
+        break;
+    }
+    return false;
+  }
+
+  void _onTapMedia(Reel reel) {
+    final chrome = widget.chrome;
+    if (reel.isVideo) {
+      HapticFeedback.selectionClick();
+      setState(() {
+        _playing = !_playing;
+        _audioPaused = false;
+      });
+      if (_playing) chrome?.interacted();
+      return;
+    }
+    chrome?.toggle();
+  }
+
+  Future<void> _withCover(Future<void> Function() open) async {
+    setState(() => _covered = true);
+    try {
+      await open();
+    } finally {
+      if (mounted) setState(() => _covered = false);
+    }
+  }
+
+  Future<void> _withChromeHeld(
+    Object reason,
+    Future<void> Function() open,
+  ) async {
+    widget.chrome?.hold(reason);
+    try {
+      await open();
+    } finally {
+      widget.chrome?.release(reason);
+    }
+  }
+
+  // ── Build ─────────────────────────────────────────────────────────────────
+
   @override
   Widget build(BuildContext context) {
-    // The single question the whole feed hangs on: is this reel in front of a
-    // pair of eyes right now?
-    final onScreen = widget.isActive && _foreground;
+    final onScreen = _onScreen;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _syncAudioClaim(onScreen);
+      if (!mounted) return;
+      _syncAudioClaim(onScreen);
+      _syncTicker(onScreen);
+      _syncChrome(onScreen);
     });
     final reels = widget.reels;
     if (reels.isEmpty) {
@@ -545,15 +1048,23 @@ class _ReelFeedViewState extends ConsumerState<ReelFeedView>
       );
     }
     final activeIndex = _clampedIndex;
+    _keyIndex = {
+      for (
+        var index = (activeIndex - 6).clamp(0, reels.length);
+        index < (activeIndex + 7).clamp(0, reels.length);
+        index++
+      )
+        reelPageKey(reels[index], index): index,
+    };
 
-    // Appreciations and keeps for live reels come from the server, so they
-    // survive a restart. The curated preview keeps its device-local store —
-    // there is no account behind an illustrative card to attach an edge to.
+    // The member's own state, from the server, so it survives a restart.
+    // Illustrative reels keep a device-local store — there is no account
+    // behind them to attach an edge to.
     final serverLikes =
         ref.watch(myReelLikesProvider).asData?.value ?? const <String>{};
     final serverSaves =
         ref.watch(myReelSavesProvider).asData?.value ?? const <String>{};
-    // A community video is liked and saved as the post it is, so the state
+    // A community reel is liked and saved as the post it is, so the state
     // shown here is the same state its card shows in the Community feed.
     final communityLikes =
         ref.watch(myLikesProvider).asData?.value ?? const <String>{};
@@ -563,82 +1074,154 @@ class _ReelFeedViewState extends ConsumerState<ReelFeedView>
         ref.watch(savedReelIdsProvider).asData?.value ?? const <String>{};
     final localLikes =
         ref.watch(appreciatedReelIdsProvider).asData?.value ?? const <String>{};
+    final following =
+        ref.watch(followingIdsProvider).asData?.value ?? const <String>[];
+    final optimistic = ref.watch(optimisticEngagementProvider);
+    final uid = ref.watch(currentUidProvider);
+    final soundMuted = ref.watch(exploreSoundMutedProvider);
+    final dictionary = ref.watch(dictionaryIndexProvider);
+    final chrome = widget.chrome;
+    final compactRail = MediaQuery.sizeOf(context).height < 700;
 
-    return ColoredBox(
+    // Its own Material, so the words and ink on every card have a text style
+    // and a surface to draw on wherever the feed is shown — the shell provides
+    // one, but a feed that only works under somebody else's Scaffold draws its
+    // captions in the debug fallback style everywhere else.
+    return Material(
       color: const Color(0xFF070A09),
       child: Stack(
         fit: StackFit.expand,
         children: [
-          PageView.builder(
-            controller: _controller,
-            scrollDirection: Axis.vertical,
-            itemCount: reels.length,
-            onPageChanged: (index) {
-              setState(() {
-                _activeIndex = index;
-                _playing = true;
-              });
-              _trackActiveView();
-              _maybeLoadMore(index);
-            },
-            itemBuilder: (context, index) {
-              final reel = reels[index];
-              final liked = switch (reel) {
-                Reel(communityPostId: final postId?) => communityLikes.contains(
-                  postId,
-                ),
-                Reel(isLive: true) => serverLikes.contains(reel.id),
-                _ => localLikes.contains(reel.id),
-              };
-              final saved = switch (reel) {
-                Reel(communityPostId: final postId?) =>
-                  communityBookmarks.contains(postId),
-                Reel(isLive: true) => serverSaves.contains(reel.id),
-                _ => localSaves.contains(reel.id),
-              };
-              return _ReelCard(
-                reel: reel,
-                bottomInset: widget.bottomInset,
-                isActive: index == activeIndex,
-                isPlaying: index == activeIndex && _playing,
-                onScreen: onScreen,
-                liked: liked,
-                saved: saved,
-                onTogglePlayback: () => setState(() => _playing = !_playing),
-                onLike: () => _toggleAppreciation(reel, liked: liked),
-                onSave: () => _toggleSave(reel, saved: saved),
-                onComments: () => _openComments(context, reel),
-                onContext: () => _openContext(context, reel),
-                onOpenCreator: () => _openCreator(context, reel),
-              );
-            },
+          NotificationListener<ScrollNotification>(
+            onNotification: _onScroll,
+            child: PageView.builder(
+              controller: _controller,
+              scrollDirection: Axis.vertical,
+              // Builds the reel on either side of the active one, so the next
+              // clip can be opening before the member swipes to it.
+              allowImplicitScrolling: true,
+              itemCount: reels.length,
+              onPageChanged: _onPageChanged,
+              findChildIndexCallback: (key) =>
+                  key is ValueKey<String> ? _keyIndex[key.value] : null,
+              itemBuilder: (context, index) {
+                final reel = reels[index];
+                final serverLiked = switch (reel) {
+                  Reel(communityPostId: final postId?) =>
+                    communityLikes.contains(postId),
+                  Reel(isLive: true) => serverLikes.contains(reel.id),
+                  _ => localLikes.contains(reel.id),
+                };
+                final liked = switch (reel) {
+                  Reel(communityPostId: final postId?) => optimistic.liked(
+                    postId,
+                    server: serverLiked,
+                  ),
+                  _ => _pendingLikes[reel.id] ?? serverLiked,
+                };
+                final saved =
+                    _pendingSaves[reel.id] ??
+                    switch (reel) {
+                      Reel(communityPostId: final postId?) =>
+                        communityBookmarks.contains(postId),
+                      Reel(isLive: true) => serverSaves.contains(reel.id),
+                      _ => localSaves.contains(reel.id),
+                    };
+                final followState =
+                    reel.isSponsored ||
+                        reel.creatorId.isEmpty ||
+                        reel.creatorId == uid
+                    ? ReelFollowState.unavailable
+                    : optimistic.following(
+                        reel.creatorId,
+                        server: following.contains(reel.creatorId),
+                      )
+                    ? ReelFollowState.following
+                    : ReelFollowState.notFollowing;
+                final isActive = index == activeIndex;
+                return _ReelCard(
+                  key: ValueKey(reelPageKey(reel, index)),
+                  reel: reel,
+                  bottomInset: widget.bottomInset,
+                  isActive: isActive,
+                  preload: index == activeIndex + 1,
+                  isPlaying: isActive && _effectivePlaying,
+                  userPaused: isActive && !_playing,
+                  onScreen: onScreen,
+                  liked: liked,
+                  serverLiked: serverLiked,
+                  saved: saved,
+                  followState: followState,
+                  soundMuted: soundMuted,
+                  chrome: chrome,
+                  compactRail: compactRail,
+                  showLoadingMore:
+                      widget.isLoadingMore && index == reels.length - 1,
+                  translationAvailable: reelHasTranslation(reel, dictionary),
+                  onTapMedia: () => _onTapMedia(reel),
+                  onLike: () => _toggleAppreciation(reel, liked: liked),
+                  onSave: () => _toggleSave(reel, saved: saved),
+                  onComments: () => _openComments(reel),
+                  onContext: () => _openContext(reel),
+                  onTranslate: () => _openTranslation(reel),
+                  onMore: () => _openMore(reel),
+                  onFollow: () => _follow(reel),
+                  onOpenCreator: () => _openCreator(reel),
+                  onOpenCommunity: () => _openCommunity(reel),
+                  onToggleSound: () {
+                    ref.read(exploreSoundMutedProvider.notifier).toggle();
+                    chrome?.interacted();
+                  },
+                  onCommunityJoined: (status) => logExploreCommunityJoin(
+                    ref.read(exploreAnalyticsProvider),
+                    reel,
+                    status,
+                  ),
+                  onVideoPlaying: (playing) {
+                    if (isActive) _videoPlaying = playing;
+                  },
+                  onVideoLength: (length) {
+                    if (isActive) _videoLength = length;
+                  },
+                  onVideoLooped: () {
+                    if (isActive) _onVideoLooped(reel);
+                  },
+                );
+              },
+            ),
           ),
           if (widget.header case final header?)
             Positioned(
               top: 0,
               left: 0,
               right: 0,
-              child: SafeArea(bottom: false, child: header),
+              child: ExploreChromeFade(
+                controller: chrome,
+                slide: const Offset(0, -0.4),
+                child: SafeArea(bottom: false, child: header),
+              ),
             ),
           if (widget.footer case final footer?)
             Positioned(
               bottom: 0,
               left: 0,
               right: 0,
-              child: SafeArea(top: false, child: footer),
+              child: ExploreChromeFade(
+                controller: chrome,
+                slide: const Offset(0, 0.5),
+                child: SafeArea(top: false, child: footer),
+              ),
             ),
-          // No "3 of 40" rail along the bottom any more. An endless feed has
-          // no meaningful length to be three-fortieths of, and the one bar
-          // worth having down there is the one that says where you are in the
-          // *clip* — which each card now draws for itself, because only the
-          // card knows whether it is playing anything.
         ],
       ),
     );
   }
 
+  // ── Actions ───────────────────────────────────────────────────────────────
+
   Future<void> _toggleSave(Reel reel, {required bool saved}) async {
     HapticFeedback.selectionClick();
+    final analytics = ref.read(exploreAnalyticsProvider);
     if (!reel.isLive) {
       final nowSaved = await ref.read(reelKeepsProvider).toggleSaved(reel.id);
       ref.invalidate(savedEntryIdsProvider);
@@ -650,252 +1233,291 @@ class _ReelFeedViewState extends ConsumerState<ReelFeedView>
       return;
     }
 
-    if (reel.communityPostId case final postId?) {
-      final uid = await CommunityActions(ref).requireSignIn(context);
-      final repository = ref.read(communityRepositoryProvider);
-      if (uid == null || repository == null) return;
-      try {
+    final uid = await CommunityActions(ref).requireSignIn(context);
+    if (uid == null || !mounted) return;
+    setState(() => _pendingSaves[reel.id] = !saved);
+    try {
+      if (reel.communityPostId case final postId?) {
+        final repository = ref.read(communityRepositoryProvider);
+        if (repository == null) throw StateError('offline');
         await repository.toggleBookmark(uid: uid, postId: postId, saved: saved);
-        if (!mounted) return;
+      } else {
+        final repository = ref.read(reelEngagementRepositoryProvider);
+        if (repository == null) throw StateError('offline');
+        await repository.setSaved(uid: uid, reelId: reel.id, saved: !saved);
+      }
+      if (!saved) analytics.logReel(ExploreEvent.save, reel);
+      if (mounted) {
         showGlassToast(
           context,
-          saved ? 'Removed from your saved posts.' : 'Saved.',
+          saved ? 'Removed from your keeps.' : 'Kept. Find it under Saved.',
         );
-      } on Object {
-        if (mounted) showGlassToast(context, 'Could not update. Try again.');
       }
-      return;
-    }
-
-    final uid = await CommunityActions(ref).requireSignIn(context);
-    final repository = ref.read(reelEngagementRepositoryProvider);
-    if (uid == null || repository == null) return;
-    try {
-      await repository.setSaved(uid: uid, reelId: reel.id, saved: !saved);
-      if (!mounted) return;
-      showGlassToast(context, saved ? 'Removed from your keeps.' : 'Kept.');
     } on Object {
       if (mounted) showGlassToast(context, 'Could not update. Try again.');
+    } finally {
+      if (mounted) setState(() => _pendingSaves.remove(reel.id));
     }
   }
 
   Future<void> _toggleAppreciation(Reel reel, {required bool liked}) async {
     HapticFeedback.lightImpact();
-    if (reel.communityPostId case final postId?) {
-      final uid = await CommunityActions(ref).requireSignIn(context);
-      final repository = ref.read(communityRepositoryProvider);
-      if (uid == null || repository == null) return;
-      try {
-        await repository.toggleLike(uid: uid, postId: postId, liked: liked);
-      } on Object {
-        if (mounted) showGlassToast(context, 'Could not update. Try again.');
-      }
-      return;
-    }
+    final analytics = ref.read(exploreAnalyticsProvider);
     if (!reel.isLive) {
       await ref.read(reelKeepsProvider).toggleAppreciated(reel.id);
       ref.invalidate(savedEntryIdsProvider);
       return;
     }
-
     final uid = await CommunityActions(ref).requireSignIn(context);
+    if (uid == null || !mounted) return;
+
+    if (reel.communityPostId case final postId?) {
+      final repository = ref.read(communityRepositoryProvider);
+      if (repository == null) return;
+      final optimistic = ref.read(optimisticEngagementProvider.notifier)
+        ..setLike(postId, !liked);
+      try {
+        await repository.toggleLike(uid: uid, postId: postId, liked: liked);
+        if (!liked) analytics.logReel(ExploreEvent.like, reel);
+      } on Object {
+        if (mounted) showGlassToast(context, 'Could not update. Try again.');
+      } finally {
+        optimistic.clearLike(postId);
+      }
+      return;
+    }
+
     final repository = ref.read(reelEngagementRepositoryProvider);
-    if (uid == null || repository == null) return;
+    if (repository == null) return;
+    setState(() => _pendingLikes[reel.id] = !liked);
     try {
       await repository.setLiked(uid: uid, reelId: reel.id, liked: !liked);
+      if (!liked) analytics.logReel(ExploreEvent.like, reel);
       ref.invalidate(reelCountsProvider(reel.id));
     } on Object {
       if (mounted) showGlassToast(context, 'Could not update. Try again.');
+    } finally {
+      if (mounted) setState(() => _pendingLikes.remove(reel.id));
     }
   }
 
-  Future<void> _openCreator(BuildContext context, Reel reel) async {
-    // Nobody's page. An advert has an advertiser, not a creator, and the one
-    // door it is allowed to open is the one it paid for — which the card draws
-    // as its own button. Reached only from the name line, which a sponsored
-    // card does not draw either; the guard is here so it cannot be reached by a
-    // route added later.
-    if (reel.isSponsored) return;
-    if (reel.isCommunity && reel.creatorId.isNotEmpty) {
-      await Navigator.of(context).push(
-        MaterialPageRoute<void>(
-          builder: (context) => CommunityProfileScreen(uid: reel.creatorId),
-        ),
+  /// Follows the reel's creator from the plus on their face.
+  ///
+  /// The plus becomes a check the moment it is tapped. If the write is refused
+  /// the override is dropped — which puts the plus back — and the member is
+  /// told, rather than being left to discover later that they follow nobody.
+  Future<void> _follow(Reel reel) async {
+    final uid = await CommunityActions(ref).requireSignIn(context);
+    if (uid == null || !mounted || uid == reel.creatorId) return;
+    final repository = ref.read(communityRepositoryProvider);
+    if (repository == null) {
+      showGlassToast(context, 'Following needs a connection.');
+      return;
+    }
+    final already =
+        ref.read(followingIdsProvider).asData?.value.contains(reel.creatorId) ??
+        false;
+    if (already) return;
+    HapticFeedback.selectionClick();
+    final optimistic = ref.read(optimisticEngagementProvider.notifier)
+      ..setFollow(reel.creatorId, true);
+    try {
+      await repository.toggleFollow(
+        followerId: uid,
+        targetId: reel.creatorId,
+        following: false,
       );
-      return;
+      ref
+        ..invalidate(profileCountsProvider(reel.creatorId))
+        ..invalidate(profileCountsProvider(uid));
+      ref.read(exploreAnalyticsProvider).logReel(ExploreEvent.follow, reel);
+    } on CommunityFailure catch (error) {
+      if (mounted) showGlassToast(context, error.message);
+    } on Object {
+      if (mounted) {
+        showGlassToast(context, 'Could not follow ${reel.creator}. Try again.');
+      }
+    } finally {
+      optimistic.clearFollow(reel.creatorId);
     }
-    if (reel.creatorId.isEmpty) {
-      showGlassToast(context, 'This preview card has no creator page.');
-      return;
-    }
-    await Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (context) => CreatorProfileScreen(
-          creatorId: reel.creatorId,
-          fallbackName: reel.creator,
-          fallbackAvatarUrl: reel.avatarUrl,
-        ),
-      ),
+  }
+
+  /// The name and handle to show for [reel], preferring the creator's live
+  /// community profile over what the record was stamped with.
+  ({String name, String handle}) _creatorLine(Reel reel) {
+    final profile = reel.creatorId.isEmpty
+        ? null
+        : ref.read(communityProfileProvider(reel.creatorId)).asData?.value;
+    return (
+      name: profile?.displayName ?? reel.creator,
+      handle: reel.handle.isNotEmpty ? reel.handle : (profile?.username ?? ''),
     );
   }
 
-  Future<void> _openComments(BuildContext context, Reel reel) async {
-    if (reel.communityPostId case final postId?) {
+  Future<void> _openCreator(Reel reel) async {
+    // Nobody's page. An advert has an advertiser, not a creator.
+    if (reel.isSponsored || reel.creatorId.isEmpty) return;
+    await _withCover(() async {
       await Navigator.of(context).push(
         MaterialPageRoute<void>(
-          builder: (context) => PostDetailScreen(postId: postId),
+          builder: (context) => reel.isCommunity
+              ? CommunityProfileScreen(uid: reel.creatorId)
+              : CreatorProfileScreen(
+                  creatorId: reel.creatorId,
+                  fallbackName: reel.creator,
+                  fallbackAvatarUrl: reel.avatarUrl,
+                ),
         ),
       );
+    });
+  }
+
+  Future<void> _openCommunity(Reel reel) async {
+    final community = reel.community;
+    if (community == null) return;
+    await _withCover(() async {
+      await Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (context) => CommunitySpaceScreen(communityId: community.id),
+        ),
+      );
+    });
+  }
+
+  Future<void> _openComments(Reel reel) async {
+    if (reel.isSponsored) return;
+    ref.read(exploreAnalyticsProvider).logReel(ExploreEvent.commentOpen, reel);
+    if (reel.communityPostId case final postId?) {
+      await _withCover(() async {
+        await Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (context) => PostDetailScreen(postId: postId),
+          ),
+        );
+      });
       return;
     }
-    // A reel that is not live has no comment thread and never had one. It used
-    // to open a popup headed "426 community replies" over two invented people
-    // — Amina and Nyaaba — and a reply box that answered "Your local Kasem
-    // reply was added to this preview" and then discarded what was typed.
-    //
-    // Nothing here is a comment on anything, so there is nothing to open.
+    // An illustrative reel has no comment thread and never had one.
     if (!reel.isLive) return;
-    await showReelCommentsSheet(context, reelId: reel.id, title: reel.title);
+    await _withChromeHeld('comments', () async {
+      await showReelCommentsSheet(context, reelId: reel.id, title: reel.title);
+    });
     if (mounted) ref.invalidate(reelCountsProvider(reel.id));
   }
 
-  /// The context card: the English summary, cultural notes, where the piece
-  /// comes from and how it is licensed.
+  /// The Context sheet: meaning, culture, words, source and permission.
   ///
   /// This is the point of the whole feed. A reel without its context is just a
-  /// clip, and the licence line is what tells a viewer what they may do with
-  /// somebody else's cultural work.
-  Future<void> _openContext(BuildContext context, Reel reel) {
-    return showGlassPopup<void>(
-      context: context,
-      builder: (popupContext) => Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(reel.label, style: kReelSheetEyebrow),
-          const SizedBox(height: 8),
-          Text(
-            reel.title,
-            style: Theme.of(popupContext).textTheme.headlineMedium,
-          ),
-          const SizedBox(height: 6),
-          Text(
-            reel.creator,
-            style: TextStyle(
-              color: context.brand.mutedInk,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          if (reel.caption.trim().isNotEmpty) ...[
-            const SizedBox(height: 18),
-            ReelContextBlock(heading: 'About this', body: reel.caption),
-          ],
-          if (reel.englishSummary.trim().isNotEmpty) ...[
-            const SizedBox(height: 16),
-            ReelContextBlock(heading: 'In English', body: reel.englishSummary),
-          ],
-          if (reel.culturalNotes.trim().isNotEmpty) ...[
-            const SizedBox(height: 16),
-            ReelContextBlock(
-              heading: 'Cultural context',
-              body: reel.culturalNotes,
-            ),
-          ],
-          const SizedBox(height: 20),
-          Divider(color: context.brand.divider),
-          const SizedBox(height: 12),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(
-                Icons.copyright_rounded,
-                size: 17,
-                color: context.brand.mutedInk,
-              ),
-              const SizedBox(width: 9),
-              Expanded(
-                child: Text(
-                  reel.credit,
-                  style: TextStyle(
-                    color: context.brand.mutedInk,
-                    fontSize: 12,
-                    height: 1.45,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
+  /// clip, and the permission line is what tells a viewer what they may do
+  /// with somebody else's cultural work.
+  Future<void> _openContext(Reel reel) async {
+    final analytics = ref.read(exploreAnalyticsProvider)
+      ..logReel(ExploreEvent.contextOpen, reel);
+    final creator = _creatorLine(reel);
+    await _withChromeHeld('context', () async {
+      await showReelContextSheet(
+        context,
+        reel: reel,
+        creatorName: creator.name,
+        handle: creator.handle,
+        onOpenCreator: () => _openCreator(reel),
+        onOpenCommunity: reel.community == null
+            ? null
+            : () => _openCommunity(reel),
+        onPronunciationPlay: () => _pronunciationPlayed(reel),
+        onTranslationOpen: () =>
+            analytics.logReel(ExploreEvent.translationOpen, reel),
+        onExtentChanged: (extent) {
+          final pause = extent >= kContextPauseExtent;
+          if (mounted && pause != _sheetPaused) {
+            setState(() => _sheetPaused = pause);
+          }
+        },
+      );
+    });
+    if (mounted) {
+      setState(() {
+        _sheetPaused = false;
+        _audioPaused = false;
+      });
+    }
   }
 
-  /// The curated preview keeps its illustrative sample thread, clearly
-  /// labelled as sample copy.
-}
+  Future<void> _openTranslation(Reel reel) async {
+    ref
+        .read(exploreAnalyticsProvider)
+        .logReel(ExploreEvent.translationOpen, reel);
+    await _withChromeHeld('translation', () async {
+      await showReelTranslationSheet(
+        context,
+        reel: reel,
+        onPronunciationPlay: () => _pronunciationPlayed(reel),
+      );
+    });
+    if (mounted) setState(() => _audioPaused = false);
+  }
 
-const kReelSheetEyebrow = TextStyle(
-  color: Color(0xFFCE7D60),
-  fontSize: 10,
-  fontWeight: FontWeight.w800,
-  letterSpacing: 1.2,
-);
+  void _pronunciationPlayed(Reel reel) {
+    ref
+        .read(exploreAnalyticsProvider)
+        .logReel(ExploreEvent.pronunciationPlay, reel);
+    if (mounted && !_audioPaused) setState(() => _audioPaused = true);
+  }
 
-/// One labelled paragraph in the context card.
-class ReelContextBlock extends StatelessWidget {
-  const ReelContextBlock({
-    required this.heading,
-    required this.body,
-    super.key,
-  });
-
-  final String heading;
-  final String body;
-
-  @override
-  Widget build(BuildContext context) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Text(
-        heading.toUpperCase(),
-        style: TextStyle(
-          color: context.brand.accent,
-          fontSize: 10,
-          fontWeight: FontWeight.w900,
-          letterSpacing: 1.1,
-        ),
-      ),
-      const SizedBox(height: 6),
-      Text(
-        body.trim(),
-        style: TextStyle(color: context.brand.ink, fontSize: 14.5, height: 1.5),
-      ),
-    ],
-  );
+  Future<void> _openMore(Reel reel) async {
+    final creator = _creatorLine(reel);
+    await _withChromeHeld('menu', () async {
+      await showReelOverflowMenu(
+        context,
+        ref,
+        reel: reel,
+        creatorName: creator.name,
+        handle: creator.handle,
+      );
+    });
+  }
 }
 
 /// One reel, full frame: its footage, its words and its action rail.
 ///
 /// The card owns the video player rather than delegating it to the background
 /// layer, because everything drawn *over* the footage needs to know how the
-/// footage is doing — whether it is still opening, whether it is stopped, and
-/// how far through it is. Those three answers live in one place now, and the
-/// chrome that reports them sits above the scrim where it can be seen.
+/// footage is doing — whether it is still opening, whether it failed, whether
+/// it is stopped, and how far through it is.
 class _ReelCard extends ConsumerStatefulWidget {
   const _ReelCard({
     required this.reel,
     required this.bottomInset,
     required this.isActive,
+    required this.preload,
     required this.isPlaying,
+    required this.userPaused,
     required this.onScreen,
     required this.liked,
+    required this.serverLiked,
     required this.saved,
-    required this.onTogglePlayback,
+    required this.followState,
+    required this.soundMuted,
+    required this.chrome,
+    required this.compactRail,
+    required this.showLoadingMore,
+    required this.translationAvailable,
+    required this.onTapMedia,
     required this.onLike,
     required this.onSave,
     required this.onComments,
     required this.onContext,
+    required this.onTranslate,
+    required this.onMore,
+    required this.onFollow,
     required this.onOpenCreator,
+    required this.onOpenCommunity,
+    required this.onToggleSound,
+    required this.onCommunityJoined,
+    required this.onVideoPlaying,
+    required this.onVideoLength,
+    required this.onVideoLooped,
+    super.key,
   });
 
   final Reel reel;
@@ -905,23 +1527,45 @@ class _ReelCard extends ConsumerStatefulWidget {
 
   final bool isActive;
 
-  /// The member's own intent: they have not tapped this reel to a stop.
-  ///
-  /// Kept separate from [onScreen] so the paused overlay stays a statement
-  /// about what they chose, not about which tab happens to be selected.
+  /// The reel after the active one: its clip opens, paused on the first frame,
+  /// so the swipe to it lands on a picture rather than a spinner.
+  final bool preload;
+
+  /// Whether the clip should be playing: active, not tapped to a stop, not
+  /// covered by a sheet.
   final bool isPlaying;
+
+  /// The member tapped this reel to a stop — the only pause that draws a play
+  /// button.
+  final bool userPaused;
 
   /// Whether the feed is in front of the member at all.
   final bool onScreen;
 
   final bool liked;
+  final bool serverLiked;
   final bool saved;
-  final VoidCallback onTogglePlayback;
+  final ReelFollowState followState;
+  final bool soundMuted;
+  final ExploreChromeController? chrome;
+  final bool compactRail;
+  final bool showLoadingMore;
+  final bool translationAvailable;
+  final VoidCallback onTapMedia;
   final VoidCallback onLike;
   final VoidCallback onSave;
   final VoidCallback onComments;
   final VoidCallback onContext;
+  final VoidCallback onTranslate;
+  final VoidCallback onMore;
+  final VoidCallback onFollow;
   final VoidCallback onOpenCreator;
+  final VoidCallback onOpenCommunity;
+  final VoidCallback onToggleSound;
+  final ValueChanged<MembershipStatus> onCommunityJoined;
+  final ValueChanged<bool> onVideoPlaying;
+  final ValueChanged<Duration> onVideoLength;
+  final VoidCallback onVideoLooped;
 
   @override
   ConsumerState<_ReelCard> createState() => _ReelCardState();
@@ -931,6 +1575,25 @@ class _ReelCardState extends ConsumerState<_ReelCard> {
   VideoPlayerController? _controller;
   var _ready = false;
   var _failed = false;
+  var _stillFailed = false;
+
+  /// Set when a clip has taken longer than [_slowAfter] to open.
+  var _slow = false;
+  Timer? _slowTimer;
+  static const _slowAfter = Duration(seconds: 6);
+
+  /// What the player last reported, for telling a loop from a seek.
+  var _lastPosition = Duration.zero;
+  var _lastPlaying = false;
+
+  /// Keeps a trimmed community clip inside the part its creator chose. The
+  /// file is uploaded whole — see `clip_window.dart` — so the trim is honoured
+  /// here, at playback.
+  ClipWindowGuard? _windowGuard;
+
+  /// Sound is off when the member muted Explore or the creator removed it.
+  double get _volume =>
+      widget.soundMuted || !widget.reel.playsOriginalSound ? 0 : 1;
 
   /// Bumped every time a controller is let go.
   ///
@@ -942,18 +1605,15 @@ class _ReelCardState extends ConsumerState<_ReelCard> {
 
   /// The clip this card should have open, or null when it should have none.
   ///
-  /// Off screen the player goes altogether and the poster takes its place.
-  /// Merely pausing would leave a decoder and an open audio session behind
-  /// another tab.
+  /// Only the active reel and the one after it hold a player. Everything
+  /// further away lets its decoder go and shows its poster — merely pausing
+  /// would leave a decoder behind for every reel somebody has swiped past.
   String? get _wantedUrl =>
-      widget.isActive ? widget.reel.videoUrl : null;
+      widget.isActive || widget.preload ? widget.reel.videoUrl : null;
 
   /// Whether the member is waiting on footage that has not arrived.
-  ///
-  /// This is the state that used to be drawn as a play button: a reel that had
-  /// not finished opening looked exactly like a reel somebody had stopped, so
-  /// the only honest read of a slow connection was "tapping does nothing".
-  bool get _opening => _wantedUrl != null && !_ready && !_failed;
+  bool get _opening =>
+      widget.isActive && _wantedUrl != null && !_ready && !_failed;
 
   @override
   void initState() {
@@ -965,12 +1625,16 @@ class _ReelCardState extends ConsumerState<_ReelCard> {
   void didUpdateWidget(_ReelCard oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.reel.videoUrl != widget.reel.videoUrl ||
-        oldWidget.isActive != widget.isActive) {
+        oldWidget.isActive != widget.isActive ||
+        oldWidget.preload != widget.preload) {
       _sync();
+      if (widget.isActive && !oldWidget.isActive) _reportLength();
     } else if (oldWidget.isPlaying != widget.isPlaying ||
-        oldWidget.onScreen != widget.onScreen) {
+        oldWidget.onScreen != widget.onScreen ||
+        oldWidget.soundMuted != widget.soundMuted) {
       _syncPlayback();
     }
+    if (oldWidget.reel.imageUrl != widget.reel.imageUrl) _stillFailed = false;
   }
 
   @override
@@ -1002,27 +1666,96 @@ class _ReelCardState extends ConsumerState<_ReelCard> {
 
   Future<void> _open(String url) async {
     final generation = _generation;
-    final controller = VideoPlayerController.networkUrl(Uri.parse(url));
+    final controller = ref.read(reelVideoControllerFactoryProvider)(url);
     _controller = controller;
+    _slowTimer?.cancel();
+    _slow = false;
+    _slowTimer = Timer(_slowAfter, () {
+      if (!_isStale(generation) && !_ready) setState(() => _slow = true);
+    });
     try {
       await controller.initialize();
       await controller.setLooping(true);
-      await controller.setVolume(1);
+      await controller.setVolume(_volume);
+      final window = widget.reel.clipWindow;
+      if (window != null) await controller.seekTo(window.start);
     } on Object {
       _discard(controller);
       if (_isStale(generation)) return;
-      setState(() => _failed = true);
+      _slowTimer?.cancel();
+      setState(() {
+        _failed = true;
+        _slow = false;
+      });
       return;
     }
     if (_isStale(generation)) {
       _discard(controller);
       return;
     }
-    setState(() => _ready = true);
-    // Opened while paused — because the member stopped this reel before it
-    // finished loading — the sync leaves it on its first frame rather than
-    // starting sound nobody asked for.
+    _slowTimer?.cancel();
+    controller.addListener(_onPlayerTick);
+    if (widget.reel.clipWindow case final window?) {
+      _windowGuard = ClipWindowGuard(
+        controller,
+        window,
+        onLooped: () {
+          if (mounted && widget.isActive) widget.onVideoLooped();
+        },
+      )..attach();
+    }
+    setState(() {
+      _ready = true;
+      _slow = false;
+    });
+    _reportLength();
+    // Opened while paused — because this is the preloaded reel, or the member
+    // stopped it before it finished loading — the sync leaves it on its first
+    // frame rather than starting sound nobody asked for.
     _syncPlayback();
+  }
+
+  void _retry() {
+    final url = widget.reel.videoUrl;
+    if (url == null) return;
+    setState(() {
+      _release();
+      _failed = false;
+      _open(url);
+    });
+  }
+
+  void _reportLength() {
+    final controller = _controller;
+    if (!widget.isActive || controller == null || !_ready) return;
+    final duration = controller.value.duration;
+    widget.onVideoLength(
+      widget.reel.clipWindow?.lengthWithin(duration) ?? duration,
+    );
+  }
+
+  /// Reads the player for the two things the feed measures: whether it is
+  /// really playing, and whether it has just looped.
+  void _onPlayerTick() {
+    final controller = _controller;
+    if (controller == null || !widget.isActive) return;
+    final value = controller.value;
+    if (value.isPlaying != _lastPlaying) {
+      _lastPlaying = value.isPlaying;
+      widget.onVideoPlaying(value.isPlaying);
+    }
+    // A trimmed clip's loops are reported by its guard, which is what sends
+    // it back to the start; reading them off the position too would count
+    // each one twice.
+    if (_windowGuard == null &&
+        exploreLoopedBack(
+          previous: _lastPosition,
+          current: value.position,
+          length: value.duration,
+        )) {
+      widget.onVideoLooped();
+    }
+    _lastPosition = value.position;
   }
 
   /// True once this open no longer speaks for the card: it has been disposed,
@@ -1040,13 +1773,21 @@ class _ReelCardState extends ConsumerState<_ReelCard> {
     if (!identical(_controller, controller)) return;
     _controller = null;
     _ready = false;
-    controller.dispose();
+    _windowGuard?.detach();
+    _windowGuard = null;
+    controller
+      ..removeListener(_onPlayerTick)
+      ..dispose();
   }
 
   /// Drops the current controller and makes every open so far stale.
   void _release() {
     _generation++;
     _ready = false;
+    _slow = false;
+    _slowTimer?.cancel();
+    _lastPosition = Duration.zero;
+    _lastPlaying = false;
     final controller = _controller;
     if (controller != null) _discard(controller);
   }
@@ -1056,7 +1797,10 @@ class _ReelCardState extends ConsumerState<_ReelCard> {
     // Nothing left to sync once the controller has gone: a disposed player
     // throws when told to play, and there is nobody there to hear it anyway.
     if (controller == null || !_ready || !mounted) return;
-    if (widget.isPlaying && widget.onScreen) {
+    controller.setVolume(_volume);
+    // Only the active reel ever plays. The preloaded one waits on its first
+    // frame, so two clips can never be heard at once.
+    if (widget.isActive && widget.isPlaying && widget.onScreen) {
       controller.play();
     } else {
       controller.pause();
@@ -1066,264 +1810,245 @@ class _ReelCardState extends ConsumerState<_ReelCard> {
   @override
   Widget build(BuildContext context) {
     final reel = widget.reel;
+    final chrome = widget.chrome;
 
     // Published records only carry the avatar the creator had when the piece
     // was approved, and for most creators that is null. Their community
-    // profile is world-readable and current, so it is what fills the gap —
-    // which is the difference between a face on the feed and two grey letters.
+    // profile is world-readable and current, so it is what fills the gap.
     final memberProfile = reel.creatorId.isEmpty
         ? null
         : ref.watch(communityProfileProvider(reel.creatorId)).asData?.value;
     final avatarUrl = reel.avatarUrl?.isNotEmpty ?? false
         ? reel.avatarUrl
         : memberProfile?.avatarUrl;
+    final displayName = memberProfile?.displayName ?? reel.creator;
+    final handle = reel.handle.isNotEmpty
+        ? reel.handle
+        : (memberProfile?.username ?? '');
 
     // A community video counts where it lives: its appreciations and replies
-    // are the post's own, already denormalised onto it, so reading the reel
-    // engagement collections for one would show a permanent zero beside a
-    // conversation that is plainly happening. A sponsored reel is excluded for
-    // a blunter reason: there is no engagement document behind a campaign id,
-    // so this would open a snapshot listener on a reel that does not exist.
+    // are the post's own. A sponsored reel has no engagement document at all.
     final counts = reel.isLive && !reel.isCommunity && !reel.isSponsored
         ? (ref.watch(reelCountsProvider(reel.id)).asData?.value ??
               emptyReelCounts)
-        : (likes: reel.likes, comments: reel.comments, views: 0);
+        : (likes: reel.likes, comments: reel.comments, views: reel.viewCount);
 
-    // A live total already counts this member's own edge, so adding one for
-    // the filled heart would show every liker a number one too high. Only the
-    // curated preview, whose figure is a fixed illustration, gets the local
-    // bump — but a filled heart over a nought is a plain contradiction, so a
-    // server total that has not caught up yet is floored at the one like the
-    // member can see they left.
-    final likeTotal = reel.isLive
-        ? (widget.liked && counts.likes < 1 ? 1 : counts.likes)
-        : counts.likes + (widget.liked ? 1 : 0);
+    // The totals already count this member's own edge once the server has it,
+    // so the displayed number moves by one only while a tap is ahead of the
+    // server — and a filled heart is never drawn over a nought.
+    var likeTotal = counts.likes;
+    if (widget.liked != widget.serverLiked) {
+      likeTotal += widget.liked ? 1 : -1;
+    }
+    if (widget.liked && likeTotal < 1) likeTotal = 1;
+    if (likeTotal < 0) likeTotal = 0;
 
     final ready = _ready ? _controller : null;
+    final media = ReelMediaFrame(
+      imageUrl: reel.imageUrl,
+      isActive: widget.isActive,
+      controller: ready,
+      aspectRatio: reel.mediaAspectRatio,
+      focalPoint: reel.focalPoint,
+      onStillFailed: reel.isImage
+          ? () {
+              if (mounted && !_stillFailed) setState(() => _stillFailed = true);
+            }
+          : null,
+    );
 
+    final bottom = widget.bottomInset;
+    // The words and the rail clear the nav bar, the device's own gesture
+    // area, and the strip the progress bar runs along between them.
+    final lift = bottom + MediaQuery.paddingOf(context).bottom + 22;
     return Semantics(
-      // A screen reader hears what it is before it hears what it says, exactly
-      // as a sighted member reads the pill before the headline.
+      // One node per reel, so a screen reader moves through a reel's parts —
+      // its words, its rail — rather than hearing them run together.
+      container: true,
+      // A screen reader hears what it is before it hears what it says.
       label: reel.isSponsored
           ? 'Sponsored. ${reel.title}.'
-          : '${reel.title}. Cultural reel by ${reel.creator}.',
+          : '${reel.categoryLabel.toLowerCase()} '
+                '${reel.isVideo ? 'video' : 'picture'} by $displayName.'
+                '${reel.title.trim().isEmpty ? '' : ' ${reel.title.trim()}.'}',
       child: GestureDetector(
-        onTap: widget.onTogglePlayback,
+        behavior: HitTestBehavior.opaque,
+        onTap: widget.onTapMedia,
         child: Stack(
           fit: StackFit.expand,
           children: [
-            _ReelBackground(
-              reel: reel,
-              isActive: widget.isActive,
-              controller: ready,
+            media,
+            // The shades exist to make the words legible, so they leave with
+            // the words and the picture is left clean.
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              height: 150,
+              child: ExploreChromeFade(
+                controller: chrome,
+                child: const IgnorePointer(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [Color(0x73000000), Color(0x00000000)],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             ),
-            const DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Color(0x66000000),
-                    Color(0x08000000),
-                    Color(0xE6000000),
-                  ],
-                  stops: [0, 0.45, 1],
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              height: 340 + bottom,
+              child: ExploreChromeFade(
+                controller: chrome,
+                child: const IgnorePointer(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Color(0x00000000),
+                          Color(0x8C000000),
+                          Color(0xCC000000),
+                        ],
+                        stops: [0, 0.55, 1],
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ),
             if (_opening)
-              const Center(child: _ReelSpinner())
-            else if (!widget.isPlaying)
+              Center(child: _ReelSpinner(slow: _slow))
+            else if (widget.isActive && _failed)
               Center(
-                child: Container(
-                  width: 68,
-                  height: 68,
-                  decoration: const BoxDecoration(
-                    color: Color(0x99000000),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.play_arrow_rounded,
-                    color: Colors.white,
-                    size: 40,
-                  ),
+                child: _MediaUnavailable(
+                  message: 'This video cannot be played right now.',
+                  onRetry: _retry,
                 ),
-              ),
-            Positioned(
-              left: 18,
-              // The 82 is the room the action rail needs. An advert draws no
-              // rail, so it does not hold a column of empty screen open beside
-              // itself.
-              right: reel.isSponsored ? 18 : 82,
-              bottom: 42 + widget.bottomInset,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _PreviewPill(label: reel.label),
-                  const SizedBox(height: 10),
-                  Text(
-                    reel.title,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 34,
-                      height: 0.98,
-                      letterSpacing: -1.3,
-                      fontWeight: FontWeight.w900,
-                      shadows: [Shadow(blurRadius: 16, color: Colors.black)],
-                    ),
-                  ),
-                  // The byline and the sound line are both claims about a
-                  // person: who made this, and what they are playing. An
-                  // advert has neither, so it draws neither rather than
-                  // drawing them empty.
-                  if (!reel.isSponsored) ...[
-                    const SizedBox(height: 13),
-                    GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onTap: widget.onOpenCreator,
-                      child: Text(
-                        memberProfile?.displayName ?? reel.creator,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                    ),
-                  ],
-                  const SizedBox(height: 3),
-                  Text(
-                    reel.caption,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 13,
-                      height: 1.35,
-                    ),
-                  ),
-                  const SizedBox(height: 9),
-                  // The advert's own button stands where the sound line does on
-                  // a real reel: the one place on the card that is a claim
-                  // about the thing itself rather than about the person.
-                  if (reel.servedAd case final ad? when ad.hasLink)
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: SponsoredCtaButton(ad: ad, onDark: true),
-                    )
-                  else if (!reel.isSponsored)
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.music_note_rounded,
-                          color: Colors.white70,
-                          size: 15,
-                        ),
-                        const SizedBox(width: 5),
-                        Expanded(
-                          child: Text(
-                            reel.sound,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: Colors.white70,
-                              fontSize: 11,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  const SizedBox(height: 8),
-                  Text(
-                    reel.credit,
-                    style: const TextStyle(color: Colors.white54, fontSize: 9),
-                  ),
-                ],
-              ),
-            ),
-            // No rail at all on an advert. Every control on it — the heart, the
-            // replies, the keep, the context card with its licence line —
-            // asserts that a member made this and that other members are
-            // talking about it. An appreciation count under a paid placement is
-            // not a small cosmetic wrong; it is the app vouching for an advert
-            // in the same words it uses for somebody's grandmother singing.
-            if (!reel.isSponsored)
-              Positioned(
-                right: 11,
-                bottom: 44 + widget.bottomInset,
-                child: Column(
-                  children: [
-                    ReelCreatorAvatar(
-                      initials: reel.initials,
-                      avatarUrl: avatarUrl,
-                      onTap: reel.creatorId.isEmpty
-                          ? null
-                          : widget.onOpenCreator,
-                    ),
-                    const SizedBox(height: 13),
-                    _ReelAction(
-                      icon: widget.liked
-                          ? Icons.favorite_rounded
-                          : Icons.favorite_border_rounded,
-                      label: reelCountLabel(likeTotal),
-                      tooltip: widget.liked
-                          ? 'Remove appreciation'
-                          : 'Appreciate',
-                      active: widget.liked,
-                      onTap: widget.onLike,
-                    ),
-                    _ReelAction(
-                      icon: Icons.chat_bubble_outline_rounded,
-                      label: reelCountLabel(counts.comments),
-                      tooltip: 'Replies',
-                      onTap: widget.onComments,
-                    ),
-                    _ReelAction(
-                      icon: widget.saved
-                          ? Icons.bookmark_rounded
-                          : Icons.bookmark_border_rounded,
-                      label: widget.saved ? 'Kept' : 'Keep',
-                      tooltip: widget.saved
-                          ? 'Remove from keeps'
-                          : 'Keep this reel',
-                      active: widget.saved,
-                      onTap: widget.onSave,
-                    ),
-                    _ReelAction(
-                      icon: Icons.menu_book_outlined,
-                      label: 'Context',
-                      tooltip: 'Cultural context and licence',
-                      onTap: widget.onContext,
-                    ),
-                    if (reel.isLive && counts.views > 0)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 2),
-                        child: Text(
-                          '${reelCountLabel(counts.views)} views',
-                          style: const TextStyle(
-                            color: Colors.white60,
-                            fontSize: 9,
-                            fontWeight: FontWeight.w700,
-                            shadows: [
-                              Shadow(blurRadius: 8, color: Colors.black),
-                            ],
-                          ),
-                        ),
-                      ),
-                  ],
+              )
+            else if (widget.isActive && reel.isImage && _stillFailed)
+              const Center(
+                child: _MediaUnavailable(
+                  message: 'This picture could not be loaded.',
                 ),
-              ),
-            // Above the scrim and below nothing: where you are in the clip is
-            // the last thing a full-bleed video should hide.
-            if (ready case final controller?)
+              )
+            else if (reel.isVideo && widget.userPaused)
+              const Center(child: _PausedMark()),
+            // Captions sit over the picture and clear of the words, and stay
+            // when the rest of the chrome fades: they belong to the video,
+            // not to the card.
+            if ((ready, reel.communityMedia?.captions)
+                case (final controller?, final captions?)
+                when captions.isShowable)
               Positioned(
                 left: 0,
                 right: 0,
-                // Above the nav bar rather than under it: where you are in the
-                // clip is the last thing a full-bleed video should hide, and a
-                // progress bar behind a glass strip is a progress bar nobody
-                // can read.
-                bottom: widget.bottomInset,
-                child: SafeArea(
-                  top: false,
-                  child: ReelProgressBar(controller: controller),
+                bottom: lift + 170,
+                child: ReelCaptionOverlay(
+                  controller: controller,
+                  track: captions,
+                  bottomPadding: 0,
+                ),
+              ),
+            if (widget.showLoadingMore)
+              Positioned(
+                top: MediaQuery.paddingOf(context).top + 62,
+                left: 0,
+                right: 0,
+                child: const Center(child: _LoadingMorePill()),
+              ),
+            Positioned(
+              left: 14,
+              // Room for the rail; an advert draws only its menu button.
+              right: reel.isSponsored ? 70 : 78,
+              bottom: lift,
+              child: ExploreChromeFade(
+                controller: chrome,
+                slide: const Offset(0, 0.04),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    ReelDetails(
+                      reel: reel,
+                      displayName: displayName,
+                      handle: handle,
+                      isActive: widget.isActive,
+                      viewCount: counts.views,
+                      soundMuted: widget.soundMuted,
+                      onOpenCreator: widget.onOpenCreator,
+                      onOpenCommunity: widget.onOpenCommunity,
+                      onToggleSound: widget.onToggleSound,
+                      onTranslate: widget.translationAvailable
+                          ? widget.onTranslate
+                          : null,
+                      onCommunityJoined: widget.onCommunityJoined,
+                    ),
+                    // The advert's own button stands where the sound line does
+                    // on a real reel.
+                    if (reel.servedAd case final ad? when ad.hasLink) ...[
+                      const SizedBox(height: 10),
+                      SponsoredCtaButton(ad: ad, onDark: true),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+            // An advert carries no appreciation, replies, keep or context —
+            // every one of those asserts that a member made this — only the
+            // menu, so it can still be reported.
+            Positioned(
+              right: 8,
+              bottom: lift - 4,
+              child: ExploreChromeFade(
+                controller: chrome,
+                slide: const Offset(0.2, 0),
+                child: reel.isSponsored
+                    ? ReelRailButton(
+                        icon: Icons.more_horiz_rounded,
+                        label: 'More',
+                        semanticLabel: 'More options',
+                        onTap: widget.onMore,
+                      )
+                    : ReelActionRail(
+                        creatorName: displayName,
+                        initials: reel.initials,
+                        avatarUrl: avatarUrl,
+                        followState: widget.followState,
+                        likeCount: likeTotal,
+                        commentCount: counts.comments,
+                        liked: widget.liked,
+                        saved: widget.saved,
+                        compact: widget.compactRail,
+                        onOpenCreator: reel.creatorId.isEmpty
+                            ? null
+                            : widget.onOpenCreator,
+                        onFollow: widget.onFollow,
+                        onLike: widget.onLike,
+                        onComments: widget.onComments,
+                        onSave: widget.onSave,
+                        onContext: widget.onContext,
+                        onMore: widget.onMore,
+                      ),
+              ),
+            ),
+            // Where you are in the clip. It rides just above the nav bar while
+            // the bar is there and drops to the bottom edge when it goes.
+            if (ready case final controller? when widget.isActive)
+              _ProgressDock(
+                chrome: chrome,
+                bottomInset: bottom,
+                child: ReelProgressBar(
+                  controller: controller,
+                  window: reel.clipWindow,
                 ),
               ),
           ],
@@ -1333,35 +2058,192 @@ class _ReelCardState extends ConsumerState<_ReelCard> {
   }
 }
 
-/// The wait while a clip opens.
-///
-/// A ring rather than a bar: nothing here knows how long the opening will
-/// take, and a bar that cannot say how full it is only invites the question.
+class _ProgressDock extends StatelessWidget {
+  const _ProgressDock({
+    required this.chrome,
+    required this.bottomInset,
+    required this.child,
+  });
+
+  final ExploreChromeController? chrome;
+  final double bottomInset;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final chrome = this.chrome;
+    Widget dock(double bottom) => Positioned(
+      left: 0,
+      right: 0,
+      bottom: bottom,
+      child: SafeArea(top: false, child: child),
+    );
+    if (chrome == null) return dock(bottomInset);
+    return ValueListenableBuilder<bool>(
+      valueListenable: chrome,
+      builder: (context, visible, _) => dock(visible ? bottomInset : 0),
+    );
+  }
+}
+
+/// The wait while a clip opens, and what it says when the wait runs long.
 class _ReelSpinner extends StatelessWidget {
-  const _ReelSpinner();
+  const _ReelSpinner({required this.slow});
+
+  final bool slow;
 
   @override
   Widget build(BuildContext context) => Semantics(
     liveRegion: true,
-    label: 'Loading the reel',
+    label: slow
+        ? 'Slow connection. Still loading the video'
+        : 'Loading the video',
+    excludeSemantics: true,
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 64,
+          height: 64,
+          decoration: const BoxDecoration(
+            color: Color(0x99000000),
+            shape: BoxShape.circle,
+          ),
+          child: Center(
+            child: SizedBox.square(
+              dimension: 28,
+              child: CircularProgressIndicator(
+                strokeWidth: 3,
+                strokeCap: StrokeCap.round,
+                color: context.brand.gold,
+                backgroundColor: Colors.white24,
+              ),
+            ),
+          ),
+        ),
+        if (slow) ...[
+          const SizedBox(height: 10),
+          const _DarkPill(
+            icon: Icons.network_check_rounded,
+            text: 'Slow connection — still loading',
+          ),
+        ],
+      ],
+    ),
+  );
+}
+
+class _PausedMark extends StatelessWidget {
+  const _PausedMark();
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    label: 'Paused. Tap to play',
+    excludeSemantics: true,
     child: Container(
-      width: 68,
-      height: 68,
+      width: 64,
+      height: 64,
       decoration: const BoxDecoration(
         color: Color(0x99000000),
         shape: BoxShape.circle,
       ),
-      child: Center(
-        child: SizedBox.square(
-          dimension: 30,
-          child: CircularProgressIndicator(
-            strokeWidth: 3,
-            strokeCap: StrokeCap.round,
-            color: context.brand.gold,
-            backgroundColor: Colors.white24,
+      child: const Icon(
+        Icons.play_arrow_rounded,
+        color: Colors.white,
+        size: 38,
+      ),
+    ),
+  );
+}
+
+class _MediaUnavailable extends StatelessWidget {
+  const _MediaUnavailable({required this.message, this.onRetry});
+
+  final String message;
+  final VoidCallback? onRetry;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    margin: const EdgeInsets.symmetric(horizontal: 48),
+    padding: const EdgeInsets.fromLTRB(18, 16, 18, 10),
+    decoration: BoxDecoration(
+      color: const Color(0xCC070A09),
+      borderRadius: BorderRadius.circular(18),
+      border: Border.all(color: Colors.white24),
+    ),
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Icon(
+          Icons.broken_image_outlined,
+          color: Colors.white70,
+          size: 28,
+        ),
+        const SizedBox(height: 8),
+        Text(
+          message,
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 14,
+            height: 1.35,
           ),
         ),
-      ),
+        if (onRetry != null)
+          TextButton(onPressed: onRetry, child: const Text('Try again'))
+        else
+          const SizedBox(height: 6),
+      ],
+    ),
+  );
+}
+
+class _LoadingMorePill extends StatelessWidget {
+  const _LoadingMorePill();
+
+  @override
+  Widget build(BuildContext context) =>
+      const _DarkPill(text: 'Loading more…', spinner: true);
+}
+
+class _DarkPill extends StatelessWidget {
+  const _DarkPill({required this.text, this.icon, this.spinner = false});
+
+  final String text;
+  final IconData? icon;
+  final bool spinner;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+    decoration: BoxDecoration(
+      color: const Color(0xB3070A09),
+      borderRadius: BorderRadius.circular(999),
+      border: Border.all(color: Colors.white24),
+    ),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (spinner)
+          SizedBox.square(
+            dimension: 13,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              color: context.brand.gold,
+            ),
+          )
+        else if (icon != null)
+          Icon(icon, size: 15, color: Colors.white70),
+        const SizedBox(width: 8),
+        Text(
+          text,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 12.5,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
     ),
   );
 }
@@ -1373,9 +2255,13 @@ class _ReelSpinner extends StatelessWidget {
 /// something you watch, right up until the moment you want a particular second
 /// of it back.
 class ReelProgressBar extends StatefulWidget {
-  const ReelProgressBar({required this.controller, super.key});
+  const ReelProgressBar({required this.controller, this.window, super.key});
 
   final VideoPlayerController controller;
+
+  /// The part of the file the bar spans, for a trimmed clip. Null is the whole
+  /// file.
+  final ClipWindow? window;
 
   @override
   State<ReelProgressBar> createState() => _ReelProgressBarState();
@@ -1399,21 +2285,26 @@ class _ReelProgressBarState extends State<ReelProgressBar> {
   );
 
   void _seekTo(double fraction, Duration total) {
-    widget.controller.seekTo(_positionFor(fraction, total));
+    final start = widget.window?.start ?? Duration.zero;
+    widget.controller.seekTo(start + _positionFor(fraction, total));
   }
 
   double _fractionAt(double dx, double width) =>
       width <= 0 ? 0 : (dx / width).clamp(0.0, 1.0);
 
   @override
-  Widget build(BuildContext context) => ValueListenableBuilder<VideoPlayerValue>(
+  Widget build(
+    BuildContext context,
+  ) => ValueListenableBuilder<VideoPlayerValue>(
     valueListenable: widget.controller,
     builder: (context, value, _) {
-      final total = value.duration;
+      final window = widget.window;
+      final total = window?.lengthWithin(value.duration) ?? value.duration;
       if (total <= Duration.zero) return const SizedBox.shrink();
-      final played = _scrubbing ??
-          (value.position.inMilliseconds / total.inMilliseconds)
-              .clamp(0.0, 1.0);
+      final into = value.position - (window?.start ?? Duration.zero);
+      final played =
+          _scrubbing ??
+          (into.inMilliseconds / total.inMilliseconds).clamp(0.0, 1.0);
       final scrubbing = _scrubbing != null;
 
       return LayoutBuilder(
@@ -1446,6 +2337,9 @@ class _ReelProgressBarState extends State<ReelProgressBar> {
                   padding: const EdgeInsets.only(bottom: 3),
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 140),
+                    // The track spans the card; only the gold part is how far
+                    // through the clip it is.
+                    width: double.infinity,
                     height: scrubbing ? _scrubbingHeight : _restingHeight,
                     decoration: BoxDecoration(
                       color: Colors.white.withValues(alpha: 0.22),
@@ -1472,316 +2366,19 @@ class _ReelProgressBarState extends State<ReelProgressBar> {
   );
 }
 
-/// The reel background: a slow "Ken Burns" poster for image reels, or the
-/// card's own player — plus its ambient edges — once it has a frame to show.
-class _ReelBackground extends StatelessWidget {
-  const _ReelBackground({
-    required this.reel,
-    required this.isActive,
-    required this.controller,
-  });
-
-  final Reel reel;
-  final bool isActive;
-
-  /// An initialised player, or null while one is opening and for image reels.
-  final VideoPlayerController? controller;
-
-  @override
-  Widget build(BuildContext context) {
-    final poster = _poster();
-    final controller = this.controller;
-    if (controller == null) return poster;
-    final videoAspect = controller.value.aspectRatio;
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final cardAspect =
-            constraints.hasBoundedHeight && constraints.maxHeight > 0
-            ? constraints.maxWidth / constraints.maxHeight
-            : videoAspect;
-        return Stack(
-          fit: StackFit.expand,
-          children: [
-            // Still the floor of the card: the texture is blank for the frame
-            // or two between `initialize()` returning and the first decoded
-            // picture arriving, and a black flash there reads as a failure.
-            poster,
-            if (reelNeedsAmbientEdges(videoAspect, cardAspect))
-              _AmbientEdges(controller: controller),
-            // Contained, not covered. A reel is somebody's framing, and
-            // cropping a landscape clip to a portrait screen throws away the
-            // sides of the shot — which on a dance or a weaving is most of what
-            // was being filmed.
-            Center(
-              child: AspectRatio(
-                aspectRatio: videoAspect,
-                child: VideoPlayer(controller),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  Widget _poster() {
-    final Widget image = reel.imageUrl.isEmpty
-        ? const ReelPlaceholder()
-        : CachedNetworkImage(
-            imageUrl: reel.imageUrl,
-            fit: BoxFit.cover,
-            alignment: reel.alignment,
-            placeholder: (context, url) => const ReelPlaceholder(),
-            errorWidget: (context, url, error) => const ReelPlaceholder(),
-          );
-    return TweenAnimationBuilder<double>(
-      key: ValueKey('${reel.imageUrl}-$isActive'),
-      duration: const Duration(seconds: 12),
-      tween: Tween(begin: 1, end: isActive ? 1.08 : 1),
-      builder: (context, scale, child) =>
-          Transform.scale(scale: scale, child: child),
-      child: image,
-    );
-  }
-}
-
 /// Whether a clip of [videoAspect] leaves the card any edges to light.
 ///
 /// A clip shot for this screen fills it outright, and blurring a second copy of
 /// a texture that covers every pixel of the card would be a full-screen gaussian
-/// per frame for a background nobody can see — on the one device class where
-/// that budget is tightest.
+/// per frame for a background nobody can see. [reelMediaLayout] makes the
+/// fuller decision — whether a crop is safe — and this remains the cheap
+/// guard for "is there any difference in shape at all".
 bool reelNeedsAmbientEdges(double videoAspect, double cardAspect) {
   if (videoAspect <= 0 || cardAspect <= 0) return false;
   return (videoAspect - cardAspect).abs() > 0.02;
 }
 
-/// The letterbox, lit by the reel itself.
-///
-/// A contained clip leaves bands above and below it, and those bands used to be
-/// the poster — the video's own opening frame, held still for the whole play.
-/// A clip that pans, or cuts, or simply moves therefore played inside a
-/// photograph of the moment before it started, and the seam between the two was
-/// the most obvious thing on the card.
-///
-/// This is the same texture the player is already drawing, sampled a second
-/// time: no second decode, no second stream, and nothing still. It is blown
-/// past the card's edges so the blur has real pixels to reach for in the
-/// corners, and dimmed so the reel stays the brightest thing on the screen.
-///
-/// Only ever one of these exists at a time — a card holds a player only while
-/// it is the active reel — so the cost is one blurred layer, not one per row.
-class _AmbientEdges extends StatelessWidget {
-  const _AmbientEdges({required this.controller});
-
-  final VideoPlayerController controller;
-
-  /// Enough blur that no detail survives to compete with the reel, and not so
-  /// much that a mid-range phone spends its frame budget on the background.
-  static const _sigma = 26.0;
-
-  /// Overscan. A gaussian reaches past its own edge, so a copy sized exactly to
-  /// the card thins out into the corners and lets the poster show through.
-  static const _overscan = 1.18;
-
-  @override
-  Widget build(BuildContext context) {
-    final size = controller.value.size;
-    return RepaintBoundary(
-      child: ClipRect(
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            ImageFiltered(
-              imageFilter: ImageFilter.blur(
-                sigmaX: _sigma,
-                sigmaY: _sigma,
-                tileMode: TileMode.clamp,
-              ),
-              child: Transform.scale(
-                scale: _overscan,
-                child: FittedBox(
-                  fit: BoxFit.cover,
-                  child: SizedBox(
-                    // A player that reports nothing sensible still has to be
-                    // given a shape to be scaled from.
-                    width: size.width > 0 ? size.width : 16,
-                    height: size.height > 0 ? size.height : 9,
-                    child: VideoPlayer(controller),
-                  ),
-                ),
-              ),
-            ),
-            // The reel's own colours held to about a third. Without this a
-            // bright clip washes the card out and the white captions over the
-            // bands stop being readable.
-            const ColoredBox(color: Color(0x66000000)),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _PreviewPill extends StatelessWidget {
-  const _PreviewPill({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-    decoration: BoxDecoration(
-      color: Colors.black.withValues(alpha: 0.34),
-      border: Border.all(color: Colors.white30),
-      borderRadius: BorderRadius.circular(999),
-    ),
-    child: Text(
-      label,
-      style: TextStyle(
-        color: context.brand.gold,
-        fontSize: 9,
-        fontWeight: FontWeight.w900,
-        letterSpacing: 1.1,
-      ),
-    ),
-  );
-}
-
-class _ReelAction extends StatelessWidget {
-  const _ReelAction({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-    required this.tooltip,
-    this.active = false,
-  });
-
-  final IconData icon;
-  final String label;
-  final String tooltip;
-  final VoidCallback onTap;
-  final bool active;
-
-  @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(bottom: 11),
-    child: Column(
-      children: [
-        IconButton(
-          tooltip: tooltip,
-          onPressed: onTap,
-          style: IconButton.styleFrom(
-            backgroundColor: active
-                ? context.brand.terracotta
-                : Colors.black.withValues(alpha: 0.36),
-            foregroundColor: active ? context.brand.gold : Colors.white,
-            side: const BorderSide(color: Colors.white24),
-          ),
-          icon: AnimatedScale(
-            scale: active ? 1.12 : 1,
-            duration: const Duration(milliseconds: 180),
-            child: Icon(icon),
-          ),
-        ),
-        Text(
-          label,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 9,
-            fontWeight: FontWeight.w800,
-            shadows: [Shadow(blurRadius: 8, color: Colors.black)],
-          ),
-        ),
-      ],
-    ),
-  );
-}
-
-/// The creator's face on the reel rail. Tapping it opens their page.
-class ReelCreatorAvatar extends StatelessWidget {
-  const ReelCreatorAvatar({
-    required this.initials,
-    this.avatarUrl,
-    this.onTap,
-    super.key,
-  });
-
-  final String initials;
-  final String? avatarUrl;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final avatar = Stack(
-      clipBehavior: Clip.none,
-      alignment: Alignment.bottomCenter,
-      children: [
-        Container(
-          width: 48,
-          height: 48,
-          clipBehavior: Clip.antiAlias,
-          decoration: BoxDecoration(
-            color: context.brand.accent,
-            shape: BoxShape.circle,
-            border: Border.all(color: Colors.white, width: 2),
-          ),
-          child: avatarUrl != null && avatarUrl!.isNotEmpty
-              ? CachedNetworkImage(
-                  imageUrl: avatarUrl!,
-                  fit: BoxFit.cover,
-                  placeholder: (context, url) => _initials(),
-                  errorWidget: (context, url, error) => _initials(),
-                )
-              : _initials(),
-        ),
-        if (onTap != null)
-          Positioned(
-            bottom: -7,
-            child: Container(
-              width: 19,
-              height: 19,
-              decoration: BoxDecoration(
-                color: context.brand.gold,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                Icons.person_rounded,
-                color: context.brand.accent,
-                size: 13,
-              ),
-            ),
-          ),
-      ],
-    );
-
-    if (onTap == null) return avatar;
-    return Semantics(
-      button: true,
-      label: 'Open creator page',
-      child: Tooltip(
-        message: 'Open creator page',
-        child: InkWell(
-          customBorder: const CircleBorder(),
-          onTap: onTap,
-          child: avatar,
-        ),
-      ),
-    );
-  }
-
-  Widget _initials() => Center(
-    child: Text(
-      initials,
-      style: const TextStyle(
-        color: Colors.white,
-        fontSize: 12,
-        fontWeight: FontWeight.w900,
-      ),
-    ),
-  );
-}
-
+/// What stands in for a poster that has not arrived, or never will.
 class ReelPlaceholder extends StatelessWidget {
   const ReelPlaceholder({super.key});
 

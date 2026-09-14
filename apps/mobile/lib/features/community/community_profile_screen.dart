@@ -215,19 +215,11 @@ class _BannerPlaceholder extends StatelessWidget {
   const _BannerPlaceholder();
 
   @override
-  Widget build(BuildContext context) => const DecoratedBox(
+  Widget build(BuildContext context) => DecoratedBox(
     decoration: BoxDecoration(
-      gradient: LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [
-          BrandColors.heritageGreen,
-          BrandColors.savannahGreen,
-          BrandColors.kenteGold,
-        ],
-      ),
+      gradient: BrandGradients.heroBanner(context.brand),
     ),
-    child: Align(
+    child: const Align(
       alignment: Alignment.bottomRight,
       child: Padding(
         padding: EdgeInsets.only(right: 18, bottom: 6),

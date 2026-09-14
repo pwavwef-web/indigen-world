@@ -6,7 +6,7 @@ import 'package:indigen_world_mobile/features/collection/collection_data.dart';
 import 'package:indigen_world_mobile/features/downloads/data/downloads_providers.dart';
 import 'package:indigen_world_mobile/features/music/music_track.dart';
 import 'package:indigen_world_mobile/features/subscriptions/data/subscription_catalog.dart';
-import 'package:indigen_world_mobile/features/subscriptions/paywall_screen.dart';
+import 'package:indigen_world_mobile/features/subscriptions/membership_screen.dart';
 
 /// Keep this track on the device, or stop keeping it.
 ///
@@ -79,7 +79,7 @@ class _DownloadToggleState extends ConsumerState<DownloadToggle> {
       await Navigator.of(context).push(
         MaterialPageRoute<void>(
           builder: (context) =>
-              const PaywallScreen(highlight: SubscriptionTier.plus),
+              const MembershipScreen(highlight: SubscriptionTier.plus),
         ),
       );
       return;

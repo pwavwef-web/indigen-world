@@ -67,9 +67,7 @@ void main() {
     expect(firstPost.top, greaterThan(header.bottom));
   });
 
-  testWidgets('reading on takes the title away and leaves the switch', (
-    tester,
-  ) async {
+  testWidgets('reading on hides both the title and feed tabs', (tester) async {
     await pumpFeed(tester, manyPosts());
     final restingTabs = tester.getRect(find.text('For you')).top;
 
@@ -81,7 +79,9 @@ void main() {
     // place at the top of the screen and is still there to be read.
     expect(containerOf(tester).read(shellChromeVisibilityProvider), isFalse);
     expect(tester.getRect(find.text('For you')).top, lessThan(restingTabs));
-    expect(find.text('For you'), findsOneWidget);
+    expect(find.text('For you').hitTestable(), findsNothing);
+    expect(find.text('Following').hitTestable(), findsNothing);
+    expect(tester.getRect(find.text('Following')).bottom, lessThanOrEqualTo(0));
 
     await tester.drag(feedScroll(), const Offset(0, 260));
     await tester.pump();
@@ -89,6 +89,36 @@ void main() {
 
     expect(containerOf(tester).read(shellChromeVisibilityProvider), isTrue);
     expect(tester.getRect(find.text('For you')).top, closeTo(restingTabs, 0.5));
+  });
+
+  testWidgets('with reduced motion the header leaves without travelling', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MediaQuery(
+        data: const MediaQueryData(disableAnimations: true),
+        child: communityHarness(
+          repository: manyPosts(),
+          profile: amina,
+          child: const CommunityScreen(),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    await tester.drag(feedScroll(), const Offset(0, -320));
+    // One frame, no time: an animated header would still be most of the way
+    // down; a reduced-motion one is already gone.
+    await tester.pump();
+
+    expect(containerOf(tester).read(shellChromeVisibilityProvider), isFalse);
+    expect(find.text('For you').hitTestable(), findsNothing);
+
+    await tester.drag(feedScroll(), const Offset(0, 260));
+    await tester.pump();
+    expect(containerOf(tester).read(shellChromeVisibilityProvider), isTrue);
+    expect(find.text('For you').hitTestable(), findsOneWidget);
   });
 
   testWidgets('posts that arrive mid-read are counted, not spliced in', (
@@ -110,6 +140,10 @@ void main() {
       ),
     );
     await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    // The pill slides in from the frame the post arrives on. This used to ride
+    // along on the pulse rail's forever-running dot, which kept a frame
+    // scheduled on every pump; with the rail gone the slide needs its own.
     await tester.pump(const Duration(milliseconds: 400));
 
     // Held above the line rather than inserted over the paragraph being read.

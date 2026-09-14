@@ -9,6 +9,10 @@ import 'package:indigen_world_mobile/features/community/compose_post_screen.dart
 import 'package:indigen_world_mobile/features/community/data/community_models.dart';
 import 'package:indigen_world_mobile/features/community/data/community_providers.dart';
 import 'package:indigen_world_mobile/features/community/data/community_repository.dart';
+import 'package:indigen_world_mobile/features/community/data/community_space_models.dart';
+import 'package:indigen_world_mobile/features/community/data/community_space_providers.dart';
+import 'package:indigen_world_mobile/features/community/data/post_category.dart';
+import 'package:indigen_world_mobile/features/community/media_picker.dart';
 import 'package:indigen_world_mobile/features/community/mentions.dart';
 import 'package:indigen_world_mobile/features/community/post_engagement_screen.dart';
 import 'package:indigen_world_mobile/features/community/widgets/people_widgets.dart';
@@ -104,23 +108,36 @@ class CommunityActions {
     return ref.read(currentUidProvider);
   }
 
+  /// Appreciates [post], or takes the appreciation back.
+  ///
+  /// The heart and its count change on the tap, not on the server's answer.
+  /// If the write is refused the override is dropped — which puts both back —
+  /// and the member is told, so a like never silently fails to stick.
   Future<void> toggleLike(BuildContext context, CommunityPost post) async {
     final profile = await requireProfile(context);
     if (profile == null) return;
     final repository = ref.read(communityRepositoryProvider);
     if (repository == null) return;
-    final liked =
+    final serverLiked =
         ref.read(myLikesProvider).asData?.value.contains(post.id) ?? false;
+    final liked = ref
+        .read(optimisticEngagementProvider)
+        .liked(post.id, server: serverLiked);
+    final optimistic = ref.read(optimisticEngagementProvider.notifier)
+      ..setLike(post.id, !liked);
     try {
       await repository.toggleLike(
         uid: profile.uid,
         postId: post.id,
         liked: liked,
+        privateCommunityId: post.privateCommunityId,
       );
     } on Object {
       if (context.mounted) {
         showCommunityMessage(context, 'Could not update. Try again.');
       }
+    } finally {
+      optimistic.clearLike(post.id);
     }
   }
 
@@ -214,7 +231,8 @@ class CommunityActions {
   /// Records that a member read [post]. Impressions are telemetry: written
   /// best-effort, never spoken about, and never allowed to interrupt the feed.
   Future<void> trackView(CommunityPost post) async {
-    if (_viewTrackingRefused) return;
+    // A private community's posts have no public counter to move.
+    if (_viewTrackingRefused || post.isPrivateCommunityPost) return;
     final uid = ref.read(currentUidProvider);
     final repository = ref.read(communityRepositoryProvider);
     if (uid == null || repository == null || post.authorId == uid) return;
@@ -260,6 +278,8 @@ class CommunityActions {
 
   Future<void> share(BuildContext context, CommunityPost post) async {
     HapticFeedback.selectionClick();
+    // A members-only post has no public page to link to.
+    if (post.isPrivateCommunityPost) return;
     final preview = post.text.trim().isEmpty
         ? 'See this Kasem community post'
         : post.text.trim();
@@ -286,14 +306,30 @@ class CommunityActions {
     return published ?? false;
   }
 
-  /// Opens the composer for a new top-level post, optionally pre-filled.
+  /// Opens the composer for a new top-level post, optionally pre-filled,
+  /// labelled, aimed at a community, or with a picture already being chosen.
   /// Returns `true` when published.
-  Future<bool> compose(BuildContext context, {String initialText = ''}) async {
+  Future<bool> compose(
+    BuildContext context, {
+    String initialText = '',
+    PostCommunityStamp? community,
+    PostCategory? category,
+    String? hintText,
+    bool canAnnounce = false,
+    CommunityMediaKind? startWithMedia,
+  }) async {
     final profile = await requireProfile(context);
     if (profile == null || !context.mounted) return false;
     final published = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
-        builder: (context) => ComposePostScreen(initialText: initialText),
+        builder: (context) => ComposePostScreen(
+          initialText: initialText,
+          community: community,
+          initialCategory: category,
+          hintText: hintText,
+          canAnnounce: canAnnounce,
+          startWithMedia: startWithMedia,
+        ),
       ),
     );
     return published ?? false;
@@ -338,32 +374,38 @@ class CommunityActions {
     BuildContext context,
     CommunityPost post, {
     VoidCallback? onDeleted,
+    bool canModerate = false,
   }) async {
     final uid = ref.read(currentUidProvider);
     final isMine = uid != null && uid == post.authorId;
     final saved =
         ref.read(myBookmarksProvider).asData?.value.contains(post.id) ?? false;
+    // Saving, sharing and linking all need a post that can be read from
+    // outside the community it was written in.
+    final public = !post.isPrivateCommunityPost;
 
     final choice = await showGlassActionSheet<String>(
       context: context,
       actions: [
-        GlassAction(
-          value: 'save',
-          icon: saved
-              ? Icons.bookmark_remove_outlined
-              : Icons.bookmark_border_rounded,
-          label: saved ? 'Remove from saved' : 'Save post',
-        ),
-        const GlassAction(
-          value: 'share',
-          icon: Icons.share_outlined,
-          label: 'Share post',
-        ),
-        const GlassAction(
-          value: 'copy',
-          icon: Icons.link_rounded,
-          label: 'Copy post link',
-        ),
+        if (public) ...[
+          GlassAction(
+            value: 'save',
+            icon: saved
+                ? Icons.bookmark_remove_outlined
+                : Icons.bookmark_border_rounded,
+            label: saved ? 'Remove from saved' : 'Save post',
+          ),
+          const GlassAction(
+            value: 'share',
+            icon: Icons.share_outlined,
+            label: 'Share post',
+          ),
+          const GlassAction(
+            value: 'copy',
+            icon: Icons.link_rounded,
+            label: 'Copy post link',
+          ),
+        ],
         if (isMine)
           const GlassAction(
             value: 'edit',
@@ -401,6 +443,13 @@ class CommunityActions {
             label: 'Delete post',
             isDestructive: true,
           ),
+        if (!isMine && canModerate)
+          const GlassAction(
+            value: 'moderate',
+            icon: Icons.remove_moderator_outlined,
+            label: 'Remove from community',
+            isDestructive: true,
+          ),
       ],
     );
 
@@ -427,6 +476,8 @@ class CommunityActions {
         await _report(context, post);
       case 'delete':
         await _delete(context, post, onDeleted: onDeleted);
+      case 'moderate':
+        await _delete(context, post, onDeleted: onDeleted, asModerator: true);
     }
   }
 
@@ -480,7 +531,11 @@ class CommunityActions {
     final repository = ref.read(communityRepositoryProvider);
     if (repository == null) return;
     try {
-      await repository.editPost(postId: post.id, text: updated);
+      await repository.editPost(
+        postId: post.id,
+        text: updated,
+        privateCommunityId: post.privateCommunityId,
+      );
       if (context.mounted) showCommunityMessage(context, 'Post updated.');
     } on CommunityFailure catch (error) {
       if (context.mounted) showCommunityMessage(context, error.message);
@@ -529,24 +584,45 @@ class CommunityActions {
     if (context.mounted) showCommunityMessage(context, 'Member blocked.');
   }
 
+  /// The reasons a member can give for a report, in the order they are offered.
+  static const reportReasons = [
+    'Disrespectful or abusive',
+    'Culturally inappropriate',
+    'Spam or advertising',
+    'Something else',
+  ];
+
+  /// Asks why something is being reported. Null when the member backs out.
+  ///
+  /// Public so every surface that reports something — a post's own menu, an
+  /// Explore reel — asks the same question with the same answers, and the
+  /// moderators reading `communityReports` see one vocabulary.
+  Future<String?> pickReportReason(BuildContext context) =>
+      showGlassActionSheet<String>(
+        context: context,
+        title: 'Why are you reporting this?',
+        actions: [
+          for (final option in reportReasons)
+            GlassAction(value: option, label: option),
+        ],
+      );
+
+  /// The post menu's "Not interested", "Mute" and "Block", for surfaces that
+  /// draw their own menu around a post — Explore's overflow menu.
+  Future<void> notInterested(BuildContext context, CommunityPost post) =>
+      _hide(context, post);
+
+  Future<void> muteAuthor(BuildContext context, CommunityPost post) =>
+      _mute(context, post);
+
+  Future<void> blockAuthor(BuildContext context, CommunityPost post) =>
+      _block(context, post);
+
   Future<void> _report(BuildContext context, CommunityPost post) async {
     final profile = await requireProfile(context);
     if (profile == null || !context.mounted) return;
 
-    final reason = await showGlassActionSheet<String>(
-      context: context,
-      title: 'Why are you reporting this?',
-      actions: [
-        for (final option in const [
-          'Not written in Kasem',
-          'Disrespectful or abusive',
-          'Culturally inappropriate',
-          'Spam or advertising',
-          'Something else',
-        ])
-          GlassAction(value: option, label: option),
-      ],
-    );
+    final reason = await pickReportReason(context);
     if (reason == null) return;
 
     final repository = ref.read(communityRepositoryProvider);
@@ -556,6 +632,7 @@ class CommunityActions {
         postId: post.id,
         reporterId: profile.uid,
         reason: reason,
+        communityId: post.community?.id,
       );
       if (context.mounted) {
         showCommunityMessage(
@@ -574,14 +651,20 @@ class CommunityActions {
     BuildContext context,
     CommunityPost post, {
     VoidCallback? onDeleted,
+    bool asModerator = false,
   }) async {
     final confirmed = await showGlassConfirm(
       context: context,
-      title: 'Delete this post?',
-      message:
-          'The post and its media are removed for everyone. Replies people '
-          'already wrote stay on their own profiles. This cannot be undone.',
-      confirmLabel: 'Delete',
+      title: asModerator
+          ? 'Remove this post from the community?'
+          : 'Delete this post?',
+      message: asModerator
+          ? 'The post is removed for everyone. Its author is not told why, so '
+                'consider reporting it too if it broke the rules.'
+          : 'The post and its media are removed for everyone. Replies people '
+                'already wrote stay on their own profiles. This cannot be '
+                'undone.',
+      confirmLabel: asModerator ? 'Remove' : 'Delete',
       isDestructive: true,
     );
     if (confirmed != true) return;

@@ -204,9 +204,16 @@ check("system and explicit dark palettes agree", [...darkNames].every((name) => 
 const defaults = Object.fromEntries(
   [...skin.matchAll(/<Variable\s+name="([^"]+)"[^>]*?default="([^"]*)"/g)].map((m) => [m[1], m[2]])
 );
-const brand = JSON.parse(readFileSync(join(here, "..", "..", "..", "packages", "design-tokens", "colors.json"), "utf8")).brand;
-const brandNames = { indigo: "indigo", indigoDeep: "indigoDeep", gold: "gold", goldSoft: "goldSoft", terracotta: "terracotta", green: "savannahGreen", cream: "plasterCream", sand: "sand" };
-check("brand defaults match shared palette", Object.entries(brandNames).every(([name, source]) => defaults[`brand.${name}`].toLowerCase() === brand[source].toLowerCase()));
+/* The blog wears the public website's theme. Its palette is the :root block of
+   the website's theme layer, which keeps the original token names with new
+   values, so each Blogger variable maps to the custom property it mirrors. */
+const websiteTheme = readFileSync(join(here, "..", "..", "website", "src", "styles", "comitia-theme.css"), "utf8");
+const website = properties(websiteTheme.match(/:root\s*\{([\s\S]*?)\}/)[1].replace(/:\s+/g, ":"));
+const brandNames = { indigo: "--indigo-900", indigoDeep: "--indigo-950", gold: "--gold", goldSoft: "--gold-soft", terracotta: "--terracotta", green: "--green", cream: "--cream", sand: "--sand" };
+const brandDrift = Object.entries(brandNames)
+  .filter(([name, source]) => defaults[`brand.${name}`]?.toLowerCase() !== website[source]?.toLowerCase())
+  .map(([name, source]) => `brand.${name} is ${defaults[`brand.${name}`]}, website ${source} is ${website[source]}`);
+check("brand defaults match the website theme", brandDrift.length === 0, brandDrift.join("\n    "));
 
 function colour(value, tokens, depth = 0) {
   if (depth > 10 || !value) throw new Error(`Cannot resolve theme colour: ${value}`);

@@ -700,9 +700,11 @@ test('a member cannot mark somebody else notification read', async () => {
   }));
 });
 
-test('notifications cannot be deleted by their recipient', async () => {
+test('a recipient may delete their own notification, but nobody else may', async () => {
   const owner = env.authenticatedContext(AMINA);
-  await assertFails(deleteDoc(doc(db(owner), 'communityNotifications/notif-for-amina')));
+  const other = env.authenticatedContext(NYAABA);
+  await assertFails(deleteDoc(doc(db(other), 'communityNotifications/notif-for-amina')));
+  await assertSucceeds(deleteDoc(doc(db(owner), 'communityNotifications/notif-for-amina')));
 });
 
 // ── Push registrations ──────────────────────────────────────────────────────

@@ -5,10 +5,28 @@ import 'package:indigen_world_mobile/features/community/community_actions.dart';
 import 'package:indigen_world_mobile/features/community/data/community_providers.dart';
 import 'package:indigen_world_mobile/features/community/widgets/people_widgets.dart';
 import 'package:indigen_world_mobile/features/community/widgets/video_cover.dart';
-import 'package:indigen_world_mobile/features/explore/published_content.dart';
+import 'package:indigen_world_mobile/features/explore/explore_feed.dart';
 import 'package:indigen_world_mobile/features/explore/reel_engagement.dart';
 import 'package:indigen_world_mobile/features/explore/reel_view.dart';
 import 'package:indigen_world_mobile/shared/night_theme.dart';
+
+/// Everything the member kept from Explore, as reels: published work they kept
+/// and community posts they saved from the feed.
+///
+/// A community reel is kept as the post it is — a bookmark — so it used to be
+/// saved from Explore and then appear nowhere under Explore's own Saved. Both
+/// halves are listed together now, published keeps first, each only if it is
+/// still something Explore can show.
+final keptExploreReelsProvider = FutureProvider<List<Reel>>((ref) async {
+  final published = await ref.watch(keptReelsProvider.future);
+  final posts = await ref.watch(savedPostsProvider.future);
+  return List.unmodifiable(
+    uniqueReels([
+      ...publishedReels(published),
+      ...communityReels(posts, limit: posts.length),
+    ]),
+  );
+});
 
 /// Everything the member has kept from Explore.
 ///
@@ -20,7 +38,7 @@ class KeptReelsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final kept = ref.watch(keptReelsProvider);
+    final kept = ref.watch(keptExploreReelsProvider);
     final signedIn = ref.watch(currentUidProvider) != null;
 
     return Scaffold(
@@ -48,8 +66,10 @@ class KeptReelsScreen extends ConsumerWidget {
                 ),
               AsyncValue(:final value?) => RefreshIndicator(
                 onRefresh: () async {
-                  ref.invalidate(keptReelsProvider);
-                  await ref.read(keptReelsProvider.future);
+                  ref
+                    ..invalidate(keptReelsProvider)
+                    ..invalidate(savedPostsProvider);
+                  await ref.read(keptExploreReelsProvider.future);
                 },
                 child: GridView.builder(
                   padding: const EdgeInsets.all(14),
@@ -64,12 +84,8 @@ class KeptReelsScreen extends ConsumerWidget {
                     reel: value[index],
                     onTap: () => Navigator.of(context).push(
                       MaterialPageRoute<void>(
-                        builder: (context) => _KeptReelsPlayer(
-                          reels: value
-                              .map(Reel.fromPublished)
-                              .toList(growable: false),
-                          initialIndex: index,
-                        ),
+                        builder: (context) =>
+                            _KeptReelsPlayer(reels: value, initialIndex: index),
                       ),
                     ),
                   ),
@@ -89,7 +105,7 @@ class KeptReelsScreen extends ConsumerWidget {
 class _KeptTile extends StatelessWidget {
   const _KeptTile({required this.reel, required this.onTap});
 
-  final PublishedReel reel;
+  final Reel reel;
   final VoidCallback onTap;
 
   @override
@@ -97,8 +113,11 @@ class _KeptTile extends StatelessWidget {
       NightTheme(child: Builder(builder: _build));
 
   Widget _build(BuildContext context) {
-    final poster = reel.posterUrl;
+    final poster = reel.imageUrl;
     final video = reel.videoUrl;
+    final title = reel.title.trim().isNotEmpty
+        ? reel.title.trim()
+        : reel.caption.trim();
     return GestureDetector(
       onTap: onTap,
       child: ClipRRect(
@@ -106,9 +125,10 @@ class _KeptTile extends StatelessWidget {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            if (poster != null && poster.isNotEmpty)
+            if (poster.isNotEmpty)
               Image.network(
                 poster,
+                cacheWidth: 480,
                 fit: BoxFit.cover,
                 errorBuilder: (context, error, stackTrace) =>
                     const VideoCoverPlaceholder(),
@@ -135,7 +155,7 @@ class _KeptTile extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    reel.title,
+                    title.isEmpty ? reel.categoryLabel : title,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
@@ -147,7 +167,7 @@ class _KeptTile extends StatelessWidget {
                   ),
                   const SizedBox(height: 3),
                   Text(
-                    reel.creatorName,
+                    reel.creator,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(

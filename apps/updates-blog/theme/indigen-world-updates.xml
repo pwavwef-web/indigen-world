@@ -5,8 +5,8 @@
 
 <b:comment>
   Indigen World Updates - a custom Blogger theme.
-  Palette, typeface and motifs follow packages/design-tokens in the
-  indigen-world monorepo. Colours, fonts and widths can be changed
+  Palette and surfaces follow the public website's theme
+  (apps/website/src/styles/comitia-theme.css) in the indigen-world monorepo. Colours, fonts and widths can be changed
   without editing this file via Blogger, Theme, Customise.
 </b:comment>
 
@@ -18,7 +18,7 @@
 <title><b:if cond='data:view.isHomepage'><data:blog.title/> &#183; Release notes and field notes<b:else/><data:view.title/> &#183; <data:blog.title/></b:if></title>
 
 <meta content='width=device-width, initial-scale=1, viewport-fit=cover' name='viewport'/>
-<meta content='#1e365d' name='theme-color'/>
+<meta content='#0f1830' name='theme-color'/>
 
 <b:comment>
   Home-screen icon. Blogger serves the icon set in Settings, Favicon at
@@ -110,17 +110,17 @@
 //]]></script>
 
 <b:skin><![CDATA[/*
-<Variable name="keycolor" description="Main colour" type="color" default="#1e365d" value="#1e365d"/>
+<Variable name="keycolor" description="Main colour" type="color" default="#19327f" value="#19327f"/>
 
 <Group description="Brand palette" selector="body">
-  <Variable name="brand.indigo" description="Deep Indigo" type="color" default="#1e365d" value="#1e365d"/>
-  <Variable name="brand.indigoDeep" description="Indigo deepest" type="color" default="#101c36" value="#101c36"/>
-  <Variable name="brand.gold" description="Kente Gold" type="color" default="#c58a00" value="#c58a00"/>
-  <Variable name="brand.goldSoft" description="Gold soft" type="color" default="#f0d99c" value="#f0d99c"/>
-  <Variable name="brand.terracotta" description="Terracotta" type="color" default="#b65a3a" value="#b65a3a"/>
-  <Variable name="brand.green" description="Savannah Green" type="color" default="#1f5a3a" value="#1f5a3a"/>
-  <Variable name="brand.cream" description="Plaster Cream" type="color" default="#fff8e7" value="#fff8e7"/>
-  <Variable name="brand.sand" description="Sand" type="color" default="#f1eada" value="#f1eada"/>
+  <Variable name="brand.indigo" description="Royal blue" type="color" default="#19327f" value="#19327f"/>
+  <Variable name="brand.indigoDeep" description="Deep navy" type="color" default="#0f1830" value="#0f1830"/>
+  <Variable name="brand.gold" description="Cyan accent" type="color" default="#22d3ee" value="#22d3ee"/>
+  <Variable name="brand.goldSoft" description="Soft blue" type="color" default="#cfe0ff" value="#cfe0ff"/>
+  <Variable name="brand.terracotta" description="Electric blue" type="color" default="#2f6bff" value="#2f6bff"/>
+  <Variable name="brand.green" description="Green" type="color" default="#168466" value="#168466"/>
+  <Variable name="brand.cream" description="Page ground" type="color" default="#f6f7fb" value="#f6f7fb"/>
+  <Variable name="brand.sand" description="Blue mist" type="color" default="#eaf0ff" value="#eaf0ff"/>
 </Group>
 
 <Group description="Typography" selector="body">
@@ -137,6 +137,13 @@
 
 /* ==========================================================================
    1. Tokens
+   --------------------------------------------------------------------------
+   The palette is the public website's theme, apps/website/src/styles/
+   comitia-theme.css: deep navy, royal and electric blue, a cyan accent and a
+   blue-white ground. Like the website, the token names keep their original
+   roles (--gold is the accent, --terracotta the action blue) so every rule
+   below reads the same as before. The validator checks these defaults against
+   that file, so change the website first.
    ========================================================================== */
 
 :root{
@@ -150,39 +157,51 @@
   --green:$(brand.green);
   --cream:$(brand.cream);
   --sand:$(brand.sand);
+  --blue-line:#8eb4ff;
+  --blue-pale:#bcd2ff;
 
-  --bg:#fffdf8;
+  --bg:var(--cream);
   --bg-alt:var(--sand);
   --surface:#ffffff;
-  --surface-2:#faf7f0;
-  --ink:#172033;
-  --ink-soft:#4c5568;
-  --ink-mute:#606978;
-  --line:rgba(30,54,93,.14);
-  --line-2:rgba(30,54,93,.26);
-  --accent-ink:#806000;
-  --link:var(--indigo);
-  --link-hover:#9a492e;
-  --code-ink:#9a492e;
-  --info-ink:var(--indigo);
-  --success-ink:#1f6b45;
-  --warn-ink:#9a492e;
-  --topic-language:#7a4fbf;
-  --focus:#1e5e9c;
-  --control-border:#7f8490;
-  --action-bg:var(--indigo);
+  --surface-2:#f2f6ff;
+  --ink:#0f1830;
+  --ink-soft:#4a5878;
+  --ink-mute:#5d667b;
+  --line:rgba(15,24,48,.11);
+  --line-2:rgba(15,24,48,.22);
+  --accent-ink:#1f50d6;
+  --link:#1f50d6;
+  --link-hover:var(--indigo);
+  --code-ink:#1a3ea8;
+  --info-ink:#1f50d6;
+  --success-ink:#0f7a5a;
+  --warn-ink:#8a5a04;
+  --topic-release:#168466;
+  --topic-feature:#12b5cf;
+  --topic-engineering:#2f6bff;
+  --topic-community:#d99a1e;
+  --topic-language:#5b45c4;
+  --focus:#2f6bff;
+  --control-border:#7a84a0;
+  --action-bg:#2c66f5;
+  --action-hover:var(--indigo);
   --action-ink:#fff;
-  --success-bg:#1f6b45;
-  --callout-bg:var(--cream);
-  --on-dark:#f7f2e6;
-  --on-dark-soft:rgba(247,242,230,.66);
+  --success-bg:#0f7a5a;
+  --callout-bg:var(--surface);
+  --on-dark:#f5f8ff;
+  --on-dark-soft:rgba(255,255,255,.62);
   --select-bg:var(--gold-soft);
   --select-fg:var(--indigo-deep);
-  --code-bg:#101c36;
-  --code-fg:#e9e2d3;
+  --code-bg:#0f1830;
+  --code-fg:#e3eaf8;
 
-  --shadow-1:0 1px 2px rgba(20,37,67,.05),0 6px 18px rgba(20,37,67,.06);
-  --shadow-2:0 2px 8px rgba(20,37,67,.07),0 22px 48px rgba(20,37,67,.12);
+  --shadow-1:0 1px 2px rgba(15,24,48,.05),0 10px 30px rgba(15,24,48,.055);
+  --shadow-2:0 2px 8px rgba(15,24,48,.06),0 18px 44px rgba(15,24,48,.11);
+  --hero-bg:
+    radial-gradient(circle at 78% 20%,rgba(34,211,238,.23),transparent 30%),
+    radial-gradient(circle at 10% 100%,rgba(47,107,255,.22),transparent 34%),
+    linear-gradient(145deg,#0b1225,#19327f 62%,#2457d6);
+  --dots:radial-gradient(rgba(255,255,255,.28) 1px,transparent 1px);
 
   --shell:$(layout.width);
   --article-w:$(layout.article);
@@ -198,43 +217,45 @@
 
   --ease:cubic-bezier(.2,.7,.2,1);
   --dur:220ms;
-  --head-h:64px;
+  --head-h:76px;
 }
 
-/* Dark palette. Gold and terracotta are lifted so they keep their contrast
-   on a dark ground; the rest is the ecosystem dark token set. */
+/* Dark palette. The website has no dark mode, so this is the navy of its hero
+   and footer, with the blues lifted so links and accents keep their contrast on
+   a dark ground. */
 :root[data-theme="dark"]{
   color-scheme:dark;
-  --bg:#0d1524;
-  --bg-alt:#0a1120;
-  --surface:#142036;
-  --surface-2:#1c2b47;
-  --ink:#f5f7fa;
-  --ink-soft:#bac4d6;
-  --ink-mute:#9aa8be;
+  --bg:#0b1225;
+  --bg-alt:#080e1d;
+  --surface:#111c36;
+  --surface-2:#17264a;
+  --ink:#f5f7fb;
+  --ink-soft:#bcc7dd;
+  --ink-mute:#9aa8c2;
   --line:rgba(255,255,255,.11);
   --line-2:rgba(255,255,255,.22);
-  --gold:#e9bf55;
-  --gold-soft:#f3e2ae;
-  --terracotta:#d98460;
-  --green:#3d9a6a;
-  --accent-ink:#e9bf55;
-  --link:#e9bf55;
-  --link-hover:#f3e2ae;
-  --code-ink:#f3e2ae;
-  --info-ink:#9fc0ed;
-  --success-ink:#70c694;
-  --warn-ink:#eeaa8c;
-  --topic-language:#be9bec;
-  --focus:#acccff;
-  --control-border:#7c8ca7;
-  --action-bg:var(--gold);
-  --action-ink:var(--indigo-deep);
+  --terracotta:#6d99ff;
+  --green:#34c28f;
+  --accent-ink:#8eb4ff;
+  --link:#8eb4ff;
+  --link-hover:#cfe0ff;
+  --code-ink:#bcd2ff;
+  --info-ink:#8eb4ff;
+  --success-ink:#5fd3a4;
+  --warn-ink:#f2bf6b;
+  --topic-release:#34c28f;
+  --topic-feature:#22d3ee;
+  --topic-engineering:#6d99ff;
+  --topic-community:#f2bf6b;
+  --topic-language:#b3a4f5;
+  --focus:#8eb4ff;
+  --control-border:#8a94ad;
+  --action-hover:#1f50d6;
   --callout-bg:var(--surface-2);
-  --select-bg:rgba(233,191,85,.3);
+  --select-bg:rgba(47,107,255,.42);
   --select-fg:#fff;
-  --code-bg:#0a1120;
-  --code-fg:#dfe7f2;
+  --code-bg:#060b18;
+  --code-fg:#e3eaf8;
   --shadow-1:0 1px 2px rgba(0,0,0,.4),0 6px 18px rgba(0,0,0,.28);
   --shadow-2:0 2px 8px rgba(0,0,0,.45),0 24px 56px rgba(0,0,0,.45);
 }
@@ -242,36 +263,37 @@
 @media (prefers-color-scheme:dark){
   :root:not([data-theme="light"]){
     color-scheme:dark;
-    --bg:#0d1524;
-    --bg-alt:#0a1120;
-    --surface:#142036;
-    --surface-2:#1c2b47;
-    --ink:#f5f7fa;
-    --ink-soft:#bac4d6;
-    --ink-mute:#9aa8be;
+    --bg:#0b1225;
+    --bg-alt:#080e1d;
+    --surface:#111c36;
+    --surface-2:#17264a;
+    --ink:#f5f7fb;
+    --ink-soft:#bcc7dd;
+    --ink-mute:#9aa8c2;
     --line:rgba(255,255,255,.11);
     --line-2:rgba(255,255,255,.22);
-    --gold:#e9bf55;
-    --gold-soft:#f3e2ae;
-    --terracotta:#d98460;
-    --green:#3d9a6a;
-    --accent-ink:#e9bf55;
-    --link:#e9bf55;
-    --link-hover:#f3e2ae;
-    --code-ink:#f3e2ae;
-    --info-ink:#9fc0ed;
-    --success-ink:#70c694;
-    --warn-ink:#eeaa8c;
-    --topic-language:#be9bec;
-    --focus:#acccff;
-    --control-border:#7c8ca7;
-    --action-bg:var(--gold);
-    --action-ink:var(--indigo-deep);
+    --terracotta:#6d99ff;
+    --green:#34c28f;
+    --accent-ink:#8eb4ff;
+    --link:#8eb4ff;
+    --link-hover:#cfe0ff;
+    --code-ink:#bcd2ff;
+    --info-ink:#8eb4ff;
+    --success-ink:#5fd3a4;
+    --warn-ink:#f2bf6b;
+    --topic-release:#34c28f;
+    --topic-feature:#22d3ee;
+    --topic-engineering:#6d99ff;
+    --topic-community:#f2bf6b;
+    --topic-language:#b3a4f5;
+    --focus:#8eb4ff;
+    --control-border:#8a94ad;
+    --action-hover:#1f50d6;
     --callout-bg:var(--surface-2);
-    --select-bg:rgba(233,191,85,.3);
+    --select-bg:rgba(47,107,255,.42);
     --select-fg:#fff;
-    --code-bg:#0a1120;
-    --code-fg:#dfe7f2;
+    --code-bg:#060b18;
+    --code-fg:#e3eaf8;
     --shadow-1:0 1px 2px rgba(0,0,0,.4),0 6px 18px rgba(0,0,0,.28);
     --shadow-2:0 2px 8px rgba(0,0,0,.45),0 24px 56px rgba(0,0,0,.45);
   }
@@ -309,7 +331,7 @@ table{border-collapse:collapse}
 .iw-skip{
   position:fixed;z-index:400;top:10px;left:10px;transform:translateY(-160%);
   padding:11px 18px;border-radius:var(--radius-sm);
-  background:var(--gold);color:var(--indigo-deep);font-weight:700;font-size:.88rem;
+  background:var(--action-bg);color:var(--action-ink);font-weight:700;font-size:.88rem;
   transition:transform var(--dur) var(--ease);
 }
 .iw-skip:focus{transform:none}
@@ -319,17 +341,18 @@ table{border-collapse:collapse}
   overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0
 }
 
-/* Brand mark, carried over from the website's BrandMark component. */
+/* Brand mark, coloured the way the website's header draws it. */
 .iw-mark{width:34px;height:34px;flex:0 0 auto}
-.iw-mark__frame{fill:none;stroke:var(--gold);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
-.iw-mark__line{fill:none;stroke:var(--on-dark);stroke-width:2.2;stroke-linecap:round}
-.iw-mark__sun{fill:var(--terracotta)}
+.iw-mark__frame{fill:none;stroke:var(--blue-line);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.iw-mark__line{fill:none;stroke:#fff;stroke-width:2.2;stroke-linecap:round}
+.iw-mark__sun{fill:var(--gold)}
 
-/* Cultural motifs, mirroring packages/design-tokens/tokens.css */
+/* Woven motif, kept from the original theme and recoloured to the website's
+   blues. The website's own footer still carries the same weave. */
 .iw-kente{
   background-image:
-    repeating-linear-gradient(45deg,transparent 0 15px,rgba(240,217,156,.11) 15px 17px,transparent 17px 32px),
-    repeating-linear-gradient(-45deg,transparent 0 15px,rgba(182,90,58,.11) 15px 17px,transparent 17px 32px);
+    repeating-linear-gradient(45deg,transparent 0 15px,rgba(207,224,255,.11) 15px 17px,transparent 17px 32px),
+    repeating-linear-gradient(-45deg,transparent 0 15px,rgba(47,107,255,.12) 15px 17px,transparent 17px 32px);
 }
 
 /* ==========================================================================
@@ -347,28 +370,38 @@ table{border-collapse:collapse}
    4. Header, navigation, search
    ========================================================================== */
 
+/* The website's header: a glass bar floating 10px below the top of the
+   viewport. The strip around it is transparent and lets clicks through, and
+   the homepage hero slides up underneath it, as the website's hero does. */
 .iw-head{
   --focus:var(--gold-soft);
   position:sticky;z-index:90;top:0;color:var(--on-dark);
-  background:linear-gradient(180deg,rgba(20,37,67,.95),rgba(16,28,54,.9));
-  -webkit-backdrop-filter:blur(20px) saturate(155%);
-  backdrop-filter:blur(20px) saturate(155%);
-  border-bottom:1px solid rgba(255,255,255,.1);
-}
-.iw-head::after{
-  content:"";position:absolute;left:0;right:0;bottom:-1px;height:1px;
-  background:linear-gradient(90deg,transparent,rgba(240,217,156,.6) 22%,rgba(182,90,58,.45) 62%,transparent);
+  padding-top:10px;pointer-events:none;
 }
 .iw-head__in{
+  position:relative;isolation:isolate;
   display:flex;flex-wrap:wrap;align-items:center;gap:12px;
-  min-height:64px;padding-block:9px;
+  min-height:64px;padding:9px 12px 9px 16px;
+  border:1px solid rgba(255,255,255,.15);border-radius:20px;
+  background:linear-gradient(115deg,rgba(255,255,255,.1),transparent 48%),rgba(15,24,48,.88);
+  box-shadow:0 16px 42px rgba(15,24,48,.2),inset 0 1px 0 rgba(255,255,255,.1);
+  -webkit-backdrop-filter:blur(22px) saturate(150%);
+  backdrop-filter:blur(22px) saturate(150%);
+  pointer-events:auto;
+}
+.iw-head__in::after{
+  content:"";position:absolute;z-index:-1;inset:0 auto auto 8%;width:44%;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(142,180,255,.78),transparent);
+}
+@supports not ((-webkit-backdrop-filter:blur(1px)) or (backdrop-filter:blur(1px))){
+  .iw-head__in,.iw-searchpane > .iw-shell{background:rgba(15,24,48,.96)}
 }
 
 .iw-masthead{flex:1 1 220px;min-width:0}
 .iw-masthead .widget{min-width:0}
 .iw-masthead .iw-brand__text strong{overflow-wrap:anywhere}
 @media (max-width:479px){
-  .iw-head__in{gap:8px}
+  .iw-head__in{gap:8px;padding-inline:10px 8px}
   .iw-masthead{flex:1 1 0}
   .iw-masthead .iw-brand{gap:6px}
   .iw-masthead .iw-brand__text strong{font-size:.82rem}
@@ -400,8 +433,33 @@ table{border-collapse:collapse}
 }
 .iw-navlist a:hover,.iw-navlist a:focus-visible,.iw-navlist li.is-current a{
   color:#fff;padding-inline:10px;
-  background:linear-gradient(90deg,rgba(214,165,43,.18),transparent);
+  background:linear-gradient(90deg,rgba(47,107,255,.2),transparent);
 }
+
+/* Blogger labels become a real update filter in the header. The native
+   details element keeps the control usable before JavaScript loads. */
+.iw-filter{position:relative;margin-top:8px;color:#fff}
+.iw-filter summary{
+  display:flex;align-items:center;gap:8px;min-height:44px;padding:10px 12px;
+  border:1px solid rgba(255,255,255,.14);border-radius:12px;
+  background:rgba(255,255,255,.07);color:#fff;font-size:.86rem;font-weight:700;
+  cursor:pointer;list-style:none;
+}
+.iw-filter summary::-webkit-details-marker{display:none}
+.iw-filter summary::after{content:"\2304";margin-left:auto;font-size:.82rem;transition:transform var(--dur) var(--ease)}
+.iw-filter[open] summary::after{transform:rotate(180deg)}
+.iw-filter summary svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.iw-filter__menu{
+  display:grid;gap:4px;margin-top:7px;padding:7px;border:1px solid rgba(255,255,255,.14);
+  border-radius:14px;background:rgba(4,10,25,.5)
+}
+.iw-filter__option{
+  display:flex;align-items:center;gap:9px;min-height:42px;padding:8px 10px;border-radius:9px;
+  color:rgba(255,255,255,.78);font-size:.84rem;font-weight:650;
+}
+.iw-filter__option::before{content:"";width:7px;height:7px;border-radius:2px;background:var(--topic-feature);flex:0 0 auto}
+.iw-filter__option:hover,.iw-filter__option:focus-visible,.iw-filter__option.is-current{color:#fff;background:rgba(47,107,255,.2)}
+.iw-filter__count{margin-left:auto;color:var(--on-dark-soft);font-size:.7rem;font-variant-numeric:tabular-nums}
 
 .iw-head__act{display:flex;align-items:center;gap:7px;order:2;flex:0 0 auto}
 .iw-ibtn{
@@ -410,7 +468,7 @@ table{border-collapse:collapse}
   transition:background var(--dur) var(--ease),border-color var(--dur) var(--ease),transform var(--dur) var(--ease);
 }
 .iw-ibtn:hover,.iw-ibtn:focus-visible{
-  background:rgba(255,255,255,.16);border-color:rgba(240,217,156,.5);transform:translateY(-1px);
+  background:rgba(255,255,255,.16);border-color:rgba(142,180,255,.48);transform:translateY(-1px);
 }
 .iw-ibtn svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
 .iw-ibtn .iw-i-moon{display:none}
@@ -430,25 +488,46 @@ table{border-collapse:collapse}
   .iw-navlist{
     flex-direction:row;align-items:center;gap:2px;padding:4px;
     border:1px solid rgba(255,255,255,.09);border-radius:var(--pill);
-    background:rgba(5,15,32,.22);
+    background:rgba(4,10,25,.22);
   }
   .iw-navlist a{
     padding:8px 13px;border:1px solid transparent;border-radius:var(--pill);
     font-size:.85rem;font-weight:600;white-space:nowrap;
   }
   .iw-navlist a:hover,.iw-navlist a:focus-visible,.iw-navlist li.is-current a{
-    background:rgba(255,255,255,.1);border-color:rgba(240,217,156,.24);padding-inline:13px;
+    background:rgba(47,107,255,.15);border-color:rgba(142,180,255,.24);padding-inline:13px;
   }
-  .iw-navlist li.is-current a{box-shadow:inset 0 -1px 0 rgba(240,217,156,.55)}
+  .iw-navlist li.is-current a{box-shadow:inset 0 -1px 0 rgba(142,180,255,.58)}
+  .iw-filter{margin-top:0;flex:0 0 auto}
+  .iw-filter summary{min-height:38px;padding:8px 12px;border-radius:var(--pill);background:rgba(4,10,25,.22)}
+  .iw-filter summary::after{margin-left:2px}
+  .iw-filter__menu{
+    position:absolute;top:calc(100% + 8px);right:0;width:250px;max-height:min(420px,calc(100vh - var(--head-h) - 32px));
+    overflow-y:auto;margin-top:0;padding:8px;border-color:var(--line-2);background:var(--surface);box-shadow:var(--shadow-2)
+  }
+  .iw-filter__option{color:var(--ink-soft)}
+  .iw-filter__option:hover,.iw-filter__option:focus-visible,.iw-filter__option.is-current{color:var(--ink);background:var(--surface-2)}
+  .iw-filter__count{color:var(--ink-mute)}
   .iw-menubtn{display:none}
 }
 
-/* Search panel */
+/* Search panel. Sticky under the measured header, but zero-height, so the
+   glass panel hangs below it without pushing the hero down from under the
+   header. The shell is offset with top rather than margin, which would
+   collapse through the empty parent and move it after all. */
 .iw-searchpane{
   --focus:var(--gold-soft);color-scheme:dark;
   position:sticky;top:var(--head-h);z-index:80;
-  background:var(--indigo-deep);border-bottom:1px solid rgba(255,255,255,.1);
-  padding-block:18px;
+  height:0;overflow:visible;pointer-events:none;
+}
+.iw-searchpane > .iw-shell{
+  position:relative;top:8px;
+  padding:12px;border:1px solid rgba(255,255,255,.15);border-radius:18px;
+  background:linear-gradient(115deg,rgba(255,255,255,.08),transparent 48%),rgba(15,24,48,.94);
+  box-shadow:0 22px 50px rgba(10,22,43,.26);
+  -webkit-backdrop-filter:blur(22px) saturate(150%);
+  backdrop-filter:blur(22px) saturate(150%);
+  pointer-events:auto;
 }
 .iw-searchpane[hidden]{display:none}
 .iw-searchform{display:flex;gap:9px;align-items:center}
@@ -458,76 +537,72 @@ table{border-collapse:collapse}
   color:#fff;font-size:.95rem;
 }
 .iw-searchform input::placeholder{color:rgba(255,255,255,.72);opacity:1}
-.iw-searchform input:focus{outline:none;border-color:var(--gold);background:rgba(255,255,255,.12)}
+.iw-searchform input:focus{outline:none;border-color:var(--blue-line);background:rgba(255,255,255,.12)}
 .iw-searchform button{
   padding:13px 20px;border-radius:var(--radius-sm);flex:0 0 auto;
-  background:var(--gold);color:var(--indigo-deep);font-weight:700;font-size:.9rem;
+  background:var(--action-bg);color:var(--action-ink);font-weight:700;font-size:.9rem;
 }
-.iw-searchform button:hover{background:var(--gold-soft)}
+.iw-searchform button:hover{background:var(--action-hover)}
 
 /* ==========================================================================
    5. Homepage hero
    ========================================================================== */
 
+/* The website's home hero: navy into electric blue with a cyan glow and a
+   faint dot grid. It starts under the floating header. */
 .iw-hero{
   --focus:var(--gold-soft);
   position:relative;isolation:isolate;overflow:hidden;
+  margin-top:calc(-1 * var(--head-h));
   color:var(--on-dark);
-  background:radial-gradient(125% 105% at 10% 0%,#26456f 0%,#1a2f52 45%,#101c36 100%);
-  border-bottom:1px solid rgba(240,217,156,.2);
+  background:var(--hero-bg);
+  border-bottom:1px solid rgba(142,180,255,.16);
 }
 .iw-hero::before,.iw-hero::after{content:"";position:absolute;z-index:-1;pointer-events:none}
 .iw-hero::before{
-  width:300px;aspect-ratio:1;top:-186px;right:-150px;
-  border:1px solid rgba(240,217,156,.14);border-radius:50%;
+  width:300px;aspect-ratio:1;top:-150px;right:-150px;
+  border:1px solid rgba(142,180,255,.14);border-radius:50%;
   box-shadow:
-    0 0 0 42px rgba(255,255,255,.028),
-    0 0 0 84px rgba(214,165,43,.03),
+    0 0 0 42px rgba(47,107,255,.035),
+    0 0 0 84px rgba(34,211,238,.025),
     0 0 0 126px rgba(255,255,255,.02);
 }
 .iw-hero::after{
-  width:320px;aspect-ratio:1;bottom:-176px;left:-160px;opacity:.5;
+  inset:0;opacity:.12;
   background-image:
-    repeating-linear-gradient(45deg,transparent 0 15px,rgba(255,255,255,.13) 15px 17px,transparent 17px 32px),
-    repeating-linear-gradient(-45deg,transparent 0 15px,rgba(240,217,156,.12) 15px 17px,transparent 17px 32px);
-  -webkit-mask-image:radial-gradient(circle,#000 0 30%,transparent 72%);
-  mask-image:radial-gradient(circle,#000 0 30%,transparent 72%);
+    var(--dots),
+    linear-gradient(125deg,transparent 0 65%,rgba(142,180,255,.12) 65.2% 65.5%,transparent 65.7%);
+  background-size:22px 22px,auto;
 }
-.iw-hero__in{position:relative;z-index:1;padding:52px 0 58px}
+.iw-hero__in{position:relative;z-index:1;padding:calc(var(--head-h) + 56px) 0 64px}
 .iw-eyebrow{
   display:inline-flex;align-items:center;gap:9px;margin-bottom:16px;
   font-size:.73rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
-  color:var(--gold-soft);
+  color:var(--blue-pale);
 }
 .iw-eyebrow::before{
   content:"";width:7px;height:7px;border-radius:50%;flex:0 0 auto;
-  background:var(--terracotta);box-shadow:0 0 0 4px rgba(182,90,58,.25);
+  background:var(--gold);box-shadow:0 0 0 4px rgba(34,211,238,.14);
 }
 .iw-hero__title{
-  font-size:clamp(2.15rem,6vw,3.35rem);line-height:1.06;letter-spacing:-.02em;
+  font-size:clamp(2.15rem,6vw,3.4rem);line-height:1.08;letter-spacing:-.01em;
   font-weight:800;color:#fff;text-wrap:balance;max-width:20ch;
 }
 .iw-hero__lede{
   margin-top:16px;max-width:56ch;font-size:clamp(1rem,2.1vw,1.13rem);
-  line-height:1.65;color:rgba(247,242,230,.76);text-wrap:pretty;
+  line-height:1.65;color:rgba(255,255,255,.78);text-wrap:pretty;
 }
 .iw-hero__actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:26px}
 .iw-btn{
-  display:inline-flex;align-items:center;gap:8px;padding:12px 20px;
-  border-radius:var(--pill);font-size:.88rem;font-weight:700;
-  border:1px solid transparent;
+  display:inline-flex;align-items:center;gap:9px;padding:11px 22px;min-height:44px;
+  border-radius:var(--pill);font-size:.9rem;font-weight:700;
+  border:2px solid transparent;
   transition:background var(--dur) var(--ease),border-color var(--dur) var(--ease),transform var(--dur) var(--ease),box-shadow var(--dur) var(--ease);
 }
-.iw-btn--gold{background:var(--gold);color:var(--indigo-deep);box-shadow:0 10px 26px rgba(214,165,43,.22)}
-.iw-btn--gold:hover{background:var(--gold-soft);transform:translateY(-1px)}
-.iw-btn--ghost{
-  border-color:rgba(240,217,156,.34);color:#fff;
-  background:linear-gradient(135deg,rgba(214,165,43,.18),rgba(255,255,255,.05));
-}
-.iw-btn--ghost:hover{
-  background:linear-gradient(135deg,rgba(214,165,43,.32),rgba(255,255,255,.1));
-  transform:translateY(-1px);
-}
+.iw-btn--primary{background:var(--action-bg);color:var(--action-ink);box-shadow:0 9px 24px rgba(47,107,255,.22)}
+.iw-btn--primary:hover{background:var(--action-hover);box-shadow:0 13px 30px rgba(47,107,255,.28);transform:translateY(-2px)}
+.iw-btn--ghost{border-color:rgba(255,255,255,.5);color:#fff;background:transparent}
+.iw-btn--ghost:hover{background:rgba(255,255,255,.12);transform:translateY(-2px)}
 .iw-btn svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 
 /* ==========================================================================
@@ -544,8 +619,10 @@ table{border-collapse:collapse}
 .iw-layout--article{grid-template-columns:minmax(0,1fr)}
 .iw-layout--article > .iw-side{display:none}
 .iw-layout--index > .iw-rail{display:none}
+.iw-layout--index > .iw-share-rail{display:none}
+.iw-layout--article #FeaturedPost1{display:none!important}
 .iw-layout--article > #main{max-width:var(--article-w);margin-inline:auto;width:100%}
-@media (min-width:1280px){
+@media (min-width:1180px){
   /* Flexible gutters, so the article keeps its full measure and the table of
      contents takes whatever is left on the right. Fixed-width gutters would
      squeeze the article narrower than it is on a smaller screen. */
@@ -554,6 +631,7 @@ table{border-collapse:collapse}
     justify-content:center;gap:0 36px;
   }
   .iw-layout--article > #main{grid-column:2;max-width:none}
+  .iw-layout--article > .iw-share-rail{grid-column:1;grid-row:1;justify-self:end;min-width:0}
   .iw-layout--article > .iw-rail{grid-column:3;min-width:0}
 }
 
@@ -590,24 +668,41 @@ table{border-collapse:collapse}
   font-size:.7rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;
   transition:background var(--dur) var(--ease),color var(--dur) var(--ease),border-color var(--dur) var(--ease);
 }
-.iw-chip::before{content:"";width:6px;height:6px;border-radius:2px;background:var(--gold);flex:0 0 auto}
-.iw-chip:hover{border-color:var(--gold);color:var(--ink)}
+.iw-chip::before{content:"";width:6px;height:6px;border-radius:2px;background:var(--topic-feature);flex:0 0 auto}
+.iw-chip:hover{border-color:var(--terracotta);color:var(--ink)}
 
 /* Colour-coded by label name, case-insensitively. Add your own by copying
-   a block and changing the label text. Anything unmatched keeps the gold. */
+   a block and changing the label text. Anything unmatched keeps the cyan. */
 .iw-chip[data-label="release" i]::before,
 .iw-chip[data-label="releases" i]::before,
-.iw-chip[data-label="shipped" i]::before{background:var(--green)}
+.iw-chip[data-label="shipped" i]::before{background:var(--topic-release)}
 .iw-chip[data-label="feature" i]::before,
 .iw-chip[data-label="features" i]::before,
-.iw-chip[data-label="product" i]::before{background:var(--gold)}
+.iw-chip[data-label="product" i]::before{background:var(--topic-feature)}
 .iw-chip[data-label="engineering" i]::before,
-.iw-chip[data-label="platform" i]::before{background:var(--info-ink)}
+.iw-chip[data-label="platform" i]::before{background:var(--topic-engineering)}
 .iw-chip[data-label="community" i]::before,
-.iw-chip[data-label="governance" i]::before{background:var(--terracotta)}
+.iw-chip[data-label="governance" i]::before{background:var(--topic-community)}
 .iw-chip[data-label="language" i]::before,
 .iw-chip[data-label="venacula" i]::before,
 .iw-chip[data-label="kasem" i]::before{background:var(--topic-language)}
+.iw-filter__option[data-label="release" i]::before,
+.iw-filter__option[data-label="releases" i]::before,
+.iw-filter__option[data-label="shipped" i]::before{background:var(--topic-release)}
+.iw-filter__option[data-label="feature" i]::before,
+.iw-filter__option[data-label="features" i]::before,
+.iw-filter__option[data-label="product" i]::before{background:var(--topic-feature)}
+.iw-filter__option[data-label="engineering" i]::before,
+.iw-filter__option[data-label="platform" i]::before{background:var(--topic-engineering)}
+.iw-filter__option[data-label="community" i]::before,
+.iw-filter__option[data-label="governance" i]::before{background:var(--topic-community)}
+.iw-filter__option[data-label="language" i]::before,
+.iw-filter__option[data-label="venacula" i]::before,
+.iw-filter__option[data-label="kasem" i]::before{background:var(--topic-language)}
+.iw-filter__option[data-label="mobile app" i]::before{background:var(--topic-release)}
+.iw-filter__option[data-label="website" i]::before{background:var(--topic-engineering)}
+.iw-filter__option[data-label="dictionary" i]::before{background:var(--topic-language)}
+.iw-filter__option[data-label="tribestudio" i]::before{background:var(--topic-feature)}
 
 /* ==========================================================================
    8. Post grid and cards
@@ -623,7 +718,7 @@ table{border-collapse:collapse}
   box-shadow:var(--shadow-1);
   transition:transform var(--dur) var(--ease),box-shadow var(--dur) var(--ease),border-color var(--dur) var(--ease);
 }
-.iw-card:hover{transform:translateY(-3px);box-shadow:var(--shadow-2);border-color:var(--line-2)}
+.iw-card:hover{transform:translateY(-3px);box-shadow:var(--shadow-2);border-color:rgba(47,107,255,.35)}
 .iw-card:focus-within{box-shadow:var(--shadow-2)}
 
 .iw-card__media{position:relative;aspect-ratio:16/9;overflow:hidden;background:var(--surface-2)}
@@ -633,11 +728,8 @@ table{border-collapse:collapse}
 /* Posts with no image get a woven placeholder rather than a blank box. */
 .iw-card__motif{
   display:grid;place-items:center;width:100%;height:100%;
-  background:radial-gradient(120% 120% at 20% 0%,#24406e,#101c36);
-  background-image:
-    repeating-linear-gradient(45deg,transparent 0 15px,rgba(240,217,156,.1) 15px 17px,transparent 17px 32px),
-    repeating-linear-gradient(-45deg,transparent 0 15px,rgba(182,90,58,.12) 15px 17px,transparent 17px 32px),
-    radial-gradient(120% 120% at 20% 0%,#24406e,#101c36);
+  background-image:radial-gradient(rgba(255,255,255,.07) 1px,transparent 1px),var(--hero-bg);
+  background-size:22px 22px,auto;
 }
 .iw-card__motif .iw-mark{width:52px;height:52px;opacity:.92}
 
@@ -660,17 +752,41 @@ table{border-collapse:collapse}
 .iw-card__more::after{content:"\2192";transition:transform var(--dur) var(--ease)}
 .iw-card:hover .iw-card__more::after{transform:translateX(3px)}
 
+/* Blogger sometimes retains a Featured Post gadget while restoring a theme.
+   If Blog1 cannot render, this becomes a full-size emergency lead card rather
+   than Blogger's default long excerpt with a fixed 72px thumbnail. Runtime JS
+   hides it whenever the real .iw-grid is present. */
+.iw-layout--index #FeaturedPost1{overflow:hidden;border:1px solid var(--line);border-radius:var(--radius);background:var(--surface);box-shadow:var(--shadow-1)}
+.iw-layout--index #FeaturedPost1 .widget-content > [role="feed"]{display:block}
+.iw-layout--index #FeaturedPost1 .post-content{display:grid;grid-template-columns:minmax(0,1fr)}
+.iw-layout--index #FeaturedPost1 .item-thumbnail{grid-row:1;margin:0;background:var(--surface-2)}
+.iw-layout--index #FeaturedPost1 .item-thumbnail a{display:block;aspect-ratio:16/9}
+.iw-layout--index #FeaturedPost1 .item-thumbnail img{width:100%;height:100%;object-fit:cover}
+.iw-layout--index #FeaturedPost1 .post-title{grid-row:2;padding:22px 22px 0;font-size:1.35rem;line-height:1.25;font-weight:800;letter-spacing:-.012em}
+.iw-layout--index #FeaturedPost1 .item-byline{grid-row:3;padding:10px 22px 0;color:var(--ink-mute);font-size:.78rem}
+.iw-layout--index #FeaturedPost1 .post-snippet{grid-row:4;padding:12px 22px 24px;color:var(--ink-soft);font-size:.93rem;line-height:1.6}
+.iw-layout--index #FeaturedPost1 .snippet-item{display:-webkit-box;overflow:hidden;-webkit-box-orient:vertical;-webkit-line-clamp:4}
+.iw-layout--index #FeaturedPost1 .snippet-fade{display:none}
+@media (min-width:860px){
+  .iw-layout--index #FeaturedPost1 .post-content{grid-template-columns:52% minmax(0,1fr);grid-template-rows:auto auto 1fr;min-height:320px}
+  .iw-layout--index #FeaturedPost1 .item-thumbnail{grid-column:1;grid-row:1/4}
+  .iw-layout--index #FeaturedPost1 .item-thumbnail a{height:100%;aspect-ratio:auto}
+  .iw-layout--index #FeaturedPost1 .post-title{grid-column:2;grid-row:1;padding:34px 30px 0;font-size:1.6rem}
+  .iw-layout--index #FeaturedPost1 .item-byline{grid-column:2;grid-row:2;padding:11px 30px 0}
+  .iw-layout--index #FeaturedPost1 .post-snippet{grid-column:2;grid-row:3;padding:14px 30px 34px}
+}
+
 /* Lead card: the most recent update gets the full width and a side-by-side
    treatment once there is room for it. */
 @media (min-width:640px){
-  .iw-card--lead{grid-column:1/-1}
+  .iw-card--lead,.iw-grid > .iw-card:first-child{grid-column:1/-1}
 }
 @media (min-width:860px){
-  .iw-card--lead{flex-direction:row;align-items:stretch}
-  .iw-card--lead .iw-card__media{flex:0 0 52%;aspect-ratio:auto}
-  .iw-card--lead .iw-card__body{padding:30px 30px 32px;justify-content:center;gap:13px}
-  .iw-card--lead .iw-card__title{font-size:1.6rem;line-height:1.2}
-  .iw-card--lead .iw-card__snippet{font-size:1rem}
+  .iw-card--lead,.iw-grid > .iw-card:first-child{flex-direction:row;align-items:stretch}
+  .iw-card--lead .iw-card__media,.iw-grid > .iw-card:first-child .iw-card__media{flex:0 0 52%;aspect-ratio:auto}
+  .iw-card--lead .iw-card__body,.iw-grid > .iw-card:first-child .iw-card__body{padding:30px 30px 32px;justify-content:center;gap:13px}
+  .iw-card--lead .iw-card__title,.iw-grid > .iw-card:first-child .iw-card__title{font-size:1.6rem;line-height:1.2}
+  .iw-card--lead .iw-card__snippet,.iw-grid > .iw-card:first-child .iw-card__snippet{font-size:1rem}
 }
 
 /* ==========================================================================
@@ -703,7 +819,7 @@ table{border-collapse:collapse}
 .iw-prose p{text-wrap:pretty}
 .iw-prose a{
   color:var(--link);text-decoration:underline;
-  text-decoration-color:var(--gold);text-decoration-thickness:2px;text-underline-offset:3px;
+  text-decoration-color:rgba(47,107,255,.45);text-decoration-thickness:2px;text-underline-offset:3px;
   transition:color var(--dur) var(--ease),text-decoration-color var(--dur) var(--ease);
 }
 .iw-prose a:hover{color:var(--link-hover);text-decoration-color:currentColor}
@@ -730,7 +846,7 @@ table{border-collapse:collapse}
 .iw-prose ul > li{position:relative}
 .iw-prose ul > li::before{
   content:"";position:absolute;left:-1.15em;top:.72em;
-  width:7px;height:7px;border-radius:2px;background:var(--gold);
+  width:7px;height:7px;border-radius:2px;background:var(--terracotta);
 }
 .iw-prose ol{list-style:decimal}
 .iw-prose ol > li::marker{color:var(--accent-ink);font-weight:700}
@@ -789,7 +905,7 @@ table{border-collapse:collapse}
 
 .iw-prose hr{
   border:0;height:22px;margin-block:2.2em;
-  background-image:radial-gradient(circle,var(--gold) 2.5px,transparent 2.6px);
+  background-image:radial-gradient(circle,var(--terracotta) 2.5px,transparent 2.6px);
   background-size:22px 22px;background-position:center;background-repeat:repeat-x;
   -webkit-mask-image:linear-gradient(90deg,transparent,#000 42%,#000 58%,transparent);
   mask-image:linear-gradient(90deg,transparent,#000 42%,#000 58%,transparent);
@@ -810,7 +926,7 @@ table{border-collapse:collapse}
 }
 .iw-note{border-left-color:var(--info-ink)}
 .iw-tip{border-left-color:var(--gold)}
-.iw-warn{border-left-color:var(--terracotta)}
+.iw-warn{border-left-color:var(--warn-ink)}
 .iw-ship{border-left-color:var(--success-ink)}
 .iw-note > strong:first-child,.iw-tip > strong:first-child,
 .iw-warn > strong:first-child,.iw-ship > strong:first-child{
@@ -858,7 +974,7 @@ table{border-collapse:collapse}
 .iw-author img{width:52px;height:52px;border-radius:50%;object-fit:cover;flex:0 0 auto}
 .iw-author__mark{
   display:grid;place-items:center;width:52px;height:52px;border-radius:50%;flex:0 0 auto;
-  background:radial-gradient(120% 120% at 30% 0%,#24406e,#101c36);
+  background:var(--hero-bg);
 }
 .iw-author__mark .iw-mark{width:30px;height:30px}
 .iw-author__name{font-weight:800;font-size:1rem}
@@ -871,7 +987,7 @@ table{border-collapse:collapse}
   border:1px solid var(--line);border-radius:var(--radius);background:var(--surface);
   transition:border-color var(--dur) var(--ease),transform var(--dur) var(--ease),box-shadow var(--dur) var(--ease);
 }
-.iw-pager__link:hover{border-color:var(--gold);transform:translateY(-2px);box-shadow:var(--shadow-1)}
+.iw-pager__link:hover{border-color:rgba(47,107,255,.35);transform:translateY(-2px);box-shadow:var(--shadow-1)}
 .iw-pager__link--next{text-align:right;grid-column:-2/-1}
 .iw-pager__kicker{font-size:.7rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent-ink)}
 .iw-pager__title{font-weight:700;font-size:.95rem;color:var(--ink)}
@@ -888,7 +1004,7 @@ table{border-collapse:collapse}
   border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--surface);
   transition:border-color var(--dur) var(--ease),transform var(--dur) var(--ease);
 }
-.iw-related__item:hover{border-color:var(--gold);transform:translateX(3px)}
+.iw-related__item:hover{border-color:rgba(47,107,255,.35);transform:translateX(3px)}
 .iw-related__thumb{
   width:64px;height:64px;flex:0 0 auto;border-radius:8px;object-fit:cover;
   background:var(--surface-2);
@@ -898,14 +1014,18 @@ table{border-collapse:collapse}
 .iw-related__d{display:block;margin-top:3px;font-size:.78rem;color:var(--ink-mute)}
 .iw-related__motif{
   width:64px;height:64px;flex:0 0 auto;border-radius:8px;
-  display:grid;place-items:center;background:var(--indigo-deep);
+  display:grid;place-items:center;background:var(--hero-bg);
 }
 .iw-related__motif .iw-mark{width:30px;height:30px}
 
 /* Table of contents rail, built from the article's own headings. */
 .iw-rail{position:sticky;top:calc(var(--head-h) + 22px);max-height:calc(100vh - var(--head-h) - 44px);overflow-y:auto}
 .iw-rail[hidden]{display:none}
-@media (max-width:1279px){
+.iw-share-rail{position:sticky;top:calc(var(--head-h) + 22px)}
+.iw-share-rail[hidden]{display:none}
+.iw-share-rail .iw-share{flex-direction:column;align-items:center;padding:14px 10px;border:1px solid var(--line);border-radius:var(--pill);background:var(--surface);box-shadow:var(--shadow-1)}
+.iw-share-rail .iw-share__label{margin-bottom:3px;writing-mode:vertical-rl;transform:rotate(180deg)}
+@media (max-width:1179px){
   .iw-layout--article .iw-rail{
     position:static;max-height:none;max-width:var(--article-w);width:100%;margin:0 auto 26px;
     padding:18px 20px;border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--surface);
@@ -922,7 +1042,7 @@ table{border-collapse:collapse}
   transition:color var(--dur) var(--ease),border-color var(--dur) var(--ease);
 }
 .iw-toc__list a:hover{color:var(--ink)}
-.iw-toc__list a.is-active{color:var(--ink);border-left-color:var(--gold);font-weight:700}
+.iw-toc__list a.is-active{color:var(--ink);border-left-color:var(--terracotta);font-weight:700}
 .iw-toc__list a[data-depth="3"]{padding-left:26px;font-size:.79rem}
 
 /* ==========================================================================
@@ -981,7 +1101,7 @@ table{border-collapse:collapse}
 }
 .iw-side .widget-content{font-size:.92rem;color:var(--ink-soft);line-height:1.6}
 .iw-side .widget-content a{color:var(--link);transition:color var(--dur) var(--ease)}
-.iw-side .widget-content a:hover{color:var(--accent-ink)}
+.iw-side .widget-content a:hover{color:var(--link-hover)}
 .iw-side .widget-content .iw-chip{color:var(--ink-soft)}
 .iw-side .widget-content .iw-chip:hover{color:var(--ink)}
 
@@ -1046,23 +1166,26 @@ table{border-collapse:collapse}
 .iw-foot{
   --focus:var(--gold-soft);
   position:relative;isolation:isolate;overflow:hidden;margin-top:auto;
-  background:var(--indigo-deep);color:rgba(255,255,255,.72);
+  background:
+    radial-gradient(circle at 92% 0,rgba(47,107,255,.28),transparent 30rem),
+    linear-gradient(145deg,#0b1225,#0f1830 55%,#162a64);
+  color:rgba(255,255,255,.72);
   padding:52px 0 22px;
 }
 .iw-foot::before,.iw-foot::after{content:"";position:absolute;z-index:0;pointer-events:none}
 .iw-foot::before{
   width:320px;aspect-ratio:1;top:-194px;right:-184px;
-  border:1px solid rgba(240,217,156,.12);border-radius:50%;
+  border:1px solid rgba(142,180,255,.12);border-radius:50%;
   box-shadow:
-    0 0 0 42px rgba(255,255,255,.025),
-    0 0 0 84px rgba(214,165,43,.025),
+    0 0 0 42px rgba(47,107,255,.025),
+    0 0 0 84px rgba(34,211,238,.02),
     0 0 0 126px rgba(255,255,255,.018);
 }
 .iw-foot::after{
   width:300px;aspect-ratio:1;bottom:-164px;left:-174px;opacity:.28;
   background-image:
     repeating-linear-gradient(45deg,transparent 0 15px,rgba(255,255,255,.12) 15px 17px,transparent 17px 32px),
-    repeating-linear-gradient(-45deg,transparent 0 15px,rgba(240,217,156,.1) 15px 17px,transparent 17px 32px);
+    repeating-linear-gradient(-45deg,transparent 0 15px,rgba(142,180,255,.1) 15px 17px,transparent 17px 32px);
   -webkit-mask-image:radial-gradient(circle,#000 0 28%,transparent 72%);
   mask-image:radial-gradient(circle,#000 0 28%,transparent 72%);
 }
@@ -1080,14 +1203,14 @@ table{border-collapse:collapse}
 .iw-foot .widget-content{font-size:.89rem;line-height:1.6;color:rgba(255,255,255,.62)}
 .iw-foot .widget-content ul{display:flex;flex-direction:column;gap:9px}
 .iw-foot .widget-content a{color:rgba(255,255,255,.65);transition:color var(--dur) var(--ease)}
-.iw-foot .widget-content a:hover{color:var(--gold-soft)}
+.iw-foot .widget-content a:hover{color:var(--blue-line)}
 .iw-foot__bottom{
   display:flex;flex-direction:column;gap:7px;padding-top:22px;
   border-top:1px solid rgba(255,255,255,.1);font-size:.8rem;color:rgba(255,255,255,.55);
 }
 @media (min-width:900px){.iw-foot__bottom{flex-direction:row;justify-content:space-between;align-items:center}}
 .iw-foot__bottom a{color:rgba(255,255,255,.72)}
-.iw-foot__bottom a:hover{color:var(--gold-soft)}
+.iw-foot__bottom a:hover{color:var(--blue-line)}
 
 /* ==========================================================================
    14. Back to top, motion, print
@@ -1102,7 +1225,7 @@ table{border-collapse:collapse}
   transition:opacity var(--dur) var(--ease),transform var(--dur) var(--ease),visibility var(--dur);
 }
 .iw-top.is-on{opacity:1;visibility:visible;transform:none}
-.iw-top:hover{background:var(--gold);border-color:var(--gold);color:var(--indigo-deep)}
+.iw-top:hover{background:var(--action-bg);border-color:var(--action-bg);color:var(--action-ink)}
 .iw-top svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
 
 body{display:flex;flex-direction:column;min-height:100vh}
@@ -1152,7 +1275,7 @@ textarea:focus-visible,select:focus-visible,summary:focus-visible,
 
 @media print{
   .iw-head,.iw-searchpane,.iw-side,.iw-rail,.iw-top,.iw-progress,
-  .iw-share,.iw-pager,.iw-related,.iw-comments,.iw-foot,.iw-hero{display:none!important}
+  .iw-share,.iw-share-rail,.iw-pager,.iw-related,.iw-comments,.iw-foot,.iw-hero{display:none!important}
   :root,:root[data-theme],:root:not([data-theme]){
     color-scheme:light;--bg:#fff;--bg-alt:#fff;--surface:#fff;--surface-2:#f3f3f3;
     --ink:#000;--ink-soft:#333;--ink-mute:#444;--line:#ccc;--line-2:#aaa;
@@ -1240,6 +1363,35 @@ textarea:focus-visible,select:focus-visible,summary:focus-visible,
               </ul>
             </b:includable>
           </b:widget>
+          <b:widget id='Label2' locked='true' title='Filter updates' type='Label' version='2' visible='true'>
+            <b:widget-settings>
+              <b:widget-setting name='sorting'>ALPHA</b:widget-setting>
+              <b:widget-setting name='display'>LIST</b:widget-setting>
+              <b:widget-setting name='showType'>ALL</b:widget-setting>
+              <b:widget-setting name='showFreqNumbers'>true</b:widget-setting>
+            </b:widget-settings>
+            <b:includable id='main'>
+              <details class='iw-filter' id='iw-filter'>
+                <summary>
+                  <svg aria-hidden='true' focusable='false' viewBox='0 0 24 24'><path d='M4 6h16M7 12h10M10 18h4'/></svg>
+                  <span><b:if cond='data:view.isLabelSearch'><data:view.search.label/><b:else/>Filter</b:if></span>
+                </summary>
+                <div aria-label='Filter updates by topic' class='iw-filter__menu'>
+                  <a class='iw-filter__option' expr:href='data:blog.homepageUrl'>
+                    <b:class cond='data:view.isHomepage' name='is-current'/>
+                    All updates
+                  </a>
+                  <b:loop values='data:labels' var='label'>
+                    <a class='iw-filter__option' expr:data-label='data:label.name' expr:href='data:label.url'>
+                      <b:class cond='data:view.isLabelSearch and data:view.search.label == data:label.name' name='is-current'/>
+                      <span><data:label.name/></span>
+                      <span class='iw-filter__count'><data:label.count/></span>
+                    </a>
+                  </b:loop>
+                </div>
+              </details>
+            </b:includable>
+          </b:widget>
         </b:section>
       </div>
     </div>
@@ -1284,7 +1436,7 @@ textarea:focus-visible,select:focus-visible,summary:focus-visible,
         <p class='iw-hero__lede'>What we are building, shipping and learning across the Indigen World ecosystem &#8212; the website, TribeStudio, the mobile app and Project Kassena.</p>
       </b:if>
       <div class='iw-hero__actions'>
-        <a class='iw-btn iw-btn--gold' href='#iw-content'>
+        <a class='iw-btn iw-btn--primary' href='#iw-content'>
           Browse updates
           <svg aria-hidden='true' focusable='false' viewBox='0 0 24 24'><path d='M12 5v14M6 13l6 6 6-6'/></svg>
         </a>
@@ -1302,6 +1454,8 @@ textarea:focus-visible,select:focus-visible,summary:focus-visible,
     <div class='iw-layout'>
       <b:class cond='data:view.isSingleItem' name='iw-layout--article'/>
       <b:class cond='not data:view.isSingleItem' name='iw-layout--index'/>
+
+      <aside aria-label='Share this update' class='iw-share-rail' hidden='hidden' id='iw-share-rail'></aside>
 
       <b:section id='main' name='Blog posts' showaddelement='no'>
         <b:widget id='Blog1' locked='true' title='Updates' type='Blog' version='2' visible='true'>
@@ -1327,7 +1481,7 @@ textarea:focus-visible,select:focus-visible,summary:focus-visible,
                 <h2>This page has wandered off</h2>
                 <p>The update you were looking for has moved or never existed. Try the latest posts instead.</p>
                 <p style='margin-top:18px'>
-                  <a class='iw-btn iw-btn--gold' expr:href='data:blog.homepageUrl'>Back to the latest updates</a>
+                  <a class='iw-btn iw-btn--primary' expr:href='data:blog.homepageUrl'>Back to the latest updates</a>
                 </p>
               </div>
             </b:if>
@@ -1354,17 +1508,14 @@ textarea:focus-visible,select:focus-visible,summary:focus-visible,
             <b:else/>
               <b:comment>-------- Index, label, archive, search --------</b:comment>
               <div class='iw-grid' id='iw-grid'>
-                <b:loop index='i' values='data:posts' var='post'>
+                <b:loop values='data:posts' var='post'>
                   <article class='iw-card'>
-                    <b:class cond='data:i == 0' name='iw-card--lead'/>
                     <b:comment>
-                      isLead travels with the post so the card can load the first
-                      image eagerly - it is the largest-contentful paint here.
+                      Blogger supplies at most seven homepage posts via the blog
+                      setting. CSS promotes the first card without relying on loop
+                      index expressions, which Blogger cannot render reliably here.
                     </b:comment>
-                    <b:include name='iwCard'>
-                      <b:with value='data:post' var='post'/>
-                      <b:with value='data:i == 0' var='isLead'/>
-                    </b:include>
+                    <b:include data='post' name='iwCard'/>
                   </article>
                 </b:loop>
               </div>
@@ -1378,13 +1529,13 @@ textarea:focus-visible,select:focus-visible,summary:focus-visible,
                   <h2>No updates published yet</h2>
                   <p>This is where release notes, feature updates and notes from the field will appear. Nothing has been published so far.</p>
                   <p style='margin-top:18px'>
-                    <a class='iw-btn iw-btn--gold' href='https://indigenworld.com/'>Visit indigenworld.com</a>
+                    <a class='iw-btn iw-btn--primary' href='https://indigenworld.com/'>Visit indigenworld.com</a>
                   </p>
                 <b:else/>
                   <h2>Nothing here yet</h2>
                   <p>No updates matched this view. Try another topic, or head back to the latest posts.</p>
                   <p style='margin-top:18px'>
-                    <a class='iw-btn iw-btn--gold' expr:href='data:blog.homepageUrl'>Back to the latest updates</a>
+                    <a class='iw-btn iw-btn--primary' expr:href='data:blog.homepageUrl'>Back to the latest updates</a>
                   </p>
                 </b:if>
               </div>
@@ -1420,7 +1571,7 @@ textarea:focus-visible,select:focus-visible,summary:focus-visible,
                   The lead card is the largest-contentful paint on the index, so
                   it loads eagerly while the rest stay lazy.
                 </b:comment>
-                <img decoding='async' expr:alt='data:post.title' expr:fetchpriority='data:isLead ? "high" : "auto"' expr:loading='data:isLead ? "eager" : "lazy"' expr:sizes='data:isLead ? "(max-width: 640px) calc(100vw - 32px), (max-width: 1040px) calc(100vw - 56px), 620px" : "(max-width: 640px) calc(100vw - 32px), (max-width: 1040px) calc((100vw - 86px) / 2), 400px"' expr:src='resizeImage(data:post.featuredImage, 900, "16:9")' expr:srcset='resizeImage(data:post.featuredImage, 480, "16:9") + " 480w, " + resizeImage(data:post.featuredImage, 900, "16:9") + " 900w, " + resizeImage(data:post.featuredImage, 1400, "16:9") + " 1400w"' height='506' width='900'/>
+                <img decoding='async' expr:alt='data:post.title' expr:src='resizeImage(data:post.featuredImage, 900, "16:9")' expr:srcset='resizeImage(data:post.featuredImage, 480, "16:9") + " 480w, " + resizeImage(data:post.featuredImage, 900, "16:9") + " 900w, " + resizeImage(data:post.featuredImage, 1400, "16:9") + " 1400w"' height='506' loading='lazy' sizes='(max-width: 640px) calc(100vw - 32px), (max-width: 1040px) calc(100vw - 56px), 620px' width='900'/>
               <b:else/>
                 <span class='iw-card__motif'>
                   <svg aria-hidden='true' class='iw-mark' focusable='false' viewBox='0 0 64 64' xmlns='http://www.w3.org/2000/svg'>
@@ -1873,6 +2024,21 @@ textarea:focus-visible,select:focus-visible,summary:focus-visible,
     }
   });
 
+  // Close the topic filter when focus moves elsewhere or Escape is pressed.
+  var filter = qs('#iw-filter');
+  if (filter) {
+    doc.addEventListener('click', function (event) {
+      if (filter.open && !filter.contains(event.target)) { filter.removeAttribute('open'); }
+    });
+    filter.addEventListener('keydown', function (event) {
+      if (event.key === 'Escape') {
+        filter.removeAttribute('open');
+        var summary = qs('summary', filter);
+        if (summary) { summary.focus(); }
+      }
+    });
+  }
+
   /* ---- Search panel --------------------------------------------------- */
   var searchBtn = qs('#iw-search-btn');
   var searchPane = qs('#iw-searchpane');
@@ -1940,9 +2106,28 @@ textarea:focus-visible,select:focus-visible,summary:focus-visible,
   /* ---- Empty state for index views ------------------------------------ */
   var grid = qs('#iw-grid');
   var empty = qs('#iw-empty');
+  var leadImage = grid ? qs('.iw-card:first-child .iw-card__media img', grid) : null;
+  if (leadImage) {
+    leadImage.loading = 'eager';
+    leadImage.fetchPriority = 'high';
+  }
   if (grid && empty && !grid.querySelector('.iw-card')) {
     grid.style.display = 'none';
     empty.removeAttribute('hidden');
+  }
+  var featuredFallback = qs('#FeaturedPost1');
+  if (featuredFallback) {
+    if (grid && grid.querySelector('.iw-card')) {
+      featuredFallback.setAttribute('hidden', 'hidden');
+    } else {
+      var fallbackImage = qs('.item-thumbnail img', featuredFallback);
+      if (fallbackImage) {
+        fallbackImage.removeAttribute('srcset');
+        fallbackImage.removeAttribute('sizes');
+        fallbackImage.loading = 'eager';
+        fallbackImage.fetchPriority = 'high';
+      }
+    }
   }
 
   /* ---- Sharper Popular Posts thumbnails -------------------------------- */
@@ -2030,7 +2215,7 @@ textarea:focus-visible,select:focus-visible,summary:focus-visible,
       // Keep the contents beside the article on desktop and before the prose
       // on smaller screens, with keyboard order matching the visual order.
       var articleLayout = rail.parentNode;
-      var wideArticle = window.matchMedia('(min-width: 1280px)');
+      var wideArticle = window.matchMedia('(min-width: 1180px)');
       function placeToc() {
         if (wideArticle.matches) { articleLayout.appendChild(rail); }
         else { body.parentNode.insertBefore(rail, body); }
@@ -2107,6 +2292,24 @@ textarea:focus-visible,select:focus-visible,summary:focus-visible,
         });
         shareBox.appendChild(nativeBtn);
       }
+
+      // On wide screens sharing occupies the left rail, balancing the table
+      // of contents on the right. It returns to the article footer elsewhere.
+      var shareRail = qs('#iw-share-rail');
+      var shareHome = shareBox.parentNode;
+      var shareNext = shareBox.nextSibling;
+      var wideShare = window.matchMedia('(min-width: 1180px)');
+      function placeShare() {
+        if (wideShare.matches && shareRail) {
+          shareRail.appendChild(shareBox);
+          shareRail.removeAttribute('hidden');
+        } else if (shareHome) {
+          shareHome.insertBefore(shareBox, shareNext);
+          if (shareRail) { shareRail.setAttribute('hidden', 'hidden'); }
+        }
+      }
+      if (wideShare.addEventListener) { wideShare.addEventListener('change', placeShare); }
+      placeShare();
     }
 
     /* ---- Related posts, by the post's first label --------------------- */

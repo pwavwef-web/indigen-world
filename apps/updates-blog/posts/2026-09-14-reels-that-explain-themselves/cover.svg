@@ -1,0 +1,164 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630" role="img" aria-label="A phone showing the new reel creator's three steps, Media, Tell the story and Review, beside an Explore card labelled Dance">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0b1225"/>
+      <stop offset="0.62" stop-color="#19327f"/>
+      <stop offset="1" stop-color="#2457d6"/>
+    </linearGradient>
+    <radialGradient id="glowCyan" cx="0.8" cy="0.18" r="0.42">
+      <stop offset="0" stop-color="#22d3ee" stop-opacity="0.3"/>
+      <stop offset="1" stop-color="#22d3ee" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glowBlue" cx="0.08" cy="1" r="0.45">
+      <stop offset="0" stop-color="#2f6bff" stop-opacity="0.3"/>
+      <stop offset="1" stop-color="#2f6bff" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="dots" width="22" height="22" patternUnits="userSpaceOnUse">
+      <circle cx="11" cy="11" r="1.1" fill="#ffffff" fill-opacity="0.09"/>
+    </pattern>
+    <linearGradient id="glass" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.16"/>
+      <stop offset="0.5" stop-color="#ffffff" stop-opacity="0.07"/>
+    </linearGradient>
+    <linearGradient id="scene" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f4b860"/>
+      <stop offset="0.55" stop-color="#c8663a"/>
+      <stop offset="1" stop-color="#3a1c16"/>
+    </linearGradient>
+    <linearGradient id="scrim" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0.45" stop-color="#000000" stop-opacity="0"/>
+      <stop offset="1" stop-color="#000000" stop-opacity="0.78"/>
+    </linearGradient>
+    <clipPath id="screen">
+      <rect x="0" y="0" width="252" height="472" rx="26"/>
+    </clipPath>
+    <clipPath id="card">
+      <rect x="0" y="0" width="236" height="420" rx="24"/>
+    </clipPath>
+    <filter id="lift" x="-20%" y="-20%" width="140%" height="150%">
+      <feDropShadow dx="0" dy="26" stdDeviation="26" flood-color="#040a19" flood-opacity="0.42"/>
+    </filter>
+  </defs>
+
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <rect width="1200" height="630" fill="url(#glowCyan)"/>
+  <rect width="1200" height="630" fill="url(#glowBlue)"/>
+  <rect width="1200" height="630" fill="url(#dots)"/>
+
+  <g fill="none" stroke="#8eb4ff" stroke-opacity="0.13">
+    <circle cx="1150" cy="40" r="120"/>
+    <circle cx="1150" cy="40" r="190"/>
+    <circle cx="1150" cy="40" r="260"/>
+  </g>
+
+  <!-- Brand row -->
+  <g transform="translate(72 64)">
+    <g transform="scale(0.72)">
+      <path d="M15 47V23l17-9 17 9v24" fill="none" stroke="#8eb4ff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M24 44V29m8 15V24m8 20V29" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round"/>
+      <circle cx="32" cy="14" r="4.4" fill="#22d3ee"/>
+    </g>
+    <text x="58" y="31" fill="#ffffff" font-family="'Noto Sans', 'Segoe UI', sans-serif" font-size="21" font-weight="800">Indigen World Updates</text>
+  </g>
+
+  <!-- Release pill -->
+  <g transform="translate(72 168)">
+    <rect width="214" height="36" rx="18" fill="#2f6bff" fill-opacity="0.16" stroke="#8eb4ff" stroke-opacity="0.3"/>
+    <circle cx="22" cy="18" r="4.5" fill="#22d3ee"/>
+    <circle cx="22" cy="18" r="9" fill="#22d3ee" fill-opacity="0.14"/>
+    <text x="40" y="24" fill="#ffffff" font-family="'Noto Sans', 'Segoe UI', sans-serif" font-size="15" font-weight="700" letter-spacing="1.6">RELEASE 0.1.19</text>
+  </g>
+
+  <!-- Headline -->
+  <g font-family="'Noto Sans', 'Segoe UI', sans-serif" font-weight="800">
+    <text x="70" y="286" fill="#ffffff" font-size="60" letter-spacing="-0.6">Reels that</text>
+    <text x="70" y="356" fill="#ffffff" font-size="60" letter-spacing="-0.6">explain</text>
+    <text x="70" y="426" fill="#bcd2ff" font-size="60" letter-spacing="-0.6">themselves.</text>
+  </g>
+  <text x="72" y="482" fill="#ffffff" fill-opacity="0.78" font-family="'Noto Sans', 'Segoe UI', sans-serif" font-size="22" font-weight="500">A new Explore, communities, and Kawuri history.</text>
+  <text x="72" y="562" fill="#8eb4ff" font-family="'Noto Sans', 'Segoe UI', sans-serif" font-size="20" font-weight="700" letter-spacing="0.4">Indigen World for Android</text>
+
+  <!-- Phone: the reel creator's story step -->
+  <g transform="translate(640 92)" filter="url(#lift)">
+    <rect x="-10" y="-10" width="272" height="492" rx="36" fill="#0a0f1c" stroke="#8eb4ff" stroke-opacity="0.35"/>
+    <g clip-path="url(#screen)">
+      <rect width="252" height="472" fill="#071d17"/>
+      <g font-family="'Noto Sans', 'Segoe UI', sans-serif">
+        <text x="20" y="40" fill="#ffffff" font-size="15" font-weight="800">New reel</text>
+        <!-- stepper -->
+        <circle cx="30" cy="70" r="10" fill="none" stroke="#e0a53a" stroke-width="2"/>
+        <path d="M25 70l4 4 7-8" fill="none" stroke="#e0a53a" stroke-width="2" stroke-linecap="round"/>
+        <rect x="46" y="69" width="26" height="2" fill="#e0a53a"/>
+        <circle cx="86" cy="70" r="10" fill="#e0a53a"/>
+        <text x="82" y="75" fill="#050807" font-size="12" font-weight="900">2</text>
+        <text x="102" y="75" fill="#ffffff" font-size="12" font-weight="800">Tell the story</text>
+        <rect x="196" y="69" width="16" height="2" fill="#ffffff" fill-opacity="0.3"/>
+        <circle cx="226" cy="70" r="10" fill="none" stroke="#ffffff" stroke-opacity="0.45" stroke-width="2"/>
+        <text x="222" y="75" fill="#ffffff" fill-opacity="0.7" font-size="12" font-weight="800">3</text>
+        <!-- header -->
+        <rect x="20" y="96" width="44" height="78" rx="9" fill="url(#scene)"/>
+        <text x="76" y="118" fill="#ffffff" font-size="15" font-weight="900">Give this reel</text>
+        <text x="76" y="138" fill="#ffffff" font-size="15" font-weight="900">meaning</text>
+        <text x="76" y="160" fill="#ffffff" fill-opacity="0.6" font-size="10.5">Your caption is public.</text>
+        <!-- topic chips -->
+        <text x="20" y="206" fill="#ffffff" font-size="12" font-weight="800">Topic</text>
+        <rect x="20" y="216" width="70" height="26" rx="13" fill="#1b7a55"/>
+        <text x="36" y="233" fill="#ffffff" font-size="11" font-weight="800">Dance</text>
+        <rect x="96" y="216" width="56" height="26" rx="13" fill="none" stroke="#ffffff" stroke-opacity="0.25"/>
+        <text x="110" y="233" fill="#ffffff" fill-opacity="0.8" font-size="11" font-weight="700">Food</text>
+        <rect x="158" y="216" width="66" height="26" rx="13" fill="none" stroke="#ffffff" stroke-opacity="0.25"/>
+        <text x="172" y="233" fill="#ffffff" fill-opacity="0.8" font-size="11" font-weight="700">History</text>
+        <!-- what is happening -->
+        <rect x="20" y="258" width="212" height="112" rx="14" fill="#ffffff" fill-opacity="0.06" stroke="#ffffff" stroke-opacity="0.14"/>
+        <text x="34" y="282" fill="#ffffff" font-size="12" font-weight="800">What is happening?</text>
+        <rect x="34" y="294" width="184" height="62" rx="10" fill="#ffffff" fill-opacity="0.07" stroke="#e0a53a" stroke-width="1.5"/>
+        <text x="44" y="316" fill="#ffffff" font-size="10.5">Young people dance at the</text>
+        <text x="44" y="332" fill="#ffffff" font-size="10.5">start of the harvest festival</text>
+        <text x="44" y="348" fill="#ffffff" font-size="10.5">in Navrongo.</text>
+        <!-- rights -->
+        <circle cx="30" cy="394" r="7" fill="none" stroke="#e0a53a" stroke-width="2"/>
+        <circle cx="30" cy="394" r="3.4" fill="#e0a53a"/>
+        <text x="44" y="398" fill="#ffffff" font-size="11" font-weight="700">I created this media</text>
+        <!-- action bar -->
+        <rect x="0" y="420" width="252" height="52" fill="#050807" fill-opacity="0.92"/>
+        <rect x="16" y="430" width="100" height="32" rx="16" fill="none" stroke="#ffffff" stroke-opacity="0.35"/>
+        <text x="36" y="451" fill="#ffffff" font-size="11" font-weight="700">Save draft</text>
+        <rect x="124" y="430" width="112" height="32" rx="16" fill="#e0a53a"/>
+        <text x="152" y="451" fill="#050807" font-size="11.5" font-weight="900">Continue</text>
+      </g>
+    </g>
+  </g>
+
+  <!-- Explore card -->
+  <g transform="translate(930 150)" filter="url(#lift)">
+    <g clip-path="url(#card)">
+      <rect width="236" height="420" fill="url(#scene)"/>
+      <!-- dancers -->
+      <g fill="#2a120e" fill-opacity="0.85">
+        <circle cx="78" cy="150" r="13"/>
+        <path d="M78 164c-16 6-24 28-20 58l8 2 4-30 6 58h8l4-58 6 30 8-2c3-30-4-52-24-58z"/>
+        <circle cx="158" cy="138" r="12"/>
+        <path d="M158 151c-15 6-22 26-19 54l8 2 4-28 5 54h8l3-54 7 26 8-3c2-28-6-47-24-51z"/>
+      </g>
+      <rect width="236" height="420" fill="url(#scrim)"/>
+      <g font-family="'Noto Sans', 'Segoe UI', sans-serif">
+        <text x="16" y="316" fill="#f4b860" font-size="11" font-weight="800" letter-spacing="1.2">DANCE</text>
+        <circle cx="26" cy="336" r="10" fill="#e0a53a" fill-opacity="0.4"/>
+        <text x="19" y="340" fill="#ffffff" font-size="9" font-weight="800">AK</text>
+        <text x="42" y="341" fill="#ffffff" font-size="13" font-weight="800">Ama Kasena</text>
+        <text x="16" y="364" fill="#ffffff" font-size="11.5">Harvest dance in Navrongo</text>
+        <text x="16" y="386" fill="#ffffff" fill-opacity="0.7" font-size="10">&#9835; Original sound</text>
+        <!-- context pill -->
+        <rect x="140" y="396" width="82" height="16" rx="8" fill="#ffffff" fill-opacity="0.16"/>
+        <text x="150" y="408" fill="#ffffff" font-size="9.5" font-weight="800">Context &#8250;</text>
+      </g>
+      <!-- rail -->
+      <g fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M210 212c-4-6-14-5-14 3 0 6 14 14 14 14s14-8 14-14c0-8-10-9-14-3z"/>
+        <path d="M198 246h24v14h-14l-6 5v-5h-4z"/>
+        <path d="M202 280h16v22l-8-6-8 6z"/>
+      </g>
+    </g>
+    <rect width="236" height="420" rx="24" fill="none" stroke="#ffffff" stroke-opacity="0.2"/>
+  </g>
+</svg>

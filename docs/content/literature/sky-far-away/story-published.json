@@ -1,0 +1,285 @@
+{
+  "title": "Kolo ŋwane kunkwanu tem na ye yiga yiga to",
+  "language": "Kasem",
+  "dialect": "Navrongo",
+  "scenes": [
+    {
+      "id": 1,
+      "rows": [
+        {
+          "kind": "Scene pill",
+          "english": "Long ago",
+          "kasem": "Faŋa na kɛ to"
+        },
+        {
+          "kind": "Narration",
+          "english": "Long, long ago, the land and the sky were close together. Clouds hung low over the compounds, within reach of an outstretched hand.",
+          "kasem": "Faŋa faŋa to, tega baŋa de wɛ yuu deem twɛ daane mo. Kunkwanu deem bwola de konkwalo, ye nmo na zeiŋi n jega, n wo yi te."
+        },
+        {
+          "kind": "Narration",
+          "english": "At dusk, children gathered around an elder to hear how everything had changed.",
+          "kasem": "Didaani ne, bia lage nɔnkwea tei se b ani ko na ke tei ye woŋo maama leiri to."
+        },
+        {
+          "kind": "Speech bubble  Elder",
+          "english": "Shall I tell you a story?",
+          "kasem": "A wane a ta sensɔla a bere abam na?"
+        },
+        {
+          "kind": "Speech bubble  Children",
+          "english": "Yes! We are listening!",
+          "kasem": "Aa! Dé cheiga!"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "rows": [
+        {
+          "kind": "Scene pill",
+          "english": "Clouds for the cooking pot",
+          "kasem": "Kura kambia kunkwanu tem"
+        },
+        {
+          "kind": "Narration",
+          "english": "People fetched clouds and cooked with them.",
+          "kasem": "nɔɔna yeini ba kwooni kunkwanu ye ba mae ba saŋe"
+        },
+        {
+          "kind": "Narration",
+          "english": "When it was time to cook, people lifted their calabashes and gathered pieces of cloud. A little went into each cooking pot.",
+          "kasem": "Ko na yi saŋem maŋa, nɔɔna zeiŋi ba na zwe ye ba la kunkwanu. Fenfee yeini mo ko zo kura kambia maama."
+        },
+        {
+          "kind": "Narration",
+          "english": "A child reached for one more handful, but an elder smiled.",
+          "kasem": "Bu tei o jeŋa o mɔ jaguli yi, ye nɔn kweo nyeke."
+        },
+        {
+          "kind": "Speech bubble  Elder",
+          "english": "Gather only what we need for cooking.",
+          "kasem": "La kolo de na wo mae de saŋe to yerane."
+        },
+        {
+          "kind": "Speech bubble  Child",
+          "english": "There is enough for everyone!",
+          "kasem": "Kowo yi nɔɔno maama!"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "rows": [
+        {
+          "kind": "Scene pill",
+          "english": "An old witch",
+          "kasem": "Kani-cherega"
+        },
+        {
+          "kind": "Narration",
+          "english": "Then an old witch began pounding fufu in her courtyard. Her pestle was unusually long.",
+          "kasem": "Kani-cherega nam maa bobo ka zɔ sakɔra ka konkwɔlɔ ne. o sibia kam tiini ka dɔrema dedɛ."
+        },
+        {
+          "kind": "Narration",
+          "english": "Each time she lifted the pestle, it hit the low sky. She frowned at the clouds above her.",
+          "kasem": "Maŋa kalo maama o na zeiŋi o sibia kam, ko yeini ko mage wɛyuu kom mo. O nyɔne o yibia de kunkwanu tem na we o baŋa ne to."
+        },
+        {
+          "kind": "Sound effect",
+          "english": "Thump, knock! Thump, knock!",
+          "kasem": "pɔ, bam! pɔ, bam!"
+        },
+        {
+          "kind": "Speech bubble  Old witch",
+          "english": "My fufu must be smooth!",
+          "kasem": "Amo sakɔra kam ye se ka ke mɛtɛɛ mo"
+        },
+        {
+          "kind": "Word to use",
+          "english": "fufu",
+          "kasem": "sakɔra"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "rows": [
+        {
+          "kind": "Scene pill",
+          "english": "The first warning",
+          "kasem": "Kaanem yaga tu"
+        },
+        {
+          "kind": "Narration",
+          "english": "A voice came from above, calm but clear. God warned the old witch.",
+          "kasem": "Kwara nam maa nuŋi wɛ ne ka, ka jege zurim ye ka taa ye jase. wɛ kaane kani-cherega kam."
+        },
+        {
+          "kind": "Speech bubble  God",
+          "english": "Old woman, listen to me.",
+          "kasem": "Kania, cheigi amo taane."
+        },
+        {
+          "kind": "Speech bubble  God",
+          "english": "Stop hitting the sky.",
+          "kasem": "ye ta n zɔ wɛ yuu kom"
+        },
+        {
+          "kind": "Speech bubble  God",
+          "english": "Lower your pestle. Each time you lift it so high, you strike the sky.",
+          "kasem": "Pase n sibia kam vo tega ne, nmo na yeini n zeiŋi ka konto, n mage wɛyuu kom mo."
+        },
+        {
+          "kind": "Narration",
+          "english": "She paused, glanced upward, and tightened her grip.",
+          "kasem": "O cheigi zɔɔne dem, o ni wɛ ne, ye o ta dare o  fɔŋe o nam zeeri sibia kam lanyerane."
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "rows": [
+        {
+          "kind": "Scene pill",
+          "english": "Another warning",
+          "kasem": "Kaanem belei tu"
+        },
+        {
+          "kind": "Narration",
+          "english": "But the old witch would not listen. She began pounding again, and her pestle struck the sky once more.",
+          "kasem": "Kani-cherega kam nam baa cheigi taane. O daa bobo zɔɔne mo. O sibia kam daa ma mage wɛyuu kom."
+        },
+        {
+          "kind": "Narration",
+          "english": "God warned her again. Her neighbors hurried into the courtyard and begged her to stop.",
+          "kasem": "wɛ daa maa kaane o. o daa tiina de maa ba o konkɔlɔ kom ye ba lwoori o se o yage."
+        },
+        {
+          "kind": "Speech bubble  Neighbors",
+          "english": "Please listen. We all cook with these clouds.",
+          "kasem": "Pwopwo cheigi. Debam maama mae kunkwanu tento mo de saŋa."
+        },
+        {
+          "kind": "Speech bubble  Old witch",
+          "english": "Let the sky move. I am not finished!",
+          "kasem": "Pa wɛyuu kom fɔɔre, amo ta wo ti!"
+        },
+        {
+          "kind": "Narration",
+          "english": "She waved the neighbors away and raised her pestle again.",
+          "kasem": "O ti o daa tiina bam o yage dɛ ne ye o dare o daa zeiŋi o sibia kam."
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "rows": [
+        {
+          "kind": "Scene pill",
+          "english": "The final warning",
+          "kasem": "Kaanem delo na kweili to."
+        },
+        {
+          "kind": "Narration",
+          "english": "For a third time, God warned her. Everyone in the courtyard fell quiet.",
+          "kasem": "betɔ baŋa ne, wɛ kaane o. nɔɔno maama konkɔlɔkom ne to pugi ba ni."
+        },
+        {
+          "kind": "Speech bubble  God",
+          "english": "If you keep striking the sky, I will raise it beyond your reach.",
+          "kasem": "Nmo na jege wɛyuu kom n maga, amo wo zeiŋi ko wɛwɛ se n daa ye yi ko."
+        },
+        {
+          "kind": "Narration",
+          "english": "The old witch lifted her pestle higher than before.",
+          "kasem": "Kani- cherega kam nam maa zeiŋi o sibia kam o dwoni."
+        },
+        {
+          "kind": "Speech bubble  Old witch",
+          "english": "Just one more blow!",
+          "kasem": "A zɔ bedwe yerane a woli da!"
+        },
+        {
+          "kind": "Sound effect",
+          "english": "Knock!",
+          "kasem": "Chu!"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "rows": [
+        {
+          "kind": "Scene pill",
+          "english": "Up and away",
+          "kasem": "Baŋa yiga yiga"
+        },
+        {
+          "kind": "Narration",
+          "english": "God made the sky rise.",
+          "kasem": "wɛ maa pa wɛ yuu kom vo baŋa baŋa"
+        },
+        {
+          "kind": "Narration",
+          "english": "Up past the roofs, up past the tallest trees, up beyond every reaching hand. The clouds went with it.",
+          "kasem": "Baŋa baŋa ko gaale sane yum, ko gaale teini delo na dɔrema de dwoi to, baŋa baŋa ko gaale mɛ nabiinu jeŋa na baa yi to. Kunkwanu tem maa tɔge wɛyuu kom te di."
+        },
+        {
+          "kind": "Speech bubble  Child",
+          "english": "The clouds! They are going away!",
+          "kasem": "Kunkwanu tem! Te maa kea!"
+        },
+        {
+          "kind": "Narration",
+          "english": "The villagers reached upward, but the clouds slipped farther away.",
+          "kasem": "Nɔɔna bam maama zeiŋi ba jea, ye kunkwanu tem vere te kɛ yiga yiga."
+        },
+        {
+          "kind": "Narration",
+          "english": "The old witch lowered her pestle at last, but the sky kept rising.",
+          "kasem": "Kani-cherega kam nam pɛ o sibia kam vo tega, ye wɛyuu kom ta vei baŋa baŋa."
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "rows": [
+        {
+          "kind": "Scene pill",
+          "english": "From that day onward",
+          "kasem": "Ko zege dɛ dem konto taa wuu"
+        },
+        {
+          "kind": "Narration",
+          "english": "That evening, the pots waited beside the hearth. Nobody could fetch a single cloud.",
+          "kasem": "Didaani dem konto, kambi sem maa jei da konto mo. nɔɔna ware ba kwooni kunkwanu"
+        },
+        {
+          "kind": "Speech bubble  Child",
+          "english": "Can we ever reach the clouds again?",
+          "kasem": "Dé wo fɔŋe de yi kunkwanu tem daka na?"
+        },
+        {
+          "kind": "Narration",
+          "english": "The elder looked at the distant sky before answering.",
+          "kasem": "nɔnkwea kam ni wɛyuu kom yiga yiga to ye o nam leiri."
+        },
+        {
+          "kind": "Speech bubble  Elder",
+          "english": "That is why we must listen when we are warned.",
+          "kasem": "Konto ŋwaane mo de ye se de cheigi ba na kaane debam to."
+        },
+        {
+          "kind": "Closing narration",
+          "english": "And from that day, the sky and the clouds remained far above the land.",
+          "kasem": "Ko zege dɛ dem konto, wɛyuu kom de kunwanu tem maŋe baŋa baŋa mo, tega kam yuu ne."
+        }
+      ]
+    }
+  ],
+  "sourceSha256": "2480899694e4dcbde8b1f85e42907ec3249a523cfec024572f142aeffdf825da",
+  "translationSource": "Completed translation worksheet supplied by the user",
+  "illustrationMethod": "Eight separately generated illustrations; no crops from a montage"
+}

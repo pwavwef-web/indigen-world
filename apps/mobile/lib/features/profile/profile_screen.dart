@@ -19,12 +19,11 @@ import 'package:indigen_world_mobile/features/community/edit_community_profile_s
 import 'package:indigen_world_mobile/features/community/saved_posts_screen.dart';
 import 'package:indigen_world_mobile/features/community/widgets/verified_badge.dart';
 import 'package:indigen_world_mobile/features/contribute/collection_contribution_repository.dart';
-import 'package:indigen_world_mobile/features/notifications/push_messaging.dart';
 import 'package:indigen_world_mobile/features/profile/my_contributions_screen.dart';
 import 'package:indigen_world_mobile/features/profile/saved_words_screen.dart';
 import 'package:indigen_world_mobile/features/settings/settings_screen.dart';
+import 'package:indigen_world_mobile/features/subscriptions/membership_screen.dart';
 import 'package:indigen_world_mobile/shared/frosted_nav_bar.dart';
-import 'package:indigen_world_mobile/shared/glass_popup.dart';
 import 'package:indigen_world_mobile/shared/glass_surface.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
@@ -42,7 +41,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   /// survives a reorder of the rail and quietly starts opening Adverts.
   static const _profileIndex = 1;
 
-  static const _titles = ['Overview', 'Profile', 'Adverts', 'Settings'];
+  static const _titles = [
+    'Overview',
+    'Profile',
+    'Adverts',
+    'Membership',
+    'Settings',
+  ];
 
   /// ── Why "Profile" and not "Community" ─────────────────────────────────────
   /// Because the member's community identity had three front doors — a button
@@ -70,6 +75,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       icon: Icons.campaign_outlined,
       selectedIcon: Icons.campaign_rounded,
       label: 'Adverts',
+    ),
+    FrostedNavBarItem(
+      icon: Icons.favorite_border_rounded,
+      selectedIcon: Icons.favorite_rounded,
+      label: 'Membership',
     ),
     FrostedNavBarItem(
       icon: Icons.tune_outlined,
@@ -183,11 +193,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       onSignIn: _signIn,
     ),
     2 => const AdsScreen(key: ValueKey('profile-ads')),
-    _ => _SettingsTab(
+    3 => MembershipScreen(
+      key: const ValueKey('profile-membership'),
+      embedded: true,
+      bottomPadding: shellBottomReserve(context) + 28,
+    ),
+    _ => SettingsScreen(
       key: const ValueKey('profile-settings'),
-      data: data,
-      onOpenSettings: _openSettings,
-      onAccountAction: data.signedIn ? _signOut : _signIn,
+      embedded: true,
+      bottomPadding: shellBottomReserve(context) + 28,
     ),
   };
 
@@ -206,19 +220,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     if ((signedIn ?? false) && mounted) {
       _showMessage('Signed in. Welcome to Indigen World.');
     }
-  }
-
-  Future<void> _signOut() async {
-    final confirmed = await showGlassConfirm(
-      context: context,
-      title: 'Sign out?',
-      message: 'Public learning stays available in guest mode.',
-      confirmLabel: 'Sign out',
-    );
-    if (confirmed != true) return;
-    await unregisterThisDevice(ref);
-    await ref.read(authRepositoryProvider)?.signOut();
-    if (mounted) _showMessage('Signed out.');
   }
 
   /// Claims a handle, for somebody who has never had one.
@@ -287,12 +288,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       MaterialPageRoute<void>(
         builder: (context) => const MyContributionsScreen(approvedOnly: true),
       ),
-    );
-  }
-
-  void _openSettings() {
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(builder: (context) => const SettingsScreen()),
     );
   }
 
@@ -464,12 +459,7 @@ class _ProfileTopBar extends StatelessWidget {
                 width: 34,
                 height: 34,
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [
-                      BrandColors.heritageGreen,
-                      BrandColors.savannahGreen,
-                    ],
-                  ),
+                  gradient: BrandGradients.hero(context.brand),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
@@ -843,84 +833,6 @@ class _ProfileCompleteness extends StatelessWidget {
   }
 }
 
-class _SettingsTab extends StatelessWidget {
-  const _SettingsTab({
-    required this.data,
-    required this.onOpenSettings,
-    required this.onAccountAction,
-    super.key,
-  });
-
-  final _ProfileViewData data;
-  final VoidCallback onOpenSettings;
-  final VoidCallback onAccountAction;
-
-  @override
-  Widget build(BuildContext context) => ListView(
-    key: const PageStorageKey('profile-settings-scroll'),
-    padding: EdgeInsets.fromLTRB(
-      18,
-      8,
-      18,
-      shellBottomReserve(context) + 28,
-    ),
-    children: [
-      const _TabIntro(
-        icon: Icons.shield_moon_rounded,
-        eyebrow: 'CONTROL CENTRE',
-        title: 'Private by design.',
-      ),
-      const SizedBox(height: 14),
-      // The community profile is emphatically *not* offered here any more. It
-      // had a row on this tab, a button on Overview and a row inside App
-      // settings, which is three doors into one room; it now has one, on the
-      // Profile tab next door.
-      _ActionTile(
-        icon: Icons.tune_rounded,
-        title: 'App settings',
-        subtitle: 'Notifications, privacy, licences',
-        onTap: onOpenSettings,
-      ),
-      const SizedBox(height: 14),
-      _GlassPanel(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const _Eyebrow(text: 'ACCOUNT SESSION'),
-            const SizedBox(height: 7),
-            Text(
-              data.signedIn ? 'Signed in securely' : 'Using guest mode',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 6),
-            Text(
-              data.signedIn
-                  ? data.user?.email ?? 'Account active'
-                  : 'Public learning stays open.',
-              style: TextStyle(color: context.brand.mutedInk),
-            ),
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: data.signedIn
-                  ? OutlinedButton.icon(
-                      onPressed: onAccountAction,
-                      icon: const Icon(Icons.logout_rounded),
-                      label: const Text('Sign out'),
-                    )
-                  : FilledButton.icon(
-                      onPressed: onAccountAction,
-                      icon: const Icon(Icons.login_rounded),
-                      label: const Text('Sign in or create an account'),
-                    ),
-            ),
-          ],
-        ),
-      ),
-    ],
-  );
-}
-
 class _ProfileHero extends StatelessWidget {
   const _ProfileHero({required this.data});
 
@@ -931,20 +843,12 @@ class _ProfileHero extends StatelessWidget {
     padding: const EdgeInsets.all(20),
     decoration: BoxDecoration(
       borderRadius: BorderRadius.circular(28),
-      gradient: const LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [
-          Color(0xFF082F25),
-          BrandColors.heritageGreen,
-          Color(0xFF17644C),
-        ],
-      ),
-      boxShadow: const [
+      gradient: BrandGradients.heroRich(context.brand),
+      boxShadow: [
         BoxShadow(
-          color: Color(0x320B3D2E),
+          color: context.brand.shadow.withValues(alpha: 0.2),
           blurRadius: 28,
-          offset: Offset(0, 14),
+          offset: const Offset(0, 14),
         ),
       ],
     ),
@@ -1173,17 +1077,12 @@ class _TabIntro extends StatelessWidget {
     padding: const EdgeInsets.all(18),
     decoration: BoxDecoration(
       borderRadius: BorderRadius.circular(24),
-      gradient: LinearGradient(
-        colors: [
-          BrandColors.heritageGreen.withValues(alpha: 0.96),
-          BrandColors.savannahGreen.withValues(alpha: 0.9),
-        ],
-      ),
-      boxShadow: const [
+      gradient: BrandGradients.hero(context.brand),
+      boxShadow: [
         BoxShadow(
-          color: Color(0x240B3D2E),
+          color: context.brand.shadow.withValues(alpha: 0.14),
           blurRadius: 22,
-          offset: Offset(0, 10),
+          offset: const Offset(0, 10),
         ),
       ],
     ),

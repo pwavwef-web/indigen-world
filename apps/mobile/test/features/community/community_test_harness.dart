@@ -6,6 +6,10 @@ import 'package:indigen_world_mobile/app/app_theme.dart';
 import 'package:indigen_world_mobile/features/community/data/community_models.dart';
 import 'package:indigen_world_mobile/features/community/data/community_providers.dart';
 import 'package:indigen_world_mobile/features/community/data/community_repository.dart';
+import 'package:indigen_world_mobile/features/community/data/community_space_models.dart';
+import 'package:indigen_world_mobile/features/community/data/community_space_providers.dart';
+import 'package:indigen_world_mobile/features/community/data/community_space_repository.dart';
+import 'package:indigen_world_mobile/features/community/data/post_category.dart';
 import 'package:indigen_world_mobile/l10n/app_localizations.dart';
 
 /// An in-memory stand-in for [CommunityRepository].
@@ -23,6 +27,7 @@ class FakeCommunityRepository implements CommunityRepository {
     Map<String, String> pollVotes = const {},
     List<String> following = const [],
     this.feedError,
+    this.likeError,
   }) : _profiles = {for (final profile in profiles) profile.uid: profile},
        _posts = [...posts],
        _liked = {...likedPostIds},
@@ -42,6 +47,13 @@ class FakeCommunityRepository implements CommunityRepository {
   /// When set, `watchFeed` fails with it instead of emitting — the feed as a
   /// member meets it when a collection's rule has not been deployed.
   final Object? feedError;
+
+  /// When set, `toggleLike` fails with it — the write refused by the server.
+  final Object? likeError;
+
+  /// When set, `toggleLike` waits for it before finishing, so a test can look
+  /// at the screen while the write is still in flight.
+  Completer<void>? likeGate;
 
   /// Calls recorded for assertions.
   final createdProfiles = <CommunityProfile>[];
@@ -112,13 +124,29 @@ class FakeCommunityRepository implements CommunityRepository {
       );
 
   @override
-  Stream<List<CommunityPost>> watchReplies(String postId) => Stream.value(
+  Stream<List<CommunityPost>> watchReplies(
+    String postId, {
+    String? privateCommunityId,
+  }) => Stream.value(
     _posts.where((post) => post.parentId == postId).toList(growable: false),
   );
 
   @override
-  Stream<CommunityPost?> watchPost(String postId) =>
-      Stream.value(_posts.where((post) => post.id == postId).firstOrNull);
+  Stream<CommunityPost?> watchPost(
+    String postId, {
+    String? privateCommunityId,
+  }) => Stream.value(_posts.where((post) => post.id == postId).firstOrNull);
+
+  @override
+  Stream<List<CommunityPost>> watchCommunityPosts(
+    String communityId, {
+    required bool isPrivate,
+    int limit = 40,
+  }) => Stream.value(
+    _topLevel
+        .where((post) => post.community?.id == communityId)
+        .toList(growable: false),
+  );
 
   @override
   Future<List<CommunityPost>> postsByIds(List<String> ids) async => ids
@@ -214,7 +242,11 @@ class FakeCommunityRepository implements CommunityRepository {
     required String uid,
     required String postId,
     required bool liked,
+    String? privateCommunityId,
   }) async {
+    await likeGate?.future;
+    final error = likeError;
+    if (error != null) throw error;
     toggledLikes.add(postId);
     liked ? _liked.remove(postId) : _liked.add(postId);
   }
@@ -307,6 +339,7 @@ class FakeCommunityRepository implements CommunityRepository {
     required String postId,
     required String reporterId,
     required String reason,
+    String? communityId,
   }) async {}
 
   @override
@@ -363,6 +396,8 @@ CommunityPost fakePost({
   DateTime? createdAt,
   String authorVerifiedKind = '',
   bool authorPhoneVerified = false,
+  PostCommunityStamp? community,
+  PostCategory? category,
 }) => CommunityPost(
   id: id,
   authorId: authorId,
@@ -383,6 +418,8 @@ CommunityPost fakePost({
   authorVerifiedKind: authorVerifiedKind,
   authorPhoneVerified: authorPhoneVerified,
   createdAt: createdAt ?? DateTime(2026, 8, 23, 11, 30),
+  community: community,
+  category: category,
 );
 
 /// Wraps [child] in the app theme and a [ProviderScope] wired to [repository].
@@ -394,7 +431,9 @@ Widget communityHarness({
   required FakeCommunityRepository repository,
   String? uid = 'amina-uid',
   CommunityProfile? profile,
+  FakeCommunitySpaceRepository? spaces,
   ThemeData? theme,
+
   /// Pins the reading language. Null lets the harness follow the test
   /// platform's locale, which is what the app itself does.
   Locale? locale,
@@ -407,6 +446,7 @@ Widget communityHarness({
     myCommunityProfileProvider.overrideWith(
       (ref) => Stream<CommunityProfile?>.value(profile),
     ),
+    communitySpaceRepositoryProvider.overrideWithValue(spaces),
   ],
   child: MaterialApp(
     localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -415,4 +455,330 @@ Widget communityHarness({
     theme: theme ?? buildIndigenTheme(),
     home: child,
   ),
+);
+
+/// An in-memory stand-in for [CommunitySpaceRepository], with live streams so a
+/// join or a request shows on screen the way Firestore's local write would.
+class FakeCommunitySpaceRepository implements CommunitySpaceRepository {
+  FakeCommunitySpaceRepository({
+    List<CommunitySpace> communities = const [],
+    List<CommunityMembership> memberships = const [],
+    this.takenSlugs = const {},
+  }) : _communities = {for (final space in communities) space.id: space},
+       _memberships = [...memberships];
+
+  final Map<String, CommunitySpace> _communities;
+  final List<CommunityMembership> _memberships;
+
+  /// Addresses [isSlugAvailable] reports as taken on top of the communities
+  /// already held.
+  final Set<String> takenSlugs;
+
+  final joined = <String>[];
+  final left = <String>[];
+  final created = <CommunityDraft>[];
+  final reported = <String>[];
+
+  final _changes = StreamController<void>.broadcast();
+
+  void _changed() => _changes.add(null);
+
+  Stream<T> _live<T>(T Function() read) async* {
+    yield read();
+    yield* _changes.stream.map((_) => read());
+  }
+
+  @override
+  Stream<CommunitySpace?> watchCommunity(String id) =>
+      _live(() => _communities[id]);
+
+  @override
+  Future<CommunitySpace?> getCommunity(String id) async => _communities[id];
+
+  @override
+  Future<bool> isSlugAvailable(String slug) async =>
+      !_communities.containsKey(slug) && !takenSlugs.contains(slug);
+
+  @override
+  Future<List<CommunitySpace>> discoverCommunities({int limit = 30}) async =>
+      _communities.values.toList(growable: false);
+
+  @override
+  Future<List<CommunitySpace>> searchCommunities(String query) async =>
+      _communities.values
+          .where((space) => communityMatchesQuery(space, query))
+          .toList(growable: false);
+
+  @override
+  Future<List<CommunitySpace>> communitiesByIds(List<String> ids) async => [
+    for (final id in ids) ?_communities[id],
+  ];
+
+  @override
+  Stream<List<CommunityMembership>> watchMyMemberships(String uid) => _live(
+    () => _memberships
+        .where((membership) => membership.uid == uid)
+        .toList(growable: false),
+  );
+
+  @override
+  Stream<CommunityMembership?> watchMembership(
+    String communityId,
+    String uid,
+  ) => _live(
+    () => _memberships
+        .where(
+          (membership) =>
+              membership.communityId == communityId && membership.uid == uid,
+        )
+        .firstOrNull,
+  );
+
+  @override
+  Stream<List<CommunityMembership>> watchMembers(
+    String communityId, {
+    MembershipStatus status = MembershipStatus.active,
+    int limit = 100,
+  }) => _live(
+    () => _memberships
+        .where(
+          (membership) =>
+              membership.communityId == communityId &&
+              membership.status == status,
+        )
+        .toList(growable: false),
+  );
+
+  @override
+  Future<CommunitySpace> createCommunity({
+    required CommunityProfile owner,
+    required CommunityDraft draft,
+    PendingUpload? avatar,
+    PendingUpload? cover,
+  }) async {
+    final reason = draft.validate();
+    if (reason != null) throw CommunityFailure(reason);
+    if (!await isSlugAvailable(draft.slug)) {
+      throw const CommunityFailure(
+        'That address is already taken. Try another.',
+      );
+    }
+    final space = CommunitySpace(
+      id: draft.slug,
+      name: draft.name.trim(),
+      ownerId: owner.uid,
+      description: draft.description.trim(),
+      category: draft.category,
+      language: draft.language.trim(),
+      location: draft.location.trim(),
+      visibility: draft.visibility,
+      memberCount: 1,
+      rules: draft.cleanRules,
+    );
+    _communities[space.id] = space;
+    _memberships.add(
+      CommunityMembership(
+        communityId: space.id,
+        uid: owner.uid,
+        role: CommunityRole.owner,
+        status: MembershipStatus.active,
+      ),
+    );
+    created.add(draft);
+    _changed();
+    return space;
+  }
+
+  @override
+  Future<MembershipStatus> join({
+    required CommunitySpace space,
+    required String uid,
+  }) async {
+    final status = space.isPrivate
+        ? MembershipStatus.pending
+        : MembershipStatus.active;
+    _memberships.add(
+      CommunityMembership(
+        communityId: space.id,
+        uid: uid,
+        role: CommunityRole.member,
+        status: status,
+      ),
+    );
+    joined.add(space.id);
+    _changed();
+    return status;
+  }
+
+  @override
+  Future<void> leave({
+    required String communityId,
+    required CommunityMembership membership,
+  }) async {
+    _memberships.removeWhere(
+      (row) => row.communityId == communityId && row.uid == membership.uid,
+    );
+    left.add(communityId);
+    _changed();
+  }
+
+  final approved = <String>[];
+  final updated = <CommunityDraft>[];
+  final transfers = <(String communityId, String newOwnerUid)>[];
+  final closed = <String>[];
+
+  CommunityMembership _withRole(CommunityMembership row, CommunityRole role) =>
+      CommunityMembership(
+        communityId: row.communityId,
+        uid: row.uid,
+        role: role,
+        status: row.status,
+      );
+
+  @override
+  Future<CommunitySpace> updateCommunity({
+    required CommunitySpace space,
+    required String editorUid,
+    required CommunityDraft draft,
+    PendingUpload? avatar,
+    PendingUpload? cover,
+    bool clearAvatar = false,
+    bool clearCover = false,
+  }) async {
+    final reason = draft.validate();
+    if (reason != null) throw CommunityFailure(reason);
+    final next = CommunitySpace(
+      id: space.id,
+      name: draft.name.trim(),
+      ownerId: space.ownerId,
+      description: draft.description.trim(),
+      category: draft.category,
+      language: draft.language.trim(),
+      location: draft.location.trim(),
+      visibility: space.visibility,
+      memberCount: space.memberCount,
+      rules: draft.cleanRules,
+      avatarUrl: clearAvatar ? null : space.avatarUrl,
+      coverUrl: clearCover ? null : space.coverUrl,
+    );
+    _communities[space.id] = next;
+    updated.add(draft);
+    _changed();
+    return next;
+  }
+
+  @override
+  Future<void> transferOwnership({
+    required String communityId,
+    required String ownerUid,
+    required String newOwnerUid,
+  }) async {
+    for (var index = 0; index < _memberships.length; index++) {
+      final row = _memberships[index];
+      if (row.communityId != communityId) continue;
+      if (row.uid == newOwnerUid) {
+        _memberships[index] = _withRole(row, CommunityRole.owner);
+      } else if (row.uid == ownerUid) {
+        _memberships[index] = _withRole(row, CommunityRole.admin);
+      }
+    }
+    final space = _communities[communityId];
+    if (space != null) {
+      _communities[communityId] = CommunitySpace(
+        id: space.id,
+        name: space.name,
+        ownerId: newOwnerUid,
+        description: space.description,
+        category: space.category,
+        language: space.language,
+        location: space.location,
+        visibility: space.visibility,
+        memberCount: space.memberCount,
+        rules: space.rules,
+      );
+    }
+    transfers.add((communityId, newOwnerUid));
+    _changed();
+  }
+
+  @override
+  Future<void> closeCommunity({
+    required CommunitySpace space,
+    required String ownerUid,
+  }) async {
+    if (space.memberCount > 1) {
+      throw const CommunityFailure('Hand the community over before leaving.');
+    }
+    _memberships.removeWhere(
+      (row) => row.communityId == space.id && row.uid == ownerUid,
+    );
+    _communities[space.id] = CommunitySpace(
+      id: space.id,
+      name: space.name,
+      ownerId: space.ownerId,
+      visibility: space.visibility,
+      status: 'closed',
+    );
+    closed.add(space.id);
+    _changed();
+  }
+
+  @override
+  Future<void> approve({
+    required String communityId,
+    required String uid,
+  }) async {
+    final index = _memberships.indexWhere(
+      (row) => row.communityId == communityId && row.uid == uid,
+    );
+    if (index < 0) return;
+    final row = _memberships[index];
+    _memberships[index] = CommunityMembership(
+      communityId: row.communityId,
+      uid: row.uid,
+      role: row.role,
+      status: MembershipStatus.active,
+    );
+    approved.add(uid);
+    _changed();
+  }
+
+  @override
+  Future<void> reportCommunity({
+    required String communityId,
+    required String reporterId,
+    required String reason,
+  }) async {
+    reported.add(communityId);
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => throw UnimplementedError(
+    '${invocation.memberName} is not faked in FakeCommunitySpaceRepository',
+  );
+}
+
+/// A community fixture.
+CommunitySpace fakeCommunity({
+  String id = 'kasem-circle',
+  String name = 'Kasem Circle',
+  String ownerId = 'nyaaba-uid',
+  CommunityVisibility visibility = CommunityVisibility.public,
+  String language = 'Kasem',
+  String location = 'Navrongo',
+  int memberCount = 12,
+  List<String> rules = const ['Be kind.'],
+  String status = 'active',
+}) => CommunitySpace(
+  id: id,
+  name: name,
+  ownerId: ownerId,
+  description: 'Words from home, every day.',
+  category: CommunityCategory.language,
+  language: language,
+  location: location,
+  visibility: visibility,
+  memberCount: memberCount,
+  rules: rules,
+  status: status,
 );

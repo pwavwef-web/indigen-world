@@ -1,156 +1,379 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
+import 'package:indigen_world_mobile/features/community/data/community_models.dart';
 import 'package:indigen_world_mobile/features/community/data/community_providers.dart';
-import 'package:indigen_world_mobile/features/community/data/community_repository.dart';
-import 'package:indigen_world_mobile/features/community/media_picker.dart';
+import 'package:indigen_world_mobile/features/community/data/community_space_models.dart';
+import 'package:indigen_world_mobile/features/community/data/community_space_providers.dart';
 import 'package:indigen_world_mobile/features/community/widgets/people_widgets.dart';
-import 'package:indigen_world_mobile/shared/glass_surface.dart';
+import 'package:indigen_world_mobile/features/explore/create_reel/reel_caption_editor.dart';
+import 'package:indigen_world_mobile/features/explore/create_reel/reel_draft.dart';
+import 'package:indigen_world_mobile/features/explore/create_reel/reel_draft_store.dart';
+import 'package:indigen_world_mobile/features/explore/create_reel/reel_drafts_sheet.dart';
+import 'package:indigen_world_mobile/features/explore/create_reel/reel_editor_controller.dart';
+import 'package:indigen_world_mobile/features/explore/create_reel/reel_media_stage.dart';
+import 'package:indigen_world_mobile/features/explore/create_reel/reel_media_tools.dart';
+import 'package:indigen_world_mobile/features/explore/create_reel/reel_publisher.dart';
+import 'package:indigen_world_mobile/features/explore/create_reel/reel_review_stage.dart';
+import 'package:indigen_world_mobile/features/explore/create_reel/reel_story_stage.dart';
+import 'package:indigen_world_mobile/features/explore/create_reel/reel_ui.dart';
+import 'package:indigen_world_mobile/shared/glass_popup.dart';
 import 'package:indigen_world_mobile/shared/night_theme.dart';
 
-/// Record or choose a clip and put it into Explore.
+/// Make a reel and put it into Explore, in three stages: the media, what it
+/// means, and a last look before publishing.
 ///
+/// ── Still a community post ──────────────────────────────────────────────────
 /// Explore already merges whole community posts that carry a video (see
-/// `explore_feed.dart`) — it just had no way in. Rather than invent a second
-/// kind of video with its own storage, lifecycle, moderation and reporting,
-/// this posts a normal community post. The clip therefore arrives in Explore
-/// *and* in the feed, keeps the same likes and replies, is covered by the same
-/// block/mute/report machinery, and can be deleted by its author the same way.
+/// `explore_feed.dart`). Rather than invent a second kind of video with its
+/// own storage, lifecycle, moderation and reporting, a reel is published as a
+/// normal community post — now carrying a topic, the creator's account of what
+/// it shows, attribution and a rights declaration (`reel` on the document), and
+/// the trim, cover, framing, sound and caption choices on its media. It keeps
+/// the same likes and replies, the same block/mute/report machinery, and can be
+/// deleted by its author the same way.
+///
+/// ── Where the work lives ────────────────────────────────────────────────────
+/// This screen is only the frame: app bar, stepper, the action bar and the
+/// guard against leaving mid-upload. The draft, the preview player, autosave
+/// and publishing are [ReelEditorController]'s; each stage is a view over it.
 class CreateReelScreen extends ConsumerStatefulWidget {
-  const CreateReelScreen({super.key});
+  const CreateReelScreen({this.draftId, super.key});
+
+  /// A saved draft to open instead of starting a new reel.
+  final String? draftId;
 
   @override
   ConsumerState<CreateReelScreen> createState() => _CreateReelScreenState();
 }
 
-class _CreateReelScreenState extends ConsumerState<CreateReelScreen> {
-  final _captionController = TextEditingController();
-  final _picker = const CommunityMediaPicker();
+enum _LeaveChoice { keepDraft, discard, continueUpload, saveAndLeave, cancel }
 
-  PendingUpload? _clip;
-  var _publishing = false;
-  double? _progress;
-  String? _error;
+class _CreateReelScreenState extends ConsumerState<CreateReelScreen>
+    with WidgetsBindingObserver {
+  late final ReelPublisher? _publisher;
+  late final ReelEditorController _editor;
+  ProviderSubscription<AsyncValue<List<CommunitySpace>>>? _communities;
+  ProviderSubscription<AsyncValue<CommunityProfile?>>? _profile;
+  var _leaving = false;
 
   @override
   void initState() {
     super.initState();
-    unawaited(_recoverLostClip());
+    final store = ref.read(reelDraftStoreProvider);
+    final backend = ref.read(reelPublishBackendProvider);
+    _publisher = backend == null
+        ? null
+        : ReelPublisher(backend: backend, store: store);
+    _editor = ReelEditorController(
+      store: store,
+      tools: ref.read(reelMediaToolsProvider),
+      openPreview: ref.read(reelPreviewControllerFactoryProvider),
+      publisher: _publisher,
+    )..addListener(_onEditorChanged);
+    WidgetsBinding.instance.addObserver(this);
+    _communities = ref.listenManual<AsyncValue<List<CommunitySpace>>>(
+      joinedCommunitiesProvider,
+      (_, next) {
+        _editor.joinedCommunityIds = next.asData?.value
+            .map((space) => space.id)
+            .toSet();
+      },
+      fireImmediately: true,
+    );
+    final profile = ref.read(myCommunityProfileProvider).asData?.value;
+    unawaited(
+      _editor
+          .start(
+            draftId: widget.draftId,
+            creatorName:
+                profile?.displayName ??
+                ref.read(currentDisplayNameProvider) ??
+                '',
+          )
+          .then((_) {
+            if (!mounted) return;
+            // The profile stream may deliver after the draft opened.
+            _profile = ref.listenManual<AsyncValue<CommunityProfile?>>(
+              myCommunityProfileProvider,
+              (_, next) {
+                final name = next.asData?.value?.displayName;
+                if (name != null) _editor.setCreatorName(name);
+              },
+              fireImmediately: true,
+            );
+          }),
+    );
   }
 
   @override
   void dispose() {
-    _captionController.dispose();
+    WidgetsBinding.instance.removeObserver(this);
+    _communities?.close();
+    _profile?.close();
+    _editor
+      ..removeListener(_onEditorChanged)
+      ..dispose();
+    _publisher?.dispose();
     super.dispose();
   }
 
-  /// Picks up a clip Android took away with the app.
-  ///
-  /// ── Same bug as the composer's, smaller blast radius ─────────────────
-  /// Recording hands the screen to the camera's activity, and on a phone with
-  /// little memory to spare Android is entitled to destroy this process while
-  /// it waits. The clip is not lost when that happens — the system holds the
-  /// result and hands it over on request — but without this request it is
-  /// discarded, silently, and the member is left believing their recording
-  /// failed.
-  ///
-  /// Less is at stake here than in the composer, which is why this needs no
-  /// draft on disk: this screen holds one clip and a caption nobody has usually
-  /// typed yet, so recovering the clip recovers the work. A caption typed
-  /// *before* recording would still be lost, and that is the rarer order.
-  ///
-  /// Only fills an empty slot. A member who has already chosen a clip since the
-  /// interruption chose it on purpose, and replacing it with an older take
-  /// would be the app overruling them.
-  Future<void> _recoverLostClip() async {
-    final recovered = await _picker.recoverLostMedia();
-    if (!mounted || recovered.isEmpty || _clip != null) return;
-    setState(() => _clip = recovered.first);
-  }
-
-  Future<void> _choose(ImageSource source) async {
-    setState(() => _error = null);
-    try {
-      final picked = await _picker.pickVideo(source: source);
-      if (picked == null || !mounted) return;
-      setState(() => _clip = picked);
-    } on Object {
-      if (mounted) {
-        setState(() => _error = 'That clip could not be read. Try another.');
-      }
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // The process may not come back from the background, so whatever was
+    // typed is written down on the way out.
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.hidden) {
+      unawaited(_editor.handleAppPaused());
     }
   }
+
+  void _onEditorChanged() {
+    final notice = _editor.notice;
+    if (notice == null) return;
+    _editor.clearNotice();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      showGlassToast(
+        context,
+        notice.message,
+        icon: notice.isError
+            ? Icons.error_outline_rounded
+            : Icons.check_circle_outline_rounded,
+      );
+    });
+  }
+
+  // ── Actions ──────────────────────────────────────────────────────────────
 
   Future<void> _publish() async {
-    final clip = _clip;
-    final profile = ref.read(myCommunityProfileProvider).asData?.value;
-    final repository = ref.read(communityRepositoryProvider);
-    if (clip == null) {
-      setState(() => _error = 'Record or choose a clip first.');
+    final author = ref.read(myCommunityProfileProvider).asData?.value;
+    final result = await _editor.publish(author);
+    if (!mounted || result == null || !result.published) return;
+    ref
+      ..invalidate(rawCommunityFeedProvider)
+      ..invalidate(rawFollowingFeedProvider);
+    final community = result.draft.community;
+    if (community != null) {
+      ref.invalidate(rawCommunitySpaceFeedProvider(community.id));
+    }
+    // A reel that went up with something missing — its cover, say — stays on
+    // the review stage long enough to say so; the panel carries the notices
+    // and the action bar turns into Done.
+    if (_editor.upload.notices.isNotEmpty) return;
+    Navigator.of(context).pop(true);
+    showCommunityMessage(
+      context,
+      community == null
+          ? 'Your reel is live.'
+          : community.isPrivate
+          ? 'Your reel is posted in ${community.name}.'
+          : 'Your reel is live in ${community.name}.',
+    );
+  }
+
+  Future<void> _openDrafts() => showReelDraftsSheet(context, _editor);
+
+  Future<void> _openCaptionEditor() => openReelCaptionEditor(context, _editor);
+
+  Future<void> _deleteOpenDraft() async {
+    final confirmed = await showGlassConfirm(
+      context: context,
+      title: 'Delete this draft?',
+      message:
+          'Its video and details will be removed from this phone. This '
+          'cannot be undone.',
+      confirmLabel: 'Delete',
+      isDestructive: true,
+    );
+    if (confirmed != true || !mounted) return;
+    await _editor.deleteDraft(_editor.draft.id);
+    if (mounted) showGlassToast(context, 'Draft deleted.');
+  }
+
+  /// Leaving is never silent: mid-upload it offers to continue, save and
+  /// leave, or cancel; with work on screen it offers to keep or discard the
+  /// draft.
+  Future<void> _handleLeave() async {
+    if (_leaving) return;
+    _leaving = true;
+    try {
+      await _leave();
+    } finally {
+      _leaving = false;
+    }
+  }
+
+  Future<void> _leave() async {
+    final navigator = Navigator.of(context);
+    if (_editor.isPublished) {
+      navigator.pop(true);
       return;
     }
-    if (profile == null || repository == null) {
-      setState(
-        () => _error = 'Set up your community profile before posting a reel.',
+    final upload = _editor.upload;
+    if (upload.isActive) {
+      final choice = await showGlassActionSheet<_LeaveChoice>(
+        context: context,
+        title: 'Your reel is still uploading',
+        subtitle: upload.canCancel
+            ? 'Leaving now stops the upload. Your draft stays on this phone.'
+            : 'It is being published now and will finish in a moment.',
+        actions: [
+          const GlassAction(
+            value: _LeaveChoice.continueUpload,
+            icon: Icons.cloud_upload_outlined,
+            label: 'Continue upload',
+            description: 'Stay here until it finishes',
+          ),
+          if (upload.canCancel) ...const [
+            GlassAction(
+              value: _LeaveChoice.saveAndLeave,
+              icon: Icons.bookmark_outline_rounded,
+              label: 'Save and leave',
+              description: 'Stop the upload and keep the draft',
+            ),
+            GlassAction(
+              value: _LeaveChoice.cancel,
+              icon: Icons.cancel_outlined,
+              label: 'Cancel upload',
+              description: 'Stop the upload and stay here',
+              isDestructive: true,
+            ),
+          ],
+        ],
       );
+      if (!mounted) return;
+      switch (choice) {
+        case _LeaveChoice.saveAndLeave:
+          final published = await _editor.saveAndLeave();
+          if (mounted) navigator.pop(published);
+        case _LeaveChoice.cancel:
+          await _editor.cancelUpload();
+        case _:
+          break;
+      }
       return;
     }
 
-    setState(() {
-      _publishing = true;
-      _error = null;
-      _progress = 0;
-    });
-    try {
-      await repository.createPost(
-        author: profile,
-        text: _captionController.text,
-        attachments: [clip],
-        onUploadProgress: (value) {
-          if (mounted) setState(() => _progress = value);
-        },
-      );
-      ref
-        ..invalidate(rawCommunityFeedProvider)
-        ..invalidate(rawFollowingFeedProvider);
-      if (!mounted) return;
-      Navigator.of(context).pop(true);
-      showCommunityMessage(context, 'Your reel is live.');
-    } on CommunityFailure catch (failure) {
-      if (mounted) setState(() => _error = failure.message);
-    } on Object {
-      if (mounted) {
-        setState(() => _error = 'The reel did not go up. Try again.');
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _publishing = false;
-          _progress = null;
-        });
-      }
+    if (!_editor.draft.hasContent) {
+      // Nothing worth keeping; a draft that was saved and then emptied goes
+      // with it rather than lingering as a blank row in the drafts list.
+      if (_editor.isPersisted) await _editor.discardDraft();
+      if (mounted) navigator.pop(false);
+      return;
+    }
+
+    final choice = await showGlassActionSheet<_LeaveChoice>(
+      context: context,
+      title: 'Leave this reel?',
+      subtitle: 'Drafts stay on this phone until you publish or delete them.',
+      actions: const [
+        GlassAction(
+          value: _LeaveChoice.keepDraft,
+          icon: Icons.bookmark_outline_rounded,
+          label: 'Keep draft',
+          description: 'Come back to it from New reel',
+        ),
+        GlassAction(
+          value: _LeaveChoice.discard,
+          icon: Icons.delete_outline_rounded,
+          label: 'Discard',
+          description: 'Delete the video and everything you entered',
+          isDestructive: true,
+        ),
+      ],
+    );
+    if (!mounted) return;
+    switch (choice) {
+      case _LeaveChoice.keepDraft:
+        await _editor.saveDraft();
+        if (mounted) navigator.pop(false);
+      case _LeaveChoice.discard:
+        final confirmed = await showGlassConfirm(
+          context: context,
+          title: 'Discard this reel?',
+          message:
+              'The video and everything you entered will be deleted from '
+              'this phone.',
+          confirmLabel: 'Discard',
+          isDestructive: true,
+        );
+        if (confirmed != true || !mounted) return;
+        await _editor.discardDraft();
+        if (mounted) navigator.pop(false);
+      case _:
+        break;
     }
   }
+
+  // ── Layout ───────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) =>
       NightTheme(child: Builder(builder: _build));
 
   Widget _build(BuildContext context) {
-    final clip = _clip;
-    return Scaffold(
+    // Read above the Scaffold: it takes the keyboard out of its body's
+    // MediaQuery when it resizes, so below it the keyboard never seems open.
+    final keyboard = MediaQuery.viewInsetsOf(context).bottom;
+    final screenHeight = MediaQuery.sizeOf(context).height;
+    return _frame(context, keyboard: keyboard, screenHeight: screenHeight);
+  }
+
+  Widget _frame(
+    BuildContext context, {
+    required double keyboard,
+    required double screenHeight,
+  }) => PopScope<Object?>(
+    canPop: false,
+    onPopInvokedWithResult: (didPop, _) {
+      if (!didPop) unawaited(_handleLeave());
+    },
+    child: Scaffold(
       backgroundColor: BrandColors.nightInk,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         foregroundColor: Colors.white,
-        title: const Text(
-          'New reel',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900),
+        leading: IconButton(
+          tooltip: 'Close',
+          icon: const Icon(Icons.close_rounded),
+          onPressed: _handleLeave,
         ),
+        titleSpacing: 0,
+        title: ListenableBuilder(
+          listenable: _editor,
+          builder: (context, _) => _AppBarTitle(savedAt: _editor.lastSavedAt),
+        ),
+        actions: [
+          ListenableBuilder(
+            listenable: _editor,
+            builder: (context, _) => IconButton(
+              tooltip: 'Drafts',
+              icon: const Icon(Icons.folder_open_outlined),
+              onPressed: _editor.locked || !_editor.isStarted
+                  ? null
+                  : _openDrafts,
+            ),
+          ),
+          ListenableBuilder(
+            listenable: _editor,
+            builder: (context, _) => PopupMenuButton<void>(
+              tooltip: 'More',
+              enabled:
+                  !_editor.locked &&
+                  (_editor.isPersisted || _editor.draft.hasContent),
+              icon: const Icon(Icons.more_vert_rounded),
+              itemBuilder: (context) => [
+                PopupMenuItem<void>(
+                  onTap: () => unawaited(_deleteOpenDraft()),
+                  child: const Text('Delete this draft'),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
       body: DecoratedBox(
         decoration: const BoxDecoration(gradient: BrandGradients.night),
@@ -160,209 +383,362 @@ class _CreateReelScreenState extends ConsumerState<CreateReelScreen> {
             alignment: Alignment.topCenter,
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 560),
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(18, 8, 18, 28),
-                children: [
-                  AspectRatio(
-                    aspectRatio: 9 / 16,
-                    child: GlassSurface(
-                      onDark: true,
-                      blur: false,
-                      padding: const EdgeInsets.all(6),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(kGlassRadius - 7),
-                        child: clip == null
-                            ? const _ReelPlaceholder()
-                            : _ClipPreview(clip: clip),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  Row(
+              child: ListenableBuilder(
+                listenable: _editor,
+                builder: (context, _) {
+                  if (!_editor.isStarted) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  // On a short screen with the keyboard up, the bar would
+                  // leave the field being typed in a sliver of space. It comes
+                  // back the moment the keyboard goes.
+                  final showBar =
+                      keyboard == 0 || screenHeight - keyboard >= 560;
+                  return Column(
                     children: [
+                      _StageStepper(editor: _editor),
                       Expanded(
-                        child: FilledButton.icon(
-                          onPressed: _publishing
-                              ? null
-                              : () => _choose(ImageSource.camera),
-                          icon: const Icon(Icons.videocam_rounded),
-                          label: const Text('Record'),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: _publishing
-                              ? null
-                              : () => _choose(ImageSource.gallery),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: Colors.white,
-                            side: const BorderSide(color: Colors.white38),
+                        child: AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 180),
+                          child: KeyedSubtree(
+                            key: ValueKey(_editor.stage),
+                            child: _stageBody(),
                           ),
-                          icon: const Icon(Icons.video_library_rounded),
-                          label: const Text('Choose'),
                         ),
                       ),
+                      if (showBar)
+                        _ActionBar(
+                          editor: _editor,
+                          onPublish: _publish,
+                          onDone: () => Navigator.of(context).pop(true),
+                        ),
                     ],
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: _captionController,
-                    minLines: 2,
-                    maxLines: 4,
-                    maxLength: 400,
-                    textCapitalization: TextCapitalization.sentences,
-                    style: const TextStyle(color: Colors.white),
-                    cursorColor: context.brand.gold,
-                    decoration: InputDecoration(
-                      hintText: 'Say something about it (optional)',
-                      hintStyle: const TextStyle(color: Colors.white38),
-                      counterStyle: const TextStyle(color: Colors.white38),
-                      filled: true,
-                      fillColor: Colors.white.withValues(alpha: 0.07),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: const BorderSide(color: Colors.white24),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: BorderSide(
-                          color: context.brand.gold,
-                          width: 2,
-                        ),
-                      ),
-                    ),
-                  ),
-                  if (_error != null) ...[
-                    const SizedBox(height: 14),
-                    GlassSurface(
-                      onDark: true,
-                      padding: const EdgeInsets.all(13),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.error_outline_rounded,
-                            color: context.brand.gold,
-                            size: 20,
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              _error!,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 13,
-                                height: 1.35,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                  if (_progress != null) ...[
-                    const SizedBox(height: 14),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(999),
-                      child: LinearProgressIndicator(
-                        value: _progress,
-                        minHeight: 6,
-                        backgroundColor: Colors.white24,
-                        color: context.brand.gold,
-                      ),
-                    ),
-                  ],
-                  const SizedBox(height: 18),
-                  FilledButton.icon(
-                    onPressed: _publishing || clip == null ? null : _publish,
-                    style: FilledButton.styleFrom(
-                      backgroundColor: context.brand.gold,
-                      foregroundColor: context.brand.accent,
-                    ),
-                    icon: _publishing
-                        ? const SizedBox.square(
-                            dimension: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.publish_rounded),
-                    label: Text(_publishing ? 'Posting…' : 'Post to Explore'),
-                  ),
-                ],
+                  );
+                },
               ),
             ),
           ),
         ),
       ),
+    ),
+  );
+
+  Widget _stageBody() => switch (_editor.stage) {
+    ReelStage.media => ReelMediaStage(
+      controller: _editor,
+      onOpenDrafts: _openDrafts,
+      onEditCaptions: _openCaptionEditor,
+    ),
+    ReelStage.story => ReelStoryStage(controller: _editor),
+    ReelStage.review => ReelReviewStage(
+      controller: _editor,
+      author: ref.watch(myCommunityProfileProvider).asData?.value,
+      onRetry: _publish,
+    ),
+  };
+}
+
+class _AppBarTitle extends StatelessWidget {
+  const _AppBarTitle({required this.savedAt});
+
+  final DateTime? savedAt;
+
+  @override
+  Widget build(BuildContext context) {
+    final saved = savedAt;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Text(
+          'New reel',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900),
+        ),
+        if (saved != null)
+          Text(
+            reelEditedLabel(saved).replaceFirst('Edited', 'Draft saved'),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: context.brand.mutedInk,
+              fontSize: 11.5,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+      ],
     );
   }
 }
 
-class _ReelPlaceholder extends StatelessWidget {
-  const _ReelPlaceholder();
+/// Media · Tell the story · Review. A stage already reached can be revisited
+/// at any time; a later one opens once everything before it is complete.
+///
+/// On a narrow phone the three labels do not fit side by side without cutting
+/// "Tell the story" in half, so only the current stage is named there and the
+/// others are their numbered marks — each still says its full name to a screen
+/// reader and in a tooltip.
+class _StageStepper extends StatelessWidget {
+  const _StageStepper({required this.editor});
+
+  final ReelEditorController editor;
 
   @override
-  Widget build(BuildContext context) => ColoredBox(
-    color: Colors.white.withValues(alpha: 0.04),
-    child: const Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Icon(Icons.videocam_outlined, size: 46, color: Colors.white38),
-        SizedBox(height: 10),
-        Text(
-          'Up to 3 minutes',
-          style: TextStyle(
-            color: Colors.white54,
-            fontSize: 12.5,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-      ],
-    ),
-  );
+  Widget build(BuildContext context) {
+    final brand = context.brand;
+    final current = editor.stage;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        kReelStagePadding,
+        2,
+        kReelStagePadding,
+        6,
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final textScale = MediaQuery.textScalerOf(context).scale(1);
+          final compact = constraints.maxWidth / textScale < 400;
+          return Row(
+            children: [
+              for (final stage in ReelStage.values) ...[
+                if (stage.index > 0)
+                  Expanded(
+                    flex: compact ? 1 : 0,
+                    child: Container(
+                      width: 14,
+                      height: 2,
+                      margin: const EdgeInsets.symmetric(horizontal: 4),
+                      color: stage.index <= current.index
+                          ? brand.gold
+                          : Colors.white24,
+                    ),
+                  ),
+                _sized(
+                  compact: compact,
+                  active: stage == current,
+                  child: _StepChip(
+                    stage: stage,
+                    current: current,
+                    showLabel: !compact || stage == current,
+                    done:
+                        stage.index < current.index &&
+                        (stage == ReelStage.review ||
+                            editor.issuesFor(stage).isEmpty),
+                    onTap: stage == current ? null : () => editor.goTo(stage),
+                  ),
+                ),
+              ],
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  /// Every step shares the row evenly when there is room; when there is not,
+  /// the named step takes what it needs and the marks take only theirs.
+  Widget _sized({
+    required bool compact,
+    required bool active,
+    required Widget child,
+  }) {
+    if (!compact) return Expanded(child: child);
+    return active ? Flexible(flex: 4, child: child) : child;
+  }
 }
 
-/// The chosen clip's own opening frame, written to a file when it was picked.
-class _ClipPreview extends StatelessWidget {
-  const _ClipPreview({required this.clip});
+class _StepChip extends StatelessWidget {
+  const _StepChip({
+    required this.stage,
+    required this.current,
+    required this.done,
+    required this.showLabel,
+    required this.onTap,
+  });
 
-  final PendingUpload clip;
+  final ReelStage stage;
+  final ReelStage current;
+  final bool done;
+  final bool showLabel;
+  final VoidCallback? onTap;
 
   @override
-  Widget build(BuildContext context) => Stack(
-    fit: StackFit.expand,
-    children: [
-      if (clip.posterPath case final poster?)
-        Image.file(File(poster), fit: BoxFit.cover)
-      else
-        const _ReelPlaceholder(),
-      const Center(
-        child: Icon(
-          Icons.play_circle_fill_rounded,
-          color: Colors.white,
-          size: 54,
-          shadows: [Shadow(blurRadius: 18, color: Colors.black87)],
+  Widget build(BuildContext context) {
+    final brand = context.brand;
+    final active = stage == current;
+    final reached = stage.index <= current.index;
+    final chip = InkWell(
+      borderRadius: BorderRadius.circular(999),
+      onTap: onTap,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: 44, minWidth: 44),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 22,
+              height: 22,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: active
+                    ? brand.gold
+                    : (done ? brand.gold.withValues(alpha: 0.22) : null),
+                border: Border.all(
+                  color: reached ? brand.gold : Colors.white38,
+                  width: 1.5,
+                ),
+              ),
+              child: done && !active
+                  ? Icon(Icons.check_rounded, size: 14, color: brand.gold)
+                  : Text(
+                      '${stage.index + 1}',
+                      style: TextStyle(
+                        color: active ? BrandColors.nightInk : Colors.white70,
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+            ),
+            if (showLabel) ...[
+              const SizedBox(width: 6),
+              Flexible(
+                child: Text(
+                  stage.label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: active ? Colors.white : Colors.white60,
+                    fontSize: 12.5,
+                    fontWeight: active ? FontWeight.w800 : FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ],
         ),
       ),
-      if (clip.durationSeconds case final seconds?)
-        Positioned(
-          right: 10,
-          bottom: 10,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
-            decoration: BoxDecoration(
-              color: Colors.black.withValues(alpha: 0.55),
-              borderRadius: BorderRadius.circular(999),
-            ),
-            child: Text(
-              '${seconds ~/ 60}:${(seconds % 60).toString().padLeft(2, '0')}',
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 11,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-          ),
+    );
+    return Semantics(
+      button: onTap != null,
+      selected: active,
+      label:
+          'Step ${stage.index + 1} of ${ReelStage.values.length}: '
+          '${stage.label}${active
+              ? ', current'
+              : done
+              ? ', complete'
+              : ''}',
+      excludeSemantics: true,
+      child: showLabel ? chip : Tooltip(message: stage.label, child: chip),
+    );
+  }
+}
+
+/// Save draft beside the stage's primary action, pinned under the content.
+class _ActionBar extends StatelessWidget {
+  const _ActionBar({
+    required this.editor,
+    required this.onPublish,
+    required this.onDone,
+  });
+
+  final ReelEditorController editor;
+  final Future<void> Function() onPublish;
+  final VoidCallback onDone;
+
+  @override
+  Widget build(BuildContext context) {
+    final stage = editor.stage;
+    final upload = editor.upload;
+    final attemptedIssues =
+        editor.hasAttempted(stage) && stage != ReelStage.review
+        ? editor.issuesFor(stage)
+        : const <ReelIssue>[];
+    final String primaryLabel;
+    final IconData primaryIcon;
+    final VoidCallback? primaryAction;
+    if (editor.isPublished) {
+      primaryLabel = 'Done';
+      primaryIcon = Icons.check_rounded;
+      primaryAction = onDone;
+    } else if (stage == ReelStage.review) {
+      primaryLabel = upload.isActive ? 'Publishing…' : 'Publish';
+      primaryIcon = Icons.publish_rounded;
+      primaryAction = upload.isActive || editor.isMediaBusy
+          ? null
+          : () => unawaited(onPublish());
+    } else {
+      primaryLabel = 'Continue';
+      primaryIcon = Icons.arrow_forward_rounded;
+      primaryAction = editor.isMediaBusy ? null : editor.continueForward;
+    }
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: BrandColors.nightInk.withValues(alpha: 0.92),
+        border: const Border(top: BorderSide(color: Colors.white12)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(
+          kReelStagePadding,
+          8,
+          kReelStagePadding,
+          10,
         ),
-    ],
-  );
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (attemptedIssues.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: ReelIssueText(
+                  attemptedIssues.length == 1
+                      ? attemptedIssues.first.message
+                      : '${attemptedIssues.first.message} '
+                            '(+${attemptedIssues.length - 1} more above)',
+                ),
+              ),
+            Row(
+              children: [
+                if (!editor.isPublished) ...[
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      style: reelSecondaryButtonStyle(context),
+                      onPressed: editor.locked
+                          ? null
+                          : () => unawaited(editor.saveDraft(manual: true)),
+                      icon: const Icon(
+                        Icons.bookmark_outline_rounded,
+                        size: 19,
+                      ),
+                      label: const Text(
+                        'Save draft',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                ],
+                Expanded(
+                  child: FilledButton.icon(
+                    style: reelPrimaryButtonStyle(context),
+                    onPressed: primaryAction,
+                    icon: Icon(primaryIcon, size: 19),
+                    label: Text(
+                      primaryLabel,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }

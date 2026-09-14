@@ -90,6 +90,10 @@
         {
           "source": "/post/**",
           "destination": "/post/index.html"
+        },
+        {
+          "source": "/communities/**",
+          "destination": "/communities/index.html"
         }
       ]
     },

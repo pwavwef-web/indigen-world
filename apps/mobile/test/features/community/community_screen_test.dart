@@ -1,14 +1,22 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:indigen_world_mobile/features/community/communities/communities_screen.dart';
 import 'package:indigen_world_mobile/features/community/community_profile_screen.dart';
 import 'package:indigen_world_mobile/features/community/community_screen.dart';
+import 'package:indigen_world_mobile/features/community/compose_post_screen.dart';
 import 'package:indigen_world_mobile/features/community/data/community_models.dart';
+import 'package:indigen_world_mobile/features/community/data/community_space_models.dart';
+import 'package:indigen_world_mobile/features/community/data/post_category.dart';
 import 'package:indigen_world_mobile/features/community/people_screen.dart';
 import 'package:indigen_world_mobile/features/community/post_detail_screen.dart';
 import 'package:indigen_world_mobile/features/community/saved_posts_screen.dart';
 import 'package:indigen_world_mobile/features/community/widgets/community_avatar.dart';
 import 'package:indigen_world_mobile/features/community/widgets/community_post_card.dart';
 import 'package:indigen_world_mobile/features/community/widgets/inline_video.dart';
+import 'package:indigen_world_mobile/features/explore/reel_view.dart';
 
 import 'community_test_harness.dart';
 
@@ -20,6 +28,20 @@ void main() {
     displayName: 'Nyaaba Atanga',
     bio: 'Learning every day.',
   );
+
+  test('captionless community videos use only the community source pill', () {
+    final post = fakePost(
+      text: '',
+      media: const [
+        CommunityMedia(url: 'https://example.test/reel.mp4', type: 'video'),
+      ],
+    );
+
+    final reel = Reel.fromCommunityPost(post, post.media.first);
+
+    expect(reel.label, 'FROM THE COMMUNITY');
+    expect(reel.title, isEmpty);
+  });
 
   Future<void> pumpFeed(
     WidgetTester tester,
@@ -39,7 +61,9 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
   }
 
-  testWidgets('renders the pulse rail, composer and live feed', (tester) async {
+  testWidgets('renders the daily prompt, composer and live feed', (
+    tester,
+  ) async {
     final repository = FakeCommunityRepository(
       profiles: [amina, nyaaba],
       posts: [
@@ -56,13 +80,23 @@ void main() {
 
     await pumpFeed(tester, repository, profile: amina);
 
-    expect(find.text('New voices'), findsOneWidget);
-    expect(find.text('Make a Kasem post'), findsOneWidget);
+    // A compact prompt strip and the composer open the feed.
+    expect(find.text('Today in Kasem'), findsOneWidget);
+    expect(find.text('Share a word from home'), findsOneWidget);
+    expect(find.text('Make a post'), findsOneWidget);
+    expect(find.byTooltip('Add a photo'), findsOneWidget);
+    expect(find.byTooltip('Add a video'), findsOneWidget);
     expect(find.text('De zaanem. Ko gara.'), findsOneWidget);
     expect(find.text('Amo wora a zamese Kasem mo.'), findsOneWidget);
     expect(find.byType(CommunityPostCard), findsNWidgets(2));
     // Author, handle and relative age all come from the post document.
-    expect(find.text('Nyaaba Atanga'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(CommunityPostCard),
+        matching: find.text('Nyaaba Atanga'),
+      ),
+      findsOneWidget,
+    );
     expect(find.textContaining('@amina_paga'), findsWidgets);
   });
 
@@ -114,6 +148,167 @@ void main() {
     await tester.pump(const Duration(milliseconds: 400));
 
     expect(find.byType(PeopleScreen), findsOneWidget);
+  });
+
+  testWidgets('the prompt strip stays compact and opens a labelled composer', (
+    tester,
+  ) async {
+    final repository = FakeCommunityRepository(
+      profiles: [amina],
+      posts: [fakePost()],
+    );
+    await pumpFeed(tester, repository, profile: amina);
+
+    // Roughly one list row: no more than a tenth of the first screen.
+    final strip = tester.getRect(
+      find.byKey(const Key('community-prompt-strip')),
+    );
+    final screen = tester.getRect(find.byType(CommunityScreen));
+    expect(strip.height, lessThanOrEqualTo(screen.height * 0.10));
+
+    await tester.tap(find.byKey(const Key('community-prompt-strip')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+
+    expect(find.byType(ComposePostScreen), findsOneWidget);
+    expect(
+      tester
+          .widget<ChoiceChip>(
+            find.byKey(const ValueKey('post-category-language')),
+          )
+          .selected,
+      isTrue,
+    );
+    expect(
+      find.text('Share a word from home, and what it means…'),
+      findsOneWidget,
+    );
+    // Only staff and moderators may announce.
+    expect(
+      find.byKey(const ValueKey('post-category-announcement')),
+      findsNothing,
+    );
+  });
+
+  testWidgets('+ Communities opens the directory instead of filtering', (
+    tester,
+  ) async {
+    final repository = FakeCommunityRepository(
+      profiles: [amina],
+      posts: [fakePost()],
+    );
+    await pumpFeed(tester, repository, profile: amina);
+
+    final tab = find.byKey(const Key('community-communities-tab'));
+    expect(tab, findsOneWidget);
+    // The plus is visible, not just implied by the label.
+    expect(
+      find.descendant(of: tab, matching: find.byIcon(Icons.add_rounded)),
+      findsOneWidget,
+    );
+
+    await tester.tap(tab);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+
+    expect(find.byType(CommunitiesScreen), findsOneWidget);
+  });
+
+  testWidgets('a categorised community post shows its label and community', (
+    tester,
+  ) async {
+    final repository = FakeCommunityRepository(
+      profiles: [amina],
+      posts: [
+        fakePost(
+          text: 'Which word do you use for a calabash?',
+          category: PostCategory.question,
+          community: const PostCommunityStamp(
+            id: 'kasem-circle',
+            name: 'Kasem Circle',
+            isPrivate: false,
+          ),
+        ),
+      ],
+    );
+    await pumpFeed(tester, repository, profile: amina);
+
+    expect(find.text('Question'), findsOneWidget);
+    expect(find.text('in Kasem Circle'), findsOneWidget);
+    // The X-style byline is intact: name, handle and age on one line, and the
+    // overflow menu beside it.
+    expect(find.text('Amina Ayaribisa'), findsOneWidget);
+    expect(find.textContaining('@amina_paga'), findsOneWidget);
+    expect(find.byTooltip('More'), findsOneWidget);
+  });
+
+  testWidgets('New voices sits a few posts down, never at the top', (
+    tester,
+  ) async {
+    final repository = FakeCommunityRepository(
+      profiles: [amina, nyaaba],
+      posts: [
+        for (var index = 0; index < 6; index++)
+          fakePost(
+            id: 'post$index',
+            text: 'Post number $index',
+            createdAt: DateTime(2026, 8, 20).subtract(Duration(hours: index)),
+          ),
+      ],
+    );
+    await pumpFeed(tester, repository, profile: amina);
+    await tester.pump(const Duration(milliseconds: 300));
+
+    final module = find.text('New voices');
+    await tester.scrollUntilVisible(
+      module,
+      300,
+      scrollable: find
+          .descendant(
+            of: find.byKey(const PageStorageKey('community-scroll')),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
+    expect(module, findsOneWidget);
+    // Below the third post, above the fourth.
+    expect(
+      tester.getRect(module).top,
+      greaterThan(tester.getRect(find.text('Post number 2')).bottom),
+    );
+    expect(find.text('Nyaaba Atanga'), findsOneWidget);
+    expect(find.text('See all'), findsOneWidget);
+  });
+
+  testWidgets('an appreciation shows at once and is taken back if refused', (
+    tester,
+  ) async {
+    final repository = FakeCommunityRepository(
+      profiles: [amina],
+      posts: [fakePost(likeCount: 3)],
+      likeError: FirebaseException(
+        plugin: 'cloud_firestore',
+        code: 'permission-denied',
+      ),
+    )..likeGate = Completer<void>();
+    await pumpFeed(tester, repository, profile: amina);
+
+    expect(find.text('3'), findsOneWidget);
+    await tester.tap(find.byTooltip('Appreciate'));
+    await tester.pump();
+
+    // Drawn ahead of the server.
+    expect(find.byTooltip('Appreciated'), findsOneWidget);
+    expect(find.text('4'), findsOneWidget);
+
+    repository.likeGate!.complete();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    // Refused: both the heart and the count go back, and the member is told.
+    expect(find.byTooltip('Appreciate'), findsOneWidget);
+    expect(find.text('3'), findsOneWidget);
+    expect(find.text('Could not update. Try again.'), findsOneWidget);
   });
 
   testWidgets('an empty feed invites the first post', (tester) async {

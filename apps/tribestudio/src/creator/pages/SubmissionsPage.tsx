@@ -70,7 +70,11 @@ export function SubmissionsPage() {
       width: '86px',
       cell: (s) => (
         <span className="dt-actions">
-          <Link to={`/studio/submissions/${s.id}`} className="button button--small">Open</Link>
+          {s.status === 'DRAFT' ? (
+            <Link to={`/studio/submissions/${s.id}/edit`} className="button button--small button--primary">Continue</Link>
+          ) : (
+            <Link to={`/studio/submissions/${s.id}`} className="button button--small">Open</Link>
+          )}
         </span>
       ),
     },

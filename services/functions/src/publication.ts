@@ -82,6 +82,45 @@ export function collectionKindForSubmission(submission: JsonRecord): CollectionK
 }
 
 /**
+ * Whether the work attached to a submission is a film.
+ *
+ * The upload is asked first and the studio the creator chose second, because
+ * either can be the only evidence there is: a TribeStudio post that links to a
+ * video hosted somewhere else carries no `media` object at all, and only the
+ * studio says what the link is.
+ */
+function isVideoWork(submission: JsonRecord): boolean {
+  return text(submission.media?.mediaType).toLowerCase() === 'video'
+    || text(submission.studioType).toLowerCase() === 'video';
+}
+
+/**
+ * Which shelf a submission is published to, which is not always what it was
+ * filed as.
+ *
+ * ── Why this is not [collectionKindForSubmission] ──────────────────────────
+ * That one answers "what did the contributor say this is", and the review
+ * pipeline compares its answer against the linked contribution record to catch
+ * a client that has sent two different ones. Changing it would make a
+ * historical contribution fail that comparison and become unreviewable. This
+ * one answers "which shelf does it belong on", and the two part company over
+ * exactly one thing: a film.
+ *
+ * TribeStudio asks a creator for a *category* — `storytelling`, `folklore`,
+ * `oral-history`, `proverb` — and every one of those resolves to Literature
+ * whether the post is a written story or a twenty-minute video of one being
+ * told. So Literature filled up with films: silent cards in a list of stories,
+ * a video player on a screen headed "The work", and nothing anybody could
+ * read. Literature is a reading channel — documents and written text — and a
+ * filmed story is exactly what the Video channel is for, so that is where this
+ * sends it rather than hiding it.
+ */
+export function publishedCollectionKind(submission: JsonRecord): CollectionKind | null {
+  const declared = collectionKindForSubmission(submission);
+  return declared === 'literature' && isVideoWork(submission) ? 'video' : declared;
+}
+
+/**
  * The list of meanings a lexical submission carries, for the public record.
  *
  * A submission written before `translations` existed has only `body`, and for a
@@ -109,6 +148,13 @@ export function submissionLexicalKind(submission: JsonRecord): LexicalKind {
 
 function inferredMediaType(submission: JsonRecord, kind: CollectionKind | null): string | null {
   const declared = text(submission.media?.mediaType);
+  // Literature never claims video. `publishedCollectionKind` has already moved
+  // a filmed story to the Video channel, so anything arriving here as both was
+  // assembled by hand — and repeating `video` on it would put a player back on
+  // the one channel that has no use for one. Null rather than `document`,
+  // because calling an .mp4 a document is a second false statement rather than
+  // a correction of the first.
+  if (kind === 'literature' && declared === 'video') return null;
   if (['image', 'audio', 'video', 'document'].includes(declared)) return declared;
   if (kind === 'music' || kind === 'audiobooks') return 'audio';
   if (kind === 'literature') return 'document';
@@ -123,7 +169,7 @@ function inferredMediaType(submission: JsonRecord, kind: CollectionKind | null):
  */
 export function buildPublishedContentDocument(input: PublishedProjectionInput): JsonRecord {
   const { submission, existing, now } = input;
-  const kind = collectionKindForSubmission(submission);
+  const kind = publishedCollectionKind(submission);
   const body = text(submission.body);
   const description = text(submission.description) || body;
   const currentMediaUrl = text(existing?.mediaUrl);

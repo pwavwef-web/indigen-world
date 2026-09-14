@@ -8,6 +8,9 @@ const html = read("index.html");
 const styles = read("src/styles.css");
 
 assert.match(html, /<title>Kasem Dictionary<\/title>/, "app has standalone product metadata");
+assert.match(html, /<link rel="canonical" href="https:\/\/www\.venacula\.com\/" \/>/, "www.venacula.com is the canonical address, not the web.app defaults");
+assert.match(read("public/robots.txt"), /Sitemap: https:\/\/www\.venacula\.com\/sitemap\.xml/, "robots.txt points crawlers at the canonical sitemap");
+assert.match(read("public/sitemap.xml"), /<loc>https:\/\/www\.venacula\.com\/<\/loc>/, "the sitemap lists the canonical address");
 assert.match(app, /Search Kasem or English/, "app exposes bilingual search");
 assert.match(app, /SAVED_KEY/, "app supports device-local saved words");
 assert.match(app, /LETTERS/, "app supports alphabetical browsing");

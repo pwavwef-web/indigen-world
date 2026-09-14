@@ -49,7 +49,11 @@ SystemUiOverlayStyle brandOverlayStyle(BrandPalette brand) {
 ThemeData _buildTheme(BrandPalette brand) {
   final colorScheme =
       ColorScheme.fromSeed(
-        seedColor: BrandColors.heritageGreen,
+        // The seed only survives in the roles `copyWith` below does not name —
+        // the container and fixed tones a handful of Material widgets reach
+        // for. It has to agree with the accent anyway, or those widgets hand
+        // back a green container to sit behind an indigo label.
+        seedColor: brand.pick(BrandColors.indigo, BrandColors.heritageGreen),
         brightness: brand.brightness,
       ).copyWith(
         primary: brand.accent,

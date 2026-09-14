@@ -5,9 +5,9 @@ import 'package:indigen_world_mobile/features/notifications/data/notification_pr
 /// Reads and updates the member's notification centre.
 ///
 /// Notifications are written server-side by Cloud Functions triggers (a like, a
-/// reply, a follow, a publication) — a client may only mark its own rows read,
-/// which is exactly what the Firestore rules allow. Nothing here can forge an
-/// alert.
+/// reply, a follow, a publication) — a client may mark or remove only its own
+/// rows, which is exactly what the Firestore rules allow. Nothing here can
+/// forge an alert.
 class NotificationsRepository {
   const NotificationsRepository(this._firestore);
 
@@ -69,6 +69,31 @@ class NotificationsRepository {
     await batch.commit();
   }
 
+  /// Removes one notification owned by the signed-in recipient.
+  Future<void> deleteNotification(String notificationId) =>
+      _notifications.doc(notificationId).delete();
+
+  /// Clears the recipient's whole notification centre.
+  ///
+  /// Firestore batches top out at 500 writes. Four hundred leaves headroom and
+  /// the loop also clears accounts whose history is longer than the live
+  /// 80-row notification window.
+  Future<void> clearAll(String uid) async {
+    while (true) {
+      final snapshot = await _notifications
+          .where('recipientId', isEqualTo: uid)
+          .limit(400)
+          .get();
+      if (snapshot.docs.isEmpty) return;
+      final batch = _firestore.batch();
+      for (final doc in snapshot.docs) {
+        batch.delete(doc.reference);
+      }
+      await batch.commit();
+      if (snapshot.docs.length < 400) return;
+    }
+  }
+
   // ── What the member has agreed to be woken about ──────────────────────────
 
   /// The member's own switches, live.
@@ -84,8 +109,9 @@ class NotificationsRepository {
       .doc(uid)
       .snapshots()
       .map(
-        (snapshot) =>
-            NotificationPreferences.fromField(snapshot.data()?['notificationPrefs']),
+        (snapshot) => NotificationPreferences.fromField(
+          snapshot.data()?['notificationPrefs'],
+        ),
       );
 
   /// Writes one switch.

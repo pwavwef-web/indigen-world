@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 class KasemKeyboardState {
   const KasemKeyboardState({
     required this.enabled,
+    this.selected = false,
     required this.defaultLanguage,
     required this.vibration,
     required this.sound,
@@ -13,6 +14,7 @@ class KasemKeyboardState {
   factory KasemKeyboardState.fromMap(Map<Object?, Object?> map) =>
       KasemKeyboardState(
         enabled: map['enabled'] == true,
+        selected: map['selected'] == true,
         defaultLanguage: map['defaultLanguage'] == 'english'
             ? 'english'
             : 'kasem',
@@ -21,6 +23,7 @@ class KasemKeyboardState {
       );
 
   final bool enabled;
+  final bool selected;
   final String defaultLanguage;
   final bool vibration;
   final bool sound;
@@ -32,6 +35,7 @@ class KasemKeyboardState {
     bool? sound,
   }) => KasemKeyboardState(
     enabled: enabled ?? this.enabled,
+    selected: selected,
     defaultLanguage: defaultLanguage ?? this.defaultLanguage,
     vibration: vibration ?? this.vibration,
     sound: sound ?? this.sound,

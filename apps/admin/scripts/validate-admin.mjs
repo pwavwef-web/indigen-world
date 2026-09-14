@@ -24,6 +24,11 @@ assert.match(navigation, /path: '\/reports'/, 'community reports are reachable f
 assert.match(navigation, /<ReportsAdmin/, 'the reports route renders the moderation queue');
 assert.match(reportData, /collection\(db, 'communityReports'\)/, 'the moderation queue reads community reports');
 assert.match(reports, /setCommunityReportStatus/, 'admins can move reports through moderation statuses');
+assert.match(reportData, /targetType === 'community'/, 'community reports are told apart from post reports');
+assert.match(reportData, /const COMMUNITY_SPACES = 'communitySpaces'/, 'reported communities are read from communitySpaces, not the cultural registry');
+assert.match(reportData, /COMMUNITY_SPACES, report\.communityId, 'posts', report\.postId/, 'a reported post inside a private community is found where it lives');
+assert.match(reports, /<ReportedCommunityPanel/, 'a community report shows the community itself');
+assert.match(reports, /setCommunitySpaceStatus/, 'staff can remove and restore a reported community');
 assert.match(app, /navigationGroups/, 'the primary navigation is grouped for a growing admin console');
 assert.match(consoleData, /getCountFromServer/, 'dashboard queue totals use Firestore aggregates');
 assert.match(consoleHome, /Current Firestore totals/, 'the console labels operational metrics as live data');
