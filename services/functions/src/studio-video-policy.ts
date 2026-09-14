@@ -134,6 +134,36 @@ const GEMINI_RATE_USD_PER_SECOND: Record<GeminiVideoModel, number> = {
   'veo-3.1-fast-generate-001': 0.15,
 };
 
+/**
+ * The published rate for a Vertex video model, or null when this backend has
+ * no price for it.
+ *
+ * Kawuri's video generator reaches Veo too, and it has to spend against the
+ * same cents ceilings as the Studio does. A model with no price here cannot be
+ * held to those ceilings, so the caller treats null as "not offerable" rather
+ * than guessing a number.
+ */
+export function vertexVideoRateUsdPerSecond(model: string): number | null {
+  return isGeminiVideoModel(model) ? GEMINI_RATE_USD_PER_SECOND[model] : null;
+}
+
+/**
+ * The runaway guards on AI video, shared by every surface that buys a
+ * generation.
+ *
+ * They used to be private to `studio-video.ts`. Kawuri now makes video from the
+ * phone, and one person's daily video allowance is one allowance whichever
+ * screen spends it — so both callers charge the same `_rateLimits` buckets with
+ * these same numbers. Stated in cents because that is what a provider charges.
+ */
+export const VIDEO_SPEND_LIMITS = {
+  burstPerTenMinutes: 3,
+  jobsPerDay: 20,
+  globalJobsPerDay: 250,
+  creatorDailySpendCents: 2_000,
+  platformDailySpendCents: 25_000,
+} as const;
+
 const FAL_RATE_USD_PER_SECOND: Record<FalLipsyncModel, number> = {
   // fal lists Pro at $5/minute and documents it as about 1.67x Standard.
   'lipsync-2': 3 / 60,

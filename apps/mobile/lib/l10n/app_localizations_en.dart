@@ -1,5 +1,6 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -27,7 +28,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsAppearance => 'Appearance';
 
   @override
-  String get settingsAppearanceSystem => 'Match device — light by day, dark by night';
+  String get settingsAppearanceSystem =>
+      'Match device — light by day, dark by night';
 
   @override
   String get settingsAppearanceLight => 'Light — warm paper and deep green';
@@ -39,7 +41,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsAutoplayTitle => 'Play videos automatically';
 
   @override
-  String get settingsAutoplayBody => 'Clips in the community feed start themselves, silently. Off saves data on a metered connection — tap any clip to watch it.';
+  String get settingsAutoplayBody =>
+      'Clips in the community feed start themselves, silently. Off saves data on a metered connection — tap any clip to watch it.';
 
   @override
   String get navExplore => 'Explore';
@@ -60,7 +63,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get onboardingTitle => 'Language lives\nwith people.';
 
   @override
-  String get onboardingBody => 'Learn, search, and contribute through Project Kassena — the first language cell in Indigen World.';
+  String get onboardingBody =>
+      'Learn, search, and contribute through Project Kassena — the first language cell in Indigen World.';
 
   @override
   String get onboardingQuestion => 'What brings you here?';
@@ -75,19 +79,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String get onboardingDiaspora => 'Diaspora';
 
   @override
-  String get onboardingDiasporaBody => 'Reconnect and practise from wherever you are.';
+  String get onboardingDiasporaBody =>
+      'Reconnect and practise from wherever you are.';
 
   @override
   String get onboardingVisitor => 'Visitor or learner';
 
   @override
-  String get onboardingVisitorBody => 'Learn respectfully with context and attribution.';
+  String get onboardingVisitorBody =>
+      'Learn respectfully with context and attribution.';
 
   @override
   String get onboardingStart => 'Start with Kasem';
 
   @override
-  String get onboardingGuestNote => 'Public dictionary and learning content work without sign-in. You can choose an account later.';
+  String get onboardingGuestNote =>
+      'Public dictionary and learning content work without sign-in. You can choose an account later.';
 
   @override
   String get communityTitle => 'Community';
@@ -162,7 +169,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get communityFirstPost => 'Make the first post';
 
   @override
-  String get communityBackendPending => 'The community service is still starting up';
+  String get communityBackendPending =>
+      'The community service is still starting up';
 
   @override
   String get communityFeedFailed => 'The feed could not load';
@@ -185,7 +193,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get communityCommunitiesTab => 'Communities';
 
   @override
-  String get communityCommunitiesTabSemantics => 'Communities. Find, join or create a community';
+  String get communityCommunitiesTabSemantics =>
+      'Communities. Find, join or create a community';
 
   @override
   String communityPromptTitle(String language) {
@@ -196,7 +205,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get communityPromptSubtitle => 'Share a word from home';
 
   @override
-  String get communityPromptHint => 'Share a word from home, and what it means…';
+  String get communityPromptHint =>
+      'Share a word from home, and what it means…';
 
   @override
   String communityPromptSemantics(String title, String subtitle) {
@@ -363,13 +373,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get communityPrivateTitle => 'This community is private';
 
   @override
-  String get communityPrivateBody => 'Ask to join to see its posts and members.';
+  String get communityPrivateBody =>
+      'Ask to join to see its posts and members.';
 
   @override
   String get communityUnavailableTitle => 'This community is unavailable';
 
   @override
-  String get communityUnavailableBody => 'It may have been removed, or the link is wrong.';
+  String get communityUnavailableBody =>
+      'It may have been removed, or the link is wrong.';
 
   @override
   String get communityBannedTitle => 'You can\'t take part in this community';
@@ -459,7 +471,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get createCommunityAddress => 'Address';
 
   @override
-  String get createCommunityAddressHelper => 'Lowercase letters, numbers and hyphens. Can\'t be changed later.';
+  String get createCommunityAddressHelper =>
+      'Lowercase letters, numbers and hyphens. Can\'t be changed later.';
 
   @override
   String get createCommunityAddressChecking => 'Checking the address…';
@@ -495,10 +508,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get createCommunityPublicBody => 'Anyone can read posts and join.';
 
   @override
-  String get createCommunityPrivateBody => 'Only approved members read posts. People ask to join.';
+  String get createCommunityPrivateBody =>
+      'Only approved members read posts. People ask to join.';
 
   @override
-  String get createCommunityVisibilityLocked => 'This can\'t be changed after the community is created.';
+  String get createCommunityVisibilityLocked =>
+      'This can\'t be changed after the community is created.';
 
   @override
   String get createCommunityProfileImage => 'Profile image';
@@ -600,7 +615,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get communityEditDiscardTitle => 'Discard your changes?';
 
   @override
-  String get communityEditDiscardBody => 'Nothing you changed here has been saved.';
+  String get communityEditDiscardBody =>
+      'Nothing you changed here has been saved.';
 
   @override
   String get communityEditDiscard => 'Discard';
@@ -612,7 +628,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get communityHandOverTitle => 'Choose the new owner';
 
   @override
-  String get communityHandOverBody => 'They become the owner. You stay on as an admin, and can leave afterwards.';
+  String get communityHandOverBody =>
+      'They become the owner. You stay on as an admin, and can leave afterwards.';
 
   @override
   String communityHandOverConfirm(String name) {
@@ -625,7 +642,8 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get communityHandOverNobody => 'Nobody else is in this community yet. You can close it instead.';
+  String get communityHandOverNobody =>
+      'Nobody else is in this community yet. You can close it instead.';
 
   @override
   String get communityClose => 'Close community';
@@ -636,7 +654,8 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get communityCloseBody => 'It stops taking members and posts, and its address stays reserved. This can\'t be undone from the app.';
+  String get communityCloseBody =>
+      'It stops taking members and posts, and its address stays reserved. This can\'t be undone from the app.';
 
   @override
   String get communityCloseDone => 'Community closed.';
@@ -645,7 +664,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get communityLeaveOwnerTitle => 'You own this community';
 
   @override
-  String get communityLeaveOwnerBody => 'Hand it over to another member before leaving, or close it if you are the only one here.';
+  String get communityLeaveOwnerBody =>
+      'Hand it over to another member before leaving, or close it if you are the only one here.';
 
   @override
   String get learnDictionary => 'Dictionary';
@@ -741,7 +761,8 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get learnBubbleLockedBody => 'Finish the lesson above to open this one.';
+  String get learnBubbleLockedBody =>
+      'Finish the lesson above to open this one.';
 
   @override
   String get learnBubblePractise => 'PRACTISE AGAIN';

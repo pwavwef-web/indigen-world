@@ -2,6 +2,8 @@
 
 Status: working client upgrade; full multimodal production delivery is blocked on the active backend source. Inspected September 13–14, 2026.
 
+**Update, September 14, 2026:** the backend phases below are now implemented on Vertex AI — image and video generation, English speech-to-text, and image/video/audio analysis, with a server capability manifest, durable task records and recovery. The "Coming soon" gates described in this document were replaced by that manifest. See [docs/architecture/kawuri-vertex-media.md](../architecture/kawuri-vertex-media.md) for the design, configuration, deploy steps and test evidence. Streaming chat, text-to-speech and image editing remain unimplemented.
+
 ## Inspection findings
 
 - Mobile entry point: `apps/mobile/lib/features/kawuri/kawuri_screen.dart`, linked by `/kawuri` in `app_router.dart` and the existing Kawuri floating button. The shared Kawuri symbol remains intact.

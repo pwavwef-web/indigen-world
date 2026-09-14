@@ -17,15 +17,46 @@ enum KawuriTaskType {
   final String wireName;
   final String label;
 
+  /// Whether the app has a working adapter for this task at all.
+  ///
+  /// For the media tools that is necessary but not sufficient: they also need
+  /// the backend to advertise them — see [serverCapability] and
+  /// [offeredBy].
   bool get available => switch (this) {
     chat ||
     translation ||
     languagePractice ||
     contributionHelp ||
     storyHelp ||
-    culturalContext => true,
+    culturalContext ||
+    imageGeneration ||
+    videoGeneration ||
+    mediaAnalysis => true,
     _ => false,
   };
+
+  /// The capability flag in `getKawuriCapabilities` this task depends on, or
+  /// null for the text tasks, which need nothing beyond Kawuri itself.
+  String? get serverCapability => switch (this) {
+    imageGeneration => 'imageGeneration',
+    videoGeneration => 'videoGeneration',
+    mediaAnalysis => 'mediaAnalysis',
+    _ => null,
+  };
+
+  /// Tasks answered in the conversation. Image and video creation have their
+  /// own screen, because they produce a lasting creation rather than a reply.
+  bool get conversational => switch (this) {
+    imageGeneration || videoGeneration || imageEdit || pronunciation => false,
+    _ => true,
+  };
+
+  /// Whether this task can be used now, given what the server advertised.
+  bool offeredBy(bool Function(String capability) enabled) {
+    if (!available) return false;
+    final capability = serverCapability;
+    return capability == null || enabled(capability);
+  }
 
   static KawuriTaskType parse(Object? value) =>
       values.firstWhere((type) => type.wireName == value, orElse: () => chat);

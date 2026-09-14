@@ -9,11 +9,12 @@
     "node": "22"
   },
   "scripts": {
-    "build": "tsc && esbuild lib/index.js --bundle --platform=node --format=esm --target=node22 --outfile=lib/bundle.mjs --external:firebase-admin --external:firebase-functions --external:ajv --external:ajv/* --external:ajv-formats --external:nodemailer --external:google-auth-library",
+    "build": "tsc && esbuild lib/index.js --bundle --platform=node --format=esm --target=node22 --outfile=lib/bundle.mjs --external:firebase-admin --external:firebase-functions --external:ajv --external:ajv/* --external:ajv-formats --external:nodemailer --external:google-auth-library --external:@google/genai",
     "typecheck": "tsc --noEmit",
     "serve": "npm run build && firebase emulators:start --only functions"
   },
   "dependencies": {
+    "@google/genai": "2.22.0",
     "@simplewebauthn/server": "^14.0.1",
     "ajv": "^8.17.1",
     "ajv-formats": "^3.0.1",

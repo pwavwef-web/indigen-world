@@ -22,6 +22,7 @@ import {
   providerStateToJobStatus,
   readStoredProviderTask,
   studioVideoCapabilities,
+  VIDEO_SPEND_LIMITS,
   type GeminiVideoModel,
   type StudioVideoInput,
 } from './studio-video-policy.js';
@@ -62,9 +63,9 @@ const SWEEP_RUN_BUDGET_MS = 420_000;
 const MAX_VERTEX_IMAGE_BYTES = 7 * 1024 * 1024;
 // Runaway guards, not quotas: generous enough that ordinary work never meets
 // them, low enough that a mistake or a stolen token cannot run up a bill.
-// Stated in cents because that is what a provider charges in.
-const CREATOR_DAILY_SPEND_CENTS = 2_000;
-const PLATFORM_DAILY_SPEND_CENTS = 25_000;
+// Shared with Kawuri's video generator, which spends the same allowance.
+const CREATOR_DAILY_SPEND_CENTS = VIDEO_SPEND_LIMITS.creatorDailySpendCents;
+const PLATFORM_DAILY_SPEND_CENTS = VIDEO_SPEND_LIMITS.platformDailySpendCents;
 // Long enough to cover a large import, short enough that a worker killed
 // mid-flight does not block the job for long.
 const ADVANCE_LEASE_MS = 8 * 60_000;
@@ -491,9 +492,14 @@ export const createStudioVideoJob = onCall(
     // hang it on. Replacing the constant here is the whole change.
     const spendCents = Math.ceil(costEstimate.amountUsd * 100);
     await Promise.all([
-      consumeRateLimit('studioVideoCreateBurst', uid, 3, 10 * 60_000),
-      consumeRateLimit('studioVideoCreateDaily', uid, 20, 24 * 60 * 60_000),
-      consumeRateLimit('studioVideoCreateGlobalDaily', 'all-creators', 250, 24 * 60 * 60_000),
+      consumeRateLimit('studioVideoCreateBurst', uid, VIDEO_SPEND_LIMITS.burstPerTenMinutes, 10 * 60_000),
+      consumeRateLimit('studioVideoCreateDaily', uid, VIDEO_SPEND_LIMITS.jobsPerDay, 24 * 60 * 60_000),
+      consumeRateLimit(
+        'studioVideoCreateGlobalDaily',
+        'all-creators',
+        VIDEO_SPEND_LIMITS.globalJobsPerDay,
+        24 * 60 * 60_000,
+      ),
       consumeRateLimit(
         'studioVideoSpendDaily',
         uid,

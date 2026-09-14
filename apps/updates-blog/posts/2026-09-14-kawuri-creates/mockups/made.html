@@ -1,0 +1,20 @@
+<!doctype html>
+<meta charset="utf-8">
+<link rel="stylesheet" href="style.css">
+<style>
+  .phone { --w: 410px; }
+  .card.wide { width: 760px; height: 424px; }
+  .stage { gap: 100px; }
+</style>
+<div class="stage">
+  <div class="column">
+    <span class="eyebrow">Made with Kawuri</span>
+    <div class="card wide"><img src="../screens/generated-courtyard.png" alt=""><span class="badge"><span class="pill-dot"></span>AI-generated · not a real place</span></div>
+    <span class="pill"><span class="dot"></span>Create image, 4:3</span>
+  </div>
+  <div class="column">
+    <div class="phone"><img src="../screens/analysis.png" alt=""></div>
+    <span class="pill amber"><span class="dot"></span>Seen, guessed, unknown</span>
+  </div>
+</div>
+<script>Promise.all([...document.images].map((i) => i.decode().catch(() => {}))).then(() => document.fonts.ready).then(() => { window.__ready = true; });</script>

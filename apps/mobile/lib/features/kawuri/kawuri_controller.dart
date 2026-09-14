@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/features/community/data/community_providers.dart';
+import 'package:indigen_world_mobile/features/kawuri/kawuri_media_models.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_models.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_service.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_tasks.dart';
@@ -22,6 +23,7 @@ class KawuriState {
     this.mode = KawuriTaskType.chat,
     this.options = const {},
     this.storageError,
+    this.attachment,
   });
   final List<KawuriMessage> messages;
   final List<KawuriSession> history;
@@ -33,6 +35,10 @@ class KawuriState {
   final KawuriTaskType mode;
   final Map<String, String> options;
   final String? storageError;
+
+  /// A file waiting to be sent with the next analysis question. Not saved
+  /// with history: it is a path on this phone, chosen for this moment.
+  final KawuriAttachment? attachment;
   bool get isEmpty => messages.isEmpty;
   KawuriState copyWith({
     List<KawuriMessage>? messages,
@@ -45,6 +51,7 @@ class KawuriState {
     KawuriTaskType? mode,
     Map<String, String>? options,
     String? storageError,
+    Object? attachment = _keep,
   }) => KawuriState(
     messages: messages ?? this.messages,
     history: history ?? this.history,
@@ -56,8 +63,13 @@ class KawuriState {
     mode: mode ?? this.mode,
     options: options ?? this.options,
     storageError: storageError ?? this.storageError,
+    attachment: identical(attachment, _keep)
+        ? this.attachment
+        : attachment as KawuriAttachment?,
   );
 }
+
+const _keep = Object();
 
 /// Private device history is isolated by account. A request owns its original
 /// conversation even when the member opens another chat while it is pending.
@@ -167,6 +179,17 @@ class KawuriController extends Notifier<KawuriState> {
     _scheduleSave();
   }
 
+  void attach(KawuriAttachment attachment) {
+    state = state.copyWith(
+      attachment: attachment,
+      mode: KawuriTaskType.mediaAnalysis,
+    );
+  }
+
+  void clearAttachment() {
+    state = state.copyWith(attachment: null);
+  }
+
   void updateDraft(String text) {
     if (!state.restored) return;
     state = state.copyWith(draft: text);
@@ -174,11 +197,20 @@ class KawuriController extends Notifier<KawuriState> {
   }
 
   Future<void> send(String text) async {
-    final question = text.trim();
+    final attachment = state.mode == KawuriTaskType.mediaAnalysis
+        ? state.attachment
+        : null;
+    // An analysis may be sent with no words: the chosen intention is the
+    // question.
+    final question = text.trim().isNotEmpty || attachment == null
+        ? text.trim()
+        : kawuriAnalysisIntentions[state.options['intention'] ?? 'describe'] ??
+              'Describe this';
     if (question.isEmpty ||
         state.thinking ||
         !state.restored ||
-        !state.mode.available) {
+        !state.mode.available ||
+        !state.mode.conversational) {
       return;
     }
     final epoch = _epoch;
@@ -191,17 +223,28 @@ class KawuriController extends Notifier<KawuriState> {
       taskType: state.mode,
       options: state.options,
       conversationId: conversationId,
+      attachment: attachment,
     );
     final conversation = [...state.messages, asked];
     _pending[conversationId] = asked.id;
-    state = state.copyWith(messages: conversation, thinking: true, draft: '');
+    state = state.copyWith(
+      messages: conversation,
+      thinking: true,
+      draft: '',
+      attachment: null,
+    );
     unawaited(_save());
     KawuriAnswer answer;
     try {
       answer = await ref
           .read(kawuriServiceProvider)
           .ask(conversation)
-          .timeout(const Duration(seconds: 50));
+          // An analysis uploads the file first; a video can take minutes.
+          .timeout(
+            asked.taskType == KawuriTaskType.mediaAnalysis
+                ? const Duration(minutes: 5)
+                : const Duration(seconds: 50),
+          );
     } on TimeoutException {
       answer = const KawuriAnswer(
         text: 'The request timed out. You can retry when ready.',
@@ -227,6 +270,8 @@ class KawuriController extends Notifier<KawuriState> {
       taskType: asked.taskType,
       options: asked.options,
       conversationId: conversationId,
+      taskId: answer.taskId,
+      analysis: answer.analysis,
     );
     if (state.conversationId == conversationId) {
       state = state.copyWith(
@@ -283,6 +328,8 @@ class KawuriController extends Notifier<KawuriState> {
       messages: messages,
       mode: question.taskType,
       options: question.options,
+      // A retried analysis needs its file again, not just its words.
+      attachment: question.attachment,
     );
     await send(question.text);
   }

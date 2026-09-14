@@ -243,6 +243,55 @@ service firebase.storage {
       allow write: if false;
     }
 
+    // ---- Kawuri uploads: private, temporary, owner-created ------------------
+    // kawuri-uploads/{uid}/{purpose}/{uploadId}/{fileName}
+    //
+    // What the phone hands Kawuri to transcribe, analyse or use as a reference
+    // image. Only the owner may create or read, once per object (no
+    // overwrite), and only the types and sizes each purpose allows; the
+    // callable re-reads the object's real metadata before using it. Temporary:
+    // transcription audio is deleted when the request ends, and a bucket
+    // lifecycle rule on this prefix removes anything abandoned
+    // (firebase/storage-lifecycle.json).
+    function kawuriAudioOk() {
+      return request.resource.size < 10 * 1024 * 1024
+        && request.resource.contentType.matches('audio/(mp4|m4a|x-m4a|aac|mpeg|wav|x-wav|ogg|webm|flac)');
+    }
+    function kawuriReferenceOk() {
+      return request.resource.size < 20 * 1024 * 1024
+        && request.resource.contentType.matches('image/(jpeg|png|webp|heic|heif)');
+    }
+    function kawuriMediaOk() {
+      return kawuriReferenceOk()
+        || (request.resource.size < 200 * 1024 * 1024
+          && request.resource.contentType.matches('video/(mp4|quicktime|webm|3gpp|mpeg)'))
+        || (request.resource.size < 25 * 1024 * 1024
+          && request.resource.contentType.matches('audio/(mp4|m4a|x-m4a|aac|mpeg|wav|x-wav|ogg|webm|flac)'));
+    }
+
+    match /kawuri-uploads/{uid}/{purpose}/{uploadId}/{fileName} {
+      allow read: if isSignedIn() && request.auth.uid == uid;
+      allow create: if isSignedIn()
+        && request.auth.uid == uid
+        && resource == null
+        && ((purpose == 'audio' && kawuriAudioOk())
+          || (purpose == 'reference' && kawuriReferenceOk())
+          || (purpose == 'media' && kawuriMediaOk()));
+      allow update: if false;
+      allow delete: if isSignedIn() && request.auth.uid == uid;
+    }
+
+    // ---- Kawuri creations: private, server-written --------------------------
+    // Generated images and videos, imported by trusted backend code. Readable
+    // by their owner only; never written or deleted by a client — deletion
+    // goes through deleteKawuriCreation, which removes the record with them.
+    // Not covered by any lifecycle rule: a creation is kept until its owner
+    // deletes it.
+    match /kawuri-creations/{uid}/{taskId}/{fileName} {
+      allow read: if isSignedIn() && request.auth.uid == uid;
+      allow write: if false;
+    }
+
     // ---- Default deny -------------------------------------------------------
     match /{allPaths=**} {
       allow read, write: if false;

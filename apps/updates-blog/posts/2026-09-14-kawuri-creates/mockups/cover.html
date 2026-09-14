@@ -1,0 +1,38 @@
+<!doctype html>
+<meta charset="utf-8">
+<link rel="stylesheet" href="style.css">
+<style>
+  .stage { justify-content: flex-start; padding: 0 0 0 78px; gap: 0; }
+  .copy { width: 540px; }
+  .eyebrow { font-size: 17px; letter-spacing: 2.6px; }
+  h1 { margin-top: 18px; font-size: 54px; line-height: 1.05; font-weight: 800; letter-spacing: -1.2px; }
+  p { margin-top: 20px; font-size: 22px; line-height: 1.45; color: rgba(255,255,255,0.82); }
+  .tags { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 26px; }
+  .pill { font-size: 17px; padding: 9px 16px; gap: 9px; }
+  .pill .dot { width: 10px; height: 10px; }
+  .phones { position: absolute; right: 38px; top: 36px; width: 560px; height: 600px; }
+  .phones .phone { position: absolute; }
+  .back { --w: 250px; left: 20px; top: 70px; transform: rotate(-7deg); }
+  .front { --w: 262px; right: 12px; top: 8px; transform: rotate(5deg); }
+  .art { position: absolute; left: 150px; bottom: 10px; width: 250px; height: 168px; border-radius: 20px; transform: rotate(-2deg); }
+  .art .badge { font-size: 13px; padding: 6px 11px; left: 10px; bottom: 10px; }
+</style>
+<div class="stage">
+  <div class="copy">
+    <div class="eyebrow">Indigen World 0.1.20</div>
+    <h1>Kawuri can now make and see</h1>
+    <p>Create images and short videos, speak a message in English, and ask Kawuri what a photo, clip or recording shows.</p>
+    <div class="tags">
+      <span class="pill"><span class="dot"></span>Create image</span>
+      <span class="pill"><span class="dot"></span>Create video</span>
+      <span class="pill green"><span class="dot"></span>Voice input</span>
+      <span class="pill amber"><span class="dot"></span>Analyse media</span>
+    </div>
+  </div>
+  <div class="phones">
+    <div class="phone back"><img src="../screens/analysis.png" alt=""></div>
+    <div class="phone front"><img src="../screens/home.png" alt=""></div>
+    <div class="card art"><img src="../screens/generated-courtyard.png" alt=""><span class="badge">AI-generated</span></div>
+  </div>
+</div>
+<script>Promise.all([...document.images].map((i) => i.decode().catch(() => {}))).then(() => document.fonts.ready).then(() => { window.__ready = true; });</script>

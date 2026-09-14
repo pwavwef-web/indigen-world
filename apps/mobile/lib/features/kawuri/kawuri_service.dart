@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -6,6 +8,8 @@ import 'package:indigen_world_mobile/core/firebase_ready.dart';
 import 'package:indigen_world_mobile/domain/dictionary_entry.dart';
 import 'package:indigen_world_mobile/features/collection/collection_data.dart';
 import 'package:indigen_world_mobile/features/community/data/community_providers.dart';
+import 'package:indigen_world_mobile/features/kawuri/kawuri_media_models.dart';
+import 'package:indigen_world_mobile/features/kawuri/kawuri_media_repository.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_models.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_offline_guide.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_tasks.dart';
@@ -18,27 +22,36 @@ class KawuriAnswer {
     this.failed = false,
     this.incomplete = false,
     this.sources = const [],
+    this.taskId,
+    this.analysis,
   });
   final String text;
   final bool fromOfflineGuide;
   final bool failed;
   final bool incomplete;
   final List<Map<String, Object?>> sources;
+  final String? taskId;
+  final KawuriAnalysisResult? analysis;
 }
 
-/// Existing callable adapter. No UI knows a provider URL or credential.
-/// Unsupported media never crosses this text-only backend boundary.
+/// Kawuri's conversation adapter. No UI knows a provider URL or credential:
+/// text goes to `kawuriChat`, and media analysis goes through
+/// [KawuriMediaRepository] to `analyseKawuriMedia`, both server-side.
 class KawuriService {
   const KawuriService(
     this.functions, {
     this.dictionary,
     this.userId,
     this.online = true,
+    this.media,
+    this.capabilities = KawuriCapabilities.none,
   });
   final FirebaseFunctions? functions;
   final Future<List<DictionaryEntry>> Function()? dictionary;
   final String? userId;
   final bool online;
+  final KawuriMediaRepository? media;
+  final KawuriCapabilities capabilities;
   static const contextWindow = 12;
 
   Future<KawuriAnswer> ask(List<KawuriMessage> conversation) async {
@@ -48,6 +61,9 @@ class KawuriService {
         text: 'This capability is coming soon.',
         failed: true,
       );
+    }
+    if (last.taskType == KawuriTaskType.mediaAnalysis) {
+      return _analyse(conversation, last);
     }
     if (_routedPrompt(last).length > 4000) {
       return const KawuriAnswer(
@@ -153,6 +169,89 @@ class KawuriService {
     }
   }
 
+  /// One analysis question: a new file, or a follow-up on the analysis the
+  /// conversation already holds.
+  Future<KawuriAnswer> _analyse(
+    List<KawuriMessage> conversation,
+    KawuriMessage last,
+  ) async {
+    final media = this.media;
+    if (media == null || !online) {
+      return const KawuriAnswer(
+        text: 'Media analysis needs a connection. Your question is saved; try again when you are online.',
+        failed: true,
+      );
+    }
+    final unavailable = capabilities.unavailableMessage('mediaAnalysis');
+    if (unavailable != null) {
+      return KawuriAnswer(text: unavailable, failed: true);
+    }
+    final attachment = last.attachment;
+    final followUp = attachment != null
+        ? null
+        : conversation.reversed
+              .where((m) => !m.isYou && !m.failed && m.taskId != null)
+              .map((m) => m.taskId)
+              .firstOrNull;
+    if (attachment == null && followUp == null) {
+      return const KawuriAnswer(
+        text: 'Attach an image, video or audio file for Kawuri to analyse.',
+        failed: true,
+      );
+    }
+    final intention = last.options['intention'] ?? 'describe';
+    try {
+      String? storagePath;
+      if (attachment != null) {
+        if (!File(attachment.path).existsSync()) {
+          return const KawuriAnswer(
+            text: 'That file is no longer on this device. Attach it again.',
+            failed: true,
+          );
+        }
+        final limit = capabilities.analysisBytes[attachment.kind] ?? 0;
+        if (limit > 0 && attachment.sizeBytes > limit) {
+          return KawuriAnswer(
+            text:
+                'That file is larger than ${limit ~/ (1024 * 1024)} MB. Choose a shorter or smaller one.',
+            failed: true,
+          );
+        }
+        storagePath = await media.upload(
+          purpose: 'media',
+          filePath: attachment.path,
+          contentType: attachment.mimeType,
+        );
+      }
+      final question = last.text == kawuriAnalysisIntentions[intention]
+          ? ''
+          : last.text;
+      final creation = await media.analyse(
+        // The message id: resending this very message is the same request.
+        requestId: 'ana_${last.id}',
+        intention: intention,
+        question: question,
+        storagePath: storagePath,
+        followUpTaskId: followUp,
+        conversationId: last.conversationId,
+      );
+      final result = creation.turns.lastOrNull?.result ?? creation.result;
+      if (creation.status != KawuriMediaStatus.ready || result == null) {
+        return KawuriAnswer(
+          text: creation.errorMessage ?? 'Kawuri could not analyse that file.',
+          failed: true,
+        );
+      }
+      return KawuriAnswer(
+        text: result.plainText,
+        taskId: creation.id,
+        analysis: result,
+      );
+    } on KawuriMediaException catch (error) {
+      return KawuriAnswer(text: error.message, failed: true);
+    }
+  }
+
   static KawuriAnswer _offline(String prompt) =>
       KawuriAnswer(text: offlineGuideAnswer(prompt), fromOfflineGuide: true);
 
@@ -229,5 +328,8 @@ final kawuriServiceProvider = Provider<KawuriService>(
     userId: ref.watch(currentUidProvider),
     online: ref.watch(isOnlineProvider),
     dictionary: () => ref.read(publishedDictionaryEntriesProvider.future),
+    media: ref.watch(kawuriMediaRepositoryProvider),
+    capabilities:
+        ref.watch(kawuriCapabilitiesProvider).value ?? KawuriCapabilities.none,
   ),
 );

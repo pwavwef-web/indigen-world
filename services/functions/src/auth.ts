@@ -25,9 +25,14 @@ export function requireAuth(req: CallableRequest<unknown>): string {
   return uid;
 }
 
+/** Whether a claimed role satisfies [required], by the same inheritance. */
+export function roleSatisfies(claimed: unknown, required: Role): boolean {
+  return typeof claimed === 'string' && ROLE_INHERITANCE[required].includes(claimed as Role);
+}
+
 export function requireRole(req: CallableRequest<unknown>, required: Role): Role {
   const claimed = req.auth?.token.role;
-  if (typeof claimed !== 'string' || !ROLE_INHERITANCE[required].includes(claimed as Role)) {
+  if (!roleSatisfies(claimed, required)) {
     throw new HttpsError('permission-denied', `${required} access is required.`);
   }
   return claimed as Role;

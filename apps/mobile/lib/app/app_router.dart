@@ -11,6 +11,8 @@ import 'package:indigen_world_mobile/features/community/post_detail_screen.dart'
 import 'package:indigen_world_mobile/features/contribute/contribute_screen.dart';
 import 'package:indigen_world_mobile/features/dictionary/entry_detail_screen.dart';
 import 'package:indigen_world_mobile/features/downloads/downloads_screen.dart';
+import 'package:indigen_world_mobile/features/kawuri/kawuri_creation_screen.dart';
+import 'package:indigen_world_mobile/features/kawuri/kawuri_library_screen.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_screen.dart';
 import 'package:indigen_world_mobile/features/music/now_playing_screen.dart';
 import 'package:indigen_world_mobile/features/notifications/notifications_screen.dart';
@@ -69,6 +71,16 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/kawuri',
         builder: (context, state) => const KawuriScreen(),
+      ),
+      // Where a "your video is ready" notification lands.
+      GoRoute(
+        path: '/kawuri/creations',
+        builder: (context, state) => const KawuriLibraryScreen(),
+      ),
+      GoRoute(
+        path: '/kawuri/creations/:taskId',
+        builder: (context, state) =>
+            KawuriCreationScreen(taskId: state.pathParameters['taskId']!),
       ),
       // Routes rather than pushes, because both are places a notification or a
       // link can want to land: a renewal reminder points at the subscription,

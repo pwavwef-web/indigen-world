@@ -1,0 +1,23 @@
+<!doctype html>
+<meta charset="utf-8">
+<link rel="stylesheet" href="style.css">
+<style>
+  .phone { --w: 620px; }
+  .left, .right { display: flex; flex-direction: column; gap: 30px; }
+  .left { align-items: flex-end; }
+  .right { align-items: flex-start; }
+</style>
+<div class="stage">
+  <div class="left">
+    <span class="pill"><span class="dot"></span>Create image</span>
+    <span class="pill"><span class="dot"></span>Create video</span>
+    <span class="pill amber"><span class="dot"></span>Analyse media</span>
+  </div>
+  <div class="phone"><img src="../screens/home.png" alt=""></div>
+  <div class="right">
+    <span class="pill green"><span class="dot"></span>Recent is live</span>
+    <span class="pill green"><span class="dot"></span>Image · Ready</span>
+    <span class="pill green"><span class="dot"></span>Video · Generating</span>
+  </div>
+</div>
+<script>Promise.all([...document.images].map((i) => i.decode().catch(() => {}))).then(() => document.fonts.ready).then(() => { window.__ready = true; });</script>

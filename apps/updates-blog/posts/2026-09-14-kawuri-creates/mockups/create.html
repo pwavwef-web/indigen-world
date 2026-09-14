@@ -1,0 +1,18 @@
+<!doctype html>
+<meta charset="utf-8">
+<link rel="stylesheet" href="style.css">
+<style>
+  .phone { --w: 410px; }
+  .stage { gap: 120px; }
+</style>
+<div class="stage">
+  <div class="column">
+    <div class="phone"><img src="../screens/create-image.png" alt=""></div>
+    <span class="pill"><span class="dot"></span>Shapes the model can make</span>
+  </div>
+  <div class="column">
+    <div class="phone"><img src="../screens/create-video-confirm.png" alt=""></div>
+    <span class="pill amber"><span class="dot"></span>Video always asks first</span>
+  </div>
+</div>
+<script>Promise.all([...document.images].map((i) => i.decode().catch(() => {}))).then(() => document.fonts.ready).then(() => { window.__ready = true; });</script>

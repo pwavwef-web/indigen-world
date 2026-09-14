@@ -1,0 +1,21 @@
+<!doctype html>
+<meta charset="utf-8">
+<link rel="stylesheet" href="style.css">
+<style>
+  .phone { --w: 410px; }
+  .stage { gap: 120px; }
+  .phone .frame { display: block; width: 100%; height: 100%; object-fit: cover; border-radius: calc(var(--w) * 0.118); }
+  .phone .over { position: absolute; left: 0; right: 0; bottom: calc(var(--w) * 0.08); display: flex; justify-content: center; }
+  .over .badge { position: static; font-size: 19px; }
+</style>
+<div class="stage">
+  <div class="column">
+    <div class="phone"><img src="../screens/generating.png" alt=""></div>
+    <span class="pill"><span class="dot"></span>Keeps going when you leave</span>
+  </div>
+  <div class="column">
+    <div class="phone"><img class="frame" src="../screens/veo-frame.png" alt=""><div class="over"><span class="badge">A frame from a real Kawuri video</span></div></div>
+    <span class="pill green"><span class="dot"></span>4 seconds · 9:16 · no sound</span>
+  </div>
+</div>
+<script>Promise.all([...document.images].map((i) => i.decode().catch(() => {}))).then(() => document.fonts.ready).then(() => { window.__ready = true; });</script>

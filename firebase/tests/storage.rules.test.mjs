@@ -393,3 +393,40 @@ test('private community media is for active members only', async () => {
     { contentType: 'image/png' },
   ));
 });
+
+test('Kawuri uploads are private, owner-created once, and typed and sized per purpose', async () => {
+  const owner = await clientFor('kawuri-owner', 'kawuri-owner');
+  const stranger = await clientFor('kawuri-stranger', 'kawuri-stranger', { role: 'admin' });
+  const anonymous = await clientFor('kawuri-anon', null);
+  const audioPath = 'kawuri-uploads/kawuri-owner/audio/rec-1/voice.m4a';
+  const small = new Uint8Array([1, 2, 3, 4]);
+
+  await uploadBytes(ref(owner, audioPath), small, { contentType: 'audio/mp4' });
+  assert.equal((await getBytes(ref(owner, audioPath))).byteLength, 4);
+  await assert.rejects(getBytes(ref(stranger, audioPath)), 'not even staff read a member’s Kawuri upload');
+  await assert.rejects(getBytes(ref(anonymous, audioPath)));
+  await assert.rejects(uploadBytes(ref(owner, audioPath), small, { contentType: 'audio/mp4' }), 'no overwrite');
+  await assert.rejects(uploadBytes(ref(stranger, 'kawuri-uploads/kawuri-owner/audio/rec-2/voice.m4a'), small, { contentType: 'audio/mp4' }));
+
+  // Unsupported types for each purpose.
+  await assert.rejects(uploadBytes(ref(owner, 'kawuri-uploads/kawuri-owner/audio/rec-3/voice.txt'), small, { contentType: 'text/plain' }));
+  await assert.rejects(uploadBytes(ref(owner, 'kawuri-uploads/kawuri-owner/audio/rec-4/clip.mp4'), small, { contentType: 'video/mp4' }));
+  await assert.rejects(uploadBytes(ref(owner, 'kawuri-uploads/kawuri-owner/reference/ref-1/a.gif'), small, { contentType: 'image/gif' }));
+  await assert.rejects(uploadBytes(ref(owner, 'kawuri-uploads/kawuri-owner/other/x-1/a.png'), small, { contentType: 'image/png' }));
+  await uploadBytes(ref(owner, 'kawuri-uploads/kawuri-owner/reference/ref-2/a.png'), small, { contentType: 'image/png' });
+  await uploadBytes(ref(owner, 'kawuri-uploads/kawuri-owner/media/m-1/clip.mp4'), small, { contentType: 'video/mp4' });
+
+  // Oversized: a voice message is capped at 10 MB.
+  const big = new Uint8Array(10 * 1024 * 1024 + 1);
+  await assert.rejects(uploadBytes(ref(owner, 'kawuri-uploads/kawuri-owner/audio/rec-5/long.m4a'), big, { contentType: 'audio/mp4' }));
+});
+
+test('Kawuri creations are readable by their owner only and written by no client', async () => {
+  const owner = await clientFor('kawuri-creator', 'kawuri-creator');
+  const stranger = await clientFor('kawuri-peeker', 'kawuri-peeker', { role: 'validator' });
+  const path = 'kawuri-creations/kawuri-creator/kawuri-creator_req_00000001/image-1.png';
+  await adminStorage(adminApp).bucket(BUCKET).file(path).save(Buffer.from([1, 2, 3]), { contentType: 'image/png' });
+  assert.equal((await getBytes(ref(owner, path))).byteLength, 3);
+  await assert.rejects(getBytes(ref(stranger, path)));
+  await assert.rejects(uploadBytes(ref(owner, 'kawuri-creations/kawuri-creator/t/fake.png'), imageBytes(), { contentType: 'image/png' }));
+});

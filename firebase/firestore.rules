@@ -739,6 +739,17 @@ service cloud.firestore {
     // key the backend never hands out -- and no one else's. Anything that must
     // stay unreadable by its own owner does not belong in this document; put
     // it in a subcollection, which the default deny below already covers.
+    // Kawuri media tasks: image and video generation, English transcription,
+    // media analysis. Created, advanced and deleted only by callable Functions
+    // running as the backend. Readable by the member who owns the task and by
+    // nobody else — not staff either: these are a member's private drafts and
+    // questions, not submissions awaiting review. The app subscribes to one
+    // task, or queries its own with `userId == request.auth.uid`.
+    match /kawuriTasks/{taskId} {
+      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow write: if false;
+    }
+
     match /studioVideoJobs/{jobId} {
       allow read: if isStaff() || (
         isSignedIn() && resource.data.ownerUid == request.auth.uid

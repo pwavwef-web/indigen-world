@@ -72,6 +72,18 @@ export {
   expireAdCampaigns,
 } from './ads.js';
 export { kawuriChat } from './kawuri.js';
+export {
+  getKawuriCapabilities,
+  createKawuriImage,
+  createKawuriVideo,
+  getKawuriTask,
+  cancelKawuriTask,
+  transcribeKawuriAudio,
+  analyseKawuriMedia,
+  listKawuriCreations,
+  deleteKawuriCreation,
+  sweepKawuriTasks,
+} from './kawuri-media.js';
 export { submitGrammarClaim, decideGrammarClaim } from './kasem-claims.js';
 export { reviewContributionDraft } from './contribution-assist.js';
 export {

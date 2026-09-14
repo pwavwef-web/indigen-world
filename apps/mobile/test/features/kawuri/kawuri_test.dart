@@ -94,13 +94,26 @@ void main() {
       );
     },
   );
-  test('unconfigured image and video tasks are explicitly unavailable', () {
-    expect(KawuriTaskType.imageGeneration.available, isFalse);
-    expect(KawuriTaskType.videoGeneration.available, isFalse);
-    expect(KawuriTaskType.mediaAnalysis.available, isFalse);
-    expect(KawuriTaskStatus.ready.terminal, isTrue);
-    expect(KawuriTaskStatus.generating.terminal, isFalse);
-  });
+  test(
+    'media tasks need the server to advertise them; unbuilt ones stay off',
+    () {
+      // An adapter exists, but only the capability manifest can switch it on.
+      expect(KawuriTaskType.imageGeneration.available, isTrue);
+      expect(
+        KawuriTaskType.imageGeneration.serverCapability,
+        'imageGeneration',
+      );
+      expect(KawuriTaskType.videoGeneration.offeredBy((_) => false), isFalse);
+      expect(KawuriTaskType.mediaAnalysis.offeredBy((_) => true), isTrue);
+      expect(KawuriTaskType.chat.offeredBy((_) => false), isTrue);
+      expect(KawuriTaskType.imageEdit.offeredBy((_) => true), isFalse);
+      expect(KawuriTaskType.pronunciation.available, isFalse);
+      expect(KawuriTaskType.videoGeneration.conversational, isFalse);
+      expect(KawuriTaskType.mediaAnalysis.conversational, isTrue);
+      expect(KawuriTaskStatus.ready.terminal, isTrue);
+      expect(KawuriTaskStatus.generating.terminal, isFalse);
+    },
+  );
 
   group('offlineGuideAnswer', () {
     test('answers app questions it genuinely knows', () {

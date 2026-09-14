@@ -1,20 +1,30 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:math' as math;
 
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/core/connectivity.dart';
 import 'package:indigen_world_mobile/features/collection/collection_data.dart';
 import 'package:indigen_world_mobile/features/contribute/contribution_form_screen.dart';
+import 'package:indigen_world_mobile/features/kawuri/kawuri_analysis_card.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_controller.dart';
+import 'package:indigen_world_mobile/features/kawuri/kawuri_create_screen.dart';
+import 'package:indigen_world_mobile/features/kawuri/kawuri_creation_screen.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_feedback.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_home.dart';
+import 'package:indigen_world_mobile/features/kawuri/kawuri_library_screen.dart';
+import 'package:indigen_world_mobile/features/kawuri/kawuri_media_models.dart';
+import 'package:indigen_world_mobile/features/kawuri/kawuri_media_repository.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_models.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_report.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_tasks.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_translation_card.dart';
+import 'package:indigen_world_mobile/features/kawuri/kawuri_voice_input.dart';
 import 'package:indigen_world_mobile/features/subscriptions/membership_screen.dart';
 import 'package:indigen_world_mobile/shared/glass_popup.dart';
 import 'package:indigen_world_mobile/shared/night_theme.dart';
@@ -80,10 +90,13 @@ class _KawuriScreenState extends ConsumerState<KawuriScreen>
   Future<void> _send([String? preset]) async {
     final text = (preset ?? _input.text).trim();
     final state = ref.read(kawuriControllerProvider);
-    if (text.isEmpty ||
+    final attachmentOnly =
+        state.mode == KawuriTaskType.mediaAnalysis && state.attachment != null;
+    if ((text.isEmpty && !attachmentOnly) ||
         state.thinking ||
         !state.restored ||
-        !state.mode.available) {
+        !state.mode.available ||
+        !state.mode.conversational) {
       return;
     }
     _input.clear();
@@ -111,8 +124,13 @@ class _KawuriScreenState extends ConsumerState<KawuriScreen>
   Widget build(BuildContext context) =>
       NightTheme(child: Builder(builder: _build));
 
+  KawuriCapabilities get _caps =>
+      ref.read(kawuriCapabilitiesProvider).value ?? KawuriCapabilities.none;
+
   Widget _build(BuildContext context) {
     final state = ref.watch(kawuriControllerProvider);
+    final caps =
+        ref.watch(kawuriCapabilitiesProvider).value ?? KawuriCapabilities.none;
     final pinNotice =
         MediaQuery.viewInsetsOf(context).bottom == 0 &&
         MediaQuery.textScalerOf(context).scale(1) <= 1.3 &&
@@ -166,6 +184,7 @@ class _KawuriScreenState extends ConsumerState<KawuriScreen>
                           ? KawuriHome(
                               restored: state.restored,
                               showNotice: !pinNotice,
+                              capabilities: caps,
                               mode: state.mode,
                               onMode: _selectMode,
                               onPrompt: (mode, prompt) {
@@ -208,7 +227,18 @@ class _KawuriScreenState extends ConsumerState<KawuriScreen>
                           ref.read(kawuriControllerProvider.notifier).stop(),
                       onTools: _openTools,
                       onConfigure: () => _selectMode(state.mode),
-                      onUnavailable: _unavailable,
+                      onUnavailable: (capability) => _unavailable(
+                        _capabilityTitle(capability),
+                        capability,
+                      ),
+                      capabilities: caps,
+                      attachment: state.attachment,
+                      onAttach: _attach,
+                      onCamera: _capturePhoto,
+                      onMic: _voice,
+                      onRemoveAttachment: () => ref
+                          .read(kawuriControllerProvider.notifier)
+                          .clearAttachment(),
                     ),
                   ],
                 ),
@@ -220,14 +250,142 @@ class _KawuriScreenState extends ConsumerState<KawuriScreen>
     );
   }
 
-  void _unavailable(String capability) {
+  static String _capabilityTitle(String capability) => switch (capability) {
+    'imageGeneration' => 'Create image',
+    'videoGeneration' => 'Create video',
+    'speechToText' => 'Voice input',
+    'mediaAnalysis' => 'Analyse media',
+    _ => capability,
+  };
+
+  /// Explains why a tool is off, in the server's terms, without opening a
+  /// flow that has nothing behind it.
+  void _unavailable(String title, [String? capability]) {
+    final caps = _caps;
+    final tag = capability == null
+        ? 'Coming soon'
+        : caps.unavailableTag(capability);
     showGlassPopup<void>(
       context: context,
-      title: '$capability · Coming soon',
-      builder: (_) => const Text(
-        'This capability is not available in Kawuri yet. You can keep chatting or develop your idea as a story.',
+      title: '$title · ${tag ?? 'Unavailable'}',
+      builder: (_) => Text(
+        (capability == null ? null : caps.unavailableMessage(capability)) ?? 'This capability is not available in Kawuri yet. You can keep chatting or develop your idea as a story.',
       ),
     );
+  }
+
+  /// Picks an image, video or audio file for Kawuri to analyse.
+  Future<void> _attach() async {
+    if (!_caps.mediaAnalysis) {
+      _unavailable('Analyse media', 'mediaAnalysis');
+      return;
+    }
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: const [
+          'jpg',
+          'jpeg',
+          'png',
+          'webp',
+          'heic',
+          'heif',
+          'mp4',
+          'mov',
+          'webm',
+          '3gp',
+          'm4a',
+          'aac',
+          'mp3',
+          'wav',
+          'ogg',
+          'flac',
+        ],
+      );
+      final picked = result?.files.singleOrNull;
+      if (picked?.path == null) return;
+      await _useAttachment(picked!.path!, picked.name);
+    } on Object {
+      if (mounted) showGlassToast(context, 'That file could not be opened.');
+    }
+  }
+
+  Future<void> _capturePhoto() async {
+    if (!_caps.mediaAnalysis) {
+      _unavailable('Analyse media', 'mediaAnalysis');
+      return;
+    }
+    try {
+      final photo = await ImagePicker().pickImage(
+        source: ImageSource.camera,
+        maxWidth: 2400,
+        maxHeight: 2400,
+        imageQuality: 88,
+      );
+      if (photo == null) return;
+      await _useAttachment(photo.path, photo.name);
+    } on Object {
+      if (mounted) showGlassToast(context, 'The camera could not be opened.');
+    }
+  }
+
+  Future<void> _useAttachment(String path, String name) async {
+    final mimeType = kawuriMimeTypeFor(path);
+    if (mimeType == null) {
+      if (mounted) {
+        showGlassToast(context, 'Kawuri can analyse images, video and audio.');
+      }
+      return;
+    }
+    final size = await File(path).length();
+    final kind = mimeType.split('/').first;
+    final limit = _caps.analysisBytes[kind] ?? 0;
+    if (limit > 0 && size > limit) {
+      if (mounted) {
+        showGlassToast(
+          context,
+          'That file is larger than ${limit ~/ (1024 * 1024)} MB.',
+        );
+      }
+      return;
+    }
+    ref
+        .read(kawuriControllerProvider.notifier)
+        .attach(
+          KawuriAttachment(
+            path: path,
+            name: name,
+            mimeType: mimeType,
+            sizeBytes: size,
+          ),
+        );
+    _inputFocus.requestFocus();
+  }
+
+  /// English voice input. The transcript lands in the composer to be edited;
+  /// nothing is sent until the member sends it.
+  Future<void> _voice() async {
+    if (!_caps.speechToText) {
+      _unavailable('Voice input', 'speechToText');
+      return;
+    }
+    final transcript = await showKawuriVoiceInput(context);
+    if (transcript == null || !mounted) return;
+    final existing = _input.text.trimRight();
+    final text = existing.isEmpty
+        ? transcript.text
+        : '$existing ${transcript.text}';
+    _input.value = TextEditingValue(
+      text: text,
+      selection: TextSelection.collapsed(offset: text.length),
+    );
+    _inputFocus.requestFocus();
+    if (transcript.unclearSegments.isNotEmpty) {
+      showGlassToast(
+        context,
+        'Some words were unclear and are marked [unclear]. Check them before sending.',
+      );
+    }
   }
 
   void _openTools() {
@@ -252,11 +410,23 @@ class _KawuriScreenState extends ConsumerState<KawuriScreen>
                   );
                 },
               ),
+              ListTile(
+                leading: const Icon(Icons.collections_outlined),
+                title: const Text('Your creations'),
+                subtitle: const Text('Images, videos and analyses'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _openLibrary();
+                },
+              ),
               for (final type in kawuriCapabilities)
                 ListTile(
                   leading: Icon(capabilityIcon(type)),
                   title: Text(type.label),
-                  subtitle: type.available ? null : const Text('Coming soon'),
+                  subtitle: switch (kawuriUnavailableTag(type, _caps)) {
+                    final tag? => Text(tag),
+                    null => null,
+                  },
                   onTap: () {
                     Navigator.pop(context);
                     _selectMode(type);
@@ -270,13 +440,33 @@ class _KawuriScreenState extends ConsumerState<KawuriScreen>
   }
 
   void _selectMode(KawuriTaskType type) {
-    if (!type.available) {
-      _unavailable(type.label);
+    final caps = _caps;
+    if (!type.offeredBy(
+      (capability) => caps.unavailableMessage(capability) == null,
+    )) {
+      _unavailable(type.label, type.serverCapability);
+      return;
+    }
+    if (type == KawuriTaskType.imageGeneration ||
+        type == KawuriTaskType.videoGeneration) {
+      // A creation is a lasting thing with its own screen, not a reply.
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => KawuriCreateScreen(
+            kind: type == KawuriTaskType.videoGeneration
+                ? KawuriCreateKind.video
+                : KawuriCreateKind.image,
+            draft: KawuriCreateDraft(prompt: _input.text.trim()),
+            conversationId: ref.read(kawuriControllerProvider).conversationId,
+          ),
+        ),
+      );
       return;
     }
     ref.read(kawuriControllerProvider.notifier).configure(type);
     if (type != KawuriTaskType.translation &&
-        type != KawuriTaskType.languagePractice) {
+        type != KawuriTaskType.languagePractice &&
+        type != KawuriTaskType.mediaAnalysis) {
       return;
     }
     final options = Map<String, String>.of(
@@ -329,7 +519,36 @@ class _KawuriScreenState extends ConsumerState<KawuriScreen>
                       'English → Kasem',
                       'Kasem → English',
                     ])
-                  else ...[
+                  else if (type == KawuriTaskType.mediaAnalysis) ...[
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: DropdownButtonFormField<String>(
+                        initialValue: options['intention'] ?? 'describe',
+                        isExpanded: true,
+                        decoration: const InputDecoration(
+                          labelText: 'What should Kawuri do?',
+                        ),
+                        items: [
+                          for (final entry in kawuriAnalysisIntentions.entries)
+                            DropdownMenuItem(
+                              value: entry.key,
+                              child: Text(entry.value),
+                            ),
+                        ],
+                        onChanged: (value) {
+                          if (value == null) return;
+                          update(() => options['intention'] = value);
+                          ref
+                              .read(kawuriControllerProvider.notifier)
+                              .configure(type, options: Map.of(options));
+                        },
+                      ),
+                    ),
+                    const Text(
+                      'Attach an image, video or audio file with + or the camera, then ask a question if you have one. Follow-up questions continue the same analysis. Kawuri separates what it sees from what it guesses, and cultural meaning always needs the community.',
+                    ),
+                    const SizedBox(height: 16),
+                  ] else ...[
                     const Text(
                       'Language: Kasem · Published examples are the record.',
                     ),
@@ -363,32 +582,8 @@ class _KawuriScreenState extends ConsumerState<KawuriScreen>
   }
 
   void _openLibrary() {
-    showModalBottomSheet<void>(
-      context: context,
-      builder: (context) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                'Your creations',
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                'No creations yet. Image, video and media analysis tools are coming soon. Your conversations are available in History.',
-              ),
-              const SizedBox(height: 16),
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Back to Kawuri'),
-              ),
-            ],
-          ),
-        ),
-      ),
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(builder: (_) => const KawuriLibraryScreen()),
     );
   }
 
@@ -809,17 +1004,51 @@ class _MessageBubble extends StatelessWidget {
               ? CrossAxisAlignment.end
               : CrossAxisAlignment.start,
           children: [
+            if (isYou && message.attachment != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.attach_file_rounded,
+                      size: 14,
+                      color: kawuriMint,
+                    ),
+                    const SizedBox(width: 4),
+                    Flexible(
+                      child: Text(
+                        message.attachment!.name,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(color: kawuriMint, fontSize: 12),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             GestureDetector(
               onLongPress: () => _copy(context),
               child: isYou ? _yourBubble() : _kawuriBubble(),
             ),
+            if (!isYou && message.taskId != null && message.analysis != null)
+              TextButton.icon(
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) =>
+                        KawuriCreationScreen(taskId: message.taskId!),
+                  ),
+                ),
+                icon: const Icon(Icons.open_in_new_rounded, size: 16),
+                label: const Text('Open analysis'),
+              ),
             if (!isYou && message.sources.isNotEmpty)
               for (final source in message.sources)
                 KawuriTranslationCard(source: source),
             if (!isYou &&
                 !message.failed &&
                 !message.fromOfflineGuide &&
-                message.sources.isEmpty)
+                message.sources.isEmpty &&
+                message.analysis == null)
               const Padding(
                 padding: EdgeInsets.only(top: 6),
                 child: Text(
@@ -967,7 +1196,9 @@ class _MessageBubble extends StatelessWidget {
         ),
       ],
     ),
-    child: KawuriText(text: message.text),
+    child: message.analysis != null
+        ? KawuriAnalysisCard(result: message.analysis!)
+        : KawuriText(text: message.text),
   );
 
   Future<void> _contribution(BuildContext context) async {

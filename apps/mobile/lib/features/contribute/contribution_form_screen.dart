@@ -37,8 +37,18 @@ class ContributionFormScreen extends ConsumerStatefulWidget {
     this.initialSource = '',
     this.relatedEntryId,
     this.initialAiDraft = '',
+    this.initialFile,
+    this.initialCover,
     super.key,
   });
+
+  /// A file handed over from elsewhere in the app — a video made with Kawuri —
+  /// staged exactly as if the member had picked it. Nothing is uploaded until
+  /// they submit.
+  final PickedContributionFile? initialFile;
+
+  /// Artwork handed over the same way.
+  final PickedContributionFile? initialCover;
 
   final CollectionKind kind;
 
@@ -166,6 +176,8 @@ class _ContributionFormScreenState
     if (widget.initialAiDraft.isNotEmpty) {
       _notesController.text = widget.initialAiDraft;
     }
+    _file = widget.initialFile;
+    _cover = widget.initialCover;
     // The English side of the record is the first meaning, so the two are one
     // value with two readers rather than two fields somebody has to keep in
     // agreement. Everything downstream -- the draft check, the validator, the

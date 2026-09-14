@@ -1,4 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:indigen_world_mobile/features/kawuri/kawuri_creation_screen.dart';
+import 'package:indigen_world_mobile/features/kawuri/kawuri_library_screen.dart';
+import 'package:indigen_world_mobile/features/kawuri/kawuri_media_models.dart';
+import 'package:indigen_world_mobile/features/kawuri/kawuri_media_repository.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_tasks.dart';
 
 const kawuriMint = Color(0xFF80F4CF);
@@ -27,6 +32,14 @@ IconData capabilityIcon(KawuriTaskType type) => switch (type) {
   _ => Icons.auto_stories_outlined,
 };
 
+/// The tag a carousel tile or tools row carries when its task cannot be used
+/// right now, or null when it can.
+String? kawuriUnavailableTag(KawuriTaskType type, KawuriCapabilities caps) {
+  if (!type.available) return 'Coming soon';
+  final capability = type.serverCapability;
+  return capability == null ? null : caps.unavailableTag(capability);
+}
+
 class KawuriHome extends StatelessWidget {
   const KawuriHome({
     required this.restored,
@@ -35,10 +48,12 @@ class KawuriHome extends StatelessWidget {
     required this.onMode,
     required this.onPrompt,
     required this.onLibrary,
+    this.capabilities = KawuriCapabilities.none,
     super.key,
   });
   final bool restored;
   final bool showNotice;
+  final KawuriCapabilities capabilities;
   final KawuriTaskType mode;
   final ValueChanged<KawuriTaskType> onMode;
   final void Function(KawuriTaskType, String) onPrompt;
@@ -89,11 +104,11 @@ class KawuriHome extends StatelessWidget {
                 itemBuilder: (context, index) {
                   final type = kawuriCapabilities[index];
                   final selected = mode == type;
+                  final tag = kawuriUnavailableTag(type, capabilities);
                   return Semantics(
                     button: true,
                     selected: selected,
-                    label:
-                        '${type.label}${type.available ? '' : ', Coming soon'}',
+                    label: '${type.label}${tag == null ? '' : ', $tag'}',
                     child: SizedBox(
                       width: width,
                       child: Material(
@@ -136,13 +151,13 @@ class KawuriHome extends StatelessWidget {
                                     color: Colors.white,
                                   ),
                                 ),
-                                if (!type.available)
-                                  const Padding(
-                                    padding: EdgeInsets.only(top: 5),
+                                if (tag != null)
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 5),
                                     child: Text(
-                                      'Coming soon',
+                                      tag,
                                       textAlign: TextAlign.center,
-                                      style: TextStyle(
+                                      style: const TextStyle(
                                         fontSize: 9,
                                         color: Color(0xFFE7C574),
                                       ),
@@ -228,17 +243,7 @@ class KawuriHome extends StatelessWidget {
             ],
           ),
         ),
-        const Padding(
-          padding: EdgeInsets.fromLTRB(20, 2, 20, 16),
-          child: Text(
-            'Your images, videos and media tasks will appear here. Creation tools are coming soon.',
-            style: TextStyle(
-              fontSize: 13,
-              height: 1.45,
-              color: Color(0xFFABC8BE),
-            ),
-          ),
-        ),
+        const KawuriRecentCreations(),
         if (showNotice)
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 16),
@@ -342,6 +347,12 @@ class KawuriComposer extends StatelessWidget {
     required this.onTools,
     required this.onUnavailable,
     required this.onConfigure,
+    this.capabilities = KawuriCapabilities.none,
+    this.attachment,
+    this.onAttach,
+    this.onCamera,
+    this.onMic,
+    this.onRemoveAttachment,
     super.key,
   });
   final TextEditingController controller;
@@ -352,7 +363,16 @@ class KawuriComposer extends StatelessWidget {
   final VoidCallback onStop;
   final VoidCallback onTools;
   final VoidCallback onConfigure;
+
+  /// Called with the capability name (`mediaAnalysis`, `speechToText`) of a
+  /// control whose tool is not available right now.
   final ValueChanged<String> onUnavailable;
+  final KawuriCapabilities capabilities;
+  final KawuriAttachment? attachment;
+  final VoidCallback? onAttach;
+  final VoidCallback? onCamera;
+  final VoidCallback? onMic;
+  final VoidCallback? onRemoveAttachment;
   @override
   Widget build(BuildContext context) => Padding(
     padding: const EdgeInsets.fromLTRB(12, 5, 12, 8),
@@ -373,11 +393,13 @@ class KawuriComposer extends StatelessWidget {
                 onPressed: onConfigure,
                 icon: Icon(capabilityIcon(mode), size: 16),
                 label: Text(
-                  '${mode.label}${mode.available ? ' · Options' : ' · Coming soon'}',
+                  '${mode.label} · ${kawuriUnavailableTag(mode, capabilities) ?? 'Options'}',
                   style: const TextStyle(fontSize: 12, color: kawuriMint),
                 ),
               ),
             ),
+          if (attachment case final file?)
+            _AttachmentChip(attachment: file, onRemove: onRemoveAttachment),
           TextField(
             controller: controller,
             focusNode: focusNode,
@@ -400,21 +422,33 @@ class KawuriComposer extends StatelessWidget {
           Row(
             children: [
               IconButton(
-                tooltip: 'Attachments · Coming soon',
-                onPressed: () => onUnavailable('Attachments'),
+                tooltip: capabilities.mediaAnalysis
+                    ? 'Attach media to analyse'
+                    : 'Attach media · ${capabilities.unavailableTag('mediaAnalysis') ?? 'Unavailable'}',
+                onPressed: capabilities.mediaAnalysis && onAttach != null
+                    ? onAttach
+                    : () => onUnavailable('mediaAnalysis'),
                 icon: const Icon(Icons.add_rounded, color: Colors.white),
               ),
               IconButton(
-                tooltip: 'Camera · Coming soon',
-                onPressed: () => onUnavailable('Camera and images'),
+                tooltip: capabilities.mediaAnalysis
+                    ? 'Take a photo to analyse'
+                    : 'Camera · ${capabilities.unavailableTag('mediaAnalysis') ?? 'Unavailable'}',
+                onPressed: capabilities.mediaAnalysis && onCamera != null
+                    ? onCamera
+                    : () => onUnavailable('mediaAnalysis'),
                 icon: const Icon(
                   Icons.photo_camera_outlined,
                   color: Colors.white,
                 ),
               ),
               IconButton(
-                tooltip: 'Microphone · Coming soon',
-                onPressed: () => onUnavailable('Audio recording'),
+                tooltip: capabilities.speechToText
+                    ? 'Voice input · English only'
+                    : 'Voice input · ${capabilities.unavailableTag('speechToText') ?? 'Unavailable'}',
+                onPressed: capabilities.speechToText && onMic != null
+                    ? onMic
+                    : () => onUnavailable('speechToText'),
                 icon: const Icon(Icons.mic_none_rounded, color: Colors.white),
               ),
               Expanded(
@@ -439,7 +473,11 @@ class KawuriComposer extends StatelessWidget {
                   tooltip: busy ? 'Stop waiting' : 'Send to Kawuri',
                   onPressed: busy
                       ? onStop
-                      : (value.text.trim().isNotEmpty && mode.available
+                      : ((value.text.trim().isNotEmpty ||
+                                    (mode == KawuriTaskType.mediaAnalysis &&
+                                        attachment != null)) &&
+                                mode.available &&
+                                mode.conversational
                             ? onSend
                             : null),
                   style: IconButton.styleFrom(
@@ -455,6 +493,166 @@ class KawuriComposer extends StatelessWidget {
             ],
           ),
         ],
+      ),
+    ),
+  );
+}
+
+class _AttachmentChip extends StatelessWidget {
+  const _AttachmentChip({required this.attachment, this.onRemove});
+
+  final KawuriAttachment attachment;
+  final VoidCallback? onRemove;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(top: 6),
+    child: Row(
+      children: [
+        Icon(
+          switch (attachment.kind) {
+            'video' => Icons.videocam_outlined,
+            'audio' => Icons.graphic_eq_rounded,
+            _ => Icons.image_outlined,
+          },
+          color: kawuriMint,
+          size: 20,
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            attachment.name,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(color: Colors.white, fontSize: 13),
+          ),
+        ),
+        IconButton(
+          tooltip: 'Remove attachment',
+          onPressed: onRemove,
+          icon: const Icon(Icons.close_rounded, color: Colors.white, size: 18),
+        ),
+      ],
+    ),
+  );
+}
+
+/// The two newest creations, with their real status and — only when Vertex
+/// reported one — their real progress.
+class KawuriRecentCreations extends ConsumerWidget {
+  const KawuriRecentCreations({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final signedIn = ref.watch(kawuriMediaRepositoryProvider)?.uid != null;
+    final recent = ref.watch(kawuriRecentCreationsProvider);
+    const hint = TextStyle(
+      fontSize: 13,
+      height: 1.45,
+      color: Color(0xFFABC8BE),
+    );
+    if (!signedIn) {
+      return const Padding(
+        padding: EdgeInsets.fromLTRB(20, 2, 20, 16),
+        child: Text(
+          'Sign in to keep the images, videos and media analyses you make with Kawuri.',
+          style: hint,
+        ),
+      );
+    }
+    final items = recent.value ?? const <KawuriCreation>[];
+    if (items.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(20, 2, 20, 16),
+        child: Text(
+          recent.isLoading
+              ? 'Loading your creations…'
+              : 'Your images, videos and media analyses will appear here.',
+          style: hint,
+        ),
+      );
+    }
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 2, 16, 16),
+      child: Column(
+        children: [
+          for (final creation in items)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: _RecentRow(creation: creation),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RecentRow extends StatelessWidget {
+  const _RecentRow({required this.creation});
+
+  final KawuriCreation creation;
+
+  @override
+  Widget build(BuildContext context) => Material(
+    color: const Color(0xFF102F27),
+    borderRadius: BorderRadius.circular(14),
+    child: InkWell(
+      borderRadius: BorderRadius.circular(14),
+      onTap: () => Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) =>
+              KawuriCreationScreen(taskId: creation.id, initial: creation),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          children: [
+            Icon(kawuriCreationIcon(creation), color: kawuriMint),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    creation.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    creation.subtitle,
+                    style: const TextStyle(
+                      color: Color(0xFFABC8BE),
+                      fontSize: 12.5,
+                    ),
+                  ),
+                  if (creation.status.inFlight) ...[
+                    const SizedBox(height: 6),
+                    LinearProgressIndicator(
+                      value: creation.progress == null
+                          ? null
+                          : creation.progress! / 100,
+                      minHeight: 3,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            if (creation.progressLabel case final progress?)
+              Padding(
+                padding: const EdgeInsets.only(left: 8),
+                child: Text(
+                  progress,
+                  style: const TextStyle(color: kawuriMint),
+                ),
+              ),
+          ],
+        ),
       ),
     ),
   );

@@ -34,8 +34,11 @@ const ENFORCE_APP_CHECK = process.env.ENFORCE_APP_CHECK === 'true';
 const MAX_TURNS = 12;
 const MAX_CHARS_PER_TURN = 4000;
 
-/** Requests per member per minute. Generous for a person, useless for a script. */
-const RATE_LIMIT_PER_MINUTE = 20;
+/**
+ * Requests per member per minute. Generous for a person, useless for a script.
+ * Exported because Kawuri's media tools spend from the same bucket.
+ */
+export const RATE_LIMIT_PER_MINUTE = 20;
 
 /**
  * The second ceiling, and the one a subscription moves.
@@ -46,7 +49,7 @@ const RATE_LIMIT_PER_MINUTE = 20;
  * `TIER_BENEFITS` in `subscription-catalog.ts`. Guests and free members share
  * the free row, which is the same number it would have had to be anyway.
  */
-const DAY_MS = 24 * 60 * 60 * 1000;
+export const DAY_MS = 24 * 60 * 60 * 1000;
 
 const MODEL = process.env.KAWURI_MODEL || 'gemini-2.5-flash';
 

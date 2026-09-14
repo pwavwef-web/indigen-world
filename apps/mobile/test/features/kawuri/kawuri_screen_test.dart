@@ -222,9 +222,10 @@ void main() {
     (tester) async {
       final service = await pump(tester);
       await tester.enterText(find.byType(TextField), 'Keep this draft');
-      await tester.tap(find.byTooltip('Attachments · Coming soon'));
+      // No capability manifest has arrived, so the tool is not offered.
+      await tester.tap(find.byTooltip('Attach media · Checking…'));
       await tester.pump(const Duration(milliseconds: 300));
-      expect(find.text('Attachments · Coming soon'), findsWidgets);
+      expect(find.text('Analyse media · Checking…'), findsWidgets);
       expect(service.asked, isEmpty);
       expect(
         tester.widget<TextField>(find.byType(TextField)).controller!.text,

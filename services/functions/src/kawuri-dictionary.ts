@@ -587,7 +587,7 @@ export function dictionaryBriefing(
   if (matches.length === 0) {
     return `DICTIONARY LOOKUP — the published Indigen World dictionary was searched for ${asked} and has NO entry for any of them.
 
-Say so plainly: the dictionary does not have this word yet. Do not offer a Kasem word from your own memory, do not guess a spelling, and do not describe how it "might" be said. Point the person at the Contribute tab if they know the word from a speaker, or at the Community tab if they want to ask one.`;
+Say so plainly: the dictionary does not have this word yet. Do not offer a Kasem word from your own memory, do not guess a spelling, and do not describe how it "might" be said. Point the person at the Contribute tab if they know the word from a speaker, or at the Community tab if they want to ask one — that is how a word gets verified by the community and added.`;
   }
 
   const lines = matches
@@ -618,7 +618,9 @@ How to use them:
 • Where an entry carries an example sentence, include it; it is what makes the word usable.
 • Where an entry lists recorded forms, those are the ONLY forms of that word you may state. If somebody asks for a plural, a tense or a counted form that is not listed, say it has not been recorded — do NOT build one. Kasem plurals and numerals agree with the noun in ways nobody has written down yet, so a form you construct will look right, be wrong, and be repeated.
 • If the entry does not actually answer what was asked, say that instead of stretching it to fit.
-• Do not add any further Kasem word from memory. Anything not listed above is unattested, and saying so is a complete answer.${homographNote}`;
+• Never contradict, respell, reinterpret or quietly "improve" an entry above. If you believe an entry may be wrong, say it should be checked with a speaker, and still quote it as written.
+• Anything you add beyond these entries — usage advice, cultural background, a guess at nuance — must be labelled "Not verified:" at the start of that sentence, so it can never be read as part of the dictionary.
+• Do not add any further Kasem word from memory. Anything not listed above is unattested, and saying so is a complete answer. Invite the person to confirm or correct it with the community through the Community or Contribute tabs.${homographNote}`;
 }
 
 /** The cached dictionary for this instance. */

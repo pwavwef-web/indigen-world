@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:indigen_world_mobile/features/kawuri/kawuri_media_models.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_tasks.dart';
 
 /// Who said it.
@@ -20,6 +21,9 @@ class KawuriMessage {
     this.sources = const [],
     this.conversationId = '',
     this.incomplete = false,
+    this.attachment,
+    this.taskId,
+    this.analysis,
   });
 
   final String id;
@@ -33,6 +37,17 @@ class KawuriMessage {
   final List<Map<String, Object?>> sources;
   final String conversationId;
   final bool incomplete;
+
+  /// The file the member sent with an analysis question. The local copy may
+  /// be gone by the time history is reopened; only its name is shown then.
+  final KawuriAttachment? attachment;
+
+  /// The backend task an analysis answer belongs to, which a follow-up
+  /// question continues.
+  final String? taskId;
+
+  /// The structured analysis, drawn with its sections kept apart.
+  final KawuriAnalysisResult? analysis;
 
   /// True when this answer came from the on-device guide rather than the model,
   /// so the UI can label it honestly instead of passing it off as a full
@@ -60,6 +75,9 @@ class KawuriMessage {
     sources: sources,
     conversationId: conversationId,
     incomplete: incomplete ?? this.incomplete,
+    attachment: attachment,
+    taskId: taskId,
+    analysis: analysis,
   );
 
   Map<String, Object?> toJson() => {
@@ -72,6 +90,9 @@ class KawuriMessage {
     'sources': sources,
     'conversationId': conversationId,
     'incomplete': incomplete,
+    if (attachment != null) 'attachment': attachment!.toJson(),
+    if (taskId != null) 'taskId': taskId,
+    if (analysis != null) 'analysis': analysis!.toJson(),
     if (failed) 'failed': true,
     if (fromOfflineGuide) 'offline': true,
   };
@@ -100,6 +121,9 @@ class KawuriMessage {
         const [],
     conversationId: json['conversationId'] as String? ?? '',
     incomplete: json['incomplete'] == true,
+    attachment: KawuriAttachment.fromJson(json['attachment']),
+    taskId: json['taskId'] as String?,
+    analysis: KawuriAnalysisResult.fromMap(json['analysis']),
   );
 }
 

@@ -1,5 +1,6 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -21,13 +22,15 @@ class AppLocalizationsFr extends AppLocalizations {
   String get settingsLanguageMatchDevice => 'Suivre mon appareil';
 
   @override
-  String get settingsLanguageSubtitle => 'La langue dans laquelle l\'application se lit';
+  String get settingsLanguageSubtitle =>
+      'La langue dans laquelle l\'application se lit';
 
   @override
   String get settingsAppearance => 'Apparence';
 
   @override
-  String get settingsAppearanceSystem => 'Suivre l\'appareil — clair le jour, sombre la nuit';
+  String get settingsAppearanceSystem =>
+      'Suivre l\'appareil — clair le jour, sombre la nuit';
 
   @override
   String get settingsAppearanceLight => 'Clair — papier chaud et vert profond';
@@ -39,7 +42,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get settingsAutoplayTitle => 'Lire les vidéos automatiquement';
 
   @override
-  String get settingsAutoplayBody => 'Les clips du fil communautaire démarrent seuls, sans son. Désactivé, vous économisez des données sur un forfait limité — touchez un clip pour le regarder.';
+  String get settingsAutoplayBody =>
+      'Les clips du fil communautaire démarrent seuls, sans son. Désactivé, vous économisez des données sur un forfait limité — touchez un clip pour le regarder.';
 
   @override
   String get navExplore => 'Explorer';
@@ -60,7 +64,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get onboardingTitle => 'La langue vit\navec les gens.';
 
   @override
-  String get onboardingBody => 'Apprenez, cherchez et contribuez avec Project Kassena — la première cellule linguistique d’Indigen World.';
+  String get onboardingBody =>
+      'Apprenez, cherchez et contribuez avec Project Kassena — la première cellule linguistique d’Indigen World.';
 
   @override
   String get onboardingQuestion => 'Qu’est-ce qui vous amène ?';
@@ -69,25 +74,29 @@ class AppLocalizationsFr extends AppLocalizations {
   String get onboardingHome => 'Communauté d’origine';
 
   @override
-  String get onboardingHomeBody => 'Rester proche de la langue parlée autour de vous.';
+  String get onboardingHomeBody =>
+      'Rester proche de la langue parlée autour de vous.';
 
   @override
   String get onboardingDiaspora => 'Diaspora';
 
   @override
-  String get onboardingDiasporaBody => 'Renouer et pratiquer, où que vous soyez.';
+  String get onboardingDiasporaBody =>
+      'Renouer et pratiquer, où que vous soyez.';
 
   @override
   String get onboardingVisitor => 'Visiteur ou apprenant';
 
   @override
-  String get onboardingVisitorBody => 'Apprendre avec respect, contexte et attribution.';
+  String get onboardingVisitorBody =>
+      'Apprendre avec respect, contexte et attribution.';
 
   @override
   String get onboardingStart => 'Commencer par le kasem';
 
   @override
-  String get onboardingGuestNote => 'Le dictionnaire public et les leçons fonctionnent sans compte. Vous pourrez en créer un plus tard.';
+  String get onboardingGuestNote =>
+      'Le dictionnaire public et les leçons fonctionnent sans compte. Vous pourrez en créer un plus tard.';
 
   @override
   String get communityTitle => 'Communauté';
@@ -96,7 +105,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get communityMenu => 'Menu de la communauté';
 
   @override
-  String get communityMenuWaiting => 'Menu de la communauté, éléments en attente';
+  String get communityMenuWaiting =>
+      'Menu de la communauté, éléments en attente';
 
   @override
   String get communityNotifications => 'Notifications';
@@ -153,7 +163,8 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get communityEmptyFollowing => 'Rien de la part des personnes que vous suivez';
+  String get communityEmptyFollowing =>
+      'Rien de la part des personnes que vous suivez';
 
   @override
   String get communityEmptyFeed => 'Aucune publication pour l’instant';
@@ -162,7 +173,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get communityFirstPost => 'Publier la première';
 
   @override
-  String get communityBackendPending => 'Le service communautaire démarre encore';
+  String get communityBackendPending =>
+      'Le service communautaire démarre encore';
 
   @override
   String get communityFeedFailed => 'Le fil n’a pas pu se charger';
@@ -185,7 +197,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get communityCommunitiesTab => 'Communautés';
 
   @override
-  String get communityCommunitiesTabSemantics => 'Communautés. Trouver, rejoindre ou créer une communauté';
+  String get communityCommunitiesTabSemantics =>
+      'Communautés. Trouver, rejoindre ou créer une communauté';
 
   @override
   String communityPromptTitle(String language) {
@@ -196,7 +209,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get communityPromptSubtitle => 'Partagez un mot de chez vous';
 
   @override
-  String get communityPromptHint => 'Partagez un mot de chez vous et ce qu\'il veut dire…';
+  String get communityPromptHint =>
+      'Partagez un mot de chez vous et ce qu\'il veut dire…';
 
   @override
   String communityPromptSemantics(String title, String subtitle) {
@@ -363,16 +377,20 @@ class AppLocalizationsFr extends AppLocalizations {
   String get communityPrivateTitle => 'Cette communauté est privée';
 
   @override
-  String get communityPrivateBody => 'Demandez à rejoindre pour voir ses publications et ses membres.';
+  String get communityPrivateBody =>
+      'Demandez à rejoindre pour voir ses publications et ses membres.';
 
   @override
-  String get communityUnavailableTitle => 'Cette communauté n\'est pas disponible';
+  String get communityUnavailableTitle =>
+      'Cette communauté n\'est pas disponible';
 
   @override
-  String get communityUnavailableBody => 'Elle a peut-être été supprimée, ou le lien est erroné.';
+  String get communityUnavailableBody =>
+      'Elle a peut-être été supprimée, ou le lien est erroné.';
 
   @override
-  String get communityBannedTitle => 'Vous ne pouvez pas participer à cette communauté';
+  String get communityBannedTitle =>
+      'Vous ne pouvez pas participer à cette communauté';
 
   @override
   String get communitySpaceEmpty => 'Aucune publication ici';
@@ -459,7 +477,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get createCommunityAddress => 'Adresse';
 
   @override
-  String get createCommunityAddressHelper => 'Minuscules, chiffres et tirets. Ne pourra pas être modifiée.';
+  String get createCommunityAddressHelper =>
+      'Minuscules, chiffres et tirets. Ne pourra pas être modifiée.';
 
   @override
   String get createCommunityAddressChecking => 'Vérification de l\'adresse…';
@@ -492,13 +511,16 @@ class AppLocalizationsFr extends AppLocalizations {
   String get createCommunityVisibility => 'Qui peut lire les publications ?';
 
   @override
-  String get createCommunityPublicBody => 'Tout le monde peut lire et rejoindre.';
+  String get createCommunityPublicBody =>
+      'Tout le monde peut lire et rejoindre.';
 
   @override
-  String get createCommunityPrivateBody => 'Seuls les membres acceptés lisent les publications.';
+  String get createCommunityPrivateBody =>
+      'Seuls les membres acceptés lisent les publications.';
 
   @override
-  String get createCommunityVisibilityLocked => 'Ce choix ne pourra plus être modifié.';
+  String get createCommunityVisibilityLocked =>
+      'Ce choix ne pourra plus être modifié.';
 
   @override
   String get createCommunityProfileImage => 'Image de profil';
@@ -600,7 +622,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get communityEditDiscardTitle => 'Abandonner vos modifications ?';
 
   @override
-  String get communityEditDiscardBody => 'Rien de ce que vous avez modifié n\'a été enregistré.';
+  String get communityEditDiscardBody =>
+      'Rien de ce que vous avez modifié n\'a été enregistré.';
 
   @override
   String get communityEditDiscard => 'Abandonner';
@@ -612,7 +635,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get communityHandOverTitle => 'Choisir le nouveau propriétaire';
 
   @override
-  String get communityHandOverBody => 'Cette personne devient propriétaire. Vous restez admin et pourrez partir ensuite.';
+  String get communityHandOverBody =>
+      'Cette personne devient propriétaire. Vous restez admin et pourrez partir ensuite.';
 
   @override
   String communityHandOverConfirm(String name) {
@@ -625,7 +649,8 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get communityHandOverNobody => 'Personne d\'autre n\'est encore dans cette communauté. Vous pouvez la fermer.';
+  String get communityHandOverNobody =>
+      'Personne d\'autre n\'est encore dans cette communauté. Vous pouvez la fermer.';
 
   @override
   String get communityClose => 'Fermer la communauté';
@@ -636,16 +661,19 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get communityCloseBody => 'Elle n\'accepte plus de membres ni de publications, et son adresse reste réservée. Impossible d\'annuler depuis l\'application.';
+  String get communityCloseBody =>
+      'Elle n\'accepte plus de membres ni de publications, et son adresse reste réservée. Impossible d\'annuler depuis l\'application.';
 
   @override
   String get communityCloseDone => 'Communauté fermée.';
 
   @override
-  String get communityLeaveOwnerTitle => 'Vous êtes propriétaire de cette communauté';
+  String get communityLeaveOwnerTitle =>
+      'Vous êtes propriétaire de cette communauté';
 
   @override
-  String get communityLeaveOwnerBody => 'Transférez-la à un autre membre avant de partir, ou fermez-la si vous êtes seul.';
+  String get communityLeaveOwnerBody =>
+      'Transférez-la à un autre membre avant de partir, ou fermez-la si vous êtes seul.';
 
   @override
   String get learnDictionary => 'Dictionnaire';
@@ -676,7 +704,8 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get learnLockedAbove => 'Terminez la leçon précédente pour ouvrir celle-ci.';
+  String get learnLockedAbove =>
+      'Terminez la leçon précédente pour ouvrir celle-ci.';
 
   @override
   String learnUnitNumber(int order) {
@@ -741,7 +770,8 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get learnBubbleLockedBody => 'Terminez la leçon précédente pour ouvrir celle-ci.';
+  String get learnBubbleLockedBody =>
+      'Terminez la leçon précédente pour ouvrir celle-ci.';
 
   @override
   String get learnBubblePractise => 'REFAIRE';
@@ -761,7 +791,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get learnMomentumTitle => 'Votre élan';
 
   @override
-  String get learnMomentumUnpublished => 'Le parcours est encore en cours de publication';
+  String get learnMomentumUnpublished =>
+      'Le parcours est encore en cours de publication';
 
   @override
   String learnMomentumProgress(int done, int total) {
