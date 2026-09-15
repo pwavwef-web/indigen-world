@@ -410,23 +410,19 @@ const EMPTY_CONTRIBUTOR_SCORE: ContributorScore = {
  * it is a zero. The document is world-readable and server-written only.
  */
 export async function fetchMyContributorScore(uid: string): Promise<ContributorScore> {
-  try {
-    const snap = await getDoc(doc(db, 'contributorScores', uid));
-    if (!snap.exists()) return EMPTY_CONTRIBUTOR_SCORE;
-    const data = snap.data() as Record<string, unknown>;
-    return {
-      points: Number(data.points ?? 0),
-      approvedCount: Number(data.approvedCount ?? 0),
-      wordCount: Number(data.wordCount ?? 0),
-      otherCount: Number(data.otherCount ?? 0),
-      streakDays: Number(data.streakDays ?? 0),
-      lastContributionDay: typeof data.lastContributionDay === 'string'
-        ? data.lastContributionDay
-        : null,
-    };
-  } catch {
-    return EMPTY_CONTRIBUTOR_SCORE;
-  }
+  const snap = await getDoc(doc(db, 'contributorScores', uid));
+  if (!snap.exists()) return EMPTY_CONTRIBUTOR_SCORE;
+  const data = snap.data() as Record<string, unknown>;
+  return {
+    points: Number(data.points ?? 0),
+    approvedCount: Number(data.approvedCount ?? 0),
+    wordCount: Number(data.wordCount ?? 0),
+    otherCount: Number(data.otherCount ?? 0),
+    streakDays: Number(data.streakDays ?? 0),
+    lastContributionDay: typeof data.lastContributionDay === 'string'
+      ? data.lastContributionDay
+      : null,
+  };
 }
 
 /**

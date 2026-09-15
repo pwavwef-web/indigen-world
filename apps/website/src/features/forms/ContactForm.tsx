@@ -31,6 +31,14 @@ function subjectFromLocation(): string {
     : "";
 }
 
+function correctionContext(): string {
+  const query = new URLSearchParams(window.location.search);
+  const entry = query.get("entry")?.slice(0, 200);
+  if (query.get("subject") !== "publication-correction-takedown" || !entry) return "";
+  const word = query.get("word")?.slice(0, 200) ?? "";
+  return `Dictionary entry: ${word} (${entry})\nhttps://indigenworld.com/dictionary?entry=${encodeURIComponent(entry)}\n\nSuggested correction:\n`;
+}
+
 function validateEmail(value: string): FieldValidation {
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
     return { valid: false, message: "Please enter a valid email address." };
@@ -44,7 +52,7 @@ async function submitContactForm(values: ContactFormValues): Promise<void> {
 
 export function ContactForm() {
   const initialValues = useMemo<ContactFormValues>(
-    () => ({ ...EMPTY_VALUES, subject: subjectFromLocation() }),
+    () => ({ ...EMPTY_VALUES, subject: subjectFromLocation(), message: correctionContext() }),
     []
   );
   const { values, errors, status, handleChange, handleSubmit, statusMessage } =

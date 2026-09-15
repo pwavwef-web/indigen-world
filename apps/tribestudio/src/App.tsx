@@ -58,7 +58,7 @@ function SignInGate() {
       <div className="signin__card">
         <BrandMark />
         <h1>TribeStudio</h1>
-        <p>Sign in to reach your founding-creator workspace.</p>
+        <p>Sign in to save your draft and share your work. You can preview your post before publishing.</p>
         <button type="button" className="button button--primary" onClick={() => void signIn()}>
           Sign in with Google
         </button>

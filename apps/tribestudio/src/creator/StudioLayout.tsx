@@ -44,9 +44,9 @@ const STUDIO_NAV: NavItem[] = [
   { to: '/studio', label: 'Dashboard', icon: 'dashboard', group: 'Workspace', hint: 'Your standing, streak and what needs doing' },
   { to: '/studio/opportunities', label: 'Opportunities', icon: 'opportunities', group: 'Workspace', hint: 'Open campaigns and bounties to enter' },
   { to: '/studio/editor', label: 'Video editor', icon: 'video', group: 'Create', hint: 'Cut, caption and finish any video before posting' },
-  { to: '/studio/submissions', label: 'Submissions', icon: 'submissions', group: 'Create', hint: 'Everything you have posted, and its status' },
-  { to: '/studio/published', label: 'Published', icon: 'submissions', group: 'Create', hint: 'Your public work, and the links readers open' },
-  { to: '/studio/dictionary', label: 'Dictionary', icon: 'dictionary', group: 'Create', hint: 'The Kasem entry desk, with the letter palette' },
+  { to: '/studio/submissions', label: 'Your content', icon: 'submissions', group: 'Create', hint: 'Everything you have posted, and its status' },
+  { to: '/studio/published', label: 'Public links', icon: 'submissions', group: 'Create', hint: 'Your public work, and the links readers open' },
+  { to: '/studio/dictionary', label: 'Word contributions', icon: 'dictionary', group: 'Create', hint: 'Add individual Kasem words, meanings and recordings' },
   { to: '/studio/profile', label: 'Profile', icon: 'profile', group: 'Account', hint: 'Your public creator identity and permissions' },
   { to: '/studio/notifications', label: 'Notifications', icon: 'notifications', group: 'Account', hint: 'Decisions, campaign news and reminders' },
   { to: '/studio/help', label: 'Help', icon: 'help', group: 'Account', hint: 'How the studio works, and who to ask' },
@@ -54,10 +54,10 @@ const STUDIO_NAV: NavItem[] = [
 
 const LEXICON_ITEM: NavItem = {
   to: '/workspace',
-  label: 'Lexicon workspace',
+  label: 'Advanced lexicon tools',
   icon: 'lexicon',
   group: 'Tools',
-  hint: 'Bulk lexicon entry for contributors',
+  hint: 'Bulk word entry and validation tools for language contributors',
 };
 
 const NAV_GROUPS = ['Workspace', 'Create', 'Account', 'Tools'] as const;

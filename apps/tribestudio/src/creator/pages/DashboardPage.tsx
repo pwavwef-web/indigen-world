@@ -1,427 +1,116 @@
-import { useEffect, useState } from 'react';
-import type {
-  Campaign,
-  CreatorApplication,
-  CreatorNotification,
-  CreatorProfile,
-  Submission,
-} from '@indigen-world/contracts/creator-models';
-import { ProgressBar, StreakBadge, Badge, Modal } from '@indigen-world/web-ui';
+import type { ReactNode } from 'react';
 import { Link } from '../../router';
-import { useAuth } from '../../auth';
+import { canContribute, useAuth } from '../../auth';
 import { useConfig } from '../CreatorProvider';
-import {
-  fetchMyApplications,
-  fetchMyContributorScore,
-  fetchMyNotifications,
-  fetchMyProfile,
-  fetchMySubmissions,
-  fetchPublicCampaigns,
-  submissionsOpen,
-  type ContributorScore,
-} from '../data';
-import {
-  APPLICATION_STATUS_LABELS,
-  CAMPAIGN_STATUS_LABELS,
-  LoadError,
-  Skeleton,
-  StatusPill,
-  SUBMISSION_STATUS_LABELS,
-  useReloadable,
-  WhatsAppCard,
-} from '../components';
+import { fetchMyApplications, fetchMyContributorScore, fetchMyNotifications, fetchMyProfile, fetchMySubmissions, fetchPublicCampaigns, submissionsOpen } from '../data';
+import { APPLICATION_STATUS_LABELS, LoadError, Skeleton, StatusPill, SUBMISSION_STATUS_LABELS, WhatsAppCard } from '../components';
+import { useCreatorResource } from '../useCreatorResource';
 
-interface MilestoneBadge {
-  id: string;
-  name: string;
-  description: string;
-  icon: string;
-  unlocked: boolean;
-  tier: 'bronze' | 'silver' | 'gold';
+function SectionState({ resource, title, children }: { resource: { failed: boolean; loading: boolean; retry: () => void }; title: string; children: ReactNode }) {
+  if (resource.failed) return <LoadError title={`Could not load ${title}`} onRetry={resource.retry} />;
+  if (resource.loading) return <Skeleton lines={2} />;
+  return <>{children}</>;
 }
 
 export function DashboardPage() {
-  const { user } = useAuth();
+  const { user, role } = useAuth();
   const { whatsappUrl } = useConfig();
-  const { reloadKey, failed, setFailed, retry } = useReloadable();
-  const [loading, setLoading] = useState(true);
-  const [profile, setProfile] = useState<CreatorProfile | null>(null);
-  const [applications, setApplications] = useState<CreatorApplication[]>([]);
-  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
-  const [submissions, setSubmissions] = useState<Submission[]>([]);
-  const [notifications, setNotifications] = useState<CreatorNotification[]>([]);
-  const [score, setScore] = useState<ContributorScore | null>(null);
-  const [selectedBadge, setSelectedBadge] = useState<MilestoneBadge | null>(null);
-
-  useEffect(() => {
-    if (!user) return;
-    let active = true;
-    setFailed(false);
-    setLoading(true);
-    void Promise.all([
-      fetchMyProfile(user.uid),
-      fetchMyApplications(user.uid),
-      fetchPublicCampaigns(),
-      fetchMySubmissions(user.uid),
-      fetchMyNotifications(user.uid),
-      fetchMyContributorScore(user.uid),
-    ])
-      .then(([p, a, c, s, n, sc]) => {
-        if (!active) return;
-        setProfile(p);
-        setApplications(a);
-        setCampaigns(c);
-        setSubmissions(s);
-        setNotifications(n);
-        setScore(sc);
-        setLoading(false);
-      })
-      .catch(() => {
-        if (active) {
-          setFailed(true);
-          setLoading(false);
-        }
-      });
-    return () => {
-      active = false;
-    };
-  }, [user, reloadKey, setFailed]);
-
-  if (failed) {
-    return (
-      <div className="page">
-        <h1>Welcome back</h1>
-        <LoadError onRetry={retry} title="We couldn’t load your dashboard" />
-      </div>
-    );
-  }
-
-  if (loading) {
-    return (
-      <div className="page">
-        <h1>Welcome back</h1>
-        <Skeleton lines={6} />
-      </div>
-    );
-  }
-
-  const application = applications[0] ?? null;
-  const anyOpen = campaigns.some(submissionsOpen);
-  const completion = profile?.profileCompletion ?? 0;
-
-  // Standing, as the backend awarded it. `contributorScores/{uid}` is written
-  // only when a contribution is accepted, so these are the same numbers the
-  // phone leaderboard shows for this person. Posts that exist but have not
-  // been accepted earn nothing here, which is the honest answer.
-  // Unfinished drafts are not submissions yet.
-  const totalSubmissions = submissions.filter((s) => s.status !== 'DRAFT').length;
-  const publishedCount = submissions.filter(
-    (s) => s.status === 'PUBLISHED' || s.status === 'APPROVED',
-  ).length;
-  const acceptedCount = score?.approvedCount ?? 0;
-  const wordCount = score?.wordCount ?? 0;
-  const streakDays = score?.streakDays ?? 0;
-  const xpPoints = score?.points ?? 0;
-  const currentLevel = Math.floor(xpPoints / 300) + 1;
-  const nextLevelXp = currentLevel * 300;
-  const currentLevelProgress = xpPoints % 300;
-  const actionableSubmissions = submissions.filter((s) => ['DRAFT', 'NEEDS_REVISION'].includes(s.status)
+  const work = useCreatorResource(fetchMySubmissions, user?.uid);
+  const profile = useCreatorResource(fetchMyProfile, user?.uid);
+  const applications = useCreatorResource(fetchMyApplications, user?.uid);
+  const campaigns = useCreatorResource(fetchPublicCampaigns, user?.uid);
+  const notifications = useCreatorResource(fetchMyNotifications, user?.uid);
+  const score = useCreatorResource(fetchMyContributorScore, user?.uid);
+  const submissions = work.data ?? [];
+  const actionable = submissions.filter((s) => ['DRAFT', 'NEEDS_REVISION'].includes(s.status)
     && !s.collectionContribution && s.campaign.id !== 'collection-contributions')
     .sort((a, b) => Number(b.status === 'NEEDS_REVISION') - Number(a.status === 'NEEDS_REVISION'));
+  const published = submissions.filter((s) => s.status === 'PUBLISHED').length;
+  const approved = submissions.filter((s) => s.status === 'APPROVED').length;
+  const openCampaigns = (campaigns.data ?? []).filter(submissionsOpen);
+  const firstPost = work.data !== undefined && submissions.length === 0;
 
-  const BADGES: MilestoneBadge[] = [
-    {
-      id: 'founding-voice',
-      name: 'Founding Voice',
-      description: 'Applied and accepted into the Indigen World Founding Creator cohort.',
-      icon: '🎙️',
-      unlocked: applications.some((a) => a.status === 'APPROVED'),
-      tier: 'gold',
-    },
-    {
-      id: 'first-entry',
-      name: 'Pioneer Contributor',
-      description: 'Submitted your first cultural narrative or lexical recording.',
-      icon: '📜',
-      unlocked: totalSubmissions >= 1,
-      tier: 'bronze',
-    },
-    {
-      id: 'kasem-scholar',
-      name: 'Kasem Wordsmith',
-      description: 'Contributed 5 or more accepted Kasem words.',
-      icon: '🏺',
-      unlocked: wordCount >= 5,
-      tier: 'silver',
-    },
-    {
-      id: 'guardian-culture',
-      name: 'Dialect Guardian',
-      description: 'Earned 500 or more contribution points.',
-      icon: '🛡️',
-      unlocked: xpPoints >= 500,
-      tier: 'gold',
-    },
-  ];
-
-  return (
-    <div className="page">
-      <header className="page__head page__head--spread">
-        <div>
-          <div className="head-greeting">
-            <h1>Welcome, {profile?.public.displayName ?? user?.displayName ?? 'creator'}</h1>
-            {streakDays > 0 ? <StreakBadge count={streakDays} label="Day Streak" /> : null}
-          </div>
-          <p className="muted">Your founding-creator workspace &amp; cultural portfolio.</p>
+  return <div className="page dashboard-focused">
+    <header className="page__head page__head--spread">
+      <div><h1>Welcome, {profile.data?.public.displayName ?? user?.displayName ?? 'creator'}</h1><p className="muted">Create something, continue a draft, or respond to feedback.</p></div>
+      <Link to="/studio/submissions/new" className="button button--primary">Create a post</Link>
+    </header>
+    <section className="panel">
+      <div className="panel__head"><h2>Your next step</h2><Link to="/studio/submissions">Your content →</Link></div>
+      <SectionState resource={work} title="your content">
+        {firstPost ? <>
+          <h3>Make your first post</h3>
+          <p>Start small: a short piece of writing, one photo with context, or a recording you have permission to share.</p>
+          <ol className="creator-start-steps">
+            <li><strong>Choose a format</strong><span>Writing, audio, video, image or translation.</span></li>
+            <li><strong>Create and preview</strong><span>Save a draft, add context and check permissions.</span></li>
+            <li><strong>Publish when ready</strong><span>Ordinary posts go to Explore; campaign entries are reviewed first.</span></li>
+          </ol>
+          <Link to="/studio/submissions/new?type=writing" className="button button--primary">Start with writing</Link>
+        </> : actionable.length ? <ul className="mini-list">{actionable.slice(0, 5).map((s) => <li key={s.id}>
+          <Link to={`/studio/submissions/${s.id}/edit`}>{s.title || 'Untitled draft'}</Link>
+          <StatusPill status={s.status} labels={SUBMISSION_STATUS_LABELS} />
+        </li>)}</ul> : <p className="muted">You have no drafts or revisions waiting. Ready for your next story?</p>}
+      </SectionState>
+    </section>
+    <section className="panel">
+      <h2>Where your work stands</h2>
+      <SectionState resource={work} title="publication status">
+        <div className="tiles">
+          <Link className="tile" to="/studio/submissions?status=DRAFT"><span className="tile__label">Drafts</span><strong className="tile__value">{submissions.filter((s) => s.status === 'DRAFT').length}</strong></Link>
+          <Link className="tile" to="/studio/submissions?status=NEEDS_REVISION"><span className="tile__label">Revisions requested</span><strong className="tile__value">{submissions.filter((s) => s.status === 'NEEDS_REVISION').length}</strong></Link>
+          <Link className="tile" to="/studio/submissions?status=APPROVED"><span className="tile__label">Approved, not yet published</span><strong className="tile__value">{approved}</strong></Link>
+          <Link className="tile" to="/studio/submissions?status=PUBLISHED"><span className="tile__label">Published</span><strong className="tile__value">{published}</strong></Link>
         </div>
-        <div className="head-actions">
-          {profile?.reference ? <span className="ref-chip">{profile.reference}</span> : null}
-          <Link to="/workspace" className="button button--ghost-dark button--small">
-            ✍ Lexicon Studio
-          </Link>
-        </div>
-      </header>
-
-      {!profile ? (
-        <div className="callout callout--info">
-          <strong>Finish joining the programme.</strong> You have not completed a founding-creator
-          application yet.{' '}
-          <Link to="/creators/join">Complete your application →</Link>
-        </div>
-      ) : null}
-
+        <p className="tiny muted">Approval is a review decision. Only work marked Published counts as published here.</p>
+      </SectionState>
+    </section>
+    <div className="cols">
       <section className="panel">
-        <div className="panel__head">
-          <h2>Pick up where you left off</h2>
-          <Link to="/studio/submissions/new" className="button button--primary">Create a post</Link>
-        </div>
-        {actionableSubmissions.length > 0 ? (
-          <ul className="mini-list">
-            {actionableSubmissions.slice(0, 4).map((s) => (
-                <li key={s.id}><Link to={`/studio/submissions/${s.id}/edit`}>{s.title || 'Untitled'}</Link>
-                  <span>{s.status === 'NEEDS_REVISION' ? 'Revisions requested' : 'Continue draft'}</span></li>
-              ))}
-          </ul>
-        ) : <p className="muted">Ready for your next story, recording or translation.</p>}
+        <div className="panel__head"><h2>Updates for you</h2><Link to="/studio/notifications">All updates →</Link></div>
+        <SectionState resource={notifications} title="notifications">
+          {notifications.data?.length ? <ul className="mini-list">{notifications.data.slice(0, 3).map((n) => <li key={n.id}><Link to="/studio/notifications">{n.title}</Link></li>)}</ul> : <p className="muted">No notifications yet.</p>}
+        </SectionState>
       </section>
-
-      {/* Gamification Level & XP Progress Banner */}
-      <section className="gamification-banner iw-glass-card">
-        <div className="gamification-banner__left">
-          <div className="level-badge">
-            <span>LVL</span>
-            <strong>{currentLevel}</strong>
-          </div>
-          <div className="level-info">
-            <h3>{currentLevel === 1 ? 'Apprentice Storyteller' : currentLevel === 2 ? 'Kasem Wordsmith' : 'Master Custodian'}</h3>
-            <p className="tiny muted">
-              {xpPoints === 0
-                ? 'Points arrive when a contribution is accepted.'
-                : `${xpPoints} contribution points • ${nextLevelXp - xpPoints} to Level ${currentLevel + 1}`}
-            </p>
-            <ProgressBar value={currentLevelProgress} max={300} tone="terracotta" />
-          </div>
-        </div>
-        <div className="gamification-banner__badges">
-          {BADGES.map((b) => (
-            <button
-              key={b.id}
-              type="button"
-              className={`badge-icon ${b.unlocked ? 'is-unlocked' : 'is-locked'}`}
-              title={`${b.name} (${b.unlocked ? 'Unlocked' : 'Locked'})`}
-              onClick={() => setSelectedBadge(b)}
-            >
-              <span>{b.icon}</span>
-              <small>{b.name}</small>
-            </button>
-          ))}
-        </div>
+      <section className="panel">
+        <h2>Want to contribute words?</h2><p>Add individual Kasem words, meanings and recordings in Word contributions.</p>
+        <Link to="/studio/dictionary" className="button button--ghost-dark">Contribute a word</Link>
+        {canContribute(role) ? <p className="tiny">For bulk entry and review, use the <Link to="/workspace">Advanced lexicon tools</Link>.</p> : null}
       </section>
-
-      {/* Stat Tiles */}
-      <div className="tiles">
-        <div className="tile">
-          <span className="tile__label">Application status</span>
-          <span className="tile__value">
-            {application ? (
-              <StatusPill status={application.status} labels={APPLICATION_STATUS_LABELS} />
-            ) : (
-              '—'
-            )}
-          </span>
-        </div>
-        <div className="tile">
-          <span className="tile__label">Profile completion</span>
-          <span className="tile__value">{completion}%</span>
-          <div className="meter" aria-hidden="true">
-            <span style={{ width: `${completion}%` }} />
-          </div>
-        </div>
-        <div className="tile">
-          <span className="tile__label">Posts</span>
-          <span className="tile__value">{submissions.length}</span>
-        </div>
-        <div className="tile">
-          <span className="tile__label">Live in Explore</span>
-          <span className="tile__value">{publishedCount}</span>
-        </div>
-        <div className="tile">
-          <span className="tile__label">Accepted contributions</span>
-          <span className="tile__value">{acceptedCount}</span>
-        </div>
-        <div className="tile">
-          <span className="tile__label">Kasem words accepted</span>
-          <span className="tile__value">{wordCount}</span>
-        </div>
-      </div>
-
-      {/* Quick Creation Suite */}
-      <section className="creation-shortcuts">
-        <h2>Quick Creation Tools</h2>
-        <div className="shortcuts-grid">
-          <Link to="/studio/editor" className="shortcut-card shortcut-card--video">
-            <span className="shortcut-card__icon">✂️</span>
-            <div>
-              <strong>Edit a video</strong>
-              <p className="tiny muted">Cut, caption and finish footage before posting</p>
-            </div>
-          </Link>
-          <Link to="/studio/video" className="shortcut-card shortcut-card--video">
-            <span className="shortcut-card__icon">🎬</span>
-            <div>
-              <strong>Create a Kasem Video</strong>
-              <p className="tiny muted">Runway visuals and consented Kasem lip-sync</p>
-            </div>
-          </Link>
-          <Link to="/studio/dictionary" className="shortcut-card">
-            <span className="shortcut-card__icon">🎙️</span>
-            <div>
-              <strong>Record Kasem Headword</strong>
-              <p className="tiny muted">Write the entry and say the word aloud</p>
-            </div>
-          </Link>
-          <Link to="/studio/opportunities" className="shortcut-card">
-            <span className="shortcut-card__icon">📖</span>
-            <div>
-              <strong>Folklore &amp; Proverbs</strong>
-              <p className="tiny muted">Bilingual cultural storytelling</p>
-            </div>
-          </Link>
-          <Link to="/studio/profile" className="shortcut-card">
-            <span className="shortcut-card__icon">🛡️</span>
-            <div>
-              <strong>Cultural Portfolio</strong>
-              <p className="tiny muted">Manage permissions &amp; credentials</p>
-            </div>
-          </Link>
-        </div>
-      </section>
-
-      <div className="prep-state">
-        <h2>Post whenever you have something</h2>
-        <p>
-          Anything you publish here goes straight to the Explore feed in the Indigen
-          World app, credited to you. No waiting list, no approval queue. What we do
-          ask is that the work is yours to share and that anyone in it agreed to be
-          in it.
-        </p>
-        <div className="prep-state__actions">
-          <Link to="/studio/submissions/new" className="button button--primary">New post</Link>
-          <Link to="/creators/guidelines" className="button button--ghost-dark">Read the guidelines</Link>
-        </div>
-      </div>
-
-      {anyOpen ? (
-        <section className="panel">
-          <div className="panel__head">
-            <h2>A campaign is open</h2>
-            <Link to="/studio/opportunities" className="button button--primary button--small">View opportunities</Link>
-          </div>
-          <p className="muted">
-            Campaigns carry rewards, so entries are reviewed before they publish and are
-            open to approved creators.
-          </p>
-        </section>
-      ) : null}
-
-      <div className="cols">
-        <section className="panel">
-          <h2>Active and upcoming campaigns</h2>
-          {campaigns.length === 0 ? (
-            <p className="muted">No campaigns announced yet.</p>
-          ) : (
-            <ul className="mini-list">
-              {campaigns.slice(0, 4).map((c) => (
-                <li key={c.id}>
-                  <Link to={`/studio/opportunities/${c.id}`}>{c.title}</Link>
-                  <StatusPill status={c.status} labels={CAMPAIGN_STATUS_LABELS} />
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-
-        <section className="panel">
-          <h2>Recent notifications</h2>
-          {notifications.length === 0 ? (
-            <p className="muted">Nothing yet.</p>
-          ) : (
-            <ul className="mini-list">
-              {notifications.slice(0, 4).map((n) => (
-                <li key={n.id}>
-                  <span className={n.read ? 'muted' : ''}>{n.title}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-          <p className="section__more">
-            <Link to="/studio/notifications">All notifications →</Link>
-          </p>
-        </section>
-      </div>
-
-      {submissions.length > 0 ? (
-        <section className="panel">
-          <div className="panel__head">
-            <h2>Your submissions</h2>
-            <Link to="/studio/submissions" className="button button--ghost-dark button--small">Manage</Link>
-          </div>
-          <ul className="mini-list">
-            {submissions.slice(0, 3).map((s) => (
-              <li key={s.id}>
-                <Link to={`/studio/submissions/${s.id}`}>{s.title || 'Untitled'}</Link>
-                <StatusPill status={s.status} labels={SUBMISSION_STATUS_LABELS} />
-              </li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
-
-      {/* Badge Detail Modal */}
-      <Modal
-        isOpen={!!selectedBadge}
-        onClose={() => setSelectedBadge(null)}
-        title="Milestone Achievement"
-        size="small"
-      >
-        {selectedBadge ? (
-          <div className="badge-modal-content">
-            <div className="badge-modal-icon">{selectedBadge.icon}</div>
-            <h3>{selectedBadge.name}</h3>
-            <p>{selectedBadge.description}</p>
-            <div className="badge-modal-status">
-              {selectedBadge.unlocked ? (
-                <Badge tone="success">✓ Unlocked</Badge>
-              ) : (
-                <Badge tone="neutral">🔒 In Progress</Badge>
-              )}
-            </div>
-          </div>
-        ) : null}
-      </Modal>
-
-      <WhatsAppCard url={whatsappUrl} />
     </div>
-  );
+    <details className="panel dashboard-details">
+      <summary>Campaigns and opportunities</summary>
+      <p>Campaigns have eligibility rules and review before publication. You can create ordinary posts without joining a campaign.</p>
+      <SectionState resource={campaigns} title="campaigns">
+        {openCampaigns.length ? <ul className="mini-list">{openCampaigns.map((c) => <li key={c.id}><Link to={`/studio/opportunities/${c.id}`}>{c.title}</Link></li>)}</ul> : <p>No campaigns are accepting entries right now.</p>}
+        <Link to="/studio/opportunities">See all opportunities →</Link>
+      </SectionState>
+      <SectionState resource={applications} title="your applications">
+        {applications.data?.[0] ? <p>Your latest application: <StatusPill status={applications.data[0].status} labels={APPLICATION_STATUS_LABELS} /></p> : <p>No campaign application yet. Check an opportunity's requirements before applying.</p>}
+      </SectionState>
+    </details>
+    <details className="panel dashboard-details">
+      <summary>Your contribution progress and profile</summary>
+      <SectionState resource={score} title="contribution progress">
+        <p>{score.data?.points ?? 0} points · {score.data?.approvedCount ?? 0} accepted contributions · {score.data?.wordCount ?? 0} accepted words</p>
+        <p>Level {Math.floor((score.data?.points ?? 0) / 300) + 1} · {score.data?.streakDays ?? 0} day streak</p>
+        <progress aria-label="Progress toward the next level" value={(score.data?.points ?? 0) % 300} max={300} />
+        <ul className="mini-list">
+          <li><span>Kasem Wordsmith — 5 accepted words</span><strong>{(score.data?.wordCount ?? 0) >= 5 ? 'Earned' : 'In progress'}</strong></li>
+          <li><span>Dialect Guardian — 500 contribution points</span><strong>{(score.data?.points ?? 0) >= 500 ? 'Earned' : 'In progress'}</strong></li>
+        </ul>
+        <p className="tiny muted">Points are awarded when contributions are accepted.</p>
+      </SectionState>
+      <SectionState resource={work} title="your first contribution milestone">
+        <p>Pioneer Contributor — {submissions.some((submission) => submission.status !== 'DRAFT') ? 'Earned for your first submission' : 'Make your first submission to earn this milestone'}.</p>
+      </SectionState>
+      <SectionState resource={applications} title="your creator milestone">
+        <p>Founding Voice — {applications.data?.some((application) => application.status === 'APPROVED') ? 'Earned through acceptance into the founding creator cohort' : 'Awarded on acceptance into the founding creator cohort'}.</p>
+      </SectionState>
+      <SectionState resource={profile} title="your profile">
+        <p>Profile completion: {profile.data?.profileCompletion ?? 0}%</p><Link to="/studio/profile">Update your profile →</Link>
+      </SectionState>
+    </details>
+    <WhatsAppCard url={whatsappUrl} compact />
+  </div>;
 }
-
