@@ -631,3 +631,16 @@
     border-right: 0;
   }
 }
+
+/* Clear entry paths shared by the homepage and discovery pages. */
+.journey-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.25rem; }
+.journey-grid--audiences { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.journey-card { display: flex; flex-direction: column; align-items: flex-start; gap: 1rem; padding: clamp(1.25rem, 3vw, 2rem); border: 1px solid var(--line); border-radius: 18px; background: var(--white); color: var(--ink); min-width: 0; }
+.journey-card h3, .journey-card h2, .journey-card p { margin: 0; }
+.journey-card p { color: var(--muted); line-height: 1.65; }
+.journey-card .button { margin-top: auto; white-space: normal; text-align: left; }
+.home-targets { margin-top: 2rem; }
+.home-targets summary { cursor: pointer; font-weight: 700; padding: 1rem 0; }
+.home-targets .impact-grid { margin-block: 1.5rem; }
+@media (max-width: 720px) { .journey-grid, .journey-grid--audiences { grid-template-columns: 1fr; } }
+.hero__content > .tiny { color: rgba(255, 255, 255, .82); }

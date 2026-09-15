@@ -9,6 +9,8 @@ import {
 } from "../features/dictionary/dictionaryData";
 import { useDocumentMeta } from "../lib/useDocumentMeta";
 
+import { createFromDiscovery } from "../content/creatorLinks";
+
 const route = ROUTES_BY_PATH.dictionary;
 const SAVED_WORDS_KEY = "indigen-world:saved-dictionary-entries";
 const PAGE_SIZE = 60;
@@ -216,12 +218,14 @@ function DictionaryDetail({
         </div>
 
         <Button
-          to="contact?subject=publication-correction-takedown"
+          to={`contact?subject=publication-correction-takedown&entry=${encodeURIComponent(entry.id)}&word=${encodeURIComponent(entry.headword)}`}
           variant="secondary"
           className="dictionary-correction"
         >
           Suggest a correction
         </Button>
+        <Button href={createFromDiscovery(`dictionary?entry=${encodeURIComponent(entry.id)}`)} external variant="secondary" className="dictionary-correction">Create a related story or lesson</Button>
+        <p className="tiny">Your source link follows you to TribeStudio. Corrections go to the review team.</p>
       </div>
     </aside>
   );
@@ -234,8 +238,9 @@ export function DictionaryPage() {
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [retryKey, setRetryKey] = useState(0);
   const [queryText, setQueryText] = useState("");
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(() => new URLSearchParams(window.location.search).get("entry"));
   const [mobileDetailOpen, setMobileDetailOpen] = useState(false);
+  const linkedEntry = useRef(new URLSearchParams(window.location.search).get("entry"));
   const [visibleLimit, setVisibleLimit] = useState(PAGE_SIZE);
   const [savedWords, setSavedWords] = useState<Set<string>>(readSavedWords);
 
@@ -253,6 +258,13 @@ export function DictionaryPage() {
   useEffect(() => {
     if (!selectedId && entries.length) setSelectedId(entries[0].id);
   }, [entries, selectedId]);
+
+  useEffect(() => {
+    if (linkedEntry.current && entries.some((entry) => entry.id === linkedEntry.current)) {
+      setMobileDetailOpen(window.matchMedia("(max-width: 899px)").matches);
+      linkedEntry.current = null;
+    }
+  }, [entries]);
 
   useEffect(() => setVisibleLimit(PAGE_SIZE), [queryText]);
 

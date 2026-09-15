@@ -11,6 +11,9 @@ const tick = () => new Promise((resolve) => setImmediate(resolve));
 // Execute production modules with their external I/O replaced. No Firebase
 // project or microphone is contacted by these tests.
 async function load(path, names, mocks = {}) {
+  if (path.endsWith('SubmissionNewPage.tsx')) {
+    mocks = { ...await load('src/creator/discoverySource.ts', ['discoverySource']), ...mocks };
+  }
   const { code } = await transformWithOxc(readFileSync(resolve(root, path), 'utf8'), path, { jsx: { runtime: 'classic' } });
   const executable = code.replace(/^import[\s\S]*?;\n/gm, '').replace(/\bexport (?=(?:async )?function|const|let|class)/g, '');
   return runInNewContext(executable + '\n;({' + names.join(',') + '})', { URL, URLSearchParams, Blob, File, Event, console, ...mocks });
@@ -232,13 +235,14 @@ test('first save writes a new document without an unauthorized read of its missi
 });
 
 async function editorHarness(overrides = {}) {
+  const stored = new Map();
   const h = hooks(); const timers = new Map(); const events = {}; const writes = []; let timerId = 0; let focused;
   const existing = { ...input, authUid: 'creator', campaign: { id: 'open' }, status: 'DRAFT', lifecycle: { version: 1 } };
   const { SubmissionEditor } = await load('src/creator/pages/SubmissionNewPage.tsx', ['SubmissionEditor'], {
     ...h.api, useAuth: () => ({ user: { uid: 'creator' } }), useConfig: () => ({ config: null }),
     useRoute: () => ({ navigate() {} }), useQueryParam: () => null,
     saveSubmission: async (value) => { writes.push(value); },
-    window: { addEventListener: (name, fn) => { events[name] = fn; }, removeEventListener() {}, confirm: () => false,
+    window: { sessionStorage: { getItem: (key) => stored.get(key) ?? null, setItem: (key, value) => stored.set(key, value), removeItem: (key) => stored.delete(key) }, addEventListener: (name, fn) => { events[name] = fn; }, removeEventListener() {}, confirm: () => false,
       setTimeout: (fn) => { timers.set(++timerId, fn); return timerId; }, clearTimeout: (id) => timers.delete(id) },
     document: { getElementById: (id) => ({ focus: () => { focused = id; } }) },
     storage: {}, ref: () => ({}), getDownloadURL: async () => 'https://example.com/media',
@@ -246,7 +250,7 @@ async function editorHarness(overrides = {}) {
   });
   const render = () => { const tree = h.render(SubmissionEditor, { existing }); h.flush(); return tree; };
   render();
-  return { render, writes, events, timers, focused: () => focused, dispose: () => h.dispose(),
+  return { render, writes, events, timers, stored, focused: () => focused, dispose: () => h.dispose(),
     runTimers: async () => { const pending = [...timers.values()]; timers.clear(); pending.forEach((fn) => fn()); await tick(); } };
 }
 
@@ -315,4 +319,82 @@ test('translation field labels follow the selected source and target languages',
   assert.equal(find(tree, (n) => n.type === 'field' && n.props.htmlFor === 'sourceContent').props.label, 'English source text');
   assert.equal(find(tree, (n) => n.type === 'field' && n.props.htmlFor === 'translatedContent').props.label, 'Kasem translation');
   e.dispose();
+});
+
+test('discovery links accept only public dictionary and post sources', async () => {
+  const { discoverySource } = await load('src/creator/discoverySource.ts', ['discoverySource']);
+  assert.equal(discoverySource('https://indigenworld.com/dictionary?entry=word%201&tracking=private'), 'https://indigenworld.com/dictionary?entry=word%201');
+  assert.equal(discoverySource('https://indigenworld.com/post/story-1?tracking=private'), 'https://indigenworld.com/post/story-1');
+  for (const value of ['javascript:alert(1)', 'https://other.example/post/1', 'https://indigenworld.com/admin', 'https://user:password@indigenworld.com/post/1', 'not a URL']) assert.equal(discoverySource(value), '');
+});
+
+test('dashboard resources fail independently and retry only their own request', async () => {
+  const h = hooks();
+  const { useCreatorResource } = await load('src/creator/useCreatorResource.ts', ['useCreatorResource'], h.api);
+  let goodCalls = 0; let failedCalls = 0;
+  const good = async () => { goodCalls++; return ['saved work']; };
+  const flaky = async () => { failedCalls++; if (failedCalls === 1) throw Error('Offline'); return ['recovered']; };
+  const render = () => h.render(() => [useCreatorResource(good, 'creator'), useCreatorResource(flaky, 'creator')]);
+  render(); h.flush(); await tick();
+  let [a, b] = render();
+  assert.equal(a.data[0], 'saved work'); assert.equal(a.failed, false); assert.equal(b.failed, true);
+  b.retry(); render(); h.flush(); await tick(); [a, b] = render();
+  assert.equal(b.data[0], 'recovered'); assert.equal(goodCalls, 1); assert.equal(failedCalls, 2);
+  h.dispose();
+});
+
+test('a late dashboard response cannot expose another account data', async () => {
+  const h = hooks();
+  const { useCreatorResource } = await load('src/creator/useCreatorResource.ts', ['useCreatorResource'], h.api);
+  let resolveOld;
+  const loader = (uid) => uid === 'first' ? new Promise((resolve) => { resolveOld = resolve; }) : Promise.resolve('second account');
+  const render = (uid) => h.render(() => useCreatorResource(loader, uid));
+  render('first'); h.flush(); render('second'); h.flush(); await tick();
+  resolveOld('first account'); await tick();
+  assert.equal(render('second').data, 'second account');
+  assert.equal(render(undefined).data, undefined);
+  h.dispose();
+});
+
+test('offline text stays editable and autosaves after reconnecting', async () => {
+  const e = await editorHarness({ navigator: { onLine: false } });
+  find(e.render(), (n) => n.props?.id === 't').props.onChange({ target: { value: 'Written offline' } });
+  e.render(); await e.runTimers();
+  assert.equal(e.writes.length, 0);
+  assert.equal(find(e.render(), (n) => n.props?.id === 't').props.value, 'Written offline');
+  e.events.online(); e.render(); await e.runTimers(); e.render();
+  assert.equal(e.writes.length, 1); assert.equal(e.writes[0].title, 'Written offline');
+  e.dispose();
+});
+
+test('an unreadable contribution score is an error rather than a zero score', async () => {
+  const { fetchMyContributorScore } = await load('src/creator/data.ts', ['fetchMyContributorScore'], {
+    db: {}, doc: () => ({}), getDoc: async () => { throw Error('Network unavailable'); },
+  });
+  await assert.rejects(fetchMyContributorScore('creator'), /Network unavailable/);
+});
+
+test('draft recovery stores only an account-scoped saved document pointer', async () => {
+  const e = await editorHarness();
+  find(e.render(), (n) => n.props?.id === 't').props.onChange({ target: { value: 'Private unsent story' } });
+  e.render(); await e.runTimers(); e.render();
+  assert.equal(e.stored.get('tribestudio:last-draft:creator:open'), 'saved-draft');
+  assert.equal([...e.stored.values()].some((value) => value.includes('Private unsent story')), false);
+  e.dispose();
+});
+
+test('dashboard counts approved work separately from published work', async () => {
+  const h = hooks();
+  const resources = { work: [{id:'a', status:'APPROVED', campaign:{id:'test'}}, {id:'p', status:'PUBLISHED', campaign:{id:'open'}}], profile: null, applications: [], campaigns: [], notifications: [], score: null };
+  const { DashboardPage } = await load('src/creator/pages/DashboardPage.tsx', ['DashboardPage'], {
+    ...h.api, useAuth: () => ({user:{uid:'creator'}, role:'creator'}), useConfig: () => ({}), canContribute: () => false,
+    fetchMySubmissions:'work', fetchMyProfile:'profile', fetchMyApplications:'applications', fetchPublicCampaigns:'campaigns', fetchMyNotifications:'notifications', fetchMyContributorScore:'score',
+    useCreatorResource: (key) => ({data:resources[key], loading:false, failed:false, retry(){}}),
+    submissionsOpen: () => false, Link:'a', StatusPill:'pill', Skeleton:'skeleton', LoadError:'error', WhatsAppCard:'whatsapp', APPLICATION_STATUS_LABELS:{}, SUBMISSION_STATUS_LABELS:{},
+  });
+  const tree = h.render(DashboardPage);
+  for (const status of ['APPROVED', 'PUBLISHED']) {
+    const tile = find(tree, (node) => node.props?.to === `/studio/submissions?status=${status}`);
+    assert.equal(find(tile, (node) => node.props?.className === 'tile__value').props.children[0], 1);
+  }
 });

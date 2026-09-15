@@ -76,6 +76,7 @@ export function SubmissionDetailPage() {
           {sub.moderation.revisionDeadline ? <> · Due {new Date(sub.moderation.revisionDeadline).toLocaleDateString()}</> : null}
         </div>
       ) : null}
+      {sub.status === 'APPROVED' ? <div className="callout callout--info"><strong>Approved, not yet published.</strong> Review is complete. Your work is not marked as published yet.</div> : null}
       {sub.status === 'PUBLISHED' ? <div className="callout callout--ok"><strong>Published.</strong> Your content is live in Indigen World.</div> : null}
       {sub.status === 'DRAFT' ? <div className="callout callout--info"><strong>Unfinished draft.</strong> Nobody can see this yet. Continue it whenever you are ready.</div> : null}
       {sub.status === 'WITHDRAWN' ? <div className="callout callout--info"><strong>Withdrawn.</strong> This is no longer public anywhere in Indigen World.</div> : null}

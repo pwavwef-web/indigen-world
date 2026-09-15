@@ -33,7 +33,7 @@ export const SUBMISSION_STATUS_LABELS: Record<string, string> = {
   UNDER_REVIEW: 'Under review',
   NEEDS_REVISION: 'Revision requested',
   RESUBMITTED: 'Resubmitted',
-  APPROVED: 'Approved',
+  APPROVED: 'Approved, not published',
   SCHEDULED: 'Scheduled',
   PUBLISHED: 'Published',
   REJECTED: 'Not accepted',

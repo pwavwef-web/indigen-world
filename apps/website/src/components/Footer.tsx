@@ -39,8 +39,8 @@ export function Footer() {
             </span>
           </Link>
           <p>
-            A cultural technology ecosystem for language preservation, cultural learning,
-            storytelling and creator enablement.
+            Discover languages, share stories, and help communities keep their knowledge
+            part of everyday life.
           </p>
         </div>
         <div className="footer-links">

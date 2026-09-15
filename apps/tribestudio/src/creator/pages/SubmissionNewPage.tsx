@@ -18,6 +18,8 @@ import {
 import { Field, Stepper, VoiceRecorder, WhatsAppCard } from '../components';
 import { RouteLoader } from '../../LoadingScreen';
 
+import { discoverySource } from '../discoverySource';
+
 const STEPS = ['Details', 'Media', 'Permissions', 'Review'];
 
 type MediaType = 'image' | 'audio' | 'video' | 'document';
@@ -89,6 +91,10 @@ function SubmissionEditor({ existing }: { existing: Submission | null }) {
   const { navigate } = useRoute();
   const queryCampaign = useQueryParam('campaign') ?? '';
   const requestedCampaign = existing ? (existing.campaign.id === OPEN_CAMPAIGN_ID ? '' : existing.campaign.id) : queryCampaign;
+  const sourceLink = discoverySource(useQueryParam('source'));
+  const requestedType = useQueryParam('type');
+  const initialType = STUDIO_OPTIONS.find((option) => option.value === requestedType)?.value ?? 'writing';
+  const [online, setOnline] = useState(() => typeof navigator === 'undefined' || navigator.onLine);
   const generatedVideoPath = useQueryParam('generated') ?? '';
   // No campaign in the URL means this is an open post: anyone may publish it,
   // it needs no verification, and nobody reviews it before it goes live.
@@ -99,6 +105,17 @@ function SubmissionEditor({ existing }: { existing: Submission | null }) {
   if (!submissionIdRef.current) submissionIdRef.current = existing?.id ?? newSubmissionId();
   const submissionId = submissionIdRef;
   const persistedRef = useRef(existing !== null);
+  const recoveryKey = 'tribestudio:last-draft:' + user?.uid + ':' + campaignId;
+  const [recoverableId, setRecoverableId] = useState<string | null>(() => {
+    try { return window.sessionStorage.getItem(recoveryKey); } catch { return null; }
+  });
+  useEffect(() => {
+    const reconnect = () => { setOnline(true); setSaveStatus(''); };
+    const disconnect = () => setOnline(false);
+    window.addEventListener('online', reconnect);
+    window.addEventListener('offline', disconnect);
+    return () => { window.removeEventListener('online', reconnect); window.removeEventListener('offline', disconnect); };
+  }, []);
 
   const [campaign, setCampaign] = useState<Campaign | null>(null);
   const [loading, setLoading] = useState(true);
@@ -116,7 +133,7 @@ function SubmissionEditor({ existing }: { existing: Submission | null }) {
   const [savedSnapshot, setSavedSnapshot] = useState<string | null>(null);
 
   // Form state
-  const [studioType, setStudioType] = useState<StudioType>(existing?.studioType ?? 'video');
+  const [studioType, setStudioType] = useState<StudioType>(existing?.studioType ?? initialType);
   const [title, setTitle] = useState(existing?.title ?? '');
   const [category, setCategory] = useState(existing?.category ?? '');
   const [primaryLanguage, setPrimaryLanguage] = useState(existing?.primaryLanguage ?? 'xsm');
@@ -125,7 +142,7 @@ function SubmissionEditor({ existing }: { existing: Submission | null }) {
   const [body, setBody] = useState(existing?.body ?? '');
   const [tags, setTags] = useState(existing?.tags?.join(', ') ?? '');
   const [targetAudience, setTargetAudience] = useState(existing?.targetAudience ?? '');
-  const [sourceReferences, setSourceReferences] = useState(existing?.sourceReferences ?? '');
+  const [sourceReferences, setSourceReferences] = useState(existing?.sourceReferences ?? sourceLink);
   const [translationNotes, setTranslationNotes] = useState(existing?.translationNotes ?? '');
   const [sourceLanguage, setSourceLanguage] = useState(existing?.translation?.sourceLanguage ?? 'xsm');
   const [targetLanguage, setTargetLanguage] = useState(existing?.translation?.targetLanguage ?? 'en');
@@ -248,10 +265,10 @@ function SubmissionEditor({ existing }: { existing: Submission | null }) {
   dirtyRef.current = dirty;
 
   useEffect(() => {
-    if (!dirty || loading || saving || uploadBusy.current || saveStatus.startsWith('Not saved')) return;
+    if (!online || !dirty || loading || saving || uploadBusy.current || saveStatus.startsWith('Not saved')) return;
     const timer = window.setTimeout(() => { void saveDraft(); }, 1500);
     return () => window.clearTimeout(timer);
-  }, [snapshot, dirty, loading, saving, uploadPct, saveStatus]);
+  }, [snapshot, dirty, loading, saving, uploadPct, saveStatus, online]);
 
   useEffect(() => {
     const warn = (event: BeforeUnloadEvent) => {
@@ -334,6 +351,7 @@ function SubmissionEditor({ existing }: { existing: Submission | null }) {
 
   const saveDraft = async () => {
     if (!user || writeBusy.current || uploadBusy.current) return false;
+    if (!online) { setSaveStatus('Not saved — reconnect to save your latest changes.'); return false; }
     writeBusy.current = true;
     setSaveStatus('Saving…');
     setSaving(true);
@@ -342,7 +360,8 @@ function SubmissionEditor({ existing }: { existing: Submission | null }) {
       await saveSubmission(draftInput, 'DRAFT', persistedRef.current ? undefined : null);
       persistedRef.current = true;
       setSavedSnapshot(JSON.stringify(draftInput));
-      setSaveStatus('Saved');
+      setSaveStatus('Saved to your account');
+      try { window.sessionStorage.setItem(recoveryKey, submissionId.current); } catch { /* Saving to the account already succeeded. */ }
       return true;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not save draft.');
@@ -376,6 +395,7 @@ function SubmissionEditor({ existing }: { existing: Submission | null }) {
 
   const submit = async () => {
     if (!user || writeBusy.current || uploadBusy.current) return;
+    if (!online) { setError('Reconnect before publishing. Keep this tab open to retain your latest changes.'); return; }
     const problem = validate();
     if (problem) { showProblem(problem); return; }
     writeBusy.current = true;
@@ -385,6 +405,7 @@ function SubmissionEditor({ existing }: { existing: Submission | null }) {
       await saveSubmission(draftInput, 'SUBMITTED', persistedRef.current ? undefined : null);
       persistedRef.current = true;
       trackEvent(existing ? 'submission_updated' : 'submission_completed', { campaign: campaign?.slug ?? OPEN_CAMPAIGN_ID });
+      try { window.sessionStorage.removeItem(recoveryKey); } catch { /* No local draft pointer. */ }
       dirtyRef.current = false;
       writeBusy.current = false;
       navigate(`/studio/submissions/${submissionId.current}`);
@@ -399,13 +420,19 @@ function SubmissionEditor({ existing }: { existing: Submission | null }) {
     setError(problem.message); setStep(problem.step);
     window.setTimeout(() => document.getElementById(problem.field)?.focus(), 0);
   };
-  const next = async () => { const problem = validate(step); if (problem) { showProblem(problem); return; } if (await saveDraft()) setStep((s) => Math.min(s + 1, 3)); };
+  const next = async () => { const problem = validate(step); if (problem) { showProblem(problem); return; } if (!online || await saveDraft()) setStep((s) => Math.min(s + 1, 3)); };
   const back = () => setStep((s) => Math.max(s - 1, 0));
 
   return (
-    <div className="page">
-      <p className="breadcrumb"><Link to="/studio/submissions">Submissions</Link> / {existing ? 'Edit' : 'New'}</p>
+    <div className="page submission-editor">
+      <p className="breadcrumb"><Link to="/studio/submissions">Your content</Link> / {existing ? 'Edit' : 'New'}</p>
       <h1>{existing ? 'Edit submission' : isOpenPost ? 'New post' : 'New campaign submission'}</h1>
+      {!existing && recoverableId && recoverableId !== submissionId.current ? <div className="callout callout--info">
+        <strong>You have a saved draft from this session.</strong> <Link to={`/studio/submissions/${encodeURIComponent(recoverableId)}/edit`}>Resume saved draft</Link>
+        <button type="button" className="button button--small" onClick={() => { setRecoverableId(null); try { window.sessionStorage.removeItem(recoveryKey); } catch { /* Optional pointer. */ } }}>Start a separate post</button>
+      </div> : null}
+      {sourceLink ? <div className="callout callout--info"><strong>Continue from what you discovered.</strong> <a href={sourceLink} target="_blank" rel="noreferrer">View the original</a><p>The link is in your source references. Add your own work and confirm permission for anything you reuse.</p></div> : null}
+      {!online ? <div className="callout callout--warn" role="status"><strong>You are offline.</strong> You can keep writing in this tab. Keep it open: your latest changes will save when you reconnect. Uploading and publishing need a connection.</div> : null}
       {isOpenPost ? (
         <div className="callout callout--info">
           <strong>This publishes straight to Explore.</strong> There is no queue and
@@ -422,6 +449,7 @@ function SubmissionEditor({ existing }: { existing: Submission | null }) {
       )}
       {existing?.moderation?.feedback ? <div className="callout callout--warn"><strong>Reviewer feedback: </strong>{existing.moderation.feedback}</div> : null}
       <p role="status" aria-live="polite">{saving ? "Saving…" : dirty ? saveStatus.startsWith("Not saved") ? saveStatus : "Unsaved changes" : saveStatus || "Drafts save automatically as you work."}</p>
+      {saveStatus.startsWith("Not saved") && online ? <button type="button" className="button button--small" disabled={saving} onClick={() => void saveDraft()}>Retry saving</button> : null}
       <Stepper steps={STEPS} current={step} />
 
       <div className="join__card">
@@ -444,6 +472,7 @@ function SubmissionEditor({ existing }: { existing: Submission | null }) {
                 ))}
               </div>
             </Field>
+            <div className="callout callout--info"><strong>Try this format</strong><p>{({ writing: 'Write a short story: what happened, who was involved, and why it matters to you.', audio: 'Record a short memory or explanation. Introduce the topic and add context for listeners.', video: 'Share a short video with a title and context. Check the preview before publishing.', image: 'Choose a photo and explain what it shows. Add alternative text for people who cannot see it.', translation: 'Add the original text, your translation, and any notes about meaning or usage.' })[studioType]}</p><p className="tiny">Your draft stays private until you choose to publish or submit it for review.</p></div>
             <Field label="Content title" htmlFor="t"><input id="t" value={title} onChange={(e) => setTitle(e.target.value)} /></Field>
             <div className="field-row">
               <Field label="Category" htmlFor="cat">
@@ -466,6 +495,7 @@ function SubmissionEditor({ existing }: { existing: Submission | null }) {
               </select>
             </Field>
             <Field label="Short description" htmlFor="desc"><textarea id="desc" value={description} onChange={(e) => setDescription(e.target.value)} /></Field>
+            <Field label="Source links and context (optional)" htmlFor="sources"><textarea id="sources" value={sourceReferences} onChange={(event) => setSourceReferences(event.target.value)} placeholder="Add public source links and explain where the knowledge comes from." /></Field>
             <Field label="Tags" htmlFor="tags" hint="Comma-separated.">
               <input id="tags" value={tags} onChange={(e) => setTags(e.target.value)} placeholder="folktale, greeting, market, elder-story" />
             </Field>
@@ -478,9 +508,6 @@ function SubmissionEditor({ existing }: { existing: Submission | null }) {
                   <textarea id="body" rows={8} value={body} onChange={(e) => setBody(e.target.value)} placeholder="Write or paste your cultural story, folklore, or proverbs here…" />
                 </Field>
                 <div className="field-row">
-                  <Field label="Proverb / Wisdom breakdown (optional)" htmlFor="sources">
-                    <textarea id="sources" value={sourceReferences} onChange={(e) => setSourceReferences(e.target.value)} placeholder="E.g. Traditional context from Paga elder lineage..." />
-                  </Field>
                   <Field label="Linguistic &amp; Dialect Notes" htmlFor="translationNotes">
                     <textarea id="translationNotes" value={translationNotes} onChange={(e) => setTranslationNotes(e.target.value)} placeholder="Notes on tonal inflections, rare words, or community-specific idioms..." />
                   </Field>
@@ -544,17 +571,17 @@ function SubmissionEditor({ existing }: { existing: Submission | null }) {
                   <p className="tiny muted">Record oral stories, pronunciations, or songs directly from your microphone.</p>
                 </div>
               </div>
-              <fieldset disabled={saving || (uploadPct !== null && uploadPct < 100)}><VoiceRecorder onAudioReady={(file) => void handleFile(file)} /></fieldset>
+              <fieldset disabled={!online || saving || (uploadPct !== null && uploadPct < 100)}><VoiceRecorder onAudioReady={(file) => void handleFile(file)} /></fieldset>
             </div>
 
             <div className="or-divider"><span>OR UPLOAD MEDIA FILE</span></div>
 
             <Field label={media ? 'Replace attachment' : 'Original media file'} htmlFor="media-file" hint={mediaLimits?.acceptedMimeTypes?.length ? `Accepted: ${mediaLimits.acceptedMimeTypes.join(', ')}` : 'Video, audio, image or document.'}>
-              <input id="media-file" type="file" disabled={saving || (uploadPct !== null && uploadPct < 100)} onChange={(e) => void handleFile(e.target.files?.[0])} />
+              <input id="media-file" type="file" disabled={!online || saving || (uploadPct !== null && uploadPct < 100)} onChange={(e) => void handleFile(e.target.files?.[0])} />
             </Field>
             {attachmentPreview}
             {media ? <button type="button" className="button button--small" disabled={saving || (uploadPct !== null && uploadPct < 100)} onClick={() => { setMedia(undefined); setUploadPct(null); }}>Remove attachment</button> : null}
-            {failedFile ? <button type="button" className="button button--small" disabled={saving} onClick={() => void handleFile(failedFile)}>Retry upload: {failedFile.name}</button> : null}
+            {failedFile ? <button type="button" className="button button--small" disabled={!online || saving} onClick={() => void handleFile(failedFile)}>Retry upload: {failedFile.name}</button> : null}
             {media && uploadPct === null ? <p className="tiny">Your saved media is attached. Upload a file to replace it.</p> : null}
             {uploadPct !== null ? (
               <div className="upload">
@@ -635,7 +662,7 @@ function SubmissionEditor({ existing }: { existing: Submission | null }) {
             {step < 3 ? (
               <button type="button" className="button button--primary" onClick={next} disabled={saving || (uploadPct !== null && uploadPct < 100)}>Continue</button>
             ) : (
-              <button type="button" className="button button--primary" onClick={() => void submit()} disabled={saving}>
+              <button type="button" className="button button--primary" onClick={() => void submit()} disabled={!online || saving || (uploadPct !== null && uploadPct < 100)}>
                 {saving
                   ? (isOpenPost ? 'Publishing…' : 'Submitting…')
                   : (isOpenPost ? 'Publish to Explore' : 'Submit for review')}
