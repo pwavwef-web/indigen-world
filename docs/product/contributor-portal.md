@@ -1,6 +1,6 @@
 # Invited expression contributors
 
-Tribe Studio's dedicated portal is `/contributor/{Firebase Auth UID}/{work ID}` on `https://tribestudio.ngenwale.com`. `/contributor` resolves the signed-in contributor's latest assignment. Invited accounts arriving on ordinary Studio routes are redirected before the Studio shell is rendered.
+Tribe Studio's dedicated portal is `/contributor/{Firebase Auth UID}/{work ID}` on `https://tribestudio.indigenworld.com`. `/contributor` resolves the signed-in contributor's latest assignment. Invited accounts arriving on ordinary Studio routes are redirected before the Studio shell is rendered.
 
 ## Invite and translate
 
@@ -32,7 +32,7 @@ The export rechecks current review and consent state rather than trusting potent
 
 ## Deployment and verification
 
-Deploy the Functions changes, Firestore rules, Tribe Studio hosting and Admin hosting together. The existing Tribe Studio SPA rewrite handles nested contributor routes. Firebase Email/Password authentication must be enabled and `tribestudio.ngenwale.com` must be allowed in Firebase Auth's authorized domains/continue URLs. No Firebase console settings or production data are changed by this code patch.
+Deploy the Functions changes, Firestore rules, Tribe Studio hosting and Admin hosting together. The existing Tribe Studio SPA rewrite handles nested contributor routes. Firebase Email/Password authentication must be enabled and `tribestudio.indigenworld.com` must be allowed in Firebase Auth's authorized domains/continue URLs. No Firebase console settings or production data are changed by this code patch.
 
 - `npm run test:contributor-portal`: backend behavior tests (transaction I/O simulated), Studio workflow tests and backend build.
 - `npm run build:tribestudio` and `npm run build:admin`: frontend builds.

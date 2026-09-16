@@ -559,7 +559,7 @@ test('forgot password sends the entered email without requiring a password', asy
     ...h.api, functions: {}, httpsCallable: () => () => {}, auth: {},
     useRoute: () => ({ path: '/contributor', navigate() {} }),
     sendPasswordResetEmail: async (_auth, email, options) => requests.push({ email, options }),
-    window: { location: { origin: 'https://tribestudio.ngenwale.com' } },
+    window: { location: { origin: 'https://tribestudio.indigenworld.com' } },
   });
   let tree = h.render(ContributorSignIn, { code: null });
   find(tree, n => n.type === 'button' && n.props.children?.includes('Forgot password?')).props.onClick();
@@ -569,7 +569,7 @@ test('forgot password sends the entered email without requiring a password', asy
   tree = h.render(ContributorSignIn, { code: null });
   await tree.props.onSubmit({ preventDefault() {} });
   assert.equal(requests[0].email, 'speaker@example.com');
-  assert.equal(requests[0].options.url, 'https://tribestudio.ngenwale.com/contributor');
+  assert.equal(requests[0].options.url, 'https://tribestudio.indigenworld.com/contributor');
   tree = h.render(ContributorSignIn, { code: null });
   assert.ok(find(tree, n => n.props?.role === 'status'));
   h.dispose();

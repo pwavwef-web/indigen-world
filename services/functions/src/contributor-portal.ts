@@ -10,7 +10,7 @@ import { COLLECTION_CAMPAIGN_ID, buildCollectionCampaignDocument, buildCollectio
 
 const options = { region: 'us-central1', invoker: 'public' as const,
   enforceAppCheck: process.env.ENFORCE_APP_CHECK === 'true' };
-const origin = 'https://tribestudio.ngenwale.com';
+const origin = 'https://tribestudio.indigenworld.com';
 function text(value: unknown, max: number, optional = false): string {
   if (typeof value !== 'string' || value.trim().length > max || (!optional && !value.trim())) {
     throw new HttpsError('invalid-argument', 'Missing or oversized text.');
