@@ -6,6 +6,7 @@ date identifies when the post was prepared; it does not prove the update is live
 
 ## Posts
 
+- [2026-09-16: Beyond the Reef, now an interactive music film](2026-09-16-beyond-the-reef/README.md) — the page is live; settle the song credit before publishing.
 - [2026-09-16: A clearer workspace for Kasem expression contributors](2026-09-16-contributor-portal/README.md) — draft; deployment verification pending.
 - [2026-09-14: Kawuri creates](2026-09-14-kawuri-creates/README.md)
 - [2026-09-14: Reels that explain themselves](2026-09-14-reels-that-explain-themselves/README.md)

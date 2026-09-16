@@ -1,0 +1,16 @@
+<!doctype html>
+<meta charset="utf-8">
+<link rel="stylesheet" href="style.css">
+<style>
+  .backdrop { background-image: url("../../../../website/public/beyond-the-reef/images/11-storm-start.webp"); }
+  .row { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 70px; padding-bottom: 40px; }
+  figure { display: flex; flex-direction: column; align-items: center; gap: 22px; }
+  .phone { --w: 430px; }
+</style>
+<div class="backdrop"></div>
+<div class="row">
+  <figure><div class="phone"><img src="../screens/phone-intro.jpg" alt=""></div><div class="caption">Opening</div></figure>
+  <figure><div class="phone"><img src="../screens/phone-storm.jpg" alt=""></div><div class="caption">The Storm</div></figure>
+  <figure><div class="phone"><img src="../screens/phone-finale.jpg" alt=""></div><div class="caption">Replay</div></figure>
+</div>
+<script>Promise.all([...document.images].map((i) => i.decode().catch(() => {}))).then(() => document.fonts.ready).then(() => { window.__ready = true; });</script>

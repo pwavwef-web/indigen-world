@@ -1,0 +1,29 @@
+<!doctype html>
+<meta charset="utf-8">
+<link rel="stylesheet" href="style.css">
+<style>
+  .grid { position: absolute; inset: 0; display: grid; grid-template-columns: repeat(2, 560px); align-content: center; justify-content: center; gap: 22px 48px; }
+  figure { display: flex; flex-direction: column; gap: 10px; }
+  .caption { font-size: 14px; }
+  .caption { padding-left: 4px; }
+  .caption b { color: #22d3ee; font-weight: 650; margin-right: 10px; }
+</style>
+<div class="grid">
+  <figure>
+    <div class="window"><div class="window__bar"><i></i><i></i><i></i><span class="window__url">indigenworld.com/beyond-the-reef</span></div><img src="../screens/desktop-city.jpg" alt=""></div>
+    <div class="caption"><b>02</b>Maps and Screens</div>
+  </figure>
+  <figure>
+    <div class="window"><div class="window__bar"><i></i><i></i><i></i><span class="window__url">indigenworld.com/beyond-the-reef</span></div><img src="../screens/desktop-reef.jpg" alt=""></div>
+    <div class="caption"><b>04</b>Beyond the Reef</div>
+  </figure>
+  <figure>
+    <div class="window"><div class="window__bar"><i></i><i></i><i></i><span class="window__url">indigenworld.com/beyond-the-reef</span></div><img src="../screens/desktop-storm.jpg" alt=""></div>
+    <div class="caption"><b>08</b>The Storm</div>
+  </figure>
+  <figure>
+    <div class="window"><div class="window__bar"><i></i><i></i><i></i><span class="window__url">indigenworld.com/beyond-the-reef</span></div><img src="../screens/desktop-island.jpg" alt=""></div>
+    <div class="caption"><b>09</b>Discovery</div>
+  </figure>
+</div>
+<script>Promise.all([...document.images].map((i) => i.decode().catch(() => {}))).then(() => document.fonts.ready).then(() => { window.__ready = true; });</script>
