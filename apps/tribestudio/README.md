@@ -85,6 +85,8 @@ existing SVG product mark; regenerate them after changing the mark with
 
 The service worker caches only public, fingerprinted build assets and a small
 offline fallback page. A fresh navigation without a connection shows that page.
+Hosting revalidates app routes on every navigation so an old HTML shell cannot
+point to bundles removed by a newer release.
 An already open draft tab can continue its in-memory writing and reconnect
 behavior; do not close it until it saves. Account data, uploads, Firebase APIs,
 and authenticated HTML are never cached by the worker. Uploading, publishing,

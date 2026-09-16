@@ -24,6 +24,22 @@ test('install metadata and all declared icons are present', () => {
   }
 });
 
+test('Hosting revalidates SPA routes without slowing fingerprinted assets', () => {
+  const hosting = JSON.parse(readFileSync(resolve(root, '../../firebase.json'), 'utf8')).hosting;
+  const rules = hosting.find((site) => site.site === 'tribestudio').headers;
+  const rootRule = rules.find((rule) => rule.source === '/');
+  const routeRule = rules.find((rule) => rule.regex?.includes('studio'));
+  assert.match(rootRule.headers[0].value, /no-cache, no-store/);
+  assert.match(routeRule.headers[0].value, /no-cache, no-store/);
+  const route = new RegExp(routeRule.regex);
+  for (const path of ['/studio', '/studio/profile', '/workspace', '/creators', '/creators/join']) {
+    assert.ok(route.test(path), path);
+  }
+  for (const path of ['/assets/main-hash.js', '/icons/icon-512.png']) {
+    assert.ok(!route.test(path), path);
+  }
+});
+
 test('offline launches are branded; private URLs never enter Cache Storage', async () => {
   const listeners = new Map();
   const stored = new Map();
