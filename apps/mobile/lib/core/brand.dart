@@ -6,59 +6,73 @@ import 'package:flutter/material.dart';
 /// Two layers live here.
 ///
 /// [BrandColors] is the *identity*: the handful of fixed hues that are the same
-/// pigment whatever the light — the ecosystem's deep indigo, the heritage
-/// green, the kente gold, the terracotta. Reach for these when the colour is
-/// the brand itself: a seed colour, a splash screen, a gradient over a
-/// photograph.
+/// pigment whatever the light — the ecosystem's navy, its action blue and the
+/// cyan it lights things with. Reach for these when the colour is the brand
+/// itself: a seed colour, a splash screen, a gradient over a photograph.
 ///
 /// [BrandPalette] is the *paint*: every semantic role a surface, a line or a
 /// word can play, resolved for the brightness the member is actually reading
 /// in. Reach for these — through `context.brand` — for anything drawn in the
 /// app chrome. A palette token knows what it is *for* ("secondary text",
 /// "hairline between rows"), which is what lets the same widget be legible on
-/// plaster and on charcoal without a single `if (isDark)` at the call site.
+/// paper and on navy without a single `if (isDark)` at the call site.
 ///
 /// The rule of thumb: if swapping the value for its dark twin would be wrong,
 /// it is a [BrandColors]; otherwise it is a [BrandPalette] token.
 /// ─────────────────────────────────────────────────────────────────────────────
 
 abstract final class BrandColors {
-  /// Deep Indigo — the ecosystem's brand colour, and the pigment every
-  /// Indigen World website is built on.
+  /// Navy — the ecosystem's brand colour, and the pigment every Indigen World
+  /// website is built on.
   ///
-  /// The authority is `packages/design-tokens/colors.json`, which carries the
-  /// status `approved-ecosystem-standard`; the Website, TribeStudio and the
-  /// Kasena dictionary all resolve to it. Deep enough to carry white text at
-  /// any size, which is why the sites set their headers and hero bands in it.
-  static const indigo = Color(0xFF1E365D);
+  /// The authority is the websites' live theme,
+  /// `apps/website/src/styles/comitia-theme.css` (`--indigo-900`), which the
+  /// admin console, TribeStudio, the Kasem Dictionary and the updates blog all
+  /// follow. `packages/design-tokens/colors.json` still carries the retired
+  /// indigo/terracotta palette and is no longer what the sites draw. Deep
+  /// enough to carry white text at any size, which is why the sites set their
+  /// headers and hero bands in it.
+  static const indigo = Color(0xFF19327F);
 
-  /// The dark end of the band the sites open every page with —
-  /// `linear-gradient(160deg, var(--indigo-950), var(--indigo-900))`, whose
-  /// lit end is [indigo].
-  static const indigoDeep = Color(0xFF142543);
+  /// The dark end of the band the sites open every page with — the
+  /// `--indigo-950` their header glass and ink are made of.
+  static const indigoDeep = Color(0xFF0F1830);
 
-  /// The heritage green. No longer the daylight accent — the ecosystem's is
-  /// [indigo] — but still the app's own pigment after dark, where an indigo
-  /// panel sinks into the charcoal and this does not.
-  static const heritageGreen = Color(0xFF0B3D2E);
-  static const savannahGreen = Color(0xFF155B43);
-  static const kenteGold = Color(0xFFD89B1D);
-  static const terracotta = Color(0xFFB65A3A);
+  /// The action blue: `--indigo-700` on the sites, and what their primary
+  /// buttons and current-page marks are filled with.
+  static const actionBlue = Color(0xFF2F6BFF);
 
-  /// The pressed shade of [terracotta]; the sites' `--terracotta-dark`.
-  static const terracottaDark = Color(0xFF9A492E);
+  /// The lit end of the sites' hero band, between [indigo] and [actionBlue].
+  static const indigoLit = Color(0xFF2457D6);
 
-  /// The paper the sites are printed on, and the ground of this app by day.
-  static const plasterCream = Color(0xFFFAF6ED);
+  /// [actionBlue] a shade darker, for a fill that carries white text.
+  ///
+  /// White on `#2f6bff` is 4.4988:1 — a hair under AA — so the sites' text
+  /// buttons use this one, and so does every filled button here.
+  static const actionBlueText = Color(0xFF2C66F5);
+
+  /// The cyan the sites light things with — the sun in the brand mark, the
+  /// glow on the hero. Kept to highlights: it is far too light to carry text.
+  static const cyan = Color(0xFF22D3EE);
+
+  /// A warning on a night ground — an offline tag, a failed send. A signal,
+  /// not a brand colour: the same hue the dark palette's `danger` is.
+  static const warning = Color(0xFFE0685F);
+
+  /// The paper the sites are printed on, and the ground of this app by day —
+  /// the sites' `--cream`, which is a cool blue-white now rather than cream.
+  static const plasterCream = Color(0xFFF6F7FB);
 
   /// The quieter band of that paper — form wells, notes, unselected chips.
-  static const sand = Color(0xFFF1EADA);
+  /// The sites' `--sand`.
+  static const sand = Color(0xFFEAF0FF);
 
   /// Night ground for the immersive surfaces — the launch screen, Explore and
   /// Kawuri. These stay dark in *both* themes: a full-bleed reel is a cinema,
-  /// not a page, so it does not follow the reading brightness.
-  static const nightGreen = Color(0xFF071D17);
-  static const nightInk = Color(0xFF050807);
+  /// not a page, so it does not follow the reading brightness. The dark end of
+  /// the sites' hero, `#0b1225`.
+  static const nightNavy = Color(0xFF0B1225);
+  static const nightInk = Color(0xFF05080F);
 }
 
 /// Every colour role in the app, resolved for one brightness.
@@ -94,6 +108,13 @@ class BrandPalette extends ThemeExtension<BrandPalette> {
     required this.glassFill,
     required this.glassEdge,
     required this.scrim,
+    required this.highlight,
+    required this.heroDeep,
+    required this.heroMid,
+    required this.heroLit,
+    required this.nightGround,
+    required this.nightGlow,
+    required this.nightAccent,
   });
 
   final Brightness brightness;
@@ -130,16 +151,15 @@ class BrandPalette extends ThemeExtension<BrandPalette> {
   final Color faintInk;
 
   /// The brand accent as a *foreground* — links, selected icons, small marks.
-  /// Deep indigo on plaster, the same pigment the websites carry the brand in;
-  /// a lit green on charcoal, because no indigo survives a dark ground.
+  /// A deep blue on the pale ground, the same family the websites carry the
+  /// brand in; a pale blue on navy, because no mid blue is legible on it.
   final Color accent;
 
   /// The brand accent as a *surface* — primary buttons, the composer FAB.
   ///
-  /// Not the same hue as [accent] by day, and deliberately so: the websites
-  /// set `.button--primary` in terracotta and reserve indigo for the brand
-  /// itself, so the colour you press is never the colour that merely
-  /// identifies. At night the two converge on the green.
+  /// The sites' action blue, and the same in both themes: it is the one blue
+  /// that carries white text on paper and on navy alike, so the colour you
+  /// press does not change when the lights go out.
   final Color accentFill;
 
   /// Text and icons drawn on [accentFill].
@@ -148,11 +168,16 @@ class BrandPalette extends ThemeExtension<BrandPalette> {
   /// A wash of the accent, for selected rows and tinted plates.
   final Color accentSoft;
 
-  /// Kente gold, dimmed for daylight and lifted for night. Used sparingly —
-  /// it is a highlight, not a background.
+  /// Gold, dimmed for daylight and lifted for night. Functional only — star
+  /// ratings, verified marks — and never a brand highlight any more; that job
+  /// is [BrandColors.cyan]'s.
   final Color gold;
 
-  /// The warm earth accent: eyebrows, section marks.
+  /// The secondary accent: eyebrows, section marks.
+  ///
+  /// Named for the terracotta it used to be. The websites kept the same name
+  /// for the same role when it turned blue (`--terracotta: #2f6bff`), and so
+  /// does this token, rather than renaming it at two hundred call sites.
   final Color terracotta;
 
   /// Appreciation.
@@ -177,7 +202,42 @@ class BrandPalette extends ThemeExtension<BrandPalette> {
   /// Behind modals and over media.
   final Color scrim;
 
+  // ── Theme-level colours ───────────────────────────────────────────────────
+  // The seven below belong to the *theme* rather than to one brightness: each
+  // theme sets them to the same value in its light and its dark palette. They
+  // are what the surfaces that stay dark in both appearances are painted with
+  // — the hero bands, Kawuri, the launch screen — which is why they have to
+  // live on the palette at all: a member who picks a theme expects those to
+  // change with it.
+
+  /// The theme's light-up colour: the sun in the mark, the rule down Kawuri's
+  /// turn, a progress bar over media. Drawn on dark grounds; never body text
+  /// on a pale one.
+  final Color highlight;
+
+  /// The hero band, deepest to lit. Every stop carries white text.
+  final Color heroDeep;
+  final Color heroMid;
+  final Color heroLit;
+
+  /// The ground of the immersive surfaces, and the lit centre of the radial
+  /// wash laid over it.
+  final Color nightGround;
+  final Color nightGlow;
+
+  /// An accent that reads on [nightGround] and on the hero band — for the
+  /// controls drawn there by a page that is otherwise in daylight.
+  final Color nightAccent;
+
   bool get isDark => brightness == Brightness.dark;
+
+  /// The accent laid over [surface] as an opaque plate — a selected chip, a
+  /// tinted tile. Opaque so it can sit on a gradient without the gradient
+  /// showing through it.
+  Color get accentPlate => Color.alphaBlend(
+    accent.withValues(alpha: isDark ? 0.2 : 0.1),
+    surface,
+  );
 
   /// Picks between two values by brightness, for the handful of places where a
   /// whole token would be overkill.
@@ -185,89 +245,102 @@ class BrandPalette extends ThemeExtension<BrandPalette> {
 
   /// Daylight: the ecosystem's own paper and ink.
   ///
-  /// This is the palette the websites are built from. The authority is
-  /// `packages/design-tokens/colors.json` — the approved ecosystem standard
-  /// that the Website, TribeStudio and the Kasena dictionary all resolve to —
-  /// and the roles below are assigned the way those sites assign them:
+  /// This is the palette the websites are built from. The authority is the
+  /// sites' live theme, `apps/website/src/styles/comitia-theme.css`, which the
+  /// admin console, TribeStudio and the Kasem Dictionary follow too — not
+  /// `packages/design-tokens/colors.json`, which still describes the retired
+  /// indigo-and-terracotta look. The roles are assigned the way those sites
+  /// assign them:
   ///
-  ///   * Deep Indigo is what *carries the brand*: links, selected icons,
-  ///     focus rings, secondary buttons (`.button--secondary` on a light
-  ///     section is indigo text in an indigo outline).
-  ///   * Terracotta is what you *press*: it is `.button--primary` on every
-  ///     site, so it is the filled button and the composer FAB here.
-  ///   * Gold is a highlight, never a ground.
+  ///   * Navy-into-blue is what *carries the brand*: links, selected icons,
+  ///     focus rings. [accent] is the sites' `--indigo-800`, a step lighter
+  ///     than the navy so a link still reads as blue at 14px rather than as
+  ///     near-black.
+  ///   * Action blue is what you *press*: `.mobile-nav__cta` and every primary
+  ///     button on the sites, so it is the filled button and the composer FAB
+  ///     here — at `#2c66f5`, because white on the sites' `#2f6bff` misses AA
+  ///     by a thousandth.
+  ///   * Cyan is a highlight, never a ground and never text.
   ///
-  /// Two values are deliberately not the literal token-file entry:
-  ///
-  /// [background] is the sites' plaster cream rather than the token file's
-  /// near-white `--bg: #fffdf8`, for a reason the web does not have. The sites
-  /// band their pages white / cream / sand, so a white card always has an edge
-  /// to sit against; a phone has one continuous ground, and a white card on
-  /// `#fffdf8` separates at 1.02:1 — invisible. Cream holds the cards up.
-  ///
-  /// [gold] is the token file's light-mode `warning`, which is the ecosystem's
-  /// own answer to "what does kente gold become when it has to be legible on
-  /// paper". The sites spend gold as a *fill* with dark text on it; this app
-  /// spends it as small glyphs — verified marks, star ratings — and the raw
-  /// `#c58a00` reads at 2.8:1 against cream, which is not a colour you can
-  /// draw a 16px icon in. [BrandColors.kenteGold] is still the pigment for
-  /// anything gold-on-dark.
+  /// [gold] survives only as a functional colour — star ratings, verified
+  /// marks — and is the old token file's light-mode `warning`, the one gold
+  /// that can be drawn as a 16px glyph on a pale ground.
   static const light = BrandPalette(
     brightness: Brightness.light,
-    background: Color(0xFFFAF6ED),
+    background: Color(0xFFF6F7FB),
     surface: Color(0xFFFFFFFF),
-    surfaceMuted: Color(0xFFF1EADA),
+    surfaceMuted: Color(0xFFEEF2FB),
     surfaceElevated: Color(0xFFFFFFFF),
-    bar: Color(0xFFFFFDFA),
-    border: Color(0xFFD8D2C6),
-    divider: Color(0xFFE6E1D5),
-    ink: Color(0xFF172033),
-    mutedInk: Color(0xFF4C5568),
-    faintInk: Color(0xFF7A8293),
-    accent: Color(0xFF1E365D),
-    accentFill: Color(0xFFB65A3A),
+    bar: Color(0xFFFFFFFF),
+    border: Color(0xFFDCE1EC),
+    divider: Color(0xFFE6EAF2),
+    ink: Color(0xFF0F1830),
+    mutedInk: Color(0xFF5D667B),
+    faintInk: Color(0xFF7A8296),
+    accent: Color(0xFF2149B8),
+    accentFill: Color(0xFF2C66F5),
     onAccentFill: Color(0xFFFFFFFF),
-    accentSoft: Color(0x141E365D),
+    accentSoft: Color(0x142F6BFF),
     gold: Color(0xFF9A6700),
-    terracotta: Color(0xFFB65A3A),
-    like: Color(0xFF9A492E),
-    repost: Color(0xFF1F5A3A),
-    success: Color(0xFF1F6B45),
-    danger: Color(0xFFA12A2A),
-    shadow: Color(0xFF142543),
+    terracotta: Color(0xFF1F50D6),
+    like: Color(0xFFB4412F),
+    repost: Color(0xFF0369A1),
+    success: Color(0xFF0F7A5A),
+    danger: Color(0xFFB02A30),
+    shadow: Color(0xFF0F1830),
     glassFill: Color(0xFFFFFFFF),
     glassEdge: Color(0xFFFFFFFF),
-    scrim: Color(0x8A0F1A2D),
+    scrim: Color(0x8A0F1830),
+    highlight: Color(0xFF22D3EE),
+    heroDeep: Color(0xFF0B1225),
+    heroMid: Color(0xFF19327F),
+    heroLit: Color(0xFF2457D6),
+    nightGround: Color(0xFF0B1225),
+    nightGlow: Color(0xFF1A2F6B),
+    nightAccent: Color(0xFF8EB4FF),
   );
 
-  /// Night: a charcoal with a green undertone rather than a flat grey, so the
-  /// brand is still present in a room with the lights off.
+  /// Night: navy rather than a flat charcoal, so the brand is still present in
+  /// a room with the lights off.
+  ///
+  /// The grounds are the ecosystem's dark tokens (`#0d1524` under `#142036`
+  /// surfaces). The accent lifts to the pale blue the sites draw their brand
+  /// mark's frame in, `#8eb4ff`, because no mid blue is legible as text on
+  /// navy; the filled button stays the same action blue as by day, which
+  /// carries white text on either ground.
   static const dark = BrandPalette(
     brightness: Brightness.dark,
-    background: Color(0xFF0E1211),
-    surface: Color(0xFF151A18),
-    surfaceMuted: Color(0xFF1B211F),
-    surfaceElevated: Color(0xFF1E2523),
-    bar: Color(0xFF111615),
-    border: Color(0xFF262E2B),
-    divider: Color(0xFF1F2624),
-    ink: Color(0xFFE9EDEB),
-    mutedInk: Color(0xFF98A29E),
-    faintInk: Color(0xFF6C7673),
-    accent: Color(0xFF56B693),
-    accentFill: Color(0xFF1C6B52),
+    background: Color(0xFF0D1524),
+    surface: Color(0xFF142036),
+    surfaceMuted: Color(0xFF18263F),
+    surfaceElevated: Color(0xFF1C2B47),
+    bar: Color(0xFF101A2C),
+    border: Color(0xFF283A5A),
+    divider: Color(0xFF1F2F4B),
+    ink: Color(0xFFF5F7FA),
+    mutedInk: Color(0xFFBAC4D6),
+    faintInk: Color(0xFF7D8B9F),
+    accent: Color(0xFF8EB4FF),
+    accentFill: Color(0xFF2C66F5),
     onAccentFill: Color(0xFFFFFFFF),
-    accentSoft: Color(0x2456B693),
-    gold: Color(0xFFD3AB53),
-    terracotta: Color(0xFFCE7D60),
-    like: Color(0xFFDE7259),
-    repost: Color(0xFF56B693),
-    success: Color(0xFF56B693),
-    danger: Color(0xFFE0685F),
+    accentSoft: Color(0x248EB4FF),
+    gold: Color(0xFFE3B341),
+    terracotta: Color(0xFF6D99FF),
+    like: Color(0xFFFF8A7A),
+    repost: Color(0xFF7DD3FC),
+    success: Color(0xFF4FD1A5),
+    danger: Color(0xFFF07167),
     shadow: Color(0xFF000000),
     glassFill: Color(0xFFFFFFFF),
     glassEdge: Color(0xFFFFFFFF),
-    scrim: Color(0xB3000000),
+    scrim: Color(0xB3050A14),
+    highlight: Color(0xFF22D3EE),
+    heroDeep: Color(0xFF0B1225),
+    heroMid: Color(0xFF19327F),
+    heroLit: Color(0xFF2457D6),
+    nightGround: Color(0xFF0B1225),
+    nightGlow: Color(0xFF1A2F6B),
+    nightAccent: Color(0xFF8EB4FF),
   );
 
   @override
@@ -297,6 +370,13 @@ class BrandPalette extends ThemeExtension<BrandPalette> {
     Color? glassFill,
     Color? glassEdge,
     Color? scrim,
+    Color? highlight,
+    Color? heroDeep,
+    Color? heroMid,
+    Color? heroLit,
+    Color? nightGround,
+    Color? nightGlow,
+    Color? nightAccent,
   }) => BrandPalette(
     brightness: brightness ?? this.brightness,
     background: background ?? this.background,
@@ -323,6 +403,13 @@ class BrandPalette extends ThemeExtension<BrandPalette> {
     glassFill: glassFill ?? this.glassFill,
     glassEdge: glassEdge ?? this.glassEdge,
     scrim: scrim ?? this.scrim,
+    highlight: highlight ?? this.highlight,
+    heroDeep: heroDeep ?? this.heroDeep,
+    heroMid: heroMid ?? this.heroMid,
+    heroLit: heroLit ?? this.heroLit,
+    nightGround: nightGround ?? this.nightGround,
+    nightGlow: nightGlow ?? this.nightGlow,
+    nightAccent: nightAccent ?? this.nightAccent,
   );
 
   @override
@@ -358,6 +445,13 @@ class BrandPalette extends ThemeExtension<BrandPalette> {
       glassFill: mix(glassFill, other.glassFill),
       glassEdge: mix(glassEdge, other.glassEdge),
       scrim: mix(scrim, other.scrim),
+      highlight: mix(highlight, other.highlight),
+      heroDeep: mix(heroDeep, other.heroDeep),
+      heroMid: mix(heroMid, other.heroMid),
+      heroLit: mix(heroLit, other.heroLit),
+      nightGround: mix(nightGround, other.nightGround),
+      nightGlow: mix(nightGlow, other.nightGlow),
+      nightAccent: mix(nightAccent, other.nightAccent),
     );
   }
 
@@ -392,7 +486,14 @@ class BrandPalette extends ThemeExtension<BrandPalette> {
           other.shadow == shadow &&
           other.glassFill == glassFill &&
           other.glassEdge == glassEdge &&
-          other.scrim == scrim;
+          other.scrim == scrim &&
+          other.highlight == highlight &&
+          other.heroDeep == heroDeep &&
+          other.heroMid == heroMid &&
+          other.heroLit == heroLit &&
+          other.nightGround == nightGround &&
+          other.nightGlow == nightGlow &&
+          other.nightAccent == nightAccent;
 
   @override
   int get hashCode => Object.hashAll([
@@ -421,6 +522,13 @@ class BrandPalette extends ThemeExtension<BrandPalette> {
     glassFill,
     glassEdge,
     scrim,
+    highlight,
+    heroDeep,
+    heroMid,
+    heroLit,
+    nightGround,
+    nightGlow,
+    nightAccent,
   ]);
 }
 
@@ -438,23 +546,17 @@ extension BrandPaletteContext on BuildContext {
 abstract final class BrandGradients {
   /// The ramp every filled hero panel is built from — deepest, mid, lit.
   ///
-  /// This one *does* follow brightness, which is the exception in this class
-  /// and is the point of it. By day the ramp is the indigo the websites open
-  /// every page with (`linear-gradient(160deg, --indigo-950, --indigo-900)`),
-  /// so a member arriving from indigenworld.com lands on the same band. After
-  /// dark it is the heritage green: an indigo panel on a charcoal ground is a
-  /// slightly bluer charcoal, and the hero stops reading as a panel at all.
-  static List<Color> heroRamp(BrandPalette brand) => brand.isDark
-      ? const [
-          Color(0xFF082F25),
-          BrandColors.heritageGreen,
-          BrandColors.savannahGreen,
-        ]
-      : const [
-          Color(0xFF0F1A2D),
-          BrandColors.indigoDeep,
-          BrandColors.indigo,
-        ];
+  /// The websites' own hero, `linear-gradient(145deg, #0b1225, #19327f 62%,
+  /// #2457d6)`, so a member arriving from indigenworld.com lands on the same
+  /// band. It takes the palette for symmetry with its callers but is the same
+  /// in both themes: its navy-into-blue is lit enough to read as a panel on
+  /// the night palette's navy ground, which the old indigo on charcoal never
+  /// was.
+  static List<Color> heroRamp(BrandPalette brand) => [
+    brand.heroDeep,
+    brand.heroMid,
+    brand.heroLit,
+  ];
 
   /// Headers and hero cards: the brand colour falling to its lit end.
   static LinearGradient hero(BrandPalette brand) {
@@ -474,29 +576,30 @@ abstract final class BrandGradients {
     colors: heroRamp(brand),
   );
 
-  /// A hero that ends in gold: the stand-in behind a community banner nobody
+  /// A hero that ends in cyan: the stand-in behind a community banner nobody
   /// has uploaded a cover for yet.
   static LinearGradient heroBanner(BrandPalette brand) {
     final ramp = heroRamp(brand);
     return LinearGradient(
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
-      colors: [ramp[1], ramp[2], BrandColors.kenteGold],
+      colors: [ramp[1], ramp[2], brand.highlight],
     );
   }
 
-  /// Accents that should feel like firelight — send buttons, highlights.
-  static const ember = LinearGradient(
+  /// Accents that should feel lit — send buttons, highlights. The sites'
+  /// header call-to-action runs the same two colours.
+  static LinearGradient ember(BrandPalette brand) => LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [BrandColors.kenteGold, BrandColors.terracotta],
+    colors: [brand.highlight, brand.accentFill],
   );
 
   /// The full-bleed ground behind immersive screens.
-  static const night = RadialGradient(
+  static RadialGradient night(BrandPalette brand) => RadialGradient(
     radius: 1.35,
-    center: Alignment(0, -0.55),
-    colors: [Color(0xFF175340), Color(0xFF08221B), BrandColors.nightInk],
+    center: const Alignment(0, -0.55),
+    colors: [brand.nightGlow, brand.nightGround, BrandColors.nightInk],
   );
 
   /// A barely-there wash that lifts a plain card off the ground.
@@ -521,9 +624,9 @@ abstract final class BrandGradients {
   /// The lit corner of [pageWash], for the rare caller that needs the colour
   /// on its own.
   static Color pageWashTop(BrandPalette brand) => Color.alphaBlend(
-    // By day the lit corner is the token file's own plaster cream, so the
-    // wash lands on the same warmth the sites' `.section--cream` band has.
-    (brand.isDark ? Colors.white : const Color(0xFFFFF8E7)).withValues(
+    // By day the lit corner is the sites' `--sand` band, the same pale blue
+    // their page ground glows toward in its top corner.
+    (brand.isDark ? Colors.white : BrandColors.sand).withValues(
       alpha: brand.isDark ? 0.045 : 0.75,
     ),
     brand.background,

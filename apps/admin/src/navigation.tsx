@@ -5,7 +5,7 @@ import { CreatorsAdmin } from './creators/CreatorsAdmin';
 import { TeamSiteRequestsAdmin } from './team-sites/TeamSiteIntake';
 import { MessagingAdmin } from './messaging/MessagingAdmin';
 import { InterestsAdmin } from './interests/InterestsAdmin';
-import { LearningAdmin } from './learning/LearningAdmin';
+import { LearningWorkspace } from './learning/LearningAdmin';
 import { CollectionAdmin } from './collection/CollectionAdmin';
 import { ReportsAdmin } from './reports/ReportsAdmin';
 import { AuditLogViewer } from './console/AuditLogViewer';
@@ -76,12 +76,14 @@ export const SCREENS: AdminScreen[] = [
     path: '/learning',
     label: 'Learning',
     group: 'Publishing',
-    canAccess: isAdmin,
+    // Editors reach the illustration desk and pronunciation review; the
+    // lesson and unit editors inside stay admin-only.
+    canAccess: isValidator,
     deny: {
-      title: 'Admin access required',
-      body: 'Your account needs an admin role to configure the Kasem learning path.',
+      title: 'Staff access required',
+      body: 'Your account needs a validator or admin role to open the learning desks.',
     },
-    render: () => <LearningAdmin />,
+    render: ({ role }) => <LearningWorkspace role={role} />,
   },
   {
     id: 'collection',

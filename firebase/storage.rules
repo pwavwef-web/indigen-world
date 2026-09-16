@@ -198,6 +198,24 @@ service firebase.storage {
       allow delete: if isAdmin();
     }
 
+    // ---- Course illustration desk ------------------------------------------
+    // Drafts are written only by generateLearnIllustration (Admin SDK) and read
+    // by staff reviewing them; nothing here is public until an approval copies
+    // it to published-media/. Reference images are uploaded from the admin
+    // console by the staff member who will use them, into their own prefix.
+    match /learn-illustrations/drafts/{illustrationId}/{fileName} {
+      allow read: if isStaff();
+      allow write: if false;
+    }
+    match /learn-illustrations/references/{uid}/{uploadId}/{fileName} {
+      allow read: if isStaff();
+      allow create: if isStaff()
+        && request.auth.uid == uid
+        && request.resource.size < 8 * 1024 * 1024
+        && request.resource.contentType.matches('image/(png|jpeg|webp)');
+      allow update, delete: if false;
+    }
+
     // ---- Library audiobooks: world-readable, admin-written ------------------
     //
     // Audiobook contribution came off the phone. A narrated book involves a

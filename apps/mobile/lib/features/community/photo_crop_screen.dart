@@ -347,7 +347,7 @@ class _PhotoCropScreenState extends State<PhotoCropScreen> {
     child: AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.light,
       child: Scaffold(
-        backgroundColor: const Color(0xFF070A09),
+        backgroundColor: const Color(0xFF06080F),
         body: SafeArea(child: _body(context)),
       ),
     ),

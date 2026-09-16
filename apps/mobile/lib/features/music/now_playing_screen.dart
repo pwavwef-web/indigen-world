@@ -322,7 +322,7 @@ class _ArtistLine extends ConsumerWidget {
 
     final line = Text(
       name,
-      style: TextStyle(color: brand.success, fontWeight: FontWeight.w800),
+      style: TextStyle(color: brand.accent, fontWeight: FontWeight.w800),
     );
     if (match == null || kind == null) return line;
 
@@ -344,7 +344,7 @@ class _ArtistLine extends ConsumerWidget {
           children: [
             line,
             const SizedBox(width: 2),
-            Icon(Icons.chevron_right_rounded, size: 18, color: brand.success),
+            Icon(Icons.chevron_right_rounded, size: 18, color: brand.accent),
           ],
         ),
       ),

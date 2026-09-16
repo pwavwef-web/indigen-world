@@ -287,12 +287,13 @@ Future<bool> kawuriConfirmCancel(
 Future<bool> kawuriConfirmVideoSpend(
   BuildContext context, {
   required int durationSeconds,
+  bool withSound = false,
 }) async =>
     await showGlassConfirm(
       context: context,
       title: 'Use a video generation?',
       message:
-          'This $durationSeconds-second video uses one of your limited AI video generations for today. Once it starts it cannot be stopped, and it keeps going if you close the app. You will be notified when it is ready.',
+          'This $durationSeconds-second video${withSound ? ', with sound,' : ''} uses one of your limited AI video generations for today. Once it starts it cannot be stopped, and it keeps going if you close the app. You will be notified when it is ready.',
       cancelLabel: 'Not now',
       confirmLabel: 'Create video',
     ) ==

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
+import 'package:indigen_world_mobile/features/kawuri/kawuri_learning_context.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_screen.dart';
 
 /// The floating Kawuri button.
@@ -10,7 +11,15 @@ import 'package:indigen_world_mobile/features/kawuri/kawuri_screen.dart';
 /// with it, then breathes gently so it stays findable without ever demanding
 /// attention.
 class KawuriFab extends StatefulWidget {
-  const KawuriFab({super.key});
+  const KawuriFab({this.learningContext, this.showLabel = false, super.key});
+
+  /// Read at the moment of the tap, so Kawuri is told where the learner is
+  /// *now* — the lesson they are on, today's word — rather than where they
+  /// were when the button was built.
+  final KawuriLearningContext Function()? learningContext;
+
+  /// "Kawuri AI" under the orb, as the Learn tab draws it.
+  final bool showLabel;
 
   @override
   State<KawuriFab> createState() => _KawuriFabState();
@@ -52,7 +61,8 @@ class _KawuriFabState extends State<KawuriFab> with TickerProviderStateMixin {
       PageRouteBuilder<void>(
         transitionDuration: const Duration(milliseconds: 380),
         reverseTransitionDuration: const Duration(milliseconds: 260),
-        pageBuilder: (context, animation, secondary) => const KawuriScreen(),
+        pageBuilder: (context, animation, secondary) =>
+            KawuriScreen(learningContext: widget.learningContext?.call()),
         transitionsBuilder: (context, animation, secondary, child) {
           final curve = CurvedAnimation(
             parent: animation,
@@ -75,7 +85,35 @@ class _KawuriFabState extends State<KawuriFab> with TickerProviderStateMixin {
     scale: CurvedAnimation(parent: _entry, curve: Curves.elasticOut),
     child: FadeTransition(
       opacity: CurvedAnimation(parent: _entry, curve: Curves.easeIn),
-      child: Semantics(
+      child: widget.showLabel
+          ? Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _orb(context),
+                const SizedBox(height: 4),
+                ExcludeSemantics(
+                  child: Text(
+                    'Kawuri AI',
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: context.brand.ink,
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w700,
+                      shadows: [
+                        Shadow(
+                          color: context.brand.background,
+                          blurRadius: 6,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            )
+          : _orb(context),
+    ),
+  );
+
+  Widget _orb(BuildContext context) => Semantics(
         button: true,
         label: 'Ask Kawuri, the Indigen World guide',
         excludeSemantics: true,
@@ -90,23 +128,23 @@ class _KawuriFabState extends State<KawuriFab> with TickerProviderStateMixin {
                 height: 58,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  gradient: const LinearGradient(
+                  gradient: LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                     colors: [
-                      BrandColors.heritageGreen,
-                      BrandColors.savannahGreen,
+                      context.brand.heroMid,
+                      context.brand.heroLit,
                     ],
                   ),
                   border: Border.all(
-                    color: context.brand.gold.withValues(
+                    color: context.brand.highlight.withValues(
                       alpha: 0.55 + 0.35 * _breathe.value,
                     ),
                     width: 1.4,
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: context.brand.gold.withValues(
+                      color: context.brand.highlight.withValues(
                         alpha: 0.22 + 0.18 * _breathe.value,
                       ),
                       blurRadius: 16 + 12 * _breathe.value,
@@ -125,7 +163,5 @@ class _KawuriFabState extends State<KawuriFab> with TickerProviderStateMixin {
             ),
           ),
         ),
-      ),
-    ),
-  );
+      );
 }

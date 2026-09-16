@@ -125,6 +125,10 @@ class Lesson {
     this.minutes = 3,
     this.xp = 15,
     this.iconName = 'school',
+    this.courseId = 'kasem',
+    this.description = '',
+    this.imageUrl = '',
+    this.imageAttribution = '',
   });
 
   /// Stable slug progress is remembered by. Reordering the path must never
@@ -150,6 +154,17 @@ class Lesson {
 
   IconData get icon => lessonIcons[iconName] ?? Icons.school_rounded;
 
+  /// The course this lesson belongs to. Every lesson written before courses
+  /// existed is Kasem, which is what an absent field means.
+  final String courseId;
+
+  /// One short line about what the lesson covers, for the Today card.
+  final String description;
+
+  /// An approved illustration for this lesson, and its credit.
+  final String imageUrl;
+  final String imageAttribution;
+
   bool get isValid =>
       id.trim().isNotEmpty &&
       title.trim().isNotEmpty &&
@@ -168,6 +183,10 @@ class Lesson {
       minutes: _int(data['minutes'], fallback: 3),
       xp: _int(data['xp'], fallback: 15),
       iconName: _text(data['iconName'], fallback: 'school'),
+      courseId: _text(data['courseId'], fallback: 'kasem'),
+      description: _text(data['description']),
+      imageUrl: _text(data['imageUrl']),
+      imageAttribution: _text(data['imageAttribution']),
       questions: (data['questions'] as List<Object?>? ?? const [])
           .whereType<Map<Object?, Object?>>()
           .map((raw) => LessonQuestion.fromMap(Map<String, Object?>.from(raw)))
@@ -256,6 +275,7 @@ const bundledLessons = <Lesson>[
   Lesson(
     id: 'unit1-say-hello',
     title: 'Say hello',
+    description: 'Greetings to welcome someone',
     iconName: 'wave',
     minutes: 2,
     xp: 15,
@@ -276,6 +296,7 @@ const bundledLessons = <Lesson>[
   Lesson(
     id: 'unit1-listen-and-choose',
     title: 'Listen & choose',
+    description: 'Answer when someone asks how things are',
     iconName: 'headphones',
     minutes: 3,
     xp: 15,
@@ -296,6 +317,7 @@ const bundledLessons = <Lesson>[
   Lesson(
     id: 'unit1-build-a-phrase',
     title: 'Build a phrase',
+    description: 'Keep a greeting exchange going',
     iconName: 'puzzle',
     minutes: 3,
     xp: 15,
@@ -315,6 +337,7 @@ const bundledLessons = <Lesson>[
   Lesson(
     id: 'unit1-conversation-check',
     title: 'Conversation check',
+    description: 'Put a short greeting exchange together',
     iconName: 'chat',
     minutes: 4,
     xp: 15,

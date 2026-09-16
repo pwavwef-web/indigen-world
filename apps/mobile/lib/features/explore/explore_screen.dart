@@ -447,7 +447,7 @@ class _ExploreState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => ColoredBox(
-    color: const Color(0xFF070A09),
+    color: const Color(0xFF06080F),
     child: Stack(
       fit: StackFit.expand,
       children: [

@@ -1,0 +1,25 @@
+<!doctype html>
+<meta charset="utf-8">
+<link rel="stylesheet" href="style.css">
+<style>
+  .grid {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(2, 640px);
+    grid-auto-rows: 360px;
+    gap: 40px;
+    padding: 50px 0;
+    justify-content: center;
+    align-content: center;
+    height: 100%;
+  }
+  .card { height: 100%; }
+  .badge { font-size: 20px; }
+</style>
+<div class="grid">
+  <div class="card"><img src="../screens/hero-greeting.jpg" alt=""><span class="badge">Start a conversation · AI illustration</span></div>
+  <div class="card"><img src="../screens/unit-family.jpg" alt=""><span class="badge">Family &amp; people · AI illustration</span></div>
+  <div class="card"><img src="../screens/unit-food.jpg" alt=""><span class="badge">Food &amp; home · AI illustration</span></div>
+  <div class="card"><img src="../screens/unit-town.jpg" alt=""><span class="badge">Around town · AI illustration</span></div>
+</div>
+<script>Promise.all([...document.images].map((i) => i.decode().catch(() => {}))).then(() => document.fonts.ready).then(() => { window.__ready = true; });</script>

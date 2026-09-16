@@ -1038,7 +1038,7 @@ class _ReelFeedViewState extends ConsumerState<ReelFeedView>
     final reels = widget.reels;
     if (reels.isEmpty) {
       return const ColoredBox(
-        color: Color(0xFF070A09),
+        color: Color(0xFF06080F),
         child: Center(
           child: Text(
             'Nothing published here yet.',
@@ -1088,7 +1088,7 @@ class _ReelFeedViewState extends ConsumerState<ReelFeedView>
     // one, but a feed that only works under somebody else's Scaffold draws its
     // captions in the debug fallback style everywhere else.
     return Material(
-      color: const Color(0xFF070A09),
+      color: const Color(0xFF06080F),
       child: Stack(
         fit: StackFit.expand,
         children: [
@@ -2167,7 +2167,7 @@ class _MediaUnavailable extends StatelessWidget {
     margin: const EdgeInsets.symmetric(horizontal: 48),
     padding: const EdgeInsets.fromLTRB(18, 16, 18, 10),
     decoration: BoxDecoration(
-      color: const Color(0xCC070A09),
+      color: const Color(0xCC06080F),
       borderRadius: BorderRadius.circular(18),
       border: Border.all(color: Colors.white24),
     ),
@@ -2217,7 +2217,7 @@ class _DarkPill extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
     decoration: BoxDecoration(
-      color: const Color(0xB3070A09),
+      color: const Color(0xB306080F),
       borderRadius: BorderRadius.circular(999),
       border: Border.all(color: Colors.white24),
     ),
@@ -2383,15 +2383,15 @@ class ReelPlaceholder extends StatelessWidget {
   const ReelPlaceholder({super.key});
 
   @override
-  Widget build(BuildContext context) => const DecoratedBox(
+  Widget build(BuildContext context) => DecoratedBox(
     decoration: BoxDecoration(
       gradient: LinearGradient(
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
-        colors: [Color(0xFF0B3D2E), Color(0xFF9A4A2E), Color(0xFFD89B1D)],
+        colors: [context.brand.heroMid, context.brand.heroLit, context.brand.highlight],
       ),
     ),
-    child: Center(
+    child: const Center(
       child: Icon(
         Icons.play_circle_outline_rounded,
         color: Colors.white70,

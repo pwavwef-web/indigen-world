@@ -1435,7 +1435,7 @@ class _FramingBackdrop extends StatelessWidget {
     } else if (coverPath != null) {
       picture = ReelCoverImage(path: coverPath, decodeWidth: 72);
     } else {
-      return const ColoredBox(color: Color(0xFF0B1210));
+      return const ColoredBox(color: Color(0xFF0B0F1A));
     }
     return RepaintBoundary(
       child: ClipRect(

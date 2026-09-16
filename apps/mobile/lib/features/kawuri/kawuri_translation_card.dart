@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/features/dictionary/entry_detail_screen.dart';
-import 'package:indigen_world_mobile/features/kawuri/kawuri_home.dart';
 import 'package:just_audio/just_audio.dart';
 
 /// A snapshot of a published match, with the live record one tap away.
@@ -55,16 +55,16 @@ class _KawuriTranslationCardState extends State<KawuriTranslationCard> {
       margin: const EdgeInsets.only(top: 10),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFF123C2D),
+        color: context.brand.surfaceMuted,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: kawuriMint.withValues(alpha: .5)),
+        border: Border.all(color: context.brand.nightAccent.withValues(alpha: .5)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             '${source['direction']}',
-            style: const TextStyle(color: kawuriMint, fontSize: 12),
+            style: TextStyle(color: context.brand.nightAccent, fontSize: 12),
           ),
           const SizedBox(height: 8),
           SelectableText(
@@ -80,9 +80,9 @@ class _KawuriTranslationCardState extends State<KawuriTranslationCard> {
             ),
           ),
           const SizedBox(height: 8),
-          const Text(
+          Text(
             'Published dictionary · Saved match',
-            style: TextStyle(color: kawuriMint, fontSize: 11),
+            style: TextStyle(color: context.brand.nightAccent, fontSize: 11),
           ),
           Text(
             'Source: ${(source['source'] as String?)?.isNotEmpty == true ? source['source'] : 'Indigen World dictionary'}',

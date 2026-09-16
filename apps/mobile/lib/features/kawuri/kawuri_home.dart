@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_creation_screen.dart';
+import 'package:indigen_world_mobile/features/kawuri/kawuri_learning_context.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_library_screen.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_media_models.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_media_repository.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_tasks.dart';
 
-const kawuriMint = Color(0xFF80F4CF);
 const kawuriNotice =
     'Kawuri can be wrong. For the language itself, the dictionary and the community are the record.';
 const kawuriCapabilities = [
@@ -49,8 +50,14 @@ class KawuriHome extends StatelessWidget {
     required this.onPrompt,
     required this.onLibrary,
     this.capabilities = KawuriCapabilities.none,
+    this.learning,
+    this.onLearningAction,
     super.key,
   });
+
+  /// The Learn tab's context, when Kawuri was opened from it.
+  final KawuriLearningContext? learning;
+  final ValueChanged<KawuriLearningAction>? onLearningAction;
   final bool restored;
   final bool showNotice;
   final KawuriCapabilities capabilities;
@@ -62,9 +69,12 @@ class KawuriHome extends StatelessWidget {
   Widget build(BuildContext context) {
     if (!restored) return const Center(child: CircularProgressIndicator());
     final scale = MediaQuery.textScalerOf(context).scale(1);
+    final learning = this.learning;
     return ListView(
       padding: const EdgeInsets.symmetric(vertical: 16),
       children: [
+        if (learning != null && onLearningAction != null)
+          KawuriLearningCard(learning: learning, onAction: onLearningAction!),
         const Padding(
           padding: EdgeInsets.symmetric(horizontal: 20),
           child: Text(
@@ -77,12 +87,12 @@ class KawuriHome extends StatelessWidget {
             ),
           ),
         ),
-        const Padding(
-          padding: EdgeInsets.fromLTRB(20, 10, 20, 24),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 10, 20, 24),
           child: Text(
             'Ask about culture, practise a language, or bring an idea to life.',
             style: TextStyle(
-              color: Color(0xFFABC8BE),
+              color: context.brand.mutedInk,
               fontSize: 14,
               height: 1.45,
             ),
@@ -113,14 +123,14 @@ class KawuriHome extends StatelessWidget {
                       width: width,
                       child: Material(
                         color: selected
-                            ? const Color(0xFF124838)
-                            : const Color(0xFF102F27),
+                            ? context.brand.accentPlate
+                            : context.brand.surface,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
                           side: BorderSide(
                             color: selected
-                                ? kawuriMint
-                                : const Color(0xFF3C5C51),
+                                ? context.brand.nightAccent
+                                : context.brand.border,
                             width: selected ? 1.5 : 1,
                           ),
                         ),
@@ -138,7 +148,7 @@ class KawuriHome extends StatelessWidget {
                                 Icon(
                                   capabilityIcon(type),
                                   size: 27,
-                                  color: kawuriMint,
+                                  color: context.brand.nightAccent,
                                 ),
                                 const SizedBox(height: 9),
                                 Text(
@@ -157,9 +167,9 @@ class KawuriHome extends StatelessWidget {
                                     child: Text(
                                       tag,
                                       textAlign: TextAlign.center,
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontSize: 9,
-                                        color: Color(0xFFE7C574),
+                                        color: context.brand.highlight,
                                       ),
                                     ),
                                   ),
@@ -235,9 +245,9 @@ class KawuriHome extends StatelessWidget {
               ),
               TextButton(
                 onPressed: onLibrary,
-                child: const Text(
+                child: Text(
                   'See all',
-                  style: TextStyle(color: kawuriMint, fontFamily: 'Noto Sans'),
+                  style: TextStyle(color: context.brand.nightAccent, fontFamily: 'Noto Sans'),
                 ),
               ),
             ],
@@ -268,7 +278,7 @@ class _Suggestion extends StatelessWidget {
     width: 168,
     margin: const EdgeInsets.only(right: 10),
     child: Material(
-      color: const Color(0xFF15372D),
+      color: context.brand.surface,
       borderRadius: BorderRadius.circular(15),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
@@ -278,14 +288,14 @@ class _Suggestion extends StatelessWidget {
           children: [
             Expanded(
               child: DecoratedBox(
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [Color(0xFF3A6250), Color(0xFF14372E)],
+                    colors: [context.brand.heroMid, context.brand.surface],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
                 ),
-                child: Icon(icon, color: const Color(0xFFE5C678), size: 38),
+                child: Icon(icon, color: context.brand.highlight, size: 38),
               ),
             ),
             Padding(
@@ -313,21 +323,21 @@ class KawuriAccuracyNotice extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.all(13),
     decoration: BoxDecoration(
-      color: const Color(0xFF172924),
+      color: context.brand.surface,
       borderRadius: BorderRadius.circular(16),
-      border: Border.all(color: const Color(0xFF3D5149)),
+      border: Border.all(color: context.brand.border),
     ),
-    child: const Row(
+    child: Row(
       children: [
-        Icon(Icons.menu_book_outlined, color: Color(0xFFE7C574), size: 24),
-        SizedBox(width: 12),
+        Icon(Icons.menu_book_outlined, color: context.brand.highlight, size: 24),
+        const SizedBox(width: 12),
         Expanded(
           child: Text(
             kawuriNotice,
             style: TextStyle(
               fontSize: 11.5,
               height: 1.45,
-              color: Color(0xFFB8C9C2),
+              color: context.brand.mutedInk,
             ),
           ),
         ),
@@ -379,9 +389,9 @@ class KawuriComposer extends StatelessWidget {
     child: Container(
       padding: const EdgeInsets.fromLTRB(12, 4, 8, 6),
       decoration: BoxDecoration(
-        color: const Color(0xFF20302B),
+        color: context.brand.surfaceMuted,
         borderRadius: BorderRadius.circular(26),
-        border: Border.all(color: const Color(0xFF53645C)),
+        border: Border.all(color: context.brand.border),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -394,7 +404,7 @@ class KawuriComposer extends StatelessWidget {
                 icon: Icon(capabilityIcon(mode), size: 16),
                 label: Text(
                   '${mode.label} · ${kawuriUnavailableTag(mode, capabilities) ?? 'Options'}',
-                  style: const TextStyle(fontSize: 12, color: kawuriMint),
+                  style: TextStyle(fontSize: 12, color: context.brand.nightAccent),
                 ),
               ),
             ),
@@ -408,15 +418,15 @@ class KawuriComposer extends StatelessWidget {
             textInputAction: TextInputAction.newline,
             textCapitalization: TextCapitalization.sentences,
             style: const TextStyle(color: Colors.white, fontSize: 15),
-            cursorColor: kawuriMint,
-            decoration: const InputDecoration(
+            cursorColor: context.brand.nightAccent,
+            decoration: InputDecoration(
               hintText: 'Message Kawuri…',
-              hintStyle: TextStyle(color: Color(0xFFA6B8B0)),
+              hintStyle: TextStyle(color: context.brand.mutedInk),
               filled: false,
               border: InputBorder.none,
               enabledBorder: InputBorder.none,
               focusedBorder: InputBorder.none,
-              contentPadding: EdgeInsets.symmetric(horizontal: 4, vertical: 12),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 12),
             ),
           ),
           Row(
@@ -458,10 +468,10 @@ class KawuriComposer extends StatelessWidget {
                     padding: EdgeInsets.zero,
                     minimumSize: const Size(48, 48),
                   ),
-                  child: const Text(
+                  child: Text(
                     'Tools',
                     style: TextStyle(
-                      color: kawuriMint,
+                      color: context.brand.nightAccent,
                       fontFamily: 'Noto Sans',
                     ),
                   ),
@@ -481,8 +491,8 @@ class KawuriComposer extends StatelessWidget {
                             ? onSend
                             : null),
                   style: IconButton.styleFrom(
-                    backgroundColor: kawuriMint,
-                    foregroundColor: const Color(0xFF083729),
+                    backgroundColor: context.brand.nightAccent,
+                    foregroundColor: context.brand.nightGround,
                     minimumSize: const Size(48, 48),
                   ),
                   icon: Icon(
@@ -515,7 +525,7 @@ class _AttachmentChip extends StatelessWidget {
             'audio' => Icons.graphic_eq_rounded,
             _ => Icons.image_outlined,
           },
-          color: kawuriMint,
+          color: context.brand.nightAccent,
           size: 20,
         ),
         const SizedBox(width: 8),
@@ -546,14 +556,14 @@ class KawuriRecentCreations extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final signedIn = ref.watch(kawuriMediaRepositoryProvider)?.uid != null;
     final recent = ref.watch(kawuriRecentCreationsProvider);
-    const hint = TextStyle(
+    final hint = TextStyle(
       fontSize: 13,
       height: 1.45,
-      color: Color(0xFFABC8BE),
+      color: context.brand.mutedInk,
     );
     if (!signedIn) {
-      return const Padding(
-        padding: EdgeInsets.fromLTRB(20, 2, 20, 16),
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(20, 2, 20, 16),
         child: Text(
           'Sign in to keep the images, videos and media analyses you make with Kawuri.',
           style: hint,
@@ -594,7 +604,7 @@ class _RecentRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Material(
-    color: const Color(0xFF102F27),
+    color: context.brand.surface,
     borderRadius: BorderRadius.circular(14),
     child: InkWell(
       borderRadius: BorderRadius.circular(14),
@@ -608,7 +618,7 @@ class _RecentRow extends StatelessWidget {
         padding: const EdgeInsets.all(12),
         child: Row(
           children: [
-            Icon(kawuriCreationIcon(creation), color: kawuriMint),
+            Icon(kawuriCreationIcon(creation), color: context.brand.nightAccent),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -626,8 +636,8 @@ class _RecentRow extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     creation.subtitle,
-                    style: const TextStyle(
-                      color: Color(0xFFABC8BE),
+                    style: TextStyle(
+                      color: context.brand.mutedInk,
                       fontSize: 12.5,
                     ),
                   ),
@@ -648,7 +658,7 @@ class _RecentRow extends StatelessWidget {
                 padding: const EdgeInsets.only(left: 8),
                 child: Text(
                   progress,
-                  style: const TextStyle(color: kawuriMint),
+                  style: TextStyle(color: context.brand.nightAccent),
                 ),
               ),
           ],

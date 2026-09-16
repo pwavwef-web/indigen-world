@@ -373,7 +373,7 @@ class _VideoChrome extends StatelessWidget {
   Widget build(BuildContext context) {
     final player = controller;
     if (player == null) {
-      return _layout(
+      return _layout(context, 
         remaining: mediaClockLabel(Duration(seconds: fallbackSeconds ?? 0)),
         progress: 0,
       );
@@ -388,7 +388,7 @@ class _VideoChrome extends StatelessWidget {
         final progress = total.inMilliseconds <= 0
             ? 0.0
             : (into.inMilliseconds / total.inMilliseconds).clamp(0.0, 1.0);
-        return _layout(
+        return _layout(context, 
           remaining: mediaClockLabel(left.isNegative ? Duration.zero : left),
           progress: progress,
         );
@@ -396,7 +396,11 @@ class _VideoChrome extends StatelessWidget {
     );
   }
 
-  Widget _layout({required String remaining, required double progress}) =>
+  Widget _layout(
+    BuildContext context, {
+    required String remaining,
+    required double progress,
+  }) =>
       Stack(
         fit: StackFit.expand,
         children: [
@@ -434,8 +438,8 @@ class _VideoChrome extends StatelessWidget {
                   value: progress,
                   minHeight: 3,
                   backgroundColor: Colors.white24,
-                  valueColor: const AlwaysStoppedAnimation(
-                    BrandColors.kenteGold,
+                  valueColor: AlwaysStoppedAnimation(
+                    context.brand.highlight,
                   ),
                 ),
               ),

@@ -521,7 +521,7 @@ class _OverviewTab extends StatelessWidget {
               icon: Icons.outbox_rounded,
               value: '${data.contributionCount}',
               label: 'Contributions',
-              color: context.brand.success,
+              color: context.brand.accent,
               onTap: onOpenContributions,
             ),
           ),
@@ -978,19 +978,19 @@ class _ProfileAvatar extends StatelessWidget {
       padding: const EdgeInsets.all(3),
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        gradient: const LinearGradient(
-          colors: [BrandColors.kenteGold, Color(0xFFFFE9A4)],
+        gradient: LinearGradient(
+          colors: [context.brand.highlight, context.brand.accentFill],
         ),
         boxShadow: [
           BoxShadow(
-            color: context.brand.gold.withValues(alpha: 0.25),
+            color: context.brand.highlight.withValues(alpha: 0.25),
             blurRadius: 18,
           ),
         ],
       ),
       child: ClipOval(
         child: ColoredBox(
-          color: context.brand.success,
+          color: context.brand.accentFill,
           child: photoUrl != null && photoUrl.isNotEmpty
               ? Image.network(
                   photoUrl,

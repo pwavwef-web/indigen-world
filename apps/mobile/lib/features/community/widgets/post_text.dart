@@ -132,13 +132,13 @@ class _PostTextState extends ConsumerState<PostText> {
     );
     final open = widget.onOpenHandle;
     final mention = body.copyWith(
-      color: context.brand.success,
+      color: context.brand.accent,
       fontWeight: FontWeight.w800,
     );
     final link = body.copyWith(
-      color: context.brand.success,
+      color: context.brand.accent,
       decoration: TextDecoration.underline,
-      decorationColor: context.brand.success,
+      decorationColor: context.brand.accent,
       fontWeight: FontWeight.w700,
     );
     // ── A link that cannot be tapped has to *look* like one that cannot ──

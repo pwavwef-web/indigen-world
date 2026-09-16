@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:indigen_world_mobile/app/app_theme.dart';
+import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_models.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_screen.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_service.dart';
@@ -166,7 +167,10 @@ void main() {
         .widgetList<Container>(find.byType(Container))
         .map((container) => container.decoration)
         .whereType<BoxDecoration>()
-        .where((decoration) => decoration.gradient == kKawuriBubbleGradient)
+        .where(
+          (decoration) =>
+              decoration.gradient == kawuriBubbleGradient(BrandPalette.dark),
+        )
         .toList();
 
     // Both turns — the question and the answer — are drawn on it.

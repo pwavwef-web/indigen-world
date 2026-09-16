@@ -22,8 +22,12 @@
   },
   "settingsAppearance": "Appearance",
   "settingsAppearanceSystem": "Match device — light by day, dark by night",
-  "settingsAppearanceLight": "Light — warm paper and deep green",
-  "settingsAppearanceDark": "Dark — charcoal with a green undertone",
+  "settingsAppearanceLight": "Light — pale paper, for daylight",
+  "settingsAppearanceDark": "Dark — a night ground, for low light",
+  "settingsTheme": "Theme",
+  "@settingsTheme": {
+    "description": "Settings row that opens the theme picker, where the app's colours are chosen."
+  },
   "settingsAutoplayTitle": "Play videos automatically",
   "settingsAutoplayBody": "Clips in the community feed start themselves, silently. Off saves data on a metered connection — tap any clip to watch it.",
   "navExplore": "Explore",

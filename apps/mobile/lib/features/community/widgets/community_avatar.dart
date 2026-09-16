@@ -75,15 +75,15 @@ class CommunityAvatar extends ConsumerWidget {
         // portrait.
         ? Container(
             padding: const EdgeInsets.all(2.5),
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               shape: BoxShape.circle,
               gradient: SweepGradient(
                 colors: [
-                  BrandColors.kenteGold,
-                  BrandColors.terracotta,
-                  BrandColors.kenteGold,
-                  BrandColors.terracotta,
-                  BrandColors.kenteGold,
+                  context.brand.highlight,
+                  context.brand.accentFill,
+                  context.brand.highlight,
+                  context.brand.accentFill,
+                  context.brand.highlight,
                 ],
               ),
             ),

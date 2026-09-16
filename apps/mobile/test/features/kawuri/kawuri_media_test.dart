@@ -23,6 +23,7 @@ Map<Object?, Object?> manifest({
   bool video = true,
   bool speech = true,
   bool analysis = true,
+  bool videoAudio = true,
 }) => {
   'provider': 'vertex',
   'chat': true,
@@ -47,6 +48,7 @@ Map<Object?, Object?> manifest({
   'videoReferenceImage': video,
   'videoNegativePrompt': video,
   'videoQualityOptions': video ? ['fast'] : [],
+  'videoAudio': video && videoAudio,
   'videoRequiresConfirmation': true,
   'analysisIntentions': ['describe', 'cultural_context'],
   'limits': {
@@ -143,6 +145,7 @@ class FakeMediaRepository implements KawuriMediaRepository {
     required bool confirmSpend,
     String negativePrompt = '',
     String quality = 'fast',
+    bool generateAudio = false,
     String? referenceImagePath,
     String sourceTaskId = '',
     String conversationId = '',
@@ -153,6 +156,7 @@ class FakeMediaRepository implements KawuriMediaRepository {
       'aspectRatio': aspectRatio,
       'durationSeconds': durationSeconds,
       'confirmSpend': confirmSpend,
+      'generateAudio': generateAudio,
     });
     return KawuriCreation.fromMap(
       taskMap(
@@ -576,7 +580,11 @@ void main() {
         await tester.tap(create);
         await tester.pumpAndSettle(const Duration(milliseconds: 100));
         expect(find.text('Use a video generation?'), findsOneWidget);
-        expect(find.textContaining('8-second video'), findsOneWidget);
+        expect(
+          find.textContaining('8-second video, with sound,'),
+          findsOneWidget,
+          reason: 'sound is on by default and the spend dialog says so',
+        );
         await tester.tap(find.text('Not now'));
         await tester.pumpAndSettle(const Duration(milliseconds: 100));
         expect(media.videos, isEmpty, reason: 'declining buys nothing');
@@ -603,11 +611,64 @@ void main() {
         expect(media.videos, hasLength(1));
         expect(media.videos.single['confirmSpend'], isTrue);
         expect(media.videos.single['durationSeconds'], 8);
+        expect(media.videos.single['generateAudio'], isTrue);
         expect(find.text('Video · Generating'), findsOneWidget);
         // Unmount so the detail screen's status timer is disposed.
         await tester.pumpWidget(const SizedBox.shrink());
       },
     );
+
+    testWidgets('the sound switch is offered only by a backend that honours it', (
+      tester,
+    ) async {
+      Future<void> pump(Map<Object?, Object?> caps) async {
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              kawuriMediaRepositoryProvider.overrideWithValue(
+                FakeMediaRepository(),
+              ),
+              kawuriCapabilitiesProvider.overrideWith(
+                (ref) async => KawuriCapabilities.fromMap(caps),
+              ),
+            ],
+            child: MaterialApp(
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+              theme: buildIndigenTheme(),
+              home: const KawuriCreateScreen(kind: KawuriCreateKind.video),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+      }
+
+      await pump(manifest());
+      final sound = find.byKey(const Key('kawuri-video-sound'));
+      await tester.scrollUntilVisible(
+        sound,
+        150,
+        scrollable: find.byType(Scrollable).first,
+      );
+      expect(tester.widget<SwitchListTile>(sound).value, isTrue);
+      expect(find.textContaining('will not be speaking Kasem'), findsOneWidget);
+      await tester.tap(sound);
+      await tester.pumpAndSettle();
+      expect(tester.widget<SwitchListTile>(sound).value, isFalse);
+      expect(find.textContaining('A silent video'), findsOneWidget);
+
+      // An older backend makes every video silent, so no switch is shown and
+      // the screen keeps saying so.
+      await tester.pumpWidget(const SizedBox.shrink());
+      await pump(manifest(videoAudio: false));
+      expect(find.byKey(const Key('kawuri-video-sound')), findsNothing);
+      await tester.scrollUntilVisible(
+        find.textContaining('without sound'),
+        150,
+        scrollable: find.byType(Scrollable).first,
+      );
+      expect(find.textContaining('without sound'), findsOneWidget);
+    });
 
     for (final width in [320.0, 412.0]) {
       testWidgets(

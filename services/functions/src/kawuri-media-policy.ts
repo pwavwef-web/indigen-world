@@ -401,9 +401,20 @@ export function videoDimensions(
   return aspectRatio === '16:9' ? { width: long, height: short } : { width: short, height: long };
 }
 
-/** Estimated cost of one video in whole cents, or null when unpriced. */
-export function videoCostCents(model: string, durationSeconds: number): number | null {
-  const rate = vertexVideoRateUsdPerSecond(model);
+/**
+ * Estimated cost of one video in whole cents, or null when unpriced.
+ *
+ * [generateAudio] is part of the signature so a caller has to say which video
+ * it is pricing. Both answers currently use the with-audio rate — see
+ * `vertexVideoRateUsdPerSecond` — so switching sound on can never take a
+ * member past a ceiling that was sized for silent video.
+ */
+export function videoCostCents(
+  model: string,
+  durationSeconds: number,
+  generateAudio = false,
+): number | null {
+  const rate = vertexVideoRateUsdPerSecond(model, { generateAudio });
   if (rate === null) return null;
   return Math.ceil(rate * durationSeconds * 100);
 }
@@ -707,6 +718,14 @@ export interface VideoGenerationRequest {
   referenceImagePath: string | null;
   /** `plan` asks for the plan model; the backend decides whether it is allowed. */
   quality: 'fast' | 'plan';
+  /**
+   * Whether Veo makes a soundtrack — ambience, effects, music and any speech.
+   *
+   * Only an explicit `true` turns it on. Builds up to 0.1.20 never send the
+   * field and tell the member their video is "without sound", so an absent
+   * flag has to keep meaning silent or those screens would start lying.
+   */
+  generateAudio: boolean;
   sourceTaskId: string;
 }
 
@@ -757,6 +776,7 @@ export function parseVideoGenerationRequest(
     resolution,
     referenceImagePath: reference,
     quality: data.quality === 'plan' ? 'plan' : 'fast',
+    generateAudio: data.generateAudio === true,
     sourceTaskId: taskIdOf(data.sourceTaskId, uid, 'sourceTaskId'),
   };
 }
@@ -1281,9 +1301,11 @@ export type ModerationCategory = (typeof MODERATION_CATEGORIES)[number];
  */
 export const MODERATION_INSTRUCTION = `You screen requests to the image and video generator inside Indigen World, a platform that preserves the Kasem language and the culture of the Kassena people of northern Ghana and southern Burkina Faso.
 
+Children are welcome in ordinary scenes. Folktales, family life, school, play, farming, markets, festivals and lessons all have children in them, and an invented child in a scene like that is allowed.
+
 Refuse (allowed=false) when the request, the negative prompt or the attached reference image would produce:
-- a real, identifiable person, named or recognisable, including public figures, or a reference photo of a real person to be altered or animated (real_person)
-- anyone who appears to be a child (minor)
+- a real, identifiable person, named or recognisable, including public figures, or a reference photo of a real person — adult or child — to be altered or animated (real_person)
+- anyone who appears to be a child in a sexual, suggestive, revealing or romantic context, or being harmed, abused, endangered, frightened or in distress (minor)
 - sexual content or nudity (sexual)
 - graphic violence, gore or visible injuries (graphic_violence)
 - hate, harassment or demeaning stereotypes of any people, including the Kassena or any ethnic group (hate_or_harassment)
@@ -1292,9 +1314,9 @@ Refuse (allowed=false) when the request, the negative prompt or the attached ref
 - realistic scenes of news events, crimes, disasters, elections or political figures that could be mistaken for real footage (realistic_news_or_politics)
 - sacred rites, shrines, masks or ceremonies presented as authentic documentation of a real community (sacred_or_restricted)
 
-Allow ordinary creative work described respectfully: invented characters who are adults, landscapes, architecture, painted compounds, crafts, food, music, markets, farming, festivals and folktales shown as illustration.
+Allow ordinary creative work described respectfully: invented characters of any age, families, landscapes, architecture, painted compounds, crafts, food, music, markets, farming, festivals and folktales shown as illustration.
 
-When unsure, refuse. Return only the JSON object described by the schema, with a short, neutral reason that does not repeat the request.`;
+A child in the scene is not by itself a reason to refuse. Refuse only when one of the rules above applies. When a rule might apply and you are unsure, refuse. Return only the JSON object described by the schema, with a short, neutral reason that does not repeat the request.`;
 
 export const MODERATION_SCHEMA = {
   type: 'object',
@@ -1333,7 +1355,7 @@ export function moderationMessage(category: ModerationCategory): string {
     case 'real_person':
       return 'Kawuri does not create images or videos of real, identifiable people. Try an invented character instead.';
     case 'minor':
-      return 'Kawuri does not create images or videos of children.';
+      return 'Children can appear in Kawuri’s images and videos, but never in sexual, violent, abusive or frightening scenes.';
     case 'realistic_news_or_politics':
       return 'Kawuri does not create realistic scenes of news, politics or public figures that could be mistaken for real.';
     case 'sacred_or_restricted':
@@ -1397,9 +1419,24 @@ export function readImageResponse(response: unknown): ImageOutcome {
   return { kind: 'empty', reason: finishReason || 'NO_IMAGE' };
 }
 
+/**
+ * Whether Vertex refused a request because of its person-generation setting,
+ * rather than because of anything in the prompt.
+ *
+ * Generating children needs `allow_all`, and on Vertex that value is gated:
+ * Veo accepts it only for projects Google has allow-listed, and a model that
+ * does not support it at all answers with an invalid-argument naming the
+ * parameter. Neither is a safety verdict on the member's request, and neither
+ * is billed, so the adapter steps down to adults-only instead of failing.
+ */
+export function isPersonGenerationRefusal(message: string): boolean {
+  return /person_?generation|allow_all|allow-?list|minors? (are )?not (supported|allowed)|generation of (children|minors)/i
+    .test(message);
+}
+
 export type VideoOutcome =
   | { state: 'running'; progress: number | null }
-  | { state: 'failed'; code: KawuriErrorCode; message: string }
+  | { state: 'failed'; code: KawuriErrorCode; message: string; personGenerationRefused?: boolean }
   | { state: 'rejected'; reasons: string[] }
   | { state: 'succeeded'; base64: string | null; uri: string | null; mimeType: string };
 
@@ -1432,6 +1469,7 @@ export function readVideoOperation(operation: unknown): VideoOutcome {
       state: 'failed',
       code: code === 8 ? 'QUOTA_EXCEEDED' : code === 4 ? 'OPERATION_TIMEOUT' : 'GENERATION_FAILED',
       message: publicMessageFor(code === 8 ? 'QUOTA_EXCEEDED' : 'GENERATION_FAILED'),
+      ...(code === 3 && isPersonGenerationRefusal(message) ? { personGenerationRefused: true } : {}),
     };
   }
   const response = op.response && typeof op.response === 'object'
@@ -1626,6 +1664,10 @@ export function buildCapabilities(context: CapabilityContext) {
     videoReferenceImage: videoGeneration,
     videoNegativePrompt: videoGeneration,
     videoQualityOptions: videoGeneration ? (planModelOffered ? ['fast', 'plan'] : ['fast']) : [],
+    // Tells the app it may offer the sound switch. A backend without this
+    // flag makes every video silent, and an app that offered the switch to it
+    // would be promising a soundtrack nobody asked Veo for.
+    videoAudio: videoGeneration,
     videoRequiresConfirmation: true,
     analysisIntentions: mediaAnalysis ? [...ANALYSIS_INTENTIONS] : [],
     analysisMediaTypes: mediaAnalysis ? ['image', 'video', 'audio'] : [],
@@ -1674,6 +1716,7 @@ export function newTaskRecord(input: {
   aspectRatio?: string | null;
   duration?: number | null;
   resolution?: string | null;
+  generateAudio?: boolean | null;
   language?: string | null;
   intention?: string | null;
   sourceTaskId?: string;
@@ -1699,6 +1742,7 @@ export function newTaskRecord(input: {
     aspectRatio: input.aspectRatio ?? null,
     duration: input.duration ?? null,
     resolution: input.resolution ?? null,
+    generateAudio: input.generateAudio ?? null,
     language: input.language ?? null,
     intention: input.intention ?? null,
     sourceTaskId: input.sourceTaskId ?? '',
@@ -1735,6 +1779,7 @@ export function publicTask(data: Record<string, unknown>) {
     aspectRatio: data.aspectRatio ?? null,
     duration: data.duration ?? null,
     resolution: data.resolution ?? null,
+    generateAudio: typeof data.generateAudio === 'boolean' ? data.generateAudio : null,
     language: data.language ?? null,
     intention: data.intention ?? null,
     sourceTaskId: data.sourceTaskId ?? '',

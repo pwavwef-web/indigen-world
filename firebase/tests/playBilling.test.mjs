@@ -83,14 +83,15 @@ test('catalogue: the benefit numbers the app mirrors', () => {
           benefits.offlineDownloadLimit,
           benefits.supporterMark,
           benefits.creatorTools,
+          benefits.premiumThemes,
         ],
       ]),
     ),
     {
-      none: [false, 20, 0, '', false],
-      plus: [true, 200, 50, 'supporter', false],
-      patron: [true, 400, 200, 'patron', false],
-      creator: [true, 600, 500, 'studio', true],
+      none: [false, 20, 0, '', false, false],
+      plus: [true, 200, 50, 'supporter', false, false],
+      patron: [true, 400, 200, 'patron', false, true],
+      creator: [true, 600, 500, 'studio', true, true],
     },
   );
 });

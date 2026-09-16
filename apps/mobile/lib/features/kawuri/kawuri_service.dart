@@ -8,6 +8,7 @@ import 'package:indigen_world_mobile/core/firebase_ready.dart';
 import 'package:indigen_world_mobile/domain/dictionary_entry.dart';
 import 'package:indigen_world_mobile/features/collection/collection_data.dart';
 import 'package:indigen_world_mobile/features/community/data/community_providers.dart';
+import 'package:indigen_world_mobile/features/kawuri/kawuri_learning_context.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_media_models.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_media_repository.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_models.dart';
@@ -271,6 +272,15 @@ class KawuriService {
   };
 
   static String _routedPrompt(KawuriMessage message) {
+    final routed = _routedTask(message);
+    // Opened from the Learn tab: the published course and dictionary records
+    // the learner was looking at travel with every turn, marked verified.
+    final learning = KawuriLearningContext.fromOptions(message.options);
+    if (learning == null) return routed;
+    return [routed, learning.routedBlock()].join('\n');
+  }
+
+  static String _routedTask(KawuriMessage message) {
     final text = message.text;
     return switch (message.taskType) {
       KawuriTaskType.translation =>

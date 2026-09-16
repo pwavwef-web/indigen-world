@@ -3,8 +3,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_creation_screen.dart';
-import 'package:indigen_world_mobile/features/kawuri/kawuri_home.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_media_actions.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_media_models.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_media_repository.dart';
@@ -22,6 +22,7 @@ class KawuriCreateDraft {
     this.aspectRatio,
     this.durationSeconds,
     this.resolution,
+    this.generateAudio,
     this.sourceTaskId = '',
     this.referenceImagePath,
   });
@@ -32,6 +33,7 @@ class KawuriCreateDraft {
     aspectRatio: creation.aspectRatio,
     durationSeconds: creation.duration,
     resolution: creation.resolution,
+    generateAudio: creation.generateAudio,
     sourceTaskId: creation.id,
     referenceImagePath: creation.sourceMedia.firstOrNull?.storagePath,
   );
@@ -41,6 +43,9 @@ class KawuriCreateDraft {
   final String? aspectRatio;
   final int? durationSeconds;
   final String? resolution;
+
+  /// The earlier video's sound choice; null means "use the default".
+  final bool? generateAudio;
   final String sourceTaskId;
 
   /// A reference image already in Storage, reused as it is.
@@ -77,6 +82,10 @@ class _KawuriCreateScreenState extends ConsumerState<KawuriCreateScreen> {
   int? _duration;
   String? _resolution;
   String _quality = 'fast';
+
+  /// On unless an earlier video being edited was made silent. A video with no
+  /// soundtrack is not what most people picture when they ask for one.
+  late bool _withSound = widget.draft.generateAudio ?? true;
   XFile? _reference;
   late String? _storedReference = widget.draft.referenceImagePath;
   bool _busy = false;
@@ -155,6 +164,7 @@ class _KawuriCreateScreenState extends ConsumerState<KawuriCreateScreen> {
       final confirmed = await kawuriConfirmVideoSpend(
         context,
         durationSeconds: duration,
+        withSound: caps.videoAudio && _withSound,
       );
       if (!confirmed || !mounted) return;
     }
@@ -200,6 +210,7 @@ class _KawuriCreateScreenState extends ConsumerState<KawuriCreateScreen> {
               durationSeconds: duration!,
               resolution: resolution,
               quality: _quality,
+              generateAudio: caps.videoAudio && _withSound,
               confirmSpend: true,
               referenceImagePath: referencePath,
               sourceTaskId: widget.draft.sourceTaskId,
@@ -260,9 +271,9 @@ class _KawuriCreateScreenState extends ConsumerState<KawuriCreateScreen> {
 
     return NightTheme(
       child: Scaffold(
-        backgroundColor: const Color(0xFF071D17),
+        backgroundColor: context.brand.nightGround,
         appBar: AppBar(
-          backgroundColor: const Color(0xFF071D17),
+          backgroundColor: context.brand.nightGround,
           foregroundColor: Colors.white,
           title: Text(title),
         ),
@@ -392,6 +403,17 @@ class _KawuriCreateScreenState extends ConsumerState<KawuriCreateScreen> {
               (value) => _quality = value,
             ),
           ],
+          if (caps.videoAudio) ...[
+            const SizedBox(height: 14),
+            _SoundSwitch(
+              value: _withSound,
+              enabled: !_busy,
+              onChanged: (value) => setState(() {
+                _withSound = value;
+                _invalidatePress();
+              }),
+            ),
+          ],
           if (caps.videoNegativePrompt) ...[
             const SizedBox(height: 18),
             TextField(
@@ -415,7 +437,7 @@ class _KawuriCreateScreenState extends ConsumerState<KawuriCreateScreen> {
             _isVideo
                 ? 'The video starts from this picture. Pictures of real people are not accepted.'
                 : 'Kawuri uses this picture as a guide. Pictures of real people are not accepted.',
-            style: const TextStyle(color: Color(0xFFABC8BE), fontSize: 12.5),
+            style: TextStyle(color: context.brand.mutedInk, fontSize: 12.5),
           ),
           const SizedBox(height: 8),
           if (_reference != null || _storedReference != null)
@@ -432,7 +454,7 @@ class _KawuriCreateScreenState extends ConsumerState<KawuriCreateScreen> {
                     ),
                   )
                 else
-                  const Icon(Icons.image_outlined, color: kawuriMint, size: 40),
+                  Icon(Icons.image_outlined, color: context.brand.nightAccent, size: 40),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
@@ -464,9 +486,11 @@ class _KawuriCreateScreenState extends ConsumerState<KawuriCreateScreen> {
         const SizedBox(height: 18),
         Text(
           _isVideo
-              ? 'Made with Google’s AI on Vertex AI, without sound, and marked as AI-generated. It keeps going if you leave this screen.'
+              ? (caps.videoAudio && _withSound
+                    ? 'Made with Google’s AI on Vertex AI, with sound, and marked as AI-generated. It keeps going if you leave this screen.'
+                    : 'Made with Google’s AI on Vertex AI, without sound, and marked as AI-generated. It keeps going if you leave this screen.')
               : 'Made with Google’s AI on Vertex AI and marked as AI-generated. Uses one message from your Kawuri allowance.',
-          style: const TextStyle(color: Color(0xFFABC8BE), fontSize: 12.5),
+          style: TextStyle(color: context.brand.mutedInk, fontSize: 12.5),
         ),
         if (_error != null)
           Padding(
@@ -499,8 +523,8 @@ class _KawuriCreateScreenState extends ConsumerState<KawuriCreateScreen> {
           FilledButton.icon(
             onPressed: () => _submit(caps),
             style: FilledButton.styleFrom(
-              backgroundColor: kawuriMint,
-              foregroundColor: const Color(0xFF083729),
+              backgroundColor: context.brand.nightAccent,
+              foregroundColor: context.brand.nightGround,
               minimumSize: const Size.fromHeight(52),
             ),
             icon: Icon(
@@ -513,4 +537,57 @@ class _KawuriCreateScreenState extends ConsumerState<KawuriCreateScreen> {
       ],
     );
   }
+}
+
+/// The sound switch for a video.
+///
+/// A switch rather than a pair of chips: it is one yes-or-no question, and the
+/// line under it is where the honest part lives — Veo's soundtrack can include
+/// voices, and no voice it makes is speaking Kasem.
+class _SoundSwitch extends StatelessWidget {
+  const _SoundSwitch({
+    required this.value,
+    required this.enabled,
+    required this.onChanged,
+  });
+
+  final bool value;
+  final bool enabled;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) => Material(
+    // Its own Material, so the tile's ink shows on the tinted panel.
+    color: const Color(0x148EB4FF),
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(16),
+      side: const BorderSide(color: Color(0x338EB4FF)),
+    ),
+    clipBehavior: Clip.antiAlias,
+    child: SwitchListTile.adaptive(
+      key: const Key('kawuri-video-sound'),
+      value: value,
+      onChanged: enabled ? onChanged : null,
+      activeThumbColor: context.brand.nightAccent,
+      contentPadding: const EdgeInsets.fromLTRB(14, 2, 8, 2),
+      secondary: Icon(
+        value ? Icons.volume_up_rounded : Icons.volume_off_rounded,
+        color: context.brand.nightAccent,
+      ),
+      title: const Text(
+        'Sound',
+        style: TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w800,
+          fontSize: 14,
+        ),
+      ),
+      subtitle: Text(
+        value
+            ? 'Ambience, effects and music made with the video. Any voices are AI-made and will not be speaking Kasem.'
+            : 'A silent video, for adding your own voice or music later.',
+        style: TextStyle(color: context.brand.mutedInk, fontSize: 12.5),
+      ),
+    ),
+  );
 }

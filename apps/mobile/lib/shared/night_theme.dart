@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:indigen_world_mobile/app/app_theme.dart';
+import 'package:indigen_world_mobile/core/brand_themes.dart';
 
 /// The surfaces that are night whatever the member's appearance choice is.
 ///
@@ -14,10 +15,13 @@ class NightTheme extends StatelessWidget {
 
   final Widget child;
 
-  /// Built once. A [ThemeData] is a large object and these screens rebuild on
-  /// every frame of a video.
-  static final ThemeData data = buildIndigenDarkTheme();
-
+  /// The night half of whichever theme the member is reading in, so a reel or
+  /// Kawuri opened from a green app is green after dark too. The theme data is
+  /// cached by [buildBrandTheme]: these screens rebuild on every frame of a
+  /// video.
   @override
-  Widget build(BuildContext context) => Theme(data: data, child: child);
+  Widget build(BuildContext context) => Theme(
+    data: buildBrandTheme(ActiveBrandTheme.of(context), Brightness.dark),
+    child: child,
+  );
 }

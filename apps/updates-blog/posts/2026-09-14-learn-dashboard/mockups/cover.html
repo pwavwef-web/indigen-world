@@ -1,0 +1,38 @@
+<!doctype html>
+<meta charset="utf-8">
+<link rel="stylesheet" href="style.css">
+<style>
+  .stage { justify-content: flex-start; padding: 0 0 0 78px; gap: 0; }
+  .copy { width: 470px; }
+  .eyebrow { font-size: 17px; letter-spacing: 2.6px; }
+  h1 { margin-top: 18px; font-size: 50px; line-height: 1.05; font-weight: 800; letter-spacing: -1.2px; }
+  p { margin-top: 20px; font-size: 20px; line-height: 1.45; color: rgba(255,255,255,0.82); }
+  .tags { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 26px; }
+  .pill { font-size: 17px; padding: 9px 16px; gap: 9px; }
+  .pill .dot { width: 10px; height: 10px; }
+  .phones { position: absolute; right: 38px; top: 36px; width: 560px; height: 600px; }
+  .phones .phone { position: absolute; }
+  .back { --w: 250px; left: 20px; top: 70px; transform: rotate(-7deg); }
+  .front { --w: 262px; right: 12px; top: 8px; transform: rotate(5deg); }
+  .art { position: absolute; left: 130px; bottom: 6px; width: 300px; height: 168px; border-radius: 20px; transform: rotate(-2deg); }
+  .art .badge { font-size: 13px; padding: 6px 11px; left: 10px; bottom: 10px; }
+</style>
+<div class="stage">
+  <div class="copy">
+    <div class="eyebrow">Indigen World 0.1.21</div>
+    <h1>A new home for learning Kasem</h1>
+    <p>Today's lesson right where you left it, practice in two minutes, and a Kawuri that knows which lesson you are on.</p>
+    <div class="tags">
+      <span class="pill"><span class="dot"></span>Today's lesson</span>
+      <span class="pill green"><span class="dot"></span>Review · Listen · Speak</span>
+      <span class="pill amber"><span class="dot"></span>Word of the day</span>
+      <span class="pill"><span class="dot"></span>Videos with sound</span>
+    </div>
+  </div>
+  <div class="phones">
+    <div class="phone back"><img src="../screens/course-outline.png" alt=""></div>
+    <div class="phone front"><img src="../screens/dashboard.png" alt=""></div>
+    <div class="card art"><img src="../screens/hero-greeting.jpg" alt=""><span class="badge">AI illustration</span></div>
+  </div>
+</div>
+<script>Promise.all([...document.images].map((i) => i.decode().catch(() => {}))).then(() => document.fonts.ready).then(() => { window.__ready = true; });</script>

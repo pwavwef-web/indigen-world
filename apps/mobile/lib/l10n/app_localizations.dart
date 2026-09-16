@@ -143,14 +143,20 @@ abstract class AppLocalizations {
   /// No description provided for @settingsAppearanceLight.
   ///
   /// In en, this message translates to:
-  /// **'Light — warm paper and deep green'**
+  /// **'Light — pale paper, for daylight'**
   String get settingsAppearanceLight;
 
   /// No description provided for @settingsAppearanceDark.
   ///
   /// In en, this message translates to:
-  /// **'Dark — charcoal with a green undertone'**
+  /// **'Dark — a night ground, for low light'**
   String get settingsAppearanceDark;
+
+  /// Settings row that opens the theme picker, where the app's colours are chosen.
+  ///
+  /// In en, this message translates to:
+  /// **'Theme'**
+  String get settingsTheme;
 
   /// No description provided for @settingsAutoplayTitle.
   ///

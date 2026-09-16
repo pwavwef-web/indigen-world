@@ -851,13 +851,31 @@ class _AgreementNote extends StatelessWidget {
 /// absence explained in a sentence tells somebody the entry is incomplete,
 /// where a missing control just looks like a feature that is not there.
 class PronunciationButton extends ConsumerStatefulWidget {
-  const PronunciationButton({required this.audioUrl, this.onPlay, super.key});
+  const PronunciationButton({
+    required this.audioUrl,
+    this.onPlay,
+    this.onUnavailable,
+    this.dimension,
+    this.background,
+    this.foreground,
+    super.key,
+  });
 
   final String audioUrl;
 
   /// Told each time a recording actually starts — so a surface playing its own
   /// media, like an Explore reel, can stand down while the word is said.
   final VoidCallback? onPlay;
+
+  /// Called instead of the snackbar when the entry has no recording, so a
+  /// surface can explain the absence in its own way — the Learn tab offers to
+  /// record it. Never a synthetic voice: there is no honest one for Kasem.
+  final VoidCallback? onUnavailable;
+
+  /// A fixed round size, for surfaces that draw a larger play button.
+  final double? dimension;
+  final Color? background;
+  final Color? foreground;
 
   @override
   ConsumerState<PronunciationButton> createState() =>
@@ -906,6 +924,11 @@ class _PronunciationButtonState extends ConsumerState<PronunciationButton> {
 
   Future<void> _toggle() async {
     if (!_hasAudio) {
+      final unavailable = widget.onUnavailable;
+      if (unavailable != null) {
+        unavailable();
+        return;
+      }
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
@@ -956,18 +979,27 @@ class _PronunciationButtonState extends ConsumerState<PronunciationButton> {
   @override
   Widget build(BuildContext context) {
     final playing = _player?.playing ?? false;
+    final dimension = widget.dimension;
     return IconButton.filledTonal(
       tooltip: _failed
           ? 'The recording could not be played'
           : !_hasAudio
-          ? 'No recording yet'
+          ? (widget.onUnavailable != null
+                ? 'Pronunciation unavailable'
+                : 'No recording yet')
           : playing
           ? 'Pause'
           : 'Hear it said',
       onPressed: _loading ? null : _toggle,
-      style: _hasAudio
-          ? null
-          : IconButton.styleFrom(foregroundColor: context.brand.mutedInk),
+      style: IconButton.styleFrom(
+        fixedSize: dimension == null ? null : Size.square(dimension),
+        backgroundColor: widget.background,
+        foregroundColor: _hasAudio
+            ? widget.foreground
+            : (widget.foreground?.withValues(alpha: 0.6) ??
+                  context.brand.mutedInk),
+        iconSize: dimension == null ? null : dimension * 0.5,
+      ),
       icon: _loading
           ? const SizedBox.square(
               dimension: 20,
@@ -976,6 +1008,8 @@ class _PronunciationButtonState extends ConsumerState<PronunciationButton> {
           : Icon(
               _failed
                   ? Icons.error_outline_rounded
+                  : !_hasAudio && widget.onUnavailable != null
+                  ? Icons.volume_off_rounded
                   : playing
                   ? Icons.pause_rounded
                   : Icons.play_arrow_rounded,

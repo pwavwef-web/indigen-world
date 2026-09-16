@@ -51,12 +51,7 @@ Widget _harness(List<Lesson> lessons) => ProviderScope(
   ),
 );
 
-/// Opens the first lesson, through the quest sheet.
-///
-/// The same route the smoke test takes. Tapping the trail node directly is the
-/// other way in, but the node has to be scrolled to and its semantics label is
-/// built from the unit and the lesson's position, so the quest sheet is the
-/// stabler door for a test that is not about the trail.
+/// Opens the first lesson, from the dashboard's Today card.
 Future<void> _openFirstLesson(WidgetTester tester, List<Lesson> lessons) async {
   await tester.pumpWidget(_harness(lessons));
   await tester.pump();
@@ -64,11 +59,7 @@ Future<void> _openFirstLesson(WidgetTester tester, List<Lesson> lessons) async {
   await tester.pump(const Duration(milliseconds: 600));
   await tester.pump(const Duration(milliseconds: 400));
 
-  await tester.tap(find.text('0/3'));
-  await tester.pump();
-  await tester.pump(const Duration(milliseconds: 400));
-
-  await tester.tap(find.text('Continue the quest'));
+  await tester.tap(find.byKey(const Key('learn-hero-continue')));
   await tester.pump();
   await tester.pump(const Duration(milliseconds: 400));
 }

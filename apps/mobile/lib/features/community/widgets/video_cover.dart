@@ -221,15 +221,15 @@ class VideoCoverPlaceholder extends StatelessWidget {
   const VideoCoverPlaceholder({super.key});
 
   @override
-  Widget build(BuildContext context) => const DecoratedBox(
+  Widget build(BuildContext context) => DecoratedBox(
     decoration: BoxDecoration(
       gradient: LinearGradient(
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
-        colors: [BrandColors.heritageGreen, BrandColors.nightGreen],
+        colors: [context.brand.heroMid, context.brand.nightGround],
       ),
     ),
-    child: Center(
+    child: const Center(
       child: Icon(
         Icons.movie_creation_outlined,
         color: Colors.white24,

@@ -223,6 +223,55 @@ test('a lesson without questions is not a lesson', async () => {
 
 // ── Progress ────────────────────────────────────────────────────────────────
 
+test('courses, units and the word of the day are public once published, and admin-written', async () => {
+  const anon = env.unauthenticatedContext();
+  const learner = env.authenticatedContext(LEARNER);
+  const validator = env.authenticatedContext(VALIDATOR.sub, { role: VALIDATOR.role });
+  const admin = env.authenticatedContext(ADMIN.sub, { role: ADMIN.role });
+
+  await env.withSecurityRulesDisabled(async (context) => {
+    const db = context.firestore();
+    await setDoc(doc(db, 'learnCourses/kasem'), { title: 'Kasem', languageName: 'Kasem', order: 1, published: true });
+    await setDoc(doc(db, 'learnUnits/unit-2'), { title: 'Family & people', order: 2, courseId: 'kasem', published: true });
+    await setDoc(doc(db, 'learnUnits/unit-9'), { title: 'Draft unit', order: 9, courseId: 'kasem', published: false });
+    await setDoc(doc(db, 'learnIllustrations/draft-1'), { status: 'draft', prompt: 'x' });
+  });
+
+  await assertSucceeds(getDoc(doc(anon.firestore(), 'learnCourses/kasem')));
+  await assertSucceeds(getDoc(doc(anon.firestore(), 'learnUnits/unit-2')));
+  await assertFails(getDoc(doc(anon.firestore(), 'learnUnits/unit-9')));
+  await assertSucceeds(getDoc(doc(validator.firestore(), 'learnUnits/unit-9')));
+
+  await assertFails(setDoc(doc(learner.firestore(), 'learnUnits/rogue'), { title: 'Rogue', order: 3, published: true }));
+  await assertFails(setDoc(doc(validator.firestore(), 'learnUnits/rogue'), { title: 'Rogue', order: 3, published: true }));
+  await assertSucceeds(setDoc(doc(admin.firestore(), 'learnUnits/unit-3'), { title: 'Food & home', order: 3, courseId: 'kasem', published: true }));
+  await assertFails(setDoc(doc(admin.firestore(), 'learnUnits/no-order'), { title: 'No order', published: true }));
+  await assertFails(setDoc(doc(admin.firestore(), 'learnUnits/zero'), { title: 'Zero', order: 0, published: true }));
+
+  await assertSucceeds(getDoc(doc(anon.firestore(), 'dailyWords/2026-09-14')));
+  await assertFails(setDoc(doc(learner.firestore(), 'dailyWords/2026-09-14'), { entryId: 'e1' }));
+  await assertSucceeds(setDoc(doc(admin.firestore(), 'dailyWords/2026-09-14'), { entryId: 'e1' }));
+  await assertFails(setDoc(doc(admin.firestore(), 'dailyWords/today'), { entryId: 'e1' }));
+
+  // Drafts of AI pictures are for staff to review; nobody writes them from a client.
+  await assertFails(getDoc(doc(learner.firestore(), 'learnIllustrations/draft-1')));
+  await assertSucceeds(getDoc(doc(validator.firestore(), 'learnIllustrations/draft-1')));
+  await assertFails(setDoc(doc(admin.firestore(), 'learnIllustrations/forged'), { status: 'approved' }));
+});
+
+test('a pronunciation recording is read by its maker and staff, and written by nobody', async () => {
+  const learner = env.authenticatedContext(LEARNER);
+  const other = env.authenticatedContext(OTHER);
+  const validator = env.authenticatedContext(VALIDATOR.sub, { role: VALIDATOR.role });
+  await env.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), 'pronunciationRecordings/r1'), { uid: LEARNER, status: 'submitted' });
+  });
+  await assertSucceeds(getDoc(doc(learner.firestore(), 'pronunciationRecordings/r1')));
+  await assertFails(getDoc(doc(other.firestore(), 'pronunciationRecordings/r1')));
+  await assertSucceeds(getDoc(doc(validator.firestore(), 'pronunciationRecordings/r1')));
+  await assertFails(setDoc(doc(learner.firestore(), 'pronunciationRecordings/r2'), { uid: LEARNER, status: 'approved' }));
+});
+
 test('learning progress is private to the member it belongs to', async () => {
   const owner = env.authenticatedContext(LEARNER);
   const other = env.authenticatedContext(OTHER);

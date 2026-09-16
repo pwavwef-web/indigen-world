@@ -214,7 +214,7 @@ class _Backdrop extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (coverPath == null) return const ColoredBox(color: Color(0xFF0B1210));
+    if (coverPath == null) return const ColoredBox(color: Color(0xFF0B0F1A));
     return ClipRect(
       child: Stack(
         fit: StackFit.expand,

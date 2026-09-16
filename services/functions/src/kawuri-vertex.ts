@@ -6,6 +6,7 @@ import {
   MODERATION_SCHEMA,
   classifyVertexError,
   isFallbackWorthy,
+  isPersonGenerationRefusal,
   kawuriError,
   moderationMessage,
   parseModelJson,
@@ -169,6 +170,7 @@ export function setGenAiFactoryForTests(next: GenAiFactory | null): void {
   factory = next ?? defaultFactory;
   clients.clear();
   unhealthyUntil.clear();
+  refusedPersonSettingUntil.clear();
 }
 
 function clientFor(project: string, location: string): GenAiLike {
@@ -271,11 +273,84 @@ export function vertexLabels(capability: string): Record<string, string> {
 const SAFETY_FINISH = new Set(['SAFETY', 'PROHIBITED_CONTENT', 'BLOCKLIST', 'SPII']);
 
 // ---------------------------------------------------------------------------
+// Person generation
+// ---------------------------------------------------------------------------
+
+/**
+ * The person-generation settings to try, most permissive first.
+ *
+ * Children appear in the stories this platform tells, so the platform's own
+ * screen allows them in ordinary scenes and the request asks Vertex for
+ * people of every age. Vertex gates that value — Veo only honours `allow_all`
+ * for allow-listed projects — so a refusal *of the setting* steps down to
+ * adults-only rather than failing a request nobody did anything wrong in.
+ */
+export const IMAGE_PERSON_SETTINGS = ['ALLOW_ALL', 'ALLOW_ADULT'] as const;
+export const VIDEO_PERSON_SETTINGS = ['allow_all', 'allow_adult'] as const;
+
+/**
+ * Settings Vertex recently refused, per capability. Remembered per instance
+ * for the same ten minutes as a sick model, so every request after the first
+ * goes straight to the setting that works.
+ */
+const refusedPersonSettingUntil = new Map<string, number>();
+
+/** Marks [setting] refused for [capability]. Exported for the video poll. */
+export function notePersonSettingRefused(capability: string, setting: string): void {
+  refusedPersonSettingUntil.set(`${capability}|${setting}`, Date.now() + UNHEALTHY_MS);
+}
+
+export function refusedPersonSettings(capability: string, now = Date.now()): Set<string> {
+  const refused = new Set<string>();
+  for (const [key, until] of refusedPersonSettingUntil) {
+    if (until <= now) {
+      refusedPersonSettingUntil.delete(key);
+      continue;
+    }
+    const [owner, setting] = key.split('|');
+    if (owner === capability && setting) refused.add(setting);
+  }
+  return refused;
+}
+
+/**
+ * Runs [call] with each person setting in turn, stepping down only when Vertex
+ * refuses the setting itself. Anything else is rethrown untouched, for the
+ * model chain to classify. A refused setting is an invalid argument, which
+ * Vertex does not bill, so trying the next one is not a second generation.
+ */
+async function withPersonSettings<T>(
+  capability: string,
+  settings: readonly string[],
+  call: (setting: string) => Promise<T>,
+): Promise<T> {
+  const refused = refusedPersonSettings(capability);
+  const ordered = settings.some((setting) => !refused.has(setting))
+    ? settings.filter((setting) => !refused.has(setting))
+    : [...settings];
+  let lastError: unknown = null;
+  for (const setting of ordered) {
+    try {
+      return await call(setting);
+    } catch (error) {
+      const record = error && typeof error === 'object' ? error as Record<string, unknown> : {};
+      const status = typeof record.status === 'number' ? record.status : 0;
+      const message = typeof record.message === 'string' ? record.message : '';
+      if (status !== 400 || !isPersonGenerationRefusal(message)) throw error;
+      logger.warn('Vertex refused a person-generation setting; stepping down', { capability, setting });
+      notePersonSettingRefused(capability, setting);
+      lastError = error;
+    }
+  }
+  throw lastError;
+}
+
+// ---------------------------------------------------------------------------
 // Image generation
 // ---------------------------------------------------------------------------
 
 const IMAGE_INSTRUCTION = `You create one image for a member of Indigen World, a platform that preserves the Kasem language and the culture of the Kassena people.
-Depict what is asked respectfully. Do not depict real, identifiable people, children, sacred rites or restricted objects as if documenting them, and do not add written text in any language unless it is asked for.`;
+Depict what is asked respectfully. People of any age may appear, children included, in ordinary, safe scenes. Do not depict real, identifiable people, sacred rites or restricted objects as if documenting them, and do not add written text in any language unless it is asked for.`;
 
 export async function generateImage(input: {
   project: string;
@@ -284,33 +359,49 @@ export async function generateImage(input: {
   prompt: string;
   aspectRatio: string;
   reference: MediaInput | null;
+  /** Further guide images, after [reference]. The illustration desk uses these. */
+  extraReferences?: readonly MediaInput[];
+  /** `1K`, `2K` or `4K` on models that take one; omitted means the model default. */
+  imageSize?: string | null;
+  /** Replaces Kawuri's own instruction. The illustration desk has its own. */
+  systemInstruction?: string;
+  /** The billing label's capability. */
+  capability?: string;
 }): Promise<{ model: string; outcome: ImageOutcome }> {
-  const { model, value } = await withModelChain('image_generation', input.models, async (candidate) => {
-    const response = await clientFor(input.project, input.location).models.generateContent({
-      model: candidate,
-      contents: [{
-        role: 'user',
-        parts: [
-          ...(input.reference ? [partFor(input.reference)] : []),
-          { text: input.prompt },
-        ],
-      }],
-      config: {
-        systemInstruction: IMAGE_INSTRUCTION,
-        responseModalities: ['IMAGE'],
-        candidateCount: 1,
-        imageConfig: {
-          aspectRatio: input.aspectRatio,
-          // Adults only, matching the Studio's governance for AI video.
-          personGeneration: 'ALLOW_ADULT',
-          prominentPeople: 'BLOCK_PROMINENT_PEOPLE',
+  const capability = input.capability ?? 'image_generation';
+  const references = [
+    ...(input.reference ? [input.reference] : []),
+    ...(input.extraReferences ?? []),
+  ];
+  const { model, value } = await withModelChain(capability, input.models, (candidate) =>
+    withPersonSettings(capability, IMAGE_PERSON_SETTINGS, async (personGeneration) => {
+      const response = await clientFor(input.project, input.location).models.generateContent({
+        model: candidate,
+        contents: [{
+          role: 'user',
+          parts: [
+            ...references.map(partFor),
+            { text: input.prompt },
+          ],
+        }],
+        config: {
+          systemInstruction: input.systemInstruction ?? IMAGE_INSTRUCTION,
+          responseModalities: ['IMAGE'],
+          candidateCount: 1,
+          imageConfig: {
+            aspectRatio: input.aspectRatio,
+            // Gemini 2.5 image models reject the field outright, and they are
+            // the fallback in every chain.
+            ...(input.imageSize && /^gemini-3/.test(candidate) ? { imageSize: input.imageSize } : {}),
+            personGeneration,
+            prominentPeople: 'BLOCK_PROMINENT_PEOPLE',
+          },
+          labels: vertexLabels(capability),
+          httpOptions: { timeout: 110_000 },
         },
-        labels: vertexLabels('image_generation'),
-        httpOptions: { timeout: 110_000 },
-      },
-    });
-    return readImageResponse(response);
-  });
+      });
+      return readImageResponse(response);
+    }));
   return { model, outcome: value };
 }
 
@@ -328,8 +419,11 @@ export async function startVideo(input: {
   durationSeconds: number;
   resolution: string;
   image: MediaInput | null;
+  /** A soundtrack from Veo: ambience, effects, music and any speech. */
+  generateAudio: boolean;
 }): Promise<{ model: string; operationName: string }> {
-  const { model, value } = await withModelChain('video_generation', [input.model], async (candidate) => {
+  const { model, value } = await withModelChain('video_generation', [input.model], (candidate) =>
+    withPersonSettings('video_generation', VIDEO_PERSON_SETTINGS, async (personGeneration) => {
     const operation = await clientFor(input.project, input.location).models.generateVideos({
       model: candidate,
       source: {
@@ -348,11 +442,13 @@ export async function startVideo(input: {
         durationSeconds: input.durationSeconds,
         resolution: input.resolution,
         ...(input.negativePrompt ? { negativePrompt: input.negativePrompt } : {}),
-        // Off for the Studio's reason: Veo would voice speech and song in a
-        // language that is not Kasem, over footage meant to represent Kassena
-        // life.
-        generateAudio: false,
-        personGeneration: 'allow_adult',
+        // The member's choice, and on by default in the app: a silent clip is
+        // not what most people mean by "a video". Veo cannot speak Kasem, so
+        // the Studio — whose videos stand for Kassena life and carry the
+        // creator's own voice — still turns it off, and Kawuri's create screen
+        // says plainly that any speech will not be Kasem.
+        generateAudio: input.generateAudio,
+        personGeneration,
         labels: vertexLabels('video_generation'),
         httpOptions: { timeout: 60_000 },
       },
@@ -360,7 +456,7 @@ export async function startVideo(input: {
     const operationName = typeof operation?.name === 'string' ? operation.name.trim() : '';
     if (!operationName) throw kawuriError('GENERATION_FAILED', 'Vertex did not start the video.');
     return operationName;
-  });
+  }));
   return { model, operationName: value };
 }
 
@@ -395,7 +491,13 @@ export async function pollVideo(input: {
         },
       },
     });
-    return readVideoOperation(result);
+    const outcome = readVideoOperation(result);
+    if (outcome.state === 'failed' && outcome.personGenerationRefused) {
+      // Veo can refuse `allow_all` once the job is already running. Nothing
+      // was generated, and the member's retry should go out adults-only.
+      notePersonSettingRefused('video_generation', VIDEO_PERSON_SETTINGS[0]);
+    }
+    return outcome;
   } catch (error) {
     const code = classifyVertexError(error);
     logger.warn('Kawuri video status check failed', {

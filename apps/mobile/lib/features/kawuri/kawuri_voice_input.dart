@@ -3,8 +3,8 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/core/media_preferences.dart';
-import 'package:indigen_world_mobile/features/kawuri/kawuri_home.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_media_models.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_media_repository.dart';
 import 'package:just_audio/just_audio.dart';
@@ -25,7 +25,7 @@ Future<KawuriTranscript?> showKawuriVoiceInput(BuildContext context) =>
       isScrollControlled: true,
       isDismissible: false,
       enableDrag: false,
-      backgroundColor: const Color(0xFF0B2A22),
+      backgroundColor: context.brand.background,
       builder: (_) => const _VoiceSheet(),
     );
 
@@ -244,7 +244,7 @@ class _VoiceSheetState extends ConsumerState<_VoiceSheet> {
     final recording = _phase == _Phase.recording;
     final paused = _phase == _Phase.paused;
     final sending = _phase == _Phase.sending;
-    const body = TextStyle(color: Color(0xFFD5E4DE), height: 1.45);
+    final body = TextStyle(color: context.brand.ink, height: 1.45);
 
     return SafeArea(
       child: Padding(
@@ -294,7 +294,7 @@ class _VoiceSheetState extends ConsumerState<_VoiceSheet> {
               ),
             ),
             const SizedBox(height: 10),
-            const Text(
+            Text(
               'Kawuri needs your microphone to hear this message. The recording is uploaded privately, turned into text for you to edit, then deleted. Kasem and other languages can still be typed.',
               style: body,
             ),
@@ -336,8 +336,8 @@ class _VoiceSheetState extends ConsumerState<_VoiceSheet> {
                     FilledButton.icon(
                       onPressed: _start,
                       style: FilledButton.styleFrom(
-                        backgroundColor: kawuriMint,
-                        foregroundColor: const Color(0xFF083729),
+                        backgroundColor: context.brand.nightAccent,
+                        foregroundColor: context.brand.nightGround,
                         minimumSize: const Size(48, 48),
                       ),
                       icon: const Icon(Icons.mic_rounded),

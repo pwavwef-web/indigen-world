@@ -9,6 +9,7 @@ import 'package:indigen_world_mobile/app/indigen_world_app.dart';
 import 'package:indigen_world_mobile/core/app_locale.dart';
 import 'package:indigen_world_mobile/core/app_signature.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
+import 'package:indigen_world_mobile/core/brand_theme_choice.dart';
 import 'package:indigen_world_mobile/core/device_integrity.dart';
 import 'package:indigen_world_mobile/core/firebase_bootstrap.dart';
 import 'package:indigen_world_mobile/core/firebase_ready.dart';
@@ -54,6 +55,7 @@ Future<void> main() async {
   // resolving the reading language afterwards would show a French member an
   // English screen on the way to their own.
   final themeMode = await readStoredThemeMode();
+  final brandTheme = await readStoredBrandTheme();
   final locale = await readStoredLocale();
 
   final firebaseReady = await FirebaseBootstrap.initialize();
@@ -94,7 +96,7 @@ Future<void> main() async {
         // The same silhouette and tint the community alerts use, so the two
         // notifications read as coming from one app.
         androidNotificationIcon: 'drawable/ic_notification',
-        notificationColor: BrandColors.kenteGold,
+        notificationColor: BrandColors.cyan,
       ),
     );
   } on Object catch (error, stackTrace) {
@@ -128,6 +130,12 @@ Future<void> main() async {
         themeModeProvider.overrideWith(
           () => _StoredThemeModeController(themeMode),
         ),
+        brandThemeChoiceProvider.overrideWith(
+          () => _StoredBrandThemeChoice(brandTheme.themeId),
+        ),
+        lastKnownPremiumThemesUnlockedProvider.overrideWith(
+          () => _StoredThemeUnlock(brandTheme.premiumUnlocked),
+        ),
         localeProvider.overrideWith(() => _StoredLocaleController(locale)),
       ],
       child: const IndigenWorldApp(),
@@ -143,6 +151,25 @@ class _StoredThemeModeController extends ThemeModeController {
 
   @override
   ThemeMode build() => _initial;
+}
+
+/// The same, for the theme and whether it was last known to be unlocked.
+class _StoredBrandThemeChoice extends BrandThemeChoiceController {
+  _StoredBrandThemeChoice(this._initial);
+
+  final String _initial;
+
+  @override
+  String build() => _initial;
+}
+
+class _StoredThemeUnlock extends LastKnownThemeUnlockController {
+  _StoredThemeUnlock(this._initial);
+
+  final bool _initial;
+
+  @override
+  bool build() => _initial;
 }
 
 /// The same, for the reading language. `null` means the device decides, which

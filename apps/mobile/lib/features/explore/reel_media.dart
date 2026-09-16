@@ -236,7 +236,7 @@ class ReelFramedMedia extends StatelessWidget {
         focalPoint: focalPoint,
       );
       return ColoredBox(
-        color: const Color(0xFF070A09),
+        color: const Color(0xFF06080F),
         child: Stack(
           fit: StackFit.expand,
           children: [
@@ -264,7 +264,7 @@ const Color kReelBackdropScrim = _backdropScrim;
 
 /// How dark the backdrop is held. Restrained on purpose: it exists so the
 /// bands are not a flat black hole, not so they compete with the media.
-const Color _backdropScrim = Color(0xB3070A09);
+const Color _backdropScrim = Color(0xB306080F);
 
 /// The bands around a framed still or poster: its own colours, blurred past
 /// recognition and dimmed.
@@ -277,7 +277,7 @@ class _StillBackdrop extends StatelessWidget {
   Widget build(BuildContext context) {
     final thumbnail = this.thumbnail;
     if (thumbnail == null) {
-      return const ColoredBox(color: Color(0xFF0B1210));
+      return const ColoredBox(color: Color(0xFF0B0F1A));
     }
     return RepaintBoundary(
       child: ClipRect(
@@ -297,7 +297,7 @@ class _StillBackdrop extends StatelessWidget {
                   fit: BoxFit.cover,
                   gaplessPlayback: true,
                   errorBuilder: (context, error, stackTrace) =>
-                      const ColoredBox(color: Color(0xFF0B1210)),
+                      const ColoredBox(color: Color(0xFF0B0F1A)),
                 ),
               ),
             ),
@@ -366,7 +366,7 @@ class ReelMediaPlaceholder extends StatelessWidget {
       gradient: LinearGradient(
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
-        colors: [Color(0xFF0B1F18), Color(0xFF15100C), Color(0xFF1E1608)],
+        colors: [Color(0xFF0B1428), Color(0xFF15100C), Color(0xFF1E1608)],
       ),
     ),
   );

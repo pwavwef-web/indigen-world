@@ -14,7 +14,7 @@ import 'package:indigen_world_mobile/shared/frosted_nav_bar.dart'
 /// where it fought the floating glass nav rail for the same few pixels. These
 /// primitives put that content in the middle of the screen instead, on a card
 /// cut from the same liquid glass as the frosted nav rail: a blurred backdrop,
-/// a warm plaster fill, a hairline white edge, a heritage-green tinted lift.
+/// a pale paper fill, a hairline white edge, a navy-tinted lift.
 ///
 /// Reach for [showGlassPopup] for arbitrary content, [showGlassActionSheet]
 /// for a stack of choices, [showGlassConfirm] for a yes/no, and
@@ -338,8 +338,8 @@ class _GlassCard extends StatelessWidget {
   }
 }
 
-/// The liquid glass itself: a blurred backdrop under a translucent warm
-/// plaster fill, a hairline white edge and a heritage-green lift.
+/// The liquid glass itself: a blurred backdrop under a translucent pale
+/// paper fill, a hairline white edge and a navy-tinted lift.
 ///
 /// [BackdropFilter] only blurs what is painted behind it in the same layer
 /// tree — inside a dialog route that is the page below, which is exactly the
@@ -708,14 +708,17 @@ class _GlassToastState extends State<_GlassToast>
                         child: BackdropFilter(
                           filter: _blur,
                           child: DecoratedBox(
-                            // One dark slab in both themes: a toast has to
-                            // read over the light tabs, over the dark ones and
-                            // over Explore's near-black ground with the same
-                            // fill, so it does not follow the palette.
+                            // One dark slab in both appearances: a toast has
+                            // to read over the light tabs, over the dark ones
+                            // and over Explore's near-black ground with the
+                            // same fill — the theme's night ground, lifted.
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(20),
-                              color: const Color(0xFF232826)
-                                  .withValues(alpha: 0.96),
+                              color: Color.lerp(
+                                context.brand.nightGround,
+                                Colors.white,
+                                0.06,
+                              )!.withValues(alpha: 0.96),
                               border: Border.all(
                                 color: Colors.white.withValues(alpha: 0.1),
                               ),
@@ -734,7 +737,7 @@ class _GlassToastState extends State<_GlassToast>
                                       Icon(
                                         widget.icon,
                                         size: 19,
-                                        color: const Color(0xFF8FD3B6),
+                                        color: context.brand.nightAccent,
                                       ),
                                       const SizedBox(width: 11),
                                     ],

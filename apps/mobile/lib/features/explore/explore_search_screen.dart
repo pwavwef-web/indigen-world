@@ -133,7 +133,7 @@ class _ExploreSearchScreenState extends ConsumerState<ExploreSearchScreen>
         builder: (context) => AnnotatedRegion<SystemUiOverlayStyle>(
           value: SystemUiOverlayStyle.light,
           child: Scaffold(
-            backgroundColor: const Color(0xFF070A09),
+            backgroundColor: const Color(0xFF06080F),
             body: SafeArea(
               child: Column(
                 children: [
@@ -998,7 +998,7 @@ class _SearchResultFeed extends StatelessWidget {
     child: AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.light,
       child: Scaffold(
-        backgroundColor: const Color(0xFF070A09),
+        backgroundColor: const Color(0xFF06080F),
         body: ReelFeedView(
           reels: reels,
           initialIndex: initialIndex,

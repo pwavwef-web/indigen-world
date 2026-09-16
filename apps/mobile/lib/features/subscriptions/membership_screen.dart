@@ -922,6 +922,7 @@ class _TierCard extends StatelessWidget {
         BenefitKind.supporterMark => SupporterBadge.glyph(
           (tierBenefits[tier] ?? TierBenefits.free).supporterMark,
         ),
+        BenefitKind.themes => Icons.palette_outlined,
         BenefitKind.creatorTools => Icons.movie_filter_outlined,
       };
 

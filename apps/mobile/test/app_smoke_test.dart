@@ -89,20 +89,19 @@ void main() {
     );
     await tester.pump(const Duration(milliseconds: 400));
 
-    // Learn opens on the trail itself: a strip of numbers pinned to the top,
-    // and the first unit's banner stuck under it. The quest and the momentum
-    // summary live in that strip rather than in a lid the first lesson has to
-    // be scrolled past.
+    // Learn opens on the dashboard: the numbers in a strip at the top, and
+    // today's lesson — the first one on the path — ready to start.
     expect(find.text('UNIT 1'), findsOneWidget);
     expect(find.text('0/3'), findsOneWidget);
+    expect(find.text('Start lesson'), findsOneWidget);
 
     await tester.tap(find.text('0/3'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));
-    expect(find.text('Complete 3 quick lessons'), findsOneWidget);
+    expect(find.text('Today’s goal'), findsOneWidget);
     expect(find.text('0 of 3 done'), findsOneWidget);
 
-    await tester.tap(find.text('Continue the quest'));
+    await tester.tap(find.text('Continue learning'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));
     expect(find.text('LESSON 1 OF 4'), findsOneWidget);

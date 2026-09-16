@@ -384,10 +384,10 @@ class _CorrectionSheetState extends ConsumerState<_CorrectionSheet> {
                 Container(
                   padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
                   decoration: BoxDecoration(
-                    color: BrandColors.terracotta.withValues(alpha: 0.14),
+                    color: BrandColors.warning.withValues(alpha: 0.14),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: BrandColors.terracotta.withValues(alpha: 0.45),
+                      color: BrandColors.warning.withValues(alpha: 0.45),
                     ),
                   ),
                   child: Text(

@@ -577,7 +577,7 @@ class CollectionItemDetailScreen extends StatelessWidget {
           Text(
             'By ${item.creatorName}',
             style: TextStyle(
-              color: context.brand.success,
+              color: context.brand.accent,
               fontWeight: FontWeight.w800,
             ),
           ),

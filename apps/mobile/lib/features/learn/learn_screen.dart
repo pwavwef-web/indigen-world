@@ -10,25 +10,35 @@ import 'package:indigen_world_mobile/app/app_theme.dart';
 import 'package:indigen_world_mobile/app/shell_chrome.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/core/connectivity.dart';
-import 'package:indigen_world_mobile/domain/dictionary_entry.dart';
 import 'package:indigen_world_mobile/features/collection/collection_detail_screens.dart';
 import 'package:indigen_world_mobile/features/contribute/leaderboard/contributor_scores.dart';
 import 'package:indigen_world_mobile/features/dictionary/entry_detail_screen.dart';
-import 'package:indigen_world_mobile/features/dictionary/word_lookup.dart';
 import 'package:indigen_world_mobile/features/heroes/hero_detail_screen.dart';
 import 'package:indigen_world_mobile/features/heroes/heroes_data.dart';
 import 'package:indigen_world_mobile/features/heroes/heroes_screen.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_fab.dart';
+import 'package:indigen_world_mobile/features/kawuri/kawuri_learning_context.dart';
+import 'package:indigen_world_mobile/features/learn/daily_word.dart';
+import 'package:indigen_world_mobile/features/learn/learn_catalog.dart';
 import 'package:indigen_world_mobile/features/learn/learn_content.dart';
+import 'package:indigen_world_mobile/features/learn/learn_dashboard.dart';
 import 'package:indigen_world_mobile/features/learn/learn_progress.dart';
+import 'package:indigen_world_mobile/features/learn/learn_sheets.dart';
+import 'package:indigen_world_mobile/features/learn/practice/listen_practice_screen.dart';
+import 'package:indigen_world_mobile/features/learn/practice/practice_widgets.dart';
+import 'package:indigen_world_mobile/features/learn/practice/review_words_screen.dart';
+import 'package:indigen_world_mobile/features/learn/practice/speak_practice_screen.dart';
 import 'package:indigen_world_mobile/features/rating/rating_service.dart';
 import 'package:indigen_world_mobile/l10n/app_localizations.dart';
 import 'package:indigen_world_mobile/shared/app_widgets.dart';
 import 'package:indigen_world_mobile/shared/frosted_nav_bar.dart';
-import 'package:indigen_world_mobile/shared/glass_popup.dart';
+import 'package:indigen_world_mobile/shared/profile_orb.dart';
 
 /// ─────────────────────────────────────────────────────────────────────────────
 /// THE LEARNING PATH
+///
+/// The Learn tab opens on the dashboard (`learn_dashboard.dart`); the trail
+/// described here is the course outline behind its "Course" button.
 ///
 /// A trail of round buttons winding down the page, a coloured bar that names
 /// whichever unit you are standing in, and a strip of numbers at the top that
@@ -54,10 +64,7 @@ import 'package:indigen_world_mobile/shared/glass_popup.dart';
 ///     than tinting a circle.
 /// ─────────────────────────────────────────────────────────────────────────────
 
-/// Height of the strip of numbers pinned to the top of the tab.
-const double kLearnStatsBarHeight = 62;
-
-/// Height of a unit's banner, which sticks under the numbers.
+/// Height of a unit's banner, which sticks to the top of the course outline.
 const double kLearnUnitBannerHeight = 74;
 
 /// The face of a lesson button, and the lip it presses onto.
@@ -73,6 +80,8 @@ const double _nodeRowHeight = 96;
 /// rather than as a zigzag repeating every other row.
 const List<double> _pathSway = [0, -0.34, -0.6, -0.34, 0, 0.34, 0.6, 0.34];
 
+/// The Learn tab: today's lesson, quick practice, today's word, the week and
+/// what comes next. See `learn_dashboard.dart` for the pieces.
 class LearnScreen extends ConsumerStatefulWidget {
   const LearnScreen({super.key});
 
@@ -82,6 +91,12 @@ class LearnScreen extends ConsumerStatefulWidget {
 
 class _LearnScreenState extends ConsumerState<LearnScreen> {
   final _scroll = ScrollController();
+  double _lastScrollOffset = 0;
+
+  /// How far a reader has to move before the header and rail change their
+  /// minds — the same dead zone the Community feed uses, so the whole app's
+  /// furniture answers a scroll the same way.
+  static const _chromeScrollThreshold = 14.0;
 
   @override
   void dispose() {
@@ -89,12 +104,109 @@ class _LearnScreenState extends ConsumerState<LearnScreen> {
     super.dispose();
   }
 
+  /// Hides the header, the rail and Kawuri while the member reads on, and
+  /// brings them back when they turn around, reach the top, or reach the end.
+  bool _handleScroll(ScrollNotification notification) {
+    if (notification.depth != 0 || notification.metrics.axis != Axis.vertical) {
+      return false;
+    }
+    final metrics = notification.metrics;
+    final chrome = ref.read(shellChromeVisibilityProvider.notifier);
+    if (metrics.pixels <= 0 || metrics.extentAfter < 32) {
+      _lastScrollOffset = metrics.pixels;
+      chrome.set(true);
+      return false;
+    }
+    final travelled = metrics.pixels - _lastScrollOffset;
+    if (travelled.abs() < _chromeScrollThreshold) return false;
+    _lastScrollOffset = metrics.pixels;
+    chrome.set(travelled < 0);
+    return false;
+  }
+
+  Future<void> _refresh() async {
+    ref
+      ..invalidate(lessonPathProvider)
+      ..invalidate(learnUnitsProvider)
+      ..invalidate(learnCoursesProvider)
+      ..invalidate(learnProgressProvider)
+      ..invalidate(dailyWordPickProvider);
+    try {
+      await ref
+          .read(lessonPathProvider.future)
+          .timeout(const Duration(seconds: 8));
+    } on Object {
+      // The cached course is still on screen; the notice below says so.
+    }
+  }
+
+  void _push(Widget screen) =>
+      Navigator.of(context)
+          .push(MaterialPageRoute<void>(builder: (_) => screen));
+
+  Future<void> _continueLesson() async {
+    final outline = ref.read(courseOutlineProvider);
+    if (outline.nextLesson == null) {
+      _push(const ReviewWordsScreen());
+      return;
+    }
+    await openLearnLesson(
+      context,
+      ref,
+      path: outline.path,
+      index: outline.nextIndex,
+    );
+  }
+
+  void _openCourse({int? unitOrder}) =>
+      _push(CourseOutlineScreen(initialUnitOrder: unitOrder));
+
+  Future<void> _openUnit(UnitOutline unit) async {
+    if (unit.opensLessons) {
+      _openCourse(unitOrder: unit.unit.order);
+      return;
+    }
+    final goToBlocker = await showUnitUnavailableSheet(context, unit);
+    if (goToBlocker == true && mounted) {
+      _openCourse(unitOrder: unit.blockedBy?.unit.order);
+    }
+  }
+
+  /// What Kawuri is told about where the learner is.
+  KawuriLearningContext _kawuriContext() {
+    final outline = ref.read(courseOutlineProvider);
+    final lesson = outline.nextLesson;
+    final unit = lesson == null
+        ? outline.currentUnit
+        : outline.unitOfLesson(lesson);
+    final word = ref.read(dailyWordProvider)?.entry;
+    return KawuriLearningContext(
+      courseName: outline.course.languageName,
+      unitTitle: unit?.unit.title ?? '',
+      lessonTitle: lesson?.title ?? '',
+      lessonItems: [
+        for (final question in lesson?.questions ?? const <LessonQuestion>[])
+          if (question.correctAnswer < question.answers.length)
+            '${question.prompt} → ${question.answers[question.correctAnswer]}',
+      ],
+      word: word?.headword ?? '',
+      wordMeaning: word?.translation ?? '',
+      wordPartOfSpeech: word?.partOfSpeech ?? '',
+      wordExample: word?.example ?? '',
+      wordExampleTranslation: word?.exampleTranslation ?? '',
+      wordDialect: word?.dialect ?? '',
+      wordSource: word?.attribution ?? '',
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    // Tapping Learn while already on Learn walks back to the start of the path.
+    // Tapping Learn while already on Learn goes back to the top.
     ref.listen<TabReselect>(tabReselectProvider, (previous, next) {
       if (next.index != kLearnTabIndex || previous?.tick == next.tick) return;
+      ref.read(shellChromeVisibilityProvider.notifier).reveal();
       if (!_scroll.hasClients) return;
+      _lastScrollOffset = 0;
       unawaited(
         _scroll.animateTo(
           0,
@@ -104,289 +216,585 @@ class _LearnScreenState extends ConsumerState<LearnScreen> {
       );
     });
 
+    final chromeVisible = ref.watch(shellChromeVisibilityProvider);
+    final reduceMotion = MediaQuery.disableAnimationsOf(context);
     return Scaffold(
       backgroundColor: Colors.transparent,
-      // Lifted clear of the shell's floating glass rail, which the body extends
-      // behind.
+      // Lifted clear of the shell's floating rail, and leaving with it: a
+      // button hovering over a page whose rail has gone reads as a bug.
       floatingActionButton: Padding(
-        padding: EdgeInsets.only(bottom: shellBottomReserve(context) - 26),
-        child: const KawuriFab(),
-      ),
-      body: ScreenContainer(child: _path()),
-    );
-  }
-
-  Widget _path() {
-    // Progress arrives from disk a frame or two after the screen does, and the
-    // published path a moment after that. An empty path beats a spinner here:
-    // the layout is identical either way, so the numbers fill themselves in
-    // rather than the whole tab blinking.
-    final progress =
-        ref.watch(learnProgressProvider).value ?? const LearnProgress();
-    final lessons = ref.watch(lessonPathProvider).value ?? bundledLessons;
-    final nextLesson = _nextLesson(progress, lessons);
-    final completed = lessons
-        .where((lesson) => progress.hasCompleted(lesson.id))
-        .length;
-    final units = _groupUnits(lessons);
-    final word = ref.watch(wordOfTheDayProvider);
-    final hero = ref.watch(heroOfTheWeekProvider);
-
-    // ── Why contribution points are added here and not merged ──────────────
-    //
-    // The bolt in the header now counts both halves of what a member has done
-    // for the language: the lessons they have finished, and the work they have
-    // had approved. They are added at the moment of drawing, and nowhere else.
-    //
-    // Folding them into `LearnProgress.xp` was the obvious shortcut and it is
-    // the wrong one, for two reasons that are each on their own decisive.
-    // First, `learnProgress/{uid}` is owner-writable and reconciled by
-    // [LearnProgress.merge], which deliberately keeps the *more generous* of
-    // the device and server copies — that rule is exactly right for lessons
-    // done offline, and it is a licence to print money for a number the server
-    // is supposed to own: one stale phone that had seen a higher contribution
-    // total would push it back up for good. Second, it would put a public
-    // leaderboard figure inside a document its own subject can write.
-    //
-    // `contributorScores/{uid}` stays the only home for the contributed half,
-    // read-only from here, and the two are shown as parts the moment anybody
-    // taps the number — see [_openMomentum].
-    final contributed = ref.watch(myContributionPointsProvider);
-
-    return CustomScrollView(
-      key: const PageStorageKey('learn-path-scroll'),
-      controller: _scroll,
-      slivers: [
-        SliverPersistentHeader(
-          pinned: true,
-          delegate: _StatsBarDelegate(
-            xp: progress.xp + contributed,
-            streakDays: progress.streakDays,
-            streakClaimed: progress.sparkClaimedToday,
-            streakAtRisk: progress.streakAtRisk,
-            questDone: completed.clamp(0, 3),
-            onClaimStreak: _claimStreak,
-            onOpenQuest: () => _openQuest(completed, nextLesson),
-            onOpenMomentum: () =>
-                _openMomentum(progress, completed, lessons.length),
-            onOpenDictionary: _openDictionary,
+        padding: EdgeInsets.only(bottom: shellBottomReserve(context) - 30),
+        child: AnimatedSlide(
+          offset: chromeVisible ? Offset.zero : const Offset(0, 1.6),
+          duration: reduceMotion
+              ? Duration.zero
+              : const Duration(milliseconds: 220),
+          curve: Curves.easeOutCubic,
+          child: AnimatedOpacity(
+            opacity: chromeVisible ? 1 : 0,
+            duration: reduceMotion
+                ? Duration.zero
+                : const Duration(milliseconds: 180),
+            child: IgnorePointer(
+              ignoring: !chromeVisible,
+              child: KawuriFab(
+                learningContext: _kawuriContext,
+                showLabel: true,
+              ),
+            ),
           ),
         ),
-        if (word != null)
-          SliverToBoxAdapter(child: _WordOfTheDayCard(entry: word)),
-        if (hero != null)
-          SliverToBoxAdapter(child: _HeroOfTheWeekCard(hero: hero)),
-        for (final unit in units)
-          // A group is what lets each unit's banner stick for exactly as long
-          // as its own lessons are on screen, and then be pushed off by the
-          // next one rather than piling up.
-          SliverMainAxisGroup(
-            slivers: [
-              SliverPersistentHeader(
-                pinned: true,
-                delegate: _UnitBannerDelegate(
-                  unit: unit,
-                  done: unit.lessons
-                      .where((lesson) => progress.hasCompleted(lesson.id))
-                      .length,
-                  // A banner is a surface, so it takes the accent's *fill*
-                  // rather than its foreground: on charcoal the foreground
-                  // green is a lit mint meant for small marks, and a whole bar
-                  // of it is the loudest thing in the app.
-                  colour: unit.order.isOdd
-                      ? context.brand.accentFill
-                      : BrandColors.terracotta,
-                  // Gold sits well on the deep green and disappears on the
-                  // terracotta, which is warm enough to be gold already.
-                  eyebrow: unit.order.isOdd
-                      ? context.brand.gold
-                      : Colors.white70,
+      ),
+      body: ScreenContainer(
+        child: NotificationListener<ScrollNotification>(
+          onNotification: _handleScroll,
+          child: Stack(
+            children: [
+              RefreshIndicator(
+                edgeOffset: kLearnHeaderHeight,
+                onRefresh: _refresh,
+                child: CustomScrollView(
+                  key: const PageStorageKey('learn-dashboard-scroll'),
+                  controller: _scroll,
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  slivers: _slivers(context),
                 ),
               ),
-              SliverToBoxAdapter(
-                child: _UnitTrail(
-                  unit: unit,
-                  progress: progress,
-                  nextLesson: nextLesson,
-                  lessonCount: lessons.length,
-                  onOpen: _openLesson,
-                ),
+              const Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: _PinnedLearnHeader(),
               ),
             ],
           ),
-        const SliverPadding(
-          padding: EdgeInsets.fromLTRB(20, 26, 20, 130),
-          sliver: SliverToBoxAdapter(child: _LockedUnitPreview()),
+        ),
+      ),
+    );
+  }
+
+  List<Widget> _slivers(BuildContext context) {
+    final outline = ref.watch(courseOutlineProvider);
+    final progress =
+        ref.watch(learnProgressProvider).asData?.value ?? const LearnProgress();
+    final loading = ref.watch(learnDashboardLoadingProvider);
+    final refreshFailed = ref.watch(lessonPathProvider).hasError;
+    final word = ref.watch(dailyWordProvider);
+    final hero = ref.watch(heroOfTheWeekProvider);
+    const gap = SliverToBoxAdapter(child: SizedBox(height: 12));
+    Widget padded(Widget child) => SliverPadding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      sliver: SliverToBoxAdapter(child: child),
+    );
+
+    return [
+      const SliverToBoxAdapter(child: SizedBox(height: kLearnHeaderHeight + 4)),
+      padded(
+        CourseSelectorRow(
+          languageName: outline.course.languageName,
+          onLanguage: () => showCoursePicker(context),
+          onCourse: _openCourse,
+        ),
+      ),
+      gap,
+      if (loading)
+        const SliverToBoxAdapter(child: LearnDashboardSkeleton())
+      else ...[
+        if (refreshFailed)
+          padded(
+            _InlineNotice(
+              text: 'The course could not be refreshed. Showing the copy saved on this phone.',
+              actionLabel: 'Retry',
+              onAction: _refresh,
+            ),
+          ),
+        if (refreshFailed) gap,
+        padded(
+          TodayLessonCard(
+            outline: outline,
+            progress: progress,
+            onContinue: _continueLesson,
+            onReview: () => _push(const ReviewWordsScreen()),
+          ),
+        ),
+        gap,
+        padded(
+          PracticeActionsRow(
+            progress: progress,
+            onReview: () => _push(const ReviewWordsScreen()),
+            onListen: () => _push(const ListenPracticeScreen()),
+            onSpeak: () => _push(const SpeakPracticeScreen()),
+          ),
+        ),
+        gap,
+        if (word != null) ...[
+          padded(
+            WordOfTheDayCard(
+              word: word,
+              onOpen: () => _push(
+                EntryDetailScreen(entryId: word.entry.id, entry: word.entry),
+              ),
+              onUnavailable: () =>
+                  showPronunciationUnavailable(context, entry: word.entry),
+            ),
+          ),
+          gap,
+        ],
+        padded(WeeklyConsistencyCard(progress: progress)),
+        const SliverToBoxAdapter(child: SizedBox(height: 20)),
+        if (outline.upcoming.isNotEmpty)
+          SliverToBoxAdapter(
+            child: ExploreNextSection(
+              units: outline.upcoming,
+              onSeeAll: _openCourse,
+              onUnit: _openUnit,
+            ),
+          ),
+        if (hero != null)
+          SliverPadding(
+            padding: const EdgeInsets.only(top: 8),
+            sliver: SliverToBoxAdapter(child: _HeroOfTheWeekCard(hero: hero)),
+          ),
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.only(top: 18),
+            child: SizedBox(
+              height: shellBottomReserve(context) + 90,
+              child: IgnorePointer(
+                child: ClipRect(
+                  child: CustomPaint(
+                    painter: KassenaPatternPainter(
+                      tint: context.brand.accentFill,
+                      opacity: 0.045,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
         ),
       ],
-    );
-  }
-
-  /// The units on the published path, in order, each carrying its own lessons.
-  ///
-  /// Read off the lessons rather than kept in a second collection, so
-  /// publishing a lesson into a new unit is one document rather than two that
-  /// can disagree about what the unit is called.
-  List<_LearnUnit> _groupUnits(List<Lesson> lessons) {
-    final units = <_LearnUnit>[];
-    for (var index = 0; index < lessons.length; index++) {
-      final lesson = lessons[index];
-      if (units.isEmpty || units.last.title != lesson.unitTitle) {
-        units.add(
-          _LearnUnit(
-            title: lesson.unitTitle,
-            subtitle: lesson.unitSubtitle,
-            order: lesson.unitOrder,
-            firstIndex: index,
-            lessons: [lesson],
-          ),
-        );
-        continue;
-      }
-      units.last.lessons.add(lesson);
-    }
-    return units;
-  }
-
-  /// Today's quest, in full, on a card that closes again.
-  Future<void> _openQuest(int completed, int nextLesson) async {
-    final l10n = AppLocalizations.of(context);
-    final start = await showGlassPopup<bool>(
-      context: context,
-      title: l10n.learnQuestTitle,
-      subtitle: l10n.learnQuestSubtitle,
-      builder: (popupContext) => _QuestPopupBody(completed: completed),
-    );
-    if (start == true && mounted) await _openLesson(nextLesson);
-  }
-
-  /// How far along the whole path this member is.
-  ///
-  /// This is where the header's one number comes apart again. Somebody who has
-  /// finished four lessons and had a dozen words approved should be able to
-  /// find out which of the two the badge is mostly made of, and the tap they
-  /// already make on it is the cheapest place to answer that.
-  Future<void> _openMomentum(LearnProgress progress, int completed, int total) {
-    final l10n = AppLocalizations.of(context);
-    return showGlassPopup<void>(
-      context: context,
-      title: l10n.learnMomentumTitle,
-      subtitle: total == 0
-          ? l10n.learnMomentumUnpublished
-          : l10n.learnMomentumProgress(completed, total),
-      builder: (popupContext) => _MomentumPopupBody(
-        completed: completed,
-        total: total,
-        xp: progress.xp,
-        contributionXp: ref.read(myContributionPointsProvider),
-        streakDays: progress.streakDays,
-      ),
-    );
-  }
-
-  int _nextLesson(LearnProgress progress, List<Lesson> lessons) {
-    for (var index = 0; index < lessons.length; index++) {
-      if (!progress.hasCompleted(lessons[index].id)) return index;
-    }
-    return lessons.isEmpty ? 0 : lessons.length - 1;
-  }
-
-  Future<void> _claimStreak() async {
-    final l10n = AppLocalizations.of(context);
-    final progress = ref.read(learnProgressProvider).value;
-    if (progress != null && progress.sparkClaimedToday) {
-      // Nothing left to take today, so the flame explains itself instead of
-      // doing nothing at all.
-      final lessons = ref.read(lessonPathProvider).value ?? bundledLessons;
-      final completed = lessons
-          .where((lesson) => progress.hasCompleted(lesson.id))
-          .length;
-      await _openMomentum(progress, completed, lessons.length);
-      return;
-    }
-    HapticFeedback.mediumImpact();
-    // The controller owns the calendar, so it has the final say on whether
-    // there was a spark left to claim today.
-    final claimed = await ref
-        .read(learnProgressProvider.notifier)
-        .claimStreak();
-    if (!claimed || !mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(l10n.learnSparkClaimed(LearnProgress.xpPerSpark)),
-      ),
-    );
-  }
-
-  void _openDictionary() {
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (context) => const DictionaryCollectionScreen(),
-      ),
-    );
-  }
-
-  Future<void> _openLesson(int index) async {
-    final l10n = AppLocalizations.of(context);
-    final progress =
-        ref.read(learnProgressProvider).value ?? const LearnProgress();
-    final lessons = ref.read(lessonPathProvider).value ?? bundledLessons;
-    if (lessons.isEmpty) return;
-    if (index > _nextLesson(progress, lessons)) {
-      HapticFeedback.lightImpact();
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(l10n.learnLockedAbove)));
-      return;
-    }
-    final lesson = lessons[index];
-    final alreadyDone = progress.hasCompleted(lesson.id);
-    final result = await Navigator.of(context).push<LessonResult>(
-      MaterialPageRoute<LessonResult>(
-        builder: (context) => _LessonScreen(
-          lesson: lesson,
-          lessonNumber: index + 1,
-          lessonCount: lessons.length,
-        ),
-      ),
-    );
-    if (result == null || !mounted) return;
-
-    HapticFeedback.heavyImpact();
-    await ref
-        .read(learnProgressProvider.notifier)
-        .completeLesson(lesson.id, xp: lesson.xp);
-    if (!mounted) return;
-
-    // The lesson is over, the tally is in, and this is the moment somebody is
-    // most pleased with themselves. A snackbar sliding out of the bottom of a
-    // scrolling path was the least this could have been.
-    final after = ref.read(learnProgressProvider).value ?? progress;
-    await Navigator.of(context).push<void>(
-      MaterialPageRoute<void>(
-        fullscreenDialog: true,
-        builder: (context) => LessonCompleteScreen(
-          lesson: lesson,
-          result: result,
-          // Repeating a lesson is worth doing and worth nothing: the XP was
-          // paid the first time, and saying otherwise would be a lie the
-          // total on the next screen would immediately contradict.
-          xpEarned: alreadyDone ? 0 : lesson.xp,
-          // The same total the header carries, contributions included. This
-          // card only prints it when the lesson was a repeat and paid nothing,
-          // and a "TOTAL XP" here that disagreed with the badge one screen
-          // back would be read as one of the two having lost something.
-          totalXp: after.xp + ref.read(myContributionPointsProvider),
-          streakDays: after.streakDays,
-        ),
-      ),
-    );
-    if (!mounted) return;
-    // The ask is rationed inside; most of the time this does nothing at all.
-    await maybeRequestReview(online: ref.read(connectionBlockProvider) == null);
+    ];
   }
 }
 
-/// One unit of the published path, with the lessons that belong to it.
+/// The header strip, floating over the dashboard and leaving with the rail.
+class _PinnedLearnHeader extends ConsumerWidget {
+  const _PinnedLearnHeader();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final visible = ref.watch(shellChromeVisibilityProvider);
+    final progress =
+        ref.watch(learnProgressProvider).asData?.value ?? const LearnProgress();
+    // Contribution points are added at the moment of drawing and nowhere
+    // else — see `LearnProgress.xp` for why they never live in progress.
+    final contributed = ref.watch(myContributionPointsProvider);
+    final brand = context.brand;
+    return ClipRect(
+      child: AnimatedContainer(
+        duration: MediaQuery.disableAnimationsOf(context)
+            ? Duration.zero
+            : const Duration(milliseconds: 240),
+        curve: Curves.easeOutCubic,
+        height: visible ? kLearnHeaderHeight : 0,
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: brand.background.withValues(alpha: 0.88),
+            ),
+            child: OverflowBox(
+              alignment: Alignment.bottomCenter,
+              minHeight: kLearnHeaderHeight,
+              maxHeight: kLearnHeaderHeight,
+              child: LearnHeaderBar(
+                streakDays: progress.streakDays,
+                streakAtRisk: progress.streakAtRisk,
+                xp: progress.xp + contributed,
+                goalDone: progress.activitiesToday.clamp(
+                  0,
+                  LearnProgress.dailyGoal,
+                ),
+                trailingReserve: shellTopRightReserve(withAction: false),
+                onStreak: () => showStreakSheet(context, ref),
+                onXp: () => showProgressSheet(context),
+                onGoal: () async {
+                  final carryOn = await showDailyGoalSheet(context);
+                  if (carryOn != true || !context.mounted) return;
+                  final outline = ref.read(courseOutlineProvider);
+                  if (outline.nextLesson == null) return;
+                  await openLearnLesson(
+                    context,
+                    ref,
+                    path: outline.path,
+                    index: outline.nextIndex,
+                  );
+                },
+                onDictionary: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (context) => const DictionaryCollectionScreen(),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _InlineNotice extends StatelessWidget {
+  const _InlineNotice({
+    required this.text,
+    required this.actionLabel,
+    required this.onAction,
+  });
+
+  final String text;
+  final String actionLabel;
+  final VoidCallback onAction;
+
+  @override
+  Widget build(BuildContext context) {
+    final brand = context.brand;
+    return Semantics(
+      liveRegion: true,
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(14, 6, 6, 6),
+        decoration: BoxDecoration(
+          color: brand.surfaceMuted,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.cloud_off_rounded, size: 18, color: brand.mutedInk),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                text,
+                style: TextStyle(color: brand.mutedInk, fontSize: 12.5),
+              ),
+            ),
+            TextButton(onPressed: onAction, child: Text(actionLabel)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Opens lesson [index] of [path], resuming where it was left, and records
+/// what happens.
+///
+/// Shared by the dashboard's Continue button and the course outline's trail,
+/// so a lesson is gated, resumed, paid and celebrated the same way from both.
+Future<void> openLearnLesson(
+  BuildContext context,
+  WidgetRef ref, {
+  required List<Lesson> path,
+  required int index,
+}) async {
+  if (index < 0 || index >= path.length) return;
+  final l10n = AppLocalizations.of(context);
+  final progress =
+      ref.read(learnProgressProvider).value ?? const LearnProgress();
+  var next = path.length - 1;
+  for (var position = 0; position < path.length; position++) {
+    if (!progress.hasCompleted(path[position].id)) {
+      next = position;
+      break;
+    }
+  }
+  if (index > next) {
+    HapticFeedback.lightImpact();
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(l10n.learnLockedAbove)));
+    return;
+  }
+  final lesson = path[index];
+  final alreadyDone = progress.hasCompleted(lesson.id);
+  final resumeAt = alreadyDone
+      ? 0
+      : progress.stepsIn(lesson.id).clamp(0, lesson.questions.length - 1);
+  final notifier = ref.read(learnProgressProvider.notifier);
+  final result = await Navigator.of(context).push<LessonResult>(
+    MaterialPageRoute<LessonResult>(
+      builder: (context) => _LessonScreen(
+        lesson: lesson,
+        lessonNumber: index + 1,
+        lessonCount: path.length,
+        initialQuestion: resumeAt,
+        // Each checked answer is saved as it happens, so leaving halfway comes
+        // back to the same question — and the dashboard can say "2 of 4".
+        onAnswered: alreadyDone
+            ? null
+            : (answered) =>
+                  unawaited(notifier.recordLessonStep(lesson.id, answered)),
+      ),
+    ),
+  );
+  if (result == null || !context.mounted) return;
+
+  HapticFeedback.heavyImpact();
+  await notifier.completeLesson(lesson.id, xp: lesson.xp);
+  if (!context.mounted) return;
+
+  final after = ref.read(learnProgressProvider).value ?? progress;
+  await Navigator.of(context).push<void>(
+    MaterialPageRoute<void>(
+      fullscreenDialog: true,
+      builder: (context) => LessonCompleteScreen(
+        lesson: lesson,
+        result: result,
+        // Repeating a lesson is worth doing and worth nothing: the XP was paid
+        // the first time.
+        xpEarned: alreadyDone ? 0 : lesson.xp,
+        // The same total the header carries, contributions included.
+        totalXp: after.xp + ref.read(myContributionPointsProvider),
+        streakDays: after.streakDays,
+      ),
+    ),
+  );
+  if (!context.mounted) return;
+  // The ask is rationed inside; most of the time this does nothing at all.
+  await maybeRequestReview(online: ref.read(connectionBlockProvider) == null);
+}
+
+/// The whole course: every unit, its lessons as the trail, and the units still
+/// being prepared.
+class CourseOutlineScreen extends ConsumerStatefulWidget {
+  const CourseOutlineScreen({this.initialUnitOrder, super.key});
+
+  /// A unit to scroll to when the outline opens.
+  final int? initialUnitOrder;
+
+  @override
+  ConsumerState<CourseOutlineScreen> createState() =>
+      _CourseOutlineScreenState();
+}
+
+class _CourseOutlineScreenState extends ConsumerState<CourseOutlineScreen> {
+  final _scroll = ScrollController();
+  final _unitMarkers = <int, GlobalKey>{};
+
+  @override
+  void initState() {
+    super.initState();
+    final order = widget.initialUnitOrder;
+    if (order != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final target = _unitMarkers[order]?.currentContext;
+        if (target != null && mounted) {
+          unawaited(
+            Scrollable.ensureVisible(
+              target,
+              duration: MediaQuery.disableAnimationsOf(context)
+                  ? Duration.zero
+                  : const Duration(milliseconds: 360),
+              curve: Curves.easeOutCubic,
+            ),
+          );
+        }
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _scroll.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final outline = ref.watch(courseOutlineProvider);
+    final progress =
+        ref.watch(learnProgressProvider).asData?.value ?? const LearnProgress();
+    final path = outline.path;
+    final nextLesson = outline.nextIndex >= 0
+        ? outline.nextIndex
+        : (path.isEmpty ? 0 : path.length - 1);
+    final brand = context.brand;
+    final total = path.length;
+    final done = outline.completedLessons;
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: brandOverlayStyle(brand),
+      child: Scaffold(
+        backgroundColor: brand.background,
+        appBar: AppBar(
+          title: Text('${outline.course.languageName} course'),
+          backgroundColor: brand.background,
+          surfaceTintColor: Colors.transparent,
+        ),
+        body: CustomScrollView(
+          key: const PageStorageKey('learn-course-outline'),
+          controller: _scroll,
+          slivers: [
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 4, 20, 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      total == 0
+                          ? 'Lessons for this course are being prepared.'
+                          : '$done of $total lessons complete · '
+                                '${outline.units.length} units',
+                      style: TextStyle(
+                        color: brand.mutedInk,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(99),
+                      child: LinearProgressIndicator(
+                        value: total == 0 ? 0 : done / total,
+                        minHeight: 6,
+                        color: brand.gold,
+                        backgroundColor: brand.divider,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            for (final unit in outline.units) ...[
+              SliverToBoxAdapter(
+                child: SizedBox(
+                  key: _unitMarkers.putIfAbsent(unit.unit.order, GlobalKey.new),
+                  height: 0,
+                ),
+              ),
+              if (unit.lessons.isEmpty)
+                SliverToBoxAdapter(child: _PreparingUnitTile(unit: unit))
+              else
+                // A group is what lets each unit's banner stick for exactly as
+                // long as its own lessons are on screen.
+                SliverMainAxisGroup(
+                  slivers: [
+                    SliverPersistentHeader(
+                      pinned: true,
+                      delegate: _UnitBannerDelegate(
+                        unit: _LearnUnit.of(unit),
+                        done: unit.completed,
+                        colour: unit.unit.order.isOdd
+                            ? brand.accentFill
+                            : brand.heroMid,
+                        eyebrow: unit.unit.order.isOdd
+                            ? brand.gold
+                            : Colors.white70,
+                      ),
+                    ),
+                    SliverToBoxAdapter(
+                      child: _UnitTrail(
+                        unit: _LearnUnit.of(unit),
+                        progress: progress,
+                        nextLesson: nextLesson,
+                        lessonCount: path.length,
+                        onOpen: (index) => openLearnLesson(
+                          context,
+                          ref,
+                          path: path,
+                          index: index,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+            ],
+            const SliverPadding(
+              padding: EdgeInsets.fromLTRB(20, 26, 20, 60),
+              sliver: SliverToBoxAdapter(child: _LockedUnitPreview()),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// A unit that exists in the outline but has no published lessons yet.
+class _PreparingUnitTile extends StatelessWidget {
+  const _PreparingUnitTile({required this.unit});
+
+  final UnitOutline unit;
+
+  @override
+  Widget build(BuildContext context) {
+    final brand = context.brand;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+      child: Container(
+        constraints: const BoxConstraints(minHeight: 96),
+        clipBehavior: Clip.antiAlias,
+        decoration: BoxDecoration(
+          color: brand.surface,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: brand.border),
+        ),
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              SizedBox(
+                width: 120,
+                child: Opacity(
+                  opacity: 0.6,
+                  child: LearnImage(
+                    networkUrl: unit.unit.imageUrl,
+                    asset: unit.unit.assetImage,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 10),
+                    Text(
+                      'UNIT ${unit.unit.order} · IN PREPARATION',
+                      style: TextStyle(
+                        color: brand.gold,
+                        fontSize: 10,
+                        letterSpacing: 1.2,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      unit.unit.title,
+                      style: TextStyle(
+                        color: brand.ink,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    if (unit.unit.subtitle.isNotEmpty)
+                      Text(
+                        unit.unit.subtitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(color: brand.mutedInk, fontSize: 12),
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// One unit of the course, in the shape the trail draws.
 class _LearnUnit {
   _LearnUnit({
     required this.title,
@@ -395,6 +803,14 @@ class _LearnUnit {
     required this.firstIndex,
     required this.lessons,
   });
+
+  factory _LearnUnit.of(UnitOutline outline) => _LearnUnit(
+    title: outline.unit.title,
+    subtitle: outline.unit.subtitle,
+    order: outline.unit.order,
+    firstIndex: outline.firstIndex,
+    lessons: outline.lessons,
+  );
 
   final String title;
   final String subtitle;
@@ -405,265 +821,6 @@ class _LearnUnit {
   final int firstIndex;
 
   final List<Lesson> lessons;
-}
-
-// ── The strip of numbers ────────────────────────────────────────────────────
-
-class _StatsBarDelegate extends SliverPersistentHeaderDelegate {
-  const _StatsBarDelegate({
-    required this.xp,
-    required this.streakDays,
-    required this.streakClaimed,
-    required this.streakAtRisk,
-    required this.questDone,
-    required this.onClaimStreak,
-    required this.onOpenQuest,
-    required this.onOpenMomentum,
-    required this.onOpenDictionary,
-  });
-
-  final int xp;
-  final int streakDays;
-  final bool streakClaimed;
-  final bool streakAtRisk;
-  final int questDone;
-  final VoidCallback onClaimStreak;
-  final VoidCallback onOpenQuest;
-  final VoidCallback onOpenMomentum;
-  final VoidCallback onOpenDictionary;
-
-  @override
-  double get minExtent => kLearnStatsBarHeight;
-
-  @override
-  double get maxExtent => kLearnStatsBarHeight;
-
-  @override
-  Widget build(
-    BuildContext context,
-    double shrinkOffset,
-    bool overlapsContent,
-  ) =>
-      // A pinned header is measured by what its child actually is, not by what
-      // the delegate says it may be: a row of chips is as tall as a chip, and
-      // the viewport then refuses a layout extent bigger than what was painted.
-      SizedBox(
-        height: kLearnStatsBarHeight,
-        child: _LearnStatsBar(
-          xp: xp,
-          streakDays: streakDays,
-          streakClaimed: streakClaimed,
-          streakAtRisk: streakAtRisk,
-          questDone: questDone,
-          onClaimStreak: onClaimStreak,
-          onOpenQuest: onOpenQuest,
-          onOpenMomentum: onOpenMomentum,
-          onOpenDictionary: onOpenDictionary,
-        ),
-      );
-
-  @override
-  bool shouldRebuild(_StatsBarDelegate old) =>
-      old.xp != xp ||
-      old.streakDays != streakDays ||
-      old.streakClaimed != streakClaimed ||
-      old.streakAtRisk != streakAtRisk ||
-      old.questDone != questDone;
-}
-
-/// Streak, XP, today's quest and the dictionary, on one line that never leaves.
-///
-/// This replaced a header of stacked pills and paired buttons that was most of
-/// a screen tall — a *lid* on a tab whose whole point is the trail underneath
-/// it. Everything it carried is still here; it is one row now, and it stays.
-class _LearnStatsBar extends StatelessWidget {
-  const _LearnStatsBar({
-    required this.xp,
-    required this.streakDays,
-    required this.streakClaimed,
-    required this.streakAtRisk,
-    required this.questDone,
-    required this.onClaimStreak,
-    required this.onOpenQuest,
-    required this.onOpenMomentum,
-    required this.onOpenDictionary,
-  });
-
-  final int xp;
-  final int streakDays;
-  final bool streakClaimed;
-  final bool streakAtRisk;
-  final int questDone;
-  final VoidCallback onClaimStreak;
-  final VoidCallback onOpenQuest;
-  final VoidCallback onOpenMomentum;
-  final VoidCallback onOpenDictionary;
-
-  @override
-  Widget build(BuildContext context) {
-    final brand = context.brand;
-    final l10n = AppLocalizations.of(context);
-    return ClipRect(
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: brand.background.withValues(alpha: 0.88),
-            border: Border(bottom: BorderSide(color: brand.divider)),
-          ),
-          child: Padding(
-            // The right inset clears the shell's floating profile orb.
-            padding: const EdgeInsets.fromLTRB(14, 0, 52, 0),
-            child: Row(
-              children: [
-                _StatChip(
-                  icon: streakDays > 0
-                      ? Icons.local_fire_department_rounded
-                      : Icons.local_fire_department_outlined,
-                  label: '$streakDays',
-                  // A streak that is alive but unclaimed is the one number on
-                  // this bar somebody has to act on today.
-                  tint: streakAtRisk
-                      ? const Color(0xFFE0763C)
-                      : streakDays > 0
-                      ? const Color(0xFFE0763C)
-                      : brand.faintInk,
-                  pulsing: streakAtRisk,
-                  semantics: streakClaimed
-                      ? l10n.learnStreakClaimed(streakDays)
-                      : l10n.learnDailySpark(streakDays),
-                  onTap: onClaimStreak,
-                ),
-                _StatChip(
-                  icon: Icons.bolt_rounded,
-                  label: '$xp',
-                  tint: brand.gold,
-                  semantics: l10n.learnXpSemantics(xp),
-                  onTap: onOpenMomentum,
-                ),
-                _StatChip(
-                  icon: Icons.emoji_events_rounded,
-                  label: '$questDone/3',
-                  tint: brand.accent,
-                  semantics: l10n.learnQuestSemantics(questDone),
-                  onTap: onOpenQuest,
-                ),
-                const Spacer(),
-                IconButton(
-                  tooltip: l10n.learnDictionary,
-                  onPressed: onOpenDictionary,
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints.tightFor(
-                    width: 42,
-                    height: 42,
-                  ),
-                  icon: Icon(Icons.menu_book_rounded, color: brand.accent),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _StatChip extends StatelessWidget {
-  const _StatChip({
-    required this.icon,
-    required this.label,
-    required this.tint,
-    required this.semantics,
-    required this.onTap,
-    this.pulsing = false,
-  });
-
-  final IconData icon;
-  final String label;
-  final Color tint;
-  final String semantics;
-  final VoidCallback onTap;
-
-  /// Set on a streak that is alive and unclaimed. Nothing else on this bar ever
-  /// moves — which is the only reason the one thing that does gets noticed.
-  final bool pulsing;
-
-  @override
-  Widget build(BuildContext context) {
-    final glyph = Icon(icon, color: tint, size: 20);
-    return Semantics(
-      button: true,
-      label: semantics,
-      excludeSemantics: true,
-      child: InkResponse(
-        radius: 26,
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 8),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (pulsing) _Breathing(child: glyph) else glyph,
-              const SizedBox(width: 5),
-              Text(
-                label,
-                style: TextStyle(
-                  color: context.brand.ink,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// A slow swell, for the one glyph on a screen that is asking for something.
-class _Breathing extends StatefulWidget {
-  const _Breathing({required this.child});
-
-  final Widget child;
-
-  @override
-  State<_Breathing> createState() => _BreathingState();
-}
-
-class _BreathingState extends State<_Breathing>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 1400),
-  );
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    // A member who has asked the system to hold animation still gets a still
-    // glyph; the colour is already carrying the message.
-    if (MediaQuery.disableAnimationsOf(context)) {
-      _controller.stop();
-    } else if (!_controller.isAnimating) {
-      _controller.repeat(reverse: true);
-    }
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) => ScaleTransition(
-    scale: Tween<double>(
-      begin: 0.9,
-      end: 1.14,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut)),
-    child: widget.child,
-  );
 }
 
 // ── The unit banner ─────────────────────────────────────────────────────────
@@ -809,82 +966,7 @@ class _UnitBanner extends StatelessWidget {
   }
 }
 
-// ── Word of the day ─────────────────────────────────────────────────────────
-
-/// One published entry, the same for everybody, for the whole of one day.
-///
-/// The dictionary is the biggest thing this project is building and it lived
-/// two taps away behind a collection screen. A learner opening the app to do a
-/// lesson now meets one word of their own language on the way in — which is
-/// four seconds of learning from somebody who had budgeted none.
-class _WordOfTheDayCard extends StatelessWidget {
-  const _WordOfTheDayCard({required this.entry});
-
-  final DictionaryEntry entry;
-
-  @override
-  Widget build(BuildContext context) {
-    final brand = context.brand;
-    final l10n = AppLocalizations.of(context);
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
-      child: Material(
-        color: brand.surface,
-        borderRadius: BorderRadius.circular(20),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(20),
-          onTap: () => showWordLookup(context, entry),
-          child: Container(
-            padding: const EdgeInsets.fromLTRB(16, 13, 12, 13),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: brand.border),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        l10n.learnWordOfTheDay,
-                        style: TextStyle(
-                          color: brand.mutedInk,
-                          fontSize: 9.5,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 1.2,
-                        ),
-                      ),
-                      const SizedBox(height: 5),
-                      Text(
-                        entry.headword,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: brand.ink,
-                          fontSize: 21,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: -0.4,
-                        ),
-                      ),
-                      Text(
-                        entry.translation,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(color: brand.mutedInk, fontSize: 13.5),
-                      ),
-                    ],
-                  ),
-                ),
-                PronunciationButton(audioUrl: entry.audioUrl),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
+// ── Hero of the week ────────────────────────────────────────────────────────
 
 /// One life, the same for everybody, for the whole of a week.
 ///
@@ -1128,7 +1210,7 @@ class _PathButtonState extends State<_PathButton> {
       ? brand.gold
       : widget.unlocked
       ? brand.accentFill
-      : brand.pick(const Color(0xFFD6D3CA), const Color(0xFF2A312E));
+      : brand.border;
 
   void _fire() {
     HapticFeedback.selectionClick();
@@ -1150,7 +1232,7 @@ class _PathButtonState extends State<_PathButton> {
     // circle behind the first.
     final lip = Color.alphaBlend(Colors.black.withValues(alpha: 0.28), face);
     final glyph = widget.completed
-        ? brand.pick(brand.accent, const Color(0xFF10231B))
+        ? brand.pick(brand.accent, brand.background)
         : widget.unlocked
         ? brand.onAccentFill
         : brand.faintInk;
@@ -1350,7 +1432,7 @@ class _UnitChest extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final face = unlocked
         ? brand.gold
-        : brand.pick(const Color(0xFFD6D3CA), const Color(0xFF2A312E));
+        : brand.border;
     return Semantics(
       label: unlocked
           ? l10n.learnUnitCompleteSemantics(unit)
@@ -1372,7 +1454,7 @@ class _UnitChest extends StatelessWidget {
                     ? Icons.emoji_events_rounded
                     : Icons.emoji_events_outlined,
                 color: unlocked
-                    ? brand.pick(brand.accent, const Color(0xFF10231B))
+                    ? brand.pick(brand.accent, brand.background)
                     : brand.faintInk,
                 size: 26,
               ),
@@ -1568,7 +1650,7 @@ class _LessonBubble extends StatelessWidget {
                 style: FilledButton.styleFrom(
                   backgroundColor: tint,
                   foregroundColor: completed
-                      ? brand.pick(brand.accent, const Color(0xFF10231B))
+                      ? brand.pick(brand.accent, brand.background)
                       : brand.onAccentFill,
                   minimumSize: const Size(0, 46),
                   shape: RoundedRectangleBorder(
@@ -1861,7 +1943,7 @@ class _Medal extends StatelessWidget {
             perfect ? Icons.workspace_premium_rounded : Icons.check_rounded,
             size: 62,
             color: perfect
-                ? brand.pick(brand.accent, const Color(0xFF10231B))
+                ? brand.pick(brand.accent, brand.background)
                 : brand.onAccentFill,
           ),
         ),
@@ -1965,234 +2047,6 @@ class _ScoreCard extends StatelessWidget {
   }
 }
 
-class _QuestPopupBody extends StatelessWidget {
-  const _QuestPopupBody({required this.completed});
-
-  final int completed;
-
-  @override
-  Widget build(BuildContext context) {
-    final done = completed.clamp(0, 3);
-    final progress = (completed / 3).clamp(0.0, 1.0);
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Row(
-          children: [
-            Stack(
-              alignment: Alignment.center,
-              children: [
-                SizedBox.square(
-                  dimension: 62,
-                  child: CircularProgressIndicator(
-                    value: progress,
-                    strokeWidth: 7,
-                    strokeCap: StrokeCap.round,
-                    color: context.brand.gold,
-                    backgroundColor: context.brand.divider,
-                  ),
-                ),
-                Icon(
-                  Icons.emoji_events_rounded,
-                  color: context.brand.terracotta,
-                ),
-              ],
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '$done of 3 done',
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    done >= 3
-                        ? 'Today is finished. Anything further is a head start '
-                              'on tomorrow.'
-                        : 'Three short lessons is a day. Keep going and the '
-                              'streak keeps its spark.',
-                    style: TextStyle(
-                      color: context.brand.mutedInk,
-                      fontSize: 12.5,
-                      height: 1.4,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 20),
-        FilledButton.icon(
-          onPressed: () => Navigator.pop(context, true),
-          icon: const Icon(Icons.play_arrow_rounded),
-          label: Text(done >= 3 ? 'Keep going' : 'Continue the quest'),
-        ),
-      ],
-    );
-  }
-}
-
-/// Progress across the whole published path, with the two numbers a daily
-/// habit is actually built on.
-class _MomentumPopupBody extends StatelessWidget {
-  const _MomentumPopupBody({
-    required this.completed,
-    required this.total,
-    required this.xp,
-    required this.contributionXp,
-    required this.streakDays,
-  });
-
-  final int completed;
-  final int total;
-
-  /// What the lessons and the daily spark have paid.
-  final int xp;
-
-  /// What the archive has paid — approved contributions, scored on the server.
-  /// Zero for a guest, and for a member who has not had anything approved yet.
-  final int contributionXp;
-
-  final int streakDays;
-
-  @override
-  Widget build(BuildContext context) {
-    final progress = total == 0 ? 0.0 : (completed / total).clamp(0.0, 1.0);
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                completed == 0
-                    ? 'Your first milestone is ready'
-                    : '$completed of $total lessons complete',
-                style: const TextStyle(fontWeight: FontWeight.w800),
-              ),
-            ),
-            Text(
-              '${(progress * 100).round()}%',
-              style: TextStyle(
-                color: context.brand.accent,
-                fontWeight: FontWeight.w900,
-                fontSize: 17,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(999),
-          child: LinearProgressIndicator(
-            value: progress,
-            minHeight: 8,
-            color: context.brand.gold,
-            backgroundColor: context.brand.accentFill.withValues(alpha: 0.08),
-          ),
-        ),
-        const SizedBox(height: 18),
-        Row(
-          children: [
-            Expanded(
-              child: _MomentumStat(
-                icon: Icons.bolt_rounded,
-                value: '${xp + contributionXp}',
-                label: 'XP earned',
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: _MomentumStat(
-                icon: streakDays > 0
-                    ? Icons.local_fire_department_rounded
-                    : Icons.local_fire_department_outlined,
-                value: '$streakDays',
-                label: 'day streak',
-              ),
-            ),
-          ],
-        ),
-        // The header carries one badge; this is the only place it says what
-        // that badge is made of. A full line of its own rather than a longer
-        // label under the number, because on a narrow phone each of those two
-        // panels is about eighty pixels wide and "120 learning · 340
-        // contributed" wrapped to four lines inside one of them.
-        //
-        // Absent entirely for somebody who has contributed nothing, rather
-        // than reading "· 0 contributed": that would introduce a second total
-        // by showing them a nought in it.
-        if (contributionXp > 0) ...[
-          const SizedBox(height: 12),
-          Text(
-            '$xp learning · $contributionXp contributed',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: context.brand.mutedInk,
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ],
-      ],
-    );
-  }
-}
-
-class _MomentumStat extends StatelessWidget {
-  const _MomentumStat({
-    required this.icon,
-    required this.value,
-    required this.label,
-  });
-
-  final IconData icon;
-  final String value;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 13),
-    decoration: BoxDecoration(
-      color: context.brand.surfaceMuted,
-      borderRadius: BorderRadius.circular(15),
-      border: Border.all(color: context.brand.border),
-    ),
-    child: Row(
-      children: [
-        Icon(icon, color: context.brand.gold, size: 20),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                value,
-                style: TextStyle(
-                  color: context.brand.ink,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w900,
-                  height: 1.1,
-                ),
-              ),
-              Text(
-                label,
-                style: TextStyle(color: context.brand.mutedInk, fontSize: 11),
-              ),
-            ],
-          ),
-        ),
-      ],
-    ),
-  );
-}
-
 class _LockedUnitPreview extends StatelessWidget {
   const _LockedUnitPreview();
 
@@ -2235,18 +2089,30 @@ class _LessonScreen extends StatefulWidget {
     required this.lesson,
     required this.lessonNumber,
     required this.lessonCount,
+    this.initialQuestion = 0,
+    this.onAnswered,
   });
 
   final Lesson lesson;
   final int lessonNumber;
   final int lessonCount;
 
+  /// Where a lesson left unfinished picks up again.
+  final int initialQuestion;
+
+  /// Told how many questions are answered each time one is checked, so the
+  /// member's place survives leaving the lesson.
+  final ValueChanged<int>? onAnswered;
+
   @override
   State<_LessonScreen> createState() => _LessonScreenState();
 }
 
 class _LessonScreenState extends State<_LessonScreen> {
-  int _question = 0;
+  late int _question = widget.initialQuestion.clamp(
+    0,
+    widget.lesson.questions.length - 1,
+  );
   int? _selected;
   var _checked = false;
   var _correctCount = 0;
@@ -2358,8 +2224,9 @@ class _LessonScreenState extends State<_LessonScreen> {
                                       correct: index == _current.correctAnswer,
                                       onTap: _checked
                                           ? null
-                                          : () =>
-                                                setState(() => _selected = index),
+                                          : () => setState(
+                                              () => _selected = index,
+                                            ),
                                     ),
                                 ],
                               )
@@ -2443,9 +2310,14 @@ class _LessonScreenState extends State<_LessonScreen> {
   String get _actionLabel {
     if (!_checked) return 'Check answer';
     if (!_isLast) return 'Next question';
-    if (_questions.length == 1) return 'Collect ${widget.lesson.xp} XP';
-    return '$_correctCount/${_questions.length} · Collect ${widget.lesson.xp} XP';
+    if (_sittingLength == 1) return 'Collect ${widget.lesson.xp} XP';
+    return '$_correctCount/$_sittingLength · Collect ${widget.lesson.xp} XP';
   }
+
+  /// Questions answered in this sitting. A resumed lesson scores only what was
+  /// answered now; the earlier answers were checked, and counted, before.
+  int get _sittingLength => _questions.length - _startedAt;
+  late final int _startedAt = _question;
 
   void _advance() {
     if (!_checked) {
@@ -2457,13 +2329,14 @@ class _LessonScreenState extends State<_LessonScreen> {
           _scored = true;
         }
       });
+      widget.onAnswered?.call(_question + 1);
       return;
     }
     if (_isLast) {
       HapticFeedback.mediumImpact();
       Navigator.pop(
         context,
-        LessonResult(correct: _correctCount, total: _questions.length),
+        LessonResult(correct: _correctCount, total: _sittingLength),
       );
       return;
     }
@@ -2944,7 +2817,10 @@ class _PromptImage extends StatelessWidget {
   @override
   Widget build(BuildContext context) => ClipRRect(
     borderRadius: BorderRadius.circular(17),
-    child: AspectRatio(aspectRatio: 16 / 10, child: _LessonImage(url: url)),
+    child: AspectRatio(
+      aspectRatio: 16 / 10,
+      child: _LessonImage(url: url),
+    ),
   );
 }
 

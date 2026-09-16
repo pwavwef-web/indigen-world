@@ -150,14 +150,17 @@ The emulator does not enforce composite indexes, so a missing one fails only in 
   - It spends from the Studio's existing ceilings: 3 per 10 minutes, 20 per day and 2,000¢ per day per person; 250 per day and 25,000¢ per day platform-wide.
   - Those buckets are shared, so one allowance covers both surfaces.
   - The fast model is the default. The standard model is offered only to `creatorTools` plans.
-  - Resolution follows the Studio rule: 1080p for landscape, 720p for portrait. There is no audio (`generateAudio: false`) and adults only (`allow_adult`).
+  - Resolution follows the Studio rule: 1080p for landscape, 720p for portrait.
+  - **Sound (added 2026-09-14).** The request carries `generateAudio`; only an explicit `true` turns Veo's soundtrack on, because builds up to 0.1.20 never send it and tell the member their video is silent. The capability manifest advertises `videoAudio`, and the app shows a Sound switch (on by default) only when it does. Any speech Veo makes is not Kasem, and the switch says so. Spend is charged at the published with-audio rate ($0.40/s standard, $0.15/s fast) whether sound is on or off, so the switch can never push a member past a ceiling. The Studio still generates silent video.
+  - **People of every age (added 2026-09-14).** Image and video requests ask Vertex for `ALLOW_ALL` / `allow_all` first. If Vertex refuses the setting itself (Veo gates `allow_all` behind a Google allow-list), the adapter steps down to adults-only and remembers that for ten minutes. A refused setting is an invalid argument and is not billed. A Veo job that fails on the setting after it has started marks it refused for the retry. Live check on 2026-09-14: `gemini-3.1-flash-image` accepted `ALLOW_ALL` and drew a family with children. Veo's `allow_all` has not been tried live.
 
 **Screening.**
 - Every image and video request, reference image included, passes a platform screen (`MODERATION_INSTRUCTION`) before anything is bought. If the screen cannot give a readable answer, the request is refused.
 - The screen exists because Vertex's own filters allowed a photorealistic "head of state arrested, with injuries" image in a live test.
 - Refusals cover:
-  - real, identifiable people
-  - minors and sexual content
+  - real, identifiable people, adults or children
+  - children in sexual, suggestive, violent, abusive or frightening scenes (children in ordinary scenes are allowed: family, school, play, folktales)
+  - sexual content
   - gore
   - hate
   - realistic news or politics

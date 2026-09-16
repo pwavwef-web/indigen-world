@@ -376,7 +376,7 @@ class _CreateReelScreenState extends ConsumerState<CreateReelScreen>
         ],
       ),
       body: DecoratedBox(
-        decoration: const BoxDecoration(gradient: BrandGradients.night),
+        decoration: BoxDecoration(gradient: BrandGradients.night(context.brand)),
         child: SafeArea(
           top: false,
           child: Align(

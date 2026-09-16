@@ -33,10 +33,14 @@ class AppLocalizationsFr extends AppLocalizations {
       'Suivre l\'appareil — clair le jour, sombre la nuit';
 
   @override
-  String get settingsAppearanceLight => 'Clair — papier chaud et vert profond';
+  String get settingsAppearanceLight => 'Clair — papier pâle, pour le jour';
 
   @override
-  String get settingsAppearanceDark => 'Sombre — anthracite aux reflets verts';
+  String get settingsAppearanceDark =>
+      'Sombre — un fond de nuit, pour la pénombre';
+
+  @override
+  String get settingsTheme => 'Thème';
 
   @override
   String get settingsAutoplayTitle => 'Lire les vidéos automatiquement';
