@@ -919,12 +919,12 @@ class _ViewerPageState extends State<_ViewerPage> {
     final picture = CachedNetworkImage(
       imageUrl: item.url,
       fit: BoxFit.contain,
-      placeholder: (context, url) => const Center(
+      placeholder: (context, url) => Center(
         child: SizedBox.square(
           dimension: 30,
           child: CircularProgressIndicator(
             strokeWidth: 2,
-            color: BrandColors.kenteGold,
+            color: context.brand.highlight,
           ),
         ),
       ),
@@ -1026,8 +1026,8 @@ class _ViewerVideoState extends ConsumerState<_ViewerVideo> {
     }
     final controller = _controller;
     if (controller == null) {
-      return const Center(
-        child: CircularProgressIndicator(color: BrandColors.kenteGold),
+      return Center(
+        child: CircularProgressIndicator(color: context.brand.highlight),
       );
     }
     return Center(
@@ -1081,8 +1081,8 @@ class _ViewerVideoState extends ConsumerState<_ViewerVideo> {
           VideoProgressIndicator(
             controller,
             allowScrubbing: true,
-            colors: const VideoProgressColors(
-              playedColor: BrandColors.kenteGold,
+            colors: VideoProgressColors(
+              playedColor: context.brand.highlight,
               bufferedColor: Colors.white30,
               backgroundColor: Colors.white12,
             ),

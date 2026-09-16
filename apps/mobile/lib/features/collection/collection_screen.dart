@@ -93,7 +93,12 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen>
       _portal<PublishedReel>(
         title: l10n.collectionMusic,
         icon: Icons.graphic_eq_rounded,
-        color: context.brand.terracotta,
+        // Music, Dictionary and Literature each need a hue of their own now
+        // that the palette's accents are all one blue family.
+        color: context.brand.pick(
+          const Color(0xFF0E7490),
+          const Color(0xFF67E8F9),
+        ),
         value: ref.watch(musicCollectionProvider),
         aliases: const ['songs', 'audio', 'recordings'],
         itemMatches: _publishedReelMatches,
@@ -113,7 +118,10 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen>
       _portal<PublishedReel>(
         title: l10n.collectionLiterature,
         icon: Icons.auto_stories_rounded,
-        color: context.brand.success,
+        color: context.brand.pick(
+          const Color(0xFF5B45C4),
+          const Color(0xFFB9A3E3),
+        ),
         value: ref.watch(literatureCollectionProvider),
         aliases: const ['stories', 'poems', 'writing', 'books'],
         itemMatches: _publishedReelMatches,

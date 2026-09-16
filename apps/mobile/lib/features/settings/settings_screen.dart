@@ -5,10 +5,13 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:indigen_world_mobile/app/active_brand_theme.dart';
 import 'package:indigen_world_mobile/core/app_config.dart';
 import 'package:indigen_world_mobile/core/app_locale.dart';
 import 'package:indigen_world_mobile/core/app_signature.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
+import 'package:indigen_world_mobile/core/brand_theme_choice.dart';
+import 'package:indigen_world_mobile/core/brand_themes.dart';
 import 'package:indigen_world_mobile/core/connectivity.dart';
 import 'package:indigen_world_mobile/core/firebase_ready.dart';
 import 'package:indigen_world_mobile/core/media_preferences.dart';
@@ -35,6 +38,7 @@ import 'package:indigen_world_mobile/features/settings/kasem_keyboard_screen.dar
 import 'package:indigen_world_mobile/features/settings/licences_screen.dart';
 import 'package:indigen_world_mobile/features/settings/policy_screen.dart';
 import 'package:indigen_world_mobile/features/settings/settings_widgets.dart';
+import 'package:indigen_world_mobile/features/settings/theme_picker_screen.dart';
 import 'package:indigen_world_mobile/l10n/app_localizations.dart';
 import 'package:indigen_world_mobile/shared/glass_popup.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -284,6 +288,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 },
                 onTap: _chooseAppearance,
               ),
+              SettingsRow(
+                key: const Key('settings-theme-row'),
+                icon: Icons.palette_outlined,
+                title: l10n.settingsTheme,
+                subtitle: _themeSubtitle(),
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (context) => const ThemePickerScreen(),
+                  ),
+                ),
+              ),
               SwitchListTile.adaptive(
                 secondary: Icon(
                   Icons.play_circle_outline_rounded,
@@ -499,6 +514,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     await ref
         .read(localeProvider.notifier)
         .setLocale(choice.isEmpty ? null : Locale(choice));
+  }
+
+  /// The theme in use, and — when a supporters' theme is chosen but not
+  /// currently open — which one is waiting.
+  String _themeSubtitle() {
+    final active = ref.watch(activeBrandThemeProvider);
+    final chosen = BrandThemes.byId(ref.watch(brandThemeChoiceProvider));
+    if (chosen.id == active.id) return active.name;
+    return '${active.name} · ${chosen.name} returns with membership';
   }
 
   Future<void> _chooseAppearance() async {

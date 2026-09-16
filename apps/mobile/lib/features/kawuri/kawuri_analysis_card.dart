@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:indigen_world_mobile/features/kawuri/kawuri_home.dart';
+import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_media_models.dart';
 
 /// A media analysis, drawn so that what Kawuri saw can never be mistaken for
@@ -25,14 +25,14 @@ class KawuriAnalysisCard extends StatelessWidget {
             Row(
               children: [
                 if (icon != null) ...[
-                  Icon(icon, size: 15, color: kawuriMint),
+                  Icon(icon, size: 15, color: context.brand.nightAccent),
                   const SizedBox(width: 6),
                 ],
                 Flexible(
                   child: Text(
                     title,
-                    style: const TextStyle(
-                      color: kawuriMint,
+                    style: TextStyle(
+                      color: context.brand.nightAccent,
                       fontSize: 12.5,
                       fontWeight: FontWeight.w800,
                     ),

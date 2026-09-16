@@ -96,6 +96,8 @@ export {
   readGrammarAudio,
 } from './grammar-contributions.js';
 export { onCommunityKawuriMention } from './community-kawuri.js';
+export { generateLearnIllustration, reviewLearnIllustration } from './learn-illustrations.js';
+export { submitPronunciationRecording, decidePronunciationRecording } from './pronunciation-recordings.js';
 export {
   getStudioVideoCapabilities,
   createStudioVideoJob,

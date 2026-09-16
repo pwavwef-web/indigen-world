@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_creation_screen.dart';
-import 'package:indigen_world_mobile/features/kawuri/kawuri_home.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_media_actions.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_media_models.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_media_repository.dart';
@@ -32,9 +32,9 @@ class _KawuriLibraryScreenState extends ConsumerState<KawuriLibraryScreen> {
     final creations = ref.watch(kawuriCreationsProvider(_filter));
     return NightTheme(
       child: Scaffold(
-        backgroundColor: const Color(0xFF071D17),
+        backgroundColor: context.brand.nightGround,
         appBar: AppBar(
-          backgroundColor: const Color(0xFF071D17),
+          backgroundColor: context.brand.nightGround,
           foregroundColor: Colors.white,
           title: const Text('Your creations'),
         ),
@@ -113,7 +113,7 @@ class _Empty extends StatelessWidget {
       child: Text(
         message,
         textAlign: TextAlign.center,
-        style: const TextStyle(color: Color(0xFFABC8BE), height: 1.45),
+        style: TextStyle(color: context.brand.mutedInk, height: 1.45),
       ),
     ),
   );
@@ -165,7 +165,7 @@ class KawuriCreationTile extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final progress = creation.progressLabel;
     return Material(
-      color: const Color(0xFF102F27),
+      color: context.brand.surface,
       borderRadius: BorderRadius.circular(14),
       child: InkWell(
         borderRadius: BorderRadius.circular(14),
@@ -174,7 +174,7 @@ class KawuriCreationTile extends ConsumerWidget {
           padding: const EdgeInsets.fromLTRB(12, 10, 4, 10),
           child: Row(
             children: [
-              Icon(kawuriCreationIcon(creation), color: kawuriMint, size: 28),
+              Icon(kawuriCreationIcon(creation), color: context.brand.nightAccent, size: 28),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -192,8 +192,8 @@ class KawuriCreationTile extends ConsumerWidget {
                     const SizedBox(height: 3),
                     Text(
                       creation.subtitle,
-                      style: const TextStyle(
-                        color: Color(0xFFABC8BE),
+                      style: TextStyle(
+                        color: context.brand.mutedInk,
                         fontSize: 12.5,
                       ),
                     ),
@@ -213,8 +213,8 @@ class KawuriCreationTile extends ConsumerWidget {
                             const SizedBox(width: 8),
                             Text(
                               progress,
-                              style: const TextStyle(
-                                color: kawuriMint,
+                              style: TextStyle(
+                                color: context.brand.nightAccent,
                                 fontSize: 12,
                               ),
                             ),

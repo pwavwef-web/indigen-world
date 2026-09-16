@@ -32,10 +32,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'Match device — light by day, dark by night';
 
   @override
-  String get settingsAppearanceLight => 'Light — warm paper and deep green';
+  String get settingsAppearanceLight => 'Light — pale paper, for daylight';
 
   @override
-  String get settingsAppearanceDark => 'Dark — charcoal with a green undertone';
+  String get settingsAppearanceDark => 'Dark — a night ground, for low light';
+
+  @override
+  String get settingsTheme => 'Theme';
 
   @override
   String get settingsAutoplayTitle => 'Play videos automatically';

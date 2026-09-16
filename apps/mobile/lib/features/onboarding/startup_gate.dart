@@ -127,7 +127,7 @@ class _LaunchScreenState extends State<_LaunchScreen>
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    backgroundColor: const Color(0xFF071D17),
+    backgroundColor: context.brand.nightGround,
     body: AnimatedBuilder(
       animation: _controller,
       builder: (context, child) {
@@ -147,16 +147,20 @@ class _LaunchScreenState extends State<_LaunchScreen>
         return Semantics(
           label: 'Indigen World. Project Kassena, a living home for Kasem language, stories and community.',
           child: DecoratedBox(
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  Color(0xFF071D17),
-                  Color(0xFF123C2E),
-                  Color(0xFF1C4D38),
+                  context.brand.nightGround,
+                  Color.lerp(
+                    context.brand.nightGround,
+                    context.brand.heroMid,
+                    0.55,
+                  )!,
+                  context.brand.heroMid,
                 ],
-                stops: [0, 0.58, 1],
+                stops: const [0, 0.58, 1],
               ),
             ),
             child: Stack(
@@ -164,7 +168,11 @@ class _LaunchScreenState extends State<_LaunchScreen>
               children: [
                 ExcludeSemantics(
                   child: CustomPaint(
-                    painter: _KasenaHorizonPainter(landscapeProgress),
+                    painter: _KasenaHorizonPainter(
+                      landscapeProgress,
+                      glow: context.brand.highlight,
+                      ground: context.brand.nightGround,
+                    ),
                   ),
                 ),
                 SafeArea(
@@ -180,7 +188,7 @@ class _LaunchScreenState extends State<_LaunchScreen>
                               Container(
                                 width: 28,
                                 height: 1,
-                                color: context.brand.gold,
+                                color: context.brand.highlight,
                               ),
                               const Padding(
                                 padding: EdgeInsets.symmetric(horizontal: 10),
@@ -197,7 +205,7 @@ class _LaunchScreenState extends State<_LaunchScreen>
                               Container(
                                 width: 28,
                                 height: 1,
-                                color: context.brand.gold,
+                                color: context.brand.highlight,
                               ),
                             ],
                           ),
@@ -230,7 +238,7 @@ class _LaunchScreenState extends State<_LaunchScreen>
                                   'Kasem lives here.',
                                   textAlign: TextAlign.center,
                                   style: TextStyle(
-                                    color: context.brand.gold,
+                                    color: context.brand.highlight,
                                     fontSize: 21,
                                     fontWeight: FontWeight.w800,
                                     letterSpacing: -0.2,
@@ -285,7 +293,7 @@ class _LaunchScreenState extends State<_LaunchScreen>
                                     Text(
                                       '${(_controller.value * 100).round()}%',
                                       style: TextStyle(
-                                        color: context.brand.gold,
+                                        color: context.brand.highlight,
                                         fontSize: 9,
                                         fontWeight: FontWeight.w800,
                                       ),
@@ -298,7 +306,7 @@ class _LaunchScreenState extends State<_LaunchScreen>
                                   child: LinearProgressIndicator(
                                     value: _controller.value,
                                     minHeight: 3,
-                                    color: context.brand.gold,
+                                    color: context.brand.highlight,
                                     backgroundColor: Colors.white12,
                                   ),
                                 ),
@@ -338,7 +346,7 @@ class _KasemSeal extends StatelessWidget {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(38),
               border: Border.all(
-                color: context.brand.gold.withValues(alpha: 0.42),
+                color: context.brand.highlight.withValues(alpha: 0.42),
               ),
             ),
           ),
@@ -348,11 +356,11 @@ class _KasemSeal extends StatelessWidget {
           height: 108,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: const Color(0xFF0B281F).withValues(alpha: 0.82),
-            border: Border.all(color: context.brand.gold, width: 1.5),
+            color: context.brand.background.withValues(alpha: 0.82),
+            border: Border.all(color: context.brand.highlight, width: 1.5),
             boxShadow: [
               BoxShadow(
-                color: context.brand.gold.withValues(alpha: 0.18),
+                color: context.brand.highlight.withValues(alpha: 0.18),
                 blurRadius: 30,
                 spreadRadius: 4,
               ),
@@ -361,7 +369,7 @@ class _KasemSeal extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.language_rounded, color: context.brand.gold, size: 34),
+              Icon(Icons.language_rounded, color: context.brand.highlight, size: 34),
               const SizedBox(height: 4),
               const Text(
                 'K A S E M',
@@ -392,12 +400,12 @@ class _ProjectPillars extends StatelessWidget {
           icon: Icons.record_voice_over_rounded,
           label: 'LANGUAGE',
         ),
-        _PillarDivider(color: context.brand.gold),
+        _PillarDivider(color: context.brand.highlight),
         const _ProjectPillar(
           icon: Icons.auto_stories_rounded,
           label: 'STORIES',
         ),
-        _PillarDivider(color: context.brand.gold),
+        _PillarDivider(color: context.brand.highlight),
         const _ProjectPillar(icon: Icons.groups_rounded, label: 'COMMUNITY'),
       ],
     ),
@@ -444,26 +452,35 @@ class _PillarDivider extends StatelessWidget {
 /// A dawn over Kassena country: the shared horizon and converging paths make
 /// the project's purpose visible before a line of interface copy is read.
 class _KasenaHorizonPainter extends CustomPainter {
-  const _KasenaHorizonPainter(this.progress);
+  const _KasenaHorizonPainter(
+    this.progress, {
+    required this.glow,
+    required this.ground,
+  });
 
   final double progress;
 
+  /// The theme's highlight and night ground, read by the widget: a painter
+  /// has no context of its own.
+  final Color glow;
+  final Color ground;
+
   @override
   void paint(Canvas canvas, Size size) {
-    final gold = Paint()
-      ..color = BrandColors.kenteGold.withValues(alpha: 0.1 * progress)
+    final rings = Paint()
+      ..color = glow.withValues(alpha: 0.1 * progress)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1;
     final center = Offset(size.width * 0.5, size.height * 0.36);
 
     for (var ring = 0; ring < 3; ring++) {
-      canvas.drawCircle(center, 64 + (ring * 37 * progress), gold);
+      canvas.drawCircle(center, 64 + (ring * 37 * progress), rings);
     }
 
     canvas.drawCircle(
       center,
       54 * progress,
-      Paint()..color = BrandColors.kenteGold.withValues(alpha: 0.12 * progress),
+      Paint()..color = glow.withValues(alpha: 0.12 * progress),
     );
 
     final hill = Path()
@@ -486,11 +503,11 @@ class _KasenaHorizonPainter extends CustomPainter {
     canvas.drawPath(
       hill,
       Paint()
-        ..color = const Color(0xFF071D17).withValues(alpha: 0.38 * progress),
+        ..color = ground.withValues(alpha: 0.38 * progress),
     );
 
     final pathPaint = Paint()
-      ..color = BrandColors.kenteGold.withValues(alpha: 0.13 * progress)
+      ..color = glow.withValues(alpha: 0.13 * progress)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.2;
     for (final startX in [0.05, 0.23, 0.77, 0.95]) {
@@ -524,7 +541,9 @@ class _KasenaHorizonPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _KasenaHorizonPainter oldDelegate) =>
-      oldDelegate.progress != progress;
+      oldDelegate.progress != progress ||
+      oldDelegate.glow != glow ||
+      oldDelegate.ground != ground;
 }
 
 class _OnboardingScreen extends StatelessWidget {
@@ -635,7 +654,7 @@ class _BrandMark extends StatelessWidget {
     width: size,
     height: size,
     decoration: BoxDecoration(
-      color: context.brand.gold,
+      color: context.brand.highlight,
       borderRadius: BorderRadius.circular(size * 0.28),
     ),
     child: Icon(

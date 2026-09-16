@@ -230,3 +230,77 @@
   font-size: 0.83rem;
   line-height: 1.55;
 }
+
+/* -- Course desk: units, illustrations, pronunciations -------------------- */
+.course-desk__wide {
+  grid-column: 1 / -1;
+}
+
+.course-desk__wide textarea {
+  resize: vertical;
+}
+
+.course-desk__thumb {
+  width: 72px;
+  height: 40px;
+  object-fit: cover;
+  border-radius: 6px;
+}
+
+.course-desk__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
+  gap: 14px;
+  margin-top: 12px;
+}
+
+.course-desk__card {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  border: 1px solid var(--ad-line, #d8d2c6);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.course-desk__image {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 16 / 9;
+  background: #0a2c21;
+}
+
+.course-desk__image img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.course-desk__meta {
+  display: grid;
+  gap: 6px;
+  padding: 0 12px 12px;
+  min-width: 0;
+  font-size: 0.8rem;
+}
+
+.course-desk__meta details p {
+  white-space: pre-wrap;
+}
+
+.course-desk__review {
+  display: grid;
+  gap: 6px;
+}
+
+.course-desk__recording {
+  display: grid;
+  gap: 8px;
+  padding: 12px 0;
+  border-top: 1px solid var(--ad-line, #d8d2c6);
+}
+
+.course-desk__recording audio {
+  width: 100%;
+  max-width: 420px;
+}

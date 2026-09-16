@@ -1,0 +1,53 @@
+<!doctype html>
+<meta charset="utf-8">
+<link rel="stylesheet" href="style.css">
+<style>
+  .wrap { position: absolute; inset: 70px 80px; display: flex; flex-direction: column; }
+  .head { display: flex; justify-content: space-between; align-items: center; }
+  h1 { margin-top: 26px; font-size: 54px; font-weight: 800; letter-spacing: -1.2px; }
+  h1 span { color: #bcd2ff; }
+  .cols { margin-top: 40px; display: grid; grid-template-columns: 1fr 1.45fr; gap: 34px; flex: 1; }
+  .col { padding: 36px 38px; }
+  .col h2 { font-size: 15px; font-weight: 800; letter-spacing: 1.8px; text-transform: uppercase; color: #1f50d6; }
+  .col.done h2 { color: #15803d; }
+  ul { list-style: none; padding: 0; margin-top: 22px; display: grid; gap: 18px; }
+  li { display: flex; gap: 18px; align-items: flex-start; padding: 20px 22px; border-radius: 18px; background: #f8faff; border: 1px solid rgba(15,24,48,0.08); }
+  .done li { background: #f0fdf4; border-color: rgba(22,163,74,0.2); }
+  .check, .open { width: 36px; height: 36px; font-size: 20px; font-weight: 800; }
+  .t { font-size: 23px; font-weight: 800; color: #19327f; line-height: 1.2; }
+  .d { margin-top: 5px; font-size: 18px; line-height: 1.4; color: #5d667b; }
+  .note { margin-top: 26px; font-size: 21px; color: rgba(255,255,255,0.85); }
+  .note b { color: #fff; }
+</style>
+<div class="wrap">
+  <div class="head">
+    <div class="brand">
+      <svg viewBox="0 0 64 64"><path d="M15 47V23l17-9 17 9v24" fill="none" stroke="#8eb4ff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M24 44V29m8 15V24m8 20V29" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"/><circle cx="32" cy="14" r="4.4" fill="#22d3ee"/></svg>
+      Indigen World Updates
+    </div>
+    <div class="pill amber"><span class="dot"></span>Not launched yet</div>
+  </div>
+  <h1>The road to a <span>public launch</span></h1>
+
+  <div class="cols">
+    <div class="card col done">
+      <h2>Approved</h2>
+      <ul>
+        <li><span class="check">&#10003;</span><div><div class="t">Google Play production access</div><div class="d">Permission to move the Android app beyond testing.</div></div></li>
+        <li><span class="check">&#10003;</span><div><div class="t">Paystack activation</div><div class="d">Real payments for advertising campaigns.</div></div></li>
+      </ul>
+    </div>
+    <div class="card col">
+      <h2>Still to confirm</h2>
+      <ul>
+        <li><span class="open"></span><div class="t">Production build released and public on Google Play</div></li>
+        <li><span class="open"></span><div class="t">Final version stable enough for wider use</div></li>
+        <li><span class="open"></span><div class="t">Paystack connected to live advert payments</div></li>
+        <li><span class="open"></span><div class="t">One real payment tested end to end</div></li>
+        <li><span class="open"></span><div class="t">Memberships and advert payments both working</div></li>
+      </ul>
+    </div>
+  </div>
+  <div class="note"><b>Testers:</b> keep testing and keep reporting. Every bug found now is one the public never meets.</div>
+</div>
+<script>document.fonts.ready.then(() => { window.__ready = true; });</script>

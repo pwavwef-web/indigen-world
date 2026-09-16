@@ -142,6 +142,11 @@ export interface TierBenefits {
    * tooling. Read by the Studio, not by the phone.
    */
   creatorTools: boolean;
+  /**
+   * The supporters' app themes. Paint only: it changes how the app looks and
+   * nothing about what anybody can read, hear or contribute.
+   */
+  premiumThemes: boolean;
 }
 
 export const TIER_BENEFITS: Record<SubscriptionTier, TierBenefits> = {
@@ -153,6 +158,7 @@ export const TIER_BENEFITS: Record<SubscriptionTier, TierBenefits> = {
     offlineDownloadLimit: 0,
     supporterMark: '',
     creatorTools: false,
+    premiumThemes: false,
   },
   plus: {
     adFree: true,
@@ -160,6 +166,7 @@ export const TIER_BENEFITS: Record<SubscriptionTier, TierBenefits> = {
     offlineDownloadLimit: 50,
     supporterMark: 'supporter',
     creatorTools: false,
+    premiumThemes: false,
   },
   patron: {
     adFree: true,
@@ -167,6 +174,7 @@ export const TIER_BENEFITS: Record<SubscriptionTier, TierBenefits> = {
     offlineDownloadLimit: 200,
     supporterMark: 'patron',
     creatorTools: false,
+    premiumThemes: true,
   },
   creator: {
     adFree: true,
@@ -174,6 +182,7 @@ export const TIER_BENEFITS: Record<SubscriptionTier, TierBenefits> = {
     offlineDownloadLimit: 500,
     supporterMark: 'studio',
     creatorTools: true,
+    premiumThemes: true,
   },
 };
 

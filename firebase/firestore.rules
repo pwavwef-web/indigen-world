@@ -1954,6 +1954,68 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // ---- Courses and units: the outline the Learn tab is drawn from ---------
+    // A course is one language (Kasem today, others later); a unit is a stretch
+    // of that course with its own title, picture and place in the order.
+    // Lessons join a unit by `unitOrder`, so a unit document can be created
+    // before any of its lessons are written — the Learn tab then shows it as
+    // "in preparation" rather than pretending it has lessons. Drafts are
+    // staff-only for the same reason unpublished lessons are.
+    match /learnCourses/{courseId} {
+      allow read: if resource.data.get('published', false) == true || isStaff();
+      allow create, update: if isAdmin()
+        && request.resource.data.title is string
+        && request.resource.data.title.size() > 0
+        && request.resource.data.get('languageName', '') is string
+        && request.resource.data.get('order', 0) is int;
+      allow delete: if isAdmin();
+    }
+    match /learnUnits/{unitId} {
+      allow read: if resource.data.get('published', false) == true || isStaff();
+      allow create, update: if isAdmin()
+        && request.resource.data.title is string
+        && request.resource.data.title.size() > 0
+        && request.resource.data.title.size() <= 120
+        && request.resource.data.order is int
+        && request.resource.data.order >= 1
+        && request.resource.data.get('courseId', 'kasem') is string;
+      allow delete: if isAdmin();
+    }
+
+    // ---- Word of the day, when somebody chose it ----------------------------
+    // Keyed by the calendar date (`2026-09-14`). Without a document for today
+    // the app walks the published dictionary by date, as it always has; with
+    // one, an administrator has picked the word and, optionally, an approved
+    // picture for it.
+    match /dailyWords/{day} {
+      allow read: if true;
+      allow create, update: if isAdmin()
+        && day.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+        && request.resource.data.entryId is string
+        && request.resource.data.entryId.size() > 0;
+      allow delete: if isAdmin();
+    }
+
+    // ---- Course illustrations: the desk's drafts and decisions --------------
+    // Written only by generateLearnIllustration and reviewLearnIllustration,
+    // which run Vertex AI on the server and record the prompt, model, creator,
+    // time and approval state of every picture. Staff read them to review; no
+    // client writes any of it, and learners never read it — they see only the
+    // public URL an approval copied onto a unit, lesson or course.
+    match /learnIllustrations/{illustrationId} {
+      allow read: if isStaff();
+      allow write: if false;
+    }
+
+    // ---- Pronunciation recordings from Speak practice -----------------------
+    // Written only by submitPronunciationRecording and decided only by
+    // decidePronunciationRecording. The learner who recorded can follow their
+    // own; staff read them to listen and decide.
+    match /pronunciationRecordings/{recordingId} {
+      allow read: if isStaff() || (isSignedIn() && resource.data.uid == request.auth.uid);
+      allow write: if false;
+    }
+
     // ---- Learning progress: one private row per member ----------------------
     // Learning works signed out, so the device copy stays authoritative for a
     // guest; this is what makes a finished unit survive a new phone once there
@@ -1968,7 +2030,14 @@ service cloud.firestore {
         && request.resource.data.get('xp', 0) is int
         && request.resource.data.get('xp', 0) >= 0
         && request.resource.data.get('streakDays', 0) is int
-        && request.resource.data.get('streakDays', 0) >= 0;
+        && request.resource.data.get('streakDays', 0) >= 0
+        // The calendar of days somebody learned on. Kept to a year and a bit
+        // by the app; bounded here so an owner-writable document cannot grow
+        // without end.
+        && request.resource.data.get('activeDays', []) is list
+        && request.resource.data.get('activeDays', []).size() <= 800
+        && request.resource.data.get('reviewCards', {}) is map
+        && request.resource.data.get('reviewCards', {}).size() <= 3000;
       allow delete: if isOwner(uid);
     }
 

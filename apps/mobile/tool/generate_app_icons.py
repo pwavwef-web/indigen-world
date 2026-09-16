@@ -17,7 +17,7 @@ so the icon looked wrong in a different way on every device.
 The fix is to keep the layers apart, and to draw them large enough that nothing
 is ever upscaled:
 
-  * ic_launcher_background  — the heritage-green field and the kente bands,
+  * ic_launcher_background  — the navy field and the patterned bands,
                               full bleed, because it is meant to be cropped.
   * ic_launcher_foreground  — the house, the bars and the sun ONLY, on
                               transparency, inside the centre safe zone so no
@@ -26,7 +26,7 @@ is ever upscaled:
                               icons Android 13+ asks for.
   * mipmap ic_launcher(_round) — the composed mark, for pre-26 launchers.
   * splash_logo             — the glyph alone on transparency, because the
-                              splash already paints heritage green behind it.
+                              splash already paints navy behind it.
   * the iOS AppIcon set     — composed, fully opaque, square-cornered.
 
 The geometry below was measured off the approved 1024px master, expressed as
@@ -41,12 +41,16 @@ import os
 from PIL import Image, ImageDraw
 
 # ── Palette (sampled from the approved master) ──────────────────────────────
-FIELD = (11, 61, 46, 255)  # heritage green   #0B3D2E
-BAND = (21, 91, 67, 255)  # savannah green   #155B43
-BAND_GOLD = (207, 152, 31, 255)  # kente gold       #CF981F
-CREAM = (255, 248, 231, 255)  # plaster cream    #FFF8E7
-TERRACOTTA = (182, 90, 58, 255)  # terracotta       #B65A3A
-SUN = (216, 155, 29, 255)  # kente gold       #D89B1D
+# The websites' Comitia palette (apps/website/src/styles/comitia-theme.css):
+# a navy field, the brand mark's pale-blue frame for the bars, a white house
+# and the cyan sun. The names are the roles the shapes had in the original
+# green-and-gold master, kept so the geometry code below reads unchanged.
+FIELD = (25, 50, 127, 255)  # navy             #19327F
+BAND = (33, 73, 184, 255)  # indigo-800       #2149B8
+BAND_GOLD = (34, 211, 238, 255)  # cyan             #22D3EE
+CREAM = (255, 255, 255, 255)  # white            #FFFFFF
+TERRACOTTA = (142, 180, 255, 255)  # frame blue       #8EB4FF
+SUN = (34, 211, 238, 255)  # cyan             #22D3EE
 WHITE = (255, 255, 255, 255)
 CLEAR = (0, 0, 0, 0)
 
@@ -101,7 +105,7 @@ def _round_line(draw: ImageDraw.ImageDraw, a, b, width: float, fill) -> None:
 
 
 def _draw_bands(draw: ImageDraw.ImageDraw, n: int) -> None:
-    """The kente border: gold right-triangles marching across a green strip.
+    """The kente border: cyan right-triangles marching across a blue strip.
 
     Each triangle fills x from the period start out to `band - y`, which is
     what makes the diagonal read at exactly 45 degrees.
@@ -206,7 +210,7 @@ def adaptive_foreground(n: int, *, mono: bool = False) -> Image.Image:
 
 
 def splash(n: int) -> Image.Image:
-    """The glyph on transparency for the splash, which paints its own green.
+    """The glyph on transparency for the splash, which paints its own navy.
 
     Android 12+ masks the splash icon to a circle with its own safe zone, so
     this is drawn smaller than the launcher foreground.

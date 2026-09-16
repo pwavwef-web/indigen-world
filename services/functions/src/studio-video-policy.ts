@@ -126,8 +126,16 @@ const RUNWAY_RATE_USD_PER_SECOND: Record<RunwayVideoModel, number> = {
 };
 
 /**
- * Google's published Veo 3.1 rates, audio off. Audio raises them, and it is
- * off — see the submission in studio-video-providers.ts for why.
+ * Google's published Vertex Veo 3.1 rates for video *with* audio (720p/1080p):
+ * $0.40/s standard, $0.15/s fast. Silent video is published lower ($0.20 and
+ * $0.10), and the Studio still makes silent video — see the submission in
+ * studio-video-providers.ts for why.
+ *
+ * Every video is charged at the with-audio rate whether it has sound or not.
+ * That overstates a silent video's cost, which is the safe direction for a
+ * ceiling: Kawuri lets a member switch sound on, and a switch that could push
+ * the same generation past a limit sized for silence would be a limit that
+ * does not hold.
  */
 const GEMINI_RATE_USD_PER_SECOND: Record<GeminiVideoModel, number> = {
   'veo-3.1-generate-001': 0.40,
@@ -142,8 +150,15 @@ const GEMINI_RATE_USD_PER_SECOND: Record<GeminiVideoModel, number> = {
  * same cents ceilings as the Studio does. A model with no price here cannot be
  * held to those ceilings, so the caller treats null as "not offerable" rather
  * than guessing a number.
+ *
+ * [options.generateAudio] names the video being priced; both answers are the
+ * with-audio rate, for the reason given on the table above.
  */
-export function vertexVideoRateUsdPerSecond(model: string): number | null {
+export function vertexVideoRateUsdPerSecond(
+  model: string,
+  options: { generateAudio?: boolean } = {},
+): number | null {
+  void options.generateAudio;
   return isGeminiVideoModel(model) ? GEMINI_RATE_USD_PER_SECOND[model] : null;
 }
 

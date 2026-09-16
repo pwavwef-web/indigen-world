@@ -12,8 +12,43 @@ import {
   type LessonQuestion,
 } from './data';
 import { answerImageSlot, promptImageSlot, uploadLessonImage } from './imageUpload';
-import { Loading, TableShell } from '@indigen-world/console-ui';
+import { Loading, SegmentedControl, TableShell } from '@indigen-world/console-ui';
+import { isAdmin, type AdminRole } from '../creators/data';
+import { IllustrationDesk, PronunciationReviewPanel, UnitsPanel } from './CourseDesk';
 import './learning.css';
+
+type LearningTab = 'lessons' | 'units' | 'illustrations' | 'recordings';
+
+/**
+ * The Learning screen's four desks. Lessons and units are the course itself
+ * and are written by administrators; the illustration desk and pronunciation
+ * review are open to authorised editors too, because both end in a decision
+ * rather than a write — an editor can draft a picture or listen to a take, and
+ * only an administrator can publish a picture into the course.
+ */
+export function LearningWorkspace({ role }: { role: AdminRole }) {
+  const admin = isAdmin(role);
+  const [tab, setTab] = useState<LearningTab>(admin ? 'lessons' : 'illustrations');
+  const options = [
+    ...(admin
+      ? [
+          { id: 'lessons' as const, label: 'Lessons' },
+          { id: 'units' as const, label: 'Units' },
+        ]
+      : []),
+    { id: 'illustrations' as const, label: 'Illustrations' },
+    { id: 'recordings' as const, label: 'Pronunciations' },
+  ];
+  return (
+    <div className="learning-admin">
+      <SegmentedControl label="Learning desks" options={options} value={tab} onChange={setTab} />
+      {tab === 'lessons' && admin ? <LearningAdmin /> : null}
+      {tab === 'units' && admin ? <UnitsPanel /> : null}
+      {tab === 'illustrations' ? <IllustrationDesk canApprove={admin} /> : null}
+      {tab === 'recordings' ? <PronunciationReviewPanel /> : null}
+    </div>
+  );
+}
 
 /**
  * The Kasem learning path editor.

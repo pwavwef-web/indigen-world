@@ -3,9 +3,9 @@ import 'dart:async';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_analysis_card.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_create_screen.dart';
-import 'package:indigen_world_mobile/features/kawuri/kawuri_home.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_media_actions.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_media_models.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_media_repository.dart';
@@ -139,6 +139,7 @@ class _KawuriCreationScreenState extends ConsumerState<KawuriCreationScreen> {
       final ok = await kawuriConfirmVideoSpend(
         context,
         durationSeconds: creation.duration ?? 8,
+        withSound: creation.generateAudio ?? false,
       );
       if (!ok || !mounted) return;
     }
@@ -153,6 +154,9 @@ class _KawuriCreationScreenState extends ConsumerState<KawuriCreationScreen> {
               aspectRatio: creation.aspectRatio ?? '9:16',
               durationSeconds: creation.duration ?? 8,
               resolution: creation.resolution ?? '720p',
+              // Regenerating keeps the original's sound choice; a video made
+              // before the switch existed was silent, so null stays silent.
+              generateAudio: creation.generateAudio ?? false,
               confirmSpend: true,
               referenceImagePath: reference,
               sourceTaskId: creation.id,
@@ -190,9 +194,9 @@ class _KawuriCreationScreenState extends ConsumerState<KawuriCreationScreen> {
 
     return NightTheme(
       child: Scaffold(
-        backgroundColor: const Color(0xFF071D17),
+        backgroundColor: context.brand.nightGround,
         appBar: AppBar(
-          backgroundColor: const Color(0xFF071D17),
+          backgroundColor: context.brand.nightGround,
           foregroundColor: Colors.white,
           title: Text(creation?.typeLabel ?? 'Creation'),
           actions: [
@@ -232,8 +236,8 @@ class _KawuriCreationScreenState extends ConsumerState<KawuriCreationScreen> {
                       const SizedBox(height: 16),
                       Text(
                         creation.isAnalysis ? 'Your question' : 'Prompt',
-                        style: const TextStyle(
-                          color: kawuriMint,
+                        style: TextStyle(
+                          color: context.brand.nightAccent,
                           fontWeight: FontWeight.w800,
                         ),
                       ),
@@ -254,10 +258,14 @@ class _KawuriCreationScreenState extends ConsumerState<KawuriCreationScreen> {
                           if (creation.duration != null)
                             '${creation.duration} s',
                           creation.resolution,
+                          if (creation.isVideo)
+                            creation.generateAudio == true
+                                ? 'With sound'
+                                : 'Silent',
                           'AI-generated',
                         ].whereType<String>().join(' · '),
-                        style: const TextStyle(
-                          color: Color(0xFFABC8BE),
+                        style: TextStyle(
+                          color: context.brand.mutedInk,
                           fontSize: 12.5,
                         ),
                       ),
@@ -322,9 +330,9 @@ class _StatusPanel extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: const Color(0xFF102F27),
+          color: context.brand.surface,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFF3C5C51)),
+          border: Border.all(color: context.brand.border),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -343,7 +351,7 @@ class _StatusPanel extends StatelessWidget {
                 if (creation.progressLabel != null)
                   Text(
                     creation.progressLabel!,
-                    style: const TextStyle(color: kawuriMint),
+                    style: TextStyle(color: context.brand.nightAccent),
                   ),
               ],
             ),
@@ -365,7 +373,7 @@ class _StatusPanel extends StatelessWidget {
                       status == KawuriMediaStatus.failed ||
                           status == KawuriMediaStatus.rejected
                       ? const Color(0xFFFFB4A8)
-                      : const Color(0xFFABC8BE),
+                      : context.brand.mutedInk,
                   height: 1.4,
                 ),
               ),
@@ -397,8 +405,8 @@ class _Result extends StatelessWidget {
                 kawuriAnalysisIntentions[turn.intention] ?? turn.intention,
                 if (turn.question.isNotEmpty) turn.question,
               ].join(' · '),
-              style: const TextStyle(
-                color: Color(0xFFE7C574),
+              style: TextStyle(
+                color: context.brand.highlight,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -578,9 +586,9 @@ class _FollowUpState extends ConsumerState<_FollowUp> {
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Text(
+        Text(
           'Ask a follow-up',
-          style: TextStyle(color: kawuriMint, fontWeight: FontWeight.w800),
+          style: TextStyle(color: context.brand.nightAccent, fontWeight: FontWeight.w800),
         ),
         const SizedBox(height: 8),
         DropdownButtonFormField<String>(

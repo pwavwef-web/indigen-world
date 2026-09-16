@@ -146,6 +146,7 @@ class KawuriMediaRepository {
     required bool confirmSpend,
     String negativePrompt = '',
     String quality = 'fast',
+    bool generateAudio = false,
     String? referenceImagePath,
     String sourceTaskId = '',
     String conversationId = '',
@@ -160,6 +161,10 @@ class KawuriMediaRepository {
         'durationSeconds': durationSeconds,
         'resolution': resolution,
         'quality': quality,
+        // Sent whatever its value. The backend reads an absent flag as silent
+        // — the promise builds without the switch made — so "off" and "not
+        // asked" are the same video, but saying which is clearer in a log.
+        'generateAudio': generateAudio,
         'confirmSpend': confirmSpend,
         'referenceImagePath': ?referenceImagePath,
         if (sourceTaskId.isNotEmpty) 'sourceTaskId': sourceTaskId,

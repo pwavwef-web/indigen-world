@@ -195,13 +195,14 @@ void main() {
             benefits.offlineDownloadLimit,
             benefits.supporterMark.wire,
             benefits.creatorTools,
+            benefits.premiumThemes,
           ]),
         ),
         {
-          SubscriptionTier.none: [false, 20, 0, '', false],
-          SubscriptionTier.plus: [true, 200, 50, 'supporter', false],
-          SubscriptionTier.patron: [true, 400, 200, 'patron', false],
-          SubscriptionTier.creator: [true, 600, 500, 'studio', true],
+          SubscriptionTier.none: [false, 20, 0, '', false, false],
+          SubscriptionTier.plus: [true, 200, 50, 'supporter', false, false],
+          SubscriptionTier.patron: [true, 400, 200, 'patron', false, true],
+          SubscriptionTier.creator: [true, 600, 500, 'studio', true, true],
         },
       );
     });
@@ -265,6 +266,7 @@ void main() {
           BenefitKind.kawuri,
           BenefitKind.offline,
           BenefitKind.supporterMark,
+          BenefitKind.themes,
           BenefitKind.creatorTools,
         ],
       );
@@ -527,6 +529,7 @@ void main() {
           offlineDownloadLimit: 120,
           supporterMark: SupporterMark.patron,
           creatorTools: false,
+          premiumThemes: true,
         ),
       );
       await _settle(container);

@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:indigen_world_mobile/app/active_brand_theme.dart';
 import 'package:indigen_world_mobile/app/app_router.dart';
 import 'package:indigen_world_mobile/app/app_theme.dart';
 import 'package:indigen_world_mobile/core/app_locale.dart';
+import 'package:indigen_world_mobile/core/brand_theme_choice.dart';
 import 'package:indigen_world_mobile/core/theme_mode.dart';
 import 'package:indigen_world_mobile/features/music/widgets/music_overlay.dart';
 import 'package:indigen_world_mobile/l10n/app_localizations.dart';
@@ -15,6 +17,15 @@ class IndigenWorldApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(appRouterProvider);
     final themeMode = ref.watch(themeModeProvider);
+    final brandTheme = ref.watch(activeBrandThemeProvider);
+    // Keeps the remembered answer in step with the real one, so the next
+    // launch opens in the right theme before the entitlement has arrived.
+    ref.listen<bool>(
+      premiumThemesUnlockedProvider,
+      (_, unlocked) => ref
+          .read(lastKnownPremiumThemesUnlockedProvider.notifier)
+          .remember(unlocked),
+    );
 
     // Which theme the member is actually about to read in. `ThemeMode.system`
     // has to be resolved here rather than left to MaterialApp, because the
@@ -24,15 +35,15 @@ class IndigenWorldApp extends ConsumerWidget {
       ThemeMode.dark => Brightness.dark,
       ThemeMode.system => MediaQuery.platformBrightnessOf(context),
     };
-    final brand = brandPaletteFor(brightness);
+    final brand = brandPaletteFor(brightness, brandTheme);
     SystemChrome.setSystemUIOverlayStyle(brandOverlayStyle(brand));
 
     return MaterialApp.router(
       title: 'Indigen',
       onGenerateTitle: (context) => AppLocalizations.of(context).appTitle,
       debugShowCheckedModeBanner: false,
-      theme: buildIndigenTheme(),
-      darkTheme: buildIndigenDarkTheme(),
+      theme: buildBrandTheme(brandTheme, Brightness.light),
+      darkTheme: buildBrandTheme(brandTheme, Brightness.dark),
       themeMode: themeMode,
       // Null on almost every device, and that is the point: Flutter then
       // resolves the phone's own language against `supportedLocales`, so a

@@ -6,19 +6,19 @@ import 'package:indigen_world_mobile/l10n/app_localizations.dart';
 /// How a post category is drawn: a colour for the rail and the label, an icon,
 /// and the words.
 ///
-/// The colours are the category's own rather than palette roles. On a dark
-/// ground the palette's accent, success and reshare are all the same green, and
-/// six categories drawn in three colours would be a legend nobody can read.
+/// The colours are the category's own rather than palette roles. The palette
+/// has one blue family for accent, eyebrows and reshare, and six categories
+/// drawn in three shades of it would be a legend nobody can read.
 /// Every value clears 4.5:1 against its own ground, because the label is text.
 extension PostCategoryStyle on PostCategory {
   Color colorOn(BrandPalette brand) => switch (this) {
     PostCategory.question => brand.pick(
-      const Color(0xFF1E365D),
-      const Color(0xFF8FB3E8),
+      const Color(0xFF2149B8),
+      const Color(0xFF8EB4FF),
     ),
     PostCategory.language => brand.pick(
-      const Color(0xFF1F6B45),
-      const Color(0xFF56B693),
+      const Color(0xFF0E7490),
+      const Color(0xFF67E8F9),
     ),
     PostCategory.culture => brand.pick(
       const Color(0xFFA24E30),

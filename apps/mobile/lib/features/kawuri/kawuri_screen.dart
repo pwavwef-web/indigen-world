@@ -17,6 +17,7 @@ import 'package:indigen_world_mobile/features/kawuri/kawuri_create_screen.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_creation_screen.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_feedback.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_home.dart';
+import 'package:indigen_world_mobile/features/kawuri/kawuri_learning_context.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_library_screen.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_media_models.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_media_repository.dart';
@@ -32,12 +33,16 @@ import 'package:share_plus/share_plus.dart';
 
 /// Kawuri — the Indigen World guide.
 ///
-/// A full-screen conversation over the brand's night palette: heritage green
-/// deepening into ink, kente gold as the light. The visual language is
+/// A full-screen conversation over the brand's night palette: navy deepening
+/// into ink, cyan as the light. The visual language is
 /// deliberately the launch screen's — orbiting rings, cultural glyphs — so
 /// Kawuri reads as part of this project rather than a chat window bolted on.
 class KawuriScreen extends ConsumerStatefulWidget {
-  const KawuriScreen({super.key});
+  const KawuriScreen({this.learningContext, super.key});
+
+  /// Set when Kawuri is opened from the Learn tab: the course, unit, lesson
+  /// and word the learner was on, offered as ready-made requests.
+  final KawuriLearningContext? learningContext;
 
   @override
   ConsumerState<KawuriScreen> createState() => _KawuriScreenState();
@@ -68,6 +73,42 @@ class _KawuriScreenState extends ConsumerState<KawuriScreen>
       () =>
           ref.read(kawuriControllerProvider.notifier).updateDraft(_input.text),
     );
+    if (widget.learningContext != null) {
+      // Opened from a lesson: the learning card lives on the home view, so an
+      // unrelated conversation left open is put away into history first.
+      ref.listenManual(kawuriControllerProvider.select((s) => s.restored), (
+        _,
+        restored,
+      ) {
+        if (!restored || _learningPrepared) return;
+        _learningPrepared = true;
+        Future.microtask(() {
+          if (!mounted) return;
+          final state = ref.read(kawuriControllerProvider);
+          if (!state.isEmpty && !state.thinking) {
+            unawaited(
+              ref.read(kawuriControllerProvider.notifier).startNewConversation(),
+            );
+          }
+        });
+      }, fireImmediately: true);
+    }
+  }
+
+  var _learningPrepared = false;
+
+  /// One of the Learn tab's ready-made requests, sent with its grounding.
+  Future<void> _learningAction(KawuriLearningAction action) async {
+    final learning = widget.learningContext;
+    if (learning == null) return;
+    ref
+        .read(kawuriControllerProvider.notifier)
+        .configure(
+          action.mode,
+          draft: action.promptFor(learning),
+          options: learning.toOptions(),
+        );
+    await _send(action.promptFor(learning));
   }
 
   @override
@@ -139,14 +180,14 @@ class _KawuriScreenState extends ConsumerState<KawuriScreen>
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.light,
       child: Scaffold(
-        backgroundColor: const Color(0xFF071D17),
+        backgroundColor: context.brand.nightGround,
         resizeToAvoidBottomInset: true,
         body: DecoratedBox(
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             gradient: RadialGradient(
               radius: 1.35,
-              center: Alignment(0, -0.55),
-              colors: [Color(0xFF175340), Color(0xFF08221B), Color(0xFF050807)],
+              center: const Alignment(0, -0.55),
+              colors: [context.brand.nightGlow, context.brand.nightGround, const Color(0xFF05080F)],
             ),
           ),
           child: Stack(
@@ -183,6 +224,8 @@ class _KawuriScreenState extends ConsumerState<KawuriScreen>
                       child: state.isEmpty
                           ? KawuriHome(
                               restored: state.restored,
+                              learning: widget.learningContext,
+                              onLearningAction: _learningAction,
                               showNotice: !pinNotice,
                               capabilities: caps,
                               mode: state.mode,
@@ -667,7 +710,7 @@ class _KawuriBar extends StatelessWidget {
                   key: ValueKey(thinking),
                   style: TextStyle(
                     color: thinking
-                        ? BrandColors.kenteGold
+                        ? context.brand.highlight
                         : Colors.white.withValues(alpha: 0.55),
                     fontSize: 10.5,
                     fontWeight: FontWeight.w700,
@@ -740,15 +783,15 @@ class _BarAction extends StatelessWidget {
                 color: Colors.white.withValues(alpha: enabled ? 0.92 : 0.35),
               ),
               if (badge > 0)
-                const Positioned(
+                Positioned(
                   right: 4,
                   top: 4,
                   child: DecoratedBox(
                     decoration: BoxDecoration(
-                      color: BrandColors.kenteGold,
+                      color: context.brand.highlight,
                       shape: BoxShape.circle,
                     ),
-                    child: SizedBox(width: 7, height: 7),
+                    child: const SizedBox(width: 7, height: 7),
                   ),
                 ),
             ],
@@ -805,7 +848,11 @@ class _KawuriOrbState extends State<KawuriOrb>
     child: AnimatedBuilder(
       animation: _controller,
       builder: (context, child) => CustomPaint(
-        painter: _OrbitPainter(progress: _controller.value, glow: widget.glow),
+        painter: _OrbitPainter(
+          progress: _controller.value,
+          glow: widget.glow,
+          brand: context.brand,
+        ),
         size: Size.square(widget.size),
         child: child,
       ),
@@ -815,7 +862,7 @@ class _KawuriOrbState extends State<KawuriOrb>
           child: Text(
             '✣',
             style: TextStyle(
-              color: BrandColors.kenteGold,
+              color: context.brand.highlight,
               fontSize: widget.size * 0.42,
               fontFamilyFallback: const [
                 'Noto Sans Symbols',
@@ -832,10 +879,17 @@ class _KawuriOrbState extends State<KawuriOrb>
 }
 
 class _OrbitPainter extends CustomPainter {
-  _OrbitPainter({required this.progress, required this.glow});
+  _OrbitPainter({
+    required this.progress,
+    required this.glow,
+    required this.brand,
+  });
 
   final double progress;
   final bool glow;
+
+  /// Read once by the widget and handed over: a painter has no context.
+  final BrandPalette brand;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -849,8 +903,8 @@ class _OrbitPainter extends CustomPainter {
         Paint()
           ..shader = RadialGradient(
             colors: [
-              BrandColors.savannahGreen.withValues(alpha: 0.85),
-              BrandColors.heritageGreen.withValues(alpha: 0.95),
+              brand.heroLit.withValues(alpha: 0.85),
+              brand.heroMid.withValues(alpha: 0.95),
             ],
           ).createShader(Rect.fromCircle(center: centre, radius: radius)),
       );
@@ -860,11 +914,11 @@ class _OrbitPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = size.width * 0.035
       ..strokeCap = StrokeCap.round
-      ..color = BrandColors.kenteGold.withValues(alpha: 0.75);
+      ..color = brand.highlight.withValues(alpha: 0.75);
 
     // Two arcs turning against each other read as "alive" far more cheaply
     // than a spinner, and hold up at 34px as well as at 130px.
-    final sweep = math.pi * 0.75;
+    const sweep = math.pi * 0.75;
     canvas.drawArc(
       Rect.fromCircle(center: centre, radius: radius * 0.9),
       progress * 2 * math.pi,
@@ -878,14 +932,16 @@ class _OrbitPainter extends CustomPainter {
       sweep * 0.8,
       false,
       ring
-        ..color = BrandColors.terracotta.withValues(alpha: 0.7)
+        ..color = brand.accentFill.withValues(alpha: 0.7)
         ..strokeWidth = size.width * 0.028,
     );
   }
 
   @override
   bool shouldRepaint(_OrbitPainter oldDelegate) =>
-      oldDelegate.progress != progress || oldDelegate.glow != glow;
+      oldDelegate.progress != progress ||
+      oldDelegate.glow != glow ||
+      oldDelegate.brand != brand;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -948,18 +1004,19 @@ class _Conversation extends StatelessWidget {
 /// One gradient rather than two surfaces. Kawuri's answers used to sit on a
 /// near-white card, which is unreadable here: this screen is always the night
 /// theme, so the palette ink inside the bubble resolved to near-white as well
-/// and the answer was white on white. Sharing the member's own green fixes the
-/// contrast outright, and the gold rule down the leading edge plus the
-/// mirrored corner still say which of the two is speaking.
-const kKawuriBubbleGradient = LinearGradient(
+/// and the answer was white on white. Sharing the theme's hero band fixes the
+/// contrast outright — every theme holds white text on it — and the highlight
+/// rule down the leading edge plus the mirrored corner still say which of the
+/// two is speaking.
+LinearGradient kawuriBubbleGradient(BrandPalette brand) => LinearGradient(
   begin: Alignment.topLeft,
   end: Alignment.bottomRight,
-  colors: [BrandColors.savannahGreen, BrandColors.heritageGreen],
+  colors: [brand.heroLit, brand.heroMid],
 );
 
-/// Text drawn on [kKawuriBubbleGradient]. Stated rather than read off the
-/// palette, because the bubble is one fixed pigment in both themes.
-const kKawuriBubbleInk = Color(0xFFF4F7F5);
+/// Text drawn on [kawuriBubbleGradient]: white, which every theme's hero band
+/// is held to carrying.
+const kKawuriBubbleInk = Colors.white;
 
 /// The member's turn that an answer at [index] is answering, or `''`.
 ///
@@ -1010,17 +1067,17 @@ class _MessageBubble extends StatelessWidget {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.attach_file_rounded,
                       size: 14,
-                      color: kawuriMint,
+                      color: context.brand.nightAccent,
                     ),
                     const SizedBox(width: 4),
                     Flexible(
                       child: Text(
                         message.attachment!.name,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(color: kawuriMint, fontSize: 12),
+                        style: TextStyle(color: context.brand.nightAccent, fontSize: 12),
                       ),
                     ),
                   ],
@@ -1028,7 +1085,7 @@ class _MessageBubble extends StatelessWidget {
               ),
             GestureDetector(
               onLongPress: () => _copy(context),
-              child: isYou ? _yourBubble() : _kawuriBubble(),
+              child: isYou ? _yourBubble(context) : _kawuriBubble(context),
             ),
             if (!isYou && message.taskId != null && message.analysis != null)
               TextButton.icon(
@@ -1049,11 +1106,11 @@ class _MessageBubble extends StatelessWidget {
                 !message.fromOfflineGuide &&
                 message.sources.isEmpty &&
                 message.analysis == null)
-              const Padding(
-                padding: EdgeInsets.only(top: 6),
+              Padding(
+                padding: const EdgeInsets.only(top: 6),
                 child: Text(
                   'AI guidance · Verify cultural and language claims with the dictionary or community.',
-                  style: TextStyle(color: Color(0xFFB8C9C2), fontSize: 11),
+                  style: TextStyle(color: context.brand.mutedInk, fontSize: 11),
                 ),
               ),
             if (!isYou)
@@ -1147,17 +1204,17 @@ class _MessageBubble extends StatelessWidget {
     );
   }
 
-  Widget _yourBubble() => Container(
+  Widget _yourBubble(BuildContext context) => Container(
     padding: const EdgeInsets.fromLTRB(15, 12, 15, 12),
     decoration: BoxDecoration(
-      gradient: kKawuriBubbleGradient,
+      gradient: kawuriBubbleGradient(context.brand),
       borderRadius: const BorderRadius.only(
         topLeft: Radius.circular(20),
         topRight: Radius.circular(20),
         bottomLeft: Radius.circular(20),
         bottomRight: Radius.circular(6),
       ),
-      border: Border.all(color: BrandColors.kenteGold.withValues(alpha: 0.28)),
+      border: Border.all(color: context.brand.highlight.withValues(alpha: 0.28)),
     ),
     child: Text(
       message.text,
@@ -1169,24 +1226,24 @@ class _MessageBubble extends StatelessWidget {
     ),
   );
 
-  Widget _kawuriBubble() => Container(
+  Widget _kawuriBubble(BuildContext context) => Container(
     padding: const EdgeInsets.fromLTRB(15, 13, 15, 13),
     decoration: BoxDecoration(
-      // The same green ground the member's own turn is drawn on. It used to be
+      // The same navy ground the member's own turn is drawn on. It used to be
       // near-white, which was legible in daylight and invisible at night: this
       // screen is always the night theme, so the ink inside the bubble was
       // near-white too, and the answer read as white on white.
-      gradient: kKawuriBubbleGradient,
+      gradient: kawuriBubbleGradient(context.brand),
       borderRadius: const BorderRadius.only(
         topLeft: Radius.circular(6),
         topRight: Radius.circular(20),
         bottomLeft: Radius.circular(20),
         bottomRight: Radius.circular(20),
       ),
-      // Kawuri's turn keeps the gold rule down its leading edge, which is what
+      // Kawuri's turn keeps the cyan rule down its leading edge, which is what
       // still tells the two speakers apart now that they share a ground.
-      border: const Border(
-        left: BorderSide(color: BrandColors.kenteGold, width: 3),
+      border: Border(
+        left: BorderSide(color: context.brand.highlight, width: 3),
       ),
       boxShadow: [
         BoxShadow(
@@ -1259,9 +1316,9 @@ class _OfflineTag extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.fromLTRB(9, 4, 11, 4),
     decoration: BoxDecoration(
-      color: BrandColors.terracotta.withValues(alpha: 0.22),
+      color: BrandColors.warning.withValues(alpha: 0.22),
       borderRadius: BorderRadius.circular(999),
-      border: Border.all(color: BrandColors.terracotta.withValues(alpha: 0.5)),
+      border: Border.all(color: BrandColors.warning.withValues(alpha: 0.5)),
     ),
     child: const Row(
       mainAxisSize: MainAxisSize.min,
@@ -1300,12 +1357,12 @@ class KawuriText extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         for (var index = 0; index < lines.length; index++)
-          _line(lines[index], isFirst: index == 0),
+          _line(context, lines[index], isFirst: index == 0),
       ],
     );
   }
 
-  Widget _line(String raw, {required bool isFirst}) {
+  Widget _line(BuildContext context, String raw, {required bool isFirst}) {
     final line = raw.trimRight();
     if (line.trim().isEmpty) return const SizedBox(height: 9);
 
@@ -1313,10 +1370,14 @@ class KawuriText extends StatelessWidget {
     final numbered = RegExp(r'^\s*(\d+)[.)]\s+(.*)$').firstMatch(line);
 
     if (bullet != null) {
-      return _hanging('•', bullet.group(1) ?? '');
+      return _hanging(context, '•', bullet.group(1) ?? '');
     }
     if (numbered != null) {
-      return _hanging('${numbered.group(1)}.', numbered.group(2) ?? '');
+      return _hanging(
+        context,
+        '${numbered.group(1)}.',
+        numbered.group(2) ?? '',
+      );
     }
 
     // A short opening line with no sentence-ending punctuation is a heading.
@@ -1340,7 +1401,8 @@ class KawuriText extends StatelessWidget {
     );
   }
 
-  Widget _hanging(String marker, String body) => Padding(
+  Widget _hanging(BuildContext context, String marker, String body) =>
+      Padding(
     padding: const EdgeInsets.only(bottom: 4),
     child: Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1349,10 +1411,10 @@ class KawuriText extends StatelessWidget {
           width: 22,
           child: Text(
             marker,
-            style: const TextStyle(
-              // Terracotta on deep green is mud on mud. Gold is the brand's
-              // own highlight and the one this ground was built for.
-              color: BrandColors.kenteGold,
+            style: TextStyle(
+              // Cyan is the brand's own highlight on navy, the colour the
+              // websites light their brand mark with.
+              color: context.brand.highlight,
               fontSize: 14,
               height: 1.5,
               fontWeight: FontWeight.w900,
@@ -1430,16 +1492,16 @@ class _ThinkingBubbleState extends State<_ThinkingBubble>
       label: 'Kawuri is thinking',
       child: Container(
         padding: const EdgeInsets.fromLTRB(16, 15, 18, 15),
-        decoration: const BoxDecoration(
-          gradient: kKawuriBubbleGradient,
-          borderRadius: BorderRadius.only(
+        decoration: BoxDecoration(
+          gradient: kawuriBubbleGradient(context.brand),
+          borderRadius: const BorderRadius.only(
             topLeft: Radius.circular(6),
             topRight: Radius.circular(20),
             bottomLeft: Radius.circular(20),
             bottomRight: Radius.circular(20),
           ),
           border: Border(
-            left: BorderSide(color: BrandColors.kenteGold, width: 3),
+            left: BorderSide(color: context.brand.highlight, width: 3),
           ),
         ),
         child: AnimatedBuilder(
@@ -1462,12 +1524,12 @@ class _ThinkingBubbleState extends State<_ThinkingBubble>
                                         2 *
                                         math.pi,
                                   )),
-                  child: const DecoratedBox(
+                  child: DecoratedBox(
                     decoration: BoxDecoration(
-                      color: BrandColors.kenteGold,
+                      color: context.brand.highlight,
                       shape: BoxShape.circle,
                     ),
-                    child: SizedBox(width: 7, height: 7),
+                    child: const SizedBox(width: 7, height: 7),
                   ),
                 ),
               ],
@@ -1630,15 +1692,15 @@ class _AmbientWeave extends StatelessWidget {
   const _AmbientWeave();
 
   @override
-  Widget build(BuildContext context) => const IgnorePointer(
+  Widget build(BuildContext context) => IgnorePointer(
     child: Opacity(
       opacity: 0.05,
       child: GridPaper(
-        color: BrandColors.kenteGold,
+        color: context.brand.highlight,
         interval: 54,
         divisions: 2,
         subdivisions: 1,
-        child: SizedBox.expand(),
+        child: const SizedBox.expand(),
       ),
     ),
   );

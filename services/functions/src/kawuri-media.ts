@@ -713,7 +713,7 @@ export const createKawuriVideo = onCall(
     const model = input.quality === 'plan' && caps.videoQualityOptions.includes('plan')
       ? cfg.videoPlanModel
       : cfg.videoModel;
-    const cents = videoCostCents(model, input.durationSeconds);
+    const cents = videoCostCents(model, input.durationSeconds, input.generateAudio);
     if (cents === null) throw kawuriError('CAPABILITY_UNAVAILABLE');
 
     const reference = input.referenceImagePath
@@ -736,6 +736,7 @@ export const createKawuriVideo = onCall(
       aspectRatio: input.aspectRatio,
       duration: input.durationSeconds,
       resolution: input.resolution,
+      generateAudio: input.generateAudio,
       sourceTaskId: input.sourceTaskId,
       now: nowIso(),
     });
@@ -787,6 +788,7 @@ export const createKawuriVideo = onCall(
     await recordBillableAttempt(ref, uid, 'video_generation', model, {
       durationSeconds: input.durationSeconds,
       resolution: input.resolution,
+      generateAudio: input.generateAudio,
       estimatedCostCents: cents,
     });
 
@@ -801,6 +803,7 @@ export const createKawuriVideo = onCall(
         durationSeconds: input.durationSeconds,
         resolution: input.resolution,
         image: reference?.media ?? null,
+        generateAudio: input.generateAudio,
       });
       // Persisted the moment Vertex answers. From here on the job belongs to
       // whichever backend instance checks it next, not to this request.

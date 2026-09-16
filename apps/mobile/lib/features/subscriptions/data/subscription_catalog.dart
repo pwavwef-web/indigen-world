@@ -238,6 +238,7 @@ class TierBenefits {
     required this.offlineDownloadLimit,
     required this.supporterMark,
     required this.creatorTools,
+    required this.premiumThemes,
   });
 
   final bool adFree;
@@ -250,6 +251,9 @@ class TierBenefits {
 
   /// Raised TribeStudio quotas. Read by the Studio, not by this app.
   final bool creatorTools;
+
+  /// The supporters' app themes. Paint only — see `brand_themes.dart`.
+  final bool premiumThemes;
 
   /// The benefits the backend reported, falling back to [free] on anything
   /// unrecognised — a build that has not been updated must never invent a
@@ -264,6 +268,7 @@ class TierBenefits {
       offlineDownloadLimit: (raw['offlineDownloadLimit'] as num?)?.toInt() ?? 0,
       supporterMark: SupporterMark.fromName(raw['supporterMark']),
       creatorTools: raw['creatorTools'] == true,
+      premiumThemes: raw['premiumThemes'] == true,
     );
   }
 
@@ -273,6 +278,7 @@ class TierBenefits {
     offlineDownloadLimit: 0,
     supporterMark: SupporterMark.none,
     creatorTools: false,
+    premiumThemes: false,
   );
 }
 
@@ -285,6 +291,7 @@ const tierBenefits = <SubscriptionTier, TierBenefits>{
     offlineDownloadLimit: 50,
     supporterMark: SupporterMark.supporter,
     creatorTools: false,
+    premiumThemes: false,
   ),
   SubscriptionTier.patron: TierBenefits(
     adFree: true,
@@ -292,6 +299,7 @@ const tierBenefits = <SubscriptionTier, TierBenefits>{
     offlineDownloadLimit: 200,
     supporterMark: SupporterMark.patron,
     creatorTools: false,
+    premiumThemes: true,
   ),
   SubscriptionTier.creator: TierBenefits(
     adFree: true,
@@ -299,12 +307,20 @@ const tierBenefits = <SubscriptionTier, TierBenefits>{
     offlineDownloadLimit: 500,
     supporterMark: SupporterMark.studio,
     creatorTools: true,
+    premiumThemes: true,
   ),
 };
 
 /// What one benefit line is about, so a screen can give each its own glyph
 /// without matching on the wording.
-enum BenefitKind { adFree, kawuri, offline, supporterMark, creatorTools }
+enum BenefitKind {
+  adFree,
+  kawuri,
+  offline,
+  supporterMark,
+  themes,
+  creatorTools,
+}
 
 /// The benefit lines shown on the membership screen for a tier, in reading
 /// order, each with what it is about.
@@ -326,6 +342,8 @@ List<(BenefitKind, String)> benefitRowsFor(SubscriptionTier tier) {
         BenefitKind.supporterMark,
         '${benefits.supporterMark.label} mark beside your name',
       ),
+    if (benefits.premiumThemes)
+      (BenefitKind.themes, 'Exclusive app themes, like Kente Gold'),
     if (benefits.creatorTools)
       (BenefitKind.creatorTools, 'Raised TribeStudio quotas and creator tools'),
   ];

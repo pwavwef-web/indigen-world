@@ -1,0 +1,63 @@
+<!doctype html>
+<meta charset="utf-8">
+<link rel="stylesheet" href="style.css">
+<style>
+  .copy { position: absolute; left: 72px; top: 60px; width: 560px; }
+  .pill { margin-top: 64px; }
+  h1 { margin-top: 26px; font-size: 64px; line-height: 1.02; font-weight: 800; letter-spacing: -1.4px; }
+  h1 span { color: #bcd2ff; }
+  p { margin-top: 22px; font-size: 22px; line-height: 1.42; color: rgba(255,255,255,0.8); }
+  .foot { position: absolute; left: 72px; bottom: 48px; font-size: 19px; font-weight: 700; color: #8eb4ff; letter-spacing: 0.3px; }
+
+  .doors { position: absolute; right: 66px; top: 92px; width: 440px; display: grid; gap: 26px; }
+  .door { padding: 28px 30px; display: flex; gap: 22px; align-items: center; }
+  .door:nth-child(1) { transform: rotate(-2deg) translateX(-18px); }
+  .door:nth-child(2) { transform: rotate(1.5deg) translateX(12px); }
+  .logo { flex: none; width: 76px; height: 76px; border-radius: 20px; display: grid; place-items: center; }
+  .logo svg { width: 44px; height: 44px; }
+  .play { background: #eef3ff; }
+  .pay { background: #e8f9ff; }
+  .label { font-size: 13px; font-weight: 800; letter-spacing: 1.6px; color: #1f50d6; text-transform: uppercase; }
+  .name { margin-top: 4px; font-size: 27px; font-weight: 800; color: #19327f; letter-spacing: -0.4px; }
+  .status { margin-top: 10px; display: flex; align-items: center; gap: 9px; font-size: 17px; font-weight: 700; color: #15803d; }
+  .status .check { width: 24px; height: 24px; font-size: 14px; }
+  .next { position: relative; margin: 6px 0 0 34px; padding: 18px 22px; border-radius: 18px;
+          background: rgba(255,255,255,0.1); border: 1px solid rgba(142,180,255,0.34);
+          font-size: 17px; line-height: 1.4; color: rgba(255,255,255,0.88); }
+  .next b { color: #fff; }
+</style>
+<div class="copy">
+  <div class="brand">
+    <svg viewBox="0 0 64 64"><path d="M15 47V23l17-9 17 9v24" fill="none" stroke="#8eb4ff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M24 44V29m8 15V24m8 20V29" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"/><circle cx="32" cy="14" r="4.4" fill="#22d3ee"/></svg>
+    Indigen World Updates
+  </div>
+  <div class="pill"><span class="dot"></span>Milestone</div>
+  <h1>Two doors<br><span>are open.</span></h1>
+  <p>Google Play production access and a live Paystack account. Now we make sure what walks through is ready.</p>
+</div>
+<div class="foot">Testing continues &middot; public launch still to come</div>
+
+<div class="doors">
+  <div class="card door">
+    <div class="logo play">
+      <svg viewBox="0 0 48 48"><path d="M12 6l26 18-26 18z" fill="none" stroke="#2f6bff" stroke-width="4" stroke-linejoin="round"/><path d="M12 6l16 18-16 18" fill="none" stroke="#22d3ee" stroke-width="3" stroke-linejoin="round"/></svg>
+    </div>
+    <div>
+      <div class="label">Google Play</div>
+      <div class="name">Production access</div>
+      <div class="status"><span class="check">&#10003;</span>Granted</div>
+    </div>
+  </div>
+  <div class="card door">
+    <div class="logo pay">
+      <svg viewBox="0 0 48 48"><rect x="5" y="11" width="38" height="26" rx="5" fill="none" stroke="#2f6bff" stroke-width="4"/><path d="M5 19h38" stroke="#22d3ee" stroke-width="4"/><path d="M12 30h9" stroke="#2f6bff" stroke-width="4" stroke-linecap="round"/></svg>
+    </div>
+    <div>
+      <div class="label">Paystack</div>
+      <div class="name">Payments account</div>
+      <div class="status"><span class="check">&#10003;</span>Activated</div>
+    </div>
+  </div>
+  <div class="next"><b>Next:</b> a public production release, a stable build, and a real payment tested end to end.</div>
+</div>
+<script>document.fonts.ready.then(() => { window.__ready = true; });</script>

@@ -29,6 +29,7 @@ class KawuriCapabilities {
     this.videoReferenceImage = false,
     this.videoNegativePrompt = false,
     this.videoQualityOptions = const [],
+    this.videoAudio = false,
     this.analysisIntentions = const [],
     this.transcriptionSeconds = 120,
     this.transcriptionBytes = 10 * 1024 * 1024,
@@ -59,6 +60,10 @@ class KawuriCapabilities {
   final bool videoReferenceImage;
   final bool videoNegativePrompt;
   final List<String> videoQualityOptions;
+
+  /// Whether the backend honours the sound switch. A backend that predates it
+  /// makes every video silent, so the switch is only offered when this is on.
+  final bool videoAudio;
   final List<String> analysisIntentions;
   final int transcriptionSeconds;
   final int transcriptionBytes;
@@ -108,6 +113,7 @@ class KawuriCapabilities {
       videoReferenceImage: raw['videoReferenceImage'] == true,
       videoNegativePrompt: raw['videoNegativePrompt'] == true,
       videoQualityOptions: _strings(raw['videoQualityOptions']),
+      videoAudio: raw['videoAudio'] == true,
       analysisIntentions: _strings(raw['analysisIntentions']),
       transcriptionSeconds: limit('transcriptionSeconds', 120),
       transcriptionBytes: limit('transcriptionBytes', 10 * 1024 * 1024),
@@ -353,6 +359,7 @@ class KawuriCreation {
     this.aspectRatio,
     this.duration,
     this.resolution,
+    this.generateAudio,
     this.progress,
     this.outputMedia = const [],
     this.sourceMedia = const [],
@@ -378,6 +385,10 @@ class KawuriCreation {
   final String? aspectRatio;
   final int? duration;
   final String? resolution;
+
+  /// Whether a video was asked for with sound. Null on images, and on videos
+  /// made before the switch existed — all of which were silent.
+  final bool? generateAudio;
 
   /// A percentage only when Vertex reported one. Null means "working", and the
   /// app shows an indeterminate indicator rather than a guess.
@@ -483,6 +494,7 @@ class KawuriCreation {
       aspectRatio: raw['aspectRatio'] as String?,
       duration: (raw['duration'] as num?)?.toInt(),
       resolution: raw['resolution'] as String?,
+      generateAudio: raw['generateAudio'] as bool?,
       progress: (raw['progress'] as num?)?.toInt(),
       outputMedia: media(raw['outputMedia']),
       sourceMedia: media(raw['sourceMedia']),
@@ -522,6 +534,7 @@ class KawuriCreation {
       aspectRatio: aspectRatio,
       duration: duration,
       resolution: resolution,
+      generateAudio: generateAudio,
       progress: progress,
       outputMedia: [
         for (final media in outputMedia)

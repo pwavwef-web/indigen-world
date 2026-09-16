@@ -24,7 +24,10 @@ import {
   imageDimensions,
   isListedTask,
   isOwnCreationPath,
+  isPersonGenerationRefusal,
   mediaDurationSeconds,
+  moderationMessage,
+  MODERATION_INSTRUCTION,
   newTaskRecord,
   normaliseMimeType,
   parseAnalysisRequest,
@@ -50,7 +53,9 @@ import {
   generateImage,
   generateStructured,
   locationOfOperation,
+  notePersonSettingRefused,
   pollVideo,
+  refusedPersonSettings,
   screenGenerationRequest,
   setGenAiFactoryForTests,
   startVideo,
@@ -115,6 +120,7 @@ test('capabilities advertise only what configuration and eligibility support', (
   assert.deepEqual(signedIn.videoAspectRatios, ['9:16', '16:9']);
   assert.deepEqual(signedIn.videoDurations, [4, 6, 8]);
   assert.deepEqual(signedIn.videoQualityOptions, ['fast']);
+  assert.equal(signedIn.videoAudio, true, 'the app may offer the sound switch');
   assert.deepEqual(signedIn.imageOutputCounts, [1]);
 
   const guest = buildCapabilities({
@@ -241,6 +247,9 @@ test('video requests require explicit spend confirmation and the model’s own o
   const ok = parseVideoGenerationRequest(base, uid, [4, 6, 8]);
   assert.equal(ok.resolution, '720p', 'defaults to the first resolution for the shape');
   assert.equal(ok.quality, 'fast');
+  assert.equal(ok.generateAudio, false, 'an app that never sent the flag promised its member silence');
+  assert.equal(parseVideoGenerationRequest({ ...base, generateAudio: true }, uid, [4, 6, 8]).generateAudio, true);
+  assert.equal(parseVideoGenerationRequest({ ...base, generateAudio: 'yes' }, uid, [4, 6, 8]).generateAudio, false, 'only an explicit true');
   assert.equal(parseVideoGenerationRequest({ ...base, resolution: '1080p' }, uid, [4, 6, 8]).resolution, '1080p');
 
   assert.equal(reasonFrom(() => parseVideoGenerationRequest({ ...base, confirmSpend: false }, uid, [4, 6, 8])), 'CONFIRMATION_REQUIRED');
@@ -359,6 +368,24 @@ test('the pre-generation screen fails closed', () => {
   assert.equal(reasonFrom(() => readModeration({ category: 'none' })), 'GENERATION_FAILED');
 });
 
+test('children may appear in ordinary scenes; harm and sexualisation stay refused', () => {
+  assert.match(MODERATION_INSTRUCTION, /Children are welcome in ordinary scenes/);
+  assert.match(MODERATION_INSTRUCTION, /invented characters of any age/);
+  assert.match(MODERATION_INSTRUCTION, /A child in the scene is not by itself a reason to refuse/);
+  // The rule that remains is about harm, not presence.
+  assert.match(MODERATION_INSTRUCTION, /child in a sexual, suggestive, revealing or romantic context, or being harmed, abused, endangered/);
+  assert.doesNotMatch(MODERATION_INSTRUCTION, /anyone who appears to be a child \(minor\)/);
+  assert.doesNotMatch(moderationMessage('minor'), /does not create images or videos of children\./);
+  assert.match(moderationMessage('minor'), /never in sexual, violent, abusive or frightening scenes/);
+});
+
+test('a refused person-generation setting is told apart from a refused prompt', () => {
+  assert.equal(isPersonGenerationRefusal('personGeneration allow_all is not supported for this project'), true);
+  assert.equal(isPersonGenerationRefusal('Your project is not on the allowlist for this feature'), true);
+  assert.equal(isPersonGenerationRefusal('The prompt violates our usage guidelines'), false);
+  assert.equal(isPersonGenerationRefusal('durationSeconds must be 4, 6 or 8'), false);
+});
+
 test('transcripts: English enforced on what was spoken, and unclear speech is kept, not invented', () => {
   const result = validateTranscript({ transcript: ' Hello there. ', language: 'en', unclearSegments: ['[unclear] after hello'] }, 4.4);
   assert.deepEqual(result, { transcript: 'Hello there.', language: 'en', unclearSegments: ['[unclear] after hello'], durationSeconds: 4 });
@@ -462,7 +489,7 @@ test('an unavailable image model falls back to the next, and is remembered', asy
   const request = calls[0][1];
   assert.deepEqual(request.config.responseModalities, ['IMAGE']);
   assert.equal(request.config.imageConfig.aspectRatio, '1:1');
-  assert.equal(request.config.imageConfig.personGeneration, 'ALLOW_ADULT');
+  assert.equal(request.config.imageConfig.personGeneration, 'ALLOW_ALL', 'people of every age are asked for first');
   assert.equal(request.config.httpOptions.retryOptions, undefined, 'a generation is never retried by the SDK');
   assert.equal(request.config.labels.feature, 'kawuri');
 });
@@ -492,10 +519,12 @@ test('video start returns the full operation name, and status checks resume from
   const started = await startVideo({
     project: 'p', location: 'us-central1', model: 'veo-3.1-fast-generate-001', prompt: 'x', negativePrompt: 'text',
     aspectRatio: '9:16', durationSeconds: 4, resolution: '720p', image: { mimeType: 'image/png', base64: 'AAAA' },
+    generateAudio: true,
   });
   assert.equal(started.operationName, name);
   const [, request] = calls[0];
-  assert.equal(request.config.generateAudio, false);
+  assert.equal(request.config.generateAudio, true, 'the member asked for sound');
+  assert.equal(request.config.personGeneration, 'allow_all');
   assert.equal(request.config.numberOfVideos, 1);
   assert.equal(request.config.negativePrompt, 'text');
   assert.deepEqual(request.source.image, { imageBytes: 'AAAA', mimeType: 'image/png' });
@@ -509,6 +538,55 @@ test('video start returns the full operation name, and status checks resume from
   assert.equal(outcome.state, 'succeeded');
   assert.equal(recovered[0][1].operation.name, name);
   assert.ok(recovered[0][1].config.httpOptions.retryOptions, 'status checks may retry');
+});
+
+test('a refused person setting steps down to adults-only, once, and is remembered', async () => {
+  const calls = fakeClient({
+    generateContent: async (params) => {
+      if (params.config.imageConfig.personGeneration === 'ALLOW_ALL') {
+        throw Object.assign(new Error('personGeneration ALLOW_ALL is not supported for this model'), { status: 400 });
+      }
+      return { candidates: [{ finishReason: 'STOP', content: { parts: [{ inlineData: { mimeType: 'image/png', data: 'AAAA' } }] } }] };
+    },
+  });
+  const input = { project: 'p', location: 'global', models: ['gemini-3.1-flash-image'], prompt: 'a family at dusk', aspectRatio: '4:3', reference: null };
+  const first = await generateImage(input);
+  assert.equal(first.outcome.kind, 'images');
+  assert.deepEqual(calls.map(([, params]) => params.config.imageConfig.personGeneration), ['ALLOW_ALL', 'ALLOW_ADULT']);
+  assert.equal(unhealthyModels().size, 0, 'a refused setting is not a sick model');
+  assert.ok(refusedPersonSettings('image_generation').has('ALLOW_ALL'));
+
+  calls.length = 0;
+  await generateImage(input);
+  assert.deepEqual(calls.map(([, params]) => params.config.imageConfig.personGeneration), ['ALLOW_ADULT'], 'the next request goes straight to what works');
+
+  // A prompt refusal is not a settings problem and is never retried.
+  const refused = fakeClient({
+    generateContent: async () => { throw Object.assign(new Error('The prompt violates usage guidelines'), { status: 400 }); },
+  });
+  await assert.rejects(generateImage({ ...input, models: ['gemini-3.1-flash-image'] }), (error) => reasonOf(error) === 'SAFETY_REJECTED');
+  assert.equal(refused.length, 1);
+});
+
+test('a video that Vertex refuses for its person setting marks allow_all refused', async () => {
+  const name = 'projects/p/locations/us-central1/publishers/google/models/veo-3.1-fast-generate-001/operations/kids';
+  fakeClient({
+    getVideosOperation: async () => ({ name, done: true, error: { code: 3, message: 'personGeneration allow_all requires allowlist approval' } }),
+  });
+  const outcome = await pollVideo({ project: 'p', fallbackLocation: 'us-central1', operationName: name });
+  assert.equal(outcome.state, 'failed');
+  assert.equal(outcome.personGenerationRefused, true);
+  assert.ok(refusedPersonSettings('video_generation').has('allow_all'));
+
+  const calls = fakeClient({ generateVideos: async () => ({ name }) });
+  // A fresh factory clears memory in tests; mark it again as a real instance would still hold it.
+  notePersonSettingRefused('video_generation', 'allow_all');
+  await startVideo({
+    project: 'p', location: 'us-central1', model: 'veo-3.1-fast-generate-001', prompt: 'x', negativePrompt: '',
+    aspectRatio: '16:9', durationSeconds: 4, resolution: '720p', image: null, generateAudio: false,
+  });
+  assert.equal(calls[0][1].config.personGeneration, 'allow_adult');
+  assert.equal(calls[0][1].config.generateAudio, false);
 });
 
 test('the screen refuses before any generation and says why', async () => {
@@ -574,9 +652,9 @@ test('task records carry the shared shape, and the app never sees internals', ()
   const record = newTaskRecord({
     id: `${uid}_req_00000001`, uid, type: 'video_generation', requestId: 'req_00000001', conversationId: 'c1',
     status: 'queued', model: 'veo-3.1-fast-generate-001', prompt: 'Festival story', aspectRatio: '9:16', duration: 8,
-    resolution: '720p', now: '2026-09-14T10:00:00.000Z',
+    resolution: '720p', generateAudio: true, now: '2026-09-14T10:00:00.000Z',
   });
-  for (const key of ['id', 'userId', 'conversationId', 'type', 'status', 'model', 'provider', 'prompt', 'negativePrompt', 'sourceMedia', 'outputMedia', 'operationName', 'progress', 'aspectRatio', 'duration', 'language', 'errorCode', 'errorMessage', 'moderationStatus', 'createdAt', 'updatedAt', 'completedAt']) {
+  for (const key of ['id', 'userId', 'conversationId', 'type', 'status', 'model', 'provider', 'prompt', 'negativePrompt', 'sourceMedia', 'outputMedia', 'operationName', 'progress', 'aspectRatio', 'duration', 'generateAudio', 'language', 'errorCode', 'errorMessage', 'moderationStatus', 'createdAt', 'updatedAt', 'completedAt']) {
     assert.ok(key in record, key);
   }
   assert.equal(record.provider, 'vertex');
@@ -586,6 +664,7 @@ test('task records carry the shared shape, and the app never sees internals', ()
 
   const shown = publicTask({ ...record, operationName: 'projects/p/locations/l/operations/secret', advanceLeaseUntil: 'x', billed: true, billableAttempts: 1, estimatedCostCents: 120 });
   assert.equal(shown.operationName, true, 'the app learns an operation exists, not its name');
+  assert.equal(shown.generateAudio, true);
   for (const hidden of ['advanceLeaseUntil', 'billed', 'billableAttempts', 'estimatedCostCents', 'requestId']) {
     assert.equal(hidden in shown, false, hidden);
   }
