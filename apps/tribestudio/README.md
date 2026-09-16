@@ -70,10 +70,25 @@ VITE_USE_EMULATORS=true npm run dev --workspace @indigen-world/tribestudio
 npm run build:tribestudio     # from the repo root
 ```
 
-Production builds must set `VITE_RECAPTCHA_ENTERPRISE_SITE_KEY` to the web key
-registered for this app in Firebase App Check. Callable Functions reject
-production requests without a valid App Check token. Copy `.env.example` for
-the supported environment variable names; never put private credentials there.
+App Check is currently not enforced in the project. If it is enabled later,
+production builds must set `VITE_RECAPTCHA_ENTERPRISE_SITE_KEY` to this app's
+public web key or protected callables will reject requests. Copy `.env.example`
+for the supported variable names; never put private credentials there.
+
+## Install and offline behavior
+
+TribeStudio is installable on supported desktop and mobile browsers. Visit the
+production HTTPS site and use the browser's Install/Add to Home Screen action.
+The manifest opens `/studio` in a standalone window. Icons are derived from the
+existing SVG product mark; regenerate them after changing the mark with
+`npm run icons --workspace @indigen-world/tribestudio`.
+
+The service worker caches only public, fingerprinted build assets and a small
+offline fallback page. A fresh navigation without a connection shows that page.
+An already open draft tab can continue its in-memory writing and reconnect
+behavior; do not close it until it saves. Account data, uploads, Firebase APIs,
+and authenticated HTML are never cached by the worker. Uploading, publishing,
+and starting a fresh workspace session require a connection.
 
 ## Deploy
 
@@ -83,7 +98,10 @@ Served by the `tribestudio` Hosting site; production custom domain
 full site/domain map.
 
 ```bash
-firebase deploy --only hosting:tribestudio
+npm run build --workspace @indigen-world/console-ui
+npm run check --workspace @indigen-world/tribestudio
+# Commit and push to main before deploying; the Hosting predeploy verifies origin/main.
+firebase deploy --only hosting:tribestudio --project project-kassena-7e026
 ```
 
 ## Project Kassena

@@ -196,7 +196,9 @@ test('microphone permission resolving after unmount releases the new stream', as
 test('hosting permits the site to request microphone access', () => {
   const hosting = JSON.parse(readFileSync(resolve(root, '../../firebase.json'), 'utf8')).hosting;
   const studio = hosting.find((site) => site.site === 'tribestudio');
-  assert.ok(studio.headers[0].headers.find((header) => header.key === 'Permissions-Policy').value.includes('microphone=(self)'));
+  const policy = studio.headers.flatMap((route) => route.headers)
+    .find((header) => header.key === 'Permissions-Policy');
+  assert.ok(policy?.value.includes('microphone=(self)'));
 });
 
 test('dictionary lookup requests published rows and rejects restricted submissions before calling backend', async () => {

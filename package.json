@@ -35,6 +35,7 @@
     "deploy:kasena-dictionary": "firebase deploy --only hosting:kasem-dictionary --project project-kassena-7e026",
     "build:admin": "npm run build --workspace @indigen-world/admin",
     "build:tribestudio": "npm run build --workspace @indigen-world/tribestudio",
+    "deploy:tribestudio": "firebase deploy --only hosting:tribestudio --project project-kassena-7e026",
     "build:team-francis-pwavwe": "npm run build --workspace @indigen-world/team-francis-pwavwe",
     "build:functions": "npm run build --workspace @indigen-world/functions",
     "build:mobile-aab": "node scripts/build-mobile-aab.mjs",

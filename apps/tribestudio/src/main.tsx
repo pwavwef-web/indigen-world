@@ -9,6 +9,16 @@ import './creator/studio-shell.css';
 // status treatments settle over anything a page stylesheet declared first.
 import '@indigen-world/console-ui/kit.css';
 
+// Only the production site installs a worker. Local Vite development must
+// never inherit an old worker that intercepts hot module reloads.
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    void navigator.serviceWorker.register('/sw.js').catch(() => {
+      // The web app remains usable in browsers that block worker registration.
+    });
+  });
+}
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <App />
