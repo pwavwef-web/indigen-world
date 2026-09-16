@@ -6,6 +6,7 @@ import { Footer } from "./components/Footer";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { RouteLoader } from "./components/RouteLoader";
 import { PAGE_COMPONENTS, NotFoundPage } from "./pages";
+import { ROUTES_BY_PATH } from "./content/navigation";
 
 export function App() {
   const { path } = useRoute();
@@ -34,12 +35,14 @@ export function App() {
   }, []);
 
   const PageComponent = PAGE_COMPONENTS[path] ?? NotFoundPage;
+  // Full-screen experiences bring their own way back; the site chrome steps aside.
+  const immersive = PAGE_COMPONENTS[path] !== undefined && ROUTES_BY_PATH[path]?.immersive === true;
 
   return (
     <ToastProvider>
       <a className="skip-link" href="#main-content">Skip to main content</a>
-      <div className="site-shell">
-        <Header />
+      <div className={immersive ? "site-shell site-shell--immersive" : "site-shell"}>
+        {immersive ? null : <Header />}
         <main id="main-content" tabIndex={-1}>
           <ErrorBoundary resetKey={path}>
             <Suspense fallback={<RouteLoader />}>
@@ -47,7 +50,7 @@ export function App() {
             </Suspense>
           </ErrorBoundary>
         </main>
-        <Footer />
+        {immersive ? null : <Footer />}
 
         {/* Keyboard Shortcuts Cheatsheet Modal */}
         <Modal

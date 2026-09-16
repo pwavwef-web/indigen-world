@@ -20,6 +20,11 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
 
+  // Audio and video stream in byte ranges and run to megabytes; let the browser
+  // fetch them itself rather than copying whole files into this cache.
+  const destination = event.request.destination;
+  if (event.request.headers.has('range') || destination === 'audio' || destination === 'video') return;
+
   // Network-first for all requests: always fetch latest from network
   event.respondWith(
     fetch(event.request)

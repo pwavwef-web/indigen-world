@@ -18,15 +18,21 @@ export type IconName =
   | "context"
   | "globe"
   | "layers"
+  | "maximize"
   | "menu"
+  | "minimize"
   | "mobile"
+  | "pause"
   | "pin"
+  | "play"
+  | "replay"
   | "search"
   | "shield"
   | "source"
   | "studio"
   | "translate"
   | "volume"
+  | "volume-off"
   | "x";
 
 export function Icon({ name, size = 22 }: { name: IconName; size?: number }) {
@@ -115,10 +121,22 @@ export function Icon({ name, size = 22 }: { name: IconName; size?: number }) {
           <path d="m3 17 9 5 9-5" />
         </svg>
       );
+    case "maximize":
+      return (
+        <svg {...shared}>
+          <path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3" />
+        </svg>
+      );
     case "menu":
       return (
         <svg {...shared}>
           <path d="M4 7h16M4 12h16M4 17h16" />
+        </svg>
+      );
+    case "minimize":
+      return (
+        <svg {...shared}>
+          <path d="M8 3v3a2 2 0 0 1-2 2H3M16 3v3a2 2 0 0 0 2 2h3M8 21v-3a2 2 0 0 0-2-2H3M16 21v-3a2 2 0 0 1 2-2h3" />
         </svg>
       );
     case "mobile":
@@ -128,11 +146,31 @@ export function Icon({ name, size = 22 }: { name: IconName; size?: number }) {
           <path d="M10 18h4" />
         </svg>
       );
+    case "pause":
+      return (
+        <svg {...shared} fill="currentColor" stroke="none">
+          <rect x="6.5" y="4.5" width="4" height="15" rx="1.2" />
+          <rect x="13.5" y="4.5" width="4" height="15" rx="1.2" />
+        </svg>
+      );
     case "pin":
       return (
         <svg {...shared}>
           <path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0z" />
           <circle cx="12" cy="10" r="2.5" />
+        </svg>
+      );
+    case "play":
+      return (
+        <svg {...shared} fill="currentColor" stroke="none">
+          <path d="M8 5.2v13.6a1 1 0 0 0 1.52.85l11.1-6.8a1 1 0 0 0 0-1.7L9.52 4.35A1 1 0 0 0 8 5.2z" />
+        </svg>
+      );
+    case "replay":
+      return (
+        <svg {...shared}>
+          <path d="M3 12a9 9 0 1 0 3-6.7" />
+          <path d="M3 4v5h5" />
         </svg>
       );
     case "search":
@@ -178,6 +216,13 @@ export function Icon({ name, size = 22 }: { name: IconName; size?: number }) {
         <svg {...shared}>
           <path d="M11 5 6 9H2v6h4l5 4z" />
           <path d="M15 9a4 4 0 0 1 0 6M18 6a8 8 0 0 1 0 12" />
+        </svg>
+      );
+    case "volume-off":
+      return (
+        <svg {...shared}>
+          <path d="M11 5 6 9H2v6h4l5 4z" />
+          <path d="m16 9 5 6M21 9l-5 6" />
         </svg>
       );
     case "x":

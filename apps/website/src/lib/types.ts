@@ -63,6 +63,15 @@ export interface AppRoute {
   description: string;
   /** Exclude utility and transactional routes from search indexing. */
   noindex?: boolean;
+  /**
+   * A full-screen experience that brings its own navigation: the site header
+   * and footer are not drawn around it.
+   */
+  immersive?: boolean;
+  /** Link-preview artwork for this route (site-relative), instead of the site default. */
+  ogImage?: string;
+  /** Describes `ogImage` for people who cannot see it. */
+  ogImageAlt?: string;
 }
 
 /**

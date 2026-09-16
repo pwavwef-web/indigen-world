@@ -19,6 +19,9 @@ Indigen World
 |       +-- Privacy              /privacy
 |       +-- Terms                /terms
 |
++-- Experiences (shared by link, full screen)
+|   +-- Beyond the Reef          /beyond-the-reef
+|
 +-- Utility routes (not indexed)
     +-- Advert checkout result   /ads/payment-complete
     +-- Page not found           any unknown path
@@ -38,6 +41,7 @@ Indigen World
 | Contact | `/contact` | Handle general, correction, publication and takedown enquiries | Footer | Included |
 | Privacy | `/privacy` | Explain privacy practices | Footer | Included |
 | Terms | `/terms` | Explain terms of use | Footer | Included |
+| Beyond the Reef | `/beyond-the-reef` | The song as an interactive music film: synchronised rising lyrics over generated imagery and footage | Shared links; not in the header or footer | Included |
 | Advert checkout result | `/ads/payment-complete` | Return advertisers from Paystack checkout | Transactional redirect only | Excluded (`noindex`) |
 | Page not found | Any unknown path | Recover from an invalid or retired URL | Direct invalid URL only | Excluded (`noindex`) |
 

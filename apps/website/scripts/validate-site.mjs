@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 
 const root = resolve(import.meta.dirname, "..");
@@ -16,6 +16,7 @@ const routes = [
   ["/contact", "ContactPage.tsx"],
   ["/privacy", "PrivacyPage.tsx"],
   ["/terms", "TermsPage.tsx"],
+  ["/beyond-the-reef", "BeyondTheReefPage.tsx"],
 ];
 
 const pageIndex = read("src/pages/index.ts");
@@ -172,4 +173,98 @@ assert.match(communityData, /community\.isPrivate \? \[\] : await recentPublicPo
 assert.ok(!communityData.includes("memberships"), "the community page never reads a member list");
 assert.match(communityPage, /status === "closed"/, "a closed or removed community is explained, not shown");
 
-console.log(`Validated ${routes.length} public routes, the shared post and community link chains, and core privacy/safety invariants.`);
+// ── Beyond the Reef ─────────────────────────────────────────────────────────
+// The song is the clock. These hold the promises the experience makes: the
+// words are the ones written, times run forward, the film covers the whole
+// song with media that exists, nothing plays sound on arrival, and nothing
+// generative runs in a visitor's browser.
+{
+  const feature = "src/features/beyond-the-reef";
+  const reefPage = read("src/pages/BeyondTheReefPage.tsx");
+  const lyricsSource = read(`${feature}/lyrics.ts`);
+  const scenesSource = read(`${feature}/scenes.ts`);
+  const stageSource = read(`${feature}/VisualStage.tsx`);
+  const playerSource = read(`${feature}/useSongPlayer.ts`);
+  const publicRoot = resolve(root, "public");
+
+  // The words, exactly as written in the lyric sheet, in order.
+  const written = read("scripts/beyond-the-reef/lyrics.txt")
+    .replace(/\r\n/g, "\n")
+    .split("\n")
+    .map((line) => line.trimEnd())
+    .filter((line) => line.trim() !== "" && !/^\[.+\]$/.test(line.trim()));
+  const timed = [...lyricsSource.matchAll(/\{ start: ([\d.]+), end: ([\d.]+), section: "[^"]*", stanza: \d+, text: ("(?:[^"\\]|\\.)*") \}/g)].map(
+    (match) => ({ start: Number(match[1]), end: Number(match[2]), text: JSON.parse(match[3]) })
+  );
+  const duration = Number(/SONG_DURATION = ([\d.]+)/.exec(lyricsSource)?.[1]);
+  assert.equal(timed.length, written.length, "every written lyric line has a timing");
+  timed.forEach((line, index) => {
+    assert.equal(line.text, written[index], `lyric ${index} is word-for-word the written line`);
+    assert.ok(line.end > line.start, `lyric ${index} ends after it starts`);
+    if (index > 0) assert.ok(line.start > timed[index - 1].start, `lyric ${index} starts after lyric ${index - 1}`);
+  });
+  assert.ok(timed.at(-1).end <= duration, "the last lyric ends inside the recording");
+
+  // Shots follow one another without gaps and run to the end of the song.
+  const shots = [...scenesSource.matchAll(/\{ id: "([^"]+)", start: ([\d.]+), end: ([\d.]+),/g)].map((match) => ({
+    id: match[1],
+    start: Number(match[2]),
+    end: Number(match[3]),
+  }));
+  assert.ok(shots.length >= 12, "the visual timeline has its shots");
+  assert.equal(shots[0].start, 0, "the film starts with the song");
+  shots.forEach((shot, index) => {
+    assert.ok(shot.end > shot.start, `shot ${shot.id} has a length`);
+    if (index > 0) assert.equal(shot.start, shots[index - 1].end, `shot ${shot.id} begins where ${shots[index - 1].id} ends`);
+  });
+  assert.ok(shots.at(-1).end >= duration, "the last shot runs to the end of the song");
+
+  // Every file the film names ships, and nothing unused ships beside it.
+  const clipIds = [...scenesSource.matchAll(/clip\("([^"]+)"\)/g)].map((match) => match[1]);
+  const imageIds = [...scenesSource.matchAll(/image\("([^"]+)"\)/g)].map((match) => match[1]);
+  const referenced = new Set([
+    "beyond-the-reef/audio/beyond-the-reef.m4a",
+    "beyond-the-reef/audio/beyond-the-reef.mp3",
+    "beyond-the-reef/images/social-cover.jpg",
+    "beyond-the-reef/images/cover-512.jpg",
+    ...imageIds.map((id) => `beyond-the-reef/images/${id}.webp`),
+    ...clipIds.flatMap((id) => [
+      `beyond-the-reef/video/${id}.webm`,
+      `beyond-the-reef/video/${id}.mp4`,
+      `beyond-the-reef/images/${id}-start.webp`,
+      `beyond-the-reef/images/${id}-end.webp`,
+    ]),
+  ]);
+  for (const file of referenced) {
+    assert.ok(existsSync(resolve(publicRoot, file)), `${file} exists`);
+  }
+  const shipped = readdirSync(resolve(publicRoot, "beyond-the-reef"), { recursive: true })
+    .map((entry) => `beyond-the-reef/${String(entry).replace(/\\/g, "/")}`)
+    .filter((entry) => /\.[a-z0-9]+$/i.test(entry));
+  for (const file of shipped) {
+    assert.ok(referenced.has(file), `${file} is used by the page (unused media is not shipped)`);
+  }
+
+  // Sound only on request; everything is driven by the audio element's clock.
+  assert.match(reefPage, /<audio ref=\{player\.audioRef\} preload="metadata">/, "the song loads without autoplay");
+  assert.match(scenesSource, /beyond-the-reef\.m4a`, type: 'audio\/mp4; codecs="mp4a\.6B"' \},\s*\{ src: `\$\{MEDIA_ROOT\}\/audio\/beyond-the-reef\.mp3`/, "the exactly-seekable remux plays first, the original MP3 after");
+  assert.ok(!/<audio[^>]*autoPlay/.test(reefPage), "the song never autoplays");
+  assert.match(reefPage, /Begin the Journey/, "the opening screen offers to begin");
+  assert.match(reefPage, /<video[\s\S]*?muted[\s\S]*?playsInline/, "the opening loop is silent and inline");
+  assert.match(playerSource, /audio\.currentTime/, "the player reads the audio element's own position");
+  assert.ok(!/setInterval/.test(playerSource + stageSource + read(`${feature}/LyricStream.tsx`)), "no independent timers drive lyrics or visuals");
+  assert.match(stageSource, /muted[\s\S]*?playsInline/, "film clips are silent and inline");
+  assert.match(reefPage, /usePrefersReducedMotion/, "the experience honours reduced motion");
+  assert.match(read("src/styles/beyond-the-reef.css"), /prefers-reduced-motion: reduce/, "reduced motion has its own styles");
+  assert.match(reefPage, /aria-live="polite"/, "the sung line is announced to assistive technology");
+  assert.ok(!/@google\/genai|generativelanguage|aiplatform/.test(reefPage + scenesSource + stageSource + playerSource), "visitors never call a generative AI service");
+
+  // Route, sharing and delivery.
+  assert.match(navigationSource, /path: "beyond-the-reef",[\s\S]*?immersive: true,[\s\S]*?ogImage: "\/beyond-the-reef\/images\/social-cover\.jpg"/, "the film is an immersive route with its own link preview");
+  assert.match(app, /ROUTES_BY_PATH\[path\]\?\.immersive === true/, "immersive routes step outside the site chrome");
+  assert.match(read("scripts/prerender-meta.mjs"), /property="og:image"/, "prerendered pages carry their own link preview image");
+  assert.match(read("public/sw.js"), /headers\.has\('range'\)/, "the service worker leaves streamed media to the browser");
+  assert.match(websiteHosting, /"source":\s*"\/beyond-the-reef\/\*\*\/\*\.@\(m4a\|mp3\|mp4\|webm\|webp\|jpg\)"/, "film media is cached by browsers");
+}
+
+console.log(`Validated ${routes.length} public routes, the shared post and community link chains, the Beyond the Reef film, and core privacy/safety invariants.`);

@@ -61,6 +61,11 @@ export const PAGE_COMPONENTS: Record<string, LazyPage> = {
       default: CommunityPage,
     }))
   ),
+  "beyond-the-reef": lazy(() =>
+    withRouteLoadingTiming(import("./BeyondTheReefPage")).then(({ BeyondTheReefPage }) => ({
+      default: BeyondTheReefPage,
+    }))
+  ),
   "ads/payment-complete": lazy(() =>
     withRouteLoadingTiming(import("./AdsPaymentCompletePage")).then(
       ({ AdsPaymentCompletePage }) => ({ default: AdsPaymentCompletePage })

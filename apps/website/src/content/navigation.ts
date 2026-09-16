@@ -79,6 +79,18 @@ export const ROUTES: AppRoute[] = [
     description: "Indigen World's terms of use.",
   },
   {
+    // The song as an interactive music film. No navLabel: it is shared and
+    // linked to rather than browsed to, and it replaces the site chrome with
+    // its own full-screen stage.
+    path: "beyond-the-reef",
+    title: "Beyond the Reef",
+    description:
+      "An interactive music film: the song Beyond the Reef with rising, synchronised lyrics and a journey from the shore to the open sea.",
+    immersive: true,
+    ogImage: "/beyond-the-reef/images/social-cover.jpg",
+    ogImageAlt: "A small wooden outrigger canoe sailing through a gap in a coral reef at sunrise, with the title Beyond the Reef",
+  },
+  {
     // Where a post shared out of the app lands. No navLabel: it is only ever
     // reached by following a link, never by browsing the site.
     //

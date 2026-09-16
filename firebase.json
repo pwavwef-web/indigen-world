@@ -49,6 +49,12 @@
           ]
         },
         {
+          "source": "/beyond-the-reef/**/*.@(m4a|mp3|mp4|webm|webp|jpg)",
+          "headers": [
+            { "key": "Cache-Control", "value": "public, max-age=604800" }
+          ]
+        },
+        {
           "source": "/.well-known/apple-app-site-association",
           "headers": [
             { "key": "Content-Type", "value": "application/json" },

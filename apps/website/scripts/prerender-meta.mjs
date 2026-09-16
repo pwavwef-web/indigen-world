@@ -31,21 +31,42 @@ const NOT_FOUND_ROUTE = {
   noindex: true,
 };
 
-/** Parse ROUTES (path, title, description, noindex) out of the app's navigation source. */
+/**
+ * Parse ROUTES out of the app's navigation source: path, title, description,
+ * noindex, and an optional per-route link preview (ogImage, ogImageAlt).
+ *
+ * Each route's text runs from its `path:` to the next one, so optional fields
+ * can sit in any order without one regex having to anticipate all of them.
+ */
 function readRoutes() {
   const source = readFileSync(resolve(root, "src/content/navigation.ts"), "utf8");
-  const pattern =
-    /path:\s*"([^"]+)",[\s\S]*?title:\s*"([^"]+)",\s*description:\s*"((?:[^"\\]|\\.)*)"(?:,\s*noindex:\s*(true|false))?/g;
-  const routes = [];
-  let match;
-  while ((match = pattern.exec(source)) !== null) {
-    routes.push({
-      path: match[1],
-      title: match[2],
-      description: match[3],
-      noindex: match[4] === "true",
-    });
+  const start = source.indexOf("export const ROUTES");
+  const end = source.indexOf("\n];", start);
+  if (start < 0 || end < 0) {
+    throw new Error("prerender-meta: ROUTES array not found in navigation.ts");
   }
+  const block = source.slice(start, end);
+  const stringField = (text, key) => {
+    const match = new RegExp(`\\b${key}:\\s*"((?:[^"\\\\]|\\\\.)*)"`).exec(text);
+    return match ? match[1] : undefined;
+  };
+  const heads = [...block.matchAll(/\bpath:\s*"([^"]+)"/g)];
+  const routes = heads.map((head, index) => {
+    const body = block.slice(head.index, index + 1 < heads.length ? heads[index + 1].index : block.length);
+    const title = stringField(body, "title");
+    const description = stringField(body, "description");
+    if (!title || !description) {
+      throw new Error(`prerender-meta: route "${head[1]}" needs a title and a description`);
+    }
+    return {
+      path: head[1],
+      title,
+      description,
+      noindex: /\bnoindex:\s*true/.test(body),
+      ogImage: stringField(body, "ogImage"),
+      ogImageAlt: stringField(body, "ogImageAlt"),
+    };
+  });
   if (routes.length === 0) {
     throw new Error("prerender-meta: no routes parsed from navigation.ts");
   }
@@ -101,6 +122,17 @@ function renderRoute(baseHtml, route) {
     html = html.replace(/\s*<link\b[^>]*rel="canonical"[^>]*\/?\s*>/, "");
   } else {
     html = replaceAttr(html, 'rel="canonical"', "href", url);
+  }
+  if (route.ogImage) {
+    const image = new URL(route.ogImage, `${siteOrigin}/`).href;
+    const type = /\.png$/i.test(route.ogImage) ? "image/png" : /\.webp$/i.test(route.ogImage) ? "image/webp" : "image/jpeg";
+    html = replaceAttr(html, 'property="og:image"', "content", image);
+    html = replaceAttr(html, 'property="og:image:type"', "content", type);
+    html = replaceAttr(html, 'name="twitter:image"', "content", image);
+    if (route.ogImageAlt) {
+      html = replaceAttr(html, 'property="og:image:alt"', "content", route.ogImageAlt);
+      html = replaceAttr(html, 'name="twitter:image:alt"', "content", route.ogImageAlt);
+    }
   }
   return html;
 }

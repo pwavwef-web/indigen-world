@@ -54,6 +54,8 @@ client.
 - `/get-involved` — contributor, validator, school, research, diaspora, sponsor and volunteer routes
 - `/contact` — privacy-aware general, publication, correction and takedown route
 - `/privacy` and `/terms` — plain-language implementation summaries pending legal approval
+- `/beyond-the-reef` — the song as a full-screen interactive music film (no site header or footer);
+  its media pipeline is documented in [`scripts/beyond-the-reef/README.md`](scripts/beyond-the-reef/README.md)
 
 See the [human-readable website sitemap](../../docs/product/website-sitemap.md) for the page
 hierarchy, discovery paths, indexing policy and primary visitor journeys.
