@@ -1,0 +1,14 @@
+<!doctype html>
+<meta charset="utf-8">
+<link rel="stylesheet" href="style.css">
+<style>
+  .card { width: 1180px; border-radius: 30px; }
+  .column { gap: 44px; }
+</style>
+<div class="stage">
+  <div class="column">
+    <div class="card"><img src="../screens/desktop-feedback.png" alt=""></div>
+    <span class="pill amber"><span class="dot"></span>Needs revision &rarr; edit &rarr; resubmit</span>
+  </div>
+</div>
+<script>Promise.all([...document.images].map((i) => i.decode().catch(() => {}))).then(() => document.fonts.ready).then(() => { window.__ready = true; });</script>
