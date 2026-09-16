@@ -801,7 +801,7 @@ export const decideSubmission = onCall(
             const englishText = asString(submission.title, 180).trim();
             const senses = sensesOrLegacy({
               senses: parseSenses(submission.senses),
-              translations: parseTranslations(englishText),
+              translations: submission.contributorPortal ? [englishText] : parseTranslations(englishText),
               kasemExample: asString(submission.kasemExample, 4000).trim(),
               englishExample: asString(submission.englishExample, 4000).trim(),
               kasemDefinition: parseProse(
@@ -920,6 +920,7 @@ export const decideSubmission = onCall(
                 : {}),
               ...(alsoUsedAs.length > 0 ? { alsoUsedAs } : {}),
               lexicalKind: submissionLexicalKind(submission),
+              ...(submission.contributorPortal ? { contentKind: 'expression', alternativeExpressions: submission.alternativeExpressions ?? [] } : {}),
               // Written only when the senses say more than the flat gloss
               // already says. One sense carrying nothing but a definition that
               // is already in `englishText` is the legacy shape wearing a new

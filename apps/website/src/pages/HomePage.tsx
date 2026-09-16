@@ -4,6 +4,7 @@ import { ROUTES_BY_PATH } from "../content/navigation";
 import { IMPACT_TARGETS } from "../content/kasena";
 import { Button } from "../components/Button";
 import { SectionHeading } from "../components/SectionHeading";
+import { LatestUpdates } from "../components/LatestUpdates";
 import { AudiencePaths } from "../components/AudiencePaths";
 import { STUDIO_CREATE_URL } from "../content/creatorLinks";
 
@@ -57,7 +58,7 @@ export function HomePage() {
           </article>
         </div>
         <p className="target-label">These describe available product paths, not measured community impact.</p>
-        <Button href="https://updates.indigenworld.com/" external variant="secondary">Read the latest project updates</Button>
+
         <details className="home-targets">
           <summary>See the goals we are working toward</summary>
           <p>Figures below are Project Kassena targets, not completed results.</p>
@@ -66,6 +67,7 @@ export function HomePage() {
         </details>
       </div>
     </section>
+    <LatestUpdates />
     <section className="section section--indigo" id="kasena-spotlight">
       <div className="container kasena-spotlight">
         <SectionHeading eyebrow="Project Kassena" title="Starting with Kasem. Building with its speakers." body="Project Kassena brings words, stories and cultural knowledge into digital spaces, with sources, permissions and community review. What we learn here will help other language communities build their own tools." light />

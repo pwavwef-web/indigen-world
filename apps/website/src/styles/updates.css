@@ -1,0 +1,13 @@
+.updates-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; margin-bottom: 32px; }
+.update-card { overflow: hidden; border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--white); display: flex; flex-direction: column; }
+.update-card__image { aspect-ratio: 16 / 9; background: linear-gradient(135deg, var(--indigo-950), var(--indigo-700)); display: grid; place-items: center; color: white; font-weight: 700; }
+.update-card__image img { width: 100%; height: 100%; object-fit: cover; }
+.update-card__body { padding: 24px; display: flex; flex-direction: column; flex: 1; gap: 14px; }
+.update-card__body time { color: var(--muted); font-size: 0.85rem; }
+.update-card__body h3 { font-size: 1.2rem; line-height: 1.4; margin: 0; overflow-wrap: anywhere; }
+.update-card__body h3 a { color: var(--ink); text-decoration: none; }
+.update-card__body h3 a:hover { text-decoration: underline; }
+.update-card__body p { color: var(--muted); margin: 0; line-height: 1.7; }
+.update-card__more { margin-top: auto; padding-top: 8px; color: var(--indigo-800); font-weight: 700; }
+.updates-message { color: var(--muted); margin-bottom: 24px; }
+@media (max-width: 900px) { .updates-grid { grid-template-columns: 1fr; } .update-card__image { max-height: 320px; } }

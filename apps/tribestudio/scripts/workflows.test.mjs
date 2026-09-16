@@ -400,3 +400,89 @@ test('dashboard counts approved work separately from published work', async () =
     assert.equal(find(tile, (node) => node.props?.className === 'tile__value').props.children[0], 1);
   }
 });
+
+test('contributor password activation signs in and stays on the assigned portal', async () => {
+  const h = hooks(), calls = [];
+  const path = '/contributor/alice/work';
+  const { ContributorSignIn } = await load('src/contributor/ContributorPortal.tsx', ['ContributorSignIn'], {
+    ...h.api, functions: {}, httpsCallable: () => async () => {}, auth: {},
+    useRoute: () => ({ path, navigate: (...args) => calls.push(['navigate', ...args]) }),
+    verifyPasswordResetCode: async () => 'alice@example.com',
+    confirmPasswordReset: async (...args) => calls.push(['activate', ...args]),
+    signInWithEmailAndPassword: async (...args) => calls.push(['signin', ...args]),
+  });
+  let tree = h.render(ContributorSignIn, { code: 'code' }); h.flush(); await tick();
+  tree = h.render(ContributorSignIn, { code: 'code' });
+  find(tree, n => n.type === 'input' && n.props.type === 'password').props.onChange({ target: { value: 'password123' } });
+  tree = h.render(ContributorSignIn, { code: 'code' });
+  await tree.props.onSubmit({ preventDefault() {} });
+  assert.equal(calls[0][0], 'activate'); assert.equal(calls[1][0], 'signin');
+  assert.equal(calls[1][2], 'alice@example.com'); assert.equal(calls[2][1], path);
+});
+
+test('contributor autosave keeps full expressions and submits with the latest revision', async () => {
+  const h = hooks(), calls = [], timers = new Map(); let timerId = 0;
+  const item = { id: 'item', expression: 'How are you?', translation: '', alternatives: [], revision: 0, status: 'draft' };
+  const { ExpressionEditor } = await load('src/contributor/ContributorPortal.tsx', ['ExpressionEditor'], {
+    ...h.api, functions: {}, httpsCallable: () => async data => { calls.push(plain(data)); return { data: { revision: data.revision + 1 } }; },
+    window: { setTimeout: fn => { timers.set(++timerId, fn); return timerId; }, clearTimeout: id => timers.delete(id), addEventListener() {}, removeEventListener() {} },
+  });
+  const props = { item, work: 'work', onPending() {} };
+  let tree = h.render(ExpressionEditor, props); h.flush();
+  find(tree, n => n.type === 'textarea' && n.props.required).props.onChange({ target: { value: 'A whole expression, with punctuation' } });
+  tree = h.render(ExpressionEditor, props); h.flush();
+  for (const fn of timers.values()) fn(); timers.clear(); await tick();
+  tree = h.render(ExpressionEditor, props);
+  find(tree, n => n.type === 'input' && n.props.required).props.onChange({ target: { checked: true } });
+  tree = h.render(ExpressionEditor, props);
+  await tree.props.onSubmit({ preventDefault() {} });
+  assert.equal(calls[0].translation, 'A whole expression, with punctuation');
+  assert.equal(calls[1].revision, 1); assert.equal(calls[1].submit, true);
+  assert.equal(calls[1].aiTraining, false);
+  h.dispose();
+});
+
+test('failed contributor autosave retains text and prevents unsafe submission', async () => {
+  const h = hooks(); let timer;
+  const { ExpressionEditor } = await load('src/contributor/ContributorPortal.tsx', ['ExpressionEditor'], {
+    ...h.api, functions: {}, httpsCallable: () => async () => { throw new Error('Offline'); },
+    window: { setTimeout: fn => { timer = fn; return 1; }, clearTimeout() {}, addEventListener() {}, removeEventListener() {} },
+  });
+  const props = { item: { id: 'item', expression: 'Hello', translation: '', alternatives: [], revision: 0 }, work: 'work', onPending() {} };
+  let tree = h.render(ExpressionEditor, props); h.flush();
+  find(tree, n => n.type === 'textarea' && n.props.required).props.onChange({ target: { value: 'Keep this draft' } });
+  tree = h.render(ExpressionEditor, props); h.flush(); timer(); await tick();
+  tree = h.render(ExpressionEditor, props);
+  assert.equal(find(tree, n => n.type === 'textarea' && n.props.required).props.value, 'Keep this draft');
+  assert.ok(find(tree, n => n.props?.role === 'alert'));
+  assert.equal(find(tree, n => n.type === 'button' && !n.props.type).props.disabled, true);
+  h.dispose();
+});
+
+test('contributor views distinguish empty expressions, saved drafts, submissions and review outcomes', async () => {
+  const { expressionView } = await load('src/contributor/ContributorPortal.tsx', ['expressionView'], { functions: {}, httpsCallable: () => () => {} });
+  assert.equal(expressionView({ translation: '', status: 'draft' }), 'untranslated');
+  assert.equal(expressionView({ translation: 'Kasem draft', status: 'draft' }), 'translated');
+  assert.equal(expressionView({ translation: 'Kasem answer', status: 'submitted', submissionId: 's' }), 'translated');
+  assert.equal(expressionView({ translation: 'Kasem answer', status: 'verified', submissionId: 's' }), 'reviewed');
+  assert.equal(expressionView({ translation: 'Kasem answer', status: 'rejected', submissionId: 's' }), 'reviewed');
+  assert.equal(expressionView({ translation: 'Kasem answer', status: 'under_review', reviewedAt: '2026-09-16', submissionId: 's' }), 'reviewed');
+});
+
+test('uninvited signed-in users cannot render the contributor dashboard or load assignments', async () => {
+  const h = hooks(); const paths = [];
+  const { ContributorPortal } = await load('src/contributor/ContributorPortal.tsx', ['ContributorPortal'], {
+    ...h.api, functions: {}, db: {}, httpsCallable: () => () => {},
+    useAuth: () => ({ user: { uid: 'outsider' }, ready: true }),
+    useRoute: () => ({ path: '/contributor/outsider/work', search: '', navigate() {} }),
+    matchRoute: () => ({ uid: 'outsider', work: 'work' }),
+    doc: (_db, ...parts) => parts.join('/'), collection: (_db, ...parts) => parts.join('/'),
+    onSnapshot: (path, cb) => { paths.push(path); cb({ get: () => undefined }); return () => {}; },
+  });
+  h.render(ContributorPortal); h.flush();
+  const tree = h.render(ContributorPortal); h.flush();
+  assert.equal(find(tree, n => n.props?.className === 'contributor-workspace'), null);
+  assert.ok(find(tree, n => n.props?.role === 'alert'));
+  assert.deepEqual([...new Set(paths)], ['contributorAccounts/outsider']);
+  h.dispose();
+});

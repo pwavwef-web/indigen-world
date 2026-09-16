@@ -686,6 +686,7 @@ service cloud.firestore {
       allow create: if isSignedIn()
         && !isBlockedCreator(request.auth.uid)
         && (!isCampaignSubmission(request.resource.data) || isApprovedCreator(request.auth.uid))
+        && !request.resource.data.keys().hasAny(['contributorPortal'])
         && request.resource.data.id == submissionId
         && request.resource.data.authUid == request.auth.uid
         && request.resource.data.creator.id == request.auth.uid
@@ -699,6 +700,7 @@ service cloud.firestore {
       allow update: if isSignedIn()
         && !isBlockedCreator(request.auth.uid)
         && (!isCampaignSubmission(request.resource.data) || isApprovedCreator(request.auth.uid))
+        && !request.resource.data.keys().hasAny(['contributorPortal'])
         && resource.data.authUid == request.auth.uid
         && request.resource.data.authUid == resource.data.authUid
         // An open post stays editable after it is live; a campaign entry is
@@ -2094,6 +2096,20 @@ service cloud.firestore {
         && request.resource.data.contact.size() <= 400;
       allow update: if isStaff();
       allow delete: if false;
+    }
+
+    match /contributorAccounts/{uid} {
+      allow read: if isSignedIn() && request.auth.uid == uid;
+      allow write: if false;
+      match /{document=**} {
+        allow read: if isSignedIn() && request.auth.uid == uid
+          && get(/databases/$(database)/documents/contributorAccounts/$(uid)).data.status == 'active';
+        allow write: if false;
+      }
+    }
+    match /contributorTrainingPairs/{id} {
+      allow read: if isAdmin();
+      allow write: if false;
     }
 
     // ---- Default deny -------------------------------------------------------
