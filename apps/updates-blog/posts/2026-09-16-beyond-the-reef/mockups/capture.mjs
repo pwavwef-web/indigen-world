@@ -2,10 +2,10 @@
 //
 //   node apps/updates-blog/posts/2026-09-16-beyond-the-reef/mockups/capture.mjs [url]
 //
-// Each moment is reached by seeking the song, waiting until that scene's picture has
-// loaded, then letting it play for a moment so the lyric glide and the clip settle.
-// Computer frames are taken after the controls have faded (or just after a mouse move
-// when the controls should show); phone frames always show them, as a phone does.
+// Each moment is reached by state, not by sleeping: wait for the page, start the song,
+// seek a few seconds before the moment, wait for that scene's pictures and enough audio,
+// play, and capture as the song reaches the moment. Moments sit in the middle of a sung
+// line, so the lit line is the same on every run.
 import { spawn } from 'node:child_process';
 import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -25,13 +25,13 @@ const desktop = { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false 
 const phone = { width: 390, height: 844, deviceScaleFactor: 3, mobile: true };
 
 const shots = [
-  { file: 'desktop-city.jpg', device: desktop, at: 43.4 },
-  { file: 'desktop-reef.jpg', device: desktop, at: 68.3 },
-  { file: 'desktop-storm.jpg', device: desktop, at: 201.6 },
-  { file: 'desktop-island.jpg', device: desktop, at: 238.8 },
-  { file: 'desktop-reef-controls.jpg', device: desktop, at: 65.6, controls: true },
+  { file: 'desktop-city.jpg', device: desktop, at: 41.0 },
+  { file: 'desktop-reef.jpg', device: desktop, at: 68.2 },
+  { file: 'desktop-storm.jpg', device: desktop, at: 202.0 },
+  { file: 'desktop-island.jpg', device: desktop, at: 239.0 },
+  { file: 'desktop-reef-controls.jpg', device: desktop, at: 65.8, controls: true },
   { file: 'phone-intro.jpg', device: phone, intro: true },
-  { file: 'phone-storm.jpg', device: phone, at: 201.6 },
+  { file: 'phone-storm.jpg', device: phone, at: 202.0 },
   { file: 'phone-finale.jpg', device: phone, end: true },
 ];
 
@@ -85,24 +85,32 @@ try {
     await send('Emulation.setDeviceMetricsOverride', shot.device);
     await send('Emulation.setTouchEmulationEnabled', { enabled: shot.device.mobile, maxTouchPoints: 5 });
     await send('Page.navigate', { url });
-    await sleep(5000);
+    await evaluate(`(async () => {
+      for (let i = 0; i < 200 && !document.querySelector('.btr-begin'); i++) await new Promise((r) => setTimeout(r, 150));
+      await document.fonts.ready;
+      const poster = document.querySelector('.btr-intro__media');
+      for (let i = 0; i < 200 && poster && poster.readyState !== undefined && poster.readyState < 2; i++) await new Promise((r) => setTimeout(r, 150));
+    })()`);
+    await sleep(2500);
 
     if (!shot.intro) {
-      await evaluate(`document.querySelector('.btr-begin').click()`);
-      await sleep(2500);
-      const seekTo = shot.end ? 'a.duration - 2.2' : String(shot.at - 7);
       await evaluate(`(async () => {
+        const wait = async (check, tries = 300) => { for (let i = 0; i < tries && !check(); i++) await new Promise((r) => setTimeout(r, 100)); };
         const a = document.querySelector('audio');
+        document.querySelector('.btr-begin').click();
+        await wait(() => a.currentTime > 0.3);
         a.pause();
-        a.currentTime = ${seekTo};
-        const loaded = () => [...document.querySelectorAll('.btr-shot img')].every((img) => img.complete && img.naturalWidth > 0);
-        for (let i = 0; i < 100 && !loaded(); i++) await new Promise((r) => setTimeout(r, 150));
+        a.currentTime = ${shot.end ? 'a.duration - 2.5' : shot.at - 6};
+        await wait(() => !a.seeking && a.readyState >= 3);
+        await wait(() => [...document.querySelectorAll('.btr-shot img')].every((img) => img.complete && img.naturalWidth > 0));
         await a.play();
+        ${shot.end
+          ? "await wait(() => document.querySelector('.btr-experience').dataset.ended === 'true', 600); await new Promise((r) => setTimeout(r, 3800));"
+          : `await wait(() => a.currentTime >= ${shot.at}, 600);`}
       })()`);
-      await sleep(shot.end ? 7000 : 7000);
       if (shot.controls) {
         await send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: 700, y: 500 });
-        await sleep(900);
+        await sleep(700);
       }
     }
 
