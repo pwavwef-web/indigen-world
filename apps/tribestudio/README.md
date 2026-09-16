@@ -98,8 +98,8 @@ Served by the `tribestudio` Hosting site; production custom domain
 full site/domain map.
 
 ```bash
-npm run build --workspace @indigen-world/console-ui
-npm run check --workspace @indigen-world/tribestudio
+npm run build:console-ui
+npm run check:tribestudio
 # Commit and push to main before deploying; the Hosting predeploy verifies origin/main.
 firebase deploy --only hosting:tribestudio --project project-kassena-7e026
 ```
