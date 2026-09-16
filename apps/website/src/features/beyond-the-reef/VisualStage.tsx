@@ -10,6 +10,10 @@
  *
  * When motion is reduced, clips are not played at all: each shot shows its
  * still, and shots change with a short crossfade and no drift.
+ *
+ * A seek can land on a shot whose still has not downloaded yet. Until it has,
+ * the last shot that was fully on screen stays beneath it, frozen, so a long
+ * jump shows the previous picture for a moment instead of an empty stage.
  */
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { SongClock } from "./useSongPlayer";
@@ -38,7 +42,10 @@ export function VisualStage({ shots, clock, playing, reducedMotion }: VisualStag
   const playingRef = useRef(playing);
   const [current, setCurrent] = useState(() => activeShotIndex(shots, clock.now()));
   const [outgoingVisible, setOutgoingVisible] = useState(false);
-  const rendered = useRef({ current, outgoingVisible });
+  const [backdrop, setBackdrop] = useState<number | null>(null);
+  const rendered = useRef({ current, outgoingVisible, backdrop });
+  const loadedImages = useRef(new Set<string>());
+  const settled = useRef(current);
 
   const layerFor = useCallback((id: string): Layer => {
     let layer = layers.current.get(id);
@@ -54,10 +61,19 @@ export function VisualStage({ shots, clock, playing, reducedMotion }: VisualStag
       const index = activeShotIndex(shots, time);
       const shot = shots[index];
       const outgoing = index > 0 && time < shot.start + (shot.fade ?? DEFAULT_FADE_SECONDS) + 0.05;
-      if (rendered.current.current !== index || rendered.current.outgoingVisible !== outgoing) {
-        rendered.current = { current: index, outgoingVisible: outgoing };
+      const ready = loadedImages.current.has(shot.id);
+      if (ready && shotFrame(shot, time, reducedMotion).opacity >= 0.999) settled.current = index;
+      const neighbour = settled.current >= index - 1 && settled.current <= index + 1;
+      const hold = !ready && !neighbour ? settled.current : null;
+      if (
+        rendered.current.current !== index ||
+        rendered.current.outgoingVisible !== outgoing ||
+        rendered.current.backdrop !== hold
+      ) {
+        rendered.current = { current: index, outgoingVisible: outgoing, backdrop: hold };
         setCurrent(index);
         setOutgoingVisible(outgoing);
+        setBackdrop(hold);
       }
 
       for (let i = Math.max(0, index - 1); i <= Math.min(shots.length - 1, index + 1); i += 1) {
@@ -113,21 +129,24 @@ export function VisualStage({ shots, clock, playing, reducedMotion }: VisualStag
   // next tick — and a paused song has no next tick.
   useLayoutEffect(() => {
     paint(clock.now());
-  }, [current, outgoingVisible, paint, clock]);
+  }, [current, outgoingVisible, backdrop, paint, clock]);
 
   const first = Math.max(0, current - (outgoingVisible ? 1 : 0));
   const visible = shots.slice(first, Math.min(shots.length, current + 2));
+  if (backdrop !== null && shots[backdrop]) visible.unshift(shots[backdrop]);
 
   return (
     <div className="btr-stage" aria-hidden="true">
       {visible.map((shot) => {
         const layer = layerFor(shot.id);
         const index = shots.indexOf(shot);
+        const isBackdrop = index === backdrop;
         return (
           <div
             key={shot.id}
             className="btr-shot"
-            style={{ zIndex: index + 1, opacity: 0 }}
+            // A backdrop keeps the opacity and framing it last had, beneath everything.
+            style={isBackdrop ? { zIndex: 0 } : { zIndex: index + 1, opacity: 0 }}
             ref={(element) => {
               layer.root = element;
             }}
@@ -138,9 +157,12 @@ export function VisualStage({ shots, clock, playing, reducedMotion }: VisualStag
               alt=""
               decoding="async"
               style={shot.focus ? { objectPosition: shot.focus } : undefined}
-              onLoad={() => paint(clock.now())}
+              onLoad={() => {
+                loadedImages.current.add(shot.id);
+                paint(clock.now());
+              }}
             />
-            {shot.clip && !reducedMotion ? (
+            {shot.clip && !reducedMotion && !isBackdrop ? (
               <video
                 className="btr-shot__media"
                 ref={(element) => {

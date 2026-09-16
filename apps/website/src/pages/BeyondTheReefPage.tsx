@@ -260,7 +260,7 @@ export function BeyondTheReefPage() {
       <h1 className="sr-only">Beyond the Reef</h1>
 
       {started ? (
-        <VisualStage shots={SHOTS} clock={clock} playing={playing} reducedMotion={reducedMotion} />
+        <VisualStage shots={SHOTS} clock={clock} playing={playing && !player.buffering} reducedMotion={reducedMotion} />
       ) : null}
       <div className="btr-veil" aria-hidden="true" />
 

@@ -38,7 +38,10 @@ without gaps, and that every file the page names exists (and nothing unused ship
   ±1.1 s away from the `currentTime` it reported after a seek; with the MP4 container every seek
   landed within the measuring tool's own 40–50 ms latency.
 - Video clips follow the song: each clip's position is derived from the song time and its
-  playback rate, and it is only re-seeked when it drifts more than 0.35 s.
+  playback rate, and it is only re-seeked when it drifts more than 0.35 s. Clips pause while the
+  song is buffering, so they wait for the sound instead of running ahead of it.
+- A long seek can land on a scene whose picture has not downloaded yet; until it has, the last
+  fully shown scene stays beneath it, so the stage never goes empty while lyrics update at once.
 
 ## Requirements (to regenerate)
 
@@ -86,7 +89,16 @@ node apps/website/scripts/beyond-the-reef/generate-clips.mjs
 
 # 4. Web encodes: WebP stills, VP9 + H.264 clips, poster/rest frames, audio remux, social card
 node apps/website/scripts/beyond-the-reef/encode-media.mjs
+
+# 5. Optional: one silent 720p master of the whole visual timeline, cut to the song's length
+node apps/website/scripts/beyond-the-reef/compile-master.mjs
 ```
+
+The master (`<work>/beyond-the-reef-visual-master.mp4`, about 40 MB) is built from the same
+`scenes.ts` the page plays — every drift, held frame and crossfade — without audio or lyrics. The
+page does not use it: shots load individually so a visitor only downloads the scenes near where
+they are, and lyrics and sound stay live. It is a shareable, reviewable cut, so it is not shipped
+or committed.
 
 Every step skips work that already exists; pass ids (`generate-stills.mjs 03-city`) to limit it,
 or `--force` to redo it. A Veo job's operation name is saved the moment Veo accepts it, so an
