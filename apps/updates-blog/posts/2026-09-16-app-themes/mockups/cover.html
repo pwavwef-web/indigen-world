@@ -1,0 +1,39 @@
+<!doctype html>
+<meta charset="utf-8">
+<link rel="stylesheet" href="style.css">
+<style>
+  .stage { justify-content: flex-start; padding: 0 0 0 72px; gap: 0; }
+  .copy { width: 470px; }
+  .eyebrow { font-size: 17px; letter-spacing: 2.6px; }
+  h1 { margin-top: 18px; font-size: 52px; line-height: 1.04; font-weight: 800; letter-spacing: -1.2px; }
+  p { margin-top: 20px; font-size: 20px; line-height: 1.45; color: rgba(255,255,255,0.82); }
+  .tags { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 26px; }
+  .pill { font-size: 17px; padding: 9px 16px; gap: 9px; }
+  .pill .dot { width: 10px; height: 10px; }
+  .phones { position: absolute; right: 26px; top: 0; width: 640px; height: 630px; }
+  .phones .phone { position: absolute; }
+  .a { --w: 222px; left: 8px; top: 96px; transform: rotate(-9deg); }
+  .b { --w: 240px; left: 196px; top: 40px; z-index: 2; }
+  .c { --w: 222px; right: 6px; top: 96px; transform: rotate(9deg); }
+</style>
+<div class="stage">
+  <div class="copy">
+    <div class="eyebrow">Indigen World 0.1.22</div>
+    <h1>Your app, in your colours</h1>
+    <p>A new blue that matches the websites, Heritage Green back for everyone, and four new themes for Patron and Studio members.</p>
+    <div class="tags">
+      <span class="pill"><span class="dot blue"></span>Indigen Blue</span>
+      <span class="pill"><span class="dot green"></span>Heritage Green</span>
+      <span class="pill"><span class="dot tiebele"></span>Tiébélé</span>
+      <span class="pill"><span class="dot kente"></span>Kente Gold</span>
+      <span class="pill"><span class="dot harmattan"></span>Harmattan Dusk</span>
+      <span class="pill"><span class="dot aurora"></span>Volta Aurora</span>
+    </div>
+  </div>
+  <div class="phones">
+    <div class="phone a"><img src="../screens/learn-green-light.png" alt=""></div>
+    <div class="phone b"><img src="../screens/learn-kente-dark.png" alt=""></div>
+    <div class="phone c"><img src="../screens/learn-aurora-light.png" alt=""></div>
+  </div>
+</div>
+<script>Promise.all([...document.images].map((i) => i.decode().catch(() => {}))).then(() => document.fonts.ready).then(() => { window.__ready = true; });</script>

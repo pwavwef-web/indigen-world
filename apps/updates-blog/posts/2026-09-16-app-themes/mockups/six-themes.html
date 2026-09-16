@@ -1,0 +1,22 @@
+<!doctype html>
+<meta charset="utf-8">
+<link rel="stylesheet" href="style.css">
+<style>
+  .phone { --w: 226px; }
+  .stage { gap: 26px; align-items: center; padding-top: 40px; }
+  .column { gap: 22px; }
+  .pill { font-size: 19px; padding: 10px 16px; gap: 9px; }
+  .pill .dot { width: 11px; height: 11px; }
+  .head { position: absolute; top: 46px; left: 0; right: 0; text-align: center; }
+  .sub { font-size: 20px; }
+</style>
+<div class="head"><span class="sub">The same Learn tab, six ways</span></div>
+<div class="stage">
+  <div class="column"><div class="phone"><img src="../screens/learn-blue-light.png" alt=""></div><span class="pill"><span class="dot blue"></span>Indigen Blue</span></div>
+  <div class="column"><div class="phone"><img src="../screens/learn-green-light.png" alt=""></div><span class="pill"><span class="dot green"></span>Heritage Green</span></div>
+  <div class="column"><div class="phone"><img src="../screens/learn-tiebele-light.png" alt=""></div><span class="pill"><span class="dot tiebele"></span>Tiébélé</span></div>
+  <div class="column"><div class="phone"><img src="../screens/learn-kente-light.png" alt=""></div><span class="pill"><span class="dot kente"></span>Kente Gold</span></div>
+  <div class="column"><div class="phone"><img src="../screens/learn-harmattan-light.png" alt=""></div><span class="pill"><span class="dot harmattan"></span>Harmattan Dusk</span></div>
+  <div class="column"><div class="phone"><img src="../screens/learn-aurora-light.png" alt=""></div><span class="pill"><span class="dot aurora"></span>Volta Aurora</span></div>
+</div>
+<script>Promise.all([...document.images].map((i) => i.decode().catch(() => {}))).then(() => document.fonts.ready).then(() => { window.__ready = true; });</script>

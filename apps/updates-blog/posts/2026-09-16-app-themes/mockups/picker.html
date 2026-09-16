@@ -1,0 +1,18 @@
+<!doctype html>
+<meta charset="utf-8">
+<link rel="stylesheet" href="style.css">
+<style>
+  .phone { --w: 410px; }
+  .stage { gap: 120px; }
+</style>
+<div class="stage">
+  <div class="column">
+    <div class="phone"><img src="../screens/picker-light.png" alt=""></div>
+    <span class="pill"><span class="dot"></span>Settings → Theme</span>
+  </div>
+  <div class="column">
+    <div class="phone"><img src="../screens/picker-locked-preview.png" alt=""></div>
+    <span class="pill amber"><span class="dot"></span>Preview any theme</span>
+  </div>
+</div>
+<script>Promise.all([...document.images].map((i) => i.decode().catch(() => {}))).then(() => document.fonts.ready).then(() => { window.__ready = true; });</script>
