@@ -22,6 +22,7 @@ const named = <T extends Record<string, unknown>>(loader: () => Promise<T>, key:
   lazy(() => loader().then((m) => ({ default: m[key] as ComponentType })));
 
 const LexiconWorkspace = named(() => import('./workspace/LexiconWorkspace'), 'LexiconWorkspace');
+const ContributorPreview = import.meta.env.DEV ? named(() => import('./contributor/ContributorPreview'), 'ContributorPreview') : null;
 const ContributorPortal = named(() => import('./contributor/ContributorPortal'), 'ContributorPortal');
 const LandingPage = named(() => import('./creator/pages/LandingPage'), 'LandingPage');
 const JoinPage = named(() => import('./creator/pages/JoinPage'), 'JoinPage');
@@ -280,6 +281,7 @@ function Routed() {
     }
   }, [path]);
 
+  if (path === '/contributor/preview' && ContributorPreview) return <Suspense fallback={<FullPageLoader />}><ContributorPreview /></Suspense>;
   if (contributorRoute) return <Suspense fallback={<FullPageLoader />}><ContributorPortal key={`${user?.uid ?? 'guest'}:${path}`} /></Suspense>;
   if (user && contributorCheck !== user.uid) {
     if (contributorError) return <div className="signin"><p>Unable to check your account. <button onClick={() => window.location.reload()}>Retry</button></p></div>;

@@ -58,7 +58,7 @@ export function ContributorPortal() {
   // Keep the current editor mounted when autosave moves its item to Translated.
   const item = items.find(i => i.id === selected) ?? visible[0];
   useEffect(() => { if (!selected && visible[0]) setSelected(visible[0].id); }, [selected, visible[0]?.id]);
-  return <div className="contributor-portal"><header><div><span className="contributor-kicker">TRIBE STUDIO / CONTRIBUTORS</span>
+  return <div className="contributor-portal"><header><div><span className="contributor-kicker">INDIGEN WORLD / CONTRIBUTORS</span>
     <h1>Everyday expressions. Living Kasem.</h1></div>{user && <button disabled={pending} onClick={() => void signOutUser()}>Sign out</button>}</header>
     <main id="main-content" tabIndex={-1}>
       {error && <p role="alert">{error} <button onClick={() => window.location.reload()}>Retry</button></p>}
@@ -103,7 +103,7 @@ function ContributorSignIn({ code }: { code: string | null }) {
     <p>Your assigned expressions and saved drafts are waiting here.</p>
     <label>Email<input type="email" autoComplete="username" required value={email} readOnly={Boolean(code)} onChange={e => setEmail(e.target.value)} /></label>
     <label>{code ? 'Set a password' : 'Password'}<input type="password" minLength={code ? 8 : undefined} required autoComplete={code ? 'new-password' : 'current-password'} value={password} onChange={e => setPassword(e.target.value)} /></label>
-    {error && <p role="alert">{error}</p>}<button disabled={busy || !email}>{busy ? 'Opening…' : code ? 'Activate and start translating' : 'Sign in'}</button>
+    {error && <p role="alert">{error}</p>}<button type="submit" disabled={busy || !email}>{busy ? 'Opening…' : code ? 'Activate and start translating' : 'Sign in'}</button>
     {code && <button type="button" onClick={() => navigate(path, { replace: true })}>Already activated? Sign in</button>}
   </form>;
 }
