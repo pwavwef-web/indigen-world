@@ -486,3 +486,91 @@ test('uninvited signed-in users cannot render the contributor dashboard or load 
   assert.deepEqual([...new Set(paths)], ['contributorAccounts/outsider']);
   h.dispose();
 });
+
+test('assignment filters separate saved drafts from submissions and revision feedback', async () => {
+  const { contributionState } = await load('src/contributor/ContributorPortal.tsx', ['contributionState'], { functions: {}, httpsCallable: () => () => {} });
+  assert.equal(contributionState({ translation: '', alternatives: [], status: 'draft' }), 'Not started');
+  assert.equal(contributionState({ translation: 'Answer', status: 'draft' }), 'Drafts');
+  assert.equal(contributionState({ translation: '', alternatives: ['Alternate'], status: 'draft' }), 'Drafts');
+  assert.equal(contributionState({ translation: 'Answer', submissionId: 's', status: 'verified' }), 'Submitted');
+  assert.equal(contributionState({ translation: 'Answer', submissionId: 's', status: 'rejected' }), 'Needs revision');
+});
+
+test('submit and next advances only after a successful submission', async () => {
+  const h = hooks(), sent = [];
+  const { ExpressionEditor } = await load('src/contributor/ContributorPortal.tsx', ['ExpressionEditor'], {
+    ...h.api, functions: {}, httpsCallable: () => async () => ({ data: { revision: 1, submissionId: 's' } }),
+    window: { setTimeout() {}, clearTimeout() {}, addEventListener() {}, removeEventListener() {} },
+  });
+  const props = { item: { id: 'item', expression: 'Hello', translation: 'Answer', alternatives: [], revision: 0 }, work: 'work', onPending() {}, onSubmitted: next => sent.push(next) };
+  let tree = h.render(ExpressionEditor, props); h.flush();
+  await tree.props.onSubmit({ preventDefault() {}, nativeEvent: { submitter: { getAttribute: () => 'next' } } });
+  assert.deepEqual(sent, [true]);
+  tree = h.render(ExpressionEditor, props);
+  assert.equal(find(tree, n => n.type === 'textarea' && n.props.required).props.disabled, true);
+  h.dispose();
+});
+
+test('retry save preserves edited text after a connection failure', async () => {
+  const h = hooks(); let timer, attempts = 0; const calls = [];
+  const { ExpressionEditor } = await load('src/contributor/ContributorPortal.tsx', ['ExpressionEditor'], {
+    ...h.api, functions: {}, httpsCallable: () => async data => { calls.push(plain(data)); if (++attempts === 1) throw new Error('Offline'); return { data: { revision: 1 } }; },
+    window: { setTimeout: fn => { timer = fn; return 1; }, clearTimeout() {}, addEventListener() {}, removeEventListener() {} },
+  });
+  const props = { item: { id: 'item', expression: 'Hello', translation: '', alternatives: [], revision: 0 }, work: 'work', onPending() {} };
+  let tree = h.render(ExpressionEditor, props); h.flush();
+  find(tree, n => n.type === 'textarea' && n.props.required).props.onChange({ target: { value: 'Keep this text' } });
+  tree = h.render(ExpressionEditor, props); h.flush(); timer(); await tick();
+  tree = h.render(ExpressionEditor, props);
+  find(tree, n => n.type === 'button' && n.props.children?.includes('Retry save')).props.onClick(); await tick();
+  tree = h.render(ExpressionEditor, props);
+  assert.equal(calls[1].translation, 'Keep this text');
+  assert.equal(find(tree, n => n.type === 'textarea' && n.props.required).props.value, 'Keep this text');
+  assert.equal(find(tree, n => n.props?.role === 'alert'), null);
+  h.dispose();
+});
+
+test('browser recovery is account scoped and restores only after contributor action', async () => {
+  const stored = new Map(); let h = hooks();
+  const mocks = () => ({ ...h.api, functions: {}, httpsCallable: () => async () => ({ data: { revision: 1 } }),
+    window: { localStorage: { getItem: key => stored.get(key) ?? null, setItem: (key, value) => stored.set(key, value), removeItem: key => stored.delete(key) }, setTimeout() {}, clearTimeout() {}, addEventListener() {}, removeEventListener() {} } });
+  let { ExpressionEditor } = await load('src/contributor/ContributorPortal.tsx', ['ExpressionEditor'], mocks());
+  const props = { item: { id: 'item', expression: 'Hello', translation: '', alternatives: [], revision: 0 }, work: 'work', accountId: 'alice', onPending() {} };
+  let tree = h.render(ExpressionEditor, props); h.flush();
+  find(tree, n => n.type === 'textarea' && n.props.required).props.onChange({ target: { value: 'Unsaved Kasem text' } });
+  assert.ok(stored.has('contributor-draft:alice:work:item'));
+  h.dispose(); h = hooks();
+  ({ ExpressionEditor } = await load('src/contributor/ContributorPortal.tsx', ['ExpressionEditor'], mocks()));
+  tree = h.render(ExpressionEditor, props); h.flush();
+  assert.equal(find(tree, n => n.type === 'textarea' && n.props.required).props.value, '');
+  find(tree, n => n.type === 'button' && n.props.children?.includes('Restore draft')).props.onClick();
+  tree = h.render(ExpressionEditor, props);
+  assert.equal(find(tree, n => n.type === 'textarea' && n.props.required).props.value, 'Unsaved Kasem text');
+  h.dispose(); h = hooks();
+  ({ ExpressionEditor } = await load('src/contributor/ContributorPortal.tsx', ['ExpressionEditor'], mocks()));
+  tree = h.render(ExpressionEditor, { ...props, accountId: 'bob' });
+  assert.equal(find(tree, n => n.type === 'button' && n.props.children?.includes('Restore draft')), null);
+  h.dispose();
+});
+
+test('forgot password sends the entered email without requiring a password', async () => {
+  const h = hooks(), requests = [];
+  const { ContributorSignIn } = await load('src/contributor/ContributorPortal.tsx', ['ContributorSignIn'], {
+    ...h.api, functions: {}, httpsCallable: () => () => {}, auth: {},
+    useRoute: () => ({ path: '/contributor', navigate() {} }),
+    sendPasswordResetEmail: async (_auth, email, options) => requests.push({ email, options }),
+    window: { location: { origin: 'https://tribestudio.ngenwale.com' } },
+  });
+  let tree = h.render(ContributorSignIn, { code: null });
+  find(tree, n => n.type === 'button' && n.props.children?.includes('Forgot password?')).props.onClick();
+  tree = h.render(ContributorSignIn, { code: null });
+  assert.equal(find(tree, n => n.type === 'input' && n.props.type === 'password'), null);
+  find(tree, n => n.type === 'input' && n.props.type === 'email').props.onChange({ target: { value: 'speaker@example.com' } });
+  tree = h.render(ContributorSignIn, { code: null });
+  await tree.props.onSubmit({ preventDefault() {} });
+  assert.equal(requests[0].email, 'speaker@example.com');
+  assert.equal(requests[0].options.url, 'https://tribestudio.ngenwale.com/contributor');
+  tree = h.render(ContributorSignIn, { code: null });
+  assert.ok(find(tree, n => n.props?.role === 'status'));
+  h.dispose();
+});

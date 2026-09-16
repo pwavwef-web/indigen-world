@@ -114,18 +114,29 @@ export const saveExpressionAnswer = onCall(options, async req => {
   }
   const db = getFirestore(), account = db.doc(`contributorAccounts/${uid}`);
   const ref = account.collection('works').doc(work).collection('items').doc(item);
-  const submissionId = createHash('sha256').update(`${uid}/${work}/${item}`).digest('hex');
+  const firstSubmissionId = createHash('sha256').update(`${uid}/${work}/${item}`).digest('hex');
   const now = new Date().toISOString();
   return db.runTransaction(async tx => {
     const [member, row, campaign] = await Promise.all([tx.get(account), tx.get(ref),
       tx.get(db.doc(`campaigns/${COLLECTION_CAMPAIGN_ID}`))]);
     if (member.get('status') !== 'active' || !row.exists) throw new HttpsError('permission-denied', 'An active invitation is required.');
-    if (row.get('submissionId')) {
-      if (submit) return { revision: row.get('revision'), submissionId };
+    const previousId = row.get('submissionId') as string | undefined;
+    const previous = previousId ? await tx.get(db.doc(`submissions/${previousId}`)) : null;
+    const canRevise = previous?.exists && previous.get('authUid') === uid
+      && ['REJECTED', 'NEEDS_REVISION'].includes(previous.get('status'));
+    if (previousId && !canRevise) {
+      if (submit && answer.translation === row.get('translation')
+        && JSON.stringify(answer.alternatives) === JSON.stringify(row.get('alternatives'))) {
+        return { revision: row.get('revision'), submissionId: previousId };
+      }
       throw new HttpsError('failed-precondition', 'Submitted expressions are locked for review.');
     }
     if (req.data?.revision !== row.get('revision')) throw new HttpsError('aborted', 'This draft changed on another device. Reload before editing.');
     const revision = row.get('revision') + 1;
+    // Each review round is immutable; retries return the current round above.
+    const submissionId = previousId
+      ? createHash('sha256').update(`${uid}/${work}/${item}/revision/${revision}`).digest('hex')
+      : firstSubmissionId;
     if (submit) {
       const input = parseCollectionContributionInput({ collectionKind: 'dictionary', lexicalKind: 'phrase',
         title: row.get('expression'), body: answer.translation, translations: [answer.translation, ...answer.alternatives],
@@ -138,7 +149,9 @@ export const saveExpressionAnswer = onCall(options, async req => {
       const submission = buildCollectionSubmissionDocument(submissionId, uid, input, now);
       const portal = { contributorId: uid, work, item };
       if (!campaign.exists) tx.set(campaign.ref, buildCollectionCampaignDocument(now));
+      if (previousId) tx.delete(db.doc(`contributorTrainingPairs/${previousId}`));
       tx.create(db.doc(`submissions/${submissionId}`), { ...submission, contributorPortal: portal,
+        ...(previousId ? { revisionOf: previousId, previousReview: previous?.get('moderation') ?? null } : {}),
         alternativeExpressions: answer.alternatives, permissions: { ...(submission.permissions as object),
           aiTraining: req.data?.aiTraining === true, consentVersion: 'contributor-expression-v1' } });
       tx.create(db.doc(`collectionContributions/${submissionId}`), {
@@ -147,7 +160,7 @@ export const saveExpressionAnswer = onCall(options, async req => {
       });
     }
     tx.update(ref, { ...answer, revision, updatedAt: now,
-      ...(submit ? { submissionId, status: 'submitted' } : {}) });
+      ...(submit ? { submissionId, status: 'submitted', feedback: '', reviewedAt: null } : {}) });
     return { revision, ...(submit ? { submissionId } : {}) };
   });
 });

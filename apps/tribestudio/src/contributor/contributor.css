@@ -101,3 +101,37 @@
 @media (prefers-reduced-motion: reduce) {
   .contributor-portal button { transition: none; }
 }
+
+/* Assignment workspace */
+.contributor-portal > header { padding: 18px 24px; border-radius: var(--r-md); box-shadow: none; }
+.contributor-portal h1 { font-size: clamp(24px, 3vw, 30px); margin: 4px 0; }
+.contributor-portal > header details { max-width: 300px; }
+.contributor-portal > header summary { cursor: pointer; padding: 10px 0; }
+.contributor-portal > header .contributor-identity { color: inherit; margin-bottom: 12px; }
+.contributor-progress { display: grid; gap: 10px; margin: 24px 0; padding: 20px; border: 1px solid var(--border); border-radius: var(--r-md); background: var(--surface); }
+.contributor-progress strong { font-size: 20px; }
+.contributor-progress progress { width: 100%; height: 10px; accent-color: var(--ad-blue-600); }
+.contributor-progress p { color: var(--text-soft); font-size: 14px; }
+.contributor-expression-list nav { margin: 14px 0; }
+.contributor-expression-list nav button { padding: 8px 10px; font-size: 13px; }
+.contributor-editor-pane { display: grid; gap: 12px; }
+.contributor-back { display: none; }
+.contributor-feedback { padding: 16px; border-left: 4px solid var(--ad-blue-600); background: var(--ad-blue-50); border-radius: var(--r-sm); overflow-wrap: anywhere; }
+.contributor-characters { display: flex; flex-wrap: wrap; gap: 6px; }
+.contributor-characters small { flex-basis: 100%; }
+.contributor-characters button { min-width: 44px; padding: 6px 10px; font-size: 19px; }
+.contributor-submit-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.contributor-submit-actions button { flex: 1; }
+.contributor-submit-actions button:last-child { background: var(--ad-blue-600); color: var(--ad-paper); }
+.contributor-portal .contributor-confirmation { padding: 16px; margin-bottom: 20px; background: var(--ad-blue-50); border: 1px solid var(--ad-blue-300); border-radius: var(--r-sm); color: var(--text); }
+@media (max-width: 700px) {
+  .contributor-workspace:not(.is-editing) .contributor-editor-pane { display: none; }
+  .contributor-workspace.is-editing .contributor-expression-list { display: none; }
+  .contributor-back { display: block; justify-self: start; }
+  .contributor-workspace aside { max-height: none; }
+  .contributor-editor { padding: 16px; gap: 18px; }
+  .contributor-submit-actions { position: sticky; bottom: 0; padding: 12px 0 max(12px, env(safe-area-inset-bottom)); background: var(--surface); z-index: 1; }
+  .contributor-submit-actions button { padding: 10px; font-size: 14px; }
+}
+.contributor-recovery-text { white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; max-height: 200px; overflow: auto; padding: 12px; background: var(--surface); }
+.contributor-preview-controls { display: grid; gap: 12px; padding: 16px; border: 1px dashed var(--border); border-radius: var(--r-md); }

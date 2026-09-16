@@ -134,3 +134,37 @@ test('assignment endpoint rejects non-admins and uninvited recipients', async ()
   await assert.rejects(h.assignContributorExpressions({ auth: { uid: 'alice', token: { role: 'contributor' } }, data: { contributorId: 'alice', expressions: ['Hello'] } }), { code: 'permission-denied' });
   await assert.rejects(h.assignContributorExpressions({ auth: { uid: 'admin', token: { role: 'admin' } }, data: { contributorId: 'outsider', expressions: ['Hello'] } }), { code: 'failed-precondition' });
 });
+
+test('returned expressions save revisions and resubmit as a linked review round', async () => {
+  const h = await harness();
+  const first = await h.saveExpressionAnswer(h.request({ submit: true, publicationPermission: true }));
+  const firstPath = `submissions/${first.submissionId}`;
+  h.records.set(firstPath, { ...h.records.get(firstPath), status: 'REJECTED', moderation: { feedback: 'Use a welcoming tone', decidedAt: '2026-09-16' } });
+  await h.onContributorExpressionReviewed({ params: first });
+  await h.saveExpressionAnswer(h.request({ revision: 1, translation: 'Revised wording' }));
+  assert.equal(h.records.get(h.itemPath).feedback, 'Use a welcoming tone');
+  await assert.rejects(h.saveExpressionAnswer(h.request({ revision: 1, submit: true, publicationPermission: true })), { code: 'aborted' });
+  const request = h.request({ revision: 2, translation: 'Revised wording', submit: true, publicationPermission: true });
+  h.records.set(`contributorTrainingPairs/${first.submissionId}`, { stale: true });
+  const next = await h.saveExpressionAnswer(request);
+  assert.equal(h.records.has(`contributorTrainingPairs/${first.submissionId}`), false);
+  assert.notEqual(next.submissionId, first.submissionId);
+  assert.equal((await h.saveExpressionAnswer(request)).submissionId, next.submissionId);
+  assert.equal(h.records.get(firstPath).status, 'REJECTED');
+  assert.equal(h.records.get(`submissions/${next.submissionId}`).revisionOf, first.submissionId);
+  assert.equal(h.records.get(`submissions/${next.submissionId}`).previousReview.feedback, 'Use a welcoming tone');
+  assert.equal(h.records.get(`submissions/${next.submissionId}`).body, 'Revised wording');
+  await h.onContributorExpressionReviewed({ params: first });
+  assert.equal(h.records.get(h.itemPath).status, 'submitted', 'late events from the old review do not reopen the new round');
+  assert.equal(h.records.get(h.itemPath).feedback, '');
+});
+
+test('canonical approved state prevents editing even if the assignment still says rejected', async () => {
+  const h = await harness();
+  const first = await h.saveExpressionAnswer(h.request({ submit: true, publicationPermission: true }));
+  h.records.set(h.itemPath, { ...h.records.get(h.itemPath), status: 'rejected' });
+  const path = `submissions/${first.submissionId}`;
+  h.records.set(path, { ...h.records.get(path), status: 'APPROVED' });
+  await assert.rejects(h.saveExpressionAnswer(h.request({ revision: 1, translation: 'Late edit', submit: true, publicationPermission: true })), { code: 'failed-precondition' });
+  await assert.rejects(h.saveExpressionAnswer(h.request({ revision: 1 })), { code: 'failed-precondition' });
+});
