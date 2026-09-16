@@ -50,6 +50,7 @@ firestore-debug.log
 ui-debug.log
 
 # Local tooling
+.deploy-kasem/
 .firecrawl/
 .vscode/
 .idea/

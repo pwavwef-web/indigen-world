@@ -11,6 +11,9 @@ const tick = () => new Promise((resolve) => setImmediate(resolve));
 // Execute production modules with their external I/O replaced. No Firebase
 // project or microphone is contacted by these tests.
 async function load(path, names, mocks = {}) {
+  if (path.endsWith('SubmissionNewPage.tsx')) {
+    mocks = { ...await load('src/creator/discoverySource.ts', ['discoverySource']), ...mocks };
+  }
   const { code } = await transformWithOxc(readFileSync(resolve(root, path), 'utf8'), path, { jsx: { runtime: 'classic' } });
   const executable = code.replace(/^import[\s\S]*?;\n/gm, '').replace(/\bexport (?=(?:async )?function|const|let|class)/g, '');
   return runInNewContext(executable + '\n;({' + names.join(',') + '})', { URL, URLSearchParams, Blob, File, Event, console, ...mocks });
@@ -193,7 +196,9 @@ test('microphone permission resolving after unmount releases the new stream', as
 test('hosting permits the site to request microphone access', () => {
   const hosting = JSON.parse(readFileSync(resolve(root, '../../firebase.json'), 'utf8')).hosting;
   const studio = hosting.find((site) => site.site === 'tribestudio');
-  assert.ok(studio.headers[0].headers.find((header) => header.key === 'Permissions-Policy').value.includes('microphone=(self)'));
+  const policy = studio.headers.flatMap((route) => route.headers)
+    .find((header) => header.key === 'Permissions-Policy');
+  assert.ok(policy?.value.includes('microphone=(self)'));
 });
 
 test('dictionary lookup requests published rows and rejects restricted submissions before calling backend', async () => {
@@ -232,13 +237,14 @@ test('first save writes a new document without an unauthorized read of its missi
 });
 
 async function editorHarness(overrides = {}) {
+  const stored = new Map();
   const h = hooks(); const timers = new Map(); const events = {}; const writes = []; let timerId = 0; let focused;
   const existing = { ...input, authUid: 'creator', campaign: { id: 'open' }, status: 'DRAFT', lifecycle: { version: 1 } };
   const { SubmissionEditor } = await load('src/creator/pages/SubmissionNewPage.tsx', ['SubmissionEditor'], {
     ...h.api, useAuth: () => ({ user: { uid: 'creator' } }), useConfig: () => ({ config: null }),
     useRoute: () => ({ navigate() {} }), useQueryParam: () => null,
     saveSubmission: async (value) => { writes.push(value); },
-    window: { addEventListener: (name, fn) => { events[name] = fn; }, removeEventListener() {}, confirm: () => false,
+    window: { sessionStorage: { getItem: (key) => stored.get(key) ?? null, setItem: (key, value) => stored.set(key, value), removeItem: (key) => stored.delete(key) }, addEventListener: (name, fn) => { events[name] = fn; }, removeEventListener() {}, confirm: () => false,
       setTimeout: (fn) => { timers.set(++timerId, fn); return timerId; }, clearTimeout: (id) => timers.delete(id) },
     document: { getElementById: (id) => ({ focus: () => { focused = id; } }) },
     storage: {}, ref: () => ({}), getDownloadURL: async () => 'https://example.com/media',
@@ -246,7 +252,7 @@ async function editorHarness(overrides = {}) {
   });
   const render = () => { const tree = h.render(SubmissionEditor, { existing }); h.flush(); return tree; };
   render();
-  return { render, writes, events, timers, focused: () => focused, dispose: () => h.dispose(),
+  return { render, writes, events, timers, stored, focused: () => focused, dispose: () => h.dispose(),
     runTimers: async () => { const pending = [...timers.values()]; timers.clear(); pending.forEach((fn) => fn()); await tick(); } };
 }
 
@@ -315,4 +321,256 @@ test('translation field labels follow the selected source and target languages',
   assert.equal(find(tree, (n) => n.type === 'field' && n.props.htmlFor === 'sourceContent').props.label, 'English source text');
   assert.equal(find(tree, (n) => n.type === 'field' && n.props.htmlFor === 'translatedContent').props.label, 'Kasem translation');
   e.dispose();
+});
+
+test('discovery links accept only public dictionary and post sources', async () => {
+  const { discoverySource } = await load('src/creator/discoverySource.ts', ['discoverySource']);
+  assert.equal(discoverySource('https://indigenworld.com/dictionary?entry=word%201&tracking=private'), 'https://indigenworld.com/dictionary?entry=word%201');
+  assert.equal(discoverySource('https://indigenworld.com/post/story-1?tracking=private'), 'https://indigenworld.com/post/story-1');
+  for (const value of ['javascript:alert(1)', 'https://other.example/post/1', 'https://indigenworld.com/admin', 'https://user:password@indigenworld.com/post/1', 'not a URL']) assert.equal(discoverySource(value), '');
+});
+
+test('dashboard resources fail independently and retry only their own request', async () => {
+  const h = hooks();
+  const { useCreatorResource } = await load('src/creator/useCreatorResource.ts', ['useCreatorResource'], h.api);
+  let goodCalls = 0; let failedCalls = 0;
+  const good = async () => { goodCalls++; return ['saved work']; };
+  const flaky = async () => { failedCalls++; if (failedCalls === 1) throw Error('Offline'); return ['recovered']; };
+  const render = () => h.render(() => [useCreatorResource(good, 'creator'), useCreatorResource(flaky, 'creator')]);
+  render(); h.flush(); await tick();
+  let [a, b] = render();
+  assert.equal(a.data[0], 'saved work'); assert.equal(a.failed, false); assert.equal(b.failed, true);
+  b.retry(); render(); h.flush(); await tick(); [a, b] = render();
+  assert.equal(b.data[0], 'recovered'); assert.equal(goodCalls, 1); assert.equal(failedCalls, 2);
+  h.dispose();
+});
+
+test('a late dashboard response cannot expose another account data', async () => {
+  const h = hooks();
+  const { useCreatorResource } = await load('src/creator/useCreatorResource.ts', ['useCreatorResource'], h.api);
+  let resolveOld;
+  const loader = (uid) => uid === 'first' ? new Promise((resolve) => { resolveOld = resolve; }) : Promise.resolve('second account');
+  const render = (uid) => h.render(() => useCreatorResource(loader, uid));
+  render('first'); h.flush(); render('second'); h.flush(); await tick();
+  resolveOld('first account'); await tick();
+  assert.equal(render('second').data, 'second account');
+  assert.equal(render(undefined).data, undefined);
+  h.dispose();
+});
+
+test('offline text stays editable and autosaves after reconnecting', async () => {
+  const e = await editorHarness({ navigator: { onLine: false } });
+  find(e.render(), (n) => n.props?.id === 't').props.onChange({ target: { value: 'Written offline' } });
+  e.render(); await e.runTimers();
+  assert.equal(e.writes.length, 0);
+  assert.equal(find(e.render(), (n) => n.props?.id === 't').props.value, 'Written offline');
+  e.events.online(); e.render(); await e.runTimers(); e.render();
+  assert.equal(e.writes.length, 1); assert.equal(e.writes[0].title, 'Written offline');
+  e.dispose();
+});
+
+test('an unreadable contribution score is an error rather than a zero score', async () => {
+  const { fetchMyContributorScore } = await load('src/creator/data.ts', ['fetchMyContributorScore'], {
+    db: {}, doc: () => ({}), getDoc: async () => { throw Error('Network unavailable'); },
+  });
+  await assert.rejects(fetchMyContributorScore('creator'), /Network unavailable/);
+});
+
+test('draft recovery stores only an account-scoped saved document pointer', async () => {
+  const e = await editorHarness();
+  find(e.render(), (n) => n.props?.id === 't').props.onChange({ target: { value: 'Private unsent story' } });
+  e.render(); await e.runTimers(); e.render();
+  assert.equal(e.stored.get('tribestudio:last-draft:creator:open'), 'saved-draft');
+  assert.equal([...e.stored.values()].some((value) => value.includes('Private unsent story')), false);
+  e.dispose();
+});
+
+test('dashboard counts approved work separately from published work', async () => {
+  const h = hooks();
+  const resources = { work: [{id:'a', status:'APPROVED', campaign:{id:'test'}}, {id:'p', status:'PUBLISHED', campaign:{id:'open'}}], profile: null, applications: [], campaigns: [], notifications: [], score: null };
+  const { DashboardPage } = await load('src/creator/pages/DashboardPage.tsx', ['DashboardPage'], {
+    ...h.api, useAuth: () => ({user:{uid:'creator'}, role:'creator'}), useConfig: () => ({}), canContribute: () => false,
+    fetchMySubmissions:'work', fetchMyProfile:'profile', fetchMyApplications:'applications', fetchPublicCampaigns:'campaigns', fetchMyNotifications:'notifications', fetchMyContributorScore:'score',
+    useCreatorResource: (key) => ({data:resources[key], loading:false, failed:false, retry(){}}),
+    submissionsOpen: () => false, Link:'a', StatusPill:'pill', Skeleton:'skeleton', LoadError:'error', WhatsAppCard:'whatsapp', APPLICATION_STATUS_LABELS:{}, SUBMISSION_STATUS_LABELS:{},
+  });
+  const tree = h.render(DashboardPage);
+  for (const status of ['APPROVED', 'PUBLISHED']) {
+    const tile = find(tree, (node) => node.props?.to === `/studio/submissions?status=${status}`);
+    assert.equal(find(tile, (node) => node.props?.className === 'tile__value').props.children[0], 1);
+  }
+});
+
+test('contributor password activation signs in and stays on the assigned portal', async () => {
+  const h = hooks(), calls = [];
+  const path = '/contributor/alice/work';
+  const { ContributorSignIn } = await load('src/contributor/ContributorPortal.tsx', ['ContributorSignIn'], {
+    ...h.api, functions: {}, httpsCallable: () => async () => {}, auth: {},
+    useRoute: () => ({ path, navigate: (...args) => calls.push(['navigate', ...args]) }),
+    verifyPasswordResetCode: async () => 'alice@example.com',
+    confirmPasswordReset: async (...args) => calls.push(['activate', ...args]),
+    signInWithEmailAndPassword: async (...args) => calls.push(['signin', ...args]),
+  });
+  let tree = h.render(ContributorSignIn, { code: 'code' }); h.flush(); await tick();
+  tree = h.render(ContributorSignIn, { code: 'code' });
+  find(tree, n => n.type === 'input' && n.props.type === 'password').props.onChange({ target: { value: 'password123' } });
+  tree = h.render(ContributorSignIn, { code: 'code' });
+  await tree.props.onSubmit({ preventDefault() {} });
+  assert.equal(calls[0][0], 'activate'); assert.equal(calls[1][0], 'signin');
+  assert.equal(calls[1][2], 'alice@example.com'); assert.equal(calls[2][1], path);
+});
+
+test('contributor autosave keeps full expressions and submits with the latest revision', async () => {
+  const h = hooks(), calls = [], timers = new Map(); let timerId = 0;
+  const item = { id: 'item', expression: 'How are you?', translation: '', alternatives: [], revision: 0, status: 'draft' };
+  const { ExpressionEditor } = await load('src/contributor/ContributorPortal.tsx', ['ExpressionEditor'], {
+    ...h.api, functions: {}, httpsCallable: () => async data => { calls.push(plain(data)); return { data: { revision: data.revision + 1 } }; },
+    window: { setTimeout: fn => { timers.set(++timerId, fn); return timerId; }, clearTimeout: id => timers.delete(id), addEventListener() {}, removeEventListener() {} },
+  });
+  const props = { item, work: 'work', onPending() {} };
+  let tree = h.render(ExpressionEditor, props); h.flush();
+  find(tree, n => n.type === 'textarea' && n.props.required).props.onChange({ target: { value: 'A whole expression, with punctuation' } });
+  tree = h.render(ExpressionEditor, props); h.flush();
+  for (const fn of timers.values()) fn(); timers.clear(); await tick();
+  tree = h.render(ExpressionEditor, props);
+  find(tree, n => n.type === 'input' && n.props.required).props.onChange({ target: { checked: true } });
+  tree = h.render(ExpressionEditor, props);
+  await tree.props.onSubmit({ preventDefault() {} });
+  assert.equal(calls[0].translation, 'A whole expression, with punctuation');
+  assert.equal(calls[1].revision, 1); assert.equal(calls[1].submit, true);
+  assert.equal(calls[1].aiTraining, false);
+  h.dispose();
+});
+
+test('failed contributor autosave retains text and prevents unsafe submission', async () => {
+  const h = hooks(); let timer;
+  const { ExpressionEditor } = await load('src/contributor/ContributorPortal.tsx', ['ExpressionEditor'], {
+    ...h.api, functions: {}, httpsCallable: () => async () => { throw new Error('Offline'); },
+    window: { setTimeout: fn => { timer = fn; return 1; }, clearTimeout() {}, addEventListener() {}, removeEventListener() {} },
+  });
+  const props = { item: { id: 'item', expression: 'Hello', translation: '', alternatives: [], revision: 0 }, work: 'work', onPending() {} };
+  let tree = h.render(ExpressionEditor, props); h.flush();
+  find(tree, n => n.type === 'textarea' && n.props.required).props.onChange({ target: { value: 'Keep this draft' } });
+  tree = h.render(ExpressionEditor, props); h.flush(); timer(); await tick();
+  tree = h.render(ExpressionEditor, props);
+  assert.equal(find(tree, n => n.type === 'textarea' && n.props.required).props.value, 'Keep this draft');
+  assert.ok(find(tree, n => n.props?.role === 'alert'));
+  assert.equal(find(tree, n => n.type === 'button' && !n.props.type).props.disabled, true);
+  h.dispose();
+});
+
+test('contributor views distinguish empty expressions, saved drafts, submissions and review outcomes', async () => {
+  const { expressionView } = await load('src/contributor/ContributorPortal.tsx', ['expressionView'], { functions: {}, httpsCallable: () => () => {} });
+  assert.equal(expressionView({ translation: '', status: 'draft' }), 'untranslated');
+  assert.equal(expressionView({ translation: 'Kasem draft', status: 'draft' }), 'translated');
+  assert.equal(expressionView({ translation: 'Kasem answer', status: 'submitted', submissionId: 's' }), 'translated');
+  assert.equal(expressionView({ translation: 'Kasem answer', status: 'verified', submissionId: 's' }), 'reviewed');
+  assert.equal(expressionView({ translation: 'Kasem answer', status: 'rejected', submissionId: 's' }), 'reviewed');
+  assert.equal(expressionView({ translation: 'Kasem answer', status: 'under_review', reviewedAt: '2026-09-16', submissionId: 's' }), 'reviewed');
+});
+
+test('uninvited signed-in users cannot render the contributor dashboard or load assignments', async () => {
+  const h = hooks(); const paths = [];
+  const { ContributorPortal } = await load('src/contributor/ContributorPortal.tsx', ['ContributorPortal'], {
+    ...h.api, functions: {}, db: {}, httpsCallable: () => () => {},
+    useAuth: () => ({ user: { uid: 'outsider' }, ready: true }),
+    useRoute: () => ({ path: '/contributor/outsider/work', search: '', navigate() {} }),
+    matchRoute: () => ({ uid: 'outsider', work: 'work' }),
+    doc: (_db, ...parts) => parts.join('/'), collection: (_db, ...parts) => parts.join('/'),
+    onSnapshot: (path, cb) => { paths.push(path); cb({ get: () => undefined }); return () => {}; },
+  });
+  h.render(ContributorPortal); h.flush();
+  const tree = h.render(ContributorPortal); h.flush();
+  assert.equal(find(tree, n => n.props?.className === 'contributor-workspace'), null);
+  assert.ok(find(tree, n => n.props?.role === 'alert'));
+  assert.deepEqual([...new Set(paths)], ['contributorAccounts/outsider']);
+  h.dispose();
+});
+
+test('assignment filters separate saved drafts from submissions and revision feedback', async () => {
+  const { contributionState } = await load('src/contributor/ContributorPortal.tsx', ['contributionState'], { functions: {}, httpsCallable: () => () => {} });
+  assert.equal(contributionState({ translation: '', alternatives: [], status: 'draft' }), 'Not started');
+  assert.equal(contributionState({ translation: 'Answer', status: 'draft' }), 'Drafts');
+  assert.equal(contributionState({ translation: '', alternatives: ['Alternate'], status: 'draft' }), 'Drafts');
+  assert.equal(contributionState({ translation: 'Answer', submissionId: 's', status: 'verified' }), 'Submitted');
+  assert.equal(contributionState({ translation: 'Answer', submissionId: 's', status: 'rejected' }), 'Needs revision');
+});
+
+test('submit and next advances only after a successful submission', async () => {
+  const h = hooks(), sent = [];
+  const { ExpressionEditor } = await load('src/contributor/ContributorPortal.tsx', ['ExpressionEditor'], {
+    ...h.api, functions: {}, httpsCallable: () => async () => ({ data: { revision: 1, submissionId: 's' } }),
+    window: { setTimeout() {}, clearTimeout() {}, addEventListener() {}, removeEventListener() {} },
+  });
+  const props = { item: { id: 'item', expression: 'Hello', translation: 'Answer', alternatives: [], revision: 0 }, work: 'work', onPending() {}, onSubmitted: next => sent.push(next) };
+  let tree = h.render(ExpressionEditor, props); h.flush();
+  await tree.props.onSubmit({ preventDefault() {}, nativeEvent: { submitter: { getAttribute: () => 'next' } } });
+  assert.deepEqual(sent, [true]);
+  tree = h.render(ExpressionEditor, props);
+  assert.equal(find(tree, n => n.type === 'textarea' && n.props.required).props.disabled, true);
+  h.dispose();
+});
+
+test('retry save preserves edited text after a connection failure', async () => {
+  const h = hooks(); let timer, attempts = 0; const calls = [];
+  const { ExpressionEditor } = await load('src/contributor/ContributorPortal.tsx', ['ExpressionEditor'], {
+    ...h.api, functions: {}, httpsCallable: () => async data => { calls.push(plain(data)); if (++attempts === 1) throw new Error('Offline'); return { data: { revision: 1 } }; },
+    window: { setTimeout: fn => { timer = fn; return 1; }, clearTimeout() {}, addEventListener() {}, removeEventListener() {} },
+  });
+  const props = { item: { id: 'item', expression: 'Hello', translation: '', alternatives: [], revision: 0 }, work: 'work', onPending() {} };
+  let tree = h.render(ExpressionEditor, props); h.flush();
+  find(tree, n => n.type === 'textarea' && n.props.required).props.onChange({ target: { value: 'Keep this text' } });
+  tree = h.render(ExpressionEditor, props); h.flush(); timer(); await tick();
+  tree = h.render(ExpressionEditor, props);
+  find(tree, n => n.type === 'button' && n.props.children?.includes('Retry save')).props.onClick(); await tick();
+  tree = h.render(ExpressionEditor, props);
+  assert.equal(calls[1].translation, 'Keep this text');
+  assert.equal(find(tree, n => n.type === 'textarea' && n.props.required).props.value, 'Keep this text');
+  assert.equal(find(tree, n => n.props?.role === 'alert'), null);
+  h.dispose();
+});
+
+test('browser recovery is account scoped and restores only after contributor action', async () => {
+  const stored = new Map(); let h = hooks();
+  const mocks = () => ({ ...h.api, functions: {}, httpsCallable: () => async () => ({ data: { revision: 1 } }),
+    window: { localStorage: { getItem: key => stored.get(key) ?? null, setItem: (key, value) => stored.set(key, value), removeItem: key => stored.delete(key) }, setTimeout() {}, clearTimeout() {}, addEventListener() {}, removeEventListener() {} } });
+  let { ExpressionEditor } = await load('src/contributor/ContributorPortal.tsx', ['ExpressionEditor'], mocks());
+  const props = { item: { id: 'item', expression: 'Hello', translation: '', alternatives: [], revision: 0 }, work: 'work', accountId: 'alice', onPending() {} };
+  let tree = h.render(ExpressionEditor, props); h.flush();
+  find(tree, n => n.type === 'textarea' && n.props.required).props.onChange({ target: { value: 'Unsaved Kasem text' } });
+  assert.ok(stored.has('contributor-draft:alice:work:item'));
+  h.dispose(); h = hooks();
+  ({ ExpressionEditor } = await load('src/contributor/ContributorPortal.tsx', ['ExpressionEditor'], mocks()));
+  tree = h.render(ExpressionEditor, props); h.flush();
+  assert.equal(find(tree, n => n.type === 'textarea' && n.props.required).props.value, '');
+  find(tree, n => n.type === 'button' && n.props.children?.includes('Restore draft')).props.onClick();
+  tree = h.render(ExpressionEditor, props);
+  assert.equal(find(tree, n => n.type === 'textarea' && n.props.required).props.value, 'Unsaved Kasem text');
+  h.dispose(); h = hooks();
+  ({ ExpressionEditor } = await load('src/contributor/ContributorPortal.tsx', ['ExpressionEditor'], mocks()));
+  tree = h.render(ExpressionEditor, { ...props, accountId: 'bob' });
+  assert.equal(find(tree, n => n.type === 'button' && n.props.children?.includes('Restore draft')), null);
+  h.dispose();
+});
+
+test('forgot password sends the entered email without requiring a password', async () => {
+  const h = hooks(), requests = [];
+  const { ContributorSignIn } = await load('src/contributor/ContributorPortal.tsx', ['ContributorSignIn'], {
+    ...h.api, functions: {}, httpsCallable: () => () => {}, auth: {},
+    useRoute: () => ({ path: '/contributor', navigate() {} }),
+    sendPasswordResetEmail: async (_auth, email, options) => requests.push({ email, options }),
+    window: { location: { origin: 'https://tribestudio.ngenwale.com' } },
+  });
+  let tree = h.render(ContributorSignIn, { code: null });
+  find(tree, n => n.type === 'button' && n.props.children?.includes('Forgot password?')).props.onClick();
+  tree = h.render(ContributorSignIn, { code: null });
+  assert.equal(find(tree, n => n.type === 'input' && n.props.type === 'password'), null);
+  find(tree, n => n.type === 'input' && n.props.type === 'email').props.onChange({ target: { value: 'speaker@example.com' } });
+  tree = h.render(ContributorSignIn, { code: null });
+  await tree.props.onSubmit({ preventDefault() {} });
+  assert.equal(requests[0].email, 'speaker@example.com');
+  assert.equal(requests[0].options.url, 'https://tribestudio.ngenwale.com/contributor');
+  tree = h.render(ContributorSignIn, { code: null });
+  assert.ok(find(tree, n => n.props?.role === 'status'));
+  h.dispose();
 });

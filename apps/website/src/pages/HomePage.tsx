@@ -1,238 +1,88 @@
-/**
- * src/pages/HomePage.tsx
- *
- * Landing page: hero, belief strip, ecosystem highlights, a Project
- * Kassena spotlight (trimmed — the full translation demo and roadmap
- * live on the dedicated Project Kassena page), an honestly-labelled
- * progress snapshot, and a closing CTA. Adapted from the top portion
- * of the uploaded template's single-page App.tsx.
- */
 import { useDocumentMeta } from "../lib/useDocumentMeta";
 import { useRevealOnScroll } from "../lib/useRevealOnScroll";
 import { ROUTES_BY_PATH } from "../content/navigation";
-import { HOME_ECOSYSTEM_HIGHLIGHTS } from "../content/ecosystem";
 import { IMPACT_TARGETS } from "../content/kasena";
 import { Button } from "../components/Button";
-import { Icon } from "../components/Icon";
 import { SectionHeading } from "../components/SectionHeading";
-import { ProductCard } from "../components/ProductCard";
-import { ResponsiveDisclosure } from "../components/ResponsiveDisclosure";
+import { LatestUpdates } from "../components/LatestUpdates";
+import { AudiencePaths } from "../components/AudiencePaths";
+import { STUDIO_CREATE_URL } from "../content/creatorLinks";
 
-const route = ROUTES_BY_PATH["home"];
-
-const HOW_IT_WORKS = [
-  ["Preserve", "Capture words, stories and cultural context with clear source information."],
-  ["Validate", "Route submissions through teachers, elders and other qualified language custodians."],
-  ["Create", "Give approved material useful forms for storytelling, education and future tools."],
-  ["Learn", "Make trusted culture easier to discover across devices and generations."],
-  ["Reconnect", "Help local communities and diaspora families keep language present in daily life."],
-] as const;
-
-const WHO_IT_SERVES = [
-  "Local communities",
-  "Diaspora families",
-  "Creators",
-  "Educators and schools",
-  "Researchers",
-  "Language custodians",
-  "Cultural partners",
-] as const;
+const route = ROUTES_BY_PATH.home;
 
 export function HomePage() {
   useDocumentMeta(route.title, route.description);
   useRevealOnScroll(route.path);
-
-  return (
-    <>
-      <section className="hero" id="top">
-        <div className="hero__pattern" aria-hidden="true" />
-        <div className="container hero__grid">
-          <div className="hero__content" data-reveal>
-            <span className="status-pill">
-              <span className="status-pill__dot" />
-              Building from Northern Ghana, designed to scale
-            </span>
-            <p className="hero__kicker">A community-governed cultural technology ecosystem</p>
-            <h1>
-              Culture belongs
-              <span> in the future.</span>
-            </h1>
-            <p className="hero__lead">
-              Indigen World builds digital spaces where indigenous languages, stories, creators
-              and communities can remain present online — and shape what comes next.
-            </p>
-            <div className="hero__actions">
-              <Button to="ecosystem">Explore the ecosystem</Button>
-              <Button to="get-involved" variant="secondary">
-                Get involved
-              </Button>
-            </div>
-            <div className="hero__trust-row">
-              <span>
-                <Icon name="shield" size={18} /> Community validation
-              </span>
-              <span>
-                <Icon name="mobile" size={18} /> Low-bandwidth first
-              </span>
-              <span>
-                <Icon name="layers" size={18} /> Reusable language cells
-              </span>
-            </div>
+  return <>
+    <section className="hero" id="top">
+      <div className="hero__pattern" aria-hidden="true" />
+      <div className="container hero__grid">
+        <div className="hero__content" data-reveal>
+          <span className="status-pill"><span className="status-pill__dot" /> Starting with Kasem, in Northern Ghana</span>
+          <p className="hero__kicker">Language, stories and the people behind them</p>
+          <h1>Culture belongs<span> in the future.</span></h1>
+          <p className="hero__lead">Discover Kasem words, share a story, or help keep your language part of everyday life.</p>
+          <div className="hero__actions">
+            <Button to="dictionary">Explore Kasem words</Button>
+            <Button href={STUDIO_CREATE_URL} external variant="secondary">Create with TribeStudio</Button>
           </div>
-
-          <div className="hero-visual" aria-hidden="true" data-reveal />
+          <p className="tiny">Browse without an account. Sign in to create and save your work.</p>
         </div>
-      </section>
-
-      <section className="section section--cream" id="why-it-matters">
-        <div className="container split-intro">
-          <SectionHeading
-            eyebrow="Why this matters"
-            title="A language needs a digital life to remain part of everyday life."
-          />
-          <div className="split-intro__copy" data-reveal>
-            <p>
-              When a language is hard to find in search, learning tools and the services people
-              use every day, younger speakers have fewer reasons and fewer places to use it.
-            </p>
-            <p>
-              Indigen World works with communities to build a trusted digital record without
-              separating language from the people, permissions and cultural context that give it
-              meaning.
-            </p>
-          </div>
+        <div className="hero-visual" aria-hidden="true" data-reveal />
+      </div>
+    </section>
+    <section className="section section--white" id="find-your-path">
+      <div className="container">
+        <SectionHeading eyebrow="Start here" title="What would you like to do?" body="Choose a path that fits you. You can explore the rest whenever you are ready." />
+        <AudiencePaths />
+      </div>
+    </section>
+    <section className="section section--cream" id="progress">
+      <div className="container">
+        <SectionHeading eyebrow="Current progress" title="From an idea to tools you can use." body="Start with the public dictionary and creator workspace. Mobile access and campaign opportunities have their own availability." />
+        <div className="journey-grid">
+          <article className="journey-card">
+            <span className="target-badge">Public dictionary</span><h3>Explore published Kasem words</h3>
+            <p>Search entries, read their meaning and context, and listen where a recording is available.</p>
+            <Button to="dictionary" variant="secondary">Open the dictionary</Button>
+          </article>
+          <article className="journey-card">
+            <span className="target-badge">Creator workspace</span><h3>Make and share your work</h3>
+            <p>TribeStudio supports drafts, recordings and posts. Campaign entries follow a separate review process.</p>
+            <Button href={STUDIO_CREATE_URL} external variant="secondary">Start a post</Button>
+          </article>
+          <article className="journey-card">
+            <span className="target-badge">In development</span><h3>Learning on your phone</h3>
+            <p>The mobile app is still in development. Join the waitlist to hear when access is available.</p>
+            <Button to="get-involved?route=mobile-app-waitlist" variant="secondary">Join the app waitlist</Button>
+          </article>
         </div>
-      </section>
+        <p className="target-label">These describe available product paths, not measured community impact.</p>
 
-      <section className="belief-strip" aria-label="Indigen World principles">
-        <div className="container belief-strip__inner">
-          <p>Not a digital museum.</p>
-          <span aria-hidden="true">✦</span>
-          <p>A living cultural infrastructure.</p>
-          <span aria-hidden="true">✦</span>
-          <p>Built with communities, not around them.</p>
+        <details className="home-targets">
+          <summary>See the goals we are working toward</summary>
+          <p>Figures below are Project Kassena targets, not completed results.</p>
+          <div className="impact-grid">{IMPACT_TARGETS.map((target) => <article key={target.label}><span className="target-badge">Target</span><strong>{target.figure}</strong><span>{target.label}</span></article>)}</div>
+          <Button to="impact-governance" variant="secondary">How we track progress and permissions</Button>
+        </details>
+      </div>
+    </section>
+    <LatestUpdates />
+    <section className="section section--indigo" id="kasena-spotlight">
+      <div className="container kasena-spotlight">
+        <SectionHeading eyebrow="Project Kassena" title="Starting with Kasem. Building with its speakers." body="Project Kassena brings words, stories and cultural knowledge into digital spaces, with sources, permissions and community review. What we learn here will help other language communities build their own tools." light />
+        <Button to="project-kassena" variant="secondary">Meet Project Kassena</Button>
+      </div>
+    </section>
+    <section className="section section--white">
+      <div className="container split-intro">
+        <SectionHeading eyebrow="Built with communities" title="The people behind the knowledge stay part of its future." />
+        <div className="split-intro__copy">
+          <p>Contributors bring words and stories. Teachers, speakers and cultural custodians help review language contributions. Clear permissions explain how work can be shared.</p>
+          <p>Public posts and reviewed language entries follow different paths. Sharing work does not automatically give permission to use it for AI training.</p>
+          <Button to="impact-governance" variant="secondary">Read how we care for shared knowledge</Button>
         </div>
-      </section>
-
-      <section className="section section--white home-ecosystem" id="ecosystem-highlights">
-        <div className="container">
-          <SectionHeading
-            eyebrow="One connected ecosystem"
-            title="Three products. One cultural future."
-            body="The public website, TribeStudio and the mobile app each serve a distinct audience while sharing the same governance standards and technical foundation."
-          />
-          <div className="product-grid">
-            {HOME_ECOSYSTEM_HIGHLIGHTS.map((product, index) => (
-              <ProductCard key={product.id} product={product} index={index} />
-            ))}
-          </div>
-          <div className="section-cta" data-reveal>
-            <Button to="ecosystem" variant="secondary">
-              See the full ecosystem
-            </Button>
-          </div>
-        </div>
-      </section>
-
-      <section className="section section--indigo" id="kasena-spotlight">
-        <div className="container kasena-spotlight">
-          <SectionHeading
-            eyebrow="Flagship programme"
-            title="Project Kassena starts with one language—deeply."
-            body="Indigen World's first language cell and intended model for community-validated language preservation. It begins with Kasem and is building foundations for future text and voice research."
-            light
-          />
-          <Button to="project-kassena" variant="secondary">
-            Explore Project Kassena
-          </Button>
-        </div>
-      </section>
-
-      <ResponsiveDisclosure
-        className="home-deep-dive"
-        summary="See how the model works and who it serves"
-      >
-        <section className="section section--cream" id="how-it-works">
-          <div className="container">
-            <SectionHeading
-              eyebrow="How Indigen World works"
-              title="From community knowledge to useful, governed technology."
-              body="The model keeps cultural authority present at every step instead of treating validation and consent as an afterthought."
-            />
-            <ol className="process-list" data-reveal>
-              {HOW_IT_WORKS.map(([title, body], index) => (
-                <li key={title}>
-                  <span>{String(index + 1).padStart(2, "0")}</span>
-                  <div>
-                    <strong>{title}</strong>
-                    <p>{body}</p>
-                  </div>
-                </li>
-              ))}
-            </ol>
-          </div>
-        </section>
-
-        <section className="section section--white" id="who-it-serves">
-          <div className="container split-intro">
-            <SectionHeading
-              eyebrow="Who it serves"
-              title="Built for the people who keep culture moving."
-              body="The ecosystem supports different roles without asking every visitor to use the same product or contribution path."
-            />
-            <ul className="audience-list" data-reveal>
-              {WHO_IT_SERVES.map((audience) => (
-                <li key={audience}>{audience}</li>
-              ))}
-            </ul>
-          </div>
-        </section>
-      </ResponsiveDisclosure>
-
-      <section className="section section--white" id="progress">
-        <div className="container">
-          <SectionHeading
-            eyebrow="MVP ambition"
-            title="Build measurable value before chasing spectacle."
-            body="Our first milestones focus on a working product, trusted validation and a useful language dataset—not vanity features."
-          />
-          <p className="target-label" data-reveal>
-            Figures below describe the Project Kassena MVP ambition, not completed results.
-          </p>
-          <div className="impact-grid">
-            {IMPACT_TARGETS.map((target) => (
-              <article key={target.label} data-reveal>
-                <span className="target-badge">Target</span>
-                <strong>{target.figure}</strong>
-                <span>{target.label}</span>
-              </article>
-            ))}
-          </div>
-          <div className="section-cta" data-reveal>
-            <Button to="impact-governance" variant="secondary">
-              See governance &amp; full targets
-            </Button>
-          </div>
-        </div>
-      </section>
-
-      <section className="contact-section" id="get-involved-cta">
-        <div className="contact-section__pattern" aria-hidden="true" />
-        <div className="container contact-card" data-reveal>
-          <div>
-            <p className="eyebrow">Partners, educators, funders &amp; cultural custodians</p>
-            <h2>Help build a future where culture is digitally present—and still belongs to its people.</h2>
-            <p>
-              We are preparing the first Kasem pilot and welcome conversations with communities,
-              schools, researchers, cultural organisations, technology partners and responsible
-              funders.
-            </p>
-          </div>
-          <div className="contact-card__actions">
-            <Button to="get-involved">Get involved</Button>
-          </div>
-        </div>
-      </section>
-    </>
-  );
+      </div>
+    </section>
+  </>;
 }

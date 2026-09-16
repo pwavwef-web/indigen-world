@@ -34,7 +34,10 @@
     "deploy:website": "firebase deploy --only hosting:indigen-world --project project-kassena-7e026",
     "deploy:kasena-dictionary": "firebase deploy --only hosting:kasem-dictionary --project project-kassena-7e026",
     "build:admin": "npm run build --workspace @indigen-world/admin",
+    "build:console-ui": "npm run build --workspace @indigen-world/console-ui",
     "build:tribestudio": "npm run build --workspace @indigen-world/tribestudio",
+    "check:tribestudio": "npm run check --workspace @indigen-world/tribestudio",
+    "deploy:tribestudio": "firebase deploy --only hosting:tribestudio --project project-kassena-7e026",
     "build:team-francis-pwavwe": "npm run build --workspace @indigen-world/team-francis-pwavwe",
     "build:functions": "npm run build --workspace @indigen-world/functions",
     "build:mobile-aab": "node scripts/build-mobile-aab.mjs",
@@ -45,7 +48,7 @@
     "typecheck:tribestudio": "npm run typecheck --workspace @indigen-world/tribestudio",
     "typecheck:team-francis-pwavwe": "npm run typecheck --workspace @indigen-world/team-francis-pwavwe",
     "test:contracts": "npm test --workspace @indigen-world/contracts",
-    "test:rules": "firebase emulators:exec --project demo-indigen-world --only firestore \"node --test firebase/tests/firestore.rules.test.mjs firebase/tests/creator.rules.test.mjs firebase/tests/community.rules.test.mjs firebase/tests/communitySpaces.rules.test.mjs firebase/tests/reelsAndChats.rules.test.mjs firebase/tests/learningAndShop.rules.test.mjs firebase/tests/ads.rules.test.mjs firebase/tests/subscriptions.rules.test.mjs firebase/tests/kawuriTasks.rules.test.mjs\"",
+    "test:rules": "firebase emulators:exec --project demo-indigen-world --only firestore \"node --test firebase/tests/firestore.rules.test.mjs firebase/tests/creator.rules.test.mjs firebase/tests/contributorPortal.rules.test.mjs firebase/tests/community.rules.test.mjs firebase/tests/communitySpaces.rules.test.mjs firebase/tests/reelsAndChats.rules.test.mjs firebase/tests/learningAndShop.rules.test.mjs firebase/tests/ads.rules.test.mjs firebase/tests/subscriptions.rules.test.mjs firebase/tests/kawuriTasks.rules.test.mjs\"",
     "test:storage-rules": "firebase emulators:exec --project demo-indigen-world --only auth,storage,firestore \"node --test firebase/tests/storage.rules.test.mjs\"",
     "test:e2e": "npm run build:functions && cross-env FUNCTIONS_DISCOVERY_TIMEOUT=120 firebase emulators:exec --project demo-indigen-world --only auth,firestore,functions \"node --test firebase/tests/decideReview.test.mjs firebase/tests/creatorFunctions.test.mjs firebase/tests/publicForms.test.mjs firebase/tests/dictionaryAdmin.test.mjs\"",
     "test:kawuri-e2e": "npm run build:functions && cross-env FUNCTIONS_DISCOVERY_TIMEOUT=120 firebase emulators:exec --project demo-indigen-world --only auth,firestore,storage,functions \"node --test firebase/tests/kawuriMediaFunctions.test.mjs\"",
@@ -53,7 +56,8 @@
     "test:kasem-evidence": "npm run build:functions && node --test firebase/tests/kasemEvidence.test.mjs firebase/tests/kasemDatasetCli.test.mjs firebase/tests/kasemCorpus.test.mjs firebase/tests/grammarRules.test.mjs firebase/tests/kasemMorphology.test.mjs",
     "test:kasem-evidence:integration": "npm run build:functions && firebase emulators:exec --project demo-indigen-world --only auth,firestore,storage \"node --test firebase/tests/kasemEvidence.integration.test.mjs firebase/tests/storage.rules.test.mjs\"",
     "kasem:dataset": "node services/functions/scripts/kasem-dataset.mjs",
-    "audit:duplicate-check": "node services/functions/scripts/audit-duplicate-check.mjs"
+    "audit:duplicate-check": "node services/functions/scripts/audit-duplicate-check.mjs",
+    "test:contributor-portal": "npm run build:functions && node --test firebase/tests/contributorPortal.test.mjs && npm test --workspace @indigen-world/tribestudio"
   },
   "devDependencies": {
     "cross-env": "7.0.3",

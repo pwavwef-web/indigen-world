@@ -107,3 +107,7 @@ Before public launch, the project manager still needs to supply or approve:
 Until those are approved, the site uses restrained CSS artwork, omits social links and marks legal
 copy as an implementation summary. Keep `public/sitemap.xml`, `public/robots.txt` and
 `VITE_SITE_URL` aligned with the primary `indigenworld.com` production domain.
+
+## Blog updates
+
+The homepage shows the three latest published posts from the independent Blogger site at https://updates.indigenworld.com/. The public summary feed is loaded through Blogger JSONP on each homepage visit, without credentials or a rebuild. Cards link to the original articles. Keep the Blogger site feed enabled under Settings. If it is unavailable, the section keeps a direct blog link visible. The blog theme and publishing workflow remain separate.

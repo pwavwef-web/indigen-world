@@ -137,6 +137,10 @@ export function submissionTranslations(
   submission: JsonRecord,
   kind: CollectionKind | null,
 ): string[] {
+  if (submission.contributorPortal && Array.isArray(submission.translations)) {
+    return submission.translations.filter((value: unknown): value is string =>
+      typeof value === 'string' && value.length > 0 && value.length <= 2000).slice(0, 13);
+  }
   if (submission.translations != null) return normaliseTranslations(submission.translations);
   return kind === 'dictionary' ? normaliseTranslations(submission.body) : [];
 }

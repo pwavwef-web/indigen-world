@@ -1,3 +1,5 @@
+import { Button } from "../components/Button";
+import { createFromDiscovery } from "../content/creatorLinks";
 /**
  * src/pages/PostPage.tsx
  *
@@ -210,6 +212,7 @@ export function PostPage() {
             </div>
           )}
 
+          {lookup?.status === "found" ? <section className="journey-card"><h2>Have a story of your own?</h2><p>Create a response or share related knowledge in TribeStudio. This post will be included as a source link.</p><Button href={createFromDiscovery(`post/${encodeURIComponent(postId)}`)} external>Create a related post</Button></section> : null}
           <AppHandoff postId={postId} />
 
           <p className="post-page__footer-note tiny muted">

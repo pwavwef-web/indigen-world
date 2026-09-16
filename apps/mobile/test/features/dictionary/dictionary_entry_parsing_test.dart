@@ -12,6 +12,17 @@ import 'package:indigen_world_mobile/features/collection/collection_data.dart';
 import 'package:indigen_world_mobile/features/dictionary/translation_display.dart';
 
 void main() {
+  test('contributor expressions preserve punctuation and complete alternatives', () {
+    final expression = List.filled(8, 'A whole expression, with clauses / intact').join(' ');
+    final entry = dictionaryEntryFromData('expression', {
+      'contentKind': 'expression', 'kasemText': expression,
+      'englishText': 'Hello, how are you?', 'alternativeExpressions': ['Another, complete expression'],
+      'isPublished': true,
+    })!;
+    expect(entry.headword, expression);
+    expect(entry.renderings, [expression, 'Another, complete expression']);
+    expect(entry.translations, ['Hello, how are you?']);
+  });
   group('several meanings', () {
     test('a legacy single translation is split into a list', () {
       // No migration is ever going to run over the historical rows, so the list

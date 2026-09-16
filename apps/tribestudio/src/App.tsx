@@ -1,4 +1,6 @@
 import { Suspense, lazy, useEffect, useRef, useState, type ComponentType, type ReactNode } from 'react';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from './firebase';
 import type { CreatorApplication, CreatorMembership, CreatorProfile } from '@indigen-world/contracts/creator-models';
 import { ToastProvider } from '@indigen-world/web-ui';
 import { Link, RouterProvider, matchRoute, useRoute } from './router';
@@ -20,6 +22,8 @@ const named = <T extends Record<string, unknown>>(loader: () => Promise<T>, key:
   lazy(() => loader().then((m) => ({ default: m[key] as ComponentType })));
 
 const LexiconWorkspace = named(() => import('./workspace/LexiconWorkspace'), 'LexiconWorkspace');
+const ContributorPreview = import.meta.env.DEV ? named(() => import('./contributor/ContributorPreview'), 'ContributorPreview') : null;
+const ContributorPortal = named(() => import('./contributor/ContributorPortal'), 'ContributorPortal');
 const LandingPage = named(() => import('./creator/pages/LandingPage'), 'LandingPage');
 const JoinPage = named(() => import('./creator/pages/JoinPage'), 'JoinPage');
 const SuccessPage = named(() => import('./creator/pages/SuccessPage'), 'SuccessPage');
@@ -58,7 +62,7 @@ function SignInGate() {
       <div className="signin__card">
         <BrandMark />
         <h1>TribeStudio</h1>
-        <p>Sign in to reach your founding-creator workspace.</p>
+        <p>Sign in to save your draft and share your work. You can preview your post before publishing.</p>
         <button type="button" className="button button--primary" onClick={() => void signIn()}>
           Sign in with Google
         </button>
@@ -247,9 +251,25 @@ function renderStudio(path: string, canVideo: boolean) {
 }
 
 function Routed() {
-  const { path } = useRoute();
+  const { path, navigate } = useRoute();
   const { user, ready, role } = useAuth();
   const hasMounted = useRef(false);
+  const [contributorCheck, setContributorCheck] = useState('');
+  const [contributorError, setContributorError] = useState(false);
+  const contributorRoute = path === '/contributor' || path.startsWith('/contributor/');
+  useEffect(() => {
+    if (!user || contributorRoute) return;
+    let active = true;
+    setContributorError(false);
+    void getDoc(doc(db, 'contributorAccounts', user.uid)).then(account => {
+      if (!active) return;
+      if (account.get('status') === 'active' && account.get('defaultWork')) {
+        navigate(`/contributor/${user.uid}/${account.get('defaultWork')}`, { replace: true });
+      }
+      setContributorCheck(user.uid);
+    }).catch(() => { if (active) setContributorError(true); });
+    return () => { active = false; };
+  }, [user?.uid, contributorRoute, navigate]);
 
   // Move keyboard/screen-reader focus to the main region on route change so
   // navigation is announced and the skip link lands somewhere focusable.
@@ -261,6 +281,12 @@ function Routed() {
     }
   }, [path]);
 
+  if (path === '/contributor/preview' && ContributorPreview) return <Suspense fallback={<FullPageLoader />}><ContributorPreview /></Suspense>;
+  if (contributorRoute) return <Suspense fallback={<FullPageLoader />}><ContributorPortal key={`${user?.uid ?? 'guest'}:${path}`} /></Suspense>;
+  if (user && contributorCheck !== user.uid) {
+    if (contributorError) return <div className="signin"><p>Unable to check your account. <button onClick={() => window.location.reload()}>Retry</button></p></div>;
+    return <FullPageLoader note="Opening your account…" />;
+  }
   // ---- Public creator surfaces (no authentication required) ----
   if (path === '/' || path === '/creators') return <PublicLayout><LandingPage /></PublicLayout>;
   if (path === '/creators/guidelines') return <PublicLayout><GuidelinesPage /></PublicLayout>;

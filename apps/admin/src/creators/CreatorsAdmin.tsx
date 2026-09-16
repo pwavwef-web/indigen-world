@@ -44,7 +44,7 @@ const TABS: [Tab, string][] = [
   ['creators', 'Creators'],
   ['members', 'Members'],
   ['campaigns', 'Campaigns'],
-  ['review', 'Review queue'],
+  ['review', 'Review Desk'],
   ['config', 'Configuration'],
   ['audit', 'Audit log'],
 ];
@@ -702,8 +702,8 @@ function ReviewTab({ notify }: { notify: (m: string) => void }) {
 
   return (
     <div>
-      <h2>Review queue</h2>
-      <p className="muted">Campaign and mobile Collection contributions meet here. Approved work stays visible until it is published or archived, and published work can be unpublished here.</p>
+      <h2>Contributions</h2>
+      <p className="muted">Invited expression translations, campaign submissions and mobile Collection contributions meet here. Approved work stays visible until it is published or archived, and published work can be unpublished here.</p>
       {loading ? <Loading label="Loading" /> : rows.length === 0 ? <EmptyState title="The queue is empty." /> : (
         <div className="review-cards">
           {rows.map((s) => (
