@@ -6,8 +6,11 @@ date identifies when the post was prepared; it does not prove the update is live
 
 ## Posts
 
+- [2026-09-17: Contributor invitations by SMS](2026-09-17-contributor-sms-invitations/README.md) — draft; implemented, production deployment pending.
 - [2026-09-17: Contributor management comes to the Admin console](2026-09-17-contributor-management/README.md) — draft article; feature deployed, authenticated workflow smoke test pending.
 - [2026-09-16: Beyond the Reef, now an interactive music film](2026-09-16-beyond-the-reef/README.md) — the page is live; settle the song credit before publishing.
+- [2026-09-16: Assignment guidance, uncertainty flags and contributor activation](2026-09-16-contributor-guidance-and-activation/README.md) — draft; deployment verification pending.
+
 - [2026-09-16: A clearer workspace for Kasem expression contributors](2026-09-16-contributor-portal/README.md) — draft; deployment verification pending.
 - [2026-09-14: Kawuri creates](2026-09-14-kawuri-creates/README.md)
 - [2026-09-14: Reels that explain themselves](2026-09-14-reels-that-explain-themselves/README.md)

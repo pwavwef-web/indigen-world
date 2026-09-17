@@ -5,6 +5,7 @@ import { HttpsError, onCall } from 'firebase-functions/v2/https';
 import { onDocumentWritten } from 'firebase-functions/v2/firestore';
 import { requireAuth, requireRole } from './auth.js';
 import { consumeRateLimit } from './rate-limit.js';
+import { ARKESEL_API_KEY, isSmsConfigured, normalizeMsisdn, sendSmsToMsisdn } from './sms.js';
 import { COLLECTION_CAMPAIGN_ID, buildCollectionCampaignDocument, buildCollectionContributionReceipt,
   buildCollectionSubmissionDocument, parseCollectionContributionInput } from './collection-contributions.js';
 
@@ -112,12 +113,41 @@ export function parseExpressionAnswer(raw: Record<string, unknown>) {
   return { translation, alternatives };
 }
 
-// Returns a link for the administrator to share; never sends unsolicited email.
-export const inviteExpressionContributor = onCall(options, async req => {
+export function assignmentInstructions(raw: Record<string, unknown>) {
+  return Object.fromEntries(['dialect', 'tone', 'deadline', 'helpContact'].map(key => [key, raw[key] == null ? '' : text(raw[key], 500, true)]));
+}
+
+export function contributorPhone(value: unknown): string {
+  const raw = text(value, 80);
+  if (!/^[+\d\s().-]+$/.test(raw)) throw new HttpsError('invalid-argument', 'Enter a valid SMS phone number.');
+  const phone = normalizeMsisdn(raw);
+  if (!/^[1-9]\d{7,14}$/.test(phone)) throw new HttpsError('invalid-argument', 'Enter a phone number with country code, or a Ghana number such as 0241234567.');
+  return '+' + phone;
+}
+
+export function contributorInvitationMessage(email: string, phone: string, portalUrl: string, temporary: boolean): string {
+  return `Indigen World: Your contributor assignment is ready. ${portalUrl}\nEmail: ${email}\n`
+    + (temporary ? `Temporary password: your phone number ${phone}. Sign in, then choose a new password.`
+      : 'Sign in with your existing password. If forgotten, use Forgot password on the portal.');
+}
+
+async function deliverContributorInvitation(uid: string, email: string, phone: string, portalUrl: string, temporary: boolean) {
+  const result = await sendSmsToMsisdn(phone.slice(1), contributorInvitationMessage(email, phone, portalUrl, temporary));
+  const sms = { status: result.ok ? 'accepted' : 'failed', to: phone, id: result.id ?? null,
+    attemptedAt: new Date().toISOString() };
+  await getFirestore().doc(`contributorAccounts/${uid}`).update({ 'invitation.sms': sms });
+  return sms;
+}
+
+// An invitation sends an SMS only after its account and assignment have been saved.
+export const inviteExpressionContributor = onCall({ ...options, secrets: [ARKESEL_API_KEY] }, async req => {
   const actor = requireAuth(req); requireRole(req, 'admin');
   await consumeRateLimit('inviteExpressionContributor', actor, 10);
   const email = text(req.data?.email, 254).toLowerCase();
   const requestedContributorId = req.data?.contributorId == null ? '' : id(req.data.contributorId);
+  const requestId = id(req.data?.requestId);
+  const phoneNumber = contributorPhone(req.data?.phoneNumber);
+  if (!isSmsConfigured()) throw new HttpsError('failed-precondition', 'SMS is not configured. No invitation was created.');
   const expressions = req.data?.expressions;
   if (!Array.isArray(expressions) || !expressions.length || expressions.length > 100) {
     throw new HttpsError('invalid-argument', 'Provide 1–100 expressions.');
@@ -126,7 +156,9 @@ export const inviteExpressionContributor = onCall(options, async req => {
   const title = req.data?.title == null ? 'Everyday expressions' : text(req.data.title, 120);
   const instructions = optionalText(req.data?.instructions, 3000);
   const deadline = optionalText(req.data?.deadline, 40);
+  const guidance = assignmentInstructions(req.data ?? {});
   let user;
+  let createdUser = false;
   if (requestedContributorId) {
     try {
       user = await getAuth().getUser(requestedContributorId);
@@ -146,21 +178,33 @@ export const inviteExpressionContributor = onCall(options, async req => {
         user = await getAuth().createUser({
           uid: requestedContributorId,
           email,
+          password: phoneNumber,
           displayName: optionalText(req.data?.displayName, 120) || undefined,
         });
+        createdUser = true;
       }
     }
   } else {
     try { user = await getAuth().getUserByEmail(email); }
     catch (error) {
       if ((error as { code?: string }).code !== 'auth/user-not-found') throw error;
-      user = await getAuth().createUser({ email, displayName: optionalText(req.data?.displayName, 120) || undefined });
+      user = await getAuth().createUser({ email, password: phoneNumber, displayName: optionalText(req.data?.displayName, 120) || undefined });
+      createdUser = true;
     }
   }
   const db = getFirestore();
   const accountRef = db.doc(`contributorAccounts/${user.uid}`);
   const profileRef = db.doc(`contributors/${user.uid}`);
   const [accountBefore, profileBefore] = await Promise.all([accountRef.get(), profileRef.get()]);
+  if (accountBefore.exists && accountBefore.get('invitation.status') !== 'cancelled') {
+    if (accountBefore.get('invitation.requestId') === requestId) {
+      const work = String(accountBefore.get('defaultWork'));
+      return { contributorId: user.uid, work, portalUrl: `${origin}/contributor/${user.uid}/${work}`,
+        loginMethod: accountBefore.get('temporaryPhonePassword') === true ? 'phone' : 'existing',
+        sms: accountBefore.get('invitation.sms') ?? { status: 'pending', to: phoneNumber } };
+    }
+    throw new HttpsError('already-exists', 'This contributor is already invited. Use Resend invitation or assign another set.');
+  }
   if (user.disabled) {
     // A cancelled invitation is explicitly reversible. Other disabled accounts
     // must be reactivated from Access & visibility before new work is assigned.
@@ -173,15 +217,21 @@ export const inviteExpressionContributor = onCall(options, async req => {
   if (!user.customClaims?.role) {
     await getAuth().setCustomUserClaims(user.uid, { ...(user.customClaims ?? {}), role: 'contributor' });
   }
-  const work = db.collection('contributorWork').doc().id;
+  const work = createHash('sha256').update(`${actor}/${requestId}`).digest('hex').slice(0, 24);
   const path = `/contributor/${user.uid}/${work}`;
   const now = new Date().toISOString();
   const batch = db.batch();
   const invitation = {
-    status: 'pending', sentAt: now, resentAt: null, resendCount: 0, cancelledAt: null,
+    status: 'pending', sentAt: now, resentAt: null, resendCount: 0, cancelledAt: null, requestId,
+    sms: { status: 'pending', to: phoneNumber },
   };
-  batch.set(accountRef, { authUid: user.uid, contributorId: user.uid, status: 'active',
-    defaultWork: work, invitedBy: actor, invitation, updatedAt: now }, { merge: true });
+  const needsActivation = !accountBefore.exists || accountBefore.get('requiresPasswordChange') === true;
+  const temporaryPhonePassword = createdUser || accountBefore.get('temporaryPhonePassword') === true;
+  const accountData = { authUid: user.uid, contributorId: user.uid, status: 'active',
+    requiresPasswordChange: needsActivation, temporaryPhonePassword, phoneNumber,
+    defaultWork: work, invitedBy: actor, invitation, updatedAt: now };
+  if (accountBefore.exists) batch.update(accountRef, accountData, { lastUpdateTime: accountBefore.updateTime! });
+  else batch.create(accountRef, accountData);
   batch.set(profileRef, {
     id: user.uid,
     authUid: user.uid,
@@ -197,12 +247,12 @@ export const inviteExpressionContributor = onCall(options, async req => {
     },
     private: {
       email,
-      phone: profileBefore.get('private.phone') ?? '',
+      phone: phoneNumber,
       notes: profileBefore.get('private.notes') ?? '',
     },
     roles: profileBefore.get('roles') ?? ['translator'],
     contributionTypes: profileBefore.get('contributionTypes') ?? ['expressions'],
-    permissions: profileBefore.get('permissions') ?? { submit: true, edit: true, review: false, publish: false },
+    permissions: { ...(profileBefore.get('permissions') ?? { review: false, publish: false }), submit: true, edit: true },
     status: 'active',
     publicVisibility: profileBefore.get('publicVisibility') ?? 'hidden',
     lifecycle: {
@@ -211,8 +261,8 @@ export const inviteExpressionContributor = onCall(options, async req => {
       version: Number(profileBefore.get('lifecycle.version') ?? 0) + 1,
     },
   }, { merge: true });
-  batch.set(db.doc(`contributorAccounts/${user.uid}/works/${work}`), {
-    id: work, title, language: 'xsm', kind: 'expressions', instructions, deadline,
+  batch.create(db.doc(`contributorAccounts/${user.uid}/works/${work}`), {
+    ...guidance, id: work, title, language: 'xsm', kind: 'expressions', instructions, deadline,
     assignedBy: actor, createdAt: now,
   });
   for (const expression of prompts) {
@@ -227,11 +277,34 @@ export const inviteExpressionContributor = onCall(options, async req => {
     { status: 'active', invitation: 'pending', work, expressionCount: prompts.length },
     { email, work, expressionCount: prompts.length }) });
   await batch.commit();
-  const reset = new URL(await getAuth().generatePasswordResetLink(email, { url: origin + path }));
-  const activation = new URL(origin + path);
-  activation.searchParams.set('oobCode', reset.searchParams.get('oobCode')!);
-  activation.searchParams.set('mode', 'resetPassword');
-  return { contributorId: user.uid, work, portalUrl: origin + path, activationUrl: activation.toString() };
+  const sms = await deliverContributorInvitation(user.uid, email, phoneNumber, origin + path, temporaryPhonePassword);
+  return { contributorId: user.uid, work, portalUrl: origin + path,
+    loginMethod: temporaryPhonePassword ? 'phone' : 'existing', sms };
+});
+
+/** Exchange the temporary phone-number password for a contributor-chosen password. */
+export const activateExpressionContributor = onCall(options, async req => {
+  const uid = requireAuth(req);
+  if (req.auth?.token.firebase?.sign_in_provider !== 'password') {
+    throw new HttpsError('permission-denied', 'Sign in with your email and temporary password.');
+  }
+  await consumeRateLimit('activateExpressionContributor', uid, 10);
+  const password = req.data?.password;
+  if (typeof password !== 'string' || password.length < 8 || password.length > 128) {
+    throw new HttpsError('invalid-argument', 'Choose a password of 8–128 characters.');
+  }
+  const ref = getFirestore().doc('contributorAccounts/' + uid);
+  const account = await ref.get();
+  if (account.get('status') !== 'active' || account.get('requiresPasswordChange') !== true) {
+    throw new HttpsError('failed-precondition', 'This account does not need activation.');
+  }
+  if (password.replace(/\D/g, '') === String(account.get('phoneNumber')).replace(/\D/g, '')) {
+    throw new HttpsError('invalid-argument', 'Choose a new password different from your phone number.');
+  }
+  await getAuth().updateUser(uid, { password });
+  await ref.update({ requiresPasswordChange: false, temporaryPhonePassword: false,
+    'invitation.status': 'accepted', activatedAt: new Date().toISOString() });
+  return { activated: true };
 });
 
 /** Assign another set to the same contributor without changing their credentials. */
@@ -246,6 +319,7 @@ export const assignContributorExpressions = onCall(options, async req => {
   const title = req.data.title == null ? 'Everyday expressions' : text(req.data.title, 120);
   const instructions = optionalText(req.data?.instructions, 3000);
   const deadline = optionalText(req.data?.deadline, 40);
+  const guidance = assignmentInstructions(req.data ?? {});
   const db = getFirestore(), account = db.doc(`contributorAccounts/${uid}`);
   const work = account.collection('works').doc();
   // A work id is already globally random, and using it for this one-to-one
@@ -255,7 +329,7 @@ export const assignContributorExpressions = onCall(options, async req => {
   await db.runTransaction(async tx => {
     const member = await tx.get(account);
     if (member.get('status') !== 'active') throw new HttpsError('failed-precondition', 'Invite this contributor before assigning work.');
-    tx.create(work, { id: work.id, title, kind: 'expressions', language: 'xsm', instructions, deadline,
+    tx.create(work, { ...guidance, id: work.id, title, kind: 'expressions', language: 'xsm', instructions, deadline,
       assignedBy: actor, createdAt: now });
     for (const expression of prompts) {
       const key = createHash('sha256').update(expression).digest('hex').slice(0, 24);
@@ -314,7 +388,7 @@ export const listExpressionContributors = onCall(options, async req => {
     }));
     const storedInvitation = (account?.get('invitation') ?? {}) as Record<string, unknown>;
     const sentAt = String(storedInvitation.sentAt ?? '');
-    const accepted = Boolean(authUser?.metadata.lastSignInTime && sentAt
+    const accepted = account?.get('requiresPasswordChange') !== true && Boolean(authUser?.metadata.lastSignInTime && sentAt
       && new Date(authUser.metadata.lastSignInTime).getTime() >= new Date(sentAt).getTime());
     const invitationStatus = storedInvitation.status === 'cancelled'
       ? 'cancelled'
@@ -344,6 +418,7 @@ export const listExpressionContributors = onCall(options, async req => {
         sentAt,
         resentAt: String(storedInvitation.resentAt ?? ''),
         resendCount: Number(storedInvitation.resendCount ?? 0),
+        sms: storedInvitation.sms ?? null,
       },
       createdAt: String(profile?.get('lifecycle.createdAt') ?? authUser?.metadata.creationTime ?? ''),
       lastActiveAt: String(authUser?.metadata.lastSignInTime ?? ''),
@@ -444,25 +519,25 @@ export const setContributorAccess = onCall(options, async req => {
   return { contributorId, ...after };
 });
 
-export const resendContributorInvitation = onCall(options, async req => {
+export const resendContributorInvitation = onCall({ ...options, secrets: [ARKESEL_API_KEY] }, async req => {
   const actor = requireAuth(req); requireRole(req, 'admin');
   await consumeRateLimit('resendContributorInvitation', actor, 20);
   const contributorId = id(req.data?.contributorId);
   const db = getFirestore();
   const accountRef = db.doc(`contributorAccounts/${contributorId}`);
   const account = await accountRef.get();
-  if (!account.exists || account.get('invitation.status') === 'cancelled') {
+  if (!account.exists || account.get('status') !== 'active' || account.get('invitation.status') === 'cancelled') {
     throw new HttpsError('failed-precondition', 'This invitation is not available to resend.');
   }
   const user = await getAuth().getUser(contributorId);
+  if (user.disabled) throw new HttpsError('failed-precondition', 'Reactivate this account before resending.');
+  const profile = await db.doc(`contributors/${contributorId}`).get();
+  const phone = contributorPhone(profile.get('private.phone') || account.get('phoneNumber'));
+  if (!isSmsConfigured()) throw new HttpsError('failed-precondition', 'SMS is not configured.');
   if (!user.email) throw new HttpsError('failed-precondition', 'This contributor has no email address.');
   const work = String(account.get('defaultWork') ?? '');
   if (!work) throw new HttpsError('failed-precondition', 'Assign work before resending this invitation.');
   const path = `/contributor/${contributorId}/${work}`;
-  const reset = new URL(await getAuth().generatePasswordResetLink(user.email, { url: origin + path }));
-  const activation = new URL(origin + path);
-  activation.searchParams.set('oobCode', reset.searchParams.get('oobCode')!);
-  activation.searchParams.set('mode', 'resetPassword');
   const now = new Date().toISOString();
   const batch = db.batch();
   batch.update(accountRef, { 'invitation.status': 'pending', 'invitation.resentAt': now,
@@ -471,7 +546,13 @@ export const resendContributorInvitation = onCall(options, async req => {
   batch.set(auditRef, { id: auditRef.id, ...auditRecord(actor, 'contributor.invitation.resend', contributorId,
     null, { resentAt: now }, {}) });
   await batch.commit();
-  return { activationUrl: activation.toString(), portalUrl: origin + path };
+  const temporary = account.get('temporaryPhonePassword') === true;
+  // Editing a contact number must not silently change the temporary password.
+  const passwordPhone = temporary ? String(account.get('phoneNumber')) : phone;
+  const result = await sendSmsToMsisdn(phone.slice(1), contributorInvitationMessage(user.email, passwordPhone, origin + path, temporary));
+  const sms = { status: result.ok ? 'accepted' : 'failed', to: phone, id: result.id ?? null, attemptedAt: now };
+  await accountRef.update({ 'invitation.sms': sms });
+  return { portalUrl: origin + path, loginMethod: temporary ? 'phone' : 'existing', sms };
 });
 
 export const cancelContributorInvitation = onCall(options, async req => {
@@ -517,6 +598,8 @@ export const saveExpressionAnswer = onCall(options, async req => {
   const work = id(req.data?.work), item = id(req.data?.item);
   const answer = parseExpressionAnswer(req.data ?? {});
   const submit = req.data?.submit === true;
+  const skip = req.data?.skip === true;
+  if (skip && submit) throw new HttpsError('invalid-argument', 'Skip does not submit an answer.');
   if (submit && (!answer.translation || req.data?.publicationPermission !== true)) {
     throw new HttpsError('failed-precondition', 'Add a translation and confirm permission to publish.');
   }
@@ -527,6 +610,7 @@ export const saveExpressionAnswer = onCall(options, async req => {
   return db.runTransaction(async tx => {
     const [member, row, campaign, profile] = await Promise.all([tx.get(account), tx.get(ref),
       tx.get(db.doc(`campaigns/${COLLECTION_CAMPAIGN_ID}`)), tx.get(db.doc(`contributors/${uid}`))]);
+    if (member.get('requiresPasswordChange') === true) throw new HttpsError('failed-precondition', 'Activate your account and choose your own password first.');
     if (member.get('status') !== 'active' || !row.exists) throw new HttpsError('permission-denied', 'An active invitation is required.');
     const permissions = profile.get('permissions') as Record<string, unknown> | undefined;
     // Older invitations predate contributor profiles, so a missing permissions
@@ -577,7 +661,8 @@ export const saveExpressionAnswer = onCall(options, async req => {
         contributorPortal: portal, alternativeExpressions: answer.alternatives,
       });
     }
-    tx.update(ref, { ...answer, revision, updatedAt: now,
+    tx.update(ref, { ...answer, revision, updatedAt: now, unsure: skip,
+      ...(skip ? { skippedAt: now } : {}),
       ...(submit ? { submissionId, status: 'submitted', feedback: '', reviewedAt: null } : {}) });
     return { revision, ...(submit ? { submissionId } : {}) };
   });

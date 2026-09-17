@@ -51,6 +51,7 @@ export interface ContributorDirectoryRow {
     sentAt: string;
     resentAt: string;
     resendCount: number;
+    sms?: { status: 'accepted' | 'failed' | 'pending'; to: string } | null;
   };
   createdAt: string;
   lastActiveAt: string;
@@ -76,6 +77,8 @@ export interface ContributorProfileInput {
 }
 
 interface AssignmentInput {
+  requestId?: string;
+  phoneNumber?: string;
   contributorId?: string;
   displayName?: string;
   email?: string;
@@ -90,6 +93,8 @@ export interface AssignmentResult {
   work: string;
   portalUrl: string;
   activationUrl?: string;
+  loginMethod?: 'phone' | 'existing';
+  sms?: { status: 'accepted' | 'failed' | 'pending'; to: string };
 }
 
 export interface ContributorSubmission {
@@ -135,7 +140,7 @@ const updateAccess = httpsCallable<{
   publicVisibility: 'public' | 'hidden';
   reason: string;
 }, unknown>(functions, 'setContributorAccess');
-const resendInvitation = httpsCallable<{ contributorId: string }, Pick<AssignmentResult, 'activationUrl' | 'portalUrl'>>(
+const resendInvitation = httpsCallable<{ contributorId: string }, Pick<AssignmentResult, 'activationUrl' | 'portalUrl' | 'loginMethod' | 'sms'>>(
   functions,
   'resendContributorInvitation',
 );
@@ -176,7 +181,7 @@ export async function setContributorAccess(input: {
   await updateAccess(input);
 }
 
-export async function resendContributorInvite(contributorId: string): Promise<Pick<AssignmentResult, 'activationUrl' | 'portalUrl'>> {
+export async function resendContributorInvite(contributorId: string): Promise<Pick<AssignmentResult, 'activationUrl' | 'portalUrl' | 'loginMethod' | 'sms'>> {
   const result = await resendInvitation({ contributorId });
   return result.data;
 }

@@ -32,7 +32,7 @@ export function ContributorPreview() {
         const revision = Number(data.revision) + 1;
         const submissionId = data.submit ? 'preview-' + data.item + '-' + revision : undefined;
         setItems(current => current.map(item => item.id === data.item ? {
-          ...item, translation: String(data.translation), alternatives: data.alternatives as string[], revision,
+          ...item, unsure: data.skip === true, translation: String(data.translation), alternatives: data.alternatives as string[], revision,
           ...(submissionId ? { submissionId, status: 'submitted', feedback: '', reviewedAt: null } : {}),
         } : item));
         return { data: { revision, submissionId } };

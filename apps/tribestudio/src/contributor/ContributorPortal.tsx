@@ -8,8 +8,8 @@ import { matchRoute, useRoute } from '../router';
 import './contributor.css';
 
 export type Item = { id: string; expression: string; translation: string; alternatives: string[];
-  revision: number; status: string; submissionId?: string; feedback?: string; reviewedAt?: string | null };
-type Work = { id: string; title: string; createdAt: string };
+  revision: number; status: string; unsure?: boolean; submissionId?: string; feedback?: string; reviewedAt?: string | null };
+type Work = { id: string; title: string; createdAt: string; instructions?: string; dialect?: string; tone?: string; deadline?: string; helpContact?: string };
 export function expressionView(item: Item): 'untranslated' | 'translated' | 'reviewed' {
   if (item.reviewedAt || ['verified', 'rejected', 'needs_revision', 'archived'].includes(item.status)) return 'reviewed';
   return item.translation.trim() || item.submissionId ? 'translated' : 'untranslated';
@@ -27,6 +27,7 @@ export function ContributorPortal() {
   const [access, setAccess] = useState<'loading' | 'active' | 'denied'>('loading');
   const [works, setWorks] = useState<Work[]>([]);
   const [worksLoaded, setWorksLoaded] = useState(false);
+  const [needsActivation, setNeedsActivation] = useState(false);
   const code = new URLSearchParams(search).get('oobCode');
   useEffect(() => {
     if (!user || code) return;
@@ -34,6 +35,7 @@ export function ContributorPortal() {
       if (account.get('status') !== 'active') {
         setAccess('denied'); setItems([]); setWorks([]); return;
       }
+      setNeedsActivation(account.get('requiresPasswordChange') === true);
       setAccess('active');
       if (!params && account.get('defaultWork')) navigate('/contributor/' + user.uid + '/' + account.get('defaultWork'), { replace: true });
     }, () => { setAccess('denied'); setItems([]); setError('Unable to verify your contributor invitation.'); });
@@ -59,14 +61,37 @@ export function ContributorPortal() {
       {!ready ? <p>Opening your portal…</p> : code || !user ? <ContributorSignIn code={code} />
         : params && user.uid !== params.uid ? <p role="alert">This invitation belongs to another account. Sign out and use the invited email address.</p>
         : access === 'denied' ? <p role="alert">This portal is available only to invited contributors. Contact the team for an invitation.</p>
+        : access === 'active' && needsActivation ? <ContributorActivation />
         : access !== 'active' || !params || !loaded || !worksLoaded ? <p>Loading your expressions…</p>
         : !works.some(w => w.id === params.work) ? <p role="alert">This assignment is not available to your account.</p> : <>
           <label className="contributor-assignment">Your assignment<select value={params.work} disabled={pending} onChange={e => navigate('/contributor/' + user.uid + '/' + e.target.value)}>
             {works.map(w => <option key={w.id} value={w.id}>{w.title} · {w.id.slice(0, 8)}</option>)}
           </select></label>
+          {works.filter(w => w.id === params.work).map(w => <aside key={w.id} className="contributor-instructions" aria-label="Assignment guidance"><h2>Assignment guidance</h2>{w.instructions && <p>{w.instructions}</p>}{w.dialect && <p>Dialect: {w.dialect}</p>}{w.tone && <p>Tone: {w.tone}</p>}{w.deadline && <p>Deadline: {w.deadline}</p>}{w.helpContact && <p>Need help? {w.helpContact}</p>}</aside>)}
           <ContributionWorkspace accountId={user.uid} key={user.uid + params.work} items={items} work={params.work} onPending={setPending} />
         </>}
     </main></div>;
+}
+
+function ContributorActivation() {
+  const [password, setPassword] = useState(''), [confirm, setConfirm] = useState('');
+  const [busy, setBusy] = useState(false), [error, setError] = useState('');
+  return <form className="contributor-auth" onSubmit={async e => {
+    e.preventDefault();
+    if (password !== confirm) { setError('Passwords do not match.'); return; }
+    setBusy(true); setError('');
+    try {
+      const email = auth.currentUser?.email;
+      await httpsCallable(functions, 'activateExpressionContributor')({ password });
+      if (email) await signInWithEmailAndPassword(auth, email, password);
+    }
+    catch (e) { setError(e instanceof Error ? e.message : 'Unable to activate. Please retry.'); }
+    finally { setBusy(false); }
+  }}><h2>Activate your account</h2><p>Choose your own password to finish activation and open your assignments. If you signed in with your phone number, replace it here.</p>
+    <label>New password<input type="password" autoComplete="new-password" minLength={8} maxLength={128} required value={password} onChange={e => setPassword(e.target.value)} /></label>
+    <label>Confirm password<input type="password" autoComplete="new-password" minLength={8} maxLength={128} required value={confirm} onChange={e => setConfirm(e.target.value)} /></label>
+    {error && <p role="alert">{error}</p>}<button disabled={busy}>{busy ? 'Activating…' : 'Activate and open assignments'}</button>
+  </form>;
 }
 
 function ContributorSignIn({ code }: { code: string | null }) {
@@ -89,9 +114,9 @@ function ContributorSignIn({ code }: { code: string | null }) {
     } catch (e) { setError(e instanceof Error ? e.message : 'Unable to sign in.'); }
     finally { setBusy(false); }
   }}><h2>{code ? 'Set your password' : reset ? 'Reset your password' : 'Welcome back'}</h2>
-    <p>Your assigned expressions and saved drafts are waiting here.</p>
+    <p>New account? Sign in with your invited email and your phone number as the temporary password, including the country code (for example +233241234567). If you already had an Indigen World account, use your existing password. After activation, use the password you chose.</p>
     <label>Email<input type="email" autoComplete="username" required value={email} readOnly={Boolean(code)} onChange={e => setEmail(e.target.value)} /></label>
-    {!reset && <label>{code ? 'Set a password' : 'Password'}<input type="password" minLength={code ? 8 : undefined} required autoComplete={code ? 'new-password' : 'current-password'} value={password} onChange={e => setPassword(e.target.value)} /></label>}
+    {!reset && <label>{code ? 'Set a password' : 'Password (phone number for first sign-in)'}<input type="password" minLength={code ? 8 : undefined} required autoComplete={code ? 'new-password' : 'current-password'} value={password} onChange={e => setPassword(e.target.value)} /></label>}
     {notice && <p role="status">{notice}</p>}{error && <p role="alert">{error}</p>}<button type="submit" disabled={busy || !email}>{busy ? 'Please wait…' : reset ? 'Send reset link' : code ? 'Save password and sign in' : 'Sign in'}</button>
     {!code && <button type="button" disabled={busy} onClick={() => { setReset(!reset); setError(''); setNotice(''); }}>{reset ? 'Back to sign in' : 'Forgot password?'}</button>}
     {code && <button type="button" onClick={() => navigate(path, { replace: true })}>Already activated? Sign in</button>}
@@ -110,6 +135,7 @@ export function readLocalDraft(key: string): { translation: string; alternatives
 
 type SaveAnswer = (data: Record<string, unknown>) => Promise<{ data: { revision: number; submissionId?: string } }>;
 export function contributionState(item: Item) {
+  if (item.unsure) return 'I’m not sure';
   if (['needs_revision', 'rejected'].includes(item.status)) return 'Needs revision';
   if (item.submissionId) return 'Submitted';
   return item.translation.trim() || item.alternatives?.some(v => v.trim()) ? 'Drafts' : 'Not started';
@@ -131,18 +157,24 @@ export function ContributionWorkspace({ items, work, onPending, accountId, saveA
     <section className="contributor-progress" aria-label="Assignment progress">
       <strong>{submitted} of {items.length} submitted</strong>
       <progress aria-label="Expressions submitted" value={submitted} max={items.length || 1} />
-      <p>{items.filter(i => contributionState(i) === 'Drafts').length} saved drafts · {items.filter(i => contributionState(i) === 'Not started').length} not started · {items.filter(i => contributionState(i) === 'Needs revision').length} need revision</p>
+      <p>{items.filter(i => contributionState(i) === 'Drafts').length} saved drafts · {items.filter(i => i.unsure).length} unsure · {items.filter(i => contributionState(i) === 'Not started').length} not started · {items.filter(i => contributionState(i) === 'Needs revision').length} need revision</p>
     </section>
     {confirmation && <p className="contributor-confirmation" role="status">{confirmation}</p>}
     <div className={'contributor-workspace' + (mobileEditor ? ' is-editing' : '')}>
       <section className="contributor-expression-list" aria-label="Find expressions">
         <label>Search expressions<input type="search" value={query} disabled={pending} onChange={e => { setQuery(e.target.value); setSelected(''); }} placeholder="Search English or Kasem" /></label>
-        <nav aria-label="Expression filters">{['All', 'Not started', 'Drafts', 'Submitted', 'Needs revision'].map(label => <button key={label} disabled={pending} aria-pressed={filter === label} onClick={() => { setFilter(label); setSelected(''); }}>{label}</button>)}</nav>
+        <nav aria-label="Expression filters">{['All', 'Not started', 'Drafts', 'Submitted', 'Needs revision', 'I’m not sure'].map(label => <button key={label} disabled={pending} aria-pressed={filter === label} onClick={() => { setFilter(label); setSelected(''); }}>{label}</button>)}</nav>
         <aside aria-label="Expressions">{visible.map(i => <button key={i.id} disabled={pending} aria-current={item?.id === i.id ? 'true' : undefined} onClick={() => { setSelected(i.id); setMobileEditor(true); }}><span>{i.expression}</span><small>{contributionState(i) === 'Drafts' ? 'Draft saved' : contributionState(i)}{i.status === 'verified' ? ' · Verified' : ''}{accountId && readLocalDraft(`contributor-draft:${accountId}:${work}:${i.id}`) ? ' · Recovery copy on this device' : ''}</small></button>)}
           {!visible.length && <p>No expressions match. Try another search or filter.</p>}</aside>
       </section>
       <div className="contributor-editor-pane"><button className="contributor-back" disabled={pending} onClick={() => setMobileEditor(false)}>← Back to expressions</button>
-        {item ? <ExpressionEditor accountId={accountId} key={item.id} item={item} work={work} saveAnswer={saveAnswer} onPending={value => { setPending(value); onPending(value); if (value) setSelected(item.id); }} onSubmitted={next => {
+        {item ? <ExpressionEditor accountId={accountId} key={item.id} item={item} work={work} saveAnswer={saveAnswer} onPending={value => { setPending(value); onPending(value); if (value) setSelected(item.id); }} onSkipped={() => {
+          const index = items.findIndex(i => i.id === item.id);
+          const remaining = [...items.slice(index + 1), ...items.slice(0, index)].find(i => contributionState(i) === 'Not started');
+          setConfirmation('“' + item.expression + '” was flagged as unsure. No answer was submitted.' + (!remaining ? ' No new expressions remain. You can return to flagged expressions at any time.' : ''));
+          if (remaining) { setFilter('All'); setQuery(''); setSelected(remaining.id); }
+          else setMobileEditor(false);
+        }} onSubmitted={next => {
           const index = items.findIndex(i => i.id === item.id);
           const remaining = [...items.slice(index + 1), ...items.slice(0, index)].find(i => contributionState(i) === 'Not started');
           setConfirmation('“' + item.expression + '” was sent to the Review Desk.' + (next && !remaining ? ' No untranslated expressions remain. Check Drafts for unfinished work.' : ''));
@@ -153,7 +185,7 @@ export function ContributionWorkspace({ items, work, onPending, accountId, saveA
   </>;
 }
 
-function ExpressionEditor({ item, work, onPending, onSubmitted, accountId, saveAnswer = save }: { item: Item; work: string; accountId?: string; onPending: (pending: boolean) => void; onSubmitted?: (next: boolean) => void; saveAnswer?: SaveAnswer }) {
+function ExpressionEditor({ item, work, onPending, onSubmitted, onSkipped, accountId, saveAnswer = save }: { item: Item; work: string; accountId?: string; onPending: (pending: boolean) => void; onSubmitted?: (next: boolean) => void; onSkipped?: () => void; saveAnswer?: SaveAnswer }) {
   const [translation, setTranslation] = useState(item.translation), [alternatives, setAlternatives] = useState(item.alternatives.join('\n'));
   const [publication, setPublication] = useState(false), [training, setTraining] = useState(false);
   const [status, setStatus] = useState('Saved'), [error, setError] = useState(''), [busy, setBusy] = useState(false);
@@ -179,18 +211,18 @@ function ExpressionEditor({ item, work, onPending, onSubmitted, accountId, saveA
     setStatus(blocked.current ? 'Couldn’t save' : 'Saving…');
     if (field === 'translation') setTranslation(value); else setAlternatives(value);
   };
-  const persist = (submit = false) => {
+  const persist = (submit = false, skip = false) => {
     const answer = { ...payload.current };
     chain.current = chain.current.then(async () => {
       if (blocked.current) throw new Error('Reload to recover this draft before continuing.');
       const result = await saveAnswer({ work, item: item.id, revision: revision.current, translation: answer.translation,
-        alternatives: answer.alternatives.split('\n').filter(v => v.trim()), submit, publicationPermission: publication, aiTraining: training });
+        alternatives: answer.alternatives.split('\n').filter(v => v.trim()), submit, skip, publicationPermission: publication, aiTraining: training });
       revision.current = result.data.revision;
       if (payload.current.translation === answer.translation && payload.current.alternatives === answer.alternatives) dirty.current = false;
       if (dirty.current) keepLocal(payload.current);
       else { try { if (storageKey) window.localStorage.removeItem(storageKey); } catch { /* Keep the acknowledged server copy. */ } }
       onPending(dirty.current || submitting.current);
-      setStatus(submit ? 'Sent to the Review Desk' : dirty.current ? 'Saving…' : 'Saved');
+      setStatus(submit ? 'Sent to the Review Desk' : skip ? 'Flagged as unsure — not submitted' : dirty.current ? 'Saving…' : 'Saved');
     }).catch(e => { blocked.current = true; setError(e.message); setStatus('Couldn’t save'); throw e; });
     return chain.current;
   };
@@ -234,6 +266,13 @@ function ExpressionEditor({ item, work, onPending, onSubmitted, accountId, saveA
       {error && <div role="alert"><p>Your text is still here. Check your connection and retry. {error} If another device changed this draft, copy your text before reloading.</p>
         <button type="button" onClick={() => { blocked.current = false; chain.current = Promise.resolve(); setError('');
           setStatus('Saving…'); void persist().catch(() => undefined); }}>Retry save</button></div>}
+      <p>Unsure? Skip saves your draft privately and flags this expression without submitting it.</p>
+      <button type="button" disabled={busy || Boolean(recovery) || blocked.current} onClick={async () => {
+        submitting.current = true; setBusy(true); onPending(true);
+        try { await persist(false, true); onSkipped?.(); }
+        catch { /* Keep the expression open for retry. */ }
+        finally { submitting.current = false; setBusy(false); onPending(dirty.current); }
+      }}>Skip / I’m not sure →</button>
       <div className="contributor-submit-actions"><button disabled={busy || Boolean(recovery) || blocked.current || !translation.trim() || !publication}>{busy ? 'Submitting…' : revising ? 'Resubmit to Review Desk' : 'Submit to Review Desk'}</button><button value="next" disabled={busy || Boolean(recovery) || blocked.current || !translation.trim() || !publication}>{revising ? 'Resubmit and next →' : 'Submit and next →'}</button></div></>}
     {locked && <p role="status">{item.status === 'verified' ? 'Verified by the Review Desk' : `Review status: ${item.status}`}</p>}
   </form>;

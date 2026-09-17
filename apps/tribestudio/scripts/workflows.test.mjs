@@ -574,3 +574,43 @@ test('forgot password sends the entered email without requiring a password', asy
   assert.ok(find(tree, n => n.props?.role === 'status'));
   h.dispose();
 });
+
+
+test('skip needs no translation or consent and advances only after the flag saves', async () => {
+  for (const fail of [false, true]) {
+    const h = hooks(), calls = [], advances = [];
+    const { ExpressionEditor, contributionState } = await load('src/contributor/ContributorPortal.tsx', ['ExpressionEditor', 'contributionState'], {
+      ...h.api, functions: {}, httpsCallable: () => async data => { calls.push(plain(data)); if (fail) throw new Error('Offline'); return { data: { revision: 1 } }; },
+      window: { setTimeout() {}, clearTimeout() {}, addEventListener() {}, removeEventListener() {} },
+    });
+    const props = { item: { id: 'item', expression: 'Hello', translation: '', alternatives: [], revision: 0 }, work: 'work', onPending() {}, onSkipped: () => advances.push(true) };
+    const tree = h.render(ExpressionEditor, props); h.flush();
+    await find(tree, n => n.type === 'button' && n.props.children?.includes('Skip / I’m not sure →')).props.onClick();
+    assert.equal(calls[0].skip, true); assert.equal(calls[0].submit, false);
+    assert.equal(calls[0].translation, ''); assert.equal(calls[0].publicationPermission, false);
+    assert.deepEqual(advances, fail ? [] : [true]);
+    assert.equal(contributionState({ ...props.item, unsure: true }), 'I’m not sure');
+    h.dispose();
+  }
+});
+
+test('activation confirms the chosen password before calling the backend', async () => {
+  const h = hooks(), calls = [], signIns = [];
+  const { ContributorActivation } = await load('src/contributor/ContributorPortal.tsx', ['ContributorActivation'], {
+    ...h.api, functions: {}, httpsCallable: (_functions, name) => async data => calls.push({ name, ...data }),
+    auth: { currentUser: { email: 'speaker@example.com' } },
+    signInWithEmailAndPassword: async (_auth, email, password) => signIns.push({ email, password }),
+  });
+  let tree = h.render(ContributorActivation);
+  find(tree, n => n.type === 'input').props.onChange({ target: { value: 'new-password' } });
+  tree = h.render(ContributorActivation);
+  await tree.props.onSubmit({ preventDefault() {} });
+  assert.equal(calls.length, 0);
+  tree = h.render(ContributorActivation);
+  const labels = tree.props.children.flat(Infinity).filter(n => n?.type === 'label');
+  find(labels[1], n => n.type === 'input').props.onChange({ target: { value: 'new-password' } });
+  tree = h.render(ContributorActivation);
+  await tree.props.onSubmit({ preventDefault() {} });
+  assert.deepEqual(calls, [{ name: 'activateExpressionContributor', password: 'new-password' }]);
+  assert.deepEqual(signIns, [{ email: 'speaker@example.com', password: 'new-password' }]);
+});

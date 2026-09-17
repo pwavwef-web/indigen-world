@@ -4,6 +4,7 @@ import { initializeApp } from 'firebase-admin/app';
 initializeApp();
 
 export {
+  activateExpressionContributor,
   inviteExpressionContributor,
   assignContributorExpressions,
   listExpressionContributors,

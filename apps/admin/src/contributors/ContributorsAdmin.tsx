@@ -249,6 +249,8 @@ function AssignmentModal({ contributor, onClose, onComplete }: {
 }) {
   const inviting = contributor.accountStatus === 'none' || contributor.invitation.status === 'cancelled';
   const [email, setEmail] = useState(contributor.email);
+  const [phoneNumber, setPhoneNumber] = useState(contributor.phone);
+  const [requestId] = useState(() => crypto.randomUUID());
   const [title, setTitle] = useState('Everyday expressions');
   const [deadline, setDeadline] = useState('');
   const [instructions, setInstructions] = useState('Translate each English expression naturally into Kasem. Add alternatives when more than one expression is common.');
@@ -259,7 +261,7 @@ function AssignmentModal({ contributor, onClose, onComplete }: {
   const submit = async (event: FormEvent) => {
     event.preventDefault(); setBusy(true); setError('');
     try {
-      const input = { contributorId: contributor.id, displayName: contributor.displayName, email,
+      const input = { contributorId: contributor.id, displayName: contributor.displayName, email, phoneNumber, requestId,
         title, deadline, instructions, expressions };
       const result = inviting
         ? await inviteContributorWithExpressions(input)
@@ -270,10 +272,11 @@ function AssignmentModal({ contributor, onClose, onComplete }: {
     } finally { setBusy(false); }
   };
   return (
-    <ModalShell title={inviting ? `Invite ${contributor.displayName}` : `Assign expressions to ${contributor.displayName}`} description={inviting ? 'Creates the login, first assignment and a one-time activation link.' : 'Adds a new assignment without changing the contributor’s credentials.'} onClose={onClose} footer={<><button type="button" onClick={onClose} disabled={busy}>Cancel</button><button type="submit" form="contributor-assignment-form" className="button--primary" disabled={busy || expressions.length === 0 || expressions.length > 100 || (inviting && !email)}>{busy ? 'Creating…' : inviting ? 'Create invitation' : 'Assign expressions'}</button></>}>
+    <ModalShell title={inviting ? `Invite ${contributor.displayName}` : `Assign expressions to ${contributor.displayName}`} description={inviting ? 'Sends an SMS with the portal link and sign-in instructions, creates the first assignment, and enables editing and submission.' : 'Adds a new assignment without changing the contributor’s credentials.'} onClose={onClose} footer={<><button type="button" onClick={onClose} disabled={busy}>Cancel</button><button type="submit" form="contributor-assignment-form" className="button--primary" disabled={busy || expressions.length === 0 || expressions.length > 100 || (inviting && (!email || !phoneNumber.trim()))}>{busy ? 'Creating…' : inviting ? 'Invite by SMS' : 'Assign expressions'}</button></>}>
       {error ? <Alert>{error}</Alert> : null}
       <form id="contributor-assignment-form" className="contributor-form" onSubmit={(event) => void submit(event)}>
         {inviting ? <label>Invitation email<input type="email" required value={email} onChange={(event) => setEmail(event.target.value)} /></label> : null}
+        {inviting ? <><label>SMS phone number<input type="tel" required maxLength={80} value={phoneNumber} onChange={(event) => setPhoneNumber(event.target.value)} placeholder="0241234567 or +233241234567" /></label><p className="muted">New accounts use the phone number including +233 as a temporary password, then choose a new password. Existing accounts keep their current password. The invitation goes by SMS.</p></> : null}
         <div className="contributor-form-grid"><label>Assignment title<input required maxLength={120} value={title} onChange={(event) => setTitle(event.target.value)} /></label><label>Deadline <span className="muted">(optional)</span><input type="date" value={deadline} onChange={(event) => setDeadline(event.target.value)} /></label></div>
         <label>Instructions<textarea rows={4} maxLength={3000} value={instructions} onChange={(event) => setInstructions(event.target.value)} /></label>
         <label>Expressions — one per line<textarea className="contributor-expression-input" required rows={12} maxLength={18100} value={raw} onChange={(event) => setRaw(event.target.value)} placeholder={'How are you?\nI will see you tomorrow.\nThank you for your help.'} /></label>
@@ -324,16 +327,16 @@ function ShareModal({ contributor, result, onClose }: {
   result: AssignmentResult;
   onClose: () => void;
 }) {
-  const url = result.activationUrl ?? result.portalUrl;
+  const url = result.portalUrl;
   const [copied, setCopied] = useState(false);
   const subject = encodeURIComponent(`Your Indigen World expression assignment`);
   const body = encodeURIComponent(`Hello ${contributor.displayName},\n\nYour expression assignment is ready. Open this private link to begin:\n${url}\n\nPlease keep this link private.`);
   return (
-    <ModalShell title={result.activationUrl ? 'Invitation ready' : 'Assignment ready'} description="The assignment is saved. Share the private link with the contributor." onClose={onClose} footer={<button type="button" className="button--primary" onClick={onClose}>Done</button>}>
-      <Alert tone="success" title={`${result.activationUrl ? 'Invitation' : 'Assignment'} created`}>This repository does not send mail automatically. Use the email draft below or copy the link into an approved channel.</Alert>
+    <ModalShell title={result.sms ? 'Invitation saved' : 'Assignment ready'} description="The assignment is saved." onClose={onClose} footer={<button type="button" className="button--primary" onClick={onClose}>Done</button>}>
+      {result.sms ? <Alert tone={result.sms.status === 'accepted' ? 'success' : 'warning'} title={result.sms.status === 'accepted' ? 'SMS accepted for delivery' : result.sms.status === 'failed' ? 'SMS could not be sent' : 'SMS delivery not confirmed'}>{result.sms.status === 'accepted' ? `The invitation was accepted by the SMS provider for ${result.sms.to}. Handset delivery may take a moment.` : 'The account and assignment are saved. Use Resend invitation to retry the SMS without creating another assignment.'}</Alert> : <Alert tone="success" title="Assignment created">Share the portal link with the contributor.</Alert>}
+      {result.loginMethod && <p>{result.loginMethod === 'phone' ? 'Sign in with the invited email and phone number in international format, then choose a new password.' : 'This person already has an account. They should sign in with their existing password.'}</p>}
       <label className="contributor-form">Private link<input readOnly value={url} onFocus={(event) => event.target.select()} /></label>
       <div className="contributor-share-actions"><button type="button" onClick={() => void navigator.clipboard.writeText(url).then(() => setCopied(true))}>{copied ? 'Copied' : 'Copy link'}</button>{contributor.email ? <a className="button" href={`mailto:${encodeURIComponent(contributor.email)}?subject=${subject}&body=${body}`}>Open email draft</a> : null}</div>
-      {result.activationUrl ? <p className="muted">Activation links expire and should only be sent to {contributor.email || 'the invited address'}. Use Resend invitation to issue a fresh one.</p> : null}
     </ModalShell>
   );
 }
@@ -362,7 +365,7 @@ function ContributorDetail({ contributor, submissions, audits, onEdit, onAssign,
         <section><h4>Public profile</h4><dl><div><dt>Location</dt><dd>{contributor.location || '—'}</dd></div><div><dt>Website</dt><dd>{contributor.website ? <a href={contributor.website} target="_blank" rel="noreferrer">Open website ↗</a> : '—'}</dd></div><div><dt>Visibility</dt><dd><StatusPill tone={contributor.publicVisibility === 'public' ? 'success' : 'neutral'}>{contributor.publicVisibility}</StatusPill></dd></div></dl></section>
         <section className="contributor-private-card"><h4>Private contact</h4><dl><div><dt>Email</dt><dd>{contributor.email || '—'}</dd></div><div><dt>Phone</dt><dd>{contributor.phone || '—'}</dd></div><div><dt>Internal notes</dt><dd>{contributor.notes || '—'}</dd></div></dl></section>
         <section><h4>Roles & permissions</h4><div className="contributor-chip-row">{contributor.roles.length ? contributor.roles.map((role) => <span key={role}>{role}</span>) : <span>no roles</span>}</div><p className="muted">{(Object.keys(contributor.permissions) as (keyof ContributorPermissions)[]).filter((key) => contributor.permissions[key]).join(' · ') || 'No workspace permissions'}</p></section>
-        <section><h4>Invitation & account</h4><p><StatusPill tone={toneForStatus(contributor.invitation.status)}>{contributor.invitation.status.replace('_', ' ')}</StatusPill> <StatusPill tone={toneForStatus(contributor.accountStatus)}>{contributor.accountStatus}</StatusPill></p><p className="muted">Sent {dateLabel(contributor.invitation.sentAt)}{contributor.lastActiveAt ? ` · Last active ${dateLabel(contributor.lastActiveAt)}` : ''}</p>{contributor.invitation.status === 'pending' ? <div className="row-actions"><button type="button" onClick={onResend}>Resend invitation</button><button type="button" className="danger" onClick={onCancel}>Cancel invitation</button></div> : null}</section>
+        <section><h4>Invitation & account</h4><p><StatusPill tone={toneForStatus(contributor.invitation.status)}>{contributor.invitation.status.replace('_', ' ')}</StatusPill> <StatusPill tone={toneForStatus(contributor.accountStatus)}>{contributor.accountStatus}</StatusPill></p><p className="muted">Sent {dateLabel(contributor.invitation.sentAt)}{contributor.lastActiveAt ? ` · Last active ${dateLabel(contributor.lastActiveAt)}` : ''}</p>{contributor.invitation.sms && <p>SMS: {contributor.invitation.sms.status === 'accepted' ? 'Accepted by provider' : contributor.invitation.sms.status === 'failed' ? 'Failed — resend to retry' : 'Not confirmed'} · {contributor.invitation.sms.to}</p>}{contributor.invitation.status === 'pending' ? <div className="row-actions"><button type="button" onClick={onResend}>Resend invitation</button><button type="button" className="danger" onClick={onCancel}>Cancel invitation</button></div> : null}</section>
       </div>
       <section><h4>Contribution history</h4>{history.length ? <div className="contributor-history-list">{history.slice(0, 8).map((item) => <article key={item.id}><div><strong>{item.title}</strong><small>{dateLabel(item.createdAt)} · {item.alternatives.length} alternatives</small></div><StatusPill tone={toneForStatus(item.status)}>{item.status.replaceAll('_', ' ')}</StatusPill></article>)}</div> : <p className="muted">No submissions yet.</p>}</section>
       <section><h4>Recent administrative activity</h4>{activity.length ? <ol className="contributor-activity">{activity.map((item) => <li key={item.id}><span>{item.action.replaceAll('.', ' / ')}</span><time>{dateLabel(item.occurredAt)}</time></li>)}</ol> : <p className="muted">No contributor-specific audit records in the latest activity window.</p>}</section>
