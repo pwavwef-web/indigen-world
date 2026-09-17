@@ -1,6 +1,6 @@
 # Contributor invitations by SMS
 
-Status: **Draft article — implementation complete; production deployment pending.**
+Status: **Draft article — deployed to production on 2026-09-17. Handset delivery has not been tested.**
 
 | Field | Value |
 |---|---|
@@ -21,14 +21,13 @@ Status: **Draft article — implementation complete; production deployment pendi
 - Saves SMS provider acceptance/failure and protects invitation retries from duplicate assignments.
 - Restores assignment guidance and preserves existing contributor workflows while resolving the pull conflicts.
 
-Validation: Functions production build, 23 contributor backend tests, Admin type checks/structural validation/production build, Studio type checks/37 workflow and PWA tests/production build, and all 21 blog theme checks passed. The contributor sign-in page was checked in a local browser; the Admin preview requires staff sign-in. Production deployment is pending. No real invitation messages have been sent during this work.
+Validation: Functions production build, 23 contributor backend tests, Admin type checks/structural validation/production build, Studio type checks/37 workflow and PWA tests/production build, and all 21 blog theme checks passed. The contributor sign-in page was checked in a local browser; the Admin preview requires staff sign-in. Firebase successfully deployed the six contributor callables and released Admin and Tribe Studio Hosting from `d55744c`. The final invitation-only correction deployed from `f72a43c`. Both custom-domain pages returned HTTP 200 with the current script assets; the live contributor sign-in instructions rendered correctly, and the activation callable returned UNAUTHENTICATED for an unauthenticated request. No real invitation messages have been sent during this work.
 
 ## Publishing handoff
 
-1. Confirm the production deployment and a controlled handset-delivery check before describing SMS invitations as live.
+1. Run a controlled invitation and handset-delivery check before making claims about successful receipt of SMS. Production deployment is confirmed above.
 2. Review `post.html`, then paste it into a new Blogger post in HTML view.
 3. Apply the title, labels, search description and permalink above.
 4. Publish when ready and replace `[PUBLISHED_POST_URL]` in `share.md` before sharing.
 
 SMS provider acceptance is not proof of handset delivery. Arkesel configuration, credit, sender approval and network routing apply. Existing accounts do not receive phone-number passwords. No bulk invitations are sent by deploying this update.
-
