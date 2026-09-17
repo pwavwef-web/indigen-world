@@ -11,16 +11,93 @@ import { COLLECTION_CAMPAIGN_ID, buildCollectionCampaignDocument, buildCollectio
 const options = { region: 'us-central1', invoker: 'public' as const,
   enforceAppCheck: process.env.ENFORCE_APP_CHECK === 'true' };
 const origin = 'https://tribestudio.indigenworld.com';
+const contributorRoles = ['translator', 'storyteller', 'researcher', 'reviewer'] as const;
+const contributionTypes = ['expressions', 'articles', 'stories', 'research', 'audio'] as const;
+const accountStatuses = ['active', 'suspended', 'deactivated'] as const;
 function text(value: unknown, max: number, optional = false): string {
   if (typeof value !== 'string' || value.trim().length > max || (!optional && !value.trim())) {
     throw new HttpsError('invalid-argument', 'Missing or oversized text.');
   }
   return value.trim();
 }
+function optionalText(value: unknown, max: number): string {
+  if (value == null || value === '') return '';
+  return text(value, max, true);
+}
+function optionalUrl(value: unknown, max: number): string {
+  const result = optionalText(value, max);
+  if (!result) return '';
+  try {
+    const parsed = new URL(result);
+    if (parsed.protocol === 'https:' || parsed.protocol === 'http:') return parsed.toString();
+  } catch {
+    // Fall through to the same field-safe message for malformed URLs.
+  }
+  throw new HttpsError('invalid-argument', 'Profile links must use an http or https URL.');
+}
 function id(value: unknown): string {
   const result = text(value, 128);
   if (!/^[a-zA-Z0-9_-]+$/.test(result)) throw new HttpsError('invalid-argument', 'Invalid identifier.');
   return result;
+}
+function selectedStrings<T extends string>(value: unknown, allowed: readonly T[], field: string): T[] {
+  if (!Array.isArray(value)) throw new HttpsError('invalid-argument', `${field} must be a list.`);
+  const values = [...new Set(value.map(entry => String(entry)))];
+  if (values.some(entry => !allowed.includes(entry as T))) {
+    throw new HttpsError('invalid-argument', `${field} includes an unsupported value.`);
+  }
+  return values as T[];
+}
+function profileFields(raw: Record<string, unknown>) {
+  const publicInput = raw.public && typeof raw.public === 'object'
+    ? raw.public as Record<string, unknown>
+    : {};
+  const privateInput = raw.private && typeof raw.private === 'object'
+    ? raw.private as Record<string, unknown>
+    : {};
+  const permissionInput = raw.permissions && typeof raw.permissions === 'object'
+    ? raw.permissions as Record<string, unknown>
+    : {};
+  return {
+    public: {
+      displayName: text(publicInput.displayName, 120),
+      photoUrl: optionalUrl(publicInput.photoUrl, 2000),
+      biography: optionalText(publicInput.biography, 2000),
+      expertise: selectedStrings(publicInput.expertise ?? [], [
+        'language', 'culture', 'history', 'music', 'storytelling', 'research', 'editing',
+      ], 'Expertise'),
+      location: optionalText(publicInput.location, 160),
+      website: optionalUrl(publicInput.website, 2000),
+      socialLinks: optionalText(publicInput.socialLinks, 3000),
+    },
+    private: {
+      email: optionalText(privateInput.email, 254).toLowerCase(),
+      phone: optionalText(privateInput.phone, 80),
+      notes: optionalText(privateInput.notes, 5000),
+    },
+    roles: selectedStrings(raw.roles ?? [], contributorRoles, 'Roles'),
+    contributionTypes: selectedStrings(raw.contributionTypes ?? [], contributionTypes, 'Contribution types'),
+    permissions: {
+      submit: permissionInput.submit === true,
+      edit: permissionInput.edit === true,
+      review: permissionInput.review === true,
+      publish: permissionInput.publish === true,
+    },
+  };
+}
+function auditRecord(actor: string, action: string, target: string, before: unknown, after: unknown,
+  metadata: Record<string, unknown> = {}) {
+  return {
+    actor: { collection: 'contributors', id: actor },
+    action,
+    target: { collection: 'contributors', id: target },
+    outcome: 'success',
+    source: 'functions',
+    before,
+    after,
+    metadata,
+    occurredAt: new Date().toISOString(),
+  };
 }
 export function parseExpressionAnswer(raw: Record<string, unknown>) {
   const translation = text(raw.translation, 2000, true);
@@ -40,26 +117,103 @@ export const inviteExpressionContributor = onCall(options, async req => {
   const actor = requireAuth(req); requireRole(req, 'admin');
   await consumeRateLimit('inviteExpressionContributor', actor, 10);
   const email = text(req.data?.email, 254).toLowerCase();
+  const requestedContributorId = req.data?.contributorId == null ? '' : id(req.data.contributorId);
   const expressions = req.data?.expressions;
   if (!Array.isArray(expressions) || !expressions.length || expressions.length > 100) {
     throw new HttpsError('invalid-argument', 'Provide 1–100 expressions.');
   }
   const prompts = [...new Set(expressions.map(v => text(v, 180)))];
+  const title = req.data?.title == null ? 'Everyday expressions' : text(req.data.title, 120);
+  const instructions = optionalText(req.data?.instructions, 3000);
+  const deadline = optionalText(req.data?.deadline, 40);
   let user;
-  try { user = await getAuth().getUserByEmail(email); }
-  catch (error) {
-    if ((error as { code?: string }).code !== 'auth/user-not-found') throw error;
-    user = await getAuth().createUser({ email });
+  if (requestedContributorId) {
+    try {
+      user = await getAuth().getUser(requestedContributorId);
+      if (user.email?.toLowerCase() !== email) {
+        throw new HttpsError('already-exists', 'This contributor profile is linked to a different email address.');
+      }
+    } catch (error) {
+      if ((error as { code?: string }).code !== 'auth/user-not-found') throw error;
+      try {
+        const existing = await getAuth().getUserByEmail(email);
+        if (existing.uid !== requestedContributorId) {
+          throw new HttpsError('already-exists', 'That email already belongs to another account.');
+        }
+        user = existing;
+      } catch (emailError) {
+        if ((emailError as { code?: string }).code !== 'auth/user-not-found') throw emailError;
+        user = await getAuth().createUser({
+          uid: requestedContributorId,
+          email,
+          displayName: optionalText(req.data?.displayName, 120) || undefined,
+        });
+      }
+    }
+  } else {
+    try { user = await getAuth().getUserByEmail(email); }
+    catch (error) {
+      if ((error as { code?: string }).code !== 'auth/user-not-found') throw error;
+      user = await getAuth().createUser({ email, displayName: optionalText(req.data?.displayName, 120) || undefined });
+    }
   }
-  if (user.disabled) throw new HttpsError('failed-precondition', 'This account is disabled.');
-  const db = getFirestore(), work = db.collection('contributorWork').doc().id;
+  const db = getFirestore();
+  const accountRef = db.doc(`contributorAccounts/${user.uid}`);
+  const profileRef = db.doc(`contributors/${user.uid}`);
+  const [accountBefore, profileBefore] = await Promise.all([accountRef.get(), profileRef.get()]);
+  if (user.disabled) {
+    // A cancelled invitation is explicitly reversible. Other disabled accounts
+    // must be reactivated from Access & visibility before new work is assigned.
+    if (requestedContributorId && accountBefore.get('invitation.status') === 'cancelled') {
+      user = await getAuth().updateUser(user.uid, { disabled: false });
+    } else {
+      throw new HttpsError('failed-precondition', 'This account is disabled. Reactivate it before assigning work.');
+    }
+  }
+  if (!user.customClaims?.role) {
+    await getAuth().setCustomUserClaims(user.uid, { ...(user.customClaims ?? {}), role: 'contributor' });
+  }
+  const work = db.collection('contributorWork').doc().id;
   const path = `/contributor/${user.uid}/${work}`;
   const now = new Date().toISOString();
   const batch = db.batch();
-  batch.set(db.doc(`contributorAccounts/${user.uid}`), { authUid: user.uid, status: 'active',
-    defaultWork: work, invitedBy: actor, updatedAt: now }, { merge: true });
+  const invitation = {
+    status: 'pending', sentAt: now, resentAt: null, resendCount: 0, cancelledAt: null,
+  };
+  batch.set(accountRef, { authUid: user.uid, contributorId: user.uid, status: 'active',
+    defaultWork: work, invitedBy: actor, invitation, updatedAt: now }, { merge: true });
+  batch.set(profileRef, {
+    id: user.uid,
+    authUid: user.uid,
+    public: {
+      displayName: optionalText(req.data?.displayName, 120)
+        || profileBefore.get('public.displayName') || user.displayName || email.split('@')[0],
+      photoUrl: profileBefore.get('public.photoUrl') ?? '',
+      biography: profileBefore.get('public.biography') ?? '',
+      expertise: profileBefore.get('public.expertise') ?? [],
+      location: profileBefore.get('public.location') ?? '',
+      website: profileBefore.get('public.website') ?? '',
+      socialLinks: profileBefore.get('public.socialLinks') ?? '',
+    },
+    private: {
+      email,
+      phone: profileBefore.get('private.phone') ?? '',
+      notes: profileBefore.get('private.notes') ?? '',
+    },
+    roles: profileBefore.get('roles') ?? ['translator'],
+    contributionTypes: profileBefore.get('contributionTypes') ?? ['expressions'],
+    permissions: profileBefore.get('permissions') ?? { submit: true, edit: true, review: false, publish: false },
+    status: 'active',
+    publicVisibility: profileBefore.get('publicVisibility') ?? 'hidden',
+    lifecycle: {
+      createdAt: profileBefore.get('lifecycle.createdAt') ?? now,
+      updatedAt: now,
+      version: Number(profileBefore.get('lifecycle.version') ?? 0) + 1,
+    },
+  }, { merge: true });
   batch.set(db.doc(`contributorAccounts/${user.uid}/works/${work}`), {
-    id: work, title: 'Everyday expressions', language: 'xsm', kind: 'expressions', createdAt: now,
+    id: work, title, language: 'xsm', kind: 'expressions', instructions, deadline,
+    assignedBy: actor, createdAt: now,
   });
   for (const expression of prompts) {
     const key = createHash('sha256').update(expression).digest('hex').slice(0, 24);
@@ -67,6 +221,11 @@ export const inviteExpressionContributor = onCall(options, async req => {
       id: key, expression, translation: '', alternatives: [], revision: 0, status: 'draft', updatedAt: now,
     });
   }
+  const auditRef = db.collection('auditLogs').doc();
+  batch.set(auditRef, { id: auditRef.id, ...auditRecord(actor, 'contributor.invite', user.uid,
+    accountBefore.exists ? { status: accountBefore.get('status') } : null,
+    { status: 'active', invitation: 'pending', work, expressionCount: prompts.length },
+    { email, work, expressionCount: prompts.length }) });
   await batch.commit();
   const reset = new URL(await getAuth().generatePasswordResetLink(email, { url: origin + path }));
   const activation = new URL(origin + path);
@@ -85,13 +244,19 @@ export const assignContributorExpressions = onCall(options, async req => {
   }
   const prompts = [...new Set<string>(req.data.expressions.map((v: unknown) => text(v, 180)))];
   const title = req.data.title == null ? 'Everyday expressions' : text(req.data.title, 120);
+  const instructions = optionalText(req.data?.instructions, 3000);
+  const deadline = optionalText(req.data?.deadline, 40);
   const db = getFirestore(), account = db.doc(`contributorAccounts/${uid}`);
   const work = account.collection('works').doc();
+  // A work id is already globally random, and using it for this one-to-one
+  // audit record keeps assignment creation inside the same transaction.
+  const auditRef = db.doc(`auditLogs/${work.id}`);
   const now = new Date().toISOString();
   await db.runTransaction(async tx => {
     const member = await tx.get(account);
     if (member.get('status') !== 'active') throw new HttpsError('failed-precondition', 'Invite this contributor before assigning work.');
-    tx.create(work, { id: work.id, title, kind: 'expressions', language: 'xsm', assignedBy: actor, createdAt: now });
+    tx.create(work, { id: work.id, title, kind: 'expressions', language: 'xsm', instructions, deadline,
+      assignedBy: actor, createdAt: now });
     for (const expression of prompts) {
       const key = createHash('sha256').update(expression).digest('hex').slice(0, 24);
       tx.create(work.collection('items').doc(key), {
@@ -99,8 +264,251 @@ export const assignContributorExpressions = onCall(options, async req => {
       });
     }
     tx.update(account, { defaultWork: work.id, updatedAt: now });
+    tx.create(auditRef, { id: auditRef.id, ...auditRecord(actor, 'contributor.assignment.create', uid,
+      null, { work: work.id, title, expressionCount: prompts.length, deadline }, { work: work.id }) });
   });
   return { contributorId: uid, work: work.id, portalUrl: `${origin}/contributor/${uid}/${work.id}` };
+});
+
+/** A bounded, joined directory for the admin console. Private contact fields never leave this admin-only callable. */
+export const listExpressionContributors = onCall(options, async req => {
+  const actor = requireAuth(req); requireRole(req, 'admin');
+  await consumeRateLimit('listExpressionContributors', actor, 60);
+  const db = getFirestore();
+  const [profileSnapshot, accountSnapshot] = await Promise.all([
+    db.collection('contributors').limit(300).get(),
+    db.collection('contributorAccounts').limit(300).get(),
+  ]);
+  const profiles = new Map(profileSnapshot.docs.map(snapshot => [snapshot.id, snapshot]));
+  const accounts = new Map(accountSnapshot.docs.map(snapshot => [snapshot.id, snapshot]));
+  const contributorIds = [...new Set([...profiles.keys(), ...accounts.keys()])];
+  const contributors = await Promise.all(contributorIds.map(async contributorId => {
+    const profile = profiles.get(contributorId);
+    const account = accounts.get(contributorId);
+    const publicProfile = (profile?.get('public') ?? {}) as Record<string, unknown>;
+    const privateProfile = (profile?.get('private') ?? {}) as Record<string, unknown>;
+    let authUser: Awaited<ReturnType<ReturnType<typeof getAuth>['getUser']>> | null = null;
+    if (account || profile?.get('authUid')) {
+      try { authUser = await getAuth().getUser(String(profile?.get('authUid') ?? account?.id)); }
+      catch (error) {
+        if ((error as { code?: string }).code !== 'auth/user-not-found') throw error;
+      }
+    }
+    const workSnapshots = account
+      ? (await account.ref.collection('works').orderBy('createdAt', 'desc').limit(50).get()).docs
+      : [];
+    const works = await Promise.all(workSnapshots.map(async work => {
+      const items = await work.ref.collection('items').limit(200).get();
+      const statuses = items.docs.map(item => String(item.get('status') ?? 'draft'));
+      return {
+        id: work.id,
+        title: String(work.get('title') ?? 'Expression assignment'),
+        instructions: String(work.get('instructions') ?? ''),
+        deadline: String(work.get('deadline') ?? ''),
+        createdAt: String(work.get('createdAt') ?? ''),
+        itemCount: items.size,
+        submittedCount: items.docs.filter(item => Boolean(item.get('submissionId'))).length,
+        verifiedCount: statuses.filter(status => status === 'verified').length,
+        revisionCount: statuses.filter(status => ['needs_revision', 'rejected'].includes(status)).length,
+      };
+    }));
+    const storedInvitation = (account?.get('invitation') ?? {}) as Record<string, unknown>;
+    const sentAt = String(storedInvitation.sentAt ?? '');
+    const accepted = Boolean(authUser?.metadata.lastSignInTime && sentAt
+      && new Date(authUser.metadata.lastSignInTime).getTime() >= new Date(sentAt).getTime());
+    const invitationStatus = storedInvitation.status === 'cancelled'
+      ? 'cancelled'
+      : accepted ? 'accepted' : account ? 'pending' : 'not_invited';
+    return {
+      id: contributorId,
+      authUid: authUser?.uid ?? null,
+      displayName: String(publicProfile.displayName ?? authUser?.displayName ?? privateProfile.email ?? 'Contributor'),
+      photoUrl: String(publicProfile.photoUrl ?? ''),
+      biography: String(publicProfile.biography ?? ''),
+      expertise: Array.isArray(publicProfile.expertise) ? publicProfile.expertise.map(String) : [],
+      location: String(publicProfile.location ?? ''),
+      website: String(publicProfile.website ?? ''),
+      socialLinks: String(publicProfile.socialLinks ?? ''),
+      email: String(privateProfile.email ?? authUser?.email ?? ''),
+      phone: String(privateProfile.phone ?? ''),
+      notes: String(privateProfile.notes ?? ''),
+      roles: Array.isArray(profile?.get('roles')) ? (profile?.get('roles') as unknown[]).map(String) : [],
+      contributionTypes: Array.isArray(profile?.get('contributionTypes'))
+        ? (profile?.get('contributionTypes') as unknown[]).map(String) : [],
+      permissions: profile?.get('permissions') ?? { submit: true, edit: true, review: false, publish: false },
+      status: String(profile?.get('status') ?? (account ? 'active' : 'pending')),
+      publicVisibility: String(profile?.get('publicVisibility') ?? 'hidden'),
+      accountStatus: String(account?.get('status') ?? 'none'),
+      invitation: {
+        status: invitationStatus,
+        sentAt,
+        resentAt: String(storedInvitation.resentAt ?? ''),
+        resendCount: Number(storedInvitation.resendCount ?? 0),
+      },
+      createdAt: String(profile?.get('lifecycle.createdAt') ?? authUser?.metadata.creationTime ?? ''),
+      lastActiveAt: String(authUser?.metadata.lastSignInTime ?? ''),
+      works,
+    };
+  }));
+  return { contributors };
+});
+
+/** Create a profile-only contributor or edit the public/private halves of an existing record. */
+export const saveContributorProfile = onCall(options, async req => {
+  const actor = requireAuth(req); requireRole(req, 'admin');
+  await consumeRateLimit('saveContributorProfile', actor, 30);
+  const input = profileFields((req.data ?? {}) as Record<string, unknown>);
+  const db = getFirestore();
+  const contributorId = req.data?.contributorId == null
+    ? db.collection('contributors').doc().id
+    : id(req.data.contributorId);
+  const profileRef = db.doc(`contributors/${contributorId}`);
+  const auditRef = db.collection('auditLogs').doc();
+  const now = new Date().toISOString();
+  await db.runTransaction(async tx => {
+    const before = await tx.get(profileRef);
+    const visibility = req.data?.publicVisibility === 'public' ? 'public' : 'hidden';
+    const next = {
+      id: contributorId,
+      authUid: before.get('authUid') ?? null,
+      ...input,
+      status: before.get('status') ?? 'active',
+      publicVisibility: visibility,
+      lifecycle: {
+        createdAt: before.get('lifecycle.createdAt') ?? now,
+        updatedAt: now,
+        version: Number(before.get('lifecycle.version') ?? 0) + 1,
+      },
+    };
+    tx.set(profileRef, next);
+    tx.create(auditRef, { id: auditRef.id, ...auditRecord(actor,
+      before.exists ? 'contributor.profile.update' : 'contributor.profile.create', contributorId,
+      before.exists ? before.data() : null, next) });
+  });
+  return { contributorId };
+});
+
+/** Manage the relationship, login and public profile as three independent switches. */
+export const setContributorAccess = onCall(options, async req => {
+  const actor = requireAuth(req); requireRole(req, 'admin');
+  await consumeRateLimit('setContributorAccess', actor, 30);
+  const contributorId = id(req.data?.contributorId);
+  const profileStatus = req.data?.profileStatus == null ? null : String(req.data.profileStatus);
+  const accountStatus = req.data?.accountStatus == null ? null : String(req.data.accountStatus);
+  const publicVisibility = req.data?.publicVisibility == null ? null : String(req.data.publicVisibility);
+  if (profileStatus !== null && !['active', 'inactive'].includes(profileStatus)) {
+    throw new HttpsError('invalid-argument', 'Unknown contributor status.');
+  }
+  if (accountStatus !== null && !accountStatuses.includes(accountStatus as typeof accountStatuses[number])) {
+    throw new HttpsError('invalid-argument', 'Unknown account status.');
+  }
+  if (publicVisibility !== null && !['public', 'hidden'].includes(publicVisibility)) {
+    throw new HttpsError('invalid-argument', 'Unknown profile visibility.');
+  }
+  const reason = optionalText(req.data?.reason, 1000);
+  if ((profileStatus === 'inactive' || accountStatus === 'suspended' || accountStatus === 'deactivated') && !reason) {
+    throw new HttpsError('invalid-argument', 'Record a reason for restricting this contributor.');
+  }
+  const db = getFirestore();
+  const profileRef = db.doc(`contributors/${contributorId}`);
+  const accountRef = db.doc(`contributorAccounts/${contributorId}`);
+  const [profile, account] = await Promise.all([profileRef.get(), accountRef.get()]);
+  if (!profile.exists && !account.exists) throw new HttpsError('not-found', 'Contributor not found.');
+  if (accountStatus !== null && !account.exists) throw new HttpsError('failed-precondition', 'This profile has no login account.');
+  if (accountStatus !== null) {
+    try { await getAuth().updateUser(contributorId, { disabled: accountStatus !== 'active' }); }
+    catch (error) {
+      if ((error as { code?: string }).code !== 'auth/user-not-found') throw error;
+    }
+  }
+  const now = new Date().toISOString();
+  const batch = db.batch();
+  const profilePatch: Record<string, unknown> = { lifecycle: {
+    createdAt: profile.get('lifecycle.createdAt') ?? now,
+    updatedAt: now,
+    version: Number(profile.get('lifecycle.version') ?? 0) + 1,
+  } };
+  if (profileStatus !== null) profilePatch.status = profileStatus;
+  if (publicVisibility !== null) profilePatch.publicVisibility = publicVisibility;
+  if (reason) profilePatch.lastStatusReason = reason;
+  batch.set(profileRef, profilePatch, { merge: true });
+  if (accountStatus !== null) batch.update(accountRef, { status: accountStatus, updatedAt: now, lastStatusReason: reason });
+  const auditRef = db.collection('auditLogs').doc();
+  const before = { profileStatus: profile.get('status') ?? null, accountStatus: account.get('status') ?? 'none',
+    publicVisibility: profile.get('publicVisibility') ?? 'hidden' };
+  const after = { profileStatus: profileStatus ?? before.profileStatus, accountStatus: accountStatus ?? before.accountStatus,
+    publicVisibility: publicVisibility ?? before.publicVisibility };
+  batch.set(auditRef, { id: auditRef.id, ...auditRecord(actor, 'contributor.access.update', contributorId,
+    before, after, { reason }) });
+  await batch.commit();
+  return { contributorId, ...after };
+});
+
+export const resendContributorInvitation = onCall(options, async req => {
+  const actor = requireAuth(req); requireRole(req, 'admin');
+  await consumeRateLimit('resendContributorInvitation', actor, 20);
+  const contributorId = id(req.data?.contributorId);
+  const db = getFirestore();
+  const accountRef = db.doc(`contributorAccounts/${contributorId}`);
+  const account = await accountRef.get();
+  if (!account.exists || account.get('invitation.status') === 'cancelled') {
+    throw new HttpsError('failed-precondition', 'This invitation is not available to resend.');
+  }
+  const user = await getAuth().getUser(contributorId);
+  if (!user.email) throw new HttpsError('failed-precondition', 'This contributor has no email address.');
+  const work = String(account.get('defaultWork') ?? '');
+  if (!work) throw new HttpsError('failed-precondition', 'Assign work before resending this invitation.');
+  const path = `/contributor/${contributorId}/${work}`;
+  const reset = new URL(await getAuth().generatePasswordResetLink(user.email, { url: origin + path }));
+  const activation = new URL(origin + path);
+  activation.searchParams.set('oobCode', reset.searchParams.get('oobCode')!);
+  activation.searchParams.set('mode', 'resetPassword');
+  const now = new Date().toISOString();
+  const batch = db.batch();
+  batch.update(accountRef, { 'invitation.status': 'pending', 'invitation.resentAt': now,
+    'invitation.resendCount': Number(account.get('invitation.resendCount') ?? 0) + 1, updatedAt: now });
+  const auditRef = db.collection('auditLogs').doc();
+  batch.set(auditRef, { id: auditRef.id, ...auditRecord(actor, 'contributor.invitation.resend', contributorId,
+    null, { resentAt: now }, {}) });
+  await batch.commit();
+  return { activationUrl: activation.toString(), portalUrl: origin + path };
+});
+
+export const cancelContributorInvitation = onCall(options, async req => {
+  const actor = requireAuth(req); requireRole(req, 'admin');
+  await consumeRateLimit('cancelContributorInvitation', actor, 20);
+  const contributorId = id(req.data?.contributorId);
+  const reason = text(req.data?.reason, 1000);
+  const db = getFirestore();
+  const accountRef = db.doc(`contributorAccounts/${contributorId}`);
+  const profileRef = db.doc(`contributors/${contributorId}`);
+  const [account, profile] = await Promise.all([accountRef.get(), profileRef.get()]);
+  if (!account.exists || account.get('invitation.status') === 'cancelled') {
+    throw new HttpsError('failed-precondition', 'This invitation is not pending.');
+  }
+  const user = await getAuth().getUser(contributorId);
+  const sentAt = String(account.get('invitation.sentAt') ?? '');
+  if (user.metadata.lastSignInTime && sentAt
+    && new Date(user.metadata.lastSignInTime).getTime() >= new Date(sentAt).getTime()) {
+    throw new HttpsError('failed-precondition', 'This invitation has already been accepted. Suspend the account instead.');
+  }
+  await getAuth().updateUser(contributorId, { disabled: true });
+  const now = new Date().toISOString();
+  const batch = db.batch();
+  batch.update(accountRef, { status: 'deactivated', 'invitation.status': 'cancelled',
+    'invitation.cancelledAt': now, updatedAt: now, lastStatusReason: reason });
+  batch.set(profileRef, { status: 'inactive', publicVisibility: 'hidden',
+    lastStatusReason: reason, lifecycle: {
+      createdAt: profile.get('lifecycle.createdAt') ?? now,
+      updatedAt: now,
+      version: Number(profile.get('lifecycle.version') ?? 0) + 1,
+    } }, { merge: true });
+  const auditRef = db.collection('auditLogs').doc();
+  batch.set(auditRef, { id: auditRef.id, ...auditRecord(actor, 'contributor.invitation.cancel', contributorId,
+    { status: account.get('status'), invitation: account.get('invitation.status') },
+    { status: 'deactivated', invitation: 'cancelled' }, { reason }) });
+  await batch.commit();
+  return { contributorId };
 });
 
 export const saveExpressionAnswer = onCall(options, async req => {
@@ -117,9 +525,19 @@ export const saveExpressionAnswer = onCall(options, async req => {
   const firstSubmissionId = createHash('sha256').update(`${uid}/${work}/${item}`).digest('hex');
   const now = new Date().toISOString();
   return db.runTransaction(async tx => {
-    const [member, row, campaign] = await Promise.all([tx.get(account), tx.get(ref),
-      tx.get(db.doc(`campaigns/${COLLECTION_CAMPAIGN_ID}`))]);
+    const [member, row, campaign, profile] = await Promise.all([tx.get(account), tx.get(ref),
+      tx.get(db.doc(`campaigns/${COLLECTION_CAMPAIGN_ID}`)), tx.get(db.doc(`contributors/${uid}`))]);
     if (member.get('status') !== 'active' || !row.exists) throw new HttpsError('permission-denied', 'An active invitation is required.');
+    const permissions = profile.get('permissions') as Record<string, unknown> | undefined;
+    // Older invitations predate contributor profiles, so a missing permissions
+    // map retains their existing access. Once an administrator records the
+    // profile, its edit/submit switches become authoritative here.
+    if (permissions && permissions.edit !== true) {
+      throw new HttpsError('permission-denied', 'Editing access is not enabled for this contributor.');
+    }
+    if (submit && permissions && permissions.submit !== true) {
+      throw new HttpsError('permission-denied', 'Submission access is not enabled for this contributor.');
+    }
     const previousId = row.get('submissionId') as string | undefined;
     const previous = previousId ? await tx.get(db.doc(`submissions/${previousId}`)) : null;
     const canRevise = previous?.exists && previous.get('authUid') === uid

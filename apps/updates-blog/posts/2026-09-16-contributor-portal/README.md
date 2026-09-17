@@ -46,8 +46,10 @@ kept its `alt` text.
 
 Based on commits `48516b3`, `c2d96cd`, and `1d3da64`, and
 [the contributor portal documentation](../../../../docs/product/contributor-portal.md).
-This is an invitation-only workflow. The admin assignment screen is still
-separate future work; this post does not announce public enrolment.
+This is an invitation-only workflow. The staff-side assignment screen was added
+to the repository on 2026-09-17 and is covered by the separate contributor
+management release post; this article still does not announce public enrolment
+or prove either surface is live in production.
 
 ## Publishing handoff
 

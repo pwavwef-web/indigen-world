@@ -7,6 +7,7 @@ workspace for contributors and content creators.
 ## Responsibilities
 
 - Role and access administration (assigning and auditing role claims)
+- Contributor directory, profile, invitation and expression-assignment administration
 - Validation oversight across language cells (queues, escalations, quality)
 - Moderation of reported content against consent and cultural-permission policy
 - Campaign, bounty and reward-integrity oversight
@@ -15,7 +16,9 @@ workspace for contributors and content creators.
 
 ## Out of scope
 
-- Creator and contributor production workflows — use `apps/tribestudio`
+- Creator and contributor production workspaces — use `apps/tribestudio`; the
+  Admin console owns staff-side contributor profiles, invitations, allocation
+  and review
 - Public marketing and partner pages — use `apps/website`
 - Everyday consumer learning and exploration — use `apps/mobile`
 - Secret-bearing or trusted backend execution — use `services/functions`

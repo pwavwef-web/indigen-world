@@ -75,6 +75,14 @@ test('publication consent and nonempty translation are mandatory only when submi
   await assert.rejects(h.saveExpressionAnswer(h.request({ submit: true, publicationPermission: true, translation: '' })), { code: 'failed-precondition' });
   await h.saveExpressionAnswer(h.request({ translation: '' }));
 });
+test('recorded contributor permissions gate editing and submission', async () => {
+  const h = await harness();
+  h.records.set('contributors/alice', { permissions: { edit: false, submit: true } });
+  await assert.rejects(h.saveExpressionAnswer(h.request()), { code: 'permission-denied' });
+  h.records.set('contributors/alice', { permissions: { edit: true, submit: false } });
+  await h.saveExpressionAnswer(h.request());
+  await assert.rejects(h.saveExpressionAnswer(h.request({ revision: 1, submit: true, publicationPermission: true })), { code: 'permission-denied' });
+});
 test('training projection follows current reviewed state, consent and withdrawal, including repeated events', async () => {
   const h = await harness();
   const { submissionId } = await h.saveExpressionAnswer(h.request({ submit: true, publicationPermission: true, aiTraining: true }));

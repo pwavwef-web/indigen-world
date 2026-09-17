@@ -23,6 +23,7 @@ const navigationGroups = ['Overview', 'Publishing', 'Community', 'Governance'] a
 const iconPaths: Record<ViewId | 'menu' | 'collapse' | 'logout' | 'search' | 'power', ReactNode> = {
   console: <><path d="M4 13h6V4H4zM14 20h6V11h-6zM4 20h6v-3H4zM14 7h6V4h-6z" /></>,
   creators: <><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" /></>,
+  contributors: <><circle cx="8" cy="8" r="3" /><path d="M2.5 19a5.5 5.5 0 0 1 11 0M16 7h6M19 4v6M15 14h7M15 18h5" /></>,
   learning: <><path d="m2 3 8 3 8-3 4 2-8 3-8-3z" /><path d="M6 7v8c3 2 5 2 8 0V7M18 8v7" /></>,
   collection: <><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M7 8h10M7 12h6M7 16h4" /></>,
   reports: <><path d="M12 22a10 10 0 1 0-10-10 10.7 10.7 0 0 0 1 4.5L2 22l5.5-1a10.7 10.7 0 0 0 4.5 1Z" /><path d="M12 8v4M12 16h.01" /></>,
@@ -54,6 +55,7 @@ function Notice({ title, body }: { title: string; body: string }) {
 const SCREEN_HINTS: Record<ViewId, string> = {
   console: 'Live queue totals and workspace shortcuts',
   creators: 'Applications, memberships, campaigns and the review desk',
+  contributors: 'Profiles, invitations, expression assignments and contribution history',
   learning: 'Units, lessons and the Kasem learning path',
   collection: 'Apps, books, music, heroes, names and the shop',
   reports: 'Community moderation queue',
