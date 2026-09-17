@@ -10,6 +10,7 @@ import './contributor.css';
 export type Item = { id: string; expression: string; translation: string; alternatives: string[];
   revision: number; status: string; unsure?: boolean; submissionId?: string; feedback?: string; reviewedAt?: string | null };
 type Work = { id: string; title: string; createdAt: string; instructions?: string; dialect?: string; tone?: string; deadline?: string; helpContact?: string };
+type Status = 'Not started' | 'Drafts' | 'Submitted' | 'Needs revision' | 'I’m not sure';
 export function expressionView(item: Item): 'untranslated' | 'translated' | 'reviewed' {
   if (item.reviewedAt || ['verified', 'rejected', 'needs_revision', 'archived'].includes(item.status)) return 'reviewed';
   return item.translation.trim() || item.submissionId ? 'translated' : 'untranslated';
@@ -54,8 +55,10 @@ export function ContributorPortal() {
       setItems(snapshot.docs.map(d => ({ ...d.data(), id: d.id }) as Item)); setLoaded(true);
     }, e => { setError(e.message); setLoaded(true); });
   }, [user?.uid, params?.uid, params?.work, code, access]);
-  return <div className="contributor-portal"><header><div><span className="contributor-kicker">INDIGEN WORLD / CONTRIBUTORS</span>
-    <h1>Your contributions</h1><p>{works.find(w => w.id === params?.work)?.title}</p></div>{user && <details><summary>Account details</summary><p className="contributor-identity">Contributor ID: <code>{user.uid}</code></p><button disabled={pending} onClick={() => void signOutUser()}>Sign out</button></details>}</header>
+  const activeWork = works.find(w => w.id === params?.work);
+  const submitted = items.filter(item => Boolean(item.submissionId) && !['rejected', 'needs_revision'].includes(item.status)).length;
+  return <div className="contributor-portal"><ContributorHeader title={activeWork?.title} completed={submitted} total={items.length} pending={pending}
+    accountId={user?.uid} onSignOut={() => void signOutUser()} />
     <main id="main-content" tabIndex={-1}>
       {error && <p role="alert">{error} <button onClick={() => window.location.reload()}>Retry</button></p>}
       {!ready ? <p>Opening your portal…</p> : code || !user ? <ContributorSignIn code={code} />
@@ -63,15 +66,38 @@ export function ContributorPortal() {
         : access === 'denied' ? <p role="alert">This portal is available only to invited contributors. Contact the team for an invitation.</p>
         : access === 'active' && needsActivation ? <ContributorActivation />
         : access !== 'active' || !params || !loaded || !worksLoaded ? <p>Loading your expressions…</p>
-        : !works.some(w => w.id === params.work) ? <p role="alert">This assignment is not available to your account.</p> : <>
-          <label className="contributor-assignment">Your assignment<select value={params.work} disabled={pending} onChange={e => navigate('/contributor/' + user.uid + '/' + e.target.value)}>
-            {works.map(w => <option key={w.id} value={w.id}>{w.title} · {w.id.slice(0, 8)}</option>)}
-          </select></label>
-          {works.filter(w => w.id === params.work).map(w => <aside key={w.id} className="contributor-instructions" aria-label="Assignment guidance"><h2>Assignment guidance</h2>{w.instructions && <p>{w.instructions}</p>}{w.dialect && <p>Dialect: {w.dialect}</p>}{w.tone && <p>Tone: {w.tone}</p>}{w.deadline && <p>Deadline: {w.deadline}</p>}{w.helpContact && <p>Need help? {w.helpContact}</p>}</aside>)}
+        : !works.some(w => w.id === params.work) ? <EmptyState title="Assignment unavailable" body="This assignment is not available to your account. Contact the team if you think this is a mistake." /> : <>
+          <AssignmentSelector works={works} active={params.work} itemCount={items.length} completed={submitted} pending={pending}
+            onChange={work => navigate('/contributor/' + user.uid + '/' + work)} />
+          {activeWork && <AssignmentGuidance work={activeWork} />}
           <ContributionWorkspace accountId={user.uid} key={user.uid + params.work} items={items} work={params.work} onPending={setPending} />
         </>}
     </main></div>;
 }
+
+export function ContributorHeader({ title, completed, total, accountId, pending, onSignOut }: { title?: string; completed: number; total: number; accountId?: string; pending: boolean; onSignOut: () => void }) {
+  return <header className="contributor-header"><div className="contributor-heading"><span className="contributor-kicker">INDIGEN WORLD · CONTRIBUTORS</span><h1>Your contributions</h1>
+    {title && <p>{title}</p>}</div><div className="contributor-header-actions">{total > 0 && <span className="contributor-header-progress">{completed} / {total} completed</span>}
+      {accountId && <details className="contributor-account"><summary aria-label="Open account details"><span aria-hidden="true">☺</span><span className="sr-only">Account</span></summary>
+        <div><strong>Contributor account</strong><p className="contributor-identity">ID: <code>{accountId}</code></p><button disabled={pending} onClick={onSignOut}>Sign out</button></div></details>}</div></header>;
+}
+
+function AssignmentSelector({ works, active, completed, itemCount, pending, onChange }: { works: Work[]; active: string; completed: number; itemCount: number; pending: boolean; onChange: (id: string) => void }) {
+  const work = works.find(w => w.id === active);
+  return <section className="contributor-assignment" aria-label="Current assignment"><div><span className="contributor-label">Assignment</span><strong>{work?.title}</strong>
+    <small>{work?.deadline ? `Due ${formatDeadline(work.deadline)}` : 'No deadline'} · {completed}/{itemCount} complete</small></div>
+    {works.length > 1 && <label><span className="sr-only">Choose assignment</span><select value={active} disabled={pending} onChange={e => onChange(e.target.value)}>
+      {works.map(w => <option key={w.id} value={w.id}>{w.title}</option>)}</select></label>}</section>;
+}
+
+function AssignmentGuidance({ work }: { work: Work }) {
+  const summary = work.instructions || 'Translate each expression naturally into Kasem. Add alternatives when useful.';
+  return <details className="contributor-guidance"><summary><span><strong>Assignment guidance</strong><small>{summary.length > 150 ? summary.slice(0, 147) + '…' : summary}</small></span><span aria-hidden="true">⌄</span></summary>
+    <div>{work.instructions && <p>{work.instructions}</p>}{work.dialect && <p><strong>Dialect:</strong> {work.dialect}</p>}{work.tone && <p><strong>Tone:</strong> {work.tone}</p>}{work.deadline && <p><strong>Due:</strong> {formatDeadline(work.deadline)}</p>}{work.helpContact && <p><strong>Need help?</strong> {work.helpContact}</p>}</div></details>;
+}
+
+function EmptyState({ title, body }: { title: string; body: string }) { return <section className="contributor-empty"><span aria-hidden="true">○</span><h2>{title}</h2><p>{body}</p></section>; }
+function formatDeadline(value: string) { const date = new Date(value); return Number.isNaN(date.getTime()) ? value : new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', year: date.getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined }).format(date); }
 
 function ContributorActivation() {
   const [password, setPassword] = useState(''), [confirm, setConfirm] = useState('');
@@ -152,23 +178,30 @@ export function ContributionWorkspace({ items, work, onPending, accountId, saveA
   const visible = items.filter(i => (filter === 'All' || contributionState(i) === filter) &&
     [i.expression, i.translation, ...i.alternatives].join(' ').toLocaleLowerCase().includes(query.toLocaleLowerCase()));
   const item = items.find(i => i.id === selected) ?? visible[0];
-  const submitted = items.filter(i => Boolean(i.submissionId)).length;
+  const submitted = items.filter(i => Boolean(i.submissionId) && !['rejected', 'needs_revision'].includes(i.status)).length;
+  const drafts = items.filter(i => contributionState(i) === 'Drafts').length;
+  const unsure = items.filter(i => i.unsure).length;
+  const revisions = items.filter(i => contributionState(i) === 'Needs revision').length;
+  const currentIndex = item ? items.findIndex(i => i.id === item.id) : -1;
+  const hasNextIncomplete = items.some((candidate, index) => index !== currentIndex && contributionState(candidate) !== 'Submitted');
+  if (!items.length) return <EmptyState title="No expressions yet" body="There are no expressions in this assignment. Please check back later or contact the team." />;
+  if (submitted === items.length) return <section className="contributor-complete"><span aria-hidden="true">🎉</span><h2>Assignment complete</h2><p>You’ve submitted all {items.length} expressions. Thank you for helping Kasem grow.</p></section>;
   return <>
     <section className="contributor-progress" aria-label="Assignment progress">
-      <strong>{submitted} of {items.length} submitted</strong>
+      <div><span>Progress</span><strong>{submitted} / {items.length} submitted</strong></div>
       <progress aria-label="Expressions submitted" value={submitted} max={items.length || 1} />
-      <p>{items.filter(i => contributionState(i) === 'Drafts').length} saved drafts · {items.filter(i => i.unsure).length} unsure · {items.filter(i => contributionState(i) === 'Not started').length} not started · {items.filter(i => contributionState(i) === 'Needs revision').length} need revision</p>
+      <p><span className="status-dot status-draft" />{drafts} drafts <span className="status-dot status-unsure" />{unsure} unsure <span className="status-dot status-revision" />{revisions} need revision <span>{Math.max(0, items.length - submitted)} remaining</span></p>
     </section>
     {confirmation && <p className="contributor-confirmation" role="status">{confirmation}</p>}
     <div className={'contributor-workspace' + (mobileEditor ? ' is-editing' : '')}>
       <section className="contributor-expression-list" aria-label="Find expressions">
-        <label>Search expressions<input type="search" value={query} disabled={pending} onChange={e => { setQuery(e.target.value); setSelected(''); }} placeholder="Search English or Kasem" /></label>
-        <nav aria-label="Expression filters">{['All', 'Not started', 'Drafts', 'Submitted', 'Needs revision', 'I’m not sure'].map(label => <button key={label} disabled={pending} aria-pressed={filter === label} onClick={() => { setFilter(label); setSelected(''); }}>{label}</button>)}</nav>
-        <aside aria-label="Expressions">{visible.map(i => <button key={i.id} disabled={pending} aria-current={item?.id === i.id ? 'true' : undefined} onClick={() => { setSelected(i.id); setMobileEditor(true); }}><span>{i.expression}</span><small>{contributionState(i) === 'Drafts' ? 'Draft saved' : contributionState(i)}{i.status === 'verified' ? ' · Verified' : ''}{accountId && readLocalDraft(`contributor-draft:${accountId}:${work}:${i.id}`) ? ' · Recovery copy on this device' : ''}</small></button>)}
+        <label className="contributor-search"><span className="sr-only">Search expressions</span><span aria-hidden="true">⌕</span><input type="search" value={query} disabled={pending} onChange={e => { setQuery(e.target.value); setSelected(''); }} placeholder="Search expressions" /></label>
+        <nav aria-label="Expression filters">{(['All', 'Not started', 'Drafts', 'Submitted', 'Needs revision', 'I’m not sure'] as const).map(label => <button key={label} disabled={pending} aria-pressed={filter === label} onClick={() => { setFilter(label); setSelected(''); }}>{label === 'I’m not sure' ? 'Unsure' : label}</button>)}</nav>
+        <aside aria-label="Expressions">{visible.map((i) => { const state = contributionState(i); return <button key={i.id} className={`expression-card state-${statusSlug(state)}`} disabled={pending} aria-current={item?.id === i.id ? 'true' : undefined} onClick={() => { setSelected(i.id); setMobileEditor(true); }}><span className="expression-card-icon" aria-hidden="true">{statusIcon(state)}</span><span><strong>{i.expression}</strong><small>{state === 'Drafts' ? 'Draft saved' : state}{i.status === 'verified' ? ' · Verified' : ''}{accountId && readLocalDraft(`contributor-draft:${accountId}:${work}:${i.id}`) ? ' · Recovery copy' : ''}</small></span><span className="expression-arrow" aria-hidden="true">›</span></button>; })}
           {!visible.length && <p>No expressions match. Try another search or filter.</p>}</aside>
       </section>
-      <div className="contributor-editor-pane"><button className="contributor-back" disabled={pending} onClick={() => setMobileEditor(false)}>← Back to expressions</button>
-        {item ? <ExpressionEditor accountId={accountId} key={item.id} item={item} work={work} saveAnswer={saveAnswer} onPending={value => { setPending(value); onPending(value); if (value) setSelected(item.id); }} onSkipped={() => {
+      <div className="contributor-editor-pane"><button className="contributor-back" disabled={pending} onClick={() => setMobileEditor(false)}>← Expressions</button>
+        {item ? <ExpressionEditor accountId={accountId} key={item.id} item={item} itemNumber={currentIndex + 1} itemTotal={items.length} hasNextIncomplete={hasNextIncomplete} work={work} saveAnswer={saveAnswer} onPending={value => { setPending(value); onPending(value); if (value) setSelected(item.id); }} onSkipped={() => {
           const index = items.findIndex(i => i.id === item.id);
           const remaining = [...items.slice(index + 1), ...items.slice(0, index)].find(i => contributionState(i) === 'Not started');
           setConfirmation('“' + item.expression + '” was flagged as unsure. No answer was submitted.' + (!remaining ? ' No new expressions remain. You can return to flagged expressions at any time.' : ''));
@@ -185,14 +218,18 @@ export function ContributionWorkspace({ items, work, onPending, accountId, saveA
   </>;
 }
 
-function ExpressionEditor({ item, work, onPending, onSubmitted, onSkipped, accountId, saveAnswer = save }: { item: Item; work: string; accountId?: string; onPending: (pending: boolean) => void; onSubmitted?: (next: boolean) => void; onSkipped?: () => void; saveAnswer?: SaveAnswer }) {
+function statusSlug(status: Status) { return status.toLocaleLowerCase().replace(/[^a-z]+/g, '-').replace(/(^-|-$)/g, ''); }
+function statusIcon(status: Status) { return status === 'Submitted' ? '✓' : status === 'Needs revision' ? '!' : status === 'Drafts' ? '✎' : status === 'I’m not sure' ? '?' : '□'; }
+
+function ExpressionEditor({ item, itemNumber = 1, itemTotal = 1, hasNextIncomplete = false, work, onPending, onSubmitted, onSkipped, accountId, saveAnswer = save }: { item: Item; itemNumber?: number; itemTotal?: number; hasNextIncomplete?: boolean; work: string; accountId?: string; onPending: (pending: boolean) => void; onSubmitted?: (next: boolean) => void; onSkipped?: () => void; saveAnswer?: SaveAnswer }) {
   const [translation, setTranslation] = useState(item.translation), [alternatives, setAlternatives] = useState(item.alternatives.join('\n'));
+  const [alternativeCount, setAlternativeCount] = useState(item.alternatives.length);
   const [publication, setPublication] = useState(false), [training, setTraining] = useState(false);
   const [status, setStatus] = useState('Saved'), [error, setError] = useState(''), [busy, setBusy] = useState(false);
   const revision = useRef(item.revision), chain = useRef(Promise.resolve()), dirty = useRef(false), blocked = useRef(false);
   const payload = useRef({ translation, alternatives }); payload.current = { translation, alternatives };
   const submitting = useRef(false);
-  const activeField = useRef<HTMLTextAreaElement | null>(null);
+  const activeField = useRef<HTMLTextAreaElement | HTMLInputElement | null>(null);
   const [sent, setSent] = useState(false);
   const revising = ['rejected', 'needs_revision'].includes(item.status);
   useEffect(() => { if (['rejected', 'needs_revision'].includes(item.status)) setSent(false); }, [item.status]);
@@ -239,41 +276,46 @@ function ExpressionEditor({ item, work, onPending, onSubmitted, onSkipped, accou
       // Changes are copied to browser storage synchronously while typing.
     };
   }, []);
+  const savedAlternatives = alternatives ? alternatives.split('\n') : [];
+  const alternativeValues = Array.from({ length: Math.max(alternativeCount, savedAlternatives.length) }, (_, index) => savedAlternatives[index] ?? '');
+  const updateAlternative = (index: number, value: string) => { const next = [...alternativeValues]; next[index] = value.replace(/\n/g, ' '); setAlternativeCount(next.length); changeAnswer('alternatives', next.join('\n')); };
+  const removeAlternative = (index: number) => { const next = alternativeValues.filter((_, current) => current !== index); setAlternativeCount(next.length); changeAnswer('alternatives', next.join('\n')); };
+  const cannotSubmit = !translation.trim() ? 'Enter a Kasem translation to submit.' : !publication ? 'Confirm publication permission to submit.' : blocked.current ? 'Retry saving your draft before submitting.' : '';
   return <form className="contributor-editor" onSubmit={async e => { e.preventDefault(); if (locked || recovery || blocked.current) return; submitting.current = true; setBusy(true); onPending(true);
     try { await persist(true); setSent(true); onSubmitted?.((e.nativeEvent as SubmitEvent | undefined)?.submitter?.getAttribute('value') === 'next'); } catch { /* Error is retained beside the draft. */ } finally { submitting.current = false; setBusy(false); onPending(dirty.current); }
-  }}><span className="contributor-kicker">EXPRESSION · KASEM</span>
-    <label>Expression<textarea readOnly value={item.expression} /></label>
-    {item.feedback && <section className="contributor-feedback"><strong>Reviewer feedback</strong><p>{item.feedback}</p>{revising && <small>Update your translation below, then resubmit it for review.</small>}</section>}
+  }}><header className="editor-heading"><div><span className="contributor-kicker">EXPRESSION {itemNumber} OF {itemTotal}</span><h2>{item.expression}</h2></div><span className={`status-badge state-${statusSlug(contributionState(item))}`}>{statusIcon(contributionState(item))} {contributionState(item)}</span></header>
+    {item.feedback && <section className="contributor-feedback"><strong>Reviewer note</strong><p>{item.feedback}</p>{revising && <small>Update your translation below, then resubmit it for review.</small>}</section>}
     {recovery && <section className="contributor-feedback"><strong>Unsaved draft found on this device</strong><p>{recovery.revision !== item.revision ? 'The saved version has changed since this copy was made. Compare both before restoring.' : 'Your previous edits can be recovered.'}</p><pre className="contributor-recovery-text">{recovery.translation}{recovery.alternatives ? '\nAlternatives:\n' + recovery.alternatives : ''}</pre>
       {!locked && <button type="button" onClick={() => { revision.current = item.revision; changeAnswer('translation', recovery.translation); changeAnswer('alternatives', recovery.alternatives); setRecovery(null); }}>Restore draft</button>}
       <button type="button" onClick={() => { try { window.localStorage.removeItem(storageKey); } catch { /* Storage may be unavailable. */ } setRecovery(null); }}>Discard recovery copy</button></section>}
     {storageError && <p role="alert">{storageError}</p>}
-    <p>Translate the meaning naturally in Kasem. Alternatives are other Kasem ways to express the same meaning, not explanations or English translations.</p>
-    <p role="status" aria-live="polite">{locked ? 'Submitted' : status}</p>
-    {!locked && <div className="contributor-characters" role="group" aria-label="Kasem characters"><small>Insert a Kasem letter</small>{Array.from('ɛƐəƏɣƔɩƖŋŊɔƆʋƲ').map(char => <button type="button" key={char} disabled={busy || Boolean(recovery)} onMouseDown={e => e.preventDefault()} onClick={() => {
+    <div className="editor-save-state"><span className={`save-indicator ${status === 'Couldn’t save' ? 'is-error' : ''}`} aria-hidden="true">{status === 'Saving…' ? '•' : status === 'Couldn’t save' ? '!' : '✓'}</span><span role="status" aria-live="polite">{locked ? 'Submitted' : status}</span></div>
+    <label className="translation-field">Kasem translation <span aria-hidden="true">*</span><textarea ref={node => { if (node && !activeField.current) activeField.current = node; }} onFocus={e => { activeField.current = e.currentTarget; }} required maxLength={2000} disabled={locked || busy || Boolean(recovery)} value={translation} placeholder="Enter the natural Kasem expression" aria-describedby="translation-help" onChange={e => changeAnswer('translation', e.target.value)} /><small id="translation-help">Translate the meaning naturally, rather than word for word.</small></label>
+    {!locked && <div className="contributor-characters" role="group" aria-label="Kasem characters"><small>Kasem characters</small><div>{Array.from('ɛƐəƏɣƔɩƖŋŊɔƆʋƲ').map(char => <button type="button" key={char} aria-label={`Insert ${char}`} disabled={busy || Boolean(recovery)} onMouseDown={e => e.preventDefault()} onClick={() => {
       const field = activeField.current;
       if (!field) return;
-      const start = field.selectionStart, end = field.selectionEnd;
+      const start = field.selectionStart ?? field.value.length, end = field.selectionEnd ?? start;
       const value = field.value.slice(0, start) + char + field.value.slice(end);
       if (value.length > field.maxLength) return;
-      changeAnswer(field.name === 'alternatives' ? 'alternatives' : 'translation', value);
+      const alternativeIndex = field.dataset.alternativeIndex;
+      if (field.name === 'alternatives' && alternativeIndex !== undefined) updateAlternative(Number(alternativeIndex), value);
+      else changeAnswer('translation', value);
       window.requestAnimationFrame(() => { field.focus(); field.setSelectionRange(start + char.length, start + char.length); });
-    }}>{char}</button>)}</div>}
-    <label>How to say it in Kasem<textarea ref={node => { if (node && !activeField.current) activeField.current = node; }} onFocus={e => { activeField.current = e.currentTarget; }} required maxLength={2000} disabled={locked || busy || Boolean(recovery)} value={translation} onChange={e => changeAnswer('translation', e.target.value)} /></label>
-    <label>Other ways of saying it in Kasem<textarea name="alternatives" onFocus={e => { activeField.current = e.currentTarget; }} maxLength={3500} disabled={locked || busy || Boolean(recovery)} value={alternatives} placeholder="One alternative per line (optional; up to 12, 500 characters each)" onChange={e => changeAnswer('alternatives', e.target.value)} /></label>
-    {!locked && <><label className="contributor-check"><input type="checkbox" required checked={publication} onChange={e => setPublication(e.target.checked)} />I have permission to share this expression for review and dictionary publication.</label>
-      <label className="contributor-check"><input type="checkbox" checked={training} onChange={e => setTraining(e.target.checked)} />Also allow approved translations to be used for Kawuri AI training (optional).</label>
+    }}>{char}</button>)}</div></div>}
+    <section className="alternative-translations"><div><strong>Alternative translations</strong><small>Optional · up to 12</small></div>{alternativeValues.map((value, index) => <label key={index}>Alternative {index + 1}<span><input name="alternatives" data-alternative-index={index} maxLength={500} disabled={locked || busy || Boolean(recovery)} value={value} placeholder="Another natural way to say it" onFocus={e => { activeField.current = e.currentTarget; }} onChange={e => updateAlternative(index, e.target.value)} /><button type="button" aria-label={`Remove alternative ${index + 1}`} disabled={busy} onClick={() => removeAlternative(index)}>×</button></span></label>)}
+      {!locked && alternativeValues.length < 12 && <button className="add-alternative" type="button" disabled={busy || Boolean(recovery)} onClick={() => setAlternativeCount(count => Math.min(12, count + 1))}>+ Add another way of saying this</button>}</section>
+    {!locked && <><details className="permission-section"><summary>Permissions &amp; AI usage <span aria-hidden="true">⌄</span></summary><div><label className="contributor-check"><input type="checkbox" required checked={publication} onChange={e => setPublication(e.target.checked)} />I have permission to share this expression for review and dictionary publication.</label>
+      <label className="contributor-check"><input type="checkbox" checked={training} onChange={e => setTraining(e.target.checked)} />Allow an approved translation to be used for Kawuri AI training <strong>(optional)</strong>.</label></div></details>
       {error && <div role="alert"><p>Your text is still here. Check your connection and retry. {error} If another device changed this draft, copy your text before reloading.</p>
         <button type="button" onClick={() => { blocked.current = false; chain.current = Promise.resolve(); setError('');
           setStatus('Saving…'); void persist().catch(() => undefined); }}>Retry save</button></div>}
-      <p>Unsure? Skip saves your draft privately and flags this expression without submitting it.</p>
-      <button type="button" disabled={busy || Boolean(recovery) || blocked.current} onClick={async () => {
+      <section className="unsure-section"><div><strong>Not sure about this translation?</strong><p>Your work will be kept as a draft so you can return later.</p></div><button type="button" disabled={busy || Boolean(recovery) || blocked.current} onClick={async () => {
         submitting.current = true; setBusy(true); onPending(true);
         try { await persist(false, true); onSkipped?.(); }
         catch { /* Keep the expression open for retry. */ }
         finally { submitting.current = false; setBusy(false); onPending(dirty.current); }
-      }}>Skip / I’m not sure →</button>
-      <div className="contributor-submit-actions"><button disabled={busy || Boolean(recovery) || blocked.current || !translation.trim() || !publication}>{busy ? 'Submitting…' : revising ? 'Resubmit to Review Desk' : 'Submit to Review Desk'}</button><button value="next" disabled={busy || Boolean(recovery) || blocked.current || !translation.trim() || !publication}>{revising ? 'Resubmit and next →' : 'Submit and next →'}</button></div></>}
+      }}>Skip / I’m not sure →</button></section>
+      <div className="contributor-submit-wrap">{cannotSubmit && <p id="submit-help">{cannotSubmit}</p>}<div className="contributor-submit-actions"><button type="button" disabled={busy || Boolean(recovery) || blocked.current || !dirty.current} onClick={() => void persist().catch(() => undefined)}>Save draft</button><button value={hasNextIncomplete ? 'next' : 'submit'} aria-describedby={cannotSubmit ? 'submit-help' : undefined} disabled={busy || Boolean(recovery) || Boolean(cannotSubmit)}>{busy ? 'Submitting…' : revising ? hasNextIncomplete ? 'Resubmit & next →' : 'Resubmit translation' : hasNextIncomplete ? 'Submit & next →' : 'Submit translation'}</button></div></div></>}
     {locked && <p role="status">{item.status === 'verified' ? 'Verified by the Review Desk' : `Review status: ${item.status}`}</p>}
   </form>;
 }

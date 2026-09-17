@@ -442,6 +442,26 @@ test('contributor autosave keeps full expressions and submits with the latest re
   h.dispose();
 });
 
+test('contributor adds and removes structured alternative translation fields', async () => {
+  const h = hooks();
+  const { ExpressionEditor } = await load('src/contributor/ContributorPortal.tsx', ['ExpressionEditor'], {
+    ...h.api, functions: {}, httpsCallable: () => async () => ({ data: { revision: 1 } }),
+    window: { setTimeout() {}, clearTimeout() {}, addEventListener() {}, removeEventListener() {} },
+  });
+  const props = { item: { id: 'item', expression: 'Hello', translation: '', alternatives: [], revision: 0, status: 'draft' }, work: 'work', onPending() {} };
+  let tree = h.render(ExpressionEditor, props); h.flush();
+  find(tree, n => n.type === 'button' && n.props.className === 'add-alternative').props.onClick();
+  tree = h.render(ExpressionEditor, props);
+  const alternative = find(tree, n => n.type === 'input' && n.props.name === 'alternatives');
+  assert.ok(alternative); alternative.props.onChange({ target: { value: 'Alternative phrase' } });
+  tree = h.render(ExpressionEditor, props);
+  assert.equal(find(tree, n => n.type === 'input' && n.props.name === 'alternatives').props.value, 'Alternative phrase');
+  find(tree, n => n.type === 'button' && n.props['aria-label'] === 'Remove alternative 1').props.onClick();
+  tree = h.render(ExpressionEditor, props);
+  assert.equal(find(tree, n => n.type === 'input' && n.props.name === 'alternatives'), null);
+  h.dispose();
+});
+
 test('failed contributor autosave retains text and prevents unsafe submission', async () => {
   const h = hooks(); let timer;
   const { ExpressionEditor } = await load('src/contributor/ContributorPortal.tsx', ['ExpressionEditor'], {
