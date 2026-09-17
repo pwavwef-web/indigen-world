@@ -131,8 +131,8 @@ export function contributorInvitationMessage(email: string, phone: string, porta
       : 'Sign in with your existing password. If forgotten, use Forgot password on the portal.');
 }
 
-async function deliverContributorInvitation(uid: string, email: string, phone: string, portalUrl: string, temporary: boolean) {
-  const result = await sendSmsToMsisdn(phone.slice(1), contributorInvitationMessage(email, phone, portalUrl, temporary));
+async function deliverContributorInvitation(uid: string, email: string, phone: string, portalUrl: string, temporary: boolean, passwordPhone = phone) {
+  const result = await sendSmsToMsisdn(phone.slice(1), contributorInvitationMessage(email, passwordPhone, portalUrl, temporary));
   const sms = { status: result.ok ? 'accepted' : 'failed', to: phone, id: result.id ?? null,
     attemptedAt: new Date().toISOString() };
   await getFirestore().doc(`contributorAccounts/${uid}`).update({ 'invitation.sms': sms });
@@ -227,8 +227,10 @@ export const inviteExpressionContributor = onCall({ ...options, secrets: [ARKESE
   };
   const needsActivation = !accountBefore.exists || accountBefore.get('requiresPasswordChange') === true;
   const temporaryPhonePassword = createdUser || accountBefore.get('temporaryPhonePassword') === true;
+  const passwordPhone = temporaryPhonePassword && !createdUser
+    ? String(accountBefore.get('phoneNumber') ?? phoneNumber) : phoneNumber;
   const accountData = { authUid: user.uid, contributorId: user.uid, status: 'active',
-    requiresPasswordChange: needsActivation, temporaryPhonePassword, phoneNumber,
+    requiresPasswordChange: needsActivation, temporaryPhonePassword, phoneNumber: passwordPhone,
     defaultWork: work, invitedBy: actor, invitation, updatedAt: now };
   if (accountBefore.exists) batch.update(accountRef, accountData, { lastUpdateTime: accountBefore.updateTime! });
   else batch.create(accountRef, accountData);
@@ -277,7 +279,7 @@ export const inviteExpressionContributor = onCall({ ...options, secrets: [ARKESE
     { status: 'active', invitation: 'pending', work, expressionCount: prompts.length },
     { email, work, expressionCount: prompts.length }) });
   await batch.commit();
-  const sms = await deliverContributorInvitation(user.uid, email, phoneNumber, origin + path, temporaryPhonePassword);
+  const sms = await deliverContributorInvitation(user.uid, email, phoneNumber, origin + path, temporaryPhonePassword, passwordPhone);
   return { contributorId: user.uid, work, portalUrl: origin + path,
     loginMethod: temporaryPhonePassword ? 'phone' : 'existing', sms };
 });

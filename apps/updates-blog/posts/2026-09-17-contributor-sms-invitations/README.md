@@ -21,7 +21,7 @@ Status: **Draft article — implementation complete; production deployment pendi
 - Saves SMS provider acceptance/failure and protects invitation retries from duplicate assignments.
 - Restores assignment guidance and preserves existing contributor workflows while resolving the pull conflicts.
 
-Validation: Functions production build, 22 contributor backend tests, Admin type checks/structural validation/production build, Studio type checks/37 workflow and PWA tests/production build, and all 21 blog theme checks passed. The contributor sign-in page was checked in a local browser; the Admin preview requires staff sign-in. Production deployment is pending. No real invitation messages have been sent during this work.
+Validation: Functions production build, 23 contributor backend tests, Admin type checks/structural validation/production build, Studio type checks/37 workflow and PWA tests/production build, and all 21 blog theme checks passed. The contributor sign-in page was checked in a local browser; the Admin preview requires staff sign-in. Production deployment is pending. No real invitation messages have been sent during this work.
 
 ## Publishing handoff
 
@@ -31,3 +31,4 @@ Validation: Functions production build, 22 contributor backend tests, Admin type
 4. Publish when ready and replace `[PUBLISHED_POST_URL]` in `share.md` before sharing.
 
 SMS provider acceptance is not proof of handset delivery. Arkesel configuration, credit, sender approval and network routing apply. Existing accounts do not receive phone-number passwords. No bulk invitations are sent by deploying this update.
+

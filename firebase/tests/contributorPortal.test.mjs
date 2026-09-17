@@ -327,3 +327,18 @@ test('missing SMS configuration, invalid phones and non-admin calls cannot creat
   assert.throws(() => h.contributorPhone('not-a-number'), { code: 'invalid-argument' });
   await assert.rejects(h.inviteExpressionContributor({ ...invitationRequest(), auth: { uid: 'alice', token: {} } }), { code: 'permission-denied' });
 });
+
+test('re-inviting a cancelled account to a changed contact number keeps the original temporary password', async () => {
+  const h = await harness();
+  await h.inviteExpressionContributor(invitationRequest());
+  const account = h.records.get('contributorAccounts/profile-1');
+  account.status = 'deactivated';
+  account.invitation.status = 'cancelled';
+  h.authUsers.get('speaker@example.com').disabled = true;
+  const result = await h.inviteExpressionContributor(invitationRequest({ requestId: 'second-invite', phoneNumber: '0201234567' }));
+  assert.equal(result.sms.to, '+233201234567');
+  assert.equal(h.authUsers.get('speaker@example.com').password, '+233241234567');
+  assert.equal(h.records.get('contributorAccounts/profile-1').phoneNumber, '+233241234567');
+  assert.equal(h.records.get('contributors/profile-1').private.phone, '+233201234567');
+  assert.match(h.messages[1].message, /Temporary password: your phone number \+233241234567/);
+});
