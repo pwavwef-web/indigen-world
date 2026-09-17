@@ -58,3 +58,11 @@ Assignments can store expected dialect, tone, deadline and a help contact for ea
 **Skip / I’m not sure** persists `unsure: true` and a timestamp, retains any private draft, and moves to the next not-started expression only after saving succeeds. It creates no new review submission, receipt or training data, requires no translation or publication consent, and appears in its own filter and count. Editing/saving or submitting clears the flag. Locked pending/approved submissions cannot be skipped; returned work retains its previous review and feedback. Save failures leave the editor open for retry.
 
 Deploy `activateExpressionContributor` alongside the changed invitation/save endpoints and Tribe Studio. Enable Firebase Email/Password authentication. No Google sign-in button is offered in the contributor flow. Verify first phone-password sign-in, replacement-password sign-in, wrong temporary credentials, invitation link recovery, skipping in production before announcing availability.
+
+## Production login repair — 2026-09-17
+
+The portal displayed “Unable to verify your contributor invitation” after successful sign-in. The live Firestore rules had last been released on September 14 and omitted contributorAccounts, so the default-deny rule blocked the invitation lookup. The invitation-only message shown alongside this failure did not establish that the account lacked an invitation.
+
+Deployed the existing repository rules with `firebase deploy --only firestore:rules --project project-kassena-7e026`. The comparison against the previous live rules contained only contributor account/training access rules and the two guards preventing client-written contributorPortal submissions. Firebase compilation and deployment succeeded. A subsequent read confirmed that the active rules match firebase/firestore.rules (ignoring line endings): ruleset e4977ea4-fbe7-455c-95b8-bab5199aa669, released at 2026-09-17T08:20:27.720934Z.
+
+Contributors can retry or reload their existing session. Their own account is readable; assignments require active account status; client writes remain blocked. No accounts, passwords, invitations, or hosting assets were changed. An authenticated handset retry remains necessary to confirm the reported user's complete login flow. Future contributor releases must include Firestore rules, not only Functions and Hosting.

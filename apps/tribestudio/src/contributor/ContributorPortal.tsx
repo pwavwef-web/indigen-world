@@ -250,7 +250,7 @@ function ExpressionEditor({ item, work, onPending, onSubmitted, onSkipped, accou
     {storageError && <p role="alert">{storageError}</p>}
     <p>Translate the meaning naturally in Kasem. Alternatives are other Kasem ways to express the same meaning, not explanations or English translations.</p>
     <p role="status" aria-live="polite">{locked ? 'Submitted' : status}</p>
-    {!locked && <div className="contributor-characters" role="group" aria-label="Kasem characters"><small>Insert a Kasem letter</small>{Array.from('ɛƐɩƖŋŊɔƆʋƲəƏ').map(char => <button type="button" key={char} disabled={busy || Boolean(recovery)} onMouseDown={e => e.preventDefault()} onClick={() => {
+    {!locked && <div className="contributor-characters" role="group" aria-label="Kasem characters"><small>Insert a Kasem letter</small>{Array.from('ɛƐəƏɣƔɩƖŋŊɔƆʋƲ').map(char => <button type="button" key={char} disabled={busy || Boolean(recovery)} onMouseDown={e => e.preventDefault()} onClick={() => {
       const field = activeField.current;
       if (!field) return;
       const start = field.selectionStart, end = field.selectionEnd;
