@@ -1,6 +1,8 @@
 # Contributor management comes to the Admin console
 
-Status: **Draft — implemented in the repository on 2026-09-17; not yet confirmed deployed.**
+Status: **Draft article — feature deployed 2026-09-17.** The Admin Hosting
+release and contributor-management Functions completed successfully; both the
+Firebase Hosting URL and `admin.indigenworld.com/contributors` returned HTTP 200.
 
 | Field | Value |
 |---|---|
@@ -26,10 +28,11 @@ The repository implementation includes:
 - server-written audit records for profile, invitation, assignment and access
   changes.
 
-Local verification: Admin TypeScript check, Admin production build, Admin
-structural tests and Functions TypeScript check. No deployment is performed by
-this change, so the post must not be published as a live-release announcement
-until production is verified.
+Verification: Admin TypeScript check, Admin production build, Admin structural
+tests, Functions production build, 13 contributor-portal backend tests, and the
+Updates Blog preview all passed. Firebase deployed the five new contributor
+management callables, updated the contributor workflow functions, and released
+the Admin Hosting version on 2026-09-17.
 
 ## Availability limits
 
@@ -43,12 +46,11 @@ access is removed.
 
 ## Publishing handoff
 
-1. Deploy the Functions and Admin Hosting changes together.
-2. Smoke-test profile creation, invitation activation, reassignment, suspension,
+1. Smoke-test profile creation, invitation activation, reassignment, suspension,
    review and audit history with non-production sample records.
-3. Confirm an authorized admin can open **Publishing → Contributors** and an
+2. Confirm an authorized admin can open **Publishing → Contributors** and an
    unauthorized account cannot call the contributor-management Functions.
-4. In Blogger, create the post with the title and metadata above, then paste
+3. In Blogger, create the post with the title and metadata above, then paste
    `post.html` in HTML view.
-5. Publish only after production verification. Replace `[PUBLISHED_POST_URL]` in
+4. Replace `[PUBLISHED_POST_URL]` in
    `share.md` with the final URL before sharing.
