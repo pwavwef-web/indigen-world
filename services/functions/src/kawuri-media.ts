@@ -51,6 +51,7 @@ import {
   validateTranscript,
   videoCostCents,
   videoDimensions,
+  videoModelSupports,
   type AnalysisIntention,
   type CapabilityName,
   type KawuriCapabilities,
@@ -709,11 +710,19 @@ export const createKawuriVideo = onCall(
     const cfg = config();
     const caps = await capabilitiesFor(req, cfg);
     requireCapability(caps, 'videoGeneration');
-    const input = parseVideoGenerationRequest(req.data, uid, caps.videoDurations);
+    const input = parseVideoGenerationRequest(
+      req.data,
+      uid,
+      caps.videoDurations,
+      caps.videoResolutions,
+    );
     const model = input.quality === 'plan' && caps.videoQualityOptions.includes('plan')
       ? cfg.videoPlanModel
       : cfg.videoModel;
-    const cents = videoCostCents(model, input.durationSeconds, input.generateAudio);
+    if (!videoModelSupports(model, input)) {
+      throw kawuriError('INVALID_REQUEST', 'That length or resolution is not made at this quality.');
+    }
+    const cents = videoCostCents(model, input.durationSeconds, input.generateAudio, input.resolution);
     if (cents === null) throw kawuriError('CAPABILITY_UNAVAILABLE');
 
     const reference = input.referenceImagePath
@@ -884,6 +893,9 @@ async function advanceVideoTask(
     project: cfg.project,
     fallbackLocation: cfg.videoLocation,
     operationName,
+    // Which kind of handle `operationName` is: an Omni interaction id or a
+    // Veo operation, for a task started before the switch.
+    model: String(snapshot.get('model') ?? ''),
   });
 
   if (outcome.state === 'running') {
@@ -1050,7 +1062,8 @@ export const cancelKawuriTask = onCall(READ_OPTIONS, async (req) => {
     await commitTask(snapshot.ref, {
       status: 'cancelled',
       errorCode: 'CANCELLED',
-      // Vertex offers no way to stop a Veo operation once it has started, so
+      // A generation Vertex has accepted is not stopped from here (Veo offered
+      // no way to, and an Omni cancel is not known to stop the bill), so
       // the member is told plainly that the generation may still be counted.
       errorMessage: started
         ? 'Cancelled. The video had already started, so it still counts towards today’s allowance.'

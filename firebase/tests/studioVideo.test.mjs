@@ -11,7 +11,16 @@ import {
   ratiosForVisualModel,
   readStoredProviderTask,
   studioVideoCapabilities,
+  vertexVideoRateUsdPerSecond,
 } from '../../services/functions/lib/studio-video-policy.js';
+import {
+  OMNI_ADULTS_ONLY_INSTRUCTION,
+  OMNI_SILENCE_INSTRUCTION,
+  omniPrompt,
+  omniRateUsdPerSecond,
+  omniRequestBody,
+  readOmniInteraction,
+} from '../../services/functions/lib/omni-video.js';
 import {
   pollFalLipSync,
   pollGeminiVisual,
@@ -183,7 +192,7 @@ test('the first release refuses minors and third-party material', () => {
 
 test('the capability response exposes versioned estimates, not secrets', () => {
   const capabilities = studioVideoCapabilities();
-  assert.equal(capabilities.pricingVersion, '2026-09-01');
+  assert.equal(capabilities.pricingVersion, '2026-09-19');
   assert.equal(capabilities.limits.languageCode, 'xsm');
   assert.equal(JSON.stringify(capabilities).includes('API_SECRET'), false);
 });
@@ -330,11 +339,12 @@ test('a queue URL on an unexpected host is refused by name', async () => {
 });
 
 // ---------------------------------------------------------------------------
-// Gemini video (Veo on Vertex AI)
+// Gemini video (Gemini Omni on Vertex AI; Veo before 2026-09-19)
 // ---------------------------------------------------------------------------
 
-const GEMINI = 'veo-3.1-generate-001';
-const GEMINI_FAST = 'veo-3.1-fast-generate-001';
+const GEMINI = 'gemini-omni-1.1-flash-preview';
+const VEO = 'veo-3.1-generate-001';
+const VEO_FAST = 'veo-3.1-fast-generate-001';
 
 function geminiVisual(overrides = {}) {
   return visual({ provider: 'gemini', model: GEMINI, durationSeconds: 8, ...overrides });
@@ -345,16 +355,17 @@ test('a Gemini visual job is accepted with its own provider and lengths', () => 
   assert.equal(parsed.provider, 'gemini');
   assert.equal(parsed.model, GEMINI);
   assert.equal(parsed.durationSeconds, 8);
+  assert.equal(parseStudioVideoInput(geminiVisual({ durationSeconds: 10 }), uid).durationSeconds, 10);
 });
 
 test('each model states the lengths it will actually make', () => {
-  assert.deepEqual([...durationsForVisualModel(GEMINI)], [4, 6, 8]);
-  assert.deepEqual([...durationsForVisualModel(GEMINI_FAST)], [4, 6, 8]);
+  assert.deepEqual([...durationsForVisualModel(GEMINI)], [4, 6, 8, 10]);
+  assert.deepEqual([...durationsForVisualModel(VEO)], [4, 6, 8], 'retired, still described');
   assert.deepEqual([...durationsForVisualModel('gen4.5')], [5, 10]);
 
   // A length one model takes and the other does not must be refused for the
   // one that does not, rather than reaching the provider as a 400.
-  for (const seconds of [5, 10, 7, 0]) {
+  for (const seconds of [5, 7, 3, 11, 0]) {
     assert.throws(
       () => parseStudioVideoInput(geminiVisual({ durationSeconds: seconds }), uid),
       (error) => error?.code === 'invalid-argument',
@@ -370,7 +381,7 @@ test('each model states the lengths it will actually make', () => {
 
 test('Gemini frames landscape and portrait, never square', () => {
   assert.deepEqual([...ratiosForVisualModel(GEMINI, false)], ['1280:720', '720:1280']);
-  // Square stays absent even with a reference image: Veo has no 1:1.
+  // Square stays absent even with a reference image: Omni has no 1:1.
   assert.deepEqual([...ratiosForVisualModel(GEMINI, true)], ['1280:720', '720:1280']);
   assert.throws(
     () => parseStudioVideoInput(geminiVisual({ ratio: '960:960' }), uid),
@@ -389,20 +400,38 @@ test('a model may not be claimed for the wrong provider', () => {
     (error) => error?.code === 'invalid-argument',
   );
   assert.throws(
-    () => parseStudioVideoInput(geminiVisual({ model: 'veo-9000' }), uid),
+    () => parseStudioVideoInput(geminiVisual({ model: 'gemini-omni-9000' }), uid),
     (error) => error?.code === 'invalid-argument',
   );
 });
 
-test('Gemini is estimated at its own published rate', () => {
-  const standard = estimateStudioVideoCost(parseStudioVideoInput(geminiVisual(), uid));
-  assert.equal(standard.rateUsd, 0.4);
-  assert.equal(standard.amountUsd, 3.2);
-  const fast = estimateStudioVideoCost(
-    parseStudioVideoInput(geminiVisual({ model: GEMINI_FAST, durationSeconds: 4 }), uid),
-  );
-  assert.equal(fast.rateUsd, 0.15);
-  assert.equal(fast.amountUsd, 0.6);
+test('Veo is no longer sold, and a page still offering it is told why', () => {
+  for (const model of [VEO, VEO_FAST]) {
+    assert.throws(
+      () => parseStudioVideoInput(geminiVisual({ model }), uid),
+      (error) => error?.code === 'invalid-argument' && /Gemini Omni/.test(error.message),
+    );
+  }
+});
+
+test('Gemini is estimated at the 1080p Omni rate the Studio renders at', () => {
+  const eight = estimateStudioVideoCost(parseStudioVideoInput(geminiVisual(), uid));
+  assert.equal(eight.rateUsd, 0.155);
+  assert.equal(eight.amountUsd, 1.24);
+  assert.equal(eight.pricingVersion, '2026-09-19');
+  const ten = estimateStudioVideoCost(parseStudioVideoInput(geminiVisual({ durationSeconds: 10 }), uid));
+  assert.equal(ten.amountUsd, 1.55);
+});
+
+test('Omni is priced per resolution, above what Google charges for the video alone', () => {
+  // 5,792 and 8,688 video tokens a second at $17.50 per million.
+  assert.ok(omniRateUsdPerSecond('720p') > 5_792 * 17.5 / 1_000_000);
+  assert.ok(omniRateUsdPerSecond('1080p') > 8_688 * 17.5 / 1_000_000);
+  assert.equal(omniRateUsdPerSecond('4k'), null, 'not offered, so not priced');
+  assert.equal(vertexVideoRateUsdPerSecond(GEMINI, { resolution: '720p' }), 0.104);
+  assert.equal(vertexVideoRateUsdPerSecond(GEMINI), 0.155, 'no resolution named: the dearest one');
+  assert.equal(vertexVideoRateUsdPerSecond(VEO_FAST), 0.15, 'Veo keeps its own rate');
+  assert.equal(vertexVideoRateUsdPerSecond('gen4.5'), null);
 });
 
 test('the capability response puts a provider and a length list on every model', () => {
@@ -410,7 +439,8 @@ test('the capability response puts a provider and a length list on every model',
   const visualModels = capabilities.operations
     .find((item) => item.operation === 'generate_visual').models;
   const ids = visualModels.map((item) => item.id);
-  assert.ok(ids.includes(GEMINI), 'Gemini video is offered');
+  assert.ok(ids.includes(GEMINI), 'Gemini Omni is offered');
+  assert.ok(!ids.includes(VEO) && !ids.includes(VEO_FAST), 'Veo is not');
   assert.ok(ids.includes('gen4.5'), 'Runway is still offered');
 
   for (const model of visualModels) {
@@ -420,110 +450,186 @@ test('the capability response puts a provider and a length list on every model',
   }
   const gemini = visualModels.find((item) => item.id === GEMINI);
   assert.equal(gemini.provider, 'gemini');
-  assert.deepEqual([...gemini.durationsSeconds], [4, 6, 8]);
+  assert.equal(gemini.label, 'Gemini Omni');
+  assert.equal(gemini.estimatedUsdPerSecond, 0.155);
+  assert.deepEqual([...gemini.durationsSeconds], [4, 6, 8, 10]);
   assert.equal(JSON.stringify(capabilities).includes('API_SECRET'), false);
 });
 
-test('a Gemini submission stores the operation name the poller needs', async () => {
+test('a Gemini submission starts a background interaction and stores its id', async () => {
   const input = parseStudioVideoInput(geminiVisual(), uid);
-  const operationName = 'projects/p/locations/us-central1/publishers/google/models/'
-    + `${GEMINI}/operations/op-1`;
   const { result: submission, calls } = await withStubbedFetch(
-    { name: operationName },
+    { id: 'omni-interaction-1', status: 'in_progress', object: 'interaction' },
     () => submitGeminiVisual(input, 'ya29.token', 'p', null),
   );
 
-  assert.match(calls[0].url, /:predictLongRunning$/);
-  assert.match(calls[0].url, /us-central1-aiplatform\.googleapis\.com/);
+  assert.equal(
+    calls[0].url,
+    'https://aiplatform.googleapis.com/v1beta1/projects/p/locations/global/interactions',
+  );
+  assert.equal(calls[0].init.method, 'POST');
   assert.equal(calls[0].init.headers.Authorization, 'Bearer ya29.token');
 
   const sent = JSON.parse(calls[0].init.body);
-  assert.equal(sent.instances[0].prompt, input.prompt);
-  assert.equal(sent.parameters.aspectRatio, '16:9');
-  assert.equal(sent.parameters.durationSeconds, 8);
-  assert.equal(sent.parameters.sampleCount, 1);
-  // Off on purpose: a generated voice would not be speaking Kasem.
-  assert.equal(sent.parameters.generateAudio, false);
-  assert.equal(sent.parameters.personGeneration, 'allow_adult');
+  assert.equal(sent.model, GEMINI);
+  assert.equal(sent.background, true, 'answered at once, collected later');
+  assert.equal(sent.input.length, 1);
+  assert.equal(sent.input[0].type, 'text');
+  assert.ok(sent.input[0].text.startsWith(input.prompt), 'the creator\'s words come first');
+  // Silent on purpose: a generated voice would not be speaking Kasem.
+  assert.ok(sent.input[0].text.includes(OMNI_SILENCE_INSTRUCTION));
+  // The governance model refuses minors, and Omni has no setting to say so.
+  assert.ok(sent.input[0].text.includes(OMNI_ADULTS_ONLY_INSTRUCTION));
+  assert.deepEqual(sent.response_format, [
+    { type: 'video', aspect_ratio: '16:9', resolution: '1080p', duration: '8s' },
+  ]);
+  assert.equal(sent.generation_config.video_config.task, 'text_to_video');
 
   const stored = readStoredProviderTask(submission);
   assert.ok(stored, 'the stored provider task must be readable');
-  assert.equal(stored.providerTaskId, operationName);
+  assert.equal(stored.providerTaskId, 'omni-interaction-1');
+  assert.equal(submission.state, 'running');
 });
 
-test('a portrait Gemini request is sent as 9:16', async () => {
+test('a portrait Gemini request is sent as 9:16 at 1080p', async () => {
   const input = parseStudioVideoInput(geminiVisual({ ratio: '720:1280' }), uid);
   const { calls } = await withStubbedFetch(
-    { name: 'projects/p/operations/op-2' },
+    { id: 'omni-2', status: 'in_progress' },
     () => submitGeminiVisual(input, 'token', 'p', null),
   );
-  assert.equal(JSON.parse(calls[0].init.body).parameters.aspectRatio, '9:16');
+  const format = JSON.parse(calls[0].init.body).response_format[0];
+  assert.equal(format.aspect_ratio, '9:16');
+  assert.equal(format.resolution, '1080p');
 });
 
-test('a reference image travels to Vertex as bytes, not as a link', async () => {
+test('a reference image travels to Vertex as bytes, as the opening frame', async () => {
   const input = parseStudioVideoInput(
     geminiVisual({ referenceImageStoragePath: `creator-submissions/${uid}/studio-video/a/image-x.png` }),
     uid,
   );
   const { calls } = await withStubbedFetch(
-    { name: 'projects/p/operations/op-3' },
+    { id: 'omni-3', status: 'in_progress' },
     () => submitGeminiVisual(input, 'token', 'p', { base64: 'QUJD', mimeType: 'image/png' }),
   );
   const sent = JSON.parse(calls[0].init.body);
-  assert.equal(sent.instances[0].image.bytesBase64Encoded, 'QUJD');
-  assert.equal(sent.instances[0].image.mimeType, 'image/png');
+  assert.deepEqual(sent.input[1], { type: 'image', data: 'QUJD', mime_type: 'image/png' });
+  assert.equal(sent.generation_config.video_config.task, 'image_to_video');
 });
 
-test('an unfinished Vertex operation reads as running, not as queued forever', async () => {
-  const { result } = await withStubbedFetch(
-    { name: 'op', done: false },
-    () => pollGeminiVisual('op', GEMINI, 'token', 'p'),
+test('a create Vertex refuses is reported with Google\'s own reason', async () => {
+  const input = parseStudioVideoInput(geminiVisual(), uid);
+  await assert.rejects(
+    withStubbedFetch(
+      { ok: false, status: 400, json: { error: { message: 'Unsupported model interaction: x', code: 'invalid_request' } } },
+      () => submitGeminiVisual(input, 'token', 'p', null),
+    ),
+    (error) => error?.code === 'unavailable' && /Unsupported model interaction/.test(error.message),
   );
+});
+
+test('an unfinished interaction reads as running, not as queued forever', async () => {
+  const { result, calls } = await withStubbedFetch(
+    { id: 'omni-1', status: 'in_progress' },
+    () => pollGeminiVisual('omni-1', GEMINI, 'token', 'p'),
+  );
+  assert.equal(
+    calls[0].url,
+    'https://aiplatform.googleapis.com/v1beta1/projects/p/locations/global/interactions/omni-1',
+  );
+  assert.equal(calls[0].init.method, 'GET');
   assert.equal(result.state, 'running');
   assert.equal(result.outputUrl, null);
   assert.equal(result.outputBase64, null);
 });
 
-test('a finished Vertex operation hands back the video bytes', async () => {
-  const { result, calls } = await withStubbedFetch(
-    { done: true, response: { videos: [{ bytesBase64Encoded: 'AAAA', mimeType: 'video/mp4' }] } },
-    () => pollGeminiVisual('op-name', GEMINI, 'token', 'p'),
+test('a finished interaction hands back the video bytes', async () => {
+  const { result } = await withStubbedFetch(
+    {
+      id: 'omni-1',
+      status: 'completed',
+      steps: [
+        { type: 'user_input', content: [{ type: 'text', text: 'x' }] },
+        { type: 'thought', summary: [{ type: 'text', text: 'thinking' }] },
+        { type: 'model_output', content: [{ type: 'video', data: 'AAAA', mime_type: 'video/mp4' }] },
+      ],
+    },
+    () => pollGeminiVisual('omni-1', GEMINI, 'token', 'p'),
   );
-  assert.match(calls[0].url, /:fetchPredictOperation$/);
-  assert.equal(JSON.parse(calls[0].init.body).operationName, 'op-name');
   assert.equal(result.state, 'succeeded');
   assert.equal(result.outputBase64, 'AAAA');
   assert.equal(result.outputUrl, null);
 });
 
-test('an operation that reports its own error is failed, not left running', async () => {
+test('a refused prompt ends the job with a reason that says to rephrase', async () => {
+  const { result } = await withStubbedFetch(
+    {
+      id: 'omni-1',
+      status: 'failed',
+      errors: [{
+        message: 'Request blocked for an unspecified policy reason. Please modify your input and retry.',
+        code: 'content_blocked',
+      }],
+    },
+    () => pollGeminiVisual('omni-1', GEMINI, 'token', 'p'),
+  );
+  assert.equal(result.state, 'failed');
+  assert.match(result.failureReason, /^Gemini declined this prompt: Request blocked/);
+});
+
+test('an interaction that fails for any other reason is failed, not left running', async () => {
+  const { result } = await withStubbedFetch(
+    {
+      id: 'omni-1',
+      status: 'failed',
+      errors: [{ message: 'Generation duration 99 exceeds maximum duration 10.', code: 'invalid_request' }],
+    },
+    () => pollGeminiVisual('omni-1', GEMINI, 'token', 'p'),
+  );
+  assert.equal(result.state, 'failed');
+  assert.match(result.failureReason, /exceeds maximum duration/);
+});
+
+test('a completed interaction with no video at all is still terminal', async () => {
+  const { result } = await withStubbedFetch(
+    { id: 'omni-1', status: 'completed', steps: [{ type: 'thought' }] },
+    () => pollGeminiVisual('omni-1', GEMINI, 'token', 'p'),
+  );
+  assert.equal(result.state, 'failed');
+  assert.ok(result.failureReason);
+});
+
+test('a Veo job started before the switch is still collected from its operation', async () => {
+  const operationName = `projects/p/locations/us-central1/publishers/google/models/${VEO}/operations/op-1`;
+  const { result, calls } = await withStubbedFetch(
+    { done: true, response: { videos: [{ bytesBase64Encoded: 'AAAA', mimeType: 'video/mp4' }] } },
+    () => pollGeminiVisual(operationName, VEO, 'token', 'p'),
+  );
+  assert.match(calls[0].url, /us-central1-aiplatform\.googleapis\.com/);
+  assert.match(calls[0].url, /:fetchPredictOperation$/);
+  assert.equal(JSON.parse(calls[0].init.body).operationName, operationName);
+  assert.equal(result.state, 'succeeded');
+  assert.equal(result.outputBase64, 'AAAA');
+});
+
+test('a Veo operation that reports its own error is failed, not left running', async () => {
   const { result } = await withStubbedFetch(
     { done: true, error: { code: 3, message: 'The prompt was rejected.' } },
-    () => pollGeminiVisual('op', GEMINI, 'token', 'p'),
+    () => pollGeminiVisual('op', VEO, 'token', 'p'),
   );
   assert.equal(result.state, 'failed');
   assert.match(result.failureReason, /prompt was rejected/);
 });
 
-test('a prompt Gemini filtered ends the job with the reason it gave', async () => {
+test('a prompt Veo filtered ends the job with the reason it gave', async () => {
   const { result } = await withStubbedFetch(
     {
       done: true,
       response: { videos: [], raiMediaFilteredCount: 1, raiMediaFilteredReasons: ['unsafe content'] },
     },
-    () => pollGeminiVisual('op', GEMINI, 'token', 'p'),
+    () => pollGeminiVisual('op', VEO, 'token', 'p'),
   );
   assert.equal(result.state, 'failed');
   assert.match(result.failureReason, /unsafe content/);
-});
-
-test('a finished operation with no video at all is still terminal', async () => {
-  const { result } = await withStubbedFetch(
-    { done: true, response: { videos: [] } },
-    () => pollGeminiVisual('op', GEMINI, 'token', 'p'),
-  );
-  assert.equal(result.state, 'failed');
-  assert.ok(result.failureReason);
 });
 
 test('Gemini video refuses to run without ambient credentials', async () => {
@@ -532,4 +638,63 @@ test('Gemini video refuses to run without ambient credentials', async () => {
     () => submitGeminiVisual(input, '   ', 'p', null),
     (error) => error?.code === 'failed-precondition',
   );
+});
+
+// ---------------------------------------------------------------------------
+// Omni's request and response shapes, shared with Kawuri
+// ---------------------------------------------------------------------------
+
+test('the Omni prompt says what the model has no parameters for', () => {
+  assert.equal(omniPrompt({ prompt: '  A river at dawn.  ', sound: 'natural' }), 'A river at dawn.');
+  const all = omniPrompt({
+    prompt: 'A river at dawn.',
+    negativePrompt: 'text on screen, watermarks.',
+    sound: 'silent',
+    adultsOnly: true,
+  });
+  assert.equal(
+    all,
+    [
+      'A river at dawn.',
+      'Do not include: text on screen, watermarks.',
+      OMNI_ADULTS_ONLY_INSTRUCTION,
+      OMNI_SILENCE_INSTRUCTION,
+    ].join('\n\n'),
+  );
+});
+
+test('an Omni request is a background interaction with the video described in full', () => {
+  const body = omniRequestBody({
+    model: GEMINI,
+    prompt: 'p',
+    aspectRatio: '9:16',
+    resolution: '720p',
+    durationSeconds: 6,
+    image: { mimeType: 'image/png', gcsUri: 'gs://b/i.png' },
+  });
+  assert.deepEqual(body, {
+    model: GEMINI,
+    background: true,
+    input: [{ type: 'text', text: 'p' }, { type: 'image', uri: 'gs://b/i.png', mime_type: 'image/png' }],
+    response_format: [{ type: 'video', aspect_ratio: '9:16', resolution: '720p', duration: '6s' }],
+    generation_config: { video_config: { task: 'image_to_video' } },
+  });
+});
+
+test('reading an interaction: every status ends somewhere', () => {
+  assert.deepEqual(readOmniInteraction({ status: 'in_progress' }), { state: 'running' });
+  assert.deepEqual(readOmniInteraction({}), { state: 'running' }, 'an unknown status waits for the timeout');
+  // The SDK's convenience copy counts as the video too.
+  assert.deepEqual(
+    readOmniInteraction({ status: 'completed', output_video: { type: 'video', data: 'AA', mime_type: 'video/mp4' } }),
+    { state: 'succeeded', base64: 'AA', uri: null, mimeType: 'video/mp4' },
+  );
+  assert.equal(readOmniInteraction({ status: 'failed', errors: [{ code: 'content_blocked', message: '' }] }).state, 'rejected');
+  assert.equal(readOmniInteraction({ status: 'failed', error: { message: 'Blocked by safety filters' } }).state, 'rejected');
+  const quota = readOmniInteraction({ status: 'failed', errors: [{ code: 'resource_exhausted', message: 'Quota exceeded' }] });
+  assert.equal(quota.state, 'failed');
+  assert.equal(quota.quota, true);
+  assert.equal(readOmniInteraction({ status: 'incomplete' }).state, 'failed');
+  assert.equal(readOmniInteraction({ status: 'requires_action' }).state, 'failed');
+  assert.equal(readOmniInteraction({ status: 'cancelled' }).state, 'cancelled');
 });

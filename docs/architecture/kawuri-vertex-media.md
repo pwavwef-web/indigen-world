@@ -1,12 +1,12 @@
 # Kawuri media on Vertex AI
 
-Status: implemented, tested and **deployed on 2026-09-14**: Firestore rules and indexes, Storage rules, 10 new functions and 7 updated ones. The app side ships in 0.1.20 (29); see `docs/product/releases/0.1.20+29.md`. The optional lifecycle rule is not applied.
+Status: implemented, tested and **deployed on 2026-09-14**: Firestore rules and indexes, Storage rules, 10 new functions and 7 updated ones. The app side ships in 0.1.20 (29); see `docs/product/releases/0.1.20+29.md`. The optional lifecycle rule is not applied. **Video moved from Veo 3.1 to Gemini Omni on 2026-09-19**; see [Video on Gemini Omni](#video-on-gemini-omni-2026-09-19).
 
 Kawuri's four media tools are backed by real Vertex AI models: image generation, video generation, English speech-to-text, and image/video/audio analysis. Nothing is mocked in production. The only stand-in is `emulatorFake()` in `kawuri-vertex.ts`, and it switches on only inside the Functions emulator on a `demo-` project.
 
 ## Architecture
 
-The architecture is the same one `kawuriChat` and the Studio's Veo generator already use:
+The architecture is the same one `kawuriChat` and the Studio's video generator already use:
 
 - Firebase callables run in `us-central1`.
 - They authenticate the member with Firebase Auth, which the callable framework verifies from the ID token.
@@ -24,10 +24,11 @@ The architecture is the same one `kawuriChat` and the Studio's Veo generator alr
 
 **Why the SDK here and REST elsewhere.**
 
-- `kawuriChat` and the Studio Veo adapter hand-roll REST calls. Both are deployed and working, so they were not rewritten in this change.
-- The new tools use the Gen AI SDK because it is the supported client for Gemini image output, JSON-schema output and Veo long-running operations.
+- `kawuriChat` and the Studio video adapter hand-roll REST calls. Both are deployed and working, so they were not rewritten in this change.
+- The new tools use the Gen AI SDK because it is the supported client for Gemini image output, JSON-schema output, Omni's interactions and Veo long-running operations.
 - The deprecated `@google-cloud/vertexai` SDK is not used anywhere.
-- The SDK retries nothing unless asked. Generation calls are never given retry options, because a retry would be a second bill. Operation status checks retry, because they are free.
+- The SDK's `models` calls retry nothing unless asked. Generation calls are never given retry options, because a retry would be a second bill. Operation status checks retry, because they are free.
+- The SDK's **interactions** client is the opposite: it retries four times by default (408, 409, 429, 5xx and dropped connections). An Omni create therefore passes `maxRetries: 0`; reading an interaction keeps the default.
 
 ## Callables
 
@@ -50,17 +51,17 @@ The architecture is the same one `kawuriChat` and the Studio's Veo generator alr
 - Enforced when `ENFORCE_APP_CHECK=true`, the same switch the rest of the backend uses. It is currently unset.
 - When it is on, billable callables also consume their token, and the app already sends a limited-use token on exactly those calls.
 
-## Models (confirmed live on `project-kassena-7e026`, 2026-09-14)
+## Models (confirmed live on `project-kassena-7e026`, 2026-09-14; video on 2026-09-19)
 
 | Use | Default | Endpoint | Fallback |
 |---|---|---|---|
 | Image | `gemini-3.1-flash-image` (GA) | `global` | `gemini-2.5-flash-image` |
-| Video | `veo-3.1-fast-generate-001` (GA) | `us-central1` | none |
-| Video, creator-tools plan | `veo-3.1-generate-001` (GA) | `us-central1` | — |
+| Video | `gemini-omni-1.1-flash-preview` (Preview) | `global` | none |
+| Video, creator-tools plan | none by default (was `veo-3.1-generate-001`) | — | — |
 | Transcription | `gemini-3.8-flash` (GA) | `global` | `gemini-2.5-flash` |
 | Analysis and pre-generation screening | `gemini-3.8-flash` (GA) | `global` | `gemini-2.5-flash` |
 
-**Where each model runs.** On this project, Gemini 3.x models answer only on the `global` endpoint, and Veo answers only on regional endpoints. That is why video has its own location.
+**Where each model runs.** On this project, Gemini 3.x and Gemini Omni answer only on the `global` endpoint, and Veo answers only on regional endpoints. That is why Veo has its own location (`VERTEX_VIDEO_LOCATION`); Omni ignores it.
 
 **Fallback.** A model that answers 404 or "unsupported region" is skipped to the next model and remembered for 10 minutes. When every model in a chain is failing, the capability manifest reports `model_unavailable`.
 
@@ -74,8 +75,8 @@ GOOGLE_CLOUD_LOCATION=global
 VERTEX_VIDEO_LOCATION=us-central1
 VERTEX_IMAGE_MODEL=gemini-3.1-flash-image
 VERTEX_IMAGE_FALLBACK_MODEL=gemini-2.5-flash-image
-VERTEX_VIDEO_MODEL=veo-3.1-fast-generate-001
-VERTEX_VIDEO_PLAN_MODEL=veo-3.1-generate-001
+VERTEX_VIDEO_MODEL=gemini-omni-1.1-flash-preview   # a veo-3.1-* id switches back to Veo
+VERTEX_VIDEO_PLAN_MODEL=           # empty = no plan model, no quality choice
 VERTEX_TRANSCRIPTION_MODEL=gemini-3.8-flash
 VERTEX_MEDIA_ANALYSIS_MODEL=gemini-3.8-flash
 VERTEX_TEXT_FALLBACK_MODEL=gemini-2.5-flash
@@ -83,7 +84,7 @@ VERTEX_OUTPUT_BUCKET=              # empty = default Firebase bucket
 KAWURI_DISABLED_CAPABILITIES=      # e.g. videoGeneration,speechToText
 ```
 
-**Constraint on video models.** A video model must appear in the Veo price table in `studio-video-policy.ts`. The spend ceilings are in cents, so an unpriced model is reported as unavailable rather than guessed at.
+**Constraint on video models.** A video model must be priced: Omni in `omni-video.ts`, Veo in `studio-video-policy.ts`. The spend ceilings are in cents, so an unpriced model is reported as unavailable rather than guessed at.
 
 ## APIs and IAM
 
@@ -113,7 +114,7 @@ Vertex quota cannot be read in advance. A 429 from Vertex becomes `QUOTA_EXCEEDE
 
 - identity and grouping: `id, userId, conversationId, type, category, listed, status`
 - provider and request: `model, provider:'vertex', prompt, negativePrompt, sourceMedia[], outputMedia[]`
-- progress: `operationName` (the full Vertex name, persisted as soon as Veo answers), `progress` (null unless Vertex reports a percentage; Veo does not)
+- progress: `operationName` (the handle a video is collected by, persisted as soon as Vertex answers: an Omni interaction id, or the full Veo operation name for a task started before 2026-09-19), `progress` (null unless Vertex reports a percentage; neither Omni nor Veo does)
 - options: `aspectRatio, duration, resolution, language, intention`
 - results: `result`, `turns[]` (analysis)
 - outcome: `errorCode, errorMessage, moderationStatus, aiGenerated, billed`
@@ -149,10 +150,11 @@ The emulator does not enforce composite indexes, so a missing one fails only in 
 - **Video** requires an approved creator (`role` claim) or an active `creator` plan (`creatorTools`), plus explicit `confirmSpend: true`.
   - It spends from the Studio's existing ceilings: 3 per 10 minutes, 20 per day and 2,000¢ per day per person; 250 per day and 25,000¢ per day platform-wide.
   - Those buckets are shared, so one allowance covers both surfaces.
-  - The fast model is the default. The standard model is offered only to `creatorTools` plans.
-  - Resolution follows the Studio rule: 1080p for landscape, 720p for portrait.
-  - **Sound (added 2026-09-14).** The request carries `generateAudio`; only an explicit `true` turns Veo's soundtrack on, because builds up to 0.1.20 never send it and tell the member their video is silent. The capability manifest advertises `videoAudio`, and the app shows a Sound switch (on by default) only when it does. Any speech Veo makes is not Kasem, and the switch says so. Spend is charged at the published with-audio rate ($0.40/s standard, $0.15/s fast) whether sound is on or off, so the switch can never push a member past a ceiling. The Studio still generates silent video.
-  - **People of every age (added 2026-09-14).** Image and video requests ask Vertex for `ALLOW_ALL` / `allow_all` first. If Vertex refuses the setting itself (Veo gates `allow_all` behind a Google allow-list), the adapter steps down to adults-only and remembers that for ten minutes. A refused setting is an invalid argument and is not billed. A Veo job that fails on the setting after it has started marks it refused for the retry. Live check on 2026-09-14: `gemini-3.1-flash-image` accepted `ALLOW_ALL` and drew a family with children. Veo's `allow_all` has not been tried live.
+  - One video model (Gemini Omni), so there is no quality choice. A `creatorTools` plan is offered a second model only if `VERTEX_VIDEO_PLAN_MODEL` names one, and a request is refused before any spend if that model does not make the chosen length or resolution.
+  - Lengths are 4, 6, 8 or 10 seconds; resolutions are 720p or 1080p in both orientations (Veo made portrait at 720p only).
+  - Estimated spend is 10.4¢ a second at 720p and 15.5¢ at 1080p: Google's token price for the video plus the model's thinking, rounded up.
+  - **Sound (added 2026-09-14).** The request carries `generateAudio`; only an explicit `true` asks for a soundtrack, because builds up to 0.1.20 never send it and tell the member their video is silent. The capability manifest advertises `videoAudio`, and the app shows a Sound switch (on by default) only when it does. Any speech the model makes is not Kasem, and the switch says so. Omni has no sound switch of its own: with sound on, the member's prompt goes as written; with it off, the prompt asks for a silent soundtrack (measured −66 dB mean, inaudible). Omni costs the same either way. The Studio always asks for silence.
+  - **People of every age (added 2026-09-14).** Image requests ask Vertex for `ALLOW_ALL` first. If Vertex refuses the setting itself, the adapter steps down to adults-only and remembers that for ten minutes; a refused setting is an invalid argument and is not billed. Live check on 2026-09-14: `gemini-3.1-flash-image` accepted `ALLOW_ALL` and drew a family with children. Omni has no person-generation setting at all: the platform screen decides, and Omni's own filters apply on top. (A Kawuri pointed back at Veo still steps `allow_all` down to `allow_adult` as before.)
 
 **Screening.**
 - Every image and video request, reference image included, passes a platform screen (`MODERATION_INSTRUCTION`) before anything is bought. If the screen cannot give a readable answer, the request is refused.
@@ -188,7 +190,31 @@ The emulator does not enforce composite indexes, so a missing one fails only in 
 
 Codes travel in `HttpsError.details.reason` and on `task.errorCode`. Provider text is never returned or logged.
 
-**Known limit.** Vertex cannot cancel a Veo operation that has started. Cancelling stops delivery and says plainly that the generation still counts.
+**Known limit.** A video that Vertex has accepted is not stopped from here. Veo had no cancel; Omni has one, but it is not known to stop the bill, so it is not called. Cancelling stops delivery and says plainly that the generation still counts.
+
+## Video on Gemini Omni (2026-09-19)
+
+Video generation moved from Veo 3.1 to Google's **Gemini Omni 1.1 Flash** (`gemini-omni-1.1-flash-preview`, a Preview model released 2026-08-27). The rules for it live in `services/functions/src/omni-video.ts`, shared with the Studio.
+
+- **Transport.** Vertex AI's Interactions API on the `global` endpoint, through the SDK's `interactions` client: `create` with `background: true` returns an id at once, and `get` returns the finished video inline as base64 in a `model_output` step. The id is stored as `operationName`, so everything built around a persisted handle — the sweep, the lease, recovery on another instance — works unchanged.
+- **No parameters for sound, negative prompts or people.** The negative prompt is appended as "Do not include: …", and sound off becomes a silence instruction.
+- **Tasks started on Veo before the switch** are still collected as Veo operations. A Veo operation name is recognisable by its `projects/…/operations/…` path whatever the task's model says.
+- **Rollback.** Set `VERTEX_VIDEO_MODEL=veo-3.1-fast-generate-001` and redeploy: the Veo path, prices and resolutions are all still here.
+
+Measured with real calls on 2026-09-19 (about $1.84 spent):
+
+| Check | Result |
+|---|---|
+| Create, background | ~1.5 s (29 s on the first call of the day, hence a 90 s timeout) |
+| 3 s, 360p, text | done in ~18 s; 373 KB MP4, H.264 + AAC, 24 fps |
+| 10 s, 1080p portrait | done in ~95 s; 13 MB MP4 inline in 17 MB of JSON |
+| Image to video (inline JPEG) | frame 0 matches the picture; 1,100 input tokens |
+| Silence asked for | −66 dB mean (−42 dB for a requested gentle ambience) |
+| Duration `99s` | accepted, then `failed`: "exceeds maximum duration 10", empty usage |
+| Third-party characters | `failed` with `content_blocked`; only thinking tokens billed |
+| Unknown model id | HTTP 400 "Unsupported model interaction" (maps to `MODEL_UNAVAILABLE`) |
+
+Every Omni video carries a Google-signed C2PA manifest (a `uuid` box). Nothing edits the file after generation, so the signature stays valid.
 
 ## Deploying
 

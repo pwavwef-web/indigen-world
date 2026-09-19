@@ -1,5 +1,11 @@
 import { HttpsError, type FunctionsErrorCode } from 'firebase-functions/v2/https';
 import {
+  OMNI_RESOLUTIONS,
+  OMNI_VIDEO_MODELS,
+  isOmniVideoModel,
+  readOmniInteraction,
+} from './omni-video.js';
+import {
   durationsForVisualModel,
   vertexVideoRateUsdPerSecond,
 } from './studio-video-policy.js';
@@ -16,7 +22,7 @@ import {
  *
  * ── What is deliberately not here ─────────────────────────────────────────
  * Prices and quotas. Video spends against the Studio's existing cents ceilings
- * and published Veo rates (`studio-video-policy.ts`), and every other Kawuri
+ * and published Vertex video rates (`studio-video-policy.ts`), and every other Kawuri
  * media request counts against the member's existing daily Kawuri allowance
  * (`TIER_BENEFITS` in `subscription-catalog.ts`). Nothing in this file invents
  * a number a member pays for.
@@ -241,6 +247,8 @@ export function classifyVertexError(error: unknown): KawuriErrorCode {
     if (/location .*not supported|unsupported location|not available in (this|the) (region|location)/i.test(text)) {
       return 'UNSUPPORTED_REGION';
     }
+    // The Interactions API's way of saying a model id does not exist here.
+    if (/unsupported model/i.test(text)) return 'MODEL_UNAVAILABLE';
     if (/safety|responsible ai|usage guidelines|prohibited|blocked|sensitive words|violat/i.test(text)) {
       return 'SAFETY_REJECTED';
     }
@@ -263,7 +271,10 @@ export interface KawuriMediaConfig {
   project: string;
   /** Gemini models on this project are served from the global endpoint. */
   location: string;
-  /** Veo is served from regional endpoints only. */
+  /**
+   * Veo is served from regional endpoints only. Omni ignores this: it is
+   * served from `global` alone (`OMNI_LOCATION`).
+   */
   videoLocation: string;
   /** Primary first, fallbacks after. Never empty. */
   imageModels: string[];
@@ -278,12 +289,16 @@ export interface KawuriMediaConfig {
 }
 
 /**
- * Defaults chosen on 2026-09-14 from what `project-kassena-7e026` actually
- * serves, each confirmed with a real call:
+ * Defaults chosen from what `project-kassena-7e026` actually serves, each
+ * confirmed with a real call:
  *
  *   * `gemini-3.1-flash-image` (GA) — image generation, global endpoint only.
- *   * `veo-3.1-fast-generate-001` (GA) — video, us-central1; the fast model is
- *     the default and the standard model is for plans that include it.
+ *   * `gemini-omni-1.1-flash-preview` (Preview, since 2026-09-19) — video,
+ *     global only, through the Interactions API. It replaced
+ *     `veo-3.1-fast-generate-001` as the default and `veo-3.1-generate-001` as
+ *     the plan model; Omni has one model, so there is no plan model by
+ *     default and no quality choice in the app. Setting VERTEX_VIDEO_MODEL
+ *     back to a Veo id still works, should the preview be withdrawn.
  *   * `gemini-3.8-flash` (GA) — transcription and analysis, global only.
  *   * `gemini-2.5-flash` / `gemini-2.5-flash-image` (GA) — fallbacks served in
  *     both places, used when a primary answers "model unavailable".
@@ -318,8 +333,8 @@ export function readKawuriMediaConfig(
       pick('VERTEX_IMAGE_MODEL', 'gemini-3.1-flash-image'),
       pick('VERTEX_IMAGE_FALLBACK_MODEL', 'gemini-2.5-flash-image'),
     ),
-    videoModel: pick('VERTEX_VIDEO_MODEL', 'veo-3.1-fast-generate-001'),
-    videoPlanModel: (env.VERTEX_VIDEO_PLAN_MODEL ?? 'veo-3.1-generate-001').trim(),
+    videoModel: pick('VERTEX_VIDEO_MODEL', OMNI_VIDEO_MODELS[0]),
+    videoPlanModel: (env.VERTEX_VIDEO_PLAN_MODEL ?? '').trim(),
     transcriptionModels: chain(pick('VERTEX_TRANSCRIPTION_MODEL', 'gemini-3.8-flash'), textFallback),
     analysisModels: chain(pick('VERTEX_MEDIA_ANALYSIS_MODEL', 'gemini-3.8-flash'), textFallback),
     outputBucket: (env.VERTEX_OUTPUT_BUCKET ?? '').trim(),
@@ -371,27 +386,51 @@ export const VIDEO_ASPECT_RATIOS = ['9:16', '16:9'] as const;
 export type VideoAspectRatio = (typeof VIDEO_ASPECT_RATIOS)[number];
 
 /**
- * Resolutions by orientation.
- *
- * The Studio's rule, kept identical so a video costs and looks the same from
- * either surface: 1080p is offered on landscape, portrait stays at 720p.
+ * Veo's resolutions by orientation: 1080p on landscape, portrait at 720p.
+ * Only a Kawuri pointed back at Veo uses these now.
  */
 export const VIDEO_RESOLUTIONS: Record<VideoAspectRatio, readonly string[]> = {
   '16:9': ['720p', '1080p'],
   '9:16': ['720p'],
 };
 
+/** Omni makes 1080p in both orientations. 720p first: it is the default. */
+export const OMNI_VIDEO_RESOLUTIONS: Record<VideoAspectRatio, readonly string[]> = {
+  '16:9': OMNI_RESOLUTIONS,
+  '9:16': OMNI_RESOLUTIONS,
+};
+
 export function isVeoModel(model: string): boolean {
   return /^veo-/.test(model);
 }
 
+/** Resolutions [model] makes, by orientation. */
+export function videoResolutionsFor(model: string): Record<VideoAspectRatio, readonly string[]> {
+  return isOmniVideoModel(model) ? OMNI_VIDEO_RESOLUTIONS : VIDEO_RESOLUTIONS;
+}
+
 /** Durations the configured video model makes, or [] when it cannot be sold. */
 export function videoDurationsFor(model: string): number[] {
-  if (!isVeoModel(model) || vertexVideoRateUsdPerSecond(model) === null) return [];
+  if (!isOmniVideoModel(model) && !isVeoModel(model)) return [];
+  if (vertexVideoRateUsdPerSecond(model) === null) return [];
   return [...durationsForVisualModel(model)];
 }
 
-/** Pixel size of a Veo output, which the API does not report back. */
+/**
+ * Whether [model] makes this exact video. The capability manifest describes
+ * the default model; a plan model configured beside it may differ, and must
+ * never be sent a length or resolution it would refuse after the allowance
+ * was spent.
+ */
+export function videoModelSupports(
+  model: string,
+  request: { durationSeconds: number; aspectRatio: VideoAspectRatio; resolution: string },
+): boolean {
+  return videoDurationsFor(model).includes(request.durationSeconds)
+    && videoResolutionsFor(model)[request.aspectRatio].includes(request.resolution);
+}
+
+/** Pixel size of a video output, which neither API reports back. */
 export function videoDimensions(
   aspectRatio: VideoAspectRatio,
   resolution: string,
@@ -407,14 +446,16 @@ export function videoDimensions(
  * [generateAudio] is part of the signature so a caller has to say which video
  * it is pricing. Both answers currently use the with-audio rate — see
  * `vertexVideoRateUsdPerSecond` — so switching sound on can never take a
- * member past a ceiling that was sized for silent video.
+ * member past a ceiling that was sized for silent video. Omni's rate depends
+ * on [resolution]; left out, the dearest one is charged.
  */
 export function videoCostCents(
   model: string,
   durationSeconds: number,
   generateAudio = false,
+  resolution?: string,
 ): number | null {
-  const rate = vertexVideoRateUsdPerSecond(model, { generateAudio });
+  const rate = vertexVideoRateUsdPerSecond(model, { generateAudio, resolution });
   if (rate === null) return null;
   return Math.ceil(rate * durationSeconds * 100);
 }
@@ -719,7 +760,8 @@ export interface VideoGenerationRequest {
   /** `plan` asks for the plan model; the backend decides whether it is allowed. */
   quality: 'fast' | 'plan';
   /**
-   * Whether Veo makes a soundtrack — ambience, effects, music and any speech.
+   * Whether the video gets a soundtrack — ambience, effects, music and any
+   * speech.
    *
    * Only an explicit `true` turns it on. Builds up to 0.1.20 never send the
    * field and tell the member their video is "without sound", so an absent
@@ -729,10 +771,15 @@ export interface VideoGenerationRequest {
   sourceTaskId: string;
 }
 
+/**
+ * [allowedResolutions] is the model's own list (`videoResolutionsFor`), as
+ * the capability manifest states it; it defaults to Veo's for old callers.
+ */
 export function parseVideoGenerationRequest(
   raw: unknown,
   uid: string,
   allowedDurations: readonly number[],
+  allowedResolutions: Partial<Record<VideoAspectRatio, readonly string[]>> = VIDEO_RESOLUTIONS,
 ): VideoGenerationRequest {
   const data = objectOf(raw);
   const requestId = parseRequestId(data);
@@ -753,7 +800,7 @@ export function parseVideoGenerationRequest(
       `Videos are ${allowedDurations.join(', ')} seconds long.`,
     );
   }
-  const resolutions = VIDEO_RESOLUTIONS[aspectRatio as VideoAspectRatio];
+  const resolutions = allowedResolutions[aspectRatio as VideoAspectRatio] ?? [];
   const resolution = typeof data.resolution === 'string' && data.resolution
     ? data.resolution
     : resolutions[0];
@@ -1513,6 +1560,36 @@ export function readVideoOperation(operation: unknown): VideoOutcome {
   };
 }
 
+/**
+ * What a Gemini Omni interaction says, in the same terms as a Veo operation.
+ *
+ * Omni reports no progress at all, so none is ever shown. A policy refusal is
+ * a rejection — the member is told to describe it differently — and anything
+ * else that ends without a video is a failure with the stable message, never
+ * Google's text: that text can quote the member's prompt.
+ */
+export function readOmniVideo(interaction: unknown): VideoOutcome {
+  const outcome = readOmniInteraction(interaction);
+  switch (outcome.state) {
+    case 'running':
+      return { state: 'running', progress: null };
+    case 'succeeded':
+      return { state: 'succeeded', base64: outcome.base64, uri: outcome.uri, mimeType: outcome.mimeType };
+    case 'rejected':
+      return { state: 'rejected', reasons: ['SAFETY'] };
+    case 'failed':
+      return outcome.quota
+        ? { state: 'failed', code: 'QUOTA_EXCEEDED', message: publicMessageFor('QUOTA_EXCEEDED') }
+        : { state: 'failed', code: 'GENERATION_FAILED', message: publicMessageFor('GENERATION_FAILED') };
+    case 'cancelled':
+      return {
+        state: 'failed',
+        code: 'GENERATION_FAILED',
+        message: 'The video was stopped before it finished. Nothing was delivered.',
+      };
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Timeouts and recovery
 // ---------------------------------------------------------------------------
@@ -1520,7 +1597,8 @@ export function readVideoOperation(operation: unknown): VideoOutcome {
 /** How long a task may stay unfinished before the sweep gives up on it. */
 export const TASK_TIMEOUT_MS: Record<KawuriTaskType, number> = {
   image_generation: 10 * 60_000,
-  // Matches the Studio: Veo finishes in minutes, half an hour is a lost job.
+  // Matches the Studio: Omni finishes in a minute or two (ten seconds of
+  // 1080p took 95 s), so half an hour is a lost job.
   video_generation: 30 * 60_000,
   speech_to_text: 5 * 60_000,
   image_analysis: 10 * 60_000,
@@ -1660,13 +1738,14 @@ export function buildCapabilities(context: CapabilityContext) {
     imageReferenceInput: imageGeneration,
     videoAspectRatios: videoGeneration ? [...VIDEO_ASPECT_RATIOS] : [],
     videoDurations: videoGeneration ? durations : [],
-    videoResolutions: videoGeneration ? VIDEO_RESOLUTIONS : {},
+    videoResolutions: videoGeneration ? videoResolutionsFor(config.videoModel) : {},
     videoReferenceImage: videoGeneration,
+    // Omni has no negative-prompt field; the adapter says it in the prompt.
     videoNegativePrompt: videoGeneration,
     videoQualityOptions: videoGeneration ? (planModelOffered ? ['fast', 'plan'] : ['fast']) : [],
     // Tells the app it may offer the sound switch. A backend without this
     // flag makes every video silent, and an app that offered the switch to it
-    // would be promising a soundtrack nobody asked Veo for.
+    // would be promising a soundtrack nobody asked the model for.
     videoAudio: videoGeneration,
     videoRequiresConfirmation: true,
     analysisIntentions: mediaAnalysis ? [...ANALYSIS_INTENTIONS] : [],
