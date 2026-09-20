@@ -22,7 +22,7 @@
   "scripts": {
     "build": "npm run --workspaces --if-present build",
     "typecheck": "npm run build:web-ui && npm run --workspaces --if-present typecheck",
-    "test": "npm run test:contracts && npm run test:function-helpers && npm run test:rules && npm run test:storage-rules && npm run test:e2e && npm run test:kawuri-e2e",
+    "test": "npm run test:admob-config && npm run test:contracts && npm run test:function-helpers && npm run test:rules && npm run test:storage-rules && npm run test:e2e && npm run test:kawuri-e2e",
     "seed": "firebase emulators:exec --project demo-indigen-world --only firestore \"node firebase/seed/seed.mjs\"",
     "audit:prod": "npm audit --omit=dev --audit-level=high",
     "build:web-ui": "npm run build --workspace @indigen-world/web-ui",
@@ -41,6 +41,9 @@
     "build:team-francis-pwavwe": "npm run build --workspace @indigen-world/team-francis-pwavwe",
     "build:functions": "npm run build --workspace @indigen-world/functions",
     "build:mobile-aab": "node scripts/build-mobile-aab.mjs",
+    "verify:admob-release": "node scripts/admob-release-config.mjs",
+    "verify:app-ads": "node scripts/verify-app-ads.mjs",
+    "test:admob-config": "node --test scripts/admob-release-config.test.mjs",
     "validate:updates-blog": "node apps/updates-blog/scripts/validate-theme.mjs",
     "build:updates-blog-preview": "npm run validate:updates-blog && node apps/updates-blog/scripts/build-preview.mjs",
     "typecheck:website": "npm run typecheck --workspace @indigen-world/website",

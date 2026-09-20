@@ -1,0 +1,23 @@
+{
+  "_readme": [
+    "Copy this file to admob.local.json (ignored by Git) and replace every",
+    "placeholder with the exact value from the AdMob console.",
+    "",
+    "The four mobile identifiers belong to the Indigen World Android app",
+    "(package com.indigenworld.indigen); each placement needs its own Native",
+    "advanced unit. ADMOB_APP_ADS_TXT_RECORD is the authorised-seller line the",
+    "website publishes at /app-ads.txt, copied exactly, and is only needed by",
+    "whoever deploys the website.",
+    "",
+    "Verify with: npm run verify:admob-release",
+    "",
+    "Never commit the filled-in file or paste a value into a tracked file.",
+    "Debug and staging builds always use Google's published sample ids instead;",
+    "CI reads the same keys from repository secrets of the same names."
+  ],
+  "ADMOB_ANDROID_APP_ID": "ca-app-pub-0000000000000000~0000000000",
+  "ADMOB_COMMUNITY_NATIVE_AD_UNIT_ID": "ca-app-pub-0000000000000000/0000000000",
+  "ADMOB_EXPLORE_NATIVE_AD_UNIT_ID": "ca-app-pub-0000000000000000/0000000001",
+  "ADMOB_COLLECTION_NATIVE_AD_UNIT_ID": "ca-app-pub-0000000000000000/0000000002",
+  "ADMOB_APP_ADS_TXT_RECORD": "google.com, pub-0000000000000000, DIRECT, f08c47fec0942fa0"
+}

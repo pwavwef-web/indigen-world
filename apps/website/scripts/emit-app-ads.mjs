@@ -2,18 +2,26 @@ import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { appAdsRecord } from "../../../scripts/admob-release-config.mjs";
+
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const record = process.env.ADMOB_APP_ADS_TXT_RECORD?.trim() ?? "";
 
-// The exact account record is intentionally deployment configuration: the
-// publisher id embedded in it must not be copied into source control or logs.
+// The exact account record is deployment configuration: the publisher id
+// embedded in it must not be copied into source control or logs. It comes from
+// ADMOB_APP_ADS_TXT_RECORD in the environment, or from the ignored
+// admob.local.json at the repository root — the same file the mobile release
+// build reads its four identifiers from, so there is one place to put the
+// account's details and one place to change them.
+//
+// A malformed record throws from appAdsRecord(); an absent one is not an error,
+// because most website deploys have nothing to do with advertising.
+const record = appAdsRecord();
+
 if (!record) {
-  console.warn("app-ads.txt not emitted: ADMOB_APP_ADS_TXT_RECORD is unset.");
+  console.warn(
+    "app-ads.txt not emitted: no ADMOB_APP_ADS_TXT_RECORD in the environment or admob.local.json.",
+  );
   process.exit(0);
-}
-
-if (!/^google\.com, pub-\d{16}, DIRECT, f08c47fec0942fa0$/.test(record)) {
-  throw new Error("ADMOB_APP_ADS_TXT_RECORD is not a valid Google app-ads.txt record.");
 }
 
 const output = path.join(root, "dist", "app-ads.txt");

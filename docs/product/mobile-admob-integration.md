@@ -1,8 +1,13 @@
 # Mobile advertising: first-party priority with AdMob fallback
 
-Implementation prepared 2026-09-20. The code is complete locally; no mobile
-release, website deployment, owner approval of the AdMob consent choices, Play
-Data Safety update, or production ad serving is implied by this document.
+Implementation prepared 2026-09-20; console work completed the same day.
+
+What is done: the code, the release configuration, the consent message (renamed,
+*Do not consent* enabled, republished), and the Play Data Safety correction
+(submitted for review). What is not: no mobile release has been built or
+uploaded, the website has not been deployed so `app-ads.txt` is not live, AdMob
+app verification is still failing on that file, and nothing has served an
+advert.
 
 ## Serving policy
 
@@ -27,34 +32,43 @@ sensitive account/payment/contribution screens remain ad-free.
 ## Build configuration
 
 Development, staging, debug, and automated-test builds use Google's published
-sample Android app and native-unit identifiers. Production values are supplied
-outside Git:
+sample Android app and native-unit identifiers. Production values live in one
+ignored file at the repository root, `admob.local.json`, copied from
+`admob.local.example.json`:
 
-- Android/Gradle: `ADMOB_ANDROID_APP_ID`
-- Flutter `--dart-define`: `ADMOB_ANDROID_APP_ID`
+- `ADMOB_ANDROID_APP_ID`
 - `ADMOB_COMMUNITY_NATIVE_AD_UNIT_ID`
 - `ADMOB_EXPLORE_NATIVE_AD_UNIT_ID`
 - `ADMOB_COLLECTION_NATIVE_AD_UNIT_ID`
+- `ADMOB_APP_ADS_TXT_RECORD` — website deploys only
 
-The Android production-release tasks reject a missing or malformed app ID. The
-Dart configuration rejects malformed/missing unit IDs and collapses those
-positions. Never pass production identifiers to a debug build or use a release
-unit for developer clicks.
+An environment variable of the same name always wins over the file, which is
+how CI supplies them from repository secrets of the same four names.
 
-Example release configuration (placeholders only):
+`scripts/admob-release-config.mjs` is the only thing that reads them. It checks
+that each value is well formed, that none is one of Google's samples, that all
+four come from the same publisher, and that no ad unit is used for two
+placements — then redacts everything to a four-character suffix before printing.
+Check a machine with:
 
-```text
-flutter build appbundle --flavor production \
-  --dart-define=APP_ENV=production \
-  --dart-define=ADMOB_ANDROID_APP_ID=<external-value> \
-  --dart-define=ADMOB_COMMUNITY_NATIVE_AD_UNIT_ID=<external-value> \
-  --dart-define=ADMOB_EXPLORE_NATIVE_AD_UNIT_ID=<external-value> \
-  --dart-define=ADMOB_COLLECTION_NATIVE_AD_UNIT_ID=<external-value>
+```bash
+npm run verify:admob-release
 ```
 
-The Gradle property/environment variable must be available to Gradle as well as
-the matching Dart define. Do not put the values in a checked-in properties
-file.
+`npm run build:mobile-aab` calls it before it does anything else, so a
+misconfigured release fails in a second rather than ten minutes in. It then
+passes all four as `--dart-define`s and exports the app id into Gradle's
+environment — supplying one half and not the other is what produces a release
+that installs, runs, and silently never asks Google for an advert.
+
+Gradle independently refuses `bundleProductionRelease` without a valid app id.
+The one escape hatch is `ADMOB_COMPILE_CHECK_ONLY=true`, used by CI when the
+repository has no secrets: it *forces* Google's sample app id rather than
+skipping the check, so the bundle it produces cannot serve a live advert.
+
+Never pass production identifiers to a debug build. The debug build type pins
+the sample app id at a higher priority than the product flavour, so even a
+production-flavour debug build cannot reach live inventory.
 
 ## Consent and privacy
 
@@ -70,11 +84,29 @@ and Play policy. The in-app and website privacy notices now describe Google
 Mobile Ads, advertising identifiers, approximate region, device/app data,
 interactions, personalization choices, and paid membership suppression.
 
-AdMob currently reports one published English European-regulations message for
-Indigen World. Its visible choices are Consent and Manage options; the direct
-Do not consent option is off. This existing console state was inspected, not
-approved as a legal choice. The account owner must review that choice and the
-message text before production inventory is enabled.
+One published English European-regulations message covers Indigen World, named
+**Indigen Android — European Consent**. Reviewed and republished 2026-09-20
+with the owner's approval:
+
+- targeted at countries subject to GDPR (EEA, UK and Switzerland), not
+  everywhere;
+- **Do not consent** enabled for every country including the UK, Switzerland
+  and "everywhere else", so the first screen offers *Do not consent* and
+  *Consent* as two equal buttons with *Manage options* as a link beneath. There
+  is no extra step to refuse and no deceptive hierarchy;
+- 198 common ad partners selected at account level.
+
+Refusal is Google's decision, not the app's. The app requests nothing until
+UMP reports `canRequestAds`, so refusing means non-personalised advertising
+where UMP still permits a request and no advertising at all where it does not.
+Either way the slot collapses to zero height and nothing else changes.
+
+Known gap: the Settings entry for **Advertising privacy choices** only appears
+once UMP has run, and UMP only runs when advertising is allowed. A member who
+consented while free and then subscribed therefore cannot reopen privacy
+options to withdraw that consent. No ad request is made for them either way, so
+nothing is being processed on the old consent — but the entry point should not
+depend on ad eligibility. Not yet fixed.
 
 ## AdMob console record
 
@@ -85,39 +117,69 @@ one new AdMob Android app record. The required Native advanced units are:
 - Indigen Explore Native
 - Indigen Collection Native
 
-Full account, publisher, application, and ad-unit identifiers are deliberately
-not documented. The AdMob account is still under verification and the app
-currently reports limited serving / review required until verification,
-consent, and app-ads.txt work is complete.
+All three exist as Native advanced units and were verified in the console on
+2026-09-20: the app record's package is `com.indigenworld.indigen`, matching the
+production flavour's `applicationId`, and it has exactly three units with no
+duplicates or obsolete ones. Two other apps share the account, so always check
+the package before copying an identifier.
 
-The Policy centre currently reports no issues that stop or limit serving.
-Payments verification says identity information may be requested only after
-the account reaches Google's verification threshold; no identity, tax,
-banking, or payment information was entered.
+Full account, publisher, application, and ad-unit identifiers are deliberately
+not documented here. They are in `admob.local.json` and in CI secrets.
+
+Console state on 2026-09-20:
+
+- approval status **Requires review**, serving **limited** until app
+  verification passes, which is waiting on `app-ads.txt`;
+- Policy centre reports **no issues** that stop or limit serving;
+- lifetime requests and impressions are zero, so nothing has served yet;
+- payments profile is AdSense (Ghana). Identity verification is **not yet
+  requested** — Google asks only once earnings reach its threshold — and no
+  identity, tax, banking, or payment information was entered or read.
 
 ## app-ads.txt
 
-The website build runs `scripts/emit-app-ads.mjs`. At deployment, set
-`ADMOB_APP_ADS_TXT_RECORD` to the exact single record supplied by AdMob. The
-script validates its shape, writes `dist/app-ads.txt`, and never logs the
-record. A build without the variable remains usable but prints that no file was
-emitted.
+The website build runs `scripts/emit-app-ads.mjs`, which reads
+`ADMOB_APP_ADS_TXT_RECORD` from the environment or from the same ignored
+`admob.local.json`. It validates the record's shape, writes `dist/app-ads.txt`,
+and never logs it. A malformed record fails the build — a file that names the
+wrong publisher is worse than no file, because AdMob reads it as a statement
+that this account may *not* sell the inventory. An absent record is not an
+error; the file is simply not emitted, with a warning.
 
-After an authorized website deployment:
+**Not yet deployed.** `https://indigenworld.com/app-ads.txt` returns 404 with
+the site's HTML 404 body. The hosting predeploy (`verify:production-main`)
+requires a clean checkout on `main` matching `origin/main`, so the file cannot
+ship from this branch — it goes out with the first website deploy after this
+work merges.
 
-1. verify `https://indigenworld.com/app-ads.txt` returns only the exact record;
-2. wait for AdMob's crawler (Google notes that this may take time);
-3. request app verification in AdMob;
-4. confirm the app no longer reports app-ads.txt verification failure.
+After that deployment:
 
-## Play Data Safety review
+```bash
+npm run verify:app-ads
+```
 
-Before submitting an updated form, compare every answer with the current Google
-Mobile Ads data-disclosure page and the app's configured consent behavior. The
-review must cover device/advertising identifiers, device or app information,
-approximate location/region where applicable, diagnostics, and advertising
-interaction data. Do not submit the form until the account owner agrees that
-each declaration matches the released SDK behavior.
+It checks status 200, `text/plain`, an unauthenticated response, no HTML body,
+no redirect off the canonical origin, and — when the record is configured — that
+the exact line is present, bypassing any CDN copy with a cache-busting query.
+Then use AdMob's **Check for updates** control on the app's verification screen.
+
+Note that AdMob will not confirm `app-ads.txt` from the file alone: its
+app-ads.txt tab currently reports "No ad requests with app-ads.txt yet", because
+Google associates the crawled file with an app only once that app actually
+requests ads. Verification therefore needs the file live *and* a release that
+serves, and Google says the crawl itself can take up to seven days.
+
+## Play Data Safety
+
+Reviewed against the shipped SDKs and submitted for review on 2026-09-20 with
+the owner's approval. The form had been under-declared well beyond advertising
+— it claimed the app allowed no account creation — so the correction covers
+accounts, personal info, media, messages and purchases as well as the three
+types AdMob touches.
+
+Every answer and the evidence behind it is recorded in
+[play-data-safety-2026-09.md](play-data-safety-2026-09.md). The store listing's
+"Contains ads" declaration was already **Yes** and stays correct.
 
 ## Verification and rollback
 
