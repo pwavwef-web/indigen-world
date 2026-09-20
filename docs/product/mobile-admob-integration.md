@@ -2,12 +2,16 @@
 
 Implementation prepared 2026-09-20; console work completed the same day.
 
-What is done: the code, the release configuration, the consent message (renamed,
-*Do not consent* enabled, republished), and the Play Data Safety correction
-(submitted for review). What is not: no mobile release has been built or
-uploaded, the website has not been deployed so `app-ads.txt` is not live, AdMob
-app verification is still failing on that file, and nothing has served an
-advert.
+Done: the code and its tests, the release configuration, the consent message
+(renamed, *Do not consent* enabled, republished), the Play Data Safety
+correction (submitted for review), the website deploy that put `app-ads.txt`
+live, and AdMob app verification, which passed from that file.
+
+Not done: no release has been uploaded to Play. A production bundle has been
+*built* — 0.1.22 (31), signed, with the real application id in its merged
+manifest — but only to prove the configuration reaches the artefact. AdMob is in
+its **Getting ready** review, so serving is limited, and nothing has served an
+advert yet.
 
 ## Serving policy
 
