@@ -527,7 +527,7 @@ export interface StudioVideoModelCapability {
   requiresReferenceImage?: boolean;
   /**
    * Lengths this model will make. Runway takes 5 or 10 seconds and Gemini
-   * takes 4, 6 or 8, so there is no single list to offer.
+   * Omni 4, 6, 8 or 10, so there is no single list to offer.
    */
   durationsSeconds?: number[];
   textRatios?: string[];

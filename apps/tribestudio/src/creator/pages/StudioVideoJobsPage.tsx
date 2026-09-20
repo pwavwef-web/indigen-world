@@ -31,8 +31,10 @@ const STATUS_TONE: Record<StudioVideoJob['status'], string> = {
 const MODEL_LABELS: Record<string, string> = {
   gen4_turbo: 'Runway Gen-4 Turbo',
   'gen4.5': 'Runway Gen-4.5',
-  'veo-3.1-generate-001': 'Gemini video',
-  'veo-3.1-fast-generate-001': 'Gemini video (fast)',
+  'gemini-omni-1.1-flash-preview': 'Gemini Omni',
+  // Jobs made before Gemini Omni replaced Veo.
+  'veo-3.1-generate-001': 'Gemini video (Veo)',
+  'veo-3.1-fast-generate-001': 'Gemini video (Veo, fast)',
   'lipsync-2': 'Lipsync 2',
   'lipsync-2-pro': 'Lipsync 2 Pro',
 };

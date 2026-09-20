@@ -16,14 +16,13 @@ import {
   approvedKasemScriptMatches,
   assertStudioAssetPath,
   estimateStudioVideoCost,
-  isGeminiVideoModel,
+  isCollectableGeminiVideoModel,
   isTerminalStudioVideoStatus,
   parseStudioVideoInput,
   providerStateToJobStatus,
   readStoredProviderTask,
   studioVideoCapabilities,
   VIDEO_SPEND_LIMITS,
-  type GeminiVideoModel,
   type StudioVideoInput,
 } from './studio-video-policy.js';
 // Vertex is reached with the function's own credentials -- no API key exists
@@ -358,7 +357,9 @@ async function pollProvider(snapshot: DocumentSnapshot): Promise<ProviderStatus>
   }
   if (provider === 'gemini') {
     const model = snapshot.get('model');
-    if (!isGeminiVideoModel(model)) {
+    // Veo is no longer offered, but a job started on it before the switch to
+    // Omni is still collected: it was paid for.
+    if (!isCollectableGeminiVideoModel(model)) {
       throw new HttpsError('failed-precondition', 'This job names an unknown Gemini model.');
     }
     const project = googleProjectId();
@@ -367,7 +368,7 @@ async function pollProvider(snapshot: DocumentSnapshot): Promise<ProviderStatus>
     }
     return pollGeminiVisual(
       task.providerTaskId,
-      model as GeminiVideoModel,
+      String(model),
       await googleAccessToken(CLOUD_PLATFORM_SCOPE),
       project,
     );
@@ -480,10 +481,10 @@ export const createStudioVideoJob = onCall(
     // of one that never reached a provider, both of which buy a generation.
     //
     // Counted twice over, because counting jobs stopped being enough once the
-    // models stopped costing the same. A Gemini 8-second generation is five
-    // times a Runway 5-second one, so twenty jobs a day is a bill between $12
-    // and $64 depending only on which model was picked. The cents ceilings
-    // below are what actually bound that.
+    // models stopped costing the same. A 10-second Gemini Omni generation is
+    // two and a half times a 5-second Runway one, so twenty jobs a day is a
+    // bill between $12 and $31 depending only on which model was picked. The
+    // cents ceilings below are what actually bound that.
     //
     // These are flat numbers today. When a membership plan covers video, the
     // per-creator ceiling is the number a tier supplies — `benefitsForUid` in

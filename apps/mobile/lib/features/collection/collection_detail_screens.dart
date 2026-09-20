@@ -4,6 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
+import 'package:indigen_world_mobile/features/ads/admob_native.dart';
 import 'package:indigen_world_mobile/features/ads/collection_ads.dart';
 import 'package:indigen_world_mobile/features/ads/data/served_ad.dart';
 import 'package:indigen_world_mobile/features/ads/widgets/sponsored_card.dart';
@@ -235,7 +236,7 @@ class _PublishedCollectionScreenState
     final rows = query.isEmpty
         ? collectionRowsWithAds(
             items: visible,
-            ads: ref.watch(collectionAdsProvider),
+            inventory: ref.watch(collectionInventoryProvider),
           )
         : List<Object>.of(visible);
 
@@ -247,11 +248,14 @@ class _PublishedCollectionScreenState
           separatorBuilder: (_, _) => const SizedBox(height: 14),
           itemBuilder: (context, index) {
             final row = rows[index];
-            if (row is ServedAd) {
-              return SponsoredCard(
-                ad: row,
-                slot: '${widget.kind.name}-$index',
-                margin: EdgeInsets.zero,
+            if (row is AdSlot) {
+              return UnifiedAdSlot(
+                slot: row,
+                firstPartyBuilder: (context, ad) => SponsoredCard(
+                  ad: ad,
+                  slot: '${widget.kind.name}-$index',
+                  margin: EdgeInsets.zero,
+                ),
               );
             }
             return _PublishedCollectionCard(
@@ -689,7 +693,9 @@ class _CollectionAudioHeader extends ConsumerWidget {
                   // Falls back to this record alone when the channel has not
                   // arrived yet, so the button always does something.
                   final queue = siblings.isEmpty ? [item] : siblings;
-                  final index = queue.indexWhere((sibling) => sibling.id == item.id);
+                  final index = queue.indexWhere(
+                    (sibling) => sibling.id == item.id,
+                  );
                   controller.playCollection(
                     queue,
                     startIndex: index < 0 ? 0 : index,

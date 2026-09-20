@@ -32,6 +32,13 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
 
+import {
+  dartDefines,
+  describe as describeAdMob,
+  gradleEnv,
+  requireConfig,
+} from './admob-release-config.mjs';
+
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const mobile = join(root, 'apps', 'mobile');
 const registrant = join(
@@ -53,6 +60,22 @@ const decoy = join(mobile, 'android/app/production/release/app-production-releas
 
 const say = (message) => process.stdout.write(`${message}\n`);
 
+// ── 0. Refuse to start without the production advertising configuration ──
+// Checked before the ten-minute build rather than after it, and before the
+// stale registrant below is deleted, so a misconfigured run changes nothing.
+// Gradle enforces the app id again when it writes the manifest; this is the
+// only place the three ad-unit ids are checked, because Dart reads those and
+// a missing one collapses its placement silently at runtime.
+let admob;
+try {
+  admob = requireConfig();
+} catch (error) {
+  say(`! ${error.message}`);
+  process.exit(1);
+}
+say('· Production AdMob identifiers resolved (last four characters only):');
+say(describeAdMob(admob));
+
 // ── 1. Clear the stale registrant ────────────────────────────────────────
 if (existsSync(registrant)) {
   const stale = readFileSync(registrant, 'utf8').includes('integration_test');
@@ -71,27 +94,36 @@ if (existsSync(decoy)) {
 // ── 2. Build ─────────────────────────────────────────────────────────────
 const started = Date.now();
 say('· flutter build appbundle --flavor production --dart-define=APP_ENV=production');
+say('  (plus the four --dart-define AdMob identifiers, not echoed here)');
 // `flutter` on Windows is a .bat, and since Node 20 a .bat cannot be spawned
 // without a shell at all — it fails EINVAL. So Windows gets a shell and one
 // command *string*: passing an args array alongside `shell: true` is what Node
 // deprecates, because the array is concatenated rather than escaped. Every
-// argument here is a literal in this file, so there is nothing to escape, and
-// writing it as a string says that rather than hiding it.
+// argument here is either a literal in this file or an identifier already
+// matched against `^ca-app-pub-\d{16}[~/]\d{10}$`, so none of them can contain
+// a character a shell would treat as syntax.
 const FLAGS = [
   'build',
   'appbundle',
   '--flavor',
   'production',
   '--dart-define=APP_ENV=production',
+  ...dartDefines(admob),
 ];
+// Gradle reads the app id from the environment to write the manifest
+// placeholder. Passing it here rather than asking the operator to export it
+// separately is what stops a bundle whose Dart half is configured and whose
+// manifest still points at Google's sample app.
+const buildEnv = { ...process.env, ...gradleEnv(admob) };
 const build =
   process.platform === 'win32'
     ? spawnSync(`flutter ${FLAGS.join(' ')}`, {
         cwd: mobile,
         stdio: 'inherit',
         shell: true,
+        env: buildEnv,
       })
-    : spawnSync('flutter', FLAGS, { cwd: mobile, stdio: 'inherit' });
+    : spawnSync('flutter', FLAGS, { cwd: mobile, stdio: 'inherit', env: buildEnv });
 if (build.status !== 0) process.exit(build.status ?? 1);
 const seconds = ((Date.now() - started) / 1000).toFixed(1);
 

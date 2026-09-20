@@ -75,6 +75,12 @@ ProviderContainer _container({
       entitlementProvider.overrideWith((ref) => Stream.value(entitlement)),
       servedAdsProvider.overrideWith((ref) => Stream.value(ads)),
       serverBenefitsProvider.overrideWith((ref) async => serverBenefits),
+      advertisingEligibilityProvider.overrideWith((ref) {
+        final benefits = serverBenefits ?? entitlement.benefits;
+        return benefits.adFree
+            ? AdvertisingEligibility.blocked
+            : AdvertisingEligibility.allowed;
+      }),
     ],
   );
   addTearDown(container.dispose);
@@ -377,6 +383,63 @@ void main() {
   });
 
   group('adverts', () {
+    test('eligibility stays unresolved until auth and benefits resolve', () {
+      AdvertisingEligibility eligibility({
+        bool firebase = true,
+        bool authResolved = true,
+        bool signedIn = true,
+        bool entitlementResolved = true,
+        Entitlement? entitlement,
+        bool serverResolved = true,
+        TierBenefits? serverBenefits,
+      }) => resolveAdvertisingEligibility(
+        firebaseReady: firebase,
+        authResolved: authResolved,
+        signedIn: signedIn,
+        entitlementResolved: entitlementResolved,
+        entitlement: entitlement ?? Entitlement.none,
+        serverBenefitsResolved: serverResolved,
+        serverBenefits: serverBenefits,
+      );
+
+      expect(eligibility(firebase: false), AdvertisingEligibility.unresolved);
+      expect(
+        eligibility(authResolved: false),
+        AdvertisingEligibility.unresolved,
+      );
+      expect(
+        eligibility(entitlementResolved: false),
+        AdvertisingEligibility.unresolved,
+      );
+      expect(
+        eligibility(serverResolved: false),
+        AdvertisingEligibility.unresolved,
+      );
+      expect(eligibility(signedIn: false), AdvertisingEligibility.allowed);
+    });
+
+    test('Plus, Patron and Creator all block advertising', () {
+      for (final tier in const [
+        SubscriptionTier.plus,
+        SubscriptionTier.patron,
+        SubscriptionTier.creator,
+      ]) {
+        expect(
+          resolveAdvertisingEligibility(
+            firebaseReady: true,
+            authResolved: true,
+            signedIn: true,
+            entitlementResolved: true,
+            entitlement: _entitlement(tier: tier),
+            serverBenefitsResolved: false,
+            serverBenefits: null,
+          ),
+          AdvertisingEligibility.blocked,
+          reason: '$tier must suppress both inventory sources',
+        );
+      }
+    });
+
     test('a free member still sees every placement', () async {
       final container = _container(
         entitlement: Entitlement.none,
@@ -571,8 +634,6 @@ void main() {
       expect(container.read(supporterMarkProvider), SupporterMark.none);
     });
   });
-
-
   group('starting the billing connection', () {
     // The bug this group exists for: the paywall asked for the offers while
     // the availability check kicked off a microsecond earlier was still in
@@ -596,7 +657,10 @@ void main() {
         offerings.reason,
         isNot(SubscriptionUnavailableReason.billingUnavailable),
       );
-      expect(offerings.reason, SubscriptionUnavailableReason.playReturnedNothing);
+      expect(
+        offerings.reason,
+        SubscriptionUnavailableReason.playReturnedNothing,
+      );
       expect(plugin.availabilityChecks, 1);
     });
 
@@ -612,10 +676,7 @@ void main() {
       expect(first.reason, SubscriptionUnavailableReason.billingUnavailable);
 
       final second = await service.loadOffers();
-      expect(
-        second.reason,
-        SubscriptionUnavailableReason.playReturnedNothing,
-      );
+      expect(second.reason, SubscriptionUnavailableReason.playReturnedNothing);
       expect(plugin.availabilityChecks, 2);
     });
 
@@ -692,7 +753,9 @@ void main() {
     // with Play's own regional pricing, and it changes the day somebody edits
     // either plan. A "Save 20%" typed into the paywall is a claim the app is
     // not in a position to keep.
-    SubscriptionOffer offer(BillingPeriod period, double rawPrice, {
+    SubscriptionOffer offer(
+      BillingPeriod period,
+      double rawPrice, {
       String currency = 'GHS',
     }) => SubscriptionOffer(
       product: subscriptionProducts.first,
@@ -721,10 +784,7 @@ void main() {
 
     test('says nothing when there is nothing to compare against', () {
       expect(yearlySavingsPercent(const []), isNull);
-      expect(
-        yearlySavingsPercent([offer(BillingPeriod.yearly, 900)]),
-        isNull,
-      );
+      expect(yearlySavingsPercent([offer(BillingPeriod.yearly, 900)]), isNull);
     });
 
     test('refuses a saving too small to be worth a badge', () {

@@ -1,17 +1,35 @@
 import { HttpsError } from 'firebase-functions/v2/https';
+import {
+  OMNI_DURATIONS,
+  OMNI_VIDEO_MODELS,
+  isOmniVideoModel,
+  omniRateUsdPerSecond,
+  type OmniResolution,
+  type OmniVideoModel,
+} from './omni-video.js';
 
-export const STUDIO_VIDEO_PRICING_VERSION = '2026-09-01';
+/** Moved on when Gemini video became Omni, whose prices are per resolution. */
+export const STUDIO_VIDEO_PRICING_VERSION = '2026-09-19';
 
 export const RUNWAY_VIDEO_MODELS = ['gen4_turbo', 'gen4.5'] as const;
 /**
- * Google's video models, reached through Vertex AI.
+ * Google's video models the Studio offers, reached through Vertex AI.
  *
  * Named for the API ids rather than "Gemini" because that is what the endpoint
  * accepts; the creator-facing label says Gemini, which is what a creator calls
  * it. No secret is involved: Vertex is reached with the function's own
- * Application Default Credentials, exactly as Kawuri is.
+ * Application Default Credentials, exactly as Kawuri is. Gemini Omni since
+ * 2026-09-19; Veo before that.
  */
-export const GEMINI_VIDEO_MODELS = [
+export const GEMINI_VIDEO_MODELS = OMNI_VIDEO_MODELS;
+/**
+ * The Veo models the Studio offered until 2026-09-19.
+ *
+ * No longer sold, still known. A job started on one before the switch has to
+ * be collected when it finishes, and Kawuri can be pointed back at Veo by
+ * environment variable should Omni — a preview model — be withdrawn.
+ */
+export const VEO_VIDEO_MODELS = [
   'veo-3.1-generate-001',
   'veo-3.1-fast-generate-001',
 ] as const;
@@ -19,7 +37,8 @@ export const FAL_LIPSYNC_MODELS = ['lipsync-2', 'lipsync-2-pro'] as const;
 export const VIDEO_RATIOS = ['1280:720', '720:1280', '960:960'] as const;
 
 export type RunwayVideoModel = (typeof RUNWAY_VIDEO_MODELS)[number];
-export type GeminiVideoModel = (typeof GEMINI_VIDEO_MODELS)[number];
+export type GeminiVideoModel = OmniVideoModel;
+export type VeoVideoModel = (typeof VEO_VIDEO_MODELS)[number];
 export type VisualModel = RunwayVideoModel | GeminiVideoModel;
 export type FalLipsyncModel = (typeof FAL_LIPSYNC_MODELS)[number];
 export type StudioVideoRatio = (typeof VIDEO_RATIOS)[number];
@@ -27,17 +46,36 @@ export type StudioVideoRatio = (typeof VIDEO_RATIOS)[number];
 /**
  * Lengths each model will actually produce.
  *
- * Per model, not per platform. Runway takes 5 or 10 seconds and Veo takes 4, 6
- * or 8 — there is no length the two agree on, so one global list could only
- * have been wrong for one of them. A duration the model does not accept is a
- * submit-time rejection, which the creator would have read as "the video
- * failed" for a request that was never valid.
+ * Per model, not per platform. Runway takes 5 or 10 seconds, Veo took 4, 6 or
+ * 8, and Omni takes 3 to 10 of which 4, 6, 8 and 10 are offered — so one
+ * global list could only ever be wrong for somebody. A duration the model does
+ * not accept is a submit-time rejection, which the creator would have read as
+ * "the video failed" for a request that was never valid.
  */
 const RUNWAY_DURATIONS: readonly number[] = [5, 10];
-const GEMINI_DURATIONS: readonly number[] = [4, 6, 8];
+const VEO_DURATIONS: readonly number[] = [4, 6, 8];
 
+/**
+ * The resolution the Studio renders Omni at, in both orientations.
+ *
+ * Fixed rather than offered: the creator picks a model and a shape, and the
+ * editor downstream wants the most pixels the price allows. Veo rendered 1080p
+ * landscape only; Omni does portrait at 1080p too.
+ */
+export const STUDIO_OMNI_RESOLUTION: OmniResolution = '1080p';
+
+/** A Google video model the Studio offers today. */
 export function isGeminiVideoModel(model: unknown): model is GeminiVideoModel {
-  return (GEMINI_VIDEO_MODELS as readonly unknown[]).includes(model);
+  return isOmniVideoModel(model);
+}
+
+export function isVeoVideoModel(model: unknown): model is VeoVideoModel {
+  return (VEO_VIDEO_MODELS as readonly unknown[]).includes(model);
+}
+
+/** Any Google video model a job may still be waiting on, offered or retired. */
+export function isCollectableGeminiVideoModel(model: unknown): boolean {
+  return isOmniVideoModel(model) || isVeoVideoModel(model);
 }
 
 export function isRunwayVideoModel(model: unknown): model is RunwayVideoModel {
@@ -45,22 +83,24 @@ export function isRunwayVideoModel(model: unknown): model is RunwayVideoModel {
 }
 
 export function durationsForVisualModel(model: unknown): readonly number[] {
-  return isGeminiVideoModel(model) ? GEMINI_DURATIONS : RUNWAY_DURATIONS;
+  if (isOmniVideoModel(model)) return OMNI_DURATIONS;
+  if (isVeoVideoModel(model)) return VEO_DURATIONS;
+  return RUNWAY_DURATIONS;
 }
 
 /**
  * Shapes a model will frame.
  *
- * Veo 3.1 offers landscape and portrait only — square is not one of its
- * aspect ratios — so it is absent from both lists rather than offered and
- * rejected. Runway keeps its existing split: square needs a reference image
- * because text-only Gen-4.5 does not frame it.
+ * Omni, like Veo before it, offers landscape and portrait only — square is not
+ * one of its aspect ratios — so it is absent from both lists rather than
+ * offered and rejected. Runway keeps its existing split: square needs a
+ * reference image because text-only Gen-4.5 does not frame it.
  */
 export function ratiosForVisualModel(
   model: unknown,
   hasReferenceImage: boolean,
 ): readonly string[] {
-  if (isGeminiVideoModel(model)) return ['1280:720', '720:1280'];
+  if (isCollectableGeminiVideoModel(model)) return ['1280:720', '720:1280'];
   if (hasReferenceImage) return VIDEO_RATIOS;
   return model === 'gen4.5' ? ['1280:720', '720:1280'] : [];
 }
@@ -127,17 +167,15 @@ const RUNWAY_RATE_USD_PER_SECOND: Record<RunwayVideoModel, number> = {
 
 /**
  * Google's published Vertex Veo 3.1 rates for video *with* audio (720p/1080p):
- * $0.40/s standard, $0.15/s fast. Silent video is published lower ($0.20 and
- * $0.10), and the Studio still makes silent video — see the submission in
- * studio-video-providers.ts for why.
+ * $0.40/s standard, $0.15/s fast. Kept for a Kawuri pointed back at Veo; the
+ * Studio no longer sells either.
  *
- * Every video is charged at the with-audio rate whether it has sound or not.
- * That overstates a silent video's cost, which is the safe direction for a
- * ceiling: Kawuri lets a member switch sound on, and a switch that could push
- * the same generation past a limit sized for silence would be a limit that
- * does not hold.
+ * Every Veo video is charged at the with-audio rate whether it has sound or
+ * not. That overstates a silent video's cost, which is the safe direction for
+ * a ceiling: a sound switch that could push the same generation past a limit
+ * sized for silence would be a limit that does not hold.
  */
-const GEMINI_RATE_USD_PER_SECOND: Record<GeminiVideoModel, number> = {
+const VEO_RATE_USD_PER_SECOND: Record<VeoVideoModel, number> = {
   'veo-3.1-generate-001': 0.40,
   'veo-3.1-fast-generate-001': 0.15,
 };
@@ -146,20 +184,23 @@ const GEMINI_RATE_USD_PER_SECOND: Record<GeminiVideoModel, number> = {
  * The published rate for a Vertex video model, or null when this backend has
  * no price for it.
  *
- * Kawuri's video generator reaches Veo too, and it has to spend against the
- * same cents ceilings as the Studio does. A model with no price here cannot be
- * held to those ceilings, so the caller treats null as "not offerable" rather
- * than guessing a number.
+ * Kawuri's video generator reaches the same models, and it has to spend against
+ * the same cents ceilings as the Studio does. A model with no price here cannot
+ * be held to those ceilings, so the caller treats null as "not offerable"
+ * rather than guessing a number.
  *
- * [options.generateAudio] names the video being priced; both answers are the
- * with-audio rate, for the reason given on the table above.
+ * Omni's price depends on the resolution; with none named, the dearest one
+ * offered answers, so an estimate made before the choice can only overstate.
+ * [options.generateAudio] changes nothing: Omni always has a soundtrack, and
+ * Veo is priced at its with-audio rate for the reason on the table above.
  */
 export function vertexVideoRateUsdPerSecond(
   model: string,
-  options: { generateAudio?: boolean } = {},
+  options: { generateAudio?: boolean; resolution?: string } = {},
 ): number | null {
   void options.generateAudio;
-  return isGeminiVideoModel(model) ? GEMINI_RATE_USD_PER_SECOND[model] : null;
+  if (isOmniVideoModel(model)) return omniRateUsdPerSecond(options.resolution ?? '1080p');
+  return isVeoVideoModel(model) ? VEO_RATE_USD_PER_SECOND[model] : null;
 }
 
 /**
@@ -352,6 +393,14 @@ export function parseStudioVideoInput(raw: unknown, uid: string): StudioVideoInp
   if (operation === 'generate_visual') {
     const gemini = isGeminiVideoModel(data.model);
     const expectedProvider = gemini ? 'gemini' : 'runway';
+    if (isVeoVideoModel(data.model)) {
+      // A studio page opened before the switch still lists Veo. Say what
+      // happened, rather than "unknown model" for a model it was just offered.
+      throw new HttpsError(
+        'invalid-argument',
+        'Gemini video now uses Gemini Omni. Reload the page and choose it again.',
+      );
+    }
     if (!isRunwayVideoModel(data.model) && !gemini) {
       throw new HttpsError('invalid-argument', 'Unknown video model.');
     }
@@ -440,7 +489,7 @@ export function parseStudioVideoInput(raw: unknown, uid: string): StudioVideoInp
 
 export function visualRateUsdPerSecond(model: VisualModel): number {
   return isGeminiVideoModel(model)
-    ? GEMINI_RATE_USD_PER_SECOND[model]
+    ? vertexVideoRateUsdPerSecond(model, { resolution: STUDIO_OMNI_RESOLUTION }) as number
     : RUNWAY_RATE_USD_PER_SECOND[model as RunwayVideoModel];
 }
 
@@ -505,12 +554,10 @@ export function studioVideoCapabilities() {
           ...GEMINI_VIDEO_MODELS.map((model) => ({
             id: model,
             provider: 'gemini' as const,
-            label: model === 'veo-3.1-fast-generate-001'
-              ? 'Gemini video (fast)'
-              : 'Gemini video',
-            estimatedUsdPerSecond: GEMINI_RATE_USD_PER_SECOND[model],
+            label: 'Gemini Omni',
+            estimatedUsdPerSecond: visualRateUsdPerSecond(model),
             requiresReferenceImage: false,
-            durationsSeconds: GEMINI_DURATIONS,
+            durationsSeconds: durationsForVisualModel(model),
             textRatios: ratiosForVisualModel(model, false),
             imageRatios: ratiosForVisualModel(model, true),
           })),

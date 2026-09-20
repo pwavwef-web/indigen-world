@@ -6,6 +6,7 @@ date identifies when the post was prepared; it does not prove the update is live
 
 ## Posts
 
+- [2026-09-20: First-party community campaigns now have a privacy-aware fallback](2026-09-20-mobile-admob-fallback/README.md) — draft; consent message published and Play data disclosures submitted, app-ads.txt and a release still pending, nothing serving.
 - [2026-09-17: A faster contributor translation workspace](2026-09-17-contributor-workspace-redesign/README.md) — draft article; implementation verified locally, production deployment pending.
 - [2026-09-17: Contributor invitations by SMS](2026-09-17-contributor-sms-invitations/README.md) — draft article; deployed, handset-delivery check pending.
 - [2026-09-17: Contributor management comes to the Admin console](2026-09-17-contributor-management/README.md) — draft article; feature deployed, authenticated workflow smoke test pending.

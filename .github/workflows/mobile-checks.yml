@@ -128,6 +128,11 @@ jobs:
           distribution: temurin
           java-version: "17"
 
+      - name: Install Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
       - name: Install Flutter
         uses: subosito/flutter-action@v2
         with:
@@ -135,12 +140,38 @@ jobs:
           channel: stable
           cache: true
 
+      # Two different builds behind one step, and which one runs is decided by
+      # whether the repository actually has the four AdMob secrets.
+      #
+      # With them, this is the real release configuration and the bundle is
+      # exactly what `npm run build:mobile-aab` produces locally. Without them
+      # — a fork, or this branch before the secrets were added — it falls back
+      # to a compile check pinned to Google's sample app id, because the
+      # alternative is a required check that no fork can ever pass. The
+      # fallback is announced, and ADMOB_COMPILE_CHECK_ONLY makes the artefact
+      # incapable of serving live adverts rather than merely unverified.
       - name: Build production Android App Bundle
+        env:
+          ADMOB_ANDROID_APP_ID: ${{ secrets.ADMOB_ANDROID_APP_ID }}
+          ADMOB_COMMUNITY_NATIVE_AD_UNIT_ID: ${{ secrets.ADMOB_COMMUNITY_NATIVE_AD_UNIT_ID }}
+          ADMOB_EXPLORE_NATIVE_AD_UNIT_ID: ${{ secrets.ADMOB_EXPLORE_NATIVE_AD_UNIT_ID }}
+          ADMOB_COLLECTION_NATIVE_AD_UNIT_ID: ${{ secrets.ADMOB_COLLECTION_NATIVE_AD_UNIT_ID }}
         run: |
           flutter pub get
           flutter gen-l10n
           dart run build_runner build
-          flutter build appbundle --release --flavor production --dart-define=APP_ENV=production
+          if node ../../scripts/admob-release-config.mjs; then
+            flutter build appbundle --release --flavor production \
+              --dart-define=APP_ENV=production \
+              --dart-define=ADMOB_ANDROID_APP_ID="$ADMOB_ANDROID_APP_ID" \
+              --dart-define=ADMOB_COMMUNITY_NATIVE_AD_UNIT_ID="$ADMOB_COMMUNITY_NATIVE_AD_UNIT_ID" \
+              --dart-define=ADMOB_EXPLORE_NATIVE_AD_UNIT_ID="$ADMOB_EXPLORE_NATIVE_AD_UNIT_ID" \
+              --dart-define=ADMOB_COLLECTION_NATIVE_AD_UNIT_ID="$ADMOB_COLLECTION_NATIVE_AD_UNIT_ID"
+          else
+            echo "::warning::AdMob release secrets are not configured. Building a compile-only production bundle with Google's sample app id; it cannot serve live adverts and must not be uploaded to Play."
+            ADMOB_COMPILE_CHECK_ONLY=true flutter build appbundle --release --flavor production \
+              --dart-define=APP_ENV=production
+          fi
 
   ios-release:
     runs-on: macos-latest

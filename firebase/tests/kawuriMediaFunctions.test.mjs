@@ -116,7 +116,7 @@ test('authentication is enforced and capabilities follow the caller', async () =
 
   const creatorCaps = (await call(clients.creator, 'getKawuriCapabilities', {})).data;
   assert.equal(creatorCaps.videoGeneration, true);
-  assert.deepEqual(creatorCaps.videoDurations, [4, 6, 8]);
+  assert.deepEqual(creatorCaps.videoDurations, [4, 6, 8, 10]);
 });
 
 test('image generation stores the result privately and a repeated request buys nothing twice', async () => {
@@ -169,7 +169,7 @@ test('simultaneous duplicate presses buy exactly one generation', async () => {
   const videoIds = new Set(videos.filter((r) => r.status === 'fulfilled').map((r) => r.value.data.id));
   assert.equal(videoIds.size, 1);
   const [videoId] = videoIds;
-  assert.equal(await billableAttempts(videoId), 1, 'one Veo job for two taps arriving together');
+  assert.equal(await billableAttempts(videoId), 1, 'one video job for two taps arriving together');
 });
 
 test('the platform screen rejects before anything is billed, and Vertex safety and quota map to task states', async () => {
@@ -216,8 +216,10 @@ test('video: eligibility and confirmation first, then the operation name is pers
   assert.equal(created.status, 'generating');
   assert.equal(created.operationName, true, 'the app is told an operation exists, never its name');
   const persisted = await db.doc(`kawuriTasks/${created.id}`).get();
-  assert.match(persisted.get('operationName'), /^projects\/demo\/locations\/us-central1\/.+\/operations\/fake-/);
-  assert.equal(persisted.get('estimatedCostCents'), 60);
+  // An Omni interaction id: the default video model since 2026-09-19.
+  assert.equal(persisted.get('model'), 'gemini-omni-1.1-flash-preview');
+  assert.match(persisted.get('operationName'), /^fake-omni-/);
+  assert.equal(persisted.get('estimatedCostCents'), 42, '4 s of 720p Omni');
 
   const duplicate = (await call(clients.creator, 'createKawuriVideo', request)).data;
   assert.equal(duplicate.id, created.id);

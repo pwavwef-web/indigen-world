@@ -19,6 +19,28 @@ if (hasReleaseSigning) {
     keystoreProperties.load(FileInputStream(keystorePropertiesFile))
 }
 
+// Kept outside source control because every AdMob application id embeds the
+// account's publisher id. Debug and staging always use Google's sample app;
+// the production release tasks below refuse to run without a valid override.
+val googleMobileAdsTestAppId = "ca-app-pub-3940256099942544~3347511713"
+val productionAdMobAppId = providers.gradleProperty("ADMOB_ANDROID_APP_ID")
+    .orElse(providers.environmentVariable("ADMOB_ANDROID_APP_ID"))
+val validAdMobAppId = Regex("^ca-app-pub-\\d{16}~\\d{10}$")
+
+// CI builds the production flavour on every change to prove it still compiles,
+// and a pull request from a fork has no identifier to give it. That check is
+// allowed to run without one — but only when it says so out loud.
+//
+// It is written as a forced downgrade rather than as a skipped check: with the
+// flag set the manifest is pinned to Google's sample app id, so the bundle the
+// check produces cannot serve a real advert even if somebody uploads it by
+// mistake. A flag that merely silenced the guard would leave a shippable
+// artefact whose only protection was that nobody pressed the wrong button.
+val adMobCompileCheckOnly = providers.gradleProperty("ADMOB_COMPILE_CHECK_ONLY")
+    .orElse(providers.environmentVariable("ADMOB_COMPILE_CHECK_ONLY"))
+    .map { it.equals("true", ignoreCase = true) }
+    .getOrElse(false)
+
 // Support both the standard app-level config and flavor-specific configs.
 // The release runbook uses android/app/google-services.json, while local
 // development normally keeps one under src/<flavor>/.
@@ -60,6 +82,7 @@ android {
         // flag during build.
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        manifestPlaceholders["admobAppId"] = googleMobileAdsTestAppId
     }
 
     signingConfigs {
@@ -74,6 +97,11 @@ android {
     }
 
     buildTypes {
+        getByName("debug") {
+            // Higher-priority build-type placeholder: even a production-flavor
+            // debug build must never send developer clicks to live inventory.
+            manifestPlaceholders["admobAppId"] = googleMobileAdsTestAppId
+        }
         getByName("release") {
             // Use the upload keystore when configured; otherwise fall back to the
             // debug key so local release builds still run (Play will reject those).
@@ -105,6 +133,39 @@ android {
             // Keep the namespace and non-production flavor IDs unchanged.
             applicationId = "com.indigenworld.indigen"
             resValue("string", "app_name", "Indigen")
+            manifestPlaceholders["admobAppId"] =
+                if (adMobCompileCheckOnly) {
+                    googleMobileAdsTestAppId
+                } else {
+                    productionAdMobAppId.orNull ?: googleMobileAdsTestAppId
+                }
+        }
+    }
+}
+
+tasks.matching {
+    it.name in setOf(
+        "processProductionReleaseMainManifest",
+        "assembleProductionRelease",
+        "bundleProductionRelease",
+    )
+}.configureEach {
+    doFirst {
+        if (adMobCompileCheckOnly) {
+            logger.warn(
+                "ADMOB_COMPILE_CHECK_ONLY is set. This production build carries " +
+                    "Google's sample AdMob app id and must never be uploaded to Play.",
+            )
+            return@doFirst
+        }
+        val value = productionAdMobAppId.orNull.orEmpty()
+        if (!validAdMobAppId.matches(value) || value == googleMobileAdsTestAppId) {
+            throw GradleException(
+                "Production AdMob app id is missing or invalid. Set " +
+                    "ADMOB_ANDROID_APP_ID as a Gradle property or environment variable, " +
+                    "or set ADMOB_COMPILE_CHECK_ONLY=true for a compile-only check " +
+                    "that produces a bundle which cannot serve live adverts.",
+            )
         }
     }
 }

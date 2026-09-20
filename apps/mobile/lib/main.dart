@@ -17,6 +17,7 @@ import 'package:indigen_world_mobile/core/image_memory.dart';
 import 'package:indigen_world_mobile/core/theme_mode.dart';
 import 'package:indigen_world_mobile/data/local/app_database.dart';
 import 'package:indigen_world_mobile/data/local/legacy_preferences_migration.dart';
+import 'package:indigen_world_mobile/features/ads/ad_consent.dart';
 import 'package:indigen_world_mobile/features/downloads/data/downloads_providers.dart';
 import 'package:indigen_world_mobile/features/music/music_audio_handler.dart';
 import 'package:indigen_world_mobile/features/music/music_providers.dart';
@@ -115,7 +116,8 @@ Future<void> main() async {
         // platform channel — see downloads_providers.dart — which means the
         // app itself has to hand it the real one exactly here.
         offlineTrackUrlsLookupProvider.overrideWith(
-          (ref) => () => ref.read(downloadsRepositoryProvider).playableIndex(),
+          (ref) =>
+              () => ref.read(downloadsRepositoryProvider).playableIndex(),
         ),
         // Omitted entirely when the session failed to start, which is what
         // leaves the provider at its test-safe null and the app at "no music
@@ -138,7 +140,7 @@ Future<void> main() async {
         ),
         localeProvider.overrideWith(() => _StoredLocaleController(locale)),
       ],
-      child: const IndigenWorldApp(),
+      child: const AdConsentBootstrap(child: IndigenWorldApp()),
     ),
   );
 }

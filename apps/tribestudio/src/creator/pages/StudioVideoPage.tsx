@@ -26,24 +26,25 @@ const POLL_FAILURES_BEFORE_WARNING = 3;
 
 // Fallback only. The capability response carries a `label` per model, so a
 // model added on the backend names itself rather than appearing as a raw id.
+// The Veo entries stay so jobs made before Gemini Omni still read properly.
 const MODEL_LABELS: Record<string, string> = {
   gen4_turbo: 'Runway Gen-4 Turbo',
   'gen4.5': 'Runway Gen-4.5',
-  'veo-3.1-generate-001': 'Gemini video',
-  'veo-3.1-fast-generate-001': 'Gemini video (fast)',
+  'gemini-omni-1.1-flash-preview': 'Gemini Omni',
+  'veo-3.1-generate-001': 'Gemini video (Veo)',
+  'veo-3.1-fast-generate-001': 'Gemini video (Veo, fast)',
   'lipsync-2': 'Sync Lipsync 2',
   'lipsync-2-pro': 'Sync Lipsync 2 Pro',
 };
 
 /** What each model is good for, in a creator's terms rather than a vendor's. */
 const MODEL_NOTES: Record<string, string> = {
+  'gemini-omni-1.1-flash-preview': 'Google’s newest video model, in 1080p. It may cut between shots; write “one continuous shot” for a single take.',
   'gen4.5': 'Strong on movement and camera work.',
   gen4_turbo: 'Cheapest, and animates an image you supply.',
-  'veo-3.1-generate-001': 'Google’s Veo 3.1. The most realistic, and the most expensive.',
-  'veo-3.1-fast-generate-001': 'Google’s Veo 3.1 Fast. Realistic, at about a third of the price.',
 };
 
-const DEFAULT_VISUAL_MODEL = 'gen4.5';
+const DEFAULT_VISUAL_MODEL = 'gemini-omni-1.1-flash-preview';
 
 const RATIO_LABELS: Record<string, string> = {
   '1280:720': 'Landscape · 16:9',
@@ -230,7 +231,7 @@ export function StudioVideoPage() {
   const referenceRequired = operation === 'generate_visual' && modelCapability?.requiresReferenceImage === true;
   const recognisableConsentRequired = containsPerson || operation === 'lip_sync';
   const modelLabel = modelCapability?.label ?? MODEL_LABELS[model] ?? model;
-  // Per model: Runway makes 5 or 10 seconds and Gemini makes 4, 6 or 8.
+  // Per model: Runway makes 5 or 10 seconds and Gemini Omni 4, 6, 8 or 10.
   const availableDurations = useMemo(
     () => modelCapability?.durationsSeconds ?? capabilities?.limits.durationsSeconds ?? [5, 10],
     [modelCapability, capabilities],
@@ -413,6 +414,16 @@ export function StudioVideoPage() {
       setRatio(availableRatios[0] as typeof ratio);
     }
   }, [availableRatios, ratio]);
+
+  // The default is a preference, not a promise: a backend that does not offer
+  // it (or no longer does) gets its own first model instead of a picker whose
+  // shown choice and submitted choice differ.
+  useEffect(() => {
+    if (operation !== 'generate_visual' || !operationCapability?.models.length) return;
+    if (!operationCapability.models.some((item) => item.id === visualModel)) {
+      setVisualModel(operationCapability.models[0].id);
+    }
+  }, [operation, operationCapability, visualModel]);
 
   // Switching model can invalidate the length. Snapped here rather than left
   // for the backend to reject, because a rejection reads as "the video failed"
@@ -656,8 +667,8 @@ export function StudioVideoPage() {
             <p className="tiny muted">One generation using {modelLabel}. The final provider charge may vary slightly.</p>
             {modelCapability?.provider === 'gemini' ? (
               <p className="tiny muted">
-                Gemini video is made without a soundtrack on purpose — a generated voice would not
-                be speaking Kasem. Add your own recording with “Sync someone speaking”, or in
+                Gemini Omni is asked for a silent soundtrack on purpose — a generated voice would
+                not be speaking Kasem. Add your own recording with “Sync someone speaking”, or in
                 editing.
               </p>
             ) : null}

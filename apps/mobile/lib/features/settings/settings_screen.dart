@@ -16,6 +16,7 @@ import 'package:indigen_world_mobile/core/connectivity.dart';
 import 'package:indigen_world_mobile/core/firebase_ready.dart';
 import 'package:indigen_world_mobile/core/media_preferences.dart';
 import 'package:indigen_world_mobile/core/theme_mode.dart';
+import 'package:indigen_world_mobile/features/ads/ad_consent.dart';
 import 'package:indigen_world_mobile/features/auth/auth_repository.dart';
 import 'package:indigen_world_mobile/features/auth/sign_in_sheet.dart';
 import 'package:indigen_world_mobile/features/community/claim_kasem_name_screen.dart';
@@ -94,7 +95,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final signature = ref.watch(appSignatureProvider).asData?.value;
     final downloadCount = ref.watch(downloadedIdsProvider).length;
     final mutedAlerts =
-        ref.watch(notificationPreferencesProvider).asData?.value.mutedCount ?? 0;
+        ref.watch(notificationPreferencesProvider).asData?.value.mutedCount ??
+        0;
 
     return Scaffold(
       backgroundColor: widget.embedded ? Colors.transparent : null,
@@ -172,15 +174,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     : 'Verify your number',
                 subtitle: switch (profile) {
                   null => 'Set up your community profile first',
-                  final it when it.phoneVerified =>
-                    VerifiedBadge.label(it.mark),
+                  final it when it.phoneVerified => VerifiedBadge.label(
+                    it.mark,
+                  ),
                   // A granted kind that is waiting on a phone is explained
                   // rather than left as a badge that never appeared.
                   final it when it.hasPendingVerification =>
                     'Your ${VerifiedBadge.label(VerifiedMark.fromKind(it.verifiedKind)).toLowerCase()} mark is waiting on this',
                   _ => 'Show the community somebody real is here',
                 },
-                enabled: signedIn && profile != null && !(profile.phoneVerified),
+                enabled:
+                    signedIn && profile != null && !(profile.phoneVerified),
                 onTap: _verifyPhone,
               ),
               SettingsRow(
@@ -372,6 +376,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ),
                 ),
               ),
+              if (ref.watch(adConsentProvider).privacyOptionsRequired)
+                SettingsRow(
+                  icon: Icons.ads_click_outlined,
+                  title: 'Advertising privacy choices',
+                  subtitle: 'Review or change your Google advertising choice',
+                  onTap: () =>
+                      ref.read(adConsentProvider.notifier).openPrivacyOptions(),
+                ),
               SettingsRow(
                 icon: Icons.support_agent_outlined,
                 title: 'Contact support',

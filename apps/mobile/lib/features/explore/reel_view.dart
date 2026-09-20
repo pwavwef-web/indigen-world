@@ -8,6 +8,7 @@ import 'package:indigen_world_mobile/core/clip_window.dart';
 import 'package:indigen_world_mobile/core/media_geometry.dart';
 import 'package:indigen_world_mobile/core/media_preferences.dart';
 import 'package:indigen_world_mobile/data/repositories.dart';
+import 'package:indigen_world_mobile/features/ads/admob_native.dart';
 import 'package:indigen_world_mobile/features/ads/data/served_ad.dart';
 import 'package:indigen_world_mobile/features/ads/widgets/sponsored_card.dart';
 import 'package:indigen_world_mobile/features/community/communities/community_space_screen.dart';
@@ -65,6 +66,7 @@ class Reel {
     this.isLive = false,
     this.communityPostId,
     this.servedAd,
+    this.adSlot,
     this.cycle = 0,
     this.mediaAspectRatio,
     this.focalPoint,
@@ -151,6 +153,10 @@ class Reel {
   /// and copying those two fields onto [Reel] would have been two more places
   /// for the wording of a paid advert to go stale.
   final ServedAd? servedAd;
+
+  /// A cadence position waiting on Google inventory. First-party positions
+  /// continue to use [servedAd] and the established full-screen creative.
+  final AdSlot? adSlot;
 
   /// Which pass through an endless feed this card is: 0 the first time the
   /// archive shows it, 1 the first time it comes round again, and so on.
@@ -249,7 +255,7 @@ class Reel {
   /// True when nothing on this card belongs to a member: no creator page, no
   /// appreciation, no replies, and an impression that is counted against a
   /// campaign instead of against a reel.
-  bool get isSponsored => servedAd != null;
+  bool get isSponsored => servedAd != null || adSlot != null;
 
   /// Where this came from, in words.
   String get sourceLabel => isSponsored
@@ -311,6 +317,7 @@ class Reel {
     isLive: isLive,
     communityPostId: communityPostId,
     servedAd: servedAd,
+    adSlot: adSlot,
     cycle: cycle,
     mediaAspectRatio: mediaAspectRatio,
     focalPoint: focalPoint,
@@ -482,10 +489,59 @@ class Reel {
     sound: '',
     credit: 'Sponsored · paid placement on Indigen World',
   );
+
+  static Reel fromAdSlot(AdSlot slot) {
+    final firstParty = slot.firstParty;
+    if (firstParty != null) return fromServedAd(firstParty);
+    return Reel(
+      id: 'admob:${slot.key}',
+      adSlot: slot,
+      isLive: true,
+      imageUrl: '',
+      label: 'SPONSORED',
+      title: 'Sponsored',
+      creator: '',
+      initials: '',
+      caption: '',
+      sound: '',
+      credit: 'Sponsored · Google ad',
+    );
+  }
 }
 
 /// A language as people name it. The publication workflow stores ISO codes —
 /// `xsm` by default — which nobody watching a reel should have to decode.
+class _ExploreAdLoading extends StatelessWidget {
+  const _ExploreAdLoading();
+
+  @override
+  Widget build(BuildContext context) => const Padding(
+    padding: EdgeInsets.all(24),
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          'SPONSORED',
+          style: TextStyle(
+            color: Colors.white70,
+            fontSize: 11,
+            letterSpacing: 1.4,
+          ),
+        ),
+        SizedBox(height: 16),
+        SizedBox(
+          width: 20,
+          height: 20,
+          child: CircularProgressIndicator(
+            strokeWidth: 2,
+            color: Colors.white54,
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
 String exploreLanguageName(String raw) {
   final value = raw.trim();
   return switch (value.toLowerCase()) {
@@ -1812,6 +1868,28 @@ class _ReelCardState extends ConsumerState<_ReelCard> {
     final reel = widget.reel;
     final chrome = widget.chrome;
 
+    if (reel.adSlot case final slot?) {
+      return ColoredBox(
+        color: Colors.black,
+        child: SafeArea(
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 400),
+              child: UnifiedAdSlot(
+                slot: slot,
+                firstPartyBuilder: (context, ad) =>
+                    SponsoredCard(ad: ad, slot: 'explore-${slot.index}'),
+                loading: const _ExploreAdLoading(),
+                onAdMobUnavailable: () => ref
+                    .read(collapsedAdMobSlotsProvider.notifier)
+                    .collapse(slot.key),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
     // Published records only carry the avatar the creator had when the piece
     // was approved, and for most creators that is null. Their community
     // profile is world-readable and current, so it is what fills the gap.
@@ -2388,7 +2466,11 @@ class ReelPlaceholder extends StatelessWidget {
       gradient: LinearGradient(
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
-        colors: [context.brand.heroMid, context.brand.heroLit, context.brand.highlight],
+        colors: [
+          context.brand.heroMid,
+          context.brand.heroLit,
+          context.brand.highlight,
+        ],
       ),
     ),
     child: const Center(

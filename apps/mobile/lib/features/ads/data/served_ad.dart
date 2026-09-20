@@ -3,6 +3,8 @@ import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/firebase_ready.dart';
+import 'package:indigen_world_mobile/features/ads/ad_consent.dart';
+import 'package:indigen_world_mobile/features/ads/admob_config.dart';
 import 'package:indigen_world_mobile/features/ads/data/ad_campaign.dart';
 import 'package:indigen_world_mobile/features/subscriptions/data/subscription_providers.dart';
 
@@ -182,18 +184,18 @@ List<ServedAd> adsForPlacement(
 }) {
   final eligible =
       [
-        for (final ad in ads)
-          // An advert with no headline has nothing to say and would render as
-          // a blank pane somebody paid for.
-          if (ad.active &&
-              ad.headline.isNotEmpty &&
-              ad.servesIn(placement) &&
-              ad.isRunningAt(now))
-            ad,
-      ]
-      // Sorted before rotating so the rotation is a rotation of a stable list
-      // rather than of whatever order Firestore happened to return.
-      ..sort((left, right) => left.campaignId.compareTo(right.campaignId));
+          for (final ad in ads)
+            // An advert with no headline has nothing to say and would render as
+            // a blank pane somebody paid for.
+            if (ad.active &&
+                ad.headline.isNotEmpty &&
+                ad.servesIn(placement) &&
+                ad.isRunningAt(now))
+              ad,
+        ]
+        // Sorted before rotating so the rotation is a rotation of a stable list
+        // rather than of whatever order Firestore happened to return.
+        ..sort((left, right) => left.campaignId.compareTo(right.campaignId));
   if (eligible.length < 2) return List.unmodifiable(eligible);
   final window = kAdRotationWindow.inMilliseconds;
   final offset = (now.millisecondsSinceEpoch ~/ window) % eligible.length;
@@ -229,6 +231,77 @@ List<T> spliceSponsored<T>({
     if ((index + 1) % cadence != 0) continue;
     spliced.add(render(ads[served % ads.length]));
     served++;
+  }
+  return spliced;
+}
+
+enum AdInventorySource { firstParty, adMob }
+
+/// One existing cadence position, resolved to at most one inventory source.
+@immutable
+class AdSlot {
+  const AdSlot({required this.placement, required this.index, this.firstParty});
+
+  final AdPlacement placement;
+  final int index;
+  final ServedAd? firstParty;
+
+  AdInventorySource get source => firstParty == null
+      ? AdInventorySource.adMob
+      : AdInventorySource.firstParty;
+
+  String get key => '${placement.name}-$index';
+}
+
+/// The result of the single membership gate plus first-party selection.
+@immutable
+class AdPlacementInventory {
+  const AdPlacementInventory({
+    required this.placement,
+    required this.allowed,
+    this.resolved = true,
+    this.adMobEligible = true,
+    this.firstParty = const <ServedAd>[],
+  });
+
+  final AdPlacement placement;
+  final bool allowed;
+  final bool resolved;
+  final bool adMobEligible;
+  final List<ServedAd> firstParty;
+
+  AdSlot slot(int index) => AdSlot(
+    placement: placement,
+    index: index,
+    firstParty: firstParty.isEmpty
+        ? null
+        : firstParty[index % firstParty.length],
+  );
+}
+
+/// Splices the existing placement slots whether or not first-party inventory
+/// is currently available. An empty campaign list therefore becomes an AdMob
+/// *candidate* at the same cadence; it never creates an extra ad position.
+List<T> spliceAdSlots<T>({
+  required List<T> rows,
+  required AdPlacementInventory inventory,
+  required int cadence,
+  required T Function(AdSlot slot) render,
+}) {
+  if (!inventory.allowed ||
+      !inventory.resolved ||
+      (inventory.firstParty.isEmpty && !inventory.adMobEligible) ||
+      rows.isEmpty ||
+      cadence < 1) {
+    return rows;
+  }
+  final spliced = <T>[];
+  var slot = 0;
+  for (var index = 0; index < rows.length; index++) {
+    spliced.add(rows[index]);
+    if ((index + 1) % cadence != 0) continue;
+    spliced.add(render(inventory.slot(slot)));
+    slot++;
   }
   return spliced;
 }
@@ -391,6 +464,56 @@ final placedAdsProvider = Provider.family<List<ServedAd>, AdPlacement>((
   if (ads == null || ads.isEmpty) return const <ServedAd>[];
   return adsForPlacement(ads, placement, now: DateTime.now());
 });
+
+/// Unified first-party/AdMob inventory for a placement. Callers splice these
+/// slots into their existing cadence and never inspect membership themselves.
+final placementInventoryProvider =
+    Provider.family<AdPlacementInventory, AdPlacement>((ref, placement) {
+      final allowed = ref.watch(adsAllowedProvider);
+      if (!allowed) {
+        return AdPlacementInventory(placement: placement, allowed: false);
+      }
+
+      final served = ref.watch(servedAdsProvider).asData?.value;
+      if (served == null) {
+        return AdPlacementInventory(
+          placement: placement,
+          allowed: true,
+          resolved: false,
+          adMobEligible: false,
+        );
+      }
+
+      final firstParty = adsForPlacement(
+        served,
+        placement,
+        now: DateTime.now(),
+      );
+      final adMobEligible =
+          firstParty.isEmpty &&
+          ref.watch(adConsentProvider).canRequestAds &&
+          ref.watch(adMobConfigProvider).nativeUnitIdFor(placement) != null;
+      return AdPlacementInventory(
+        placement: placement,
+        allowed: true,
+        adMobEligible: adMobEligible,
+        firstParty: firstParty,
+      );
+    });
+
+/// Session-local no-fill memory. Explore uses it to remove a failed full-page
+/// slot from its pager; list placements already collapse to zero height.
+class CollapsedAdMobSlots extends Notifier<Set<String>> {
+  @override
+  Set<String> build() => const <String>{};
+
+  void collapse(String key) {
+    if (!state.contains(key)) state = {...state, key};
+  }
+}
+
+final collapsedAdMobSlotsProvider =
+    NotifierProvider<CollapsedAdMobSlots, Set<String>>(CollapsedAdMobSlots.new);
 
 /// Session-wide, so an advert counted in one tab is not counted again in
 /// another.

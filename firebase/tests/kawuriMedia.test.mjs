@@ -38,6 +38,7 @@ import {
   readImageResponse,
   readKawuriMediaConfig,
   readModeration,
+  readOmniVideo,
   readVideoOperation,
   reasonOf,
   scanMp4Duration,
@@ -48,7 +49,11 @@ import {
   validateTranscript,
   videoCostCents,
   videoDurationsFor,
+  videoModelSupports,
+  videoResolutionsFor,
+  OMNI_VIDEO_RESOLUTIONS,
 } from '../../services/functions/lib/kawuri-media-policy.js';
+import { OMNI_SILENCE_INSTRUCTION } from '../../services/functions/lib/omni-video.js';
 import {
   generateImage,
   generateStructured,
@@ -88,7 +93,8 @@ test('configuration defaults to the models confirmed on the project, each replac
   assert.equal(config.location, 'global');
   assert.equal(config.videoLocation, 'us-central1');
   assert.deepEqual(config.imageModels, ['gemini-3.1-flash-image', 'gemini-2.5-flash-image']);
-  assert.equal(config.videoModel, 'veo-3.1-fast-generate-001');
+  assert.equal(config.videoModel, 'gemini-omni-1.1-flash-preview');
+  assert.equal(config.videoPlanModel, '', 'Omni has one model, so plans get no second one');
   assert.deepEqual(config.transcriptionModels, ['gemini-3.8-flash', 'gemini-2.5-flash']);
   assert.deepEqual(config.analysisModels, ['gemini-3.8-flash', 'gemini-2.5-flash']);
 
@@ -118,7 +124,8 @@ test('capabilities advertise only what configuration and eligibility support', (
   assert.deepEqual(signedIn.speechToTextLanguages, ['en']);
   assert.deepEqual(signedIn.imageAspectRatios, ['1:1', '3:4', '4:3', '9:16', '16:9']);
   assert.deepEqual(signedIn.videoAspectRatios, ['9:16', '16:9']);
-  assert.deepEqual(signedIn.videoDurations, [4, 6, 8]);
+  assert.deepEqual(signedIn.videoDurations, [4, 6, 8, 10]);
+  assert.deepEqual(signedIn.videoResolutions, { '16:9': ['720p', '1080p'], '9:16': ['720p', '1080p'] });
   assert.deepEqual(signedIn.videoQualityOptions, ['fast']);
   assert.equal(signedIn.videoAudio, true, 'the app may offer the sound switch');
   assert.deepEqual(signedIn.imageOutputCounts, [1]);
@@ -141,7 +148,19 @@ test('capabilities advertise only what configuration and eligibility support', (
   const plan = buildCapabilities({
     config, signedIn: true, videoEligible: true, videoPlanModelAllowed: true, unhealthy: new Set(),
   });
-  assert.deepEqual(plan.videoQualityOptions, ['fast', 'plan']);
+  assert.deepEqual(plan.videoQualityOptions, ['fast'], 'no plan model configured, so no choice to offer');
+  const planWithModel = buildCapabilities({
+    config: readKawuriMediaConfig({ VERTEX_VIDEO_PLAN_MODEL: 'veo-3.1-generate-001' }, 'p'),
+    signedIn: true, videoEligible: true, videoPlanModelAllowed: true, unhealthy: new Set(),
+  });
+  assert.deepEqual(planWithModel.videoQualityOptions, ['fast', 'plan']);
+
+  const backOnVeo = buildCapabilities({
+    config: readKawuriMediaConfig({ VERTEX_VIDEO_MODEL: 'veo-3.1-fast-generate-001' }, 'p'),
+    signedIn: true, videoEligible: true, videoPlanModelAllowed: false, unhealthy: new Set(),
+  });
+  assert.deepEqual(backOnVeo.videoDurations, [4, 6, 8], 'Veo can still be switched back to by environment');
+  assert.deepEqual(backOnVeo.videoResolutions, { '16:9': ['720p', '1080p'], '9:16': ['720p'] });
 });
 
 test('capabilities go dark when a tool is disabled, unconfigured or every model is failing', () => {
@@ -182,10 +201,33 @@ test('capabilities go dark when a tool is disabled, unconfigured or every model 
 test('model knowledge: image ratios, video durations, prices and thinking settings', () => {
   assert.deepEqual(imageAspectRatiosFor('gemini-2.5-flash-image'), ['1:1', '3:4', '4:3', '9:16', '16:9']);
   assert.deepEqual(imageAspectRatiosFor('gemini-2.5-flash'), [], 'a text model is not an image model');
+  assert.deepEqual(videoDurationsFor('gemini-omni-1.1-flash-preview'), [4, 6, 8, 10]);
+  assert.deepEqual(videoDurationsFor('gemini-omni-9-flash'), [], 'an Omni this backend has no price for');
   assert.deepEqual(videoDurationsFor('veo-3.1-fast-generate-001'), [4, 6, 8]);
   assert.deepEqual(videoDurationsFor('veo-9'), []);
+  assert.deepEqual(videoResolutionsFor('gemini-omni-1.1-flash-preview')['9:16'], ['720p', '1080p'], 'Omni makes portrait 1080p');
+  assert.deepEqual(videoResolutionsFor('veo-3.1-fast-generate-001')['9:16'], ['720p']);
+  assert.equal(videoCostCents('gemini-omni-1.1-flash-preview', 10, true, '720p'), 104);
+  assert.equal(videoCostCents('gemini-omni-1.1-flash-preview', 8, false, '1080p'), 124);
+  assert.equal(videoCostCents('gemini-omni-1.1-flash-preview', 8), 124, 'no resolution: the dearest');
+  assert.equal(
+    videoCostCents('gemini-omni-1.1-flash-preview', 8, true, '720p'),
+    videoCostCents('gemini-omni-1.1-flash-preview', 8, false, '720p'),
+    'Omni always makes sound, so sound costs nothing extra',
+  );
   assert.equal(videoCostCents('veo-3.1-fast-generate-001', 8), 120);
   assert.equal(videoCostCents('veo-9', 8), null);
+  const omni = 'gemini-omni-1.1-flash-preview';
+  assert.equal(videoModelSupports(omni, { durationSeconds: 10, aspectRatio: '9:16', resolution: '1080p' }), true);
+  assert.equal(
+    videoModelSupports('veo-3.1-generate-001', { durationSeconds: 10, aspectRatio: '16:9', resolution: '720p' }),
+    false,
+    'a plan model on Veo is never sent Omni’s 10 seconds',
+  );
+  assert.equal(
+    videoModelSupports('veo-3.1-generate-001', { durationSeconds: 8, aspectRatio: '9:16', resolution: '1080p' }),
+    false,
+  );
   assert.equal(vertexVideoRateUsdPerSecond('gen4.5'), null);
   assert.equal(VIDEO_SPEND_LIMITS.creatorDailySpendCents, 2000, 'the Studio ceiling is shared, not restated');
   assert.deepEqual(thinkingConfigFor('gemini-3.8-flash'), { thinkingLevel: 'LOW' });
@@ -262,6 +304,17 @@ test('video requests require explicit spend confirmation and the model’s own o
     'portrait stays at 720p, as in the Studio',
   );
   assert.equal(reasonFrom(() => parseVideoGenerationRequest(base, uid, [])), 'INVALID_REQUEST');
+  assert.equal(
+    parseVideoGenerationRequest({ ...base, aspectRatio: '9:16', resolution: '1080p' }, uid, [4, 6, 8, 10], OMNI_VIDEO_RESOLUTIONS).resolution,
+    '1080p',
+    'Omni makes portrait 1080p',
+  );
+  assert.equal(parseVideoGenerationRequest({ ...base, durationSeconds: 10 }, uid, [4, 6, 8, 10], OMNI_VIDEO_RESOLUTIONS).durationSeconds, 10);
+  assert.equal(
+    reasonFrom(() => parseVideoGenerationRequest({ ...base, resolution: '4k' }, uid, [4, 6, 8, 10], OMNI_VIDEO_RESOLUTIONS)),
+    'INVALID_REQUEST',
+    '4k is not offered',
+  );
 });
 
 test('speech-to-text is English only, bounded in length, and reads only the caller’s audio uploads', () => {
@@ -430,6 +483,28 @@ test('video operations: running, finished, filtered and failed are read correctl
   assert.equal(locationOfOperation('projects/p/locations/us-central1/publishers/google/models/veo/operations/1'), 'us-central1');
 });
 
+test('Omni interactions read in the same terms, never quoting Google back to the member', () => {
+  assert.deepEqual(readOmniVideo({ id: 'i', status: 'in_progress' }), { state: 'running', progress: null }, 'Omni reports no progress, so none is shown');
+  assert.deepEqual(
+    readOmniVideo({
+      status: 'completed',
+      steps: [{ type: 'thought' }, { type: 'model_output', content: [{ type: 'video', data: 'AAAA', mime_type: 'video/mp4' }] }],
+    }),
+    { state: 'succeeded', base64: 'AAAA', uri: null, mimeType: 'video/mp4' },
+  );
+  assert.deepEqual(
+    readOmniVideo({ status: 'failed', errors: [{ code: 'content_blocked', message: 'Request blocked for an unspecified policy reason.' }] }),
+    { state: 'rejected', reasons: ['SAFETY'] },
+  );
+  const failed = readOmniVideo({ status: 'failed', errors: [{ code: 'invalid_request', message: 'a cat reading my secret prompt' }] });
+  assert.equal(failed.state, 'failed');
+  assert.equal(failed.code, 'GENERATION_FAILED');
+  assert.ok(!failed.message.includes('secret'), 'the member sees the stable message, not Google’s text');
+  assert.equal(readOmniVideo({ status: 'failed', errors: [{ code: 'resource_exhausted', message: 'Quota exceeded' }] }).code, 'QUOTA_EXCEEDED');
+  assert.equal(readOmniVideo({ status: 'completed', steps: [] }).state, 'failed', 'completed without a video is terminal');
+  assert.equal(readOmniVideo({ status: 'cancelled' }).state, 'failed');
+});
+
 test('a task never stays in flight forever', () => {
   const created = Date.parse('2026-09-14T10:00:00Z');
   const task = (overrides) => ({ status: 'generating', type: 'image_generation', createdAt: new Date(created).toISOString(), ...overrides });
@@ -450,6 +525,8 @@ test('Vertex failures map to stable codes', () => {
   assert.equal(classifyVertexError({ status: 400, message: 'Location us-east9 is not supported' }), 'UNSUPPORTED_REGION');
   assert.equal(classifyVertexError({ status: 400, message: 'The prompt violated our usage guidelines' }), 'SAFETY_REJECTED');
   assert.equal(classifyVertexError({ status: 400, message: 'bad field' }), 'INVALID_REQUEST');
+  assert.equal(classifyVertexError({ status: 400, message: '400 Unsupported model interaction: gemini-omni-x' }), 'MODEL_UNAVAILABLE');
+  assert.equal(classifyVertexError({ status: 400, message: 'Request blocked for an unspecified policy reason' }), 'SAFETY_REJECTED');
   assert.equal(classifyVertexError({ status: 429 }), 'QUOTA_EXCEEDED');
   assert.equal(classifyVertexError({ name: 'AbortError' }), 'OPERATION_TIMEOUT');
   assert.equal(classifyVertexError({ status: 503 }), 'GENERATION_FAILED');
@@ -470,10 +547,20 @@ function fakeClient(handlers) {
     operations: {
       getVideosOperation: async (params) => { calls.push(['getVideosOperation', params]); return handlers.getVideosOperation(params); },
     },
+    interactions: {
+      create: async (params, options) => { calls.push(['interactions.create', params, options]); return handlers.createInteraction(params, options); },
+      get: async (id, params, options) => { calls.push(['interactions.get', id, options]); return handlers.getInteraction(id, options); },
+    },
   };
-  setGenAiFactoryForTests(() => client);
+  setGenAiFactoryForTests((project, location) => {
+    clientLocations.push(location);
+    return client;
+  });
   return calls;
 }
+
+/** The location each fake client was built for, in order. */
+const clientLocations = [];
 
 test('an unavailable image model falls back to the next, and is remembered', async () => {
   const calls = fakeClient({
@@ -538,6 +625,92 @@ test('video start returns the full operation name, and status checks resume from
   assert.equal(outcome.state, 'succeeded');
   assert.equal(recovered[0][1].operation.name, name);
   assert.ok(recovered[0][1].config.httpOptions.retryOptions, 'status checks may retry');
+});
+
+test('an Omni video starts as a background interaction on the global endpoint, never retried', async () => {
+  clientLocations.length = 0;
+  const calls = fakeClient({
+    createInteraction: async () => ({ id: 'omni-abc', status: 'in_progress', object: 'interaction' }),
+  });
+  const started = await startVideo({
+    project: 'p', location: 'us-central1', model: 'gemini-omni-1.1-flash-preview',
+    prompt: 'A slow pan across painted walls', negativePrompt: 'text on screen',
+    aspectRatio: '9:16', durationSeconds: 10, resolution: '1080p',
+    image: { mimeType: 'image/png', base64: 'AAAA' }, generateAudio: false,
+  });
+  assert.deepEqual(started, { model: 'gemini-omni-1.1-flash-preview', operationName: 'omni-abc' });
+  assert.deepEqual(clientLocations, ['global'], 'Omni ignores Veo’s region');
+  assert.equal(calls.length, 1);
+  const [kind, body, options] = calls[0];
+  assert.equal(kind, 'interactions.create');
+  assert.equal(options.maxRetries, 0, 'a retried create is a second video, billed twice');
+  assert.ok(options.timeout >= 60_000);
+  assert.equal(body.model, 'gemini-omni-1.1-flash-preview');
+  assert.equal(body.background, true);
+  const prompt = body.input[0].text;
+  assert.ok(prompt.startsWith('A slow pan across painted walls'));
+  assert.ok(prompt.includes('Do not include: text on screen.'), 'Omni has no negative prompt; it is said in words');
+  assert.ok(prompt.includes(OMNI_SILENCE_INSTRUCTION), 'sound off is said in words too');
+  assert.ok(!/adult/i.test(prompt), 'Kawuri allows children in safe scenes; its screen decides, not a blanket rule');
+  assert.deepEqual(body.input[1], { type: 'image', data: 'AAAA', mime_type: 'image/png' });
+  assert.deepEqual(body.response_format, [{ type: 'video', aspect_ratio: '9:16', resolution: '1080p', duration: '10s' }]);
+  assert.equal(body.generation_config.video_config.task, 'image_to_video');
+
+  // With sound, the member's words go as written.
+  const withSound = fakeClient({ createInteraction: async () => ({ id: 'omni-2' }) });
+  await startVideo({
+    project: 'p', location: 'us-central1', model: 'gemini-omni-1.1-flash-preview', prompt: 'Drums at a festival',
+    negativePrompt: '', aspectRatio: '16:9', durationSeconds: 4, resolution: '720p', image: null, generateAudio: true,
+  });
+  assert.equal(withSound[0][1].input[0].text, 'Drums at a festival');
+  assert.equal(withSound[0][1].generation_config.video_config.task, 'text_to_video');
+});
+
+test('an Omni video is collected from its interaction id alone', async () => {
+  clientLocations.length = 0;
+  const calls = fakeClient({
+    getInteraction: async (id) => ({
+      id,
+      status: 'completed',
+      steps: [{ type: 'model_output', content: [{ type: 'video', data: 'AAAA', mime_type: 'video/mp4' }] }],
+    }),
+  });
+  const outcome = await pollVideo({
+    project: 'p', fallbackLocation: 'us-central1', operationName: 'omni-abc', model: 'gemini-omni-1.1-flash-preview',
+  });
+  assert.deepEqual(outcome, { state: 'succeeded', base64: 'AAAA', uri: null, mimeType: 'video/mp4' });
+  assert.deepEqual(clientLocations, ['global']);
+  assert.equal(calls[0][0], 'interactions.get');
+  assert.equal(calls[0][1], 'omni-abc');
+  assert.equal(calls[0][2].maxRetries, undefined, 'status checks keep the SDK’s retries');
+});
+
+test('a Veo task started before the switch is still polled as a Veo operation', async () => {
+  const name = 'projects/p/locations/us-central1/publishers/google/models/veo-3.1-fast-generate-001/operations/old';
+  const calls = fakeClient({
+    getVideosOperation: async ({ operation }) => ({ name: operation.name, done: false }),
+  });
+  // Even if the model field were to say Omni, a Veo operation path is a Veo operation.
+  for (const model of ['veo-3.1-fast-generate-001', 'gemini-omni-1.1-flash-preview', undefined]) {
+    const outcome = await pollVideo({ project: 'p', fallbackLocation: 'us-central1', operationName: name, model });
+    assert.equal(outcome.state, 'running');
+  }
+  assert.deepEqual(calls.map(([kind]) => kind), ['getVideosOperation', 'getVideosOperation', 'getVideosOperation']);
+});
+
+test('an Omni model this project does not serve is reported as unavailable', async () => {
+  fakeClient({
+    createInteraction: async () => {
+      throw Object.assign(new Error('400 Unsupported model interaction: gemini-omni-1.1-flash-preview'), { status: 400 });
+    },
+  });
+  await assert.rejects(
+    startVideo({
+      project: 'p', location: 'us-central1', model: 'gemini-omni-1.1-flash-preview', prompt: 'x', negativePrompt: '',
+      aspectRatio: '16:9', durationSeconds: 4, resolution: '720p', image: null, generateAudio: true,
+    }),
+    (error) => reasonOf(error) === 'MODEL_UNAVAILABLE',
+  );
 });
 
 test('a refused person setting steps down to adults-only, once, and is remembered', async () => {

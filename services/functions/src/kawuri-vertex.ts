@@ -12,6 +12,7 @@ import {
   parseModelJson,
   readImageResponse,
   readModeration,
+  readOmniVideo,
   readVideoOperation,
   thinkingConfigFor,
   type ImageOutcome,
@@ -20,6 +21,13 @@ import {
   type VideoAspectRatio,
   type VideoOutcome,
 } from './kawuri-media-policy.js';
+import {
+  OMNI_LOCATION,
+  isOmniResolution,
+  isOmniVideoModel,
+  omniPrompt,
+  omniRequestBody,
+} from './omni-video.js';
 
 /**
  * Kawuri's media calls to Vertex AI, through the official Google Gen AI SDK.
@@ -30,15 +38,24 @@ import {
  * (Application Default Credentials). There is no API key, no service-account
  * file and no token that ever reaches the app. The SDK is used here, rather
  * than the hand-rolled REST those two older adapters use, because it is the
- * supported client for Gemini image output, structured output and Veo's
- * long-running operations; the older adapters are deployed and working, and
- * are left alone rather than rewritten in the same change.
+ * supported client for Gemini image output, structured output, Omni's
+ * interactions and Veo's long-running operations; the older adapters are
+ * deployed and working, and are left alone rather than rewritten in the same
+ * change.
  *
  * ── Retries ────────────────────────────────────────────────────────────────
- * The SDK retries nothing unless asked. Generation calls are never given retry
- * options — a retried generation is a second bill — while status checks on an
- * operation are, because reading an operation twice costs nothing.
+ * The `models` half of the SDK retries nothing unless asked. Its interactions
+ * client is the opposite: four retries by default, on 408, 409, 429, 5xx and
+ * dropped connections. A generation is never retried — a retried generation is
+ * a second bill — so an Omni create turns them off explicitly, while status
+ * checks keep them, because reading an interaction twice costs nothing.
  */
+
+/** Per-call options the SDK's interactions client reads. */
+interface InteractionCallOptions {
+  timeout?: number;
+  maxRetries?: number;
+}
 
 interface GenAiLike {
   models: {
@@ -47,6 +64,10 @@ interface GenAiLike {
   };
   operations: {
     getVideosOperation(params: Record<string, unknown>): Promise<unknown>;
+  };
+  interactions: {
+    create(params: Record<string, unknown>, options?: InteractionCallOptions): Promise<unknown>;
+    get(id: string, params?: Record<string, unknown> | null, options?: InteractionCallOptions): Promise<unknown>;
   };
 }
 
@@ -151,6 +172,24 @@ function emulatorFake(): GenAiLike {
           name: operation.name,
           done: true,
           response: { generatedVideos: [{ video: { videoBytes: FAKE_MP4, mimeType: 'video/mp4' } }] },
+        };
+      },
+    },
+    interactions: {
+      async create(params) {
+        failIfAsked(JSON.stringify(params.input ?? ''));
+        counter += 1;
+        return { id: `fake-omni-${Date.now()}-${counter}`, status: 'in_progress', object: 'interaction' };
+      },
+      async get(id) {
+        const seen = (polls.get(id) ?? 0) + 1;
+        polls.set(id, seen);
+        if (seen < 2) return { id, status: 'in_progress', object: 'interaction' };
+        return {
+          id,
+          status: 'completed',
+          object: 'interaction',
+          steps: [{ type: 'model_output', content: [{ type: 'video', data: FAKE_MP4, mime_type: 'video/mp4' }] }],
         };
       },
     },
@@ -409,8 +448,23 @@ export async function generateImage(input: {
 // Video generation
 // ---------------------------------------------------------------------------
 
+/**
+ * Generous on purpose. An Omni create normally answers in a second and a half,
+ * but the first one measured took 29 s — and a create abandoned after Vertex
+ * accepted it is a video billed with no id to collect it by.
+ */
+const OMNI_CREATE_TIMEOUT_MS = 90_000;
+/** A finished interaction carries the video itself: 17 MB of JSON for 10 s of 1080p. */
+const OMNI_GET_TIMEOUT_MS = 120_000;
+
+/**
+ * Starts one video and returns the handle it is collected by: an Omni
+ * interaction id, or a Veo operation name when VERTEX_VIDEO_MODEL points back
+ * at Veo. Either way it is persisted on the task as `operationName`.
+ */
 export async function startVideo(input: {
   project: string;
+  /** Veo's region. Omni is served from `global` only and ignores it. */
   location: string;
   model: string;
   prompt: string;
@@ -419,9 +473,10 @@ export async function startVideo(input: {
   durationSeconds: number;
   resolution: string;
   image: MediaInput | null;
-  /** A soundtrack from Veo: ambience, effects, music and any speech. */
+  /** A soundtrack: ambience, effects, music and any speech. */
   generateAudio: boolean;
 }): Promise<{ model: string; operationName: string }> {
+  if (isOmniVideoModel(input.model)) return startOmniVideo(input);
   const { model, value } = await withModelChain('video_generation', [input.model], (candidate) =>
     withPersonSettings('video_generation', VIDEO_PERSON_SETTINGS, async (personGeneration) => {
     const operation = await clientFor(input.project, input.location).models.generateVideos({
@@ -460,24 +515,70 @@ export async function startVideo(input: {
   return { model, operationName: value };
 }
 
+/**
+ * Starts a Gemini Omni video as a background interaction.
+ *
+ * Omni has no person-generation setting, so there is nothing to step down:
+ * the platform's own screen has already allowed or refused children in the
+ * request, and Omni applies its own filters on top. Its sound is said in
+ * words, since it has no switch: a member who turned sound off gets the
+ * silence instruction.
+ */
+async function startOmniVideo(input: Parameters<typeof startVideo>[0]): Promise<{
+  model: string;
+  operationName: string;
+}> {
+  if (!isOmniResolution(input.resolution)) {
+    throw kawuriError('INVALID_REQUEST', 'That resolution is not made by this model.');
+  }
+  const resolution = input.resolution;
+  const { model, value } = await withModelChain('video_generation', [input.model], async (candidate) => {
+    if (!isOmniVideoModel(candidate)) throw kawuriError('CAPABILITY_UNAVAILABLE');
+    const interaction = await clientFor(input.project, OMNI_LOCATION).interactions.create(
+      omniRequestBody({
+        model: candidate,
+        prompt: omniPrompt({
+          prompt: input.prompt,
+          negativePrompt: input.negativePrompt,
+          sound: input.generateAudio ? 'natural' : 'silent',
+        }),
+        aspectRatio: input.aspectRatio,
+        resolution,
+        durationSeconds: input.durationSeconds,
+        image: input.image,
+      }),
+      { timeout: OMNI_CREATE_TIMEOUT_MS, maxRetries: 0 },
+    ) as Record<string, unknown> | null;
+    const id = typeof interaction?.id === 'string' ? interaction.id.trim() : '';
+    if (!id) throw kawuriError('GENERATION_FAILED', 'Vertex did not start the video.');
+    return id;
+  });
+  return { model, operationName: value };
+}
+
 /** The region an operation lives in, read from its own name. */
 export function locationOfOperation(operationName: string): string | null {
   return /\/locations\/([a-z0-9-]+)\//.exec(operationName)?.[1] ?? null;
 }
 
 /**
- * One status check on a Veo operation.
+ * One status check on a video: an Omni interaction or a Veo operation.
  *
- * Built from the persisted operation name alone, so a job started by an
- * instance that has since been replaced is resumed by whichever instance
- * checks next — the phone does not have to be open, and nothing is kept in
- * memory.
+ * Built from the persisted handle alone, so a job started by an instance that
+ * has since been replaced is resumed by whichever instance checks next — the
+ * phone does not have to be open, and nothing is kept in memory. [model] says
+ * which kind of handle it is; a Veo operation name is also recognisable by
+ * its `projects/…/operations/…` path, which covers a task written before the
+ * model was consulted here.
  */
 export async function pollVideo(input: {
   project: string;
   fallbackLocation: string;
   operationName: string;
+  model?: string;
 }): Promise<VideoOutcome> {
+  const veoOperation = /^projects\/.+\/operations\//.test(input.operationName);
+  if (isOmniVideoModel(input.model) && !veoOperation) return pollOmniVideo(input);
   const location = locationOfOperation(input.operationName) ?? input.fallbackLocation;
   const operation = new GenerateVideosOperation();
   operation.name = input.operationName;
@@ -498,6 +599,24 @@ export async function pollVideo(input: {
       notePersonSettingRefused('video_generation', VIDEO_PERSON_SETTINGS[0]);
     }
     return outcome;
+  } catch (error) {
+    const code = classifyVertexError(error);
+    logger.warn('Kawuri video status check failed', {
+      status: (error as { status?: unknown })?.status ?? 0,
+      code,
+    });
+    throw kawuriError(code);
+  }
+}
+
+async function pollOmniVideo(input: { project: string; operationName: string }): Promise<VideoOutcome> {
+  try {
+    const interaction = await clientFor(input.project, OMNI_LOCATION).interactions.get(
+      input.operationName,
+      null,
+      { timeout: OMNI_GET_TIMEOUT_MS },
+    );
+    return readOmniVideo(interaction);
   } catch (error) {
     const code = classifyVertexError(error);
     logger.warn('Kawuri video status check failed', {

@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/app/app_shell.dart';
 import 'package:indigen_world_mobile/app/shell_chrome.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
+import 'package:indigen_world_mobile/features/ads/admob_native.dart';
 import 'package:indigen_world_mobile/features/ads/data/ad_campaign.dart';
 import 'package:indigen_world_mobile/features/ads/data/served_ad.dart';
 import 'package:indigen_world_mobile/features/ads/widgets/sponsored_card.dart';
@@ -616,8 +617,8 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
                           ),
                           sliver: _FeedList(
                             posts: posts,
-                            ads: ref.watch(
-                              placedAdsProvider(AdPlacement.community),
+                            inventory: ref.watch(
+                              placementInventoryProvider(AdPlacement.community),
                             ),
                             likes: likes,
                             saved: saved,
@@ -692,7 +693,7 @@ const int kCommunityAdCadence = 10;
 class _FeedList extends StatelessWidget {
   const _FeedList({
     required this.posts,
-    required this.ads,
+    required this.inventory,
     required this.likes,
     required this.saved,
     required this.reposts,
@@ -708,7 +709,7 @@ class _FeedList extends StatelessWidget {
 
   /// The adverts cleared for this feed, in the order they should be used.
   /// Empty whenever Firebase is not up, which is every widget test.
-  final List<ServedAd> ads;
+  final AdPlacementInventory inventory;
 
   final Set<String> likes;
   final Set<String> saved;
@@ -731,11 +732,11 @@ class _FeedList extends StatelessWidget {
     // builder. A row's index has to mean the same thing to the item count, to
     // the key and to the reader, and index maths that skips advert slots is the
     // kind of code that quietly hands post 41 the key of post 40.
-    final spliced = spliceSponsored<Object>(
+    final spliced = spliceAdSlots<Object>(
       rows: posts,
-      ads: ads,
+      inventory: inventory,
       cadence: kCommunityAdCadence,
-      render: (ad) => ad,
+      render: (slot) => slot,
     );
     final rows = offerNewVoices
         ? insertDiscoveryRow(
@@ -765,11 +766,15 @@ class _FeedList extends StatelessWidget {
         // The advert brings its own visibility detector and its own impression
         // — see [SponsoredCard]. It is emphatically not passed to [onSeen]:
         // that writes a post view against a post id, and a campaign is neither.
-        if (row is ServedAd) {
+        if (row is AdSlot) {
           // Keyed by slot: the rotation may place one campaign in two slots.
           return KeyedSubtree(
             key: ValueKey('ad-slot-$index'),
-            child: SponsoredCard(ad: row, slot: 'community-$index'),
+            child: UnifiedAdSlot(
+              slot: row,
+              firstPartyBuilder: (context, ad) =>
+                  SponsoredCard(ad: ad, slot: 'community-$index'),
+            ),
           );
         }
         final post = row as CommunityPost;

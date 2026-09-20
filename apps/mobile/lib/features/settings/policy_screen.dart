@@ -99,6 +99,19 @@ const _privacySections = <_PolicySection>[
         'of your posts or contributions.',
   ),
   _PolicySection(
+    'Advertising',
+    'Guests and free members may see advertising. Campaigns placed directly '
+        'with Indigen World are used first. If no suitable campaign is '
+        'available, Google Mobile Ads may provide an advert after the required '
+        'privacy choice has been completed. Google may process an advertising '
+        'identifier, device and app information, an approximate region, and '
+        'advert interactions to deliver, measure, prevent fraud, and — only '
+        'where your choice allows it — personalise advertising. Settings '
+        'provides advertising privacy choices where the law requires them. '
+        'Indigen Plus, Patron and Creator memberships remove both Indigen '
+        'World campaigns and Google advertising.',
+  ),
+  _PolicySection(
     'Deleting your data',
     'Deleting a post removes it and its media. Requesting account deletion '
         'from Settings removes your community profile, posts, saves and '

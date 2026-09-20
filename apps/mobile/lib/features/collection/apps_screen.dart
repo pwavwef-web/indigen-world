@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
+import 'package:indigen_world_mobile/features/ads/admob_native.dart';
 import 'package:indigen_world_mobile/features/ads/collection_ads.dart';
 import 'package:indigen_world_mobile/features/ads/data/served_ad.dart';
 import 'package:indigen_world_mobile/features/ads/widgets/sponsored_card.dart';
@@ -52,7 +53,10 @@ class AppsCollectionScreen extends ConsumerWidget {
                   ),
                 ],
                 AsyncData(value: final list) => [
-                  _AppRows(apps: list, ads: ref.watch(collectionAdsProvider)),
+                  _AppRows(
+                    apps: list,
+                    inventory: ref.watch(collectionInventoryProvider),
+                  ),
                 ],
                 AsyncError() => const [
                   SliverFillRemaining(
@@ -86,14 +90,14 @@ class AppsCollectionScreen extends ConsumerWidget {
 /// "Sponsored" would be indistinguishable from a listing the project chose.
 /// [SponsoredCard] wears it before it says anything else.
 class _AppRows extends StatelessWidget {
-  const _AppRows({required this.apps, required this.ads});
+  const _AppRows({required this.apps, required this.inventory});
 
   final List<DirectoryApp> apps;
-  final List<ServedAd> ads;
+  final AdPlacementInventory inventory;
 
   @override
   Widget build(BuildContext context) {
-    final rows = collectionRowsWithAds(items: apps, ads: ads);
+    final rows = collectionRowsWithAds(items: apps, inventory: inventory);
     return SliverPadding(
       padding: const EdgeInsets.fromLTRB(18, 4, 18, 40),
       sliver: SliverList.separated(
@@ -101,11 +105,14 @@ class _AppRows extends StatelessWidget {
         separatorBuilder: (_, _) => const SizedBox(height: 12),
         itemBuilder: (context, index) {
           final row = rows[index];
-          if (row is ServedAd) {
-            return SponsoredCard(
-              ad: row,
-              slot: 'apps-$index',
-              margin: EdgeInsets.zero,
+          if (row is AdSlot) {
+            return UnifiedAdSlot(
+              slot: row,
+              firstPartyBuilder: (context, ad) => SponsoredCard(
+                ad: ad,
+                slot: 'apps-$index',
+                margin: EdgeInsets.zero,
+              ),
             );
           }
           return _AppCard(app: row as DirectoryApp);

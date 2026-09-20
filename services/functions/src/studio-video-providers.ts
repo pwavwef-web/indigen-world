@@ -1,8 +1,16 @@
 import { HttpsError } from 'firebase-functions/v2/https';
-import type {
-  GeminiVideoModel,
-  GenerateVisualInput,
-  LipSyncInput,
+import {
+  OMNI_API_VERSION,
+  OMNI_LOCATION,
+  isOmniVideoModel,
+  omniPrompt,
+  omniRequestBody,
+  readOmniInteraction,
+} from './omni-video.js';
+import {
+  STUDIO_OMNI_RESOLUTION,
+  type GenerateVisualInput,
+  type LipSyncInput,
 } from './studio-video-policy.js';
 
 const RUNWAY_BASE_URL = 'https://api.dev.runwayml.com/v1';
@@ -56,6 +64,13 @@ function providerErrorMessage(
     if (typeof data.error === 'string' && data.error.trim()) {
       return data.error.trim().slice(0, 240);
     }
+    // Google's shape: `{ error: { code, message } }`.
+    const nested = data.error && typeof data.error === 'object'
+      ? (data.error as Record<string, unknown>).message
+      : null;
+    if (typeof nested === 'string' && nested.trim()) {
+      return nested.trim().slice(0, 240);
+    }
     if (Array.isArray(data.issues)) {
       const issues = data.issues
         .map((raw) => {
@@ -95,10 +110,11 @@ async function providerFetch(
   url: string,
   init: RequestInit,
   provider: string,
+  timeoutMs = 30_000,
 ): Promise<ProviderResponse> {
   let response: Response;
   try {
-    response = await fetch(url, { ...init, signal: AbortSignal.timeout(30_000) });
+    response = await fetch(url, { ...init, signal: AbortSignal.timeout(timeoutMs) });
   } catch {
     throw new HttpsError('unavailable', `${provider} could not be reached.`);
   }
@@ -113,8 +129,9 @@ async function providerJson(
   url: string,
   init: RequestInit,
   provider: string,
+  timeoutMs?: number,
 ): Promise<Record<string, unknown>> {
-  const { ok, status, data } = await providerFetch(url, init, provider);
+  const { ok, status, data } = await providerFetch(url, init, provider, timeoutMs);
   if (!ok) {
     throw new HttpsError('unavailable', providerErrorMessage(data, provider, status));
   }
@@ -212,7 +229,7 @@ export async function pollRunwayVisual(
 }
 
 // ---------------------------------------------------------------------------
-// Gemini video (Veo on Vertex AI)
+// Gemini video (Gemini Omni on Vertex AI; Veo before 2026-09-19)
 // ---------------------------------------------------------------------------
 //
 // Reached with the function's own Application Default Credentials, like
@@ -220,18 +237,35 @@ export async function pollRunwayVisual(
 // else. The project needs `aiplatform.googleapis.com` enabled and the runtime
 // service account needs `roles/aiplatform.user`.
 
-const GEMINI_LOCATION = process.env.STUDIO_VIDEO_VERTEX_LOCATION || 'us-central1';
+/** Where Veo ran. Only the collection of a job started before Omni uses it. */
+const VEO_LOCATION = process.env.STUDIO_VIDEO_VERTEX_LOCATION || 'us-central1';
 
-/** Veo frames landscape and portrait; our ratios are stated in pixels. */
-const GEMINI_ASPECT_RATIOS: Record<string, string> = {
+/** Omni frames landscape and portrait; our ratios are stated in pixels. */
+const GEMINI_ASPECT_RATIOS: Record<string, '16:9' | '9:16'> = {
   '1280:720': '16:9',
   '720:1280': '9:16',
 };
 
-function geminiModelUrl(model: GeminiVideoModel, project: string, method: string): string {
+/**
+ * Generous on purpose. A background create normally answers in about a second
+ * and a half, but the first one measured took 29 s — and a create abandoned
+ * after Vertex accepted it is a video billed with no id to collect it by.
+ */
+const OMNI_SUBMIT_TIMEOUT_MS = 90_000;
+/** A finished interaction carries the video itself: 17 MB of JSON for 10 s of 1080p. */
+const OMNI_POLL_TIMEOUT_MS = 120_000;
+
+function omniInteractionsUrl(project: string): string {
   return (
-    `https://${GEMINI_LOCATION}-aiplatform.googleapis.com/v1/projects/${project}`
-    + `/locations/${GEMINI_LOCATION}/publishers/google/models/${model}:${method}`
+    `https://aiplatform.googleapis.com/${OMNI_API_VERSION}/projects/${encodeURIComponent(project)}`
+    + `/locations/${OMNI_LOCATION}/interactions`
+  );
+}
+
+function veoModelUrl(model: string, project: string, method: string): string {
+  return (
+    `https://${VEO_LOCATION}-aiplatform.googleapis.com/v1/projects/${project}`
+    + `/locations/${VEO_LOCATION}/publishers/google/models/${model}:${method}`
   );
 }
 
@@ -249,7 +283,10 @@ export async function submitGeminiVisual(
   project: string,
   referenceImage: { base64: string; mimeType: string } | null,
 ): Promise<ProviderSubmission> {
-  const model = input.model as GeminiVideoModel;
+  const model = input.model;
+  if (!isOmniVideoModel(model)) {
+    throw new HttpsError('failed-precondition', 'Gemini video is made with Gemini Omni.');
+  }
   const aspectRatio = GEMINI_ASPECT_RATIOS[input.ratio];
   if (!aspectRatio) {
     throw new HttpsError(
@@ -257,57 +294,89 @@ export async function submitGeminiVisual(
       'Gemini video is made in landscape or portrait.',
     );
   }
-  const instance: Record<string, unknown> = { prompt: input.prompt };
-  if (referenceImage) {
-    instance.image = {
-      bytesBase64Encoded: referenceImage.base64,
-      mimeType: referenceImage.mimeType,
-    };
-  }
+  const headers = geminiHeaders(accessToken);
   const data = await providerJson(
-    geminiModelUrl(model, project, 'predictLongRunning'),
+    omniInteractionsUrl(project),
     {
       method: 'POST',
-      headers: geminiHeaders(accessToken),
-      body: JSON.stringify({
-        instances: [instance],
-        parameters: {
-          aspectRatio,
-          durationSeconds: input.durationSeconds,
-          sampleCount: 1,
-          // 1080p is offered on landscape; portrait stays at 720p.
-          resolution: aspectRatio === '16:9' ? '1080p' : '720p',
-          // Off deliberately, and not a cost decision alone (audio raises the
-          // per-second rate). Veo would synthesise speech and song in a
-          // language that is not Kasem, over footage meant to represent
-          // Kassena life. The Kasem the creator recorded is the audio; it
-          // arrives through lip-sync or in editing, never invented here.
-          generateAudio: false,
+      headers,
+      body: JSON.stringify(omniRequestBody({
+        model,
+        prompt: omniPrompt({
+          prompt: input.prompt,
+          // Silent deliberately, as Veo's `generateAudio: false` was. Omni
+          // would otherwise voice its people in a language that is not Kasem,
+          // over footage meant to represent Kassena life. The Kasem the
+          // creator recorded is the audio; it arrives through lip-sync or in
+          // editing, never invented here.
+          sound: 'silent',
           // The governance model refuses media involving minors outright, so
-          // the model is told the same thing rather than being trusted to
-          // infer it.
-          personGeneration: 'allow_adult',
-        },
-      }),
+          // the model is told the same thing rather than trusted to infer it.
+          adultsOnly: true,
+        }),
+        aspectRatio,
+        resolution: STUDIO_OMNI_RESOLUTION,
+        durationSeconds: input.durationSeconds,
+        image: referenceImage,
+      })),
     },
     'Gemini video',
+    OMNI_SUBMIT_TIMEOUT_MS,
   );
-  const operationName = typeof data.name === 'string' ? data.name.trim() : '';
-  if (!operationName) {
-    throw new HttpsError('data-loss', 'Vertex did not return an operation name.');
+  const interactionId = typeof data.id === 'string' ? data.id.trim() : '';
+  if (!interactionId) {
+    throw new HttpsError('data-loss', 'Vertex did not return an interaction id.');
   }
   return {
-    providerTaskId: operationName,
-    // Rebuilt from the model at poll time rather than trusted from the
-    // response, so nothing the provider says can redirect a later request.
-    statusUrl: geminiModelUrl(model, project, 'fetchPredictOperation'),
+    providerTaskId: interactionId,
+    // Informational. The poller rebuilds the address from the model and the
+    // id, so nothing the provider says can redirect a later request.
+    statusUrl: `${omniInteractionsUrl(project)}/${encodeURIComponent(interactionId)}`,
     responseUrl: null,
-    state: 'queued',
+    state: data.status === 'in_progress' ? 'running' : 'queued',
   };
 }
 
-/** Reads the video out of a finished Vertex operation, whichever form it took. */
-function geminiOutput(response: Record<string, unknown>): {
+/** One status check on an Omni interaction; the video comes with the last one. */
+async function pollOmniVisual(
+  interactionId: string,
+  accessToken: string,
+  project: string,
+): Promise<ProviderStatus> {
+  const data = await providerJson(
+    `${omniInteractionsUrl(project)}/${encodeURIComponent(interactionId)}`,
+    { method: 'GET', headers: geminiHeaders(accessToken) },
+    'Gemini video',
+    OMNI_POLL_TIMEOUT_MS,
+  );
+  const outcome = readOmniInteraction(data);
+  const none = { outputUrl: null, outputBase64: null };
+  switch (outcome.state) {
+    case 'running':
+      return { state: 'running', ...none, failureReason: null };
+    case 'succeeded':
+      if (outcome.base64) {
+        return { state: 'succeeded', outputUrl: null, outputBase64: outcome.base64, failureReason: null };
+      }
+      // A gs:// address appears only when a request asks Vertex to write into
+      // a bucket, which this integration never does.
+      if (outcome.uri?.startsWith('https://')) {
+        return { state: 'succeeded', outputUrl: outcome.uri, outputBase64: null, failureReason: null };
+      }
+      return { state: 'failed', ...none, failureReason: 'Gemini finished without returning a video.' };
+    case 'rejected':
+      // Terminal, and worth reading: it tells the creator to rephrase rather
+      // than to retry the same thing.
+      return { state: 'failed', ...none, failureReason: `Gemini declined this prompt: ${outcome.reason}` };
+    case 'failed':
+      return { state: 'failed', ...none, failureReason: outcome.reason };
+    case 'cancelled':
+      return { state: 'cancelled', ...none, failureReason: outcome.reason };
+  }
+}
+
+/** Reads the video out of a finished Veo operation, whichever form it took. */
+function veoOutput(response: Record<string, unknown>): {
   url: string | null;
   base64: string | null;
 } {
@@ -331,14 +400,21 @@ function geminiOutput(response: Record<string, unknown>): {
   return { url: null, base64: null };
 }
 
+/**
+ * One status check on a Gemini job: an Omni interaction, or a Veo operation
+ * started before the switch. [providerTaskId] is whichever handle the job
+ * stored; the model it was made with says which kind it is.
+ */
 export async function pollGeminiVisual(
-  operationName: string,
-  model: GeminiVideoModel,
+  providerTaskId: string,
+  model: string,
   accessToken: string,
   project: string,
 ): Promise<ProviderStatus> {
+  if (isOmniVideoModel(model)) return pollOmniVisual(providerTaskId, accessToken, project);
+  const operationName = providerTaskId;
   const data = await providerJson(
-    geminiModelUrl(model, project, 'fetchPredictOperation'),
+    veoModelUrl(model, project, 'fetchPredictOperation'),
     {
       method: 'POST',
       headers: geminiHeaders(accessToken),
@@ -362,7 +438,7 @@ export async function pollGeminiVisual(
     ? data.response as Record<string, unknown>
     : {};
   const filtered = Number(response.raiMediaFilteredCount ?? 0);
-  const { url, base64 } = geminiOutput(response);
+  const { url, base64 } = veoOutput(response);
   if (!url && !base64) {
     // A prompt Google's safety filters declined returns done with no video and
     // a reason. Terminal, and the reason is worth showing: it tells the

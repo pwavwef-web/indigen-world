@@ -45,7 +45,8 @@ const double kSponsoredVisibleFraction = 0.55;
 typedef SponsoredLinkLauncher = Future<bool> Function(Uri url);
 
 final sponsoredLinkLauncherProvider = Provider<SponsoredLinkLauncher>(
-  (ref) => (url) => launchUrl(url, mode: LaunchMode.externalApplication),
+  (ref) =>
+      (url) => launchUrl(url, mode: LaunchMode.externalApplication),
 );
 
 /// What happens when somebody taps an advert.
@@ -151,11 +152,7 @@ class SponsoredCard extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Row(
-                    children: [
-                      _SponsoredLabel(),
-                      Spacer(),
-                      _WhyThisAdvert(),
-                    ],
+                    children: [_SponsoredLabel(), Spacer(), _WhyThisAdvert()],
                   ),
                   const SizedBox(height: 8),
                   Text(
@@ -351,9 +348,10 @@ class _WhyThisAdvert extends StatelessWidget {
         children: [
           Text(
             'Everything in Indigen World is free to read, watch and listen to, '
-            'and adverts are part of how that is paid for. They are placed by '
-            'the project — nobody is tracked, profiled or targeted, and no '
-            'advertiser is told anything about you.\n\n'
+            'and adverts are part of how that is paid for. Indigen World '
+            'campaigns are shown first. When none fits this position, Google '
+            'may supply an advert under the advertising privacy choice shown '
+            'to you.\n\n'
             'A membership takes every advert out of the app.',
             style: TextStyle(
               color: popupContext.brand.mutedInk,
@@ -371,9 +369,7 @@ class _WhyThisAdvert extends StatelessWidget {
     );
     if (seePlans != true || !context.mounted) return;
     await Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (context) => const MembershipScreen(),
-      ),
+      MaterialPageRoute<void>(builder: (context) => const MembershipScreen()),
     );
   }
 }
@@ -448,8 +444,7 @@ class _SponsoredCreative extends StatelessWidget {
     return CachedNetworkImage(
       imageUrl: ad.creativeUrl,
       fit: BoxFit.cover,
-      placeholder: (context, url) =>
-          ColoredBox(color: brand.surfaceMuted),
+      placeholder: (context, url) => ColoredBox(color: brand.surfaceMuted),
       errorWidget: (context, url, error) =>
           ColoredBox(color: brand.surfaceMuted),
     );

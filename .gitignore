@@ -99,3 +99,8 @@ __pycache__/
 *.aab
 *.apk
 apps/mobile/android/app/production/
+
+# Production AdMob identifiers. Every value embeds the account's publisher id,
+# so they are supplied per machine (this file) or from CI secrets, never from
+# source control. Copy admob.local.example.json to create one.
+admob.local.json

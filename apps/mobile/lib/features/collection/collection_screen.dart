@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/domain/dictionary_entry.dart';
+import 'package:indigen_world_mobile/features/ads/admob_native.dart';
 import 'package:indigen_world_mobile/features/ads/data/ad_campaign.dart';
 import 'package:indigen_world_mobile/features/ads/data/served_ad.dart';
 import 'package:indigen_world_mobile/features/ads/widgets/sponsored_card.dart';
@@ -20,7 +21,6 @@ import 'package:indigen_world_mobile/features/heroes/heroes_data.dart';
 import 'package:indigen_world_mobile/features/heroes/heroes_screen.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_fab.dart';
 import 'package:indigen_world_mobile/features/music/music_screen.dart';
-import 'package:indigen_world_mobile/features/subscriptions/data/subscription_providers.dart';
 import 'package:indigen_world_mobile/l10n/app_localizations.dart';
 import 'package:indigen_world_mobile/shared/app_widgets.dart';
 import 'package:indigen_world_mobile/shared/frosted_nav_bar.dart';
@@ -177,7 +177,9 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen>
         .toList(growable: false);
     final hasLoading = portals.any((portal) => portal.loading);
     final hasErrors = portals.any((portal) => portal.failed);
-    final sponsored = ref.watch(placedAdsProvider(AdPlacement.collection));
+    final adInventory = ref.watch(
+      placementInventoryProvider(AdPlacement.collection),
+    );
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -201,11 +203,14 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen>
             if (query.isEmpty)
               SliverToBoxAdapter(
                 child: PlaceStoryCarousel(
-                  ad: !ref.watch(adsAllowedProvider)
-                      ? null
-                      : sponsored.isNotEmpty
-                      ? SponsoredTile(ad: sponsored.first)
-                      : const _CollectionHouseAd(),
+                  ad: adInventory.allowed && adInventory.resolved
+                      ? UnifiedAdSlot(
+                          slot: adInventory.slot(0),
+                          compact: true,
+                          firstPartyBuilder: (context, ad) =>
+                              SponsoredTile(ad: ad),
+                        )
+                      : null,
                 ),
               ),
             if (visiblePortals.isNotEmpty)
@@ -782,57 +787,4 @@ bool _shopProductMatches(ShopProduct product, String query) {
     if (_contains(value, query)) return true;
   }
   return false;
-}
-
-/// Seeded house promotion, replaced by one served campaign when available.
-class _CollectionHouseAd extends StatelessWidget {
-  const _CollectionHouseAd();
-  @override
-  Widget build(BuildContext context) => Material(
-    color: context.brand.accentFill,
-    borderRadius: BorderRadius.circular(22),
-    clipBehavior: Clip.antiAlias,
-    child: InkWell(
-      onTap: () => Navigator.of(context).push<void>(
-        MaterialPageRoute(builder: (_) => const ShopCollectionScreen()),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(22),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              'AD · INDIGEN WORLD',
-              style: TextStyle(
-                color: context.brand.onAccentFill,
-                fontSize: 11,
-                letterSpacing: 1.5,
-              ),
-            ),
-            const SizedBox(height: 14),
-            Icon(
-              Icons.storefront_outlined,
-              color: context.brand.onAccentFill,
-              size: 34,
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'Discover the community shop',
-              style: TextStyle(
-                color: context.brand.onAccentFill,
-                fontSize: 23,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'Explore the collection →',
-              style: TextStyle(color: context.brand.onAccentFill),
-            ),
-          ],
-        ),
-      ),
-    ),
-  );
 }
