@@ -1,9 +1,10 @@
 # First-party community campaigns now have a privacy-aware fallback
 
-Status: **Draft — implemented locally, not released.** AdMob account review,
-owner approval of the currently published consent-message choices,
-app-ads.txt deployment, Play Data Safety review, and a production app release
-are still pending.
+Status: **Draft — implemented and configured, not released.** The consent
+message is published with *Do not consent* enabled, and the Play Data Safety
+answers were corrected and sent for review on 2026-09-20. Still pending:
+app-ads.txt deployment, AdMob app verification against it, and a production
+app release. No advert has served.
 
 | Field | Value |
 |---|---|
