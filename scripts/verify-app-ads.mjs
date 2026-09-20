@@ -9,14 +9,16 @@
 // one that is obvious. So each is asserted separately here, against the
 // canonical origin, with the cache deliberately bypassed.
 //
-// The expected record is optional. Without it this still proves the file is
-// reachable and well formed; with ADMOB_APP_ADS_TXT_RECORD set it also proves
-// the deployed line is the exact one AdMob issued. Neither the record nor the
-// publisher id is ever printed.
+// The expected record comes from the same place the website build emits it:
+// ADMOB_APP_ADS_TXT_RECORD in the environment, or the ignored admob.local.json.
+// With one configured this proves the deployed line is the exact one AdMob
+// issued, not merely a line of the right shape; without one it still proves the
+// file is reachable and well formed. Neither the record nor the publisher id is
+// ever printed.
 //
 // Usage: npm run verify:app-ads [-- https://other-origin]
 
-import { redact } from './admob-release-config.mjs';
+import { appAdsRecord, redact } from './admob-release-config.mjs';
 
 const RECORD = /^google\.com,\s*pub-\d{16},\s*DIRECT,\s*f08c47fec0942fa0$/;
 
@@ -86,11 +88,18 @@ async function main() {
     }
   }
 
-  const expected = process.env.ADMOB_APP_ADS_TXT_RECORD?.trim();
+  // The same source the website build emits from - the environment, then the
+  // ignored admob.local.json - so this compares against the record that was
+  // actually deployed rather than only checking the line's shape. A malformed
+  // one throws out of appAdsRecord() rather than being quietly skipped.
+  let expected;
+  try {
+    expected = appAdsRecord();
+  } catch (error) {
+    note(error.message);
+  }
   if (!expected) {
-    say('· ADMOB_APP_ADS_TXT_RECORD is unset, so the exact record was not compared.');
-  } else if (!RECORD.test(expected)) {
-    note('ADMOB_APP_ADS_TXT_RECORD is not a valid Google app-ads.txt record.');
+    say('· No AdMob record configured, so the exact record was not compared.');
   } else if (lines.includes(expected)) {
     say(`· Expected record matched in full (publisher ${redact(expected.split(',')[1]?.trim())})`);
   } else {
