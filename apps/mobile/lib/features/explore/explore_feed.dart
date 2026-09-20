@@ -347,7 +347,8 @@ final exploreContentProvider = Provider<List<Reel>>((ref) {
 final exploreFeedProvider = Provider<List<Reel>>(
   (ref) => loopedExploreFeed(
     content: ref.watch(exploreCatalogueProvider),
-    ads: ref.watch(placedAdsProvider(AdPlacement.explore)),
+    inventory: ref.watch(placementInventoryProvider(AdPlacement.explore)),
+    collapsedSlots: ref.watch(collapsedAdMobSlotsProvider),
     cadence: kExploreAdCadence,
     cycles: 0,
   ),
@@ -505,7 +506,8 @@ final exploreCyclesProvider = NotifierProvider<ExploreCycles, int>(
 final exploreLoopedFeedProvider = Provider<List<Reel>>(
   (ref) => loopedExploreFeed(
     content: ref.watch(exploreContentProvider),
-    ads: ref.watch(placedAdsProvider(AdPlacement.explore)),
+    inventory: ref.watch(placementInventoryProvider(AdPlacement.explore)),
+    collapsedSlots: ref.watch(collapsedAdMobSlotsProvider),
     cadence: kExploreAdCadence,
     cycles: ref.watch(exploreCyclesProvider),
   ),
@@ -537,16 +539,28 @@ final exploreFollowingLoopedFeedProvider = Provider<List<Reel>>(
 /// precisely what they used to.
 List<Reel> loopedExploreFeed({
   required List<Reel> content,
-  required List<ServedAd> ads,
+  List<ServedAd> ads = const <ServedAd>[],
+  AdPlacementInventory? inventory,
+  Set<String> collapsedSlots = const <String>{},
   required int cadence,
   required int cycles,
 }) {
+  final resolved =
+      inventory ??
+      AdPlacementInventory(
+        placement: AdPlacement.explore,
+        allowed: ads.isNotEmpty,
+        firstParty: ads,
+      );
   final base = List<Reel>.unmodifiable(
-    spliceSponsored(
+    spliceAdSlots(
       rows: content,
-      ads: ads,
+      inventory: resolved,
       cadence: cadence,
-      render: Reel.fromServedAd,
+      render: Reel.fromAdSlot,
+    ).where(
+      (reel) =>
+          reel.adSlot == null || !collapsedSlots.contains(reel.adSlot!.key),
     ),
   );
   if (cycles < 1 || content.length < kExploreLoopMinimum) return base;
@@ -560,7 +574,7 @@ List<Reel> loopedExploreFeed({
   return _LoopedReelFeed(
     base: base,
     content: content,
-    ads: ads,
+    ads: resolved.firstParty,
     cadence: cadence,
     cycles: cycles,
   );

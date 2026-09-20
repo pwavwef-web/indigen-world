@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:indigen_world_mobile/core/firebase_ready.dart';
+import 'package:indigen_world_mobile/features/auth/auth_repository.dart';
 import 'package:indigen_world_mobile/features/community/data/community_providers.dart';
 import 'package:indigen_world_mobile/features/subscriptions/data/billing_service.dart';
 import 'package:indigen_world_mobile/features/subscriptions/data/entitlement.dart';
@@ -68,9 +69,74 @@ final tierBenefitsProvider = Provider<TierBenefits>((ref) {
   return (entitlement ?? Entitlement.none).benefits;
 });
 
-/// Whether adverts should be served to this member at all.
+/// Whether advertising eligibility has actually been resolved for this launch.
+///
+/// Ads fail closed. In particular, a signed-in member is not briefly treated
+/// as free while Auth, their entitlement, or the backend benefit override is
+/// still loading. A Firebase bootstrap failure is unresolved too: losing an
+/// advert is preferable to showing one to somebody whose paid status could not
+/// be read.
+enum AdvertisingEligibility { unresolved, allowed, blocked }
+
+AdvertisingEligibility resolveAdvertisingEligibility({
+  required bool firebaseReady,
+  required bool authResolved,
+  required bool signedIn,
+  required bool entitlementResolved,
+  required Entitlement? entitlement,
+  required bool serverBenefitsResolved,
+  required TierBenefits? serverBenefits,
+}) {
+  if (!firebaseReady) {
+    return AdvertisingEligibility.unresolved;
+  }
+  if (!authResolved) return AdvertisingEligibility.unresolved;
+  if (!signedIn) return AdvertisingEligibility.allowed;
+  if (!entitlementResolved || entitlement == null) {
+    return AdvertisingEligibility.unresolved;
+  }
+
+  // A locally cached ad-free entitlement suppresses ads while the backend
+  // benefit document catches up. Once that document resolves it remains the
+  // authority, exactly as it is for every other TierBenefits field.
+  final localBenefits = entitlement.benefits;
+  if (!serverBenefitsResolved) {
+    return localBenefits.adFree
+        ? AdvertisingEligibility.blocked
+        : AdvertisingEligibility.unresolved;
+  }
+  final benefits = serverBenefits ?? localBenefits;
+  return benefits.adFree
+      ? AdvertisingEligibility.blocked
+      : AdvertisingEligibility.allowed;
+}
+
+final advertisingEligibilityProvider = Provider<AdvertisingEligibility>((ref) {
+  final firebaseReady = ref.watch(firebaseReadyProvider);
+  if (!firebaseReady) return AdvertisingEligibility.unresolved;
+  final auth = ref.watch(authStateProvider);
+  if (!auth.hasValue) return AdvertisingEligibility.unresolved;
+  if (auth.value == null) return AdvertisingEligibility.allowed;
+  final entitlement = ref.watch(entitlementProvider);
+  if (!entitlement.hasValue) return AdvertisingEligibility.unresolved;
+  final serverBenefits = ref.watch(serverBenefitsProvider);
+  return resolveAdvertisingEligibility(
+    firebaseReady: firebaseReady,
+    authResolved: true,
+    signedIn: true,
+    entitlementResolved: entitlement.hasValue,
+    entitlement: entitlement.asData?.value,
+    serverBenefitsResolved: serverBenefits.hasValue || serverBenefits.hasError,
+    serverBenefits: serverBenefits.asData?.value,
+  );
+});
+
+/// The single client-side advertising gate used by both first-party and AdMob
+/// inventory. `false` includes unresolved eligibility, not only paid tiers.
 final adsAllowedProvider = Provider<bool>(
-  (ref) => !ref.watch(tierBenefitsProvider).adFree,
+  (ref) =>
+      ref.watch(advertisingEligibilityProvider) ==
+      AdvertisingEligibility.allowed,
 );
 
 /// The mark beside this member's name, or none.

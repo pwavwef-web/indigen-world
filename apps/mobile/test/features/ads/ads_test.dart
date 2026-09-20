@@ -66,7 +66,10 @@ ServedAd _served(
 
 ProviderContainer _serving(List<ServedAd> ads) {
   final container = ProviderContainer(
-    overrides: [servedAdsProvider.overrideWith((ref) => Stream.value(ads))],
+    overrides: [
+      adsAllowedProvider.overrideWithValue(true),
+      servedAdsProvider.overrideWith((ref) => Stream.value(ads)),
+    ],
   );
   addTearDown(container.dispose);
   return container;
@@ -458,10 +461,10 @@ void main() {
       ];
       expect(slots, [10, 21]);
       // Taking turns, rather than the first campaign owning every slot.
-      expect(
-        slots.map((index) => (rows[index] as ServedAd).campaignId),
-        ['shea', 'cloth'],
-      );
+      expect(slots.map((index) => (rows[index] as ServedAd).campaignId), [
+        'shea',
+        'cloth',
+      ]);
 
       // A short feed carries none at all: an advert in front of a quarter of
       // what somebody came for is the worst ratio in the app.
@@ -546,13 +549,12 @@ void main() {
 
     test('an advert cannot name a scheme of its own', () async {
       var launched = false;
-      final opener = SponsoredLinkOpener(
-        ServedAdTelemetry((_, _) async {}),
-        (url) async {
-          launched = true;
-          return true;
-        },
-      );
+      final opener = SponsoredLinkOpener(ServedAdTelemetry((_, _) async {}), (
+        url,
+      ) async {
+        launched = true;
+        return true;
+      });
 
       expect(
         await opener.open(_served('shea', ctaUrl: 'tel:+233200000000')),
@@ -583,7 +585,11 @@ void main() {
       final ad = _served('shea', mediaType: 'video');
       await tester.pumpWidget(
         _host(
-          Scaffold(body: ListView(children: [SponsoredCard(ad: ad, slot: 't')])),
+          Scaffold(
+            body: ListView(
+              children: [SponsoredCard(ad: ad, slot: 't')],
+            ),
+          ),
         ),
       );
       await tester.pump();

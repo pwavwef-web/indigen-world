@@ -54,6 +54,12 @@
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher_round">
+        <!-- App-level Mobile Ads identifier. This is not an ad-unit id. Gradle
+             supplies Google's sample value to every debug/staging build and
+             requires an external production value for a production release. -->
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="${admobAppId}"/>
         <activity
             android:name=".MainActivity"
             android:exported="true"

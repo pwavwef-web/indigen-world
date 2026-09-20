@@ -34,6 +34,11 @@ const int kCollectionListAdCadence = 5;
 /// that starts showing adverts should not have to know which placement it
 /// belongs to, and an ad-free subscriber is ad-free here because this is
 /// [placedAdsProvider] and nothing else.
+final collectionInventoryProvider = Provider<AdPlacementInventory>(
+  (ref) => ref.watch(placementInventoryProvider(AdPlacement.collection)),
+);
+
+/// Compatibility view for code that only needs the selected campaigns.
 final collectionAdsProvider = Provider<List<ServedAd>>(
   (ref) => ref.watch(placedAdsProvider(AdPlacement.collection)),
 );
@@ -46,10 +51,22 @@ final collectionAdsProvider = Provider<List<ServedAd>>(
 /// rest, exactly as the Community timeline does.
 List<Object> collectionRowsWithAds({
   required List<Object> items,
-  required List<ServedAd> ads,
-}) => spliceSponsored<Object>(
-  rows: items,
-  ads: ads,
-  cadence: kCollectionListAdCadence,
-  render: (ad) => ad,
-);
+  AdPlacementInventory? inventory,
+  List<ServedAd>? ads,
+}) {
+  assert(inventory != null || ads != null);
+  if (inventory != null) {
+    return spliceAdSlots<Object>(
+      rows: items,
+      inventory: inventory,
+      cadence: kCollectionListAdCadence,
+      render: (slot) => slot,
+    );
+  }
+  return spliceSponsored<Object>(
+    rows: items,
+    ads: ads ?? const <ServedAd>[],
+    cadence: kCollectionListAdCadence,
+    render: (ad) => ad,
+  );
+}

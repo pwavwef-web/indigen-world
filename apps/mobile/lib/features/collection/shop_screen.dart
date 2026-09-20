@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
+import 'package:indigen_world_mobile/features/ads/admob_native.dart';
 import 'package:indigen_world_mobile/features/ads/collection_ads.dart';
 import 'package:indigen_world_mobile/features/ads/data/served_ad.dart';
 import 'package:indigen_world_mobile/features/ads/widgets/sponsored_card.dart';
@@ -86,9 +87,8 @@ class _ShopCollectionScreenState extends ConsumerState<ShopCollectionScreen> {
                 AsyncData(value: final list) => [
                   _ProductRows(
                     products: list,
-                    ads: ref.watch(collectionAdsProvider),
-                    quantityOf: (product) =>
-                        _basket[product.id]?.quantity ?? 0,
+                    inventory: ref.watch(collectionInventoryProvider),
+                    quantityOf: (product) => _basket[product.id]?.quantity ?? 0,
                     onChanged: _setQuantity,
                   ),
                 ],
@@ -212,19 +212,19 @@ class _ShopCollectionScreenState extends ConsumerState<ShopCollectionScreen> {
 class _ProductRows extends StatelessWidget {
   const _ProductRows({
     required this.products,
-    required this.ads,
+    required this.inventory,
     required this.quantityOf,
     required this.onChanged,
   });
 
   final List<ShopProduct> products;
-  final List<ServedAd> ads;
+  final AdPlacementInventory inventory;
   final int Function(ShopProduct product) quantityOf;
   final void Function(ShopProduct product, int quantity) onChanged;
 
   @override
   Widget build(BuildContext context) {
-    final rows = collectionRowsWithAds(items: products, ads: ads);
+    final rows = collectionRowsWithAds(items: products, inventory: inventory);
     return SliverPadding(
       padding: const EdgeInsets.fromLTRB(18, 4, 18, 40),
       sliver: SliverList.separated(
@@ -232,11 +232,14 @@ class _ProductRows extends StatelessWidget {
         separatorBuilder: (_, _) => const SizedBox(height: 12),
         itemBuilder: (context, index) {
           final row = rows[index];
-          if (row is ServedAd) {
-            return SponsoredCard(
-              ad: row,
-              slot: 'shop-$index',
-              margin: EdgeInsets.zero,
+          if (row is AdSlot) {
+            return UnifiedAdSlot(
+              slot: row,
+              firstPartyBuilder: (context, ad) => SponsoredCard(
+                ad: ad,
+                slot: 'shop-$index',
+                margin: EdgeInsets.zero,
+              ),
             );
           }
           final product = row as ShopProduct;

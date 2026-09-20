@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
+import 'package:indigen_world_mobile/features/ads/admob_native.dart';
 import 'package:indigen_world_mobile/features/ads/collection_ads.dart';
 import 'package:indigen_world_mobile/features/ads/data/served_ad.dart';
 import 'package:indigen_world_mobile/features/ads/widgets/sponsored_card.dart';
@@ -199,7 +200,7 @@ class _Library extends ConsumerWidget {
             padding: EdgeInsets.only(bottom: 24 + musicInset(context)),
             sliver: _TrackRows(
               items: items,
-              ads: ref.watch(collectionAdsProvider),
+              inventory: ref.watch(collectionInventoryProvider),
               onPlay: (index) => play(items, index),
             ),
           ),
@@ -220,32 +221,33 @@ class _Library extends ConsumerWidget {
 class _TrackRows extends StatelessWidget {
   const _TrackRows({
     required this.items,
-    required this.ads,
+    required this.inventory,
     required this.onPlay,
   });
 
   final List<PublishedReel> items;
-  final List<ServedAd> ads;
+  final AdPlacementInventory inventory;
   final ValueChanged<int> onPlay;
 
   @override
   Widget build(BuildContext context) {
     final rows = collectionRowsWithAds(
       items: List<Object>.generate(items.length, (index) => index),
-      ads: ads,
+      inventory: inventory,
     );
     return SliverList.builder(
       itemCount: rows.length,
       itemBuilder: (context, row) {
         final entry = rows[row];
-        if (entry is ServedAd) {
-          return SponsoredCard(ad: entry, slot: 'music-$row');
+        if (entry is AdSlot) {
+          return UnifiedAdSlot(
+            slot: entry,
+            firstPartyBuilder: (context, ad) =>
+                SponsoredCard(ad: ad, slot: 'music-$row'),
+          );
         }
         final index = entry as int;
-        return MusicTrackRow(
-          item: items[index],
-          onPlay: () => onPlay(index),
-        );
+        return MusicTrackRow(item: items[index], onPlay: () => onPlay(index));
       },
     );
   }

@@ -19,6 +19,14 @@ if (hasReleaseSigning) {
     keystoreProperties.load(FileInputStream(keystorePropertiesFile))
 }
 
+// Kept outside source control because every AdMob application id embeds the
+// account's publisher id. Debug and staging always use Google's sample app;
+// the production release tasks below refuse to run without a valid override.
+val googleMobileAdsTestAppId = "ca-app-pub-3940256099942544~3347511713"
+val productionAdMobAppId = providers.gradleProperty("ADMOB_ANDROID_APP_ID")
+    .orElse(providers.environmentVariable("ADMOB_ANDROID_APP_ID"))
+val validAdMobAppId = Regex("^ca-app-pub-\\d{16}~\\d{10}$")
+
 // Support both the standard app-level config and flavor-specific configs.
 // The release runbook uses android/app/google-services.json, while local
 // development normally keeps one under src/<flavor>/.
@@ -60,6 +68,7 @@ android {
         // flag during build.
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        manifestPlaceholders["admobAppId"] = googleMobileAdsTestAppId
     }
 
     signingConfigs {
@@ -74,6 +83,11 @@ android {
     }
 
     buildTypes {
+        getByName("debug") {
+            // Higher-priority build-type placeholder: even a production-flavor
+            // debug build must never send developer clicks to live inventory.
+            manifestPlaceholders["admobAppId"] = googleMobileAdsTestAppId
+        }
         getByName("release") {
             // Use the upload keystore when configured; otherwise fall back to the
             // debug key so local release builds still run (Play will reject those).
@@ -105,6 +119,26 @@ android {
             // Keep the namespace and non-production flavor IDs unchanged.
             applicationId = "com.indigenworld.indigen"
             resValue("string", "app_name", "Indigen")
+            manifestPlaceholders["admobAppId"] =
+                productionAdMobAppId.orNull ?: googleMobileAdsTestAppId
+        }
+    }
+}
+
+tasks.matching {
+    it.name in setOf(
+        "processProductionReleaseMainManifest",
+        "assembleProductionRelease",
+        "bundleProductionRelease",
+    )
+}.configureEach {
+    doFirst {
+        val value = productionAdMobAppId.orNull.orEmpty()
+        if (!validAdMobAppId.matches(value) || value == googleMobileAdsTestAppId) {
+            throw GradleException(
+                "Production AdMob app id is missing or invalid. Set " +
+                    "ADMOB_ANDROID_APP_ID as a Gradle property or environment variable.",
+            )
         }
     }
 }

@@ -5,6 +5,7 @@ import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/data/repositories.dart';
 import 'package:indigen_world_mobile/domain/dictionary_entry.dart';
 import 'package:indigen_world_mobile/domain/kasem_homographs.dart';
+import 'package:indigen_world_mobile/features/ads/admob_native.dart';
 import 'package:indigen_world_mobile/features/ads/collection_ads.dart';
 import 'package:indigen_world_mobile/features/ads/data/served_ad.dart';
 import 'package:indigen_world_mobile/features/ads/widgets/sponsored_card.dart';
@@ -153,7 +154,7 @@ class _DictionaryScreenState extends ConsumerState<DictionaryScreen> {
         ? List<Object>.of(results.hits)
         : collectionRowsWithAds(
             items: List<Object>.of(results.hits),
-            ads: ref.watch(collectionAdsProvider),
+            inventory: ref.watch(collectionInventoryProvider),
           );
     return ScreenContainer(
       child: Column(
@@ -562,11 +563,14 @@ class _ResultList extends StatelessWidget {
     separatorBuilder: (_, _) => const SizedBox(height: 8),
     itemBuilder: (context, index) {
       final row = rows[index];
-      if (row is ServedAd) {
-        return SponsoredCard(
-          ad: row,
-          slot: 'dictionary-$index',
-          margin: EdgeInsets.zero,
+      if (row is AdSlot) {
+        return UnifiedAdSlot(
+          slot: row,
+          firstPartyBuilder: (context, ad) => SponsoredCard(
+            ad: ad,
+            slot: 'dictionary-$index',
+            margin: EdgeInsets.zero,
+          ),
         );
       }
       final hit = row as DictionaryHit;
