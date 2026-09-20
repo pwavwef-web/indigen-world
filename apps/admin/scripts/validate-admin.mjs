@@ -14,6 +14,8 @@ const reportData = read('src/reports/data.ts');
 const consoleHome = read('src/console/ConsoleHome.tsx');
 const consoleData = read('src/console/data.ts');
 const auditViewer = read('src/console/AuditLogViewer.tsx');
+const contributors = read('src/contributors/ContributorsAdmin.tsx');
+const contributorData = read('src/contributors/data.ts');
 
 assert.match(navigation, /AdminScreen \| null/, 'unknown routes have an explicit nullable result');
 assert.match(navigation, /\?\? null/, 'unknown routes do not fall back to the console');
@@ -91,6 +93,11 @@ assert.match(dataTable, /aria-sort/, 'sortable columns report their sort state')
 assert.match(palette, /metaKey \|\| event\.ctrlKey/, 'the command palette is bound to ⌘K / Ctrl-K');
 assert.match(app, /CommandPalette/, 'the shell mounts the command palette');
 assert.match(app, /status-rail/, 'the shell reports environment and identity in a status rail');
+assert.match(navigation, /path: '\/contributors'/, 'contributor management is reachable from admin navigation');
+assert.match(contributors, /Assign expressions/, 'admins can allocate expression work');
+assert.match(contributors, /Preview changes/, 'profile edits include a preview step');
+assert.match(contributorData, /listExpressionContributors/, 'the contributor directory uses the admin-only server join');
+assert.match(contributorData, /fetchContributorSubmissions/, 'contribution history and review use real submission records');
 
 // ── The Kasem morphology mirror may not drift from the server ──────────────
 //

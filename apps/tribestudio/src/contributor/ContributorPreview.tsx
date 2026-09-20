@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ContributionWorkspace, type Item } from './ContributorPortal';
+import { ContributionWorkspace, ContributorHeader, type Item } from './ContributorPortal';
 import './contributor.css';
 
 const expressions = [
@@ -20,8 +20,8 @@ export function ContributorPreview() {
   const [offline, setOffline] = useState(false);
   const [pending, setPending] = useState(false);
   return <div className="contributor-portal">
-    <header><div><span className="contributor-kicker">INDIGEN WORLD / CONTRIBUTORS</span><h1>Your contributions</h1><p>Everyday conversations</p></div>
-      <details><summary>Account details</summary><p>contributor@example.com</p><p className="contributor-identity">Contributor ID: <code>preview-contributor</code></p><button disabled={pending} onClick={() => window.location.assign('/contributor')}>Exit preview</button></details></header>
+    <ContributorHeader title="Everyday conversations" completed={items.filter(item => Boolean(item.submissionId)).length} total={items.length}
+      accountId="preview-contributor" pending={pending} onSignOut={() => window.location.assign('/contributor')} />
     <main id="main-content" tabIndex={-1}>
       <section className="contributor-preview-controls"><p>Design preview · Sample translations are placeholders. Nothing is sent. Saved samples reset on refresh; unsaved recovery copies stay on this device.</p>
         <label className="contributor-check"><input type="checkbox" checked={offline} onChange={e => setOffline(e.target.checked)} />Simulate connection failure</label>
@@ -32,7 +32,7 @@ export function ContributorPreview() {
         const revision = Number(data.revision) + 1;
         const submissionId = data.submit ? 'preview-' + data.item + '-' + revision : undefined;
         setItems(current => current.map(item => item.id === data.item ? {
-          ...item, translation: String(data.translation), alternatives: data.alternatives as string[], revision,
+          ...item, unsure: data.skip === true, translation: String(data.translation), alternatives: data.alternatives as string[], revision,
           ...(submissionId ? { submissionId, status: 'submitted', feedback: '', reviewedAt: null } : {}),
         } : item));
         return { data: { revision, submissionId } };

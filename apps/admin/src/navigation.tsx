@@ -10,6 +10,7 @@ import { CollectionAdmin } from './collection/CollectionAdmin';
 import { ReportsAdmin } from './reports/ReportsAdmin';
 import { AuditLogViewer } from './console/AuditLogViewer';
 import { ExportManager } from './console/ExportManager';
+import { ContributorsAdmin } from './contributors/ContributorsAdmin';
 
 /**
  * The admin console's top-level screens, in nav order. Both the navigation bar
@@ -27,6 +28,7 @@ import { ExportManager } from './console/ExportManager';
 export type ViewId =
   | 'console'
   | 'creators'
+  | 'contributors'
   | 'learning'
   | 'collection'
   | 'reports'
@@ -70,6 +72,15 @@ export const SCREENS: AdminScreen[] = [
     canAccess: isValidator,
     deny: { title: 'Staff access required', body: 'Your account needs a validator or admin role to manage creators.' },
     render: ({ role }) => <CreatorsAdmin role={role} />,
+  },
+  {
+    id: 'contributors',
+    path: '/contributors',
+    label: 'Contributors',
+    group: 'Publishing',
+    canAccess: isAdmin,
+    deny: { title: 'Admin access required', body: 'Your account needs an admin role to manage contributor profiles, invitations and assignments.' },
+    render: () => <ContributorsAdmin />,
   },
   {
     id: 'learning',

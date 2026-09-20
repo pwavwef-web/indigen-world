@@ -3,7 +3,18 @@ import { initializeApp } from 'firebase-admin/app';
 // Initialise the Admin SDK once for all functions in this codebase.
 initializeApp();
 
-export { inviteExpressionContributor, assignContributorExpressions, saveExpressionAnswer, onContributorExpressionReviewed } from './contributor-portal.js';
+export {
+  activateExpressionContributor,
+  inviteExpressionContributor,
+  assignContributorExpressions,
+  listExpressionContributors,
+  saveContributorProfile,
+  setContributorAccess,
+  resendContributorInvitation,
+  cancelContributorInvitation,
+  saveExpressionAnswer,
+  onContributorExpressionReviewed,
+} from './contributor-portal.js';
 
 export { decideReview } from './validation.js';
 export { setUserRole } from './identity.js';
