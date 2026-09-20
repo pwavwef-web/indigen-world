@@ -15,8 +15,10 @@
 //
 //    which reads as an error in the app and involves nothing anybody wrote. It
 //    appears only when a release build follows a test run — which is exactly
-//    the order a release goes in. Deleting the file first makes Flutter
-//    regenerate it for the release variant, and that is the whole fix.
+//    the order a release goes in. Deleting the file makes Flutter regenerate it
+//    for the release variant, but the variant's javac output has to go with it:
+//    Gradle's incremental compile otherwise keeps the class the old file
+//    declared and fails on it anyway. Both are cleared below.
 //
 // 2. Every release note has claimed a size, a hash, a version and a set of ABIs.
 //    Claims typed by hand from a build log drift from the artefact. These are
