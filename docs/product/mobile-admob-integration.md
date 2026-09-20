@@ -101,12 +101,24 @@ UMP reports `canRequestAds`, so refusing means non-personalised advertising
 where UMP still permits a request and no advertising at all where it does not.
 Either way the slot collapses to zero height and nothing else changes.
 
-Known gap: the Settings entry for **Advertising privacy choices** only appears
-once UMP has run, and UMP only runs when advertising is allowed. A member who
-consented while free and then subscribed therefore cannot reopen privacy
-options to withdraw that consent. No ad request is made for them either way, so
-nothing is being processed on the old consent — but the entry point should not
-depend on ad eligibility. Not yet fixed.
+Consent can be withdrawn at any time, including by a member who will never see
+an advert again. The bootstrap therefore branches on the *resolved* advertising
+eligibility rather than on a single boolean:
+
+- **allowed** — the full UMP flow, which may show the consent form.
+- **blocked** (a paid member) — one call to `requestConsentInfoUpdate` to learn
+  whether the privacy-options entry point is required. No form is shown and no
+  advertising request is made, so Settings can still offer *Advertising privacy
+  choices* to somebody who consented while they were free and then subscribed.
+- **unresolved** — nothing. This is the ordinary state for the first moments of
+  every launch, and probing there would answer the question for members who are
+  about to become eligible and need the full flow instead.
+
+The probe deliberately leaves `AdConsentState.availability` untouched. Writing a
+resolved availability there would make `AdMobNativeSlot` believe consent had
+already been gathered, and a member who later returned to the free tier would be
+served adverts without ever having seen the form. There is a test for exactly
+that.
 
 ## AdMob console record
 

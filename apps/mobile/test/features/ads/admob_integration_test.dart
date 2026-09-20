@@ -104,6 +104,52 @@ class _Allowed extends Notifier<bool> {
 
 final _allowedProvider = NotifierProvider<_Allowed, bool>(_Allowed.new);
 
+class _Eligibility extends Notifier<AdvertisingEligibility> {
+  @override
+  AdvertisingEligibility build() => AdvertisingEligibility.unresolved;
+
+  void set(AdvertisingEligibility value) => state = value;
+}
+
+final _eligibilityProvider =
+    NotifierProvider<_Eligibility, AdvertisingEligibility>(_Eligibility.new);
+
+/// Counts what the consent flow actually asked UMP to do. The three calls are
+/// kept apart because the whole point of the privacy-options path is that it
+/// makes one of them and not the other two.
+class _Gateway implements AdConsentGateway {
+  _Gateway({this.optionsRequired = true});
+
+  final bool optionsRequired;
+  int gathers = 0;
+  int probes = 0;
+  int formsShown = 0;
+
+  @override
+  Future<AdConsentState> gather() async {
+    gathers++;
+    return const AdConsentState(
+      availability: AdConsentAvailability.canRequestAds,
+      privacyOptionsRequired: true,
+    );
+  }
+
+  @override
+  Future<AdConsentState> showPrivacyOptions() async {
+    formsShown++;
+    return const AdConsentState(
+      availability: AdConsentAvailability.cannotRequestAds,
+      privacyOptionsRequired: true,
+    );
+  }
+
+  @override
+  Future<bool> privacyOptionsRequired() async {
+    probes++;
+    return optionsRequired;
+  }
+}
+
 ServedAd _firstParty() => const ServedAd(
   campaignId: 'campaign',
   headline: 'Community campaign',
@@ -223,6 +269,132 @@ void main() {
       ),
       isFalse,
     );
+  });
+
+  group('privacy options for a member who never sees an advert', () {
+    Future<ProviderContainer> pumpBootstrap(
+      WidgetTester tester, {
+      required _Gateway gateway,
+    }) async {
+      final container = ProviderContainer(
+        overrides: [
+          advertisingEligibilityProvider.overrideWith(
+            (ref) => ref.watch(_eligibilityProvider),
+          ),
+          adConsentGatewayProvider.overrideWithValue(gateway),
+        ],
+      );
+      addTearDown(container.dispose);
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: const MaterialApp(
+            home: AdConsentBootstrap(child: SizedBox.shrink()),
+          ),
+        ),
+      );
+      await tester.pump();
+      return container;
+    }
+
+    testWidgets('an unresolved launch asks UMP nothing at all', (tester) async {
+      final gateway = _Gateway();
+      await pumpBootstrap(tester, gateway: gateway);
+
+      expect(
+        gateway.probes,
+        0,
+        reason: 'the ordinary first moments of a launch',
+      );
+      expect(gateway.gathers, 0);
+    });
+
+    testWidgets('a paid member gets the entry point without a form', (
+      tester,
+    ) async {
+      final gateway = _Gateway();
+      final container = await pumpBootstrap(tester, gateway: gateway);
+
+      container
+          .read(_eligibilityProvider.notifier)
+          .set(AdvertisingEligibility.blocked);
+      await tester.pump();
+      await tester.pump();
+
+      expect(gateway.probes, 1);
+      expect(
+        gateway.gathers,
+        0,
+        reason: 'no consent form for an ad-free member',
+      );
+      expect(gateway.formsShown, 0);
+      expect(container.read(adConsentProvider).privacyOptionsRequired, isTrue);
+      expect(container.read(adsAllowedProvider), isFalse);
+    });
+
+    testWidgets('the probe never makes consent look gathered', (tester) async {
+      final gateway = _Gateway();
+      final container = await pumpBootstrap(tester, gateway: gateway);
+      final notifier = container.read(_eligibilityProvider.notifier);
+
+      notifier.set(AdvertisingEligibility.blocked);
+      await tester.pump();
+      await tester.pump();
+
+      // The bug this guards: a resolved availability here would let a member
+      // who returns to the free tier be served adverts without ever having
+      // been shown the consent form.
+      expect(
+        container.read(adConsentProvider).availability,
+        AdConsentAvailability.unresolved,
+      );
+
+      notifier.set(AdvertisingEligibility.allowed);
+      await tester.pump();
+      await tester.pump();
+
+      expect(gateway.gathers, 1, reason: 'the full flow still runs afterwards');
+      expect(
+        container.read(adConsentProvider).availability,
+        AdConsentAvailability.canRequestAds,
+      );
+    });
+
+    testWidgets('UMP saying no entry point is needed leaves Settings bare', (
+      tester,
+    ) async {
+      final gateway = _Gateway(optionsRequired: false);
+      final container = await pumpBootstrap(tester, gateway: gateway);
+
+      container
+          .read(_eligibilityProvider.notifier)
+          .set(AdvertisingEligibility.blocked);
+      await tester.pump();
+      await tester.pump();
+
+      expect(gateway.probes, 1);
+      expect(container.read(adConsentProvider).privacyOptionsRequired, isFalse);
+    });
+
+    testWidgets('an eligible member still takes the full consent path', (
+      tester,
+    ) async {
+      final gateway = _Gateway();
+      final container = await pumpBootstrap(tester, gateway: gateway);
+
+      container
+          .read(_eligibilityProvider.notifier)
+          .set(AdvertisingEligibility.allowed);
+      await tester.pump();
+      await tester.pump();
+
+      expect(gateway.gathers, 1);
+      expect(gateway.probes, 0);
+      expect(
+        container.read(adConsentProvider).availability,
+        AdConsentAvailability.canRequestAds,
+      );
+    });
   });
 
   group('native slot lifecycle', () {
