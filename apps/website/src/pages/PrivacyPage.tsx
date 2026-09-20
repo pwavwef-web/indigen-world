@@ -99,6 +99,23 @@ export function PrivacyPage() {
             not real community language data.
           </p>
 
+          <h2>Advertising in the mobile app</h2>
+          <p>
+            Guests and free members may see advertising in Community, Explore and Collection.
+            Campaigns placed directly with Indigen World are given priority. When no suitable
+            Indigen World campaign is available, Google Mobile Ads (AdMob) may fill the same
+            position after the required advertising privacy choice has been completed. Paid
+            Indigen Plus, Patron and Creator memberships remove both kinds of advertising.
+          </p>
+          <p>
+            For Google-provided advertising, Google may process an advertising identifier, device
+            and app information, an approximate region, and advert interactions for delivery,
+            measurement and fraud prevention, and for personalisation only where your choice
+            permits it. Where required, the app presents Google's consent message and provides an
+            Advertising privacy choices entry in Settings. If consent does not permit an advert or
+            Google has no advert to return, the position is removed.
+          </p>
+
           <h2>The Kasem keyboard</h2>
           <p>
             The Android app includes an optional Kasem keyboard — a system input method you can
