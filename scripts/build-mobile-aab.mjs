@@ -85,6 +85,25 @@ if (existsSync(registrant)) {
       ? '· Removed a GeneratedPluginRegistrant.java that registered integration_test.'
       : '· Removed GeneratedPluginRegistrant.java so Flutter regenerates it.',
   );
+
+  // Deleting the file is not enough on its own. When the stale one came from a
+  // debug or test run, Gradle's incremental javac still holds compiled output
+  // for it, and `compileProductionReleaseJavaWithJavac` fails on a class that
+  // no longer exists in the regenerated source:
+  //
+  //     error: package dev.flutter.plugins.integration_test does not exist
+  //
+  // which reads as a code error and is nothing of the kind. Dropping this one
+  // variant's javac output costs a few seconds and only when the trap is
+  // actually present — a full `flutter clean` would cost ten minutes every
+  // time to fix a problem most builds do not have.
+  if (stale) {
+    const javac = join(mobile, 'build/app/intermediates/javac/productionRelease');
+    if (existsSync(javac)) {
+      rmSync(javac, { recursive: true, force: true });
+      say('· Dropped the productionRelease javac output it had already been compiled into.');
+    }
+  }
 }
 
 if (existsSync(decoy)) {
