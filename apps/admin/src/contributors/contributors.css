@@ -517,3 +517,18 @@
     flex-direction: column;
   }
 }
+
+
+.contributor-payments-admin { display: grid; gap: 20px; }
+.admin-payment-list { display: grid; gap: 12px; }
+.admin-payment-list article { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 20px; align-items: start; padding: 16px; border: 1px solid var(--border, #dce3ea); border-radius: 12px; background: var(--surface, #fff); }
+.admin-payment-list article > div { display: grid; gap: 7px; }
+.admin-payment-list article > div:last-child { justify-items: end; min-width: 130px; }
+.admin-payment-list article p { margin: 0; }
+.admin-payment-list article small { color: var(--muted, #667085); }
+.admin-payment-list code { overflow-wrap: anywhere; }
+
+@media (max-width: 720px) {
+  .admin-payment-list article { grid-template-columns: 1fr; }
+  .admin-payment-list article > div:last-child { justify-items: start; }
+}
