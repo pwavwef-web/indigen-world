@@ -13,6 +13,12 @@ export {
   resendContributorInvitation,
   cancelContributorInvitation,
   saveExpressionAnswer,
+  getContributorPayments,
+  saveContributorPayoutProfile,
+  requestContributorPayment,
+  listContributorPayments,
+  verifyContributorPayoutProfile,
+  decideContributorPaymentRequest,
   onContributorExpressionReviewed,
 } from './contributor-portal.js';
 
