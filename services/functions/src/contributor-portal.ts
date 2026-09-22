@@ -751,9 +751,11 @@ export const requestContributorPayment = onCall(options, async req => {
     if (!profile.exists || profile.get('verificationStatus') !== 'verified') {
       throw new HttpsError('failed-precondition', 'Your bank account must be verified before requesting payment.');
     }
-    const open = await tx.get(db.collection('contributorPaymentRequests')
-      .where('contributorId', '==', uid).where('status', 'in', ['submitted', 'approved']).limit(1));
-    if (!open.empty) throw new HttpsError('failed-precondition', 'You already have a payment request being processed.');
+    const prior = await tx.get(db.collection('contributorPaymentRequests')
+      .where('contributorId', '==', uid).limit(100));
+    if (prior.docs.some(entry => ['submitted', 'approved'].includes(String(entry.get('status'))))) {
+      throw new HttpsError('failed-precondition', 'You already have a payment request being processed.');
+    }
     tx.create(requestRef, {
       id: requestRef.id, contributorId: uid, amountMinor, currency: 'GHS', description,
       status: 'submitted' satisfies PaymentRequestStatus, profileUpdatedAt: profile.get('updatedAt'),
