@@ -111,6 +111,39 @@ export interface ContributorSubmission {
   feedback: string;
 }
 
+
+export interface ContributorPayoutProfile {
+  id: string;
+  contributorId: string;
+  bankName: string;
+  accountName: string;
+  accountNumber: string;
+  branch: string;
+  currency: 'GHS';
+  verificationStatus: 'pending' | 'verified' | 'rejected';
+  verificationNote?: string;
+  updatedAt: string;
+}
+
+export interface ContributorPaymentRequest {
+  id: string;
+  contributorId: string;
+  amountMinor: number;
+  currency: 'GHS';
+  description: string;
+  status: 'submitted' | 'approved' | 'rejected' | 'paid';
+  bankSnapshot: { bankName: string; accountName: string; accountNumber: string; branch: string };
+  createdAt: string;
+  adminNote?: string;
+  paymentReference?: string;
+  paidAt?: string | null;
+}
+
+export interface ContributorPayments {
+  profiles: ContributorPayoutProfile[];
+  requests: ContributorPaymentRequest[];
+}
+
 export interface ContributorAuditEntry {
   id: string;
   action: string;
@@ -148,6 +181,10 @@ const cancelInvitation = httpsCallable<{ contributorId: string; reason: string }
   functions,
   'cancelContributorInvitation',
 );
+const listPayments = httpsCallable<Record<string, never>, ContributorPayments>(functions, 'listContributorPayments');
+const verifyPayout = httpsCallable<{ contributorId: string; verified: boolean; note: string }, unknown>(functions, 'verifyContributorPayoutProfile');
+const decidePayment = httpsCallable<{ requestId: string; action: 'approve' | 'reject' | 'paid'; note: string; paymentReference?: string }, unknown>(functions, 'decideContributorPaymentRequest');
+
 
 export async function fetchContributorDirectory(): Promise<ContributorDirectoryRow[]> {
   const result = await listDirectory({});
@@ -188,6 +225,20 @@ export async function resendContributorInvite(contributorId: string): Promise<Pi
 
 export async function cancelContributorInvite(contributorId: string, reason: string): Promise<void> {
   await cancelInvitation({ contributorId, reason });
+}
+
+
+export async function fetchContributorPayments(): Promise<ContributorPayments> {
+  const result = await listPayments({});
+  return result.data;
+}
+
+export async function verifyContributorPaymentProfile(contributorId: string, verified: boolean, note: string): Promise<void> {
+  await verifyPayout({ contributorId, verified, note });
+}
+
+export async function decideContributorPayment(requestId: string, action: 'approve' | 'reject' | 'paid', note: string, paymentReference = ''): Promise<void> {
+  await decidePayment({ requestId, action, note, paymentReference });
 }
 
 function text(value: unknown): string {
