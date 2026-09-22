@@ -670,6 +670,173 @@ export const saveExpressionAnswer = onCall(options, async req => {
   });
 });
 
+
+type PaymentRequestStatus = 'submitted' | 'approved' | 'rejected' | 'paid';
+
+function bankAccountNumber(value: unknown): string {
+  const result = text(value, 34).replace(/\s+/g, '');
+  if (!/^[A-Za-z0-9-]{6,34}$/.test(result)) {
+    throw new HttpsError('invalid-argument', 'Enter a valid bank account number.');
+  }
+  return result;
+}
+
+function paymentAmountMinor(value: unknown): number {
+  if (!Number.isInteger(value) || Number(value) < 100 || Number(value) > 100_000_000) {
+    throw new HttpsError('invalid-argument', 'Payment amount must be between GHS 1 and GHS 1,000,000.');
+  }
+  return Number(value);
+}
+
+function payoutProfileData(raw: Record<string, unknown>) {
+  return {
+    bankName: text(raw.bankName, 120),
+    accountName: text(raw.accountName, 160),
+    accountNumber: bankAccountNumber(raw.accountNumber),
+    branch: optionalText(raw.branch, 160),
+    currency: 'GHS',
+  };
+}
+
+export const getContributorPayments = onCall(options, async req => {
+  const uid = requireAuth(req);
+  await consumeRateLimit('getContributorPayments', uid, 60);
+  const db = getFirestore();
+  const account = await db.doc(`contributorAccounts/${uid}`).get();
+  if (account.get('status') !== 'active') throw new HttpsError('permission-denied', 'An active contributor account is required.');
+  const [profile, requests] = await Promise.all([
+    db.doc(`contributorPayoutProfiles/${uid}`).get(),
+    db.collection('contributorPaymentRequests').where('contributorId', '==', uid).limit(100).get(),
+  ]);
+  return {
+    profile: profile.exists ? { ...profile.data(), accountNumber: profile.get('accountNumber') } : null,
+    requests: requests.docs.map(entry => ({ id: entry.id, ...entry.data() }))
+      .sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt))),
+  };
+});
+
+export const saveContributorPayoutProfile = onCall(options, async req => {
+  const uid = requireAuth(req);
+  await consumeRateLimit('saveContributorPayoutProfile', uid, 20);
+  const details = payoutProfileData(req.data ?? {});
+  const db = getFirestore(), account = await db.doc(`contributorAccounts/${uid}`).get();
+  if (account.get('status') !== 'active') throw new HttpsError('permission-denied', 'An active contributor account is required.');
+  const ref = db.doc(`contributorPayoutProfiles/${uid}`), before = await ref.get();
+  const previous = before.data() ?? {};
+  const changed = ['bankName', 'accountName', 'accountNumber', 'branch']
+    .some(field => previous[field] !== details[field as keyof typeof details]);
+  const now = new Date().toISOString();
+  await ref.set({
+    contributorId: uid, ...details,
+    verificationStatus: changed ? 'pending' : previous.verificationStatus ?? 'pending',
+    verifiedAt: changed ? null : previous.verifiedAt ?? null,
+    verifiedBy: changed ? null : previous.verifiedBy ?? null,
+    createdAt: previous.createdAt ?? now, updatedAt: now,
+  });
+  return { verificationStatus: changed ? 'pending' : previous.verificationStatus ?? 'pending' };
+});
+
+export const requestContributorPayment = onCall(options, async req => {
+  const uid = requireAuth(req);
+  await consumeRateLimit('requestContributorPayment', uid, 10);
+  const amountMinor = paymentAmountMinor(req.data?.amountMinor);
+  const description = text(req.data?.description, 500);
+  const db = getFirestore(), requestRef = db.collection('contributorPaymentRequests').doc();
+  const profileRef = db.doc(`contributorPayoutProfiles/${uid}`);
+  const accountRef = db.doc(`contributorAccounts/${uid}`);
+  const now = new Date().toISOString();
+  await db.runTransaction(async tx => {
+    const [account, profile] = await Promise.all([tx.get(accountRef), tx.get(profileRef)]);
+    if (account.get('status') !== 'active') throw new HttpsError('permission-denied', 'An active contributor account is required.');
+    if (!profile.exists || profile.get('verificationStatus') !== 'verified') {
+      throw new HttpsError('failed-precondition', 'Your bank account must be verified before requesting payment.');
+    }
+    const open = await tx.get(db.collection('contributorPaymentRequests')
+      .where('contributorId', '==', uid).where('status', 'in', ['submitted', 'approved']).limit(1));
+    if (!open.empty) throw new HttpsError('failed-precondition', 'You already have a payment request being processed.');
+    tx.create(requestRef, {
+      id: requestRef.id, contributorId: uid, amountMinor, currency: 'GHS', description,
+      status: 'submitted' satisfies PaymentRequestStatus, profileUpdatedAt: profile.get('updatedAt'),
+      bankSnapshot: {
+        bankName: profile.get('bankName'), accountName: profile.get('accountName'),
+        accountNumber: profile.get('accountNumber'), branch: profile.get('branch') ?? '',
+      },
+      createdAt: now, updatedAt: now, decidedAt: null, decidedBy: null,
+      paidAt: null, paymentReference: '', adminNote: '',
+    });
+  });
+  return { requestId: requestRef.id };
+});
+
+export const listContributorPayments = onCall(options, async req => {
+  requireRole(req, 'admin');
+  const db = getFirestore();
+  const [profiles, requests] = await Promise.all([
+    db.collection('contributorPayoutProfiles').limit(500).get(),
+    db.collection('contributorPaymentRequests').limit(500).get(),
+  ]);
+  return {
+    profiles: profiles.docs.map(entry => ({ id: entry.id, ...entry.data() })),
+    requests: requests.docs.map(entry => ({ id: entry.id, ...entry.data() }))
+      .sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt))),
+  };
+});
+
+export const verifyContributorPayoutProfile = onCall(options, async req => {
+  const actor = requireAuth(req); requireRole(req, 'admin');
+  const contributorId = id(req.data?.contributorId);
+  const verified = req.data?.verified === true;
+  const note = optionalText(req.data?.note, 1000);
+  const db = getFirestore(), ref = db.doc(`contributorPayoutProfiles/${contributorId}`);
+  const before = await ref.get();
+  if (!before.exists) throw new HttpsError('not-found', 'Payment profile not found.');
+  const now = new Date().toISOString();
+  await ref.update({
+    verificationStatus: verified ? 'verified' : 'rejected',
+    verifiedAt: verified ? now : null, verifiedBy: actor, verificationNote: note, updatedAt: now,
+  });
+  await db.collection('auditLogs').add({
+    id: '', ...auditRecord(actor, verified ? 'contributor.payment-profile.verify' : 'contributor.payment-profile.reject',
+      contributorId, { verificationStatus: before.get('verificationStatus') },
+      { verificationStatus: verified ? 'verified' : 'rejected' }, { note }),
+  });
+  return { contributorId, verificationStatus: verified ? 'verified' : 'rejected' };
+});
+
+export const decideContributorPaymentRequest = onCall(options, async req => {
+  const actor = requireAuth(req); requireRole(req, 'admin');
+  const requestId = id(req.data?.requestId);
+  const action = text(req.data?.action, 20).toLowerCase();
+  if (!['approve', 'reject', 'paid'].includes(action)) throw new HttpsError('invalid-argument', 'Unsupported payment action.');
+  const adminNote = optionalText(req.data?.note, 1000);
+  const paymentReference = action === 'paid' ? text(req.data?.paymentReference, 160) : '';
+  const db = getFirestore(), ref = db.doc(`contributorPaymentRequests/${requestId}`);
+  const now = new Date().toISOString();
+  await db.runTransaction(async tx => {
+    const snap = await tx.get(ref);
+    if (!snap.exists) throw new HttpsError('not-found', 'Payment request not found.');
+    const current = String(snap.get('status'));
+    if ((action === 'approve' || action === 'reject') && current !== 'submitted') {
+      throw new HttpsError('failed-precondition', 'Only submitted requests can be approved or rejected.');
+    }
+    if (action === 'paid' && current !== 'approved') {
+      throw new HttpsError('failed-precondition', 'Approve the request before marking it paid.');
+    }
+    const status: PaymentRequestStatus = action === 'approve' ? 'approved' : action === 'reject' ? 'rejected' : 'paid';
+    tx.update(ref, {
+      status, adminNote, updatedAt: now, decidedBy: actor,
+      ...(status === 'paid' ? { paidAt: now, paymentReference } : { decidedAt: now }),
+    });
+    const auditRef = db.collection('auditLogs').doc();
+    tx.set(auditRef, {
+      id: auditRef.id, ...auditRecord(actor, `contributor.payment-request.${status}`,
+        String(snap.get('contributorId')), { status: current }, { status },
+        { requestId, amountMinor: snap.get('amountMinor'), paymentReference }),
+    });
+  });
+  return { requestId };
+});
+
 // Read current state in the transaction: delayed/repeated events cannot restore withdrawn data.
 export const onContributorExpressionReviewed = onDocumentWritten(
   { document: 'submissions/{submissionId}', region: 'us-central1', retry: true }, async event => {
