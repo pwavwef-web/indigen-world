@@ -16,6 +16,12 @@ export function expressionView(item: Item): 'untranslated' | 'translated' | 'rev
   return item.translation.trim() || item.submissionId ? 'translated' : 'untranslated';
 }
 const save = httpsCallable<Record<string, unknown>, { revision: number; submissionId?: string }>(functions, 'saveExpressionAnswer');
+type PayoutProfile = { bankName: string; accountName: string; accountNumber: string; branch: string; currency: 'GHS'; verificationStatus: 'pending' | 'verified' | 'rejected'; verificationNote?: string; updatedAt: string };
+type PaymentRequest = { id: string; amountMinor: number; currency: 'GHS'; description: string; status: 'submitted' | 'approved' | 'rejected' | 'paid'; createdAt: string; adminNote?: string; paidAt?: string | null; paymentReference?: string };
+const loadPayments = httpsCallable<Record<string, never>, { profile: PayoutProfile | null; requests: PaymentRequest[] }>(functions, 'getContributorPayments');
+const savePayoutProfile = httpsCallable<Record<string, string>, { verificationStatus: PayoutProfile['verificationStatus'] }>(functions, 'saveContributorPayoutProfile');
+const requestPayment = httpsCallable<{ amountMinor: number; description: string }, { requestId: string }>(functions, 'requestContributorPayment');
+
 
 export function ContributorPortal() {
   const { user, ready } = useAuth();
@@ -70,6 +76,7 @@ export function ContributorPortal() {
           <AssignmentSelector works={works} active={params.work} itemCount={items.length} completed={submitted} pending={pending}
             onChange={work => navigate('/contributor/' + user.uid + '/' + work)} />
           {activeWork && <AssignmentGuidance work={activeWork} />}
+          <ContributorPayments />
           <ContributionWorkspace accountId={user.uid} key={user.uid + params.work} items={items} work={params.work} onPending={setPending} />
         </>}
     </main></div>;
@@ -94,6 +101,72 @@ function AssignmentGuidance({ work }: { work: Work }) {
   const summary = work.instructions || 'Translate each expression naturally into Kasem. Add alternatives when useful.';
   return <details className="contributor-guidance"><summary><span><strong>Assignment guidance</strong><small>{summary.length > 150 ? summary.slice(0, 147) + '…' : summary}</small></span><span aria-hidden="true">⌄</span></summary>
     <div>{work.instructions && <p>{work.instructions}</p>}{work.dialect && <p><strong>Dialect:</strong> {work.dialect}</p>}{work.tone && <p><strong>Tone:</strong> {work.tone}</p>}{work.deadline && <p><strong>Due:</strong> {formatDeadline(work.deadline)}</p>}{work.helpContact && <p><strong>Need help?</strong> {work.helpContact}</p>}</div></details>;
+}
+
+
+function ContributorPayments() {
+  const [profile, setProfile] = useState<PayoutProfile | null>(null);
+  const [requests, setRequests] = useState<PaymentRequest[]>([]);
+  const [bankName, setBankName] = useState(''), [accountName, setAccountName] = useState('');
+  const [accountNumber, setAccountNumber] = useState(''), [branch, setBranch] = useState('');
+  const [amount, setAmount] = useState(''), [description, setDescription] = useState('');
+  const [loading, setLoading] = useState(true), [busy, setBusy] = useState(false);
+  const [error, setError] = useState(''), [notice, setNotice] = useState('');
+  const refresh = async () => {
+    setLoading(true); setError('');
+    try {
+      const result = await loadPayments({});
+      setProfile(result.data.profile); setRequests(result.data.requests);
+      if (result.data.profile) {
+        setBankName(result.data.profile.bankName); setAccountName(result.data.profile.accountName);
+        setAccountNumber(result.data.profile.accountNumber); setBranch(result.data.profile.branch ?? '');
+      }
+    } catch (reason) { setError(reason instanceof Error ? reason.message : 'Payment details could not be loaded.'); }
+    finally { setLoading(false); }
+  };
+  useEffect(() => { void refresh(); }, []);
+  const openRequest = requests.some(request => ['submitted', 'approved'].includes(request.status));
+  return <details className="contributor-payments">
+    <summary><span><strong>Payments</strong><small>{loading ? 'Loading payment profile…' : profile ? `Bank account · ${profile.verificationStatus}` : 'Add bank details to receive payments'}</small></span><span aria-hidden="true">⌄</span></summary>
+    <div className="contributor-payments__body">
+      {error && <p role="alert">{error}</p>}{notice && <p role="status">{notice}</p>}
+      <section><h2>Bank account</h2><p className="muted">These details are private and available only to authorised administrators handling contributor payments.</p>
+        <form className="contributor-payment-form" onSubmit={async event => {
+          event.preventDefault(); setBusy(true); setError(''); setNotice('');
+          try {
+            await savePayoutProfile({ bankName, accountName, accountNumber, branch });
+            setNotice('Bank details saved and sent for verification.'); await refresh();
+          } catch (reason) { setError(reason instanceof Error ? reason.message : 'Bank details could not be saved.'); }
+          finally { setBusy(false); }
+        }}>
+          <label>Bank name<input required maxLength={120} autoComplete="organization" value={bankName} onChange={event => setBankName(event.target.value)} /></label>
+          <label>Account holder name<input required maxLength={160} autoComplete="name" value={accountName} onChange={event => setAccountName(event.target.value)} /></label>
+          <label>Account number<input required minLength={6} maxLength={34} inputMode="numeric" autoComplete="off" value={accountNumber} onChange={event => setAccountNumber(event.target.value)} /></label>
+          <label>Branch <small>(optional)</small><input maxLength={160} value={branch} onChange={event => setBranch(event.target.value)} /></label>
+          {profile && <p className={`payment-status status-${profile.verificationStatus}`}>Verification: <strong>{profile.verificationStatus}</strong>{profile.verificationNote ? ` · ${profile.verificationNote}` : ''}</p>}
+          <button className="button--primary" disabled={busy}>{busy ? 'Saving…' : profile ? 'Update bank details' : 'Save bank details'}</button>
+        </form>
+      </section>
+      <section><h2>Request payment</h2>
+        {profile?.verificationStatus !== 'verified' ? <p>Your bank account must be verified before you can request payment.</p> :
+          <form className="contributor-payment-form" onSubmit={async event => {
+            event.preventDefault(); const parsed = Number(amount);
+            if (!Number.isFinite(parsed) || parsed < 1) { setError('Enter a valid amount of at least GHS 1.'); return; }
+            setBusy(true); setError(''); setNotice('');
+            try {
+              await requestPayment({ amountMinor: Math.round(parsed * 100), description });
+              setAmount(''); setDescription(''); setNotice('Payment request submitted.'); await refresh();
+            } catch (reason) { setError(reason instanceof Error ? reason.message : 'Payment request could not be submitted.'); }
+            finally { setBusy(false); }
+          }}>
+            <label>Amount (GHS)<input required type="number" min="1" max="1000000" step="0.01" value={amount} onChange={event => setAmount(event.target.value)} /></label>
+            <label>What is this payment for?<textarea required maxLength={500} value={description} onChange={event => setDescription(event.target.value)} placeholder="Describe the completed work or agreed payment" /></label>
+            <button className="button--primary" disabled={busy || openRequest}>{openRequest ? 'A request is being processed' : busy ? 'Submitting…' : 'Request payment'}</button>
+          </form>}
+      </section>
+      <section><h2>Payment history</h2>{requests.length ? <div className="contributor-payment-history">{requests.map(request => <article key={request.id}><div><strong>{new Intl.NumberFormat(undefined, { style: 'currency', currency: request.currency }).format(request.amountMinor / 100)}</strong><small>{request.description}</small><time>{new Date(request.createdAt).toLocaleDateString()}</time></div><span className={`payment-status status-${request.status}`}>{request.status}</span>{request.adminNote && <p>{request.adminNote}</p>}{request.paymentReference && <p>Reference: {request.paymentReference}</p>}</article>)}</div> : <p>No payment requests yet.</p>}</section>
+    </div>
+  </details>;
 }
 
 function EmptyState({ title, body }: { title: string; body: string }) { return <section className="contributor-empty"><span aria-hidden="true">○</span><h2>{title}</h2><p>{body}</p></section>; }
