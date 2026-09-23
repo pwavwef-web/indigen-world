@@ -499,10 +499,22 @@ export function ContributorsAdmin() {
   const load = useCallback(async () => {
     setLoading(true); setError('');
     try {
-      const [directory, contributionHistory, auditHistory, paymentData] = await Promise.all([
+      const [directory, contributionHistory, auditHistory, paymentData] = await Promise.allSettled([
         fetchContributorDirectory(), fetchContributorSubmissions(), fetchContributorAuditEntries(), fetchContributorPayments(),
       ]);
-      setContributors(directory); setSubmissions(contributionHistory); setAudits(auditHistory); setPayments(paymentData);
+      if (directory.status === 'fulfilled') setContributors(directory.value);
+      if (contributionHistory.status === 'fulfilled') setSubmissions(contributionHistory.value);
+      if (auditHistory.status === 'fulfilled') setAudits(auditHistory.value);
+      if (paymentData.status === 'fulfilled') setPayments(paymentData.value);
+      const failures = [
+        ['Contributor directory', directory],
+        ['Contribution history', contributionHistory],
+        ['Audit history', auditHistory],
+        ['Payments', paymentData],
+      ] as const;
+      setError(failures.flatMap(([label, result]) => result.status === 'rejected'
+        ? [`${label}: ${result.reason instanceof Error ? result.reason.message : 'Could not be loaded.'}`]
+        : []).join(' '));
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'Contributor data could not be loaded.');
     } finally { setLoading(false); }
@@ -561,7 +573,7 @@ export function ContributorsAdmin() {
       <StatGrid><Stat label="Contributors" value={contributors.length} note={`${contributors.filter((item) => item.status === 'active').length} active`} tone="accent" /><Stat label="Pending invitations" value={pendingInvites} note="Activation not yet confirmed" tone={pendingInvites ? 'warning' : 'default'} /><Stat label="Expression assignments" value={works} note="Across all contributors" /><Stat label="Awaiting review" value={openReview} note="Submitted or approved" tone={openReview ? 'warning' : 'success'} /></StatGrid>
       <SegmentedControl label="Contributor workspace" value={view} onChange={setView} options={[{ id: 'directory', label: 'Directory', count: contributors.length }, { id: 'assignments', label: 'Assignments', count: works }, { id: 'review', label: 'Review', count: openReview }, { id: 'payments', label: 'Payments', count: openPayments }, { id: 'issues', label: 'Issues' }]} />
     </Panel>
-    {error ? <Alert title="Contributor workspace could not be loaded" action={<button type="button" onClick={() => void load()}>Try again</button>}>{error}</Alert> : null}
+    {error ? <Alert title="Some contributor data could not be loaded" action={<button type="button" onClick={() => void load()}>Try again</button>}>{error}</Alert> : null}
     {view === 'directory' ? <Panel><DataTable caption="Contributor directory" columns={columns} rows={filtered} rowKey={(item) => item.id} loading={loading} searchable searchPlaceholder="Search name, email or phone…" initialSort={{ columnId: 'contributor', direction: 'asc' }} expandedId={expanded} filters={<><label className="filter"><span className="sr-only">Status</span><select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}><option value="ALL">All statuses</option><option value="active">Active</option><option value="inactive">Inactive</option><option value="pending">Invitation pending</option><option value="suspended">Suspended</option><option value="deactivated">Deactivated</option></select></label><label className="filter"><span className="sr-only">Role</span><select value={roleFilter} onChange={(event) => setRoleFilter(event.target.value)}><option value="ALL">All roles</option>{ROLES.map((role) => <option key={role.id} value={role.id}>{role.label}</option>)}</select></label><label className="filter"><span className="sr-only">Location</span><select value={locationFilter} onChange={(event) => setLocationFilter(event.target.value)}><option value="ALL">All locations</option>{locations.map((location) => <option key={location} value={location}>{location}</option>)}</select></label><label className="filter"><span className="sr-only">Contribution type</span><select value={typeFilter} onChange={(event) => setTypeFilter(event.target.value)}><option value="ALL">All contribution types</option>{TYPES.map((type) => <option key={type.id} value={type.id}>{type.label}</option>)}</select></label></>} empty={{ title: 'No contributors match', body: 'Clear the filters or add a profile-only contributor.' }} renderDetail={(item) => <ContributorDetail contributor={item} submissions={submissions} audits={audits} onEdit={() => setModal({ kind: 'profile', contributor: item })} onAssign={() => setModal({ kind: 'assignment', contributor: item })} onAccess={() => setModal({ kind: 'access', contributor: item })} onResend={() => void resend(item)} onCancel={() => void cancel(item)} />} /></Panel> : null}
     {view === 'assignments' ? <AssignmentsView rows={contributors} onAssign={(contributor) => setModal({ kind: 'assignment', contributor })} /> : null}
     {view === 'review' ? <ReviewView submissions={submissions} contributors={contributors} loading={loading} onReload={async () => { setSubmissions(await fetchContributorSubmissions()); }} onNotice={setNotice} /> : null}

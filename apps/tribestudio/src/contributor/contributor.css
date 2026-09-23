@@ -61,7 +61,6 @@
 .contributor-payment-summary { padding-bottom: 12px; color: var(--text-soft); }
 .contributor-payment-dialog .contributor-payments__body { padding: 0; grid-template-columns: 1fr; border-top: 0; }
 .contributor-payment-form input { min-height: 44px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; }
-.contributor-account summary { width: auto; min-height: 44px; height: auto; padding: 10px 14px; display: flex; align-items: center; gap: 8px; border-radius: 24px; font-size: 14px; font-weight: 650; }
 .contributor-continue { margin: 0 0 16px; background: var(--contributor-blue)!important; color: #fff!important; padding: 12px 18px!important; }
 .contributor-bank-summary { display: grid; gap: 10px; margin-top: 16px; }
 .contributor-bank-summary button { margin-top: 6px; }
@@ -81,7 +80,12 @@
 .contributor-completion-stats { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 16px; width: 100%; max-width: 520px; }
 .contributor-completion-stats div { padding: 12px; background: #f3f6fc; border-radius: 10px; }
 .contributor-completion-stats dd { margin: 4px 0 0; font-size: 24px; font-weight: 700; }
-@media(max-width:599px) { .contributor-assignment { align-items: stretch; flex-direction: column; } .contributor-assignment label { width: 100%; } .contributor-header { flex-wrap: wrap; gap: 16px; } }
+/* Keep the account trigger at the top right, even when the heading wraps. */
+.contributor-header { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; }
+.contributor-heading { min-width: 0; overflow-wrap: anywhere; }
+.contributor-header-actions { justify-self: end; }
+.contributor-account > div { width: min(310px, calc(100vw - 72px)); max-height: calc(100dvh - 110px); overflow-y: auto; overscroll-behavior: contain; }
+@media(max-width:599px) { .contributor-assignment { align-items: stretch; flex-direction: column; } .contributor-assignment label { width: 100%; } }
 .contributor-issue { margin-top: 16px; padding: 16px; border: 1px solid var(--border); border-radius: 12px; overflow-wrap: anywhere; white-space: pre-wrap; } .contributor-issue small { display: block; }
 .contributor-support { position: relative; margin: 12px 0 16px; width: fit-content; max-width: 100%; }
 .contributor-support > summary { cursor: pointer; min-height: 44px; display: flex; align-items: center; gap: 12px; padding: 10px 16px; border: 1px solid var(--border); border-radius: 10px; background: white; font-weight: 650; list-style: none; }
