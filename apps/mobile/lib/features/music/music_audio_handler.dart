@@ -152,6 +152,11 @@ class IndigenAudioHandler extends BaseAudioHandler
 
   @override
   Future<void> play() async {
+    // An empty queue is a closed player — see [clear]. just_audio keeps its
+    // audio source through `stop()`, so without this a headset button, or a
+    // car stereo announcing itself over Bluetooth, would start the album again
+    // with nothing in the app to stop it from.
+    if (queue.value.isEmpty) return;
     await _ensureSessionConfigured();
     // Not awaited, and this is the whole reason this method has a body rather
     // than being `=> _player.play()`. just_audio's `play()` completes when
@@ -172,6 +177,21 @@ class IndigenAudioHandler extends BaseAudioHandler
     _resumeAfterInterruption = false;
     await _player.stop();
     await super.stop();
+  }
+
+  /// Empties the queue and takes the notification down with it — what closing
+  /// the mini-player means.
+  ///
+  /// [stop] alone is not that, and is deliberately left as it is: it is also
+  /// what Android sends when somebody swipes a paused notification away, and
+  /// that must not take the album out of the app. Closing the bar is the
+  /// stronger statement — nothing cued, nothing on the lock screen.
+  Future<void> clear() async {
+    // Emptied before stopping, so the bar goes the moment it is tapped rather
+    // than once the platform has finished releasing the decoder.
+    queue.add(<MediaItem>[]);
+    mediaItem.add(null);
+    await stop();
   }
 
   @override

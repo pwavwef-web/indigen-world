@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/features/collection/collection_data.dart';
 import 'package:indigen_world_mobile/features/downloads/data/downloads_providers.dart';
 import 'package:indigen_world_mobile/features/explore/published_content.dart';
+import 'package:indigen_world_mobile/features/music/music_bar_placement.dart';
 import 'package:indigen_world_mobile/features/music/music_providers.dart';
 import 'package:indigen_world_mobile/features/music/music_recent.dart';
 import 'package:indigen_world_mobile/features/music/music_track.dart';
@@ -229,6 +230,10 @@ class MusicController extends Notifier<MusicSessionState> {
       pausedForOtherAudio: false,
       clearError: true,
     );
+    // A song somebody just chose is worth looking at: the bar comes back out
+    // of the corner it was minimised into, rather than leaving the only
+    // feedback for the tap a bubble changing what it is animating.
+    ref.read(musicBarPlacementProvider.notifier).expand();
 
     await handler.setPlaylist(
       [for (final track in plan.tracks) track.toMediaItem()],
@@ -316,6 +321,27 @@ class MusicController extends Notifier<MusicSessionState> {
     state = state.copyWith(pausedForOtherAudio: false);
     await ref.read(musicAudioHandlerProvider)?.pause();
     await _persist();
+  }
+
+  /// Closes the player: the music stops, the queue empties, the notification
+  /// goes, and the mini-player goes with them.
+  ///
+  /// Where it had got to is forgotten as well, on disk and here. Closing the
+  /// bar is somebody saying they are done with this song, so the next launch
+  /// must neither put it back nor start it again forty seconds in.
+  Future<void> dismiss() async {
+    state = const MusicSessionState();
+    // Closed for good, so the next thing that plays starts as a bar rather
+    // than inheriting a shape from a session that is over.
+    ref.read(musicBarPlacementProvider.notifier).expand();
+    await ref.read(musicAudioHandlerProvider)?.clear();
+    try {
+      final preferences = await SharedPreferences.getInstance();
+      await preferences.remove(musicResumePreferenceKey);
+    } on Object {
+      // The same bargain as [_persist]: storage failing costs a convenience,
+      // here a resume point for a song that has already been closed.
+    }
   }
 
   /// Jumps to [index] of the queue that is already loaded.

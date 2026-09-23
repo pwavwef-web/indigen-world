@@ -3,9 +3,46 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
+import 'package:indigen_world_mobile/features/music/music_bar_placement.dart';
 import 'package:indigen_world_mobile/features/music/music_controller.dart';
 import 'package:indigen_world_mobile/features/music/music_providers.dart';
 import 'package:indigen_world_mobile/shared/frosted_nav_bar.dart';
+
+/// The corner the bar is drawn with. The dock tweens it up to a full circle on
+/// the way into the bubble.
+const double kMiniPlayerRadius = 16;
+
+/// How wide each control in the bar is allowed to be.
+///
+/// Narrower than the 48 a button gets elsewhere in the app, and paid for in
+/// height: every one of these is the full height of the bar, so the target is
+/// 40×46 rather than a square. Five controls at 48 would leave a 360dp phone
+/// about nine characters of song title.
+const double kMiniPlayerButtonWidth = 40;
+
+const double _artGap = 10;
+const double _groupGap = 6;
+const double _tailGap = 2;
+
+/// The least room the title and artist are allowed to be left with.
+const double _titleFloor = 96;
+
+/// Whether a bar [width] wide has room for a previous-track button.
+///
+/// ── Why the smallest phones lose it ───────────────────────────────────────
+/// Artwork, two lines of text and five controls do not fit across 360dp.
+/// Something has to give, and a title clipped to a syllable is worse than a
+/// control that is still one tap away on the now-playing screen, on the
+/// notification and on the lock screen — all three of which have a previous
+/// button that nothing here can take away. Phones from about 380dp up keep it.
+bool miniPlayerShowsPrevious(double width) =>
+    width -
+        kMiniPlayerHeight -
+        _artGap -
+        _groupGap -
+        _tailGap -
+        5 * kMiniPlayerButtonWidth >=
+    _titleFloor;
 
 /// The bar that says something is playing, wherever you happen to be.
 ///
@@ -38,81 +75,106 @@ class MiniPlayer extends ConsumerWidget {
     if (item == null) return const SizedBox.shrink();
     final playing = ref.watch(musicIsPlayingProvider);
 
+    final controller = ref.read(musicControllerProvider.notifier);
+
     return Semantics(
       container: true,
       label: 'Now playing: ${item.title}',
       child: Material(
         color: brand.surface,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(kMiniPlayerRadius),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: onOpen,
           child: Container(
             height: kMiniPlayerHeight,
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(kMiniPlayerRadius),
               border: Border.all(color: brand.border),
             ),
             child: Column(
               children: [
                 Expanded(
-                  child: Row(
-                    children: [
-                      _Artwork(item: item, brand: brand),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              item.title,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                color: brand.ink,
-                                fontSize: 13.5,
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                            if (item.artist case final artist?
-                                when artist.isNotEmpty)
+                  child: LayoutBuilder(
+                    builder: (context, constraints) => Row(
+                      children: [
+                        _Artwork(item: item, brand: brand),
+                        const SizedBox(width: _artGap),
+                        Expanded(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
                               Text(
-                                artist,
+                                item.title,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
-                                  color: brand.mutedInk,
-                                  fontSize: 11.5,
+                                  color: brand.ink,
+                                  fontSize: 13.5,
+                                  fontWeight: FontWeight.w800,
                                 ),
                               ),
-                          ],
+                              if (item.artist case final artist?
+                                  when artist.isNotEmpty)
+                                Text(
+                                  artist,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    color: brand.mutedInk,
+                                    fontSize: 11.5,
+                                  ),
+                                ),
+                            ],
+                          ),
                         ),
-                      ),
-                      IconButton(
-                        onPressed: () {
-                          final controller = ref.read(
-                            musicControllerProvider.notifier,
-                          );
-                          playing ? controller.pause() : controller.play();
-                        },
-                        icon: Icon(
-                          playing
+                        if (miniPlayerShowsPrevious(constraints.maxWidth))
+                          _BarButton(
+                            icon: Icons.skip_previous_rounded,
+                            tooltip: 'Previous',
+                            color: brand.ink,
+                            onPressed: controller.previous,
+                          ),
+                        _BarButton(
+                          icon: playing
                               ? Icons.pause_rounded
                               : Icons.play_arrow_rounded,
+                          tooltip: playing ? 'Pause' : 'Play',
                           color: brand.ink,
+                          onPressed: () =>
+                              playing ? controller.pause() : controller.play(),
                         ),
-                        tooltip: playing ? 'Pause' : 'Play',
-                      ),
-                      IconButton(
-                        onPressed: ref
-                            .read(musicControllerProvider.notifier)
-                            .next,
-                        icon: Icon(Icons.skip_next_rounded, color: brand.ink),
-                        tooltip: 'Next',
-                      ),
-                      const SizedBox(width: 2),
-                    ],
+                        _BarButton(
+                          icon: Icons.skip_next_rounded,
+                          tooltip: 'Next',
+                          color: brand.ink,
+                          onPressed: controller.next,
+                        ),
+                        // The two that are about the bar rather than about the
+                        // song, held apart from the transport so that closing
+                        // the player is never the button beside the one
+                        // somebody meant to press.
+                        const SizedBox(width: _groupGap),
+                        _BarButton(
+                          icon: Icons.keyboard_arrow_down_rounded,
+                          size: 23,
+                          tooltip: 'Minimize player',
+                          color: brand.mutedInk,
+                          onPressed: ref
+                              .read(musicBarPlacementProvider.notifier)
+                              .collapse,
+                        ),
+                        _BarButton(
+                          icon: Icons.close_rounded,
+                          size: 19,
+                          tooltip: 'Stop and close player',
+                          color: brand.mutedInk,
+                          onPressed: controller.dismiss,
+                        ),
+                        const SizedBox(width: _tailGap),
+                      ],
+                    ),
                   ),
                 ),
                 _ProgressLine(brand: brand, duration: item.duration),
@@ -123,6 +185,36 @@ class MiniPlayer extends ConsumerWidget {
       ),
     );
   }
+}
+
+/// One control in the bar: narrow, bar-height, and labelled for a screen
+/// reader by its tooltip.
+class _BarButton extends StatelessWidget {
+  const _BarButton({
+    required this.icon,
+    required this.tooltip,
+    required this.color,
+    required this.onPressed,
+    this.size = 21,
+  });
+
+  final IconData icon;
+  final String tooltip;
+  final Color color;
+  final VoidCallback onPressed;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) => IconButton(
+    onPressed: onPressed,
+    tooltip: tooltip,
+    padding: EdgeInsets.zero,
+    constraints: const BoxConstraints.tightFor(
+      width: kMiniPlayerButtonWidth,
+      height: kMiniPlayerHeight - 10,
+    ),
+    icon: Icon(icon, size: size, color: color),
+  );
 }
 
 class _Artwork extends StatelessWidget {
