@@ -78,7 +78,8 @@ class MusicOverlay extends ConsumerWidget {
               Positioned.fill(
                 child: MusicPlayerDock(
                   brand: brand,
-                  onOpen: () => ref.read(appRouterProvider).push('/now-playing'),
+                  onOpen: () =>
+                      ref.read(appRouterProvider).push('/now-playing'),
                 ),
               ),
           ],
