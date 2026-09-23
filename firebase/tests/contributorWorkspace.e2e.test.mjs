@@ -47,7 +47,9 @@ const rejectsWith = (promise, code) => assert.rejects(promise, (error) => {
   assert.equal(error?.code, `functions/${code}`, `${error?.code}: ${error?.message}`);
   return true;
 });
-const until = async (check, label, timeoutMs = 20_000) => {
+// Triggers cold-start in the Functions emulator on first use; on a loaded
+// machine that alone has taken over 20 s, so waits allow 45 s.
+const until = async (check, label, timeoutMs = 45_000) => {
   const started = Date.now();
   while (Date.now() - started < timeoutMs) {
     const value = await check();
