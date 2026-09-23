@@ -6,6 +6,7 @@ date identifies when the post was prepared; it does not prove the update is live
 
 ## Posts
 
+- [2026-09-23: A rebuilt workspace for Kasem contributors](2026-09-23-contributor-workspace-rebuild/README.md) — draft article; implemented and tested locally, not deployed.
 - [2026-09-23: Contributor issue reporting](2026-09-23-contributor-issue-reporting/README.md) — draft article; deployed 2026-09-23, authenticated workflow verification pending.
 - [2026-09-23: Payment details now have a home under Account](2026-09-23-contributor-payment-profile/README.md) — draft article; deployed 2026-09-23, authenticated workflow verification pending.
 - [2026-09-23: De N Lei — Come Learn Kasem joins Music](2026-09-23-de-n-lei-kasem-song/README.md) — music record published to Firebase; guest access and public assets verified, device playback pending.
