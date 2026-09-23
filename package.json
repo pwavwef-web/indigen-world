@@ -33,6 +33,9 @@
     "verify:production-main": "node scripts/verify-production-main.mjs",
     "deploy:website": "firebase deploy --only hosting:indigen-world --project project-kassena-7e026",
     "deploy:kasena-dictionary": "firebase deploy --only hosting:kasem-dictionary --project project-kassena-7e026",
+    "export:beyond-the-reef": "node --experimental-strip-types tools/beyond-the-reef-export/render.ts",
+    "export:beyond-the-reef:youtube": "node --experimental-strip-types tools/beyond-the-reef-export/export-youtube.ts",
+    "export:beyond-the-reef:vertical": "node --experimental-strip-types tools/beyond-the-reef-export/export-vertical.ts",
     "build:admin": "npm run build --workspace @indigen-world/admin",
     "build:console-ui": "npm run build --workspace @indigen-world/console-ui",
     "build:tribestudio": "npm run build --workspace @indigen-world/tribestudio",
@@ -64,6 +67,7 @@
   },
   "devDependencies": {
     "cross-env": "7.0.3",
-    "firebase-tools": "15.19.1"
+    "firebase-tools": "15.19.1",
+    "playwright-core": "^1.50.0"
   }
 }
