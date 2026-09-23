@@ -7,9 +7,9 @@ date identifies when the post was prepared; it does not prove the update is live
 ## Posts
 
 - [2026-09-23: Contributor issue reporting](2026-09-23-contributor-issue-reporting/README.md) — draft article; deployed 2026-09-23, authenticated workflow verification pending.
-
 - [2026-09-23: Payment details now have a home under Account](2026-09-23-contributor-payment-profile/README.md) — draft article; deployed 2026-09-23, authenticated workflow verification pending.
-
+- [2026-09-23: De N Lei — Come Learn Kasem joins Music](2026-09-23-de-n-lei-kasem-song/README.md) — music record published to Firebase; guest access and public assets verified, device playback pending.
+- [2026-09-21: More context for Kasem contributions](2026-09-21-kasem-contribution-context/README.md) — draft; implemented in repository, deployment and app release unconfirmed.
 - [2026-09-20: First-party community campaigns now have a privacy-aware fallback](2026-09-20-mobile-admob-fallback/README.md) — draft; consent message published and Play data disclosures submitted, app-ads.txt and a release still pending, nothing serving.
 - [2026-09-17: A faster contributor translation workspace](2026-09-17-contributor-workspace-redesign/README.md) — draft article; implementation verified locally, production deployment pending.
 - [2026-09-17: Contributor invitations by SMS](2026-09-17-contributor-sms-invitations/README.md) — draft article; deployed, handset-delivery check pending.
