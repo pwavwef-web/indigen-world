@@ -10,9 +10,17 @@ const tick = () => new Promise((resolve) => setImmediate(resolve));
 
 // Execute production modules with their external I/O replaced. No Firebase
 // project or microphone is contacted by these tests.
+const MODEL_EXPORTS = ['contributionState', 'expressionView', 'submittedCount', 'nextContribution', 'itemStatus', 'STATUS_META',
+  'metricsFor', 'workState', 'WORK_STATE_META', 'parseDate', 'formatDate', 'formatDateTime', 'relativeTime', 'dueInfo',
+  'activityFrom', 'groupByDay', 'friendlyError', 'initials', 'firstName', 'pluralise', 'formatBytes'];
+
 async function load(path, names, mocks = {}) {
   if (path.endsWith('SubmissionNewPage.tsx')) {
     mocks = { ...await load('src/creator/discoverySource.ts', ['discoverySource']), ...mocks };
+  }
+  // Contributor workspace modules share the pure model; load the real one.
+  if (path.startsWith('src/contributor/') && !path.endsWith('model.ts')) {
+    mocks = { ...await load('src/contributor/model.ts', MODEL_EXPORTS), ...mocks };
   }
   const { code } = await transformWithOxc(readFileSync(resolve(root, path), 'utf8'), path, { jsx: { runtime: 'classic' } });
   const executable = code.replace(/^import[\s\S]*?;\n/gm, '').replace(/\bexport (?=(?:async )?function|const|let|class)/g, '');
@@ -423,7 +431,7 @@ test('contributor password activation signs in and stays on the assigned portal'
 test('contributor autosave keeps full expressions and submits with the latest revision', async () => {
   const h = hooks(), calls = [], timers = new Map(); let timerId = 0;
   const item = { id: 'item', expression: 'How are you?', translation: '', alternatives: [], revision: 0, status: 'draft' };
-  const { ExpressionEditor } = await load('src/contributor/ContributorPortal.tsx', ['ExpressionEditor'], {
+  const { ExpressionEditor } = await load('src/contributor/editor.tsx', ['ExpressionEditor'], {
     ...h.api, functions: {}, httpsCallable: () => async data => { calls.push(plain(data)); return { data: { revision: data.revision + 1 } }; },
     window: { setTimeout: fn => { timers.set(++timerId, fn); return timerId; }, clearTimeout: id => timers.delete(id), addEventListener() {}, removeEventListener() {} },
   });
@@ -446,7 +454,7 @@ test('contributor autosave keeps full expressions and submits with the latest re
 
 test('contributor adds and removes structured alternative translation fields', async () => {
   const h = hooks();
-  const { ExpressionEditor } = await load('src/contributor/ContributorPortal.tsx', ['ExpressionEditor'], {
+  const { ExpressionEditor } = await load('src/contributor/editor.tsx', ['ExpressionEditor'], {
     ...h.api, functions: {}, httpsCallable: () => async () => ({ data: { revision: 1 } }),
     window: { setTimeout() {}, clearTimeout() {}, addEventListener() {}, removeEventListener() {} },
   });
@@ -466,7 +474,7 @@ test('contributor adds and removes structured alternative translation fields', a
 
 test('failed contributor autosave retains text and prevents unsafe submission', async () => {
   const h = hooks(); let timer;
-  const { ExpressionEditor } = await load('src/contributor/ContributorPortal.tsx', ['ExpressionEditor'], {
+  const { ExpressionEditor } = await load('src/contributor/editor.tsx', ['ExpressionEditor'], {
     ...h.api, functions: {}, httpsCallable: () => async () => { throw new Error('Offline'); },
     window: { setTimeout: fn => { timer = fn; return 1; }, clearTimeout() {}, addEventListener() {}, removeEventListener() {} },
   });
@@ -482,7 +490,7 @@ test('failed contributor autosave retains text and prevents unsafe submission', 
 });
 
 test('contributor views distinguish empty expressions, saved drafts, submissions and review outcomes', async () => {
-  const { expressionView } = await load('src/contributor/ContributorPortal.tsx', ['expressionView'], { functions: {}, httpsCallable: () => () => {} });
+  const { expressionView } = await load('src/contributor/model.ts', ['expressionView'], { functions: {}, httpsCallable: () => () => {} });
   assert.equal(expressionView({ translation: '', status: 'draft' }), 'untranslated');
   assert.equal(expressionView({ translation: 'Kasem draft', status: 'draft' }), 'translated');
   assert.equal(expressionView({ translation: 'Kasem answer', status: 'submitted', submissionId: 's' }), 'translated');
@@ -493,11 +501,12 @@ test('contributor views distinguish empty expressions, saved drafts, submissions
 
 test('uninvited signed-in users cannot render the contributor dashboard or load assignments', async () => {
   const h = hooks(); const paths = [];
+  const { invitationLinkOwner } = await load('src/contributor/workspace.tsx', ['invitationLinkOwner'], { createContext: () => ({}) });
   const { ContributorPortal } = await load('src/contributor/ContributorPortal.tsx', ['ContributorPortal'], {
     ...h.api, functions: {}, db: {}, httpsCallable: () => () => {},
     useAuth: () => ({ user: { uid: 'outsider' }, ready: true }),
     useRoute: () => ({ path: '/contributor/outsider/work', search: '', navigate() {} }),
-    matchRoute: () => ({ uid: 'outsider', work: 'work' }),
+    invitationLinkOwner,
     doc: (_db, ...parts) => parts.join('/'), collection: (_db, ...parts) => parts.join('/'),
     onSnapshot: (path, cb) => { paths.push(path); cb({ get: () => undefined }); return () => {}; },
   });
@@ -510,7 +519,7 @@ test('uninvited signed-in users cannot render the contributor dashboard or load 
 });
 
 test('assignment filters separate saved drafts from submissions and revision feedback', async () => {
-  const { contributionState } = await load('src/contributor/ContributorPortal.tsx', ['contributionState'], { functions: {}, httpsCallable: () => () => {} });
+  const { contributionState } = await load('src/contributor/model.ts', ['contributionState'], { functions: {}, httpsCallable: () => () => {} });
   assert.equal(contributionState({ translation: '', alternatives: [], status: 'draft' }), 'Not started');
   assert.equal(contributionState({ translation: 'Answer', status: 'draft' }), 'Drafts');
   assert.equal(contributionState({ translation: '', alternatives: ['Alternate'], status: 'draft' }), 'Drafts');
@@ -520,7 +529,7 @@ test('assignment filters separate saved drafts from submissions and revision fee
 
 test('submit and next advances only after a successful submission', async () => {
   const h = hooks(), sent = [];
-  const { ExpressionEditor } = await load('src/contributor/ContributorPortal.tsx', ['ExpressionEditor'], {
+  const { ExpressionEditor } = await load('src/contributor/editor.tsx', ['ExpressionEditor'], {
     ...h.api, functions: {}, httpsCallable: () => async () => ({ data: { revision: 1, submissionId: 's' } }),
     window: { setTimeout() {}, clearTimeout() {}, addEventListener() {}, removeEventListener() {} },
   });
@@ -539,7 +548,7 @@ test('submit and next advances only after a successful submission', async () => 
 
 test('retry save preserves edited text after a connection failure', async () => {
   const h = hooks(); let timer, attempts = 0; const calls = [];
-  const { ExpressionEditor } = await load('src/contributor/ContributorPortal.tsx', ['ExpressionEditor'], {
+  const { ExpressionEditor } = await load('src/contributor/editor.tsx', ['ExpressionEditor'], {
     ...h.api, functions: {}, httpsCallable: () => async data => { calls.push(plain(data)); if (++attempts === 1) throw new Error('Offline'); return { data: { revision: 1 } }; },
     window: { setTimeout: fn => { timer = fn; return 1; }, clearTimeout() {}, addEventListener() {}, removeEventListener() {} },
   });
@@ -560,20 +569,20 @@ test('browser recovery is account scoped and restores only after contributor act
   const stored = new Map(); let h = hooks();
   const mocks = () => ({ ...h.api, functions: {}, httpsCallable: () => async () => ({ data: { revision: 1 } }),
     window: { localStorage: { getItem: key => stored.get(key) ?? null, setItem: (key, value) => stored.set(key, value), removeItem: key => stored.delete(key) }, setTimeout() {}, clearTimeout() {}, addEventListener() {}, removeEventListener() {} } });
-  let { ExpressionEditor } = await load('src/contributor/ContributorPortal.tsx', ['ExpressionEditor'], mocks());
+  let { ExpressionEditor } = await load('src/contributor/editor.tsx', ['ExpressionEditor'], mocks());
   const props = { item: { id: 'item', expression: 'Hello', translation: '', alternatives: [], revision: 0 }, work: 'work', accountId: 'alice', onPending() {} };
   let tree = h.render(ExpressionEditor, props); h.flush();
   find(tree, n => n.type === 'textarea' && n.props.required).props.onChange({ target: { value: 'Unsaved Kasem text' } });
   assert.ok(stored.has('contributor-draft:alice:work:item'));
   h.dispose(); h = hooks();
-  ({ ExpressionEditor } = await load('src/contributor/ContributorPortal.tsx', ['ExpressionEditor'], mocks()));
+  ({ ExpressionEditor } = await load('src/contributor/editor.tsx', ['ExpressionEditor'], mocks()));
   tree = h.render(ExpressionEditor, props); h.flush();
   assert.equal(find(tree, n => n.type === 'textarea' && n.props.required).props.value, '');
   find(tree, n => n.type === 'button' && n.props.children?.includes('Restore draft')).props.onClick();
   tree = h.render(ExpressionEditor, props);
   assert.equal(find(tree, n => n.type === 'textarea' && n.props.required).props.value, 'Unsaved Kasem text');
   h.dispose(); h = hooks();
-  ({ ExpressionEditor } = await load('src/contributor/ContributorPortal.tsx', ['ExpressionEditor'], mocks()));
+  ({ ExpressionEditor } = await load('src/contributor/editor.tsx', ['ExpressionEditor'], mocks()));
   tree = h.render(ExpressionEditor, { ...props, accountId: 'bob' });
   assert.equal(find(tree, n => n.type === 'button' && n.props.children?.includes('Restore draft')), null);
   h.dispose();
@@ -605,7 +614,7 @@ test('forgot password sends the entered email without requiring a password', asy
 test('skip needs no translation or consent and advances only after the flag saves', async () => {
   for (const fail of [false, true]) {
     const h = hooks(), calls = [], advances = [];
-    const { ExpressionEditor, contributionState } = await load('src/contributor/ContributorPortal.tsx', ['ExpressionEditor', 'contributionState'], {
+    const { ExpressionEditor, contributionState } = await load('src/contributor/editor.tsx', ['ExpressionEditor', 'contributionState'], {
       ...h.api, functions: {}, httpsCallable: () => async data => { calls.push(plain(data)); if (fail) throw new Error('Offline'); return { data: { revision: 1 } }; },
       window: { setTimeout() {}, clearTimeout() {}, addEventListener() {}, removeEventListener() {} },
     });
@@ -642,7 +651,7 @@ test('activation confirms the chosen password before calling the backend', async
 });
 
 test('contributor progress excludes returned revisions and continue prioritizes them', async () => {
-  const { submittedCount, nextContribution } = await load('src/contributor/ContributorPortal.tsx', ['submittedCount', 'nextContribution'], { functions: {}, httpsCallable: () => () => {} });
+  const { submittedCount, nextContribution } = await load('src/contributor/model.ts', ['submittedCount', 'nextContribution'], { functions: {}, httpsCallable: () => () => {} });
   const items = [
     { id: 'new', status: 'draft' },
     { id: 'review', status: 'submitted', submissionId: 's1' },
@@ -654,4 +663,140 @@ test('contributor progress excludes returned revisions and continue prioritizes 
   assert.equal(nextContribution(items.slice(0, 3)).id, 'new');
   assert.equal(nextContribution(items.slice(1, 3)), undefined);
   assert.equal(nextContribution([{ id: 'unsure', unsure: true }, { id: 'draft' }]).id, 'draft');
+});
+
+test('overview metrics never count submitted as approved, and every expression lands in one bucket', async () => {
+  const { metricsFor, workState } = await load('src/contributor/model.ts', ['metricsFor', 'workState']);
+  const items = [
+    { id: 'new', translation: '', alternatives: [], status: 'draft' },
+    { id: 'draft', translation: 'Kasem', alternatives: [], status: 'draft' },
+    { id: 'unsure', translation: '', alternatives: [], status: 'draft', unsure: true },
+    { id: 'waiting', translation: 'Kasem', alternatives: [], status: 'submitted', submissionId: 's1' },
+    { id: 'review', translation: 'Kasem', alternatives: [], status: 'under_review', submissionId: 's2' },
+    { id: 'approved', translation: 'Kasem', alternatives: [], status: 'verified', submissionId: 's3' },
+    { id: 'returned', translation: 'Kasem', alternatives: [], status: 'rejected', submissionId: 's4' },
+    { id: 'returned-unsure', translation: 'Kasem', alternatives: [], status: 'needs_revision', submissionId: 's5', unsure: true },
+  ];
+  const metrics = plain(metricsFor(items));
+  assert.deepEqual(metrics, { total: 8, submitted: 5, awaiting: 2, approved: 1, returned: 2, other: 0, drafts: 1, unsure: 1, notStarted: 1 });
+  assert.equal(metrics.awaiting + metrics.approved + metrics.returned + metrics.other, metrics.submitted);
+  assert.equal(metrics.awaiting + metrics.approved + metrics.returned + metrics.drafts + metrics.unsure + metrics.notStarted, metrics.total);
+  assert.equal(workState(items), 'needs_attention');
+  assert.equal(workState(items.slice(3, 6)), 'awaiting_review');
+  assert.equal(workState([items[5]]), 'complete');
+  assert.equal(workState(items.slice(0, 1)), 'not_started');
+});
+
+test('a bare internal error becomes an explanation, and server references are kept', async () => {
+  const { friendlyError } = await load('src/contributor/model.ts', ['friendlyError']);
+  const unreachable = friendlyError({ code: 'functions/internal', message: 'internal' }, 'Payment settings');
+  assert.notEqual(unreachable.message, 'internal');
+  assert.match(unreachable.message, /^Payment settings could not be reached/);
+  const referenced = friendlyError({ code: 'functions/internal', message: 'This could not be completed … reference IW-1A2B3C4D …', details: { reference: 'IW-1A2B3C4D' } }, 'Payment settings');
+  assert.equal(referenced.reference, 'IW-1A2B3C4D');
+  assert.equal(friendlyError({ code: 'functions/permission-denied', message: 'Finance access is required.' }, 'x').message, 'Finance access is required.');
+  assert.equal(friendlyError({ code: 'auth/wrong-password', message: 'Firebase: Error (auth/wrong-password).' }, 'x').message, 'That password is not correct.');
+  assert.match(friendlyError({ code: 'functions/unavailable', message: 'unavailable' }, 'Kawuri').message, /did not respond/);
+});
+
+test('portal routes keep SMS assignment links and map every section', async () => {
+  const { parsePortalRoute } = await load('src/contributor/workspace.tsx', ['parsePortalRoute'], { createContext: () => ({}) });
+  const route = (path, search = '') => { const value = parsePortalRoute(path, search, '/contributor', false); return { ...value, query: undefined }; };
+  assert.deepEqual(plain(route('/contributor')), { section: 'overview', accountTab: 'profile', notFound: false });
+  assert.equal(route('/contributor/uid-1/work-9').section, 'assignments');
+  assert.equal(route('/contributor/uid-1/work-9').work, 'work-9');
+  assert.equal(route('/contributor/uid-1/work-9', '?item=abc').item, 'abc');
+  for (const section of ['assignments', 'contributions', 'activity', 'guide', 'kawuri']) assert.equal(route(`/contributor/${section}`).section, section);
+  assert.equal(route('/contributor/account/payments').accountTab, 'payments');
+  assert.equal(route('/contributor/account').accountTab, 'profile');
+  assert.equal(route('/contributor/account/secrets').notFound, true);
+  assert.equal(route('/contributor/a/b/c').notFound, true);
+  const preview = parsePortalRoute('/contributor/preview/assignment/everyday', '', '/contributor/preview', true);
+  assert.equal(preview.work, 'everyday');
+  assert.equal(parsePortalRoute('/contributor/preview/x/y', '', '/contributor/preview', true).notFound, true);
+});
+
+test('account pages are never mistaken for an invitation link to another account', async () => {
+  const { invitationLinkOwner } = await load('src/contributor/workspace.tsx', ['invitationLinkOwner'], { createContext: () => ({}) });
+  assert.equal(invitationLinkOwner('/contributor/uid-1/work-9'), 'uid-1');
+  // Same shape as /contributor/{uid}/{work}; the gate must not send it to "sign in as another account".
+  for (const tab of ['profile', 'security', 'notifications', 'payments']) assert.equal(invitationLinkOwner(`/contributor/account/${tab}`), null);
+  for (const path of ['/contributor', '/contributor/assignments', '/contributor/account', '/contributor/a/b/c', '/studio/a/b']) {
+    assert.equal(invitationLinkOwner(path), null, path);
+  }
+});
+
+test('activity comes only from real rounds, assignments and payment notices, newest first', async () => {
+  const { activityFrom, dueInfo } = await load('src/contributor/model.ts', ['activityFrom', 'dueInfo']);
+  const events = activityFrom([
+    { id: 'r1', work: 'w', item: 'i1', expression: 'Hello', status: 'APPROVED', createdAt: '2026-09-20T08:00:00.000Z', decidedAt: '2026-09-21T08:00:00.000Z', feedback: '', revisionOf: '' },
+    { id: 'r2', work: 'w', item: 'i2', expression: 'Sit with us', status: 'REJECTED', createdAt: '2026-09-20T09:00:00.000Z', decidedAt: '2026-09-22T08:00:00.000Z', feedback: 'Use the everyday invitation.', revisionOf: '' },
+    { id: 'r3', work: 'w', item: 'i2', expression: 'Sit with us', status: 'SUBMITTED', createdAt: '2026-09-23T08:00:00.000Z', decidedAt: '', feedback: '', revisionOf: 'r2' },
+  ], [{ id: 'w', title: 'Everyday', createdAt: '2026-09-19T08:00:00.000Z' }], [{ id: 'n', title: 'Your bank account is verified', body: '', createdAt: '2026-09-22T12:00:00.000Z' }]);
+  assert.deepEqual(plain(events.map((event) => event.kind)), ['resubmitted', 'payment', 'returned', 'approved', 'submitted', 'submitted', 'assigned']);
+  assert.equal(events.find((event) => event.kind === 'returned').detail, 'Use the everyday invitation.');
+  assert.equal(events.find((event) => event.kind === 'payment').link, '/contributor/account/payments');
+  const now = new Date('2026-09-23T12:00:00');
+  assert.equal(dueInfo('2026-09-20', false, now).tone, 'danger');
+  assert.equal(dueInfo('2026-09-23', false, now).label, 'Due today');
+  assert.equal(dueInfo('2026-09-25', false, now).tone, 'warning');
+  assert.equal(dueInfo('2026-09-20', true, now).tone, 'neutral', 'a finished assignment is never shown as overdue');
+  assert.equal(dueInfo(undefined, false, now), null);
+});
+
+test('the current assignment puts returned work first, then the nearest due date', async () => {
+  const { currentAssignment } = await load('src/contributor/pages/OverviewPage.tsx', ['currentAssignment']);
+  const works = [
+    { id: 'later', title: 'Later', createdAt: '2026-09-01', deadline: '2026-12-01' },
+    { id: 'soon', title: 'Soon', createdAt: '2026-09-02', deadline: '2026-10-01' },
+    { id: 'returned', title: 'Returned', createdAt: '2026-08-01' },
+    { id: 'done', title: 'Done', createdAt: '2026-09-10' },
+  ];
+  const item = (status, submissionId) => ({ id: status, translation: '', alternatives: [], status, ...(submissionId ? { submissionId } : {}) });
+  const items = { later: [item('draft')], soon: [item('draft')], returned: [item('rejected', 's')], done: [item('verified', 's')] };
+  assert.equal(currentAssignment(works, items).id, 'returned');
+  assert.equal(currentAssignment(works, { ...items, returned: [item('verified', 's')] }).id, 'soon');
+  assert.equal(currentAssignment([works[3]], items).id, 'done', 'with nothing open, the latest assignment is still shown');
+  assert.equal(currentAssignment([], {}), null);
+});
+
+test('payment attention and statement file checks match the server rules', async () => {
+  const { paymentsNeedAttention } = await load('src/contributor/workspace.tsx', ['paymentsNeedAttention'], { createContext: () => ({}) });
+  assert.equal(paymentsNeedAttention(null), false);
+  assert.equal(paymentsNeedAttention({ bank: { status: 'pending' }, momo: null }), false);
+  assert.equal(paymentsNeedAttention({ bank: { status: 'needs_action' }, momo: null }), true);
+  assert.equal(paymentsNeedAttention({ bank: null, momo: { ownershipStatus: 'rejected' } }), true);
+  assert.equal(paymentsNeedAttention({ bank: { status: 'verified', legacy: true, statement: null }, momo: null }), true, 'legacy details need a statement');
+  const { statementProblem } = await load('src/contributor/data.ts', ['statementProblem']);
+  assert.equal(statementProblem({ type: 'application/pdf', size: 50_000 }), '');
+  assert.match(statementProblem({ type: 'image/gif', size: 50_000 }), /PDF, JPEG or PNG/);
+  assert.match(statementProblem({ type: 'image/png', size: 11 * 1024 * 1024 }), /larger than 10 MB/);
+  assert.match(statementProblem({ type: 'image/jpeg', size: 200 }), /too small/);
+});
+
+test('Kawuri suggestions are labelled as AI, can be dismissed, and never touch the draft', async () => {
+  const h = hooks();
+  const { KawuriResultView, unavailableText } = await load('src/contributor/kawuri.tsx', ['KawuriResultView', 'unavailableText'], {
+    ...h.api, Chip: 'Chip', Icon: 'Icon', Notice: 'Notice', Skeleton: 'Skeleton', cx: (...values) => values.filter(Boolean).join(' '),
+    guideSection: (id) => ({ id, title: `Guide ${id}` }),
+  });
+  const result = {
+    mode: 'context_needed', expression: 'Please come and sit with us.', configured: true, unavailableReason: null, removed: 1,
+    summary: 'A warm invitation.', questions: ['Said to an elder?'],
+    suggestions: [{ id: 's1', kind: 'context', text: 'Say who it is said to.', guideSection: 'alternatives-context' }, { id: 's2', kind: 'meaning', text: 'Note the register.', guideSection: null }],
+    checks: [], sources: { assignment: { title: 'T', instructions: 'I', dialect: '', tone: '', deadline: '', helpContact: '' }, dictionary: [], guide: [] }, generatedAt: '',
+  };
+  const text = (node) => JSON.stringify(node);
+  const props = { result, guideHref: (id) => `/g?section=${id}`, onNavigate() {} };
+  let tree = h.render(KawuriResultView, props);
+  assert.match(text(tree), /AI · not reviewed/);
+  assert.match(text(tree), /not verified Kasem knowledge/);
+  assert.match(text(tree), /contained Kasem/);
+  find(tree, (n) => n.type === 'button' && n.props['aria-label'] === 'Dismiss suggestion: Say who it is said to.').props.onClick();
+  tree = h.render(KawuriResultView, props);
+  assert.doesNotMatch(text(tree), /Say who it is said to/);
+  assert.match(text(tree), /Note the register/);
+  const offline = h.render(KawuriResultView, { ...props, result: { ...result, configured: false, unavailableReason: 'VERTEX_AUTH_FAILED' } });
+  assert.match(text(offline), /roles\/aiplatform.user/);
+  assert.match(unavailableText('SOMETHING_ELSE'), /could not write suggestions/);
 });

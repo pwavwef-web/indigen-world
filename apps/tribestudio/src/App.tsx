@@ -263,8 +263,11 @@ function Routed() {
     setContributorError(false);
     void getDoc(doc(db, 'contributorAccounts', user.uid)).then(account => {
       if (!active) return;
+      // Invited contributors land on their workspace overview, which leads
+      // with the assignment to continue. Deep links to an assignment
+      // (/contributor/{uid}/{work}) are untouched: they are contributor routes.
       if (account.get('status') === 'active' && account.get('defaultWork')) {
-        navigate(`/contributor/${user.uid}/${account.get('defaultWork')}`, { replace: true });
+        navigate('/contributor', { replace: true });
       }
       setContributorCheck(user.uid);
     }).catch(() => { if (active) setContributorError(true); });
@@ -281,8 +284,12 @@ function Routed() {
     }
   }, [path]);
 
-  if (path === '/contributor/preview' && ContributorPreview) return <Suspense fallback={<FullPageLoader />}><ContributorPreview /></Suspense>;
-  if (contributorRoute) return <Suspense fallback={<FullPageLoader />}><ContributorPortal key={`${user?.uid ?? 'guest'}:${path}`} /></Suspense>;
+  if ((path === '/contributor/preview' || path.startsWith('/contributor/preview/')) && ContributorPreview) {
+    return <Suspense fallback={<FullPageLoader />}><ContributorPreview /></Suspense>;
+  }
+  // Keyed by account only: moving between workspace sections keeps its
+  // listeners and state; signing in as someone else starts afresh.
+  if (contributorRoute) return <Suspense fallback={<FullPageLoader />}><ContributorPortal key={user?.uid ?? 'guest'} /></Suspense>;
   if (user && contributorCheck !== user.uid) {
     if (contributorError) return <div className="signin"><p>Unable to check your account. <button onClick={() => window.location.reload()}>Retry</button></p></div>;
     return <FullPageLoader note="Opening your account…" />;
