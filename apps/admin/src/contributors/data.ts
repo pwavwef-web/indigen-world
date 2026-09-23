@@ -109,19 +109,75 @@ export interface ContributorSubmission {
   createdAt: string;
   reviewedAt: string;
   feedback: string;
+  usageContext: string;
 }
 
 
-export interface ContributorPayoutProfile {
-  id: string;
-  contributorId: string;
+export type VerificationStatus = 'pending' | 'verified' | 'needs_action' | 'rejected';
+export type CheckState = 'off' | 'not_run' | 'consistent' | 'mismatch' | 'uncertain' | 'unreadable' | 'unavailable';
+export type FieldOutcome = 'match' | 'partial' | 'mismatch' | 'not_found';
+
+export interface AutomatedCheck {
+  state: CheckState;
+  fields: { accountName: FieldOutcome; accountNumber: FieldOutcome; bankName: FieldOutcome } | null;
+  /** What the model read — finance reviewers only. */
+  evidence: { documentKind: string; accountHolderName: string; bankName: string; accountNumberLast4: string } | null;
+  model: string | null;
+  ranAt: string | null;
+  unavailableReason: string | null;
+}
+
+export interface PayoutBank {
   bankName: string;
   accountName: string;
   accountNumber: string;
   branch: string;
   currency: 'GHS';
-  verificationStatus: 'pending' | 'verified' | 'rejected';
-  verificationNote?: string;
+  status: VerificationStatus;
+  statusReason: string;
+  nextStep: string;
+  statement: { contentType: string; sizeBytes: number; uploadedAt: string; sha256: string } | null;
+  automatedCheck: AutomatedCheck;
+  version: number;
+  submittedAt: string;
+  decidedAt: string | null;
+  decidedBy: string | null;
+  legacy: boolean;
+}
+
+export interface PayoutMomo {
+  network: 'mtn' | 'telecel' | 'at';
+  networkLabel: string;
+  walletNumber: string;
+  registeredName: string;
+  phoneVerifiedAt: string;
+  ownershipStatus: VerificationStatus;
+  statusReason: string;
+  nextStep: string;
+  version: number;
+  submittedAt: string;
+  decidedAt: string | null;
+  decidedBy: string | null;
+}
+
+export interface PayoutHistoryEvent {
+  at: string;
+  method: 'bank' | 'momo';
+  action: string;
+  status: string;
+  note: string;
+  actor: 'contributor' | 'finance' | 'system';
+  actorId?: string;
+}
+
+export interface ContributorPayoutProfile {
+  id: string;
+  contributorId: string;
+  preferredMethod: 'bank' | 'momo' | null;
+  bank: PayoutBank | null;
+  momo: PayoutMomo | null;
+  history: PayoutHistoryEvent[];
+  createdAt: string;
   updatedAt: string;
 }
 
@@ -132,7 +188,9 @@ export interface ContributorPaymentRequest {
   currency: 'GHS';
   description: string;
   status: 'submitted' | 'approved' | 'rejected' | 'paid';
-  bankSnapshot: { bankName: string; accountName: string; accountNumber: string; branch: string };
+  payoutMethod?: 'bank' | 'momo';
+  payoutSnapshot?: Record<string, string>;
+  bankSnapshot?: { bankName: string; accountName: string; accountNumber: string; branch: string } | null;
   createdAt: string;
   adminNote?: string;
   paymentReference?: string;
@@ -140,6 +198,7 @@ export interface ContributorPaymentRequest {
 }
 
 export interface ContributorPayments {
+  statementCheck: 'enabled' | 'off';
   profiles: ContributorPayoutProfile[];
   requests: ContributorPaymentRequest[];
 }
@@ -182,7 +241,9 @@ const cancelInvitation = httpsCallable<{ contributorId: string; reason: string }
   'cancelContributorInvitation',
 );
 const listPayments = httpsCallable<Record<string, never>, ContributorPayments>(functions, 'listContributorPayments');
-const verifyPayout = httpsCallable<{ contributorId: string; verified: boolean; note: string }, unknown>(functions, 'verifyContributorPayoutProfile');
+const statementLink = httpsCallable<{ contributorId: string }, { url: string; expiresAt: string; contentType: string }>(functions, 'getPayoutStatementLink');
+const decideVerification = httpsCallable<{ contributorId: string; method: 'bank' | 'momo'; decision: 'verify' | 'needs_action' | 'reject'; reason: string; nextStep: string; version: number }, { status: VerificationStatus }>(functions, 'decidePayoutVerification');
+const rerunCheck = httpsCallable<{ contributorId: string }, { state: CheckState }>(functions, 'rerunPayoutStatementCheck');
 const decidePayment = httpsCallable<{ requestId: string; action: 'approve' | 'reject' | 'paid'; note: string; paymentReference?: string }, unknown>(functions, 'decideContributorPaymentRequest');
 
 
@@ -233,8 +294,24 @@ export async function fetchContributorPayments(): Promise<ContributorPayments> {
   return result.data;
 }
 
-export async function verifyContributorPaymentProfile(contributorId: string, verified: boolean, note: string): Promise<void> {
-  await verifyPayout({ contributorId, verified, note });
+/** A five-minute link to the statement; the backend records every opening. */
+export async function openPayoutStatement(contributorId: string): Promise<{ url: string; expiresAt: string; contentType: string }> {
+  return (await statementLink({ contributorId })).data;
+}
+
+export async function decidePayoutVerification(input: {
+  contributorId: string;
+  method: 'bank' | 'momo';
+  decision: 'verify' | 'needs_action' | 'reject';
+  reason: string;
+  nextStep: string;
+  version: number;
+}): Promise<VerificationStatus> {
+  return (await decideVerification(input)).data.status;
+}
+
+export async function rerunPayoutStatementCheck(contributorId: string): Promise<CheckState> {
+  return (await rerunCheck({ contributorId })).data.state;
 }
 
 export async function decideContributorPayment(requestId: string, action: 'approve' | 'reject' | 'paid', note: string, paymentReference = ''): Promise<void> {
@@ -267,6 +344,7 @@ export async function fetchContributorSubmissions(): Promise<ContributorSubmissi
       createdAt: text(lifecycle.createdAt),
       reviewedAt: text(moderation.decidedAt),
       feedback: text(moderation.feedback),
+      usageContext: text(value.usageContext),
     }];
   });
 }

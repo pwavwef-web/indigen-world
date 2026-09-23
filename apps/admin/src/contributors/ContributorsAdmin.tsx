@@ -1,4 +1,5 @@
 import { ContributorIssuesAdmin } from './ContributorIssuesAdmin';
+import { ContributorPaymentsDesk } from './ContributorPaymentsDesk';
 import { useCallback, useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react';
 import {
   Alert,
@@ -13,7 +14,7 @@ import {
   toneForStatus,
   type DataColumn,
 } from '@indigen-world/console-ui';
-import { decideSubmission } from '../creators/data';
+import { decideSubmission, useAdminAuth } from '../creators/data';
 import {
   assignContributorWork,
   cancelContributorInvite,
@@ -21,8 +22,6 @@ import {
   fetchContributorDirectory,
   fetchContributorPayments,
   fetchContributorSubmissions,
-  verifyContributorPaymentProfile,
-  decideContributorPayment,
   inviteContributorWithExpressions,
   resendContributorInvite,
   saveContributor,
@@ -33,9 +32,7 @@ import {
   type ContributorAuditEntry,
   type ContributorDirectoryRow,
   type ContributorPermissions,
-  type ContributorPaymentRequest,
   type ContributorPayments,
-  type ContributorPayoutProfile,
   type ContributorProfileInput,
   type ContributorRole,
   type ContributorStatus,
@@ -407,7 +404,7 @@ function ReviewView({ submissions, contributors, loading, onReload, onNotice }: 
   const rows = scope === 'awaiting' ? submissions.filter((item) => awaiting.includes(item.status)) : submissions;
   const nameFor = (id: string) => contributors.find((item) => item.id === id)?.displayName ?? id;
   const decide = async (submission: ContributorSubmission, decision: string, needsFeedback: boolean) => {
-    const feedback = needsFeedback ? window.prompt(`Feedback for ${decision.toLowerCase().replace('_', ' ')}?`) ?? '' : '';
+    const feedback = needsFeedback ? window.prompt('Feedback for the contributor: what should change before they resubmit?') ?? '' : '';
     if (needsFeedback && !feedback.trim()) return;
     if (!needsFeedback && !window.confirm(`${decision.replace('_', ' ')} “${submission.title}”?`)) return;
     setBusy(submission.id);
@@ -423,69 +420,19 @@ function ReviewView({ submissions, contributors, loading, onReload, onNotice }: 
     { id: 'submitted', header: 'Submitted', cell: (item) => dateLabel(item.createdAt), sort: (item) => item.createdAt },
     { id: 'review', header: 'Review', align: 'end', cell: (item) => <button type="button" className="button button--small" onClick={() => setExpanded(expanded === item.id ? null : item.id)}>{expanded === item.id ? 'Close' : 'Open'}</button> },
   ];
-  return <Panel><PageHeader kicker="Editorial review" title="Expression review" body="Approve translations, request a revision with feedback, or reject work. Every decision is recorded in the existing review audit trail." /><DataTable caption="Invited expression submissions" columns={columns} rows={rows} rowKey={(item) => item.id} loading={loading} searchable searchPlaceholder="Search English, Kasem or contributor…" initialSort={{ columnId: 'submitted', direction: 'desc' }} expandedId={expanded} filters={<SegmentedControl label="Review scope" value={scope} onChange={setScope} options={[{ id: 'awaiting', label: 'Awaiting review', count: submissions.filter((item) => awaiting.includes(item.status)).length }, { id: 'all', label: 'All history', count: submissions.length }]} />} empty={{ title: 'The expression review queue is clear', body: 'New contributor submissions appear here automatically.' }} renderDetail={(item) => <div className="contributor-review-detail"><div><span>English expression</span><strong>{item.title}</strong></div><div><span>Kasem translation</span><strong>{item.body}</strong></div>{item.alternatives.length ? <div><span>Other Kasem expressions</span><ul>{item.alternatives.map((alternative) => <li key={alternative}>{alternative}</li>)}</ul></div> : null}{item.feedback ? <Alert tone="info" title="Previous feedback">{item.feedback}</Alert> : null}<div className="row-actions">{!['APPROVED', 'PUBLISHED', 'ARCHIVED'].includes(item.status) ? <><button type="button" className="button--primary" disabled={busy === item.id} onClick={() => void decide(item, 'APPROVE', false)}>Approve</button><button type="button" disabled={busy === item.id} onClick={() => void decide(item, 'REQUEST_REVISION', true)}>Request revision</button><button type="button" className="danger" disabled={busy === item.id} onClick={() => void decide(item, 'REJECT', true)}>Reject</button></> : item.status === 'APPROVED' ? <><button type="button" className="button--primary" disabled={busy === item.id} onClick={() => void decide(item, 'PUBLISH', false)}>Publish to Collection</button><button type="button" disabled={busy === item.id} onClick={() => void decide(item, 'ARCHIVE', false)}>Archive</button></> : item.status === 'PUBLISHED' ? <button type="button" className="danger" disabled={busy === item.id} onClick={() => void decide(item, 'UNPUBLISH', false)}>Unpublish</button> : null}</div></div>} /></Panel>;
+  return <Panel><PageHeader kicker="Editorial review" title="Expression review" body="Approve translations, request a revision with feedback, or reject work. Every decision is recorded in the existing review audit trail." /><DataTable caption="Invited expression submissions" columns={columns} rows={rows} rowKey={(item) => item.id} loading={loading} searchable searchPlaceholder="Search English, Kasem or contributor…" initialSort={{ columnId: 'submitted', direction: 'desc' }} expandedId={expanded} filters={<SegmentedControl label="Review scope" value={scope} onChange={setScope} options={[{ id: 'awaiting', label: 'Awaiting review', count: submissions.filter((item) => awaiting.includes(item.status)).length }, { id: 'all', label: 'All history', count: submissions.length }]} />} empty={{ title: 'The expression review queue is clear', body: 'New contributor submissions appear here automatically.' }} renderDetail={(item) => <div className="contributor-review-detail"><div><span>English expression</span><strong>{item.title}</strong></div><div><span>Kasem translation</span><strong>{item.body}</strong></div>{item.alternatives.length ? <div><span>Other Kasem expressions</span><ul>{item.alternatives.map((alternative) => <li key={alternative}>{alternative}</li>)}</ul></div> : null}{item.usageContext ? <div><span>Contributor’s usage note</span><strong>{item.usageContext}</strong></div> : null}{item.feedback ? <Alert tone="info" title="Previous feedback">{item.feedback}</Alert> : null}<div className="row-actions">{!['APPROVED', 'PUBLISHED', 'ARCHIVED'].includes(item.status) ? <><button type="button" className="button--primary" disabled={busy === item.id} onClick={() => void decide(item, 'APPROVE', false)}>Approve</button><button type="button" className="danger" disabled={busy === item.id} onClick={() => void decide(item, 'REJECT', true)}>Return with feedback</button><small className="muted">Returned expressions reopen for the contributor to revise and resubmit.</small></> : item.status === 'APPROVED' ? <><button type="button" className="button--primary" disabled={busy === item.id} onClick={() => void decide(item, 'PUBLISH', false)}>Publish to Collection</button><button type="button" disabled={busy === item.id} onClick={() => void decide(item, 'ARCHIVE', false)}>Archive</button></> : item.status === 'PUBLISHED' ? <button type="button" className="danger" disabled={busy === item.id} onClick={() => void decide(item, 'UNPUBLISH', false)}>Unpublish</button> : null}</div></div>} /></Panel>;
 }
 
-
-function PaymentsView({ payments, contributors, loading, onReload, onNotice }: {
-  payments: ContributorPayments;
-  contributors: ContributorDirectoryRow[];
-  loading: boolean;
-  onReload: () => Promise<void>;
-  onNotice: (message: string) => void;
-}) {
-  const [busy, setBusy] = useState('');
-  const contributorName = (id: string) => contributors.find(item => item.id === id)?.displayName || id;
-  const verify = async (profile: ContributorPayoutProfile, verified: boolean) => {
-    const note = window.prompt(verified ? 'Optional verification note' : 'Why are these bank details being rejected?') ?? '';
-    if (!verified && !note.trim()) return;
-    setBusy('profile:' + profile.id);
-    try {
-      await verifyContributorPaymentProfile(profile.contributorId, verified, note);
-      onNotice(verified ? 'Bank account verified.' : 'Bank account rejected.'); await onReload();
-    } catch (reason) { onNotice(reason instanceof Error ? reason.message : 'The bank profile could not be updated.'); }
-    finally { setBusy(''); }
-  };
-  const decide = async (request: ContributorPaymentRequest, action: 'approve' | 'reject' | 'paid') => {
-    const note = action === 'reject' ? window.prompt('Reason for rejecting this request') ?? ''
-      : window.prompt(action === 'paid' ? 'Optional payment note' : 'Optional approval note') ?? '';
-    if (action === 'reject' && !note.trim()) return;
-    const paymentReference = action === 'paid' ? window.prompt('Enter the bank payment reference') ?? '' : '';
-    if (action === 'paid' && !paymentReference.trim()) return;
-    setBusy('request:' + request.id);
-    try {
-      await decideContributorPayment(request.id, action, note, paymentReference);
-      onNotice(action === 'paid' ? 'Payment marked as paid.' : `Payment request ${action}d.`); await onReload();
-    } catch (reason) { onNotice(reason instanceof Error ? reason.message : 'The payment request could not be updated.'); }
-    finally { setBusy(''); }
-  };
-  return <div className="contributor-payments-admin">
-    <Panel><PageHeader kicker="Private payout information" title="Bank profiles" body="Verify that the account holder and bank details match before enabling payment requests." />
-      {loading ? <p><Spinner /> Loading payment profiles…</p> : payments.profiles.length ? <div className="admin-payment-list">{payments.profiles.map(profile => <article key={profile.id}>
-        <div><strong>{contributorName(profile.contributorId)}</strong><small>{profile.bankName} · {profile.branch || 'Branch not supplied'}</small><p>{profile.accountName}<br /><code>{profile.accountNumber}</code></p></div>
-        <div><StatusPill tone={toneForStatus(profile.verificationStatus)}>{profile.verificationStatus}</StatusPill><small>Updated {dateLabel(profile.updatedAt)}</small>
-          {profile.verificationStatus !== 'verified' ? <button type="button" className="button--primary" disabled={busy === 'profile:' + profile.id} onClick={() => void verify(profile, true)}>Verify</button> : null}
-          <button type="button" className="danger" disabled={busy === 'profile:' + profile.id} onClick={() => void verify(profile, false)}>Reject</button></div>
-      </article>)}</div> : <p className="muted">No contributor has added bank details yet.</p>}
-    </Panel>
-    <Panel><PageHeader kicker="Contributor requests" title="Payment requests" body="Approve valid requests, reject requests with a reason, and record the bank reference after payment." />
-      {loading ? <p><Spinner /> Loading requests…</p> : payments.requests.length ? <div className="admin-payment-list">{payments.requests.map(request => <article key={request.id}>
-        <div><strong>{contributorName(request.contributorId)} · {new Intl.NumberFormat(undefined, { style: 'currency', currency: request.currency }).format(request.amountMinor / 100)}</strong><small>{dateLabel(request.createdAt)} · {request.description}</small><p>{request.bankSnapshot.accountName}<br />{request.bankSnapshot.bankName} · <code>{request.bankSnapshot.accountNumber}</code></p>{request.adminNote ? <p>{request.adminNote}</p> : null}{request.paymentReference ? <p>Reference: <code>{request.paymentReference}</code></p> : null}</div>
-        <div><StatusPill tone={toneForStatus(request.status)}>{request.status}</StatusPill>
-          {request.status === 'submitted' ? <><button type="button" className="button--primary" disabled={busy === 'request:' + request.id} onClick={() => void decide(request, 'approve')}>Approve</button><button type="button" className="danger" disabled={busy === 'request:' + request.id} onClick={() => void decide(request, 'reject')}>Reject</button></> : null}
-          {request.status === 'approved' ? <button type="button" className="button--primary" disabled={busy === 'request:' + request.id} onClick={() => void decide(request, 'paid')}>Mark paid</button> : null}
-        </div>
-      </article>)}</div> : <p className="muted">No payment requests yet.</p>}
-    </Panel>
-  </div>;
-}
 
 export function ContributorsAdmin() {
   const [view, setView] = useState<View>('directory');
   const [contributors, setContributors] = useState<ContributorDirectoryRow[]>([]);
   const [submissions, setSubmissions] = useState<ContributorSubmission[]>([]);
   const [audits, setAudits] = useState<ContributorAuditEntry[]>([]);
-  const [payments, setPayments] = useState<ContributorPayments>({ profiles: [], requests: [] });
+  const [payments, setPayments] = useState<ContributorPayments>({ statementCheck: 'off', profiles: [], requests: [] });
+  // Payout detail is finance-only (separation of duties); other admins never request it.
+  const adminAuth = useAdminAuth();
+  const canReviewPayments = adminAuth.finance || adminAuth.superAdmin || adminAuth.role === 'super_admin';
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
@@ -500,7 +447,8 @@ export function ContributorsAdmin() {
     setLoading(true); setError('');
     try {
       const [directory, contributionHistory, auditHistory, paymentData] = await Promise.allSettled([
-        fetchContributorDirectory(), fetchContributorSubmissions(), fetchContributorAuditEntries(), fetchContributorPayments(),
+        fetchContributorDirectory(), fetchContributorSubmissions(), fetchContributorAuditEntries(),
+        canReviewPayments ? fetchContributorPayments() : Promise.resolve<ContributorPayments>({ statementCheck: 'off', profiles: [], requests: [] }),
       ]);
       if (directory.status === 'fulfilled') setContributors(directory.value);
       if (contributionHistory.status === 'fulfilled') setSubmissions(contributionHistory.value);
@@ -518,7 +466,7 @@ export function ContributorsAdmin() {
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'Contributor data could not be loaded.');
     } finally { setLoading(false); }
-  }, []);
+  }, [canReviewPayments]);
   useEffect(() => { void load(); }, [load]);
   useEffect(() => {
     if (!notice) return;
@@ -536,7 +484,8 @@ export function ContributorsAdmin() {
   const openReview = submissions.filter((item) => ['SUBMITTED', 'RESUBMITTED', 'UNDER_REVIEW', 'APPROVED'].includes(item.status)).length;
   const works = contributors.reduce((total, item) => total + item.works.length, 0);
   const pendingInvites = contributors.filter((item) => item.invitation.status === 'pending').length;
-  const openPayments = payments.requests.filter(item => ['submitted', 'approved'].includes(item.status)).length;
+  const openPayments = payments.requests.filter(item => ['submitted', 'approved'].includes(item.status)).length
+    + payments.profiles.filter(item => item.bank?.status === 'pending' || item.momo?.ownershipStatus === 'pending').length;
 
   const finishMutation = async (message: string) => { setModal(null); setNotice(message); await load(); };
   const showShare = async (contributor: ContributorDirectoryRow, result: AssignmentResult) => {
@@ -578,7 +527,7 @@ export function ContributorsAdmin() {
     {view === 'assignments' ? <AssignmentsView rows={contributors} onAssign={(contributor) => setModal({ kind: 'assignment', contributor })} /> : null}
     {view === 'review' ? <ReviewView submissions={submissions} contributors={contributors} loading={loading} onReload={async () => { setSubmissions(await fetchContributorSubmissions()); }} onNotice={setNotice} /> : null}
     {view === 'issues' ? <ContributorIssuesAdmin /> : null}
-    {view === 'payments' ? <PaymentsView payments={payments} contributors={contributors} loading={loading} onReload={async () => { setPayments(await fetchContributorPayments()); }} onNotice={setNotice} /> : null}
+    {view === 'payments' ? <ContributorPaymentsDesk payments={payments} contributors={contributors} loading={loading} canReview={canReviewPayments} onReload={async () => { setPayments(await fetchContributorPayments()); }} onNotice={setNotice} /> : null}
     {modal?.kind === 'profile' ? <ProfileModal contributor={modal.contributor} onClose={() => setModal(null)} onSaved={(message) => void finishMutation(message)} /> : null}
     {modal?.kind === 'assignment' ? <AssignmentModal contributor={modal.contributor} onClose={() => setModal(null)} onComplete={(result) => void showShare(modal.contributor, result)} /> : null}
     {modal?.kind === 'access' ? <AccessModal contributor={modal.contributor} onClose={() => setModal(null)} onSaved={(message) => void finishMutation(message)} /> : null}
