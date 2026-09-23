@@ -299,6 +299,27 @@ service firebase.storage {
       allow delete: if isSignedIn() && request.auth.uid == uid;
     }
 
+    // ---- Contributor payout statements: private, create-once ----------------
+    // contributor-payout-statements/{uid}/{uploadId}/{fileName}
+    //
+    // A bank statement supporting a contributor's payout details. The owner may
+    // create one object per upload id and can never read, replace or delete it
+    // from a client. submitBankVerification re-reads the object's real type,
+    // size and first bytes before using it; finance reviewers open it through a
+    // five-minute signed link from getPayoutStatementLink, which is audited.
+    // Superseded statements are deleted by the backend when replaced.
+    match /contributor-payout-statements/{uid}/{uploadId}/{fileName} {
+      allow create: if isSignedIn()
+        && request.auth.uid == uid
+        && resource == null
+        && uploadId.matches('^[A-Za-z0-9_-]{8,64}$')
+        && fileName.matches('^[A-Za-z0-9_-][A-Za-z0-9._-]{0,119}$')
+        && request.resource.size > 1024
+        && request.resource.size <= 10 * 1024 * 1024
+        && request.resource.contentType in ['application/pdf', 'image/jpeg', 'image/png'];
+      allow read, update, delete: if false;
+    }
+
     // ---- Kawuri creations: private, server-written --------------------------
     // Generated images and videos, imported by trusted backend code. Readable
     // by their owner only; never written or deleted by a client — deletion

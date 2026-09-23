@@ -37,6 +37,12 @@ async function resolveRecipientEmail(
     const email = snap.get('contact.email');
     if (typeof email === 'string' && email.includes('@')) return email.trim();
   }
+  // Invited contributors keep their contact details on the admin-managed profile.
+  if (recipient && recipient.collection === 'contributors' && typeof recipient.id === 'string') {
+    const snap = await db.collection('contributors').doc(recipient.id).get();
+    const email = snap.get('private.email');
+    if (typeof email === 'string' && email.includes('@')) return email.trim();
+  }
   if (typeof authUid === 'string' && authUid.length > 0) {
     try {
       const user = await getAuth().getUser(authUid);
@@ -59,6 +65,11 @@ async function resolveRecipientPhone(
   if (recipient && recipient.collection === 'creatorProfiles' && typeof recipient.id === 'string') {
     const snap = await db.collection('creatorProfiles').doc(recipient.id).get();
     const phone = snap.get('contact.phone');
+    if (typeof phone === 'string' && phone.trim().length > 0) return phone.trim();
+  }
+  if (recipient && recipient.collection === 'contributors' && typeof recipient.id === 'string') {
+    const snap = await db.collection('contributors').doc(recipient.id).get();
+    const phone = snap.get('private.phone');
     if (typeof phone === 'string' && phone.trim().length > 0) return phone.trim();
   }
   if (typeof authUid === 'string' && authUid.length > 0) {

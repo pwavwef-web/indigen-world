@@ -430,3 +430,22 @@ test('Kawuri creations are readable by their owner only and written by no client
   await assert.rejects(getBytes(ref(stranger, path)));
   await assert.rejects(uploadBytes(ref(owner, 'kawuri-creations/kawuri-creator/t/fake.png'), imageBytes(), { contentType: 'image/png' }));
 });
+
+test('contributor payout statements are owner-created once, typed and sized, and never client-readable', async () => {
+  const owner = await clientFor('statement-owner', 'statement-owner');
+  const stranger = await clientFor('statement-stranger', 'statement-stranger');
+  const finance = await clientFor('statement-finance', 'statement-finance', { role: 'admin', finance: true });
+  const pdf = new Uint8Array(4096);
+  pdf.set([0x25, 0x50, 0x44, 0x46, 0x2d]);
+  const path = 'contributor-payout-statements/statement-owner/upload-00000001/statement.pdf';
+  await uploadBytes(ref(owner, path), pdf, { contentType: 'application/pdf' });
+  await assert.rejects(getBytes(ref(owner, path)), 'the owner cannot read it back from a client');
+  await assert.rejects(getBytes(ref(finance, path)), 'finance reviewers use an audited signed link, not the client SDK');
+  await assert.rejects(uploadBytes(ref(owner, path), pdf, { contentType: 'application/pdf' }), 'no overwrite');
+  await assert.rejects(uploadBytes(ref(stranger, 'contributor-payout-statements/statement-owner/upload-00000002/s.pdf'), pdf, { contentType: 'application/pdf' }));
+  await uploadBytes(ref(owner, 'contributor-payout-statements/statement-owner/upload-00000003/photo.jpg'), pdf, { contentType: 'image/jpeg' });
+  await assert.rejects(uploadBytes(ref(owner, 'contributor-payout-statements/statement-owner/upload-00000004/s.html'), pdf, { contentType: 'text/html' }));
+  await assert.rejects(uploadBytes(ref(owner, 'contributor-payout-statements/statement-owner/upload-00000005/tiny.pdf'), new Uint8Array(100), { contentType: 'application/pdf' }));
+  await assert.rejects(uploadBytes(ref(owner, 'contributor-payout-statements/statement-owner/upload-00000006/huge.pdf'), new Uint8Array(10 * 1024 * 1024 + 1), { contentType: 'application/pdf' }));
+  await assert.rejects(uploadBytes(ref(owner, 'contributor-payout-statements/statement-owner/short/s.pdf'), pdf, { contentType: 'application/pdf' }), 'upload ids are 8-64 safe characters');
+});

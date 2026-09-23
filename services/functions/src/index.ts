@@ -13,14 +13,23 @@ export {
   resendContributorInvitation,
   cancelContributorInvitation,
   saveExpressionAnswer,
+  onContributorExpressionReviewed,
+} from './contributor-portal.js';
+export {
   getContributorPayments,
+  submitBankVerification,
+  removePayoutMethod,
+  setPreferredPayoutMethod,
+  startMomoVerification,
+  confirmMomoVerification,
   saveContributorPayoutProfile,
   requestContributorPayment,
   listContributorPayments,
-  verifyContributorPayoutProfile,
+  getPayoutStatementLink,
+  decidePayoutVerification,
+  rerunPayoutStatementCheck,
   decideContributorPaymentRequest,
-  onContributorExpressionReviewed,
-} from './contributor-portal.js';
+} from './contributor-payments.js';
 
 export { decideReview } from './validation.js';
 export { setUserRole } from './identity.js';
@@ -151,3 +160,6 @@ export {
   deleteSmsContactGroup,
 } from './messaging-admin.js';
 export { reportContributorIssue, getContributorIssues, listContributorIssues, updateContributorIssue } from './contributor-portal.js';
+export { getContributorSelf, updateContributorSelf, saveContributorSettings } from './contributor-profile.js';
+export { onContributorPulseSubmissionWritten } from './contributor-pulse.js';
+export { kawuriContributorAssist } from './contributor-assist.js';

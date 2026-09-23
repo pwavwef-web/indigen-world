@@ -6,6 +6,7 @@ import { createHash } from 'node:crypto';
 import { HttpsError } from 'firebase-functions/v2/https';
 import { requireAuth, requireRole } from '../../services/functions/lib/auth.js';
 import { normalizeMsisdn } from '../../services/functions/lib/sms.js';
+import { guarded } from '../../services/functions/lib/contributor-common.js';
 import { COLLECTION_CAMPAIGN_ID, buildCollectionCampaignDocument, buildCollectionContributionReceipt,
   buildCollectionSubmissionDocument, parseCollectionContributionInput } from '../../services/functions/lib/collection-contributions.js';
 
@@ -43,7 +44,7 @@ async function harness({ smsOk = true, configured = true } = {}) {
   const code = readFileSync(path, 'utf8');
   const executable = code.replace(/^import[\s\S]*?;\n/gm, '').replace(/\bexport (?=(?:async )?function|const)/g, '');
   const api = runInNewContext(executable + '\n;({saveExpressionAnswer,onContributorExpressionReviewed,parseExpressionAnswer,assignContributorExpressions,assignmentInstructions,inviteExpressionContributor,activateExpressionContributor,resendContributorInvitation,contributorPhone,reportContributorIssue,updateContributorIssue})', {
-    process, URL, createHash, HttpsError, requireAuth, requireRole, getFirestore: () => db,
+    process, URL, createHash, HttpsError, requireAuth, requireRole, guarded, getFirestore: () => db,
     ARKESEL_API_KEY: 'test-secret', normalizeMsisdn, isSmsConfigured: () => configured,
     sendSmsToMsisdn: async (to, message) => { messages.push({ to, message }); return { ok: smsOk, ...(smsOk ? { id: 'sms-1' } : { error: 'network' }) }; },
     getAuth: () => ({
@@ -359,4 +360,20 @@ test('issue reports validate assignment ownership, omit private fields and dedup
   await api.updateContributorIssue({ auth: { uid: 'admin', token: { role: 'admin' } }, data: { id: first.id, status: 'in_progress', reply: 'We are checking.' } });
   assert.equal(records.get(`contributorIssues/${first.id}`).replies[0].text, 'We are checking.');
   assert.equal(records.get(`contributorIssues/${first.id}`).status, 'in_progress');
+});
+
+test('an optional usage note travels with the draft, survives older clients and reaches reviewers first', async () => {
+  const h = await harness();
+  await h.saveExpressionAnswer(h.request({ context: 'Said to an elder when arriving at their home.' }));
+  assert.equal(h.records.get(h.itemPath).context, 'Said to an elder when arriving at their home.');
+  // A build that predates the field sends no context and must not blank the note.
+  await h.saveExpressionAnswer(h.request({ revision: 1, translation: 'Kasem expression, edited' }));
+  assert.equal(h.records.get(h.itemPath).context, 'Said to an elder when arriving at their home.');
+  const { submissionId } = await h.saveExpressionAnswer(h.request({ revision: 2, translation: 'Kasem expression, edited', submit: true, publicationPermission: true }));
+  const submission = h.records.get(`submissions/${submissionId}`);
+  assert.equal(submission.usageContext, 'Said to an elder when arriving at their home.');
+  assert.match(submission.translationNotes, /^Context and usage:\nSaid to an elder/);
+  assert.match(submission.translationNotes, /Other ways of saying it in Kasem:\nAnother expression/);
+  assert.equal(h.records.get(`collectionContributions/${submissionId}`).usageContext, 'Said to an elder when arriving at their home.');
+  await assert.rejects(h.saveExpressionAnswer(h.request({ revision: 3, context: 'x'.repeat(1001) })), { code: 'invalid-argument' });
 });

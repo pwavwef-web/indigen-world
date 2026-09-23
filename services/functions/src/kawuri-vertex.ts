@@ -134,6 +134,22 @@ function emulatorFake(): GenAiLike {
             : { allowed: true, category: 'none', reason: '' });
         }
         const schema = config.responseJsonSchema as { properties?: Record<string, unknown> } | undefined;
+        if (schema?.properties?.accountNumberComparison) {
+          // Contributor payout statement check (contributor-statement-check.ts).
+          const reference = /REFERENCE NUMBER: ([A-Za-z0-9]+)/.exec(text)?.[1] ?? '';
+          return reply(text.includes('[fake:unreadable]')
+            ? { documentKind: 'unreadable', legible: false, accountHolderName: '', bankName: '', accountNumberComparison: 'not_visible', accountNumberLast4: '' }
+            : { documentKind: 'bank_statement', legible: true, accountHolderName: 'Test Account Holder', bankName: 'Test Bank',
+              accountNumberComparison: 'same', accountNumberLast4: reference.slice(-4) });
+        }
+        if (schema?.properties?.questions && schema.properties.suggestions) {
+          // Contributor workspace assistant (contributor-assist.ts).
+          return reply({
+            summary: 'Emulator summary of the assignment.',
+            suggestions: [{ kind: 'context', text: 'Say who usually says this, and to whom.', guideSection: 'alternatives-context' }],
+            questions: ['Is this said to an elder or to a friend?'],
+          });
+        }
         if (schema?.properties?.transcript) {
           return reply({
             transcript: 'Please add the painted walls to my reel.',

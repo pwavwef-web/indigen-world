@@ -659,6 +659,19 @@ export const decideSubmission = onCall(
         }
       }
       const isDictionaryContribution = collectionKind === 'dictionary' && contribution != null;
+      // Invited contributors (TribeStudio contributor portal) are sent to the
+      // expression itself, and choose whether decisions also reach them by
+      // email; the in-app record is always written.
+      const portal = submission.contributorPortal && typeof submission.contributorPortal === 'object'
+        ? submission.contributorPortal as { contributorId?: unknown; work?: unknown; item?: unknown }
+        : null;
+      const portalLink = portal && typeof portal.contributorId === 'string'
+        && typeof portal.work === 'string' && typeof portal.item === 'string'
+        ? `/contributor/${portal.contributorId}/${portal.work}?item=${portal.item}`
+        : null;
+      const portalSettings = portalLink
+        ? await tx.get(db.collection('contributorSettings').doc(String(portal?.contributorId)))
+        : null;
       if (submission.authUid === uid) {
         throw new HttpsError('permission-denied', 'Reviewers cannot decide on their own submissions.');
       }
@@ -1084,9 +1097,9 @@ export const decideSubmission = onCall(
         type: decision === 'REQUEST_REVISION' ? 'revision_request' : decision === 'PUBLISH' ? 'publication_notice' : 'review_decision',
         title: `Submission ${newStatus.toLowerCase().replace('_', ' ')}`,
         body: feedback || `Your submission "${submission.title}" is now ${newStatus}.`,
-        link: contributionRef ? '/contribute' : `/studio/submissions/${submissionId}`,
+        link: portalLink ?? (contributionRef ? '/contribute' : `/studio/submissions/${submissionId}`),
         read: false,
-        channels: ['in_app', 'email'],
+        channels: portalSettings?.get('notifications.reviewEmail') === false ? ['in_app'] : ['in_app', 'email'],
         schemaVersion: 1,
         lifecycle: { createdAt: now, updatedAt: now, version: 1 },
       });
