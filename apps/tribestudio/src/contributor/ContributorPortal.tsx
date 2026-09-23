@@ -1,3 +1,4 @@
+import { ContributorIssues } from './ContributorIssues';
 import { useEffect, useRef, useState } from 'react';
 import { confirmPasswordReset, sendPasswordResetEmail, signInWithEmailAndPassword, verifyPasswordResetCode } from 'firebase/auth';
 import { collection, doc, onSnapshot } from 'firebase/firestore';
@@ -16,13 +17,20 @@ export function expressionView(item: Item): 'untranslated' | 'translated' | 'rev
   return item.translation.trim() || item.submissionId ? 'translated' : 'untranslated';
 }
 const save = httpsCallable<Record<string, unknown>, { revision: number; submissionId?: string }>(functions, 'saveExpressionAnswer');
-type PayoutProfile = { bankName: string; accountName: string; accountNumber: string; branch: string; currency: 'GHS'; verificationStatus: 'pending' | 'verified' | 'rejected'; verificationNote?: string; updatedAt: string };
-type PaymentRequest = { id: string; amountMinor: number; currency: 'GHS'; description: string; status: 'submitted' | 'approved' | 'rejected' | 'paid'; createdAt: string; adminNote?: string; paidAt?: string | null; paymentReference?: string };
+export type PayoutProfile = { bankName: string; accountName: string; accountNumber: string; branch: string; currency: 'GHS'; verificationStatus: 'pending' | 'verified' | 'rejected'; verificationNote?: string; updatedAt: string };
+export type PaymentRequest = { id: string; amountMinor: number; currency: 'GHS'; description: string; status: 'submitted' | 'approved' | 'rejected' | 'paid'; createdAt: string; adminNote?: string; paidAt?: string | null; paymentReference?: string };
 const loadPayments = httpsCallable<Record<string, never>, { profile: PayoutProfile | null; requests: PaymentRequest[] }>(functions, 'getContributorPayments');
 const savePayoutProfile = httpsCallable<Record<string, string>, { verificationStatus: PayoutProfile['verificationStatus'] }>(functions, 'saveContributorPayoutProfile');
-const requestPayment = httpsCallable<{ amountMinor: number; description: string }, { requestId: string }>(functions, 'requestContributorPayment');
 
 
+export function submittedCount(items: Item[]) {
+  return items.filter(item => Boolean(item.submissionId) && !['rejected', 'needs_revision'].includes(item.status)).length;
+}
+export function nextContribution(items: Item[]) {
+  return items.find(item => ['rejected', 'needs_revision'].includes(item.status))
+    ?? items.find(item => !item.submissionId && !item.unsure)
+    ?? items.find(item => !item.submissionId);
+}
 export function ContributorPortal() {
   const { user, ready } = useAuth();
   const { path, search, navigate } = useRoute();
@@ -62,9 +70,9 @@ export function ContributorPortal() {
     }, e => { setError(e.message); setLoaded(true); });
   }, [user?.uid, params?.uid, params?.work, code, access]);
   const activeWork = works.find(w => w.id === params?.work);
-  const submitted = items.filter(item => Boolean(item.submissionId) && !['rejected', 'needs_revision'].includes(item.status)).length;
+  const submitted = submittedCount(items);
   return <div className="contributor-portal"><ContributorHeader title={activeWork?.title} completed={submitted} total={items.length} pending={pending}
-    accountId={user?.uid} onSignOut={() => void signOutUser()} />
+    paymentsEnabled={access === 'active' && !needsActivation && !code} accountId={user?.uid} onSignOut={() => void signOutUser()} />
     <main id="main-content" tabIndex={-1}>
       {error && <p role="alert">{error} <button onClick={() => window.location.reload()}>Retry</button></p>}
       {!ready ? <p>Opening your portal…</p> : code || !user ? <ContributorSignIn code={code} />
@@ -75,48 +83,57 @@ export function ContributorPortal() {
         : !works.some(w => w.id === params.work) ? <EmptyState title="Assignment unavailable" body="This assignment is not available to your account. Contact the team if you think this is a mistake." /> : <>
           <AssignmentSelector works={works} active={params.work} itemCount={items.length} completed={submitted} pending={pending}
             onChange={work => navigate('/contributor/' + user.uid + '/' + work)} />
-          {activeWork && <AssignmentGuidance work={activeWork} />}
-          <ContributorPayments />
-          <ContributionWorkspace accountId={user.uid} key={user.uid + params.work} items={items} work={params.work} onPending={setPending} />
+
+
+          <ContributionWorkspace guidance={activeWork} accountId={user.uid} key={user.uid + params.work} items={items} work={params.work} onPending={setPending} />
         </>}
     </main></div>;
 }
 
-export function ContributorHeader({ title, completed, total, accountId, pending, onSignOut }: { title?: string; completed: number; total: number; accountId?: string; pending: boolean; onSignOut: () => void }) {
+export function ContributorHeader({ title, completed, total, accountId, pending, onSignOut, paymentsEnabled = false, paymentService }: { paymentService?: ContributorPaymentService; paymentsEnabled?: boolean; title?: string; completed: number; total: number; accountId?: string; pending: boolean; onSignOut: () => void }) {
+  const paymentDialog = useRef<HTMLDialogElement>(null);
+  const [showPayments, setShowPayments] = useState(false);
   return <header className="contributor-header"><div className="contributor-heading"><span className="contributor-kicker">INDIGEN WORLD · CONTRIBUTORS</span><h1>Your contributions</h1>
-    {title && <p>{title}</p>}</div><div className="contributor-header-actions">{total > 0 && <span className="contributor-header-progress">{completed} / {total} completed</span>}
-      {accountId && <details className="contributor-account"><summary aria-label="Open account details"><span aria-hidden="true">☺</span><span className="sr-only">Account</span></summary>
-        <div><strong>Contributor account</strong><p className="contributor-identity">ID: <code>{accountId}</code></p><button disabled={pending} onClick={onSignOut}>Sign out</button></div></details>}</div></header>;
+    {title && <p>{title}</p>}</div><div className="contributor-header-actions">{total > 0 && <span className="contributor-header-progress">{completed} / {total} submitted</span>}
+      {accountId && <details className="contributor-account"><summary aria-label="Open account details"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/></svg><span>Account</span></summary>
+        <div><strong>Contributor account</strong><p className="contributor-identity">ID: <code>{accountId}</code></p><button hidden={!paymentsEnabled} onClick={() => { setShowPayments(true); paymentDialog.current?.showModal(); }}>Payment profile</button><button disabled={pending} onClick={onSignOut}>Sign out</button></div></details>}</div>{paymentsEnabled && <dialog ref={paymentDialog} className="contributor-payment-dialog" aria-label="Payment profile" onCancel={() => setShowPayments(false)}><div className="contributor-payment-dialog-heading"><h2>Payment profile</h2><button aria-label="Close payment profile" onClick={() => { paymentDialog.current?.close(); setShowPayments(false); }}>Close</button></div>{showPayments && <ContributorPayments service={paymentService} />}</dialog>}</header>;
 }
 
-function AssignmentSelector({ works, active, completed, itemCount, pending, onChange }: { works: Work[]; active: string; completed: number; itemCount: number; pending: boolean; onChange: (id: string) => void }) {
+export function AssignmentSelector({ works, active, completed, itemCount, pending, onChange }: { works: Work[]; active: string; completed: number; itemCount: number; pending: boolean; onChange: (id: string) => void }) {
   const work = works.find(w => w.id === active);
   return <section className="contributor-assignment" aria-label="Current assignment"><div><span className="contributor-label">Assignment</span><strong>{work?.title}</strong>
-    <small>{work?.deadline ? `Due ${formatDeadline(work.deadline)}` : 'No deadline'} · {completed}/{itemCount} complete</small></div>
+    <small>{work?.deadline ? `Due ${formatDeadline(work.deadline)}` : 'No deadline'} · {completed}/{itemCount} submitted</small></div>
     {works.length > 1 && <label><span className="sr-only">Choose assignment</span><select value={active} disabled={pending} onChange={e => onChange(e.target.value)}>
       {works.map(w => <option key={w.id} value={w.id}>{w.title}</option>)}</select></label>}</section>;
 }
 
-function AssignmentGuidance({ work }: { work: Work }) {
+export function AssignmentGuidance({ work }: { work: Work }) {
+
   const summary = work.instructions || 'Translate each expression naturally into Kasem. Add alternatives when useful.';
   return <details className="contributor-guidance"><summary><span><strong>Assignment guidance</strong><small>{summary.length > 150 ? summary.slice(0, 147) + '…' : summary}</small></span><span aria-hidden="true">⌄</span></summary>
-    <div>{work.instructions && <p>{work.instructions}</p>}{work.dialect && <p><strong>Dialect:</strong> {work.dialect}</p>}{work.tone && <p><strong>Tone:</strong> {work.tone}</p>}{work.deadline && <p><strong>Due:</strong> {formatDeadline(work.deadline)}</p>}{work.helpContact && <p><strong>Need help?</strong> {work.helpContact}</p>}</div></details>;
+    <div>{work.instructions && <p>{work.instructions}</p>}{work.dialect && <p><strong>Dialect:</strong> {work.dialect}</p>}{work.tone && <p><strong>Tone:</strong> {work.tone}</p>}{work.deadline && <p><strong>Due:</strong> {formatDeadline(work.deadline)}</p>}<p><strong>Contact:</strong> {work.helpContact || 'Contact the team member who sent your invitation for assignment help.'}</p></div></details>;
 }
 
 
-function ContributorPayments() {
+export type ContributorPaymentService = {
+  load: () => Promise<{ data: { profile: PayoutProfile | null; requests: PaymentRequest[] } }>;
+  save: (details: Record<string, string>) => Promise<unknown>;
+};
+const livePaymentService: ContributorPaymentService = {
+  load: () => loadPayments({}), save: details => savePayoutProfile(details),
+};
+export function ContributorPayments({ service = livePaymentService }: { service?: ContributorPaymentService }) {
+  const [editing, setEditing] = useState(false);
   const [profile, setProfile] = useState<PayoutProfile | null>(null);
-  const [requests, setRequests] = useState<PaymentRequest[]>([]);
   const [bankName, setBankName] = useState(''), [accountName, setAccountName] = useState('');
   const [accountNumber, setAccountNumber] = useState(''), [branch, setBranch] = useState('');
-  const [amount, setAmount] = useState(''), [description, setDescription] = useState('');
   const [loading, setLoading] = useState(true), [busy, setBusy] = useState(false);
   const [error, setError] = useState(''), [notice, setNotice] = useState('');
   const refresh = async () => {
     setLoading(true); setError('');
     try {
-      const result = await loadPayments({});
-      setProfile(result.data.profile); setRequests(result.data.requests);
+      const result = await service.load();
+      setProfile(result.data.profile);
       if (result.data.profile) {
         setBankName(result.data.profile.bankName); setAccountName(result.data.profile.accountName);
         setAccountNumber(result.data.profile.accountNumber); setBranch(result.data.profile.branch ?? '');
@@ -125,17 +142,17 @@ function ContributorPayments() {
     finally { setLoading(false); }
   };
   useEffect(() => { void refresh(); }, []);
-  const openRequest = requests.some(request => ['submitted', 'approved'].includes(request.status));
-  return <details className="contributor-payments">
-    <summary><span><strong>Payments</strong><small>{loading ? 'Loading payment profile…' : profile ? `Bank account · ${profile.verificationStatus}` : 'Add bank details to receive payments'}</small></span><span aria-hidden="true">⌄</span></summary>
+  return <section className="contributor-payments">
+    <p className="contributor-payment-summary">{loading ? 'Loading payment profile…' : 'Manage your bank details and verification status.'}</p>
     <div className="contributor-payments__body">
       {error && <p role="alert">{error}</p>}{notice && <p role="status">{notice}</p>}
       <section><h2>Bank account</h2><p className="muted">These details are private and available only to authorised administrators handling contributor payments.</p>
-        <form className="contributor-payment-form" onSubmit={async event => {
+        {profile && <><p className={`payment-status status-${profile.verificationStatus}`}>{profile.verificationStatus}</p><p>{profile.verificationStatus === 'verified' ? 'Your bank details have been verified. Editing them may require a new review.' : profile.verificationStatus === 'pending' ? 'Your bank details are awaiting administrator review. No action is needed unless the team contacts you.' : 'Your bank details need correction. Review the feedback, update your details, and save them for another review.'}</p>{profile.verificationNote && <p role="status">{profile.verificationNote}</p>}</>}
+        {profile && !editing ? <div className="contributor-bank-summary"><p>{profile.bankName}</p><p>{profile.accountName}</p><p>Account ending in {profile.accountNumber.slice(-4)}</p>{profile.branch && <p>{profile.branch}</p>}<button onClick={() => setEditing(true)}>Edit bank details</button></div> : !loading && <form className="contributor-payment-form" onSubmit={async event => {
           event.preventDefault(); setBusy(true); setError(''); setNotice('');
           try {
-            await savePayoutProfile({ bankName, accountName, accountNumber, branch });
-            setNotice('Bank details saved and sent for verification.'); await refresh();
+            await service.save({ bankName, accountName, accountNumber, branch });
+            setNotice('Bank details saved and sent for verification.'); await refresh(); setEditing(false);
           } catch (reason) { setError(reason instanceof Error ? reason.message : 'Bank details could not be saved.'); }
           finally { setBusy(false); }
         }}>
@@ -145,28 +162,11 @@ function ContributorPayments() {
           <label>Branch <small>(optional)</small><input maxLength={160} value={branch} onChange={event => setBranch(event.target.value)} /></label>
           {profile && <p className={`payment-status status-${profile.verificationStatus}`}>Verification: <strong>{profile.verificationStatus}</strong>{profile.verificationNote ? ` · ${profile.verificationNote}` : ''}</p>}
           <button className="button--primary" disabled={busy}>{busy ? 'Saving…' : profile ? 'Update bank details' : 'Save bank details'}</button>
-        </form>
+          {profile && <button type="button" disabled={busy} onClick={() => { setBankName(profile.bankName); setAccountName(profile.accountName); setAccountNumber(profile.accountNumber); setBranch(profile.branch); setEditing(false); }}>Cancel</button>}
+        </form>}
       </section>
-      <section><h2>Request payment</h2>
-        {profile?.verificationStatus !== 'verified' ? <p>Your bank account must be verified before you can request payment.</p> :
-          <form className="contributor-payment-form" onSubmit={async event => {
-            event.preventDefault(); const parsed = Number(amount);
-            if (!Number.isFinite(parsed) || parsed < 1) { setError('Enter a valid amount of at least GHS 1.'); return; }
-            setBusy(true); setError(''); setNotice('');
-            try {
-              await requestPayment({ amountMinor: Math.round(parsed * 100), description });
-              setAmount(''); setDescription(''); setNotice('Payment request submitted.'); await refresh();
-            } catch (reason) { setError(reason instanceof Error ? reason.message : 'Payment request could not be submitted.'); }
-            finally { setBusy(false); }
-          }}>
-            <label>Amount (GHS)<input required type="number" min="1" max="1000000" step="0.01" value={amount} onChange={event => setAmount(event.target.value)} /></label>
-            <label>What is this payment for?<textarea required maxLength={500} value={description} onChange={event => setDescription(event.target.value)} placeholder="Describe the completed work or agreed payment" /></label>
-            <button className="button--primary" disabled={busy || openRequest}>{openRequest ? 'A request is being processed' : busy ? 'Submitting…' : 'Request payment'}</button>
-          </form>}
-      </section>
-      <section><h2>Payment history</h2>{requests.length ? <div className="contributor-payment-history">{requests.map(request => <article key={request.id}><div><strong>{new Intl.NumberFormat(undefined, { style: 'currency', currency: request.currency }).format(request.amountMinor / 100)}</strong><small>{request.description}</small><time>{new Date(request.createdAt).toLocaleDateString()}</time></div><span className={`payment-status status-${request.status}`}>{request.status}</span>{request.adminNote && <p>{request.adminNote}</p>}{request.paymentReference && <p>Reference: {request.paymentReference}</p>}</article>)}</div> : <p>No payment requests yet.</p>}</section>
     </div>
-  </details>;
+  </section>;
 }
 
 function EmptyState({ title, body }: { title: string; body: string }) { return <section className="contributor-empty"><span aria-hidden="true">○</span><h2>{title}</h2><p>{body}</p></section>; }
@@ -239,32 +239,39 @@ export function contributionState(item: Item) {
   if (item.submissionId) return 'Submitted';
   return item.translation.trim() || item.alternatives?.some(v => v.trim()) ? 'Drafts' : 'Not started';
 }
-export function ContributionWorkspace({ items, work, onPending, accountId, saveAnswer = save }: {
-  items: Item[]; work: string; accountId?: string; onPending: (pending: boolean) => void; saveAnswer?: SaveAnswer;
+export function ContributionWorkspace({ items, work, guidance, onPending, accountId, saveAnswer = save }: {
+  items: Item[]; work: string; guidance?: Work; accountId?: string; onPending: (pending: boolean) => void; saveAnswer?: SaveAnswer;
 }) {
-  const [selected, setSelected] = useState('');
+  const positionKey = accountId ? `contributor-position:${accountId}:${work}` : '';
+  const [selected, setSelected] = useState(() => { try { return positionKey ? window.localStorage.getItem(positionKey) ?? '' : ''; } catch { return ''; } });
+  useEffect(() => { if (positionKey && selected) { try { window.localStorage.setItem(positionKey, selected); } catch { /* Position memory is optional. */ } } }, [positionKey, selected]);
   const [filter, setFilter] = useState('All');
   const [query, setQuery] = useState('');
   const [pending, setPending] = useState(false);
-  const [mobileEditor, setMobileEditor] = useState(false);
+  const [mobileEditor, setMobileEditor] = useState(Boolean(selected));
   const [confirmation, setConfirmation] = useState('');
   const visible = items.filter(i => (filter === 'All' || contributionState(i) === filter) &&
     [i.expression, i.translation, ...i.alternatives].join(' ').toLocaleLowerCase().includes(query.toLocaleLowerCase()));
   const item = items.find(i => i.id === selected) ?? visible[0];
-  const submitted = items.filter(i => Boolean(i.submissionId) && !['rejected', 'needs_revision'].includes(i.status)).length;
+  const submitted = submittedCount(items);
+  const approved = items.filter(i => i.status === 'verified').length;
+  const nextItem = nextContribution(items);
   const drafts = items.filter(i => contributionState(i) === 'Drafts').length;
   const unsure = items.filter(i => i.unsure).length;
   const revisions = items.filter(i => contributionState(i) === 'Needs revision').length;
   const currentIndex = item ? items.findIndex(i => i.id === item.id) : -1;
   const hasNextIncomplete = items.some((candidate, index) => index !== currentIndex && contributionState(candidate) !== 'Submitted');
+  const support = <details className="contributor-support"><summary>Help &amp; support</summary><div>{guidance && <AssignmentGuidance work={guidance} />}<ContributorIssues work={work} item={item?.id} preview={accountId === 'preview-contributor'} /></div></details>;
   if (!items.length) return <EmptyState title="No expressions yet" body="There are no expressions in this assignment. Please check back later or contact the team." />;
-  if (submitted === items.length) return <section className="contributor-complete"><span aria-hidden="true">🎉</span><h2>Assignment complete</h2><p>You’ve submitted all {items.length} expressions. Thank you for helping Kasem grow.</p></section>;
+  if (submitted === items.length) return <>{support}<section className="contributor-complete"><span aria-hidden="true">🎉</span><h2>All expressions submitted</h2><p>You’ve submitted all {items.length} expressions; {approved} approved by the Review Desk. Thank you for helping Kasem grow.</p><dl className="contributor-completion-stats"><div><dt>Submitted</dt><dd>{submitted}</dd></div><div><dt>Awaiting review</dt><dd>{submitted - approved}</dd></div><div><dt>Approved</dt><dd>{approved}</dd></div><div><dt>Returned for revision</dt><dd>{revisions}</dd></div></dl><p>Check back for reviewer feedback. Returned expressions will reopen in your assignment.</p></section></>;
   return <>
+    {support}
     <section className="contributor-progress" aria-label="Assignment progress">
       <div><span>Progress</span><strong>{submitted} / {items.length} submitted</strong></div>
       <progress aria-label="Expressions submitted" value={submitted} max={items.length || 1} />
-      <p><span className="status-dot status-draft" />{drafts} drafts <span className="status-dot status-unsure" />{unsure} unsure <span className="status-dot status-revision" />{revisions} need revision <span>{Math.max(0, items.length - submitted)} remaining</span></p>
+      <p><span>{approved} approved</span><span className="status-dot status-draft" />{drafts} drafts <span className="status-dot status-unsure" />{unsure} unsure <span className="status-dot status-revision" />{revisions} need revision <span>{Math.max(0, items.length - submitted)} remaining</span></p>
     </section>
+    {nextItem && <button className="contributor-continue" disabled={pending} onClick={() => { setFilter('All'); setQuery(''); setSelected(nextItem.id); setMobileEditor(true); }}>Continue translating{revisions > 0 ? ' · Review revisions first' : ''} →</button>}
     {confirmation && <p className="contributor-confirmation" role="status">{confirmation}</p>}
     <div className={'contributor-workspace' + (mobileEditor ? ' is-editing' : '')}>
       <section className="contributor-expression-list" aria-label="Find expressions">
@@ -304,6 +311,8 @@ function ExpressionEditor({ item, itemNumber = 1, itemTotal = 1, hasNextIncomple
   const submitting = useRef(false);
   const activeField = useRef<HTMLTextAreaElement | HTMLInputElement | null>(null);
   const [sent, setSent] = useState(false);
+  const reviewDialog = useRef<HTMLDialogElement>(null);
+  const reviewNext = useRef(false);
   const revising = ['rejected', 'needs_revision'].includes(item.status);
   useEffect(() => { if (['rejected', 'needs_revision'].includes(item.status)) setSent(false); }, [item.status]);
   const locked = (Boolean(item.submissionId) && !revising) || sent;
@@ -354,15 +363,31 @@ function ExpressionEditor({ item, itemNumber = 1, itemTotal = 1, hasNextIncomple
   const updateAlternative = (index: number, value: string) => { const next = [...alternativeValues]; next[index] = value.replace(/\n/g, ' '); setAlternativeCount(next.length); changeAnswer('alternatives', next.join('\n')); };
   const removeAlternative = (index: number) => { const next = alternativeValues.filter((_, current) => current !== index); setAlternativeCount(next.length); changeAnswer('alternatives', next.join('\n')); };
   const cannotSubmit = !translation.trim() ? 'Enter a Kasem translation to submit.' : !publication ? 'Confirm publication permission to submit.' : blocked.current ? 'Retry saving your draft before submitting.' : '';
-  return <form className="contributor-editor" onSubmit={async e => { e.preventDefault(); if (locked || recovery || blocked.current) return; submitting.current = true; setBusy(true); onPending(true);
-    try { await persist(true); setSent(true); onSubmitted?.((e.nativeEvent as SubmitEvent | undefined)?.submitter?.getAttribute('value') === 'next'); } catch { /* Error is retained beside the draft. */ } finally { submitting.current = false; setBusy(false); onPending(dirty.current); }
-  }}><header className="editor-heading"><div><span className="contributor-kicker">EXPRESSION {itemNumber} OF {itemTotal}</span><h2>{item.expression}</h2></div><span className={`status-badge state-${statusSlug(contributionState(item))}`}>{statusIcon(contributionState(item))} {contributionState(item)}</span></header>
+  const sendReviewedAnswer = async () => {
+    if (locked || recovery || blocked.current || cannotSubmit || busy || submitting.current) return;
+    submitting.current = true; setBusy(true); onPending(true);
+    try { await persist(true); setSent(true); reviewDialog.current?.close(); onSubmitted?.(reviewNext.current); }
+    catch { reviewDialog.current?.close(); }
+    finally { submitting.current = false; setBusy(false); onPending(dirty.current); }
+  };
+  return <form className="contributor-editor" onSubmit={e => {
+    e.preventDefault(); if (locked || recovery || blocked.current || cannotSubmit || busy || submitting.current) return;
+    reviewNext.current = (e.nativeEvent as SubmitEvent | undefined)?.submitter?.getAttribute('value') === 'next';
+    reviewDialog.current?.showModal();
+  }}>
+    <dialog ref={reviewDialog} className="contributor-payment-dialog contributor-review-dialog" aria-labelledby="review-answer-title" onCancel={e => { if (busy) e.preventDefault(); }}>
+      <h2 id="review-answer-title">Review your submission</h2>
+      <p>{item.expression}</p><h3>Kasem translation</h3><p className="review-answer-text">{translation}</p>
+      <h3>Alternative translations</h3>{savedAlternatives.filter(value => value.trim()).length ? <ul>{savedAlternatives.filter(value => value.trim()).map((value, index) => <li key={index}>{value}</li>)}</ul> : <p>None added.</p>}
+      <h3>Permissions</h3><p>Publication permission: {publication ? 'Granted' : 'Not granted'}</p><p>Optional AI training: {training ? 'Allowed' : 'Not allowed'}</p>
+      <div className="contributor-review-actions"><button type="button" autoFocus disabled={busy} onClick={() => reviewDialog.current?.close()}>Back to editing</button><button type="button" disabled={busy || Boolean(cannotSubmit)} onClick={() => void sendReviewedAnswer()}>{busy ? 'Submitting…' : 'Confirm submission'}</button></div>
+    </dialog><header className="editor-heading"><div><span className="contributor-kicker">EXPRESSION {itemNumber} OF {itemTotal}</span><h2>{item.expression}</h2></div><span className={`status-badge state-${statusSlug(contributionState(item))}`}>{statusIcon(contributionState(item))} {contributionState(item)}</span></header>
     {item.feedback && <section className="contributor-feedback"><strong>Reviewer note</strong><p>{item.feedback}</p>{revising && <small>Update your translation below, then resubmit it for review.</small>}</section>}
     {recovery && <section className="contributor-feedback"><strong>Unsaved draft found on this device</strong><p>{recovery.revision !== item.revision ? 'The saved version has changed since this copy was made. Compare both before restoring.' : 'Your previous edits can be recovered.'}</p><pre className="contributor-recovery-text">{recovery.translation}{recovery.alternatives ? '\nAlternatives:\n' + recovery.alternatives : ''}</pre>
       {!locked && <button type="button" onClick={() => { revision.current = item.revision; changeAnswer('translation', recovery.translation); changeAnswer('alternatives', recovery.alternatives); setRecovery(null); }}>Restore draft</button>}
       <button type="button" onClick={() => { try { window.localStorage.removeItem(storageKey); } catch { /* Storage may be unavailable. */ } setRecovery(null); }}>Discard recovery copy</button></section>}
     {storageError && <p role="alert">{storageError}</p>}
-    <div className="editor-save-state"><span className={`save-indicator ${status === 'Couldn’t save' ? 'is-error' : ''}`} aria-hidden="true">{status === 'Saving…' ? '•' : status === 'Couldn’t save' ? '!' : '✓'}</span><span role="status" aria-live="polite">{locked ? 'Submitted' : status}</span></div>
+    <div className="editor-save-state"><span className={`save-indicator ${status === 'Couldn’t save' ? 'is-error' : ''}`} aria-hidden="true">{status === 'Saving…' ? '•' : status === 'Couldn’t save' ? '!' : '✓'}</span><span role="status" aria-live="polite">{locked ? 'Submitted' : status}</span>{error && !locked && <button type="button" disabled={busy} onClick={() => { blocked.current = false; chain.current = Promise.resolve(); setError(''); setStatus('Saving…'); void persist().catch(() => undefined); }}>Retry save now</button>}</div>
     <label className="translation-field">Kasem translation <span aria-hidden="true">*</span><textarea ref={node => { if (node && !activeField.current) activeField.current = node; }} onFocus={e => { activeField.current = e.currentTarget; }} required maxLength={2000} disabled={locked || busy || Boolean(recovery)} value={translation} placeholder="Enter the natural Kasem expression" aria-describedby="translation-help" onChange={e => changeAnswer('translation', e.target.value)} /><small id="translation-help">Translate the meaning naturally, rather than word for word.</small></label>
     {!locked && <div className="contributor-characters" role="group" aria-label="Kasem characters"><small>Kasem characters</small><div>{Array.from('ɛƐəƏɣƔɩƖŋŊɔƆʋƲ').map(char => <button type="button" key={char} aria-label={`Insert ${char}`} disabled={busy || Boolean(recovery)} onMouseDown={e => e.preventDefault()} onClick={() => {
       const field = activeField.current;
@@ -388,7 +413,7 @@ function ExpressionEditor({ item, itemNumber = 1, itemTotal = 1, hasNextIncomple
         catch { /* Keep the expression open for retry. */ }
         finally { submitting.current = false; setBusy(false); onPending(dirty.current); }
       }}>Skip / I’m not sure →</button></section>
-      <div className="contributor-submit-wrap">{cannotSubmit && <p id="submit-help">{cannotSubmit}</p>}<div className="contributor-submit-actions"><button type="button" disabled={busy || Boolean(recovery) || blocked.current || !dirty.current} onClick={() => void persist().catch(() => undefined)}>Save draft</button><button value={hasNextIncomplete ? 'next' : 'submit'} aria-describedby={cannotSubmit ? 'submit-help' : undefined} disabled={busy || Boolean(recovery) || Boolean(cannotSubmit)}>{busy ? 'Submitting…' : revising ? hasNextIncomplete ? 'Resubmit & next →' : 'Resubmit to Review Desk' : hasNextIncomplete ? 'Submit & next →' : 'Submit to Review Desk'}</button></div></div></>}
+      <div className="contributor-submit-wrap">{cannotSubmit && <p id="submit-help">{cannotSubmit}</p>}<div className="contributor-submit-actions"><button type="button" disabled={busy || Boolean(recovery) || blocked.current || !dirty.current} onClick={() => void persist().catch(() => undefined)}>Save draft</button><button value={hasNextIncomplete ? 'next' : 'submit'} aria-describedby={cannotSubmit ? 'submit-help' : undefined} disabled={busy || Boolean(recovery) || Boolean(cannotSubmit)}>{busy ? 'Submitting…' : revising ? 'Review resubmission →' : 'Review submission →'}</button></div></div></>}
     {locked && <p role="status">{item.status === 'verified' ? 'Verified by the Review Desk' : `Review status: ${item.status}`}</p>}
   </form>;
 }

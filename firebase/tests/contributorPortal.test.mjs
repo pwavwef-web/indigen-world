@@ -42,7 +42,7 @@ async function harness({ smsOk = true, configured = true } = {}) {
   const path = new URL('../../services/functions/lib/contributor-portal.js', import.meta.url);
   const code = readFileSync(path, 'utf8');
   const executable = code.replace(/^import[\s\S]*?;\n/gm, '').replace(/\bexport (?=(?:async )?function|const)/g, '');
-  const api = runInNewContext(executable + '\n;({saveExpressionAnswer,onContributorExpressionReviewed,parseExpressionAnswer,assignContributorExpressions,assignmentInstructions,inviteExpressionContributor,activateExpressionContributor,resendContributorInvitation,contributorPhone})', {
+  const api = runInNewContext(executable + '\n;({saveExpressionAnswer,onContributorExpressionReviewed,parseExpressionAnswer,assignContributorExpressions,assignmentInstructions,inviteExpressionContributor,activateExpressionContributor,resendContributorInvitation,contributorPhone,reportContributorIssue,updateContributorIssue})', {
     process, URL, createHash, HttpsError, requireAuth, requireRole, getFirestore: () => db,
     ARKESEL_API_KEY: 'test-secret', normalizeMsisdn, isSmsConfigured: () => configured,
     sendSmsToMsisdn: async (to, message) => { messages.push({ to, message }); return { ok: smsOk, ...(smsOk ? { id: 'sms-1' } : { error: 'network' }) }; },
@@ -341,4 +341,22 @@ test('re-inviting a cancelled account to a changed contact number keeps the orig
   assert.equal(h.records.get('contributorAccounts/profile-1').phoneNumber, '+233241234567');
   assert.equal(h.records.get('contributors/profile-1').private.phone, '+233201234567');
   assert.match(h.messages[1].message, /Temporary password: your phone number \+233241234567/);
+});
+
+test('issue reports validate assignment ownership, omit private fields and deduplicate retries', async () => {
+  const api = await harness(); const { records } = api;
+  records.set('contributorAccounts/alice', { status: 'active' });
+  records.set('contributorAccounts/alice/works/work', { title: 'Sample' });
+  records.set('contributorAccounts/alice/works/work/items/item', {});
+  const req = { auth: { uid: 'alice', token: {} }, data: { requestId: 'retry-1', work: 'work', item: 'item', category: 'saving', description: 'Cannot save', accountNumber: 'PRIVATE', translation: 'UNSAVED' } };
+  const first = await api.reportContributorIssue(req);
+  assert.equal((await api.reportContributorIssue(req)).id, first.id);
+  const saved = records.get(`contributorIssues/${first.id}`);
+  assert.equal(saved.contributorId, 'alice'); assert.equal(saved.status, 'open');
+  assert.equal(saved.accountNumber, undefined); assert.equal(saved.translation, undefined);
+  await assert.rejects(api.reportContributorIssue({ ...req, data: { ...req.data, work: 'someone-elses-work' } }), /unavailable/);
+  await assert.rejects(api.updateContributorIssue({ ...req, data: { id: first.id, status: 'resolved', reply: 'done' } }), /admin access/);
+  await api.updateContributorIssue({ auth: { uid: 'admin', token: { role: 'admin' } }, data: { id: first.id, status: 'in_progress', reply: 'We are checking.' } });
+  assert.equal(records.get(`contributorIssues/${first.id}`).replies[0].text, 'We are checking.');
+  assert.equal(records.get(`contributorIssues/${first.id}`).status, 'in_progress');
 });

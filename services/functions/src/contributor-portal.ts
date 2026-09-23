@@ -710,7 +710,7 @@ export const getContributorPayments = onCall(options, async req => {
   ]);
   return {
     profile: profile.exists ? { ...profile.data(), accountNumber: profile.get('accountNumber') } : null,
-    requests: requests.docs.map(entry => ({ id: entry.id, ...entry.data() }))
+    requests: requests.docs.map(entry => ({ id: entry.id, ...entry.data(), createdAt: entry.get('createdAt') }))
       .sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt))),
   };
 });
@@ -778,8 +778,8 @@ export const listContributorPayments = onCall(options, async req => {
     db.collection('contributorPaymentRequests').limit(500).get(),
   ]);
   return {
-    profiles: profiles.docs.map(entry => ({ id: entry.id, ...entry.data() })),
-    requests: requests.docs.map(entry => ({ id: entry.id, ...entry.data() }))
+    profiles: profiles.docs.map(entry => ({ id: entry.id, ...entry.data(), createdAt: entry.get('createdAt') })),
+    requests: requests.docs.map(entry => ({ id: entry.id, ...entry.data(), createdAt: entry.get('createdAt') }))
       .sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt))),
   };
 });
@@ -867,3 +867,55 @@ export const onContributorExpressionReviewed = onDocumentWritten(
       } else tx.delete(training);
     });
   });
+
+// Issue reports contain only contributor-supplied text and validated assignment IDs.
+export const reportContributorIssue = onCall(options, async req => {
+  const uid = requireAuth(req);
+  await consumeRateLimit('reportContributorIssue', uid, 10);
+  const db = getFirestore();
+  if ((await db.doc(`contributorAccounts/${uid}`).get()).get('status') !== 'active') throw new HttpsError('permission-denied', 'An active contributor account is required.');
+  const category = text(req.data?.category, 30), description = text(req.data?.description, 2000);
+  if (!['translation', 'assignment', 'saving', 'account', 'other'].includes(category)) throw new HttpsError('invalid-argument', 'Choose a valid issue type.');
+  const work = id(req.data?.work), item = req.data?.item ? id(req.data.item) : '';
+  const assignment = db.doc(`contributorAccounts/${uid}/works/${work}`);
+  if (!(await assignment.get()).exists || (item && !(await assignment.collection('items').doc(item).get()).exists)) throw new HttpsError('permission-denied', 'Assignment or expression is unavailable.');
+  const requestId = id(req.data?.requestId);
+  const ref = db.collection('contributorIssues').doc(createHash('sha256').update(`${uid}:${requestId}`).digest('hex'));
+  await db.runTransaction(async tx => {
+    if ((await tx.get(ref)).exists) return;
+    tx.create(ref, { contributorId: uid, work, item, category, description, status: 'open', replies: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
+  });
+  return { id: ref.id };
+});
+
+export const getContributorIssues = onCall(options, async req => {
+  const uid = requireAuth(req);
+  await consumeRateLimit('getContributorIssues', uid, 60);
+  const docs = await getFirestore().collection('contributorIssues').where('contributorId', '==', uid).get();
+  return { issues: docs.docs.map(doc => ({ id: doc.id, ...doc.data(), createdAt: doc.get('createdAt') })).sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt))) };
+});
+
+export const listContributorIssues = onCall(options, async req => {
+  requireRole(req, 'admin');
+  const docs = await getFirestore().collection('contributorIssues').orderBy('createdAt', 'desc').limit(200).get();
+  return { issues: docs.docs.map(doc => ({ id: doc.id, ...doc.data(), createdAt: doc.get('createdAt') })) };
+});
+
+export const updateContributorIssue = onCall(options, async req => {
+  requireRole(req, 'admin');
+  const actor = requireAuth(req);
+  await consumeRateLimit('updateContributorIssue', actor, 60);
+  const issueId = id(req.data?.id), status = text(req.data?.status, 30), reply = optionalText(req.data?.reply, 2000);
+  if (!['open', 'in_progress', 'resolved'].includes(status)) throw new HttpsError('invalid-argument', 'Invalid status.');
+  const db = getFirestore(), ref = db.collection('contributorIssues').doc(issueId);
+  await db.runTransaction(async tx => {
+    const snap = await tx.get(ref);
+    if (!snap.exists) throw new HttpsError('not-found', 'Issue not found.');
+    const replies = snap.get('replies') ?? [];
+    if (reply && replies.length >= 50) throw new HttpsError('resource-exhausted', 'This report has reached its reply limit.');
+    const now = new Date().toISOString();
+    tx.update(ref, { status, updatedAt: now, replies: reply ? [...replies, { text: reply, createdAt: now }] : replies });
+    tx.create(db.collection('auditLogs').doc(), { actor, action: 'contributor.issue.update', targetId: issueId, status, createdAt: now });
+  });
+  return { ok: true };
+});

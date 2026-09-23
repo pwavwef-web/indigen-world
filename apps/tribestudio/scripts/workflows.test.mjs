@@ -436,6 +436,8 @@ test('contributor autosave keeps full expressions and submits with the latest re
   find(tree, n => n.type === 'input' && n.props.required).props.onChange({ target: { checked: true } });
   tree = h.render(ExpressionEditor, props);
   await tree.props.onSubmit({ preventDefault() {} });
+  assert.equal(calls.length, 1, 'Review must not submit the answer');
+  find(tree, n => n.type === 'button' && n.props.children.includes('Confirm submission')).props.onClick(); await tick();
   assert.equal(calls[0].translation, 'A whole expression, with punctuation');
   assert.equal(calls[1].revision, 1); assert.equal(calls[1].submit, true);
   assert.equal(calls[1].aiTraining, false);
@@ -524,7 +526,11 @@ test('submit and next advances only after a successful submission', async () => 
   });
   const props = { item: { id: 'item', expression: 'Hello', translation: 'Answer', alternatives: [], revision: 0 }, work: 'work', onPending() {}, onSubmitted: next => sent.push(next) };
   let tree = h.render(ExpressionEditor, props); h.flush();
+  find(tree, n => n.type === 'input' && n.props.required).props.onChange({ target: { checked: true } });
+  tree = h.render(ExpressionEditor, props);
   await tree.props.onSubmit({ preventDefault() {}, nativeEvent: { submitter: { getAttribute: () => 'next' } } });
+  assert.deepEqual(sent, [], 'Opening review must not advance');
+  find(tree, n => n.type === 'button' && n.props.children.includes('Confirm submission')).props.onClick(); await tick();
   assert.deepEqual(sent, [true]);
   tree = h.render(ExpressionEditor, props);
   assert.equal(find(tree, n => n.type === 'textarea' && n.props.required).props.disabled, true);
@@ -633,4 +639,19 @@ test('activation confirms the chosen password before calling the backend', async
   await tree.props.onSubmit({ preventDefault() {} });
   assert.deepEqual(calls, [{ name: 'activateExpressionContributor', password: 'new-password' }]);
   assert.deepEqual(signIns, [{ email: 'speaker@example.com', password: 'new-password' }]);
+});
+
+test('contributor progress excludes returned revisions and continue prioritizes them', async () => {
+  const { submittedCount, nextContribution } = await load('src/contributor/ContributorPortal.tsx', ['submittedCount', 'nextContribution'], { functions: {}, httpsCallable: () => () => {} });
+  const items = [
+    { id: 'new', status: 'draft' },
+    { id: 'review', status: 'submitted', submissionId: 's1' },
+    { id: 'approved', status: 'verified', submissionId: 's2' },
+    { id: 'returned', status: 'rejected', submissionId: 's3' },
+  ];
+  assert.equal(submittedCount(items), 2);
+  assert.equal(nextContribution(items).id, 'returned');
+  assert.equal(nextContribution(items.slice(0, 3)).id, 'new');
+  assert.equal(nextContribution(items.slice(1, 3)), undefined);
+  assert.equal(nextContribution([{ id: 'unsure', unsure: true }, { id: 'draft' }]).id, 'draft');
 });

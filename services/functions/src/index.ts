@@ -150,3 +150,4 @@ export {
   listSmsContactGroups,
   deleteSmsContactGroup,
 } from './messaging-admin.js';
+export { reportContributorIssue, getContributorIssues, listContributorIssues, updateContributorIssue } from './contributor-portal.js';

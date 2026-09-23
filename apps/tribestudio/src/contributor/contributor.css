@@ -51,3 +51,41 @@
   .contributor-payments__body { grid-template-columns: 1fr; padding: 12px; }
   .contributor-payments__body > section:last-child { grid-column: auto; }
 }
+
+/* Account settings stay off the translation workspace. */
+.contributor-payment-dialog { width: min(760px, calc(100vw - 32px)); max-height: calc(100dvh - 48px); margin: auto; padding: 20px; border: 1px solid var(--border); border-radius: 18px; background: #fff; color: var(--text); overflow-y: auto; }
+.contributor-payment-dialog::backdrop { background: rgb(15 23 42 / 45%); }
+.contributor-payment-dialog-heading { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 16px; }
+.contributor-payment-dialog-heading h2 { margin: 0; font-size: 1.25rem; }
+.contributor-payment-dialog .contributor-payments { margin: 0; border: 0; }
+.contributor-payment-summary { padding-bottom: 12px; color: var(--text-soft); }
+.contributor-payment-dialog .contributor-payments__body { padding: 0; grid-template-columns: 1fr; border-top: 0; }
+.contributor-payment-form input { min-height: 44px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; }
+.contributor-account summary { width: auto; min-height: 44px; height: auto; padding: 10px 14px; display: flex; align-items: center; gap: 8px; border-radius: 24px; font-size: 14px; font-weight: 650; }
+.contributor-continue { margin: 0 0 16px; background: var(--contributor-blue)!important; color: #fff!important; padding: 12px 18px!important; }
+.contributor-bank-summary { display: grid; gap: 10px; margin-top: 16px; }
+.contributor-bank-summary button { margin-top: 6px; }
+/* Readable assignment titles and accessible controls at phone widths. */
+.contributor-assignment { flex-wrap: wrap; }
+.contributor-assignment strong { white-space: normal; overflow-wrap: anywhere; }
+.contributor-assignment label { width: min(100%, 320px); }
+.contributor-assignment select { width: 100%; min-height: 48px; padding: 10px 12px; color: var(--text); font-size: 16px; }
+.contributor-help { margin: 12px 0; }
+.editor-save-state { position: sticky; top: 0; z-index: 3; padding: 10px 12px; background: #fff; border: 1px solid var(--border); border-radius: 8px; flex-wrap: wrap; }
+.contributor-portal :where(button,textarea,input,select,summary,a):focus-visible { outline: 3px solid #1454bd; outline-offset: 3px; }
+.contributor-review-dialog { text-align: left; }
+.contributor-review-dialog h3 { margin-top: 18px; }
+.contributor-review-dialog p, .contributor-review-dialog li { white-space: pre-wrap; overflow-wrap: anywhere; }
+.contributor-review-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 24px; }
+.contributor-review-actions button:last-child { background: #1855bd; color: #fff; }
+.contributor-completion-stats { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 16px; width: 100%; max-width: 520px; }
+.contributor-completion-stats div { padding: 12px; background: #f3f6fc; border-radius: 10px; }
+.contributor-completion-stats dd { margin: 4px 0 0; font-size: 24px; font-weight: 700; }
+@media(max-width:599px) { .contributor-assignment { align-items: stretch; flex-direction: column; } .contributor-assignment label { width: 100%; } .contributor-header { flex-wrap: wrap; gap: 16px; } }
+.contributor-issue { margin-top: 16px; padding: 16px; border: 1px solid var(--border); border-radius: 12px; overflow-wrap: anywhere; white-space: pre-wrap; } .contributor-issue small { display: block; }
+.contributor-support { position: relative; margin: 12px 0 16px; width: fit-content; max-width: 100%; }
+.contributor-support > summary { cursor: pointer; min-height: 44px; display: flex; align-items: center; gap: 12px; padding: 10px 16px; border: 1px solid var(--border); border-radius: 10px; background: white; font-weight: 650; list-style: none; }
+.contributor-support > summary::after { content: '⌄'; }
+.contributor-support > div { margin-top: 8px; padding: 12px; width: min(380px, calc(100vw - 56px)); display: grid; gap: 8px; border: 1px solid var(--border); border-radius: 12px; background: #fff; box-shadow: 0 8px 24px rgb(7 29 73 / 10%); }
+.contributor-support .contributor-guidance { margin: 0; box-shadow: none; }
+.contributor-support > div > button { width: 100%; text-align: left; }

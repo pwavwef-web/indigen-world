@@ -532,3 +532,4 @@
   .admin-payment-list article { grid-template-columns: 1fr; }
   .admin-payment-list article > div:last-child { justify-items: start; }
 }
+.contributor-issue { margin: 16px 0; padding: 20px; border: 1px solid var(--border); border-radius: 12px; overflow-wrap: anywhere; white-space: pre-wrap; } .contributor-issue form,.contributor-issue label { display: grid; gap: 10px; } .contributor-issue textarea { min-height: 100px; } .contributor-issue small { display: block; }
