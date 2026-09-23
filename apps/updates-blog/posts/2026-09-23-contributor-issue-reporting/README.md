@@ -25,3 +25,7 @@ Callable endpoints validate authentication, assignment ownership, issue types, l
 Validation: contributor and admin type checks passed; all 39 Studio tests and 24 contributor backend tests passed, including issue ownership, privacy, retry deduplication and admin authorization. Browser preview report creation and reference confirmation verified. Authenticated production testing remains pending.
 Help & support now groups assignment guidance, Report an issue and My reports in a collapsed disclosure menu. Account remains separate; Continue translating stays visible. No unread badge is shown because unread tracking is not implemented.
 Menu refinement: removed the standalone My reports entry. Report submission still shows its confirmation and report list; backend reporting and admin replies remain available.
+
+## Deployment evidence — 2026-09-23
+
+Released implementation commit `ffa6c899` to Firebase project `project-kassena-7e026`. Firebase confirmed release completion for `tribestudio` and `indigen-admin`, and successful creation of `reportContributorIssue`, `getContributorIssues`, `listContributorIssues` and `updateContributorIssue` in us-central1. Both hosting pages returned HTTP 200 and referenced the expected built JavaScript bundles. Authenticated contributor/admin end-to-end verification remains pending. The Blogger article is still unpublished; Chinedum retains the publication and sharing handoff.
