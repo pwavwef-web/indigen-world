@@ -952,6 +952,9 @@ export function buildWordQueueContributionInput(
     format: input.partOfSpeechLabel,
     dialect: input.dialect,
     source: wordQueueSourceLine(row),
+    literalTranslation: '',
+    usageContext: '',
+    frenchTranslation: '',
     mediaUrl: '',
     // The recording, where the member made one. It travels as the
     // contribution's `media`, which is the exact field `decideSubmission`

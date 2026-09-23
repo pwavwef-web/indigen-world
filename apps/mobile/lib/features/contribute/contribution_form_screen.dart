@@ -86,6 +86,9 @@ class _ContributionFormScreenState
   late final TextEditingController _titleController;
   final _bodyController = TextEditingController();
   final _sourceController = TextEditingController();
+  final _literalTranslationController = TextEditingController();
+  final _usageContextController = TextEditingController();
+  final _frenchTranslationController = TextEditingController();
   final _notesController = TextEditingController();
   final _kasemExampleController = TextEditingController();
   final _englishExampleController = TextEditingController();
@@ -228,6 +231,9 @@ class _ContributionFormScreenState
     _titleController.dispose();
     _bodyController.dispose();
     _sourceController.dispose();
+    _literalTranslationController.dispose();
+    _usageContextController.dispose();
+    _frenchTranslationController.dispose();
     _notesController.dispose();
     _kasemExampleController.dispose();
     _englishExampleController.dispose();
@@ -292,6 +298,9 @@ class _ContributionFormScreenState
                   titleController: _titleController,
                   bodyController: _bodyController,
                   sourceController: _sourceController,
+                  literalTranslationController: _literalTranslationController,
+                  usageContextController: _usageContextController,
+                  frenchTranslationController: _frenchTranslationController,
                   notesController: _notesController,
                   kasemExampleController: _kasemExampleController,
                   englishExampleController: _englishExampleController,
@@ -509,11 +518,15 @@ class _ContributionFormScreenState
       await repository.submit(
         CollectionContributionDraft(
           kind: _kind,
+          lexicalKind: widget.lexicalKind?.wire ?? 'word',
           title: _titleController.text,
           body: _bodyController.text,
           format: _format ?? '',
           dialect: _dialect ?? '',
           source: _sourceController.text,
+          literalTranslation: _literalTranslationController.text,
+          usageContext: _usageContextController.text,
+          frenchTranslation: _frenchTranslationController.text,
           media: uploaded,
           cover: uploadedCover,
           notes: [
@@ -568,6 +581,9 @@ class _ContributionFormScreenState
       if (!mounted) return;
       _bodyController.clear();
       _sourceController.clear();
+      _literalTranslationController.clear();
+      _usageContextController.clear();
+      _frenchTranslationController.clear();
       _notesController.clear();
       _kasemExampleController.clear();
       _englishExampleController.clear();
@@ -669,6 +685,9 @@ class _ContributionFields extends StatelessWidget {
     required this.titleController,
     required this.bodyController,
     required this.sourceController,
+    required this.literalTranslationController,
+    required this.usageContextController,
+    required this.frenchTranslationController,
     required this.notesController,
     required this.kasemExampleController,
     required this.englishExampleController,
@@ -714,6 +733,9 @@ class _ContributionFields extends StatelessWidget {
   final TextEditingController titleController;
   final TextEditingController bodyController;
   final TextEditingController sourceController;
+  final TextEditingController literalTranslationController;
+  final TextEditingController usageContextController;
+  final TextEditingController frenchTranslationController;
   final TextEditingController notesController;
   final TextEditingController kasemExampleController;
   final TextEditingController englishExampleController;
@@ -883,6 +905,36 @@ class _ContributionFields extends StatelessWidget {
           onEditingComplete: onDraftChanged,
           validator: _required,
         ),
+        if (_isSaying) ...[
+          const SizedBox(height: 13),
+          TextFormField(
+            controller: literalTranslationController,
+            decoration: const InputDecoration(
+              labelText: 'Literal English translation (optional)',
+              hintText: 'What the Kasem words say word for word',
+            ),
+          ),
+          const SizedBox(height: 13),
+          TextFormField(
+            controller: usageContextController,
+            minLines: 2,
+            maxLines: 4,
+            decoration: const InputDecoration(
+              labelText: 'When is this saying used? (optional)',
+              hintText: 'An occasion, speaker, lesson or regional variant',
+            ),
+          ),
+        ],
+        if (_isDictionary) ...[
+          const SizedBox(height: 13),
+          TextFormField(
+            controller: frenchTranslationController,
+            decoration: const InputDecoration(
+              labelText: 'French meaning (optional)',
+              hintText: 'Leave blank if you do not know it',
+            ),
+          ),
+        ],
         if (_isDictionary) ...[
           const SizedBox(height: 13),
           // Directly under the word itself, and above the example sentence:

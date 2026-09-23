@@ -48,11 +48,15 @@ class CollectionContributionRecord {
 class CollectionContributionDraft {
   const CollectionContributionDraft({
     required this.kind,
+    this.lexicalKind = 'word',
     required this.title,
     required this.body,
     required this.format,
     required this.dialect,
     required this.source,
+    this.literalTranslation = '',
+    this.usageContext = '',
+    this.frenchTranslation = '',
     required this.media,
     required this.notes,
     this.cover,
@@ -72,11 +76,15 @@ class CollectionContributionDraft {
   });
 
   final CollectionKind kind;
+  final String lexicalKind;
   final String title;
   final String body;
   final String format;
   final String dialect;
   final String source;
+  final String literalTranslation;
+  final String usageContext;
+  final String frenchTranslation;
 
   /// The uploaded song, narration or manuscript, when this kind carries one.
   final UploadedContributionFile? media;
@@ -158,11 +166,18 @@ class CollectionContributionRepository {
     );
     await callable.call<Map<Object?, Object?>>({
       'collectionKind': draft.kind.name,
+      'lexicalKind': draft.lexicalKind,
       'title': draft.title.trim(),
       'body': draft.body.trim(),
       'format': draft.format.trim(),
       'dialect': draft.dialect.trim(),
       'source': draft.source.trim(),
+      if (draft.literalTranslation.trim().isNotEmpty)
+        'literalTranslation': draft.literalTranslation.trim(),
+      if (draft.usageContext.trim().isNotEmpty)
+        'usageContext': draft.usageContext.trim(),
+      if (draft.frenchTranslation.trim().isNotEmpty)
+        'frenchTranslation': draft.frenchTranslation.trim(),
       // The bytes went to Storage under the member's own prefix; the callable
       // only ever sees where they landed.
       'media': draft.media?.toMap(),

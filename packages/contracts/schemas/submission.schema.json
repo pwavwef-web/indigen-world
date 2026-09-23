@@ -14,6 +14,8 @@
     "title": { "type": "string", "minLength": 1 },
     "category": { "type": "string" },
     "collectionKind": { "$ref": "common.schema.json#/$defs/collectionKind" },
+    "corpusArea": { "type": "string", "enum": ["lexicon", "grammar", "expressions", "sentences", "proverbs", "literature", "dialogue", "pronunciation", "culture", "qa"] },
+    "authenticationStatus": { "type": "string", "enum": ["community", "reviewed", "gold", "rejected"] },
     "collectionContribution": {
       "oneOf": [{ "$ref": "common.schema.json#/$defs/reference" }, { "type": "null" }],
       "description": "Mobile Collection queue record that originated this submission, when applicable."
@@ -29,6 +31,9 @@
     "tags": { "type": "array", "items": { "type": "string" } },
     "targetAudience": { "type": "string" },
     "sourceReferences": { "type": "string" },
+    "literalTranslation": { "type": "string" },
+    "usageContext": { "type": "string" },
+    "frenchTranslation": { "type": "string" },
     "translationNotes": { "type": "string" },
     "translation": {
       "type": "object",

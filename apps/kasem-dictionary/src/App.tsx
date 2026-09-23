@@ -40,7 +40,7 @@ function EntryDetail({ entry, saved, onToggleSaved }: {
   return (
     <article className="detail" aria-label={`Definition of ${entry.headword}`}>
       <div className="detail__topline">
-        <span className="published-pill">Reviewed entry</span>
+        <span className="published-pill">{entry.authenticationStatus === "gold" ? "Expert authenticated" : entry.authenticationStatus === "reviewed" ? "Community reviewed" : "Published entry"}</span>
         <button className={saved ? "save-button is-saved" : "save-button"} type="button" onClick={onToggleSaved} aria-pressed={saved}>
           <span aria-hidden="true">{saved ? "★" : "☆"}</span> {saved ? "Saved" : "Save"}
         </button>
@@ -50,9 +50,12 @@ function EntryDetail({ entry, saved, onToggleSaved }: {
       <h2 lang="xsm">{entry.headword}</h2>
       <p className="meaning-label">English meaning</p>
       <p className="translation">{entry.translation}</p>
+      {entry.frenchTranslation && <p className="translation">French: {entry.frenchTranslation}</p>}
       <div className="entry-meta"><span>Kasem</span>{entry.dialect !== "Kasem" && <span>{entry.dialect}</span>}</div>
 
       <dl className="definition-list">
+        {entry.literalTranslation && <div><dt>Literal translation</dt><dd>{entry.literalTranslation}</dd></div>}
+        {entry.usageContext && <div><dt>When it is used</dt><dd>{entry.usageContext}</dd></div>}
         {(entry.audioUrl || !/^(No written guide yet|Audio not available yet)$/.test(entry.pronunciation)) && <div>
           <dt>Pronunciation</dt>
           <dd>{entry.pronunciation}</dd>

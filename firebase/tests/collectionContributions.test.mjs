@@ -14,6 +14,8 @@ import { test } from 'node:test';
 import {
   COLLECTION_CAMPAIGN_ID,
   buildCollectionSubmissionDocument,
+  buildCollectionContributionReceipt,
+  corpusAreaFor,
   contributionCoverPath,
   parseCollectionContributionInput,
   parseContributionCover,
@@ -173,6 +175,44 @@ test('a song sent without a cover still publishes, with no thumbnail', () => {
   const document = buildCollectionSubmissionDocument('sub-2', uid, input, NOW);
   assert.equal(document.media.thumbnailPath, null);
   assert.equal(contributionCoverPath(input), null);
+});
+
+test('saying evidence stays distinct from idiomatic meaning through review', () => {
+  const input = parseCollectionContributionInput(song({
+    collectionKind: 'dictionary',
+    lexicalKind: 'proverb',
+    title: 'A lesson about patience',
+    body: 'Kasem saying, with a pause',
+    format: 'Proverb',
+    media: null,
+    cover: null,
+    literalTranslation: 'The literal wording',
+    usageContext: 'Said by an elder when a task takes time',
+    frenchTranslation: 'Une leçon de patience',
+  }), uid);
+  assert.equal(corpusAreaFor(input), 'proverbs');
+  assert.deepEqual(input.translations, ['Kasem saying, with a pause']);
+  const submission = buildCollectionSubmissionDocument('sub-proverb', uid, input, NOW);
+  const receipt = buildCollectionContributionReceipt('sub-proverb', 'sub-proverb', uid, input);
+  for (const record of [submission, receipt]) {
+    assert.equal(record.corpusArea, 'proverbs');
+    assert.equal(record.authenticationStatus, 'community');
+    assert.equal(record.literalTranslation, 'The literal wording');
+    assert.equal(record.usageContext, 'Said by an elder when a task takes time');
+    assert.equal(record.frenchTranslation, 'Une leçon de patience');
+  }
+  assert.equal(submission.englishSummary, 'A lesson about patience');
+});
+
+test('an invited expression keeps complete alternative renderings', () => {
+  const input = parseCollectionContributionInput(song({
+    collectionKind: 'dictionary', lexicalKind: 'phrase', title: 'A greeting',
+    body: 'First, complete expression',
+    translations: ['First, complete expression', 'Another, complete expression'],
+    format: 'Expression', media: null, cover: null,
+  }), uid);
+  assert.deepEqual(input.translations, ['First, complete expression', 'Another, complete expression']);
+  assert.equal(corpusAreaFor(input), 'expressions');
 });
 
 test('a cover with no recording is ignored — a cover for nothing is nothing', () => {

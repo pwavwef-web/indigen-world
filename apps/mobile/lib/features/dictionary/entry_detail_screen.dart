@@ -157,7 +157,11 @@ class EntryDetailScreen extends ConsumerWidget {
                       ? Icons.verified_outlined
                       : Icons.visibility_off_outlined,
                   label: resolvedEntry.isPublished
-                      ? 'PUBLISHED ENTRY'
+                      ? resolvedEntry.authenticationStatus == 'gold'
+                          ? 'EXPERT AUTHENTICATED'
+                          : resolvedEntry.authenticationStatus == 'reviewed'
+                              ? 'COMMUNITY REVIEWED'
+                              : 'PUBLISHED ENTRY'
                       : 'NOT PUBLISHED',
                   color: resolvedEntry.isPublished
                       ? context.brand.success
@@ -441,6 +445,18 @@ class EntryDetailScreen extends ConsumerWidget {
                 title: 'Cultural context',
                 body: culturalNote,
               ),
+            ],
+            if (resolvedEntry.frenchTranslation.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              _DetailCard(icon: Icons.translate_rounded, title: 'French meaning', body: resolvedEntry.frenchTranslation),
+            ],
+            if (resolvedEntry.literalTranslation.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              _DetailCard(icon: Icons.menu_book_outlined, title: 'Literal translation', body: resolvedEntry.literalTranslation),
+            ],
+            if (resolvedEntry.usageContext.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              _DetailCard(icon: Icons.info_outline, title: 'When it is used', body: resolvedEntry.usageContext),
             ],
             const SizedBox(height: 12),
             _DetailCard(

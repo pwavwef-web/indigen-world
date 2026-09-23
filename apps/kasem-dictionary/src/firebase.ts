@@ -30,6 +30,10 @@ export interface DictionaryEntry {
   exampleTranslation: string;
   culturalNote: string | null;
   attribution: string;
+  authenticationStatus: string;
+  literalTranslation: string;
+  usageContext: string;
+  frenchTranslation: string;
 }
 
 function text(data: DocumentData, keys: string[], fallback = ""): string {
@@ -56,7 +60,11 @@ function readEntry(id: string, data: DocumentData): DictionaryEntry | null {
     example: text(data, ["kasemExample", "example", "exampleKasem"], "No example yet"),
     exampleTranslation: text(data, ["englishExample", "exampleTranslation", "exampleEnglish"], "No translated example yet"),
     culturalNote: text(data, ["culturalNote", "culturalContext", "notes"]) || null,
-    attribution: text(data, ["attribution", "source", "contributorName"], "Project Kassena community dictionary"),
+    attribution: text(data, ["attribution", "source", "contributorName"], "Source not recorded in this entry"),
+    authenticationStatus: text(data, ["authenticationStatus"]),
+    literalTranslation: text(data, ["literalTranslation"]),
+    usageContext: text(data, ["usageContext"]),
+    frenchTranslation: text(data, ["frenchTranslation"]),
   };
 }
 

@@ -68,6 +68,10 @@ export interface CollectionContributionInput {
   format: string;
   dialect: string;
   source: string;
+  /** Literal reading and use are distinct from a saying's idiomatic meaning. */
+  literalTranslation: string;
+  usageContext: string;
+  frenchTranslation: string;
   mediaUrl: string;
   media: CollectionContributionMedia | null;
   /**
@@ -350,9 +354,16 @@ export function parseCollectionContributionInput(
   // search for. For a song the body is lyrics, and splitting lyrics on commas
   // would be vandalism — so every other kind gets an empty list unless the
   // client asked for one explicitly.
+  const lexicalKind = canonicalLexicalKind(data.lexicalKind);
+  const isSaying = kind === 'dictionary' && lexicalKind !== 'word';
+  const sayingVariants = isSaying && Array.isArray(data.translations)
+    ? data.translations.filter((value: unknown): value is string => typeof value === 'string')
+      .map((value: string) => value.trim()).filter((value: string) => value.length > 0 && value.length <= 2000)
+      .slice(0, 8)
+    : [];
   const translations = data.translations != null
-    ? normaliseTranslations(data.translations)
-    : (kind === 'dictionary' ? normaliseTranslations(body) : []);
+    ? (isSaying ? [body, ...sayingVariants.filter((value: string) => value !== body)] : normaliseTranslations(data.translations))
+    : (kind === 'dictionary' ? (isSaying ? [body] : normaliseTranslations(body)) : []);
 
   // Read before the return because the paradigm parser needs it: which slots
   // are storable depends on every class the word claims, not only the one in
@@ -361,13 +372,16 @@ export function parseCollectionContributionInput(
 
   return {
     collectionKind: kind as CollectionKind,
-    lexicalKind: canonicalLexicalKind(data.lexicalKind),
+    lexicalKind,
     title: requiredText(data, 'title', 180),
     body,
     translations,
     format: requiredText(data, 'format', 80),
     dialect: requiredText(data, 'dialect', 80),
     source: requiredText(data, 'source', 1200),
+    literalTranslation: optionalText(data, 'literalTranslation', 2000),
+    usageContext: optionalText(data, 'usageContext', 2000),
+    frenchTranslation: optionalText(data, 'frenchTranslation', 2000),
     mediaUrl,
     media,
     cover,
@@ -439,6 +453,18 @@ function studioTypeFor(kind: CollectionKind): 'writing' | 'audio' | 'translation
   return 'writing';
 }
 
+/** Corpus classification is separate from the public Collection shelf. */
+export function corpusAreaFor(input: Pick<CollectionContributionInput, 'collectionKind' | 'lexicalKind' | 'format'>): string {
+  if (input.collectionKind === 'dictionary') {
+    if (input.lexicalKind === 'proverb') return 'proverbs';
+    if (input.lexicalKind === 'idiom' || input.lexicalKind === 'phrase') return 'expressions';
+    return 'lexicon';
+  }
+  if (input.collectionKind === 'literature' || input.collectionKind === 'audiobooks') return 'literature';
+  if (input.collectionKind === 'video' && /interview|conversation/i.test(input.format)) return 'dialogue';
+  return 'culture';
+}
+
 /** Pure canonical Submission projection used by the callable and unit tests. */
 export function buildCollectionSubmissionDocument(
   id: string,
@@ -458,6 +484,8 @@ export function buildCollectionSubmissionDocument(
     title: input.title,
     category: input.collectionKind,
     collectionKind: input.collectionKind,
+    corpusArea: corpusAreaFor(input),
+    authenticationStatus: 'community',
     // Carried on the canonical submission, not only on the receipt, because the
     // review desk is where the difference matters: a reviewer assessing a
     // proverb is being asked a different question from one checking a noun, and
@@ -486,6 +514,9 @@ export function buildCollectionSubmissionDocument(
     tags: [input.collectionKind, input.format.toLowerCase()],
     targetAudience: 'Indigen World community library',
     sourceReferences: input.source,
+    ...(input.literalTranslation ? { literalTranslation: input.literalTranslation } : {}),
+    ...(input.usageContext ? { usageContext: input.usageContext } : {}),
+    ...(input.frenchTranslation ? { frenchTranslation: input.frenchTranslation } : {}),
     translationNotes: input.notes,
     englishSummary: input.collectionKind === 'dictionary' ? input.title : '',
     culturalContext: '',
@@ -599,6 +630,8 @@ export function buildCollectionContributionReceipt(
     authUid: uid,
     category: input.collectionKind,
     collectionKind: input.collectionKind,
+    corpusArea: corpusAreaFor(input),
+    authenticationStatus: 'community',
     lexicalKind: input.lexicalKind,
     title: input.title,
     body: input.body,
@@ -606,6 +639,9 @@ export function buildCollectionContributionReceipt(
     format: input.format,
     dialect: input.dialect,
     source: input.source,
+    ...(input.literalTranslation ? { literalTranslation: input.literalTranslation } : {}),
+    ...(input.usageContext ? { usageContext: input.usageContext } : {}),
+    ...(input.frenchTranslation ? { frenchTranslation: input.frenchTranslation } : {}),
     mediaUrl: input.mediaUrl,
     mediaStoragePath: input.media?.storagePath ?? null,
     mediaType: input.media?.mediaType ?? null,

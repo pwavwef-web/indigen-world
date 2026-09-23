@@ -141,6 +141,10 @@ export function submissionTranslations(
     return submission.translations.filter((value: unknown): value is string =>
       typeof value === 'string' && value.length > 0 && value.length <= 2000).slice(0, 13);
   }
+  if (kind === 'dictionary' && submissionLexicalKind(submission) !== 'word') {
+    const original = text(submission.body);
+    return original ? [original] : [];
+  }
   if (submission.translations != null) return normaliseTranslations(submission.translations);
   return kind === 'dictionary' ? normaliseTranslations(submission.body) : [];
 }
@@ -198,6 +202,8 @@ export function buildPublishedContentDocument(input: PublishedProjectionInput): 
     dialect: text(submission.dialect),
     category: text(submission.category),
     collectionKind: kind,
+    corpusArea: text(submission.corpusArea) || (kind === 'literature' || kind === 'audiobooks' ? 'literature' : 'culture'),
+    authenticationStatus: route === 'collection_review' ? 'reviewed' : 'unspecified',
     // Carried through unconditionally rather than only for lexical material.
     // A song publishing with `lexicalKind: 'word'` is meaningless noise, and it
     // is the price of one rule instead of two: every reader can read the field

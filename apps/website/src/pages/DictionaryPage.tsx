@@ -154,7 +154,7 @@ function DictionaryDetail({
 
       <div className="dictionary-detail__scroll">
         <div className="dictionary-detail__status-row">
-          <span className="dictionary-published"><Icon name="check" size={14} /> Published entry</span>
+          <span className="dictionary-published"><Icon name="check" size={14} /> {entry.authenticationStatus === "gold" ? "Expert authenticated" : entry.authenticationStatus === "reviewed" ? "Community reviewed" : "Published entry"}</span>
           <button
             className={`dictionary-save${saved ? " dictionary-save--active" : ""}`}
             type="button"
@@ -169,6 +169,7 @@ function DictionaryDetail({
         <p className="dictionary-detail__word-class">{entry.partOfSpeech}</p>
         <h2 id="dictionary-entry-heading">{entry.headword}</h2>
         <p className="dictionary-detail__translation">{entry.translation}</p>
+        {entry.frenchTranslation && <p className="dictionary-detail__translation">French: {entry.frenchTranslation}</p>}
 
         <div className="dictionary-detail__chips" aria-label="Entry language and dialect">
           <span><Icon name="pin" size={16} /> {entry.dialect}</span>
@@ -176,6 +177,8 @@ function DictionaryDetail({
         </div>
 
         <div className="dictionary-detail__cards">
+          {entry.literalTranslation && <section className="dictionary-fact"><Icon name="book" size={22} /><div><h3>Literal translation</h3><p>{entry.literalTranslation}</p></div></section>}
+          {entry.usageContext && <section className="dictionary-fact"><Icon name="context" size={22} /><div><h3>When it is used</h3><p>{entry.usageContext}</p></div></section>}
           <section className="dictionary-fact">
             <Icon name="volume" size={22} />
             <div>
