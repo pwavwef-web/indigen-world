@@ -69,7 +69,7 @@ Contributors can retry or reload their existing session. Their own account is re
 
 ## Workspace rebuild — 2026-09-23
 
-**Status: implemented and tested locally on branch `feat/contributor-workspace-rebuild`; not deployed.** Nothing below is live until the deployment steps at the end of this section are carried out. The signed-in production flows have not been exercised; everything was verified with unit tests, emulator end-to-end tests and the dev-only preview.
+**Status: deployed on 2026-09-23 from `main` at `e90c5fb`** — Functions, Firestore and Storage rules, and TribeStudio and Admin hosting (see [Deployment](#deployment--2026-09-23)). The signed-in production flows have not been exercised yet: everything was verified with unit tests, emulator end-to-end tests, the dev-only preview, unauthenticated probes of the live functions and the live bundles.
 
 The portal was rebuilt as a workspace with persistent navigation. Access is decided exactly as before — a signed-in account whose `contributorAccounts/{uid}` record is `active`, with activation still required after a temporary password — and every callable repeats the check on the server.
 
@@ -153,19 +153,27 @@ Callables in `contributor-payments.ts`; statuses per method are `not_started`, `
 - Admin → Contributors → Review offers **Approve** and **Return with feedback**. The previous Request revision button always failed, because `decideSubmission` refuses that decision for collection contributions; returned expressions reopen for revision as before.
 - `decideSubmission` notifications for portal expressions link to the expression (`/contributor/{uid}/{work}?item=`) rather than the old `/contribute` page, and skip email when the contributor turned review emails off.
 
-### Deployment (not yet done)
+### Deployment — 2026-09-23
 
-Deploy these together; the workspace calls every one of them:
+Deployed from `main` at `e90c5fb`, after the full local check suite (GitHub Actions could not run: the account was locked over billing).
+
+- **Functions:** every export redeployed in explicit `--only` batches — 18 creates and 114 updates. Live and exported were 132 each, with an empty diff both ways, so nothing could be deleted. `rerunPayoutStatementCheck` was created, but setting its public invoker failed; a Firebase redeploy did not re-apply it, so the `allUsers` → `roles/run.invoker` binding every other callable has was added with `gcloud run services add-iam-policy-binding`. Unauthenticated probes of the new callables answer with their own "Sign in is required." message.
+- **Firestore rules and Storage rules** compiled and were released.
+- **Hosting:** `tribestudio`, `indigen-admin`, `indigen-world` and `kasem-dictionary` released. The live bundles contain the workspace, the Admin finance desk and the contribution-context fields.
+- **Signing grant:** the Functions runtime service account (`111428711822-compute@`) already holds Service Account Token Creator on itself (checked 2026-09-23), so statement links can be signed.
+
+What deployment required:
 
 1. **Functions** — new: `getContributorSelf`, `updateContributorSelf`, `saveContributorSettings`, `onContributorPulseSubmissionWritten`, `kawuriContributorAssist`, `submitBankVerification`, `removePayoutMethod`, `setPreferredPayoutMethod`, `startMomoVerification`, `confirmMomoVerification`, `getPayoutStatementLink`, `decidePayoutVerification`, `rerunPayoutStatementCheck`. Changed or never deployed: `getContributorPayments`, `saveContributorPayoutProfile`, `requestContributorPayment`, `listContributorPayments`, `decideContributorPaymentRequest`, `saveExpressionAnswer`, `activateExpressionContributor`, `reportContributorIssue`, `getContributorIssues`, `decideSubmission`, `onNotificationCreated`. MoMo codes bind the existing `ARKESEL_API_KEY` secret.
 2. **Firestore rules** and **Storage rules** — a separate deploy from Functions.
 3. **TribeStudio** and **Admin** hosting.
 
-Before or after deploying:
+Still open after deployment:
 
-- Grant the `finance` custom claim to the administrators who will review payout details. No script in this repository sets it.
-- Signed statement links need the Functions runtime service account to hold **Service Account Token Creator** on itself; the emulator test confirms the call fails without it.
-- Optionally set `CONTRIBUTOR_PULSE_PEPPER`; otherwise the server-only key is created on first use. Set it once.
-- Leave `CONTRIBUTOR_STATEMENT_CHECK` unset until the Vertex caching and abuse-monitoring decisions above are made.
+- Grant the `finance` custom claim to the administrators who will review payout details. No script in this repository sets it; until someone holds it, submitted payment details wait as pending.
+- A signed-in smoke test: Overview counts, a returned expression, Kawuri, a bank submission and a finance decision, and a MoMo code on a real handset.
+- `CONTRIBUTOR_PULSE_PEPPER` is not set, so the server-only key is created on the first pulse event. Set it once, or leave it.
+- `CONTRIBUTOR_STATEMENT_CHECK` stays unset until the Vertex caching and abuse-monitoring decisions above are made.
+- Signed statement links need the runtime service account to hold Service Account Token Creator on itself. It does today; the emulator test confirms the call fails without it.
 
 Tests: `npm run test:contributor-portal` (backend unit tests and Studio workflow tests), `npm run test:contributor-e2e` (callables, triggers, rules and Storage against the emulators), `npm run test:rules` and `npm run test:storage-rules`.

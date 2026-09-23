@@ -1,8 +1,8 @@
 # A rebuilt workspace for Kasem contributors
 
-Status: **Draft article. Implemented and tested locally on branch
-`feat/contributor-workspace-rebuild` (uncommitted when this was written). Not
-deployed. Nothing is published or shared.** Prepared September 23, 2026.
+Status: **Draft article. Deployed to production on 2026-09-23 from `main` at
+`e90c5fb`; the signed-in smoke test is still pending. Nothing is published or
+shared.** Prepared September 23, 2026.
 
 | Field | Value |
 |---|---|
@@ -49,30 +49,43 @@ kept its `alt` text.
 
 ## What the article claims, and the evidence
 
-Every feature described is implemented on the branch above and covered by tests:
+Every feature described is on `main` and covered by tests:
 
 - `npm run test:contributor-portal`: 44 backend unit tests and 47 Studio workflow tests pass.
 - `npm run test:contributor-e2e`: 7 emulator end-to-end tests pass (payment details, finance
   decisions, statement links, MoMo without SMS, profile and settings, community activity,
   Kawuri assist).
 - `npm run test:rules` 198/198, `npm run test:storage-rules` 21/21,
-  `npm run test:function-helpers` 539/539 and the existing `npm run test:e2e` 34/34 pass.
+  `npm run test:function-helpers` 541/541, the existing `npm run test:e2e` 34/34 and
+  `npm run test:kawuri-e2e` 12/12 pass on the merged `main`.
 - The Functions, TribeStudio and Admin production builds pass.
 - Details: [the contributor portal documentation](../../../../docs/product/contributor-portal.md#workspace-rebuild--2026-09-23).
 
-Not verified: any signed-in production flow, SMS delivery of MoMo codes, and the signed
-statement link, which needs the Token Creator IAM grant described in the documentation.
-The article says rates, payment schedules and review times are not published, because
-they are not. Do not add figures unless the team publishes them.
+Not verified: any signed-in production flow, SMS delivery of MoMo codes, and opening a
+signed statement link (the runtime service account holds the Token Creator grant it
+needs). The article says rates, payment schedules and review times are not published,
+because they are not. Do not add figures unless the team publishes them.
+
+## Deployment evidence — 2026-09-23
+
+- Functions: all 132 exports deployed from `main` at `e90c5fb` (18 created, 114 updated);
+  live and exported lists identical afterwards. Unauthenticated calls to the new
+  callables answer "Sign in is required.", which only the new bundle can say.
+- Firestore rules and Storage rules released.
+- Hosting: `tribestudio` and `indigen-admin` released; the live bundles contain the new
+  workspace ("Kawuri Intelligence", "Community today", "Policy not yet published") and the
+  finance desk. The live `/contributor` page shows the new sign-in screen with no console
+  errors.
+- Still to do before publishing: grant the `finance` claim to the finance reviewers, and
+  run the signed-in smoke test below.
 
 ## Publishing handoff
 
-1. Deploy the Functions, Firestore rules, Storage rules, TribeStudio and Admin changes listed
-   in the documentation, grant the `finance` claim to the finance reviewers, and complete a
-   signed-in smoke test: Overview counts, a returned expression, Kawuri, a bank submission
-   and a finance decision, and a MoMo code on a real handset.
-2. In `post.html`, update the **Availability** note so it no longer says the update is
-   waiting for release, and adjust the last line of **Getting started** to match.
+1. Grant the `finance` claim to the finance reviewers and complete a signed-in smoke
+   test: Overview counts, a returned expression, Kawuri, a bank submission and a finance
+   decision, and a MoMo code on a real handset. (Deployment is done; see above.)
+2. `post.html` already says the update is live; keep it that way only if the smoke test
+   passes.
 3. In Blogger, create a post with the title above. Paste `post.html` in HTML view. Set the
    labels, search description and custom permalink above.
 4. Upload the images as described, preview with the Updates theme, and check the
@@ -80,4 +93,4 @@ they are not. Do not add figures unless the team publishes them.
 5. Publish when Chinedum approves. Replace `[PUBLISHED_POST_URL]` in `share.md` with the
    article URL, then give Chinedum the sharing copy.
 
-No external publication, deployment or message has been made.
+The update is deployed. No Blogger publication or message has been made.
