@@ -80,14 +80,13 @@
 .contributor-completion-stats { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 16px; width: 100%; max-width: 520px; }
 .contributor-completion-stats div { padding: 12px; background: #f3f6fc; border-radius: 10px; }
 .contributor-completion-stats dd { margin: 4px 0 0; font-size: 24px; font-weight: 700; }
-/* Center the account trigger on the left, even when the heading wraps. */
-.contributor-header { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; }
-.contributor-heading { grid-column: 2; grid-row: 1; min-width: 0; overflow-wrap: anywhere; }
+/* Center the account trigger on the right, even when the heading wraps. */
+.contributor-header { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; }
+.contributor-heading { grid-column: 1; grid-row: 1; min-width: 0; overflow-wrap: anywhere; }
 .contributor-header-actions { display: contents; }
-.contributor-account { grid-column: 1; grid-row: 1; }
-.contributor-header-progress { grid-column: 3; grid-row: 1; }
-.contributor-header:not(:has(.contributor-account)) .contributor-heading { grid-column: 1 / 3; }
-.contributor-account > div { left: 0; right: auto; width: min(310px, calc(100vw - 72px)); max-height: calc(100dvh - 110px); overflow-y: auto; overscroll-behavior: contain; }
+.contributor-account { grid-column: 3; grid-row: 1; }
+.contributor-header-progress { grid-column: 2; grid-row: 1; }
+.contributor-account > div { left: auto; right: 0; width: min(310px, calc(100vw - 72px)); max-height: calc(100dvh - 110px); overflow-y: auto; overscroll-behavior: contain; }
 @media(max-width:599px) { .contributor-assignment { align-items: stretch; flex-direction: column; } .contributor-assignment label { width: 100%; } }
 .contributor-issue { margin-top: 16px; padding: 16px; border: 1px solid var(--border); border-radius: 12px; overflow-wrap: anywhere; white-space: pre-wrap; } .contributor-issue small { display: block; }
 .contributor-support { position: relative; margin: 12px 0 16px; width: fit-content; max-width: 100%; }
