@@ -1,6 +1,6 @@
 # A fresh space for your words
 
-Status: **Draft article. Implementation and local validation complete; production deployment pending. Nothing has been published or shared.** Prepared September 26, 2026.
+Status: **Draft article. Visual redesign deployed on September 26, 2026 from `main` at `9a465a2`. Live sign-in and bundled assets verified. Route-cache follow-up deployment and signed-in production smoke test pending. Nothing has been published or shared.** Prepared September 26, 2026.
 
 | Field | Value |
 |---|---|
@@ -29,7 +29,14 @@ Status: **Draft article. Implementation and local validation complete; productio
 - Screenshots: `images/desktop.jpg` (1366×900), `images/phone.jpg` (390×844), `images/tablet-guide.jpg` (768×1024), `images/sign-in.jpg` (1366×900). The workspace images use the dev-only preview with sample counts and simulated services. Phone capture is scrolled past the preview notice; it still shows sample data.
 - Reduced-motion behaviour is implemented with `prefers-reduced-motion: no-preference` gating. No video or animation library added.
 
-Production deployment is pending. A successful public-page check does not establish that every authenticated backend flow was tested in production.
+## Deployment evidence
+
+- Firebase Hosting released the `tribestudio` site from `9a465a2` on September 26, 2026. No backend, rules or other hosting site was deployed.
+- The custom domain `/contributor` returns 200 and references the expected production entry bundle. Both generated WebP images and the contributor JS/CSS bundles return 200 with the correct content types and byte sizes.
+- The live sign-in page displays the new artwork and heading without browser console errors.
+- A follow-up adds contributor routes to Hosting's existing no-cache/no-store navigation rule, preventing future navigations from retaining an old app shell. The prior live response cached contributor HTML for one hour.
+- The development preview's simulated assistant now resolves daily assignments and current items, as well as the original sample assignments. This file is excluded from production builds.
+- Signed-in production workflows still need an invited-account smoke test; browser interaction checks above used the preview. No real contribution, payment, reward request or message was sent.
 
 ## Publishing handoff
 

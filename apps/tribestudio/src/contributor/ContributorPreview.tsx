@@ -122,6 +122,13 @@ function previewPaths(): PortalPaths {
 export function ContributorPreview() {
   const [items, setItems] = useState<Record<string, Item[]>>(()=>({...ITEMS,'daily-preview-first':DAILY_FIRST.map((expression,index)=>({id:'first-'+index,expression,translation:index<14?PLACEHOLDER:'',alternatives:[],revision:index<14?1:0,status:index<14?'submitted':'draft',...(index<14?{submissionId:'daily-sent-'+index,submittedAt:new Date().toISOString()}:{}),updatedAt:new Date().toISOString()}))}));
   const [dailyUnlocked, setDailyUnlocked] = useState(false);
+  const works = useMemo<Work[]>(() => [
+    { id: 'daily-preview-first', title: 'Daily tasks · First 15', createdAt: iso(0), instructions: 'Sample daily batch. Fourteen are submitted; complete the last task to unlock the extra request.' },
+    ...(dailyUnlocked ? [{ id: 'daily-preview-extra', title: 'Daily tasks · Extra 15', createdAt: new Date().toISOString(), instructions: 'Preview tasks: translate naturally into Kasem.' }] : []),
+    ...WORKS,
+  ], [dailyUnlocked]);
+  const previewData = useRef({ works, items });
+  previewData.current = { works, items };
   const payments = useRef<PaymentsView>(initialPayments());
   const self = useRef<SelfView>(SELF);
   const pendingCode = useRef('');
@@ -202,8 +209,9 @@ export function ContributorPreview() {
     async saveSettings(input) { await wait(300); const settings: Settings = { ...input, updatedAt: new Date().toISOString() }; self.current = { ...self.current, settings }; return settings; },
     async assist(input): Promise<AssistResult> {
       await wait(700);
-      const work = WORKS.find((entry) => entry.id === input.work)!;
-      const item = (ITEMS[input.work] ?? []).find((entry) => entry.id === input.item);
+      const work = previewData.current.works.find((entry) => entry.id === input.work);
+      if (!work) throw new Error('This sample assignment is unavailable. Reload the preview.');
+      const item = (previewData.current.items[input.work] ?? []).find((entry) => entry.id === input.item);
       return {
         mode: input.mode, expression: item?.expression ?? '', configured: true, unavailableReason: null, removed: 0,
         summary: 'Preview response — not produced by Kawuri. In the live workspace this summary comes from Gemini on Vertex AI.',
@@ -233,7 +241,7 @@ export function ContributorPreview() {
     email: 'contributor@example.com',
     displayName: 'Sample Contributor',
     account: { status: 'active', requiresPasswordChange: false, defaultWork: 'everyday', activatedAt: iso(24 * 20), phoneMasked: '•••• 4567' },
-    works: [{id:'daily-preview-first',title:'Daily tasks · First 15',createdAt:iso(0),instructions:'Sample daily batch. Fourteen are submitted; complete the last task to unlock the extra request.'},...(dailyUnlocked ? [{id:'daily-preview-extra',title:'Daily tasks · Extra 15',createdAt:new Date().toISOString(),instructions:'Preview tasks: translate naturally into Kasem.'},...WORKS] : WORKS)],
+    works,
     worksState: 'ready',
     items,
     itemsState: 'ready',
@@ -253,7 +261,7 @@ export function ContributorPreview() {
     services,
     paths: previewPaths(),
     preview: true,
-  }), [items, services, dailyUnlocked]);
+  }), [items, services, works]);
 
   return (
     <WorkspaceContext.Provider value={value}>

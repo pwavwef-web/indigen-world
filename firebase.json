@@ -190,7 +190,7 @@
           ]
         },
         {
-          "regex": "^/(studio(/.*)?|workspace|creators(/.*)?)$",
+          "regex": "^/(studio(/.*)?|workspace|creators(/.*)?|contributor(/.*)?)$",
           "headers": [
             { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
           ]
