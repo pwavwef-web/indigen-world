@@ -5,7 +5,7 @@
 .iw-support input, .iw-support textarea, .iw-support select { width: 100%; min-width: 0; box-sizing: border-box; padding: 11px; color: inherit; background: #fff; border: 1px solid #cbd5ce; border-radius: 10px; font: inherit; }
 .iw-support textarea { resize: vertical; }
 .iw-support .iw-support__consent { display: flex; align-items: flex-start; font-size: .82rem; font-weight: 450; }
-.iw-support__consent input { width: 18px; height: 18px; flex-shrink: 0; }
+.iw-support .iw-support__consent input { width: 18px; min-width: 18px; height: 18px; min-height: 18px; margin: 2px 0 0; padding: 0; flex-shrink: 0; box-shadow: none; }
 .iw-support .iw-support__trap { display: none; }
 .iw-support__privacy, .iw-support small { color: #52645b; font-size: .8rem; }
 .iw-support__notice { padding: 12px; border-radius: 10px; background: #e5f3e9; color: #214c35; }

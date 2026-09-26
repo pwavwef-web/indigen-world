@@ -92,6 +92,7 @@ export function ContributorPortal() {
 }
 
 function AuthFrame({ children }: { children: ReactNode }) {
+  const { path } = useRoute();
   return (
     <div className="cw-auth iwx">
       <aside className="cw-auth__story">
@@ -110,7 +111,7 @@ function AuthFrame({ children }: { children: ReactNode }) {
           <span><strong>TribeStudio.</strong><small>Your contributor space</small></span>
         </div>
         <main id="main-content" tabIndex={-1}>{children}</main>
-        <p><a href="/contributor/support">Need help signing in? Contact support</a></p>
+        {path !== '/contributor/support' && <p><a href="/contributor/support">Need help signing in? Contact support</a></p>}
       </div>
       <p className="cw-auth__foot">For invited contributors documenting Kasem. Indigen World never asks for your password by phone or SMS.</p>
       </div>
