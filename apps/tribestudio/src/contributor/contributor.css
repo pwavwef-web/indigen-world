@@ -1367,9 +1367,6 @@ button.cw-activity__row:hover { background: #f5f7fb !important; }
 }
 
 .editor-save-state {
-  position: sticky;
-  top: 0;
-  z-index: 3;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -1488,34 +1485,36 @@ button.cw-activity__row:hover { background: #f5f7fb !important; }
 }
 
 .permission-section {
-  border-radius: 10px;
-  box-shadow: inset 0 0 0 1px var(--cw-line-strong);
+  display: grid;
+  gap: 16px;
+  padding: 18px;
+  border: 2px solid #b4c6f4;
+  border-radius: 14px;
+  background: var(--cw-blue-soft);
+  scroll-margin-block: 88px 170px;
 }
 
-.permission-section > summary {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  min-height: 46px;
-  padding: 0 14px;
+.permission-section__heading h3 { font-size: 1.05rem; font-weight: 750; }
+.permission-section__heading p {
+  margin-top: 5px;
+  color: var(--cw-slate);
   font-size: 0.88rem;
-  font-weight: 680;
-  cursor: pointer;
-  list-style: none;
 }
-
-.permission-section > summary::-webkit-details-marker { display: none; }
-.permission-section > div { display: grid; gap: 12px; padding: 2px 14px 14px; }
 
 .contributor-check {
   display: flex !important;
   align-items: flex-start;
   gap: 10px;
-  font-size: 0.87rem;
+  font-size: 0.92rem;
   font-weight: 400 !important;
+  cursor: pointer;
 }
 
-.cw .contributor-check input { width: 18px; height: 18px; margin-top: 2px; }
+.contributor-check > span { display: grid; gap: 4px; }
+.contributor-check strong { font-weight: 750; }
+.contributor-check--required { padding: 14px; border-radius: 10px; background: #fff; }
+.cw .contributor-check input { flex: 0 0 24px; width: 24px; height: 24px; margin-top: 2px; accent-color: var(--cw-blue); }
+.contributor-editor :is(textarea, input) { scroll-margin-block: 88px 170px; }
 
 .unsure-section {
   display: grid;
@@ -1528,27 +1527,25 @@ button.cw-activity__row:hover { background: #f5f7fb !important; }
 .unsure-section p { margin-top: 2px !important; color: var(--cw-muted); font-size: 0.83rem; }
 .cw .unsure-section button { justify-self: start; color: var(--cw-violet); }
 
-.contributor-submit-wrap { margin: 0 -24px -22px; }
-.contributor-submit-wrap > p { padding: 0 24px 8px; color: var(--cw-amber); font-size: 0.8rem; }
-
-.contributor-submit-actions {
-  position: sticky;
-  bottom: 0;
-  z-index: 4;
+.contributor-submit-wrap {
   display: grid;
-  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.3fr);
   gap: 8px;
-  padding: 12px 24px max(12px, env(safe-area-inset-bottom));
-  border-top: 1px solid var(--cw-line);
-  border-radius: 0 0 var(--cw-radius) var(--cw-radius);
-  background: rgba(255, 255, 255, 0.97);
-  backdrop-filter: blur(10px);
 }
+.contributor-submit-wrap > p { color: var(--cw-slate); font-size: 0.85rem; }
 
-.cw .contributor-submit-actions button {
+.cw button.contributor-submit-cta {
   justify-self: stretch;
-  min-height: 42px;
+  min-height: 56px;
+  padding: 14px 20px;
+  background: var(--cw-blue);
+  color: #fff;
+  font-size: 1.05rem;
+  font-weight: 800;
+  line-height: 1.35;
+  box-shadow: 0 4px 12px #2854cc30;
 }
+.cw button.contributor-submit-cta:hover:not(:disabled) { background: var(--cw-blue-hover); }
+.cw button.contributor-submit-cta:focus-visible { outline: 3px solid var(--cw-blue); outline-offset: 4px; }
 
 .cw-locked-note {
   padding: 11px 13px;
@@ -2305,9 +2302,21 @@ button.cw-activity__row:hover { background: #f5f7fb !important; }
   .cw-search--compact { width: 100%; }
 
   .contributor-editor { padding: 16px; gap: 16px; border-radius: 0; box-shadow: none; margin: 0 -16px; background: #fff; }
-  .contributor-submit-wrap { margin: 0 -16px -16px; }
-  .contributor-submit-wrap > p { padding: 0 16px 8px; }
-  .contributor-submit-actions { padding: 10px 16px max(10px, env(safe-area-inset-bottom)); border-radius: 0; }
+  .cw.is-editing { padding-bottom: calc(160px + env(safe-area-inset-bottom)); }
+  /* A transformed page would anchor the fixed action to its content instead of the screen. */
+  .cw.is-editing .cw-page { animation: none; transform: none; }
+  .contributor-submit-wrap {
+    position: fixed;
+    inset: auto 0 0;
+    z-index: 30;
+    padding: 12px 16px max(12px, env(safe-area-inset-bottom));
+    border-top: 1px solid var(--cw-line-strong);
+    background: #fff;
+    box-shadow: 0 -5px 20px #20262512;
+  }
+  .permission-section { padding: 14px; }
+  .contributor-review-actions { flex-direction: column-reverse; }
+  .contributor-review-actions button { width: 100%; }
   .cw-editor__expression { font-size: 1.2rem; }
   .cw-editor__head { flex-direction: column; }
 
