@@ -13,7 +13,7 @@ export function SupportInbox() {
   const [filter, setFilter] = useState('active');
   async function refresh() {
     setBusy(true); setError('');
-    try { const { data } = await list({}); setCases(data.cases); setWhatsapp(data.whatsapp.enabled ? `WhatsApp connected: ${data.whatsapp.number}` : 'WhatsApp is awaiting setup. Website cases and email replies are available once the support service is deployed.'); }
+    try { const { data } = await list({}); setCases(data.cases); setWhatsapp(data.whatsapp.enabled ? `WhatsApp connected: ${data.whatsapp.number}` : 'WhatsApp is awaiting setup. Website cases are handled in this inbox.'); }
     catch { setError('Support cases could not be loaded. Retry.'); } finally { setBusy(false); }
   }
   useEffect(() => { void refresh(); }, []);

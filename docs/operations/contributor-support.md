@@ -2,7 +2,7 @@
 
 ## Website and staff inbox
 
-- Public entry: `https://tribestudio.indigenworld.com/contributor/support` after deployment.
+- Public entry: `https://tribestudio.indigenworld.com/contributor/support` (deployed September 26, 2026).
 - Staff: Admin → Contributors → Issues → Support inbox. Assignment reports remain underneath.
 - New cases receive automatic guidance. A member can request recovery, ask a person, reply or confirm resolution. Staff may record confirmed resolution obtained through another channel.
 - The member's private link is a bearer credential. Do not paste it into issues, analytics, release posts or team chats. The server stores only its hash. Staff do not need that link.
@@ -42,3 +42,11 @@ Do not include WhatsApp functions in the first deploy before their secrets and a
 ## Verification
 
 The integration suite covers private-case access, direct Firestore denial, admin role checks, concurrent retries, human escalation, confirmed closure/reopening, mailbox-only reset links, unknown-account neutrality, raw webhook signatures, business scope, duplicate receipts, STOP, the 24-hour window, uncertain sends and delivery callbacks. Website/Admin check commands cover type checks and production builds. Provider onboarding, live mail delivery and actual WhatsApp delivery need separate release evidence.
+
+## Release state — September 26, 2026
+
+- Firestore indexes, the six website/email functions, TribeStudio and Admin hosting deployed from `origin/main` at `e59108f6`.
+- Edge inspection confirmed the public support form and authenticated staff inbox. Hosted configuration responds successfully; invalid case access and unauthenticated staff access are denied. The inbox has no production cases yet; a full production conversation and real email delivery remain unverified.
+- Meta business contact details are saved. The new WhatsApp Business account displays “Review in Progress.” Number connection returned “Phone Number In Use”; the linked existing WhatsApp account is inaccessible to the current Meta session. Preserve the existing phone account while the owner resolves its association or chooses an appropriate supported connection flow.
+- WhatsApp functions and secrets have not been deployed. Public configuration returns `whatsappUrl: null`. No number migration, disconnection or live WhatsApp automation has occurred.
+- Local gates passed. GitHub Actions could not start because of the account billing lock; resolve billing separately before relying on remote CI.
