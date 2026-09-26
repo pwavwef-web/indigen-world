@@ -1,6 +1,6 @@
 # An easier contributor workspace
 
-Status: **Implemented and verified locally. Production deployment pending. Blogger draft; not published.**
+Status: **Deployed September 26, 2026 from 31d6937. Blogger draft; not published.**
 
 | Field | Value |
 |---|---|
@@ -21,7 +21,7 @@ Upload images/cover.png first, then images/help.png. Replace REPLACE-WITH-UPLOAD
 - Contributor and Functions builds passed.
 - Existing backend and frontend contributor suites passed; new support test verifies account reports without tasks and rejects unscoped task reports and inactive accounts.
 - Mobile/desktop preview inspected, including help search and report dialog. No page-level horizontal overflow in inspected routes.
-- Deployment requires TribeStudio hosting and reportContributorIssue. No production deployment or external publication performed for this update.
+- Deployment requires TribeStudio hosting and reportContributorIssue. Production deployment completed; no external publication performed.
 
 ## Publishing handoff
 
@@ -29,3 +29,11 @@ Upload images/cover.png first, then images/help.png. Replace REPLACE-WITH-UPLOAD
 2. Create a Blogger post with the metadata above and paste post.html into HTML view.
 3. Upload the images, replace their placeholders and preview desktop/mobile using the Updates theme.
 4. Chinedum publishes and replaces the URL placeholder in share.md before sharing.
+
+## Confirmed deployment — September 26, 2026
+
+- Code pushed to main at 31d6937. TribeStudio and Admin hosting releases completed.
+- saveExpressionAnswer and reportContributorIssue updated; prepareContributorDailyTasks, getContributorDailyTasks and requestMoreContributorTasks created successfully.
+- Both live sites returned HTTP 200 with asset filenames matching the new builds. All three daily-task endpoints returned HTTP 401 UNAUTHENTICATED without credentials.
+- Before release: 54 backend tests and 47 frontend tests passed; preview submission/unlock and list restoration checked.
+- A signed-in production daily-batch flow has not been exercised. No real contributor tasks were created for verification. Admins must prepare daily batches before contributors receive them.

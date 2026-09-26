@@ -6,9 +6,9 @@ date identifies when the post was prepared; it does not prove the update is live
 
 ## Posts
 
-- [2026-09-26: Daily contributor tasks](2026-09-26-daily-contributor-tasks/README.md) — implemented locally; deployment pending.
+- [2026-09-26: Daily contributor tasks](2026-09-26-daily-contributor-tasks/README.md) — deployed September 26; authenticated production workflow verification pending.
 
-- [2026-09-26: An easier contributor workspace](2026-09-26-easier-contributor-workspace/README.md) — implemented locally; deployment pending.
+- [2026-09-26: An easier contributor workspace](2026-09-26-easier-contributor-workspace/README.md) — deployed September 26; authenticated production workflow verification pending.
 
 - [2026-09-26: Approved expression rewards](2026-09-26-approved-expression-rewards/README.md) — deployed September 26; 19 earlier approved expressions credited; signed-in end-to-end verification pending.
 

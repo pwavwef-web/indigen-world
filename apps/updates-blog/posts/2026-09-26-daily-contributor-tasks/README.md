@@ -1,6 +1,6 @@
 # Daily contributor tasks
 
-Status: **Implemented locally; not deployed or published.**
+Status: **Deployed September 26, 2026 from 31d6937. Blogger draft; not published.**
 
 | Field | Value |
 |---|---|
@@ -34,3 +34,11 @@ Status: **Implemented locally; not deployed or published.**
 2. Prepare and verify a daily batch with authorized test accounts. Update article availability based on release evidence.
 3. Paste post.html into Blogger with the metadata above. Upload images/cover.png and replace REPLACE-WITH-UPLOADED-cover.png. Keep the alt text. The screenshot uses sample preview data.
 4. Preview desktop/mobile. Chinedum publishes and replaces the URL placeholder in share.md before sharing.
+
+## Confirmed deployment — September 26, 2026
+
+- Code pushed to main at 31d6937. TribeStudio and Admin hosting releases completed.
+- saveExpressionAnswer and reportContributorIssue updated; prepareContributorDailyTasks, getContributorDailyTasks and requestMoreContributorTasks created successfully.
+- Both live sites returned HTTP 200 with asset filenames matching the new builds. All three daily-task endpoints returned HTTP 401 UNAUTHENTICATED without credentials.
+- Before release: 54 backend tests and 47 frontend tests passed; preview submission/unlock and list restoration checked.
+- A signed-in production daily-batch flow has not been exercised. No real contributor tasks were created for verification. Admins must prepare daily batches before contributors receive them.
