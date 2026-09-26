@@ -18,5 +18,12 @@
 ## Publishing steps
 
 1. Review the article and, before announcing the complete workflow as verified, check it with an authorized contributor/admin account.
-2. Paste post.html into Blogger with the title, labels, and search description above, then publish.
-3. Replace the URL placeholder in share.md and share it. Publication and sharing remain with Chinedum.
+2. Upload images/cover.png and images/rewards-guide.png using Blogger’s image uploader. Replace the two relative image src values in post.html with their uploaded URLs. Keep the cover first so it can serve as the post thumbnail.
+3. Paste post.html into Blogger with the title, labels, and search description above. Preview desktop and mobile layouts, then publish.
+4. Replace the URL placeholder in share.md and share it. Publication and sharing remain with Chinedum.
+
+## Visual assets
+
+- [Cover](images/cover.png): 1672 × 941 landscape illustration, also suitable for sharing.
+- [Rewards guide](images/rewards-guide.png): matching illustrated workflow.
+- Both were visually checked and generated with the built-in image generation tool; they are illustrations, not portal screenshots. Prompts are recorded in images/prompts.md.
