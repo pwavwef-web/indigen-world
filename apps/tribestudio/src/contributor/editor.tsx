@@ -436,7 +436,7 @@ export function ExpressionEditor({ item, itemNumber = 1, itemTotal = 1, hasNextI
           aria-describedby="translation-help"
           onChange={(event) => changeAnswer('translation', event.target.value)}
         />
-        <small id="translation-help">Translate the meaning naturally, rather than word for word. <GuideHint section="good-contribution" extras={extras}>What makes a good translation</GuideHint></small>
+        <small id="translation-help">Write it as you would say it. <GuideHint section="good-contribution" extras={extras}>Translation tips</GuideHint></small>
       </label>
 
       {!locked ? (
@@ -477,7 +477,7 @@ export function ExpressionEditor({ item, itemNumber = 1, itemTotal = 1, hasNextI
             </span>
           </label>
         ))}
-        {!locked && alternativeValues.length < 12 ? <button className="add-alternative" type="button" disabled={busy || Boolean(recovery)} onClick={() => setAlternativeCount((count) => Math.min(12, count + 1))}>+ Add another way of saying this</button> : null}
+        {!locked && alternativeValues.length < 12 ? <button className="add-alternative" type="button" disabled={busy || Boolean(recovery)} onClick={() => setAlternativeCount((count) => Math.min(12, count + 1))}>+ Add an alternative</button> : null}
       </section>
 
       <label className="cw-context-field">
@@ -493,7 +493,7 @@ export function ExpressionEditor({ item, itemNumber = 1, itemTotal = 1, hasNextI
           onFocus={(event) => { activeField.current = event.currentTarget; }}
           onChange={(event) => changeAnswer('context', event.target.value)}
         />
-        <small id="context-help">Reviewers read this first. For an idiom, give the literal meaning and what it means in use. <GuideHint section="alternatives-context" extras={extras}>Context that helps reviewers</GuideHint></small>
+        <small id="context-help">For idioms, add the literal and intended meaning. <GuideHint section="alternatives-context" extras={extras}>Context tips</GuideHint></small>
       </label>
 
       </details>

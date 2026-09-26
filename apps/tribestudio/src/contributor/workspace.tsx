@@ -220,6 +220,8 @@ export function WorkspaceShell({ banner }: { banner?: ReactNode }) {
         href={hrefFor(item.section)}
         onClick={go(item.section)}
         className={cx(`cw-nav__link cw-nav__link--${variant}`, active && 'is-active')}
+        aria-label={item.label + (count ? `, ${count.label}` : '')}
+        title={item.label}
         aria-current={active ? 'page' : undefined}
       >
         <Icon name={item.icon} />
@@ -236,11 +238,17 @@ export function WorkspaceShell({ banner }: { banner?: ReactNode }) {
         <aside className="cw-side" aria-label="Contributor workspace">
           <div className="cw-brand">
             <BrandMark />
-            <span className="cw-brand__copy"><strong>Contributor workspace</strong><small>Indigen World · TribeStudio</small></span>
+            <span className="cw-brand__copy"><strong>TribeStudio<span className="cw-brand__period">.</span></strong><small>THE CONTRIBUTOR SPACE</small></span>
           </div>
+          <p className="cw-nav-caption">Your workspace</p>
           <nav className="cw-nav" aria-label="Workspace sections">
             {NAV.map((item) => link(item, 'side'))}
           </nav>
+          <PortalLink to={data.paths.section('guide', { section: 'good-contribution' })} className="cw-side-story">
+            <Icon name="spark" />
+            <strong>A living language.<br />A shared future.</strong>
+            <span>Make every expression count <Icon name="arrow" /></span>
+          </PortalLink>
           <div className="cw-side__footer">
             <span className="cw-avatar" aria-hidden="true">
               {self.value?.profile.photoUrl ? <img src={self.value.profile.photoUrl} alt="" /> : initials(displayName)}
@@ -262,6 +270,10 @@ export function WorkspaceShell({ banner }: { banner?: ReactNode }) {
 
         <div className="cw-main">
           {banner}
+          <div className="cw-desktop-bar">
+            <span>CONTRIBUTOR SPACE <span aria-hidden="true">/</span> <strong>{current.label}</strong></span>
+            <PortalLink to={data.paths.section('guide')} className="cw-desktop-help"><Icon name="help" />Help & guidance</PortalLink>
+          </div>
           <main id="main-content" tabIndex={-1} className="cw-content">
             <NotificationCentre />
             {route.notFound ? <NotFound /> : <PageFor key={`${data.uid}:${route.section}`} route={route} />}

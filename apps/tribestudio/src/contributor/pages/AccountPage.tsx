@@ -30,7 +30,7 @@ export function AccountPage({ tab }: { tab: AccountTab }) {
         kicker="Account & settings"
         title="Account & settings"
         id="page-title"
-        description="Manage your profile, security, notifications and payment details."
+        description="Your identity, preferences and payment details. All in your hands."
       />
       <label className="cw-account-select">Account section<select value={tab} onChange={event=>navigateTo(data.paths.account(event.target.value as AccountTab))}>{TABS.map(entry=><option value={entry.id} key={entry.id}>{entry.label}</option>)}</select></label>
       <div className="cw-account">

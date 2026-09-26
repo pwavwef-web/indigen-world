@@ -5,6 +5,7 @@ import type { Item, SubmissionRound, Work } from './model';
 import type { AssistResult, PaymentsView, PortalPaths, SelfView, Settings, WorkspaceData, WorkspaceServices } from './types';
 import { MOMO_NETWORKS } from './types';
 import './contributor.css';
+import './studio-refresh.css';
 
 /**
  * Local preview of the contributor workspace — development builds only

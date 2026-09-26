@@ -36,10 +36,10 @@ export function AssignmentsPage() {
   return (
     <div className="cw-page">
       <PageHeader
-        kicker="Assignments"
-        title="Tasks"
+        kicker="ONE EXPRESSION AT A TIME"
+        title="Make room for your words."
         id="page-title"
-        description="Choose a task set to start, continue, or revise your work."
+        description="Your assignments, ready when you are."
         actions={<PortalLink to={data.paths.section('guide', { section: 'assignments' })} className="cw-button-secondary"><Icon name="guide" />How assignments work</PortalLink>}
       />
       <DailyTasks />
@@ -73,7 +73,7 @@ export function AssignmentsPage() {
                     <h2><PortalLink to={data.paths.work(work.id)}>{work.title}</PortalLink></h2>
                     <Chip tone={WORK_STATE_META[state].tone}>{WORK_STATE_META[state].label}</Chip>
                   </div>
-                  {work.instructions ? <p className="cw-assignment__instructions">{work.instructions}</p> : null}
+                  {work.instructions ? <details className="cw-assignment__brief"><summary>Read the brief</summary><p>{work.instructions}</p></details> : null}
                   <p className="cw-meta-row">
                     {due ? <span className={`cw-due cw-due--${due.tone}`}><Icon name="clock" />{due.label}</span> : <span className="cw-due"><Icon name="clock" />No due date</span>}
                     <span>{pluralise(items.length, 'expression')}</span>

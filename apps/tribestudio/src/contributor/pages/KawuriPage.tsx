@@ -1,15 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRoute } from '../../router';
-import { Card, EmptyNote, Icon, Notice, PageHeader, Skeleton } from '../components';
+import { Card, EmptyNote, Notice, PageHeader, Skeleton } from '../components';
 import { KawuriResultView, useAssist } from '../kawuri';
 import { nextContribution } from '../model';
 import type { AssistMode } from '../types';
 import { useWorkspace } from '../workspace';
+import { artwork } from '../artwork';
 
 const MODES: { id: AssistMode; title: string; body: string; needsItem: boolean }[] = [
-  { id: 'explain_assignment', title: 'Explain the instructions', body: 'A plain-language summary of what this assignment asks for, with practical suggestions.', needsItem: false },
-  { id: 'context_needed', title: 'What context does this need?', body: 'The meaning and register of the English, any ambiguity, and what a reviewer would want to know.', needsItem: true },
-  { id: 'check_draft', title: 'Check my saved draft', body: 'Checks for gaps before you submit — missing translation, missing usage note, unaddressed feedback.', needsItem: true },
+  { id: 'explain_assignment', title: 'Explain the instructions', body: 'Find a clear starting point.', needsItem: false },
+  { id: 'context_needed', title: 'What context does this need?', body: 'Explore meaning, tone and usage.', needsItem: true },
+  { id: 'check_draft', title: 'Check my saved draft', body: 'Spot missing details before sending.', needsItem: true },
 ];
 
 /**
@@ -56,13 +57,13 @@ export function KawuriPage({ initialWork, initialItem, initialMode }: { initialW
     <div className="cw-page">
       <PageHeader
         kicker="Kawuri Intelligence"
-        title="Kawuri Intelligence"
+        title="A spark for your next expression."
         id="page-title"
-        description="Get help with English meaning, context and assignment instructions."
+        description="Explore the English. Find the context. Bring your own Kasem."
       />
-      <details className="cw-note"><summary>Kawuri suggests; reviewers decide · Learn more</summary>
-        <p>Kawuri never writes Kasem for you and never judges your Kasem. Its suggestions are marked as AI and have not been reviewed. Dictionary entries it shows are published, reviewed entries. Nothing Kawuri says is saved to your work.</p>
-      </details>
+      <Notice tone="info" title="Kawuri suggests; reviewers decide">
+        <p>AI suggestions only. Kawuri never writes or judges your Kasem, and never changes your work.</p>
+      </Notice>
 
       {data.worksState === 'loading' ? <div className="cw-card"><Skeleton lines={3} label="Loading your assignments" /></div> : noWork ? (
         <EmptyNote title="Nothing to work on yet">Kawuri works from your assignments. It will be available here once you have one.</EmptyNote>
@@ -111,7 +112,7 @@ export function KawuriPage({ initialWork, initialItem, initialMode }: { initialW
             {error ? (
               <Notice tone="warning" title="Kawuri Intelligence is not available right now" action={mode ? <button type="button" onClick={() => ask(mode)}>Try again</button> : undefined}>
                 <p>{error.message}</p>
-                <p className="cw-muted">If this persists, the backend function <code>kawuriContributorAssist</code> may not be deployed yet. Your work is unaffected.</p>
+                <p className="cw-muted">Try again later or contact the team. Your saved work is unaffected.</p>
               </Notice>
             ) : null}
             {!busy && result ? (
@@ -121,9 +122,9 @@ export function KawuriPage({ initialWork, initialItem, initialMode }: { initialW
             ) : null}
             {!busy && !result && !error ? (
               <div className="cw-empty cw-kawuri-placeholder">
-                <Icon name="kawuri" />
-                <strong>Choose what you would like help with</strong>
-                <p>Answers appear here, split into checks, reviewed sources and AI suggestions you can dismiss.</p>
+                <img src={artwork.livingKnowledge} alt="" width="1536" height="1024" />
+                <strong>Let’s find a little clarity.</strong>
+                <p>Choose a prompt to see checks, sources and suggestions here.</p>
               </div>
             ) : null}
           </div>
