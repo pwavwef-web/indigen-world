@@ -39,7 +39,7 @@ export const GUIDE: GuideSection[] = [
     points: [
       'Your work saves automatically about a second after you stop typing. If saving fails, your text stays on the page and a recovery copy is kept in this browser until the save succeeds.',
       'Not sure about an expression? Choose “Skip / I’m not sure”. It is flagged for you, nothing is sent for review, and you can come back to it at any time.',
-      'When a translation is ready, review it and confirm. A submitted expression is locked while it waits for a reviewer.',
+      'When a translation is ready, read the visible “Permission to submit” panel and tick the required sharing statement if you agree. AI training is optional. Choose “Submit for review”, check your answer, then choose “Confirm submission”. A submitted expression is locked while it waits for a reviewer.',
       'You can hold several assignments at once. Each keeps its own drafts and progress.',
     ],
     source: 'Contributor portal product notes (assignments, drafts and skipping)',
