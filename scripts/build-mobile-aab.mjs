@@ -15,8 +15,10 @@
 //
 //    which reads as an error in the app and involves nothing anybody wrote. It
 //    appears only when a release build follows a test run — which is exactly
-//    the order a release goes in. Deleting the file first makes Flutter
-//    regenerate it for the release variant, and that is the whole fix.
+//    the order a release goes in. Deleting the file makes Flutter regenerate it
+//    for the release variant, but the variant's javac output has to go with it:
+//    Gradle's incremental compile otherwise keeps the class the old file
+//    declared and fails on it anyway. Both are cleared below.
 //
 // 2. Every release note has claimed a size, a hash, a version and a set of ABIs.
 //    Claims typed by hand from a build log drift from the artefact. These are
@@ -85,6 +87,25 @@ if (existsSync(registrant)) {
       ? '· Removed a GeneratedPluginRegistrant.java that registered integration_test.'
       : '· Removed GeneratedPluginRegistrant.java so Flutter regenerates it.',
   );
+
+  // Deleting the file is not enough on its own. When the stale one came from a
+  // debug or test run, Gradle's incremental javac still holds compiled output
+  // for it, and `compileProductionReleaseJavaWithJavac` fails on a class that
+  // no longer exists in the regenerated source:
+  //
+  //     error: package dev.flutter.plugins.integration_test does not exist
+  //
+  // which reads as a code error and is nothing of the kind. Dropping this one
+  // variant's javac output costs a few seconds and only when the trap is
+  // actually present — a full `flutter clean` would cost ten minutes every
+  // time to fix a problem most builds do not have.
+  if (stale) {
+    const javac = join(mobile, 'build/app/intermediates/javac/productionRelease');
+    if (existsSync(javac)) {
+      rmSync(javac, { recursive: true, force: true });
+      say('· Dropped the productionRelease javac output it had already been compiled into.');
+    }
+  }
 }
 
 if (existsSync(decoy)) {
