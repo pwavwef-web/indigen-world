@@ -1,9 +1,30 @@
-# Approved expression rewards
+# Points for approved contributor expressions
 
-- Title: Points for approved contributor expressions
-- Labels: Contributors, TribeStudio, Rewards
-- Search description: Contributors earn points after their expressions are approved, including eligible earlier work.
-- Status: Deployed September 26, 2026; Blogger draft, not published.
+Status: **Draft article. Deployed September 26, 2026; signed-in production end-to-end verification remains pending. Nothing is published or shared.**
+
+| Field | Value |
+|---|---|
+| Topic | Approval-based contributor points, earlier work, and manual reward delivery |
+| Title | Points for approved contributor expressions |
+| Labels | Contributors, TribeStudio, Rewards, Kasem |
+| Search description | Contributors earn points after their expressions are approved, including eligible earlier work, and can request airtime or data. |
+| Custom permalink | approved-expression-rewards |
+| Cover | images/cover.png (1672 × 941) |
+| Article | post.html |
+| Sharing copy | share.md |
+
+## Images
+
+Upload in this order. The first image is the cover and share card.
+
+| # | File | Size | What it shows | Placeholder in post.html |
+|---|---|---|---|---|
+| 1 | images/cover.png | 1672 × 941 | Contributors, an approved contribution and points | REPLACE-WITH-UPLOADED-cover.png |
+| 2 | images/rewards-guide.png | 1672 × 941 | Submission, approval, reward request and delivery tracking | REPLACE-WITH-UPLOADED-rewards-guide.png |
+
+Both images were generated with the built-in image generation tool and visually checked. They are editorial illustrations, not portal screenshots. Generation prompts are recorded in [images/prompts.md](images/prompts.md).
+
+The article uses the same Updates theme markup as the other posts: a separator cover, iw-lede introduction, iw-note availability callout, section headings, a captioned figure, an iw-tip callout and a Getting started link. Image presentation comes from the theme rather than inline styles.
 
 ## Release evidence
 
@@ -15,15 +36,12 @@
 - Backend tests: 48 passed. TribeStudio workflow tests: 47 passed. Contributor and Admin typechecks/builds passed.
 - A signed-in production approval-to-redemption workflow has not been exercised end to end; manual airtime/data delivery remains an administrator action.
 
-## Publishing steps
+## Publishing handoff
 
-1. Review the article and, before announcing the complete workflow as verified, check it with an authorized contributor/admin account.
-2. Upload images/cover.png and images/rewards-guide.png using Blogger’s image uploader. Replace the two relative image src values in post.html with their uploaded URLs. Keep the cover first so it can serve as the post thumbnail.
-3. Paste post.html into Blogger with the title, labels, and search description above. Preview desktop and mobile layouts, then publish.
-4. Replace the URL placeholder in share.md and share it. Publication and sharing remain with Chinedum.
+1. Review the article and complete the signed-in production workflow check before announcing it as fully verified.
+2. In Blogger, create a post with the metadata above. Paste post.html in HTML view.
+3. In Compose view, replace each image placeholder in order with Insert image → Upload from computer. Keep the cover first. In HTML view, check that each image retains its alt text and the guide retains its caption.
+4. Preview with the Updates theme on desktop and mobile. Check the contributor link and that both uploaded images load.
+5. Publish when Chinedum approves. Replace the published article URL placeholder in share.md before sharing.
 
-## Visual assets
-
-- [Cover](images/cover.png): 1672 × 941 landscape illustration, also suitable for sharing.
-- [Rewards guide](images/rewards-guide.png): matching illustrated workflow.
-- Both were visually checked and generated with the built-in image generation tool; they are illustrations, not portal screenshots. Prompts are recorded in images/prompts.md.
+The update is deployed. No Blogger publication or message has been made.
