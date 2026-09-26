@@ -128,11 +128,15 @@ export interface ContributorPayoutProfile {
 export interface ContributorPaymentRequest {
   id: string;
   contributorId: string;
+  points?: number;
   amountMinor: number;
   currency: 'GHS';
   description: string;
-  status: 'submitted' | 'approved' | 'rejected' | 'paid';
-  bankSnapshot: { bankName: string; accountName: string; accountNumber: string; branch: string };
+  status: 'submitted' | 'approved' | 'rejected' | 'paid' | 'fulfilled';
+  kind?: 'airtime' | 'data';
+  network?: string;
+  phoneNumber?: string;
+  bankSnapshot?: { bankName: string; accountName: string; accountNumber: string; branch: string };
   createdAt: string;
   adminNote?: string;
   paymentReference?: string;
@@ -142,6 +146,7 @@ export interface ContributorPaymentRequest {
 export interface ContributorPayments {
   profiles: ContributorPayoutProfile[];
   requests: ContributorPaymentRequest[];
+  rewards?: { pointsPerExpression: number; dailyCap: number; redemptionMinimum: number; cedisPerRedemption: number };
 }
 
 export interface ContributorAuditEntry {
@@ -182,8 +187,10 @@ const cancelInvitation = httpsCallable<{ contributorId: string; reason: string }
   'cancelContributorInvitation',
 );
 const listPayments = httpsCallable<Record<string, never>, ContributorPayments>(functions, 'listContributorPayments');
+const saveRewards = httpsCallable<NonNullable<ContributorPayments['rewards']>, NonNullable<ContributorPayments['rewards']>>(functions, 'setContributorRewardSettings');
+export async function saveContributorRewards(settings: NonNullable<ContributorPayments['rewards']>) { await saveRewards(settings); }
 const verifyPayout = httpsCallable<{ contributorId: string; verified: boolean; note: string }, unknown>(functions, 'verifyContributorPayoutProfile');
-const decidePayment = httpsCallable<{ requestId: string; action: 'approve' | 'reject' | 'paid'; note: string; paymentReference?: string }, unknown>(functions, 'decideContributorPaymentRequest');
+const decidePayment = httpsCallable<{ requestId: string; action: 'approve' | 'reject' | 'paid' | 'fulfill'; note: string; paymentReference?: string }, unknown>(functions, 'decideContributorPaymentRequest');
 
 
 export async function fetchContributorDirectory(): Promise<ContributorDirectoryRow[]> {
@@ -237,7 +244,7 @@ export async function verifyContributorPaymentProfile(contributorId: string, ver
   await verifyPayout({ contributorId, verified, note });
 }
 
-export async function decideContributorPayment(requestId: string, action: 'approve' | 'reject' | 'paid', note: string, paymentReference = ''): Promise<void> {
+export async function decideContributorPayment(requestId: string, action: 'approve' | 'reject' | 'paid' | 'fulfill', note: string, paymentReference = ''): Promise<void> {
   await decidePayment({ requestId, action, note, paymentReference });
 }
 

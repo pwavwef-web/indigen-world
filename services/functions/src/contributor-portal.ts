@@ -15,6 +15,24 @@ const origin = 'https://tribestudio.indigenworld.com';
 const contributorRoles = ['translator', 'storyteller', 'researcher', 'reviewer'] as const;
 const contributionTypes = ['expressions', 'articles', 'stories', 'research', 'audio'] as const;
 const accountStatuses = ['active', 'suspended', 'deactivated'] as const;
+const defaultRewards = { pointsPerExpression: 10, dailyCap: 300, redemptionMinimum: 300, cedisPerRedemption: 5 };
+function rewardSettings(value: Record<string, unknown> = {}) {
+  const settings = { ...defaultRewards };
+  for (const key of Object.keys(defaultRewards) as (keyof typeof defaultRewards)[]) {
+    if (value[key] !== undefined) settings[key] = value[key] as number;
+  }
+  for (const [key, amount] of Object.entries(settings)) {
+    if (!Number.isInteger(amount) || amount < 1 || amount > 100000) throw new HttpsError('invalid-argument', `Invalid ${key}.`);
+  }
+  return settings;
+}
+export const setContributorRewardSettings = onCall(options, async req => {
+  const actor = requireAuth(req); requireRole(req, 'admin');
+  const settings = rewardSettings(req.data ?? {});
+  if (settings.dailyCap < settings.pointsPerExpression) throw new HttpsError('invalid-argument', 'Daily cap must cover one expression.');
+  await getFirestore().doc('settings/contributorRewards').set({ ...settings, updatedAt: new Date().toISOString(), updatedBy: actor });
+  return settings;
+});
 function text(value: unknown, max: number, optional = false): string {
   if (typeof value !== 'string' || value.trim().length > max || (!optional && !value.trim())) {
     throw new HttpsError('invalid-argument', 'Missing or oversized text.');
@@ -323,16 +341,24 @@ export const assignContributorExpressions = onCall(options, async req => {
   const deadline = optionalText(req.data?.deadline, 40);
   const guidance = assignmentInstructions(req.data ?? {});
   const db = getFirestore(), account = db.doc(`contributorAccounts/${uid}`);
-  const work = account.collection('works').doc();
+  const requestId = req.data?.requestId == null ? '' : id(req.data.requestId);
+  const requestHash = createHash('sha256').update(JSON.stringify({ prompts, title, instructions, deadline, guidance })).digest('hex');
+  const work = requestId
+    ? account.collection('works').doc(createHash('sha256').update(`${uid}/${requestId}`).digest('hex').slice(0, 24))
+    : account.collection('works').doc();
   // A work id is already globally random, and using it for this one-to-one
   // audit record keeps assignment creation inside the same transaction.
   const auditRef = db.doc(`auditLogs/${work.id}`);
   const now = new Date().toISOString();
-  await db.runTransaction(async tx => {
-    const member = await tx.get(account);
+  const created = await db.runTransaction(async tx => {
+    const [member, existingWork] = await Promise.all([tx.get(account), tx.get(work)]);
     if (member.get('status') !== 'active') throw new HttpsError('failed-precondition', 'Invite this contributor before assigning work.');
+    if (existingWork.exists) {
+      if (requestId && existingWork.get('requestId') === requestId && existingWork.get('requestHash') === requestHash) return false;
+      throw new HttpsError('already-exists', 'This assignment request ID was already used with different contents.');
+    }
     tx.create(work, { ...guidance, id: work.id, title, kind: 'expressions', language: 'xsm', instructions, deadline,
-      assignedBy: actor, createdAt: now });
+      assignedBy: actor, createdAt: now, ...(requestId ? { requestId, requestHash } : {}) });
     for (const expression of prompts) {
       const key = createHash('sha256').update(expression).digest('hex').slice(0, 24);
       tx.create(work.collection('items').doc(key), {
@@ -342,8 +368,9 @@ export const assignContributorExpressions = onCall(options, async req => {
     tx.update(account, { defaultWork: work.id, updatedAt: now });
     tx.create(auditRef, { id: auditRef.id, ...auditRecord(actor, 'contributor.assignment.create', uid,
       null, { work: work.id, title, expressionCount: prompts.length, deadline }, { work: work.id }) });
+    return true;
   });
-  return { contributorId: uid, work: work.id, portalUrl: `${origin}/contributor/${uid}/${work.id}` };
+  return { contributorId: uid, work: work.id, portalUrl: `${origin}/contributor/${uid}/${work.id}`, created };
 });
 
 /** A bounded, joined directory for the admin console. Private contact fields never leave this admin-only callable. */
@@ -625,6 +652,7 @@ export const saveExpressionAnswer = onCall(options, async req => {
       throw new HttpsError('permission-denied', 'Submission access is not enabled for this contributor.');
     }
     const previousId = row.get('submissionId') as string | undefined;
+    const day = now.slice(0, 10);
     const previous = previousId ? await tx.get(db.doc(`submissions/${previousId}`)) : null;
     const canRevise = previous?.exists && previous.get('authUid') === uid
       && ['REJECTED', 'NEEDS_REVISION'].includes(previous.get('status'));
@@ -662,6 +690,17 @@ export const saveExpressionAnswer = onCall(options, async req => {
         ...buildCollectionContributionReceipt(submissionId, submissionId, uid, input),
         contributorPortal: portal, alternativeExpressions: answer.alternatives,
       });
+      if (!previousId) {
+        const accountUpdates: Record<string, number | string> = {};
+        if (member.get('streakLastDay') !== day) {
+          const yesterday = new Date(Date.parse(`${day}T00:00:00Z`) - 86400000).toISOString().slice(0, 10);
+          const streak = member.get('streakLastDay') === yesterday ? Number(member.get('streakCount') ?? 0) + 1 : 1;
+          accountUpdates.streakLastDay = day;
+          accountUpdates.streakCount = streak;
+          accountUpdates.streakBest = Math.max(streak, Number(member.get('streakBest') ?? 0));
+        }
+        if (Object.keys(accountUpdates).length) tx.update(account, accountUpdates);
+      }
     }
     tx.update(ref, { ...answer, revision, updatedAt: now, unsure: skip,
       ...(skip ? { skippedAt: now } : {}),
@@ -671,7 +710,7 @@ export const saveExpressionAnswer = onCall(options, async req => {
 });
 
 
-type PaymentRequestStatus = 'submitted' | 'approved' | 'rejected' | 'paid';
+type PaymentRequestStatus = 'submitted' | 'approved' | 'rejected' | 'paid' | 'fulfilled';
 
 function bankAccountNumber(value: unknown): string {
   const result = text(value, 34).replace(/\s+/g, '');
@@ -708,7 +747,14 @@ export const getContributorPayments = onCall(options, async req => {
     db.doc(`contributorPayoutProfiles/${uid}`).get(),
     db.collection('contributorPaymentRequests').where('contributorId', '==', uid).limit(100).get(),
   ]);
+  const settings = rewardSettings((await db.doc('settings/contributorRewards').get()).data() ?? {});
+  const today = new Date().toISOString().slice(0, 10);
+  const yesterday = new Date(Date.parse(`${today}T00:00:00Z`) - 86400000).toISOString().slice(0, 10);
+  const lastDay = String(account.get('streakLastDay') ?? '');
   return {
+    rewards: { ...settings, balance: Number(account.get('rewardBalance') ?? 0), lifetime: Number(account.get('rewardLifetime') ?? 0) },
+    streak: { current: lastDay === today || lastDay === yesterday ? Number(account.get('streakCount') ?? 0) : 0,
+      best: Number(account.get('streakBest') ?? 0), lastDay, activeToday: lastDay === today },
     profile: profile.exists ? { ...profile.data(), accountNumber: profile.get('accountNumber') } : null,
     requests: requests.docs.map(entry => ({ id: entry.id, ...entry.data(), createdAt: entry.get('createdAt') }))
       .sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt))),
@@ -739,33 +785,38 @@ export const saveContributorPayoutProfile = onCall(options, async req => {
 export const requestContributorPayment = onCall(options, async req => {
   const uid = requireAuth(req);
   await consumeRateLimit('requestContributorPayment', uid, 10);
-  const amountMinor = paymentAmountMinor(req.data?.amountMinor);
-  const description = text(req.data?.description, 500);
+  const kind = req.data?.kind;
+  if (kind !== 'airtime' && kind !== 'data') throw new HttpsError('invalid-argument', 'Choose airtime or data.');
+  const network = req.data?.network;
+  if (!['MTN', 'Telecel', 'AT'].includes(network)) throw new HttpsError('invalid-argument', 'Choose a supported Ghana mobile network.');
+  const phoneNumber = contributorPhone(req.data?.phoneNumber);
+  if (!/^\+233\d{9}$/.test(phoneNumber)) throw new HttpsError('invalid-argument', 'Enter a Ghana mobile number.');
   const db = getFirestore(), requestRef = db.collection('contributorPaymentRequests').doc();
-  const profileRef = db.doc(`contributorPayoutProfiles/${uid}`);
   const accountRef = db.doc(`contributorAccounts/${uid}`);
   const now = new Date().toISOString();
   await db.runTransaction(async tx => {
-    const [account, profile] = await Promise.all([tx.get(accountRef), tx.get(profileRef)]);
+    const [account, rewards] = await Promise.all([tx.get(accountRef), tx.get(db.doc('settings/contributorRewards'))]);
     if (account.get('status') !== 'active') throw new HttpsError('permission-denied', 'An active contributor account is required.');
-    if (!profile.exists || profile.get('verificationStatus') !== 'verified') {
-      throw new HttpsError('failed-precondition', 'Your bank account must be verified before requesting payment.');
+    const settings = rewardSettings(rewards.data() ?? {});
+    const points = req.data?.points;
+    const balance = Number(account.get('rewardBalance') ?? 0);
+    if (!Number.isSafeInteger(points) || points < settings.redemptionMinimum || points > balance) {
+      throw new HttpsError('failed-precondition', `Redeem at least ${settings.redemptionMinimum} points, up to your available balance.`);
     }
+    const amountMinor = Math.round(points / settings.redemptionMinimum * settings.cedisPerRedemption * 100);
+    paymentAmountMinor(amountMinor);
     const prior = await tx.get(db.collection('contributorPaymentRequests')
       .where('contributorId', '==', uid).limit(100));
     if (prior.docs.some(entry => ['submitted', 'approved'].includes(String(entry.get('status'))))) {
-      throw new HttpsError('failed-precondition', 'You already have a payment request being processed.');
+      throw new HttpsError('failed-precondition', 'You already have a redemption request being processed.');
     }
     tx.create(requestRef, {
-      id: requestRef.id, contributorId: uid, amountMinor, currency: 'GHS', description,
-      status: 'submitted' satisfies PaymentRequestStatus, profileUpdatedAt: profile.get('updatedAt'),
-      bankSnapshot: {
-        bankName: profile.get('bankName'), accountName: profile.get('accountName'),
-        accountNumber: profile.get('accountNumber'), branch: profile.get('branch') ?? '',
-      },
+      id: requestRef.id, contributorId: uid, amountMinor, currency: 'GHS', description: `${points} points for ${kind}`, points,
+      kind, network, phoneNumber, status: 'submitted' satisfies PaymentRequestStatus,
       createdAt: now, updatedAt: now, decidedAt: null, decidedBy: null,
       paidAt: null, paymentReference: '', adminNote: '',
     });
+    tx.update(accountRef, { rewardBalance: balance - points });
   });
   return { requestId: requestRef.id };
 });
@@ -773,11 +824,13 @@ export const requestContributorPayment = onCall(options, async req => {
 export const listContributorPayments = onCall(options, async req => {
   requireRole(req, 'admin');
   const db = getFirestore();
-  const [profiles, requests] = await Promise.all([
+  const [profiles, requests, rewards] = await Promise.all([
     db.collection('contributorPayoutProfiles').limit(500).get(),
     db.collection('contributorPaymentRequests').limit(500).get(),
+    db.doc('settings/contributorRewards').get(),
   ]);
   return {
+    rewards: rewardSettings(rewards.data() ?? {}),
     profiles: profiles.docs.map(entry => ({ id: entry.id, ...entry.data(), createdAt: entry.get('createdAt') })),
     requests: requests.docs.map(entry => ({ id: entry.id, ...entry.data(), createdAt: entry.get('createdAt') }))
       .sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt))),
@@ -809,25 +862,32 @@ export const decideContributorPaymentRequest = onCall(options, async req => {
   const actor = requireAuth(req); requireRole(req, 'admin');
   const requestId = id(req.data?.requestId);
   const action = text(req.data?.action, 20).toLowerCase();
-  if (!['approve', 'reject', 'paid'].includes(action)) throw new HttpsError('invalid-argument', 'Unsupported payment action.');
+  if (!['approve', 'reject', 'paid', 'fulfill'].includes(action)) throw new HttpsError('invalid-argument', 'Unsupported redemption action.');
   const adminNote = optionalText(req.data?.note, 1000);
-  const paymentReference = action === 'paid' ? text(req.data?.paymentReference, 160) : '';
+  const paymentReference = ['paid', 'fulfill'].includes(action) ? text(req.data?.paymentReference, 160) : '';
   const db = getFirestore(), ref = db.doc(`contributorPaymentRequests/${requestId}`);
   const now = new Date().toISOString();
   await db.runTransaction(async tx => {
     const snap = await tx.get(ref);
     if (!snap.exists) throw new HttpsError('not-found', 'Payment request not found.');
     const current = String(snap.get('status'));
-    if ((action === 'approve' || action === 'reject') && current !== 'submitted') {
-      throw new HttpsError('failed-precondition', 'Only submitted requests can be approved or rejected.');
+    if ((action === 'approve' && current !== 'submitted') || (action === 'reject' && !['submitted', 'approved'].includes(current))) {
+      throw new HttpsError('failed-precondition', 'Only pending requests can be approved or rejected.');
     }
-    if (action === 'paid' && current !== 'approved') {
+    if (['paid', 'fulfill'].includes(action) && current !== 'approved') {
       throw new HttpsError('failed-precondition', 'Approve the request before marking it paid.');
     }
-    const status: PaymentRequestStatus = action === 'approve' ? 'approved' : action === 'reject' ? 'rejected' : 'paid';
+    if (action === 'fulfill' && !['airtime', 'data'].includes(String(snap.get('kind')))) throw new HttpsError('failed-precondition', 'This request is not an airtime or data redemption.');
+    if (action === 'paid' && ['airtime', 'data'].includes(String(snap.get('kind')))) throw new HttpsError('failed-precondition', 'Record airtime or data delivery instead.');
+    const status: PaymentRequestStatus = action === 'approve' ? 'approved' : action === 'reject' ? 'rejected' : action === 'fulfill' ? 'fulfilled' : 'paid';
+    if (status === 'rejected' && Number(snap.get('points') ?? 0) > 0) {
+      const accountRef = db.doc(`contributorAccounts/${snap.get('contributorId')}`);
+      const account = await tx.get(accountRef);
+      tx.update(accountRef, { rewardBalance: Number(account.get('rewardBalance') ?? 0) + Number(snap.get('points')) });
+    }
     tx.update(ref, {
       status, adminNote, updatedAt: now, decidedBy: actor,
-      ...(status === 'paid' ? { paidAt: now, paymentReference } : { decidedAt: now }),
+      ...(['paid', 'fulfilled'].includes(status) ? { paidAt: now, paymentReference } : { decidedAt: now }),
     });
     const auditRef = db.collection('auditLogs').doc();
     tx.set(auditRef, {
@@ -853,6 +913,28 @@ export const onContributorExpressionReviewed = onDocumentWritten(
       if (item.get('submissionId') !== snap.id) return;
       const dictionary = await tx.get(db.doc(`dictionaryEntries/collection_${snap.id}`));
       const verified = ['APPROVED', 'PUBLISHED'].includes(data.status);
+      const firstSubmissionId = createHash('sha256').update(`${portal.contributorId}/${portal.work}/${portal.item}`).digest('hex');
+      const accountRef = db.doc(`contributorAccounts/${portal.contributorId}`);
+      const creditRef = accountRef.collection('rewardCredits').doc(firstSubmissionId);
+      const approvalDate = typeof data.moderation?.decidedAt === 'string' && !Number.isNaN(Date.parse(data.moderation.decidedAt))
+        ? new Date(data.moderation.decidedAt).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10);
+      const dayRef = accountRef.collection('rewardDays').doc(approvalDate);
+      const [credit, account, day, rewards] = verified ? await Promise.all([
+        tx.get(creditRef), tx.get(accountRef), tx.get(dayRef), tx.get(db.doc('settings/contributorRewards')),
+      ]) : [null, null, null, null];
+      if (verified && credit && !credit.exists && account?.exists) {
+        const settings = rewardSettings(rewards?.data() ?? {});
+        const earned = Number(day?.get('points') ?? 0);
+        const award = Math.max(0, Math.min(settings.pointsPerExpression, settings.dailyCap - earned));
+        const now = new Date().toISOString();
+        tx.create(creditRef, { submissionId: snap.id, work: portal.work, item: portal.item,
+          day: approvalDate, points: award, source: 'approval', createdAt: now });
+        if (award > 0) {
+          tx.set(dayRef, { day: approvalDate, points: earned + award, updatedAt: now });
+          tx.update(accountRef, { rewardBalance: Number(account.get('rewardBalance') ?? 0) + award,
+            rewardLifetime: Number(account.get('rewardLifetime') ?? 0) + award });
+        }
+      }
       tx.update(itemRef, {
         status: verified ? 'verified' : String(data.status).toLowerCase(), feedback: data.moderation?.feedback ?? '',
         reviewedAt: data.moderation?.decidedAt ?? null,

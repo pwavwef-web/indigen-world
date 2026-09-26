@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { submittedCount, AssignmentSelector, ContributionWorkspace, ContributorHeader, type Item, type PayoutProfile, type PaymentRequest, type ContributorPaymentService } from './ContributorPortal';
+import { submittedCount, AssignmentSelector, ContributionWorkspace, ContributorActivityNotice, ContributorHeader, ContributorTabs, ContributorRewards, ContributorStreak, type Item, type PayoutProfile, type PaymentRequest, type ContributorPaymentService } from './ContributorPortal';
 import './contributor.css';
 
 const expressions = [
@@ -17,16 +17,21 @@ const sampleItems: Item[] = expressions.map((expression, index) => ({
 }));
 export function ContributorPreview() {
   const [activeWork, setActiveWork] = useState('sample');
+  const [activeTab, setActiveTab] = useState<'expressions' | 'rewards' | 'streak'>('expressions');
+  const [rewardsInitialView, setRewardsInitialView] = useState<'redeem' | 'history'>('redeem');
   const works = [
     { id: 'sample', title: 'Everyday conversations', createdAt: '2026-09-23', instructions: 'Translate each expression naturally into Kasem. Add alternative expressions when useful.', dialect: 'Your local Kasem dialect', tone: 'Warm and conversational', deadline: '2026-10-15', helpContact: 'Contact your assignment coordinator for help.' },
     { id: 'greetings', title: 'Greetings and hospitality', createdAt: '2026-09-23', instructions: 'Use welcoming expressions that sound natural in everyday conversation.', tone: 'Friendly and respectful' },
   ];
   const [paymentService] = useState<ContributorPaymentService>(() => {
     let profile: PayoutProfile = { bankName: 'Example Bank (sample)', accountName: 'Sample Contributor', accountNumber: '0000000000', branch: 'Sample branch', currency: 'GHS', verificationStatus: 'verified', updatedAt: '2026-09-23' };
-    let requests: PaymentRequest[] = [{ id: 'sample-paid', amountMinor: 15000, currency: 'GHS', description: 'Sample completed translation assignment', status: 'paid', createdAt: '2026-09-16', paymentReference: 'DEMO-001' }];
+    let requests: PaymentRequest[] = [{ id: 'sample-redeemed', amountMinor: 500, currency: 'GHS', description: '300 points for data', points: 300, status: 'fulfilled', kind: 'data', network: 'MTN', phoneNumber: '+233241234567', createdAt: '2026-09-16', paymentReference: 'DEMO-001' }];
+    let balance = 900;
+    const today = new Date().toISOString().slice(0, 10);
     return {
-      load: async () => ({ data: { profile, requests } }),
+      load: async () => ({ data: { profile, requests, rewards: { balance, lifetime: 900, pointsPerExpression: 10, dailyCap: 300, redemptionMinimum: 300, cedisPerRedemption: 5 }, streak: { current: 3, best: 5, lastDay: today, activeToday: true } } }),
       save: async details => { profile = { ...profile, ...details, verificationStatus: 'pending', updatedAt: new Date().toISOString() }; },
+      redeem: async choice => { balance -= choice.points; requests = [{ id: 'sample-request', amountMinor: Math.round(choice.points / 300 * 500), currency: 'GHS', description: `${choice.points} points for ${choice.kind}`, points: choice.points, status: 'submitted', kind: choice.kind, network: choice.network, phoneNumber: choice.phoneNumber, createdAt: new Date().toISOString() }, ...requests]; },
     };
   });
   const [assignmentItems, setAssignmentItems] = useState<Record<string, Item[]>>({ sample: sampleItems, greetings: sampleItems.slice(0, 2) });
@@ -40,8 +45,9 @@ export function ContributorPreview() {
       <section className="contributor-preview-controls"><p>Complete workspace preview · Bank details, payments, assignments, and translations are fictional. Use sample details only. Nothing is sent. Saved samples reset on refresh; unsaved recovery copies stay on this device.</p>
         <label className="contributor-check"><input type="checkbox" checked={offline} onChange={e => setOffline(e.target.checked)} />Simulate connection failure</label>
         <small>To try recovery, enable this option, edit an expression, then refresh. Reopen that expression and choose Restore draft.</small></section>
-      <AssignmentSelector works={works} active={activeWork} itemCount={items.length} completed={submittedCount(items)} pending={pending} onChange={setActiveWork} />
-
+      <ContributorActivityNotice items={items} accountId="preview-contributor" service={paymentService} onOpenTasks={() => setActiveTab('expressions')} onOpenHistory={() => { setRewardsInitialView('history'); setActiveTab('rewards'); }} />
+      <ContributorTabs active={activeTab} onChange={setActiveTab} pending={pending} completed={submittedCount(items)} total={items.length} paymentService={paymentService} />
+      {activeTab === 'rewards' ? <div role="tabpanel" id="contributor-panel-rewards" aria-labelledby="contributor-tab-rewards"><ContributorRewards initialView={rewardsInitialView} service={paymentService} onOpenTasks={() => setActiveTab('expressions')} /></div> : activeTab === 'streak' ? <div role="tabpanel" id="contributor-panel-streak" aria-labelledby="contributor-tab-streak"><ContributorStreak service={paymentService} onOpenTasks={() => setActiveTab('expressions')} /></div> : <div role="tabpanel" id="contributor-panel-expressions" aria-labelledby="contributor-tab-expressions"><AssignmentSelector works={works} active={activeWork} itemCount={items.length} completed={submittedCount(items)} pending={pending} onChange={setActiveWork} />
       <ContributionWorkspace guidance={works.find(work => work.id === activeWork)} key={activeWork} accountId="preview-contributor" items={items} work={activeWork} onPending={setPending} saveAnswer={async data => {
         await new Promise(resolve => window.setTimeout(resolve, 350));
         if (offline) throw new Error('Preview connection is offline. Turn off “Simulate connection failure” and retry.');
@@ -52,7 +58,7 @@ export function ContributorPreview() {
           ...(submissionId ? { submissionId, status: 'submitted', feedback: '', reviewedAt: null } : {}),
         } : item) }));
         return { data: { revision, submissionId } };
-      }} />
+      }} /></div>}
     </main>
   </div>;
 }

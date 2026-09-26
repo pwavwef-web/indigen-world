@@ -6,6 +6,16 @@ date identifies when the post was prepared; it does not prove the update is live
 
 ## Posts
 
+- [2026-09-26: Approved expression rewards](2026-09-26-approved-expression-rewards/README.md) — implementation and historical approval backfill prepared; deployment verification pending.
+
+- [2026-09-26: Contributor workspace updates](2026-09-26-contributor-workspace-updates/README.md) — implemented in repository; deployment and live verification pending.
+
+- [2026-09-26: Contributor redemption history](2026-09-26-contributor-redemption-history/README.md) — implemented in repository; deployment and live verification pending.
+
+- [2026-09-25: Contributor streaks](2026-09-25-contributor-streaks/README.md) — implemented in repository; deployment and live verification pending.
+
+- [2026-09-25: Expression points and redemption](2026-09-25-contributor-expression-points/README.md) — implemented in repository; deployment and live verification pending.
+
 - [2026-09-23: Contributor issue reporting](2026-09-23-contributor-issue-reporting/README.md) — draft article; deployed 2026-09-23, authenticated workflow verification pending.
 
 - [2026-09-23: Payment details now have a home under Account](2026-09-23-contributor-payment-profile/README.md) — draft article; deployed 2026-09-23, authenticated workflow verification pending.

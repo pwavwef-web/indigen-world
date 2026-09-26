@@ -16,6 +16,7 @@ export {
   getContributorPayments,
   saveContributorPayoutProfile,
   requestContributorPayment,
+  setContributorRewardSettings,
   listContributorPayments,
   verifyContributorPayoutProfile,
   decideContributorPaymentRequest,

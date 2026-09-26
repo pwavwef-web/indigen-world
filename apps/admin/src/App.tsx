@@ -12,6 +12,7 @@ import { Button } from '@indigen-world/web-ui';
 import { auth, firebaseConfig, usingEmulators } from './firebase';
 import { useAdminAuth } from './creators/data';
 import { TeamSiteIntakePage } from './team-sites/TeamSiteIntake';
+import { PointSettingsPreview } from './contributors/PointSettingsPreview';
 import { SCREENS, screenForPath, type ViewId } from './navigation';
 import { useRouter } from './router';
 import { AdminNotFoundPage } from './NotFoundPage';
@@ -176,6 +177,7 @@ function App() {
   }, []);
 
   if (window.location.pathname === '/team-site-intake') return <TeamSiteIntakePage />;
+  if (import.meta.env.DEV && window.location.pathname === '/contributors/points-preview') return <PointSettingsPreview />;
 
   const handleSignIn = async () => {
     setError(null);

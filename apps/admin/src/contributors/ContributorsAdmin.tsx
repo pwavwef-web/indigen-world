@@ -1,4 +1,6 @@
 import { ContributorIssuesAdmin } from './ContributorIssuesAdmin';
+import { PointSettingsPanel } from './PointSettingsPanel';
+import { RedemptionRequestsPanel } from './RedemptionRequestsPanel';
 import { useCallback, useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react';
 import {
   Alert,
@@ -20,6 +22,7 @@ import {
   fetchContributorAuditEntries,
   fetchContributorDirectory,
   fetchContributorPayments,
+  saveContributorRewards,
   fetchContributorSubmissions,
   verifyContributorPaymentProfile,
   decideContributorPayment,
@@ -446,21 +449,22 @@ function PaymentsView({ payments, contributors, loading, onReload, onNotice }: {
     } catch (reason) { onNotice(reason instanceof Error ? reason.message : 'The bank profile could not be updated.'); }
     finally { setBusy(''); }
   };
-  const decide = async (request: ContributorPaymentRequest, action: 'approve' | 'reject' | 'paid') => {
+  const decide = async (request: ContributorPaymentRequest, action: 'approve' | 'reject' | 'paid' | 'fulfill') => {
     const note = action === 'reject' ? window.prompt('Reason for rejecting this request') ?? ''
-      : window.prompt(action === 'paid' ? 'Optional payment note' : 'Optional approval note') ?? '';
+      : window.prompt(action === 'paid' || action === 'fulfill' ? 'Optional delivery note' : 'Optional approval note') ?? '';
     if (action === 'reject' && !note.trim()) return;
-    const paymentReference = action === 'paid' ? window.prompt('Enter the bank payment reference') ?? '' : '';
-    if (action === 'paid' && !paymentReference.trim()) return;
+    const paymentReference = action === 'paid' || action === 'fulfill' ? window.prompt(action === 'fulfill' ? 'Enter the airtime or data delivery reference' : 'Enter the bank payment reference') ?? '' : '';
+    if ((action === 'paid' || action === 'fulfill') && !paymentReference.trim()) return;
     setBusy('request:' + request.id);
     try {
       await decideContributorPayment(request.id, action, note, paymentReference);
-      onNotice(action === 'paid' ? 'Payment marked as paid.' : `Payment request ${action}d.`); await onReload();
+      onNotice(action === 'fulfill' ? 'Redemption marked as delivered.' : action === 'paid' ? 'Payment marked as paid.' : `Request ${action}d.`); await onReload();
     } catch (reason) { onNotice(reason instanceof Error ? reason.message : 'The payment request could not be updated.'); }
     finally { setBusy(''); }
   };
   return <div className="contributor-payments-admin">
-    <Panel><PageHeader kicker="Private payout information" title="Bank profiles" body="Verify that the account holder and bank details match before enabling payment requests." />
+    <PointSettingsPanel settings={payments.rewards} onSave={async draft => { await saveContributorRewards(draft); await onReload(); }} />
+    <Panel><PageHeader kicker="Private payout information" title="Bank profiles" body="Manage bank details for earlier payment workflows. Airtime and data redemptions use a Ghana mobile number instead." />
       {loading ? <p><Spinner /> Loading payment profiles…</p> : payments.profiles.length ? <div className="admin-payment-list">{payments.profiles.map(profile => <article key={profile.id}>
         <div><strong>{contributorName(profile.contributorId)}</strong><small>{profile.bankName} · {profile.branch || 'Branch not supplied'}</small><p>{profile.accountName}<br /><code>{profile.accountNumber}</code></p></div>
         <div><StatusPill tone={toneForStatus(profile.verificationStatus)}>{profile.verificationStatus}</StatusPill><small>Updated {dateLabel(profile.updatedAt)}</small>
@@ -468,15 +472,7 @@ function PaymentsView({ payments, contributors, loading, onReload, onNotice }: {
           <button type="button" className="danger" disabled={busy === 'profile:' + profile.id} onClick={() => void verify(profile, false)}>Reject</button></div>
       </article>)}</div> : <p className="muted">No contributor has added bank details yet.</p>}
     </Panel>
-    <Panel><PageHeader kicker="Contributor requests" title="Payment requests" body="Approve valid requests, reject requests with a reason, and record the bank reference after payment." />
-      {loading ? <p><Spinner /> Loading requests…</p> : payments.requests.length ? <div className="admin-payment-list">{payments.requests.map(request => <article key={request.id}>
-        <div><strong>{contributorName(request.contributorId)} · {new Intl.NumberFormat(undefined, { style: 'currency', currency: request.currency }).format(request.amountMinor / 100)}</strong><small>{dateLabel(request.createdAt)} · {request.description}</small><p>{request.bankSnapshot.accountName}<br />{request.bankSnapshot.bankName} · <code>{request.bankSnapshot.accountNumber}</code></p>{request.adminNote ? <p>{request.adminNote}</p> : null}{request.paymentReference ? <p>Reference: <code>{request.paymentReference}</code></p> : null}</div>
-        <div><StatusPill tone={toneForStatus(request.status)}>{request.status}</StatusPill>
-          {request.status === 'submitted' ? <><button type="button" className="button--primary" disabled={busy === 'request:' + request.id} onClick={() => void decide(request, 'approve')}>Approve</button><button type="button" className="danger" disabled={busy === 'request:' + request.id} onClick={() => void decide(request, 'reject')}>Reject</button></> : null}
-          {request.status === 'approved' ? <button type="button" className="button--primary" disabled={busy === 'request:' + request.id} onClick={() => void decide(request, 'paid')}>Mark paid</button> : null}
-        </div>
-      </article>)}</div> : <p className="muted">No payment requests yet.</p>}
-    </Panel>
+    <RedemptionRequestsPanel requests={payments.requests} nameFor={contributorName} loading={loading} busy={busy.startsWith('request:') ? busy.slice(8) : ''} onAction={(request, action) => void decide(request, action)} />
   </div>;
 }
 
