@@ -1,6 +1,6 @@
 # A clearer final step for contributor submissions
 
-Status: **Implemented and checked locally. Production deployment pending. Blogger draft, not published.**
+Status: **Deployed September 26, 2026. Live workspace and updated guide verified in Edge. Blogger draft, not published.**
 
 | Field | Value |
 |---|---|
@@ -20,7 +20,10 @@ Status: **Implemented and checked locally. Production deployment pending. Blogge
 - Existing recovery, failed-save, consent, review and revision safeguards are retained. Regression coverage verifies that the reachable submission action cannot send without explicit sharing permission.
 - `npm run check:tribestudio` passed: TypeScript, studio validation, all 47 workflow/PWA tests and the production build.
 - Edge checks covered the desktop layout and 375px/320px mobile previews. A missing permission brought the visible checkbox into view. A simulated mobile submission required explicit consent and final confirmation, advanced only after success, and left AI training disallowed. Empty-translation guidance also brought the textarea into view.
-- Production deployment will be recorded here after release. Browser workflow checks used sample data; no contributor submission was created by these checks.
+- PR #27 merged as `64bf027d17f6d212ae8d27125823ebdd4794062d`. Firebase Hosting reported release complete for `tribestudio` from that clean, verified `origin/main` revision. Predeploy checks passed.
+- The production `/contributor` page returned HTTP 200 with the matching `index-B0bJnoLD.js` entry. Edge opened the authenticated owner workspace and displayed the new Permission to submit / Submit for review instructions in the live guide. A separate asset checksum request timed out; the complete submission interaction was verified in the local preview, not by creating a production submission.
+- GitHub Actions could not start because the GitHub account is locked due to a billing issue. Local and predeploy successes are not remote CI passes.
+- No production contributor submission or permission choice was created by these checks. A physical phone and its software keyboard have not been tested.
 
 ## Publishing handoff
 

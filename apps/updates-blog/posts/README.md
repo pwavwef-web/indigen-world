@@ -6,7 +6,7 @@ date identifies when the post was prepared; it does not prove the update is live
 
 ## Posts
 
-- [2026-09-26: A clearer final step for contributor submissions](2026-09-26-visible-contributor-submit/README.md) — implementation prepared; production deployment pending; Blogger draft.
+- [2026-09-26: A clearer final step for contributor submissions](2026-09-26-visible-contributor-submit/README.md) — deployed September 26; local mobile workflow and live guide verified in Edge; Blogger draft.
 
 - [2026-09-26: A familiar look for Indigen World emails](2026-09-26-branded-emails/README.md) — application emails deployed; Firebase native template changes blocked; inbox delivery unverified; Blogger draft.
 
