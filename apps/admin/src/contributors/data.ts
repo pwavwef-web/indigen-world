@@ -378,3 +378,5 @@ export async function fetchContributorAuditEntries(): Promise<ContributorAuditEn
     }];
   });
 }
+
+export async function prepareDailyTasks(input: { contributorId: string; day: string; title: string; instructions: string; expressions: string[]; initialWork?: string }): Promise<AssignmentResult> { return (await httpsCallable<typeof input, AssignmentResult>(functions, 'prepareContributorDailyTasks')(input)).data; }

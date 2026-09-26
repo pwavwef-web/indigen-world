@@ -1,5 +1,5 @@
-import { useEffect } from 'react';
-import { Card, Icon, Notice, PageHeader } from '../components';
+import { useEffect, useState } from 'react';
+import { Icon, Notice, PageHeader } from '../components';
 import { GUIDE } from '../guide';
 import { ContributorIssues } from '../ContributorIssues';
 import { PortalLink, useWorkspace } from '../workspace';
@@ -11,13 +11,16 @@ import { PortalLink, useWorkspace } from '../workspace';
  */
 export function GuidePage({ section }: { section: string }) {
   const data = useWorkspace();
-  const reportWork = data.works[0]?.id;
+  const [query,setQuery]=useState('');
+  const needle=query.trim().toLocaleLowerCase();
+  const visible=GUIDE.filter(entry=>[entry.title,entry.summary,...entry.body,...(entry.points??[])].join(' ').toLocaleLowerCase().includes(needle));
 
   useEffect(() => {
     if (!section) return;
     const target = document.getElementById(`guide-${section}`);
     if (!target) return;
     target.scrollIntoView({ block: 'start', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+    const details=target.closest('details'); if(details)details.open=true;
     target.querySelector<HTMLElement>('h2')?.focus({ preventScroll: true });
   }, [section]);
 
@@ -25,15 +28,18 @@ export function GuidePage({ section }: { section: string }) {
     <div className="cw-page">
       <PageHeader
         kicker="Platform guide"
-        title="Platform guide"
+        title="Help & guide"
         id="page-title"
-        description="How contributing works: assignments, what makes a good Kasem contribution, review, payment details and privacy. Each section says where its policy comes from."
+        description="Find an answer or contact the team."
       />
+      <div className="cw-help-actions"><ContributorIssues preview={data.preview} accountId={data.uid} showHistory /></div>
+      <label className="cw-search"><Icon name="search" /><input type="search" aria-label="Search help" placeholder="Search help, review, saving or rewards" value={query} onChange={e=>setQuery(e.target.value)} /></label>
+      {!visible.length && <p>No matching answers. Try another word or report a problem above.</p>}
       <div className="cw-guide">
         <nav className="cw-guide__toc" aria-label="Guide sections">
           <p className="cw-kicker">On this page</p>
           <ol>
-            {GUIDE.map((entry) => (
+            {visible.map((entry) => (
               <li key={entry.id}>
                 <PortalLink to={data.paths.section('guide', { section: entry.id })} className={entry.id === section ? 'is-active' : undefined}>{entry.title}</PortalLink>
               </li>
@@ -41,8 +47,8 @@ export function GuidePage({ section }: { section: string }) {
           </ol>
         </nav>
         <div className="cw-guide__body">
-          {GUIDE.map((entry) => (
-            <Card key={entry.id} as="article" className="cw-guide__section" labelledBy={`guide-${entry.id}-title`}>
+          {visible.map((entry) => (
+            <details key={entry.id} className="cw-card cw-guide__section" open={Boolean(needle) || entry.id === section}><summary>{entry.title}</summary>
               <div id={`guide-${entry.id}`} className="cw-guide__anchor">
                 <h2 id={`guide-${entry.id}-title`} tabIndex={-1}>{entry.title}</h2>
                 <p className="cw-guide__summary">{entry.summary}</p>
@@ -53,7 +59,7 @@ export function GuidePage({ section }: { section: string }) {
                 ))}
                 {entry.id === 'report-problem' ? (
                   <div className="cw-inline-actions">
-                    {reportWork ? <ContributorIssues work={reportWork} preview={data.preview} /> : <p className="cw-muted">Reporting opens once you have an assignment. Until then, contact the team member who invited you.</p>}
+                    <p>Use Report a problem or My reports above. You can ask about your account before receiving tasks.</p>
                   </div>
                 ) : null}
                 {entry.id === 'payments' ? (
@@ -64,7 +70,7 @@ export function GuidePage({ section }: { section: string }) {
                 ) : null}
                 <p className="cw-guide__source">Source: {entry.source}</p>
               </div>
-            </Card>
+            </details>
           ))}
         </div>
       </div>

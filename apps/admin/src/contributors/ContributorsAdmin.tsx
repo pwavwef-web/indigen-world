@@ -18,6 +18,7 @@ import {
 import { decideSubmission, useAdminAuth } from '../creators/data';
 import {
   assignContributorWork,
+  prepareDailyTasks,
   cancelContributorInvite,
   fetchContributorAuditEntries,
   fetchContributorDirectory,
@@ -256,6 +257,8 @@ function AssignmentModal({ contributor, onClose, onComplete }: {
   const [email, setEmail] = useState(contributor.email);
   const [phoneNumber, setPhoneNumber] = useState(contributor.phone);
   const [requestId] = useState(() => crypto.randomUUID());
+  const [daily, setDaily] = useState(true);
+  const [day, setDay] = useState(new Date().toISOString().slice(0,10));
   const [title, setTitle] = useState('Everyday expressions');
   const [deadline, setDeadline] = useState('');
   const [instructions, setInstructions] = useState('Translate each English expression naturally into Kasem. Add alternatives when more than one expression is common.');
@@ -266,26 +269,31 @@ function AssignmentModal({ contributor, onClose, onComplete }: {
   const submit = async (event: FormEvent) => {
     event.preventDefault(); setBusy(true); setError('');
     try {
+      if (daily && (expressions.length !== 30 || new Set(expressions.map(x=>x.toLocaleLowerCase())).size !== 30 || expressions.some(x=>x.length>180))) throw new Error('Provide exactly 30 different expressions, each no longer than 180 characters.');
       const input = { contributorId: contributor.id, displayName: contributor.displayName, email, phoneNumber, requestId,
-        title, deadline, instructions, expressions };
-      const result = inviting
+        title, deadline, instructions, expressions: daily && inviting ? expressions.slice(0,15) : expressions };
+      let result = inviting
         ? await inviteContributorWithExpressions(input)
-        : await assignContributorWork({ ...input, contributorId: contributor.id });
+        : daily ? await prepareDailyTasks({contributorId:contributor.id,day,title,instructions,expressions}) : await assignContributorWork({ ...input, contributorId: contributor.id });
+      if(daily && inviting) { const prepared=await prepareDailyTasks({contributorId:result.contributorId,day:new Date().toISOString().slice(0,10),title,instructions,expressions,initialWork:result.work}); result={...result,...prepared}; }
       onComplete(result);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'The assignment could not be created.');
     } finally { setBusy(false); }
   };
   return (
-    <ModalShell title={inviting ? `Invite ${contributor.displayName}` : `Assign expressions to ${contributor.displayName}`} description={inviting ? 'Sends an SMS with the portal link and sign-in instructions, creates the first assignment, and enables editing and submission.' : 'Adds a new assignment without changing the contributor’s credentials.'} onClose={onClose} footer={<><button type="button" onClick={onClose} disabled={busy}>Cancel</button><button type="submit" form="contributor-assignment-form" className="button--primary" disabled={busy || expressions.length === 0 || expressions.length > 100 || (inviting && (!email || !phoneNumber.trim()))}>{busy ? 'Creating…' : inviting ? 'Invite by SMS' : 'Assign expressions'}</button></>}>
+    <ModalShell title={inviting ? `Invite ${contributor.displayName}` : `Assign expressions to ${contributor.displayName}`} description={inviting ? 'Sends an SMS with the portal link and sign-in instructions, creates the first assignment, and enables editing and submission.' : 'Adds a new assignment without changing the contributor’s credentials.'} onClose={onClose} footer={<><button type="button" onClick={onClose} disabled={busy}>Cancel</button><button type="submit" form="contributor-assignment-form" className="button--primary" disabled={busy || (daily ? expressions.length !== 30 : expressions.length === 0 || expressions.length > 100) || (inviting && (!email || !phoneNumber.trim()))}>{busy ? 'Creating…' : inviting ? 'Invite by SMS' : 'Assign expressions'}</button></>}>
       {error ? <Alert>{error}</Alert> : null}
       <form id="contributor-assignment-form" className="contributor-form" onSubmit={(event) => void submit(event)}>
         {inviting ? <label>Invitation email<input type="email" required value={email} onChange={(event) => setEmail(event.target.value)} /></label> : null}
         {inviting ? <><label>SMS phone number<input type="tel" required maxLength={80} value={phoneNumber} onChange={(event) => setPhoneNumber(event.target.value)} placeholder="0241234567 or +233241234567" /></label><p className="muted">New accounts use the phone number including +233 as a temporary password, then choose a new password. Existing accounts keep their current password. The invitation goes by SMS.</p></> : null}
         <div className="contributor-form-grid"><label>Assignment title<input required maxLength={120} value={title} onChange={(event) => setTitle(event.target.value)} /></label><label>Deadline <span className="muted">(optional)</span><input type="date" value={deadline} onChange={(event) => setDeadline(event.target.value)} /></label></div>
         <label>Instructions<textarea rows={4} maxLength={3000} value={instructions} onChange={(event) => setInstructions(event.target.value)} /></label>
+        <label><input type="checkbox" checked={daily} onChange={event=>setDaily(event.target.checked)} />Daily batch: 15 first, then 15 on request</label>
+        {daily && !inviting && <label>Task date (UTC)<input type="date" required min={new Date().toISOString().slice(0,10)} value={day} onChange={event=>setDay(event.target.value)} /></label>}
+        {daily && <p>Prepare exactly 30 unique tasks. The first 15 are released on the chosen day. The contributor can unlock the remaining 15 once that UTC day after submitting all first 15. Invitations start today.</p>}
         <label>Expressions — one per line<textarea className="contributor-expression-input" required rows={12} maxLength={18100} value={raw} onChange={(event) => setRaw(event.target.value)} placeholder={'How are you?\nI will see you tomorrow.\nThank you for your help.'} /></label>
-        <p className={expressions.length > 100 ? 'contributor-count contributor-count--error' : 'contributor-count'}>{expressions.length} unique expression{expressions.length === 1 ? '' : 's'} · maximum 100</p>
+        <p className={expressions.length > 100 ? 'contributor-count contributor-count--error' : 'contributor-count'}>{expressions.length} unique expression{expressions.length === 1 ? '' : 's'} · {daily ? 'exactly 30 for a daily batch' : 'maximum 100'}</p>
       </form>
     </ModalShell>
   );

@@ -21,7 +21,7 @@ const DIALECTS = ['Navrongo', 'Paga', 'Chiana', 'Other', 'Not sure'];
  */
 export function AccountPage({ tab }: { tab: AccountTab }) {
   const data = useWorkspace();
-  const { payments } = useShared();
+  const { payments, navigateTo } = useShared();
   const attention = payments.value && (['needs_action', 'rejected'].includes(payments.value.bank?.status ?? '')
     || ['needs_action', 'rejected'].includes(payments.value.momo?.ownershipStatus ?? ''));
   return (
@@ -30,8 +30,9 @@ export function AccountPage({ tab }: { tab: AccountTab }) {
         kicker="Account & settings"
         title="Account & settings"
         id="page-title"
-        description="Your profile, how you sign in, what reaches you and how you appear to other contributors, and where payments are sent."
+        description="Manage your profile, security, notifications and payment details."
       />
+      <label className="cw-account-select">Account section<select value={tab} onChange={event=>navigateTo(data.paths.account(event.target.value as AccountTab))}>{TABS.map(entry=><option value={entry.id} key={entry.id}>{entry.label}</option>)}</select></label>
       <div className="cw-account">
         <nav className="cw-account__tabs" aria-label="Account sections">
           {TABS.map((entry) => (
@@ -41,7 +42,7 @@ export function AccountPage({ tab }: { tab: AccountTab }) {
           ))}
         </nav>
         <div className="cw-account__panel">
-          {tab === 'profile' ? <ProfilePanel /> : tab === 'security' ? <SecurityPanel /> : tab === 'notifications' ? <NotificationsPanel /> : <PaymentsPanel />}
+          {tab === 'profile' ? <ProfilePanel /> : tab === 'security' ? <SecurityPanel /> : tab === 'notifications' ? <NotificationsPanel /> : <><div className="cw-note"><strong>Bank and MoMo payments</strong><p>These details are for separately arranged payments. Airtime and data point rewards use the recipient number entered in Points → Redeem; they do not require a bank statement.</p></div><PaymentsPanel /></>}
         </div>
       </div>
     </div>

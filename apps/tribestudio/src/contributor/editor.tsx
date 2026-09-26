@@ -1,3 +1,5 @@
+import { useListMemory, useListScroll } from './listMemory';
+import { ReviewTiming } from './ReviewTiming';
 import { useEffect, useRef, useState, type MouseEvent, type ReactNode } from 'react';
 import { httpsCallable } from 'firebase/functions';
 import { functions } from '../firebase';
@@ -98,11 +100,13 @@ export function ContributionWorkspace({ items, work, onPending, accountId, saveA
       try { window.localStorage.setItem(positionKey, selected); } catch { /* Position memory is optional. */ }
     }
   }, [positionKey, selected]);
-  const [filter, setFilter] = useState<(typeof FILTERS)[number]>('All');
-  const [query, setQuery] = useState('');
+  const [filter, setFilter] = useListMemory<(typeof FILTERS)[number]>(`${positionKey}:filter`, 'All', FILTERS);
+  const [query, setQuery] = useListMemory<string>(`${positionKey}:query`, '');
   const [pending, setPending] = useState(false);
   const [mobileEditor, setMobileEditor] = useState(Boolean(initialItem));
   const [confirmation, setConfirmation] = useState('');
+  useListScroll(`${positionKey}:scroll:${filter}:${query}`, items.length>0, !mobileEditor);
+  useListScroll(`${positionKey}:inner-scroll:${filter}:${query}`, items.length>0, !mobileEditor, '.cw-list__items');
   useEffect(() => {
     onEditingChange?.(mobileEditor);
     return () => onEditingChange?.(false);
@@ -377,6 +381,7 @@ export function ExpressionEditor({ item, itemNumber = 1, itemTotal = 1, hasNextI
         <span className={`cw-chip cw-chip--${STATUS_META[detailed].tone} status-badge state-${statusSlug(state)}`}>{STATUS_META[detailed].label}</span>
       </header>
 
+      <ReviewTiming item={item} />
       {item.feedback ? (
         <section className="cw-feedback" aria-label="Reviewer feedback">
           <strong>Reviewer feedback</strong>
@@ -457,6 +462,7 @@ export function ExpressionEditor({ item, itemNumber = 1, itemTotal = 1, hasNextI
         </div>
       ) : null}
 
+      <details className="cw-optional" open={Boolean(item.alternatives.length || item.context)}><summary>Alternative translations and usage note (optional)</summary>
       <section className="alternative-translations">
         <div className="cw-field-head">
           <span className="cw-field-label">Alternative translations</span>
@@ -490,6 +496,7 @@ export function ExpressionEditor({ item, itemNumber = 1, itemTotal = 1, hasNextI
         <small id="context-help">Reviewers read this first. For an idiom, give the literal meaning and what it means in use. <GuideHint section="alternatives-context" extras={extras}>Context that helps reviewers</GuideHint></small>
       </label>
 
+      </details>
       {!locked ? (
         <>
           <details className="permission-section">

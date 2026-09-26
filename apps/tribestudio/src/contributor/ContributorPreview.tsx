@@ -17,6 +17,8 @@ import './contributor.css';
  * bracketed placeholder rather than invented.
  */
 
+const DAILY_FIRST = ["Good morning.","How are you today?","Please come inside.","The children are at school.","I am going to the farm.","Please bring some water.","We will meet this evening.","Where is your mother?","I have finished my work.","The road is busy.","Let us eat together.","Please speak slowly.","I do not understand.","See you next week.","What is your name?"];
+const DAILY_EXTRA = ["Please open the door.","Where is the market?","I will return tomorrow.","The water is cold.","We are going home.","Please wait for me.","What time is it?","I need some help.","The food is ready.","Let us sit here.","My family is well.","It may rain today.","Thank you for coming.","Where do you live?","Have a safe journey."];
 const PLACEHOLDER = '[Sample Kasem translation]';
 const iso = (hoursAgo: number) => new Date(Date.now() - hoursAgo * 3_600_000).toISOString();
 const inDays = (days: number) => new Date(Date.now() + days * 86_400_000).toISOString().slice(0, 10);
@@ -117,12 +119,17 @@ function previewPaths(): PortalPaths {
 }
 
 export function ContributorPreview() {
-  const [items, setItems] = useState<Record<string, Item[]>>(ITEMS);
+  const [items, setItems] = useState<Record<string, Item[]>>(()=>({...ITEMS,'daily-preview-first':DAILY_FIRST.map((expression,index)=>({id:'first-'+index,expression,translation:index<14?PLACEHOLDER:'',alternatives:[],revision:index<14?1:0,status:index<14?'submitted':'draft',...(index<14?{submissionId:'daily-sent-'+index,submittedAt:new Date().toISOString()}:{}),updatedAt:new Date().toISOString()}))}));
+  const [dailyUnlocked, setDailyUnlocked] = useState(false);
   const payments = useRef<PaymentsView>(initialPayments());
   const self = useRef<SelfView>(SELF);
   const pendingCode = useRef('');
 
   const services = useMemo<WorkspaceServices>(() => ({
+    unlockDailyPreview() {
+      setDailyUnlocked(true);
+      setItems(current=>current['daily-preview-extra']?current:{...current,'daily-preview-extra':DAILY_EXTRA.map((expression,index)=>({id:'extra-'+index,expression,translation:'',alternatives:[],revision:0,status:'draft',updatedAt:new Date().toISOString()}))});
+    },
     async saveAnswer(data) {
       await wait(300);
       const revision = Number(data.revision) + 1;
@@ -132,7 +139,7 @@ export function ContributorPreview() {
         [String(data.work)]: current[String(data.work)].map((item) => item.id === data.item ? {
           ...item, unsure: data.skip === true, translation: String(data.translation), alternatives: data.alternatives as string[],
           context: typeof data.context === 'string' ? data.context : item.context, revision, updatedAt: new Date().toISOString(),
-          ...(submissionId ? { submissionId, status: 'submitted', feedback: '', reviewedAt: null } : {}),
+          ...(submissionId ? { submissionId, submittedAt: new Date().toISOString(), status: 'submitted', feedback: '', reviewedAt: null } : {}),
         } : item),
       }));
       return { data: { revision, submissionId } };
@@ -225,7 +232,7 @@ export function ContributorPreview() {
     email: 'contributor@example.com',
     displayName: 'Sample Contributor',
     account: { status: 'active', requiresPasswordChange: false, defaultWork: 'everyday', activatedAt: iso(24 * 20), phoneMasked: '•••• 4567' },
-    works: WORKS,
+    works: [{id:'daily-preview-first',title:'Daily tasks · First 15',createdAt:iso(0),instructions:'Sample daily batch. Fourteen are submitted; complete the last task to unlock the extra request.'},...(dailyUnlocked ? [{id:'daily-preview-extra',title:'Daily tasks · Extra 15',createdAt:new Date().toISOString(),instructions:'Preview tasks: translate naturally into Kasem.'},...WORKS] : WORKS)],
     worksState: 'ready',
     items,
     itemsState: 'ready',
@@ -245,7 +252,7 @@ export function ContributorPreview() {
     services,
     paths: previewPaths(),
     preview: true,
-  }), [items, services]);
+  }), [items, services, dailyUnlocked]);
 
   return (
     <WorkspaceContext.Provider value={value}>

@@ -2343,3 +2343,51 @@ button.cw-activity__row:hover { background: #f5f7fb !important; }
     transition: none !important;
   }
 }
+
+/* Focused contributor navigation and task flow. */
+.cw-notifications { align-self:end; margin:0 0 16px auto; max-width:540px; border:1px solid #d8deea; border-radius:12px; background:white; padding:10px 16px; }
+.cw-notifications summary,.cw-attention summary,.cw-onboarding summary,.cw-assignment-details>summary,.cw-optional>summary,.cw-guide__section>summary { cursor:pointer; font-weight:650; padding:10px 0; }
+.cw-notifications .cw-stack { padding-top:12px; }
+.cw-next-task,.cw-onboarding,.cw-note { background:white; border:1px solid #d8deea; border-radius:16px; padding:20px; }
+.cw-next-task { border-left:4px solid #2457d6; }
+.cw-next-task p { margin:8px 0 16px; }
+.cw-attention { padding:0 16px; }
+.cw-attention .cw-notice { margin-bottom:12px; }
+.cw-account-select { display:none; }
+.cw-help-actions { display:flex; gap:12px; flex-wrap:wrap; }
+.cw-optional { margin:16px 0; }
+.cw-optional[open]>.alternative-translations { margin-top:12px; }
+.cw-optional .cw-context-field { display:block; margin-top:16px; }
+.cw-guide__section>summary { font-size:1.1rem; }
+.cw-guide__section .cw-guide__anchor { padding-top:16px; }
+@media(max-width:760px) {
+ .cw-page-head .cw-kicker { display:none; }
+ .cw-page-head__description { font-size:14px; line-height:1.5; margin-top:8px; }
+ .cw-page-head { margin-bottom:12px; }
+ .cw-notifications { margin-bottom:12px; width:100%; max-width:none; }
+ .cw-page .cw-toolbar .cw-filters { flex-wrap:wrap; overflow:visible; }
+ .cw-filter { padding:8px 12px; font-size:13px; }
+ .cw-account-select { display:grid; gap:8px; }
+ .cw-account__tabs { display:none; }
+ .cw-task-focused>.cw-page-head { margin-bottom:0; }
+ .cw-task-focused>.cw-page-head .cw-page-head__description,.cw-task-focused>.cw-page-head .cw-page-head__actions { display:none; }
+ .cw-task-focused .cw-assignment-details:not([open]) { margin:0; }
+ .cw-editor__head { scroll-margin-top:80px; }
+ .cw-guide__toc { display:none; }
+ .cw-next-task { padding:16px; }
+}
+
+.cw.is-editing .cw-notifications { display:none; }
+.cw-content>.cw-page>.cw-current { grid-area:auto; }
+
+.cw-home-streak { display:grid; gap:6px; padding:12px 16px; border:1px solid #e7d9b3; border-radius:14px; background:#fff9ec; color:#694214; text-decoration:none; max-width:290px; }
+.cw-home-streak strong { font-size:15px; }
+.cw-home-streak small { font-size:13px; line-height:1.45; }
+.cw-home-streak:hover { border-color:#aa7821; background:#fff3d8; }
+.cw-home-streak:focus-visible { outline:3px solid #2457d6; outline-offset:3px; }
+@media(max-width:760px) { .cw-home-streak { max-width:100%; width:100%; padding:10px 14px; } }
+
+.cw-review-timing { font-size:13px; color:var(--cw-muted,#52627c); line-height:1.5; margin:10px 0; }
+.cw-review-timing p { margin:4px 0; }
+.cw-daily-tasks h2 { font-size:1.15rem; margin:0 0 8px; }
+.cw-daily-tasks p { margin:8px 0 14px; }

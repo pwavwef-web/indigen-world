@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRoute } from '../../router';
 import { Chip, EmptyNote, Icon, Notice, PageHeader, SegmentBar, Skeleton, useNow } from '../components';
 import { WORK_STATE_META, dueInfo, formatDate, metricsFor, pluralise, workState } from '../model';
@@ -18,6 +18,8 @@ export function AssignmentPage({ workId, itemId }: { workId: string; itemId?: st
   const { navigate } = useRoute();
   const now = useNow();
   const [pending, setPending] = useState(false);
+  const [editorOpen, setEditorOpen] = useState(Boolean(itemId));
+  useEffect(() => { if(editorOpen && window.matchMedia("(max-width: 760px)").matches) requestAnimationFrame(()=>document.querySelector(".cw-editor__head")?.scrollIntoView({block:"start"})); }, [editorOpen]);
   const work = data.works.find((entry) => entry.id === workId);
   const items = useMemo(() => data.items[workId] ?? [], [data.items, workId]);
   const metrics = metricsFor(items);
@@ -30,7 +32,7 @@ export function AssignmentPage({ workId, itemId }: { workId: string; itemId?: st
 
   const breadcrumb = (
     <>
-      <PortalLink to={data.paths.section('assignments')}>Assignments</PortalLink>
+      <PortalLink to={data.paths.section('assignments')}>Tasks</PortalLink>
       <span aria-hidden="true">/</span>
       <span aria-current="page">{work?.title ?? 'Assignment'}</span>
     </>
@@ -63,7 +65,7 @@ export function AssignmentPage({ workId, itemId }: { workId: string; itemId?: st
   const due = dueInfo(work.deadline, state === 'complete' || state === 'awaiting_review', new Date(now));
   const open = metrics.notStarted + metrics.drafts + metrics.unsure;
   return (
-    <div className="cw-page cw-page--wide">
+    <div className={`cw-page cw-page--wide ${editorOpen ? "cw-task-focused" : ""}`}>
       <PageHeader
         breadcrumb={breadcrumb}
         kicker="Assignment"
@@ -79,7 +81,7 @@ export function AssignmentPage({ workId, itemId }: { workId: string; itemId?: st
         actions={<Chip tone={WORK_STATE_META[state].tone}>{WORK_STATE_META[state].label}</Chip>}
       />
 
-      <div className="cw-assignment-overview">
+      <details className="cw-assignment-details" open={!editorOpen}><summary>Task instructions and progress</summary><div className="cw-assignment-overview">
         <details className="cw-instructions" open={instructionsOpen} onToggle={(event) => setInstructionsChoice((event.currentTarget as HTMLDetailsElement).open)}>
           <summary><Icon name="doc" /><span>Instructions and guidance</span><Icon name="arrow" className="cw-instructions__chevron" /></summary>
           <div className="cw-instructions__body">
@@ -99,13 +101,14 @@ export function AssignmentPage({ workId, itemId }: { workId: string; itemId?: st
         </details>
         <div className="cw-card cw-progress-card">
           <div className="cw-progress-card__head">
-            <strong>{metrics.awaiting + metrics.approved} of {items.length} sent and not returned</strong>
+            <strong>{metrics.approved} approved · {metrics.awaiting} awaiting review · {metrics.returned} need revision</strong>
             <span className="cw-muted">{open ? `${open} still to do` : 'Nothing left to translate'}</span>
           </div>
           <SegmentBar metrics={metrics} label={`Progress on ${work.title}`} />
         </div>
       </div>
 
+      </details>
       {!open && items.length ? (
         <Notice tone={metrics.returned ? 'warning' : 'success'} title={metrics.returned ? 'Some expressions came back for revision' : 'Every expression in this assignment is submitted'} role="status">
           <p>{metrics.approved} approved · {metrics.awaiting} awaiting review{metrics.returned ? ` · ${metrics.returned} returned` : ''}. {metrics.awaiting ? 'Decisions will appear in Activity and on each expression.' : ''}</p>
@@ -120,7 +123,7 @@ export function AssignmentPage({ workId, itemId }: { workId: string; itemId?: st
         saveAnswer={data.services.saveAnswer}
         onPending={setPending}
         initialItem={itemId}
-        onEditingChange={setEditing}
+        onEditingChange={(value) => { setEditing(value); setEditorOpen(value); }}
         onSelectItem={(id) => {
           try { window.history.replaceState(window.history.state, '', data.paths.work(work.id, id)); } catch { /* The address is a convenience. */ }
         }}

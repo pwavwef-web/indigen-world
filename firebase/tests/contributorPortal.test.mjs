@@ -471,3 +471,13 @@ test('expression streak advances once per UTC day and resets after a missed day'
   assert.equal(h.records.get('contributorAccounts/alice').streakCount, 1);
   assert.equal(h.records.get('contributorAccounts/alice').streakBest, 5);
 });
+ test('active contributors can report account problems before assignment, without bypassing task ownership', async () => {
+ const api=await harness();
+ const req={auth:{uid:'alice',token:{}},data:{requestId:'account-help',category:'account',description:'I need help accessing my account'}};
+ const result=await api.reportContributorIssue(req);
+ assert.equal(api.records.get('contributorIssues/'+result.id).work,'');
+ await assert.rejects(api.reportContributorIssue({...req,data:{...req.data,category:'translation'}}),/Choose an assignment/);
+ await assert.rejects(api.reportContributorIssue({...req,data:{...req.data,item:'other-item'}}),/Choose an assignment/);
+ api.records.set('contributorAccounts/alice',{status:'inactive'});
+ await assert.rejects(api.reportContributorIssue(req),/active contributor/);
+ });

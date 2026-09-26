@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { httpsCallable } from 'firebase/functions';
 import { functions } from '../firebase';
 
@@ -19,11 +19,11 @@ const CATEGORIES: { id: string; label: string }[] = [
  * reports with the team's replies. Only the assignment and expression ids and
  * what the contributor writes are sent (see reportContributorIssue).
  */
-export function ContributorIssues({ work, item, preview = false, disabled = false }: { work: string; item?: string; preview?: boolean; disabled?: boolean }) {
+export function ContributorIssues({ work = '', item, preview = false, disabled = false, accountId = '', showHistory = false }: { work?: string; item?: string; preview?: boolean; disabled?: boolean; accountId?: string; showHistory?: boolean }) {
   const [mode, setMode] = useState<'report' | 'history'>('report');
   const dialog = useRef<HTMLDialogElement>(null);
   const [issues, setIssues] = useState<Issue[]>([]);
-  const [category, setCategory] = useState('translation');
+  const [category, setCategory] = useState(work ? 'translation' : 'account');
   const [description, setDescription] = useState('');
   const [busy, setBusy] = useState(false), [error, setError] = useState(''), [notice, setNotice] = useState('');
   const requestId = useRef(crypto.randomUUID());
@@ -32,15 +32,20 @@ export function ContributorIssues({ work, item, preview = false, disabled = fals
     setBusy(true); setError('');
     try { setIssues((await list({})).data.issues); } catch { setError('Your reports could not be loaded. Try again in a moment.'); } finally { setBusy(false); }
   };
+  const seenKey='contributor-report-replies:'+accountId;
+  const [seenReplies,setSeenReplies]=useState(()=>{try{return Number(localStorage.getItem(seenKey)||0);}catch{return 0;}});
+  const replyCount=issues.reduce((sum,issue)=>sum+issue.replies.length,0);
+  useEffect(()=>{if(!showHistory)return;void refresh();const timer=setInterval(()=>void refresh(),60000);return()=>clearInterval(timer);},[showHistory]);
   return (
     <>
       <button type="button" className="cw-report-button" disabled={disabled} onClick={() => { setMode('report'); setNotice(''); setError(''); dialog.current?.showModal(); }}>Report a problem</button>
+      <button type="button" disabled={disabled} onClick={()=>{setMode('history');setSeenReplies(replyCount);try{localStorage.setItem(seenKey,String(replyCount));}catch{}void refresh();dialog.current?.showModal();}}>My reports{replyCount>seenReplies ? ' · '+(replyCount-seenReplies)+' new replies' : ''}</button>
       <dialog ref={dialog} className="cw-dialog" aria-labelledby="report-title" onCancel={(event) => { if (busy) event.preventDefault(); }}>
         <div className="cw-dialog__head">
           <h2 id="report-title">{mode === 'report' ? 'Report a problem' : 'My reports'}</h2>
           <button type="button" className="cw-icon-button" disabled={busy} onClick={() => dialog.current?.close()} aria-label="Close">×</button>
         </div>
-        {mode === 'report' ? <p className="cw-dialog__lede">The team sees which assignment{item ? ' and expression' : ''} this is about, and what you write below. Never include bank details, passwords or codes.</p> : null}
+        {mode === 'report' ? <p className="cw-dialog__lede">The team sees {work ? 'the linked task and ' : ''}what you write below. Never include bank details, passwords or codes.</p> : null}
         {preview ? <p className="cw-muted">Preview only — reports stay in this sample session and are not sent.</p> : null}
         {error ? <p role="alert" className="cw-inline-alert">{error}</p> : null}
         {notice ? <p role="status" className="cw-confirmation">{notice}</p> : null}
@@ -64,7 +69,7 @@ export function ContributorIssues({ work, item, preview = false, disabled = fals
             <label className="cw-field">
               <span className="cw-field-label">What is it about?</span>
               <select disabled={busy} value={category} onChange={(event) => setCategory(event.target.value)}>
-                {CATEGORIES.map((entry) => <option key={entry.id} value={entry.id}>{entry.label}</option>)}
+                {CATEGORIES.filter(entry => work || ['account','other'].includes(entry.id)).map((entry) => <option key={entry.id} value={entry.id}>{entry.label}</option>)}
               </select>
             </label>
             <label className="cw-field">

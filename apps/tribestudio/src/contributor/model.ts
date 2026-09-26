@@ -28,6 +28,7 @@ export interface Item {
   unsure?: boolean;
   submissionId?: string;
   feedback?: string;
+  submittedAt?: string;
   reviewedAt?: string | null;
   updatedAt?: string;
   skippedAt?: string;

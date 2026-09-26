@@ -95,10 +95,18 @@ export const GUIDE: GuideSection[] = [
     source: 'Contributor portal product notes (review and publication); creator guidelines — “Permissions you grant”, “Revisions and resubmission”',
   },
   {
+    id: 'point-rewards',
+    title: 'Points and airtime or data rewards',
+    summary: 'Points follow approval; reward delivery is a separate manual step.',
+    body: ['Approved tasks earn points subject to the configured award rate and daily limit. Revisions do not earn a second award for the same task.', 'Open Points to see your balance, request an available reward in Redeem, and follow the request in History. Enter the recipient phone number when requesting airtime or data. No bank statement is required.', 'Pending means awaiting review. Approved means accepted for delivery. Delivered means the team has marked the reward as sent. Rejected requests show a reason and return the points to your balance.'],
+    source: 'Contributor rewards workflow',
+  },
+  {
     id: 'payments',
-    title: 'Payment details and eligibility',
+    title: 'Bank and MoMo payments — separate from points',
     summary: 'How bank and MoMo details are verified, and what verification does and does not prove.',
     body: [
+      'Point rewards are separate: request airtime or data in Points → Redeem using the recipient phone number. No bank statement or MoMo verification is required for those rewards.',
       'Payments are sent only to a bank account or MoMo wallet that a finance reviewer has verified. Add your details under Account & settings → Payment details.',
     ],
     points: [

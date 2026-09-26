@@ -63,7 +63,7 @@
     "test:kasem-evidence:integration": "npm run build:functions && firebase emulators:exec --project demo-indigen-world --only auth,firestore,storage \"node --test firebase/tests/kasemEvidence.integration.test.mjs firebase/tests/storage.rules.test.mjs\"",
     "kasem:dataset": "node services/functions/scripts/kasem-dataset.mjs",
     "audit:duplicate-check": "node services/functions/scripts/audit-duplicate-check.mjs",
-    "test:contributor-portal": "npm run build:functions && node --test firebase/tests/contributorPortal.test.mjs firebase/tests/contributorPayments.test.mjs && npm test --workspace @indigen-world/tribestudio",
+    "test:contributor-portal": "npm run build:functions && node --test firebase/tests/contributorPortal.test.mjs firebase/tests/contributorPayments.test.mjs firebase/tests/contributorDailyTasks.test.mjs && npm test --workspace @indigen-world/tribestudio",
     "test:contributor-e2e": "npm run build:functions && cross-env FUNCTIONS_DISCOVERY_TIMEOUT=120 firebase emulators:exec --project demo-indigen-world --only auth,firestore,storage,functions \"node --test firebase/tests/contributorWorkspace.e2e.test.mjs\""
   },
   "devDependencies": {

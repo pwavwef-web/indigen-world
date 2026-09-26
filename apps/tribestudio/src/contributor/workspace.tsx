@@ -3,6 +3,7 @@ import { useRoute } from '../router';
 import { BrandMark, Icon, cx, type IconName } from './components';
 import { friendlyError, initials, itemStatus, metricsFor, type FriendlyError } from './model';
 import type { AccountTab, PaymentsView, Section, SelfView, WorkspaceData } from './types';
+import { NotificationCentre } from './notifications';
 import { OverviewPage } from './pages/OverviewPage';
 import { AssignmentsPage } from './pages/AssignmentsPage';
 import { AssignmentPage } from './pages/AssignmentPage';
@@ -11,7 +12,7 @@ import { ActivityPage } from './pages/ActivityPage';
 import { GuidePage } from './pages/GuidePage';
 import { KawuriPage } from './pages/KawuriPage';
 import { AccountPage } from './pages/AccountPage';
-import { RewardNotices, RewardsPage } from './rewards';
+import { RewardsPage } from './rewards';
 
 /**
  * The contributor workspace shell: persistent navigation, the page for the
@@ -92,18 +93,18 @@ interface NavItem {
 }
 
 export const NAV: NavItem[] = [
-  { section: 'overview', label: 'Overview', short: 'Overview', icon: 'overview' },
-  { section: 'assignments', label: 'Assignments', short: 'Assignments', icon: 'assignments' },
+  { section: 'overview', label: 'Home', short: 'Home', icon: 'overview' },
+  { section: 'assignments', label: 'Tasks', short: 'Tasks', icon: 'assignments' },
   { section: 'contributions', label: 'My contributions', short: 'Contributions', icon: 'contributions' },
   { section: 'rewards', label: 'Points', short: 'Points', icon: 'spark' },
   { section: 'streak', label: 'Streak', short: 'Streak', icon: 'activity' },
   { section: 'activity', label: 'Activity', short: 'Activity', icon: 'activity' },
-  { section: 'guide', label: 'Platform guide', short: 'Guide', icon: 'guide' },
+  { section: 'guide', label: 'Help & guide', short: 'Help', icon: 'guide' },
   { section: 'kawuri', label: 'Kawuri Intelligence', short: 'Kawuri', icon: 'kawuri' },
   { section: 'account', label: 'Account & settings', short: 'Account', icon: 'account' },
 ];
 
-const MOBILE_PRIMARY: Section[] = ['overview', 'assignments', 'contributions', 'kawuri'];
+const MOBILE_PRIMARY: Section[] = ['overview', 'assignments', 'contributions', 'rewards'];
 
 // ---------------------------------------------------------------------------
 // Shared slow reads
@@ -262,8 +263,8 @@ export function WorkspaceShell({ banner }: { banner?: ReactNode }) {
         <div className="cw-main">
           {banner}
           <main id="main-content" tabIndex={-1} className="cw-content">
-            <RewardNotices />
-            {route.notFound ? <NotFound /> : <PageFor route={route} />}
+            <NotificationCentre />
+            {route.notFound ? <NotFound /> : <PageFor key={`${data.uid}:${route.section}`} route={route} />}
           </main>
         </div>
 

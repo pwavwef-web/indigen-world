@@ -80,7 +80,7 @@ export function PageHeader({ kicker, title, description, actions, breadcrumb, id
       {breadcrumb ? <nav className="cw-breadcrumb" aria-label="Breadcrumb">{breadcrumb}</nav> : null}
       <div className="cw-page-head__row">
         <div className="cw-page-head__copy">
-          {kicker ? <p className="cw-kicker">{kicker}</p> : null}
+          {kicker && kicker !== title ? <p className="cw-kicker">{kicker}</p> : null}
           <h1 id={id} tabIndex={-1}>{title}</h1>
           {description ? <p className="cw-page-head__description">{description}</p> : null}
         </div>

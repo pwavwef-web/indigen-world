@@ -22,6 +22,9 @@ async function load(path, names, mocks = {}) {
   if (path.startsWith('src/contributor/') && !path.endsWith('model.ts')) {
     mocks = { ...await load('src/contributor/model.ts', MODEL_EXPORTS), ...mocks };
   }
+  if (path === 'src/contributor/editor.tsx') {
+    mocks = { ...await load('src/contributor/ReviewTiming.tsx', ['ReviewTiming'], mocks), ...await load('src/contributor/listMemory.ts', ['useListMemory', 'useListScroll'], mocks), ...mocks };
+  }
   const { code } = await transformWithOxc(readFileSync(resolve(root, path), 'utf8'), path, { jsx: { runtime: 'classic' } });
   const executable = code.replace(/^import[\s\S]*?;\n/gm, '').replace(/\bexport (?=(?:async )?function|const|let|class)/g, '');
   return runInNewContext(executable + '\n;({' + names.join(',') + '})', { URL, URLSearchParams, Blob, File, Event, console, ...mocks });

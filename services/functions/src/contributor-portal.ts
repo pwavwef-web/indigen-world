@@ -689,7 +689,7 @@ export const saveExpressionAnswer = onCall(options, guarded('saveExpressionAnswe
     }
     tx.update(ref, { ...answer, revision, updatedAt: now, unsure: skip,
       ...(skip ? { skippedAt: now } : {}),
-      ...(submit ? { submissionId, status: 'submitted', feedback: '', reviewedAt: null } : {}) });
+      ...(submit ? { submissionId, submittedAt: now, status: 'submitted', feedback: '', reviewedAt: null } : {}) });
     return { revision, ...(submit ? { submissionId } : {}) };
   });
 }));
@@ -757,9 +757,12 @@ export const reportContributorIssue = onCall(options, guarded('reportContributor
   if ((await db.doc(`contributorAccounts/${uid}`).get()).get('status') !== 'active') throw new HttpsError('permission-denied', 'An active contributor account is required.');
   const category = text(req.data?.category, 30), description = text(req.data?.description, 2000);
   if (!['translation', 'assignment', 'saving', 'account', 'other'].includes(category)) throw new HttpsError('invalid-argument', 'Choose a valid issue type.');
-  const work = id(req.data?.work), item = req.data?.item ? id(req.data.item) : '';
-  const assignment = db.doc(`contributorAccounts/${uid}/works/${work}`);
-  if (!(await assignment.get()).exists || (item && !(await assignment.collection('items').doc(item).get()).exists)) throw new HttpsError('permission-denied', 'Assignment or expression is unavailable.');
+  const work = req.data?.work ? id(req.data.work) : '', item = req.data?.item ? id(req.data.item) : '';
+  if (!work && (item || !['account', 'other'].includes(category))) throw new HttpsError('invalid-argument', 'Choose an assignment for this issue type.');
+  if (work) {
+    const assignment = db.doc(`contributorAccounts/${uid}/works/${work}`);
+    if (!(await assignment.get()).exists || (item && !(await assignment.collection('items').doc(item).get()).exists)) throw new HttpsError('permission-denied', 'Assignment or expression is unavailable.');
+  }
   const requestId = id(req.data?.requestId);
   const ref = db.collection('contributorIssues').doc(createHash('sha256').update(`${uid}:${requestId}`).digest('hex'));
   await db.runTransaction(async tx => {

@@ -165,3 +165,5 @@ export { reportContributorIssue, getContributorIssues, listContributorIssues, up
 export { getContributorSelf, updateContributorSelf, saveContributorSettings } from './contributor-profile.js';
 export { onContributorPulseSubmissionWritten } from './contributor-pulse.js';
 export { kawuriContributorAssist } from './contributor-assist.js';
+
+export { prepareContributorDailyTasks, getContributorDailyTasks, requestMoreContributorTasks } from './contributor-daily-tasks.js';

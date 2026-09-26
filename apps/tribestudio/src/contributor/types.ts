@@ -197,6 +197,7 @@ export interface AccountSummary {
 export type SaveAnswer = (data: Record<string, unknown>) => Promise<{ data: { revision: number; submissionId?: string } }>;
 
 export interface WorkspaceServices {
+  unlockDailyPreview?(): void;
   saveAnswer: SaveAnswer;
   loadPayments(): Promise<PaymentsView>;
   uploadStatement(file: File, onProgress?: (fraction: number) => void): Promise<{ uploadId: string; fileName: string }>;

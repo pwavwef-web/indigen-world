@@ -58,11 +58,11 @@ export function KawuriPage({ initialWork, initialItem, initialMode }: { initialW
         kicker="Kawuri Intelligence"
         title="Kawuri Intelligence"
         id="page-title"
-        description="An assistant for the English side of your work: what an expression means, what context reviewers look for, and what might be missing before you submit."
+        description="Get help with English meaning, context and assignment instructions."
       />
-      <Notice tone="info" title="Kawuri suggests; reviewers decide">
+      <details className="cw-note"><summary>Kawuri suggests; reviewers decide · Learn more</summary>
         <p>Kawuri never writes Kasem for you and never judges your Kasem. Its suggestions are marked as AI and have not been reviewed. Dictionary entries it shows are published, reviewed entries. Nothing Kawuri says is saved to your work.</p>
-      </Notice>
+      </details>
 
       {data.worksState === 'loading' ? <div className="cw-card"><Skeleton lines={3} label="Loading your assignments" /></div> : noWork ? (
         <EmptyNote title="Nothing to work on yet">Kawuri works from your assignments. It will be available here once you have one.</EmptyNote>

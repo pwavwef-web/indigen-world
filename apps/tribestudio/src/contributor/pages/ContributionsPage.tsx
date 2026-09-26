@@ -1,4 +1,6 @@
-import { useMemo, useState } from 'react';
+import { ReviewTiming } from '../ReviewTiming';
+import { useListMemory, useListScroll } from '../listMemory';
+import { useMemo } from 'react';
 import { TableShell } from '@indigen-world/console-ui';
 import { useRoute } from '../../router';
 import { EmptyNote, Icon, Notice, PageHeader, Skeleton, StatusChip, useNow } from '../components';
@@ -30,8 +32,8 @@ export function ContributionsPage({ initialFilter }: { initialFilter: string }) 
   const data = useWorkspace();
   const { navigate } = useRoute();
   const now = useNow();
-  const [filter, setFilter] = useState<Filter>(FILTERS.some((entry) => entry.id === initialFilter) ? initialFilter as Filter : 'all');
-  const [query, setQuery] = useState('');
+  const [filter, setFilter] = useListMemory<Filter>(`contributor-list:${data.uid}:contributions:filter`, 'all', FILTERS.map(x=>x.id), FILTERS.some(x=>x.id===initialFilter)?initialFilter as Filter:undefined);
+  const [query, setQuery] = useListMemory<string>(`contributor-list:${data.uid}:contributions:query`, '');
   const titles = useMemo(() => new Map(data.works.map((work) => [work.id, work.title])), [data.works]);
   const rows = useMemo(() => data.works.flatMap((work) => (data.items[work.id] ?? []).map((item) => ({ work: work.id, item, status: itemStatus(item) })))
     .filter((row) => row.status !== 'not_started')
@@ -42,6 +44,7 @@ export function ContributionsPage({ initialFilter }: { initialFilter: string }) 
     && (!needle || [row.item.expression, row.item.translation, ...row.item.alternatives, titles.get(row.work) ?? ''].join(' ').toLocaleLowerCase().includes(needle)));
   const loading = data.worksState === 'loading' || (data.worksState === 'ready' && data.itemsState === 'loading');
 
+  useListScroll(`contributor-list:${data.uid}:contributions:scroll:${filter}:${query}`, !loading);
   return (
     <div className="cw-page">
       <PageHeader
@@ -52,11 +55,12 @@ export function ContributionsPage({ initialFilter }: { initialFilter: string }) 
       />
       <div className="cw-toolbar cw-toolbar--split">
         <div className="cw-filters" role="group" aria-label="Filter contributions">
-          {FILTERS.map((entry) => (
+          {[...FILTERS].sort((a,b)=>['all','returned','draft','awaiting_review','approved','submitted','unsure'].indexOf(a.id)-['all','returned','draft','awaiting_review','approved','submitted','unsure'].indexOf(b.id)).filter(entry=>!['submitted','unsure'].includes(entry.id)).map((entry) => (
             <button key={entry.id} type="button" className="cw-filter" aria-pressed={filter === entry.id} onClick={() => setFilter(entry.id)}>
               {entry.label}<span className="cw-filter__count">{rows.filter((row) => entry.matches(row.item, row.status)).length}</span>
             </button>
           ))}
+          <label><span className="cw-sr">More filters</span><select value={['submitted','unsure'].includes(filter)?filter:''} onChange={e=>{if(e.target.value)setFilter(e.target.value as Filter);}}><option value="">More filters</option><option value="submitted">All submitted</option><option value="unsure">Flagged unsure</option></select></label>
         </div>
         <label className="cw-search cw-search--compact">
           <span className="cw-sr">Search contributions</span>
@@ -93,7 +97,7 @@ export function ContributionsPage({ initialFilter }: { initialFilter: string }) 
                   <td data-label="Your Kasem" lang="xsm">{item.translation || <span className="cw-muted">—</span>}{item.alternatives.length ? <span className="cw-table__sub">+{item.alternatives.length} alternative{item.alternatives.length === 1 ? '' : 's'}</span> : null}</td>
                   <td data-label="Assignment">{titles.get(work)}</td>
                   <td data-label="Status"><StatusChip status={status} /></td>
-                  <td data-label="Updated">{relativeTime(item.reviewedAt || item.updatedAt, now) || <span className="cw-muted">—</span>}</td>
+                  <td data-label="Updated"><ReviewTiming item={item} />{relativeTime(item.reviewedAt || item.updatedAt, now) || <span className="cw-muted">—</span>}</td>
                 </tr>
               ))}
             </tbody>
