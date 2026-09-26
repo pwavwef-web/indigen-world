@@ -2,12 +2,16 @@
 
 Implementation prepared 2026-09-20; console work completed the same day.
 
-What is done: the code, the release configuration, the consent message (renamed,
-*Do not consent* enabled, republished), and the Play Data Safety correction
-(submitted for review). What is not: no mobile release has been built or
-uploaded, the website has not been deployed so `app-ads.txt` is not live, AdMob
-app verification is still failing on that file, and nothing has served an
-advert.
+Done: the code and its tests, the release configuration, the consent message
+(renamed, *Do not consent* enabled, republished), the Play Data Safety
+correction (submitted for review), the website deploy that put `app-ads.txt`
+live, and AdMob app verification, which passed from that file.
+
+Not done: no release has been uploaded to Play. A production bundle has been
+*built* — 0.1.22 (31), signed, with the real application id in its merged
+manifest — but only to prove the configuration reaches the artefact. AdMob is in
+its **Getting ready** review, so serving is limited, and nothing has served an
+advert yet.
 
 ## Serving policy
 
@@ -140,8 +144,9 @@ not documented here. They are in `admob.local.json` and in CI secrets.
 
 Console state on 2026-09-20:
 
-- approval status **Requires review**, serving **limited** until app
-  verification passes, which is waiting on `app-ads.txt`;
+- app verification **passed** once `app-ads.txt` went live, which moved approval
+  status from *Requires review* to **Getting ready** — Google's ad-readiness
+  review, two to three days, with serving **limited** until it completes;
 - Policy centre reports **no issues** that stop or limit serving;
 - lifetime requests and impressions are zero, so nothing has served yet;
 - payments profile is AdSense (Ghana). Identity verification is **not yet
@@ -158,28 +163,27 @@ wrong publisher is worse than no file, because AdMob reads it as a statement
 that this account may *not* sell the inventory. An absent record is not an
 error; the file is simply not emitted, with a warning.
 
-**Not yet deployed.** `https://indigenworld.com/app-ads.txt` returns 404 with
-the site's HTML 404 body. The hosting predeploy (`verify:production-main`)
-requires a clean checkout on `main` matching `origin/main`, so the file cannot
-ship from this branch — it goes out with the first website deploy after this
-work merges.
-
-After that deployment:
+**Live and verified**, deployed 2026-09-20. Check it any time with:
 
 ```bash
 npm run verify:app-ads
 ```
 
 It checks status 200, `text/plain`, an unauthenticated response, no HTML body,
-no redirect off the canonical origin, and — when the record is configured — that
-the exact line is present, bypassing any CDN copy with a cache-busting query.
-Then use AdMob's **Check for updates** control on the app's verification screen.
+no redirect off the canonical origin, and that the exact configured record is
+present, bypassing any CDN copy with a cache-busting query.
 
-Note that AdMob will not confirm `app-ads.txt` from the file alone: its
-app-ads.txt tab currently reports "No ad requests with app-ads.txt yet", because
-Google associates the crawled file with an app only once that app actually
-requests ads. Verification therefore needs the file live *and* a release that
-serves, and Google says the crawl itself can take up to seven days.
+AdMob verified the app from the file alone, the same day, with no release and
+zero ad requests. That is worth stating because the obvious reading of the
+console is wrong: the app-ads.txt tab says "No ad requests with app-ads.txt yet"
+and it is tempting to conclude that verification waits on a serving release. It
+does not — that line is about reporting. Google warns the crawl can take up to
+seven days; here it took under an hour.
+
+Verification moved the app from **Requires review** to **Getting ready**, which
+is Google's own ad-readiness review: typically two to three days, and ad serving
+stays limited until it finishes. That review, not the file and not a release, is
+what gates real ad fill.
 
 ## Play Data Safety
 
