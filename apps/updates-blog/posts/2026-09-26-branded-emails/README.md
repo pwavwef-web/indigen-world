@@ -1,6 +1,6 @@
 # Emails with a familiar Indigen World look
 
-Status: **Implemented and checked; application deployment pending. Firebase native template changes blocked by the provider. Blogger draft, not published.**
+Status: **Application emails deployed September 26, 2026. Firebase native template changes blocked by the provider. Blogger draft, not published.**
 
 | Field | Value |
 |---|---|
@@ -19,6 +19,9 @@ Status: **Implemented and checked; application deployment pending. Firebase nati
 - Firebase template updates were rejected with `EMAIL_TEMPLATE_UPDATE_NOT_ALLOWED`, including a reset-only request. Readback confirms the native templates remain unchanged. Non-secret backups are saved privately outside Git; the update script is retained for when the provider permits changes.
 - Functions build passed. All nine support integration tests passed, including branded HTML, recovery-link preservation, mailbox eligibility and delivery safeguards. Firebase CLI reported an error while shutting down the emulators after the tests passed.
 - Five sample emails generated; escaping, plaintext alternatives and the Firebase placeholder checked. Desktop invitation and 375px recovery previews inspected in Edge. Rendering across real email clients and inbox delivery remain unverified.
+- PR #25 merged as `399ddd0675e64c00a78c70701b87ee2c00a10238`. `publicForms`, `onNotificationCreated` and `onSupportEmailCreated` all reported successful deployment from clean verified `origin/main` at that commit. Existing mail settings and secret bindings were preserved; WhatsApp functions remain disabled.
+- GitHub Actions could not start because the account is locked due to a billing issue. Local test success is not represented as remote CI success.
+- The validator invitation template is ready for future use. No invitation email or production test email was sent as part of this release.
 
 ## Publishing handoff
 
