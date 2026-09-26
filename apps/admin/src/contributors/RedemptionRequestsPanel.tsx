@@ -1,14 +1,14 @@
 import { PageHeader, Panel, Spinner, StatusPill, toneForStatus } from '@indigen-world/console-ui';
-import type { ContributorPaymentRequest } from './data';
+import type { ContributorRedemption } from './data';
 
 type Action = 'approve' | 'reject' | 'fulfill' | 'paid';
 
 export function RedemptionRequestsPanel({ requests, nameFor, loading = false, busy = '', onAction, preview = false }: {
-  requests: ContributorPaymentRequest[];
+  requests: ContributorRedemption[];
   nameFor: (id: string) => string;
   loading?: boolean;
   busy?: string;
-  onAction?: (request: ContributorPaymentRequest, action: Action) => void;
+  onAction?: (request: ContributorRedemption, action: Action) => void;
   preview?: boolean;
 }) {
   const groups = [

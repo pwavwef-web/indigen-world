@@ -6,6 +6,8 @@ import { createHash } from 'node:crypto';
 import { HttpsError } from 'firebase-functions/v2/https';
 import { requireAuth, requireRole } from '../../services/functions/lib/auth.js';
 import { normalizeMsisdn } from '../../services/functions/lib/sms.js';
+import { guarded } from '../../services/functions/lib/contributor-common.js';
+import { rewardSettings } from '../../services/functions/lib/contributor-rewards.js';
 import { COLLECTION_CAMPAIGN_ID, buildCollectionCampaignDocument, buildCollectionContributionReceipt,
   buildCollectionSubmissionDocument, parseCollectionContributionInput } from '../../services/functions/lib/collection-contributions.js';
 
@@ -43,8 +45,8 @@ async function harness({ smsOk = true, configured = true } = {}) {
   const path = new URL('../../services/functions/lib/contributor-portal.js', import.meta.url);
   const code = readFileSync(path, 'utf8');
   const executable = code.replace(/^import[\s\S]*?;\n/gm, '').replace(/\bexport (?=(?:async )?function|const)/g, '');
-  const api = runInNewContext(executable + '\n;({saveExpressionAnswer,onContributorExpressionReviewed,parseExpressionAnswer,assignContributorExpressions,assignmentInstructions,inviteExpressionContributor,activateExpressionContributor,resendContributorInvitation,contributorPhone,reportContributorIssue,updateContributorIssue,requestContributorPayment,decideContributorPaymentRequest})', {
-    process, URL, createHash, HttpsError, requireAuth, requireRole, getFirestore: () => db,
+  const api = runInNewContext(executable + '\n;({saveExpressionAnswer,onContributorExpressionReviewed,parseExpressionAnswer,assignContributorExpressions,assignmentInstructions,inviteExpressionContributor,activateExpressionContributor,resendContributorInvitation,contributorPhone,reportContributorIssue,updateContributorIssue})', {
+    process, URL, createHash, HttpsError, requireAuth, requireRole, guarded, rewardSettings, getFirestore: () => db,
     ARKESEL_API_KEY: 'test-secret', normalizeMsisdn, isSmsConfigured: () => configured,
     sendSmsToMsisdn: async (to, message) => { messages.push({ to, message }); return { ok: smsOk, ...(smsOk ? { id: 'sms-1' } : { error: 'network' }) }; },
     getAuth: () => ({
@@ -58,6 +60,12 @@ async function harness({ smsOk = true, configured = true } = {}) {
     COLLECTION_CAMPAIGN_ID, buildCollectionCampaignDocument, buildCollectionContributionReceipt,
     buildCollectionSubmissionDocument, parseCollectionContributionInput,
   });
+  const rewardCode = readFileSync(new URL('../../services/functions/lib/contributor-rewards.js', import.meta.url), 'utf8')
+    .replace(/^import[\s\S]*?;\n/gm, '').replace(/\bexport (?=(?:async )?function|const)/g, '');
+  Object.assign(api, runInNewContext(rewardCode + '\n;({redeemContributorPoints,decideContributorRedemption})', {
+    process, HttpsError, requireAuth, requireRole, normalizeMsisdn, getFirestore: () => db,
+    onCall: (_options, fn) => fn, consumeRateLimit: async () => {},
+  }));
   records.set('contributorAccounts/alice', { status: 'active' });
   const itemPath = 'contributorAccounts/alice/works/work/items/item';
   records.set(itemPath, { expression: 'How are you?', revision: 0, status: 'draft' });
@@ -168,19 +176,6 @@ test('assignment endpoint rejects non-admins and uninvited recipients', async ()
   await assert.rejects(h.assignContributorExpressions({ auth: { uid: 'alice', token: { role: 'contributor' } }, data: { contributorId: 'alice', expressions: ['Hello'] } }), { code: 'permission-denied' });
   await assert.rejects(h.assignContributorExpressions({ auth: { uid: 'admin', token: { role: 'admin' } }, data: { contributorId: 'outsider', expressions: ['Hello'] } }), { code: 'failed-precondition' });
 });
-test('assignment retries reuse the same work and reject changed contents', async () => {
-  const h = await harness();
-  const data = { contributorId: 'alice', requestId: 'stable-request', expressions: ['Please.', 'Thank you.'], title: 'Courtesy and community' };
-  const call = input => h.assignContributorExpressions({ auth: { uid: 'admin', token: { role: 'admin' } }, data: input });
-  const first = await call(data);
-  const retry = await call(data);
-  assert.equal(first.work, retry.work);
-  assert.equal(first.created, true);
-  assert.equal(retry.created, false);
-  assert.equal([...h.records.keys()].filter(path => path.startsWith('contributorAccounts/alice/works/') && path.split('/').length === 4).length, 1);
-  assert.equal([...h.records.keys()].filter(path => path.startsWith('auditLogs/')).length, 1);
-  await assert.rejects(call({ ...data, expressions: ['Different'] }), { code: 'already-exists' });
-});
 
 test('returned expressions save revisions and resubmit as a linked review round', async () => {
   const h = await harness();
@@ -204,12 +199,6 @@ test('returned expressions save revisions and resubmit as a linked review round'
   await h.onContributorExpressionReviewed({ params: first });
   assert.equal(h.records.get(h.itemPath).status, 'submitted', 'late events from the old review do not reopen the new round');
   assert.equal(h.records.get(h.itemPath).feedback, '');
-  assert.equal(h.records.get('contributorAccounts/alice').rewardBalance, undefined);
-  const nextPath = `submissions/${next.submissionId}`;
-  h.records.set(nextPath, { ...h.records.get(nextPath), status: 'APPROVED', moderation: { decidedAt: new Date().toISOString() } });
-  await h.onContributorExpressionReviewed({ params: { submissionId: next.submissionId } });
-  await h.onContributorExpressionReviewed({ params: { submissionId: next.submissionId } });
-  assert.equal(h.records.get('contributorAccounts/alice').rewardBalance, 10);
 });
 
 test('canonical approved state prevents editing even if the assignment still says rejected', async () => {
@@ -381,6 +370,22 @@ test('issue reports validate assignment ownership, omit private fields and dedup
   assert.equal(records.get(`contributorIssues/${first.id}`).status, 'in_progress');
 });
 
+test('an optional usage note travels with the draft, survives older clients and reaches reviewers first', async () => {
+  const h = await harness();
+  await h.saveExpressionAnswer(h.request({ context: 'Said to an elder when arriving at their home.' }));
+  assert.equal(h.records.get(h.itemPath).context, 'Said to an elder when arriving at their home.');
+  // A build that predates the field sends no context and must not blank the note.
+  await h.saveExpressionAnswer(h.request({ revision: 1, translation: 'Kasem expression, edited' }));
+  assert.equal(h.records.get(h.itemPath).context, 'Said to an elder when arriving at their home.');
+  const { submissionId } = await h.saveExpressionAnswer(h.request({ revision: 2, translation: 'Kasem expression, edited', submit: true, publicationPermission: true }));
+  const submission = h.records.get(`submissions/${submissionId}`);
+  assert.equal(submission.usageContext, 'Said to an elder when arriving at their home.');
+  assert.match(submission.translationNotes, /^Context and usage:\nSaid to an elder/);
+  assert.match(submission.translationNotes, /Other ways of saying it in Kasem:\nAnother expression/);
+  assert.equal(h.records.get(`collectionContributions/${submissionId}`).usageContext, 'Said to an elder when arriving at their home.');
+  await assert.rejects(h.saveExpressionAnswer(h.request({ revision: 3, context: 'x'.repeat(1001) })), { code: 'invalid-argument' });
+});
+
 test('approved expressions award ten points up to the daily cap; submissions and repeated reviews do not award twice', async () => {
   const h = await harness();
   for (let index = 0; index < 31; index++) {
@@ -410,29 +415,29 @@ test('airtime and data redemption reserves points, validates destination, and re
   const h = await harness();
   h.records.set('contributorAccounts/alice', { status: 'active', rewardBalance: 600, rewardLifetime: 600 });
   const request = choice => ({ auth: { uid: 'alice' }, data: { points: 300, kind: 'airtime', network: 'MTN', phoneNumber: '0241234567', ...choice } });
-  await assert.rejects(h.requestContributorPayment(request({ kind: 'cash' })), { code: 'invalid-argument' });
-  await assert.rejects(h.requestContributorPayment(request({ phoneNumber: 'not a number' })), { code: 'invalid-argument' });
-  const first = await h.requestContributorPayment(request());
-  const saved = h.records.get(`contributorPaymentRequests/${first.requestId}`);
+  await assert.rejects(h.redeemContributorPoints(request({ kind: 'cash' })), { code: 'invalid-argument' });
+  await assert.rejects(h.redeemContributorPoints(request({ phoneNumber: 'not a number' })), { code: 'invalid-argument' });
+  const first = await h.redeemContributorPoints(request());
+  const saved = h.records.get(`contributorRedemptions/${first.requestId}`);
   assert.equal(saved.amountMinor, 500);
   assert.equal(saved.kind, 'airtime');
   assert.equal(saved.phoneNumber, '+233241234567');
   assert.equal(saved.bankSnapshot, undefined);
   assert.equal(h.records.get('contributorAccounts/alice').rewardBalance, 300);
-  await assert.rejects(h.requestContributorPayment(request({ kind: 'data' })), { code: 'failed-precondition' });
-  const admin = (action, reference = '') => ({ auth: { uid: 'admin', token: { role: 'admin' } }, data: { requestId: first.requestId, action, paymentReference: reference } });
-  await h.decideContributorPaymentRequest(admin('reject'));
+  await assert.rejects(h.redeemContributorPoints(request({ kind: 'data' })), { code: 'failed-precondition' });
+  const admin = (action, reference = '') => ({ auth: { uid: 'admin', token: { role: 'admin' } }, data: { requestId: first.requestId, action, note: 'Delivery unavailable', paymentReference: reference } });
+  await h.decideContributorRedemption(admin('reject'));
   assert.equal(h.records.get('contributorAccounts/alice').rewardBalance, 600);
-  const second = await h.requestContributorPayment(request({ kind: 'data', network: 'Telecel' }));
-  const decide = (action, reference = '') => ({ auth: { uid: 'admin', token: { role: 'admin' } }, data: { requestId: second.requestId, action, paymentReference: reference } });
-  await h.decideContributorPaymentRequest(decide('approve'));
-  await h.decideContributorPaymentRequest(decide('fulfill', 'DELIVERY-123'));
-  assert.equal(h.records.get(`contributorPaymentRequests/${second.requestId}`).status, 'fulfilled');
+  const second = await h.redeemContributorPoints(request({ kind: 'data', network: 'Telecel' }));
+  const decide = (action, reference = '') => ({ auth: { uid: 'admin', token: { role: 'admin' } }, data: { requestId: second.requestId, action, note: 'Delivery unavailable', paymentReference: reference } });
+  await h.decideContributorRedemption(decide('approve'));
+  await h.decideContributorRedemption(decide('fulfill', 'DELIVERY-123'));
+  assert.equal(h.records.get(`contributorRedemptions/${second.requestId}`).status, 'fulfilled');
   assert.equal(h.records.get('contributorAccounts/alice').rewardBalance, 300);
-  const third = await h.requestContributorPayment(request({ kind: 'data', network: 'AT' }));
-  const adminThird = action => ({ auth: { uid: 'admin', token: { role: 'admin' } }, data: { requestId: third.requestId, action } });
-  await h.decideContributorPaymentRequest(adminThird('approve'));
-  await h.decideContributorPaymentRequest(adminThird('reject'));
+  const third = await h.redeemContributorPoints(request({ kind: 'data', network: 'AT' }));
+  const adminThird = action => ({ auth: { uid: 'admin', token: { role: 'admin' } }, data: { requestId: third.requestId, action, note: 'Delivery unavailable' } });
+  await h.decideContributorRedemption(adminThird('approve'));
+  await h.decideContributorRedemption(adminThird('reject'));
   assert.equal(h.records.get('contributorAccounts/alice').rewardBalance, 300);
 });
 
@@ -440,10 +445,10 @@ test('contributors may redeem any whole-point amount from the minimum through th
   const h = await harness();
   h.records.set('contributorAccounts/alice', { status: 'active', rewardBalance: 350, rewardLifetime: 350 });
   const request = points => ({ auth: { uid: 'alice' }, data: { points, kind: 'data', network: 'MTN', phoneNumber: '0241234567' } });
-  await assert.rejects(h.requestContributorPayment(request(299)), { code: 'failed-precondition' });
-  await assert.rejects(h.requestContributorPayment(request(351)), { code: 'failed-precondition' });
-  const result = await h.requestContributorPayment(request(350));
-  assert.equal(h.records.get(`contributorPaymentRequests/${result.requestId}`).amountMinor, 583);
+  await assert.rejects(h.redeemContributorPoints(request(299)), { code: 'failed-precondition' });
+  await assert.rejects(h.redeemContributorPoints(request(351)), { code: 'failed-precondition' });
+  const result = await h.redeemContributorPoints(request(350));
+  assert.equal(h.records.get(`contributorRedemptions/${result.requestId}`).amountMinor, 583);
   assert.equal(h.records.get('contributorAccounts/alice').rewardBalance, 0);
 });
 

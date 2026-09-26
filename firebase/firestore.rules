@@ -539,23 +539,26 @@ service cloud.firestore {
       allow write: if false;
     }
 
-    // ---- Contributors: self-managed profile, no privilege escalation -------
+    // ---- Contributors: admin-managed profile, no privilege escalation -------
+    //
+    // The document carries workspace permissions (edit/submit/review/publish)
+    // that saveExpressionAnswer enforces, public visibility, and a private half
+    // with internal editorial notes. Owners used to be able to update every
+    // field but roles/status/points — which let a contributor switch their own
+    // permissions back on — and to read the internal notes. Both now go through
+    // callables: getContributorSelf returns the profile without internal notes,
+    // updateContributorSelf changes only the descriptive fields. The legacy
+    // self-registration create stays, minus the fields an admin owns.
     match /contributors/{contributorId} {
-      allow read: if isOwner(contributorId) || isValidator();
+      allow read: if isValidator();
       allow create: if isAdmin() || (
         isOwner(contributorId)
         && request.resource.data.authUid == request.auth.uid
         && request.resource.data.status == 'pending'
         && (!('points' in request.resource.data) || request.resource.data.points == 0)
+        && !request.resource.data.keys().hasAny(['permissions', 'publicVisibility', 'private', 'lastStatusReason'])
       );
-      // Owners may edit descriptive fields but not roles, status, points, or identity.
-      allow update: if isAdmin() || (
-        isOwner(contributorId)
-        && request.resource.data.authUid == resource.data.authUid
-        && request.resource.data.roles == resource.data.roles
-        && request.resource.data.status == resource.data.status
-        && request.resource.data.points == resource.data.points
-      );
+      allow update: if isAdmin();
       allow delete: if isAdmin();
     }
 
@@ -2179,6 +2182,49 @@ service cloud.firestore {
     match /contributorTrainingPairs/{id} {
       allow read: if isAdmin();
       allow write: if false;
+    }
+
+    // ---- Contributor workspace: settings, community pulse, payout detail ----
+    function isActiveContributor() {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/contributorAccounts/$(request.auth.uid))
+        && get(/databases/$(database)/documents/contributorAccounts/$(request.auth.uid)).data.status == 'active';
+    }
+    // Activity visibility and notification choices. Written by
+    // saveContributorSettings, which validates every value.
+    match /contributorSettings/{uid} {
+      allow read: if isOwner(uid);
+      allow write: if false;
+    }
+    // Real-time "today" activity for invited contributors: counts and a display
+    // name only where the contributor chose to be named (contributor-pulse.ts).
+    match /contributorPulse/{entryId} {
+      allow read: if isActiveContributor() || isStaff();
+      allow write: if false;
+    }
+    match /contributorPulseTotals/{day} {
+      allow read: if isActiveContributor() || isStaff();
+      allow write: if false;
+    }
+    // The key the pulse hashes account ids with. Backend only: with it, an
+    // account id would find that account's anonymous row.
+    match /contributorPulseKeys/{keyId} {
+      allow read, write: if false;
+    }
+    // Bank and MoMo details, pending one-time codes, payment requests and
+    // problem reports: server-only. Contributors see their own through
+    // callables, masked; finance reviewers through finance-gated callables.
+    match /contributorPayoutProfiles/{uid} {
+      allow read, write: if false;
+    }
+    match /contributorMomoChallenges/{uid} {
+      allow read, write: if false;
+    }
+    match /contributorPaymentRequests/{requestId} {
+      allow read, write: if false;
+    }
+    match /contributorIssues/{issueId} {
+      allow read, write: if false;
     }
 
     // ---- Default deny -------------------------------------------------------

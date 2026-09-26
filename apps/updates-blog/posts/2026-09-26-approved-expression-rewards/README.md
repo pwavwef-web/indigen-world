@@ -8,7 +8,7 @@
 ## Release evidence
 
 - The production read-only audit found 13 approved and 14 awaiting review among 27 earlier submitted expressions. No original submission records were missing or mismatched.
-- Backfill outcome: 13 approved expressions credited for 130 points. Fourteen submitted expressions remain awaiting approval. A final idempotence audit is pending.
+- Backfill outcome: 13 approved expressions credited for 130 points. Fourteen submitted expressions remain awaiting approval. The follow-up audit found zero eligible expressions left and all 13 credit records present.
 
 ## Publishing steps
 

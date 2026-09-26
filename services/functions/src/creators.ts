@@ -659,6 +659,19 @@ export const decideSubmission = onCall(
         }
       }
       const isDictionaryContribution = collectionKind === 'dictionary' && contribution != null;
+      // Invited contributors (TribeStudio contributor portal) are sent to the
+      // expression itself, and choose whether decisions also reach them by
+      // email; the in-app record is always written.
+      const portal = submission.contributorPortal && typeof submission.contributorPortal === 'object'
+        ? submission.contributorPortal as { contributorId?: unknown; work?: unknown; item?: unknown }
+        : null;
+      const portalLink = portal && typeof portal.contributorId === 'string'
+        && typeof portal.work === 'string' && typeof portal.item === 'string'
+        ? `/contributor/${portal.contributorId}/${portal.work}?item=${portal.item}`
+        : null;
+      const portalSettings = portalLink
+        ? await tx.get(db.collection('contributorSettings').doc(String(portal?.contributorId)))
+        : null;
       if (submission.authUid === uid) {
         throw new HttpsError('permission-denied', 'Reviewers cannot decide on their own submissions.');
       }
@@ -697,9 +710,15 @@ export const decideSubmission = onCall(
       const previousStatus = submission.status;
       const now = nowIso();
       const reviewerRef = { collection: 'validators', id: uid };
+      const authenticationStatus = decision === 'REJECT'
+        ? 'rejected'
+        : ['PUBLISH', 'APPROVE', 'ARCHIVE', 'UNPUBLISH'].includes(decision)
+          ? 'reviewed'
+          : contribution?.authenticationStatus === 'reviewed' ? 'reviewed' : 'community';
 
       const moderationUpdate: Record<string, unknown> = {
         status: newStatus,
+        ...(contribution ? { authenticationStatus } : {}),
         'moderation.reviewer': reviewerRef,
         'moderation.decidedAt': now,
         'lifecycle.updatedAt': now,
@@ -801,7 +820,9 @@ export const decideSubmission = onCall(
             const englishText = asString(submission.title, 180).trim();
             const senses = sensesOrLegacy({
               senses: parseSenses(submission.senses),
-              translations: submission.contributorPortal ? [englishText] : parseTranslations(englishText),
+              translations: submission.contributorPortal || submissionLexicalKind(submission) !== 'word'
+                ? [englishText]
+                : parseTranslations(englishText),
               kasemExample: asString(submission.kasemExample, 4000).trim(),
               englishExample: asString(submission.englishExample, 4000).trim(),
               kasemDefinition: parseProse(
@@ -920,6 +941,18 @@ export const decideSubmission = onCall(
                 : {}),
               ...(alsoUsedAs.length > 0 ? { alsoUsedAs } : {}),
               lexicalKind: submissionLexicalKind(submission),
+              corpusArea: asString(submission.corpusArea, 40).trim() || 'lexicon',
+              // Collection approval establishes review, not expert authentication.
+              authenticationStatus: 'reviewed',
+              ...(asString(submission.literalTranslation, 2000).trim()
+                ? { literalTranslation: asString(submission.literalTranslation, 2000).trim() }
+                : {}),
+              ...(asString(submission.usageContext, 2000).trim()
+                ? { usageContext: asString(submission.usageContext, 2000).trim() }
+                : {}),
+              ...(asString(submission.frenchTranslation, 2000).trim()
+                ? { frenchTranslation: asString(submission.frenchTranslation, 2000).trim() }
+                : {}),
               ...(submission.contributorPortal ? { contentKind: 'expression', alternativeExpressions: submission.alternativeExpressions ?? [] } : {}),
               // Written only when the senses say more than the flat gloss
               // already says. One sense carrying nothing but a definition that
@@ -1041,6 +1074,7 @@ export const decideSubmission = onCall(
       if (contributionRef) {
         const contributionUpdate: Record<string, unknown> = {
           status: newStatus.toLowerCase(),
+          authenticationStatus,
           reviewDecision: decision,
           reviewFeedback: feedback,
           reviewedBy: uid,
@@ -1063,9 +1097,9 @@ export const decideSubmission = onCall(
         type: decision === 'REQUEST_REVISION' ? 'revision_request' : decision === 'PUBLISH' ? 'publication_notice' : 'review_decision',
         title: `Submission ${newStatus.toLowerCase().replace('_', ' ')}`,
         body: feedback || `Your submission "${submission.title}" is now ${newStatus}.`,
-        link: contributionRef ? '/contribute' : `/studio/submissions/${submissionId}`,
+        link: portalLink ?? (contributionRef ? '/contribute' : `/studio/submissions/${submissionId}`),
         read: false,
-        channels: ['in_app', 'email'],
+        channels: portalSettings?.get('notifications.reviewEmail') === false ? ['in_app'] : ['in_app', 'email'],
         schemaVersion: 1,
         lifecycle: { createdAt: now, updatedAt: now, version: 1 },
       });

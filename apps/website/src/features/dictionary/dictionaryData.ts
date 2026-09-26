@@ -20,6 +20,10 @@ export interface DictionaryEntry {
   exampleTranslation: string;
   culturalNote: string | null;
   attribution: string;
+  authenticationStatus: string;
+  literalTranslation: string;
+  usageContext: string;
+  frenchTranslation: string;
 }
 
 function firstText(data: DocumentData, keys: string[], fallback = ""): string {
@@ -39,7 +43,7 @@ function entryFromData(id: string, data: DocumentData): DictionaryEntry | null {
     "english",
     "definition",
   ]);
-  if (!headword && !translation) return null;
+  if (!headword || !translation) return null;
 
   return {
     id,
@@ -60,8 +64,12 @@ function entryFromData(id: string, data: DocumentData): DictionaryEntry | null {
     attribution: firstText(
       data,
       ["attribution", "source", "contributorName"],
-      "Project Kassena community dictionary"
+      "Source not recorded in this entry"
     ),
+    authenticationStatus: firstText(data, ["authenticationStatus"]),
+    literalTranslation: firstText(data, ["literalTranslation"]),
+    usageContext: firstText(data, ["usageContext"]),
+    frenchTranslation: firstText(data, ["frenchTranslation"]),
   };
 }
 

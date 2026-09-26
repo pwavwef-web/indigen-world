@@ -1,0 +1,27 @@
+<!doctype html>
+<meta charset="utf-8">
+<link rel="stylesheet" href="style.css">
+<style>
+  .copy { position: absolute; left: 64px; top: 64px; width: 450px; }
+  .eyebrow { font-size: 16px; letter-spacing: 2.6px; }
+  h1 { margin-top: 18px; font-size: 48px; line-height: 1.06; font-weight: 800; letter-spacing: -1.2px; }
+  p { margin-top: 20px; font-size: 20px; line-height: 1.45; color: rgba(255,255,255,0.82); }
+  .tags { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 26px; }
+  .pill { font-size: 16px; padding: 8px 15px; gap: 9px; }
+  .pill .dot { width: 10px; height: 10px; }
+  .browser { --bw: 660px; --bh: 440px; position: absolute; left: 545px; top: 70px; transform: rotate(-2deg); }
+  .phone { --w: 210px; position: absolute; right: 34px; top: 150px; transform: rotate(5deg); z-index: 2; }
+</style>
+<div class="copy">
+  <div class="eyebrow">TribeStudio &middot; Contributors</div>
+  <h1>A rebuilt workspace for Kasem contributors</h1>
+  <p>Assignments, honest review counts, guidance and payment details in one calm place.</p>
+  <div class="tags">
+    <span class="pill"><span class="dot"></span>Clear review status</span>
+    <span class="pill amber"><span class="dot"></span>Kawuri suggests, reviewers decide</span>
+    <span class="pill green"><span class="dot"></span>Checked payment details</span>
+  </div>
+</div>
+<div class="browser"><div class="bar"><i></i><i></i><i></i><span>tribestudio.indigenworld.com/contributor</span></div><img src="../screens/desktop-overview.png" alt=""></div>
+<div class="phone"><img src="../screens/phone-editor.png" alt=""></div>
+<script>Promise.all([...document.images].map((i) => i.decode().catch(() => {}))).then(() => document.fonts.ready).then(() => { window.__ready = true; });</script>

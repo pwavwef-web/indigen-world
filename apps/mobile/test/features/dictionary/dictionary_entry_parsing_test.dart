@@ -12,6 +12,24 @@ import 'package:indigen_world_mobile/features/collection/collection_data.dart';
 import 'package:indigen_world_mobile/features/dictionary/translation_display.dart';
 
 void main() {
+  test('a reviewed proverb keeps its distinct meanings and usage evidence', () {
+    final entry = dictionaryEntryFromData('proverb', {
+      'kasemText': 'Kasem saying, with a pause',
+      'lexicalKind': 'proverb',
+      'englishText': 'A lesson about patience',
+      'literalTranslation': 'The literal wording',
+      'usageContext': 'Said when a task takes time',
+      'frenchTranslation': 'Une leçon de patience',
+      'authenticationStatus': 'reviewed',
+      'isPublished': true,
+    })!;
+    expect(entry.translation, 'A lesson about patience');
+    expect(entry.headword, 'Kasem saying, with a pause');
+    expect(entry.literalTranslation, 'The literal wording');
+    expect(entry.usageContext, 'Said when a task takes time');
+    expect(entry.frenchTranslation, 'Une leçon de patience');
+    expect(entry.authenticationStatus, 'reviewed');
+  });
   test('contributor expressions preserve punctuation and complete alternatives', () {
     final expression = List.filled(8, 'A whole expression, with clauses / intact').join(' ');
     final entry = dictionaryEntryFromData('expression', {

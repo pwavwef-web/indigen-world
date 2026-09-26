@@ -25,6 +25,8 @@
     "collectionKind": {
       "oneOf": [{ "$ref": "common.schema.json#/$defs/collectionKind" }, { "type": "null" }]
     },
+    "corpusArea": { "type": "string", "enum": ["lexicon", "grammar", "expressions", "sentences", "proverbs", "literature", "dialogue", "pronunciation", "culture", "qa"] },
+    "authenticationStatus": { "type": "string", "enum": ["community", "reviewed", "gold", "rejected", "unspecified"] },
     "title": { "type": "string", "minLength": 1 },
     "description": { "type": "string" },
     "body": {

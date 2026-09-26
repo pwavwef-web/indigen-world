@@ -1,0 +1,180 @@
+/* Shared look for this post's figures: the Updates blog's navy-to-blue hero,
+   with real workspace screenshots set in a browser window or a phone frame.
+   Adapted from the 2026-09-16 contributor portal post. */
+* { box-sizing: border-box; margin: 0; }
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  font-family: "Segoe UI", Roboto, "Noto Sans", Arial, sans-serif;
+  color: #fff;
+}
+
+body {
+  position: relative;
+  background:
+    radial-gradient(circle at 82% 14%, rgba(34, 211, 238, 0.28), transparent 42%),
+    radial-gradient(circle at 6% 100%, rgba(47, 107, 255, 0.34), transparent 46%),
+    linear-gradient(135deg, #0b1225 0%, #19327f 62%, #2457d6 100%);
+}
+
+body::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.09) 1.2px, transparent 1.3px);
+  background-size: 26px 26px;
+  pointer-events: none;
+}
+
+.stage {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 90px;
+}
+
+.phone {
+  position: relative;
+  flex: none;
+  width: var(--w, 420px);
+  aspect-ratio: 1170 / 2532;
+  padding: calc(var(--w, 420px) * 0.035);
+  border-radius: calc(var(--w, 420px) * 0.15);
+  background: linear-gradient(145deg, #2a2f3a, #0c0f15 40%, #1b1f27);
+  box-shadow:
+    0 0 0 2px rgba(255, 255, 255, 0.08) inset,
+    0 40px 80px rgba(4, 10, 25, 0.55),
+    0 12px 24px rgba(4, 10, 25, 0.35);
+}
+
+.phone img,
+.phone .screen {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top;
+  border-radius: calc(var(--w, 420px) * 0.118);
+  background: #0b1225;
+}
+
+.phone::after {
+  content: "";
+  position: absolute;
+  top: calc(var(--w, 420px) * 0.058);
+  left: 50%;
+  width: calc(var(--w, 420px) * 0.065);
+  aspect-ratio: 1;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: #05070b;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.05);
+}
+
+.column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 34px;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 24px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: 0.1px;
+  white-space: nowrap;
+  backdrop-filter: blur(6px);
+}
+
+.pill .dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #22d3ee;
+  box-shadow: 0 0 14px rgba(34, 211, 238, 0.9);
+}
+
+.pill.green .dot { background: #80f4cf; box-shadow: 0 0 14px rgba(128, 244, 207, 0.9); }
+.pill.amber .dot { background: #f5c451; box-shadow: 0 0 14px rgba(245, 196, 81, 0.9); }
+
+.eyebrow {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: #9fe7f5;
+}
+
+.card {
+  position: relative;
+  border-radius: 34px;
+  overflow: hidden;
+  box-shadow: 0 40px 80px rgba(4, 10, 25, 0.55);
+  border: 2px solid rgba(255, 255, 255, 0.14);
+}
+
+.card img { display: block; width: 100%; height: 100%; object-fit: cover; }
+
+.badge {
+  position: absolute;
+  left: 22px;
+  bottom: 22px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 18px;
+  border-radius: 999px;
+  background: rgba(7, 12, 26, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  font-size: 22px;
+  font-weight: 600;
+}
+
+/* A browser window for the desktop workspace. */
+.browser {
+  position: relative;
+  flex: none;
+  width: var(--bw, 1200px);
+  border-radius: 22px;
+  overflow: hidden;
+  background: #eef3ff;
+  border: 2px solid rgba(255, 255, 255, 0.16);
+  box-shadow: 0 40px 80px rgba(4, 10, 25, 0.55), 0 12px 24px rgba(4, 10, 25, 0.35);
+}
+.browser .bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: calc(var(--bw, 1200px) * 0.04);
+  padding: 0 calc(var(--bw, 1200px) * 0.016);
+  background: #dfe6f5;
+}
+.browser .bar i { width: calc(var(--bw, 1200px) * 0.01); aspect-ratio: 1; border-radius: 50%; background: #f87171; }
+.browser .bar i:nth-child(2) { background: #fbbf24; }
+.browser .bar i:nth-child(3) { background: #34d399; }
+.browser .bar span {
+  margin-left: calc(var(--bw, 1200px) * 0.02);
+  flex: 1;
+  padding: calc(var(--bw, 1200px) * 0.005) calc(var(--bw, 1200px) * 0.014);
+  border-radius: 999px;
+  background: #fff;
+  color: #475569;
+  font-size: calc(var(--bw, 1200px) * 0.0125);
+}
+.browser img { display: block; width: 100%; height: var(--bh, 700px); object-fit: cover; object-position: top; }
+/* The web page has no status bar, so leave room under the camera. */
+.phone img { padding-top: calc(var(--w, 420px) * 0.1); background: #e6edff; }
+/* The workspace header is white, so the strip under the camera matches it. */
+.phone img { background: #ffffff; }

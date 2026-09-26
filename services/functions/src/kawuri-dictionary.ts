@@ -737,6 +737,37 @@ export async function publishedKasemForms(): Promise<Set<string>> {
 }
 
 /**
+ * Published entries for [terms], as records rather than as a briefing.
+ *
+ * For callers that show the archive to a person instead of handing it to a
+ * model — the contributor workspace cites these beside Kawuri's suggestions as
+ * the reviewed half of its answer, with each entry's id. Same cache, same
+ * ranking and the same over-cap fallback as [dictionaryContextFor]; never
+ * throws, because an empty citation list is an honest answer and a failed one
+ * is not worth failing the request over.
+ */
+export async function publishedEntriesFor(
+  terms: readonly string[],
+  limit = MAX_BRIEFING_ENTRIES,
+): Promise<DictionaryRecord[]> {
+  const normalised = [...new Set(terms.map(normaliseTerm).filter(Boolean))];
+  if (normalised.length === 0) return [];
+  try {
+    const { records, truncated } = await loadDictionary();
+    const matches = matchDictionary(records, normalised, limit);
+    if (matches.length === 0 && truncated) {
+      return matchDictionary(await exactMatches(normalised), normalised, limit);
+    }
+    return matches;
+  } catch (error) {
+    logger.error('Dictionary lookup for citations failed', {
+      errorType: error instanceof Error ? error.name : 'unknown',
+    });
+    return [];
+  }
+}
+
+/**
  * The dictionary instruction for a question, or `''` when none is owed.
  *
  * Never throws. A dictionary that cannot be read is a Kawuri that answers the

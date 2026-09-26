@@ -101,6 +101,10 @@ abstract class DictionaryEntry with _$DictionaryEntry {
     @Default('') String sentenceLicence,
     required String attribution,
     String? culturalNote,
+    @Default('') String authenticationStatus,
+    @Default('') String literalTranslation,
+    @Default('') String usageContext,
+    @Default('') String frenchTranslation,
 
     /// A published recording of the headword being said, or empty where the
     /// entry has none.

@@ -32,6 +32,8 @@ if (args.includes('--firebase-login')) {
     client_id: clientId(), client_secret: clientSecret(), refresh_token: refreshToken }), { mode: 0o600 });
   process.env.GOOGLE_APPLICATION_CREDENTIALS = credentialsPath;
   process.on('exit', () => rmSync(temporary, { recursive: true, force: true }));
+  process.once('SIGINT', () => process.exit(130));
+  process.once('SIGTERM', () => process.exit(143));
 }
 initializeApp({ projectId: project, credential: applicationDefault() });
 const db = getFirestore();

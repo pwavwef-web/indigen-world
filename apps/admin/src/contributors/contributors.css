@@ -533,5 +533,31 @@
   .admin-payment-list article > div:last-child { justify-items: start; }
 }
 .contributor-issue { margin: 16px 0; padding: 20px; border: 1px solid var(--border); border-radius: 12px; overflow-wrap: anywhere; white-space: pre-wrap; } .contributor-issue form,.contributor-issue label { display: grid; gap: 10px; } .contributor-issue textarea { min-height: 100px; } .contributor-issue small { display: block; }
+
+/* Finance desk: payout verification detail. */
+.payout-detail { display: grid; gap: 16px; padding: 4px 2px 8px; }
+.payout-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px 20px; }
+.payout-facts div { display: grid; gap: 3px; min-width: 0; }
+.payout-facts span { color: var(--ad-slate-2, #6b7794); font-size: .72rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+.payout-facts strong { overflow-wrap: anywhere; font-weight: 600; }
+.payout-facts code { font-size: .95rem; letter-spacing: .03em; }
+.payout-evidence { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+.payout-evidence > div { display: grid; gap: 8px; align-content: start; padding: 14px; border-radius: 12px; background: var(--ad-mist, #eef2fb); }
+.payout-evidence h4, .payout-decision h4, .payout-history h4 { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0; font-size: .92rem; }
+.payout-evidence p { margin: 0; }
+.payout-fields { display: grid; gap: 3px; margin: 0; padding-left: 18px; font-size: .88rem; }
+.payout-decision { display: grid; gap: 10px; padding: 14px; border-radius: 12px; box-shadow: inset 0 0 0 1px var(--glass-line, rgba(16, 31, 78, .13)); }
+.payout-decision label { display: grid; gap: 6px; font-size: .85rem; font-weight: 650; }
+.payout-decision__choices { display: flex; flex-wrap: wrap; gap: 8px 18px; }
+.payout-decision__choices label { display: inline-flex; align-items: center; gap: 7px; font-weight: 550; }
+.payout-problem { margin: 0; color: var(--ad-amber, #8a5a04); font-size: .84rem; }
+.payout-history ol { display: grid; gap: 0; margin: 8px 0 0; padding: 0; list-style: none; }
+.payout-history li { display: grid; grid-template-columns: 170px minmax(0, 1fr) auto; gap: 12px; padding: 8px 0; border-top: 1px solid var(--glass-line-soft, rgba(16, 31, 78, .08)); font-size: .84rem; }
+.payout-history li:first-child { border-top: 0; }
+.payout-history time, .payout-history small { color: var(--ad-slate-2, #6b7794); }
+@media (max-width: 720px) {
+  .payout-history li { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+}
+
 .point-settings-preview-shell{display:block;min-height:100vh;background:#f4f7fc}.point-settings-preview-shell .admin-main{max-width:980px;margin:0 auto;padding:38px clamp(16px,4vw,40px)}.point-settings-preview-header{margin-bottom:24px}.point-settings-preview-header span{color:#315c9d;font-size:11px;font-weight:800;letter-spacing:.12em}.point-settings-preview-header h1{margin:5px 0;font-size:clamp(27px,4vw,38px)}.point-settings-preview-header p{margin:0;color:#5d7194}.point-settings-preview-note{padding:10px 13px;border:1px solid #bdd1f5;border-radius:9px;background:#eaf1ff;color:#315c9d;font-size:13px}
 .admin-redemption-group{margin-top:22px;padding-top:20px;border-top:1px solid var(--border,#dce3ea)}.admin-redemption-group__heading{margin-bottom:12px}.admin-redemption-group__heading h3{display:flex;align-items:center;gap:9px;margin:0 0 3px;font-size:18px}.admin-redemption-group__heading h3 span{min-width:25px;padding:2px 7px;border-radius:999px;background:#eaf1ff;color:#315c9d;font-size:12px;text-align:center}.admin-redemption-group__heading p{margin:0;color:var(--muted,#667085);font-size:13px}

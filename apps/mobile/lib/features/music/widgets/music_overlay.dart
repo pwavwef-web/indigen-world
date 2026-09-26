@@ -3,9 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/app/app_router.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/core/media_preferences.dart';
+import 'package:indigen_world_mobile/features/music/music_bar_placement.dart';
 import 'package:indigen_world_mobile/features/music/music_duck.dart';
 import 'package:indigen_world_mobile/features/music/music_providers.dart';
-import 'package:indigen_world_mobile/features/music/widgets/mini_player.dart';
+import 'package:indigen_world_mobile/features/music/widgets/music_player_dock.dart';
 import 'package:indigen_world_mobile/shared/frosted_nav_bar.dart';
 
 /// Puts the mini-player above every route, and makes room for it.
@@ -46,9 +47,15 @@ class MusicOverlay extends ConsumerWidget {
     // paused anyway.
     final otherAudio = ref.watch(fullScreenMediaProvider) > 0;
     final showMini = ref.watch(musicHasQueueProvider) && !otherAudio;
+    // Minimised, the player stops asking for room: the bubble is the size of a
+    // floating button and floats over the content rather than above it, which
+    // is the whole of what somebody who minimised it was asking for.
+    final collapsed = ref.watch(
+      musicBarPlacementProvider.select((placement) => placement.collapsed),
+    );
 
     final media = MediaQuery.of(context);
-    final lift = showMini ? kMiniPlayerHeight + 10 : 0.0;
+    final lift = showMini && !collapsed ? kMiniPlayerHeight + 10 : 0.0;
 
     return MediaQuery(
       data: media.copyWith(
@@ -63,22 +70,16 @@ class MusicOverlay extends ConsumerWidget {
             // it.
             MusicDuckListener(child: child),
             if (showMini)
-              Positioned(
-                left: 10,
-                right: 10,
-                // Sits on the system inset, with the rail lifted above it by
-                // the same inflation. `viewPadding` rather than `padding`,
-                // because `padding` is the one this widget just moved.
-                bottom: media.viewPadding.bottom + 6,
-                child: Material(
-                  // There is no Material ancestor above the Navigator, and the
-                  // bar is full of ink responses that need one.
-                  type: MaterialType.transparency,
-                  child: MiniPlayer(
-                    brand: brand,
-                    onOpen: () =>
-                        ref.read(appRouterProvider).push('/now-playing'),
-                  ),
+              // Fills the overlay rather than being positioned in it, because
+              // the player is no longer one place: the dock owns both the bar
+              // along the bottom and the bubble it folds into, and needs the
+              // whole box to move between them. Empty space in it passes taps
+              // through to the app underneath.
+              Positioned.fill(
+                child: MusicPlayerDock(
+                  brand: brand,
+                  onOpen: () =>
+                      ref.read(appRouterProvider).push('/now-playing'),
                 ),
               ),
           ],

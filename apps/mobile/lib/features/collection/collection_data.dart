@@ -279,7 +279,8 @@ DictionaryEntry? dictionaryEntryFromData(String id, Map<String, dynamic> data) {
   // the headword filed the entry under a comma and offered the dictionary a
   // word nobody can look up, so the first rendering is the headword and the
   // rest travel beside it.
-  final isExpression = data['contentKind'] == 'expression';
+  final isExpression = data['contentKind'] == 'expression' ||
+      const ['phrase', 'idiom', 'proverb'].contains(data['lexicalKind']);
   // An expression is a whole utterance; punctuation is not a word separator.
   final renderings = isExpression
       ? <String>[kasem, ..._stringList(data['alternativeExpressions'])]
@@ -350,11 +351,15 @@ DictionaryEntry? dictionaryEntryFromData(String id, Map<String, dynamic> data) {
     culturalNote: _meaningfulNote(
       _nullableText(data, const ['culturalNote', 'culturalContext', 'notes']),
     ),
+    authenticationStatus: _firstText(data, const ['authenticationStatus']),
+    literalTranslation: _firstText(data, const ['literalTranslation']),
+    usageContext: _firstText(data, const ['usageContext']),
+    frenchTranslation: _firstText(data, const ['frenchTranslation']),
     attribution: _firstText(data, const [
       'attribution',
       'source',
       'contributorName',
-    ], fallback: 'Project Kassena community dictionary'),
+    ], fallback: 'Source not recorded in this entry'),
     // ── The paradigm ────────────────────────────────────────────────────
     // Every slot is read whether or not the document carries it. The backend
     // stores only the answered ones — eleven keys of which the median entry

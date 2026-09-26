@@ -44,6 +44,13 @@ Future<void> pumpForm(
 }
 
 void main() {
+  testWidgets('a proverb asks for literal wording separately from its meaning', (tester) async {
+    await pumpForm(tester, CollectionKind.dictionary, lexicalKind: LexicalKind.proverb);
+    expect(find.text('What it means in English'), findsOneWidget);
+    expect(find.text('Literal English translation (optional)'), findsOneWidget);
+    expect(find.text('When is this saying used? (optional)'), findsOneWidget);
+    expect(find.text('French meaning (optional)'), findsOneWidget);
+  });
   testWidgets('a word is asked what a word needs', (tester) async {
     await pumpForm(tester, CollectionKind.dictionary);
 

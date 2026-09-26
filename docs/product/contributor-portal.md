@@ -1,6 +1,6 @@
 # Invited expression contributors
 
-Tribe Studio's dedicated portal is `/contributor/{Firebase Auth UID}/{work ID}` on `https://tribestudio.indigenworld.com`. `/contributor` resolves the signed-in contributor's latest assignment. Invited accounts arriving on ordinary Studio routes are redirected before the Studio shell is rendered.
+Tribe Studio's contributor workspace lives under `/contributor` on `https://tribestudio.indigenworld.com`. Since the 2026-09-23 rebuild, `/contributor` is the workspace Overview; one assignment is still `/contributor/{Firebase Auth UID}/{work ID}`, the address every SMS invitation carries. Invited accounts arriving on ordinary Studio routes are redirected to `/contributor` before the Studio shell is rendered. The full route list, data model and deployment steps for the rebuilt workspace are under [Workspace rebuild — 2026-09-23](#workspace-rebuild--2026-09-23).
 
 ## Invite and translate
 
@@ -66,3 +66,114 @@ The portal displayed “Unable to verify your contributor invitation” after su
 Deployed the existing repository rules with `firebase deploy --only firestore:rules --project project-kassena-7e026`. The comparison against the previous live rules contained only contributor account/training access rules and the two guards preventing client-written contributorPortal submissions. Firebase compilation and deployment succeeded. A subsequent read confirmed that the active rules match firebase/firestore.rules (ignoring line endings): ruleset e4977ea4-fbe7-455c-95b8-bab5199aa669, released at 2026-09-17T08:20:27.720934Z.
 
 Contributors can retry or reload their existing session. Their own account is readable; assignments require active account status; client writes remain blocked. No accounts, passwords, invitations, or hosting assets were changed. An authenticated handset retry remains necessary to confirm the reported user's complete login flow. Future contributor releases must include Firestore rules, not only Functions and Hosting.
+
+## Workspace rebuild — 2026-09-23
+
+**Status: deployed on 2026-09-23 from `main` at `e90c5fb`** — Functions, Firestore and Storage rules, and TribeStudio and Admin hosting (see [Deployment](#deployment--2026-09-23)). The signed-in production flows have not been exercised yet: everything was verified with unit tests, emulator end-to-end tests, the dev-only preview, unauthenticated probes of the live functions and the live bundles.
+
+The portal was rebuilt as a workspace with persistent navigation. Access is decided exactly as before — a signed-in account whose `contributorAccounts/{uid}` record is `active`, with activation still required after a temporary password — and every callable repeats the check on the server.
+
+### Routes
+
+| Route | Page |
+|---|---|
+| `/contributor` | Overview: current assignment, the four review counts, recent activity, Community today, entries to Kawuri and the guide |
+| `/contributor/assignments` | Assignments, filtered All / To do / Awaiting review / Complete |
+| `/contributor/{uid}/{work}?item=` | One assignment: expression list and editor. Unchanged, so every SMS link keeps working |
+| `/contributor/contributions?filter=` | My contributions: All, Drafts, Submitted, Awaiting review, Approved, Needs revision, Flagged unsure |
+| `/contributor/activity` | Submissions, reviewer decisions, new assignments and payment-verification notices, newest first |
+| `/contributor/guide?section=` | Platform guide |
+| `/contributor/kawuri?work=&item=&mode=` | Kawuri Intelligence |
+| `/contributor/account/{profile,security,notifications,payments}` | Account & settings |
+
+Deep links use `?section=`/`?item=` rather than `#hash`, because the Studio router drops hashes. `/contributor/account/{tab}` has the same two-segment shape as an invitation link; `invitationLinkOwner` (workspace.tsx) keeps it from being read as "this link belongs to another account". Desktop shows a sidebar; phones show a bottom bar (Overview, Assignments, Contributions, Kawuri, More), hidden while the editor is open. The dev-only preview mirrors every page under `/contributor/preview/…` (assignments at `/contributor/preview/assignment/{work}`) with sample data, sends nothing, and is excluded from production builds.
+
+### Counting rules
+
+Computed by `metricsFor` (contributor/model.ts) from the assignment rows the portal already reads:
+
+- **Submitted** — every expression sent for review at least once (it has a submission id), whatever happened next.
+- **Awaiting review**, **Approved** (`verified`) and **Returned for revision** (`rejected`/`needs_revision`) — where each submitted expression is now. Each expression is in exactly one of these, or in drafts, flagged unsure, not started, or archived/withdrawn.
+- Submitted is never shown as approved. The guide's *How review works* section explains the difference.
+
+The assignment state (`workState`) puts returned work first, then open work, then work awaiting review.
+
+### Community today
+
+`onContributorPulseSubmissionWritten` (contributor-pulse.ts) watches `submissions` and records two events for contributor-portal work only: an expression sent for review, and an expression approved. It writes `contributorPulseTotals/{day}` (idempotent token sets for submitted, approved and distinct contributors) and one `contributorPulse` row per contributor per day. Nothing is estimated or seeded; a quiet day reads as a quiet day, and the panel says so.
+
+How a contributor appears is their choice under Account → Notifications & visibility (`contributorSettings/{uid}.activityVisibility`): anonymously ("A contributor", the default), by display name, or not at all — hidden contributors still count in the day's totals. Changing the choice rewrites today's and yesterday's rows at once. Rows are keyed by a hash of account id and day with a server-only key (`CONTRIBUTOR_PULSE_PEPPER` or `PHONE_HASH_PEPPER` when configured, otherwise a random key created on first use in `contributorPulseKeys/current`, which no client can read), so a row cannot be traced to an account or linked across days. No expression, assignment or translation text is copied into the pulse. Active contributors and staff can read it; only the backend writes it.
+
+### Platform guide
+
+`contributor/guide.ts` restates existing, sourced material — the creator guidelines in `packages/contracts/content/creator-guidelines.mjs`, this document, and the backend's payment and privacy rules — and names its source under each section. Editor fields link to the relevant section. Where the policy does not exist yet, the guide says **Policy not yet published** instead of inventing it:
+
+- how long review normally takes;
+- rates, amounts and payment schedules for invited contributors;
+- how long a bank statement is kept after verification.
+
+### Kawuri Intelligence
+
+`kawuriContributorAssist` (contributor-assist.ts) offers three modes — explain the instructions, what context an expression needs, check my saved draft — and returns three separately labelled parts:
+
+1. **Checks** — deterministic, no model: missing translation, English left in the Kasem box, missing usage note, reviewer feedback not addressed. Advice only; nothing blocks a submission.
+2. **Sources** — reviewed material: the assignment's own instructions, variety and tone; published dictionary entries matching words in the English (with ids); the guide sections that apply.
+3. **Suggestions** — Gemini on Vertex AI through the existing `generateStructured` helper and the Kawuri analysis-model configuration, shown as "AI · not reviewed". The model is told never to write or judge Kasem, and any suggestion containing Kasem-only letters is dropped on the server. It is told whether a translation exists but never sees the contributor's Kasem. Contributors can dismiss any suggestion.
+
+Nothing is written to the contribution and nothing the contributor or the model wrote is logged. Limits: 10 requests a minute and 80 a day per contributor. When Vertex is unavailable the checks and sources still return, and the page names the missing connection. Requires an active contributor account.
+
+### Account & settings
+
+- **Profile** — `getContributorSelf` returns the contributor's own profile *without* the administrator's internal notes; `updateContributorSelf` changes only display name, photo (must be the contributor's own avatar upload), town or region, Kasem variety, other languages and "about you".
+- **Sign-in & security** — email and password, with a password change that asks for the current password.
+- **Notifications & visibility** — `saveContributorSettings`: email when a reviewer decides (`reviewEmail`, honoured by `decideSubmission`), email and SMS about payment verification, and the community-activity choice above.
+- **Payment details** — below.
+
+Firestore rules no longer let a contributor update `contributors/{uid}` (they could previously switch their own workspace permissions back on) or read it (it holds internal editorial notes); both go through the callables above.
+
+### Payment details and verification
+
+Callables in `contributor-payments.ts`; statuses per method are `not_started`, `pending`, `verified`, `needs_action` and `rejected`, and a needs-action or rejected decision always carries a reason and a next step.
+
+**Bank account.** `submitBankVerification` takes bank, branch, account holder and account number plus a statement or bank letter uploaded to `contributor-payout-statements/{uid}/{uploadId}/{file}`. Storage rules let the owner create that object once and never read, replace or delete it; the server re-checks the real type from the file's first bytes (PDF, JPEG or PNG), size (1 KB–10 MB) and ownership. Every submission is a new pending version; changing verified details resets them to pending and deletes the superseded statement. After saving, contributors see the account number masked (`•••• 3456`).
+
+**MoMo wallet.** `startMomoVerification` sends a six-digit code over the existing Arkesel integration and `confirmMomoVerification` checks it. The code is stored only as a salted hash, expires after 10 minutes, locks after 5 wrong answers, has a 60-second resend cooldown and is rate-limited (5 starts an hour per contributor, 3 codes an hour per number, 20 confirmations an hour). A correct code proves control of the phone number only. This repository has no provider-backed wallet-name lookup (Paystack is used only for adverts), so wallet ownership stays **pending** until a finance reviewer decides it. A changed number needs a new code and a new review. When SMS is not configured the portal says so instead of pretending a code was sent.
+
+**Finance review.** Admin → Publishing → Contributors → Payments (`ContributorPaymentsDesk`) is available only to finance reviewers: an administrator with the `finance: true` custom claim, or a super administrator. Other administrators do not load payout detail at all. `listContributorPayments` returns full details; `getPayoutStatementLink` issues a five-minute signed link and audits each opening; `decidePayoutVerification` records verify / needs action / reject against the exact version reviewed (a decision cannot land on details changed after the reviewer opened them), refuses self-review, writes `auditLogs`, and notifies the contributor in-app plus by email or SMS if they chose it. `rerunPayoutStatementCheck` repeats the automated check.
+
+**Bank statement checks.** `contributor-statement-check.ts` can ask Gemini to read a statement and compare holder name, bank and account number with what the contributor typed. The result is filed on the profile as evidence for the finance reviewer; it never changes a status, and contributors see only per-field outcomes. It handles unreadable documents, mismatches and uncertain results, keeps only the name and bank as printed plus the last four digits, and logs reason codes only. **It is off** unless the Functions environment sets `CONTRIBUTOR_STATEMENT_CHECK=enabled`. On 2026-09-23 the project's Vertex AI `cacheConfig` did not disable caching (inputs and outputs can stay in memory for up to 24 hours), and Google may log prompts for abuse monitoring unless the project has an exception. Decide on both before enabling it.
+
+**Errors.** Every new or changed contributor callable runs through `guarded()` (contributor-common.ts): a deliberate error keeps its message; anything unexpected is logged server-side with a reference such as `IW-1A2B3C4D` (account numbers and emails redacted) and reaches the contributor as a plain explanation carrying that reference, never as a bare `internal`. The raw `internal` error contributors saw before came from payment callables that had never been deployed; the portal now explains a missing backend instead.
+
+`requestContributorPayment` and `decideContributorPaymentRequest` remain on the backend without a contributor form, as decided for the 2026-09-23 payment-profile release; requests now need a verified method and snapshot what was verified. `saveContributorPayoutProfile` stays only to tell the TribeStudio build deployed on 2026-09-23 to reload. `verifyContributorPayoutProfile` was replaced by `decidePayoutVerification`.
+
+### Review changes
+
+- Contributors can add an optional usage note (up to 1,000 characters) to an expression. `saveExpressionAnswer` stores it as `context`, copies it to the submission and receipt as `usageContext`, and puts it first in the reviewer notes; Admin → Contributors → Review shows it.
+- Admin → Contributors → Review offers **Approve** and **Return with feedback**. The previous Request revision button always failed, because `decideSubmission` refuses that decision for collection contributions; returned expressions reopen for revision as before.
+- `decideSubmission` notifications for portal expressions link to the expression (`/contributor/{uid}/{work}?item=`) rather than the old `/contribute` page, and skip email when the contributor turned review emails off.
+
+### Deployment — 2026-09-23
+
+Deployed from `main` at `e90c5fb`, after the full local check suite (GitHub Actions could not run: the account was locked over billing).
+
+- **Functions:** every export redeployed in explicit `--only` batches — 18 creates and 114 updates. Live and exported were 132 each, with an empty diff both ways, so nothing could be deleted. `rerunPayoutStatementCheck` was created, but setting its public invoker failed; a Firebase redeploy did not re-apply it, so the `allUsers` → `roles/run.invoker` binding every other callable has was added with `gcloud run services add-iam-policy-binding`. Unauthenticated probes of the new callables answer with their own "Sign in is required." message.
+- **Firestore rules and Storage rules** compiled and were released.
+- **Hosting:** `tribestudio`, `indigen-admin`, `indigen-world` and `kasem-dictionary` released. The live bundles contain the workspace, the Admin finance desk and the contribution-context fields.
+- **Signing grant:** the Functions runtime service account (`111428711822-compute@`) already holds Service Account Token Creator on itself (checked 2026-09-23), so statement links can be signed.
+
+What deployment required:
+
+1. **Functions** — new: `getContributorSelf`, `updateContributorSelf`, `saveContributorSettings`, `onContributorPulseSubmissionWritten`, `kawuriContributorAssist`, `submitBankVerification`, `removePayoutMethod`, `setPreferredPayoutMethod`, `startMomoVerification`, `confirmMomoVerification`, `getPayoutStatementLink`, `decidePayoutVerification`, `rerunPayoutStatementCheck`. Changed or never deployed: `getContributorPayments`, `saveContributorPayoutProfile`, `requestContributorPayment`, `listContributorPayments`, `decideContributorPaymentRequest`, `saveExpressionAnswer`, `activateExpressionContributor`, `reportContributorIssue`, `getContributorIssues`, `decideSubmission`, `onNotificationCreated`. MoMo codes bind the existing `ARKESEL_API_KEY` secret.
+2. **Firestore rules** and **Storage rules** — a separate deploy from Functions.
+3. **TribeStudio** and **Admin** hosting.
+
+Still open after deployment:
+
+- Grant the `finance` custom claim to the administrators who will review payout details. No script in this repository sets it; until someone holds it, submitted payment details wait as pending.
+- A signed-in smoke test: Overview counts, a returned expression, Kawuri, a bank submission and a finance decision, and a MoMo code on a real handset.
+- `CONTRIBUTOR_PULSE_PEPPER` is not set, so the server-only key is created on the first pulse event. Set it once, or leave it.
+- `CONTRIBUTOR_STATEMENT_CHECK` stays unset until the Vertex caching and abuse-monitoring decisions above are made.
+- Signed statement links need the runtime service account to hold Service Account Token Creator on itself. It does today; the emulator test confirms the call fails without it.
+
+Tests: `npm run test:contributor-portal` (backend unit tests and Studio workflow tests), `npm run test:contributor-e2e` (callables, triggers, rules and Storage against the emulators), `npm run test:rules` and `npm run test:storage-rules`.

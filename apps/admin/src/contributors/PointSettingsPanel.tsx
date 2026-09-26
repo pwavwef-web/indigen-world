@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { PageHeader, Panel } from '@indigen-world/console-ui';
-import type { ContributorPayments } from './data';
+import type { ContributorRewardSettings } from './data';
 
-type Settings = NonNullable<ContributorPayments['rewards']>;
+type Settings = ContributorRewardSettings;
 
 export function PointSettingsPanel({ settings, onSave, preview = false }: {
   settings?: Settings;
@@ -15,7 +15,7 @@ export function PointSettingsPanel({ settings, onSave, preview = false }: {
   useEffect(() => setDraft(settings), [settings]);
 
   return <Panel>
-    <PageHeader kicker="Contributor rewards" title="Point settings" body="Set the award per completed expression, daily limit, redemption threshold and cedi value." />
+    <PageHeader kicker="Contributor rewards" title="Point settings" body="Set the award per approved expression, daily limit, redemption threshold and cedi value." />
     {preview && <p className="point-settings-preview-note">Local preview with sample values. Changes here do not affect contributors or live settings.</p>}
     {notice && <p role="status">{notice}</p>}
     {draft && <form onSubmit={async event => {
