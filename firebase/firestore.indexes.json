@@ -1,6 +1,30 @@
 {
   "indexes": [
     {
+      "collectionGroup": "_supportWhatsappOutbox",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "attemptedAt", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "supportCases",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "updatedAt", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "_supportEmailOutbox",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "attemptedAt", "order": "ASCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "lexicalEntries",
       "queryScope": "COLLECTION",
       "fields": [

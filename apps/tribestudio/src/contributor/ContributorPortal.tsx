@@ -12,6 +12,7 @@ import type { AccountSummary, WorkspaceData } from './types';
 import './contributor.css';
 import './studio-refresh.css';
 import { artwork } from './artwork';
+import { SupportPage } from './SupportPage';
 
 /**
  * The contributor portal at /contributor.
@@ -55,6 +56,7 @@ export function ContributorPortal() {
     });
   }, [user?.uid, code]);
 
+  if (path === '/contributor/support') return <AuthFrame><SupportPage /></AuthFrame>;
   if (!ready) return <AuthFrame><p className="cw-auth__message" role="status">Opening your workspace…</p></AuthFrame>;
   if (code || !user) return <AuthFrame><ContributorSignIn code={code} /></AuthFrame>;
   if (linkOwner && user.uid !== linkOwner) {
@@ -108,6 +110,7 @@ function AuthFrame({ children }: { children: ReactNode }) {
           <span><strong>TribeStudio.</strong><small>Your contributor space</small></span>
         </div>
         <main id="main-content" tabIndex={-1}>{children}</main>
+        <p><a href="/contributor/support">Need help signing in? Contact support</a></p>
       </div>
       <p className="cw-auth__foot">For invited contributors documenting Kasem. Indigen World never asks for your password by phone or SMS.</p>
       </div>

@@ -6,6 +6,8 @@ date identifies when the post was prepared; it does not prove the update is live
 
 ## Posts
 
+- [2026-09-26: Help before contributor sign-in](2026-09-26-contributor-support/README.md) — implemented and locally tested; website deployment pending; WhatsApp inactive.
+
 - [2026-09-26: A fresh space for your words](2026-09-26-contributor-studio-refresh/README.md) — draft article; visual redesign deployed, live sign-in verified; signed-in production smoke test pending.
 - [2026-09-26: Daily contributor tasks](2026-09-26-daily-contributor-tasks/README.md) — deployed September 26; authenticated production workflow verification pending.
 

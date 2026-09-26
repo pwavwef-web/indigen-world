@@ -228,6 +228,10 @@
       ],
       "rewrites": [
         {
+          "source": "/api/support",
+          "function": { "functionId": "supportPortal", "region": "us-central1" }
+        },
+        {
           "source": "**",
           "destination": "/index.html"
         }
