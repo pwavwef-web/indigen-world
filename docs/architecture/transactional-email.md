@@ -19,6 +19,7 @@ Function or by writing a `notifications` document.
 | Creator application received | `submitCreatorApplication` → `notifications` | The applicant |
 | Application decision | `decideCreatorApplication` → `notifications` | The applicant |
 | Submission decision / publication | `decideSubmission` → `notifications` | The creator |
+| Support reply / support recovery | `_supportEmailOutbox` → `onSupportEmailCreated` | The case contact; recovery only to an eligible registered mailbox |
 
 The last three write a `notifications` document with a `channels` array. The
 **`onNotificationCreated`** Firestore trigger (`notifications.ts`) fires on
@@ -43,6 +44,49 @@ Arkesel; see [SMS notifications](sms-notifications.md).
 - **One sender module.** `email.ts` owns the transport and config; `email-templates.ts`
   owns the markup. Templates return `{ subject, html, text }` and always include
   a plaintext alternative.
+
+## Shared email theme
+
+The shared shell uses the approved indigo, terracotta, gold and cream palette,
+an image-independent wordmark, readable mobile spacing, a clear action button
+where appropriate, and the team reply address. Form acknowledgements, tester
+claims, newsletters, review notifications, support replies and support recovery
+all use this shell. Private recovery links remain confined to the recipient's
+email; they are never saved on support jobs or included in preview text.
+
+`validatorInvitationEmail` is a reusable invitation to discuss the role and
+arrange access. Generating or sending that message does not create a validator
+account or grant permissions. No automatic invitation campaign is enabled.
+
+### Firebase-managed security emails
+
+The contributor sign-in screen also uses Firebase's own password-reset sender.
+A matching project-level reset template is prepared in
+`firebasePasswordResetEmail`. Firebase replaces `%LINK%` at send time.
+**On September 26, 2026, Firebase rejected both the combined template update and
+the reset-only update with `EMAIL_TEMPLATE_UPDATE_NOT_ALLOWED`. Readback confirmed
+the original templates remain in place.** The branded application support reset
+is separate and can be deployed normally. Native sign-in-screen resets and other
+Firebase security emails still use their original provider templates.
+
+After building Functions, preview the exact changed fields:
+
+```bash
+node services/functions/scripts/brand-auth-emails.mjs --project project-kassena-7e026
+```
+
+Once Firebase permits template updates, apply with
+`--apply --backup <private-file-path>`, optionally selecting one template with
+`--template resetPasswordTemplate`. The script saves only the old
+non-secret templates, changes individual fields with an update mask, and verifies
+the result by reading it back. It preserves sender domain, action handler,
+delivery provider and security settings. It never sends mail. Keep the backup outside Git.
+Rollback uses those saved fields with the same narrow update mask.
+
+Firebase's customization limits are documented in
+[Customize account management emails](https://support.google.com/firebase/answer/7000714?hl=en);
+the [Config API](https://docs.cloud.google.com/identity-platform/docs/reference/rest/v2/Config)
+documents the templates and action-link placeholder.
 
 ## Configuration
 

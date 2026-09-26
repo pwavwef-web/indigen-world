@@ -14,6 +14,7 @@ export interface EmailContent {
 const BRAND = {
   indigo: '#1E365D',
   terracotta: '#B65A3A',
+  gold: '#C58A00',
   cream: '#FFF8E7',
   paper: '#FFFDF8',
   ink: '#172033',
@@ -54,24 +55,33 @@ function layout({ title, bodyHtml, cta, preheader }: LayoutOptions): string {
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="color-scheme" content="light">
+  <meta name="supported-color-schemes" content="light">
   <title>${escapeHtml(title)}</title>
+  <style>
+    @media only screen and (max-width: 480px) {
+      .email-padding { padding-left: 20px !important; padding-right: 20px !important; }
+      .email-title { font-size: 24px !important; }
+    }
+  </style>
 </head>
 <body style="margin:0;padding:0;background:${BRAND.cream};">
   ${preheader ? `<div style="display:none;max-height:0;overflow:hidden;opacity:0;">${escapeHtml(preheader)}</div>` : ''}
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${BRAND.cream};padding:24px 12px;">
     <tr><td align="center">
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:${BRAND.paper};border:1px solid ${BRAND.border};border-radius:14px;overflow:hidden;">
-        <tr><td style="background:${BRAND.indigo};padding:22px 28px;">
-          <span style="font-family:Georgia,'Times New Roman',serif;font-size:20px;font-weight:bold;color:#ffffff;letter-spacing:0.3px;">Indigen&nbsp;World</span>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;background:${BRAND.paper};border:1px solid ${BRAND.border};border-radius:14px;overflow:hidden;">
+        <tr><td class="email-padding" style="background:${BRAND.indigo};padding:26px 32px;border-bottom:4px solid ${BRAND.gold};">
+          <a href="https://indigenworld.com" style="font-family:Georgia,'Times New Roman',serif;font-size:25px;font-weight:bold;color:#ffffff;text-decoration:none;letter-spacing:0.3px;">Indigen&nbsp;World</a>
+          <p style="margin:8px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.5;color:#F0D99C;letter-spacing:1px;">OUR LANGUAGES. OUR STORIES. OUR FUTURE.</p>
         </td></tr>
-        <tr><td style="padding:30px 28px 34px;font-family:Arial,Helvetica,sans-serif;color:${BRAND.ink};">
-          <h1 style="margin:0 0 14px;font-family:Georgia,'Times New Roman',serif;font-size:22px;line-height:1.3;color:${BRAND.indigo};">${escapeHtml(title)}</h1>
-          <div style="font-size:15px;line-height:1.65;color:${BRAND.ink};">${bodyHtml}</div>
+        <tr><td class="email-padding" style="padding:32px;font-family:Arial,Helvetica,sans-serif;color:${BRAND.ink};overflow-wrap:anywhere;word-break:break-word;">
+          <h1 class="email-title" style="margin:0 0 18px;font-family:Georgia,'Times New Roman',serif;font-size:28px;line-height:1.3;color:${BRAND.indigo};">${escapeHtml(title)}</h1>
+          <div style="font-size:16px;line-height:1.65;color:${BRAND.ink};">${bodyHtml}</div>
           ${button}
         </td></tr>
-        <tr><td style="padding:18px 28px;border-top:1px solid ${BRAND.border};font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.6;color:${BRAND.muted};">
-          Indigen World — a cultural-technology ecosystem preserving and celebrating indigenous languages.<br>
-          &copy; ${year} Indigen World. This is an automated message; you can reply to reach a person.
+        <tr><td class="email-padding" style="padding:22px 32px;border-top:1px solid ${BRAND.border};font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.7;color:${BRAND.muted};">
+          Preserving and celebrating indigenous languages, together.<br>
+          Need a hand? Reply to this email or write to <a href="mailto:hi@indigenworld.com" style="color:${BRAND.indigo};text-decoration:underline;">hi@indigenworld.com</a>.<br>
+          &copy; ${year} Indigen World &nbsp;&middot;&nbsp; <a href="https://indigenworld.com" style="color:${BRAND.indigo};text-decoration:underline;">indigenworld.com</a>
         </td></tr>
       </table>
     </td></tr>
@@ -239,4 +249,48 @@ export function notificationEmail(input: {
     }),
     text: `${input.title}\n\n${input.body}${input.actionUrl ? `\n\n${input.actionLabel || 'Open'}: ${input.actionUrl}` : ''}`,
   };
+}
+
+/** Support replies and recovery share the same shell as other operational mail. */
+export function supportEmail(input: {
+  subject: string;
+  text: string;
+  recoveryUrl?: string;
+}): EmailContent {
+  return {
+    subject: input.subject,
+    text: input.text,
+    html: layout({
+      title: input.recoveryUrl ? 'Choose a new password' : 'Your support update',
+      bodyHtml: paragraphs(input.text),
+      preheader: input.recoveryUrl
+        ? 'Use your private link to reset your Indigen World password.'
+        : 'A message from the Indigen World support team.',
+      cta: input.recoveryUrl ? { label: 'Choose a new password', url: input.recoveryUrl } : undefined,
+    }),
+  };
+}
+
+/** An invitation to discuss the role; this message does not grant account access. */
+export function validatorInvitationEmail(input: { name: string; language: string }): EmailContent {
+  const text = `Dear ${input.name},\n\nWe would like to invite you to join Indigen World as a ${input.language} validator.\n\nYou would help review contributors' translations for meaning, spelling and natural usage, and flag anything that needs correction or more context. Your guidance would help us preserve accurate ${input.language} for learners.\n\nIf you would like to take part, please reply to this email. We can discuss your availability, explain the review process and arrange your access before you begin.\n\nThank you for considering the invitation.\nFrancis and the Indigen World team`;
+  return {
+    subject: `An invitation to be a ${input.language} validator — Indigen World`,
+    text,
+    html: layout({
+      title: 'Help give every word a careful review',
+      bodyHtml: paragraphs(text),
+      preheader: `An invitation to support ${input.language} contributors as a validator.`,
+      cta: { label: 'Reply to the invitation', url: 'mailto:hi@indigenworld.com?subject=Validator%20invitation' },
+    }),
+  };
+}
+
+/** Firebase replaces %LINK% at send time; no live action code belongs in this template. */
+export function firebasePasswordResetEmail(): EmailContent {
+  return supportEmail({
+    subject: 'Reset your Indigen World password',
+    text: 'Hello,\n\nA password reset was requested for your Indigen World account. Use the button below to choose a new password.\n\nIf you did not request this, you can ignore this email. Your password has not changed. Keep this link private and never share it.\n\nIf the button does not work, copy this link into your browser:\n%LINK%\n\nNeed help? Reply to this email to reach the Indigen World team.',
+    recoveryUrl: '%LINK%',
+  });
 }
