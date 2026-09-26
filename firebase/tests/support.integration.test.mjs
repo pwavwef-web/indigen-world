@@ -69,6 +69,8 @@ test('team replies queue once and SMTP acceptance never claims recipient deliver
   const job = db.doc(`_supportEmailOutbox/${c.id}_admin-reply-123`);
   const start = mail.length; await Promise.all([api.deliverSupportEmail(job), api.deliverSupportEmail(job)]);
   assert.equal(mail.length - start, 1); assert.equal((await job.get()).get('status'), 'accepted');
+  assert.match(mail.at(-1).html, /Indigen&nbsp;World/);
+  assert.match(mail.at(-1).html, /Please use the email from your invitation\./);
   assert.equal((await db.doc(`supportCases/${c.id}/messages/admin-reply-123`).get()).get('delivery'), 'accepted');
   assert.equal((await db.doc(`supportCases/${c.id}`).get()).get('status'), 'awaiting_member');
 });
@@ -87,6 +89,8 @@ test('recovery goes only to an active registered mailbox; unknown addresses get 
   const start = mail.length; await api.deliverSupportEmail(job); await api.deliverSupportEmail(unknownJob);
   assert.equal(mail.length - start, 1); assert.equal(mail.at(-1).to, email);
   assert.match(mail.at(-1).text, /oobCode=/);
+  assert.match(mail.at(-1).html, /href="[^"]*oobCode=[^"]*"/);
+  assert.match(mail.at(-1).html, /Choose a new password/);
   assert.doesNotMatch(JSON.stringify((await job.get()).data()), /oobCode=/);
   assert.equal((await unknownJob.get()).get('status'), 'not_eligible');
 });

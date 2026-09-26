@@ -10,7 +10,8 @@ import { requireAuth, requireRole } from './auth.js';
 import { CONTRIBUTOR_CALL_OPTIONS, guarded } from './contributor-common.js';
 import { consumeRateLimit } from './rate-limit.js';
 import { sendMail, SMTP_PASSWORD, teamInbox } from './email.js';
-import { clean, digest, escapeHtml, redactSupportText, SUPPORT_CATEGORIES, SUPPORT_ORIGIN, SUPPORT_STATUSES, SUPPORT_URL, supportGuidance, validEmail, validId, validKey } from './support-model.js';
+import { supportEmail } from './email-templates.js';
+import { clean, digest, redactSupportText, SUPPORT_CATEGORIES, SUPPORT_ORIGIN, SUPPORT_STATUSES, SUPPORT_URL, supportGuidance, validEmail, validId, validKey } from './support-model.js';
 
 const options = { ...CONTRIBUTOR_CALL_OPTIONS };
 const timestamp = () => new Date().toISOString();
@@ -175,6 +176,7 @@ export async function deliverSupportEmail(ref: DocumentReference, mailer = sendM
   });
   if (!job) return;
   let text = String(job.text), subject = 'Indigen World support';
+  let recoveryUrl: string | undefined;
   const ticket = await caseRef(job.caseId).get();
   if (!ticket.exists) { await ref.update({ status: 'cancelled', completedAt: timestamp() }); return; }
   const code = String(ticket.get('reference') || 'Support');
@@ -184,6 +186,7 @@ export async function deliverSupportEmail(ref: DocumentReference, mailer = sendM
       const account = await db.doc(`contributorAccounts/${user.uid}`).get();
       if (user.disabled || account.get('status') !== 'active') { await ref.update({ status: 'not_eligible', completedAt: timestamp() }); return; }
       const link = await getAuth().generatePasswordResetLink(job.to, { url: `${SUPPORT_ORIGIN}/contributor` });
+      recoveryUrl = link;
       text = `A password reset was requested for your Indigen World contributor account.\n\nChoose your new password using this private link:\n${link}\n\nIf you did not request this, you can ignore this email. Your password has not changed. Never share this link.\n\nFor help: ${SUPPORT_URL}\nCase: ${code}`;
       subject = 'Reset your Indigen World password';
     } catch (error) {
@@ -192,7 +195,7 @@ export async function deliverSupportEmail(ref: DocumentReference, mailer = sendM
       await ticket.ref.update({ needsAttention: true, deliveryProblem: 'recovery_unavailable', updatedAt: timestamp() }); return;
     }
   } else subject = `Indigen World support · ${code}`;
-  const accepted = await mailer({ to: job.to, subject, text, html: `<div style="font-family:Arial,sans-serif;line-height:1.6;white-space:pre-wrap">${escapeHtml(text)}</div>` });
+  const accepted = await mailer({ to: job.to, ...supportEmail({ subject, text, recoveryUrl }) });
   const status = accepted ? 'accepted' : 'failed';
   await ref.update({ status, completedAt: timestamp() });
   if (job.messageId) await caseRef(job.caseId).collection('messages').doc(job.messageId).update({ delivery: status });
