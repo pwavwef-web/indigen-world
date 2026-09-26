@@ -1,6 +1,6 @@
 # A fresh space for your words
 
-Status: **Draft article. Visual redesign deployed on September 26, 2026 from `main` at `9a465a2`. Live sign-in and bundled assets verified. Route-cache follow-up deployment and signed-in production smoke test pending. Nothing has been published or shared.** Prepared September 26, 2026.
+Status: **Draft article. Visual redesign and navigation-cache follow-up deployed on September 26, 2026 from `main` at `a283b17`. Live sign-in, bundled assets and navigation cache headers verified. Signed-in production smoke test pending. Nothing has been published or shared.** Prepared September 26, 2026.
 
 | Field | Value |
 |---|---|
@@ -31,16 +31,16 @@ Status: **Draft article. Visual redesign deployed on September 26, 2026 from `ma
 
 ## Deployment evidence
 
-- Firebase Hosting released the `tribestudio` site from `9a465a2` on September 26, 2026. No backend, rules or other hosting site was deployed.
+- Firebase Hosting released the visual refresh from `9a465a2`, then the navigation-cache follow-up from `a283b17`, on September 26, 2026. Both deployments passed the production-main guard and required checks, including all 47 TribeStudio tests. Only the `tribestudio` hosting site was released; no backend, rules or other hosting site was deployed.
 - The custom domain `/contributor` returns 200 and references the expected production entry bundle. Both generated WebP images and the contributor JS/CSS bundles return 200 with the correct content types and byte sizes.
 - The live sign-in page displays the new artwork and heading without browser console errors.
-- A follow-up adds contributor routes to Hosting's existing no-cache/no-store navigation rule, preventing future navigations from retaining an old app shell. The prior live response cached contributor HTML for one hour.
-- The development preview's simulated assistant now resolves daily assignments and current items, as well as the original sample assignments. This file is excluded from production builds.
+- Contributor routes now use Hosting's existing no-cache/no-store navigation rule. Live requests to `/contributor`, `/contributor/account/profile` and `/contributor/assignments` returned 200 with `Cache-Control: no-store, must-revalidate, no-cache`. The prior live response cached contributor HTML for one hour.
+- The development preview's simulated assistant now resolves daily assignments and current items, as well as the original sample assignments. A keyboard-activated daily-assignment prompt displayed the simulated response and assignment source. This file is excluded from production builds.
 - Signed-in production workflows still need an invited-account smoke test; browser interaction checks above used the preview. No real contribution, payment, reward request or message was sent.
 
 ## Publishing handoff
 
-1. Confirm the production release and complete an invited-account smoke test: Home, daily tasks, editor save/resume, guide links, rewards and account navigation.
+1. Complete an invited-account smoke test: Home, daily tasks, editor save/resume, guide links, rewards and account navigation.
 2. Update the release-status paragraph in `post.html` to match that evidence.
 3. Create a Blogger draft with the title, labels, search description and permalink above; paste `post.html` in HTML view.
 4. If using screenshots, use the local preview images and clearly caption them as sample data. Never expose contributor details in screenshots.
