@@ -48,7 +48,9 @@ if (usingEmulators) {
 }
 
 export let analytics: Analytics | null = null;
-if (typeof window !== 'undefined' && !usingEmulators) {
+// Private support links carry a bearer key in the fragment. Never initialize
+// Analytics on that page: automatic page_view events can include the full URL.
+if (typeof window !== 'undefined' && !usingEmulators && !window.location.pathname.startsWith('/contributor/support')) {
   void isSupported().then((supported) => {
     if (supported) analytics = getAnalytics(app);
   });

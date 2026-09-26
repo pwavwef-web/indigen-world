@@ -38,6 +38,7 @@ export function GuidePage({ section }: { section: string }) {
         <div><span className="cw-kicker">YOUR CONTRIBUTOR FIELD GUIDE</span><h2>Start with what you know.</h2><p>Write naturally. Add context. Let the reviewers help you grow.</p></div>
       </div>
       <div className="cw-help-toolbar">
+        <a href="/contributor/support" className="cw-text-link">Account help and support inbox</a>
         <label className="cw-search"><Icon name="search" /><input type="search" aria-label="Search help" placeholder="Search help, review, saving or rewards" value={query} onChange={event => setQuery(event.target.value)} /></label>
         <div className="cw-help-actions"><ContributorIssues preview={data.preview} accountId={data.uid} showHistory /></div>
       </div>

@@ -1,0 +1,44 @@
+# Contributor support operations
+
+## Website and staff inbox
+
+- Public entry: `https://tribestudio.indigenworld.com/contributor/support` after deployment.
+- Staff: Admin → Contributors → Issues → Support inbox. Assignment reports remain underneath.
+- New cases receive automatic guidance. A member can request recovery, ask a person, reply or confirm resolution. Staff may record confirmed resolution obtained through another channel.
+- The member's private link is a bearer credential. Do not paste it into issues, analytics, release posts or team chats. The server stores only its hash. Staff do not need that link.
+- Staff replies appear in the private case and queue an email. Email acceptance only means the SMTP relay accepted the message. Members should reply through their private case link; direct email replies go to the normal team mailbox and are not automatically ingested into this inbox.
+- No guaranteed response time is advertised. Review the inbox and team mailbox regularly. Open cases older than 24 hours produce an internal reminder once per UTC day.
+
+## Delivery and account recovery
+
+`SMTP_PASSWORD` must exist in Secret Manager and be bound to `onSupportEmailCreated`. `SMTP_USER`, `MAIL_FROM` and `MAIL_TEAM` default to the existing team mailbox. Never put live secrets into `.env.example` or source control.
+
+Recovery emails are sent only after Firebase Auth and the contributor record confirm an enabled, active contributor. Other addresses receive the same public response and no email. Staff must verify identity before sharing account details or changing an invitation email. Support never sets a member's password.
+
+`accepted` is not `delivered`. `failed`, `held` and `unknown` require attention. Do not resend uncertain sends blindly. Check the mailbox/provider history first; send a new staff reply only when appropriate. The hourly sweep marks sends stuck for ten minutes as uncertain.
+
+## WhatsApp activation gate
+
+Implementation is prepared for **Meta Cloud API**, but a business portfolio alone is not a connected WhatsApp account.
+
+1. Confirm whether the chosen number is regular WhatsApp or WhatsApp Business and whether phone access must continue. Back up chats using the official mobile flow. Do not delete an existing WhatsApp account merely to get through a signup screen.
+2. Complete the appropriate official WhatsApp Business migration/coexistence or dedicated-number flow. Confirm Ghana eligibility in the actual selected flow. Complete any identity/business verification and terms with the owner. Keep any unsupported migration paused.
+3. Create/configure the business-owned Meta app and WABA. Obtain the business phone number ID and WABA ID. Grant only the WhatsApp permissions and assets required by the integration. The owner handles credentials, verification codes and any required security changes.
+4. Store `SUPPORT_META_APP_SECRET`, `SUPPORT_META_VERIFY_TOKEN` (random), and `SUPPORT_META_ACCESS_TOKEN` in Secret Manager. Use a properly scoped production token; never commit it or print it in logs.
+5. Write the server-only `_supportConfig/whatsapp` document with `provider: "meta"`, `number` (E.164), `wabaId`, `phoneNumberId`, `apiVersion` (a currently supported Graph version), and `enabled: false`.
+6. Deploy `supportWhatsappWebhook`, `onSupportWhatsappEvent` and `onSupportWhatsappOutbox`. The webhook URL is the deployed HTTPS function URL. Subscribe to WhatsApp `messages`; complete the GET verification challenge with the stored verification token.
+7. During a controlled activation session, enable the config and send an inbound message from an owner-approved test number. Verify one case, one automatic response, a real delivered/read callback, HUMAN handoff, STOP suppression and a staff reply. Disable immediately if any gate fails. Only then advertise the WhatsApp link. A webhook test payload or API acceptance alone is not sufficient.
+
+Messages outside the 24-hour reply window are held. Approved outbound templates are not configured. A member can initiate a new conversation to reopen the window. Never route a blocked WhatsApp reply to SMS.
+
+## Deployment
+
+Follow the feature-branch and pull-request workflow. Production hosting must deploy from clean, verified `origin/main`.
+
+Website phase: deploy Firestore indexes; deploy `supportPortal`, `listSupportCases`, `getSupportCase`, `updateSupportCase`, `onSupportEmailCreated`, `supportEscalationSweep`; then deploy TribeStudio and Admin hosting. Preserve the existing SMTP environment settings. No rules change is required: emulator tests verify direct reads are denied, including for staff.
+
+Do not include WhatsApp functions in the first deploy before their secrets and account setup are complete. No personal customer data is required for testing: use `npm run test:support` with the demo emulators.
+
+## Verification
+
+The integration suite covers private-case access, direct Firestore denial, admin role checks, concurrent retries, human escalation, confirmed closure/reopening, mailbox-only reset links, unknown-account neutrality, raw webhook signatures, business scope, duplicate receipts, STOP, the 24-hour window, uncertain sends and delivery callbacks. Website/Admin check commands cover type checks and production builds. Provider onboarding, live mail delivery and actual WhatsApp delivery need separate release evidence.
