@@ -168,4 +168,14 @@ export { kawuriContributorAssist } from './contributor-assist.js';
 
 export { prepareContributorDailyTasks, getContributorDailyTasks, requestMoreContributorTasks } from './contributor-daily-tasks.js';
 export { supportPortal, listSupportCases, getSupportCase, updateSupportCase, onSupportEmailCreated, supportEscalationSweep } from './support.js';
-export { supportWhatsappWebhook, onSupportWhatsappEvent, onSupportWhatsappOutbox } from './support-whatsapp.js';
+// Firebase resolves all declared secrets during discovery, even for a filtered
+// deployment. Do not load this module until the owner finishes Meta onboarding.
+export let supportWhatsappWebhook: typeof import('./support-whatsapp.js').supportWhatsappWebhook;
+export let onSupportWhatsappEvent: typeof import('./support-whatsapp.js').onSupportWhatsappEvent;
+export let onSupportWhatsappOutbox: typeof import('./support-whatsapp.js').onSupportWhatsappOutbox;
+if (process.env.ENABLE_SUPPORT_WHATSAPP === 'true') {
+  const whatsapp = await import('./support-whatsapp.js');
+  supportWhatsappWebhook = whatsapp.supportWhatsappWebhook;
+  onSupportWhatsappEvent = whatsapp.onSupportWhatsappEvent;
+  onSupportWhatsappOutbox = whatsapp.onSupportWhatsappOutbox;
+}
