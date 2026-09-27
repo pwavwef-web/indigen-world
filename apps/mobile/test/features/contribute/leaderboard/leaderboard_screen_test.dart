@@ -5,10 +5,13 @@
 // held at the bottom of the screen with their real place on it; a member inside
 // it gets highlighted where they already are, and not drawn twice.
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:indigen_world_mobile/app/app_theme.dart';
+import 'package:indigen_world_mobile/features/contribute/contribution_kind_screen.dart';
 import 'package:indigen_world_mobile/features/contribute/leaderboard/contributor_scores.dart';
 import 'package:indigen_world_mobile/features/contribute/leaderboard/leaderboard_screen.dart';
 import 'package:indigen_world_mobile/l10n/app_localizations.dart';
@@ -21,6 +24,11 @@ Future<void> pumpBoard(
   ContributorScore? mine,
   int? myRank,
   bool failing = false,
+  bool ownFailing = false,
+  bool reducedMotion = false,
+  double textScale = 1,
+  ThemeData? theme,
+  Stream<ContributorScore?>? ownStream,
   Size size = const Size(800, 1400),
 }) async {
   tester.view.physicalSize = size;
@@ -38,19 +46,37 @@ Future<void> pumpBoard(
                 )
               : Stream.value(rows),
         ),
-        myContributorScoreProvider.overrideWith((ref) => Stream.value(mine)),
+        myContributorScoreProvider.overrideWith(
+          (ref) =>
+              ownStream ??
+              (ownFailing
+                  ? Stream<ContributorScore?>.error(StateError('offline'))
+                  : Stream.value(mine)),
+        ),
         myLeaderboardRankProvider.overrideWith((ref) async => myRank),
       ],
       child: MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
-        theme: buildIndigenTheme(),
-        home: const LeaderboardScreen(),
+        theme: theme ?? buildIndigenTheme(),
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(context).copyWith(
+            disableAnimations: reducedMotion,
+            textScaler: TextScaler.linear(textScale),
+          ),
+          child: child!,
+        ),
+        home: const RepaintBoundary(
+          key: ValueKey('points-preview'),
+          child: LeaderboardScreen(),
+        ),
       ),
     ),
   );
   await tester.pump();
   await tester.pump(const Duration(milliseconds: 50));
+  await tester.pump(const Duration(milliseconds: 1200));
+  await tester.pumpAndSettle();
 }
 
 void main() {
@@ -67,15 +93,11 @@ void main() {
 
     // A scoreboard whose arithmetic is invisible reads as arbitrary, and the
     // server's scale is flat precisely so it can be checked by hand.
-    expect(find.text('HOW POINTS ARE EARNED'), findsOneWidget);
-    expect(
-      find.textContaining('when a reviewer approves something you sent'),
-      findsOneWidget,
-    );
-    expect(find.text('A word for the dictionary'), findsOneWidget);
-    expect(find.text('10'), findsOneWidget);
-    expect(find.text('25'), findsOneWidget);
-    expect(find.text('50'), findsOneWidget);
+    expect(find.text('Earned after approval.'), findsOneWidget);
+    expect(find.text('Words'), findsOneWidget);
+    expect(find.text('+10'), findsOneWidget);
+    expect(find.text('+25'), findsOneWidget);
+    expect(find.text('+50'), findsOneWidget);
   });
 
   testWidgets('a member outside the top is pinned at the bottom', (
@@ -92,7 +114,7 @@ void main() {
     // Their own row, once, with the place the aggregate count worked out.
     expect(find.text('Yaw Atule · you'), findsOneWidget);
     expect(find.text('412'), findsOneWidget);
-    expect(find.text('12'), findsOneWidget);
+    expect(find.text('12'), findsNWidgets(2)); // Personal total and pinned row.
 
     // And it is below every row of the fetched window rather than in it.
     expect(
@@ -109,29 +131,18 @@ void main() {
 
     expect(find.text('0'), findsNothing);
     expect(find.text('—'), findsOneWidget);
-    expect(
-      find.text('Your exact place could not be counted right now.'),
-      findsOneWidget,
-    );
+    expect(find.text('Rank unavailable right now'), findsOneWidget);
   });
 
   testWidgets('a member inside the top is highlighted in place, not twice', (
     tester,
   ) async {
     final rows = board(4);
-    await pumpBoard(
-      tester,
-      rows: rows,
-      mine: rows[2],
-      myRank: 3,
-    );
+    await pumpBoard(tester, rows: rows, mine: rows[2], myRank: 3);
 
     expect(find.text('Member C · you'), findsOneWidget);
     // No pinned bar underneath saying the same thing again.
-    expect(
-      find.text('Your exact place could not be counted right now.'),
-      findsNothing,
-    );
+    expect(find.text('Rank unavailable right now'), findsNothing);
   });
 
   testWidgets('members on the same points share a place', (tester) async {
@@ -197,11 +208,8 @@ void main() {
   testWidgets('an empty board asks for the first contribution', (tester) async {
     await pumpBoard(tester, rows: const []);
 
-    expect(
-      find.textContaining('Nobody has scored yet'),
-      findsOneWidget,
-    );
-    expect(find.text('Send something'), findsOneWidget);
+    expect(find.text('The first place could be yours.'), findsOneWidget);
+    expect(find.text('Make a contribution'), findsOneWidget);
   });
 
   testWidgets('a failed read is reported, not drawn as an empty board', (
@@ -210,6 +218,110 @@ void main() {
     await pumpBoard(tester, rows: const [], failing: true);
 
     expect(find.text('The board could not be loaded.'), findsOneWidget);
-    expect(find.text('Send something'), findsNothing);
+    expect(find.text('Make a contribution'), findsNothing);
+    expect(find.text('Try again'), findsOneWidget);
   });
+
+  testWidgets(
+    'rules are available on demand and contribute opens the chooser',
+    (tester) async {
+      await pumpBoard(tester, rows: board(4));
+      expect(find.textContaining('Pending work'), findsNothing);
+      await tester.tap(find.byTooltip('About points'));
+      await tester.pumpAndSettle();
+      expect(
+        find.textContaining('Pending work does not count yet'),
+        findsOneWidget,
+      );
+      expect(find.textContaining('Learning XP is separate'), findsOneWidget);
+      Navigator.of(tester.element(find.text('Good work adds up.'))).pop();
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Contribute'));
+      await tester.pumpAndSettle();
+      expect(find.byType(ContributionKindScreen), findsOneWidget);
+    },
+  );
+
+  testWidgets('failed personal score is unavailable, never a false zero', (
+    tester,
+  ) async {
+    await pumpBoard(tester, rows: board(3), ownFailing: true);
+    expect(find.text('Points unavailable right now'), findsOneWidget);
+    expect(find.byKey(const ValueKey('personal-points')), findsNothing);
+  });
+
+  testWidgets('live totals animate to the real score and stop', (tester) async {
+    final stream = StreamController<ContributorScore?>();
+    addTearDown(stream.close);
+    await pumpBoard(tester, rows: board(3), ownStream: stream.stream);
+    expect(find.text('Loading your points…'), findsOneWidget);
+    stream.add(score('uid-0', points: 120));
+    await tester.pump();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    final number = find.byKey(const ValueKey('personal-points'));
+    final midway = int.parse(tester.widget<Text>(number).data!);
+    expect(midway, inExclusiveRange(0, 120));
+    await tester.pumpAndSettle();
+    expect(tester.widget<Text>(number).data, '120');
+    stream.add(score('uid-0', points: 145));
+    await tester.pump();
+    await tester.pumpAndSettle();
+    expect(tester.widget<Text>(number).data, '145');
+    expect(tester.binding.hasScheduledFrame, isFalse);
+  });
+
+  testWidgets('reduced motion shows the final score immediately', (
+    tester,
+  ) async {
+    final stream = StreamController<ContributorScore?>();
+    addTearDown(stream.close);
+    await pumpBoard(
+      tester,
+      rows: board(3),
+      ownStream: stream.stream,
+      reducedMotion: true,
+    );
+    stream.add(score('uid-0', points: 145));
+    await tester.pump();
+    await tester.pump();
+    expect(
+      tester.widget<Text>(find.byKey(const ValueKey('personal-points'))).data,
+      '145',
+    );
+    expect(tester.binding.hasScheduledFrame, isFalse);
+  });
+
+  for (final dark in [false, true]) {
+    testWidgets(
+      'small phone with large text fits in ${dark ? 'dark' : 'light'} mode',
+      (tester) async {
+        await pumpBoard(
+          tester,
+          rows: board(8),
+          mine: score(
+            'mine',
+            points: 12450,
+            displayName: 'A contributor with a very long name',
+            streakDays: 123,
+          ),
+          myRank: 1234,
+          textScale: 2,
+          size: const Size(320, 740),
+          theme: dark ? buildIndigenDarkTheme() : buildIndigenTheme(),
+        );
+        expect(tester.takeException(), isNull);
+        await tester.drag(
+          find.byType(CustomScrollView),
+          const Offset(0, -1400),
+        );
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
+        expect(
+          find.text('A contributor with a very long name · you'),
+          findsOneWidget,
+        );
+      },
+    );
+  }
 }

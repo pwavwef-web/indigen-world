@@ -1880,6 +1880,8 @@ class _ReelCardState extends ConsumerState<_ReelCard> {
                 firstPartyBuilder: (context, ad) =>
                     SponsoredCard(ad: ad, slot: 'explore-${slot.index}'),
                 loading: const _ExploreAdLoading(),
+                onDark: true,
+                keepAdMobAlive: false,
                 onAdMobUnavailable: () => ref
                     .read(collapsedAdMobSlotsProvider.notifier)
                     .collapse(slot.key),

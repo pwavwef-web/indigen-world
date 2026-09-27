@@ -12,6 +12,7 @@ Indigen World
 |   +-- Ecosystem                /ecosystem
 |   |   +-- Project Kassena      /project-kassena
 |   |       +-- Kasem Dictionary /dictionary
+|   +-- Contribute               /contribute
 |   +-- Impact & Governance      /impact-governance
 |   +-- Get Involved             /get-involved
 |   +-- Contact                  /contact
@@ -36,6 +37,7 @@ Indigen World
 | Ecosystem | `/ecosystem` | Show the public products, programmes and infrastructure | Header, footer | Included |
 | Project Kassena | `/project-kassena` | Explain the flagship Kasem-language programme | Header, footer, ecosystem | Included |
 | Kasem Dictionary | `/dictionary` | Let visitors search and save published Kasem words | Header, footer, Project Kassena | Included |
+| Contribute | `/contribute` | The open Everyday Kasem expressions campaign: the task, the review process, published expressions, and the call to action into TribeStudio | Header, footer, home hero and paths, Get Involved | Included |
 | Impact & Governance | `/impact-governance` | Explain cultural-data stewardship and impact targets | Header, footer | Included |
 | Get Involved | `/get-involved` | Route contributors, partners, researchers and supporters | Primary call to action, footer | Included |
 | Contact | `/contact` | Handle general, correction, publication and takedown enquiries | Footer | Included |
@@ -47,10 +49,13 @@ Indigen World
 
 ## Primary journeys
 
-1. **Understand the mission:** Home -> About -> Impact & Governance.
-2. **Explore the work:** Home -> Ecosystem -> Project Kassena -> Kasem Dictionary.
-3. **Participate:** Home or any header -> Get Involved -> Contact when a direct conversation is needed.
-4. **Review trust information:** Any footer -> Privacy or Terms.
+1. **Learn Kasem:** Home (hero or the Learn path) -> Kasem Dictionary. No account.
+2. **Contribute Kasem:** Home (hero or the Contribute path) -> Contribute -> TribeStudio
+   `/studio/expressions` (Google sign-in) -> "Your expressions" for the review status.
+3. **Understand the mission:** Home -> About -> Impact & Governance.
+4. **Explore the work:** Home -> Ecosystem -> Project Kassena -> Kasem Dictionary.
+5. **Other involvement:** Home or any header -> Get Involved -> Contact when a direct conversation is needed.
+6. **Review trust information:** Any footer -> Privacy or Terms.
 
 ## Maintenance rules
 

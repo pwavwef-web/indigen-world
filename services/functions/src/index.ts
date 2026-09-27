@@ -67,6 +67,7 @@ export {
   submitCollectionContribution,
   withdrawCollectionContribution,
 } from './collection-contributions.js';
+export { submitExpression } from './expressions.js';
 export {
   nextQueueWords,
   skipQueueWord,

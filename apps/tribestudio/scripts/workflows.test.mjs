@@ -800,3 +800,113 @@ test('Kawuri suggestions are labelled as AI, can be dismissed, and never touch t
   assert.match(text(offline), /roles\/aiplatform.user/);
   assert.match(unavailableText('SOMETHING_ELSE'), /could not write suggestions/);
 });
+
+// ── Everyday expressions ────────────────────────────────────────────────────
+
+const EXPRESSION_DATA_EXPORTS = ['EVERYDAY_STATEMENT', 'EXPRESSION_DIALECTS', 'EXPRESSION_KINDS', 'EXPRESSION_SOURCES',
+  'EXPRESSION_STATUS', 'MAX_PHRASE_LENGTH', 'canWithdrawExpression', 'clearExpressionDraft', 'draftFromDeclined',
+  'emptyExpressionDraft', 'fetchMyExpressions', 'loadExpressionDraft', 'looksLikeSingleWord', 'missingPiece',
+  'saveExpressionDraft', 'statusOf', 'submitExpression', 'withdrawExpression'];
+
+async function expressionPage({ receipts = [] } = {}) {
+  const h = hooks(), calls = [];
+  const window = {
+    setTimeout: () => 0, clearTimeout() {}, requestAnimationFrame: () => 0,
+    localStorage: { getItem: () => null, setItem() {}, removeItem() {} },
+  };
+  const data = await load('src/creator/expressions-data.ts', EXPRESSION_DATA_EXPORTS, {
+    db: {}, functions: {}, window, collection() {}, query() {}, where() {}, limit() {},
+    getDocs: async () => ({ docs: receipts.map((receipt) => ({ id: receipt.id, data: () => receipt })) }),
+    httpsCallable: (_functions, name) => async (payload) => { calls.push({ name, payload: plain(payload) }); return { data: { contributionId: 'new-1', submissionId: 'new-1' } }; },
+  });
+  const { ExpressionsPage } = await load('src/creator/pages/ExpressionsPage.tsx', ['ExpressionsPage'], {
+    ...h.api, ...data, window, Link: 'a', KasemPalette: 'palette', insertIntoField() {}, trackEvent() {},
+    useAuth: () => ({ user: { uid: 'member-1' } }),
+  });
+  const render = () => h.render(ExpressionsPage);
+  const settle = async () => { h.flush(); await tick(); await tick(); };
+  return { h, calls, render, settle };
+}
+
+const byId = (tree, id) => find(tree, (n) => n.props?.id === id);
+const labelled = (tree, text) => find(tree, (n) => n.type === 'label' && JSON.stringify(n.props.children).includes(text));
+
+function fillExpression(page, tree) {
+  byId(tree, 'expr-phrase').props.onChange({ target: { value: '[Kasem expression]' } });
+  tree = page.render();
+  byId(tree, 'expr-meaning').props.onChange({ target: { value: 'Welcome back from your journey.' } });
+  byId(tree, 'expr-context').props.onChange({ target: { value: 'Said to a relative arriving home.' } });
+  byId(tree, 'expr-dialect').props.onChange({ target: { value: 'Navrongo' } });
+  tree = page.render();
+  find(labelled(tree, 'A family member'), (n) => n.type === 'input').props.onChange();
+  tree = page.render();
+  byId(tree, 'expr-source-detail').props.onChange({ target: { value: 'My grandmother in Navrongo.' } });
+  tree = page.render();
+  find(labelled(tree, 'agreed that I may share it'), (n) => n.type === 'input').props.onChange({ target: { checked: true } });
+  find(labelled(tree, 'nothing sacred'), (n) => n.type === 'input').props.onChange({ target: { checked: true } });
+  find(labelled(tree, 'Publish it after review'), (n) => n.type === 'input').props.onChange();
+  return page.render();
+}
+
+test('the expression form sends nothing until the five pieces are there, then sends them as an expression', async () => {
+  const page = await expressionPage();
+  let tree = page.render(); await page.settle(); tree = page.render();
+  const form = () => find(tree, (n) => n.type === 'form');
+  form().props.onSubmit({ preventDefault() {} }); await tick();
+  tree = page.render();
+  assert.match(JSON.stringify(find(tree, (n) => n.props?.role === 'alert')), /Write the expression in Kasem/);
+  assert.equal(page.calls.length, 0, 'an incomplete expression is never sent');
+
+  tree = fillExpression(page, tree);
+  form().props.onSubmit({ preventDefault() {} }); await tick(); await tick();
+  assert.equal(page.calls.length, 1);
+  const { name, payload } = page.calls[0];
+  assert.equal(name, 'submitExpression');
+  assert.equal(payload.phrase, '[Kasem expression]');
+  assert.equal(payload.meaning, 'Welcome back from your journey.');
+  assert.equal(payload.context, 'Said to a relative arriving home.');
+  assert.equal(payload.sourceType, 'family');
+  assert.equal(payload.sourceDetail, 'My grandmother in Navrongo.');
+  assert.equal(payload.speakerConsent, true);
+  assert.equal(payload.everydayConfirmed, true);
+  assert.equal(payload.publicationPermission, true);
+  assert.equal(payload.aiTraining, false, 'AI training stays off unless ticked');
+  assert.equal(payload.culturalPermissionTier, 'public');
+  assert.equal('revisionOf' in payload, false);
+  tree = page.render();
+  assert.match(JSON.stringify(tree), /Sent for review/);
+  page.h.dispose();
+});
+
+test('each expression shows where its review stands, and a declined one can be corrected and resent', async () => {
+  const declined = {
+    id: 'old-1', authUid: 'member-1', collectionKind: 'expressions', status: 'rejected',
+    reviewFeedback: 'The spelling of the second word is not standard.', publicationPermission: true,
+    expression: { phrase: '[Declined expression]', meaning: 'Good evening.', context: 'Evening greeting.', kind: 'phrase', dialect: 'Paga',
+      source: { type: 'self', detail: 'I say it every day.' } },
+    createdAt: '2026-09-20T10:00:00Z',
+  };
+  const waiting = { ...declined, id: 'new-2', status: 'submitted', reviewFeedback: '', expression: { ...declined.expression, phrase: '[Waiting expression]' }, createdAt: '2026-09-26T10:00:00Z' };
+  const page = await expressionPage({ receipts: [declined, waiting] });
+  let tree = page.render(); await page.settle(); tree = page.render();
+  const text = JSON.stringify(tree);
+  assert.match(text, /Waiting for review/);
+  assert.match(text, /Not accepted/);
+  assert.match(text, /The spelling of the second word is not standard/);
+  assert.ok(text.indexOf('[Waiting expression]') < text.indexOf('[Declined expression]'), 'newest first');
+
+  find(tree, (n) => n.type === 'button' && JSON.stringify(n.props.children).includes('Correct and send again')).props.onClick();
+  tree = page.render();
+  assert.equal(byId(tree, 'expr-phrase').props.value, '[Declined expression]');
+  assert.match(JSON.stringify(tree), /Correcting an expression that was not accepted/);
+  // Consent is confirmed afresh for a correction, never carried over.
+  find(labelled(tree, 'my own everyday Kasem'), (n) => n.type === 'input').props.onChange({ target: { checked: true } });
+  find(labelled(tree, 'nothing sacred'), (n) => n.type === 'input').props.onChange({ target: { checked: true } });
+  find(labelled(tree, 'Publish it after review'), (n) => n.type === 'input').props.onChange();
+  tree = page.render();
+  find(tree, (n) => n.type === 'form').props.onSubmit({ preventDefault() {} }); await tick(); await tick();
+  assert.equal(page.calls.length, 1);
+  assert.equal(page.calls[0].payload.revisionOf, 'old-1');
+  assert.equal(page.calls[0].payload.dialect, 'Paga');
+  page.h.dispose();
+});

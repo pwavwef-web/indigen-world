@@ -35,21 +35,26 @@ export function SubmissionsPage() {
 
   const filtered = subs.filter((s) => !status || s.status === status);
 
+  // An expression is followed on its own page, which shows the reviewer's
+  // answer and offers the correction; it is named by its Kasem, not its gloss.
+  const isExpression = (s: Submission) => s.collectionKind === 'expressions';
+  const titleOf = (s: Submission) => (isExpression(s) ? s.expression?.phrase ?? s.body ?? s.title : s.title) || 'Untitled';
+
   const columns: DataColumn<Submission>[] = [
     {
       id: 'title',
       header: 'Title',
       cell: (s) => (
-        <Link to={`/studio/submissions/${s.id}`}>{s.title || 'Untitled'}</Link>
+        <Link to={isExpression(s) ? '/studio/expressions' : `/studio/submissions/${s.id}`}>{titleOf(s)}</Link>
       ),
-      sort: (s) => s.title || 'Untitled',
-      search: (s) => s.title || 'Untitled',
+      sort: (s) => titleOf(s),
+      search: (s) => `${titleOf(s)} ${s.title ?? ''}`,
     },
     {
       id: 'category',
       header: 'Category',
       width: '150px',
-      cell: (s) => s.category || '—',
+      cell: (s) => (isExpression(s) ? 'Expression' : s.category || '—'),
       sort: (s) => s.category ?? '',
       search: (s) => s.category ?? '',
     },
@@ -76,7 +81,9 @@ export function SubmissionsPage() {
       width: '86px',
       cell: (s) => (
         <span className="dt-actions">
-          {['DRAFT', 'NEEDS_REVISION'].includes(s.status) ? (
+          {isExpression(s) ? (
+            <Link to="/studio/expressions" className="button button--small">Open</Link>
+          ) : ['DRAFT', 'NEEDS_REVISION'].includes(s.status) ? (
             <Link to={`/studio/submissions/${s.id}/edit`} className="button button--small button--primary">Continue</Link>
           ) : (
             <Link to={`/studio/submissions/${s.id}`} className="button button--small">Open</Link>

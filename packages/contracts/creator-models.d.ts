@@ -52,7 +52,7 @@ export type SubmissionStatus =
   | 'ARCHIVED';
 
 export type ContentStudioType = 'writing' | 'video' | 'audio' | 'image' | 'translation';
-export type CollectionKind = 'music' | 'dictionary' | 'literature' | 'audiobooks' | 'video';
+export type CollectionKind = 'music' | 'dictionary' | 'literature' | 'audiobooks' | 'video' | 'expressions';
 
 export type PaymentStatus =
   | 'NOT_ELIGIBLE'
@@ -335,8 +335,69 @@ export interface Submission {
     publishedContent?: Reference | null;
   };
   rewardEligible?: boolean;
+  /**
+   * An everyday expression as its contributor described it. Present on
+   * `collectionKind: 'expressions'` submissions, written by `submitExpression`
+   * and the invited contributor workspace. See
+   * `services/functions/src/expressions.ts`.
+   */
+  expression?: SubmissionExpression;
+  usageContext?: string;
+  literalTranslation?: string;
+  /** The declined contribution this one corrects, when it was sent again. */
+  revisionOf?: string;
   schemaVersion?: number;
   lifecycle: RecordLifecycle;
+}
+
+export type ExpressionKind = 'phrase' | 'idiom' | 'proverb';
+export type ExpressionSourceType =
+  | 'self'
+  | 'family'
+  | 'elder'
+  | 'community'
+  | 'written'
+  | 'recording'
+  | 'invited-speaker';
+
+/** The expression fields carried on a submission and on its receipt. */
+export interface SubmissionExpression {
+  phrase: string;
+  alternatives?: string[];
+  meaning: string;
+  literalTranslation?: string;
+  context?: string;
+  kind: ExpressionKind;
+  dialect: string;
+  source: { type: ExpressionSourceType; detail: string; speakerName?: string };
+  /** The exact statements the contributor confirmed. */
+  consent?: { source: string; everyday: string };
+}
+
+/** The public record of an approved expression, in `expressionEntries`. */
+export interface ExpressionEntry {
+  id: string;
+  language: string;
+  dialect?: string;
+  phrase: string;
+  alternatives?: string[];
+  meaning: string;
+  literalTranslation?: string;
+  context?: string;
+  expressionKind: ExpressionKind;
+  source: { type: ExpressionSourceType; detail: string; speakerName?: string };
+  contributor: { id: string; displayName: string };
+  licenceDisplay?: string;
+  authenticationStatus?: string;
+  sourceContribution: Reference;
+  submission: Reference;
+  isPublished: boolean;
+  publishedAt: string | null;
+  withdrawnAt?: string;
+  approvedBy?: string;
+  createdAt: string;
+  updatedAt: string;
+  schemaVersion: 1;
 }
 
 export interface PublishedContent {

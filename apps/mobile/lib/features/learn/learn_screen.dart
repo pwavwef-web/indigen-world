@@ -32,6 +32,7 @@ import 'package:indigen_world_mobile/features/rating/rating_service.dart';
 import 'package:indigen_world_mobile/l10n/app_localizations.dart';
 import 'package:indigen_world_mobile/shared/app_widgets.dart';
 import 'package:indigen_world_mobile/shared/frosted_nav_bar.dart';
+import 'package:indigen_world_mobile/shared/kassena_pattern.dart';
 import 'package:indigen_world_mobile/shared/profile_orb.dart';
 
 /// ─────────────────────────────────────────────────────────────────────────────

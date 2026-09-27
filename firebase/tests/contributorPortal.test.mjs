@@ -9,6 +9,8 @@ import { normalizeMsisdn } from '../../services/functions/lib/sms.js';
 import { guarded } from '../../services/functions/lib/contributor-common.js';
 import { COLLECTION_CAMPAIGN_ID, buildCollectionCampaignDocument, buildCollectionContributionReceipt,
   buildCollectionSubmissionDocument, parseCollectionContributionInput } from '../../services/functions/lib/collection-contributions.js';
+import { INVITED_SOURCE_DETAIL, buildExpressionReceipt, buildExpressionSubmissionDocument } from '../../services/functions/lib/expressions.js';
+import { publicationTargetFor } from '../../services/functions/lib/publication.js';
 
 async function harness({ smsOk = true, configured = true } = {}) {
   const records = new Map();
@@ -57,6 +59,7 @@ async function harness({ smsOk = true, configured = true } = {}) {
     onCall: (_options, fn) => fn, onDocumentWritten: (_options, fn) => fn, consumeRateLimit: async () => {},
     COLLECTION_CAMPAIGN_ID, buildCollectionCampaignDocument, buildCollectionContributionReceipt,
     buildCollectionSubmissionDocument, parseCollectionContributionInput,
+    INVITED_SOURCE_DETAIL, buildExpressionReceipt, buildExpressionSubmissionDocument, publicationTargetFor,
   });
   records.set('contributorAccounts/alice', { status: 'active' });
   const itemPath = 'contributorAccounts/alice/works/work/items/item';
@@ -87,7 +90,14 @@ test('submission is idempotent and uses the shared Contributions pipeline with K
   assert.equal((await h.saveExpressionAnswer(req)).submissionId, result.submissionId);
   const submission = h.records.get(`submissions/${result.submissionId}`);
   assert.equal(submission.status, 'SUBMITTED');
+  // Filed as an expression, so it publishes as one and never as a headword.
+  assert.equal(submission.collectionKind, 'expressions');
   assert.equal(submission.lexicalKind, 'phrase');
+  assert.equal(submission.expression.meaning, 'How are you?');
+  assert.equal(submission.expression.phrase, 'Kasem expression');
+  assert.equal(submission.expression.source.type, 'invited-speaker');
+  assert.equal(submission.expression.source.detail, INVITED_SOURCE_DETAIL);
+  assert.equal(submission.permissions.consentVersion, 'contributor-expression-v1');
   assert.equal(submission.title, 'How are you?');
   assert.deepEqual(Array.from(submission.translations), ['Kasem expression', 'Another expression']);
   assert.equal(submission.permissions.aiTraining, false);
@@ -117,7 +127,11 @@ test('training projection follows current reviewed state, consent and withdrawal
   await h.onContributorExpressionReviewed(event);
   assert.equal(h.records.has(training), false);
   h.records.set(key, { ...h.records.get(key), status: 'APPROVED' });
+  // An expression is published to expressionEntries, not the dictionary.
   h.records.set(`dictionaryEntries/collection_${submissionId}`, { isPublished: true });
+  await h.onContributorExpressionReviewed(event);
+  assert.equal(h.records.has(training), false, 'a dictionary row is not where an expression is published');
+  h.records.set(`expressionEntries/expr_${submissionId}`, { isPublished: true });
   await h.onContributorExpressionReviewed(event);
   await h.onContributorExpressionReviewed(event);
   assert.equal(h.records.get(training).english, 'How are you?');
@@ -126,6 +140,17 @@ test('training projection follows current reviewed state, consent and withdrawal
   await h.onContributorExpressionReviewed(event);
   assert.equal(h.records.has(training), false);
   assert.equal(h.records.get(h.itemPath).status, 'withdrawn');
+});
+test('an expression approved before it had a kind of its own is read where it was published', async () => {
+  const h = await harness();
+  const { submissionId } = await h.saveExpressionAnswer(h.request({ submit: true, publicationPermission: true, aiTraining: true }));
+  const key = `submissions/${submissionId}`;
+  // The shape older translations were filed and published under.
+  h.records.set(key, { ...h.records.get(key), collectionKind: 'dictionary', category: 'dictionary', status: 'PUBLISHED',
+    moderation: { publishedContent: { collection: 'dictionaryEntries', id: `collection_${submissionId}` } } });
+  h.records.set(`dictionaryEntries/collection_${submissionId}`, { isPublished: true });
+  await h.onContributorExpressionReviewed({ params: { submissionId } });
+  assert.equal(h.records.get(`contributorTrainingPairs/${submissionId}`).english, 'How are you?');
 });
 test('approval without training consent never creates training data', async () => {
   const h = await harness();

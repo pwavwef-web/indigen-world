@@ -360,6 +360,23 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // ---- Reviewed Kasem expressions ----------------------------------------
+    //
+    // Greetings, blessings, idioms and sayings, published whole with their
+    // meaning, the situation they are said in and where they came from. They
+    // are deliberately NOT dictionary entries: an expression is never split
+    // into headwords, numbered against homographs or counted as a word. See
+    // services/functions/src/expressions.ts.
+    //
+    // Published rows are world-readable, so the website can show them to
+    // visitors who have no account. Unpublished and withdrawn rows stay with
+    // staff. Written only by the review workflow (`decideSubmission`) and by
+    // the contributor's own withdrawal, both server-side.
+    match /expressionEntries/{entryId} {
+      allow read: if resource.data.isPublished == true || isStaff();
+      allow write: if false;
+    }
+
     // ---- The guided word queue ---------------------------------------------
     //
     // Fifteen thousand English words in frequency order, each waiting for a

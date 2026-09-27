@@ -655,6 +655,79 @@ function LexicalForms({ forms }: { forms?: Record<string, string> }) {
   );
 }
 
+const EXPRESSION_KIND_LABELS: Record<string, string> = {
+  phrase: 'Everyday phrase or greeting',
+  idiom: 'Idiom',
+  proverb: 'Proverb or saying',
+};
+
+const EXPRESSION_SOURCE_LABELS: Record<string, string> = {
+  self: 'The contributor says it themselves',
+  family: 'A family member',
+  elder: 'An elder or knowledge holder',
+  community: 'Someone in their community',
+  written: 'A book or written source',
+  recording: 'A recording or broadcast',
+  'invited-speaker': 'Invited Kasem speaker',
+};
+
+/** Whether a queued submission is an everyday expression rather than a word or a work. */
+function isExpression(s: Submission): boolean {
+  return s.collectionKind === 'expressions' || Boolean(s.expression);
+}
+
+/**
+ * The five things an expression was sent with, in the order a reviewer checks
+ * them: the Kasem, what it means, when it is said, who it came from, and what
+ * the contributor confirmed about sharing it.
+ *
+ * An approved expression publishes to `expressionEntries` as a whole phrase.
+ * It never becomes a dictionary headword, so there is no word class, paradigm
+ * or homograph for a reviewer to judge here — only whether the expression is
+ * right, and whether it is safe to publish.
+ */
+function ExpressionReview({ s }: { s: Submission }) {
+  const expression = s.expression;
+  const phrase = expression?.phrase ?? s.body ?? '';
+  const alternatives = expression?.alternatives ?? [];
+  const meaning = expression?.meaning ?? s.title;
+  const literal = expression?.literalTranslation ?? s.literalTranslation ?? '';
+  const context = expression?.context ?? s.usageContext ?? '';
+  const kind = expression?.kind ?? s.lexicalKind ?? 'phrase';
+  const source = expression?.source;
+  return (
+    <dl>
+      <div className="review-card__content"><dt>Expression (Kasem)</dt><dd lang="xsm"><strong>{phrase || '—'}</strong></dd></div>
+      {alternatives.length ? <div><dt>Other ways of saying it</dt><dd lang="xsm">{alternatives.join(' · ')}</dd></div> : null}
+      <div className="review-card__content"><dt>Meaning (English)</dt><dd>{meaning || '—'}</dd></div>
+      {literal ? <div><dt>Word for word</dt><dd>{literal}</dd></div> : null}
+      <div className="review-card__content"><dt>When it is used</dt><dd>{context || 'Not recorded'}</dd></div>
+      <div><dt>Kind</dt><dd>{EXPRESSION_KIND_LABELS[kind] ?? kind}</dd></div>
+      <div><dt>Dialect</dt><dd>{expression?.dialect ?? s.dialect ?? '—'}</dd></div>
+      <div className="review-card__content">
+        <dt>Learned from</dt>
+        <dd>
+          {source ? <>{EXPRESSION_SOURCE_LABELS[source.type] ?? source.type} — {source.detail}</> : (s.sourceReferences || '—')}
+          {source?.speakerName ? <div className="muted">Speaker named publicly: {source.speakerName}</div> : null}
+        </dd>
+      </div>
+      {expression?.consent ? (
+        <div className="review-card__content">
+          <dt>Contributor confirmed</dt>
+          <dd>
+            <div>“{expression.consent.source}”</div>
+            <div>“{expression.consent.everyday}”</div>
+          </dd>
+        </div>
+      ) : null}
+      {s.translationNotes ? <div><dt>Reviewer context</dt><dd>{s.translationNotes}</dd></div> : null}
+      {s.revisionOf ? <div><dt>Correction of</dt><dd>An earlier expression that was not accepted ({s.revisionOf})</dd></div> : null}
+      <div><dt>Publication permission</dt><dd>{s.permissions?.publication ? 'Granted' : 'No — archive if approved'}</dd></div>
+      <div><dt>AI training</dt><dd>{s.permissions?.aiTraining ? 'Granted' : 'Off'}</dd></div>
+    </dl>
+  );
+}
+
 function ReviewTab({ notify }: { notify: (m: string) => void }) {
   const [rows, setRows] = useState<Submission[]>([]);
   const [loading, setLoading] = useState(true);
@@ -703,19 +776,20 @@ function ReviewTab({ notify }: { notify: (m: string) => void }) {
   return (
     <div>
       <h2>Contributions</h2>
-      <p className="muted">Invited expression translations, campaign submissions and mobile Collection contributions meet here. Approved work stays visible until it is published or archived, and published work can be unpublished here.</p>
+      <p className="muted">Everyday expressions, invited expression translations, campaign submissions and mobile Collection contributions meet here. Approved work stays visible until it is published or archived, and published work can be unpublished here.</p>
+      <p className="muted">For an expression, check the Kasem, that the meaning matches, and that the context and source make sense. Reject with a reason the contributor can act on — they can correct it and send it again. A published expression appears on the website as an expression; it never becomes a dictionary word.</p>
       {loading ? <Loading label="Loading" /> : rows.length === 0 ? <EmptyState title="The queue is empty." /> : (
         <div className="review-cards">
           {rows.map((s) => (
             <article key={s.id} className="review-card">
               <header>
-                <strong>{s.title}</strong>
+                <strong lang={isExpression(s) ? 'xsm' : undefined}>{isExpression(s) ? (s.expression?.phrase ?? s.body ?? s.title) : s.title}</strong>
                 <span>
-                  {s.collectionKind ? <span className="badge2 badge2--collection">{s.collectionKind}</span> : null}
+                  {s.collectionKind ? <span className="badge2 badge2--collection">{isExpression(s) ? 'expression' : s.collectionKind}</span> : null}
                   <span className="badge2">{s.status}</span>
                 </span>
               </header>
-              <dl>
+              {isExpression(s) ? <ExpressionReview s={s} /> : <dl>
                 <div><dt>Category</dt><dd>{s.category || '—'}</dd></div>
                 {s.format ? <div><dt>Format</dt><dd>{s.format}</dd></div> : null}
                 <div><dt>Studio</dt><dd>{s.studioType || '—'}</dd></div>
@@ -748,7 +822,7 @@ function ReviewTab({ notify }: { notify: (m: string) => void }) {
                 <div><dt>Third-party material</dt><dd>{s.disclosures?.usesThirdPartyMaterial ? 'Yes' : 'No'}</dd></div>
                 <div><dt>Publication permission</dt><dd>{s.permissions?.publication ? 'Granted' : 'No'}</dd></div>
                 <div><dt>AI training</dt><dd>{s.permissions?.aiTraining ? 'Granted' : 'Off'}</dd></div>
-              </dl>
+              </dl>}
               <div className="row-actions">
                 {s.status === 'PUBLISHED' ? (
                   <button
@@ -775,7 +849,7 @@ function ReviewTab({ notify }: { notify: (m: string) => void }) {
                     title="Publish this approved work"
                     onClick={() => void decide(s, 'PUBLISH', false)}
                   >
-                    Publish to Collection
+                    {isExpression(s) ? 'Publish expression' : 'Publish to Collection'}
                   </button>
                 ) : (
                   <button

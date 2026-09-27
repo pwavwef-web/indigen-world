@@ -238,6 +238,18 @@
   }
 }
 
+/* Seven links (Contribute joined the nav) leave the brand little room just
+   above the desktop-nav breakpoint. There the tagline steps aside so the name
+   stays on one line instead of wrapping into four. */
+@media (min-width: 1080px) and (max-width: 1239px) {
+  .site-header .brand__text small {
+    display: none;
+  }
+  .site-header .brand__text strong {
+    white-space: nowrap;
+  }
+}
+
 @media (min-width: 1080px) {
   .site-header__inner {
     min-height: 70px;

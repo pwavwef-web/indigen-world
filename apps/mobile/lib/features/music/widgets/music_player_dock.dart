@@ -262,7 +262,28 @@ class _MusicPlayerDockState extends ConsumerState<MusicPlayerDock>
         setState(() => _dragging = null);
       },
       onPanCancel: () => setState(() => _dragging = null),
-      child: MusicBubble(item: item, playing: playing, brand: widget.brand),
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          MusicBubble(item: item, playing: playing, brand: widget.brand),
+          // How far through the song, around the edge. The bar's own line
+          // is gone by the time this is on screen, so the playhead is still
+          // drawn in exactly one place.
+          MusicProgressRing(
+            position: ref.watch(musicAudioHandlerProvider) == null
+                ? null
+                : AudioService.position,
+            duration: item.duration,
+            color: _hasArt(item) ? Colors.white : widget.brand.accent,
+            track: _hasArt(item)
+                ? Colors.white.withValues(alpha: 0.22)
+                : widget.brand.border,
+          ),
+        ],
+      ),
     ),
   );
+
+  static bool _hasArt(MediaItem item) =>
+      item.artUri?.toString().isNotEmpty ?? false;
 }

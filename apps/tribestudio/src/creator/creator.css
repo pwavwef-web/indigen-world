@@ -2834,21 +2834,6 @@ a.button {
   color: var(--text);
 }
 
-/* Bounty Tracker */
-.camp-bounty-box {
-  margin: 14px 0;
-  padding: 12px 14px;
-  background: rgba(30, 54, 93, 0.04);
-  border-radius: var(--radius-sm, 8px);
-}
-.camp-bounty-row {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 6px;
-}
-.gold-text {
-  color: var(--gold);
-}
 
 /* Voice Recorder Studio */
 .voice-studio-card {
@@ -3792,3 +3777,129 @@ a.button {
 .dashboard-focused .mini-list a { min-width: 0; overflow-wrap: anywhere; }
 .dashboard-focused .tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 @media (max-width: 640px) { .dashboard-focused .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+/* ---- Everyday expressions (ExpressionsPage) ---- */
+.expr__lede { max-width: 62ch; font-size: 0.95rem; }
+.expr__cols { scroll-margin-top: 16px; }
+.expr-form { display: grid; gap: 4px; }
+.expr-section {
+  border: 0;
+  border-top: 1px solid var(--border);
+  margin: 0;
+  padding: 16px 0 6px;
+  min-width: 0;
+}
+.expr-section:first-of-type { border-top: 0; padding-top: 0; }
+.expr-section legend {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0;
+  margin-bottom: 12px;
+  font-weight: 700;
+  color: var(--indigo-deep);
+}
+.expr-section__n {
+  display: inline-grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--savannah-green);
+  color: #fff;
+  font-size: 0.82rem;
+}
+.expr-choices {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.expr-choices--three { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
+.expr-choices--two { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+.expr-choice { position: relative; padding-left: 38px; }
+.expr-choice input {
+  position: absolute;
+  left: 13px;
+  top: 14px;
+  margin: 0;
+  accent-color: var(--savannah-green);
+}
+.expr-choice--compact { padding-top: 10px; padding-bottom: 10px; }
+.expr-choice--compact input { top: 12px; }
+.expr-choice:focus-within { outline: 2px solid var(--focus); outline-offset: 2px; }
+.expr-word-hint {
+  background: var(--plaster-cream);
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin-top: 6px;
+}
+.expr-error {
+  background: #f9e3e3;
+  border: 1px solid #eac3c3;
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin: 4px 0 12px;
+}
+.expr-error:focus { outline: 2px solid var(--danger); outline-offset: 2px; }
+.expr-sent h2 { font-size: 1.4rem; margin: 4px 0 8px; overflow-wrap: anywhere; }
+.expr-sent__actions { justify-content: flex-start; flex-wrap: wrap; margin-top: 14px; }
+.expr-aside { display: grid; gap: 16px; }
+.expr-flow {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 14px;
+}
+.expr-flow li { display: grid; gap: 4px; justify-items: start; }
+.expr-flow strong { color: var(--indigo-deep); font-size: 0.92rem; }
+.expr-flow p { margin: 0; color: var(--text-soft); font-size: 0.85rem; }
+.expr-tips h2 { font-size: 1rem; }
+.expr-tips h2 + ul { margin-top: 0; }
+.expr-tips ul { margin: 0 0 14px; padding-left: 18px; color: var(--text-soft); font-size: 0.88rem; line-height: 1.55; }
+.expr-mine { margin-top: 20px; }
+.expr-mine .panel__head { flex-wrap: wrap; }
+.expr-mine__counts { margin: 0; }
+.expr-item { align-items: flex-start; }
+.expr-item__main { min-width: 0; }
+.expr-item__main strong { font-size: 1.02rem; overflow-wrap: anywhere; }
+.expr-item__main .muted { overflow-wrap: anywhere; }
+.expr-item__next { color: var(--text); }
+.expr-item__feedback {
+  margin: 8px 0 0;
+  padding: 8px 10px;
+  border-left: 3px solid var(--warning);
+  background: #fdf4e3;
+  border-radius: 0 8px 8px 0;
+  font-size: 0.86rem;
+}
+.expr-item__feedback span { font-weight: 700; }
+@media (max-width: 640px) {
+  .expr-item { flex-direction: column; }
+  .expr-item .list__side--stack { flex-direction: row; flex-wrap: wrap; align-items: center; }
+  .expr .page__head { flex-direction: column; }
+}
+/* ---- The always-open campaign on Opportunities ---- */
+.camp-card__main { flex: 1 1 320px; min-width: 0; }
+.camp-card--open {
+  border-color: #bfe0cd;
+  box-shadow: 0 0 0 3px rgba(47, 111, 72, 0.08);
+  margin-bottom: 20px;
+}
+.camp-card--open p { margin: 10px 0 0; max-width: 64ch; }
+/* ---- The open task on the public landing page ---- */
+.open-task {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+  background: #e9f6ee;
+  border: 1px solid #bfe3cd;
+  border-radius: var(--radius-lg);
+  padding: 28px;
+  margin-top: 28px;
+}
+.open-task__copy { flex: 1 1 420px; min-width: 0; }
+.open-task__copy p:last-child { margin-bottom: 0; color: var(--text-soft); max-width: 62ch; }
+.open-task__eyebrow { color: #14663d; }

@@ -26,7 +26,6 @@ import {
   type EntryDraft,
   type SenseDraft,
   FORM_SLOTS,
-  KASEM_CHARACTERS,
   MAX_SENSES,
   PARTS_OF_SPEECH,
   SENSE_DOMAINS,
@@ -59,6 +58,7 @@ import {
 } from '../dictionary-data';
 import { TableShell } from '@indigen-world/console-ui';
 import { VoiceRecorder } from '../components';
+import { KasemPalette, insertIntoField } from '../KasemPalette';
 import { uploadSubmissionMedia } from '../data';
 
 const TIERS = enums.culturalPermissionTier as readonly string[];
@@ -181,22 +181,7 @@ export function DictionaryPage() {
       flash('err', 'Click into a box first, then choose the letter.');
       return;
     }
-    const start = field.selectionStart ?? field.value.length;
-    const end = field.selectionEnd ?? start;
-    const next = `${field.value.slice(0, start)}${char}${field.value.slice(end)}`;
-    // Set through the native setter so React's synthetic onChange fires and the
-    // draft state actually updates — assigning `.value` alone is invisible to
-    // React and the character would vanish on the next render.
-    const prototype =
-      field instanceof HTMLTextAreaElement
-        ? HTMLTextAreaElement.prototype
-        : HTMLInputElement.prototype;
-    const setter = Object.getOwnPropertyDescriptor(prototype, 'value')?.set;
-    setter?.call(field, next);
-    field.dispatchEvent(new Event('input', { bubbles: true }));
-    field.focus();
-    const caret = start + char.length;
-    field.setSelectionRange(caret, caret);
+    insertIntoField(field, char);
   };
 
   const trackFocus = (event: { currentTarget: HTMLInputElement | HTMLTextAreaElement }) => {
@@ -872,37 +857,6 @@ export function DictionaryPage() {
       </section>
 
       {toast ? <div className={`toast toast--${toast.kind}`}>{toast.text}</div> : null}
-    </div>
-  );
-}
-
-/* ==================================================================== */
-/* The character palette                                                 */
-/* ==================================================================== */
-
-/**
- * The letters no keyboard on the contributor's desk produces.
- *
- * Not a convenience: 785 of the 1200 published entries carry at least one of
- * them. Without this the workaround is to type the nearest ASCII letter, which
- * files the word under a headword that is a different word.
- */
-function KasemPalette({ onInsert }: { onInsert: (char: string) => void }) {
-  return (
-    <div className="dict__palette" role="group" aria-label="Kasem letters">
-      <span className="dict__palette-label">Kasem letters</span>
-      {KASEM_CHARACTERS.map((entry) => (
-        <button
-          key={entry.char}
-          type="button"
-          className={entry.combining ? 'dict__key dict__key--mark' : 'dict__key'}
-          title={`${entry.name}${entry.combining ? ' (attaches to the letter before it)' : ''}`}
-          aria-label={entry.name}
-          onClick={() => onInsert(entry.char)}
-        >
-          {entry.combining ? `◌${entry.char}` : entry.char}
-        </button>
-      ))}
     </div>
   );
 }

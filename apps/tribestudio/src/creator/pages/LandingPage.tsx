@@ -77,6 +77,28 @@ export function LandingPage() {
         </div>
       </section>
 
+      {/* The one task that needs no waitlist, no application and no campaign
+          window. Without it this page offered a returning Kasem speaker
+          nothing to do today but join a list. */}
+      <section className="section open-task" aria-labelledby="open-task-title">
+        <div className="open-task__copy">
+          <p className="hero__eyebrow open-task__eyebrow">Open to everyone today</p>
+          <h2 id="open-task-title">Share an everyday Kasem expression</h2>
+          <p>
+            No waitlist and no application. Send one greeting, blessing, idiom or saying with what it means, when it is
+            said and who you learned it from. A Kasem-speaking reviewer checks it before anyone else sees it, and you can
+            follow its status in the studio.
+          </p>
+        </div>
+        <Link
+          to="/studio/expressions"
+          className="button button--primary button--lg"
+          onClick={() => trackEvent('expression_started', { source: 'creator_landing' })}
+        >
+          Share an expression
+        </Link>
+      </section>
+
       <section className="section">
         <h2>A programme for the first voices of Kasem</h2>
         <p className="section__lede">
@@ -158,7 +180,7 @@ export function LandingPage() {
             </div>
           </div>
         ) : (
-          <p className="muted">No campaigns are announced yet. Join the waitlist to hear first.</p>
+          <p className="muted">No creator campaigns are announced yet. Join the waitlist to hear first — and <Link to="/studio/expressions">everyday expressions</Link> are open to everyone now.</p>
         )}
       </section>
 

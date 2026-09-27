@@ -17,20 +17,24 @@ void main() {
 
   Future<void> pump(WidgetTester tester) async {
     await tester.pumpWidget(
-      const MaterialApp(
-        home: Scaffold(
-          body: PlaceStoryCarousel(ad: Center(child: Text('One ad'))),
-        ),
-      ),
+      const MaterialApp(home: Scaffold(body: PlaceStoryCarousel())),
     );
     await tester.pumpAndSettle();
   }
 
-  testWidgets('advances every three seconds, pauses, and includes one ad', (
+  testWidgets('advances every three seconds, pauses, and carries no advert', (
     tester,
   ) async {
     await pump(tester);
-    final pages = tester.widget<PageView>(find.byType(PageView)).controller!;
+    final pager = tester.widget<PageView>(find.byType(PageView));
+    final pages = pager.controller!;
+    // Only the stories. An advert on a page that moves by itself would slide
+    // under a thumb reaching for a story, so the carousel never has one.
+    expect(placeStories, hasLength(3));
+    expect(
+      (pager.childrenDelegate as SliverChildBuilderDelegate).childCount,
+      placeStories.length,
+    );
     expect(pages.page, 0);
     await tester.pump(const Duration(seconds: 3));
     await tester.pumpAndSettle();
@@ -44,11 +48,7 @@ void main() {
     expect(pages.page, 2);
     await tester.pump(const Duration(seconds: 3));
     await tester.pumpAndSettle();
-    expect(pages.page, 3);
-    expect(find.text('One ad'), findsOneWidget);
-    await tester.pump(const Duration(seconds: 3));
-    await tester.pumpAndSettle();
-    expect(pages.page, 0);
+    expect(pages.page, 0, reason: 'the last story wraps to the first');
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox());
   });

@@ -41,6 +41,7 @@ const StudioVideoJobsPage = named(() => import('./creator/pages/StudioVideoJobsP
 const VideoEditorPage = named(() => import('./creator/pages/VideoEditorPage'), 'VideoEditorPage');
 const PublishedPage = named(() => import('./creator/pages/PublishedPage'), 'PublishedPage');
 const DictionaryPage = named(() => import('./creator/pages/DictionaryPage'), 'DictionaryPage');
+const ExpressionsPage = named(() => import('./creator/pages/ExpressionsPage'), 'ExpressionsPage');
 const NotificationsPage = named(() => import('./creator/pages/NotificationsPage'), 'NotificationsPage');
 const HelpPage = named(() => import('./creator/pages/HelpPage'), 'HelpPage');
 
@@ -56,13 +57,28 @@ function BrandMark() {
   );
 }
 
-function SignInGate() {
+/**
+ * The sign-in wall in front of the studio.
+ *
+ * Somebody arriving from the website's "Share an expression" button is told
+ * what they are signing in *for*, and why an account is needed at all: it is
+ * what lets them see the review status of what they send.
+ */
+function SignInGate({ path }: { path: string }) {
+  const forExpressions = path.startsWith('/studio/expressions');
   return (
     <div className="signin">
       <div className="signin__card">
         <BrandMark />
-        <h1>TribeStudio</h1>
-        <p>Sign in to save your draft and share your work. You can preview your post before publishing.</p>
+        <h1>{forExpressions ? 'Share a Kasem expression' : 'TribeStudio'}</h1>
+        {forExpressions ? (
+          <p>
+            Sign in with Google to send an everyday expression for review. Your account is how you see its review
+            status, get the reviewer’s answer, and withdraw it if you change your mind. It takes a few seconds and costs nothing.
+          </p>
+        ) : (
+          <p>Sign in to save your draft and share your work. You can preview your post before publishing.</p>
+        )}
         <button type="button" className="button button--primary" onClick={() => void signIn()}>
           Sign in with Google
         </button>
@@ -245,6 +261,7 @@ function renderStudio(path: string, canVideo: boolean) {
     return path === '/studio/video' ? <StudioVideoPage /> : <StudioVideoJobsPage />;
   }
   if (path === '/studio/dictionary') return <DictionaryPage />;
+  if (path === '/studio/expressions' || path === '/studio/expressions/new') return <ExpressionsPage />;
   if (path === '/studio/notifications') return <NotificationsPage />;
   if (path === '/studio/help') return <HelpPage />;
   return <NotFoundPage variant="studio" />;
@@ -306,7 +323,7 @@ function Routed() {
   const isWorkspace = path === '/workspace';
   if (isStudio || isWorkspace) {
     if (!ready) return <FullPageLoader />;
-    if (!user) return <SignInGate />;
+    if (!user) return <SignInGate path={path} />;
     if (isWorkspace) {
       return (
         <StudioLayout>

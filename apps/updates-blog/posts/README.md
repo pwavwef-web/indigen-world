@@ -6,6 +6,13 @@ date identifies when the post was prepared; it does not prove the update is live
 
 ## Posts
 
+- [2026-09-27: Another 25 Kasem words to hear and practise](2026-09-27-more-reviewed-kasem-pronunciations/README.md) — 26 approved takes published to 25 more entries; public access and source credits verified. The two releases cover 43 words. Blogger article is a draft.
+- [2026-09-27: Listen to 18 reviewed Kasem words](2026-09-27-reviewed-kasem-pronunciations/README.md) — first pronunciation release; public files and website attribution verified. Blogger article is a draft. The second listening round is covered in the follow-up above.
+- [2026-09-27: Share a Kasem expression: one clear way to contribute](2026-09-27-share-an-expression/README.md) — draft article; website entry point, expressions campaign and review flow implemented and tested locally, not deployed. Deploy rules, functions and hosting before publishing.
+- [2026-09-26: Points, with a little more spark](2026-09-26-points-redesigned/README.md) — draft points-page redesign article; implemented locally, Android release and publication pending.
+- [2026-09-24: Indigen opens again on Android](2026-09-24-android-startup-fix/README.md) — draft startup-fix article for 0.1.26 (35); signed bundle and emulator update verified, Play testing availability pending.
+- [2026-09-24: Music, reimagined (Indigen World 0.1.25)](2026-09-24-music-reimagined/README.md) — draft article; a user reports 0.1.25 (34) installed from a Play testing track but crashing at startup. Hold publication until the 0.1.26 fix is available.
+- [2026-09-24: Music that makes room (Indigen World 0.1.23)](2026-09-24-music-player-bubble/README.md) — draft article; 0.1.23 (32) bundle built and checked, not yet uploaded to Google Play. Publish only after the Play rollout.
 - [2026-09-23: A rebuilt workspace for Kasem contributors](2026-09-23-contributor-workspace-rebuild/README.md) — draft article; deployed 2026-09-23, finance claim and signed-in smoke test pending.
 - [2026-09-23: Contributor issue reporting](2026-09-23-contributor-issue-reporting/README.md) — draft article; deployed 2026-09-23, authenticated workflow verification pending.
 - [2026-09-23: Payment details now have a home under Account](2026-09-23-contributor-payment-profile/README.md) — draft article; deployed 2026-09-23, authenticated workflow verification pending.
@@ -28,6 +35,9 @@ date identifies when the post was prepared; it does not prove the update is live
 1. Add `YYYY-MM-DD-descriptive-slug/post.html` describing the actual changes.
 2. Add `README.md` with Blogger metadata, availability, and publishing steps.
 3. Add `share.md` with a short announcement and the published-link placeholder.
-4. Confirm the release is available to its intended audience before publishing
+4. Include at least one relevant image asset in the post folder. Embed it in
+   `post.html` with alt text and a caption; document its source/credit and the
+   Blogger upload step in `README.md`. Use actual screenshots where useful.
+5. Confirm the release is available to its intended audience before publishing
    release claims. Replace the sharing placeholder with the published article URL.
-5. Add the new post to this list so Chinedum can find it.
+6. Add the new post to this list so Chinedum can find it.

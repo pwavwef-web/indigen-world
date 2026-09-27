@@ -17,7 +17,10 @@ export type CreatorEvent =
   | 'submission_completed'
   | 'submission_updated'
   | 'submission_withdrawn'
-  | 'revision_submitted';
+  | 'revision_submitted'
+  | 'expression_started'
+  | 'expression_submitted'
+  | 'expression_withdrawn';
 
 export function trackEvent(event: CreatorEvent, params: Record<string, string | number> = {}): void {
   try {

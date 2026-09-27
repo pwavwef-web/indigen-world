@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
@@ -7,143 +9,316 @@ import 'package:indigen_world_mobile/features/contribute/contribution_kind_scree
 import 'package:indigen_world_mobile/features/contribute/leaderboard/contributor_scores.dart';
 import 'package:indigen_world_mobile/shared/frosted_nav_bar.dart';
 import 'package:indigen_world_mobile/shared/glass_surface.dart';
+import 'package:indigen_world_mobile/shared/kassena_pattern.dart';
+import 'package:indigen_world_mobile/shared/motion.dart';
 
-/// The contribution leaderboard.
-///
-/// Everybody who has had work approved, highest first, with the member's own
-/// row never off the screen. That last part is the whole reason this is a
-/// screen rather than a list: a board that shows you the top fifty and then
-/// leaves you to wonder where you are is a board you look at once. Somebody in
-/// position four hundred gets their own row pinned to the bottom, with their
-/// real rank on it, so opening this always answers the question they opened it
-/// with.
-///
-/// The scoring rules are printed at the top for the same reason. A scoreboard
-/// whose arithmetic is invisible reads as arbitrary, and the one thing this
-/// board must not feel like is a number somebody made up about your work.
+part 'points_hero.dart';
+
+/// Mirror CONTRIBUTION_POINTS in services/functions/src/contributor-scores.ts.
+/// Awards and ranks come from the server; this page never writes a score.
+const int kPointsPerWord = 10;
+const int kPointsPerWrittenPiece = 25;
+const int kPointsPerRecording = 50;
+
 class LeaderboardScreen extends ConsumerWidget {
   const LeaderboardScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final scores = ref.watch(contributorScoresProvider);
-    final mine = ref.watch(myContributorScoreProvider).asData?.value;
+    final ownScore = ref.watch(myContributorScoreProvider);
+    final mine = ownScore.asData?.value;
     final rows = scores.asData?.value ?? const <ContributorScore>[];
-
-    // Where the member sits in the fetched window, or -1 for "further down than
-    // this screen ever asked for".
-    final myIndex = mine == null
-        ? -1
-        : rows.indexWhere((row) => row.uid == mine.uid);
-    final pinned = mine != null && myIndex < 0;
+    final pinned = mine != null && !rows.any((row) => row.uid == mine.uid);
 
     return Scaffold(
       backgroundColor: context.brand.background,
-      appBar: AppBar(title: const Text('Top contributors')),
+      appBar: AppBar(
+        title: const Text('Points'),
+        actions: [
+          IconButton(
+            tooltip: 'About points',
+            onPressed: () => _showPointsInfo(context),
+            icon: const Icon(Icons.info_outline_rounded, size: 22),
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
       body: SafeArea(
         bottom: false,
-        child: Stack(
-          children: [
-            ListView(
-              padding: EdgeInsets.fromLTRB(
-                18,
-                12,
-                18,
-                (pinned ? 118 : 34) + musicInset(context),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 620),
+            child: EntranceGate(
+              child: CustomScrollView(
+                key: const PageStorageKey('contributor-points'),
+                slivers: [
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(18, 8, 18, 0),
+                    sliver: SliverList.list(
+                      children: [
+                        Entrance(child: _PointsHero(score: ownScore)),
+                        const SizedBox(height: 24),
+                        const Entrance(index: 2, child: _EarnPoints()),
+                        const SizedBox(height: 28),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                'Top contributors',
+                                style: TextStyle(
+                                  color: context.brand.ink,
+                                  fontSize: 21,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: -0.7,
+                                ),
+                              ),
+                            ),
+                            const _SmallLabel(text: 'ALL TIME'),
+                          ],
+                        ),
+                        const SizedBox(height: 18),
+                        if (scores.hasError)
+                          _BoardMessage(
+                            icon: Icons.cloud_off_rounded,
+                            title: 'The board could not be loaded.',
+                            action: TextButton.icon(
+                              onPressed: () =>
+                                  ref.invalidate(contributorScoresProvider),
+                              icon: const Icon(Icons.refresh_rounded),
+                              label: const Text('Try again'),
+                            ),
+                          )
+                        else if (scores.asData case AsyncData(
+                          value: final data,
+                        ))
+                          if (data.isEmpty)
+                            _BoardMessage(
+                              icon: Icons.auto_awesome_rounded,
+                              title: 'The first place could be yours.',
+                              action: TextButton(
+                                onPressed: () => _contribute(context),
+                                child: const Text('Make a contribution'),
+                              ),
+                            )
+                          else
+                            _Podium(
+                              rows: data.take(3).toList(),
+                              myUid: mine?.uid,
+                            )
+                        else
+                          const GlassSkeleton(height: 220),
+                        if (rows.length > 3 && !scores.hasError)
+                          const SizedBox(height: 16),
+                      ],
+                    ),
+                  ),
+                  if (rows.length > 3 && !scores.hasError)
+                    SliverPadding(
+                      padding: const EdgeInsets.symmetric(horizontal: 18),
+                      sliver: _Board(rows: rows, myUid: mine?.uid),
+                    ),
+                  SliverToBoxAdapter(
+                    child: SizedBox(
+                      height: 28 + (pinned ? 0 : musicInset(context)),
+                    ),
+                  ),
+                ],
               ),
-              children: [
-                const _HowPointsWork(),
-                const SizedBox(height: 14),
-                switch (scores) {
-                  AsyncError() => const GlassEmptyState(
-                    icon: Icons.cloud_off_rounded,
-                    title: 'The board could not be loaded.',
-                  ),
-                  AsyncData(value: final rows) when rows.isEmpty =>
-                    const _NobodyYet(),
-                  AsyncData(value: final rows) => _Board(
-                    rows: rows,
-                    myUid: mine?.uid,
-                  ),
-                  // First paint, before the snapshot lands. Two bars rather
-                  // than a spinner: the list is about to be this shape, and a
-                  // spinner in the middle of a page tells you nothing about
-                  // what is coming.
-                  _ => const Column(
-                    children: [
-                      GlassSkeleton(height: 132),
-                      SizedBox(height: 12),
-                      GlassSkeleton(height: 132),
-                    ],
-                  ),
-                },
-              ],
             ),
-            if (pinned)
-              Positioned(
-                left: 0,
-                right: 0,
-                bottom: 0,
-                child: _PinnedOwnRow(score: mine),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// The ranked list itself.
-///
-/// One pane with hairlines between the rows rather than fifty separate cards.
-/// A leaderboard is a table — the eye reads down the rank column and down the
-/// points column — and fifty floating cards break both of those columns into
-/// fifty unrelated things.
-class _Board extends StatelessWidget {
-  const _Board({required this.rows, this.myUid});
-
-  final List<ContributorScore> rows;
-  final String? myUid;
-
-  @override
-  Widget build(BuildContext context) {
-    final ranks = leaderboardRanks(rows);
-    return GlassSurface(
-      padding: EdgeInsets.zero,
-      child: ClipRRect(
-        // The glass draws its own rounded edge but does not clip what is inside
-        // it, so the highlighted row's fill would square off the top corner
-        // without this.
-        borderRadius: BorderRadius.circular(kGlassRadius - 1),
-        child: Material(
-          color: Colors.transparent,
-          child: Column(
-            children: [
-              for (var index = 0; index < rows.length; index++) ...[
-                if (index > 0)
-                  Divider(height: 1, color: context.brand.divider, indent: 16),
-                _LeaderboardRow(
-                  rank: ranks[index],
-                  score: rows[index],
-                  isMe: myUid != null && rows[index].uid == myUid,
-                ),
-              ],
-            ],
           ),
         ),
       ),
+      // Reserve the real row height even at large text sizes.
+      bottomNavigationBar: pinned ? _PinnedOwnRow(score: mine) : null,
     );
   }
 }
 
-/// Competition ranks for an already-ordered list: ties share the higher place,
-/// and the place after a tie skips.
-///
-/// Shared with [myLeaderboardRankProvider], which counts everybody strictly
-/// above a score and adds one — the same rule, arrived at from the other end.
-/// Positional numbering (index + 1) was what this did first, and it meant two
-/// members on the same points were shown as fourth and fifth on the list while
-/// the pinned row underneath called them both fourth.
+void _contribute(BuildContext context) => Navigator.of(
+  context,
+).push<void>(MaterialPageRoute(builder: (_) => const ContributionKindScreen()));
+
+void _openContributor(BuildContext context, ContributorScore score) =>
+    Navigator.of(context).push<void>(
+      MaterialPageRoute(builder: (_) => CommunityProfileScreen(uid: score.uid)),
+    );
+
+void _showPointsInfo(BuildContext context) {
+  showModalBottomSheet<void>(
+    context: context,
+    showDragHandle: true,
+    isScrollControlled: true,
+    builder: (context) => SafeArea(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(24, 0, 24, 28),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Good work adds up.',
+              style: Theme.of(context).textTheme.headlineSmall,
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Points arrive after review and approval. Pending work does not count yet.',
+            ),
+            const SizedBox(height: 12),
+            const Text('Words +10 · Written pieces +25 · Recordings +50'),
+            const SizedBox(height: 12),
+            const Text(
+              'The board shows contribution points, with equal scores sharing a rank. Learning XP is separate.',
+            ),
+            const SizedBox(height: 12),
+            const Text('Contribute on consecutive days to build your streak.'),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+class _EarnPoints extends StatelessWidget {
+  const _EarnPoints();
+
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Wrap(
+        alignment: WrapAlignment.spaceBetween,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        spacing: 12,
+        children: [
+          Text(
+            'Make it count',
+            style: TextStyle(
+              color: context.brand.ink,
+              fontSize: 20,
+              fontWeight: FontWeight.w800,
+              letterSpacing: -0.6,
+            ),
+          ),
+          PressScale(
+            child: TextButton.icon(
+              onPressed: () => _contribute(context),
+              iconAlignment: IconAlignment.end,
+              icon: const Icon(Icons.arrow_forward_rounded, size: 17),
+              label: const Text('Contribute'),
+            ),
+          ),
+        ],
+      ),
+      const SizedBox(height: 8),
+      LayoutBuilder(
+        builder: (context, constraints) {
+          final stacked = MediaQuery.textScalerOf(context).scale(14) > 22;
+          final width = stacked
+              ? constraints.maxWidth
+              : (constraints.maxWidth - 16) / 3;
+          return Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _EarnTile(
+                width: width,
+                icon: Icons.translate_rounded,
+                label: 'Words',
+                points: kPointsPerWord,
+                color: context.brand.accent,
+              ),
+              _EarnTile(
+                width: width,
+                icon: Icons.auto_stories_rounded,
+                label: 'Writing',
+                points: kPointsPerWrittenPiece,
+                color: context.brand.success,
+              ),
+              _EarnTile(
+                width: width,
+                icon: Icons.mic_rounded,
+                label: 'Recordings',
+                points: kPointsPerRecording,
+                color: context.brand.gold,
+              ),
+            ],
+          );
+        },
+      ),
+      const SizedBox(height: 10),
+      Row(
+        children: [
+          Icon(
+            Icons.verified_outlined,
+            size: 14,
+            color: context.brand.mutedInk,
+          ),
+          const SizedBox(width: 5),
+          Expanded(
+            child: Text(
+              'Earned after approval.',
+              style: TextStyle(color: context.brand.mutedInk, fontSize: 11.5),
+            ),
+          ),
+        ],
+      ),
+    ],
+  );
+}
+
+class _EarnTile extends StatelessWidget {
+  const _EarnTile({
+    required this.width,
+    required this.icon,
+    required this.label,
+    required this.points,
+    required this.color,
+  });
+  final double width;
+  final IconData icon;
+  final String label;
+  final int points;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: width,
+    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 15),
+    decoration: BoxDecoration(
+      color: color.withValues(alpha: context.brand.isDark ? 0.10 : 0.055),
+      borderRadius: BorderRadius.circular(20),
+      border: Border.all(color: color.withValues(alpha: 0.14)),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, color: color, size: 24),
+        const SizedBox(height: 18),
+        Text(
+          '+$points',
+          style: TextStyle(
+            color: context.brand.ink,
+            fontSize: 26,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -1.2,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          style: TextStyle(
+            color: context.brand.mutedInk,
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+/// Competition ranks: 1, 2, 2, 4. Never use podium position as a rank.
 List<int> leaderboardRanks(List<ContributorScore> rows) {
   final ranks = <int>[];
   for (var index = 0; index < rows.length; index++) {
@@ -153,62 +328,281 @@ List<int> leaderboardRanks(List<ContributorScore> rows) {
   return ranks;
 }
 
-/// One member's line.
+class _Podium extends StatelessWidget {
+  const _Podium({required this.rows, this.myUid});
+  final List<ContributorScore> rows;
+  final String? myUid;
+
+  @override
+  Widget build(BuildContext context) {
+    final ranks = leaderboardRanks(rows);
+    if (MediaQuery.textScalerOf(context).scale(14) > 22) {
+      return Column(
+        children: [
+          for (var i = 0; i < rows.length; i++)
+            _LeaderboardRow(
+              rank: ranks[i],
+              score: rows[i],
+              isMe: rows[i].uid == myUid,
+            ),
+        ],
+      );
+    }
+    final order = rows.length == 3
+        ? [1, 0, 2]
+        : [for (var i = 0; i < rows.length; i++) i];
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        for (final i in order)
+          Expanded(
+            child: Entrance(
+              index: ranks[i] + 2,
+              distance: 24,
+              child: _PodiumPlace(
+                score: rows[i],
+                rank: ranks[i],
+                isMe: rows[i].uid == myUid,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _PodiumPlace extends StatelessWidget {
+  const _PodiumPlace({
+    required this.score,
+    required this.rank,
+    required this.isMe,
+  });
+  final ContributorScore score;
+  final int rank;
+  final bool isMe;
+
+  @override
+  Widget build(BuildContext context) {
+    final brand = context.brand;
+    final color = switch (rank) {
+      1 => brand.gold,
+      2 => brand.accent,
+      _ => brand.terracotta,
+    };
+    return Semantics(
+      label: _scoreLabel(score, rank, isMe),
+      button: true,
+      selected: isMe,
+      excludeSemantics: true,
+      child: PressScale(
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(22),
+            onTap: () => _openContributor(context, score),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 3),
+              child: Column(
+                children: [
+                  if (rank == 1) ...[
+                    Icon(
+                      Icons.workspace_premium_rounded,
+                      color: color,
+                      size: 24,
+                    ),
+                    const SizedBox(height: 8),
+                  ],
+                  Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: color.withValues(alpha: 0.6),
+                        width: 1.5,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: color.withValues(alpha: 0.1),
+                          blurRadius: 18,
+                        ),
+                      ],
+                    ),
+                    child: CommunityAvatar(
+                      initials: score.initials,
+                      imageUrl: score.avatarUrl,
+                      username: score.username,
+                      size: rank == 1 ? 62 : 48,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    isMe ? '${score.name} · you' : score.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: brand.ink,
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  if (score.username.isNotEmpty)
+                    Text(
+                      '@${score.username}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(color: brand.mutedInk, fontSize: 10.5),
+                    ),
+                  const SizedBox(height: 10),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.fromLTRB(6, 14, 6, 12),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          color.withValues(alpha: 0.13),
+                          color.withValues(alpha: 0.025),
+                        ],
+                      ),
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(20),
+                        bottom: Radius.circular(8),
+                      ),
+                      border: Border(
+                        top: BorderSide(color: color.withValues(alpha: 0.24)),
+                      ),
+                    ),
+                    child: Column(
+                      children: [
+                        Text(
+                          '$rank',
+                          style: TextStyle(
+                            color: color,
+                            fontSize: 27,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        SizedBox(
+                          height: rank == 1
+                              ? 16
+                              : rank == 2
+                              ? 8
+                              : 0,
+                        ),
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            '${score.points}',
+                            style: TextStyle(
+                              color: brand.ink,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800,
+                              fontFeatures: const [
+                                FontFeature.tabularFigures(),
+                              ],
+                            ),
+                          ),
+                        ),
+                        Text(
+                          'points',
+                          style: TextStyle(color: brand.mutedInk, fontSize: 10),
+                        ),
+                        if (score.hasStreak) ...[
+                          const SizedBox(height: 8),
+                          _StreakFlame(days: score.streakDays),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _Board extends StatelessWidget {
+  const _Board({required this.rows, this.myUid});
+  final List<ContributorScore> rows;
+  final String? myUid;
+
+  @override
+  Widget build(BuildContext context) {
+    final ranks = leaderboardRanks(rows);
+    return SliverList.builder(
+      itemCount: rows.length - 3,
+      itemBuilder: (context, index) => _LeaderboardRow(
+        rank: ranks[index + 3],
+        score: rows[index + 3],
+        isMe: rows[index + 3].uid == myUid,
+      ),
+    );
+  }
+}
+
+String _scoreLabel(ContributorScore score, int rank, bool isMe) =>
+    '${isMe ? 'You, ' : ''}${score.name}, ${rank > 0 ? 'rank $rank' : 'rank unavailable'}, ${score.points} points${score.hasStreak ? ', ${score.streakDays} day streak' : ''}';
+
 class _LeaderboardRow extends StatelessWidget {
   const _LeaderboardRow({
     required this.rank,
     required this.score,
     this.isMe = false,
   });
-
   final int rank;
   final ContributorScore score;
-
-  /// Draws the row in the accent wash, wherever it happens to fall.
   final bool isMe;
 
   @override
   Widget build(BuildContext context) {
     final brand = context.brand;
+    final largeText = MediaQuery.textScalerOf(context).scale(14) > 22;
     return Semantics(
       button: true,
       selected: isMe,
-      label: _semantics(),
+      label: _scoreLabel(score, rank, isMe),
       excludeSemantics: true,
-      child: InkWell(
-        onTap: () => Navigator.of(context).push(
-          MaterialPageRoute<void>(
-            builder: (context) => CommunityProfileScreen(uid: score.uid),
-          ),
-        ),
-        child: Ink(
-          color: isMe ? brand.accentSoft : Colors.transparent,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(14, 11, 14, 11),
+      child: Material(
+        color: isMe ? brand.accentSoft : brand.surface,
+        borderRadius: BorderRadius.circular(18),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: () => _openContributor(context, score),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+            decoration: BoxDecoration(
+              border: Border(bottom: BorderSide(color: brand.divider)),
+            ),
             child: Row(
               children: [
                 SizedBox(
-                  width: 26,
-                  child: Text(
-                    // Zero is the caller's way of saying "not counted", and a
-                    // literal 0 in a rank column would be read as a place.
-                    rank > 0 ? '$rank' : '—',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: _rankColour(brand),
-                      fontSize: rank > 99 ? 13 : 15,
-                      fontWeight: FontWeight.w900,
+                  width: 34,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      rank > 0 ? '$rank' : '—',
+                      style: TextStyle(
+                        color: brand.mutedInk,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                   ),
                 ),
-                const SizedBox(width: 8),
-                CommunityAvatar(
-                  initials: score.initials,
-                  imageUrl: score.avatarUrl,
-                  username: score.username,
-                  size: 38,
-                ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 7),
+                if (!largeText) ...[
+                  CommunityAvatar(
+                    initials: score.initials,
+                    imageUrl: score.avatarUrl,
+                    username: score.username,
+                    size: 38,
+                  ),
+                  const SizedBox(width: 12),
+                ],
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -219,8 +613,8 @@ class _LeaderboardRow extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           color: brand.ink,
-                          fontSize: 14.5,
-                          fontWeight: FontWeight.w800,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
                       if (score.username.isNotEmpty)
@@ -228,37 +622,46 @@ class _LeaderboardRow extends StatelessWidget {
                           '@${score.username}',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
+                          style: TextStyle(color: brand.mutedInk, fontSize: 11),
+                        ),
+                      if (largeText)
+                        Text(
+                          '${score.points} points',
                           style: TextStyle(
-                            color: brand.mutedInk,
-                            fontSize: 11.5,
+                            color: isMe ? brand.accent : brand.ink,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w800,
                           ),
                         ),
+                      if (score.hasStreak && largeText)
+                        _StreakFlame(days: score.streakDays),
                     ],
                   ),
                 ),
-                if (score.hasStreak) ...[
+                if (score.hasStreak && !largeText) ...[
                   const SizedBox(width: 8),
                   _StreakFlame(days: score.streakDays),
                 ],
-                const SizedBox(width: 10),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      '${score.points}',
-                      style: TextStyle(
-                        color: brand.ink,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w900,
-                        height: 1.1,
+                const SizedBox(width: 12),
+                if (!largeText)
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        '${score.points}',
+                        style: TextStyle(
+                          color: isMe ? brand.accent : brand.ink,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                          fontFeatures: const [FontFeature.tabularFigures()],
+                        ),
                       ),
-                    ),
-                    Text(
-                      'points',
-                      style: TextStyle(color: brand.mutedInk, fontSize: 10.5),
-                    ),
-                  ],
-                ),
+                      Text(
+                        'points',
+                        style: TextStyle(color: brand.mutedInk, fontSize: 10),
+                      ),
+                    ],
+                  ),
               ],
             ),
           ),
@@ -266,44 +669,19 @@ class _LeaderboardRow extends StatelessWidget {
       ),
     );
   }
-
-  /// The first three places are worth marking and the rest are not.
-  ///
-  /// Gold, then the two brand colours that sit either side of it. Deliberately
-  /// not a medal glyph: a trophy on row one and nothing on row four turns a
-  /// list into a podium, and this board's job is to show a long tail of people
-  /// who are all doing the same worthwhile thing.
-  Color _rankColour(BrandPalette brand) => switch (rank) {
-    1 => brand.gold,
-    2 => brand.accent,
-    3 => brand.terracotta,
-    _ => brand.mutedInk,
-  };
-
-  String _semantics() {
-    final streak = score.hasStreak ? ', ${score.streakDays} day streak' : '';
-    final who = isMe ? 'You, ' : '';
-    final place = rank > 0 ? 'rank $rank' : 'rank not counted';
-    return '$who${score.name}, $place, ${score.points} points$streak';
-  }
 }
 
-/// The flame beside a member who came back.
 class _StreakFlame extends StatelessWidget {
   const _StreakFlame({required this.days});
-
   final int days;
-
   @override
   Widget build(BuildContext context) => Row(
     mainAxisSize: MainAxisSize.min,
+    mainAxisAlignment: MainAxisAlignment.center,
     children: [
-      // The same orange the Learn tab's streak wears. A streak is a streak
-      // wherever it is counted, and giving this one the accent instead would
-      // have made two different things look like one colour's idea.
       const Icon(
         Icons.local_fire_department_rounded,
-        size: 16,
+        size: 15,
         color: Color(0xFFE0763C),
       ),
       const SizedBox(width: 2),
@@ -311,244 +689,107 @@ class _StreakFlame extends StatelessWidget {
         '$days',
         style: TextStyle(
           color: context.brand.mutedInk,
-          fontSize: 12,
-          fontWeight: FontWeight.w800,
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
         ),
       ),
     ],
   );
 }
 
-/// The member's own row, held at the bottom when they are below the window.
-///
-/// Opaque rather than glass: the list scrolls underneath it, and a translucent
-/// bar with names sliding about behind the member's own name was unreadable
-/// within about two seconds of scrolling.
 class _PinnedOwnRow extends ConsumerWidget {
   const _PinnedOwnRow({required this.score});
-
   final ContributorScore score;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final brand = context.brand;
     final rank = ref.watch(myLeaderboardRankProvider).asData?.value;
-
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: brand.surfaceElevated,
-        border: Border(top: BorderSide(color: brand.border)),
-      ),
-      child: Padding(
-        padding: EdgeInsets.fromLTRB(4, 4, 4, 8 + musicInset(context)),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Material(
-              color: Colors.transparent,
-              child: _LeaderboardRow(
-                // Zero would print as a rank, so a rank that could not be
-                // counted shows as a dash instead — see the row below.
-                rank: rank ?? 0,
-                score: score,
-                isMe: true,
-              ),
-            ),
-            if (rank == null)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(14, 0, 14, 4),
-                child: Text(
-                  'Your exact place could not be counted right now.',
-                  style: TextStyle(color: brand.mutedInk, fontSize: 11),
+    return ColoredBox(
+      color: context.brand.surfaceElevated,
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(12, 8, 12, 8 + musicInset(context)),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _LeaderboardRow(rank: rank ?? 0, score: score, isMe: true),
+              if (rank == null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Text(
+                    score.points > 0
+                        ? 'Rank unavailable right now'
+                        : 'Your first approval starts your rank',
+                    style: TextStyle(
+                      color: context.brand.mutedInk,
+                      fontSize: 11,
+                    ),
+                  ),
                 ),
-              ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-/// What the board is for, when there is nobody on it.
-class _NobodyYet extends StatelessWidget {
-  const _NobodyYet();
-
+class _SmallLabel extends StatelessWidget {
+  const _SmallLabel({required this.text});
+  final String text;
   @override
-  Widget build(BuildContext context) => GlassEmptyState(
-    icon: Icons.emoji_events_outlined,
-    title: 'Nobody has scored yet. The first approved contribution takes '
-        'the top of this board.',
-    action: FilledButton(
-      onPressed: () => Navigator.of(context).push(
-        MaterialPageRoute<void>(
-          builder: (context) => const ContributionKindScreen(),
-        ),
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+    decoration: BoxDecoration(
+      color: context.brand.surfaceMuted,
+      borderRadius: BorderRadius.circular(30),
+    ),
+    child: Text(
+      text,
+      style: TextStyle(
+        color: context.brand.mutedInk,
+        fontSize: 9,
+        fontWeight: FontWeight.w800,
+        letterSpacing: 1,
       ),
-      child: const Text('Send something'),
     ),
   );
 }
 
-/// The rules, with the actual numbers on them.
-///
-/// Printing the table was a real decision and it went the other way first. The
-/// obvious worry is drift: the arithmetic lives in
-/// `services/functions/src/contributor-scores.ts`, it can be changed without
-/// shipping an app, and a stale table here would be worse than no table.
-///
-/// It is printed anyway, because the server's scale was deliberately built to
-/// be printable — flat, three numbers, no multipliers, no decay, no "your
-/// fifth word this week counts double" — and the comment above it says why:
-/// somebody who reads an alert saying they earned 25 points is going to want
-/// to know why, and a total nobody can check by hand is one people stop
-/// believing the first time it moves unexpectedly. Vagueness here would have
-/// undone that on the one screen where the question is actually asked.
-///
-/// [kPointsPerWord], [kPointsPerWrittenPiece] and [kPointsPerRecording] mirror
-/// `CONTRIBUTION_POINTS`. If that table moves, these move with it.
-class _HowPointsWork extends StatelessWidget {
-  const _HowPointsWork();
-
-  @override
-  Widget build(BuildContext context) {
-    final brand = context.brand;
-    return GlassSurface(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'HOW POINTS ARE EARNED',
-            style: TextStyle(
-              color: brand.mutedInk,
-              fontSize: 9.5,
-              fontWeight: FontWeight.w900,
-              letterSpacing: 1.2,
-            ),
-          ),
-          const SizedBox(height: 10),
-          const _Rule(
-            icon: Icons.verified_rounded,
-            text: 'Points land when a reviewer approves something you sent — '
-                'not when you send it.',
-          ),
-          const SizedBox(height: 4),
-          const _PointsRow(
-            points: kPointsPerWord,
-            label: 'A word for the dictionary',
-          ),
-          const _PointsRow(
-            points: kPointsPerWrittenPiece,
-            label: 'A proverb, an idiom or a story written down',
-          ),
-          const _PointsRow(
-            points: kPointsPerRecording,
-            label: 'A song, a recording or a film',
-          ),
-          const SizedBox(height: 10),
-          const _Rule(
-            // A calendar rather than the flame the rows wear: the flame is a
-            // badge somebody has, and this line is about the habit that earns
-            // it. Reusing the glyph would also have meant a leaderboard where
-            // half the flames on screen belonged to nobody.
-            icon: Icons.event_repeat_rounded,
-            text: 'Contributing on consecutive days keeps a streak alive.',
-          ),
-          const _Rule(
-            icon: Icons.lock_outline_rounded,
-            text: 'The score is written by the server. Nothing on your phone '
-                'can change it.',
-            last: true,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// What one accepted dictionary word pays.
-///
-/// These three mirror `CONTRIBUTION_POINTS` in
-/// `services/functions/src/contributor-scores.ts`, which is the only place the
-/// number is actually applied. They are named constants rather than literals in
-/// the widget so that the next person changing the server table can grep the
-/// value and find the one screen that repeats it.
-const int kPointsPerWord = 10;
-
-/// What a proverb, an idiom or a written story pays.
-const int kPointsPerWrittenPiece = 25;
-
-/// What a song, a spoken recording or a film pays.
-const int kPointsPerRecording = 50;
-
-/// One line of the points table.
-class _PointsRow extends StatelessWidget {
-  const _PointsRow({required this.points, required this.label});
-
-  final int points;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    final brand = context.brand;
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 3),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 26,
-            child: Text(
-              '$points',
-              textAlign: TextAlign.right,
-              style: TextStyle(
-                color: brand.gold,
-                fontSize: 13.5,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              label,
-              style: TextStyle(color: brand.mutedInk, fontSize: 12.5),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _Rule extends StatelessWidget {
-  const _Rule({required this.icon, required this.text, this.last = false});
-
+class _BoardMessage extends StatelessWidget {
+  const _BoardMessage({
+    required this.icon,
+    required this.title,
+    required this.action,
+  });
   final IconData icon;
-  final String text;
-  final bool last;
-
+  final String title;
+  final Widget action;
   @override
-  Widget build(BuildContext context) {
-    final brand = context.brand;
-    return Padding(
-      padding: EdgeInsets.only(bottom: last ? 0 : 9),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, size: 16, color: brand.accent),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              text,
-              style: TextStyle(
-                color: brand.mutedInk,
-                fontSize: 12.5,
-                height: 1.35,
-              ),
-            ),
+  Widget build(BuildContext context) => Container(
+    width: double.infinity,
+    padding: const EdgeInsets.all(24),
+    decoration: BoxDecoration(
+      color: context.brand.surface,
+      borderRadius: BorderRadius.circular(24),
+      border: Border.all(color: context.brand.border),
+    ),
+    child: Column(
+      children: [
+        Icon(icon, color: context.brand.gold, size: 36),
+        const SizedBox(height: 12),
+        Text(
+          title,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: context.brand.ink,
+            fontWeight: FontWeight.w700,
           ),
-        ],
-      ),
-    );
-  }
+        ),
+        const SizedBox(height: 8),
+        action,
+      ],
+    ),
+  );
 }

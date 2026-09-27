@@ -79,9 +79,17 @@ class MusicBubble extends StatelessWidget {
 /// the music is playing, so a paused or minimised-away player leaves no ticker
 /// running at all.
 class MusicEqualizer extends StatefulWidget {
-  const MusicEqualizer({required this.color, super.key});
+  const MusicEqualizer({
+    required this.color,
+    this.size = const Size(20, 16),
+    super.key,
+  });
 
   final Color color;
+
+  /// The box the four bars share. The bubble's is the default; a row, a card
+  /// and the rail's live badge each draw a different size of the same meter.
+  final Size size;
 
   @override
   State<MusicEqualizer> createState() => _MusicEqualizerState();
@@ -101,12 +109,124 @@ class _MusicEqualizerState extends State<MusicEqualizer>
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Somebody who asked for less motion still sees that it is playing — the
+    // bars are drawn — they just do not dance.
+    if (MediaQuery.disableAnimationsOf(context)) {
+      _wave
+        ..stop()
+        ..value = 0.25;
+    } else if (!_wave.isAnimating) {
+      _wave.repeat();
+    }
+  }
+
+  @override
   Widget build(BuildContext context) => RepaintBoundary(
     child: CustomPaint(
-      size: const Size(20, 16),
+      size: widget.size,
       painter: _WavePainter(wave: _wave, color: widget.color),
     ),
   );
+}
+
+/// A thin ring of progress around the minimised bubble.
+///
+/// One of the three places the position stream is allowed to reach, and the
+/// same shape as the other two: a leaf that paints, subscribed through its own
+/// `StreamBuilder` inside a `RepaintBoundary`, so the ticking stays in these
+/// pixels. The bubble and the bar's progress line are never on screen at rest
+/// together, so the stream never has more than two listeners.
+class MusicProgressRing extends StatelessWidget {
+  const MusicProgressRing({
+    required this.position,
+    required this.duration,
+    required this.color,
+    required this.track,
+    super.key,
+  });
+
+  /// The playhead. Null means there is no player to follow.
+  final Stream<Duration>? position;
+
+  final Duration? duration;
+  final Color color;
+  final Color track;
+
+  @override
+  Widget build(BuildContext context) {
+    final total = duration;
+    final stream = position;
+    if (total == null || total <= Duration.zero || stream == null) {
+      return const SizedBox.shrink();
+    }
+    return IgnorePointer(
+      child: RepaintBoundary(
+        child: StreamBuilder<Duration>(
+          stream: stream,
+          initialData: Duration.zero,
+          builder: (context, snapshot) {
+            final elapsed = snapshot.data ?? Duration.zero;
+            final fraction = (elapsed.inMilliseconds / total.inMilliseconds)
+                .clamp(0.0, 1.0);
+            return CustomPaint(
+              painter: _RingPainter(
+                fraction: fraction,
+                color: color,
+                track: track,
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class _RingPainter extends CustomPainter {
+  _RingPainter({
+    required this.fraction,
+    required this.color,
+    required this.track,
+  });
+
+  final double fraction;
+  final Color color;
+  final Color track;
+
+  static const _stroke = 2.6;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rect = (Offset.zero & size).deflate(_stroke / 2);
+    canvas.drawArc(
+      rect,
+      0,
+      2 * math.pi,
+      false,
+      Paint()
+        ..color = track
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = _stroke,
+    );
+    if (fraction <= 0) return;
+    canvas.drawArc(
+      rect,
+      -math.pi / 2,
+      2 * math.pi * fraction,
+      false,
+      Paint()
+        ..color = color
+        ..style = PaintingStyle.stroke
+        ..strokeCap = StrokeCap.round
+        ..strokeWidth = _stroke,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_RingPainter old) =>
+      old.fraction != fraction || old.color != color || old.track != track;
 }
 
 class _WavePainter extends CustomPainter {

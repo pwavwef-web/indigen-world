@@ -11,6 +11,7 @@ const routes = [
   ["/ecosystem", "EcosystemPage.tsx"],
   ["/project-kassena", "ProjectKasenaPage.tsx"],
   ["/dictionary", "DictionaryPage.tsx"],
+  ["/contribute", "ContributePage.tsx"],
   ["/impact-governance", "ImpactGovernancePage.tsx"],
   ["/get-involved", "GetInvolvedPage.tsx"],
   ["/contact", "ContactPage.tsx"],
@@ -104,6 +105,48 @@ assert.match(testerClaimPage, /noindex:\s*true/, "the private tester claim is ex
 assert.ok(!sitemap.includes(testerClaimPath), "the private tester claim is absent from sitemap.xml");
 assert.ok(!read("src/components/Header.tsx").includes(testerClaimPath), "the private tester claim is absent from the header");
 assert.ok(!read("src/components/Footer.tsx").includes(testerClaimPath), "the private tester claim is absent from the footer");
+
+// ── The entry point: two paths, one open campaign ───────────────────────────
+// A visitor must be able to tell from the home page what they can do today,
+// and a would-be contributor must reach a real task and a visible review
+// process — not a waitlist, an interest form or a points pitch.
+{
+  const audiencePaths = read("src/components/AudiencePaths.tsx");
+  const contributePage = read("src/pages/ContributePage.tsx");
+  const campaign = read("src/content/expressionsCampaign.ts");
+  const creatorLinks = read("src/content/creatorLinks.ts");
+  const expressionData = read("src/features/expressions/expressionData.ts");
+
+  assert.match(homePage, /<Button to="dictionary">Look up a Kasem word<\/Button>/, "the hero offers the learner path first");
+  assert.match(homePage, /<Button to="contribute" variant="secondary">Share a Kasem expression<\/Button>/, "the hero offers the contributor path");
+  assert.match(audiencePaths, /Learn Kasem/, "the learner path is its own card");
+  assert.match(audiencePaths, /Contribute Kasem/, "the contributor path is its own card");
+  assert.match(audiencePaths, /<Button to="contribute">/, "the contributor path leads to the campaign page");
+  assert.match(audiencePaths, /No account needed/, "the learner path says it needs no account");
+  assert.match(audiencePaths, /Free Google sign-in/, "the contributor path says what it needs before the click");
+  assert.match(read("src/content/navigation.ts"), /path: "contribute",\s*navLabel: "Contribute"/, "the campaign page is in the main navigation");
+
+  assert.match(
+    creatorLinks,
+    /STUDIO_EXPRESSIONS_URL = "https:\/\/tribestudio\.indigenworld\.com\/studio\/expressions"/,
+    "the campaign call to action opens the expression form"
+  );
+  assert.match(contributePage, /<Button href=\{CAMPAIGN_CTA_URL\} external>/, "the campaign page has a visible call to action");
+  assert.ok((contributePage.match(/href=\{CAMPAIGN_CTA_URL\}/g) ?? []).length >= 2, "the call to action is repeated after the explanation");
+  assert.match(contributePage, /id="review"/, "the review process has its own section");
+  assert.match(contributePage, /href="#review"/, "the hero links straight to the review process");
+  for (const piece of ["The expression, in Kasem", "What it means", "When it is used", "Who you learned it from", "Consent"]) {
+    assert.ok(campaign.includes(`title: "${piece}"`), `the task names "${piece}"`);
+  }
+  for (const status of ["Waiting for review", "Published", "Not accepted"]) {
+    assert.ok(campaign.includes(`status: "${status}"`), `the review process shows the "${status}" status`);
+  }
+  assert.ok(!/points|bount|prize pool|leaderboard/i.test(contributePage + campaign + audiencePaths), "the contributor journey does not pitch points or prizes");
+  assert.match(campaign, /None — volunteer campaign/, "the campaign states plainly that it is unpaid");
+  assert.match(expressionData, /where\("isPublished", "==", true\)/, "only published expressions are requested");
+  assert.match(expressionData, /collection\(websiteFirestore\(\), "expressionEntries"\)/, "expressions are read from their own collection, not the dictionary");
+  assert.ok(!/lang="xsm">[^<{]/.test(contributePage), "no hard-coded Kasem is presented as a reviewed expression");
+}
 
 // ── Shared post links ────────────────────────────────────────────────────────
 // The app shares https://indigenworld.com/post/<id>. Every assertion below is

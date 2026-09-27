@@ -418,10 +418,14 @@ dart run build_runner build
 flutter analyze
 flutter test --coverage
 flutter run --flavor development --dart-define=APP_ENV=development
-flutter build appbundle --release --flavor production --dart-define=APP_ENV=production
 flutter build ios --release --no-codesign --flavor production --dart-define=APP_ENV=production
 ```
 
+For a signed Android production bundle, configure the upload key in
+`android/key.properties` and the production AdMob identifiers in the ignored
+`admob.local.json`, then run `npm run build:mobile-aab` from the repository root.
+The script checks the advertising configuration, builds the production flavor,
+and reports the bundle's version, size, checksum, and signature status.
 Android output: `build/app/outputs/bundle/productionRelease/app-production-release.aab`.
 
 ## Emulator integration tests

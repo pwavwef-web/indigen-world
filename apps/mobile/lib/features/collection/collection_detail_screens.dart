@@ -20,18 +20,6 @@ import 'package:indigen_world_mobile/features/music/music_providers.dart';
 import 'package:indigen_world_mobile/shared/app_widgets.dart';
 import 'package:video_player/video_player.dart';
 
-class MusicCollectionScreen extends ConsumerWidget {
-  const MusicCollectionScreen({super.key});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) =>
-      PublishedCollectionScreen(
-        kind: CollectionKind.music,
-        items: ref.watch(musicCollectionProvider),
-        onReload: () => _reload(ref, musicCollectionProvider),
-      );
-}
-
 class LiteratureCollectionScreen extends ConsumerWidget {
   const LiteratureCollectionScreen({super.key});
 
@@ -41,18 +29,6 @@ class LiteratureCollectionScreen extends ConsumerWidget {
         kind: CollectionKind.literature,
         items: ref.watch(literatureCollectionProvider),
         onReload: () => _reload(ref, literatureCollectionProvider),
-      );
-}
-
-class AudiobookCollectionScreen extends ConsumerWidget {
-  const AudiobookCollectionScreen({super.key});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) =>
-      PublishedCollectionScreen(
-        kind: CollectionKind.audiobooks,
-        items: ref.watch(audiobookCollectionProvider),
-        onReload: () => _reload(ref, audiobookCollectionProvider),
       );
 }
 

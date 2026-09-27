@@ -6,12 +6,22 @@ import {
   type LexicalKind,
 } from './lexical-kinds.js';
 
+/**
+ * Every destination reviewed community work can be published to.
+ *
+ * `expressions` is the one that is not a mobile Collection shelf. It is here
+ * because an expression is reviewed exactly like the rest — same receipt, same
+ * canonical submission, same review desk, same withdrawal — and published to a
+ * home of its own, `expressionEntries`. See `expressions.ts` for why it is not
+ * simply a dictionary entry with a longer headword.
+ */
 export const COLLECTION_KINDS = [
   'music',
   'dictionary',
   'literature',
   'audiobooks',
   'video',
+  'expressions',
 ] as const;
 
 export type CollectionKind = (typeof COLLECTION_KINDS)[number];
@@ -63,6 +73,7 @@ export function canonicalCollectionKind(value: unknown): CollectionKind | null {
   if ((COLLECTION_KINDS as readonly string[]).includes(normalized)) {
     return normalized as CollectionKind;
   }
+  if (normalized === 'expression') return 'expressions';
   if (/^(audio|narration)$/.test(normalized)
     || /(audiobook|audio-book|oral-reading|spoken-word|narrated)/.test(normalized)) {
     return 'audiobooks';
@@ -79,6 +90,94 @@ export function canonicalCollectionKind(value: unknown): CollectionKind | null {
 export function collectionKindForSubmission(submission: JsonRecord): CollectionKind | null {
   return canonicalCollectionKind(submission.collectionKind)
     ?? canonicalCollectionKind(submission.category);
+}
+
+/** The three public collections a reviewed contribution can be published into. */
+export const PUBLICATION_COLLECTIONS = [
+  'dictionaryEntries',
+  'expressionEntries',
+  'publishedContent',
+] as const;
+
+export type PublicationCollection = (typeof PUBLICATION_COLLECTIONS)[number];
+
+export interface PublicationTarget {
+  collection: PublicationCollection;
+  id: string;
+}
+
+/** The public id an expression is published under, keyed by its submission. */
+export function expressionEntryId(submissionId: string): string {
+  return `expr_${submissionId}`;
+}
+
+/** The public id each collection gives the work published from [submissionId]. */
+function publicationIdFor(collection: PublicationCollection, submissionId: string): string {
+  if (collection === 'dictionaryEntries') return `collection_${submissionId}`;
+  if (collection === 'expressionEntries') return expressionEntryId(submissionId);
+  return `pub_${submissionId}`;
+}
+
+/**
+ * Whether a submission is an expression — a whole phrase, idiom or saying.
+ *
+ * Two shapes say yes. New work says so outright, with `collectionKind:
+ * 'expressions'`. Expressions translated in the invited contributor workspace
+ * before that kind existed were filed as dictionary phrases; they carry
+ * `contributorPortal` and a non-word lexical kind, and they are expressions
+ * all the same. Nothing else filed under the dictionary is: a word typed on a
+ * phone or at the dictionary desk stays a word.
+ */
+export function isExpressionSubmission(submission: JsonRecord): boolean {
+  const kind = collectionKindForSubmission(submission);
+  if (kind === 'expressions') return true;
+  return kind === 'dictionary'
+    && Boolean(submission.contributorPortal)
+    && submissionLexicalKind(submission) !== 'word';
+}
+
+/**
+ * Where a submission is published *now*, if a reviewer publishes it.
+ *
+ * Expressions go to `expressionEntries` and nowhere else — never
+ * `dictionaryEntries`, where they would be given a headword key, numbered
+ * against homographs and counted as words.
+ */
+export function publicationDestinationFor(
+  submission: JsonRecord,
+  submissionId: string,
+): PublicationTarget {
+  const collection: PublicationCollection = isExpressionSubmission(submission)
+    ? 'expressionEntries'
+    : collectionKindForSubmission(submission) === 'dictionary'
+      ? 'dictionaryEntries'
+      : 'publishedContent';
+  return { collection, id: publicationIdFor(collection, submissionId) };
+}
+
+/**
+ * The public record a submission is (or was) published as.
+ *
+ * The publication the review desk recorded wins over the routing rule, because
+ * the two can differ for exactly one kind of record: an invited contributor's
+ * expression published into the dictionary before expressions had a home of
+ * their own. Unpublishing or withdrawing it has to reach the row that is
+ * actually live, not the one the rule would pick today.
+ *
+ * A recorded target is trusted only when it names one of the three public
+ * collections under the id that collection gives this very submission, so a
+ * malformed field can never point a withdrawal at somebody else's record.
+ */
+export function publicationTargetFor(submission: JsonRecord, submissionId: string): PublicationTarget {
+  const recorded = submission.moderation?.publishedContent;
+  if (recorded && typeof recorded === 'object') {
+    const collection = text(recorded.collection);
+    if ((PUBLICATION_COLLECTIONS as readonly string[]).includes(collection)
+      && recorded.id === publicationIdFor(collection as PublicationCollection, submissionId)) {
+      return { collection: collection as PublicationCollection, id: recorded.id };
+    }
+  }
+  return publicationDestinationFor(submission, submissionId);
 }
 
 /**

@@ -20,6 +20,7 @@ import {
   type InterestRoute,
 } from "../features/forms/GetInvolvedForm";
 import { Icon } from "../components/Icon";
+import { Link } from "../app/router";
 
 const route = ROUTES_BY_PATH["get-involved"];
 
@@ -27,7 +28,8 @@ const AUDIENCES = [
   {
     icon: "community" as const,
     title: "Communities & language contributors",
-    body: "Speak Kasem, teach it, or want to help validate submissions? Join the pilot directly.",
+    body: "Speak Kasem? You can start today by sharing an everyday expression. To teach, validate or take on a bigger role, tell us below.",
+    startToday: { label: "Share an expression today", to: "contribute" },
     routes: [
       { label: "Contribute language", route: "Language contributor" as const },
       { label: "Help validate", route: "Elder / teacher validator" as const },
@@ -56,7 +58,7 @@ const AUDIENCES = [
 
 const ROUTE_EXPECTATIONS: Record<InterestRoute, string> = {
   "Indigen mobile app waitlist": "We'll keep you informed about reviewed mobile-app access and launch updates.",
-  "Language contributor": "We'll ask about your Kasem dialect, experience, and a safe contribution process.",
+  "Language contributor": "We'll ask about your Kasem dialect and experience. You don't need to wait for us: everyday expressions can be shared today on the Contribute page.",
   "Elder / teacher validator": "We'll arrange a conversation about review standards, dialect, and permissions.",
   "School or educator": "We'll discuss learner needs, safeguarding, and what a responsible pilot could involve.",
   Researcher: "We'll review the research scope, community benefit, permissions, and data-access boundaries.",
@@ -123,6 +125,12 @@ export function GetInvolvedPage() {
               </div>
               <h3>{audience.title}</h3>
               <p>{audience.body}</p>
+              {"startToday" in audience && audience.startToday ? (
+                <Link className="involvement-start-today" to={audience.startToday.to}>
+                  {audience.startToday.label}
+                  <Icon name="arrow" size={16} />
+                </Link>
+              ) : null}
               <div className="involvement-route-actions">
                 {audience.routes.map((option) => (
                   <label key={option.route}>

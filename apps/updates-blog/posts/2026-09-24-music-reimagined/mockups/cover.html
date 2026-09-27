@@ -1,0 +1,35 @@
+<!doctype html>
+<meta charset="utf-8">
+<link rel="stylesheet" href="style.css">
+<style>
+  .stage { justify-content: flex-start; padding: 0 0 0 72px; gap: 0; }
+  .copy { width: 540px; }
+  .eyebrow { font-size: 17px; letter-spacing: 2.6px; }
+  h1 { margin-top: 18px; font-size: 56px; line-height: 1.0; font-weight: 800; letter-spacing: -1.4px; }
+  p { margin-top: 20px; font-size: 20px; line-height: 1.45; color: rgba(255,255,255,0.82); }
+  .tags { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 26px; }
+  .pill { font-size: 17px; padding: 9px 16px; gap: 9px; }
+  .pill .dot { width: 10px; height: 10px; }
+  .phones { position: absolute; right: 30px; top: 0; width: 560px; height: 630px; }
+  .phones .phone { position: absolute; }
+  .a { --w: 250px; left: 20px; top: 70px; transform: rotate(-6deg); }
+  .b { --w: 262px; right: 20px; top: 40px; transform: rotate(5deg); z-index: 2; }
+</style>
+<div class="stage">
+  <div class="copy">
+    <div class="eyebrow">Indigen World · Music</div>
+    <h1>Music, reimagined</h1>
+    <p>Music gets its own home and its own navigation bar, a now-playing screen that grows out of the player and takes the song's colours, and movement that follows the music.</p>
+    <div class="tags">
+      <span class="pill"><span class="dot"></span>Its own navigation bar</span>
+      <span class="pill"><span class="dot"></span>Colours from the cover</span>
+      <span class="pill amber"><span class="dot"></span>Swipe to change song</span>
+      <span class="pill green"><span class="dot"></span>Read along</span>
+    </div>
+  </div>
+  <div class="phones">
+    <div class="phone a"><img src="../screens/music-home-light.png" alt=""></div>
+    <div class="phone b"><img src="../screens/now-playing.png" alt=""></div>
+  </div>
+</div>
+<script>Promise.all([...document.images].map((i) => i.decode().catch(() => {}))).then(() => document.fonts.ready).then(() => { window.__ready = true; });</script>

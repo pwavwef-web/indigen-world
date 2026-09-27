@@ -1,0 +1,27 @@
+{
+  "id": "expr_sub-ama-2",
+  "language": "xsm",
+  "dialect": "Navrongo",
+  "phrase": "[Kasem expression as approved]",
+  "alternatives": ["[Another way of saying it in Kasem]"],
+  "meaning": "A greeting for somebody returning from a journey.",
+  "literalTranslation": "[Word-for-word reading]",
+  "context": "Said by the household to a relative arriving home, usually in the evening.",
+  "expressionKind": "phrase",
+  "source": {
+    "type": "family",
+    "detail": "Learned from my grandmother in Navrongo.",
+    "speakerName": "Grandmother Ama"
+  },
+  "contributor": { "id": "creator-ama", "displayName": "Ama the Storyteller" },
+  "licenceDisplay": "© Ama the Storyteller · Published with permission by Indigen World",
+  "authenticationStatus": "reviewed",
+  "sourceContribution": { "collection": "collectionContributions", "id": "sub-ama-2" },
+  "submission": { "collection": "submissions", "id": "sub-ama-2" },
+  "isPublished": true,
+  "publishedAt": "2026-09-27T10:00:00Z",
+  "approvedBy": "validator-kofi",
+  "createdAt": "2026-09-27T10:00:00Z",
+  "updatedAt": "2026-09-27T10:00:00Z",
+  "schemaVersion": 1
+}

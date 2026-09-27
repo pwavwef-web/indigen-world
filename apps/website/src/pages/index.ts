@@ -34,6 +34,11 @@ export const PAGE_COMPONENTS: Record<string, LazyPage> = {
       default: DictionaryPage,
     }))
   ),
+  contribute: lazy(() =>
+    withRouteLoadingTiming(import("./ContributePage")).then(({ ContributePage }) => ({
+      default: ContributePage,
+    }))
+  ),
   "impact-governance": lazy(() =>
     withRouteLoadingTiming(import("./ImpactGovernancePage")).then(({ ImpactGovernancePage }) => ({
       default: ImpactGovernancePage,

@@ -51,6 +51,15 @@ export const ROUTES: AppRoute[] = [
       "Search Project Kassena's public web dictionary by Kasem, English or dialect, with pronunciation, examples, cultural context and attribution.",
   },
   {
+    // The contributor's entry point: the open everyday-expressions campaign,
+    // its task, its review process and the expressions already published.
+    path: "contribute",
+    navLabel: "Contribute",
+    title: "Share a Kasem expression",
+    description:
+      "Share an everyday Kasem expression with its meaning, context and source. A Kasem-speaking reviewer checks every one before it is published as an expression.",
+  },
+  {
     path: "impact-governance",
     navLabel: "Impact & Governance",
     title: "Impact & Governance",

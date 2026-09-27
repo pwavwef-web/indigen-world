@@ -1,7 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:indigen_world_mobile/core/app_config.dart';
+import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/features/ads/ad_consent.dart';
 import 'package:indigen_world_mobile/features/ads/admob_config.dart';
 import 'package:indigen_world_mobile/features/ads/admob_native.dart';
@@ -47,19 +51,33 @@ class _Initializer implements MobileAdsInitializer {
 }
 
 class _Handle implements AdMobNativeHandle {
-  _Handle({required this.onLoaded, required this.onFailed, this.fail = false});
+  _Handle({
+    required this.onLoaded,
+    required this.onFailed,
+    this.fail = false,
+    this.manual = false,
+  });
 
   final VoidCallback onLoaded;
   final VoidCallback onFailed;
   final bool fail;
+
+  /// When set, [load] returns with the request still out, and the test
+  /// decides the answer with [finish].
+  final bool manual;
   int disposals = 0;
 
   @override
   Future<void> load() async {
-    if (fail) {
-      onFailed();
-    } else {
+    if (manual) return;
+    finish(filled: !fail);
+  }
+
+  void finish({required bool filled}) {
+    if (filled) {
       onLoaded();
+    } else {
+      onFailed();
     }
   }
 
@@ -73,25 +91,41 @@ class _Handle implements AdMobNativeHandle {
 }
 
 class _Factory implements AdMobNativeFactory {
-  _Factory({this.fail = false});
+  _Factory({this.fail = false, this.manual = false});
 
   final bool fail;
+  final bool manual;
   int creates = 0;
   _Handle? lastHandle;
+  NativeAdPalette? lastPalette;
 
   @override
   AdMobNativeHandle create({
     required String unitId,
-    required bool compact,
+    required NativeAdPalette palette,
     required VoidCallback onLoaded,
     required VoidCallback onFailed,
   }) {
     creates++;
+    lastPalette = palette;
     return lastHandle = _Handle(
       onLoaded: onLoaded,
       onFailed: onFailed,
       fail: fail,
+      manual: manual,
     );
+  }
+}
+
+/// An SDK start-up that has not answered yet.
+class _SlowInitializer implements MobileAdsInitializer {
+  final gate = Completer<bool>();
+  int calls = 0;
+
+  @override
+  Future<bool> ensureInitialized() {
+    calls++;
+    return gate.future;
   }
 }
 
@@ -193,6 +227,33 @@ void main() {
       productionAndroidAppId: GoogleMobileAdsTestIds.androidApp,
     );
     expect(testAppInProduction.hasValidAppId, isFalse);
+  });
+
+  test('UMP debug settings never reach a production release', () {
+    expect(
+      developmentConsentDebugSettings(
+        testMode: false,
+        geography: 'eea',
+        testDeviceIds: 'abc123',
+      ),
+      isNull,
+    );
+    expect(
+      developmentConsentDebugSettings(
+        testMode: true,
+        geography: '',
+        testDeviceIds: '',
+      ),
+      isNull,
+    );
+
+    final development = developmentConsentDebugSettings(
+      testMode: true,
+      geography: ' EEA ',
+      testDeviceIds: ' a1 , ,b2 ',
+    );
+    expect(development?.debugGeography, DebugGeography.debugGeographyEea);
+    expect(development?.testIdentifiers, ['a1', 'b2']);
   });
 
   test('unified cadence prefers first party and otherwise maps to AdMob', () {
@@ -405,6 +466,8 @@ void main() {
         availability: AdConsentAvailability.canRequestAds,
       ),
       bool initializerAnswer = true,
+      MobileAdsInitializer? initializer,
+      DateTime Function()? clock,
       Widget? child,
     }) async {
       final container = ProviderContainer(
@@ -418,9 +481,10 @@ void main() {
             ),
           ),
           mobileAdsInitializerProvider.overrideWithValue(
-            _Initializer(initializerAnswer),
+            initializer ?? _Initializer(initializerAnswer),
           ),
           adMobNativeFactoryProvider.overrideWithValue(factory),
+          if (clock != null) adMobClockProvider.overrideWithValue(clock),
         ],
       );
       addTearDown(container.dispose);
@@ -583,6 +647,218 @@ void main() {
       expect(find.text('Primary content'), findsOneWidget);
       expect(factory.creates, 0);
       expect(unavailable, 1);
+    });
+
+    testWidgets('parent rebuilds during SDK start-up make one request', (
+      tester,
+    ) async {
+      final factory = _Factory();
+      final initializer = _SlowInitializer();
+      late StateSetter rebuildParent;
+      await pumpSlot(
+        tester,
+        factory: factory,
+        initializer: initializer,
+        child: StatefulBuilder(
+          builder: (context, setState) {
+            rebuildParent = setState;
+            return const SingleChildScrollView(
+              child: AdMobNativeSlot(placement: AdPlacement.collection),
+            );
+          },
+        ),
+      );
+      for (var i = 0; i < 4; i++) {
+        rebuildParent(() {});
+        await tester.pump();
+      }
+
+      initializer.gate.complete(true);
+      await tester.pump();
+      await tester.pump();
+
+      expect(factory.creates, 1);
+      expect(find.byKey(const Key('loaded-native-ad')), findsOneWidget);
+    });
+
+    testWidgets('holds its space while the request is out, so a late fill '
+        'never moves the rows around it', (tester) async {
+      final factory = _Factory(manual: true);
+      await pumpSlot(
+        tester,
+        factory: factory,
+        child: const SingleChildScrollView(
+          child: Column(
+            children: [
+              Text('Row above'),
+              AdMobNativeSlot(placement: AdPlacement.collection),
+              Text('Row below'),
+            ],
+          ),
+        ),
+      );
+
+      expect(find.byKey(const Key('admob-reserved-space')), findsOneWidget);
+      final waiting = tester.getTopLeft(find.text('Row below'));
+
+      factory.lastHandle!.finish(filled: true);
+      await tester.pump();
+
+      expect(find.byKey(const Key('admob-reserved-space')), findsNothing);
+      expect(find.byKey(const Key('loaded-native-ad')), findsOneWidget);
+      expect(tester.getTopLeft(find.text('Row below')), waiting);
+      expect(
+        tester.getSize(find.byKey(const Key('loaded-native-ad'))).height,
+        NativeAdBox.height,
+        reason: 'the medium template is laid out 350dp tall',
+      );
+      expect(find.text('ADVERTISEMENT'), findsOneWidget);
+    });
+
+    testWidgets('an empty answer collapses the held space', (tester) async {
+      final factory = _Factory(manual: true);
+      await pumpSlot(tester, factory: factory);
+      expect(find.byKey(const Key('admob-reserved-space')), findsOneWidget);
+
+      factory.lastHandle!.finish(filled: false);
+      await tester.pump();
+
+      expect(find.byKey(const Key('admob-reserved-space')), findsNothing);
+      expect(tester.getSize(find.byType(AdMobNativeSlot)), Size.zero);
+    });
+
+    testWidgets('a placement that came back empty rests before asking again', (
+      tester,
+    ) async {
+      var now = DateTime.utc(2026, 9, 26, 12);
+      final factory = _Factory(fail: true);
+      late StateSetter setSlots;
+      var slots = 1;
+      await pumpSlot(
+        tester,
+        factory: factory,
+        clock: () => now,
+        child: StatefulBuilder(
+          builder: (context, setState) {
+            setSlots = setState;
+            return SingleChildScrollView(
+              child: Column(
+                children: [
+                  for (var i = 0; i < slots; i++)
+                    AdMobNativeSlot(
+                      key: ValueKey('slot-$i'),
+                      placement: AdPlacement.collection,
+                    ),
+                ],
+              ),
+            );
+          },
+        ),
+      );
+      expect(factory.creates, 1);
+
+      setSlots(() => slots = 2);
+      await tester.pump();
+      await tester.pump();
+      expect(factory.creates, 1, reason: 'inside the cooldown');
+      expect(find.byKey(const Key('admob-reserved-space')), findsNothing);
+
+      now = now.add(kAdMobNoFillCooldown + const Duration(seconds: 1));
+      setSlots(() => slots = 3);
+      await tester.pump();
+      await tester.pump();
+      expect(factory.creates, 2, reason: 'the cooldown has passed');
+    });
+
+    testWidgets('scrolling a loaded advert away and back keeps it', (
+      tester,
+    ) async {
+      final factory = _Factory();
+      await pumpSlot(
+        tester,
+        factory: factory,
+        child: ListView(
+          children: [
+            const AdMobNativeSlot(placement: AdPlacement.community),
+            for (var i = 0; i < 30; i++)
+              SizedBox(height: 200, child: Text('Post $i')),
+          ],
+        ),
+      );
+      expect(factory.creates, 1);
+
+      await tester.drag(find.byType(ListView), const Offset(0, -4000));
+      await tester.pump();
+      await tester.drag(find.byType(ListView), const Offset(0, 4000));
+      await tester.pump();
+
+      expect(factory.creates, 1, reason: 'no second request on scroll-back');
+      expect(factory.lastHandle?.disposals, 0);
+      expect(find.byKey(const Key('loaded-native-ad')), findsOneWidget);
+    });
+
+    testWidgets('colours are stated for every text, in the dark theme too', (
+      tester,
+    ) async {
+      final factory = _Factory();
+      final container = ProviderContainer(
+        overrides: [
+          adsAllowedProvider.overrideWithValue(true),
+          adConsentProvider.overrideWith(
+            () => _Consent(
+              const AdConsentState(
+                availability: AdConsentAvailability.canRequestAds,
+              ),
+            ),
+          ),
+          adMobConfigProvider.overrideWithValue(
+            AdMobConfig.fromEnvironment(
+              environment: AppEnvironment.development,
+              releaseMode: false,
+            ),
+          ),
+          mobileAdsInitializerProvider.overrideWithValue(_Initializer(true)),
+          adMobNativeFactoryProvider.overrideWithValue(factory),
+        ],
+      );
+      addTearDown(container.dispose);
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            theme: ThemeData(
+              brightness: Brightness.dark,
+              extensions: const [BrandPalette.dark],
+            ),
+            home: const Scaffold(
+              body: SingleChildScrollView(
+                child: AdMobNativeSlot(placement: AdPlacement.collection),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump();
+
+      final palette = factory.lastPalette!;
+      final style = palette.templateStyle();
+      expect(style.templateType, TemplateType.medium);
+      expect(style.mainBackgroundColor, palette.background);
+      expect(palette.background.a, 1.0, reason: 'opaque, never see-through');
+      expect(palette.background, BrandPalette.dark.surface);
+      for (final text in [
+        style.primaryTextStyle,
+        style.secondaryTextStyle,
+        style.tertiaryTextStyle,
+        style.callToActionTextStyle,
+      ]) {
+        expect(text?.textColor, isNotNull);
+        expect(text?.backgroundColor, isNotNull);
+      }
+      // The body is the template's tertiary text: the view that inherits
+      // white from the dark activity theme when nothing is stated.
+      expect(style.tertiaryTextStyle?.textColor, BrandPalette.dark.mutedInk);
     });
   });
 }

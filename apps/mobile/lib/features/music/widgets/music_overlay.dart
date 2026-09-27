@@ -53,6 +53,9 @@ class MusicOverlay extends ConsumerWidget {
     final collapsed = ref.watch(
       musicBarPlacementProvider.select((placement) => placement.collapsed),
     );
+    // Under the now-playing screen the bar has become that screen, so it
+    // steps out of sight — but keeps its room: see [nowPlayingOpenProvider].
+    final underBigPlayer = ref.watch(nowPlayingOpenProvider) > 0;
 
     final media = MediaQuery.of(context);
     final lift = showMini && !collapsed ? kMiniPlayerHeight + 10 : 0.0;
@@ -76,10 +79,33 @@ class MusicOverlay extends ConsumerWidget {
               // whole box to move between them. Empty space in it passes taps
               // through to the app underneath.
               Positioned.fill(
-                child: MusicPlayerDock(
-                  brand: brand,
-                  onOpen: () =>
-                      ref.read(appRouterProvider).push('/now-playing'),
+                child: IgnorePointer(
+                  ignoring: underBigPlayer,
+                  child: AnimatedOpacity(
+                    opacity: underBigPlayer ? 0 : 1,
+                    duration: const Duration(milliseconds: 180),
+                    // Nothing hidden may tick: the bubble's equalizer stops
+                    // while the big player covers it.
+                    child: TickerMode(
+                      enabled: !underBigPlayer,
+                      // The player's own Overlay. This widget sits above the
+                      // Navigator, so the app's only Overlay (the Navigator's)
+                      // is below the bar rather than above it, and every
+                      // tooltip on the bar has nowhere to show. Without this,
+                      // those tooltips assert in debug and, in release, throw
+                      // "No Overlay widget found" as soon as a long-press asks
+                      // one to appear. An Overlay with nothing showing
+                      // hit-tests as empty, so taps still reach the app
+                      // underneath.
+                      child: Overlay.wrap(
+                        child: MusicPlayerDock(
+                          brand: brand,
+                          onOpen: () =>
+                              ref.read(appRouterProvider).push('/now-playing'),
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
               ),
           ],

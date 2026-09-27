@@ -11,9 +11,17 @@ import { consumeRateLimit } from './rate-limit.js';
 import {
   buildPublishedContentDocument,
   collectionKindForSubmission,
+  isExpressionSubmission,
+  publicationDestinationFor,
+  publicationTargetFor,
   submissionLexicalKind,
   submissionTranslations,
 } from './publication.js';
+import {
+  EXPRESSIONS_STUDIO_LINK,
+  buildExpressionEntryDocument,
+  expressionFromSubmission,
+} from './expressions.js';
 import {
   MAX_ETYMOLOGY_LENGTH,
   MAX_KASEM_DEFINITION_LENGTH,
@@ -565,6 +573,45 @@ export const decideCreatorApplication = onCall(
 // decideSubmission
 // ---------------------------------------------------------------------------
 
+/** The headline a contributor sees when a reviewer decides on their expression. */
+function expressionNoticeTitle(decision: string): string {
+  switch (decision) {
+    case 'APPROVE': return 'Expression approved';
+    case 'PUBLISH': return 'Expression published';
+    case 'UNPUBLISH': return 'Expression unpublished';
+    case 'REJECT': return 'Expression not accepted';
+    case 'ARCHIVE': return 'Expression archived';
+    default: return 'Expression with a specialist reviewer';
+  }
+}
+
+/**
+ * What happened, and what happens next, in one sentence.
+ *
+ * A rejection always carries the reviewer's reason (the callable refuses one
+ * without it), and the contributor is told they can correct and resend —
+ * which is the whole of the review process as they experience it.
+ */
+function expressionNoticeBody(decision: string, phrase: string, feedback: string, publishable: boolean): string {
+  const quoted = `“${phrase}”`;
+  switch (decision) {
+    case 'APPROVE':
+      return publishable
+        ? `${quoted} was approved by a reviewer. It will be published as an expression shortly.`
+        : `${quoted} was approved by a reviewer. As you chose, it will be kept for the archive and not published.`;
+    case 'PUBLISH':
+      return `${quoted} is now published as an expression, credited to you.`;
+    case 'UNPUBLISH':
+      return `${quoted} has been taken down while the team looks at it again.${feedback ? ` ${feedback}` : ''}`;
+    case 'REJECT':
+      return `${quoted} was not accepted. The reviewer said: ${feedback} You can correct it and send it again.`;
+    case 'ARCHIVE':
+      return `${quoted} was approved and kept for the archive, because it was not cleared for publication.`;
+    default:
+      return `${quoted} has been passed to a specialist reviewer for a second look.${feedback ? ` ${feedback}` : ''}`;
+  }
+}
+
 const SUBMISSION_DECISIONS: Record<string, string> = {
   APPROVE: 'APPROVED',
   REQUEST_REVISION: 'NEEDS_REVISION',
@@ -658,7 +705,13 @@ export const decideSubmission = onCall(
           throw new HttpsError('failed-precondition', 'Collection contribution kind is inconsistent.');
         }
       }
-      const isDictionaryContribution = collectionKind === 'dictionary' && contribution != null;
+      // An expression is published as an expression, never as a dictionary
+      // headword — including one an invited contributor translated before
+      // expressions had a kind of their own. See `expressions.ts`.
+      const isExpressionContribution = contribution != null && isExpressionSubmission(submission);
+      const isDictionaryContribution = collectionKind === 'dictionary'
+        && contribution != null
+        && !isExpressionContribution;
       // Invited contributors (TribeStudio contributor portal) are sent to the
       // expression itself, and choose whether decisions also reach them by
       // email; the in-app record is always written.
@@ -735,7 +788,37 @@ export const decideSubmission = onCall(
         const avatarUrl = profileSnap.get('public.avatarUrl') ?? null;
         const publicationStatus = decision === 'PUBLISH' ? 'published' : 'unpublished';
 
-        if (isDictionaryContribution) {
+        if (isExpressionContribution) {
+          // Where it is live (for UNPUBLISH), and where it goes (for PUBLISH).
+          // They differ only for an invited contributor's expression published
+          // into the dictionary before this kind existed: unpublishing reaches
+          // that row, and publishing it again moves it to its proper home.
+          const live = publicationTargetFor(submission, submissionId);
+          const home = publicationDestinationFor(submission, submissionId);
+          const liveRef = db.collection(live.collection).doc(live.id);
+          const homeRef = db.collection(home.collection).doc(home.id);
+          const [liveSnap, homeSnap] = await Promise.all([tx.get(liveRef), tx.get(homeRef)]);
+          if (decision === 'PUBLISH') {
+            tx.set(homeRef, buildExpressionEntryDocument({
+              submissionId,
+              contributionId,
+              submission,
+              existing: homeSnap.exists ? (homeSnap.data() as Record<string, any>) : null,
+              creatorId,
+              displayName,
+              approvedBy: uid,
+              now,
+            }));
+            if (live.collection !== home.collection && liveSnap.exists && liveSnap.get('isPublished') === true) {
+              tx.update(liveRef, { isPublished: false, updatedAt: FieldValue.serverTimestamp() });
+            }
+            moderationUpdate['moderation.publishedContent'] = { collection: home.collection, id: home.id };
+          } else if (decision === 'UNPUBLISH' && liveSnap.exists) {
+            tx.update(liveRef, live.collection === 'expressionEntries'
+              ? { isPublished: false, updatedAt: now }
+              : { isPublished: false, updatedAt: FieldValue.serverTimestamp() });
+          }
+        } else if (isDictionaryContribution) {
           const existingDictionary = await tx.get(dictionaryRef);
 
           // Every entry already filed under this spelling, read here because a
@@ -1082,22 +1165,33 @@ export const decideSubmission = onCall(
           updatedAt: FieldValue.serverTimestamp(),
         };
         if (decision === 'PUBLISH') {
-          contributionUpdate.publicationTarget = isDictionaryContribution
-            ? { collection: 'dictionaryEntries', id: dictionaryRef.id }
-            : { collection: 'publishedContent', id: publishedRef.id };
+          contributionUpdate.publicationTarget = isExpressionContribution
+            ? publicationDestinationFor(submission, submissionId)
+            : isDictionaryContribution
+              ? { collection: 'dictionaryEntries', id: dictionaryRef.id }
+              : { collection: 'publishedContent', id: publishedRef.id };
         }
         tx.update(contributionRef, contributionUpdate);
       }
 
       const escalationTag = decision.startsWith('ESCALATE') || decision === 'FLAG_RIGHTS' ? decision : null;
+      // An expression is named by its Kasem and followed from TribeStudio's
+      // expressions page; everything else keeps the wording it always had.
+      const expressionPhrase = isExpressionContribution ? expressionFromSubmission(submission).phrase : '';
       tx.set(notificationRef, {
         id: notificationRef.id,
         recipient: submission.creator,
         authUid: submission.authUid,
         type: decision === 'REQUEST_REVISION' ? 'revision_request' : decision === 'PUBLISH' ? 'publication_notice' : 'review_decision',
-        title: `Submission ${newStatus.toLowerCase().replace('_', ' ')}`,
-        body: feedback || `Your submission "${submission.title}" is now ${newStatus}.`,
-        link: portalLink ?? (contributionRef ? '/contribute' : `/studio/submissions/${submissionId}`),
+        title: isExpressionContribution
+          ? expressionNoticeTitle(decision)
+          : `Submission ${newStatus.toLowerCase().replace('_', ' ')}`,
+        body: isExpressionContribution
+          ? expressionNoticeBody(decision, expressionPhrase, feedback, submission.permissions?.publication === true)
+          : feedback || `Your submission "${submission.title}" is now ${newStatus}.`,
+        link: portalLink ?? (isExpressionContribution
+          ? EXPRESSIONS_STUDIO_LINK
+          : contributionRef ? '/contribute' : `/studio/submissions/${submissionId}`),
         read: false,
         channels: portalSettings?.get('notifications.reviewEmail') === false ? ['in_app'] : ['in_app', 'email'],
         schemaVersion: 1,

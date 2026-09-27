@@ -95,6 +95,12 @@ before(async () => {
       kasemText: 'Konkwolo', englishText: 'Bottle', isPublished: false,
       mergedInto: { collection: 'dictionaryEntries', id: 'published-word' },
     });
+    await setDoc(doc(db, 'expressionEntries/expr_published'), {
+      id: 'expr_published', phrase: '[Kasem expression]', meaning: 'Welcome back.', isPublished: true,
+    });
+    await setDoc(doc(db, 'expressionEntries/expr_withdrawn'), {
+      id: 'expr_withdrawn', phrase: '[Kasem expression]', meaning: 'Withdrawn by its contributor.', isPublished: false,
+    });
     await setDoc(doc(db, 'grammarRules/definiteness'), {
       id: 'definiteness', topic: 'definiteness', status: 'published',
       summary: 'There is no Kasem word for "the".', englishTriggers: ['the'],
@@ -395,6 +401,25 @@ test('public form submissions can be read and updated by staff, deleted by admin
   await assertSucceeds(getDoc(doc(db(admin), 'publicFormSubmissions/sub1')));
 });
 
+
+test('published expressions are public; unpublished ones stay with staff; nobody writes', async () => {
+  // The website lists reviewed expressions to visitors with no account, so
+  // the published rows must be readable signed out — and a withdrawn one must
+  // disappear from that list the moment its contributor withdraws it.
+  const anon = env.unauthenticatedContext();
+  const member = env.authenticatedContext('member-expressions');
+  const validator = env.authenticatedContext('val-expressions', { role: 'validator' });
+  const admin = env.authenticatedContext('admin-expressions', { role: 'admin' });
+  await assertSucceeds(getDoc(doc(db(anon), 'expressionEntries/expr_published')));
+  await assertSucceeds(getDocs(query(collection(db(anon), 'expressionEntries'), where('isPublished', '==', true), limit(24))));
+  await assertFails(getDocs(query(collection(db(anon), 'expressionEntries'), limit(24))));
+  await assertFails(getDoc(doc(db(anon), 'expressionEntries/expr_withdrawn')));
+  await assertFails(getDoc(doc(db(member), 'expressionEntries/expr_withdrawn')));
+  await assertSucceeds(getDoc(doc(db(validator), 'expressionEntries/expr_withdrawn')));
+  // Publication is the review workflow's job alone.
+  await assertFails(setDoc(doc(db(member), 'expressionEntries/expr_forged'), { phrase: 'x', meaning: 'y', isPublished: true }));
+  await assertFails(setDoc(doc(db(admin), 'expressionEntries/expr_published'), { phrase: 'x', meaning: 'y', isPublished: true }));
+});
 
 test('ordinary contributors can query published headword matches', async () => {
   const contributor = db(env.authenticatedContext('dictionary-contributor'));

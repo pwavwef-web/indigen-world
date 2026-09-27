@@ -14,6 +14,7 @@ import 'package:indigen_world_mobile/features/downloads/data/downloads_providers
 import 'package:indigen_world_mobile/features/downloads/widgets/downloads_orb_action.dart';
 import 'package:indigen_world_mobile/features/explore/explore_screen.dart';
 import 'package:indigen_world_mobile/features/learn/learn_screen.dart';
+import 'package:indigen_world_mobile/features/music/widgets/music_widgets.dart';
 import 'package:indigen_world_mobile/features/notifications/data/notification_providers.dart';
 import 'package:indigen_world_mobile/features/notifications/push_messaging.dart';
 import 'package:indigen_world_mobile/features/subscriptions/data/subscription_providers.dart';
@@ -223,32 +224,42 @@ class _AppShellState extends ConsumerState<AppShell>
     ];
 
     final l10n = AppLocalizations.of(context);
+    // Each destination has its own small movement as it is chosen — see
+    // [NavIconMotion] — so five slots read as five places.
     final destinations = <FrostedNavBarItem>[
       FrostedNavBarItem(
         icon: Icons.play_circle_outline_rounded,
         selectedIcon: Icons.play_circle_fill_rounded,
         label: l10n.navExplore,
+        motion: NavIconMotion.spin,
       ),
       FrostedNavBarItem(
         icon: Icons.school_outlined,
         selectedIcon: Icons.school_rounded,
         label: l10n.navLearn,
+        motion: NavIconMotion.toss,
       ),
       FrostedNavBarItem(
         icon: Icons.forum_outlined,
         selectedIcon: Icons.forum_rounded,
         label: l10n.navCommunity,
         badgeCount: unread,
+        motion: NavIconMotion.pop,
       ),
       FrostedNavBarItem(
         icon: Icons.collections_bookmark_outlined,
         selectedIcon: Icons.collections_bookmark_rounded,
         label: l10n.navCollection,
+        motion: NavIconMotion.flip,
+        // Where the music lives: a live meter on the door back to it, for as
+        // long as something is playing, and nothing at all otherwise.
+        badge: const MusicLiveBadge(),
       ),
       FrostedNavBarItem(
         icon: Icons.add_circle_outline_rounded,
         selectedIcon: Icons.add_circle_rounded,
         label: l10n.navContribute,
+        motion: NavIconMotion.quarter,
       ),
     ];
 
@@ -368,10 +379,19 @@ class _AppShellState extends ConsumerState<AppShell>
                   curve: Curves.easeOutCubic,
                   child: IgnorePointer(
                     ignoring: !chromeVisible,
-                    child: FrostedNavBar(
-                      currentIndex: _selectedIndex,
-                      onTap: _selectDestination,
-                      items: destinations,
+                    // The rail and Music's rail are one hero: opening the
+                    // channel leaves the rail on screen and turns its
+                    // destinations into the channel's. Only while it is
+                    // actually showing — a rail a feed has scrolled away
+                    // must not fly in from below the screen.
+                    child: HeroMode(
+                      enabled: chromeVisible,
+                      child: FrostedNavBar(
+                        currentIndex: _selectedIndex,
+                        onTap: _selectDestination,
+                        items: destinations,
+                        heroTag: kAppRailHeroTag,
+                      ),
                     ),
                   ),
                 ),

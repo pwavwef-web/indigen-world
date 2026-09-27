@@ -78,6 +78,41 @@ double musicInset(BuildContext context) => MusicInsetScope.of(context);
 double shellBottomReserve(BuildContext context) =>
     kFrostedNavBarReservedSpace + musicInset(context);
 
+/// The small movement a destination's icon makes as it becomes the selected
+/// one.
+///
+/// ── Why each destination gets its own ─────────────────────────────────────
+/// The pill already says *that* the selection moved. The icon saying it again
+/// in its own way — a play mark that turns, a cap that is tossed, a bookmark
+/// that flips — is what makes five destinations feel like five places rather
+/// than five slots. Each is a single, short movement that ends where it began,
+/// and none of them happen for somebody who asked for less motion.
+enum NavIconMotion {
+  /// No signature movement: the rail as it always was.
+  none,
+
+  /// A full turn, like a record starting.
+  spin,
+
+  /// Up and tilted, then caught — a mortarboard thrown.
+  toss,
+
+  /// Swells and settles — a speech bubble popping up.
+  pop,
+
+  /// A full flip about the vertical axis — a page turned.
+  flip,
+
+  /// A quarter-turn — a plus that becomes the same plus.
+  quarter,
+
+  /// A hop and a landing.
+  bounce,
+
+  /// A lean one way and back — a lens looking around.
+  turn,
+}
+
 class FrostedNavBarItem {
   const FrostedNavBarItem({
     required this.label,
@@ -85,6 +120,8 @@ class FrostedNavBarItem {
     IconData? selectedIcon,
     this.showIndicatorDot = false,
     this.badgeCount = 0,
+    this.motion = NavIconMotion.none,
+    this.badge,
   }) : selectedIcon = selectedIcon ?? icon;
 
   final String label;
@@ -92,19 +129,46 @@ class FrostedNavBarItem {
   final IconData selectedIcon;
   final bool showIndicatorDot;
   final int badgeCount;
+
+  /// The movement the icon makes as it becomes the selected destination.
+  final NavIconMotion motion;
+
+  /// A small live mark drawn at the icon's shoulder — the equalizer that says
+  /// music is playing, for instance. Beneath a numeric [badgeCount] in
+  /// precedence, and drawn in place of [showIndicatorDot]. A widget rather
+  /// than a flag, so the rail need not know what is being signalled: the
+  /// widget may watch its own state and render nothing.
+  final Widget? badge;
 }
+
+/// The tag both rails fly under when Music opens from the shell.
+///
+/// With one tag on the app rail and one on Music's, the rail is never covered
+/// by the page opening over it: it stays where it is, above both routes, while
+/// its destinations turn into the channel's.
+const Object kAppRailHeroTag = 'indigen-app-rail';
 
 class FrostedNavBar extends StatefulWidget {
   const FrostedNavBar({
     required this.currentIndex,
     required this.onTap,
     required this.items,
+    this.accent,
+    this.heroTag,
     super.key,
   });
 
   final int currentIndex;
   final ValueChanged<int> onTap;
   final List<FrostedNavBarItem> items;
+
+  /// The colour of the pill and of the selected destination. The palette's
+  /// accent when null; a channel's own colour inside that channel.
+  final Color? accent;
+
+  /// When set, the rail is a [Hero] under this tag, and hands over to another
+  /// rail carrying the same tag instead of being covered by a new page.
+  final Object? heroTag;
 
   @override
   State<FrostedNavBar> createState() => _FrostedNavBarState();
@@ -158,7 +222,45 @@ class _FrostedNavBarState extends State<FrostedNavBar>
 
   @override
   Widget build(BuildContext context) {
+    final rail = _buildRail(context);
+    final tag = widget.heroTag;
+    if (tag == null) return rail;
+    return Hero(tag: tag, flightShuttleBuilder: _handOver, child: rail);
+  }
+
+  /// The rail in flight between two routes: one set of destinations fading
+  /// into the other in place.
+  ///
+  /// The two rails are the same glass at the same size in the same spot, so a
+  /// cross-fade is all the flight needs to be — the eye sees the icons change
+  /// and the pill slide, and never sees the rail leave.
+  static Widget _handOver(
+    BuildContext flightContext,
+    Animation<double> animation,
+    HeroFlightDirection direction,
+    BuildContext fromHeroContext,
+    BuildContext toHeroContext,
+  ) {
+    final from = (fromHeroContext.widget as Hero).child;
+    final to = (toHeroContext.widget as Hero).child;
+    // A push runs its route's animation up from zero; a pop runs the popping
+    // route's back down from one. Either way `arrived` is how far the rail
+    // that is coming has come.
+    final arrived = direction == HeroFlightDirection.push
+        ? animation
+        : ReverseAnimation(animation);
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        FadeTransition(opacity: ReverseAnimation(arrived), child: from),
+        FadeTransition(opacity: arrived, child: to),
+      ],
+    );
+  }
+
+  Widget _buildRail(BuildContext context) {
     final bottomInset = MediaQuery.paddingOf(context).bottom;
+    final accent = widget.accent ?? context.brand.accent;
 
     return SizedBox(
       height: kFrostedNavBarHeight + kFrostedNavBarBottomGap + bottomInset + 26,
@@ -198,6 +300,7 @@ class _FrostedNavBarState extends State<FrostedNavBar>
                     HapticFeedback.lightImpact();
                   },
                   child: _GlassRail(
+                    accent: accent,
                     currentIndex: widget.currentIndex,
                     previousIndex: _previousIndex,
                     items: widget.items,
@@ -225,6 +328,7 @@ class _FrostedNavBarState extends State<FrostedNavBar>
 
 class _GlassRail extends StatelessWidget {
   const _GlassRail({
+    required this.accent,
     required this.currentIndex,
     required this.previousIndex,
     required this.items,
@@ -237,6 +341,7 @@ class _GlassRail extends StatelessWidget {
     required this.slotWidth,
   });
 
+  final Color accent;
   final int currentIndex;
   final int previousIndex;
   final List<FrostedNavBarItem> items;
@@ -288,6 +393,7 @@ class _GlassRail extends StatelessWidget {
 
         // ── 2. Highlighter pill ─────────────────────────────────────────
         _ExpandingPill(
+          accent: accent,
           slideController: slideController,
           wiggleController: wiggleController,
           currentIndex: currentIndex,
@@ -305,6 +411,7 @@ class _GlassRail extends StatelessWidget {
               for (var i = 0; i < items.length; i++)
                 Expanded(
                   child: _GlassNavItem(
+                    accent: accent,
                     item: items[i],
                     isSelected: currentIndex == i,
                     onTap: () => onTap(i),
@@ -324,6 +431,7 @@ class _GlassRail extends StatelessWidget {
 
 class _ExpandingPill extends StatelessWidget {
   const _ExpandingPill({
+    required this.accent,
     required this.slideController,
     required this.wiggleController,
     required this.currentIndex,
@@ -334,6 +442,7 @@ class _ExpandingPill extends StatelessWidget {
     required this.dragStartIndex,
   });
 
+  final Color accent;
   final AnimationController slideController;
   final AnimationController wiggleController;
   final int currentIndex;
@@ -460,15 +569,13 @@ class _ExpandingPill extends StatelessWidget {
                       borderRadius: BorderRadius.circular(radius),
                       // The pill deepens slightly as it travels and settles
                       // back — the movement is the emphasis, not a halo.
-                      color: context.brand.accent.withValues(
+                      color: accent.withValues(
                         alpha:
                             (context.brand.isDark ? 0.16 : 0.09) +
                             0.05 * movement,
                       ),
                       border: Border.all(
-                        color: context.brand.accent.withValues(
-                          alpha: 0.2 + 0.1 * movement,
-                        ),
+                        color: accent.withValues(alpha: 0.2 + 0.1 * movement),
                       ),
                     ),
                     child: Transform.scale(
@@ -492,11 +599,13 @@ class _ExpandingPill extends StatelessWidget {
 
 class _GlassNavItem extends StatefulWidget {
   const _GlassNavItem({
+    required this.accent,
     required this.item,
     required this.isSelected,
     required this.onTap,
   });
 
+  final Color accent;
   final FrostedNavBarItem item;
   final bool isSelected;
   final VoidCallback onTap;
@@ -506,9 +615,15 @@ class _GlassNavItem extends StatefulWidget {
 }
 
 class _GlassNavItemState extends State<_GlassNavItem>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late final AnimationController _tapController;
   late final Animation<double> _tapScale;
+
+  /// The destination's signature movement, played once as it is selected.
+  late final AnimationController _signature = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 520),
+  );
 
   @override
   void initState() {
@@ -525,16 +640,72 @@ class _GlassNavItemState extends State<_GlassNavItem>
   }
 
   @override
+  void didUpdateWidget(covariant _GlassNavItem oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!oldWidget.isSelected &&
+        widget.isSelected &&
+        widget.item.motion != NavIconMotion.none &&
+        !MediaQuery.disableAnimationsOf(context)) {
+      _signature.forward(from: 0);
+    }
+  }
+
+  @override
   void dispose() {
+    _signature.dispose();
     _tapController.dispose();
     super.dispose();
   }
 
+  /// Where the icon is at [t] of its signature movement. Every one of them
+  /// ends exactly where it began, so a movement interrupted by the next tap
+  /// never leaves an icon crooked.
+  Matrix4 _signatureAt(double t) {
+    final arc = sin(pi * t);
+    switch (widget.item.motion) {
+      case NavIconMotion.none:
+        return Matrix4.identity();
+      case NavIconMotion.spin:
+        return Matrix4.rotationZ(2 * pi * Curves.easeInOutCubic.transform(t));
+      case NavIconMotion.toss:
+        return Matrix4.translationValues(0, -8 * arc, 0)
+          ..rotateZ(-0.45 * sin(2 * pi * t) * (1 - t));
+      case NavIconMotion.pop:
+        final swell = sin(pi * t) * (1 - t * 0.4);
+        return Matrix4.diagonal3Values(1 + 0.38 * swell, 1 + 0.38 * swell, 1);
+      case NavIconMotion.flip:
+        return Matrix4.identity()
+          ..setEntry(3, 2, 0.004)
+          ..rotateY(2 * pi * Curves.easeInOut.transform(t));
+      case NavIconMotion.quarter:
+        return Matrix4.rotationZ(pi / 2 * Curves.easeOutBack.transform(t));
+      case NavIconMotion.bounce:
+        final hop = sin(pi * t * 2) * (1 - t);
+        return Matrix4.translationValues(0, -7 * hop.abs(), 0);
+      case NavIconMotion.turn:
+        return Matrix4.rotationZ(-0.5 * sin(2 * pi * t) * (1 - t));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final color = widget.isSelected
-        ? context.brand.accent
-        : context.brand.mutedInk;
+    final color = widget.isSelected ? widget.accent : context.brand.mutedInk;
+
+    final icon = AnimatedSwitcher(
+      duration: const Duration(milliseconds: 260),
+      switchInCurve: Curves.easeOutBack,
+      switchOutCurve: Curves.easeIn,
+      transitionBuilder: (child, animation) => FadeTransition(
+        opacity: animation,
+        child: ScaleTransition(scale: animation, child: child),
+      ),
+      child: Icon(
+        widget.isSelected ? widget.item.selectedIcon : widget.item.icon,
+        key: ValueKey('${widget.item.label}_${widget.isSelected}'),
+        size: kFrostedNavBarIconSize,
+        color: color,
+      ),
+    );
 
     // `excludeSemantics` keeps the child Text from contributing a second copy
     // of the label, which would otherwise be announced twice.
@@ -567,27 +738,16 @@ class _GlassNavItemState extends State<_GlassNavItem>
                   child: Stack(
                     clipBehavior: Clip.none,
                     children: [
-                      AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 260),
-                        switchInCurve: Curves.easeOutBack,
-                        switchOutCurve: Curves.easeIn,
-                        transitionBuilder: (child, animation) => FadeTransition(
-                          opacity: animation,
-                          child: ScaleTransition(
-                            scale: animation,
-                            child: child,
-                          ),
-                        ),
-                        child: Icon(
-                          widget.isSelected
-                              ? widget.item.selectedIcon
-                              : widget.item.icon,
-                          key: ValueKey(
-                            '${widget.item.label}_${widget.isSelected}',
-                          ),
-                          size: kFrostedNavBarIconSize,
-                          color: color,
-                        ),
+                      AnimatedBuilder(
+                        animation: _signature,
+                        builder: (context, child) => _signature.isAnimating
+                            ? Transform(
+                                alignment: Alignment.center,
+                                transform: _signatureAt(_signature.value),
+                                child: child,
+                              )
+                            : child!,
+                        child: icon,
                       ),
                       if (widget.item.badgeCount > 0)
                         Positioned(
@@ -617,6 +777,8 @@ class _GlassNavItemState extends State<_GlassNavItem>
                             ),
                           ),
                         )
+                      else if (widget.item.badge case final badge?)
+                        Positioned(right: -11, top: -5, child: badge)
                       else if (widget.item.showIndicatorDot)
                         Positioned(
                           right: -3,
@@ -626,7 +788,7 @@ class _GlassNavItemState extends State<_GlassNavItem>
                             height: 8,
                             child: DecoratedBox(
                               decoration: BoxDecoration(
-                                color: context.brand.accent,
+                                color: widget.accent,
                                 shape: BoxShape.circle,
                               ),
                             ),
@@ -639,7 +801,15 @@ class _GlassNavItemState extends State<_GlassNavItem>
                 AnimatedDefaultTextStyle(
                   duration: const Duration(milliseconds: 260),
                   curve: Curves.easeOut,
+                  // The theme's family named outright rather than inherited:
+                  // this rail also flies between routes as a hero, through
+                  // the Navigator's overlay, where the inherited text style is
+                  // MaterialApp's red-and-underlined "no Material here" one.
                   style: TextStyle(
+                    fontFamily: Theme.of(context)
+                        .textTheme
+                        .bodyMedium
+                        ?.fontFamily,
                     color: color,
                     fontSize: kFrostedNavBarLabelSize,
                     fontWeight: widget.isSelected

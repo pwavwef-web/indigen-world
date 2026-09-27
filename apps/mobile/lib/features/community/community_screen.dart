@@ -768,12 +768,15 @@ class _FeedList extends StatelessWidget {
         // that writes a post view against a post id, and a campaign is neither.
         if (row is AdSlot) {
           // Keyed by slot: the rotation may place one campaign in two slots.
+          // By the slot's own key rather than its row, so posts arriving above
+          // move a loaded Google advert instead of requesting another.
           return KeyedSubtree(
-            key: ValueKey('ad-slot-$index'),
+            key: ValueKey(_rowKey(row)!),
             child: UnifiedAdSlot(
               slot: row,
               firstPartyBuilder: (context, ad) =>
                   SponsoredCard(ad: ad, slot: 'community-$index'),
+              adMobPadding: const EdgeInsets.symmetric(horizontal: 16),
             ),
           );
         }
@@ -804,6 +807,7 @@ class _FeedList extends StatelessWidget {
   static String? _rowKey(Object row) => switch (row) {
     final CommunityPost post => 'post-${post.id}-${post.resharedById ?? 'own'}',
     DiscoveryRow() => 'row-new-voices',
+    final AdSlot slot => 'ad-slot-${slot.key}',
     _ => null,
   };
 }

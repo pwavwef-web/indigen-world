@@ -41,6 +41,7 @@ const LAZY_PAGES = [
   'NotificationsPage',
   'LexiconWorkspace',
   'DictionaryPage',
+  'ExpressionsPage',
 ];
 for (const page of LAZY_PAGES) {
   assert.match(app, new RegExp(`const ${page} = named\\(`), `${page} is lazy-loaded in App.tsx`);
@@ -62,8 +63,9 @@ assert.match(profilePage, /className="profile-savebar"/, 'profile has a persiste
 // without the palette is one on which two thirds of the language is entered
 // wrongly, so its presence is an invariant rather than a nicety.
 const dictionaryPage = read('src/creator/pages/DictionaryPage.tsx');
-assert.match(dictionaryPage, /KasemPalette/, 'the dictionary desk offers the Kasem letters');
-assert.match(dictionaryPage, /aria-label="Kasem letters"/, 'the letter palette is labelled for screen readers');
+const kasemPalette = read('src/creator/KasemPalette.tsx');
+assert.match(dictionaryPage, /<KasemPalette /, 'the dictionary desk offers the Kasem letters');
+assert.match(kasemPalette, /aria-label="Kasem letters"/, 'the letter palette is labelled for screen readers');
 assert.match(dictionaryPage, /Add another meaning/, 'the dictionary desk takes more than one meaning');
 assert.match(dictionaryPage, /EntryPreview/, 'the dictionary desk previews the published entry');
 // Guidance, never a gate: nothing in the completeness meter may block a send.
@@ -71,6 +73,40 @@ assert.ok(
   !/disabled=\{[^}]*progress\.score/.test(dictionaryPage),
   'the completeness meter never blocks submission',
 );
+
+// ── Everyday expressions: one clear task, reviewed, never a dictionary word ──
+//
+// The contributor journey promises a task and a review process, not points.
+// These hold the parts of that promise a regression would quietly break.
+const expressionsPage = read('src/creator/pages/ExpressionsPage.tsx');
+const expressionsData = read('src/creator/expressions-data.ts');
+assert.match(app, /path === '\/studio\/expressions'/, 'the expressions page has a studio route');
+assert.match(expressionsPage, /<KasemPalette /, 'the expression form offers the Kasem letters too');
+for (const [field, label] of [
+  ['phrase', 'the phrase in Kasem'],
+  ['meaning', 'its meaning'],
+  ['context', 'when it is used'],
+  ['sourceDetail', 'who it came from'],
+  ['speakerConsent', 'the source consent'],
+  ['everydayConfirmed', 'the not-sacred confirmation'],
+]) {
+  assert.ok(expressionsPage.includes(`update('${field}'`), `the expression form asks for ${label}`);
+}
+assert.match(expressionsData, /aiTraining: false,/, 'AI-training permission starts unticked on an expression');
+assert.match(expressionsData, /publish: '',/, 'publication is an explicit choice, never pre-selected');
+assert.match(expressionsData, /'submitExpression'/, 'expressions are sent through their own callable');
+assert.match(expressionsPage, /Correct and send again/, 'a declined expression can be corrected and resent');
+assert.match(expressionsPage, /What happens after you send it/, 'the review process is explained beside the form');
+
+// No fabricated numbers, and no points pitch. Opportunities once drew a bounty
+// bar and a prize pool from constants in the component; the dashboard offered
+// levels and badges for points nobody could explain.
+const opportunitiesPage = read('src/creator/pages/OpportunitiesPage.tsx');
+const dashboardPage = read('src/creator/pages/DashboardPage.tsx');
+assert.ok(!/prizePool|targetCount|currentCount|Bounty Target|15,000 GHS/.test(opportunitiesPage),
+  'opportunities never show hard-coded bounty targets or prize pools');
+assert.ok(!/Dialect Guardian|Kasem Wordsmith|Level \{/.test(dashboardPage), 'the dashboard does not pitch levels or badges');
+assert.match(dashboardPage, /\/studio\/expressions/, 'the dashboard leads to the expression task');
 
 // ── The workspace runs on the shared console kit ───────────────────────────
 //

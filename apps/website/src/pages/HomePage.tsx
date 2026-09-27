@@ -6,7 +6,6 @@ import { Button } from "../components/Button";
 import { SectionHeading } from "../components/SectionHeading";
 import { LatestUpdates } from "../components/LatestUpdates";
 import { AudiencePaths } from "../components/AudiencePaths";
-import { STUDIO_CREATE_URL } from "../content/creatorLinks";
 
 const route = ROUTES_BY_PATH.home;
 
@@ -21,35 +20,35 @@ export function HomePage() {
           <span className="status-pill"><span className="status-pill__dot" /> Starting with Kasem, in Northern Ghana</span>
           <p className="hero__kicker">Language, stories and the people behind them</p>
           <h1>Culture belongs<span> in the future.</span></h1>
-          <p className="hero__lead">Discover Kasem words, share a story, or help keep your language part of everyday life.</p>
+          <p className="hero__lead">Two things you can do today: look up Kasem words in the public dictionary, or share an everyday Kasem expression for a Kasem-speaking reviewer to check.</p>
           <div className="hero__actions">
-            <Button to="dictionary">Explore Kasem words</Button>
-            <Button href={STUDIO_CREATE_URL} external variant="secondary">Create with TribeStudio</Button>
+            <Button to="dictionary">Look up a Kasem word</Button>
+            <Button to="contribute" variant="secondary">Share a Kasem expression</Button>
           </div>
-          <p className="tiny">Browse without an account. Sign in to create and save your work.</p>
+          <p className="tiny">No account needed to browse. Contributing uses a free Google sign-in, so you can follow the review.</p>
         </div>
         <div className="hero-visual" aria-hidden="true" data-reveal />
       </div>
     </section>
     <section className="section section--white" id="find-your-path">
       <div className="container">
-        <SectionHeading eyebrow="Start here" title="What would you like to do?" body="Choose a path that fits you. You can explore the rest whenever you are ready." />
+        <SectionHeading eyebrow="Start here" title="Learn Kasem, or help keep it spoken." body="Two paths, both open today. Each says what it needs from you before you start." />
         <AudiencePaths />
       </div>
     </section>
     <section className="section section--cream" id="progress">
       <div className="container">
-        <SectionHeading eyebrow="Current progress" title="From an idea to tools you can use." body="Start with the public dictionary and creator workspace. Mobile access and campaign opportunities have their own availability." />
+        <SectionHeading eyebrow="Where things stand" title="What is live, what is open, what is coming." body="An honest status for each part of Indigen World, so you know what to expect before you click." />
         <div className="journey-grid">
           <article className="journey-card">
-            <span className="target-badge">Public dictionary</span><h3>Explore published Kasem words</h3>
-            <p>Search entries, read their meaning and context, and listen where a recording is available.</p>
+            <span className="target-badge">Live</span><h3>The public Kasem dictionary</h3>
+            <p>Search published entries, read their meaning and context, and listen where a recording is available.</p>
             <Button to="dictionary" variant="secondary">Open the dictionary</Button>
           </article>
           <article className="journey-card">
-            <span className="target-badge">Creator workspace</span><h3>Make and share your work</h3>
-            <p>TribeStudio supports drafts, recordings and posts. Campaign entries follow a separate review process.</p>
-            <Button href={STUDIO_CREATE_URL} external variant="secondary">Start a post</Button>
+            <span className="target-badge">Open now</span><h3>Everyday expressions campaign</h3>
+            <p>Share an expression with its meaning, context and source. Every one is reviewed; approved ones are published as expressions.</p>
+            <Button to="contribute" variant="secondary">See the task and review process</Button>
           </article>
           <article className="journey-card">
             <span className="target-badge">In development</span><h3>Learning on your phone</h3>
@@ -57,7 +56,7 @@ export function HomePage() {
             <Button to="get-involved?route=mobile-app-waitlist" variant="secondary">Join the app waitlist</Button>
           </article>
         </div>
-        <p className="target-label">These describe available product paths, not measured community impact.</p>
+        <p className="target-label">These describe what is available, not measured community impact.</p>
 
         <details className="home-targets">
           <summary>See the goals we are working toward</summary>

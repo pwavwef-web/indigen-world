@@ -5,7 +5,7 @@ import { canContribute, canMakeVideo, signOutUser, useAuth } from '../auth';
 import { firebaseConfig } from '../firebase';
 import { RouteLoader } from '../LoadingScreen';
 
-type StudioIcon = 'dashboard' | 'profile' | 'opportunities' | 'submissions' | 'dictionary' | 'video' | 'notifications' | 'help' | 'lexicon' | 'menu' | 'collapse' | 'logout' | 'search';
+type StudioIcon = 'dashboard' | 'profile' | 'opportunities' | 'submissions' | 'dictionary' | 'expressions' | 'video' | 'notifications' | 'help' | 'lexicon' | 'menu' | 'collapse' | 'logout' | 'search';
 
 const ICON_PATHS: Record<StudioIcon, ReactNode> = {
   dashboard: <><path d="M4 13h6V4H4zM14 20h6V11h-6zM4 20h6v-3H4zM14 7h6V4h-6z" /></>,
@@ -13,6 +13,7 @@ const ICON_PATHS: Record<StudioIcon, ReactNode> = {
   opportunities: <><path d="M12 2v3M12 19v3M4.93 4.93l2.12 2.12M16.95 16.95l2.12 2.12M2 12h3M19 12h3M4.93 19.07l2.12-2.12M16.95 7.05l2.12-2.12" /><circle cx="12" cy="12" r="4" /></>,
   submissions: <><path d="M12 16V4M7 9l5-5 5 5" /><path d="M5 20h14a2 2 0 0 0 2-2v-3M3 15v3a2 2 0 0 0 2 2" /></>,
   dictionary: <><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V4H6.5A2.5 2.5 0 0 0 4 6.5z" /><path d="M4 6.5v13M8 8h8M8 12h6" /></>,
+  expressions: <><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z" /><path d="M8.5 11h7M8.5 14.5h4.5" /></>,
   video: <><rect x="3" y="5" width="18" height="14" rx="2" /><path d="m10 9 5 3-5 3z" /></>,
   notifications: <><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4" /></>,
   help: <><circle cx="12" cy="12" r="10" /><path d="M9.1 9a3 3 0 1 1 5.4 1.8c-1.5 1-2.5 1.7-2.5 3.2M12 18h.01" /></>,
@@ -41,8 +42,9 @@ const VIDEO_NAV: NavItem[] = [
 ];
 
 const STUDIO_NAV: NavItem[] = [
-  { to: '/studio', label: 'Dashboard', icon: 'dashboard', group: 'Workspace', hint: 'Your standing, streak and what needs doing' },
-  { to: '/studio/opportunities', label: 'Opportunities', icon: 'opportunities', group: 'Workspace', hint: 'Open campaigns and bounties to enter' },
+  { to: '/studio', label: 'Dashboard', icon: 'dashboard', group: 'Workspace', hint: 'What needs doing, and where your work stands' },
+  { to: '/studio/opportunities', label: 'Opportunities', icon: 'opportunities', group: 'Workspace', hint: 'Open campaigns and what each one asks for' },
+  { to: '/studio/expressions', label: 'Share an expression', icon: 'expressions', group: 'Create', hint: 'Send an everyday Kasem expression for review, and follow its status' },
   { to: '/studio/editor', label: 'Video editor', icon: 'video', group: 'Create', hint: 'Cut, caption and finish any video before posting' },
   { to: '/studio/submissions', label: 'Your content', icon: 'submissions', group: 'Create', hint: 'Everything you have posted, and its status' },
   { to: '/studio/published', label: 'Public links', icon: 'submissions', group: 'Create', hint: 'Your public work, and the links readers open' },
