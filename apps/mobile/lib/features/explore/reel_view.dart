@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/gestures.dart' show kDoubleTapSlop, kDoubleTapTimeout;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -7,7 +8,6 @@ import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/core/clip_window.dart';
 import 'package:indigen_world_mobile/core/media_geometry.dart';
 import 'package:indigen_world_mobile/core/media_preferences.dart';
-import 'package:indigen_world_mobile/data/repositories.dart';
 import 'package:indigen_world_mobile/features/ads/admob_native.dart';
 import 'package:indigen_world_mobile/features/ads/data/served_ad.dart';
 import 'package:indigen_world_mobile/features/ads/widgets/sponsored_card.dart';
@@ -31,7 +31,6 @@ import 'package:indigen_world_mobile/features/explore/reel_comments_sheet.dart';
 import 'package:indigen_world_mobile/features/explore/reel_context_sheet.dart';
 import 'package:indigen_world_mobile/features/explore/reel_details.dart';
 import 'package:indigen_world_mobile/features/explore/reel_engagement.dart';
-import 'package:indigen_world_mobile/features/explore/reel_keeps.dart';
 import 'package:indigen_world_mobile/features/explore/reel_media.dart';
 import 'package:indigen_world_mobile/features/explore/reel_overflow_menu.dart';
 import 'package:indigen_world_mobile/features/explore/reel_rail.dart';
@@ -63,7 +62,6 @@ class Reel {
     this.alignment = Alignment.center,
     this.videoUrl,
     this.avatarUrl,
-    this.isLive = false,
     this.communityPostId,
     this.servedAd,
     this.adSlot,
@@ -105,8 +103,8 @@ class Reel {
   final String title;
   final String creator;
 
-  /// The creator's account id. Empty on the curated preview, which has no
-  /// account behind it and therefore no page to open.
+  /// The creator's account id. Empty when no account stands behind the reel —
+  /// an advert — and so there is no page to open.
   final String creatorId;
 
   final String initials;
@@ -130,10 +128,6 @@ class Reel {
 
   /// Creator avatar image; null falls back to initials.
   final String? avatarUrl;
-
-  /// True when this reel is real content rather than an illustration, which
-  /// changes both the copy and where its numbers come from.
-  final bool isLive;
 
   /// The community post this reel *is*, when it came from the Community feed
   /// rather than the publication workflow.
@@ -262,9 +256,7 @@ class Reel {
       ? 'Paid placement'
       : isCommunity
       ? 'Community post'
-      : isLive
-      ? 'Published archive'
-      : 'Preview';
+      : 'Published archive';
 
   /// The short category line over the byline: `STORYTELLING`.
   String get categoryLabel {
@@ -314,7 +306,6 @@ class Reel {
     alignment: alignment,
     videoUrl: videoUrl,
     avatarUrl: avatarUrl,
-    isLive: isLive,
     communityPostId: communityPostId,
     servedAd: servedAd,
     adSlot: adSlot,
@@ -366,7 +357,6 @@ class Reel {
       focalPoint: media.focalPoint,
       avatarUrl: post.authorAvatarUrl,
       creatorId: post.authorId,
-      isLive: true,
       label: details != null
           ? details.topic.label.toUpperCase()
           : switch (category) {
@@ -423,7 +413,6 @@ class Reel {
       videoUrl: published.videoUrl,
       avatarUrl: published.creatorAvatarUrl,
       creatorId: published.creatorId,
-      isLive: true,
       englishSummary: published.englishSummary,
       culturalNotes: published.culturalNotes,
       label: label,
@@ -475,7 +464,6 @@ class Reel {
   static Reel fromServedAd(ServedAd ad) => Reel(
     id: 'sponsored:${ad.campaignId}',
     servedAd: ad,
-    isLive: true,
     videoUrl: ad.isVideo && ad.hasCreative ? ad.creativeUrl : null,
     imageUrl: !ad.isVideo && ad.hasCreative ? ad.creativeUrl : '',
     label: 'SPONSORED',
@@ -496,7 +484,6 @@ class Reel {
     return Reel(
       id: 'admob:${slot.key}',
       adSlot: slot,
-      isLive: true,
       imageUrl: '',
       label: 'SPONSORED',
       title: 'Sponsored',
@@ -623,11 +610,20 @@ int? reelIndexNear(List<Reel> reels, Reel anchor, int near, {int reach = 40}) {
   return null;
 }
 
+/// How long a feed that has gone out of sight keeps its players.
+///
+/// A decoder is hardware, and a feed sitting behind another tab or a locked
+/// screen has no business holding three of them. Letting go the instant it is
+/// hidden costs the member a spinner on every quick hop to another tab and
+/// back, though, so a feed waits this long before it releases anything.
+const Duration kReelPlayerReleaseGrace = Duration(seconds: 30);
+
 /// Makes the player for one clip.
 ///
 /// A provider rather than a direct constructor call so the playback rules —
-/// one clip playing, the next one opened and waiting, everything further away
-/// released — can be tested against a player that needs no platform plugin.
+/// one clip playing, the reels either side opened and waiting, everything
+/// further away released — can be tested against a player that needs no
+/// platform plugin.
 final reelVideoControllerFactoryProvider =
     Provider<VideoPlayerController Function(String url)>(
       (ref) =>
@@ -647,6 +643,7 @@ class ReelFeedView extends ConsumerStatefulWidget {
     this.chrome,
     this.isLoadingMore = false,
     this.onActiveIndexChanged,
+    this.holdPlayers = true,
     super.key,
   });
 
@@ -659,6 +656,17 @@ class ReelFeedView extends ConsumerStatefulWidget {
   /// is hardware: a decoder and the audio session, neither of which may outlive
   /// the moment the member is watching.
   final bool isActive;
+
+  /// Whether this feed may keep its players open while it is not playing.
+  ///
+  /// Separate from [isActive] because the two go quiet for different reasons.
+  /// A screen the feed pushed over itself — search, a creator's page — stops
+  /// playback, but the member is one Back away from the same reel and the
+  /// players are worth keeping. A feed whose whole tab has been left is not,
+  /// and [kReelPlayerReleaseGrace] after this turns false every player lets
+  /// go, the reel in front included. The app leaving the foreground counts the
+  /// same way.
+  final bool holdPlayers;
 
   final int initialIndex;
 
@@ -702,8 +710,16 @@ class ReelFeedView extends ConsumerStatefulWidget {
 class _ReelFeedViewState extends ConsumerState<ReelFeedView>
     with WidgetsBindingObserver {
   late int _activeIndex = widget.initialIndex;
+
+  /// `keepPage` off, because [_activeIndex] is this state's own and starts at
+  /// [ReelFeedView.initialIndex]. With it on, a feed rebuilt under the same
+  /// storage key — Explore switching topic and back — was put back on the page
+  /// it last showed while [_activeIndex] said the first one, so the reel on
+  /// screen was not the one allowed to play and stood frozen until a swipe.
+  /// A position worth keeping is kept by keeping the feed, not its page.
   late final PageController _controller = PageController(
     initialPage: widget.initialIndex,
+    keepPage: false,
   );
 
   /// The member's own intent for the active reel: they have not tapped it to a
@@ -729,6 +745,9 @@ class _ReelFeedViewState extends ConsumerState<ReelFeedView>
   /// is the rollback.
   final _pendingLikes = <String, bool>{};
   final _pendingSaves = <String, bool>{};
+
+  /// Reels a double-tap is liking right now, so a burst of them writes once.
+  final _doubleTapLikes = <String>{};
 
   /// Reels whose server-side view has already been written this session.
   final _trackedViews = <String>{};
@@ -758,6 +777,34 @@ class _ReelFeedViewState extends ConsumerState<ReelFeedView>
   /// Keys of the pages near the active one, for the pager to find a moved card.
   var _keyIndex = const <String, int>{};
 
+  /// Whether the cards may hold players at all. Goes false
+  /// [kReelPlayerReleaseGrace] after the feed stopped wanting them — see
+  /// [ReelFeedView.holdPlayers] — and true again the moment it is back.
+  var _holdPlayers = true;
+  Timer? _releaseTimer;
+
+  bool get _wantsPlayers => widget.holdPlayers && _foreground;
+
+  /// Starts or cancels the countdown to letting every player go.
+  ///
+  /// Called wherever either half of [_wantsPlayers] may have moved, always
+  /// just before a build, so the fields are set plainly. Coming back inside the
+  /// grace period cancels the countdown and nothing was ever released; coming
+  /// back after it opens the reel in front again, and its neighbours.
+  void _syncHold() {
+    if (_wantsPlayers) {
+      _releaseTimer?.cancel();
+      _releaseTimer = null;
+      _holdPlayers = true;
+      return;
+    }
+    if (!_holdPlayers || _releaseTimer != null) return;
+    _releaseTimer = Timer(kReelPlayerReleaseGrace, () {
+      _releaseTimer = null;
+      if (mounted && !_wantsPlayers) setState(() => _holdPlayers = false);
+    });
+  }
+
   @override
   void initState() {
     super.initState();
@@ -766,6 +813,7 @@ class _ReelFeedViewState extends ConsumerState<ReelFeedView>
     // state to read, and a launching app is on its way to the foreground.
     final lifecycle = WidgetsBinding.instance.lifecycleState;
     _foreground = lifecycle == null || lifecycle == AppLifecycleState.resumed;
+    _syncHold();
   }
 
   /// Whether this feed is currently holding the audio claim.
@@ -814,6 +862,7 @@ class _ReelFeedViewState extends ConsumerState<ReelFeedView>
   void didUpdateWidget(ReelFeedView oldWidget) {
     super.didUpdateWidget(oldWidget);
     _keepActiveReelInPlace(oldWidget.reels, widget.reels);
+    if (oldWidget.holdPlayers != widget.holdPlayers) _syncHold();
   }
 
   /// Keeps the member on the reel they are watching when the list changes
@@ -843,14 +892,23 @@ class _ReelFeedViewState extends ConsumerState<ReelFeedView>
       _activeIndex = oldIndex.clamp(0, next.length - 1);
       _playing = true;
       _startVisit();
+      // The pager is moved with it. A list that shrank past the member's page
+      // left the pager beyond its own end, and the spring that brought it back
+      // landed on whatever was last — while [_activeIndex] named another reel.
+      _correctPagerTo(_activeIndex);
       return;
     }
     _activeIndex = found;
-    if (_controller.hasClients) {
-      final position = _controller.position;
-      if (position.hasViewportDimension) {
-        position.correctPixels(found * position.viewportDimension);
-      }
+    _correctPagerTo(found);
+  }
+
+  /// Puts the pager on [index] without a scroll animation or a page-change
+  /// event.
+  void _correctPagerTo(int index) {
+    if (!_controller.hasClients) return;
+    final position = _controller.position;
+    if (position.hasViewportDimension) {
+      position.correctPixels(index * position.viewportDimension);
     }
   }
 
@@ -881,6 +939,7 @@ class _ReelFeedViewState extends ConsumerState<ReelFeedView>
       });
     }
     _dwellTicker?.cancel();
+    _releaseTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     _controller.dispose();
     super.dispose();
@@ -893,7 +952,10 @@ class _ReelFeedViewState extends ConsumerState<ReelFeedView>
     // watching, and sound that follows them out of the app is a bug.
     final foreground = state == AppLifecycleState.resumed;
     if (!mounted || foreground == _foreground) return;
-    setState(() => _foreground = foreground);
+    setState(() {
+      _foreground = foreground;
+      _syncHold();
+    });
   }
 
   int get _clampedIndex =>
@@ -995,7 +1057,7 @@ class _ReelFeedViewState extends ConsumerState<ReelFeedView>
     // [_trackedViews] holds ids, and a re-queued reel keeps the id of the reel
     // it repeats, so watching a clip again on a later pass is the view it
     // already was.
-    if (!reel.isLive || !_trackedViews.add(reel.id)) return;
+    if (!_trackedViews.add(reel.id)) return;
     final uid = ref.read(currentUidProvider);
     final repository = ref.read(reelEngagementRepositoryProvider);
     if (uid == null || repository == null) return;
@@ -1114,8 +1176,6 @@ class _ReelFeedViewState extends ConsumerState<ReelFeedView>
     };
 
     // The member's own state, from the server, so it survives a restart.
-    // Illustrative reels keep a device-local store — there is no account
-    // behind them to attach an edge to.
     final serverLikes =
         ref.watch(myReelLikesProvider).asData?.value ?? const <String>{};
     final serverSaves =
@@ -1126,10 +1186,6 @@ class _ReelFeedViewState extends ConsumerState<ReelFeedView>
         ref.watch(myLikesProvider).asData?.value ?? const <String>{};
     final communityBookmarks =
         ref.watch(myBookmarksProvider).asData?.value ?? const <String>{};
-    final localSaves =
-        ref.watch(savedReelIdsProvider).asData?.value ?? const <String>{};
-    final localLikes =
-        ref.watch(appreciatedReelIdsProvider).asData?.value ?? const <String>{};
     final following =
         ref.watch(followingIdsProvider).asData?.value ?? const <String>[];
     final optimistic = ref.watch(optimisticEngagementProvider);
@@ -1138,6 +1194,10 @@ class _ReelFeedViewState extends ConsumerState<ReelFeedView>
     final dictionary = ref.watch(dictionaryIndexProvider);
     final chrome = widget.chrome;
     final compactRail = MediaQuery.sizeOf(context).height < 700;
+    // The data-saving switch in Settings. Off means only the reel in front is
+    // ever fetched: nothing opened ahead of a swipe the member may not make,
+    // and nothing kept behind them either.
+    final openNeighbours = ref.watch(videoAutoplayProvider);
 
     // Its own Material, so the words and ink on every card have a text style
     // and a surface to draw on wherever the feed is shown — the shell provides
@@ -1154,7 +1214,8 @@ class _ReelFeedViewState extends ConsumerState<ReelFeedView>
               controller: _controller,
               scrollDirection: Axis.vertical,
               // Builds the reel on either side of the active one, so the next
-              // clip can be opening before the member swipes to it.
+              // clip can be opening before the member swipes to it, and the one
+              // before is still there when they swipe back.
               allowImplicitScrolling: true,
               itemCount: reels.length,
               onPageChanged: _onPageChanged,
@@ -1165,8 +1226,7 @@ class _ReelFeedViewState extends ConsumerState<ReelFeedView>
                 final serverLiked = switch (reel) {
                   Reel(communityPostId: final postId?) =>
                     communityLikes.contains(postId),
-                  Reel(isLive: true) => serverLikes.contains(reel.id),
-                  _ => localLikes.contains(reel.id),
+                  _ => serverLikes.contains(reel.id),
                 };
                 final liked = switch (reel) {
                   Reel(communityPostId: final postId?) => optimistic.liked(
@@ -1180,8 +1240,7 @@ class _ReelFeedViewState extends ConsumerState<ReelFeedView>
                     switch (reel) {
                       Reel(communityPostId: final postId?) =>
                         communityBookmarks.contains(postId),
-                      Reel(isLive: true) => serverSaves.contains(reel.id),
-                      _ => localSaves.contains(reel.id),
+                      _ => serverSaves.contains(reel.id),
                     };
                 final followState =
                     reel.isSponsored ||
@@ -1195,12 +1254,15 @@ class _ReelFeedViewState extends ConsumerState<ReelFeedView>
                     ? ReelFollowState.following
                     : ReelFollowState.notFollowing;
                 final isActive = index == activeIndex;
+                final isNeighbour = (index - activeIndex).abs() == 1;
                 return _ReelCard(
                   key: ValueKey(reelPageKey(reel, index)),
                   reel: reel,
                   bottomInset: widget.bottomInset,
                   isActive: isActive,
-                  preload: index == activeIndex + 1,
+                  keepPlayer:
+                      _holdPlayers &&
+                      (isActive || (isNeighbour && openNeighbours)),
                   isPlaying: isActive && _effectivePlaying,
                   userPaused: isActive && !_playing,
                   onScreen: onScreen,
@@ -1215,6 +1277,27 @@ class _ReelFeedViewState extends ConsumerState<ReelFeedView>
                       widget.isLoadingMore && index == reels.length - 1,
                   translationAvailable: reelHasTranslation(reel, dictionary),
                   onTapMedia: () => _onTapMedia(reel),
+                  // Double-tapping only ever appreciates: a second double-tap
+                  // on something already liked is a member who likes it a lot,
+                  // not one who changed their mind. Adverts have nothing to
+                  // appreciate, and without the handler a tap on one is not
+                  // held back waiting to see whether a second follows.
+                  onDoubleTapLike: reel.isSponsored
+                      ? null
+                      : () {
+                          // A burst of double-taps is one like: the first one
+                          // is still being written when the rest arrive, and
+                          // until it lands this card still reads as unliked.
+                          if (liked || !_doubleTapLikes.add(reel.id)) return;
+                          unawaited(
+                            _toggleAppreciation(
+                              reel,
+                              liked: false,
+                            ).whenComplete(
+                              () => _doubleTapLikes.remove(reel.id),
+                            ),
+                          );
+                        },
                   onLike: () => _toggleAppreciation(reel, liked: liked),
                   onSave: () => _toggleSave(reel, saved: saved),
                   onComments: () => _openComments(reel),
@@ -1278,17 +1361,6 @@ class _ReelFeedViewState extends ConsumerState<ReelFeedView>
   Future<void> _toggleSave(Reel reel, {required bool saved}) async {
     HapticFeedback.selectionClick();
     final analytics = ref.read(exploreAnalyticsProvider);
-    if (!reel.isLive) {
-      final nowSaved = await ref.read(reelKeepsProvider).toggleSaved(reel.id);
-      ref.invalidate(savedEntryIdsProvider);
-      if (!mounted) return;
-      showGlassToast(
-        context,
-        nowSaved ? 'Saved on this device.' : 'Removed from your saves.',
-      );
-      return;
-    }
-
     final uid = await CommunityActions(ref).requireSignIn(context);
     if (uid == null || !mounted) return;
     setState(() => _pendingSaves[reel.id] = !saved);
@@ -1319,11 +1391,6 @@ class _ReelFeedViewState extends ConsumerState<ReelFeedView>
   Future<void> _toggleAppreciation(Reel reel, {required bool liked}) async {
     HapticFeedback.lightImpact();
     final analytics = ref.read(exploreAnalyticsProvider);
-    if (!reel.isLive) {
-      await ref.read(reelKeepsProvider).toggleAppreciated(reel.id);
-      ref.invalidate(savedEntryIdsProvider);
-      return;
-    }
     final uid = await CommunityActions(ref).requireSignIn(context);
     if (uid == null || !mounted) return;
 
@@ -1453,8 +1520,6 @@ class _ReelFeedViewState extends ConsumerState<ReelFeedView>
       });
       return;
     }
-    // An illustrative reel has no comment thread and never had one.
-    if (!reel.isLive) return;
     await _withChromeHeld('comments', () async {
       await showReelCommentsSheet(context, reelId: reel.id, title: reel.title);
     });
@@ -1545,7 +1610,7 @@ class _ReelCard extends ConsumerStatefulWidget {
     required this.reel,
     required this.bottomInset,
     required this.isActive,
-    required this.preload,
+    required this.keepPlayer,
     required this.isPlaying,
     required this.userPaused,
     required this.onScreen,
@@ -1559,6 +1624,7 @@ class _ReelCard extends ConsumerStatefulWidget {
     required this.showLoadingMore,
     required this.translationAvailable,
     required this.onTapMedia,
+    required this.onDoubleTapLike,
     required this.onLike,
     required this.onSave,
     required this.onComments,
@@ -1583,9 +1649,12 @@ class _ReelCard extends ConsumerStatefulWidget {
 
   final bool isActive;
 
-  /// The reel after the active one: its clip opens, paused on the first frame,
-  /// so the swipe to it lands on a picture rather than a spinner.
-  final bool preload;
+  /// Whether this card holds a player: the reel in front, and the ones either
+  /// side of it, paused, so a swipe either way lands on a picture rather than a
+  /// spinner. False for everything further away — and for all of them once a
+  /// hidden feed has let its players go, or when the member asked for data to
+  /// be saved and only the reel in front may be fetched.
+  final bool keepPlayer;
 
   /// Whether the clip should be playing: active, not tapped to a stop, not
   /// covered by a sheet.
@@ -1608,6 +1677,10 @@ class _ReelCard extends ConsumerStatefulWidget {
   final bool showLoadingMore;
   final bool translationAvailable;
   final VoidCallback onTapMedia;
+
+  /// Null where a double-tap means nothing — an advert — so a single tap there
+  /// is answered at once rather than after the double-tap window.
+  final VoidCallback? onDoubleTapLike;
   final VoidCallback onLike;
   final VoidCallback onSave;
   final VoidCallback onComments;
@@ -1661,15 +1734,70 @@ class _ReelCardState extends ConsumerState<_ReelCard> {
 
   /// The clip this card should have open, or null when it should have none.
   ///
-  /// Only the active reel and the one after it hold a player. Everything
-  /// further away lets its decoder go and shows its poster — merely pausing
-  /// would leave a decoder behind for every reel somebody has swiped past.
-  String? get _wantedUrl =>
-      widget.isActive || widget.preload ? widget.reel.videoUrl : null;
+  /// Only the cards the feed asks to — see [_ReelCard.keepPlayer] — hold a
+  /// player. Everything else lets its decoder go and shows its poster: merely
+  /// pausing would leave a decoder behind for every reel somebody has swiped
+  /// past.
+  String? get _wantedUrl => widget.keepPlayer ? widget.reel.videoUrl : null;
 
   /// Whether the member is waiting on footage that has not arrived.
   bool get _opening =>
       widget.isActive && _wantedUrl != null && !_ready && !_failed;
+
+  /// A single tap waiting to find out whether a second one follows.
+  ///
+  /// Counted here by hand rather than by giving the card's detector an
+  /// `onDoubleTap`. A double-tap recogniser holds the gesture arena open after
+  /// the first tap, and that hold delays *every* tap underneath it — the
+  /// appreciate, follow, mute and Context buttons all answered a third of a
+  /// second late. This way only a tap on the picture itself waits.
+  Timer? _singleTap;
+  Offset? _firstTapAt;
+
+  /// Open for a moment after a double-tap, so a flurry of taps keeps landing
+  /// hearts rather than the third one pausing the reel.
+  Timer? _flurry;
+
+  /// Where the heart of the last double-tap is still showing. Each burst gets
+  /// its own key so the next restarts the heart rather than joining it.
+  Offset? _heartAt;
+  var _heartKey = 0;
+
+  void _onTapUp(TapUpDetails details) {
+    final like = widget.onDoubleTapLike;
+    if (like == null) {
+      widget.onTapMedia();
+      return;
+    }
+    final at = details.localPosition;
+    final first = _firstTapAt;
+    final isSecond =
+        (_singleTap?.isActive ?? false) &&
+        first != null &&
+        (at - first).distance <= kDoubleTapSlop;
+    if (isSecond || (_flurry?.isActive ?? false)) {
+      _singleTap?.cancel();
+      _singleTap = null;
+      _firstTapAt = null;
+      _flurry?.cancel();
+      _flurry = Timer(kDoubleTapTimeout, () {});
+      setState(() {
+        _heartAt = at;
+        _heartKey++;
+      });
+      like();
+      return;
+    }
+    _firstTapAt = at;
+    _singleTap?.cancel();
+    _singleTap = Timer(kDoubleTapTimeout, () {
+      _singleTap = null;
+      _firstTapAt = null;
+      // A tap followed at once by a swipe must not land on the reel the swipe
+      // arrived at: pausing is only ever about the reel that was tapped.
+      if (mounted && widget.isActive) widget.onTapMedia();
+    });
+  }
 
   @override
   void initState() {
@@ -1682,7 +1810,7 @@ class _ReelCardState extends ConsumerState<_ReelCard> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.reel.videoUrl != widget.reel.videoUrl ||
         oldWidget.isActive != widget.isActive ||
-        oldWidget.preload != widget.preload) {
+        oldWidget.keepPlayer != widget.keepPlayer) {
       _sync();
       if (widget.isActive && !oldWidget.isActive) _reportLength();
     } else if (oldWidget.isPlaying != widget.isPlaying ||
@@ -1695,6 +1823,8 @@ class _ReelCardState extends ConsumerState<_ReelCard> {
 
   @override
   void dispose() {
+    _singleTap?.cancel();
+    _flurry?.cancel();
     _release();
     super.dispose();
   }
@@ -1908,7 +2038,7 @@ class _ReelCardState extends ConsumerState<_ReelCard> {
 
     // A community video counts where it lives: its appreciations and replies
     // are the post's own. A sponsored reel has no engagement document at all.
-    final counts = reel.isLive && !reel.isCommunity && !reel.isSponsored
+    final counts = !reel.isCommunity && !reel.isSponsored
         ? (ref.watch(reelCountsProvider(reel.id)).asData?.value ??
               emptyReelCounts)
         : (likes: reel.likes, comments: reel.comments, views: reel.viewCount);
@@ -1953,7 +2083,10 @@ class _ReelCardState extends ConsumerState<_ReelCard> {
                 '${reel.title.trim().isEmpty ? '' : ' ${reel.title.trim()}.'}',
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
-        onTap: widget.onTapMedia,
+        // A tap on the picture waits out the double-tap window before it
+        // pauses — see [_onTapUp] — which is the price of the gesture
+        // everywhere it exists, and the reason an advert has none.
+        onTapUp: _onTapUp,
         child: Stack(
           fit: StackFit.expand,
           children: [
@@ -2131,7 +2264,97 @@ class _ReelCardState extends ConsumerState<_ReelCard> {
                   window: reel.clipWindow,
                 ),
               ),
+            if (_heartAt case final at?)
+              _HeartBurst(
+                key: ValueKey('heart-$_heartKey'),
+                at: at,
+                onDone: () {
+                  if (mounted) setState(() => _heartAt = null);
+                },
+              ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The heart a double-tap leaves where the finger was: it swells, settles and
+/// fades, and it is gone in under a second.
+///
+/// Drawn in the rail's own gold so it reads as the same appreciation the rail
+/// button lights up for, not a second, louder kind. Under reduced motion it
+/// does not swell — it shows and fades.
+class _HeartBurst extends StatefulWidget {
+  const _HeartBurst({required this.at, required this.onDone, super.key});
+
+  final Offset at;
+  final VoidCallback onDone;
+
+  @override
+  State<_HeartBurst> createState() => _HeartBurstState();
+}
+
+class _HeartBurstState extends State<_HeartBurst>
+    with SingleTickerProviderStateMixin {
+  static const _size = 96.0;
+
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 720),
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    _controller.forward().whenComplete(widget.onDone);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final still = MediaQuery.disableAnimationsOf(context);
+    final scale = still
+        ? const AlwaysStoppedAnimation<double>(1)
+        : TweenSequence<double>([
+            TweenSequenceItem(
+              tween: Tween(
+                begin: 0.4,
+                end: 1.18,
+              ).chain(CurveTween(curve: Curves.easeOutBack)),
+              weight: 35,
+            ),
+            TweenSequenceItem(tween: Tween(begin: 1.18, end: 1), weight: 15),
+            TweenSequenceItem(tween: ConstantTween(1), weight: 50),
+          ]).animate(_controller);
+    final opacity = TweenSequence<double>([
+      TweenSequenceItem(tween: ConstantTween(1), weight: 60),
+      TweenSequenceItem(tween: Tween(begin: 1, end: 0), weight: 40),
+    ]).animate(_controller);
+    return Positioned(
+      left: widget.at.dx - _size / 2,
+      top: widget.at.dy - _size / 2,
+      width: _size,
+      height: _size,
+      child: IgnorePointer(
+        child: ExcludeSemantics(
+          child: FadeTransition(
+            opacity: opacity,
+            child: ScaleTransition(
+              scale: scale,
+              child: Icon(
+                Icons.favorite_rounded,
+                size: _size,
+                color: context.brand.gold,
+                shadows: const [Shadow(blurRadius: 24, color: Colors.black54)],
+              ),
+            ),
+          ),
         ),
       ),
     );

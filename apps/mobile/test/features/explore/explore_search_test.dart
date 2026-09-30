@@ -10,7 +10,6 @@ Reel _reel({
   String caption = '',
   String label = '',
   String sound = '',
-  bool isLive = true,
 }) => Reel(
   id: id,
   imageUrl: '',
@@ -21,14 +20,13 @@ Reel _reel({
   caption: caption,
   sound: sound,
   credit: '',
-  isLive: isLive,
 );
 
 /// A paid placement as the feed actually carries one.
 ///
 /// Through [ServedAd.fromData] and [Reel.fromServedAd] rather than a hand-set
-/// [Reel], because what these two tests are really about is the two fields
-/// that conversion happens to set — `label: 'SPONSORED'` and `isLive: true` —
+/// [Reel], because what these two tests are really about is what that
+/// conversion happens to set — `label: 'SPONSORED'` and the served advert —
 /// and a fixture that spelled those out itself would keep passing after the
 /// conversion stopped setting them.
 Reel _sponsoredReel(String headline) => Reel.fromServedAd(
@@ -94,21 +92,10 @@ void main() {
       ]);
     });
 
-    test('a live reel outranks the curated preview on an equal match', () {
-      final live = _reel(id: 'live', title: 'Kasem songs');
-      final preview = _reel(id: 'preview', title: 'Kasem songs', isLive: false);
-      expect(searchReels([preview, live], 'kasem').map((reel) => reel.id), [
-        'live',
-        'preview',
-      ]);
-    });
-
     test('an advert is never a search result', () {
       // Explore search reads the spliced feed, so the adverts are in the list
       // handed here. This one would not merely have appeared among the
-      // results: its headline is the reel's title and scores the full ten, and
-      // `Reel.fromServedAd` sets `isLive`, so it also took the bonus above
-      // that exists to rank real published work first.
+      // results: its headline is the reel's title and scores the full ten.
       final ad = _sponsoredReel('Kasem songs on cassette');
       final live = _reel(id: 'live', title: 'Kasem songs');
       expect(searchReels([ad, live], 'kasem').map((reel) => reel.id), ['live']);
@@ -127,20 +114,10 @@ void main() {
       expect(terms.first, 'Story Reel');
     });
 
-    test('ignores the curated preview, which nobody means to search for', () {
-      expect(
-        trendingTerms([
-          _reel(id: 'a', label: 'REEL PREVIEW · SOMEWHERE', isLive: false),
-        ]),
-        isEmpty,
-      );
-    });
-
     test('never offers "Sponsored" as something people are looking at', () {
-      // The eyebrow this reads is the word SPONSORED, and `isLive` did not
-      // keep it out on its own — an advert is live. One running campaign was
-      // enough to put "Sponsored" among the terms the search screen suggests
-      // unprompted, in the app's own voice.
+      // The eyebrow this reads is the word SPONSORED. One running campaign
+      // was once enough to put "Sponsored" among the terms the search screen
+      // suggests unprompted, in the app's own voice.
       expect(trendingTerms([_sponsoredReel('Pure shea from Paga')]), isEmpty);
     });
 

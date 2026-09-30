@@ -117,6 +117,24 @@ class QueueWord {
   /// stall when a batch of them is all that is left.
   final int pendingCount;
 
+  /// A `wordQueue` document as Firestore stores it, for the reads a guest can
+  /// make without the callable — the prompt in Explore, a word opened by id,
+  /// a topic page's list. The stored row keeps its Tatoeba credit in three
+  /// top-level fields where the callable nests it; both end as the same
+  /// [QueueWordAttribution], and a row with no Tatoeba id gets none.
+  static QueueWord? fromQueueRow(String id, Map<String, Object?> data) {
+    return fromMap(<String, Object?>{
+      ...data,
+      'id': id,
+      if (_text(data['sentenceSource']) == 'tatoeba')
+        'attribution': <String, Object?>{
+          'tatoebaId': data['tatoebaId'],
+          'contributor': data['tatoebaContributor'],
+          'licence': data['licence'],
+        },
+    });
+  }
+
   static QueueWord? fromMap(Object? raw) {
     if (raw is! Map) return null;
     final id = _text(raw['id']);
@@ -284,9 +302,29 @@ class WordTranslationDraft {
     this.recordingStoragePath = '',
     this.recordingMimeType = '',
     this.recordingSizeBytes = 0,
+    this.origin = 'queue',
+    this.creditByName = true,
+    this.allowTraining = false,
+    this.reviseContributionId,
   });
 
   final String wordId;
+
+  /// Where the member came to this word from: `queue`, `explore`, `search`,
+  /// `topic` or `kawuri`. Kept on the answer as provenance.
+  final String origin;
+
+  /// Whether the member is credited by name where the answer is published.
+  /// Off means "an Indigen World contributor".
+  final bool creditByName;
+
+  /// Whether the member agreed to this answer being used to test and train
+  /// Indigen's language tools. Off unless they said yes.
+  final bool allowTraining;
+
+  /// The member's own earlier answer to this word that a reviewer sent back
+  /// for changes, when this draft corrects it; null for a new answer.
+  final String? reviseContributionId;
 
   /// Already parsed. The raw text never leaves the widget: the field owns the
   /// string, this owns the list, and the server parses whichever it is handed
@@ -470,6 +508,10 @@ class WordTranslationDraft {
     'kasemExample': kasemExample,
     'englishExample': englishExample,
     'sentenceFit': sentenceFit.wire,
+    'origin': origin,
+    'credit': creditByName ? 'name' : 'anonymous',
+    if (allowTraining) 'aiTraining': true,
+    'reviseContributionId': ?reviseContributionId,
     // Every one of these is omitted when empty, so the great majority of
     // answers send exactly the keys they always did.
     'forms': ?_forms,
@@ -498,7 +540,11 @@ class WordTranslationReceipt {
     required this.word,
     required this.contributionId,
     required this.translations,
+    this.revised = false,
   });
+
+  /// True when this corrected an answer a reviewer had sent back.
+  final bool revised;
 
   final String wordId;
 
@@ -524,6 +570,7 @@ class WordTranslationReceipt {
       word: on.word,
       contributionId: _text(map['contributionId']),
       translations: List.unmodifiable(translations),
+      revised: map['revised'] == true,
     );
   }
 }
@@ -564,4 +611,39 @@ int _count(Object? value) {
   if (value is num) return value.round();
   if (value is String) return int.tryParse(value.trim()) ?? 0;
   return 0;
+}
+
+/// An answer a reviewer sent back for changes, opened to be corrected.
+///
+/// Carries what the member sent before so the form opens with it rather than
+/// empty — a correction is usually one character, and retyping the whole
+/// answer to fix a tone mark is how corrections stop being made — and the
+/// reviewer's note, which is the reason the form is open at all.
+@immutable
+class QueueRevision {
+  const QueueRevision({
+    required this.contributionId,
+    required this.wordId,
+    required this.word,
+    required this.translations,
+    this.kasemExample = '',
+    this.notes = '',
+    this.dialect = '',
+    this.partOfSpeechId = '',
+    this.reviewerNote = '',
+  });
+
+  final String contributionId;
+  final String wordId;
+
+  /// The English word, for the heading while the queue row loads.
+  final String word;
+
+  /// As the member typed them, comma-separated.
+  final String translations;
+  final String kasemExample;
+  final String notes;
+  final String dialect;
+  final String partOfSpeechId;
+  final String reviewerNote;
 }

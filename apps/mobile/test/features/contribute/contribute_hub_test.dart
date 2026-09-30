@@ -3,8 +3,9 @@
 // It used to open on a five-way type picker sitting above every field of a
 // dictionary submission, whether or not the member had come to submit
 // anything. Somebody checking on last week's song had to scroll past an empty
-// form to reach the status of it. These tests hold the tab to being a hub: two
-// doors, the reviewers' one for the accounts that have it, and no fields.
+// form to reach the status of it. These tests hold the tab to being a hub:
+// three doors — the word queue first — the reviewers' one for the accounts
+// that have it, and no fields.
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -13,6 +14,7 @@ import 'package:indigen_world_mobile/app/app_theme.dart';
 import 'package:indigen_world_mobile/features/contribute/contribute_screen.dart';
 import 'package:indigen_world_mobile/features/contribute/contribution_kind_screen.dart';
 import 'package:indigen_world_mobile/features/contribute/my_submissions_screen.dart';
+import 'package:indigen_world_mobile/features/contribute/words/word_queue_screen.dart';
 import 'package:indigen_world_mobile/features/validate/data/review_queue.dart';
 import 'package:indigen_world_mobile/l10n/app_localizations.dart';
 
@@ -37,9 +39,10 @@ Future<void> pumpHub(WidgetTester tester, {String? role}) async {
 }
 
 void main() {
-  testWidgets('the tab offers two doors and asks nothing', (tester) async {
+  testWidgets('the tab offers three doors and asks nothing', (tester) async {
     await pumpHub(tester);
 
+    expect(find.text('Translate a word'), findsOneWidget);
     expect(find.text('Submit to Collections'), findsOneWidget);
     expect(find.text('Add a song, a word, a story or a film'), findsOneWidget);
     expect(find.text('Your submissions'), findsOneWidget);
@@ -91,6 +94,24 @@ void main() {
 
     expect(find.byType(ContributionKindScreen), findsOneWidget);
     expect(find.text('What are you contributing?'), findsOneWidget);
+    await tester.pump(const Duration(milliseconds: 500));
+  });
+
+  testWidgets('the word queue is one tap from the tab, and first', (
+    tester,
+  ) async {
+    await pumpHub(tester);
+
+    // The lowest-cost ask leads, above the row about songs and films.
+    expect(
+      tester.getTopLeft(find.text('Translate a word')).dy,
+      lessThan(tester.getTopLeft(find.text('Submit to Collections')).dy),
+    );
+    await tester.tap(find.text('Translate a word'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+
+    expect(find.byType(WordQueueScreen), findsOneWidget);
     await tester.pump(const Duration(milliseconds: 500));
   });
 

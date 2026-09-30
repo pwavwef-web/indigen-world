@@ -1,9 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/firebase_ready.dart';
 import 'package:indigen_world_mobile/features/auth/auth_repository.dart';
 import 'package:indigen_world_mobile/features/collection/collection_data.dart';
+import 'package:indigen_world_mobile/features/contribute/contribution_kinds.dart';
 import 'package:indigen_world_mobile/features/contribute/contribution_upload.dart';
 
 class CollectionContributionRecord {
@@ -15,6 +17,15 @@ class CollectionContributionRecord {
     required this.publicationPermission,
     this.reviewFeedback = '',
     this.createdAt,
+    this.wordQueueId = '',
+    this.body = '',
+    this.kasemExample = '',
+    this.notes = '',
+    this.dialect = '',
+    this.partOfSpeechId = '',
+    this.publishedAs = '',
+    this.duplicateOf = '',
+    this.revisionCount = 0,
   });
 
   final String id;
@@ -24,6 +35,31 @@ class CollectionContributionRecord {
   final bool publicationPermission;
   final String reviewFeedback;
   final DateTime? createdAt;
+
+  // ── A word-queue answer ────────────────────────────────────────────────
+  /// The queue word this answered, or empty.
+  final String wordQueueId;
+
+  /// The Kasem the member sent, as they typed it.
+  final String body;
+  final String kasemExample;
+  final String notes;
+  final String dialect;
+  final String partOfSpeechId;
+
+  /// What a reviewer decided the answer became (`headword`, `expression`…).
+  final String publishedAs;
+
+  /// The dictionary entry a rejected answer repeats, when that was the reason.
+  final String duplicateOf;
+  final int revisionCount;
+
+  bool get isQueueAnswer => wordQueueId.isNotEmpty;
+
+  /// Whether the member can correct it now: a reviewer asked for changes.
+  bool get canRevise =>
+      isQueueAnswer &&
+      const {'needs_revision', 'needs_changes'}.contains(status.toLowerCase());
 
   static CollectionContributionRecord fromDoc(
     QueryDocumentSnapshot<Map<String, dynamic>> doc,
@@ -41,6 +77,17 @@ class CollectionContributionRecord {
       publicationPermission: data['publicationPermission'] == true,
       reviewFeedback: _text(data['reviewFeedback']),
       createdAt: created is Timestamp ? created.toDate() : null,
+      wordQueueId: _text(data['wordQueueId']),
+      body: _text(data['body']),
+      kasemExample: _text(data['kasemExample']),
+      notes: _text(data['notes']),
+      dialect: _text(data['dialect']),
+      partOfSpeechId: _text(data['partOfSpeechId']),
+      publishedAs: _text(data['publishedAs']),
+      duplicateOf: _text(data['duplicateOf']),
+      revisionCount: data['revisionCount'] is num
+          ? (data['revisionCount'] as num).toInt()
+          : 0,
     );
   }
 }
@@ -219,22 +266,78 @@ class CollectionContributionRepository {
     });
   }
 
-  Stream<List<CollectionContributionRecord>> watchMine(String uid) =>
-      _collection.where('authUid', isEqualTo: uid).limit(50).snapshots().map((
-        snapshot,
-      ) {
-        final rows =
-            snapshot.docs
-                .map(CollectionContributionRecord.fromDoc)
-                .toList(growable: true)
-              ..sort((left, right) {
-                final leftDate = left.createdAt ?? DateTime(1970);
-                final rightDate = right.createdAt ?? DateTime(1970);
-                return rightDate.compareTo(leftDate);
-              });
-        return List.unmodifiable(rows);
-      });
+  /// This member's most recent [kMyContributionsLimit] contributions, newest
+  /// first.
+  ///
+  /// ── Why there are two queries ─────────────────────────────────────────
+  /// The word queue writes one contribution per word answered, so an active
+  /// translator passes the limit within a sitting or two. Limited without an
+  /// order, Firestore hands back fifty in document-id order — an arbitrary
+  /// fifty, not the latest — and the list showed a member everything but what
+  /// they had just sent. Ordering by `createdAt` beside the `authUid` filter
+  /// needs the composite index in `firestore.indexes.json`, which is deployed
+  /// apart from the app; until it is, the query is refused with
+  /// `failed-precondition` and the old unordered read stands in for it.
+  ///
+  /// `await for` rather than `yield*` for the first of the two: an error from
+  /// a `yield*` stream is passed straight through to the listener and never
+  /// reaches the `catch`, so the fallback could not have happened.
+  Stream<List<CollectionContributionRecord>> watchMine(String uid) async* {
+    final mine = _collection.where('authUid', isEqualTo: uid);
+    try {
+      await for (final snapshot
+          in mine
+              .orderBy('createdAt', descending: true)
+              .limit(kMyContributionsLimit)
+              .snapshots()) {
+        yield _newestFirst(snapshot);
+      }
+    } on FirebaseException catch (error) {
+      if (error.code != 'failed-precondition') rethrow;
+      yield* mine
+          .limit(kMyContributionsLimit)
+          .snapshots()
+          .map(_newestFirst);
+    }
+  }
+
+  static List<CollectionContributionRecord> _newestFirst(
+    QuerySnapshot<Map<String, dynamic>> snapshot,
+  ) {
+    final rows =
+        snapshot.docs
+            .map(CollectionContributionRecord.fromDoc)
+            .toList(growable: true)
+          ..sort((left, right) {
+            final leftDate = left.createdAt ?? DateTime(1970);
+            final rightDate = right.createdAt ?? DateTime(1970);
+            return rightDate.compareTo(leftDate);
+          });
+    return List.unmodifiable(rows);
+  }
+
+  /// How many contributions this member has sent, and how many were approved,
+  /// counted by the server rather than from the list — which stops at
+  /// [kMyContributionsLimit].
+  ///
+  /// Two aggregate counts: each is billed per thousand index entries rather
+  /// than per document, and both are equality filters that Firestore serves
+  /// from its single-field indexes without a composite one.
+  Future<({int sent, int approved})> countMine(String uid) async {
+    final mine = _collection.where('authUid', isEqualTo: uid);
+    final results = await Future.wait([
+      mine.count().get(),
+      mine
+          .where('status', whereIn: kApprovedContributionStatuses.toList())
+          .count()
+          .get(),
+    ]);
+    return (sent: results[0].count ?? 0, approved: results[1].count ?? 0);
+  }
 }
+
+/// How many contributions the submissions list reads at most.
+const int kMyContributionsLimit = 50;
 
 final collectionContributionRepositoryProvider =
     Provider<CollectionContributionRepository?>((ref) {
@@ -254,6 +357,56 @@ final myCollectionContributionsProvider =
       }
       return repository.watchMine(uid);
     });
+
+/// What this member has sent and had approved, in total.
+///
+/// The server's counts when it can give them, and otherwise what the list
+/// itself holds — marked [capped] when the list is full, so a screen can say
+/// "50+" rather than present fifty as the whole story.
+typedef ContributionTotals = ({int sent, int approved, bool capped});
+
+final myContributionTotalsProvider = FutureProvider<ContributionTotals>((
+  ref,
+) async {
+  // Watched rather than read, so a contribution landing in the list — or a
+  // review moving one — asks the server again.
+  final listed =
+      ref.watch(myCollectionContributionsProvider).asData?.value ??
+      const <CollectionContributionRecord>[];
+  final local = (
+    sent: listed.length,
+    approved: listed
+        .where((record) => contributionApproved(record.status))
+        .length,
+    capped: listed.length >= kMyContributionsLimit,
+  );
+  final uid = ref.watch(authStateProvider).asData?.value?.uid;
+  final repository = ref.watch(collectionContributionRepositoryProvider);
+  if (uid == null || repository == null) return local;
+  try {
+    final counted = await repository.countMine(uid);
+    return (
+      // Never fewer than the list can see: a count taken a moment before a
+      // snapshot is the only way the two can disagree, and it is the list
+      // that is newer then.
+      sent: counted.sent < local.sent ? local.sent : counted.sent,
+      approved: counted.approved < local.approved
+          ? local.approved
+          : counted.approved,
+      capped: false,
+    );
+  } on Object catch (error) {
+    debugPrint('Contribution totals could not be counted: $error');
+    return local;
+  }
+});
+
+/// A count for a label: the number, or "50+" when all that is known is that
+/// the list is full.
+String contributionCountLabel(int count, {required bool capped}) =>
+    capped && count >= kMyContributionsLimit
+    ? '$kMyContributionsLimit+'
+    : '$count';
 
 /// The stored `collectionKind` read back as the enum.
 ///

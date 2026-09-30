@@ -10,6 +10,7 @@ import 'package:indigen_world_mobile/features/community/communities/community_sp
 import 'package:indigen_world_mobile/features/community/messages_screen.dart';
 import 'package:indigen_world_mobile/features/community/post_detail_screen.dart';
 import 'package:indigen_world_mobile/features/contribute/contribute_screen.dart';
+import 'package:indigen_world_mobile/features/contribute/words/word_queue_screen.dart';
 import 'package:indigen_world_mobile/features/dictionary/entry_detail_screen.dart';
 import 'package:indigen_world_mobile/features/downloads/downloads_screen.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_creation_screen.dart';
@@ -30,8 +31,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/', builder: (context, state) => const StartupGate()),
       GoRoute(
         path: '/entry/:entryId',
-        builder: (context, state) =>
-            EntryDetailScreen(entryId: state.pathParameters['entryId']!),
+        builder: (context, state) => EntryDetailScreen(
+          entryId: state.pathParameters['entryId']!,
+          origin: state.uri.queryParameters['from'] ?? 'link',
+        ),
       ),
       // Push deep links land on these two.
       GoRoute(
@@ -133,6 +136,16 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 originColor: context.brand.surface,
                 child: child,
               ),
+        ),
+      ),
+      // One queued word, from wherever the member met it — an Explore prompt,
+      // an empty search, a topic page, Kawuri. The same word always has the
+      // same id, so every door opens the same queue item.
+      GoRoute(
+        path: '/contribute/word/:wordId',
+        builder: (context, state) => WordQueueScreen(
+          focusWordId: state.pathParameters['wordId'],
+          origin: state.uri.queryParameters['origin'] ?? 'queue',
         ),
       ),
       GoRoute(

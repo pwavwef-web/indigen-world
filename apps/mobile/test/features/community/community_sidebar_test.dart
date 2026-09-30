@@ -4,6 +4,7 @@ import 'package:indigen_world_mobile/features/community/community_screen.dart';
 import 'package:indigen_world_mobile/features/community/data/chat_repository.dart';
 import 'package:indigen_world_mobile/features/community/messages_screen.dart';
 import 'package:indigen_world_mobile/features/community/widgets/community_sidebar.dart';
+import 'package:indigen_world_mobile/features/profile/profile_screen.dart';
 
 import 'community_test_harness.dart';
 
@@ -94,10 +95,12 @@ void main() {
       'Find people',
       'Your profile',
       'Saved posts',
-      'Your keeps',
     ]) {
       expect(sidebarText(room), findsOneWidget, reason: 'missing "$room" row');
     }
+    // Kept reels belong to Explore and to My Space's library, not to the
+    // community's rooms.
+    expect(sidebarText('Your keeps'), findsNothing);
 
     await scrollSidebar(tester);
     for (final room in const [
@@ -105,10 +108,29 @@ void main() {
       'Following',
       'Ask Kawuri',
       'Settings',
-      'Sign out',
     ]) {
       expect(sidebarText(room), findsOneWidget, reason: 'missing "$room" row');
     }
+    // Signing out lives in Settings, the one place that also takes this
+    // phone's alerts with it.
+    expect(sidebarText('Sign out'), findsNothing);
+  });
+
+  testWidgets('Settings opens My Space on its Settings tab', (tester) async {
+    final repository = FakeCommunityRepository(
+      profiles: [amina],
+      posts: [fakePost()],
+    );
+
+    await pumpFeed(tester, repository);
+    await openSidebar(tester);
+    await scrollSidebar(tester);
+    await tester.tap(sidebarText('Settings'));
+    await settle(tester);
+
+    expect(find.byType(CommunitySidebar), findsNothing);
+    final space = tester.widget<ProfileScreen>(find.byType(ProfileScreen));
+    expect(space.initialTab, ProfileTab.settings);
   });
 
   testWidgets('a guest is offered sign-in instead of sign-out', (tester) async {

@@ -34,8 +34,9 @@ import 'package:indigen_world_mobile/features/explore/reel_view.dart';
 ///   * Community reels are labelled as such and keep their community
 ///     identity — the same likes, the same replies, the same profile.
 ///   * Muted, blocked and hidden authors are already filtered out upstream by
-///     [communityFeedProvider], so somebody a member has silenced cannot reach
-///     them through a different tab.
+///     [exploreCommunityFeedProvider], by the same rules as the Community
+///     tab's feed, so somebody a member has silenced cannot reach them through
+///     a different tab.
 ///
 /// Published work leads. Not because it is better, but because it is what the
 /// archive exists to show, and it is comparatively rare; after that the two
@@ -154,7 +155,7 @@ List<Reel> publishedReels(Iterable<PublishedReel> published) => published
 /// interested, creators hidden, muted or blocked, communities hidden.
 ///
 /// Community posts by muted and blocked authors are already gone upstream —
-/// [communityFeedProvider] filters them — so the creator rule here is what
+/// [exploreCommunityFeedProvider] filters them — so the creator rule here is what
 /// extends the same choice to the published archive.
 List<Reel> withoutHidden(
   Iterable<Reel> reels, {
@@ -282,7 +283,7 @@ const int kExploreAdCadence = 6;
 final exploreCatalogueProvider = Provider<List<Reel>>((ref) {
   final window = ref.watch(exploreWindowProvider);
   final published = ref.watch(publishedReelsProvider).asData?.value;
-  final community = ref.watch(communityFeedProvider).asData?.value;
+  final community = ref.watch(exploreCommunityFeedProvider).asData?.value;
   return List.unmodifiable(
     withoutHidden(
       uniqueReels([
@@ -295,6 +296,35 @@ final exploreCatalogueProvider = Provider<List<Reel>>((ref) {
   );
 });
 
+/// Community posts with a video, over Explore's own window.
+///
+/// Explore used to read the Community tab's feed — every post, most of them
+/// writing and photographs — and keep the few videos, so it ran dry after a
+/// handful of reels; and because the two shared a window, scrolling Explore
+/// quietly re-queried the Community tab behind it. It asks for videos
+/// directly now — see `CommunityRepository.watchVideoFeed`, which falls back
+/// to the main feed until its index is deployed.
+final rawExploreCommunityFeedProvider = StreamProvider<List<CommunityPost>>((
+  ref,
+) {
+  final repository = ref.watch(communityRepositoryProvider);
+  if (repository == null) return Stream.value(const <CommunityPost>[]);
+  return repository.watchVideoFeed(limit: ref.watch(exploreWindowProvider));
+});
+
+/// [rawExploreCommunityFeedProvider] without what this member hid, muted or
+/// blocked — the same rules, applied the same way, as the Community tab's own
+/// feed.
+final exploreCommunityFeedProvider = Provider<AsyncValue<List<CommunityPost>>>(
+  (ref) => visibleCommunityFeed(
+    ref.watch(rawExploreCommunityFeedProvider),
+    hidden: ref.watch(myHiddenPostsProvider).asData?.value ?? const <String>{},
+    muted: ref.watch(myMutedProfilesProvider).asData?.value ?? const <String>{},
+    blocked:
+        ref.watch(myBlockedProfilesProvider).asData?.value ?? const <String>{},
+  ),
+);
+
 /// Authors this member muted or blocked. Community posts by them are filtered
 /// upstream; this carries the same choice over to published work.
 final _silencedCreatorsProvider = Provider<Set<String>>(
@@ -303,6 +333,98 @@ final _silencedCreatorsProvider = Provider<Set<String>>(
     ...?ref.watch(myBlockedProfilesProvider).asData?.value,
   },
 );
+
+// ── The order already dealt ─────────────────────────────────────────────────
+//
+// The ranking is recomputed whenever either source ticks or the window grows,
+// and it used to be applied to the whole list every time. The pager holds the
+// member's own reel in place (see `_keepActiveReelInPlace`), but everything
+// around it moved: reels already watched came round again ahead of them, and
+// reels about to arrive slipped behind them and were never seen. So once the
+// member is past the first reel, the order they have been dealt is written
+// down, and later answers can only add to the end of it.
+
+/// The name an order is kept under: which half of Explore, under which topic.
+String exploreFeedKey({required bool following, required ExploreTopic topic}) =>
+    '${following ? 'following' : 'for-you'}:${topic.name}';
+
+/// The ids one feed has dealt, in the order it dealt them.
+///
+/// Empty until the member moves past the first reel, which is when the
+/// ranking's own inputs stop being allowed to move — see
+/// `ExploreSignalsSnapshot.lock`. Cleared (by invalidating the family) every
+/// time the ranking starts again: a new topic, the other feed, a fresh start.
+class ExploreDealtOrder extends Notifier<List<String>> {
+  ExploreDealtOrder(this.feed);
+
+  /// See [exploreFeedKey].
+  final String feed;
+
+  @override
+  List<String> build() => const <String>[];
+
+  /// Writes [reels] down as dealt, in their current order.
+  ///
+  /// Does nothing when that is already what is written, which is almost
+  /// always: it is called on every page the member reaches, and only a feed
+  /// that has grown since has anything new to add.
+  void freeze(List<Reel> reels) {
+    if (reels.length == state.length) {
+      var same = true;
+      for (var index = 0; index < reels.length; index++) {
+        if (reels[index].id != state[index]) {
+          same = false;
+          break;
+        }
+      }
+      if (same) return;
+    }
+    state = List.unmodifiable([for (final reel in reels) reel.id]);
+  }
+}
+
+final exploreDealtOrderProvider =
+    NotifierProvider.family<ExploreDealtOrder, List<String>, String>(
+      ExploreDealtOrder.new,
+    );
+
+/// [ranked], with everything already [dealt] kept exactly where it was.
+///
+/// The dealt reels lead, in their dealt order, less any that have gone — hidden,
+/// deleted, filtered out. Everything new follows in [ranked]'s own order, so a
+/// wider window or a fresh snapshot can only ever add to the end of the feed.
+/// The reels themselves are always [ranked]'s, so counts and captions stay
+/// current; only their positions are held.
+///
+/// The one place the join can show is the seam: the first new reel may be by
+/// the person the dealt part ended on. That one is swapped with the nearest
+/// reel by somebody else, which is the same promise the ranking's own
+/// diversity pass keeps everywhere else.
+List<Reel> keepDealtOrder(List<Reel> ranked, List<String> dealt) {
+  if (dealt.isEmpty || ranked.isEmpty) return ranked;
+  final byId = {for (final reel in ranked) reel.id: reel};
+  final kept = <Reel>[];
+  final placed = <String>{};
+  for (final id in dealt) {
+    final reel = byId[id];
+    if (reel != null && placed.add(id)) kept.add(reel);
+  }
+  final fresh = [
+    for (final reel in ranked)
+      if (!placed.contains(reel.id)) reel,
+  ];
+  if (kept.isNotEmpty && fresh.length > 1) {
+    final last = kept.last.creatorId;
+    if (last.isNotEmpty && fresh.first.creatorId == last) {
+      final swap = fresh.indexWhere((reel) => reel.creatorId != last, 1);
+      if (swap > 0) {
+        final other = fresh.removeAt(swap);
+        fresh.insert(0, other);
+      }
+    }
+  }
+  return [...kept, ...fresh];
+}
 
 /// What For you shows right now, in order, before adverts and before anything
 /// is repeated: the catalogue narrowed to the selected topic and ranked for
@@ -322,12 +444,18 @@ final _silencedCreatorsProvider = Provider<Set<String>>(
 /// community the member joined all count, and in which no creator, community
 /// or language is allowed a run of the feed. The round-robin is still
 /// available as [variedByCreator] for anything that wants arrival order.
+///
+/// Once the member is past the first reel the ranking only decides where new
+/// reels go: what has been dealt stays put — see [keepDealtOrder].
 final exploreContentProvider = Provider<List<Reel>>((ref) {
   final catalogue = ref.watch(exploreCatalogueProvider);
   final topic = ref.watch(exploreTopicProvider);
   final signals = ref.watch(exploreSignalsProvider);
+  final dealt = ref.watch(
+    exploreDealtOrderProvider(exploreFeedKey(following: false, topic: topic)),
+  );
   return List.unmodifiable(
-    rankForYou(reelsForTopic(catalogue, topic), signals),
+    keepDealtOrder(rankForYou(reelsForTopic(catalogue, topic), signals), dealt),
   );
 });
 
@@ -392,7 +520,7 @@ final exploreFollowingContentProvider = Provider<List<Reel>>((ref) {
   final community = ref.watch(followingFeedProvider).asData?.value;
   final everyone = joined.isEmpty
       ? null
-      : ref.watch(communityFeedProvider).asData?.value;
+      : ref.watch(exploreCommunityFeedProvider).asData?.value;
 
   final window = ref.watch(exploreWindowProvider);
   final reels = withoutHidden(
@@ -417,8 +545,12 @@ final exploreFollowingContentProvider = Provider<List<Reel>>((ref) {
     hidden: ref.watch(exploreHiddenProvider),
     silencedCreators: ref.watch(_silencedCreatorsProvider),
   );
+  final topic = ref.watch(exploreTopicProvider);
+  final dealt = ref.watch(
+    exploreDealtOrderProvider(exploreFeedKey(following: true, topic: topic)),
+  );
   return List.unmodifiable(
-    rankFollowing(reelsForTopic(reels, ref.watch(exploreTopicProvider))),
+    keepDealtOrder(rankFollowing(reelsForTopic(reels, topic)), dealt),
   );
 });
 
@@ -564,13 +696,6 @@ List<Reel> loopedExploreFeed({
     ),
   );
   if (cycles < 1 || content.length < kExploreLoopMinimum) return base;
-  // Nothing that is not live is ever queued again. The content providers build
-  // live reels and only live reels, so this cannot fire from them — it is here
-  // for the curated preview, which is three illustrative cards with nothing
-  // behind them and reaches the pager by a different route entirely. Three
-  // stock photographs on an endless loop would be the app insisting it has an
-  // archive when what it has is a placeholder.
-  if (content.any((reel) => !reel.isLive)) return base;
   return _LoopedReelFeed(
     base: base,
     content: content,
@@ -803,7 +928,7 @@ class _LoopedReelFeed extends ListBase<Reel> {
 /// are different states and are now drawn differently.
 final exploreFeedLoadingProvider = Provider<bool>((ref) {
   final published = ref.watch(publishedReelsProvider);
-  final community = ref.watch(communityFeedProvider);
+  final community = ref.watch(exploreCommunityFeedProvider);
   return !published.hasValue &&
       !community.hasValue &&
       !published.hasError &&
@@ -813,7 +938,7 @@ final exploreFeedLoadingProvider = Provider<bool>((ref) {
 /// True when both sources failed and there is nothing at all to show.
 final exploreFeedFailedProvider = Provider<bool>((ref) {
   final published = ref.watch(publishedReelsProvider);
-  final community = ref.watch(communityFeedProvider);
+  final community = ref.watch(exploreCommunityFeedProvider);
   return published.hasError &&
       !published.hasValue &&
       community.hasError &&
@@ -824,7 +949,7 @@ final exploreFeedFailedProvider = Provider<bool>((ref) {
 /// the "loading the next item" state at the tail of the feed.
 final exploreLoadingMoreProvider = Provider<bool>((ref) {
   final published = ref.watch(publishedReelsProvider);
-  final community = ref.watch(rawCommunityFeedProvider);
+  final community = ref.watch(rawExploreCommunityFeedProvider);
   return (published.isLoading && published.hasValue) ||
       (community.isLoading && community.hasValue);
 });

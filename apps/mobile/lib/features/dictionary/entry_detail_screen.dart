@@ -8,20 +8,33 @@ import 'package:indigen_world_mobile/core/media_preferences.dart';
 import 'package:indigen_world_mobile/data/repositories.dart';
 import 'package:indigen_world_mobile/domain/dictionary_entry.dart';
 import 'package:indigen_world_mobile/domain/kasem_homographs.dart';
+import 'package:indigen_world_mobile/features/auth/auth_repository.dart';
 import 'package:indigen_world_mobile/features/collection/collection_data.dart';
+import 'package:indigen_world_mobile/features/contribute/language_loop_analytics.dart';
 import 'package:indigen_world_mobile/features/dictionary/data/dictionary_admin.dart';
 import 'package:indigen_world_mobile/features/dictionary/entry_editor_screen.dart';
 import 'package:indigen_world_mobile/features/dictionary/sense_list.dart';
 import 'package:indigen_world_mobile/features/dictionary/sentence_credit.dart';
 import 'package:indigen_world_mobile/features/dictionary/translation_display.dart';
+import 'package:indigen_world_mobile/features/kawuri/kawuri_lesson.dart';
+import 'package:indigen_world_mobile/features/profile/saved_words_sync.dart';
 import 'package:indigen_world_mobile/shared/app_widgets.dart';
 import 'package:just_audio/just_audio.dart';
 
 class EntryDetailScreen extends ConsumerWidget {
-  const EntryDetailScreen({required this.entryId, this.entry, super.key});
+  const EntryDetailScreen({
+    required this.entryId,
+    this.entry,
+    this.origin = 'dictionary',
+    super.key,
+  });
 
   final String entryId;
   final DictionaryEntry? entry;
+
+  /// Where the member opened the entry from (`dictionary`, `kawuri`,
+  /// `kawuri_lesson`, a link), for counting verified-entry views.
+  final String origin;
 
   /// The headword as it should be drawn and as it should be spoken.
   static HomographDisplay _headword(DictionaryEntry entry, int siblings) =>
@@ -124,13 +137,21 @@ class EntryDetailScreen extends ConsumerWidget {
                   .read(savedEntryRepositoryProvider)
                   .toggle(resolvedEntry.id);
               ref.invalidate(savedEntryIdsProvider);
+              // Signed in, the change goes to the account as well, so the word
+              // is saved on every phone the member uses.
+              unawaited(pushSavedWords(ref));
+              final signedIn =
+                  ref.read(authStateProvider).asData?.value != null;
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text(
-                      saved
-                          ? 'Saved on this device.'
-                          : 'Removed from saved words.',
+                      !saved
+                          ? 'Removed from saved words.'
+                          : signedIn
+                          ? 'Saved to your words.'
+                          : 'Saved on this phone. Sign in to keep it on '
+                                'every phone.',
                     ),
                   ),
                 );
@@ -465,6 +486,29 @@ class EntryDetailScreen extends ConsumerWidget {
               body: resolvedEntry.attribution,
             ),
             const SizedBox(height: 24),
+            // Counted once per opening: a published entry is a verified one.
+            _VerifiedView(entryId: resolvedEntry.id, origin: origin),
+            // A lesson built from this entry and nothing else — see
+            // `kawuri_lesson.dart` for why the server, not the app, decides
+            // what the lesson may teach.
+            FilledButton.tonalIcon(
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (context) => KawuriLessonScreen(
+                    lesson: KawuriLesson.entry(
+                      id: resolvedEntry.id,
+                      title: resolvedEntry.primaryTranslation.isEmpty
+                          ? resolvedEntry.headword
+                          : '${resolvedEntry.headword} · '
+                                '${resolvedEntry.primaryTranslation}',
+                    ),
+                  ),
+                ),
+              ),
+              icon: const Icon(Icons.school_outlined),
+              label: const Text('Practise with Kawuri'),
+            ),
+            const SizedBox(height: 10),
             OutlinedButton.icon(
               onPressed: () => context.push(
                 // `category` is named explicitly. Contribute now opens on a
@@ -1075,4 +1119,32 @@ class _DetailCard extends StatelessWidget {
       ),
     ),
   );
+}
+
+/// Logs one verified-entry view when the entry is first shown.
+class _VerifiedView extends ConsumerStatefulWidget {
+  const _VerifiedView({required this.entryId, required this.origin});
+
+  final String entryId;
+  final String origin;
+
+  @override
+  ConsumerState<_VerifiedView> createState() => _VerifiedViewState();
+}
+
+class _VerifiedViewState extends ConsumerState<_VerifiedView> {
+  @override
+  void initState() {
+    super.initState();
+    ref.read(loopAnalyticsProvider).log(
+      LoopEvent.verifiedEntryView,
+      parameters: loopParameters({
+        'origin': widget.origin,
+        'entry_id': widget.entryId,
+      }),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) => const SizedBox.shrink();
 }

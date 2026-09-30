@@ -19,6 +19,7 @@ import 'package:indigen_world_mobile/features/explore/create_reel/reel_publisher
 import 'package:indigen_world_mobile/features/explore/create_reel/reel_review_stage.dart';
 import 'package:indigen_world_mobile/features/explore/create_reel/reel_story_stage.dart';
 import 'package:indigen_world_mobile/features/explore/create_reel/reel_ui.dart';
+import 'package:indigen_world_mobile/features/explore/explore_feed.dart';
 import 'package:indigen_world_mobile/shared/glass_popup.dart';
 import 'package:indigen_world_mobile/shared/night_theme.dart';
 
@@ -154,7 +155,8 @@ class _CreateReelScreenState extends ConsumerState<CreateReelScreen>
     if (!mounted || result == null || !result.published) return;
     ref
       ..invalidate(rawCommunityFeedProvider)
-      ..invalidate(rawFollowingFeedProvider);
+      ..invalidate(rawFollowingFeedProvider)
+      ..invalidate(rawExploreCommunityFeedProvider);
     final community = result.draft.community;
     if (community != null) {
       ref.invalidate(rawCommunitySpaceFeedProvider(community.id));

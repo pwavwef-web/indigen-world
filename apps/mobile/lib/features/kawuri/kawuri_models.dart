@@ -24,9 +24,17 @@ class KawuriMessage {
     this.attachment,
     this.taskId,
     this.analysis,
+    this.lookups = const [],
   });
 
   final String id;
+
+  /// What the dictionary said about the words in the question: each row is a
+  /// verified entry (`kind: verified`, with `entryId`, `kasem`, `english`) or
+  /// a word it could not verify (`kind: unverified`, with `term`,
+  /// `wordQueueId` and where the word stands in the queue). Drawn under the
+  /// answer as links to the entry and offers to help add the word.
+  final List<Map<String, Object?>> lookups;
   final KawuriRole role;
   final String text;
   final DateTime sentAt;
@@ -78,6 +86,7 @@ class KawuriMessage {
     attachment: attachment,
     taskId: taskId,
     analysis: analysis,
+    lookups: lookups,
   );
 
   Map<String, Object?> toJson() => {
@@ -93,6 +102,7 @@ class KawuriMessage {
     if (attachment != null) 'attachment': attachment!.toJson(),
     if (taskId != null) 'taskId': taskId,
     if (analysis != null) 'analysis': analysis!.toJson(),
+    if (lookups.isNotEmpty) 'lookups': lookups,
     if (failed) 'failed': true,
     if (fromOfflineGuide) 'offline': true,
   };
@@ -124,6 +134,12 @@ class KawuriMessage {
     attachment: KawuriAttachment.fromJson(json['attachment']),
     taskId: json['taskId'] as String?,
     analysis: KawuriAnalysisResult.fromMap(json['analysis']),
+    lookups:
+        (json['lookups'] as List?)
+            ?.whereType<Map>()
+            .map((row) => Map<String, Object?>.from(row))
+            .toList() ??
+        const [],
   );
 }
 

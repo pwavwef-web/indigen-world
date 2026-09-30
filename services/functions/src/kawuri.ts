@@ -3,7 +3,9 @@ import { applicationDefault } from 'firebase-admin/app';
 import { logger } from 'firebase-functions';
 import { consumeRateLimit } from './rate-limit.js';
 import { googleProjectId } from './google-api-auth.js';
-import { dictionaryContextFor } from './kawuri-dictionary.js';
+import { dictionaryLookupFor, type DictionaryRecord } from './kawuri-dictionary.js';
+import { lessonContextFor, parseLessonRequest, stripLessonMarker } from './kawuri-lessons.js';
+import { queueStatesFor, unverifiedBriefing, type UnverifiedWord } from './language-loop.js';
 import { grammarContextFor } from './kawuri-grammar.js';
 import { corpusContextFor } from './kawuri-corpus.js';
 import { benefitsForUid } from './subscriptions.js';
@@ -172,6 +174,29 @@ export interface KawuriAnswer {
    * this request — the caller should fall back rather than apologise. */
   configured: boolean;
   reply: string;
+  /** The published entries the answer drew on, for the app to link to. */
+  verified?: VerifiedWord[];
+  /** Words the dictionary could not answer, and where each stands in the queue. */
+  unverified?: UnverifiedWord[];
+  /** True when a lesson's closing message has been sent. */
+  lessonComplete?: boolean;
+}
+
+/** A published entry as the app shows it under an answer. */
+export interface VerifiedWord {
+  entryId: string;
+  kasem: string;
+  english: string;
+}
+
+function verifiedWord(entry: DictionaryRecord): VerifiedWord {
+  return { entryId: entry.id, kasem: entry.kasem, english: entry.english };
+}
+
+/** Options for one turn of Kawuri. */
+export interface AskKawuriOptions {
+  /** A lesson block, appended after the shared instruction. */
+  lesson?: { instruction: string; entries: DictionaryRecord[] } | null;
 }
 
 /** Validates and trims the conversation the client sent. */
@@ -282,6 +307,7 @@ export function vertexEndpoint(project: string): string {
 export async function askKawuri(
   turns: Turn[],
   extraInstruction?: string,
+  options: AskKawuriOptions = {},
 ): Promise<KawuriAnswer> {
   if (turns.length === 0) return { configured: true, reply: '' };
 
@@ -314,14 +340,31 @@ export async function askKawuri(
   // where all three have something to say.
   const asked = turns[turns.length - 1]?.text ?? '';
   const [lookup, grammar, corpus] = await Promise.all([
-    dictionaryContextFor(asked),
+    dictionaryLookupFor(asked),
     grammarContextFor(asked),
     corpusContextFor(asked, turns.slice(0, -1).map(turn => turn.text).join('\n')),
   ]);
+  // Where each word the dictionary could not answer stands in the word queue:
+  // told to the model so it can say an answer is waiting for review rather
+  // than that nobody knows, and returned so the app can offer the queue item.
+  const unverified = lookup.missing.length ? await queueStatesFor(lookup.missing) : [];
+  const lesson = options.lesson ?? null;
 
-  const instruction = [SYSTEM_INSTRUCTION, extraInstruction, lookup, grammar, corpus]
+  const instruction = [
+    SYSTEM_INSTRUCTION,
+    extraInstruction,
+    lesson?.instruction,
+    lookup.briefing,
+    unverifiedBriefing(unverified),
+    grammar,
+    corpus,
+  ]
     .filter((part): part is string => Boolean(part && part.trim()))
     .join('\n\n');
+  const verified = [...(lesson?.entries ?? []), ...lookup.matches]
+    .filter((entry, index, all) => all.findIndex((other) => other.id === entry.id) === index)
+    .slice(0, 6)
+    .map(verifiedWord);
 
   try {
     const response = await fetch(vertexEndpoint(project), {
@@ -374,7 +417,8 @@ export async function askKawuri(
         thinkingBudget: THINKING_BUDGET,
       });
     }
-    return { configured: true, reply: replyFromGemini(payload) };
+    const { reply, complete } = stripLessonMarker(replyFromGemini(payload));
+    return { configured: true, reply, verified, unverified, lessonComplete: lesson ? complete : false };
   } catch (error) {
     logger.error('Kawuri request threw', {
       errorType: error instanceof Error ? error.name : 'unknown',
@@ -416,7 +460,12 @@ export const kawuriChat = onCall(
       throw new HttpsError('invalid-argument', 'Ask a question first.');
     }
 
-    const answer = await askKawuri(turns);
+    // "Practise with Kawuri": a lesson is rebuilt from the archive on every
+    // turn, so what counts as verified is never the client's to say.
+    const lessonRequest = parseLessonRequest((req.data as Record<string, unknown> | undefined)?.lesson);
+    const lesson = lessonRequest ? await lessonContextFor(lessonRequest) : null;
+
+    const answer = await askKawuri(turns, undefined, { lesson });
     if (!answer.configured) return answer;
     if (!answer.reply) {
       // A blocked or empty generation. Say so rather than returning silence.

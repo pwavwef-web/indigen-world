@@ -33,7 +33,6 @@ Reel _reel(String id) => Reel(
   caption: '',
   sound: '',
   credit: '',
-  isLive: true,
   videoUrl: 'https://example.test/$id',
 );
 
@@ -77,7 +76,7 @@ ProviderContainer _container(int published) {
         ]),
       ),
       followingIdsProvider.overrideWith((ref) => Stream.value(const <String>[])),
-      communityFeedProvider.overrideWithValue(
+      exploreCommunityFeedProvider.overrideWithValue(
         const AsyncValue.data(<CommunityPost>[]),
       ),
       followingFeedProvider.overrideWithValue(
@@ -246,7 +245,6 @@ void main() {
       expect(replay.id, original.id);
       expect(replay.videoUrl, original.videoUrl);
       expect(replay.title, original.title);
-      expect(replay.isLive, original.isLive);
       expect(replay.servedAd, isNull);
     });
 
@@ -263,39 +261,6 @@ void main() {
           hasLength(count),
         );
       }
-    });
-
-    test('nothing that is not live is ever looped', () {
-      // This used to be stated against `kExplorePreviewReels` — three invented
-      // creators with fabricated engagement counts, shown to every guest on
-      // first launch. Those are gone, and the rule they were the example of is
-      // not: a feed of non-live cards meets the loop minimum on length alone,
-      // and what stops it repeating for ever is that `loopedExploreFeed`
-      // refuses to queue anything that is not live.
-      final notLive = <Reel>[
-        for (var index = 0; index < 3; index++)
-          Reel(
-            id: 'not-live-$index',
-            imageUrl: '',
-            label: 'LABEL',
-            title: 'Title $index',
-            creator: '@nobody',
-            initials: 'NB',
-            caption: '',
-            sound: '',
-            credit: '',
-          ),
-      ];
-      expect(notLive.every((reel) => !reel.isLive), isTrue);
-      expect(
-        loopedExploreFeed(
-          content: notLive,
-          ads: const [],
-          cadence: kExploreAdCadence,
-          cycles: 4,
-        ),
-        hasLength(3),
-      );
     });
 
     test('is read-only, like the list it replaced', () {

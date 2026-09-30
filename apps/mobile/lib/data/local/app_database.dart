@@ -163,6 +163,10 @@ class AppDatabase extends _$AppDatabase {
     savedEntryRecords,
   ).insertOnConflictUpdate(SavedEntryRecordsCompanion.insert(entryId: entryId));
 
+  Future<void> removeSavedEntry(String entryId) => (delete(
+    savedEntryRecords,
+  )..where((row) => row.entryId.equals(entryId))).go();
+
   /// Every download, newest first, as a live stream.
   Stream<List<DownloadedTrackRecord>> watchDownloads() =>
       (select(downloadedTrackRecords)

@@ -260,6 +260,13 @@ final foregroundAlertsProvider = Provider<void>((ref) {
   });
 });
 
+/// Reads this device's push token. A provider so a test can hand one over
+/// without a Firebase app behind it.
+final pushTokenReaderProvider = Provider<Future<String?> Function()>(
+  (ref) =>
+      () => FirebaseMessaging.instance.getToken(),
+);
+
 /// Drops this device's push registration.
 ///
 /// Called on sign-out so alerts meant for one account never follow a shared
@@ -269,7 +276,7 @@ Future<void> unregisterThisDevice(WidgetRef ref) async {
   final repository = ref.read(notificationsRepositoryProvider);
   if (repository == null) return;
   try {
-    final token = await FirebaseMessaging.instance.getToken();
+    final token = await ref.read(pushTokenReaderProvider)();
     if (token != null && token.isNotEmpty) {
       await repository.unregisterDevice(token);
     }

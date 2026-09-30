@@ -2,6 +2,7 @@ import { initializeApp } from 'firebase-admin/app';
 
 // Initialise the Admin SDK once for all functions in this codebase.
 initializeApp();
+export { labsApi } from './labs.js';
 
 export {
   activateExpressionContributor,
@@ -74,6 +75,8 @@ export {
   submitWordTranslation,
   onWordQueueContributionWritten,
 } from './word-queue.js';
+// The language loop: a missing word asked for from search, a topic page or Kawuri.
+export { requestQueueWord } from './language-loop.js';
 export {
   awardContributorPoints,
   remindContributorStreaks,
@@ -134,6 +137,18 @@ export {
   getStudioVideoPlaybackUrl,
   sweepStudioVideoJobs,
 } from './studio-video.js';
+export {
+  startVideoRender,
+  retryVideoRender,
+  cancelVideoRender,
+  getVideoRenderUrl,
+  copyVideoRenderForPost,
+  deleteVideoProject,
+  onVideoRenderDispatched,
+  sweepVideoRenders,
+  planVideoScenes,
+  alignVideoCaptions,
+} from './video-editor/video-projects.js';
 export { startIntegrityCheck, verifyDeviceIntegrity } from './play-integrity.js';
 export {
   startRestoreKeyRegistration,
@@ -164,3 +179,4 @@ export { reportContributorIssue, getContributorIssues, listContributorIssues, up
 export { getContributorSelf, updateContributorSelf, saveContributorSettings } from './contributor-profile.js';
 export { onContributorPulseSubmissionWritten } from './contributor-pulse.js';
 export { kawuriContributorAssist } from './contributor-assist.js';
+export { listKnowledgeRecords, getKnowledgeRecord, saveKnowledgeRecord, reviewKnowledgeRecord, withdrawKnowledgeRecord, readKnowledgeAudio } from './knowledge-workspace.js';

@@ -20,6 +20,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:indigen_world_mobile/app/app_theme.dart';
 import 'package:indigen_world_mobile/features/community/data/community_models.dart';
 import 'package:indigen_world_mobile/features/community/data/community_providers.dart';
+import 'package:indigen_world_mobile/features/explore/explore_feed.dart';
 import 'package:indigen_world_mobile/features/explore/explore_screen.dart';
 import 'package:indigen_world_mobile/features/explore/published_content.dart';
 import 'package:indigen_world_mobile/l10n/app_localizations.dart';
@@ -43,7 +44,7 @@ Future<void> _pumpExplore(
         followingIdsProvider.overrideWith(
           (ref) => Stream.value(const <String>[]),
         ),
-        communityFeedProvider.overrideWithValue(
+        exploreCommunityFeedProvider.overrideWithValue(
           const AsyncValue.data(<CommunityPost>[]),
         ),
         followingFeedProvider.overrideWithValue(

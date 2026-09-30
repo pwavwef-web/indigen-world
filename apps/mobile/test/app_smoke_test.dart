@@ -61,6 +61,9 @@ void main() {
       ),
     );
     await tester.pump(const Duration(milliseconds: 400));
+    // Explore's two sources — published work and community video — both start
+    // listening when it first opens, and answer a frame later.
+    await tester.pump(const Duration(milliseconds: 100));
 
     // A guest with no Firebase reaches an empty archive, and Explore says so
     // rather than filling the gap. It used to show three invented creators
@@ -220,5 +223,10 @@ void main() {
 
     expect(find.text('Guest learner'), findsOneWidget);
     expect(find.text('Sign in or create an account'), findsOneWidget);
+
+    // My Space's You tab keeps a Drift-backed downloads stream open; its
+    // zero-delay cleanup timer needs a frame once the tree has gone.
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(milliseconds: 1));
   });
 }

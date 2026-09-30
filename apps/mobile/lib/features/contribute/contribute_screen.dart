@@ -6,8 +6,10 @@ import 'package:indigen_world_mobile/features/contribute/collection_contribution
 import 'package:indigen_world_mobile/features/contribute/contribution_form_screen.dart';
 import 'package:indigen_world_mobile/features/contribute/contribution_kind_screen.dart';
 import 'package:indigen_world_mobile/features/contribute/contribution_kinds.dart';
+import 'package:indigen_world_mobile/features/contribute/knowledge/knowledge_workspace_screen.dart';
 import 'package:indigen_world_mobile/features/contribute/leaderboard/top_contributors_pill.dart';
 import 'package:indigen_world_mobile/features/contribute/my_submissions_screen.dart';
+import 'package:indigen_world_mobile/features/contribute/words/word_queue_screen.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_fab.dart';
 import 'package:indigen_world_mobile/features/validate/data/ad_review_queue.dart';
 import 'package:indigen_world_mobile/features/validate/data/review_queue.dart';
@@ -110,6 +112,23 @@ class ContributeScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  // The guided queue, one tap from the tab. It leads the
+                  // chooser for a reason — the only offer that asks nothing but
+                  // an answer — and it was still a screen deep, behind a row
+                  // that talked about songs and films. Thousands of words are
+                  // waiting in it; the door to them is on the hub now.
+                  _ContributeAction(
+                    key: const ValueKey('contribute-translate-words'),
+                    icon: _guidedQueue.glyph,
+                    title: _guidedQueue.title,
+                    subtitle: _guidedQueue.blurb,
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (context) => const WordQueueScreen(),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
                   _ContributeAction(
                     icon: Icons.library_add_rounded,
                     title: 'Submit to Collections',
@@ -122,6 +141,18 @@ class ContributeScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 12),
                   const _MySubmissionsAction(),
+                  const SizedBox(height: 12),
+                  _ContributeAction(
+                    key: const ValueKey('contribute-knowledge-workspace'),
+                    icon: Icons.menu_book_rounded,
+                    title: 'Build Kasem knowledge',
+                    subtitle: 'Capture meaning, context, sources and regional forms',
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (context) => const KnowledgeWorkspaceScreen(),
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -132,6 +163,12 @@ class ContributeScreen extends StatelessWidget {
   }
 }
 
+/// The word queue's own offer, so its card on the hub says exactly what its
+/// card in the chooser says.
+final _guidedQueue = kContributionOffers.firstWhere(
+  (offer) => offer.isGuidedQueue,
+);
+
 /// One row of the hub.
 ///
 /// Deliberately taller and plainer than [GlassRow]: this is a page with two
@@ -139,6 +176,7 @@ class ContributeScreen extends StatelessWidget {
 /// more here than one that fits eight of them down a settings list.
 class _ContributeAction extends StatelessWidget {
   const _ContributeAction({
+    super.key,
     required this.icon,
     required this.title,
     required this.subtitle,

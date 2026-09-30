@@ -248,7 +248,6 @@ void main() {
         caption: 'A private caption',
         sound: '',
         credit: '',
-        isLive: true,
         videoUrl: 'https://example.test/v.mp4',
         community: PostCommunityStamp(
           id: 'kasena-culture',

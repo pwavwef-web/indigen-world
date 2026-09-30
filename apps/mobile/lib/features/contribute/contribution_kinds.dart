@@ -284,3 +284,42 @@ const _settledStatuses = {
 
 bool contributionAwaitingReview(String status) =>
     !_settledStatuses.contains(status.toLowerCase());
+
+/// The statuses that mean a reviewer said yes.
+///
+/// `archived` is in here on purpose: it is what an approved contribution
+/// becomes when the contributor did not grant publication permission. It was
+/// approved; it simply is not public.
+const kApprovedContributionStatuses = {
+  'approved',
+  'published',
+  'scheduled',
+  'archived',
+};
+
+bool contributionApproved(String status) =>
+    kApprovedContributionStatuses.contains(status.toLowerCase());
+
+/// A reviewer sent it back with a note: the next move is the member's.
+bool contributionNeedsChanges(String status) =>
+    const {'needs_changes', 'needs_revision'}.contains(status.toLowerCase());
+
+/// The ways the submissions list can be narrowed.
+enum SubmissionFilter {
+  all('All'),
+  inReview('In review'),
+  needsChanges('Needs changes'),
+  approved('Approved');
+
+  const SubmissionFilter(this.label);
+
+  final String label;
+
+  bool matches(String status) => switch (this) {
+    SubmissionFilter.all => true,
+    SubmissionFilter.inReview =>
+      contributionAwaitingReview(status) && !contributionNeedsChanges(status),
+    SubmissionFilter.needsChanges => contributionNeedsChanges(status),
+    SubmissionFilter.approved => contributionApproved(status),
+  };
+}

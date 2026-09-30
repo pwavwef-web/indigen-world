@@ -28,7 +28,6 @@ Reel _reel(String id, String creatorId) => Reel(
   caption: '',
   sound: '',
   credit: '',
-  isLive: true,
   videoUrl: 'https://example.test/$id',
 );
 

@@ -11,6 +11,7 @@ import { consumeRateLimit } from './rate-limit.js';
 import {
   buildPublishedContentDocument,
   collectionKindForSubmission,
+  expressionEntryId,
   isExpressionSubmission,
   publicationDestinationFor,
   publicationTargetFor,
@@ -22,6 +23,19 @@ import {
   buildExpressionEntryDocument,
   expressionFromSubmission,
 } from './expressions.js';
+import {
+  LANGUAGE_RESOURCES_COLLECTION,
+  TRAINING_PAIRS_COLLECTION,
+  buildLanguageResourceDocument,
+  buildQueueTrainingPair,
+  contributorCredit,
+  languageResourceId,
+  languageResourceKindFor,
+  parsePublishAs,
+  publishAsProblem,
+  queueAnswerAsExpression,
+  type PublishAs,
+} from './language-loop.js';
 import {
   MAX_ETYMOLOGY_LENGTH,
   MAX_KASEM_DEFINITION_LENGTH,
@@ -650,6 +664,17 @@ export const decideSubmission = onCall(
     if (['REQUEST_REVISION', 'REJECT'].includes(decision) && feedback.length < 5) {
       throw new HttpsError('invalid-argument', 'Feedback is required for revision and rejection.');
     }
+    // What a dictionary answer becomes (see `language-loop.ts`), the entry a
+    // variant, an example or a duplicate refers to, and why a rejection was
+    // made. Absent on every other kind of decision and on older clients.
+    const requestedPublishAs: PublishAs | null = data.publishAs == null || data.publishAs === ''
+      ? null
+      : parsePublishAs(data.publishAs);
+    const requestedEntryId = asString(data.entryId, 200).trim();
+    if (requestedEntryId && !/^[A-Za-z0-9_-]+$/.test(requestedEntryId)) {
+      throw new HttpsError('invalid-argument', 'That dictionary entry id is not valid.');
+    }
+    const reason = asString(data.reason, 30).trim().toLowerCase();
 
     const db = getFirestore();
     const submissionRef = db.collection('submissions').doc(submissionId);
@@ -735,12 +760,61 @@ export const decideSubmission = onCall(
           'A withdrawn Collection contribution is terminal and cannot be reviewed again.',
         );
       }
-      if (decision === 'REQUEST_REVISION' && contribution) {
+      // A word-queue answer can be sent back: its author revises it from their
+      // list of submissions (`submitWordTranslation` with the contribution id).
+      // Other Collection work still has no way back to its author's form.
+      if (decision === 'REQUEST_REVISION' && contribution && !contribution.wordQueueId) {
         throw new HttpsError(
           'failed-precondition',
           'Collection contributions cannot be sent for revision; approve, reject, or archive them.',
         );
       }
+
+      // ---- What a dictionary answer becomes ----
+      const storedModeration = (submission.moderation ?? {}) as Record<string, unknown>;
+      if (requestedPublishAs && requestedPublishAs !== 'headword' && !isDictionaryContribution) {
+        throw new HttpsError('invalid-argument', 'Only a dictionary answer can be published as something other than what it was sent as.');
+      }
+      // An unpublish reaches whatever was published; a publish after an
+      // approval keeps the approval's choice unless the reviewer changes it.
+      const publishAs: PublishAs = decision === 'UNPUBLISH'
+        ? parsePublishAs(storedModeration.publishAs ?? '')
+        : requestedPublishAs ?? parsePublishAs(storedModeration.publishAs ?? '');
+      const linkedEntryId = requestedEntryId || asString(storedModeration.linkedEntryId, 200).trim();
+      const asExpression = isDictionaryContribution && publishAs === 'expression';
+      const resourceKind = isDictionaryContribution ? languageResourceKindFor(publishAs) : null;
+      const asTraining = isDictionaryContribution && publishAs === 'training';
+      if (['APPROVE', 'PUBLISH'].includes(decision) && isDictionaryContribution && publishAs !== 'headword') {
+        const problem = publishAsProblem(publishAs, submission);
+        if (problem) throw new HttpsError('failed-precondition', problem);
+      }
+      if (decision === 'PUBLISH' && asTraining) {
+        throw new HttpsError('failed-precondition', 'Training material is kept, not published. Approve it instead.');
+      }
+      if (['APPROVE', 'PUBLISH'].includes(decision) && publishAs === 'variant' && !linkedEntryId) {
+        throw new HttpsError('invalid-argument', 'Say which dictionary word this is a regional variant of.');
+      }
+      if (decision === 'REJECT' && reason === 'duplicate' && !linkedEntryId) {
+        throw new HttpsError('invalid-argument', 'Say which dictionary word this answer repeats.');
+      }
+      // The entry a variant, an example or a duplicate points at must be a
+      // real, published word — read now, before this transaction writes.
+      const needsLinkedEntry = linkedEntryId && isDictionaryContribution
+        && ((['APPROVE', 'PUBLISH'].includes(decision) && (publishAs === 'variant' || publishAs === 'example'))
+          || (decision === 'REJECT' && reason === 'duplicate'));
+      if (needsLinkedEntry) {
+        const linked = await tx.get(db.collection('dictionaryEntries').doc(linkedEntryId));
+        if (!linked.exists || linked.get('isPublished') !== true) {
+          throw new HttpsError('failed-precondition', 'That dictionary word could not be found among published entries.');
+        }
+      }
+      // Where this answer is live now, if anywhere, so that publishing it as
+      // something else takes the old record down: one answer, one public home.
+      const priorTarget = isDictionaryContribution && decision === 'PUBLISH'
+        ? publicationTargetFor(submission, submissionId)
+        : null;
+      const priorRef = priorTarget ? db.collection(priorTarget.collection).doc(priorTarget.id) : null;
+      const priorSnap = priorRef ? await tx.get(priorRef) : null;
       if (decision === 'ARCHIVE'
         && (submission.status !== 'APPROVED' || submission.permissions?.publication === true)) {
         throw new HttpsError(
@@ -784,17 +858,23 @@ export const decideSubmission = onCall(
       if (decision === 'APPROVE' || decision === 'PUBLISH' || decision === 'UNPUBLISH') {
         const creatorId: string = submission.creator?.id ?? submission.authUid;
         const profileSnap = await tx.get(db.collection('creatorProfiles').doc(creatorId));
-        const displayName = profileSnap.get('public.displayName') ?? 'Indigen World contributor';
+        // The contributor's own choice of credit first (a queue answer may ask
+        // not to be named), and never an e-mail address.
+        const displayName = contributorCredit(submission, String(profileSnap.get('public.displayName') ?? ''));
         const avatarUrl = profileSnap.get('public.avatarUrl') ?? null;
         const publicationStatus = decision === 'PUBLISH' ? 'published' : 'unpublished';
 
-        if (isExpressionContribution) {
+        if (isExpressionContribution || asExpression) {
           // Where it is live (for UNPUBLISH), and where it goes (for PUBLISH).
           // They differ only for an invited contributor's expression published
           // into the dictionary before this kind existed: unpublishing reaches
           // that row, and publishing it again moves it to its proper home.
+          // A word-queue answer the reviewer decided is an expression goes to
+          // `expressionEntries` too, whatever the routing rule says of words.
           const live = publicationTargetFor(submission, submissionId);
-          const home = publicationDestinationFor(submission, submissionId);
+          const home = asExpression
+            ? { collection: 'expressionEntries' as const, id: expressionEntryId(submissionId) }
+            : publicationDestinationFor(submission, submissionId);
           const liveRef = db.collection(live.collection).doc(live.id);
           const homeRef = db.collection(home.collection).doc(home.id);
           const [liveSnap, homeSnap] = await Promise.all([tx.get(liveRef), tx.get(homeRef)]);
@@ -802,7 +882,7 @@ export const decideSubmission = onCall(
             tx.set(homeRef, buildExpressionEntryDocument({
               submissionId,
               contributionId,
-              submission,
+              submission: asExpression ? queueAnswerAsExpression(submission) : submission,
               existing: homeSnap.exists ? (homeSnap.data() as Record<string, any>) : null,
               creatorId,
               displayName,
@@ -817,6 +897,37 @@ export const decideSubmission = onCall(
             tx.update(liveRef, live.collection === 'expressionEntries'
               ? { isPublished: false, updatedAt: now }
               : { isPublished: false, updatedAt: FieldValue.serverTimestamp() });
+          }
+        } else if (resourceKind) {
+          // An example sentence or a translation pair: kept on approval,
+          // public on publish, and withdrawn with the answer. See
+          // `buildLanguageResourceDocument` for what travels with it.
+          const resourceRef = db.collection(LANGUAGE_RESOURCES_COLLECTION).doc(languageResourceId(submissionId));
+          const existingResource = await tx.get(resourceRef);
+          if (decision === 'UNPUBLISH') {
+            if (existingResource.exists) tx.update(resourceRef, { isPublished: false, updatedAt: now });
+          } else {
+            tx.set(resourceRef, buildLanguageResourceDocument({
+              submissionId,
+              contributionId,
+              submission,
+              kind: resourceKind,
+              publish: decision === 'PUBLISH',
+              entryId: publishAs === 'example' && linkedEntryId ? linkedEntryId : null,
+              displayName,
+              existing: existingResource.exists ? (existingResource.data() as Record<string, unknown>) : null,
+              now,
+            }));
+            moderationUpdate['moderation.publishedContent'] = { collection: LANGUAGE_RESOURCES_COLLECTION, id: resourceRef.id };
+          }
+        } else if (asTraining) {
+          // Kept for testing and training language tools, never published —
+          // the consent check above is what lets this line run at all.
+          if (decision === 'APPROVE') {
+            tx.set(
+              db.collection(TRAINING_PAIRS_COLLECTION).doc(submissionId),
+              buildQueueTrainingPair({ submissionId, submission, reviewedAt: now }),
+            );
           }
         } else if (isDictionaryContribution) {
           const existingDictionary = await tx.get(dictionaryRef);
@@ -1153,6 +1264,33 @@ export const decideSubmission = onCall(
         }
       }
 
+      if (isDictionaryContribution) {
+        if (decision === 'PUBLISH' && publishAs === 'variant' && !asExpression && !resourceKind) {
+          // A regional form of a word the dictionary already holds: its own
+          // entry, marked so readers see which word it varies and where from.
+          tx.update(dictionaryRef, {
+            variantOf: linkedEntryId,
+            variantRegion: asString(submission.dialect, 80).trim(),
+          });
+        }
+        if (['APPROVE', 'PUBLISH'].includes(decision)) {
+          moderationUpdate['moderation.publishAs'] = publishAs;
+          moderationUpdate['moderation.linkedEntryId'] = linkedEntryId || null;
+        }
+        if (decision === 'REJECT' && reason === 'duplicate') {
+          moderationUpdate['moderation.duplicateOf'] = linkedEntryId;
+        }
+        // Published as something else before: take the old record down.
+        const newHome = asExpression
+          ? 'expressionEntries'
+          : resourceKind ? LANGUAGE_RESOURCES_COLLECTION : 'dictionaryEntries';
+        if (priorTarget && priorRef && priorSnap?.exists && priorTarget.collection !== newHome
+          && priorSnap.get('isPublished') === true) {
+          tx.update(priorRef, priorTarget.collection === 'dictionaryEntries'
+            ? { isPublished: false, updatedAt: FieldValue.serverTimestamp() }
+            : { isPublished: false, updatedAt: now });
+        }
+      }
       tx.update(submissionRef, moderationUpdate);
       if (contributionRef) {
         const contributionUpdate: Record<string, unknown> = {
@@ -1167,9 +1305,19 @@ export const decideSubmission = onCall(
         if (decision === 'PUBLISH') {
           contributionUpdate.publicationTarget = isExpressionContribution
             ? publicationDestinationFor(submission, submissionId)
-            : isDictionaryContribution
-              ? { collection: 'dictionaryEntries', id: dictionaryRef.id }
-              : { collection: 'publishedContent', id: publishedRef.id };
+            : asExpression
+              ? { collection: 'expressionEntries', id: expressionEntryId(submissionId) }
+              : resourceKind
+                ? { collection: LANGUAGE_RESOURCES_COLLECTION, id: languageResourceId(submissionId) }
+                : isDictionaryContribution
+                  ? { collection: 'dictionaryEntries', id: dictionaryRef.id }
+                  : { collection: 'publishedContent', id: publishedRef.id };
+        }
+        if (isDictionaryContribution && ['APPROVE', 'PUBLISH'].includes(decision)) {
+          contributionUpdate.publishedAs = publishAs;
+        }
+        if (decision === 'REJECT' && reason === 'duplicate') {
+          contributionUpdate.duplicateOf = linkedEntryId;
         }
         tx.update(contributionRef, contributionUpdate);
       }

@@ -1,0 +1,773 @@
+{
+  "schemaVersion": 1,
+  "about": "Generation briefs for the video editor's background-music library. Each brief is sent to AZ Studio as one Lyria 3.5 instrumental job (AZ Studio appends its own 'Instrumental only' instruction). These are generation inputs, not app data: the app reads the published tracks from Firestore `videoMusicTracks`.",
+  "shared": {
+    "suffix": "Mixed as background music for a spoken video: steady overall level, clear space in the mid range for a voice, no long silences, no fade-out lasting more than two seconds. Finish on a clean final chord or hit so the track can end a video. Instrumental only: no vocals, no humming, no choir, no spoken words, no chanting."
+  },
+  "tracks": [
+    {
+      "id": "cinematic-rising-harmattan",
+      "title": "Rising Harmattan",
+      "group": "cinematic",
+      "moods": [
+        "cinematic",
+        "epic",
+        "determined"
+      ],
+      "style": "Epic orchestral with deep ensemble drums",
+      "energy": "high",
+      "targetBpm": 100,
+      "targetSeconds": 60,
+      "prompt": "A 60-second epic cinematic orchestral cue in D minor at 100 BPM. Low strings pulse in eighth notes, deep ensemble drums and frame drums drive the rhythm, French horns state a bold four-note theme, and a dusty, windswept texture evokes a dry desert wind. Structure: [0:00 - 0:10] low string pulse and distant drums; [0:10 - 0:30] horns enter with the theme over full percussion; [0:30 - 0:50] full orchestra swells with soaring violins; [0:50 - 1:00] final triumphant hit and a short ring-out."
+    },
+    {
+      "id": "cinematic-dawn-over-the-savannah",
+      "title": "Dawn over the Savannah",
+      "group": "cinematic",
+      "moods": [
+        "cinematic",
+        "majestic",
+        "hopeful"
+      ],
+      "style": "Majestic orchestral with warm brass",
+      "energy": "medium",
+      "targetBpm": 72,
+      "targetSeconds": 75,
+      "prompt": "A 75-second majestic orchestral piece in E-flat major at 72 BPM, painting sunrise over wide grassland. Soft sustained strings open, a solo horn plays a broad lyrical melody, harp arpeggios sparkle, and the full brass section rises gradually with timpani rolls. Structure: [0:00 - 0:15] gentle strings and harp; [0:15 - 0:40] horn melody; [0:40 - 1:05] full orchestra rises to a warm climax; [1:05 - 1:15] calm resolution on a sustained major chord."
+    },
+    {
+      "id": "cinematic-night-market-lights",
+      "title": "Night Market Lights",
+      "group": "cinematic",
+      "moods": [
+        "cinematic",
+        "tense",
+        "exciting"
+      ],
+      "style": "Hybrid cinematic with pulsing synths and orchestra",
+      "energy": "high",
+      "targetBpm": 110,
+      "targetSeconds": 45,
+      "prompt": "A 45-second hybrid cinematic cue in F minor at 110 BPM. A pulsing synthesizer bass and ticking hi-hats build tension, staccato strings and orchestral hits punctuate, then the energy releases into a bold major-key lift with bright synth leads over big drums. Structure: [0:00 - 0:12] pulsing synth and ticking percussion; [0:12 - 0:28] staccato strings and rising tension; [0:28 - 0:41] release into a bright, driving section; [0:41 - 0:45] one final hit."
+    },
+    {
+      "id": "cinematic-the-long-road-home",
+      "title": "The Long Road Home",
+      "group": "cinematic",
+      "moods": [
+        "cinematic",
+        "emotional",
+        "tender"
+      ],
+      "style": "Emotional piano and strings",
+      "energy": "medium",
+      "targetBpm": 76,
+      "targetSeconds": 60,
+      "prompt": "A 60-second emotional cinematic piece in A-flat major at 76 BPM. A heartfelt solo piano melody opens, cellos join underneath, violins add a rising countermelody, and soft cymbal swells lead to a moving crescendo before settling. Structure: [0:00 - 0:15] solo piano; [0:15 - 0:35] cellos and violins join; [0:35 - 0:52] full string crescendo; [0:52 - 1:00] piano alone resolves on the home chord."
+    },
+    {
+      "id": "cinematic-guardians-of-the-hills",
+      "title": "Guardians of the Hills",
+      "group": "cinematic",
+      "moods": [
+        "cinematic",
+        "heroic",
+        "proud"
+      ],
+      "style": "Heroic adventure orchestral",
+      "energy": "high",
+      "targetBpm": 120,
+      "targetSeconds": 45,
+      "prompt": "A 45-second heroic adventure orchestral cue in C major at 120 BPM, played entirely by an orchestra. Galloping low strings and snare rolls drive forward from the very first beat, trumpets and horns play a proud fanfare theme, xylophone and bright woodwind runs add sparkle, and a cymbal crash marks each new phrase. Structure: [0:00 - 0:08] galloping strings and snare; [0:08 - 0:30] brass fanfare theme; [0:30 - 0:42] full orchestra with a key change upward; [0:42 - 0:45] final heroic chord.",
+      "revision": "Rewritten 2026-09-27: earlier takes contained a human voice, so the brief now names only instruments."
+    },
+    {
+      "id": "upbeat-highlife-sunshine",
+      "title": "Highlife Sunshine",
+      "group": "upbeat",
+      "moods": [
+        "upbeat",
+        "joyful",
+        "sunny"
+      ],
+      "style": "Highlife-inspired guitar pop",
+      "energy": "high",
+      "targetBpm": 118,
+      "targetSeconds": 45,
+      "prompt": "A 45-second joyful West African highlife-inspired instrumental in G major at 118 BPM. Clean interlocking electric guitar lines ripple over a bouncing bass, congas and shaker keep a light groove, and short bright horn stabs answer the guitar melody. Structure: [0:00 - 0:06] solo guitar pattern; [0:06 - 0:30] full band groove; [0:30 - 0:41] horn section lifts the energy; [0:41 - 0:45] clean final stab."
+    },
+    {
+      "id": "upbeat-afropop-bounce",
+      "title": "Marimba Bounce",
+      "group": "upbeat",
+      "moods": [
+        "upbeat",
+        "confident",
+        "danceable"
+      ],
+      "style": "Bouncy marimba and guitar band groove",
+      "energy": "high",
+      "targetBpm": 104,
+      "targetSeconds": 40,
+      "prompt": "A 40-second bouncy, confident instrumental played by a small live band in a studio, in B-flat minor at 104 BPM. A marimba plays the main melody from start to finish, a clean electric guitar answers it with short plucked phrases, and a bass guitar, drum kit and hand drums keep a syncopated, danceable groove with shakers rolling throughout. Structure: [0:00 - 0:05] marimba and hand drums; [0:05 - 0:34] the full band; [0:34 - 0:40] a short breakdown and a final hit.",
+      "revision": "Rewritten a third time 2026-09-28: takes in beat-making styles (afrobeats, EDM) carried imitation producer tags and DJ drops, so these briefs describe a live band recorded in a studio, the kind of recording that carries no tags."
+    },
+    {
+      "id": "upbeat-city-sprint",
+      "title": "City Sprint",
+      "group": "upbeat",
+      "moods": [
+        "upbeat",
+        "energetic",
+        "urban"
+      ],
+      "style": "Energetic electro-funk",
+      "energy": "high",
+      "targetBpm": 124,
+      "targetSeconds": 30,
+      "prompt": "A 30-second energetic electro-funk instrumental in E minor at 124 BPM. Punchy four-on-the-floor drums, a slap-style synth bass, chopped funky guitar, and bright synth brass hits give a fast city-rush feeling. Structure: [0:00 - 0:04] drum fill intro; [0:04 - 0:26] full driving groove; [0:26 - 0:30] tight ending on a final hit."
+    },
+    {
+      "id": "upbeat-good-news-groove",
+      "title": "Good News Groove",
+      "group": "upbeat",
+      "moods": [
+        "upbeat",
+        "cheerful",
+        "positive"
+      ],
+      "style": "Feel-good funk with brass",
+      "energy": "medium",
+      "targetBpm": 112,
+      "targetSeconds": 45,
+      "prompt": "A 45-second feel-good funk instrumental in A major at 112 BPM. A tight live drum groove, clavinet-style keys, a round bass guitar, and a trumpet and saxophone section that plays the cheerful melody in unison. Structure: [0:00 - 0:06] drums and clavinet; [0:06 - 0:30] full groove with the horn melody; [0:30 - 0:41] a saxophone solo; [0:41 - 0:45] punchy ending on a horn stab.",
+      "revision": "Rewritten 2026-09-27: earlier takes contained a human voice, so the brief now names only instruments."
+    },
+    {
+      "id": "upbeat-weekend-market",
+      "title": "Weekend Market",
+      "group": "upbeat",
+      "moods": [
+        "upbeat",
+        "bright",
+        "carefree"
+      ],
+      "style": "Bright acoustic pop with ukulele and claps",
+      "energy": "medium",
+      "targetBpm": 120,
+      "targetSeconds": 45,
+      "prompt": "A 45-second bright acoustic pop instrumental in D major at 120 BPM. Strummed ukulele and acoustic guitar, hand claps, stomps, glockenspiel and a whistled-sounding flute melody create a carefree market-day mood. Structure: [0:00 - 0:08] ukulele strum; [0:08 - 0:32] claps, stomps and melody; [0:32 - 0:41] fuller chorus section; [0:41 - 0:45] final strum."
+    },
+    {
+      "id": "warm-grandmothers-porch",
+      "title": "Grandmother's Porch",
+      "group": "warm",
+      "moods": [
+        "warm",
+        "gentle",
+        "nostalgic"
+      ],
+      "style": "Fingerpicked acoustic guitar",
+      "energy": "low",
+      "targetBpm": 84,
+      "targetSeconds": 60,
+      "prompt": "A 60-second warm acoustic instrumental in C major at 84 BPM. Gentle fingerpicked nylon-string guitar, a soft shaker, light upright bass and an occasional warm melodica phrase, like an evening story on a porch. Structure: [0:00 - 0:12] guitar alone; [0:12 - 0:40] bass and shaker join; [0:40 - 0:54] melodica phrase over the guitar; [0:54 - 1:00] final soft chord."
+    },
+    {
+      "id": "warm-evening-firelight",
+      "title": "Evening Firelight",
+      "group": "warm",
+      "moods": [
+        "warm",
+        "calm",
+        "intimate"
+      ],
+      "style": "Kalimba and warm bass",
+      "energy": "low",
+      "targetBpm": 78,
+      "targetSeconds": 45,
+      "prompt": "A 45-second warm, intimate instrumental in F major at 78 BPM. A thumb piano (kalimba) plays a looping, gentle melody, a round warm bass and soft brushed percussion support it, and a mellow pad glows underneath like firelight. Structure: [0:00 - 0:08] kalimba alone; [0:08 - 0:36] bass and brushes join; [0:36 - 0:45] kalimba returns alone and rests on the final note."
+    },
+    {
+      "id": "warm-coffee-and-kind-words",
+      "title": "Coffee and Kind Words",
+      "group": "warm",
+      "moods": [
+        "warm",
+        "relaxed",
+        "friendly"
+      ],
+      "style": "Lo-fi warm keys",
+      "energy": "low",
+      "targetBpm": 80,
+      "targetSeconds": 60,
+      "prompt": "A 60-second relaxed lo-fi instrumental in E-flat major at 80 BPM. Dusty warm electric piano chords, a laid-back swung drum groove, soft vinyl crackle, a round bass line and a gentle muted guitar melody. Friendly and unhurried. Structure: [0:00 - 0:08] keys and crackle; [0:08 - 0:50] full groove with guitar melody; [0:50 - 1:00] keys alone and a final chord."
+    },
+    {
+      "id": "warm-harvest-hands",
+      "title": "Harvest Hands",
+      "group": "warm",
+      "moods": [
+        "warm",
+        "grateful",
+        "communal"
+      ],
+      "style": "Warm acoustic ensemble with balafon",
+      "energy": "medium",
+      "targetBpm": 96,
+      "targetSeconds": 45,
+      "prompt": "A 45-second warm acoustic chamber piece in G major at 96 BPM for balafon (wooden xylophone), nylon-string guitar, violin and soft hand percussion. The balafon plays a lilting melody over gently picked guitar; the violin answers it in the second half; the percussion stays light throughout. Structure: [0:00 - 0:06] balafon alone; [0:06 - 0:30] balafon, guitar and percussion; [0:30 - 0:40] violin melody; [0:40 - 0:45] balafon and guitar close on a final chord.",
+      "revision": "Rewritten again 2026-09-27: takes of the instrument-only brief still had humming or chants, so the brief now frames the piece as an instrumental form (ensemble piece, film cue, product-launch bed) and drops words like \"hook\" and \"pop\" that suggest a vocal."
+    },
+    {
+      "id": "warm-sunday-kitchen",
+      "title": "Sunday Kitchen",
+      "group": "warm",
+      "moods": [
+        "warm",
+        "soulful",
+        "homely"
+      ],
+      "style": "Soft soul with electric piano",
+      "energy": "low",
+      "targetBpm": 88,
+      "targetSeconds": 45,
+      "prompt": "A 45-second soft soul instrumental in B-flat major at 88 BPM. Warm electric piano, a gentle rim-shot groove, a smooth bass line and a tender clean guitar melody create a homely Sunday-afternoon feeling. Structure: [0:00 - 0:06] electric piano chords; [0:06 - 0:38] groove with guitar melody; [0:38 - 0:45] soft final chord with a short ring."
+    },
+    {
+      "id": "playful-goat-on-the-roof",
+      "title": "Goat on the Roof",
+      "group": "playful",
+      "moods": [
+        "playful",
+        "quirky",
+        "funny"
+      ],
+      "style": "Quirky pizzicato and marimba",
+      "energy": "medium",
+      "targetBpm": 128,
+      "targetSeconds": 30,
+      "prompt": "A 30-second quirky, comic instrumental in C major at 128 BPM. Plucked pizzicato strings tiptoe, a bouncy marimba answers, a tuba plays a clumsy bass line, woodblocks and a slide whistle add funny accents. Structure: [0:00 - 0:05] tiptoeing pizzicato; [0:05 - 0:25] marimba and tuba join the joke; [0:25 - 0:30] a comic final 'ta-da' chord."
+    },
+    {
+      "id": "playful-tiny-parade",
+      "title": "Tiny Parade",
+      "group": "playful",
+      "moods": [
+        "playful",
+        "cheerful",
+        "childlike"
+      ],
+      "style": "Toy piano and glockenspiel march",
+      "energy": "medium",
+      "targetBpm": 116,
+      "targetSeconds": 40,
+      "prompt": "A 40-second cheerful toy-parade march instrumental in F major at 116 BPM. A toy piano and glockenspiel play a sweet marching tune, a small snare drum keeps a light march rhythm, a kazoo-like reed and hand claps join. Structure: [0:00 - 0:06] snare march intro; [0:06 - 0:32] toy piano and glockenspiel tune; [0:32 - 0:40] everyone together and a final cymbal tap."
+    },
+    {
+      "id": "playful-bouncy-calabash",
+      "title": "Bouncy Calabash",
+      "group": "playful",
+      "moods": [
+        "playful",
+        "fun",
+        "bouncy"
+      ],
+      "style": "Playful hand percussion",
+      "energy": "medium",
+      "targetBpm": 110,
+      "targetSeconds": 30,
+      "prompt": "A 30-second fun, bouncy percussion instrumental in D major at 110 BPM. A calabash drum, bouncing shakers, wooden bells and a springy plucked bass, with a cheerful flute melody that skips on top. Structure: [0:00 - 0:04] calabash and shakers; [0:04 - 0:26] flute melody and bass; [0:26 - 0:30] final bounce and stop."
+    },
+    {
+      "id": "playful-cartoon-chase",
+      "title": "Cartoon Chase",
+      "group": "playful",
+      "moods": [
+        "playful",
+        "frantic",
+        "comic"
+      ],
+      "style": "Fast comic woodwinds",
+      "energy": "high",
+      "targetBpm": 150,
+      "targetSeconds": 30,
+      "prompt": "A 30-second frantic comic chase instrumental in G minor at 150 BPM. Racing clarinet and bassoon runs, pizzicato strings, a galloping snare, xylophone flourishes and sudden stop-and-go moments like a cartoon chase. Structure: [0:00 - 0:03] quick fanfare; [0:03 - 0:26] racing chase; [0:26 - 0:30] a screeching halt and one final pizzicato plonk."
+    },
+    {
+      "id": "playful-bubble-pop",
+      "title": "Bubble Pop",
+      "group": "playful",
+      "moods": [
+        "playful",
+        "bright",
+        "light"
+      ],
+      "style": "Bright chiptune-style synth pop",
+      "energy": "medium",
+      "targetBpm": 132,
+      "targetSeconds": 30,
+      "prompt": "A 30-second bright, bubbly chiptune-style instrumental in E major at 132 BPM. Retro 8-bit square-wave melodies, a bouncy arpeggiated bass, crisp electronic drums and little bubble-pop sound accents. Structure: [0:00 - 0:04] arpeggio intro; [0:04 - 0:26] catchy melody with drums; [0:26 - 0:30] a rising run and a final chord."
+    },
+    {
+      "id": "reflective-still-water",
+      "title": "Still Water",
+      "group": "reflective",
+      "moods": [
+        "reflective",
+        "peaceful",
+        "introspective"
+      ],
+      "style": "Sparse solo piano",
+      "energy": "low",
+      "targetBpm": 66,
+      "targetSeconds": 60,
+      "prompt": "A 60-second peaceful solo piano piece in D-flat major at 66 BPM, piano only. Sparse, slowly unfolding chords with a simple lyrical piano line in the right hand, soft sustain pedal, and gentle pauses between phrases. Structure: [0:00 - 0:20] first phrase; [0:20 - 0:45] the piano line rises slightly; [0:45 - 1:00] quiet resolution on the tonic chord.",
+      "revision": "Rewritten 2026-09-27: earlier takes contained a human voice, so the brief now names only instruments."
+    },
+    {
+      "id": "reflective-letters-home",
+      "title": "Letters Home",
+      "group": "reflective",
+      "moods": [
+        "reflective",
+        "longing",
+        "tender"
+      ],
+      "style": "Cello and piano duet",
+      "energy": "low",
+      "targetBpm": 70,
+      "targetSeconds": 60,
+      "prompt": "A 60-second tender duet for cello and piano in C minor at 70 BPM. The piano plays slow broken chords while the cello sings a long, longing melody; halfway through the harmony turns to the relative major for a moment of hope. Structure: [0:00 - 0:10] piano alone; [0:10 - 0:35] cello melody; [0:35 - 0:52] hopeful major-key passage; [0:52 - 1:00] soft final chord."
+    },
+    {
+      "id": "reflective-quiet-dusk",
+      "title": "Quiet Dusk",
+      "group": "reflective",
+      "moods": [
+        "reflective",
+        "calm",
+        "dreamy"
+      ],
+      "style": "Ambient guitar swells",
+      "energy": "low",
+      "targetBpm": 60,
+      "targetSeconds": 45,
+      "prompt": "A 45-second calm, dreamy instrumental in G major at 60 BPM. Volume-swelled electric guitar chords with long reverb, a soft sub-bass drone, and a simple clean guitar melody that appears in the second half. Structure: [0:00 - 0:18] slow swells; [0:18 - 0:38] clean melody over the swells; [0:38 - 0:45] a last swell settling on the home chord."
+    },
+    {
+      "id": "reflective-memory-lane",
+      "title": "Memory Lane",
+      "group": "reflective",
+      "moods": [
+        "reflective",
+        "nostalgic",
+        "bittersweet"
+      ],
+      "style": "Music box and strings",
+      "energy": "low",
+      "targetBpm": 72,
+      "targetSeconds": 45,
+      "prompt": "A 45-second gentle, nostalgic instrumental in A major at 72 BPM for strings, piano and celesta. A delicate celesta melody opens, warm strings and a soft piano join, tender and a little bittersweet, and the celesta returns at the end. Structure: [0:00 - 0:12] celesta; [0:12 - 0:36] strings and piano; [0:36 - 0:45] celesta closes on the final note.",
+      "revision": "Rewritten 2026-09-27: earlier takes contained a human voice, so the brief now names only instruments."
+    },
+    {
+      "id": "reflective-slow-rain-on-zinc",
+      "title": "Slow Rain on Zinc",
+      "group": "reflective",
+      "moods": [
+        "reflective",
+        "cozy",
+        "rainy"
+      ],
+      "style": "Mellow electric piano with soft rain texture",
+      "energy": "low",
+      "targetBpm": 68,
+      "targetSeconds": 60,
+      "prompt": "A 60-second cozy, reflective instrumental in F major at 68 BPM. Mellow electric piano chords, a gentle pitter-patter texture like rain on a metal roof, a soft brushed-snare groove and a warm upright bass. Structure: [0:00 - 0:10] rain texture and piano; [0:10 - 0:50] soft groove joins; [0:50 - 1:00] piano and rain alone, ending on a gentle chord."
+    },
+    {
+      "id": "suspense-footsteps-in-the-dark",
+      "title": "Footsteps in the Dark",
+      "group": "suspenseful",
+      "moods": [
+        "suspenseful",
+        "dark",
+        "mysterious"
+      ],
+      "style": "Dark drones and ticking percussion",
+      "energy": "medium",
+      "targetBpm": 90,
+      "targetSeconds": 45,
+      "prompt": "A 45-second tense mystery instrumental in D minor at 90 BPM for a suspense scene. A low sustained synth tone, a steady ticking woodblock rhythm, slow low piano notes and high sustained string harmonics gradually build tension. Structure: [0:00 - 0:12] sustained tone and ticking; [0:12 - 0:32] piano and strings join; [0:32 - 0:42] tension rises; [0:42 - 0:45] one low piano note and a short ring-out.",
+      "revision": "Rephrased 2026-09-27 after Google’s safety filter refused the first wording."
+    },
+    {
+      "id": "suspense-the-missing-key",
+      "title": "The Missing Key",
+      "group": "suspenseful",
+      "moods": [
+        "suspenseful",
+        "mysterious",
+        "curious"
+      ],
+      "style": "Mystery pizzicato and celesta",
+      "energy": "medium",
+      "targetBpm": 100,
+      "targetSeconds": 40,
+      "prompt": "A 40-second curious mystery instrumental in E minor at 100 BPM. Sneaky pizzicato strings, a walking bass clarinet, soft celesta notes and brushed percussion, like a detective searching for a clue. Structure: [0:00 - 0:06] pizzicato sneak; [0:06 - 0:32] bass clarinet and celesta join; [0:32 - 0:40] a questioning final chord."
+    },
+    {
+      "id": "suspense-storm-coming",
+      "title": "Storm Coming",
+      "group": "suspenseful",
+      "moods": [
+        "suspenseful",
+        "ominous",
+        "dramatic"
+      ],
+      "style": "Rumbling drums and dissonant strings",
+      "energy": "high",
+      "targetBpm": 84,
+      "targetSeconds": 45,
+      "prompt": "A 45-second ominous, dramatic instrumental in C minor at 84 BPM. Rumbling low toms and timpani like distant thunder, tremolo strings with dissonant clusters, low brass swells and a building rhythmic pulse. Structure: [0:00 - 0:10] distant rumbles; [0:10 - 0:30] strings and brass build; [0:30 - 0:42] full storm intensity; [0:42 - 0:45] a final thunder hit."
+    },
+    {
+      "id": "suspense-countdown",
+      "title": "Countdown",
+      "group": "suspenseful",
+      "moods": [
+        "suspenseful",
+        "urgent",
+        "driving"
+      ],
+      "style": "Pulsing synth arpeggio",
+      "energy": "high",
+      "targetBpm": 120,
+      "targetSeconds": 30,
+      "prompt": "A 30-second driving, suspenseful electronic instrumental in A minor at 120 BPM for a timer or countdown moment. A pulsing synthesizer arpeggio, a steady kick drum, a filter sweep that opens gradually and layers that stack and rise. Structure: [0:00 - 0:08] arpeggio and kick; [0:08 - 0:24] layers build; [0:24 - 0:30] a final chord.",
+      "revision": "Rephrased 2026-09-27 after Google’s safety filter refused the first wording."
+    },
+    {
+      "id": "suspense-shadow-in-the-grass",
+      "title": "Shadow in the Grass",
+      "group": "suspenseful",
+      "moods": [
+        "suspenseful",
+        "tense",
+        "watchful"
+      ],
+      "style": "Sparse talking drum with tense strings",
+      "energy": "medium",
+      "targetBpm": 76,
+      "targetSeconds": 45,
+      "prompt": "A 45-second tense, watchful instrumental in B minor at 76 BPM. A sparse talking drum pattern, low sustained strings, soft rattling shakers like rustling grass, and a haunting wooden flute phrase. Structure: [0:00 - 0:12] talking drum and rustling; [0:12 - 0:32] strings and flute; [0:32 - 0:42] tension tightens; [0:42 - 0:45] one final drum strike."
+    },
+    {
+      "id": "ambient-open-sky",
+      "title": "Open Sky",
+      "group": "ambient",
+      "moods": [
+        "ambient",
+        "airy",
+        "calm"
+      ],
+      "style": "Airy synth pads",
+      "energy": "low",
+      "targetBpm": 60,
+      "targetSeconds": 60,
+      "prompt": "A 60-second airy ambient instrumental in D major at 60 BPM. Wide, slowly evolving synthesizer pads, soft shimmering high tones and a very gentle low pulse, spacious and calm like an open sky. Structure: [0:00 - 0:20] pads bloom; [0:20 - 0:45] shimmering tones drift in; [0:45 - 1:00] settle on a sustained chord."
+    },
+    {
+      "id": "ambient-deep-forest-air",
+      "title": "Deep Forest Air",
+      "group": "ambient",
+      "moods": [
+        "ambient",
+        "natural",
+        "serene"
+      ],
+      "style": "Organic ambient with bell tones",
+      "energy": "low",
+      "targetBpm": 64,
+      "targetSeconds": 60,
+      "prompt": "A 60-second serene organic ambient instrumental in E minor at 64 BPM. Soft wooden bell tones, breathy low flute textures, gentle rustling percussion and a warm evolving pad, like standing in a quiet forest. Structure: [0:00 - 0:15] pad and rustling; [0:15 - 0:45] bell tones and flute textures; [0:45 - 1:00] calm fade to a held chord."
+    },
+    {
+      "id": "ambient-floating-lanterns",
+      "title": "Floating Lanterns",
+      "group": "ambient",
+      "moods": [
+        "ambient",
+        "magical",
+        "gentle"
+      ],
+      "style": "Shimmering synth with slow pulses",
+      "energy": "low",
+      "targetBpm": 70,
+      "targetSeconds": 45,
+      "prompt": "A 45-second gentle, magical ambient instrumental in A-flat major at 70 BPM. Shimmering synth plucks, slow pulsing chords, a soft glassy lead melody and a warm bass swell, like lanterns rising into the night. Structure: [0:00 - 0:12] plucks and pulses; [0:12 - 0:36] glassy melody; [0:36 - 0:45] final glowing chord."
+    },
+    {
+      "id": "ambient-morning-mist",
+      "title": "Morning Mist",
+      "group": "ambient",
+      "moods": [
+        "ambient",
+        "fresh",
+        "soft"
+      ],
+      "style": "Warm pads and soft piano",
+      "energy": "low",
+      "targetBpm": 62,
+      "targetSeconds": 60,
+      "prompt": "A 60-second soft, fresh ambient instrumental in C major at 62 BPM. Warm analog-style pads, a soft felt piano playing sparse notes, and a faint high string texture, like mist lifting in the early morning. Structure: [0:00 - 0:15] pads alone; [0:15 - 0:48] felt piano notes; [0:48 - 1:00] sustained final chord."
+    },
+    {
+      "id": "ambient-stargazing",
+      "title": "Stargazing",
+      "group": "ambient",
+      "moods": [
+        "ambient",
+        "wondrous",
+        "spacious"
+      ],
+      "style": "Spacey ambient with gentle arpeggios",
+      "energy": "low",
+      "targetBpm": 74,
+      "targetSeconds": 45,
+      "prompt": "A 45-second wondrous, spacious ambient instrumental in B major at 74 BPM. Gentle twinkling synth arpeggios, a deep warm drone, soft reversed-sounding swells and a slow, sparse melody, like looking up at the stars. Structure: [0:00 - 0:10] drone and twinkles; [0:10 - 0:36] slow melody; [0:36 - 0:45] a final shimmering chord."
+    },
+    {
+      "id": "travel-tro-tro-ride",
+      "title": "Tro-Tro Ride",
+      "group": "travel",
+      "moods": [
+        "travel",
+        "lively",
+        "journey"
+      ],
+      "style": "Driving Afro-guitar groove",
+      "energy": "high",
+      "targetBpm": 108,
+      "targetSeconds": 45,
+      "prompt": "A 45-second lively road-journey instrumental in E major at 108 BPM. Bright, fast-picked Afro-style electric guitar lines, a rolling bass, busy hand drums, a steady kick and a cheerful organ, like a bumpy, joyful minibus ride. Structure: [0:00 - 0:06] guitar riff; [0:06 - 0:32] full rolling groove; [0:32 - 0:41] organ solo; [0:41 - 0:45] final riff and stop."
+    },
+    {
+      "id": "travel-wide-road-north",
+      "title": "Wide Road North",
+      "group": "travel",
+      "moods": [
+        "travel",
+        "adventurous",
+        "optimistic"
+      ],
+      "style": "Road-trip indie folk with handclaps",
+      "energy": "medium",
+      "targetBpm": 112,
+      "targetSeconds": 60,
+      "prompt": "A 60-second optimistic travel instrumental in G major at 112 BPM. Bright strummed acoustic guitars, a light kick drum and tambourine, handclaps and a cheerful mandolin melody over a warm bass, full of forward motion like a long drive. Structure: [0:00 - 0:08] guitars alone; [0:08 - 0:36] full band with the mandolin melody; [0:36 - 0:54] a bigger final section with claps; [0:54 - 1:00] final strum.",
+      "revision": "Rephrased 2026-09-27 after Google’s safety filter refused the first wording."
+    },
+    {
+      "id": "travel-postcards-from-the-coast",
+      "title": "Postcards from the Coast",
+      "group": "travel",
+      "moods": [
+        "travel",
+        "breezy",
+        "relaxed"
+      ],
+      "style": "Breezy steel guitar and ukulele",
+      "energy": "medium",
+      "targetBpm": 100,
+      "targetSeconds": 45,
+      "prompt": "A 45-second breezy, sunny instrumental in A major at 100 BPM for seaside travel scenes. Relaxed ukulele strums, a smooth slide guitar melody, light bongos and a soft shaker over a round bass line. Structure: [0:00 - 0:06] ukulele introduction; [0:06 - 0:36] slide guitar melody over the groove; [0:36 - 0:45] a relaxed final chord.",
+      "revision": "Rephrased 2026-09-27 after Google’s safety filter refused the first wording."
+    },
+    {
+      "id": "travel-across-the-border",
+      "title": "Across the Border",
+      "group": "travel",
+      "moods": [
+        "travel",
+        "worldly",
+        "uplifting"
+      ],
+      "style": "World fusion with harp and hand drums",
+      "energy": "medium",
+      "targetBpm": 98,
+      "targetSeconds": 60,
+      "prompt": "A 60-second uplifting documentary film-score cue in D major at 98 BPM for concert harp, congas, shaker, upright bass and a small string section. The harp plays flowing arpeggios from the first second; congas and bass bring in an easy travelling groove; the strings carry a broad melody in the second half. Structure: [0:00 - 0:10] harp alone; [0:10 - 0:36] congas and bass join; [0:36 - 0:54] strings take the melody; [0:54 - 1:00] harp closes on the final chord.",
+      "revision": "Rewritten again 2026-09-27: takes of the instrument-only brief still had humming or chants, so the brief now frames the piece as an instrumental form (ensemble piece, film cue, product-launch bed) and drops words like \"hook\" and \"pop\" that suggest a vocal."
+    },
+    {
+      "id": "travel-airport-morning",
+      "title": "Airport Morning",
+      "group": "travel",
+      "moods": [
+        "travel",
+        "modern",
+        "fresh"
+      ],
+      "style": "Light electronic pop",
+      "energy": "medium",
+      "targetBpm": 118,
+      "targetSeconds": 40,
+      "prompt": "A 40-second fresh, modern light electronic pop instrumental in F major at 118 BPM. Clean plucked synths, a crisp electronic beat, airy pads and a catchy bell-like lead melody, bright and forward-looking. Structure: [0:00 - 0:06] plucks and pads; [0:06 - 0:34] beat and melody; [0:34 - 0:40] final chord with a soft tail."
+    },
+    {
+      "id": "education-curious-minds",
+      "title": "Curious Minds",
+      "group": "educational",
+      "moods": [
+        "educational",
+        "curious",
+        "light"
+      ],
+      "style": "Light pizzicato and marimba",
+      "energy": "low",
+      "targetBpm": 104,
+      "targetSeconds": 60,
+      "prompt": "A 60-second light, curious instrumental for explainer videos in C major at 104 BPM. Gentle pizzicato strings, a soft marimba melody, light brushed percussion and a warm bass, unobtrusive under a voice. Structure: [0:00 - 0:08] pizzicato and marimba; [0:08 - 0:52] steady light groove; [0:52 - 1:00] soft final chord."
+    },
+    {
+      "id": "education-step-by-step",
+      "title": "Step by Step",
+      "group": "educational",
+      "moods": [
+        "educational",
+        "focused",
+        "clean"
+      ],
+      "style": "Clean minimal piano with a light beat",
+      "energy": "low",
+      "targetBpm": 96,
+      "targetSeconds": 60,
+      "prompt": "A 60-second clean, focused instrumental for tutorials in G major at 96 BPM. A simple repeating piano motif, a soft minimal electronic beat, a subtle bass and occasional light bell accents, calm and steady so words stay clear. Structure: [0:00 - 0:08] piano motif; [0:08 - 0:52] beat and bass join; [0:52 - 1:00] piano motif ends on the tonic."
+    },
+    {
+      "id": "education-did-you-know",
+      "title": "Did You Know",
+      "group": "educational",
+      "moods": [
+        "educational",
+        "bright",
+        "inquisitive"
+      ],
+      "style": "Bright bells with soft bass",
+      "energy": "medium",
+      "targetBpm": 100,
+      "targetSeconds": 30,
+      "prompt": "A 30-second bright, inquisitive instrumental for fact videos in D major at 100 BPM. Glockenspiel and vibraphone play a light questioning motif, a soft bass and tight snaps keep time, and a short rising run ends each phrase. Structure: [0:00 - 0:04] bell motif; [0:04 - 0:26] groove with the motif; [0:26 - 0:30] a bright final bell chord."
+    },
+    {
+      "id": "education-learning-loop",
+      "title": "Learning Loop",
+      "group": "educational",
+      "moods": [
+        "educational",
+        "relaxed",
+        "steady"
+      ],
+      "style": "Gentle lo-fi hip hop",
+      "energy": "low",
+      "targetBpm": 85,
+      "targetSeconds": 60,
+      "prompt": "A 60-second relaxed, steady instrumental for study and explainer videos in E-flat major at 85 BPM. Soft jazzy electric piano chords, a mellow laid-back drum groove with a brushed snare, a warm bass line and a gentle flute phrase in the middle. Structure: [0:00 - 0:06] electric piano chords; [0:06 - 0:52] groove, bass and flute phrase; [0:52 - 1:00] piano alone and a final chord.",
+      "revision": "Rephrased 2026-09-27 after Google’s safety filter refused the first wording."
+    },
+    {
+      "id": "education-map-of-ideas",
+      "title": "Map of Ideas",
+      "group": "educational",
+      "moods": [
+        "educational",
+        "upbeat",
+        "clear"
+      ],
+      "style": "Upbeat acoustic corporate-lite",
+      "energy": "medium",
+      "targetBpm": 110,
+      "targetSeconds": 45,
+      "prompt": "A 45-second clear, upbeat acoustic instrumental for presentations in A major at 110 BPM. Muted acoustic guitar strums, a light kick and clap pattern and a warm bass, with a bright piano motif carrying the melody from start to finish. Structure: [0:00 - 0:06] guitar strum; [0:06 - 0:38] full light groove with the piano motif; [0:38 - 0:45] final chord.",
+      "revision": "Reworded 2026-09-27: the first take had a voice in it, and the stricter retry wording was refused by the safety filter."
+    },
+    {
+      "id": "promo-launch-day",
+      "title": "Launch Day",
+      "group": "promotional",
+      "moods": [
+        "promotional",
+        "uplifting",
+        "exciting"
+      ],
+      "style": "Big uplifting electronic pop",
+      "energy": "high",
+      "targetBpm": 124,
+      "targetSeconds": 30,
+      "prompt": "A 30-second exciting, uplifting electronic pop instrumental for a product or event launch in C major at 124 BPM. Bright supersaw chords, a punchy four-on-the-floor beat, a catchy plucked lead and a rising white-noise build into a big drop. Structure: [0:00 - 0:06] plucked lead and build; [0:06 - 0:24] full energetic drop; [0:24 - 0:30] final hit with a short tail."
+    },
+    {
+      "id": "promo-brand-new-morning",
+      "title": "Brand New Morning",
+      "group": "promotional",
+      "moods": [
+        "promotional",
+        "inspiring",
+        "hopeful"
+      ],
+      "style": "Inspiring piano and drums build",
+      "energy": "medium",
+      "targetBpm": 110,
+      "targetSeconds": 45,
+      "prompt": "A 45-second inspiring, hopeful instrumental in E-flat major at 110 BPM. A bright repeating piano pattern, building drums, warm strings and a soaring guitar melody that lifts toward the end, ideal for brand stories. Structure: [0:00 - 0:08] piano pattern; [0:08 - 0:28] drums and strings build; [0:28 - 0:42] soaring guitar melody at full energy; [0:42 - 0:45] final chord."
+    },
+    {
+      "id": "promo-big-reveal",
+      "title": "Big Reveal",
+      "group": "promotional",
+      "moods": [
+        "promotional",
+        "dramatic",
+        "bold"
+      ],
+      "style": "Trailer-style hits and risers",
+      "energy": "high",
+      "targetBpm": 100,
+      "targetSeconds": 30,
+      "prompt": "A 30-second bold, dramatic trailer-style instrumental in D minor at 100 BPM. Deep booming impacts, ticking percussion, tension risers, staccato strings and a final heroic brass statement for a big reveal. Structure: [0:00 - 0:10] impacts and ticking; [0:10 - 0:22] rising tension with strings; [0:22 - 0:28] brass statement; [0:28 - 0:30] final boom."
+    },
+    {
+      "id": "promo-community-spotlight",
+      "title": "Community Spotlight",
+      "group": "promotional",
+      "moods": [
+        "promotional",
+        "warm",
+        "uplifting"
+      ],
+      "style": "Warm uplifting acoustic pop",
+      "energy": "medium",
+      "targetBpm": 116,
+      "targetSeconds": 60,
+      "prompt": "A 60-second warm, uplifting acoustic pop instrumental in G major at 116 BPM for stories about people and communities. Strummed acoustic guitars, a steady kick and claps, glockenspiel accents, warm bass and a joyful piano melody that grows fuller. Structure: [0:00 - 0:08] guitars; [0:08 - 0:34] beat, claps and piano melody; [0:34 - 0:54] fuller final chorus; [0:54 - 1:00] final chord."
+    },
+    {
+      "id": "promo-call-to-action",
+      "title": "Call to Action",
+      "group": "promotional",
+      "moods": [
+        "promotional",
+        "punchy",
+        "confident"
+      ],
+      "style": "Punchy big-band brass and drums",
+      "energy": "high",
+      "targetBpm": 120,
+      "targetSeconds": 30,
+      "prompt": "A 30-second punchy, confident big-band instrumental in B-flat major at 120 BPM, starting on the first beat: a tight drum kit, a walking electric bass, stabbing brass hits and a bold trumpet melody over a saxophone section, like the shout chorus of a modern jazz big band. Structure: [0:00 - 0:04] brass hits over drums; [0:04 - 0:26] the full band with the trumpet melody; [0:26 - 0:30] a final brass hit and stop.",
+      "revision": "Rewritten a fifth time 2026-09-28: beat-making styles brought imitation producer tags and DJ drops, advertising music brought an imitation stock-library watermark, and a funk-rock band still sang, so the brief is now a jazz big band, a form played without voices."
+    }
+  ]
+}

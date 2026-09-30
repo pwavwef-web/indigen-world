@@ -11,7 +11,7 @@
   "settingsAppearanceDark": "Sombre — un fond de nuit, pour la pénombre",
   "settingsTheme": "Thème",
   "settingsAutoplayTitle": "Lire les vidéos automatiquement",
-  "settingsAutoplayBody": "Les clips du fil communautaire démarrent seuls, sans son. Désactivé, vous économisez des données sur un forfait limité — touchez un clip pour le regarder.",
+  "settingsAutoplayBody": "Les clips du fil communautaire démarrent seuls, sans son. Désactivé, vous économisez des données sur un forfait limité — touchez un clip pour le regarder, et Explorer ne charge que la vidéo affichée.",
   "navExplore": "Explorer",
   "navLearn": "Apprendre",
   "navCommunity": "Communauté",

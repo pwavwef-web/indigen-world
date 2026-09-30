@@ -57,6 +57,9 @@ ui-debug.log
 .claude/settings.local.json
 .tooling/
 .tmp_docx_render/
+# Working files of the video-editor library pipeline: AZ Studio downloads,
+# cut-outs and the resumable job state. What is published lives in Firestore.
+tools/media-library/.work/
 Indigen_World_Mobile_App_Build_Instructions_for_Andy.docx
 apps/mobile/artifacts/
 *.iml

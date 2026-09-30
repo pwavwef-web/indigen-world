@@ -92,11 +92,19 @@ export function collectionKindForSubmission(submission: JsonRecord): CollectionK
     ?? canonicalCollectionKind(submission.category);
 }
 
-/** The three public collections a reviewed contribution can be published into. */
+/**
+ * The public collections a reviewed contribution can be published into.
+ *
+ * `languageResources` holds word-queue answers a reviewer published as an
+ * example sentence or a translation pair; it is listed here so that a
+ * contributor withdrawing their answer reaches it the same way it reaches a
+ * dictionary entry.
+ */
 export const PUBLICATION_COLLECTIONS = [
   'dictionaryEntries',
   'expressionEntries',
   'publishedContent',
+  'languageResources',
 ] as const;
 
 export type PublicationCollection = (typeof PUBLICATION_COLLECTIONS)[number];
@@ -115,6 +123,7 @@ export function expressionEntryId(submissionId: string): string {
 function publicationIdFor(collection: PublicationCollection, submissionId: string): string {
   if (collection === 'dictionaryEntries') return `collection_${submissionId}`;
   if (collection === 'expressionEntries') return expressionEntryId(submissionId);
+  if (collection === 'languageResources') return `lr_${submissionId}`;
   return `pub_${submissionId}`;
 }
 

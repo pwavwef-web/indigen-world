@@ -15,6 +15,8 @@
 import type { AppRoute, DynamicRoute } from "../lib/types";
 
 export const ROUTES: AppRoute[] = [
+  { path: 'labs', navLabel: 'Labs', title: 'Indigen World Labs', description: 'Try new ways to learn, create, and connect with indigenous culture. Help shape what comes next.', immersive: true },
+  ...['experiments', 'kasem-practice', 'cultural-story', 'activity', 'updates', 'admin'].map(section => ({ path: `labs/${section}`, title: 'Indigen World Labs', description: 'Explore reviewed Kasem practice and private cultural storytelling experiments.', immersive: true, noindex: true })),
   {
     path: "home",
     navLabel: "Home",

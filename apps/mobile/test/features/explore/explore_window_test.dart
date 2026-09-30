@@ -50,23 +50,22 @@ void main() {
 
   group('communityFeedWindowProvider', () {
     test('never asks for less than the Community tab needs', () {
-      // Explore starts narrower than the community feed's own page, and the
-      // Community tab reads the same provider — so it must not be shrunk by
-      // somebody else's scroll position.
       expect(
         container.read(communityFeedWindowProvider),
         greaterThanOrEqualTo(CommunityRepository.feedPageSize),
       );
     });
 
-    test('follows Explore once Explore is asking for more', () {
+    test('does not move when Explore asks for more', () {
+      // Explore has its own query for community video now. When it read its
+      // videos out of this feed, every page Explore scrolled re-queried the
+      // Community tab sitting behind it.
+      final before = container.read(communityFeedWindowProvider);
       for (var index = 0; index < 4; index++) {
         notifier().grow();
       }
-      expect(
-        container.read(communityFeedWindowProvider),
-        container.read(exploreWindowProvider),
-      );
+      expect(container.read(exploreWindowProvider), greaterThan(before));
+      expect(container.read(communityFeedWindowProvider), before);
     });
   });
 }

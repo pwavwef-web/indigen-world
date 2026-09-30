@@ -18,6 +18,7 @@ import 'package:indigen_world_mobile/features/kawuri/kawuri_creation_screen.dart
 import 'package:indigen_world_mobile/features/kawuri/kawuri_feedback.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_home.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_learning_context.dart';
+import 'package:indigen_world_mobile/features/kawuri/kawuri_lesson.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_library_screen.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_media_models.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_media_repository.dart';
@@ -1101,6 +1102,8 @@ class _MessageBubble extends StatelessWidget {
             if (!isYou && message.sources.isNotEmpty)
               for (final source in message.sources)
                 KawuriTranslationCard(source: source),
+            if (!isYou && message.lookups.isNotEmpty)
+              KawuriWordLinks(lookups: message.lookups, origin: 'kawuri'),
             if (!isYou &&
                 !message.failed &&
                 !message.fromOfflineGuide &&

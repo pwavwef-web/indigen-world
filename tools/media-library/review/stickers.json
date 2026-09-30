@@ -1,0 +1,13 @@
+{
+  "about": "Human-eye review of the cut-out stickers, read by publish.mjs. A sticker listed under `rejected` is never published, whatever its automated checks say.",
+  "reviewer": "Visual review during the build session (checkerboard, dark and light backgrounds, review sheets in .work/stickers/review-*.png)",
+  "approvedAt": "2026-09-27",
+  "notes": {
+    "emph-circle-scribble": "First take had a filled cream centre, useless for circling something; fixed with an edit turn so the inside of the ring is transparent.",
+    "react-thumbs-up": "First take ran its sleeve off the frame edge, leaving no white border on that side; fixed with an edit turn.",
+    "celebrate-confetti": "First take reached the frame edges; an edit turn gathered it into one burst. Its green was slightly uneven (spread 24.7), which only warns: the cut itself passed every other check and looks clean.",
+    "play-baobab": "Painted on magenta because the subject is a tree; the leaves came out teal rather than green, which suits the palette.",
+    "label-*": "Every label reads exactly as briefed and is legible at small sizes."
+  },
+  "rejected": {}
+}

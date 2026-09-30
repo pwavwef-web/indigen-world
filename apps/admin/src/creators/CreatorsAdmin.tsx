@@ -728,10 +728,27 @@ function ExpressionReview({ s }: { s: Submission }) {
   );
 }
 
+/** A word-queue answer carries the queue word it answered. */
+type QueueAware = Submission & { wordQueueId?: string; moderation?: { publishAs?: string } };
+
+const isQueueAnswer = (s: Submission) => Boolean((s as QueueAware).wordQueueId);
+
+/** What a word-queue answer can become. Mirrors `PUBLISH_AS` in language-loop.ts. */
+const PUBLISH_AS_OPTIONS: { value: string; label: string }[] = [
+  { value: 'headword', label: 'A dictionary word' },
+  { value: 'variant', label: 'A regional variant' },
+  { value: 'expression', label: 'An expression' },
+  { value: 'example', label: 'An example sentence' },
+  { value: 'translation-pair', label: 'A translation pair' },
+  { value: 'training', label: 'Training material (not published)' },
+];
+
 function ReviewTab({ notify }: { notify: (m: string) => void }) {
   const [rows, setRows] = useState<Submission[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
+  // What each word-queue answer on screen becomes, as the reviewer chose it.
+  const [becomes, setBecomes] = useState<Record<string, string>>({});
 
   const load = useCallback(() => {
     setLoading(true);
@@ -741,15 +758,29 @@ function ReviewTab({ notify }: { notify: (m: string) => void }) {
 
   const decide = async (s: Submission, decision: string, needFeedback: boolean) => {
     let feedback = '';
+    const extras: { publishAs?: string; entryId?: string } = {};
+    if (isQueueAnswer(s) && (decision === 'APPROVE' || decision === 'PUBLISH')) {
+      const publishAs = becomes[s.id] ?? (s as QueueAware).moderation?.publishAs ?? 'headword';
+      extras.publishAs = publishAs;
+      if (publishAs === 'variant' || publishAs === 'example') {
+        const entryId = (window.prompt(
+          publishAs === 'variant'
+            ? 'Id of the dictionary entry this is a regional variant of (for example collection_abc123):'
+            : 'Id of the dictionary entry this example belongs to (optional):',
+        ) ?? '').trim();
+        if (publishAs === 'variant' && !entryId) return;
+        if (entryId) extras.entryId = entryId;
+      }
+    }
     if (needFeedback) {
       feedback = window.prompt(`Feedback for ${decision}?`) ?? '';
       if (!feedback.trim()) return;
-    } else if (!window.confirm(`${decision} "${s.title}"?`)) {
+    } else if (!window.confirm(`${decision} "${s.title}"${extras.publishAs ? ` as ${extras.publishAs}` : ''}?`)) {
       return;
     }
     setBusy(s.id);
     try {
-      await decideSubmission(s.id, decision, feedback);
+      await decideSubmission(s.id, decision, feedback, {}, extras);
       notify(`Submission: ${decision}.`);
       load();
     } catch (err) {
@@ -835,8 +866,29 @@ function ReviewTab({ notify }: { notify: (m: string) => void }) {
                   </button>
                 ) : s.status !== 'APPROVED' ? (
                   <>
+                    {isQueueAnswer(s) ? (
+                      <label className="review-becomes">
+                        Becomes{' '}
+                        <select
+                          value={becomes[s.id] ?? (s as QueueAware).moderation?.publishAs ?? 'headword'}
+                          onChange={(event) => setBecomes((current) => ({ ...current, [s.id]: event.target.value }))}
+                        >
+                          {PUBLISH_AS_OPTIONS.map((option) => (
+                            <option
+                              key={option.value}
+                              value={option.value}
+                              disabled={option.value === 'training' && s.permissions?.aiTraining !== true}
+                            >
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    ) : null}
                     <button type="button" disabled={busy === s.id} onClick={() => void decide(s, 'APPROVE', false)}>Approve</button>
-                    {!isCollectionContribution(s) ? (
+                    {/* A word-queue answer can be corrected from its author's
+                        list of submissions; other Collection work cannot. */}
+                    {!isCollectionContribution(s) || isQueueAnswer(s) ? (
                       <button type="button" disabled={busy === s.id} onClick={() => void decide(s, 'REQUEST_REVISION', true)}>Request revision</button>
                     ) : null}
                     <button type="button" className="danger" disabled={busy === s.id} onClick={() => void decide(s, 'REJECT', true)}>Reject</button>

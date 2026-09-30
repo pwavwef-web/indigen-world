@@ -1,0 +1,18 @@
+<!doctype html>
+<meta charset="utf-8">
+<link rel="stylesheet" href="style.css">
+<style>
+  .phone { --w: 410px; }
+  .stage { gap: 110px; }
+</style>
+<div class="stage">
+  <div class="column">
+    <div class="phone"><img src="../screens/you-light.png" alt=""></div>
+    <span class="pill"><span class="dot"></span>You, at the top</span>
+  </div>
+  <div class="column">
+    <div class="phone"><img src="../screens/you-library.png" alt=""></div>
+    <span class="pill green"><span class="dot"></span>Your library and your work</span>
+  </div>
+</div>
+<script>Promise.all([...document.images].map((i) => i.decode().catch(() => {}))).then(() => document.fonts.ready).then(() => { window.__ready = true; });</script>

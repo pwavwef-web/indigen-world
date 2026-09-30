@@ -1,0 +1,20 @@
+<!doctype html>
+<meta charset="utf-8">
+<link rel="stylesheet" href="style.css">
+<style>
+  .stage { flex-direction: column; gap: 36px; }
+  .browser { width: 1080px; }
+  .frames { display: flex; gap: 30px; }
+  .frames .column { gap: 16px; }
+  .frame { width: 440px; }
+  .pill { font-size: 20px; padding: 10px 18px; }
+</style>
+<div class="stage">
+  <div class="browser"><div class="bar"><i></i><i></i><i></i><span>TribeStudio · Export video</span></div><img src="../screens/export-dialog.jpg" alt=""></div>
+  <div class="frames">
+    <div class="column"><div class="frame"><img src="../screens/frame-title.jpg" alt=""></div><span class="pill"><span class="dot"></span>0:01 · title card</span></div>
+    <div class="column"><div class="frame"><img src="../screens/frame-photo.jpg" alt=""></div><span class="pill amber"><span class="dot"></span>0:06 · sticker and caption</span></div>
+    <div class="column"><div class="frame"><img src="../screens/frame-end.jpg" alt=""></div><span class="pill green"><span class="dot"></span>0:19 · end card</span></div>
+  </div>
+</div>
+<script>Promise.all([...document.images].map((i) => i.decode().catch(() => {}))).then(() => document.fonts.ready).then(() => { window.__ready = true; });</script>

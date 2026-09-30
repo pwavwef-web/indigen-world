@@ -9,9 +9,33 @@ entries were approved and published, and 35 were rejected. The two releases now
 cover 43 distinct entries and retain 45 approved recordings. See the
 [second release evidence](../../apps/updates-blog/posts/2026-09-27-more-reviewed-kasem-pronunciations/README.md).
 
-**Third listening round:** 40 further words now have 77 local candidates (40 Flash,
-37 Pro). Pro returned no usable audio for de, dam and yalei. All 68 earlier entry
-IDs were excluded. The new recordings await review and have not been published.
+**Third listening round, published:** 40 further words produced 77 candidates
+(40 Flash, 37 Pro). The owner approved 26, rejected 50 and left one pending.
+All 18 notes were resolved before publication: 26 recordings now serve 25 entries,
+with separate meanings for tonal contrasts, eight new entries and four corrected
+glosses. The uncertain memaŋa/proverbs meaning is queued under the requested
+account and is not published. All three releases cover 68 entries and 71 distinct
+approved recordings. See the [note resolutions](REVIEW-NOTES-2026-09-27.md) and
+[third release evidence](../../apps/updates-blog/posts/2026-09-27-kasem-tone-and-meaning/README.md).
+
+The simple publication importer now refuses reviews containing notes. Those need
+an explicit sense-resolution plan; a positive rating alone does not establish
+that a recording matches the original English gloss.
+
+**Fourth listening round, 28 September:** 40 new source entries have 75 playable
+candidates across 39 words (39 Flash, 36 Pro), including fɔŋe = carefully from
+the previous correction. All 108 earlier IDs and normalized spellings are
+excluded. Lage's two requests timed out; Pro also returned no audio for jege,
+ke and Botarebu. Technical and batch-identity checks passed. The offline page
+and ZIP are under `exports/kasem-pronunciation-round-4-2026-09-28`; the local
+review page is http://127.0.0.1:8882/review.html. The returned review approved 24
+takes, rejected 48 and left three pending. Its five notes resolve to 23 published
+recordings across 21 entries: separate gaale/skip and gaale/exceeds recordings,
+the first fɔŋe/carefully audio, a held swɛ fruit take, and reversible withdrawal
+of Dian/food. The owner-authorized fruit question was emailed to Emma with its
+exact reviewed clip attached. All four releases cover 89 entries and 94 distinct
+approved recordings. See the [note resolutions](REVIEW-NOTES-2026-09-28.md) and
+[fourth release evidence](../../apps/updates-blog/posts/2026-09-28-kasem-words-and-meanings/README.md).
 
 **27 September follow-up:** a second, local comparison now tests two standard
 Google speech models alongside the preserved MMS recordings. See

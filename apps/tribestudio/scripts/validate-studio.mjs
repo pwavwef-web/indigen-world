@@ -37,6 +37,7 @@ const LAZY_PAGES = [
   'StudioVideoPage',
   'StudioVideoJobsPage',
   'VideoEditorPage',
+  'VideoProjectsPage',
   'PublishedPage',
   'NotificationsPage',
   'LexiconWorkspace',

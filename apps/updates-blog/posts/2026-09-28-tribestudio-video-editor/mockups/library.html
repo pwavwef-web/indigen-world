@@ -1,0 +1,29 @@
+<!doctype html>
+<meta charset="utf-8">
+<link rel="stylesheet" href="style.css">
+<style>
+  .stage { gap: 70px; }
+  .panels { display: flex; gap: 40px; }
+  .panel { width: 360px; }
+  .points { width: 560px; }
+</style>
+<div class="stage">
+  <div class="panels">
+    <div class="column">
+      <div class="panel"><img src="../screens/music-panel.png" alt=""></div>
+      <span class="pill amber"><span class="dot"></span>50 tracks, by mood</span>
+    </div>
+    <div class="column">
+      <div class="panel"><img src="../screens/stickers-panel.png" alt=""></div>
+      <span class="pill green"><span class="dot"></span>48 stickers</span>
+    </div>
+  </div>
+  <div class="points">
+    <div class="eyebrow">Music and stickers</div>
+    <h2>Made for Indigen World, checked before they were added</h2>
+    <div class="point amber"><span class="dot"></span><div><strong>50 original instrumentals</strong><span>Ten moods, from cinematic to warm. Search, preview, add.</span></div></div>
+    <div class="point"><span class="dot"></span><div><strong>Music that makes room</strong><span>It dips on its own while someone is speaking.</span></div></div>
+    <div class="point green"><span class="dot"></span><div><strong>48 stickers to place and time</strong><span>Drag, resize, rotate, and choose when they appear.</span></div></div>
+  </div>
+</div>
+<script>Promise.all([...document.images].map((i) => i.decode().catch(() => {}))).then(() => document.fonts.ready).then(() => { window.__ready = true; });</script>

@@ -38,7 +38,8 @@ const SubmissionNewPage = named(() => import('./creator/pages/SubmissionNewPage'
 const SubmissionDetailPage = named(() => import('./creator/pages/SubmissionDetailPage'), 'SubmissionDetailPage');
 const StudioVideoPage = named(() => import('./creator/pages/StudioVideoPage'), 'StudioVideoPage');
 const StudioVideoJobsPage = named(() => import('./creator/pages/StudioVideoJobsPage'), 'StudioVideoJobsPage');
-const VideoEditorPage = named(() => import('./creator/pages/VideoEditorPage'), 'VideoEditorPage');
+const VideoEditorPage = named(() => import('./creator/editor/EditorPage'), 'EditorPage');
+const VideoProjectsPage = named(() => import('./creator/editor/ProjectsPage'), 'ProjectsPage');
 const PublishedPage = named(() => import('./creator/pages/PublishedPage'), 'PublishedPage');
 const DictionaryPage = named(() => import('./creator/pages/DictionaryPage'), 'DictionaryPage');
 const ExpressionsPage = named(() => import('./creator/pages/ExpressionsPage'), 'ExpressionsPage');
@@ -250,8 +251,11 @@ function renderStudio(path: string, canVideo: boolean) {
   if (path === '/studio/submissions') return <SubmissionsPage />;
   if (path === '/studio/published') return <PublishedPage />;
   // Editing personal footage is available to every creator. Only paid AI
-  // generation below needs the approved-creator role.
-  if (path === '/studio/editor') return <VideoEditorPage />;
+  // generation (a scene's "Make with AI", and the pages below) needs the
+  // approved-creator role.
+  if (path === '/studio/editor') return <VideoProjectsPage />;
+  const editorRoute = matchRoute('/studio/editor/:projectId', path);
+  if (editorRoute) return <VideoEditorPage key={editorRoute.projectId} />;
   if (path === '/studio/submissions/new') return <SubmissionNewPage />;
   // Before the :id route, which would otherwise swallow "/edit" as an id.
   if (matchRoute('/studio/submissions/:id/edit', path)) return <SubmissionNewPage />;
@@ -335,7 +339,7 @@ function Routed() {
     }
     return (
       <ApplicationStatusGate>
-        <StudioLayout immersive={path === '/studio/editor'}>{renderStudio(path, canMakeVideo(role))}</StudioLayout>
+        <StudioLayout immersive={path.startsWith('/studio/editor/')}>{renderStudio(path, canMakeVideo(role))}</StudioLayout>
       </ApplicationStatusGate>
     );
   }

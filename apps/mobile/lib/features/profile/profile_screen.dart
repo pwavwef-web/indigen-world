@@ -5,10 +5,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/app/app_theme.dart';
-import 'package:indigen_world_mobile/core/app_config.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/data/repositories.dart';
 import 'package:indigen_world_mobile/features/ads/ads_screen.dart';
+import 'package:indigen_world_mobile/features/ads/data/ad_campaign.dart';
+import 'package:indigen_world_mobile/features/ads/data/ad_repository.dart';
 import 'package:indigen_world_mobile/features/auth/auth_repository.dart';
 import 'package:indigen_world_mobile/features/auth/sign_in_sheet.dart';
 import 'package:indigen_world_mobile/features/community/community_profile_screen.dart';
@@ -19,73 +20,67 @@ import 'package:indigen_world_mobile/features/community/edit_community_profile_s
 import 'package:indigen_world_mobile/features/community/saved_posts_screen.dart';
 import 'package:indigen_world_mobile/features/community/widgets/verified_badge.dart';
 import 'package:indigen_world_mobile/features/contribute/collection_contribution_repository.dart';
-import 'package:indigen_world_mobile/features/profile/my_contributions_screen.dart';
+import 'package:indigen_world_mobile/features/contribute/contribution_kinds.dart';
+import 'package:indigen_world_mobile/features/contribute/leaderboard/contributor_scores.dart';
+import 'package:indigen_world_mobile/features/contribute/leaderboard/leaderboard_screen.dart';
+import 'package:indigen_world_mobile/features/contribute/my_submissions_screen.dart';
+import 'package:indigen_world_mobile/features/downloads/data/downloads_providers.dart';
+import 'package:indigen_world_mobile/features/downloads/downloads_screen.dart';
+import 'package:indigen_world_mobile/features/explore/kept_reels_screen.dart';
 import 'package:indigen_world_mobile/features/profile/saved_words_screen.dart';
 import 'package:indigen_world_mobile/features/settings/settings_screen.dart';
 import 'package:indigen_world_mobile/features/subscriptions/membership_screen.dart';
 import 'package:indigen_world_mobile/shared/frosted_nav_bar.dart';
 import 'package:indigen_world_mobile/shared/glass_surface.dart';
 
+/// My Space's three destinations.
+///
+/// There were five: Overview, Profile, Adverts, Membership and Settings. The
+/// first two were one subject split down the middle — the member's name and
+/// numbers on one, their community identity on the other, a button on each
+/// pointing at the other — and every count on Overview appeared twice, once as
+/// a stat and once as a row. Adverts is a tool a handful of members use, and it
+/// held a fifth of the bar everybody shares. So: You, which is the whole of the
+/// member and everything they keep and make; Membership, untouched, because the
+/// plans *are* that tab; and Settings.
+enum ProfileTab {
+  you('You', Icons.person_outline_rounded, Icons.person_rounded),
+  membership(
+    'Membership',
+    Icons.favorite_border_rounded,
+    Icons.favorite_rounded,
+  ),
+  settings('Settings', Icons.tune_outlined, Icons.tune_rounded);
+
+  const ProfileTab(this.label, this.icon, this.selectedIcon);
+
+  final String label;
+  final IconData icon;
+  final IconData selectedIcon;
+}
+
 class ProfileScreen extends ConsumerStatefulWidget {
-  const ProfileScreen({super.key});
+  const ProfileScreen({this.initialTab = ProfileTab.you, super.key});
+
+  /// Where My Space opens. The shell's profile orb opens You; the Community
+  /// drawer's Settings row opens Settings, so there is one Settings screen in
+  /// the app rather than a second copy with its own app bar.
+  final ProfileTab initialTab;
 
   @override
   ConsumerState<ProfileScreen> createState() => _ProfileScreenState();
 }
 
 class _ProfileScreenState extends ConsumerState<ProfileScreen> {
-  var _selectedIndex = 0;
+  late var _tab = widget.initialTab;
 
-  /// The Profile destination's index, named rather than written as a literal:
-  /// two other places switch to it, and a bare `1` is the kind of thing that
-  /// survives a reorder of the rail and quietly starts opening Adverts.
-  static const _profileIndex = 1;
-
-  static const _titles = [
-    'Overview',
-    'Profile',
-    'Adverts',
-    'Membership',
-    'Settings',
-  ];
-
-  /// ── Why "Profile" and not "Community" ─────────────────────────────────────
-  /// Because the member's community identity had three front doors — a button
-  /// on Overview, a button on this tab, and a row in Settings — and three doors
-  /// into one room means nobody knows which one is *the* one, or whether the
-  /// three of them do the same thing. They now do not exist: this tab is the
-  /// only place the identity is viewed, edited, previewed or set up.
-  ///
-  /// It is deliberately not named Community. That word already belongs to a
-  /// destination in the app's own shell — the room everybody is in — and this is
-  /// the opposite thing: the one page in it that is only about you. The badge
-  /// icon says the same, and is nothing like the shell's `groups` glyph.
-  static const _destinations = <FrostedNavBarItem>[
-    FrostedNavBarItem(
-      icon: Icons.dashboard_outlined,
-      selectedIcon: Icons.dashboard_rounded,
-      label: 'Overview',
-    ),
-    FrostedNavBarItem(
-      icon: Icons.badge_outlined,
-      selectedIcon: Icons.badge_rounded,
-      label: 'Profile',
-    ),
-    FrostedNavBarItem(
-      icon: Icons.campaign_outlined,
-      selectedIcon: Icons.campaign_rounded,
-      label: 'Adverts',
-    ),
-    FrostedNavBarItem(
-      icon: Icons.favorite_border_rounded,
-      selectedIcon: Icons.favorite_rounded,
-      label: 'Membership',
-    ),
-    FrostedNavBarItem(
-      icon: Icons.tune_outlined,
-      selectedIcon: Icons.tune_rounded,
-      label: 'Settings',
-    ),
+  static final _destinations = <FrostedNavBarItem>[
+    for (final tab in ProfileTab.values)
+      FrostedNavBarItem(
+        icon: tab.icon,
+        selectedIcon: tab.selectedIcon,
+        label: tab.label,
+      ),
   ];
 
   @override
@@ -95,22 +90,32 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final contributions =
         ref.watch(myCollectionContributionsProvider).asData?.value ??
         const <CollectionContributionRecord>[];
-    final contributionCount = contributions.length;
-    // Counted rather than stubbed at zero: a member who has had work approved
-    // and sees "0 Approved" on their own profile has been told the project
-    // lost it.
-    final approvedCount = contributions.where(isApprovedContribution).length;
-    final user = ref.watch(authStateProvider).asData?.value;
-    final communityProfile = ref
-        .watch(myCommunityProfileProvider)
-        .asData
-        ?.value;
+    // The server's totals where it can give them: the list stops at fifty, and
+    // an active word translator passes fifty in an afternoon.
+    final totals =
+        ref.watch(myContributionTotalsProvider).asData?.value ??
+        (
+          sent: contributions.length,
+          approved: contributions
+              .where((record) => contributionApproved(record.status))
+              .length,
+          capped: contributions.length >= kMyContributionsLimit,
+        );
     final data = _ProfileViewData(
-      user: user,
-      communityProfile: communityProfile,
+      user: ref.watch(authStateProvider).asData?.value,
+      communityProfile: ref.watch(myCommunityProfileProvider).asData?.value,
       savedCount: savedCount,
-      contributionCount: contributionCount,
-      approvedCount: approvedCount,
+      totals: totals,
+      waitingCount: contributions
+          .where(
+            (record) =>
+                contributionAwaitingReview(record.status) &&
+                !contributionNeedsChanges(record.status),
+          )
+          .length,
+      returnedCount: contributions
+          .where((record) => contributionNeedsChanges(record.status))
+          .length,
     );
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
@@ -132,7 +137,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   child: Column(
                     children: [
                       _ProfileTopBar(
-                        title: _titles[_selectedIndex],
+                        title: _tab.label,
                         onBack: () => Navigator.of(context).maybePop(),
                       ),
                       Expanded(
@@ -162,11 +167,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           ],
         ),
         bottomNavigationBar: FrostedNavBar(
-          currentIndex: _selectedIndex,
+          currentIndex: _tab.index,
           onTap: (index) {
-            if (index == _selectedIndex) return;
+            final next = ProfileTab.values[index];
+            if (next == _tab) return;
             HapticFeedback.selectionClick();
-            setState(() => _selectedIndex = index);
+            setState(() => _tab = next);
           },
           items: _destinations,
         ),
@@ -174,46 +180,27 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
-  Widget _buildDestination(_ProfileViewData data) => switch (_selectedIndex) {
-    0 => _OverviewTab(
-      key: const ValueKey('profile-overview'),
+  Widget _buildDestination(_ProfileViewData data) => switch (_tab) {
+    ProfileTab.you => _YouTab(
+      key: const ValueKey('profile-you'),
       data: data,
-      onAccountAction: data.signedIn ? _goToProfileTab : _signIn,
-      onOpenSavedWords: _openSavedWords,
-      onOpenContributions: _openContributions,
-      onOpenApproved: _openApproved,
-    ),
-    _profileIndex => _ProfileTab(
-      key: const ValueKey('profile-identity'),
-      data: data,
+      onSignIn: _signIn,
       onSetUp: _openProfileSetup,
       onEdit: _openEditProfile,
       onPreview: _openPublicProfile,
-      onOpenSavedPosts: _openSavedPosts,
-      onSignIn: _signIn,
+      onOpen: _open,
     ),
-    2 => const AdsScreen(key: ValueKey('profile-ads')),
-    3 => MembershipScreen(
+    ProfileTab.membership => MembershipScreen(
       key: const ValueKey('profile-membership'),
       embedded: true,
       bottomPadding: shellBottomReserve(context) + 28,
     ),
-    _ => SettingsScreen(
+    ProfileTab.settings => SettingsScreen(
       key: const ValueKey('profile-settings'),
       embedded: true,
       bottomPadding: shellBottomReserve(context) + 28,
     ),
   };
-
-  /// Overview's one identity affordance: it points at the Profile tab rather
-  /// than opening a profile screen of its own. A signpost is not a second front
-  /// door — everything that can be *done* to the identity still happens in one
-  /// place, and the member ends up looking at the place it happens.
-  void _goToProfileTab() {
-    if (_selectedIndex == _profileIndex) return;
-    HapticFeedback.selectionClick();
-    setState(() => _selectedIndex = _profileIndex);
-  }
 
   Future<void> _signIn() async {
     final signedIn = await showSignInSheet(context);
@@ -228,9 +215,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       _signIn();
       return;
     }
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(builder: (context) => const CommunitySetupScreen()),
-    );
+    _open(const CommunitySetupScreen());
   }
 
   /// The editor. The only route to it in the app.
@@ -240,11 +225,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       _openProfileSetup();
       return;
     }
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (context) => EditCommunityProfileScreen(profile: profile),
-      ),
-    );
+    _open(EditCommunityProfileScreen(profile: profile));
   }
 
   /// The public page, exactly as everybody else sees it.
@@ -258,38 +239,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       _signIn();
       return;
     }
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(builder: (context) => CommunityProfileScreen(uid: uid)),
-    );
+    _open(CommunityProfileScreen(uid: uid));
   }
 
-  void _openSavedPosts() {
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(builder: (context) => const SavedPostsScreen()),
-    );
-  }
-
-  void _openSavedWords() {
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(builder: (context) => const SavedWordsScreen()),
-    );
-  }
-
-  void _openContributions() {
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (context) => const MyContributionsScreen(),
-      ),
-    );
-  }
-
-  void _openApproved() {
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (context) => const MyContributionsScreen(approvedOnly: true),
-      ),
-    );
-  }
+  void _open(Widget screen) =>
+      Navigator.of(context)
+          .push(MaterialPageRoute<void>(builder: (context) => screen));
 
   void _showMessage(String text) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
@@ -301,15 +256,21 @@ class _ProfileViewData {
     required this.user,
     required this.communityProfile,
     required this.savedCount,
-    required this.contributionCount,
-    required this.approvedCount,
+    required this.totals,
+    required this.waitingCount,
+    required this.returnedCount,
   });
 
   final User? user;
   final CommunityProfile? communityProfile;
   final int savedCount;
-  final int contributionCount;
-  final int approvedCount;
+  final ContributionTotals totals;
+
+  /// Submissions a reviewer has not reached yet.
+  final int waitingCount;
+
+  /// Submissions sent back to the member with a note.
+  final int returnedCount;
 
   bool get signedIn => user != null;
 
@@ -321,9 +282,400 @@ class _ProfileViewData {
     return signedIn ? 'Indigen World member' : 'Guest learner';
   }
 
+  /// The line under the name: the handle a member is known by, else the email
+  /// they signed in with.
+  ///
+  /// A guest used to see "Kasem · production environment" here — the name of
+  /// the Firebase project this build talks to, under their own name, which
+  /// reads as something having gone wrong.
   String get detail => signedIn
       ? (communityProfile?.handle ?? user?.email ?? 'Signed in')
-      : 'Kasem · $appEnvironment environment';
+      : 'Browsing as a guest';
+}
+
+/// Everything about the member, and everything they keep and make, on one
+/// scrolling page.
+///
+/// ── What is no longer here ──────────────────────────────────────────────────
+/// Each count used to appear twice — as a stat card and again as a row under
+/// it. A "Next best step" panel told members who had done everything that
+/// their identity was ready, and a line under the name said the account was
+/// "connected and ready to sync", which is true of every account and so says
+/// nothing. The identity card that was a separate tab is the header now.
+class _YouTab extends ConsumerWidget {
+  const _YouTab({
+    required this.data,
+    required this.onSignIn,
+    required this.onSetUp,
+    required this.onEdit,
+    required this.onPreview,
+    required this.onOpen,
+    super.key,
+  });
+
+  final _ProfileViewData data;
+  final VoidCallback onSignIn;
+  final VoidCallback onSetUp;
+  final VoidCallback onEdit;
+  final VoidCallback onPreview;
+  final ValueChanged<Widget> onOpen;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final profile = data.communityProfile;
+    final totals = data.totals;
+    final downloadCount = ref.watch(downloadedIdsProvider).length;
+    // Offered while a plan allows downloads, and kept for anybody who still
+    // has some on the phone after their plan ended — they are theirs to play
+    // or delete either way.
+    final showDownloads =
+        ref.watch(downloadsAllowedProvider) || downloadCount > 0;
+    final campaigns =
+        ref.watch(myAdCampaignsProvider).asData?.value ?? const <AdCampaign>[];
+    final running = campaigns
+        .where((campaign) => campaign.status == AdCampaignStatus.active)
+        .length;
+
+    return ListView(
+      key: const PageStorageKey('profile-you-scroll'),
+      padding: EdgeInsets.fromLTRB(18, 8, 18, shellBottomReserve(context) + 28),
+      children: [
+        _IdentityHero(
+          data: data,
+          onSignIn: onSignIn,
+          onSetUp: onSetUp,
+          onEdit: onEdit,
+          onPreview: onPreview,
+        ),
+        if (profile != null && !_ProfileCompleteness.isComplete(profile)) ...[
+          const SizedBox(height: 14),
+          _ProfileCompleteness(profile: profile, onEdit: onEdit),
+        ],
+        const SizedBox(height: 15),
+        // What the member has given the archive, at a glance. Each number is
+        // a door to its own list, and nothing below repeats it.
+        Row(
+          children: [
+            Expanded(
+              child: _StatCard(
+                icon: Icons.outbox_rounded,
+                value: contributionCountLabel(
+                  totals.sent,
+                  capped: totals.capped,
+                ),
+                label: 'Contributions',
+                color: context.brand.accent,
+                onTap: () => onOpen(const MySubmissionsScreen()),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: _StatCard(
+                icon: Icons.stars_rounded,
+                value: contributionCountLabel(
+                  totals.approved,
+                  capped: totals.capped,
+                ),
+                label: 'Approved',
+                color: context.brand.gold,
+                onTap: () => onOpen(
+                  const MySubmissionsScreen(
+                    initialFilter: SubmissionFilter.approved,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: _StatCard(
+                icon: Icons.bolt_rounded,
+                value: '${ref.watch(myContributionPointsProvider)}',
+                label: 'Points',
+                color: context.brand.terracotta,
+                onTap: () => onOpen(const LeaderboardScreen()),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 22),
+        const _SectionLabel('YOUR LIBRARY'),
+        const SizedBox(height: 9),
+        _ActionTile(
+          key: const ValueKey('library-saved-words'),
+          icon: Icons.menu_book_rounded,
+          title: 'Saved words',
+          subtitle: data.savedCount == 0
+              ? 'Words you keep from the dictionary'
+              : '${data.savedCount} kept from the dictionary',
+          onTap: () => onOpen(const SavedWordsScreen()),
+        ),
+        const SizedBox(height: 10),
+        _ActionTile(
+          key: const ValueKey('library-saved-posts'),
+          icon: Icons.bookmarks_rounded,
+          title: 'Saved posts',
+          subtitle: 'Posts you kept from Community',
+          onTap: () => onOpen(const SavedPostsScreen()),
+        ),
+        const SizedBox(height: 10),
+        _ActionTile(
+          key: const ValueKey('library-kept-reels'),
+          icon: Icons.play_circle_outline_rounded,
+          title: 'Kept reels',
+          subtitle: 'Reels you kept from Explore',
+          onTap: () => onOpen(const KeptReelsScreen()),
+        ),
+        if (showDownloads) ...[
+          const SizedBox(height: 10),
+          _ActionTile(
+            key: const ValueKey('library-downloads'),
+            icon: Icons.download_for_offline_outlined,
+            title: 'Downloads',
+            subtitle: downloadCount > 0
+                ? '$downloadCount kept for listening offline'
+                : 'Songs and chapters kept for listening offline',
+            onTap: () => onOpen(const DownloadsScreen()),
+          ),
+        ],
+        const SizedBox(height: 22),
+        const _SectionLabel('YOUR WORK'),
+        const SizedBox(height: 9),
+        // Only while something is waiting on the member. A permanent row here
+        // would be the Contributions count above said a second time.
+        if (data.returnedCount > 0) ...[
+          _ActionTile(
+            key: const ValueKey('work-sent-back'),
+            icon: Icons.reply_rounded,
+            title: 'Sent back to you',
+            subtitle: data.returnedCount == 1
+                ? 'One submission needs a change from you'
+                : '${data.returnedCount} submissions need a change from you',
+            onTap: () => onOpen(
+              const MySubmissionsScreen(
+                initialFilter: SubmissionFilter.needsChanges,
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+        ],
+        // Adverts used to be a tab of their own here. They are a row now: a
+        // tool for the members who run campaigns, one tap away for them and
+        // out of the bar for everybody else.
+        _ActionTile(
+          key: const ValueKey('work-adverts'),
+          icon: Icons.campaign_rounded,
+          title: 'Your adverts',
+          subtitle: running > 0
+              ? '$running running'
+              : campaigns.isEmpty
+              ? 'Promote something to the community'
+              : '${campaigns.length} campaign'
+                    '${campaigns.length == 1 ? '' : 's'}',
+          onTap: () => onOpen(const AdsScreen(standalone: true)),
+        ),
+      ],
+    );
+  }
+}
+
+/// Who the member is, and the one thing they can do about it next.
+///
+/// The identity that used to be a tab of its own is this card: the picture,
+/// the name and handle, the words they wrote about themselves, and the two
+/// verbs — *Edit* changes it, *Preview* does not — because the commonest thing
+/// anybody wants before they post is to check, and a page where checking means
+/// opening a form full of their own text is a page that invites accidental
+/// edits. Without a profile it offers to make one, and without an account it
+/// offers to sign in.
+class _IdentityHero extends StatelessWidget {
+  const _IdentityHero({
+    required this.data,
+    required this.onSignIn,
+    required this.onSetUp,
+    required this.onEdit,
+    required this.onPreview,
+  });
+
+  final _ProfileViewData data;
+  final VoidCallback onSignIn;
+  final VoidCallback onSetUp;
+  final VoidCallback onEdit;
+  final VoidCallback onPreview;
+
+  @override
+  Widget build(BuildContext context) {
+    final brand = context.brand;
+    final profile = data.communityProfile;
+    final onGold = FilledButton.styleFrom(
+      backgroundColor: brand.gold,
+      foregroundColor: const Color(0xFF1A1206),
+    );
+    final outline = OutlinedButton.styleFrom(
+      foregroundColor: Colors.white,
+      side: const BorderSide(color: Colors.white54),
+    );
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(28),
+        gradient: BrandGradients.heroRich(brand),
+        boxShadow: [
+          BoxShadow(
+            color: brand.shadow.withValues(alpha: 0.2),
+            blurRadius: 28,
+            offset: const Offset(0, 14),
+          ),
+        ],
+      ),
+      child: Stack(
+        children: [
+          const Positioned(
+            right: -8,
+            bottom: -35,
+            child: Opacity(
+              opacity: 0.1,
+              child: Text(
+                '✣',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 132,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  _ProfileAvatar(user: data.user, communityProfile: profile),
+                  const SizedBox(width: 15),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          data.signedIn ? 'YOUR SPACE' : 'WELCOME, EXPLORER',
+                          style: TextStyle(
+                            color: brand.gold,
+                            fontSize: 9,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 1.15,
+                          ),
+                        ),
+                        const SizedBox(height: 5),
+                        Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                data.name,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: Theme.of(context).textTheme.headlineSmall
+                                    ?.copyWith(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w900,
+                                    ),
+                              ),
+                            ),
+                            if (profile != null &&
+                                profile.mark != VerifiedMark.none) ...[
+                              const SizedBox(width: 6),
+                              VerifiedBadge(mark: profile.mark, size: 18),
+                            ],
+                          ],
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          data.detail,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.72),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              if (profile != null && profile.bio.trim().isNotEmpty) ...[
+                const SizedBox(height: 14),
+                Text(
+                  profile.bio.trim(),
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.9),
+                    height: 1.4,
+                  ),
+                ),
+              ],
+              if (profile != null &&
+                  (profile.location.trim().isNotEmpty ||
+                      profile.dialect.trim().isNotEmpty)) ...[
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    if (profile.location.trim().isNotEmpty)
+                      _InfoPill(
+                        icon: Icons.location_on_outlined,
+                        label: profile.location.trim(),
+                      ),
+                    if (profile.dialect.trim().isNotEmpty)
+                      _InfoPill(
+                        icon: Icons.translate_rounded,
+                        label: profile.dialect.trim(),
+                      ),
+                  ],
+                ),
+              ],
+              const SizedBox(height: 18),
+              if (!data.signedIn)
+                FilledButton.icon(
+                  style: onGold,
+                  onPressed: onSignIn,
+                  icon: const Icon(Icons.login_rounded),
+                  label: const Text('Sign in or create an account'),
+                )
+              else if (profile == null)
+                FilledButton.icon(
+                  style: onGold,
+                  onPressed: onSetUp,
+                  icon: const Icon(Icons.alternate_email_rounded),
+                  label: const Text('Set up your community profile'),
+                )
+              else
+                Row(
+                  children: [
+                    Expanded(
+                      child: FilledButton.icon(
+                        style: onGold,
+                        onPressed: onEdit,
+                        icon: const Icon(Icons.edit_rounded, size: 18),
+                        label: const Text('Edit profile'),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        style: outline,
+                        onPressed: onPreview,
+                        icon: const Icon(Icons.visibility_outlined, size: 18),
+                        label: const Text('Preview'),
+                      ),
+                    ),
+                  ],
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _ProfileBackdrop extends StatelessWidget {
@@ -436,7 +788,7 @@ class _ProfileTopBar extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'YOUR SPACE',
+                      'MY SPACE',
                       style: TextStyle(
                         color: context.brand.terracotta,
                         fontSize: 8,
@@ -455,293 +807,11 @@ class _ProfileTopBar extends StatelessWidget {
                   ],
                 ),
               ),
-              Container(
-                width: 34,
-                height: 34,
-                decoration: BoxDecoration(
-                  gradient: BrandGradients.hero(context.brand),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(
-                  Icons.auto_awesome_rounded,
-                  color: context.brand.gold,
-                  size: 18,
-                ),
-              ),
             ],
           ),
         ),
       ),
     ),
-  );
-}
-
-class _OverviewTab extends StatelessWidget {
-  const _OverviewTab({
-    required this.data,
-    required this.onAccountAction,
-    required this.onOpenSavedWords,
-    required this.onOpenContributions,
-    required this.onOpenApproved,
-    super.key,
-  });
-
-  final _ProfileViewData data;
-  final VoidCallback onAccountAction;
-  final VoidCallback onOpenSavedWords;
-  final VoidCallback onOpenContributions;
-  final VoidCallback onOpenApproved;
-
-  @override
-  Widget build(BuildContext context) => ListView(
-    key: const PageStorageKey('profile-overview-scroll'),
-    padding: EdgeInsets.fromLTRB(
-      18,
-      8,
-      18,
-      shellBottomReserve(context) + 28,
-    ),
-    children: [
-      _ProfileHero(data: data),
-      const SizedBox(height: 15),
-      Row(
-        children: [
-          Expanded(
-            child: _StatCard(
-              icon: Icons.bookmark_rounded,
-              value: '${data.savedCount}',
-              label: 'Saved words',
-              color: context.brand.terracotta,
-              onTap: onOpenSavedWords,
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: _StatCard(
-              icon: Icons.outbox_rounded,
-              value: '${data.contributionCount}',
-              label: 'Contributions',
-              color: context.brand.accent,
-              onTap: onOpenContributions,
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: _StatCard(
-              icon: Icons.stars_rounded,
-              value: '${data.approvedCount}',
-              label: 'Approved',
-              color: context.brand.gold,
-              onTap: onOpenApproved,
-            ),
-          ),
-        ],
-      ),
-      const SizedBox(height: 15),
-      _GlassPanel(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const _Eyebrow(text: 'NEXT BEST STEP'),
-            const SizedBox(height: 7),
-            Text(
-              data.signedIn
-                  ? data.communityProfile == null
-                        ? 'Choose the name your community will know.'
-                        : 'Your community identity is ready.'
-                  : 'Carry your learning across devices.',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 14),
-            FilledButton.icon(
-              onPressed: onAccountAction,
-              icon: Icon(
-                data.signedIn ? Icons.badge_rounded : Icons.login_rounded,
-              ),
-              label: Text(
-                data.signedIn
-                    ? 'Go to your profile'
-                    : 'Sign in or create an account',
-              ),
-            ),
-          ],
-        ),
-      ),
-      const SizedBox(height: 14),
-      _ActionTile(
-        icon: Icons.menu_book_rounded,
-        title: 'Saved words',
-        subtitle: '${data.savedCount} kept on this device',
-        onTap: onOpenSavedWords,
-      ),
-      const SizedBox(height: 10),
-      _ActionTile(
-        icon: Icons.outbox_rounded,
-        title: 'Your contributions',
-        subtitle: '${data.contributionCount} sent for review',
-        onTap: onOpenContributions,
-      ),
-    ],
-  );
-}
-
-/// The one place the member's community identity lives.
-///
-/// Everything that used to be scattered across three screens is here and only
-/// here: what the profile says, how complete it is, the way into the editor, and
-/// the way to see the public page a stranger sees. The two buttons are
-/// deliberately different verbs — *Edit* changes it, *Preview* does not — because
-/// the commonest thing anybody wants before they post is to check, and a page
-/// where checking means opening a form full of their own text is a page that
-/// invites accidental edits.
-class _ProfileTab extends StatelessWidget {
-  const _ProfileTab({
-    required this.data,
-    required this.onSetUp,
-    required this.onEdit,
-    required this.onPreview,
-    required this.onOpenSavedPosts,
-    required this.onSignIn,
-    super.key,
-  });
-
-  final _ProfileViewData data;
-  final VoidCallback onSetUp;
-  final VoidCallback onEdit;
-  final VoidCallback onPreview;
-  final VoidCallback onOpenSavedPosts;
-  final VoidCallback onSignIn;
-
-  @override
-  Widget build(BuildContext context) {
-    final profile = data.communityProfile;
-    return ListView(
-      key: const PageStorageKey('profile-identity-scroll'),
-      padding: EdgeInsets.fromLTRB(
-        18,
-        8,
-        18,
-        shellBottomReserve(context) + 28,
-      ),
-      children: [
-        const _TabIntro(
-          icon: Icons.badge_rounded,
-          eyebrow: 'YOUR COMMUNITY IDENTITY',
-          title: 'Be known. Stay connected.',
-        ),
-        const SizedBox(height: 14),
-        _GlassPanel(
-          child: profile == null
-              ? _EmptyIdentity(
-                  signedIn: data.signedIn,
-                  onOpen: data.signedIn ? onSetUp : onSignIn,
-                )
-              : _IdentityCard(
-                  profile: profile,
-                  onEdit: onEdit,
-                  onPreview: onPreview,
-                ),
-        ),
-        if (profile != null) ...[
-          const SizedBox(height: 14),
-          _ProfileCompleteness(profile: profile, onEdit: onEdit),
-        ],
-        const SizedBox(height: 14),
-        _ActionTile(
-          icon: Icons.bookmarks_rounded,
-          title: 'Saved community posts',
-          subtitle: 'Conversations you kept',
-          onTap: onOpenSavedPosts,
-        ),
-      ],
-    );
-  }
-}
-
-class _IdentityCard extends StatelessWidget {
-  const _IdentityCard({
-    required this.profile,
-    required this.onEdit,
-    required this.onPreview,
-  });
-
-  final CommunityProfile profile;
-  final VoidCallback onEdit;
-  final VoidCallback onPreview;
-
-  @override
-  Widget build(BuildContext context) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Row(
-        children: [
-          _CommunityAvatar(profile: profile),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  profile.displayName,
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  profile.handle,
-                  style: TextStyle(
-                    color: context.brand.terracotta,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          if (profile.mark != VerifiedMark.none)
-            VerifiedBadge(mark: profile.mark, size: 20),
-        ],
-      ),
-      if (profile.bio.trim().isNotEmpty) ...[
-        const SizedBox(height: 14),
-        Text(profile.bio),
-      ],
-      if (profile.location.trim().isNotEmpty ||
-          profile.dialect.trim().isNotEmpty) ...[
-        const SizedBox(height: 13),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            if (profile.location.trim().isNotEmpty)
-              _InfoPill(
-                icon: Icons.location_on_outlined,
-                label: profile.location,
-              ),
-            if (profile.dialect.trim().isNotEmpty)
-              _InfoPill(icon: Icons.translate_rounded, label: profile.dialect),
-          ],
-        ),
-      ],
-      const SizedBox(height: 16),
-      Row(
-        children: [
-          Expanded(
-            child: FilledButton.icon(
-              onPressed: onEdit,
-              icon: const Icon(Icons.edit_rounded, size: 18),
-              label: const Text('Edit profile'),
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: OutlinedButton.icon(
-              onPressed: onPreview,
-              icon: const Icon(Icons.visibility_outlined, size: 18),
-              label: const Text('Preview'),
-            ),
-          ),
-        ],
-      ),
-    ],
   );
 }
 
@@ -758,15 +828,20 @@ class _IdentityCard extends StatelessWidget {
 ///
 /// It is a nudge and not a gate. Everything works at 40%, the bar never turns
 /// red, and there is no badge for finishing: a member who wants to be a grey
-/// circle called Amina is allowed to be one.
+/// circle called Amina is allowed to be one. And once everything is there it
+/// leaves — a card congratulating somebody on a finished profile every time
+/// they open My Space is furniture.
 class _ProfileCompleteness extends StatelessWidget {
   const _ProfileCompleteness({required this.profile, required this.onEdit});
 
   final CommunityProfile profile;
   final VoidCallback onEdit;
 
+  static bool isComplete(CommunityProfile profile) =>
+      _stepsOf(profile).every((step) => step.$2);
+
   /// The parts, in the order they are worth having.
-  List<(String label, bool done)> get _steps => [
+  static List<(String label, bool done)> _stepsOf(CommunityProfile profile) => [
     ('A name', profile.displayName.trim().isNotEmpty),
     ('A photo', profile.avatarUrl?.isNotEmpty ?? false),
     ('A few words about you', profile.bio.trim().isNotEmpty),
@@ -777,10 +852,9 @@ class _ProfileCompleteness extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final steps = _steps;
+    final steps = _stepsOf(profile);
     final done = steps.where((step) => step.$2).length;
     final missing = steps.where((step) => !step.$2).toList(growable: false);
-    final complete = missing.isEmpty;
 
     return _GlassPanel(
       child: Column(
@@ -789,9 +863,7 @@ class _ProfileCompleteness extends StatelessWidget {
           const _Eyebrow(text: 'YOUR PROFILE'),
           const SizedBox(height: 7),
           Text(
-            complete
-                ? 'Nothing left to add.'
-                : '$done of ${steps.length} filled in.',
+            '$done of ${steps.length} filled in.',
             style: Theme.of(context).textTheme.titleLarge,
           ),
           const SizedBox(height: 12),
@@ -801,159 +873,36 @@ class _ProfileCompleteness extends StatelessWidget {
               value: done / steps.length,
               minHeight: 7,
               backgroundColor: context.brand.accent.withValues(alpha: 0.12),
-              valueColor: AlwaysStoppedAnimation<Color>(
-                complete ? context.brand.success : context.brand.accent,
-              ),
+              valueColor: AlwaysStoppedAnimation<Color>(context.brand.accent),
             ),
           ),
-          if (!complete) ...[
-            const SizedBox(height: 14),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                // Only the first three. Six grey chips is a list of failures.
-                for (final step in missing.take(3))
-                  _InfoPill(icon: Icons.add_rounded, label: step.$1),
-              ],
-            ),
-            const SizedBox(height: 14),
-            // The verified mark is the one part of this the editor cannot
-            // grant, so the button says what it does rather than promising to
-            // finish the list.
-            OutlinedButton.icon(
-              onPressed: onEdit,
-              icon: const Icon(Icons.edit_rounded, size: 18),
-              label: const Text('Add the rest'),
-            ),
-          ],
+          const SizedBox(height: 14),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              // Only the first three. Six grey chips is a list of failures.
+              for (final step in missing.take(3))
+                _InfoPill(
+                  icon: Icons.add_rounded,
+                  label: step.$1,
+                  onDark: false,
+                ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          // The verified mark is the one part of this the editor cannot grant,
+          // so the button says what it does rather than promising to finish
+          // the list.
+          OutlinedButton.icon(
+            onPressed: onEdit,
+            icon: const Icon(Icons.edit_rounded, size: 18),
+            label: const Text('Add the rest'),
+          ),
         ],
       ),
     );
   }
-}
-
-class _ProfileHero extends StatelessWidget {
-  const _ProfileHero({required this.data});
-
-  final _ProfileViewData data;
-
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(20),
-    decoration: BoxDecoration(
-      borderRadius: BorderRadius.circular(28),
-      gradient: BrandGradients.heroRich(context.brand),
-      boxShadow: [
-        BoxShadow(
-          color: context.brand.shadow.withValues(alpha: 0.2),
-          blurRadius: 28,
-          offset: const Offset(0, 14),
-        ),
-      ],
-    ),
-    child: Stack(
-      children: [
-        const Positioned(
-          right: -8,
-          bottom: -35,
-          child: Opacity(
-            opacity: 0.1,
-            child: Text(
-              '✣',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 132,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-          ),
-        ),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                _ProfileAvatar(
-                  user: data.user,
-                  communityProfile: data.communityProfile,
-                ),
-                const SizedBox(width: 15),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        data.signedIn ? 'WELCOME BACK' : 'WELCOME, EXPLORER',
-                        style: TextStyle(
-                          color: context.brand.gold,
-                          fontSize: 9,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 1.15,
-                        ),
-                      ),
-                      const SizedBox(height: 5),
-                      Text(
-                        data.name,
-                        style: Theme.of(context).textTheme.headlineSmall
-                            ?.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w900,
-                            ),
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        data.detail,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.68),
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 18),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.09),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: Colors.white12),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    data.signedIn
-                        ? Icons.verified_user_rounded
-                        : Icons.lock_outline_rounded,
-                    color: context.brand.gold,
-                    size: 18,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      data.signedIn
-                          ? 'Your account is connected and ready to sync.'
-                          : 'Guest mode keeps public learning open and useful.',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ],
-    ),
-  );
 }
 
 class _ProfileAvatar extends StatelessWidget {
@@ -1017,11 +966,11 @@ class _ProfileAvatar extends StatelessWidget {
   );
 }
 
-/// One of the three counts across the top of the overview.
+/// One of the three counts across the top of the You tab.
 ///
-/// Each one is now a door: a number nobody can act on is decoration, and
-/// "Saved words: 12" with no way to see the twelve words is the clearest
-/// example of that in the app.
+/// Each one is a door: a number nobody can act on is decoration, and "Saved
+/// words: 12" with no way to see the twelve words is the clearest example of
+/// that in the app.
 class _StatCard extends StatelessWidget {
   const _StatCard({
     required this.icon,
@@ -1061,71 +1010,16 @@ class _StatCard extends StatelessWidget {
   );
 }
 
-class _TabIntro extends StatelessWidget {
-  const _TabIntro({
-    required this.icon,
-    required this.eyebrow,
-    required this.title,
-  });
+/// The heading over a group of rows, in the same voice as Settings' sections.
+class _SectionLabel extends StatelessWidget {
+  const _SectionLabel(this.text);
 
-  final IconData icon;
-  final String eyebrow;
-  final String title;
+  final String text;
 
   @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(18),
-    decoration: BoxDecoration(
-      borderRadius: BorderRadius.circular(24),
-      gradient: BrandGradients.hero(context.brand),
-      boxShadow: [
-        BoxShadow(
-          color: context.brand.shadow.withValues(alpha: 0.14),
-          blurRadius: 22,
-          offset: const Offset(0, 10),
-        ),
-      ],
-    ),
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          width: 48,
-          height: 48,
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.white12),
-          ),
-          child: Icon(icon, color: context.brand.gold),
-        ),
-        const SizedBox(width: 14),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                eyebrow,
-                style: TextStyle(
-                  color: context.brand.gold,
-                  fontSize: 9,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 1.1,
-                ),
-              ),
-              const SizedBox(height: 5),
-              Text(
-                title,
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    ),
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(left: 4),
+    child: _Eyebrow(text: text),
   );
 }
 
@@ -1158,110 +1052,51 @@ class _Eyebrow extends StatelessWidget {
   );
 }
 
-class _EmptyIdentity extends StatelessWidget {
-  const _EmptyIdentity({required this.signedIn, required this.onOpen});
-
-  final bool signedIn;
-  final VoidCallback onOpen;
-
-  @override
-  Widget build(BuildContext context) => Column(
-    children: [
-      Container(
-        width: 64,
-        height: 64,
-        decoration: BoxDecoration(
-          color: context.brand.gold.withValues(alpha: 0.12),
-          shape: BoxShape.circle,
-        ),
-        child: Icon(
-          Icons.person_add_alt_1_rounded,
-          color: context.brand.accent,
-          size: 30,
-        ),
-      ),
-      const SizedBox(height: 14),
-      Text(
-        signedIn ? 'Your public identity awaits' : 'Join the conversation',
-        textAlign: TextAlign.center,
-        style: Theme.of(context).textTheme.titleLarge,
-      ),
-      const SizedBox(height: 7),
-      const SizedBox(height: 16),
-      FilledButton.icon(
-        onPressed: onOpen,
-        icon: Icon(
-          signedIn ? Icons.alternate_email_rounded : Icons.login_rounded,
-        ),
-        label: Text(
-          signedIn ? 'Set up community profile' : 'Sign in to continue',
-        ),
-      ),
-    ],
-  );
-}
-
-class _CommunityAvatar extends StatelessWidget {
-  const _CommunityAvatar({required this.profile});
-
-  final CommunityProfile profile;
-
-  @override
-  Widget build(BuildContext context) => Container(
-    width: 58,
-    height: 58,
-    clipBehavior: Clip.antiAlias,
-    decoration: BoxDecoration(
-      color: context.brand.accent,
-      shape: BoxShape.circle,
-      border: Border.all(color: context.brand.gold, width: 2),
-    ),
-    child: profile.avatarUrl != null && profile.avatarUrl!.isNotEmpty
-        ? Image.network(
-            profile.avatarUrl!,
-            fit: BoxFit.cover,
-            errorBuilder: (_, _, _) => _communityInitials(),
-          )
-        : _communityInitials(),
-  );
-
-  Widget _communityInitials() => Center(
-    child: Text(
-      profile.initials,
-      style: const TextStyle(
-        color: Colors.white,
-        fontSize: 18,
-        fontWeight: FontWeight.w900,
-      ),
-    ),
-  );
-}
-
 class _InfoPill extends StatelessWidget {
-  const _InfoPill({required this.icon, required this.label});
+  const _InfoPill({
+    required this.icon,
+    required this.label,
+    this.onDark = true,
+  });
 
   final IconData icon;
   final String label;
 
+  /// Set on the hero's gradient; off on a glass panel.
+  final bool onDark;
+
   @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-    decoration: BoxDecoration(
-      color: context.brand.accent.withValues(alpha: 0.07),
-      borderRadius: BorderRadius.circular(999),
-    ),
-    child: Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, color: context.brand.accent, size: 15),
-        const SizedBox(width: 5),
-        Text(
-          label,
-          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
-        ),
-      ],
-    ),
-  );
+  Widget build(BuildContext context) {
+    final ink = onDark ? Colors.white : context.brand.accent;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: onDark
+            ? Colors.white.withValues(alpha: 0.12)
+            : context.brand.accent.withValues(alpha: 0.07),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: ink, size: 15),
+          const SizedBox(width: 5),
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: onDark ? Colors.white : null,
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _ActionTile extends StatelessWidget {
@@ -1270,6 +1105,7 @@ class _ActionTile extends StatelessWidget {
     required this.title,
     required this.subtitle,
     required this.onTap,
+    super.key,
   });
 
   final IconData icon;

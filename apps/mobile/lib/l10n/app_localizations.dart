@@ -167,7 +167,7 @@ abstract class AppLocalizations {
   /// No description provided for @settingsAutoplayBody.
   ///
   /// In en, this message translates to:
-  /// **'Clips in the community feed start themselves, silently. Off saves data on a metered connection — tap any clip to watch it.'**
+  /// **'Clips in the community feed start themselves, silently. Off saves data on a metered connection — tap any clip to watch it, and Explore loads only the reel in front of you.'**
   String get settingsAutoplayBody;
 
   /// The five destinations in the bottom rail. Kept short — they sit under an icon in a 9.5px label.

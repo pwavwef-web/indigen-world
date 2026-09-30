@@ -238,7 +238,10 @@ void main() {
     // A small confirmation of what went, which is the only way a member can
     // check that the chips said what they meant.
     expect(find.text('“word-0” → kʋm, na-kʋm'), findsOneWidget);
-    expect(find.textContaining('once a reviewer approves it'), findsOneWidget);
+    // Said in so many words, with the way to follow it afterwards.
+    expect(find.text('Submitted for review'), findsOneWidget);
+    expect(find.text('Follow it in Your submissions'), findsOneWidget);
+    expect(find.textContaining('once approved'), findsOneWidget);
 
     // And the sitting counts itself.
     expect(find.text('1 word sent'), findsOneWidget);

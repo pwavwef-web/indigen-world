@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
+import 'package:indigen_world_mobile/domain/dictionary_entry.dart';
+import 'package:indigen_world_mobile/features/collection/collection_data.dart';
+import 'package:indigen_world_mobile/features/contribute/language_loop_analytics.dart';
 import 'package:indigen_world_mobile/features/dictionary/data/dictionary_admin.dart';
 import 'package:indigen_world_mobile/features/dictionary/entry_detail_screen.dart';
 import 'package:indigen_world_mobile/features/validate/data/review_queue.dart';
@@ -32,6 +35,19 @@ class _SubmissionReviewScreenState
   var _deciding = false;
   String? _error;
 
+  // ── For a word-queue answer: what it becomes ──────────────────────────────
+  late AnswerTarget _target = widget.item.publishAs.isEmpty
+      ? AnswerTarget.headword
+      : AnswerTarget.fromWire(widget.item.publishAs);
+
+  /// The dictionary word a variant, an example or a duplicate refers to.
+  late String _entryId = widget.item.linkedEntryId;
+  String _entryLabel = '';
+
+  /// Set when the reviewer is rejecting the answer because the dictionary
+  /// already has the word.
+  var _duplicate = false;
+
   @override
   void dispose() {
     _feedbackController.dispose();
@@ -46,6 +62,30 @@ class _SubmissionReviewScreenState
       );
       return;
     }
+    final item = widget.item;
+    // A word-queue answer's destination travels with an approval or a publish.
+    final choosing =
+        item.isQueueAnswer &&
+        (decision == ReviewDecision.approve ||
+            decision == ReviewDecision.publish);
+    if (choosing) {
+      final problem = _target.problemFor(item);
+      if (problem != null) {
+        setState(() => _error = problem);
+        return;
+      }
+      if (_target == AnswerTarget.variant && _entryId.isEmpty) {
+        setState(
+          () => _error = 'Choose the dictionary word this is a variant of.',
+        );
+        return;
+      }
+    }
+    final duplicate = decision == ReviewDecision.reject && _duplicate;
+    if (duplicate && _entryId.isEmpty) {
+      setState(() => _error = 'Choose the dictionary word this repeats.');
+      return;
+    }
     final confirmed = await showGlassConfirm(
       context: context,
       title: '${decision.label}?',
@@ -55,6 +95,10 @@ class _SubmissionReviewScreenState
         ReviewDecision.reject => 'The contributor is told, with your reason.',
         ReviewDecision.escalateCultural =>
           'This hands the decision to an admin.',
+        ReviewDecision.approve when choosing =>
+          'The answer is approved as ${_target.label.toLowerCase()}.',
+        ReviewDecision.requestRevision =>
+          'The contributor is sent your note and can correct their answer.',
         _ => 'This records your decision on the submission.',
       },
       confirmLabel: decision.label,
@@ -73,7 +117,24 @@ class _SubmissionReviewScreenState
         submissionId: widget.item.id,
         decision: decision,
         feedback: feedback,
+        publishAs: choosing ? _target.wire : null,
+        entryId: (choosing && _target.needsEntry) || duplicate
+            ? _entryId
+            : null,
+        reason: duplicate ? 'duplicate' : null,
       );
+      if (item.isQueueAnswer) {
+        ref.read(loopAnalyticsProvider).log(
+          LoopEvent.reviewOutcome,
+          parameters: loopParameters({
+            'decision': decision.wire,
+            'publish_as': choosing ? _target.wire : null,
+            'duplicate': duplicate ? 1 : 0,
+            'origin': item.wordQueueOrigin,
+            'revision': item.revisionCount,
+          }),
+        );
+      }
       ref.invalidate(reviewQueueProvider);
       if (!mounted) return;
       Navigator.of(context).pop();
@@ -252,6 +313,33 @@ class _SubmissionReviewScreenState
                       mode: LaunchMode.externalApplication,
                     ),
                   ),
+                ],
+                if (item.isQueueAnswer) ...[
+                  const SizedBox(height: 16),
+                  _QueueAnswerFacts(item: item),
+                  if (decisions.contains(ReviewDecision.approve) ||
+                      decisions.contains(ReviewDecision.publish) ||
+                      decisions.contains(ReviewDecision.reject)) ...[
+                    const SizedBox(height: 14),
+                    _AnswerTargetPicker(
+                      item: item,
+                      target: _target,
+                      entryId: _entryId,
+                      entryLabel: _entryLabel,
+                      duplicate: _duplicate,
+                      enabled: !_deciding,
+                      onTarget: (target) => setState(() {
+                        _target = target;
+                        _error = null;
+                      }),
+                      onEntry: (id, label) => setState(() {
+                        _entryId = id;
+                        _entryLabel = label;
+                        _error = null;
+                      }),
+                      onDuplicate: (value) => setState(() => _duplicate = value),
+                    ),
+                  ],
                 ],
                 const SizedBox(height: 16),
                 _DeclarationsCard(item: item),
@@ -852,6 +940,237 @@ class _ExistingEntryCard extends StatelessWidget {
               ),
             ],
           ),
+        ],
+      ),
+    );
+  }
+}
+
+/// What a reviewer should know about a word-queue answer beyond the answer:
+/// the sentence the word was asked with, where the member met it, whether this
+/// is a correction, and the member's choices about credit and training.
+class _QueueAnswerFacts extends StatelessWidget {
+  const _QueueAnswerFacts({required this.item});
+
+  final ReviewItem item;
+
+  static String _origin(String origin) => switch (origin) {
+    'explore' => 'A word prompt in Explore',
+    'search' => 'A dictionary search that found nothing',
+    'topic' => 'A dictionary topic page',
+    'kawuri' => 'A word Kawuri could not verify',
+    _ => 'The word queue',
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final brand = context.brand;
+    Widget line(IconData icon, String text) => Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 16, color: brand.mutedInk),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(text, style: const TextStyle(fontSize: 12.5, height: 1.4)),
+          ),
+        ],
+      ),
+    );
+    return GlassSurface(
+      blur: false,
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            'WORD QUEUE ANSWER',
+            style: TextStyle(
+              color: brand.terracotta,
+              fontSize: 9.5,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 1.1,
+            ),
+          ),
+          const SizedBox(height: 8),
+          if (item.queueSentence.isNotEmpty)
+            line(Icons.format_quote_rounded, 'Asked with: “${item.queueSentence}”'),
+          line(Icons.route_rounded, 'Came from: ${_origin(item.wordQueueOrigin)}'),
+          if (item.revisionCount > 0)
+            line(
+              Icons.history_edu_rounded,
+              item.revisionCount == 1
+                  ? 'Corrected once after a request for changes'
+                  : 'Corrected ${item.revisionCount} times after requests for changes',
+            ),
+          line(
+            Icons.badge_outlined,
+            item.creditAnonymous
+                ? 'Asked to be credited as “an Indigen World contributor”'
+                : 'Credited by name when published',
+          ),
+          line(
+            Icons.model_training_rounded,
+            item.aiTraining
+                ? 'Agreed to training use once approved'
+                : 'Did not agree to training use',
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// "What should this answer become?" — and, for a variant, an example or a
+/// duplicate, which dictionary word it belongs to.
+class _AnswerTargetPicker extends ConsumerStatefulWidget {
+  const _AnswerTargetPicker({
+    required this.item,
+    required this.target,
+    required this.entryId,
+    required this.entryLabel,
+    required this.duplicate,
+    required this.enabled,
+    required this.onTarget,
+    required this.onEntry,
+    required this.onDuplicate,
+  });
+
+  final ReviewItem item;
+  final AnswerTarget target;
+  final String entryId;
+  final String entryLabel;
+  final bool duplicate;
+  final bool enabled;
+  final ValueChanged<AnswerTarget> onTarget;
+  final void Function(String id, String label) onEntry;
+  final ValueChanged<bool> onDuplicate;
+
+  @override
+  ConsumerState<_AnswerTargetPicker> createState() => _AnswerTargetPickerState();
+}
+
+class _AnswerTargetPickerState extends ConsumerState<_AnswerTargetPicker> {
+  final _search = TextEditingController();
+
+  @override
+  void dispose() {
+    _search.dispose();
+    super.dispose();
+  }
+
+  List<DictionaryEntry> _matches(List<DictionaryEntry> all) {
+    final needle = _search.text.trim().toLowerCase();
+    if (needle.length < 2) return const [];
+    return [
+      for (final entry in all)
+        if (entry.headword.toLowerCase().contains(needle) ||
+            entry.primaryTranslation.toLowerCase().contains(needle))
+          entry,
+    ].take(8).toList();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final brand = context.brand;
+    final item = widget.item;
+    final needsEntry = widget.target.needsEntry || widget.duplicate;
+    final all =
+        ref.watch(publishedDictionaryEntriesProvider).asData?.value ??
+        const <DictionaryEntry>[];
+    final matches = _matches(all);
+    return GlassSurface(
+      blur: false,
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Text(
+            'What should this answer become?',
+            style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14.5),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Used when you approve or publish it. The contributor is told, '
+            'and where it came from stays with it.',
+            style: TextStyle(color: brand.mutedInk, fontSize: 12, height: 1.4),
+          ),
+          const SizedBox(height: 6),
+          RadioGroup<AnswerTarget>(
+            groupValue: widget.target,
+            onChanged: (value) {
+              if (value != null && widget.enabled) widget.onTarget(value);
+            },
+            child: Column(
+              children: [
+                for (final target in AnswerTarget.values)
+                  Builder(
+                    builder: (context) {
+                      final problem = target.problemFor(item);
+                      return RadioListTile<AnswerTarget>(
+                        value: target,
+                        enabled: widget.enabled && problem == null,
+                        dense: true,
+                        contentPadding: EdgeInsets.zero,
+                        title: Text(target.label),
+                        subtitle: Text(problem ?? target.detail),
+                      );
+                    },
+                  ),
+              ],
+            ),
+          ),
+          CheckboxListTile(
+            value: widget.duplicate,
+            dense: true,
+            contentPadding: EdgeInsets.zero,
+            controlAffinity: ListTileControlAffinity.leading,
+            onChanged: widget.enabled
+                ? (value) => widget.onDuplicate(value ?? false)
+                : null,
+            title: const Text('If rejecting: it repeats a dictionary word'),
+            subtitle: const Text(
+              'The contributor is shown the word it repeats.',
+            ),
+          ),
+          if (needsEntry) ...[
+            const SizedBox(height: 6),
+            Text(
+              widget.entryId.isEmpty
+                  ? 'Which dictionary word?'
+                  : 'Dictionary word: ${widget.entryLabel.isEmpty ? widget.entryId : widget.entryLabel}',
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 6),
+            TextField(
+              controller: _search,
+              enabled: widget.enabled,
+              onChanged: (_) => setState(() {}),
+              decoration: const InputDecoration(
+                labelText: 'Find it by Kasem or English',
+                prefixIcon: Icon(Icons.search_rounded),
+              ),
+            ),
+            for (final entry in matches)
+              ListTile(
+                dense: true,
+                contentPadding: EdgeInsets.zero,
+                title: Text(entry.headword),
+                subtitle: Text(entry.primaryTranslation),
+                trailing: entry.id == widget.entryId
+                    ? Icon(Icons.check_rounded, color: brand.success)
+                    : null,
+                onTap: () {
+                  widget.onEntry(
+                    entry.id,
+                    '${entry.headword} (${entry.primaryTranslation})',
+                  );
+                  _search.clear();
+                  setState(() {});
+                },
+              ),
+          ],
         ],
       ),
     );

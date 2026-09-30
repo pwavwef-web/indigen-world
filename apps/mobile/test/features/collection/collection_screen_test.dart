@@ -198,6 +198,36 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('a curated channel with nothing in it stays off the grid', (
+    tester,
+  ) async {
+    // Heroes, the app directory and the shop are filled by hand in the
+    // console. Empty, each used to sit on the grid saying "0 published" and
+    // open a room with nothing in it. The archive's own channels still show
+    // when empty — Audiobooks here — because an empty shelf there is an
+    // invitation to add the first one.
+    _setAndroidViewport(tester, const Size(1080, 5000));
+    await _pumpCollection(
+      tester,
+      heroes: const [],
+      apps: const [],
+      shop: const [],
+    );
+
+    expect(find.text('Audiobooks'), findsOneWidget);
+    expect(find.text('0 published'), findsOneWidget);
+    for (final label in const ['Heroes', 'Apps', 'Shop']) {
+      expect(find.text(label), findsNothing, reason: '$label should hide');
+    }
+    expect(tester.takeException(), isNull);
+
+    // Past Kawuri's entrance delay, and with the carousel's auto-advance
+    // stopped by taking the tree away — everything is on screen at this height.
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(milliseconds: 1));
+  });
+
   testWidgets('debounced search finds loaded category content and can reset', (
     tester,
   ) async {

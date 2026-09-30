@@ -45,7 +45,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsAutoplayBody =>
-      'Clips in the community feed start themselves, silently. Off saves data on a metered connection — tap any clip to watch it.';
+      'Clips in the community feed start themselves, silently. Off saves data on a metered connection — tap any clip to watch it, and Explore loads only the reel in front of you.';
 
   @override
   String get navExplore => 'Explore';

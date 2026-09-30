@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:indigen_world_mobile/data/local/app_database.dart';
+import 'package:indigen_world_mobile/features/ads/ads_screen.dart';
 import 'package:indigen_world_mobile/features/profile/profile_screen.dart';
 import 'package:indigen_world_mobile/l10n/app_localizations.dart';
 import 'package:indigen_world_mobile/shared/frosted_nav_bar.dart';
@@ -15,6 +16,30 @@ void main() {
   });
 
   tearDown(() => database.close());
+
+  Future<void> pumpSpace(
+    WidgetTester tester, {
+    ProfileTab initialTab = ProfileTab.you,
+  }) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [appDatabaseProvider.overrideWithValue(database)],
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: ProfileScreen(initialTab: initialTab),
+        ),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 400));
+  }
+
+  /// Drift-backed streams (downloads, saved words) schedule a zero-delay
+  /// cleanup when their listeners go; give it a frame after the screen does.
+  Future<void> tearDownSpace(WidgetTester tester) async {
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(milliseconds: 1));
+  }
 
   testWidgets('guest profile opens the sign-in sheet and toggles to register', (
     tester,
@@ -51,58 +76,21 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
 
     expect(find.text('Create your account'), findsOneWidget);
+
+    await tearDownSpace(tester);
   });
 
-  testWidgets('profile has membership and direct settings destinations', (
-    tester,
-  ) async {
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [appDatabaseProvider.overrideWithValue(database)],
-        child: const MaterialApp(
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
-          home: ProfileScreen(),
-        ),
-      ),
-    );
-    await tester.pump(const Duration(milliseconds: 400));
+  testWidgets('My Space is You, Membership and Settings', (tester) async {
+    await pumpSpace(tester);
 
     final rail = tester.widget<FrostedNavBar>(find.byType(FrostedNavBar));
-    // The second destination is Profile, not Community: the member's identity
-    // had three front doors and this is now the only one. It is deliberately
-    // not called Community — that word belongs to the shell's own destination,
-    // the room everybody is in, and this is the page that is only about you.
+    // Overview and Profile were one subject split in two, and Adverts held a
+    // fifth of the bar for a tool few members use. Adverts is a row on You.
     expect(rail.items.map((item) => item.label).toList(), [
-      'Overview',
-      'Profile',
-      'Adverts',
+      'You',
       'Membership',
       'Settings',
     ]);
-    // The saved library now hangs off the overview's own stat cards, so the
-    // third destination is free for advertising.
-    expect(find.text('Saved words'), findsWidgets);
-    expect(find.text('Reach the community.'), findsNothing);
-
-    await tester.tap(
-      find.descendant(
-        of: find.byType(FrostedNavBar),
-        matching: find.text('Profile'),
-      ),
-    );
-    await tester.pump(const Duration(milliseconds: 320));
-    expect(find.text('Be known. Stay connected.'), findsOneWidget);
-
-    await tester.tap(
-      find.descendant(
-        of: find.byType(FrostedNavBar),
-        matching: find.text('Adverts'),
-      ),
-    );
-    await tester.pump(const Duration(milliseconds: 320));
-    expect(find.text('Reach the community.'), findsOneWidget);
-    expect(find.text('Create an advert'), findsOneWidget);
 
     await tester.tap(
       find.descendant(
@@ -125,57 +113,76 @@ void main() {
     );
     await tester.pump(const Duration(milliseconds: 320));
     expect(find.text('ACCOUNT'), findsOneWidget);
-    expect(find.text('App settings'), findsNothing);
-    // The three ways into the community profile are down to one, on the
-    // Profile tab. None of them is here any more.
+    // The community profile is edited on You, and only there.
     expect(find.text('Manage community profile'), findsNothing);
     expect(find.text('Community profile setup'), findsNothing);
 
-    // Settings owns live Drift-backed download state. Give its zero-delay
-    // stream cleanup timer a frame after the tab is removed.
-    await tester.pumpWidget(const SizedBox.shrink());
-    await tester.pump(const Duration(milliseconds: 1));
+    await tearDownSpace(tester);
   });
 
-  testWidgets('the Profile tab is the only door to the community identity', (
+  testWidgets('You holds the library and the work, each said once', (
     tester,
   ) async {
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [appDatabaseProvider.overrideWithValue(database)],
-        child: const MaterialApp(
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
-          home: ProfileScreen(),
-        ),
-      ),
-    );
+    tester.view.physicalSize = const Size(1080, 6000);
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await pumpSpace(tester);
+
+    for (final label in const [
+      'Contributions',
+      'Approved',
+      'Points',
+      'YOUR LIBRARY',
+      'Saved words',
+      'Saved posts',
+      'Kept reels',
+      'YOUR WORK',
+      'Your adverts',
+    ]) {
+      expect(find.text(label), findsOneWidget, reason: 'missing $label');
+    }
+    // Nothing sent back, so no row for it — and no permanent submissions row
+    // repeating the Contributions count above.
+    expect(find.text('Sent back to you'), findsNothing);
+    expect(find.text('Your submissions'), findsNothing);
+    // What Overview used to pad itself out with.
+    expect(find.text('NEXT BEST STEP'), findsNothing);
+    expect(find.text('Go to your profile'), findsNothing);
+    expect(find.textContaining('ready to sync'), findsNothing);
+    // A guest is told they are a guest, not which Firebase project this is.
+    expect(find.text('Browsing as a guest'), findsOneWidget);
+    expect(find.textContaining('environment'), findsNothing);
+
+    await tearDownSpace(tester);
+  });
+
+  testWidgets('Your adverts opens the adverts screen on its own', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1080, 6000);
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await pumpSpace(tester);
+
+    await tester.tap(find.text('Your adverts'));
+    await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));
 
-    // Overview no longer opens a profile of its own. It points next door,
-    // which is a signpost rather than a second front door — and the proof is
-    // that tapping it lands on the Profile tab rather than pushing a route.
-    final signpost = find.text('Go to your profile');
-    expect(find.text('Open community profile'), findsNothing);
+    expect(find.byType(AdsScreen), findsOneWidget);
+    expect(tester.widget<AdsScreen>(find.byType(AdsScreen)).standalone, isTrue);
 
-    // Signed out in tests, so Overview offers sign-in instead; the signpost is
-    // only there for a member who has an account to have a profile on.
-    if (signpost.evaluate().isNotEmpty) {
-      await tester.tap(signpost);
-      await tester.pump(const Duration(milliseconds: 320));
-      expect(find.text('Be known. Stay connected.'), findsOneWidget);
-    }
+    await tearDownSpace(tester);
+  });
 
-    await tester.tap(
-      find.descendant(
-        of: find.byType(FrostedNavBar),
-        matching: find.text('Profile'),
-      ),
-    );
-    await tester.pump(const Duration(milliseconds: 320));
+  testWidgets('another screen can open My Space on Settings', (tester) async {
+    await pumpSpace(tester, initialTab: ProfileTab.settings);
 
-    // The old "open the public page" button is gone; viewing and editing are
-    // now two named actions on this one tab.
-    expect(find.text('Open public profile'), findsNothing);
+    expect(find.text('ACCOUNT'), findsOneWidget);
+    final rail = tester.widget<FrostedNavBar>(find.byType(FrostedNavBar));
+    expect(rail.currentIndex, ProfileTab.settings.index);
+
+    await tearDownSpace(tester);
   });
 }

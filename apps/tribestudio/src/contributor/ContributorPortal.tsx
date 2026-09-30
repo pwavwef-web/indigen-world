@@ -3,7 +3,8 @@ import { confirmPasswordReset, sendPasswordResetEmail, signInWithEmailAndPasswor
 import { doc, onSnapshot } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { auth, db, functions } from '../firebase';
-import { signOutUser, useAuth } from '../auth';
+import { canValidate, signIn, signOutUser, useAuth } from '../auth';
+import { ReviewDesk } from './review/ReviewDesk';
 import { useRoute } from '../router';
 import { BrandMark } from './components';
 import { livePaths, liveServices, useLiveWorkspace } from './data';
@@ -22,16 +23,17 @@ import './contributor.css';
  * explanation instead of an empty page.
  */
 export function ContributorPortal() {
-  const { user, ready } = useAuth();
+  const { user, ready, role, refreshToken } = useAuth();
   const { path, search } = useRoute();
   const linkOwner = invitationLinkOwner(path);
   const code = new URLSearchParams(search).get('oobCode');
+  const reviewRoute = path === '/contributor/review';
   const [access, setAccess] = useState<'loading' | 'active' | 'denied'>('loading');
   const [account, setAccount] = useState<AccountSummary | null>(null);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (!user || code) return;
+    if (!user || code || reviewRoute) return;
     return onSnapshot(doc(db, 'contributorAccounts', user.uid), (snapshot) => {
       if (snapshot.get('status') !== 'active') {
         setAccess('denied');
@@ -51,9 +53,14 @@ export function ContributorPortal() {
       setAccount(null);
       setError('Your contributor invitation could not be checked just now.');
     });
-  }, [user?.uid, code]);
+  }, [user?.uid, code, reviewRoute]);
 
   if (!ready) return <AuthFrame><p className="cw-auth__message" role="status">Opening your workspace…</p></AuthFrame>;
+  if (reviewRoute && !code) {
+    if (!user) return <AuthFrame><ContributorSignIn code={null} /><button className="cw-auth__secondary" onClick={() => void signIn().catch(() => setError('Google sign-in did not complete. Try again.'))}>Sign in with Google</button>{error ? <p role="alert">{error}</p> : null}</AuthFrame>;
+    if (!canValidate(role)) return <AuthFrame><h1>Validator access required</h1><p>The review desk is available to accounts with review permission. Contact the team if you need access.</p><button className="cw-auth__primary" onClick={() => void refreshToken()}>Refresh access</button><button className="cw-auth__secondary" onClick={() => void signOutUser()}>Sign out</button></AuthFrame>;
+    return <ReviewDesk key={user.uid} />;
+  }
   if (code || !user) return <AuthFrame><ContributorSignIn code={code} /></AuthFrame>;
   if (linkOwner && user.uid !== linkOwner) {
     return (

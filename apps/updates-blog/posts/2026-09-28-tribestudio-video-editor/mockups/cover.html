@@ -1,0 +1,31 @@
+<!doctype html>
+<meta charset="utf-8">
+<link rel="stylesheet" href="style.css">
+<style>
+  .stage { justify-content: flex-start; padding: 0 0 0 64px; gap: 0; }
+  .copy { width: 470px; }
+  .eyebrow { font-size: 17px; letter-spacing: 2.6px; }
+  h1 { margin-top: 18px; font-size: 50px; line-height: 1.03; font-weight: 800; letter-spacing: -1.3px; }
+  p { margin-top: 20px; font-size: 19px; line-height: 1.45; color: rgba(255,255,255,0.82); }
+  .tags { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 24px; }
+  .pill { font-size: 16px; padding: 9px 15px; gap: 9px; }
+  .pill .dot { width: 10px; height: 10px; }
+  .browser { position: absolute; left: 560px; top: 96px; width: 720px; transform: rotate(-2deg); }
+  .browser .bar { height: 26px; padding: 0 11px; gap: 6px; }
+  .browser .bar i { width: 8px; height: 8px; }
+  .browser .bar span { font-size: 10px; padding: 2px 10px; margin-left: 8px; }
+</style>
+<div class="stage">
+  <div class="copy">
+    <div class="eyebrow">TribeStudio · Video editor</div>
+    <h1>Make the whole video in TribeStudio.</h1>
+    <p>Scenes on a timeline, 50 original instrumentals, 48 stickers, captions timed to your voice — and 1080p exports for every platform.</p>
+    <div class="tags">
+      <span class="pill amber"><span class="dot"></span>Music and stickers</span>
+      <span class="pill"><span class="dot"></span>Captions in any language</span>
+      <span class="pill green"><span class="dot"></span>1080p exports</span>
+    </div>
+  </div>
+  <div class="browser"><div class="bar"><i></i><i></i><i></i><span>TribeStudio · Video editor</span></div><img src="../screens/editor.jpg" alt=""></div>
+</div>
+<script>Promise.all([...document.images].map((i) => i.decode().catch(() => {}))).then(() => document.fonts.ready).then(() => { window.__ready = true; });</script>

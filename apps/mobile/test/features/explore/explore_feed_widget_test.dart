@@ -9,11 +9,13 @@
 
 import 'dart:async';
 
+import 'package:flutter/gestures.dart' show kDoubleTapTimeout;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:indigen_world_mobile/app/app_theme.dart';
 import 'package:indigen_world_mobile/app/shell_chrome.dart';
+import 'package:indigen_world_mobile/core/media_preferences.dart';
 import 'package:indigen_world_mobile/features/community/data/community_models.dart';
 import 'package:indigen_world_mobile/features/community/data/community_providers.dart';
 import 'package:indigen_world_mobile/features/community/data/community_repository.dart';
@@ -120,8 +122,52 @@ class _Harness {
   _FakeVideo videoFor(String reelId) =>
       created.lastWhere((video) => video.dataSource.endsWith('/$reelId.mp4'));
 
+  /// Every player ever made for [reelId], oldest first.
+  List<_FakeVideo> videosFor(String reelId) => created
+      .where((video) => video.dataSource.endsWith('/$reelId.mp4'))
+      .toList();
+
+  List<_FakeVideo> get playing => created
+      .where((video) => !video.disposed && video.value.isPlaying)
+      .toList();
+
+  List<_FakeVideo> get open =>
+      created.where((video) => !video.disposed).toList();
+
   List<String> get order =>
       container.read(exploreLoopedFeedProvider).map((reel) => reel.id).toList();
+}
+
+/// Explore's clock, moved by hand.
+class _Clock {
+  DateTime now = DateTime.utc(2026, 9, 27, 9);
+}
+
+/// The page the pager is showing, from the pager itself rather than from the
+/// feed's own idea of which reel is active — the two disagreeing was the bug.
+double? _pagerPage(WidgetTester tester) =>
+    tester.widget<PageView>(find.byType(PageView)).controller?.page;
+
+Future<void> _swipeUp(WidgetTester tester) async {
+  await tester.fling(find.byType(PageView), const Offset(0, -600), 2000);
+  await _settle(tester);
+  await tester.pump(const Duration(milliseconds: 600));
+}
+
+Future<void> _swipeDown(WidgetTester tester) async {
+  await tester.fling(find.byType(PageView), const Offset(0, 600), 2000);
+  await _settle(tester);
+  await tester.pump(const Duration(milliseconds: 600));
+}
+
+/// Brings Explore's controls back the way a member does once playback has
+/// put them away: a short pull back towards the previous reel, not far enough
+/// to reach it.
+Future<void> _revealChrome(WidgetTester tester) async {
+  await tester.drag(find.byType(PageView), const Offset(0, 40));
+  // One frame to start the controls sliding back, and time for them to land.
+  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 400));
 }
 
 Future<_Harness> _pump(
@@ -131,8 +177,13 @@ Future<_Harness> _pump(
   FakeCommunityRepository? repository,
   FakeCommunitySpaceRepository? spaces,
   bool failVideos = false,
+  ValueNotifier<bool>? active,
+  _Clock? clock,
+  bool autoplay = true,
 }) async {
-  SharedPreferences.setMockInitialValues({});
+  SharedPreferences.setMockInitialValues({
+    videoAutoplayPreferenceKey: autoplay,
+  });
   tester.view.physicalSize = const Size(1080, 2340);
   tester.view.devicePixelRatio = 3;
   addTearDown(tester.view.resetPhysicalSize);
@@ -154,7 +205,7 @@ Future<_Harness> _pump(
         publishedReelsProvider.overrideWith(
           (ref) => Stream.value(published ?? _threeReels),
         ),
-        communityFeedProvider.overrideWithValue(AsyncValue.data(posts)),
+        exploreCommunityFeedProvider.overrideWithValue(AsyncValue.data(posts)),
         followingFeedProvider.overrideWithValue(
           const AsyncValue.data(<CommunityPost>[]),
         ),
@@ -163,12 +214,20 @@ Future<_Harness> _pump(
           harness.created.add(video);
           return video;
         }),
+        if (clock != null)
+          exploreClockProvider.overrideWithValue(() => clock.now),
       ],
       child: MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
         theme: buildIndigenTheme(),
-        home: const ExploreScreen(onExit: null),
+        home: active == null
+            ? const ExploreScreen(onExit: null)
+            : ValueListenableBuilder<bool>(
+                valueListenable: active,
+                builder: (context, isActive, _) =>
+                    ExploreScreen(isActive: isActive, onExit: null),
+              ),
       ),
     ),
   );
@@ -193,12 +252,23 @@ Future<void> _drain(WidgetTester tester) async {
 
 void main() {
   group('playback', () {
-    testWidgets('only the reel in front plays; the next waits, paused', (
+    testWidgets('only the reel in front plays; either side waits, paused', (
       tester,
     ) async {
-      final harness = await _pump(tester);
+      final harness = await _pump(
+        tester,
+        published: [
+          ..._threeReels,
+          _published(
+            'four',
+            creatorId: 'kojo',
+            creatorName: 'Kojo',
+            daysAgo: 4,
+          ),
+        ],
+      );
       final order = harness.order;
-      expect(order, hasLength(3));
+      expect(order, hasLength(4));
 
       final first = harness.videoFor(order[0]);
       final second = harness.videoFor(order[1]);
@@ -206,28 +276,36 @@ void main() {
       expect(second.value.isInitialized, isTrue);
       expect(second.value.isPlaying, isFalse);
       // Nothing is opened two reels away.
-      expect(
-        harness.created.where(
-          (video) => video.dataSource.endsWith('/${order[2]}.mp4'),
-        ),
-        isEmpty,
-      );
+      expect(harness.videosFor(order[2]), isEmpty);
 
-      await tester.fling(find.byType(PageView), const Offset(0, -600), 2000);
-      await _settle(tester);
-      await tester.pump(const Duration(milliseconds: 600));
-
-      final playing = harness.created
-          .where((video) => !video.disposed && video.value.isPlaying)
-          .toList();
-      expect(playing, hasLength(1));
-      expect(playing.single.dataSource, endsWith('/${order[1]}.mp4'));
-      // The reel swiped away let its decoder go…
-      expect(first.disposed, isTrue);
+      await _swipeUp(tester);
+      expect(harness.playing, hasLength(1));
+      expect(harness.playing.single.dataSource, endsWith('/${order[1]}.mp4'));
+      // The reel swiped away keeps its player, paused, for a swipe back…
+      expect(first.disposed, isFalse);
+      expect(first.value.isPlaying, isFalse);
       // …and the one after the new reel is waiting.
       final third = harness.videoFor(order[2]);
       expect(third.value.isPlaying, isFalse);
       expect(third.disposed, isFalse);
+
+      // Two reels back is too far: that player is let go.
+      await _swipeUp(tester);
+      expect(first.disposed, isTrue);
+      expect(harness.open, hasLength(3));
+      await _drain(tester);
+    });
+
+    testWidgets('swiping back lands on the same player, not a new one', (
+      tester,
+    ) async {
+      final harness = await _pump(tester);
+      final order = harness.order;
+      await _swipeUp(tester);
+      await _swipeDown(tester);
+
+      expect(harness.videosFor(order[0]), hasLength(1));
+      expect(harness.videoFor(order[0]).value.isPlaying, isTrue);
       await _drain(tester);
     });
 
@@ -235,8 +313,11 @@ void main() {
       final harness = await _pump(tester);
       final first = harness.videoFor(harness.order[0]);
 
+      // A tap on the picture waits out the double-tap window before it pauses.
       await tester.tapAt(const Offset(160, 360));
       await tester.pump();
+      expect(first.value.isPlaying, isTrue);
+      await tester.pump(kDoubleTapTimeout);
       expect(first.value.isPlaying, isFalse);
       expect(
         find.byIcon(Icons.play_arrow_rounded).hitTestable(),
@@ -244,7 +325,7 @@ void main() {
       );
 
       await tester.tapAt(const Offset(160, 360));
-      await tester.pump();
+      await tester.pump(kDoubleTapTimeout);
       expect(first.value.isPlaying, isTrue);
       await _drain(tester);
     });
@@ -270,6 +351,193 @@ void main() {
       await tester.fling(find.byType(PageView), const Offset(0, -600), 2000);
       await _settle(tester);
       expect(harness.videoFor(harness.order[1]).value.volume, 0);
+      await _drain(tester);
+    });
+  });
+
+  group('keeping the place', () {
+    final withMusic = [
+      ..._threeReels,
+      _published(
+        'drums',
+        creatorId: 'kwame',
+        creatorName: 'Kwame Akolgo',
+        category: 'music',
+      ),
+    ];
+
+    testWidgets('a feed switched away from and back opens on a reel that '
+        'plays', (tester) async {
+      final harness = await _pump(tester, published: withMusic);
+      await _swipeUp(tester);
+      expect(_pagerPage(tester), 1);
+
+      await _revealChrome(tester);
+      await tester.tap(find.byKey(const ValueKey('explore-topic-music')));
+      await _settle(tester);
+      await tester.tap(find.byKey(const ValueKey('explore-topic-forYou')));
+      await _settle(tester);
+
+      // The pager used to come back on the page it last showed while the feed
+      // believed the first reel was in front, so nothing on screen played.
+      expect(_pagerPage(tester), 0);
+      expect(harness.playing, hasLength(1));
+      expect(
+        harness.playing.single.dataSource,
+        endsWith('/${harness.order[0]}.mp4'),
+      );
+      await _drain(tester);
+    });
+
+    testWidgets('coming back soon lands on the reel that was left', (
+      tester,
+    ) async {
+      final active = ValueNotifier(true);
+      final clock = _Clock();
+      final harness = await _pump(tester, active: active, clock: clock);
+      await _swipeUp(tester);
+      final left = harness.order[1];
+
+      active.value = false;
+      await _settle(tester);
+      expect(harness.playing, isEmpty);
+      clock.now = clock.now.add(const Duration(minutes: 5));
+      active.value = true;
+      await _settle(tester);
+
+      expect(_pagerPage(tester), 1);
+      expect(harness.order[1], left);
+      expect(harness.playing.single.dataSource, endsWith('/$left.mp4'));
+      await _drain(tester);
+    });
+
+    testWidgets('coming back after a long while starts at the top', (
+      tester,
+    ) async {
+      final active = ValueNotifier(true);
+      final clock = _Clock();
+      final harness = await _pump(tester, active: active, clock: clock);
+      await _swipeUp(tester);
+
+      active.value = false;
+      await _settle(tester);
+      clock.now = clock.now.add(
+        kExploreFreshStartAfter + const Duration(minutes: 1),
+      );
+      active.value = true;
+      await _settle(tester);
+
+      expect(_pagerPage(tester), 0);
+      expect(
+        harness.playing.single.dataSource,
+        endsWith('/${harness.order[0]}.mp4'),
+      );
+      await _drain(tester);
+    });
+
+    testWidgets('tapping the feed that is showing goes back to its top', (
+      tester,
+    ) async {
+      final harness = await _pump(tester);
+      await _swipeUp(tester);
+      expect(_pagerPage(tester), 1);
+
+      await _revealChrome(tester);
+      await tester.tap(find.byKey(const ValueKey('explore-nav-forYou')));
+      await _settle(tester);
+
+      expect(_pagerPage(tester), 0);
+      expect(
+        harness.playing.single.dataSource,
+        endsWith('/${harness.order[0]}.mp4'),
+      );
+      await _drain(tester);
+    });
+
+    testWidgets('a feed left behind lets its players go after a while', (
+      tester,
+    ) async {
+      final active = ValueNotifier(true);
+      final harness = await _pump(tester, active: active);
+      expect(harness.open, hasLength(2));
+
+      active.value = false;
+      await _settle(tester);
+      await tester.pump(const Duration(seconds: 10));
+      // A quick look at another tab costs nothing.
+      expect(harness.open, hasLength(2));
+
+      await tester.pump(kReelPlayerReleaseGrace);
+      await _settle(tester);
+      expect(harness.open, isEmpty);
+
+      // Back again, the reel in front and the one after it open once more.
+      active.value = true;
+      await _settle(tester);
+      expect(harness.open, hasLength(2));
+      expect(
+        harness.playing.single.dataSource,
+        endsWith('/${harness.order[0]}.mp4'),
+      );
+      await _drain(tester);
+    });
+
+    testWidgets('saving data opens only the reel in front', (tester) async {
+      final harness = await _pump(tester, autoplay: false);
+      await _settle(tester);
+      expect(harness.open, hasLength(1));
+      expect(
+        harness.open.single.dataSource,
+        endsWith('/${harness.order[0]}.mp4'),
+      );
+      await _drain(tester);
+    });
+  });
+
+  group('double-tap', () {
+    const clip = CommunityMedia(
+      url: 'https://example.test/clip.mp4',
+      type: 'video',
+      aspectRatio: 9 / 16,
+    );
+    final post = fakePost(id: 'clip-post', media: const [clip], likeCount: 4);
+
+    testWidgets('appreciates once, however many taps, and never unlikes', (
+      tester,
+    ) async {
+      final repository = FakeCommunityRepository(
+        profiles: [_viewer],
+        posts: [post],
+      )..likeGate = Completer<void>();
+      final harness = await _pump(
+        tester,
+        published: const [],
+        posts: [post],
+        repository: repository,
+      );
+      final video = harness.videoFor('clip');
+
+      // A flurry of taps while the first like is still being written.
+      for (var tap = 0; tap < 4; tap++) {
+        await tester.tapAt(const Offset(160, 360));
+        await tester.pump(const Duration(milliseconds: 80));
+      }
+      repository.likeGate!.complete();
+      await tester.pump(kDoubleTapTimeout);
+      await _settle(tester);
+
+      expect(repository.toggledLikes, ['clip-post']);
+      // A double-tap is not a pause.
+      expect(video.value.isPlaying, isTrue);
+      expect(find.byIcon(Icons.favorite_rounded), findsWidgets);
+
+      // Already liked: another double-tap leaves it liked.
+      await tester.tapAt(const Offset(160, 360));
+      await tester.pump(const Duration(milliseconds: 80));
+      await tester.tapAt(const Offset(160, 360));
+      await tester.pump(kDoubleTapTimeout);
+      await _settle(tester);
+      expect(repository.toggledLikes, ['clip-post']);
       await _drain(tester);
     });
   });

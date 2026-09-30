@@ -1,7 +1,7 @@
 import { Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { CommandPalette, Kbd, useCommandPalette, type Command } from '@indigen-world/console-ui';
 import { Link, useRoute } from '../router';
-import { canContribute, canMakeVideo, signOutUser, useAuth } from '../auth';
+import { canContribute, canMakeVideo, canValidate, signOutUser, useAuth } from '../auth';
 import { firebaseConfig } from '../firebase';
 import { RouteLoader } from '../LoadingScreen';
 
@@ -108,6 +108,7 @@ export function StudioLayout({ children, immersive = false }: { children: ReactN
     const nav = [...STUDIO_NAV];
     if (canMakeVideo(role)) nav.push(...VIDEO_NAV);
     if (canContribute(role)) nav.push(LEXICON_ITEM);
+    if (canValidate(role)) nav.push({ to: '/contributor/review', label: 'Review desk', icon: 'lexicon', group: 'Tools', hint: 'Review contributions, sentences, adverts and name requests' });
     return nav;
   }, [role]);
   const activeItem = path === '/workspace'

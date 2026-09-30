@@ -17,6 +17,7 @@ import { useEffect, useState } from "react";
 import { useDocumentMeta } from "../lib/useDocumentMeta";
 import { useRevealOnScroll } from "../lib/useRevealOnScroll";
 import { ROUTES_BY_PATH } from "../content/navigation";
+import { STUDIO_KNOWLEDGE_URL } from "../content/creatorLinks";
 import {
   CAMPAIGN_CTA_URL,
   CAMPAIGN_FACTS,
@@ -146,6 +147,28 @@ export function ContributePage() {
               </div>
             ))}
           </dl>
+        </div>
+      </section>
+
+      <section className="section section--cream" id="knowledge" aria-labelledby="knowledge-title">
+        <div className="container knowledge-intro">
+          <div className="section-heading">
+            <p className="eyebrow">For speakers, teachers and cultural custodians</p>
+            <h2 id="knowledge-title">Preserve the detail behind the words.</h2>
+            <p className="section-heading__body">
+              The Knowledge workspace brings original Kasem, translations, sources, regional variants and recordings
+              into one record. Save a draft, explain the context, and send it for independent human review.
+            </p>
+            <Button href={STUDIO_KNOWLEDGE_URL} external>Open the Knowledge workspace</Button>
+            <p className="tiny">Sign in to contribute. Review access is assigned separately. Review does not automatically publish your material.</p>
+          </div>
+          <div className="knowledge-intro__areas">
+            <h3>Ten ways to contribute</h3>
+            <ul aria-label="Knowledge dataset areas">
+              {["Words and meanings", "Grammar", "Expressions", "Sentences", "Proverbs", "Literature and oral traditions", "Dialogue", "Pronunciation", "Cultural knowledge", "Questions and verified answers"].map(area => <li key={area}>{area}</li>)}
+            </ul>
+            <p>Keep literal meaning separate from cultural interpretation. Record a variant or uncertainty when there is no single answer.</p>
+          </div>
         </div>
       </section>
 

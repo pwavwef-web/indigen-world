@@ -360,6 +360,42 @@ class CommunityRepository {
         limit: limit,
       );
 
+  /// Whole posts that carry a video, newest first — the community half of
+  /// Explore.
+  ///
+  /// ── Why Explore stopped reading the main feed ────────────────────────────
+  /// Explore shows community posts only by their video, and it used to find
+  /// them by reading the Community tab's own feed and throwing away the rest.
+  /// Most posts are writing and photographs, so every thirty it fetched
+  /// yielded a handful of reels, and the feed ran out and started repeating
+  /// itself long before the community had. This asks for the videos directly.
+  ///
+  /// It needs `hasVideo` on the posts — written by [createPost] since 0.1.28,
+  /// and by `services/functions/scripts/backfill-community-has-video.mjs` on
+  /// everything older — and a composite index deployed apart from the app.
+  /// Until the index exists the query is refused with `failed-precondition`
+  /// and the main feed stands in, which is exactly what Explore read before.
+  Stream<List<CommunityPost>> watchVideoFeed({
+    int limit = feedPageSize,
+  }) async* {
+    try {
+      // `await for` rather than `yield*`: an error from a `yield*` stream goes
+      // straight to the listener and never reaches the `catch` below.
+      await for (final snapshot
+          in _posts
+              .where('hasVideo', isEqualTo: true)
+              .where('isReply', isEqualTo: false)
+              .orderBy('createdAt', descending: true)
+              .limit(limit)
+              .snapshots()) {
+        yield _mapPosts(snapshot);
+      }
+    } on FirebaseException catch (error) {
+      if (error.code != 'failed-precondition') rethrow;
+      yield* watchFeed(limit: limit);
+    }
+  }
+
   /// Posts from the people [authorIds] follow. Firestore caps `whereIn` at 30
   /// values, so the caller passes the most recent follows.
   Stream<List<CommunityPost>> watchFollowingFeed(
@@ -720,6 +756,8 @@ class CommunityRepository {
         'text': body,
         'media': media.map((item) => item.toMap()).toList(growable: false),
         'hasMedia': media.isNotEmpty,
+        // What Explore's own query filters on — see [watchVideoFeed].
+        'hasVideo': media.any((item) => item.isVideo),
         'likeCount': 0,
         'replyCount': 0,
         'repostCount': 0,

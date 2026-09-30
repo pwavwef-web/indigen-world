@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
-import 'package:indigen_world_mobile/features/auth/auth_repository.dart';
 import 'package:indigen_world_mobile/features/community/community_actions.dart';
 import 'package:indigen_world_mobile/features/community/community_profile_screen.dart';
 import 'package:indigen_world_mobile/features/community/data/chat_providers.dart';
@@ -14,12 +13,10 @@ import 'package:indigen_world_mobile/features/community/messages_screen.dart';
 import 'package:indigen_world_mobile/features/community/people_screen.dart';
 import 'package:indigen_world_mobile/features/community/saved_posts_screen.dart';
 import 'package:indigen_world_mobile/features/community/widgets/community_avatar.dart';
-import 'package:indigen_world_mobile/features/explore/kept_reels_screen.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_screen.dart';
 import 'package:indigen_world_mobile/features/notifications/data/notification_providers.dart';
 import 'package:indigen_world_mobile/features/notifications/notifications_screen.dart';
-import 'package:indigen_world_mobile/features/settings/settings_screen.dart';
-import 'package:indigen_world_mobile/shared/glass_popup.dart';
+import 'package:indigen_world_mobile/features/profile/profile_screen.dart';
 
 /// The community drawer.
 ///
@@ -135,13 +132,6 @@ class CommunitySidebar extends ConsumerWidget {
                                 go((context) => const SavedPostsScreen()),
                           ),
                           _SidebarItem(
-                            icon: Icons.play_circle_outline_rounded,
-                            label: 'Your keeps',
-                            description: 'Reels you kept from Explore',
-                            onTap: () =>
-                                go((context) => const KeptReelsScreen()),
-                          ),
-                          _SidebarItem(
                             icon: Icons.group_outlined,
                             label: 'Followers',
                             description: 'People who follow you',
@@ -174,33 +164,36 @@ class CommunitySidebar extends ConsumerWidget {
                             description: 'Kasem help, offline-aware',
                             onTap: () => go((context) => const KawuriScreen()),
                           ),
+                          // The one Settings screen, in My Space. The drawer used
+                          // to open a second copy of it with an app bar of its
+                          // own, and a Sign out beside it that forgot to take
+                          // this phone's alerts with it — signing out lives in
+                          // Settings, where it does both.
                           _SidebarItem(
                             icon: Icons.settings_outlined,
                             label: 'Settings',
                             description: 'Language, data and account',
-                            onTap: () =>
-                                go((context) => const SettingsScreen()),
+                            onTap: () => go(
+                              (context) => const ProfileScreen(
+                                initialTab: ProfileTab.settings,
+                              ),
+                            ),
                           ),
-                          const SizedBox(height: 6),
-                          Divider(
-                            height: 1,
-                            color: context.brand.divider,
-                            indent: 18,
-                            endIndent: 18,
-                          ),
-                          _SidebarItem(
-                            icon: uid == null
-                                ? Icons.login_rounded
-                                : Icons.logout_rounded,
-                            label: uid == null ? 'Sign in' : 'Sign out',
-                            description: uid == null
-                                ? 'To post, reply and message'
-                                : 'On this device',
-                            isDestructive: uid != null,
-                            onTap: () => uid == null
-                                ? _signIn(context, ref)
-                                : _signOut(context, ref),
-                          ),
+                          if (uid == null) ...[
+                            const SizedBox(height: 6),
+                            Divider(
+                              height: 1,
+                              color: context.brand.divider,
+                              indent: 18,
+                              endIndent: 18,
+                            ),
+                            _SidebarItem(
+                              icon: Icons.login_rounded,
+                              label: 'Sign in',
+                              description: 'To post, reply and message',
+                              onTap: () => _signIn(context, ref),
+                            ),
+                          ],
                         ],
                       ),
                     ),
@@ -217,21 +210,6 @@ class CommunitySidebar extends ConsumerWidget {
   Future<void> _signIn(BuildContext context, WidgetRef ref) async {
     Navigator.of(context).pop();
     await CommunityActions(ref).requireProfile(context);
-  }
-
-  Future<void> _signOut(BuildContext context, WidgetRef ref) async {
-    final confirmed = await showGlassConfirm(
-      context: context,
-      title: 'Sign out?',
-      message:
-          'Your posts stay where they are. Anything saved only on this '
-          'device stays on this device.',
-      confirmLabel: 'Sign out',
-      isDestructive: true,
-    );
-    if (confirmed != true || !context.mounted) return;
-    Navigator.of(context).pop();
-    await ref.read(authRepositoryProvider)?.signOut();
   }
 }
 
@@ -375,21 +353,17 @@ class _SidebarItem extends StatelessWidget {
     required this.onTap,
     this.description,
     this.badge = 0,
-    this.isDestructive = false,
   });
 
   final IconData icon;
   final String label;
   final String? description;
   final int badge;
-  final bool isDestructive;
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    final tint = isDestructive
-        ? context.brand.terracotta
-        : context.brand.accent;
+    final tint = context.brand.accent;
     return ListTile(
       enabled: onTap != null,
       onTap: onTap == null
@@ -416,10 +390,9 @@ class _SidebarItem extends StatelessWidget {
               label,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 14.5,
                 fontWeight: FontWeight.w800,
-                color: isDestructive ? context.brand.terracotta : null,
               ),
             ),
           ),

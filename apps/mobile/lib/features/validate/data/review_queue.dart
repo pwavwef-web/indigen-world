@@ -114,6 +114,14 @@ class ReviewItem {
     this.usesThirdPartyMaterial = false,
     this.involvesMinors,
     this.feedback = '',
+    this.wordQueueId = '',
+    this.queueSentence = '',
+    this.wordQueueOrigin = '',
+    this.revisionCount = 0,
+    this.aiTraining = false,
+    this.creditAnonymous = false,
+    this.publishAs = '',
+    this.linkedEntryId = '',
     this.createdAt,
   });
 
@@ -144,6 +152,32 @@ class ReviewItem {
   final String feedback;
   final DateTime? createdAt;
 
+  // ── A word-queue answer ────────────────────────────────────────────────
+  /// The queue word this answers, or empty for anything else.
+  final String wordQueueId;
+
+  /// The English sentence the word was asked with, when there was one.
+  final String queueSentence;
+
+  /// Where the member met the word: queue, explore, search, topic, kawuri.
+  final String wordQueueOrigin;
+
+  /// How many times the member has corrected it after a request for changes.
+  final int revisionCount;
+
+  /// Whether the member agreed to the answer being used for training tools.
+  final bool aiTraining;
+
+  /// Whether the member asked not to be named where it is published.
+  final bool creditAnonymous;
+
+  /// What an earlier approval decided the answer becomes, and the dictionary
+  /// entry that decision pointed at, if any.
+  final String publishAs;
+  final String linkedEntryId;
+
+  bool get isQueueAnswer => wordQueueId.isNotEmpty;
+
   bool get hasMedia => (mediaStoragePath ?? '').isNotEmpty;
 
   /// Whether this is a word for the dictionary rather than a song or a story.
@@ -173,9 +207,11 @@ class ReviewItem {
     if (upper == 'PUBLISHED') return const [];
     return [
       ReviewDecision.approve,
-      // A Collection contribution cannot be sent back for revision — the
-      // backend refuses it — so it is not offered for one.
-      if (collectionKind.isEmpty) ReviewDecision.requestRevision,
+      // Other Collection work has no way back to its author's form, so the
+      // backend refuses a revision for it; a word-queue answer can be
+      // corrected from its author's list of submissions.
+      if (collectionKind.isEmpty || isQueueAnswer)
+        ReviewDecision.requestRevision,
       ReviewDecision.reject,
       ReviewDecision.escalateCultural,
     ];
@@ -219,6 +255,22 @@ class ReviewItem {
           : null,
       feedback: moderation is Map ? _text(moderation['feedback']) : '',
       createdAt: createdAt is String ? DateTime.tryParse(createdAt) : null,
+      wordQueueId: _text(data['wordQueueId']),
+      queueSentence: data['wordQueuePrompt'] is Map
+          ? _text((data['wordQueuePrompt'] as Map)['sentence'])
+          : '',
+      wordQueueOrigin: _text(data['wordQueueOrigin']),
+      revisionCount: data['revisionCount'] is num
+          ? (data['revisionCount'] as num).toInt()
+          : 0,
+      aiTraining: permissions is Map && permissions['aiTraining'] == true,
+      creditAnonymous:
+          data['attribution'] is Map &&
+          (data['attribution'] as Map)['preference'] == 'anonymous',
+      publishAs: moderation is Map ? _text(moderation['publishAs']) : '',
+      linkedEntryId: moderation is Map
+          ? _text(moderation['linkedEntryId'])
+          : '',
     );
   }
 }
@@ -280,6 +332,9 @@ class ReviewRepository {
     required String submissionId,
     required ReviewDecision decision,
     required String feedback,
+    String? publishAs,
+    String? entryId,
+    String? reason,
   }) async {
     try {
       final callable = _functions.httpsCallable(
@@ -290,6 +345,9 @@ class ReviewRepository {
         'submissionId': submissionId,
         'decision': decision.wire,
         'feedback': feedback.trim(),
+        'publishAs': ?publishAs,
+        if (entryId != null && entryId.isNotEmpty) 'entryId': entryId,
+        'reason': ?reason,
       });
     } on FirebaseFunctionsException catch (error) {
       // The backend's own message names the precondition that failed — which
@@ -352,4 +410,64 @@ final reviewQueueProvider = StreamProvider<List<ReviewItem>>((ref) {
 String _text(Object? value, {String fallback = ''}) {
   if (value is String && value.trim().isNotEmpty) return value.trim();
   return fallback;
+}
+
+/// What a reviewer may decide a word-queue answer becomes. Mirrors
+/// `PUBLISH_AS` in `services/functions/src/language-loop.ts`.
+enum AnswerTarget {
+  headword('headword', 'A dictionary word', 'Published as an entry of its own.'),
+  variant(
+    'variant',
+    'A regional variant',
+    'An entry of its own, marked as a regional form of a word the dictionary has.',
+  ),
+  expression(
+    'expression',
+    'An expression',
+    'A phrase or idiom, published with the other expressions.',
+  ),
+  example(
+    'example',
+    'An example sentence',
+    'Its Kasem sentence, shown on the entry for the word.',
+  ),
+  translationPair(
+    'translation-pair',
+    'A translation pair',
+    'The English sentence and its Kasem, for lessons and Kawuri.',
+  ),
+  training(
+    'training',
+    'Training material',
+    'Kept for testing and training language tools. Never published.',
+  );
+
+  const AnswerTarget(this.wire, this.label, this.detail);
+
+  final String wire;
+  final String label;
+  final String detail;
+
+  /// A variant and an example point at an existing entry.
+  bool get needsEntry => this == variant || this == example;
+
+  static AnswerTarget fromWire(String wire) => AnswerTarget.values.firstWhere(
+    (target) => target.wire == wire,
+    orElse: () => AnswerTarget.headword,
+  );
+
+  /// Why this cannot be chosen for [item], or null when it can. The backend
+  /// checks the same things; saying so here keeps a reviewer from choosing an
+  /// option that is going to be refused.
+  String? problemFor(ReviewItem item) => switch (this) {
+    AnswerTarget.training when !item.aiTraining =>
+      'The contributor did not agree to training use.',
+    AnswerTarget.example when item.kasemExample.isEmpty =>
+      'There is no Kasem sentence in this answer.',
+    AnswerTarget.translationPair
+        when item.kasemExample.isEmpty ||
+            (item.queueSentence.isEmpty && item.englishExample.isEmpty) =>
+      'It needs an English sentence and its Kasem.',
+    _ => null,
+  };
 }

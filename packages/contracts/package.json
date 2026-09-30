@@ -10,6 +10,7 @@
   "main": "./index.mjs",
   "types": "./index.d.ts",
   "exports": {
+    "./labs": { "types": "./labs.d.ts", "default": "./labs.mjs" },
     ".": {
       "types": "./index.d.ts",
       "default": "./index.mjs"
@@ -23,6 +24,8 @@
     "./content/creator-guidelines.mjs": "./content/creator-guidelines.mjs"
   },
   "files": [
+    "labs.mjs",
+    "labs.d.ts",
     "index.mjs",
     "index.d.ts",
     "creator-models.d.ts",

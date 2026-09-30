@@ -208,7 +208,7 @@ void main() {
               ),
             ]),
           ),
-          communityFeedProvider.overrideWithValue(
+          exploreCommunityFeedProvider.overrideWithValue(
             AsyncValue.data([
               _post('in-community', author: 'x', community: _kasenaCulture),
               _post('elsewhere', author: 'y'),
@@ -242,7 +242,6 @@ void main() {
       caption: '',
       sound: '',
       credit: '',
-      isLive: true,
       cycle: cycle,
     );
 

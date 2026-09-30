@@ -1,0 +1,101 @@
+{
+  "note": "A real Practise with Kawuri lesson, recorded 2026-09-28 for the update post. The lesson code (lessonContextFor + askKawuri, the functions' own compiled code) was run locally against the published dictionary entry na (water), reading production Firestore only, with the real model on Vertex AI. The member's answers were typed by the release author; the model replies are unedited. The lesson-complete marker is stripped by the server, as in the app.",
+  "lesson": {
+    "kind": "entry",
+    "id": "ABSpJBFtXDULHbeToD48"
+  },
+  "title": "na (water)",
+  "model": "gemini-2.5-flash",
+  "turns": [
+    {
+      "role": "member",
+      "text": "Start the lesson."
+    },
+    {
+      "role": "kawuri",
+      "text": "Hello. Let's practice the Kasem word \"na\".\n\n\"na\" means water. An example of its use is \"na bam zura mo\", which means \"the water is cold\".\n\nFor our first question, how would you say \"water\" in Kasem?"
+    },
+    {
+      "role": "member",
+      "text": "na"
+    },
+    {
+      "role": "kawuri",
+      "text": "That is correct. \"na\" means water.\n\nNow, can you tell me what \"na bam zura mo\" means?"
+    },
+    {
+      "role": "member",
+      "text": "the water is hot?"
+    },
+    {
+      "role": "kawuri",
+      "text": "Not quite. \"na bam zura mo\" means \"the water is cold\".\n\nFor our last question, how do you say \"water\" in Kasem?"
+    },
+    {
+      "role": "member",
+      "text": "na"
+    },
+    {
+      "role": "kawuri",
+      "text": "That's right. \"na\" means water.\n\nYou've practiced the Kasem word \"na\", which means water."
+    }
+  ],
+  "replies": [
+    {
+      "at": "2026-09-28T18:36:16.963Z",
+      "ms": 5882,
+      "configured": true,
+      "lessonComplete": false,
+      "verified": [
+        {
+          "entryId": "ABSpJBFtXDULHbeToD48",
+          "kasem": "na",
+          "english": "water"
+        }
+      ],
+      "unverified": []
+    },
+    {
+      "at": "2026-09-28T18:36:36.017Z",
+      "ms": 6880,
+      "configured": true,
+      "lessonComplete": false,
+      "verified": [
+        {
+          "entryId": "ABSpJBFtXDULHbeToD48",
+          "kasem": "na",
+          "english": "water"
+        }
+      ],
+      "unverified": []
+    },
+    {
+      "at": "2026-09-28T18:36:57.153Z",
+      "ms": 3115,
+      "configured": true,
+      "lessonComplete": false,
+      "verified": [
+        {
+          "entryId": "ABSpJBFtXDULHbeToD48",
+          "kasem": "na",
+          "english": "water"
+        }
+      ],
+      "unverified": []
+    },
+    {
+      "at": "2026-09-28T18:37:16.559Z",
+      "ms": 4878,
+      "configured": true,
+      "lessonComplete": true,
+      "verified": [
+        {
+          "entryId": "ABSpJBFtXDULHbeToD48",
+          "kasem": "na",
+          "english": "water"
+        }
+      ],
+      "unverified": []
+    }
+  ]
+}

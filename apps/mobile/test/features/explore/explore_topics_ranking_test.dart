@@ -39,7 +39,6 @@ Reel _reel(
   caption: caption,
   sound: '',
   credit: '',
-  isLive: true,
   videoUrl: 'https://example.test/$id',
   collectionKind: collectionKind,
   postCategory: postCategory,

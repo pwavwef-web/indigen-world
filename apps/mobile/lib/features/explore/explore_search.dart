@@ -28,11 +28,9 @@ const String _recentSearchesKey = 'explore.recentSearches';
 /// The list handed in is [exploreFeedProvider], which now has paid placements
 /// spliced through it, and an advert is the one thing here nobody searched
 /// for. Left in, it did not merely appear among the results: its headline is
-/// [Reel.title] and scores the full ten, and [Reel.fromServedAd] sets
-/// `isLive`, so it also collected the bonus below that exists to put real
-/// published work above an illustrative preview card. An advertiser who wrote
-/// "Kassena" into their headline was outranking the archive on a search for
-/// Kassena — reach in a surface they did not buy, dressed as a result.
+/// [Reel.title] and scores the full ten. An advertiser who wrote "Kassena" into
+/// their headline was outranking the archive on a search for Kassena — reach
+/// in a surface they did not buy, dressed as a result.
 List<Reel> searchReels(List<Reel> reels, String query) {
   final needle = query.trim().toLowerCase();
   if (needle.isEmpty) return const <Reel>[];
@@ -82,9 +80,6 @@ int _fieldScore(Reel reel, String word) {
   if (reel.translations.any((meaning) => _has(meaning, word))) score += 3;
   if (_has(reel.sound, word)) score += 2;
   if (_has(reel.credit, word)) score += 1;
-  // A live piece outranks a curated preview card on an otherwise equal match:
-  // the preview is illustrative, and nobody searching means to find it.
-  if (score > 0 && reel.isLive) score += 1;
   return score;
 }
 
@@ -97,14 +92,13 @@ bool _has(String haystack, String needle) =>
 /// it is from — which is exactly the vocabulary somebody would search in, and
 /// it stays honest because it is only ever words the feed can actually answer.
 ///
-/// A sponsored reel's eyebrow is the word "Sponsored", and `isLive` alone did
-/// not keep it out: [Reel.fromServedAd] sets that true. So one live campaign
-/// was enough to put "Sponsored" among the terms this screen offers unprompted
-/// as something the community is looking at.
+/// A sponsored reel's eyebrow is the word "Sponsored", so it is left out: one
+/// live campaign was once enough to put "Sponsored" among the terms this
+/// screen offers unprompted as something the community is looking at.
 List<String> trendingTerms(List<Reel> reels, {int limit = 10}) {
   final counts = <String, int>{};
   for (final reel in reels) {
-    if (!reel.isLive || reel.isSponsored) continue;
+    if (reel.isSponsored) continue;
     for (final part in reel.label.split('·')) {
       final term = _tidy(part);
       if (term.isEmpty) continue;

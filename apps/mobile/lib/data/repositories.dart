@@ -1,6 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/data/local/app_database.dart';
-import 'package:indigen_world_mobile/domain/contribution.dart';
 
 /// What this device remembers on its own.
 ///
@@ -23,28 +22,19 @@ import 'package:indigen_world_mobile/domain/contribution.dart';
 /// in `features/collection/collection_data.dart`. An unavailable Firebase
 /// launch yields an empty collection, which every surface renders as an honest
 /// empty state rather than as four invented words.
-
-abstract interface class ContributionRepository {
-  Future<List<Contribution>> getAll();
-  Future<void> save(Contribution contribution);
-}
-
-class LocalContributionRepository implements ContributionRepository {
-  const LocalContributionRepository(this._database);
-
-  final AppDatabase _database;
-
-  @override
-  Future<List<Contribution>> getAll() => _database.getContributions();
-
-  @override
-  Future<void> save(Contribution contribution) =>
-      _database.upsertContribution(contribution);
-}
+///
+/// A local contributions repository went the same way: contributions are
+/// read from the server (`myCollectionContributionsProvider`), and nothing
+/// had read the local copy for a long time.
 
 abstract interface class SavedEntryRepository {
   Future<Set<String>> getSavedIds();
   Future<bool> toggle(String entryId);
+
+  /// Makes the saved *words* on this phone exactly [entryIds], leaving any
+  /// namespaced keys in the same table alone. Used when the account's copy is
+  /// brought down — see `saved_words_sync.dart`.
+  Future<void> replaceSavedWords(Set<String> entryIds);
 }
 
 class LocalSavedEntryRepository implements SavedEntryRepository {
@@ -57,26 +47,33 @@ class LocalSavedEntryRepository implements SavedEntryRepository {
 
   @override
   Future<bool> toggle(String entryId) => _database.toggleSavedEntry(entryId);
-}
 
-final contributionRepositoryProvider = Provider<ContributionRepository>(
-  (ref) => LocalContributionRepository(ref.watch(appDatabaseProvider)),
-);
+  @override
+  Future<void> replaceSavedWords(Set<String> entryIds) async {
+    final current = {
+      for (final id in await _database.getSavedEntryIds())
+        if (!id.contains(':')) id,
+    };
+    for (final id in entryIds.difference(current)) {
+      await _database.addSavedEntry(id);
+    }
+    for (final id in current.difference(entryIds)) {
+      await _database.removeSavedEntry(id);
+    }
+  }
+}
 
 final savedEntryRepositoryProvider = Provider<SavedEntryRepository>(
   (ref) => LocalSavedEntryRepository(ref.watch(appDatabaseProvider)),
 );
 
-final contributionsProvider = FutureProvider<List<Contribution>>(
-  (ref) => ref.watch(contributionRepositoryProvider).getAll(),
-);
-
 /// Every saved key on this device.
 ///
-/// The table is shared: dictionary entries are stored under their plain id,
-/// while other surfaces namespace their keys (`reel:`, `reel-appreciated:`).
-/// Read this when you need the raw set; read [savedDictionaryEntryIdsProvider]
-/// when you mean saved *words*.
+/// Dictionary entries are stored under their plain id. Builds before 0.1.28
+/// also kept Explore's illustrative reels in this table under namespaced keys
+/// (`reel:`, `reel-appreciated:`), and phones that ran them still hold those
+/// rows. Read this when you need the raw set; read
+/// [savedDictionaryEntryIdsProvider] when you mean saved *words*.
 final savedEntryIdsProvider = FutureProvider<Set<String>>(
   (ref) => ref.watch(savedEntryRepositoryProvider).getSavedIds(),
 );

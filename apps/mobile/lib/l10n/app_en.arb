@@ -29,7 +29,7 @@
     "description": "Settings row that opens the theme picker, where the app's colours are chosen."
   },
   "settingsAutoplayTitle": "Play videos automatically",
-  "settingsAutoplayBody": "Clips in the community feed start themselves, silently. Off saves data on a metered connection — tap any clip to watch it.",
+  "settingsAutoplayBody": "Clips in the community feed start themselves, silently. Off saves data on a metered connection — tap any clip to watch it, and Explore loads only the reel in front of you.",
   "navExplore": "Explore",
   "navLearn": "Learn",
   "navCommunity": "Community",

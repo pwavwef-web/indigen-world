@@ -257,6 +257,26 @@ class WordQueueController extends Notifier<WordQueueState> {
   /// wants it gone should be able to say so without leaving the screen.
   void dismissReceipt() => state = state.copyWith(clearReceipt: true);
 
+  /// Puts [word] in front of the member, ahead of whatever the batch holds.
+  ///
+  /// For a member who arrived for one particular word — a prompt in Explore,
+  /// an empty search, a topic page, Kawuri — and must answer *that* word, not
+  /// whichever one the queue would have dealt next. The word that was showing
+  /// goes back to the front of the buffer rather than being lost, and the
+  /// batch can never deal the focused word a second time.
+  void focus(QueueWord word) {
+    _served.add(word.id);
+    _buffer.removeWhere((buffered) => buffered.id == word.id);
+    final current = state.word;
+    if (current != null && current.id != word.id) _buffer.insert(0, current);
+    state = state.copyWith(
+      stage: WordQueueStage.ready,
+      word: word,
+      buffered: _buffer.length,
+      clearMessage: true,
+    );
+  }
+
   /// Takes the next word off the buffer, and tops the buffer up.
   ///
   /// [keepReceipt] is false everywhere but the send that produced one. The

@@ -1,0 +1,26 @@
+{
+  "Actions": [
+    ["jege", "Ghana Kasem"], ["ke", "Ghana Kasem"], ["lage", "Ghana Kasem"],
+    ["jage", "Ghana Kasem"], ["via", "Ghana Kasem"], ["poore", "Ghana Kasem"],
+    ["swɛ", "Ghana Kasem"], ["gaale", "Ghana Kasem"], ["wora", "Ghana Kasem"], ["daga", "Ghana Kasem"]
+  ],
+  "Descriptions and useful words": [
+    ["fɔŋe", "Ghana Kasem"], ["amo", "Ghana Kasem"], ["dem", "Ghana Kasem"],
+    ["dwi", "Ghana Kasem"], ["muri", "Ghana Kasem"], ["tera", "Ghana Kasem"],
+    ["nyeena", "Ghana Kasem"], ["swolim", "Ghana Kasem"],
+    ["Nae", "Ghana / Project Kasena"], ["Ná", "Ghana / Project Kasena"]
+  ],
+  "Places, nature and things": [
+    ["jei", "Ghana Kasem"], ["kamɔgɔ", "Ghana Kasem"], ["leiri", "Ghana Kasem"],
+    ["na-fɔrɔ", "Ghana Kasem"], ["ga-vara", "Ghana Kasem"], ["vare-kamuna", "Ghana Kasem"],
+    ["wo-nyenno", "Ghana Kasem"], ["wo-nyen-kamuna", "Ghana Kasem"],
+    ["naane-ba", "Ghana Kasem"], ["Dian", "Project Kasena example"]
+  ],
+  "Words about language": [
+    ["Botarebia", "Ghana / Project Kasena"], ["Keimjwoŋinu", "Ghana / Project Kasena"],
+    ["Taamkugu", "Ghana / Project Kasena"], ["bu", "Ghana / Project Kasena"],
+    ["kam", "Ghana / Project Kasena"], ["keimbotarebu", "Ghana / Project Kasena"],
+    ["keinseini", "Ghana / Project Kasena"], ["taanenaga", "Ghana / Project Kasena"],
+    ["yerebereno", "Ghana / Project Kasena"], ["Botarebu", "Other"]
+  ]
+}

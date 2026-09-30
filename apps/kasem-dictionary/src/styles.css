@@ -1056,3 +1056,6 @@ footer span:first-child {
     animation:none;
   }
 }
+
+.knowledge-link { display: inline-flex; margin-top: 24px; gap: 8px; color: var(--blue); font-size: 14px; line-height: 1.5; font-weight: 700; text-underline-offset: 4px; }
+.knowledge-link__hint { color: var(--muted); font-size: 12px; line-height: 1.6; max-width: 48ch; }

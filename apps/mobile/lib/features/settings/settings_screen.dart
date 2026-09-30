@@ -19,22 +19,19 @@ import 'package:indigen_world_mobile/core/theme_mode.dart';
 import 'package:indigen_world_mobile/features/ads/ad_consent.dart';
 import 'package:indigen_world_mobile/features/auth/auth_repository.dart';
 import 'package:indigen_world_mobile/features/auth/sign_in_sheet.dart';
+import 'package:indigen_world_mobile/features/auth/sign_out.dart';
 import 'package:indigen_world_mobile/features/community/claim_kasem_name_screen.dart';
 import 'package:indigen_world_mobile/features/community/data/community_models.dart';
 import 'package:indigen_world_mobile/features/community/data/community_providers.dart';
 import 'package:indigen_world_mobile/features/community/data/kasem_names.dart';
-import 'package:indigen_world_mobile/features/community/people_screen.dart';
 import 'package:indigen_world_mobile/features/community/phone_verification_screen.dart';
-import 'package:indigen_world_mobile/features/community/saved_posts_screen.dart';
 import 'package:indigen_world_mobile/features/community/widgets/verified_badge.dart';
-import 'package:indigen_world_mobile/features/downloads/data/downloads_providers.dart';
-import 'package:indigen_world_mobile/features/downloads/downloads_screen.dart';
 import 'package:indigen_world_mobile/features/notifications/data/notification_preferences.dart';
 import 'package:indigen_world_mobile/features/notifications/data/notification_providers.dart';
 import 'package:indigen_world_mobile/features/notifications/notification_settings_screen.dart';
 import 'package:indigen_world_mobile/features/notifications/notifications_screen.dart';
-import 'package:indigen_world_mobile/features/notifications/push_messaging.dart';
 import 'package:indigen_world_mobile/features/rating/rating_service.dart';
+import 'package:indigen_world_mobile/features/settings/developer_options.dart';
 import 'package:indigen_world_mobile/features/settings/kasem_keyboard_screen.dart';
 import 'package:indigen_world_mobile/features/settings/licences_screen.dart';
 import 'package:indigen_world_mobile/features/settings/policy_screen.dart';
@@ -53,12 +50,14 @@ final appVersionProvider = FutureProvider<String>((ref) async {
 /// Everything about the account, privacy and the legal record — including
 /// licences.
 ///
-/// Two things it deliberately no longer holds. The community profile, which now
-/// lives in exactly one place (the Profile tab), because it had three front
-/// doors and one of them was buried in here. And the notification switches,
+/// Several things it deliberately no longer holds. The community profile, which
+/// now lives in exactly one place (My Space's You tab), because it had three
+/// front doors and one of them was buried in here. The notification switches,
 /// which are their own page: eleven controls wedged between the app's theme and
 /// its privacy policy is not where anybody looks for them at the moment their
-/// phone will not stop.
+/// phone will not stop. And the shortcuts to saved posts, downloads and member
+/// search, which live with the things they lead to — the first two in the
+/// You tab's library, the third in Community — rather than a second time here.
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({
     this.embedded = false,
@@ -75,6 +74,36 @@ class SettingsScreen extends ConsumerStatefulWidget {
 }
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
+  /// Taps on the version row towards [kDeveloperOptionsTaps].
+  var _versionTaps = 0;
+
+  /// Copies the version, which is what anybody reporting a problem needs, and
+  /// counts towards turning on the team's details in a production build.
+  void _onVersionTap(String version) {
+    final diagnostics = ref.read(developerOptionsProvider);
+    Clipboard.setData(
+      ClipboardData(
+        text: diagnostics
+            ? 'Indigen World $version · $appEnvironmentName'
+            : 'Indigen World $version',
+      ),
+    );
+    if (diagnostics) {
+      _message('Version copied.');
+      return;
+    }
+    _versionTaps++;
+    final left = kDeveloperOptionsTaps - _versionTaps;
+    if (left <= 0) {
+      unawaited(ref.read(developerOptionsProvider.notifier).enable());
+      _message('Developer details are on.');
+    } else if (left <= 3) {
+      _message('$left more tap${left == 1 ? '' : 's'} for developer details.');
+    } else {
+      _message('Version copied.');
+    }
+  }
+
   void _message(String text) {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
@@ -92,8 +121,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final themeMode = ref.watch(themeModeProvider);
     final locale = ref.watch(localeProvider);
     final l10n = AppLocalizations.of(context);
-    final signature = ref.watch(appSignatureProvider).asData?.value;
-    final downloadCount = ref.watch(downloadedIdsProvider).length;
+    // The team's own details — see [developerOptionsProvider].
+    final diagnostics = ref.watch(developerOptionsProvider);
+    final signature = diagnostics
+        ? ref.watch(appSignatureProvider).asData?.value
+        : null;
     final mutedAlerts =
         ref.watch(notificationPreferencesProvider).asData?.value.mutedCount ??
         0;
@@ -132,8 +164,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               subtitle: Text(
                 profile != null
                     ? profile.handle
-                    : (user?.email ??
-                          'Signed out · $appEnvironmentName environment'),
+                    : (user?.email ?? 'Not signed in'),
               ),
             ),
           ),
@@ -203,54 +234,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     ? 'Public learning stays available in guest mode'
                     : 'Post, follow and keep your saves across devices',
                 onTap: signedIn ? _signOut : _signIn,
-              ),
-            ],
-          ),
-          const SizedBox(height: 22),
-
-          // ── Community ────────────────────────────────────────────────
-          const SettingsSectionLabel('COMMUNITY'),
-          const SizedBox(height: 9),
-          SettingsGroup(
-            children: [
-              SettingsRow(
-                icon: Icons.download_for_offline_outlined,
-                title: 'Downloads',
-                subtitle: downloadCount > 0
-                    ? '$downloadCount kept on this phone'
-                    : 'Songs and chapters kept for listening offline',
-                onTap: _openDownloads,
-              ),
-              SettingsRow(
-                icon: Icons.bookmark_border_rounded,
-                title: 'Saved posts',
-                subtitle: 'Posts you kept for later — private to you',
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (context) => const SavedPostsScreen(),
-                  ),
-                ),
-              ),
-              SettingsRow(
-                icon: Icons.person_search_outlined,
-                title: 'Find people',
-                subtitle: 'Search members by name or handle',
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (context) => const PeopleScreen(),
-                  ),
-                ),
-              ),
-              SettingsRow(
-                icon: Icons.handshake_outlined,
-                title: 'Community guidelines',
-                subtitle: 'How this room keeps Kasem at its centre',
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (context) =>
-                        const PolicyScreen(document: PolicyDocument.guidelines),
-                  ),
-                ),
               ),
             ],
           ),
@@ -407,6 +390,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           SettingsGroup(
             children: [
               SettingsRow(
+                icon: Icons.handshake_outlined,
+                title: 'Community guidelines',
+                subtitle: 'How this room keeps Kasem at its centre',
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (context) =>
+                        const PolicyScreen(document: PolicyDocument.guidelines),
+                  ),
+                ),
+              ),
+              SettingsRow(
                 icon: Icons.description_outlined,
                 title: 'Licences',
                 subtitle: 'Licences and open-source notices',
@@ -437,22 +431,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
               ),
               SettingsRow(
+                key: const Key('settings-version-row'),
                 icon: Icons.info_outline_rounded,
                 title: 'Indigen World',
                 subtitle: version == null
                     ? 'Version loading…'
-                    : 'Version $version · $appEnvironmentName',
-                onTap: version == null
-                    ? null
-                    : () {
-                        Clipboard.setData(
-                          ClipboardData(
-                            text:
-                                'Indigen World $version · $appEnvironmentName',
-                          ),
-                        );
-                        _message('Version copied.');
-                      },
+                    : diagnostics
+                    ? 'Version $version · $appEnvironmentName'
+                    : 'Version $version',
+                onTap: version == null ? null : () => _onVersionTap(version),
               ),
               // The pair Google Sign-In is granted to. Unreadable anywhere
               // else on a Play-signed release — Play mints the certificate
@@ -578,10 +565,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     }
   }
 
-  Future<void> _openDownloads() => Navigator.of(context).push(
-    MaterialPageRoute<void>(builder: (context) => const DownloadsScreen()),
-  );
-
   Future<void> _verifyPhone() async {
     final block = ref.read(connectionBlockProvider);
     if (block != null) {
@@ -615,10 +598,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       confirmLabel: 'Sign out',
     );
     if (confirmed != true) return;
-    // Drop the push registration first, while the account is still signed in
-    // and the rules still allow deleting its own row.
-    await unregisterThisDevice(ref);
-    await ref.read(authRepositoryProvider)?.signOut();
+    await signOutOfApp(ref);
     if (mounted) _message('Signed out.');
   }
 

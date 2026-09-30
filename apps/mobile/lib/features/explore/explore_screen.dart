@@ -13,6 +13,7 @@ import 'package:indigen_world_mobile/features/explore/explore_feed.dart';
 import 'package:indigen_world_mobile/features/explore/explore_ranking.dart';
 import 'package:indigen_world_mobile/features/explore/explore_search_screen.dart';
 import 'package:indigen_world_mobile/features/explore/explore_topics.dart';
+import 'package:indigen_world_mobile/features/explore/explore_word_prompt.dart';
 import 'package:indigen_world_mobile/features/explore/kept_reels_screen.dart';
 import 'package:indigen_world_mobile/features/explore/published_content.dart';
 import 'package:indigen_world_mobile/features/explore/reel_view.dart';
@@ -48,6 +49,21 @@ enum ExploreTab {
 /// bar that covers the caption on the first phone with a different text scale.
 const double kExploreNavBarHeight = 56;
 
+/// How long somebody can be away from Explore and still come back to the reel
+/// they left.
+///
+/// A glance at a message and back is the same sitting, and landing anywhere
+/// but the reel they were on reads as the app losing their place. A quarter of
+/// an hour later it is a new visit, and a new visit deserves what has been
+/// published since — so after this long away Explore opens at the top of a
+/// freshly ranked feed instead.
+const Duration kExploreFreshStartAfter = Duration(minutes: 15);
+
+/// What Explore reads the time from, so tests can move it.
+final exploreClockProvider = Provider<DateTime Function()>(
+  (ref) => DateTime.now,
+);
+
 /// Explore: an immersive, vertically paged feed of cultural media — published
 /// archive work and community posts, ranked for the member, narrowed by topic,
 /// and carrying its provenance, community and context with it.
@@ -81,8 +97,17 @@ class ExploreScreen extends ConsumerStatefulWidget {
   ConsumerState<ExploreScreen> createState() => _ExploreScreenState();
 }
 
-class _ExploreScreenState extends ConsumerState<ExploreScreen> {
+class _ExploreScreenState extends ConsumerState<ExploreScreen>
+    with WidgetsBindingObserver {
   var _tab = ExploreTab.forYou;
+
+  /// When Explore stopped being in front of the member — another tab chosen,
+  /// or the app sent to the background — and null while it is in front.
+  DateTime? _awaySince;
+
+  /// Bumped for a fresh start. The feed is keyed by it, so a new value builds a
+  /// new pager at the top rather than one that remembers where it was.
+  var _session = 0;
 
   /// How long the feed was when more was last asked for.
   ///
@@ -109,6 +134,16 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
   /// not reach for providers.
   var _attached = true;
 
+  /// The feed's current page, for the occasional word prompt laid over it.
+  final _activeReel = ValueNotifier<int>(0);
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    if (!widget.isActive) _awaySince = _now();
+  }
+
   @override
   void activate() {
     super.activate();
@@ -123,11 +158,15 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _activeReel.dispose();
     _chrome
       ..removeListener(_onChromeChanged)
       ..dispose();
     super.dispose();
   }
+
+  DateTime _now() => ref.read(exploreClockProvider)();
 
   void _onChromeChanged() {
     if (!mounted || !_attached || !widget.isActive) return;
@@ -135,28 +174,83 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (!mounted || !widget.isActive) return;
+    if (state == AppLifecycleState.resumed) {
+      _cameBack();
+    } else {
+      _awaySince ??= _now();
+    }
+  }
+
+  @override
   void didUpdateWidget(ExploreScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.isActive == widget.isActive) return;
+    if (!widget.isActive) {
+      // Nothing is reset on the way out. It used to be — the window, the
+      // re-queued passes and the topic — while the pager kept its place, so
+      // the feed shrank under a page that no longer existed and the member
+      // came back to whichever reel the pager sprang back onto. Whether they
+      // are starting again is decided when they return, by how long they were
+      // gone.
+      _awaySince ??= _now();
+      _chrome.interacted();
+      return;
+    }
     // Deferred to after the frame because `didUpdateWidget` runs *inside* the
     // build that switched tabs, and writing to a provider there is refused.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      if (!widget.isActive) {
-        // Leaving the tab puts the window back — coming back to a feed that
-        // had grown to three hundred reels would re-open every one of those
-        // snapshot listeners at once — and the re-queued passes and the topic
-        // go back with it: somebody returning to Explore is starting again.
-        ref.read(exploreWindowProvider.notifier).reset();
-        ref.read(exploreCyclesProvider.notifier).reset();
-        ref.read(exploreTopicProvider.notifier).reset();
-        _lengthAtLastAsk = -1;
-        _chrome.interacted();
-      } else {
-        ref.read(exploreSignalsProvider.notifier).refresh();
-        _chrome.interacted();
-      }
+      if (mounted) _cameBack();
     });
+  }
+
+  /// The member is looking at Explore again: the same reel after a short
+  /// absence, a fresh feed after [kExploreFreshStartAfter].
+  void _cameBack() {
+    final since = _awaySince;
+    _awaySince = null;
+    if (since != null && _now().difference(since) >= kExploreFreshStartAfter) {
+      _freshStart(resetTopic: true);
+    }
+    _chrome.interacted();
+  }
+
+  /// Starts the ranking again: fresh signals, and no order held from before.
+  void _restartRanking() {
+    ref.read(exploreSignalsProvider.notifier).refresh();
+    ref.invalidate(exploreDealtOrderProvider);
+  }
+
+  /// Everything Explore accumulated in one sitting, put back in one step, and
+  /// a new pager at the top.
+  ///
+  /// One step, because doing it in pieces is exactly what went wrong before:
+  /// the feed was shortened and re-ranked while the pager kept its index.
+  void _freshStart({required bool resetTopic}) {
+    ref.read(exploreWindowProvider.notifier).reset();
+    ref.read(exploreCyclesProvider.notifier).reset();
+    if (resetTopic) ref.read(exploreTopicProvider.notifier).reset();
+    _restartRanking();
+    _lengthAtLastAsk = -1;
+    setState(() => _session++);
+  }
+
+  /// Writes down the order this feed has dealt so far — see
+  /// [keepDealtOrder] — so that nothing arriving later can move it.
+  void _freezeDealt() {
+    final following = _tab == ExploreTab.following;
+    final topic = ref.read(exploreTopicProvider);
+    final content = ref.read(
+      following ? exploreFollowingContentProvider : exploreContentProvider,
+    );
+    ref
+        .read(
+          exploreDealtOrderProvider(
+            exploreFeedKey(following: following, topic: topic),
+          ).notifier,
+        )
+        .freeze(content);
   }
 
   /// Runs [open] with the feed stopped, and starts it again afterwards.
@@ -172,15 +266,26 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
     }
   }
 
-  /// Moves between For you and Following.
+  /// Moves between For you and Following — or, for the one already chosen,
+  /// back to its top.
   ///
   /// The re-queue count goes back to nought on the way. The two feeds hold
   /// different reels and are different lengths, so a count carried across
   /// would open Following already three passes deep.
+  ///
+  /// Tapping the feed that is already showing used to do nothing at all. Every
+  /// other feed in the app reads a second tap on its own tab as "take me back
+  /// to the top", and here that means a freshly ranked top, with whatever has
+  /// been published since.
   void _changeTab(ExploreTab tab) {
-    if (tab == _tab) return;
+    if (tab == _tab) {
+      HapticFeedback.selectionClick();
+      _freshStart(resetTopic: false);
+      _chrome.interacted();
+      return;
+    }
     ref.read(exploreCyclesProvider.notifier).reset();
-    ref.read(exploreSignalsProvider.notifier).refresh();
+    _restartRanking();
     _lengthAtLastAsk = -1;
     setState(() => _tab = tab);
     _chrome.interacted();
@@ -192,7 +297,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
     if (topic == current) return;
     HapticFeedback.selectionClick();
     ref.read(exploreCyclesProvider.notifier).reset();
-    ref.read(exploreSignalsProvider.notifier).refresh();
+    _restartRanking();
     ref.read(exploreTopicProvider.notifier).select(topic);
     ref
         .read(exploreAnalyticsProvider)
@@ -275,6 +380,8 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
   /// archive, so the cost of guessing wrong is one early repeat rather than a
   /// feed stuck at a wall.
   void _loadMore() {
+    // Whatever is fetched next can only join the end of what is dealt now.
+    _freezeDealt();
     final forYou = _tab == ExploreTab.forYou;
     final length = ref
         .read(
@@ -295,7 +402,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
   void _retry() {
     ref
       ..invalidate(publishedReelsProvider)
-      ..invalidate(rawCommunityFeedProvider);
+      ..invalidate(rawExploreCommunityFeedProvider);
   }
 
   @override
@@ -336,12 +443,18 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
 
     final Widget body;
     if (reels.isNotEmpty) {
-      body = ReelFeedView(
-        key: PageStorageKey('explore-reels-${_tab.name}-${topic.name}'),
+      final feed = ReelFeedView(
+        // A plain key, not a PageStorageKey: a feed rebuilt for a topic it
+        // showed before must open at its top, not on a page remembered from a
+        // list that has since been ranked again.
+        key: ValueKey('explore-reels-$_session-${_tab.name}-${topic.name}'),
         reels: reels,
         // Stopped both when Explore is not the selected tab and when something
         // Explore itself pushed is covering it.
         isActive: widget.isActive && !_overlayOpen,
+        // Players are kept under a screen Explore pushed, one Back away, and
+        // let go a while after the tab itself is left.
+        holdPlayers: widget.isActive,
         header: header,
         footer: navBar,
         bottomInset: kExploreNavBarHeight,
@@ -349,11 +462,29 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
         chrome: _chrome,
         isLoadingMore: ref.watch(exploreLoadingMoreProvider),
         onActiveIndexChanged: (index) {
+          _activeReel.value = index;
           // The ranking stops following the member's live likes and follows
           // once they are past the first reel, so the reels ahead of them
-          // are not reshuffled by their own taps.
-          if (index > 0) ref.read(exploreSignalsProvider.notifier).lock();
+          // are not reshuffled by their own taps — and the order they have
+          // been dealt is written down, so nothing fetched later moves it.
+          if (index > 0) {
+            ref.read(exploreSignalsProvider.notifier).lock();
+            _freezeDealt();
+          }
         },
+      );
+      // A word the dictionary needs, now and then, over the reel — never
+      // dealt into the feed, whose order is frozen by position.
+      body = Stack(
+        fit: StackFit.expand,
+        children: [
+          feed,
+          ExploreWordPrompt(
+            activeIndex: _activeReel,
+            active: widget.isActive && !_overlayOpen,
+            top: MediaQuery.paddingOf(context).top + 58,
+          ),
+        ],
       );
     } else if (ref.watch(exploreFeedLoadingProvider)) {
       body = _ExploreState(

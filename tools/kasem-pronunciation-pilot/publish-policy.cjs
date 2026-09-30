@@ -3,6 +3,7 @@ const reviewState = require('./comparison-state.cjs');
 function approvedPlan(manifest, review) {
   const clean = reviewState.clean(review, manifest);
   const canonical = reviewState.report(clean, manifest);
+  if (canonical.reviews.some(r => r.notes.trim())) throw Error('Review notes require an explicit sense-resolution plan before publication');
   if (review.reviews.length !== canonical.reviews.length) throw Error('The complete review is required');
   const accepted = canonical.reviews.filter(r => r.decision === 'acceptable');
   if (!accepted.length) throw Error('No approved recordings');

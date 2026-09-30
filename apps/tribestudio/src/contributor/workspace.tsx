@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type MouseEvent, type ReactNode } from 'react';
 import { useRoute } from '../router';
+import { canValidate, useAuth } from '../auth';
 import { BrandMark, Icon, cx, type IconName } from './components';
 import { friendlyError, initials, itemStatus, metricsFor, type FriendlyError } from './model';
 import type { AccountTab, PaymentsView, Section, SelfView, WorkspaceData } from './types';
@@ -175,6 +176,8 @@ export function paymentsNeedAttention(payments: PaymentsView | null): boolean {
 
 export function WorkspaceShell({ banner }: { banner?: ReactNode }) {
   const data = useWorkspace();
+  const { role } = useAuth();
+  const reviewLink = (variant: 'side' | 'sheet') => !data.preview && canValidate(role) ? <PortalLink to="/contributor/review" className={`cw-nav__link cw-nav__link--${variant}`} ariaLabel="Review desk"><Icon name="shield" /><span className="cw-nav__label">Review desk</span></PortalLink> : null;
   const { path, search, navigate } = useRoute();
   const route = useMemo(() => parsePortalRoute(path, search, data.paths.base, data.preview), [path, search, data.paths.base, data.preview]);
   const self = useResource(data.services.loadSelf, 'Your profile');
@@ -236,6 +239,7 @@ export function WorkspaceShell({ banner }: { banner?: ReactNode }) {
           </div>
           <nav className="cw-nav" aria-label="Workspace sections">
             {NAV.map((item) => link(item, 'side'))}
+            {reviewLink('side')}
           </nav>
           <div className="cw-side__footer">
             <span className="cw-avatar" aria-hidden="true">
@@ -278,6 +282,7 @@ export function WorkspaceShell({ banner }: { banner?: ReactNode }) {
           </div>
           <nav className="cw-sheet__nav" aria-label="More sections">
             {NAV.filter((item) => !MOBILE_PRIMARY.includes(item.section)).map((item) => link(item, 'sheet'))}
+            {reviewLink('sheet')}
           </nav>
           <button type="button" className="cw-sheet__signout" onClick={() => void data.services.signOut()}><Icon name="logout" />Sign out</button>
         </dialog>

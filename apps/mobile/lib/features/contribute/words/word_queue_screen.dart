@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
@@ -8,8 +10,11 @@ import 'package:indigen_world_mobile/features/collection/collection_data.dart';
 import 'package:indigen_world_mobile/features/contribute/contribution_form_screen.dart';
 import 'package:indigen_world_mobile/features/contribute/contribution_kinds.dart';
 import 'package:indigen_world_mobile/features/contribute/contribution_upload.dart';
+import 'package:indigen_world_mobile/features/contribute/language_loop_analytics.dart';
+import 'package:indigen_world_mobile/features/contribute/my_submissions_screen.dart';
 import 'package:indigen_world_mobile/features/contribute/pronunciation_recorder.dart';
 import 'package:indigen_world_mobile/features/contribute/words/data/parts_of_speech.dart';
+import 'package:indigen_world_mobile/features/contribute/words/data/queue_lookup.dart';
 import 'package:indigen_world_mobile/features/contribute/words/data/translation_parser.dart';
 import 'package:indigen_world_mobile/features/contribute/words/data/word_queue_controller.dart';
 import 'package:indigen_world_mobile/features/contribute/words/data/word_queue_models.dart';
@@ -42,7 +47,29 @@ import 'package:indigen_world_mobile/shared/glass_surface.dart';
 /// arriving *in place*. So the confirmation is an inline strip above the new
 /// word, the queue advances past it, and nothing is dismissed.
 class WordQueueScreen extends ConsumerStatefulWidget {
-  const WordQueueScreen({super.key});
+  const WordQueueScreen({
+    this.focusWordId,
+    this.origin = 'queue',
+    this.revision,
+    super.key,
+  });
+
+  /// One particular word to answer first — the word an Explore prompt, an
+  /// empty search, a topic page or Kawuri sent the member to. The queue
+  /// carries on after it as usual.
+  ///
+  /// A guest who arrives this way sees the word and can write the whole answer
+  /// before signing in. Signing in keeps what they wrote, and nothing is sent
+  /// until they tap Send themselves.
+  final String? focusWordId;
+
+  /// Where the member came from: `queue`, `explore`, `search`, `topic` or
+  /// `kawuri`. Recorded on the answer to [focusWordId] as provenance.
+  final String origin;
+
+  /// An answer a reviewer sent back, opened to be corrected. Its word is
+  /// answered first, with the form filled in with what was sent before.
+  final QueueRevision? revision;
 
   @override
   ConsumerState<WordQueueScreen> createState() => _WordQueueScreenState();
@@ -121,6 +148,39 @@ class _WordQueueScreenState extends ConsumerState<WordQueueScreen> {
   /// soon as the offer stops being on screen.
   String? _idiomPrompt;
 
+  // ── Arriving for one word ─────────────────────────────────────────────────
+  QueueWord? _focusWord;
+  bool _focusLoading = false;
+
+  /// The word asked for is no longer waiting for answers (verified since,
+  /// retired, or never existed), and the member has not yet moved on.
+  bool _focusGone = false;
+  bool _focusApplied = false;
+
+  /// True between asking the controller to focus and seeing it do so. While
+  /// it is, a batch that happens to arrive first must not empty the form: a
+  /// guest's answer, written before they signed in, is in it.
+  bool _focusPending = false;
+
+  /// The word the form is currently answering — the one thing that decides
+  /// whether a change of word should empty it.
+  String? _answeringWordId;
+
+  /// The earlier answer this sitting corrects, until it has been sent.
+  String? _reviseContributionId;
+
+  /// Set once a guest signs in from the Send button, so the screen can say
+  /// that nothing has been sent yet and they are to tap Send.
+  bool _signedInToSend = false;
+
+  // ── The member's standing choices, kept across words like the dialect ─────
+  bool _creditByName = true;
+  bool _allowTraining = false;
+
+  /// Words the member has started typing an answer to, so a form start is
+  /// counted once per word however much they type.
+  final _startedWords = <String>{};
+
   /// Empties everything that was an answer to the word that has just gone.
   ///
   /// The recording goes with the rest. A take of somebody saying "boy" is an
@@ -143,7 +203,64 @@ class _WordQueueScreenState extends ConsumerState<WordQueueScreen> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    final revision = widget.revision;
+    if (revision != null) {
+      _translations.text = revision.translations;
+      _kasemExample.text = revision.kasemExample;
+      _notes.text = revision.notes;
+      if (revision.dialect.isNotEmpty) _dialect = revision.dialect;
+      _partOfSpeech = partOfSpeechById(revision.partOfSpeechId);
+      _reviseContributionId = revision.contributionId;
+    }
+    _translations.addListener(_noteFormStart);
+    final focusId = widget.focusWordId ?? revision?.wordId;
+    if (focusId != null && focusId.isNotEmpty) _loadFocus(focusId);
+  }
+
+  Future<void> _loadFocus(String wordId) async {
+    setState(() => _focusLoading = true);
+    QueueWord? word;
+    try {
+      word = await ref.read(queueLookupProvider)?.byId(wordId);
+    } on Object {
+      word = null;
+    }
+    if (!mounted) return;
+    setState(() {
+      _focusLoading = false;
+      _focusWord = word;
+      _focusGone = word == null;
+      // The form belongs to this word from the start, so whatever the member
+      // writes before the queue has loaded (or before they sign in) stays.
+      if (word != null) _answeringWordId = word.id;
+    });
+  }
+
+  /// Counts a form start the first time an answer is typed for a word.
+  void _noteFormStart() {
+    final wordId = _answeringWordId;
+    if (wordId == null || _translations.text.trim().isEmpty) return;
+    if (!_startedWords.add(wordId)) return;
+    ref.read(loopAnalyticsProvider).log(
+      LoopEvent.formStart,
+      parameters: loopParameters({
+        'origin': _originFor(wordId),
+        'word_id': wordId,
+        'revision': _reviseContributionId == null ? 0 : 1,
+      }),
+    );
+  }
+
+  /// Where the member came to [wordId] from: the door they arrived by for the
+  /// word they arrived for, the queue itself for every word after it.
+  String _originFor(String wordId) =>
+      wordId == _focusWord?.id ? widget.origin : 'queue';
+
+  @override
   void dispose() {
+    _translations.removeListener(_noteFormStart);
     _translations.dispose();
     _kasemExample.dispose();
     _notes.dispose();
@@ -159,8 +276,38 @@ class _WordQueueScreenState extends ConsumerState<WordQueueScreen> {
     // rural connection to learn something the phone already knew.
     final firebaseReady = ref.watch(firebaseReadyProvider);
     final signedIn = ref.watch(isSignedInProvider);
+    final focusing = widget.focusWordId != null || widget.revision != null;
+    if (focusing && _focusLoading) return _shell(child: const _Waiting());
+    if (focusing && _focusGone) {
+      return _shell(
+        child: _FocusGone(
+          word: widget.revision?.word ?? '',
+          onContinue: () => setState(() => _focusGone = false),
+        ),
+      );
+    }
     if (firebaseReady && !signedIn) {
+      // A guest who came for one word answers it here and signs in to send.
+      // Anybody else is asked to sign in first, as before.
+      if (focusing && _focusWord != null) {
+        return _shell(
+          child: _answering(
+            WordQueueState(stage: WordQueueStage.ready, word: _focusWord),
+            guest: true,
+          ),
+        );
+      }
       return _shell(child: const _SignInFirst());
+    }
+
+    // Signed in with a word to answer first: hand it to the queue once.
+    if (focusing && _focusWord != null && !_focusApplied) {
+      _focusApplied = true;
+      _focusPending = true;
+      final word = _focusWord!;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) ref.read(wordQueueControllerProvider.notifier).focus(word);
+      });
     }
 
     // One place decides that the form belongs to the word above it.
@@ -171,8 +318,16 @@ class _WordQueueScreenState extends ConsumerState<WordQueueScreen> {
     // next one — where it was very easy not to notice before tapping send. The
     // form empties whenever the question changes, whatever changed it.
     ref.listen(wordQueueControllerProvider, (previous, next) {
-      if (previous?.word?.id == next.word?.id) return;
+      // Until the focused word lands, a batch arriving first is not the
+      // member's word, and emptying the form for it would throw away an
+      // answer written before signing in.
+      if (_focusPending) {
+        if (next.word?.id != _focusWord?.id) return;
+        _focusPending = false;
+      }
+      if (next.word?.id == _answeringWordId) return;
       _clearAnswer();
+      _answeringWordId = next.word?.id;
     });
 
     final state = ref.watch(wordQueueControllerProvider);
@@ -222,7 +377,11 @@ class _WordQueueScreenState extends ConsumerState<WordQueueScreen> {
 
   Widget _shell({required Widget child}) => Scaffold(
     backgroundColor: context.brand.background,
-    appBar: AppBar(title: const Text('Translate a word')),
+    appBar: AppBar(
+      title: Text(
+        widget.revision != null ? 'Correct your answer' : 'Translate a word',
+      ),
+    ),
     body: ScreenContainer(
       child: ListView(
         key: const PageStorageKey('word-queue-scroll'),
@@ -234,17 +393,48 @@ class _WordQueueScreenState extends ConsumerState<WordQueueScreen> {
     ),
   );
 
-  Widget _answering(WordQueueState state) {
+  Widget _answering(WordQueueState state, {bool guest = false}) {
     final word = state.word!;
     final brand = context.brand;
+    final revising =
+        _reviseContributionId != null && word.id == widget.revision?.wordId;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        if (revising && widget.revision!.reviewerNote.isNotEmpty) ...[
+          _ReviewerNote(note: widget.revision!.reviewerNote),
+          const SizedBox(height: 12),
+        ],
+        if (guest) ...[
+          Text(
+            'Write your answer now. You will sign in to send it, and nothing '
+            'is sent until you tap Send.',
+            style: TextStyle(
+              color: brand.mutedInk,
+              fontSize: 12.5,
+              height: 1.5,
+            ),
+          ),
+          const SizedBox(height: 14),
+        ] else if (_signedInToSend && word.id == _focusWord?.id) ...[
+          Text(
+            'You are signed in. Your answer is below, not sent yet: check it '
+            'and tap Send.',
+            style: TextStyle(
+              color: brand.ink,
+              fontSize: 12.5,
+              height: 1.5,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 14),
+        ],
         // Shown until the first thing is done and then never again. It is
         // orientation, not instruction: somebody four words in knows how this
         // works, and a sentence that keeps explaining it starts reading as an
         // apology for the screen.
-        if (state.answered == 0 && state.skipped == 0) ...[
+        if (guest) ...[
+        ] else if (state.answered == 0 && state.skipped == 0) ...[
           Text(
             'We give you an English word. You give us the Kasem. '
             'Pass on anything you are not sure about.',
@@ -396,28 +586,52 @@ class _WordQueueScreenState extends ConsumerState<WordQueueScreen> {
           ),
         ),
 
+        const SizedBox(height: 12),
+        _AnswerChoices(
+          creditByName: _creditByName,
+          allowTraining: _allowTraining,
+          enabled: !state.sending,
+          onCreditChanged: (value) => setState(() => _creditByName = value),
+          onTrainingChanged: (value) => setState(() => _allowTraining = value),
+        ),
+
         if (state.message != null) ...[
           const SizedBox(height: 14),
           _QueueMessage(message: state.message!),
         ],
 
         const SizedBox(height: 18),
-        FilledButton.icon(
-          onPressed: state.sending ? null : _submit,
-          icon: state.sending
-              ? const SizedBox.square(
-                  dimension: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const Icon(Icons.send_rounded),
-          label: Text(state.sending ? 'Sending…' : 'Send and take the next'),
-        ),
+        if (guest)
+          FilledButton.icon(
+            onPressed: _signInToSend,
+            icon: const Icon(Icons.login_rounded),
+            label: const Text('Sign in to send'),
+          )
+        else
+          FilledButton.icon(
+            onPressed: state.sending ? null : _submit,
+            icon: state.sending
+                ? const SizedBox.square(
+                    dimension: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.send_rounded),
+            label: Text(
+              state.sending
+                  ? 'Sending…'
+                  : revising
+                  ? 'Send the correction'
+                  : 'Send and take the next',
+            ),
+          ),
         const SizedBox(height: 9),
         const _PointsNote(),
-        const SizedBox(height: 18),
-        _SkipControls(enabled: !state.sending, onSkip: _skip),
-        const SizedBox(height: 18),
-        _OwnWordOffer(enabled: !state.sending, onTap: _addOwnWord),
+        if (!guest) ...[
+          const SizedBox(height: 18),
+          _SkipControls(enabled: !state.sending, onSkip: _skip),
+          const SizedBox(height: 18),
+          _OwnWordOffer(enabled: !state.sending, onTap: _addOwnWord),
+        ],
         // Said only when it is reassuring. "1 more ready" would draw attention
         // to a buffer that is about to be topped up anyway; a healthy number
         // tells a member on a wavering signal that they can keep going.
@@ -433,11 +647,26 @@ class _WordQueueScreenState extends ConsumerState<WordQueueScreen> {
     );
   }
 
+  /// A guest's Send: check the answer, then sign in. Never sends by itself —
+  /// once signed in the member sees their answer and taps Send.
+  Future<void> _signInToSend() async {
+    FocusScope.of(context).unfocus();
+    if (!(_formKey.currentState?.validate() ?? false)) return;
+    if (_partOfSpeech == null) return;
+    await showSignInSheet(context);
+    if (!mounted) return;
+    if (ref.read(isSignedInProvider)) setState(() => _signedInToSend = true);
+  }
+
   Future<void> _submit() async {
     FocusScope.of(context).unfocus();
     if (!(_formKey.currentState?.validate() ?? false)) return;
     final chosen = _partOfSpeech;
     if (chosen == null) return;
+    final wordId = ref.read(wordQueueControllerProvider).word?.id ?? '';
+    final revise = wordId == widget.revision?.wordId
+        ? _reviseContributionId
+        : null;
 
     // Read before sending: the word on screen is about to be replaced, and the
     // sentence is the one thing the offer afterwards needs.
@@ -456,7 +685,11 @@ class _WordQueueScreenState extends ConsumerState<WordQueueScreen> {
         .read(wordQueueControllerProvider.notifier)
         .submit(
           WordTranslationDraft(
-            wordId: ref.read(wordQueueControllerProvider).word?.id ?? '',
+            wordId: wordId,
+            origin: _originFor(wordId),
+            creditByName: _creditByName,
+            allowTraining: _allowTraining,
+            reviseContributionId: revise,
             translations: parseTranslations(_translations.text),
             partOfSpeech: chosen.id,
             dialect: _dialect ?? '',
@@ -498,6 +731,23 @@ class _WordQueueScreenState extends ConsumerState<WordQueueScreen> {
           ),
         );
     if (!sent || !mounted) return;
+
+    ref.read(loopAnalyticsProvider).log(
+      LoopEvent.submit,
+      parameters: loopParameters({
+        'origin': _originFor(wordId),
+        'word_id': wordId,
+        'revision': revise == null ? 0 : 1,
+      }),
+    );
+    // Never offered again in Explore, on this phone, whatever else happens.
+    unawaited(
+      ref.read(queuePromptMemoryProvider.future).then(
+        (memory) => memory.markAnswered(wordId),
+      ),
+    );
+    if (revise != null) _reviseContributionId = null;
+    _signedInToSend = false;
 
     // Offered only after the send, never before it. Interrupting somebody
     // mid-word to ask for a second contribution is how the rhythm of this
@@ -894,24 +1144,52 @@ class _JustSent extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  answer.isEmpty
-                      ? '“${receipt.word}” sent for review'
-                      : '“${receipt.word}” → $answer',
+                  receipt.revised
+                      ? 'Correction submitted for review'
+                      : 'Submitted for review',
                   style: TextStyle(
                     color: brand.ink,
-                    fontSize: 13,
+                    fontSize: 13.5,
                     height: 1.35,
-                    fontWeight: FontWeight.w800,
+                    fontWeight: FontWeight.w900,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  'In the review queue. Worth $kApprovedWordPoints points '
-                  'once a reviewer approves it.',
+                  answer.isEmpty
+                      ? '“${receipt.word}”'
+                      : '“${receipt.word}” → $answer',
+                  style: TextStyle(
+                    color: brand.ink,
+                    fontSize: 12.5,
+                    height: 1.35,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'A reviewer reads it before anybody else sees it. Worth '
+                  '$kApprovedWordPoints points once approved.',
                   style: TextStyle(
                     color: brand.mutedInk,
                     fontSize: 11,
                     height: 1.4,
+                  ),
+                ),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton(
+                    style: TextButton.styleFrom(
+                      visualDensity: VisualDensity.compact,
+                      padding: const EdgeInsets.symmetric(horizontal: 6),
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (context) => const MySubmissionsScreen(),
+                      ),
+                    ),
+                    child: const Text('Follow it in Your submissions'),
                   ),
                 ),
                 // An idiom nobody writes down is an idiom lost. The member has
@@ -1183,6 +1461,175 @@ class _SignInFirst extends ConsumerWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// The word somebody came for is not waiting for answers any more.
+///
+/// Usually the good outcome: it was verified while they were on their way.
+/// Said plainly, with the way on — the queue has thousands of other words.
+class _FocusGone extends StatelessWidget {
+  const _FocusGone({required this.word, required this.onContinue});
+
+  final String word;
+  final VoidCallback onContinue;
+
+  @override
+  Widget build(BuildContext context) {
+    final brand = context.brand;
+    return Padding(
+      padding: const EdgeInsets.only(top: 34),
+      child: GlassSurface(
+        blur: false,
+        padding: const EdgeInsets.fromLTRB(20, 22, 20, 22),
+        child: Column(
+          children: [
+            const GlassIconPlate(icon: Icons.task_alt_rounded, size: 52),
+            const SizedBox(height: 16),
+            Text(
+              word.isEmpty
+                  ? 'That word is not waiting for answers any more.'
+                  : '“$word” is not waiting for answers any more.',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 9),
+            Text(
+              'It may have just been verified — search the dictionary for it — '
+              'or taken out of the queue. There are plenty of other words '
+              'that need somebody who knows them.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: brand.mutedInk, height: 1.55),
+            ),
+            const SizedBox(height: 18),
+            FilledButton.icon(
+              onPressed: onContinue,
+              icon: const Icon(Icons.translate_rounded),
+              label: const Text('Answer other words'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// What the reviewer asked for, above the answer it was about.
+class _ReviewerNote extends StatelessWidget {
+  const _ReviewerNote({required this.note});
+
+  final String note;
+
+  @override
+  Widget build(BuildContext context) {
+    final brand = context.brand;
+    return GlassSurface(
+      blur: false,
+      lifted: false,
+      radius: 16,
+      accent: brand.terracotta,
+      padding: const EdgeInsets.fromLTRB(13, 11, 13, 11),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.rate_review_outlined, size: 17, color: brand.terracotta),
+          const SizedBox(width: 9),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'The reviewer asked for a change',
+                  style: TextStyle(
+                    color: brand.ink,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  note,
+                  style: TextStyle(color: brand.ink, fontSize: 12.5, height: 1.45),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Your earlier answer is filled in below. Correct it and send '
+                  'it back; it keeps its place with the same reviewer.',
+                  style: TextStyle(color: brand.mutedInk, fontSize: 11, height: 1.4),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// How the member is credited, and whether their answer may help train
+/// Indigen's language tools. Kept across words — they are facts about the
+/// member, like the dialect — and the second is off until they turn it on.
+class _AnswerChoices extends StatelessWidget {
+  const _AnswerChoices({
+    required this.creditByName,
+    required this.allowTraining,
+    required this.enabled,
+    required this.onCreditChanged,
+    required this.onTrainingChanged,
+  });
+
+  final bool creditByName;
+  final bool allowTraining;
+  final bool enabled;
+  final ValueChanged<bool> onCreditChanged;
+  final ValueChanged<bool> onTrainingChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final brand = context.brand;
+    Widget row({
+      required String title,
+      required String detail,
+      required bool value,
+      required ValueChanged<bool> onChanged,
+    }) => SwitchListTile.adaptive(
+      contentPadding: EdgeInsets.zero,
+      dense: true,
+      value: value,
+      onChanged: enabled ? onChanged : null,
+      title: Text(
+        title,
+        style: TextStyle(
+          color: brand.ink,
+          fontSize: 13,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+      subtitle: Text(
+        detail,
+        style: TextStyle(color: brand.mutedInk, fontSize: 11, height: 1.4),
+      ),
+    );
+    return Column(
+      children: [
+        row(
+          title: 'Credit me by name when it is published',
+          detail: creditByName
+              ? 'Your display name is shown with the word.'
+              : 'Shown as “an Indigen World contributor”.',
+          value: creditByName,
+          onChanged: onCreditChanged,
+        ),
+        row(
+          title: 'Also let it help test and train language tools',
+          detail:
+              'Only after a reviewer approves it, and never published for '
+              'that. You can withdraw it later from Your submissions.',
+          value: allowTraining,
+          onChanged: onTrainingChanged,
+        ),
+      ],
     );
   }
 }

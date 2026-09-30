@@ -408,3 +408,15 @@
 .involvement-start-today:focus-visible {
   background: #d3ecdc;
 }
+
+.knowledge-intro { display: grid; gap: 2rem; align-items: start; }
+.knowledge-intro .section-heading { margin-bottom: 0; }
+.knowledge-intro .tiny { margin-top: 1rem; }
+.knowledge-intro__areas { background: #fff; padding: clamp(1.25rem, 3vw, 2rem); border: 1px solid #dedbcf; border-radius: 18px; }
+.knowledge-intro__areas h3 { margin-top: 0; }
+.knowledge-intro__areas ul { display: grid; gap: .65rem; padding-left: 1.25rem; }
+.knowledge-intro__areas p { color: var(--muted); line-height: 1.6; }
+@media (min-width: 760px) {
+  .knowledge-intro { grid-template-columns: 1.1fr 1fr; gap: 3rem; }
+  .knowledge-intro__areas ul { grid-template-columns: 1fr 1fr; column-gap: 1.5rem; }
+}

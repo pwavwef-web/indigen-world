@@ -47,7 +47,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsAutoplayBody =>
-      'Les clips du fil communautaire démarrent seuls, sans son. Désactivé, vous économisez des données sur un forfait limité — touchez un clip pour le regarder.';
+      'Les clips du fil communautaire démarrent seuls, sans son. Désactivé, vous économisez des données sur un forfait limité — touchez un clip pour le regarder, et Explorer ne charge que la vidéo affichée.';
 
   @override
   String get navExplore => 'Explorer';

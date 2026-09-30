@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <rect width="1200" height="630" fill="#f3f5f9"/>
+  <path d="M0 0h1200v12H0z" fill="#1f50d6"/>
+  <g font-family="Arial, sans-serif">
+    <text x="64" y="80" fill="#1f50d6" font-size="21" font-weight="700">INDIGEN WORLD · TRIBESTUDIO</text>
+    <text x="64" y="152" fill="#0b1428" font-size="52" font-weight="700">Review from your browser.</text>
+    <text x="64" y="196" fill="#4a5878" font-size="23">The contributor portal’s review desk</text>
+    <rect x="64" y="238" width="1072" height="68" rx="14" fill="#eef3ff" stroke="#c9d8fb"/>
+    <path d="M99 250l-14 6v13c0 11 8 19 14 22 7-3 14-11 14-22v-13z" fill="none" stroke="#1f50d6" stroke-width="3"/>
+    <path d="m91 268 6 6 10-12" fill="none" stroke="#1f50d6" stroke-width="3"/>
+    <text x="134" y="281" fill="#1c2842" font-size="23" font-weight="700">Existing validator, reviewer and administrator permissions</text>
+    <g fill="#fff" stroke="#d9dfe9"><rect x="64" y="342" width="250" height="148" rx="16"/><rect x="338" y="342" width="250" height="148" rx="16"/><rect x="612" y="342" width="250" height="148" rx="16"/><rect x="886" y="342" width="250" height="148" rx="16"/></g>
+    <g fill="#0b1428" font-size="26" font-weight="700"><text x="87" y="390">Contributions</text><text x="362" y="390">Sentences</text><text x="636" y="390">Adverts</text><text x="910" y="390">Names</text></g>
+    <g fill="#4a5878" font-size="19"><text x="87" y="427">Evidence and consent</text><text x="87" y="455">Feedback and decisions</text><text x="362" y="427">Meaning and context</text><text x="362" y="455">Independent judgments</text><text x="636" y="427">Creative and payment</text><text x="636" y="455">Run, pause or resume</text><text x="910" y="427">Community requests</text><text x="910" y="455">Add or reject a name</text></g>
+    <text x="64" y="545" fill="#1f50d6" font-size="22">tribestudio.indigenworld.com/contributor/review</text>
+    <text x="64" y="594" fill="#5f6b86" font-size="17">Workflow illustration · Hosting deployed; signed-in production checks pending</text>
+  </g>
+</svg>

@@ -17,6 +17,7 @@ import 'package:indigen_world_mobile/features/learn/learn_screen.dart';
 import 'package:indigen_world_mobile/features/music/widgets/music_widgets.dart';
 import 'package:indigen_world_mobile/features/notifications/data/notification_providers.dart';
 import 'package:indigen_world_mobile/features/notifications/push_messaging.dart';
+import 'package:indigen_world_mobile/features/profile/saved_words_sync.dart';
 import 'package:indigen_world_mobile/features/subscriptions/data/subscription_providers.dart';
 import 'package:indigen_world_mobile/l10n/app_localizations.dart';
 import 'package:indigen_world_mobile/shared/connection_banner.dart';
@@ -199,6 +200,11 @@ class _AppShellState extends ConsumerState<AppShell>
     // both fail harmlessly, so this sits with the other shell-level concerns
     // rather than in front of a member as a step.
     ref.watch(restoreCredentialProvider);
+    // Saved words follow the account: once per sign-in, the account's list is
+    // brought down and reconciled with this phone's. Another shell-level
+    // concern for the same reason as the two above — it has to happen
+    // whichever tab the member signs in from.
+    ref.watch(savedWordsSyncProvider);
     // A tapped push may arrive before any route can consume it, so it is parked
     // in a provider and routed from here once there is a router to route with.
     ref.listen<String?>(pendingPushRouteProvider, (_, route) {

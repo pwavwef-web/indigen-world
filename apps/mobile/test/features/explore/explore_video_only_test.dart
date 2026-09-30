@@ -47,7 +47,7 @@ ProviderContainer _container({List<String> following = const []}) {
     overrides: [
       publishedReelsProvider.overrideWith((ref) => Stream.value(_everything)),
       followingIdsProvider.overrideWith((ref) => Stream.value(following)),
-      communityFeedProvider.overrideWithValue(
+      exploreCommunityFeedProvider.overrideWithValue(
         const AsyncValue.data(<CommunityPost>[]),
       ),
       followingFeedProvider.overrideWithValue(

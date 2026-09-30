@@ -21,7 +21,7 @@ Code: `apps/mobile/lib/features/explore/`. Tests: `apps/mobile/test/features/exp
 | Playback | Active reel only | Active reel plays; the next reel opens paused; everything else is released. Mute persists (`explore.sound.muted.v1`) |
 | Views | Written on arrival | Written after a qualified view (3 s of playback, or half of a short clip) |
 
-## 2. Backend: nothing to deploy
+## 2. Backend: nothing to deploy (until 0.1.28 — see §6)
 
 - **Firestore query.** `publishedContent` now uses `mediaType in ['video','image']`.
   `in` is served by the existing (publicationStatus, mediaType, publishedAt)
@@ -90,3 +90,26 @@ layouts.
 Not verified: real network video and images, and a physical Android device.
 Pronunciation playback uses the dictionary's existing `PronunciationButton`
 and was not played on a device.
+
+## 6. 0.1.28: keeping the member's place (2026-09-27)
+
+Four causes of "Explore jumps about", each fixed where it lived:
+
+| Symptom | Cause | Now |
+| --- | --- | --- |
+| After switching topic or For you / Following and back, the reel on screen did not play until a swipe | `PageController` kept the default `keepPage: true` under a `PageStorageKey`, so a rebuilt pager restored its old page while `_activeIndex` restarted at 0 | `keepPage: false` and a plain `ValueKey`; a topic or feed opens at its top |
+| Coming back to Explore landed on an odd reel, or sprang to the end | Leaving the tab reset the window, the re-queued passes and the topic while the pager kept its index | Nothing resets on the way out. Back within `kExploreFreshStartAfter` (15 min) → the same reel; longer away (tab or app background) → a fresh start in one step, with a new pager (`_session` in its key). Tapping the selected For you / Following also starts fresh |
+| Reels already watched came round again; others were never shown | `rankForYou` re-sorted the whole catalogue on every window growth and snapshot | Once past the first reel the dealt order is frozen (`exploreDealtOrderProvider`, keyed by feed and topic); `keepDealtOrder` keeps it and appends new arrivals. Cleared whenever the ranking restarts |
+| The feed ran dry and looped early | The community half was the Community tab's general feed filtered to video on the phone | `CommunityRepository.watchVideoFeed` over Explore's own window (see below) |
+
+Playback, in `ReelFeedView` / `_ReelCard`:
+
+- The reel in front and the ones either side hold players (`keepPlayer`); the previous one stays paused where it was left, so a swipe back is instant. At most three.
+- `holdPlayers` (Explore passes "my tab is selected") and the app lifecycle decide whether players may be held at all. When either goes, every player is released after `kReelPlayerReleaseGrace` (30 s). Screens Explore pushes over itself only pause.
+- With **Play videos automatically** off (`videoAutoplayProvider`) only the reel in front opens.
+- Double-tap appreciates (never unlikes) and draws a gold heart. It is counted by hand in `_onTapUp` with a timer rather than with `onDoubleTap`: a double-tap recogniser holds the gesture arena and delayed every rail button by 300 ms. A burst writes one like (`_doubleTapLikes`). Adverts have no double-tap.
+- The illustrative "Preview reel" mode (`isLive`, `reel_keeps.dart`) is gone; every reel the app builds is real.
+
+**The video query.** `watchVideoFeed(limit)` asks for `hasVideo == true`, `isReply == false`, newest first. `createPost` writes `hasVideo` since 0.1.28; older posts need `services/functions/scripts/backfill-community-has-video.mjs`. The composite index `(hasVideo, isReply, createdAt desc)` is in `firestore.indexes.json`. Until it is deployed the query is refused with `failed-precondition` and the main feed stands in — what Explore read before. **Run the backfill before deploying the index**, or older community videos disappear from Explore until it runs. `exploreCommunityFeedProvider` applies the same hide/mute/block rules as the Community feed, and `communityFeedWindowProvider` is the Community tab's own window again.
+
+Tests: `explore_feed_widget_test.dart` (keeping the place, player window, grace release, data saver, double-tap), `explore_dealt_order_test.dart`, `explore_window_test.dart`.

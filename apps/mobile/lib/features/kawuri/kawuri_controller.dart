@@ -272,6 +272,7 @@ class KawuriController extends Notifier<KawuriState> {
       conversationId: conversationId,
       taskId: answer.taskId,
       analysis: answer.analysis,
+      lookups: answer.lookups,
     );
     if (state.conversationId == conversationId) {
       state = state.copyWith(

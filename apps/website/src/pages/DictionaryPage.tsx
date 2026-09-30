@@ -9,7 +9,7 @@ import {
 } from "../features/dictionary/dictionaryData";
 import { useDocumentMeta } from "../lib/useDocumentMeta";
 
-import { createFromDiscovery } from "../content/creatorLinks";
+import { createFromDiscovery, knowledgeFromDictionary } from "../content/creatorLinks";
 
 const route = ROUTES_BY_PATH.dictionary;
 const SAVED_WORDS_KEY = "indigen-world:saved-dictionary-entries";
@@ -229,6 +229,8 @@ function DictionaryDetail({
         </Button>
         <Button href={createFromDiscovery(`dictionary?entry=${encodeURIComponent(entry.id)}`)} external variant="secondary" className="dictionary-correction">Create a related story or lesson</Button>
         <p className="tiny">Your source link follows you to TribeStudio. Corrections go to the review team.</p>
+        <Button href={knowledgeFromDictionary(entry.id)} external variant="secondary" className="dictionary-correction">Contribute context or a pronunciation</Button>
+        <p className="tiny">Open a knowledge record linked to this word, with your source, regional usage and permission choices.</p>
       </div>
     </aside>
   );

@@ -90,6 +90,13 @@ class FakeCommunityRepository implements CommunityRepository {
   }
 
   @override
+  Stream<List<CommunityPost>> watchVideoFeed({int limit = 40}) => Stream.value(
+    _topLevel
+        .where((post) => post.media.any((item) => item.isVideo))
+        .toList(growable: false),
+  );
+
+  @override
   Stream<List<CommunityPost>> watchFollowingFeed(
     List<String> authorIds, {
     int limit = 40,

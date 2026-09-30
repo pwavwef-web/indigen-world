@@ -13,7 +13,7 @@
  * rows explicitly marked as readable.
  */
 import { getApp, getApps, initializeApp, type FirebaseApp } from "firebase/app";
-import { getFirestore, type Firestore } from "firebase/firestore";
+import { connectFirestoreEmulator, getFirestore, type Firestore } from "firebase/firestore";
 
 const productionFirebaseConfig = {
   apiKey: "AIzaSyDe9TAz3pl0tiNqpIZZ0EQxmPEgMtf6kRA",
@@ -47,5 +47,11 @@ export function websiteFirebaseApp(): FirebaseApp {
 }
 
 export function websiteFirestore(): Firestore {
-  return getFirestore(websiteFirebaseApp());
+  const db = getFirestore(websiteFirebaseApp());
+  if (import.meta.env.DEV && import.meta.env.VITE_USE_EMULATORS === 'true' && !connectedFirestore) {
+    connectFirestoreEmulator(db, '127.0.0.1', 8080);
+    connectedFirestore = true;
+  }
+  return db;
 }
+let connectedFirestore = false;

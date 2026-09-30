@@ -326,6 +326,50 @@ service firebase.storage {
     // goes through deleteKawuriCreation, which removes the record with them.
     // Not covered by any lifecycle rule: a creation is kept until its owner
     // deletes it.
+    // ---- The TribeStudio video editor --------------------------------------
+    //
+    // A project's own media: footage, pictures and sound the member brings in.
+    // Private to its owner, like every raw upload; the renderer reads it with
+    // the Admin SDK. Deleting a project removes the whole folder server-side.
+    match /video-projects/{uid}/{projectId}/media/{mediaId}/{fileName} {
+      allow read: if isSignedIn() && request.auth.uid == uid;
+      allow create: if isSignedIn() && request.auth.uid == uid && !isBlockedCreator()
+        && resource == null
+        && (
+          (request.resource.contentType.matches('video/.*') && request.resource.size < 500 * 1024 * 1024)
+          || (request.resource.contentType.matches('audio/.*') && request.resource.size < 100 * 1024 * 1024)
+          || (request.resource.contentType.matches('image/(png|jpeg|webp)') && request.resource.size < 25 * 1024 * 1024)
+        );
+      allow delete: if isSignedIn() && request.auth.uid == uid;
+      allow update: if false;
+    }
+
+    // Text, captions and title cards the editor drew for one export, uploaded
+    // just before it starts and deleted by the renderer once it has succeeded.
+    match /video-projects/{uid}/{projectId}/layers/{requestId}/{fileName} {
+      allow read: if isSignedIn() && request.auth.uid == uid;
+      allow create: if isSignedIn() && request.auth.uid == uid && !isBlockedCreator()
+        && resource == null
+        && request.resource.contentType == 'image/png'
+        && request.resource.size < 6 * 1024 * 1024;
+      allow delete: if isSignedIn() && request.auth.uid == uid;
+      allow update: if false;
+    }
+
+    // Finished exports: written by the renderer only. The editor downloads
+    // them through signed links from `getVideoRenderUrl`.
+    match /video-renders/{uid}/{renderId}/{fileName} {
+      allow read: if isSignedIn() && request.auth.uid == uid;
+      allow write: if false;
+    }
+
+    // The editor's music and sticker libraries: public files, published by
+    // tools/media-library/publish.mjs with the Admin SDK.
+    match /media-library/{kind}/{fileName} {
+      allow read: if true;
+      allow write: if false;
+    }
+
     match /kawuri-creations/{uid}/{taskId}/{fileName} {
       allow read: if isSignedIn() && request.auth.uid == uid;
       allow write: if false;

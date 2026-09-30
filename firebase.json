@@ -86,6 +86,7 @@
         }
       ],
       "rewrites": [
+        { "source": "/labs/**", "destination": "/labs/index.html" },
         {
           "source": "/api/public-forms",
           "function": {

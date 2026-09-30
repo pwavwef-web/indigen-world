@@ -518,6 +518,63 @@ test('uninvited signed-in users cannot render the contributor dashboard or load 
   h.dispose();
 });
 
+test('the review URL requires a review role and does not require a contributor invitation', async () => {
+  const { canValidate } = await load('src/auth.ts', ['canValidate'], { GoogleAuthProvider: class {} });
+  for (const role of [null, 'creator', 'contributor', 'validator', 'reviewer', 'admin', 'super_admin']) {
+    const h = hooks(); let reads = 0;
+    const ReviewDesk = () => {};
+    const { ContributorPortal } = await load('src/contributor/ContributorPortal.tsx', ['ContributorPortal'], {
+      ...h.api, db: {}, ReviewDesk, canValidate,
+      useAuth: () => ({ user: { uid: 'test' }, role, ready: true }),
+      useRoute: () => ({ path: '/contributor/review', search: '' }),
+      invitationLinkOwner: () => null,
+      onSnapshot: () => { reads++; return () => {}; },
+    });
+    const tree = h.render(ContributorPortal); h.flush();
+    assert.equal(Boolean(find(tree, node => node.type === ReviewDesk)), canValidate(role), String(role));
+    assert.equal(reads, 0, 'review access never starts contributor data reads');
+    h.dispose();
+  }
+});
+
+test('review decisions respect status, feedback, consent and linked dictionary entries', async () => {
+  const { decisionsFor, decisionRequest, safeUrl } = await load('src/contributor/review/model.ts', ['decisionsFor', 'decisionRequest', 'safeUrl']);
+  const item = { id: 's', status: 'SUBMITTED', collectionKind: 'dictionary', permissions: {} };
+  assert.ok(!decisionsFor('contributions', item).includes('REQUEST_REVISION'));
+  assert.ok(decisionsFor('contributions', { ...item, wordQueueId: 'q' }).includes('REQUEST_REVISION'));
+  assert.throws(() => decisionRequest('contributions', item, 'PUBLISH', '', 'headword', ''), /unavailable/);
+  assert.throws(() => decisionRequest('contributions', item, 'REJECT', 'no', 'headword', ''), /5 characters/);
+  assert.throws(() => decisionRequest('contributions', item, 'APPROVE', '', 'training', ''), /permission/);
+  assert.throws(() => decisionRequest('contributions', item, 'APPROVE', '', 'variant', ''), /existing dictionary/);
+  assert.throws(() => decisionRequest('contributions', item, 'APPROVE', '', 'example', 'entry'), /Kasem example/);
+  const request = decisionRequest('contributions', item, 'APPROVE', ' checked ', 'variant', 'word');
+  assert.equal(request.callable, 'decideSubmission');
+  assert.equal(request.data.entryId, 'word');
+  assert.equal(request.data.feedback, 'checked');
+  assert.ok(!decisionsFor('contributions', { ...item, status: 'APPROVED' }).includes('PUBLISH'));
+  assert.ok(decisionsFor('contributions', { ...item, status: 'APPROVED', permissions: { publication: true } }).includes('PUBLISH'));
+  assert.equal(decisionsFor('contributions', { ...item, status: 'PUBLISHED' }).length, 0);
+  assert.equal(decisionRequest('names', { id: 'n', status: 'pending' }, 'approve', '', '', '').callable, 'decideKasemNameRequest');
+  assert.equal(decisionRequest('adverts', { id: 'a', status: 'ACTIVE' }, 'PAUSE', '', '', '').callable, 'decideAdCampaign');
+  assert.equal(safeUrl('javascript:alert(1)'), null);
+  assert.equal(safeUrl('https://example.com'), 'https://example.com/');
+});
+
+test('the review desk mounts no queue listeners for guests, contributors or unresolved access', async () => {
+  const { canValidate } = await load('src/auth.ts', ['canValidate'], { GoogleAuthProvider: class {} });
+  for (const state of [{ ready: false, user: { uid: 'u' }, role: 'validator' }, { ready: true, user: null, role: null }, { ready: true, user: { uid: 'u' }, role: 'contributor' }]) {
+    const h = hooks(); let reads = 0;
+    const { ReviewDesk } = await load('src/contributor/review/ReviewDesk.tsx', ['ReviewDesk'], {
+      ...h.api, canValidate, useAuth: () => state,
+      onSnapshot: () => { reads++; return () => {}; },
+    });
+    const tree = h.render(ReviewDesk); h.flush();
+    assert.equal(tree.type, 'p');
+    assert.equal(reads, 0);
+    h.dispose();
+  }
+});
+
 test('assignment filters separate saved drafts from submissions and revision feedback', async () => {
   const { contributionState } = await load('src/contributor/model.ts', ['contributionState'], { functions: {}, httpsCallable: () => () => {} });
   assert.equal(contributionState({ translation: '', alternatives: [], status: 'draft' }), 'Not started');

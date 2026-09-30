@@ -1,0 +1,19 @@
+<!doctype html>
+<meta charset="utf-8">
+<link rel="stylesheet" href="style.css">
+<style>
+  .phone { --w: 430px; }
+  .stage { gap: 96px; }
+</style>
+<div class="stage">
+  <div class="phone"><img src="../screens/explore-heart.png" alt=""></div>
+  <div class="points">
+    <div class="eyebrow">Explore</div>
+    <h2>It stays where you left it</h2>
+    <div class="point"><span class="dot"></span><div><strong>Back to the reel you left</strong><span>Switch topic, check a message, come back: the same reel, playing.</span></div></div>
+    <div class="point"><span class="dot"></span><div><strong>No reshuffling as more loads</strong><span>New reels join the end. What you have seen stays seen.</span></div></div>
+    <div class="point green"><span class="dot"></span><div><strong>Swipe back without waiting</strong><span>The reel you just watched is still there, paused where you left it.</span></div></div>
+    <div class="point amber"><span class="dot"></span><div><strong>Double-tap to appreciate</strong><span>A gold heart where your finger lands. It never takes a like back.</span></div></div>
+  </div>
+</div>
+<script>Promise.all([...document.images].map((i) => i.decode().catch(() => {}))).then(() => document.fonts.ready).then(() => { window.__ready = true; });</script>

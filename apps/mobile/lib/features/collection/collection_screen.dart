@@ -152,6 +152,7 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen>
         itemMatches: _heroMatches,
         onRetry: () => ref.invalidate(kasemHeroesProvider),
         onOpen: (tile) => _open(tile, const HeroesCollectionScreen()),
+        hideWhenEmpty: true,
       ),
       _portal<DirectoryApp>(
         title: l10n.collectionApps,
@@ -162,6 +163,7 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen>
         itemMatches: _directoryAppMatches,
         onRetry: () => ref.invalidate(directoryAppsProvider),
         onOpen: (tile) => _open(tile, const AppsCollectionScreen()),
+        hideWhenEmpty: true,
       ),
       _portal<ShopProduct>(
         title: l10n.collectionShop,
@@ -172,11 +174,13 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen>
         itemMatches: _shopProductMatches,
         onRetry: () => ref.invalidate(shopProductsProvider),
         onOpen: (tile) => _open(tile, const ShopCollectionScreen()),
+        hideWhenEmpty: true,
       ),
     ];
 
     final query = _normalise(_query);
     final visiblePortals = portals
+        .where((portal) => !portal.hiddenWhileEmpty)
         .where((portal) => portal.matchesSearch(query))
         .toList(growable: false);
     final hasLoading = portals.any((portal) => portal.loading);
@@ -254,6 +258,7 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen>
     required ValueChanged<BuildContext> onOpen,
     CollectionKind? liveKind,
     bool available = true,
+    bool hideWhenEmpty = false,
   }) {
     final data = value.asData?.value;
     final failed = data == null && value.hasError;
@@ -269,6 +274,7 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen>
       onRetry: failed ? onRetry : null,
       onOpen: available ? onOpen : null,
       liveKind: liveKind,
+      hideWhenEmpty: hideWhenEmpty,
       contentMatches: data == null
           ? null
           : (query) => data.any((item) => itemMatches(item, query)),
@@ -317,6 +323,7 @@ class _CollectionPortal {
     required this.onOpen,
     required this.contentMatches,
     this.liveKind,
+    this.hideWhenEmpty = false,
   });
 
   final String title;
@@ -337,6 +344,20 @@ class _CollectionPortal {
   /// The player collection this channel is, when it is one — so the tile can
   /// say it is playing.
   final CollectionKind? liveKind;
+
+  /// Whether the tile stays off the grid while its catalogue is empty.
+  ///
+  /// For the three the console curates by hand — heroes, the app directory
+  /// and the shop. Each used to sit on the grid saying "0 published" and open
+  /// an empty screen, a door into a room with nothing in it. They come back on
+  /// their own the moment something is published. The archive's own channels
+  /// always show, empty or not: an empty Music shelf is an invitation to add
+  /// the first song, and its screen says so.
+  final bool hideWhenEmpty;
+
+  /// Loaded, empty, and one of the tiles that hides when it is.
+  bool get hiddenWhileEmpty =>
+      hideWhenEmpty && !loading && !failed && (count ?? 0) == 0;
 
   bool get isOpen => available && onOpen != null;
   bool get hasPublished => count != null && count! > 0;

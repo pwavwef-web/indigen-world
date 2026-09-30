@@ -51,3 +51,8 @@ test('audio attribution preserves existing visible source or contributor fallbac
   }
   assert.ok(!attributionWithAudioNotice({source:{id:'internal'}},'Chinedum').includes('[object Object]'));
 });
+test('notes cannot silently approve a recording for the original meaning',()=>{
+  const r=review({gemini38:'acceptable'});
+  r.reviews[1].notes='Sounds right only for a different meaning';
+  assert.throws(()=>approvedPlan(manifest,r),/sense-resolution/);
+});

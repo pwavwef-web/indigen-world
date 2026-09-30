@@ -283,9 +283,26 @@ export async function fetchReviewQueue(): Promise<Submission[]> {
     .sort((a, b) => (a.lifecycle.createdAt ?? '').localeCompare(b.lifecycle.createdAt ?? ''));
 }
 
-export async function decideSubmission(submissionId: string, decision: string, feedback: string, scores: Record<string, number> = {}) {
-  const call = httpsCallable<{ submissionId: string; decision: string; feedback: string; scores: Record<string, number> }, unknown>(functions, 'decideSubmission');
-  return call({ submissionId, decision, feedback, scores });
+/**
+ * For a word-queue answer, what the reviewer decided it becomes and the
+ * dictionary entry a variant, an example or a duplicate refers to. See
+ * `PUBLISH_AS` in services/functions/src/language-loop.ts.
+ */
+export interface DecisionExtras {
+  publishAs?: string;
+  entryId?: string;
+  reason?: string;
+}
+
+export async function decideSubmission(
+  submissionId: string,
+  decision: string,
+  feedback: string,
+  scores: Record<string, number> = {},
+  extras: DecisionExtras = {},
+) {
+  const call = httpsCallable<Record<string, unknown>, unknown>(functions, 'decideSubmission');
+  return call({ submissionId, decision, feedback, scores, ...extras });
 }
 
 // ---------------------------------------------------------------------------

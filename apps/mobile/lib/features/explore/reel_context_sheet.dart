@@ -7,6 +7,7 @@ import 'package:indigen_world_mobile/features/dictionary/entry_detail_screen.dar
     show PronunciationButton;
 import 'package:indigen_world_mobile/features/dictionary/word_lookup.dart';
 import 'package:indigen_world_mobile/features/explore/reel_view.dart';
+import 'package:indigen_world_mobile/features/kawuri/kawuri_lesson.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_models.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_service.dart';
 import 'package:indigen_world_mobile/shared/glass_popup.dart';
@@ -442,7 +443,7 @@ class ReelAttributionDetails extends StatelessWidget {
         ('Created', formatReelDate(created)),
       if (reel.publishedAt case final published?)
         ('Published', formatReelDate(published)),
-      if (reel.isLive && !reel.isCommunity && !reel.isSponsored)
+      if (!reel.isCommunity && !reel.isSponsored)
         (
           'Review',
           reel.isReviewed
@@ -787,10 +788,28 @@ class _ReelAiExplanationState extends ConsumerState<ReelAiExplanation> {
               ),
             ),
             const SizedBox(height: 10),
-            OutlinedButton.icon(
-              onPressed: _ask,
-              icon: const Icon(Icons.auto_awesome_outlined, size: 18),
-              label: const Text('Ask Kawuri to explain'),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                OutlinedButton.icon(
+                  onPressed: _ask,
+                  icon: const Icon(Icons.auto_awesome_outlined, size: 18),
+                  label: const Text('Ask Kawuri to explain'),
+                ),
+                // A lesson on the verified words this post is about. The post
+                // is the topic; its own Kasem is labelled as unreviewed.
+                if (reelLesson(widget.reel) case final lesson?)
+                  FilledButton.tonalIcon(
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (context) => KawuriLessonScreen(lesson: lesson),
+                      ),
+                    ),
+                    icon: const Icon(Icons.school_outlined, size: 18),
+                    label: const Text('Practise with Kawuri'),
+                  ),
+              ],
             ),
           ],
         );
@@ -1124,4 +1143,16 @@ class _RelatedLink extends StatelessWidget {
       ),
     );
   }
+}
+
+/// The Kawuri lesson a reel can offer, or null for one that cannot have one
+/// (an advert).
+KawuriLesson? reelLesson(Reel reel) {
+  if (reel.isSponsored) return null;
+  final title = reel.title.trim().isEmpty ? 'This post' : reel.title.trim();
+  if (reel.communityPostId case final postId?) {
+    return KawuriLesson.community(id: postId, title: title);
+  }
+  if (reel.id.isEmpty || reel.id.contains(':')) return null;
+  return KawuriLesson.post(id: reel.id, title: title);
 }

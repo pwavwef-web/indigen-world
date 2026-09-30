@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { useRoute } from '../../router';
+import { canValidate, useAuth } from '../../auth';
 import {
   ActivityList,
   Card,
@@ -51,6 +52,7 @@ export function currentAssignment(works: Work[], items: Record<string, Item[]>):
 
 export function OverviewPage() {
   const data = useWorkspace();
+  const { role } = useAuth();
   const { self, payments } = useShared();
   const { navigate } = useRoute();
   const now = useNow();
@@ -83,7 +85,7 @@ export function OverviewPage() {
 
   return (
     <div className="cw-page">
-      <PageHeader kicker="Overview" title={name ? `Welcome back, ${name}` : 'Welcome back'} description={summary} id="page-title" />
+      <PageHeader kicker="Overview" title={name ? `Welcome back, ${name}` : 'Welcome back'} description={summary} id="page-title" actions={!data.preview && canValidate(role) ? <PortalLink to="/contributor/review" className="button--primary"><Icon name="shield" />Open review desk</PortalLink> : null} />
 
       {data.worksState === 'error' || data.itemsState === 'error' ? (
         <Notice tone="danger" title="Your assignments could not be loaded" action={<button type="button" onClick={() => window.location.reload()}>Reload</button>}>

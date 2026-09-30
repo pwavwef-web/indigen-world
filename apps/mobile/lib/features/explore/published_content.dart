@@ -363,7 +363,7 @@ final publishedContentRepositoryProvider =
     });
 
 /// The live Explore feed of real, published TribeStudio content. Empty when
-/// nothing is published yet; the UI falls back to a curated preview in that case.
+/// nothing is published yet, which Explore says in words rather than filling.
 final publishedReelsProvider = StreamProvider<List<PublishedReel>>((ref) {
   final repository = ref.watch(publishedContentRepositoryProvider);
   if (repository == null) return Stream.value(const <PublishedReel>[]);

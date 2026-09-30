@@ -53,12 +53,12 @@ void main() {
       expect(Reel.fromPublished(reel).creatorId, 'afi-uid');
     });
 
-    test('the curated preview has no creator page to open', () {
-      const preview = Reel(
-        id: 'preview-1',
+    test('a reel with no account behind it has no creator page to open', () {
+      const orphan = Reel(
+        id: 'orphan-1',
         imageUrl: '',
-        label: 'PREVIEW',
-        title: 'Illustrative only',
+        label: 'LABEL',
+        title: 'Nobody signed this',
         creator: '@somebody',
         initials: 'SB',
         caption: '',
@@ -66,8 +66,7 @@ void main() {
         credit: '',
       );
 
-      expect(preview.creatorId, isEmpty);
-      expect(preview.isLive, isFalse);
+      expect(orphan.creatorId, isEmpty);
     });
   });
 

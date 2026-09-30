@@ -11,9 +11,12 @@ import 'package:indigen_world_mobile/features/ads/data/served_ad.dart';
 import 'package:indigen_world_mobile/features/ads/widgets/sponsored_card.dart';
 import 'package:indigen_world_mobile/features/collection/collection_data.dart';
 import 'package:indigen_world_mobile/features/contribute/words/data/parts_of_speech.dart';
+import 'package:indigen_world_mobile/features/contribute/words/data/queue_lookup.dart';
+import 'package:indigen_world_mobile/features/contribute/words/help_add_word.dart';
 import 'package:indigen_world_mobile/features/dictionary/dictionary_search.dart';
 import 'package:indigen_world_mobile/features/dictionary/entry_detail_screen.dart';
 import 'package:indigen_world_mobile/features/dictionary/result_row.dart';
+import 'package:indigen_world_mobile/features/dictionary/topic_screen.dart';
 import 'package:indigen_world_mobile/features/settings/kasem_keyboard_toggle.dart';
 import 'package:indigen_world_mobile/shared/app_widgets.dart';
 import 'package:indigen_world_mobile/shared/glass_surface.dart';
@@ -257,6 +260,21 @@ class _DictionaryScreenState extends ConsumerState<DictionaryScreen> {
         body: 'Published entries appear here as the community adds them.',
       );
     }
+    // The topics sit above the list rather than in it: the letter rail jumps
+    // by row index, and a header row would put every jump one row out.
+    return Column(
+      children: [
+        const DictionaryTopicsStrip(),
+        Expanded(child: _browseList(all, letters, counts)),
+      ],
+    );
+  }
+
+  Widget _browseList(
+    List<DictionaryEntry> all,
+    List<String> letters,
+    Map<String, int> counts,
+  ) {
     return ScreenContainer(
       child: Row(
         children: [
@@ -543,6 +561,12 @@ class _NoResults extends StatelessWidget {
                 ),
             ],
           ),
+        ],
+        // The dead end turned round: an English word nobody has verified is a
+        // queue item, and the member who searched for it may know it.
+        if (!narrowed && isQueueableEnglish(query)) ...[
+          const SizedBox(height: 28),
+          HelpAddWordCard(english: query, source: HelpAddSource.search),
         ],
       ],
     );

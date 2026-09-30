@@ -69,6 +69,10 @@ function EntryDetail({ entry, saved, onToggleSaved }: {
         {entry.culturalNote && <div><dt>Usage and context</dt><dd>{entry.culturalNote}</dd></div>}
       </dl>
       <details className="source-note"><summary>Source and attribution</summary><p>{entry.attribution}</p></details>
+      <a className="knowledge-link" href={`https://tribestudio.indigenworld.com/studio/knowledge?related=${encodeURIComponent(`dictionaryEntries:${entry.id}`)}`}>
+        Contribute context or a pronunciation <span aria-hidden="true">↗</span>
+      </a>
+      <p className="knowledge-link__hint">Add a source, regional usage or recording in TribeStudio. Your record will be linked to this word for human review.</p>
     </article>
   );
 }

@@ -881,13 +881,19 @@ export const withdrawCollectionContribution = onCall(
       tx.update(submissionRef, {
         status: 'WITHDRAWN',
         'permissions.publication': false,
+        // Withdrawing takes back every use the contributor allowed, training
+        // included; the pair kept for it goes below.
+        'permissions.aiTraining': false,
         'moderation.feedback': 'Withdrawn by the contributor.',
         'lifecycle.updatedAt': now,
         'lifecycle.version': FieldValue.increment(1),
       });
+      // A reviewer may have kept this answer as training material. Deleting a
+      // pair that was never written is harmless, so this is unconditional.
+      tx.delete(db.collection('contributorTrainingPairs').doc(submissionId));
       if (publicSnap.exists) {
-        if (target.collection === 'expressionEntries') {
-          // ISO strings, like every other date on an expression entry.
+        if (target.collection === 'expressionEntries' || target.collection === 'languageResources') {
+          // ISO strings, like every other date on these records.
           tx.update(publicRef, { isPublished: false, withdrawnAt: now, updatedAt: now });
         } else if (target.collection === 'dictionaryEntries') {
           tx.update(publicRef, {

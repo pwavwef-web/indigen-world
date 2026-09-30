@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:indigen_world_mobile/features/notifications/notification_settings_screen.dart';
 import 'package:indigen_world_mobile/features/settings/licences_screen.dart';
@@ -47,15 +48,13 @@ void main() {
     for (final label in const [
       'ACCOUNT',
       'Change password',
-      'COMMUNITY',
-      'Saved posts',
-      'Community guidelines',
       'PREFERENCES',
       'NOTIFICATIONS',
       'Notifications',
       'Notification settings',
       'PRIVACY AND DATA',
       'ABOUT',
+      'Community guidelines',
       'Licences',
       'Terms of use',
     ]) {
@@ -63,6 +62,28 @@ void main() {
       await tester.pump();
       expect(find.text(label), findsOneWidget, reason: 'missing $label');
     }
+  });
+
+  testWidgets('shortcuts that live elsewhere are not repeated here', (
+    tester,
+  ) async {
+    // Saved posts and downloads are in My Space's library, and member search
+    // is in Community's own header and drawer. A settings page that also
+    // offered them was a second door to each, and the longest page in the app.
+    //
+    // Tall enough that the lazy list builds every row at once, so "nothing
+    // found" means absent rather than scrolled away.
+    tester.view.physicalSize = const Size(1080, 12000);
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await pumpSettings(tester);
+    expect(find.text('Terms of use'), findsOneWidget);
+
+    expect(find.text('COMMUNITY'), findsNothing);
+    expect(find.text('Saved posts'), findsNothing);
+    expect(find.text('Find people'), findsNothing);
+    expect(find.text('Downloads'), findsNothing);
   });
 
   testWidgets('the community profile is not editable from here any more', (

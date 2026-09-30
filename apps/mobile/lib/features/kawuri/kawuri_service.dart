@@ -25,7 +25,11 @@ class KawuriAnswer {
     this.sources = const [],
     this.taskId,
     this.analysis,
+    this.lookups = const [],
   });
+
+  /// Verified entries and unverified words, as [KawuriMessage.lookups].
+  final List<Map<String, Object?>> lookups;
   final String text;
   final bool fromOfflineGuide;
   final bool failed;
@@ -159,6 +163,7 @@ class KawuriService {
         text: reply,
         incomplete:
             data['finishReason'] == 'MAX_TOKENS' || data['incomplete'] == true,
+        lookups: kawuriLookupsFrom(data),
       );
     } on FirebaseFunctionsException catch (error) {
       return KawuriAnswer(text: errorMessage(error.code), failed: true);
@@ -343,3 +348,40 @@ final kawuriServiceProvider = Provider<KawuriService>(
         ref.watch(kawuriCapabilitiesProvider).value ?? KawuriCapabilities.none,
   ),
 );
+
+/// The verified entries and unverified words a `kawuriChat` reply carries, as
+/// rows for [KawuriMessage.lookups]. Tolerant of an older backend that sends
+/// neither, which is simply no rows.
+List<Map<String, Object?>> kawuriLookupsFrom(Map<Object?, Object?> data) {
+  final rows = <Map<String, Object?>>[];
+  final verified = data['verified'];
+  if (verified is List) {
+    for (final item in verified.whereType<Map>()) {
+      final entryId = '${item['entryId'] ?? ''}';
+      if (entryId.isEmpty) continue;
+      rows.add({
+        'kind': 'verified',
+        'entryId': entryId,
+        'kasem': '${item['kasem'] ?? ''}',
+        'english': '${item['english'] ?? ''}',
+      });
+    }
+  }
+  final unverified = data['unverified'];
+  if (unverified is List) {
+    for (final item in unverified.whereType<Map>()) {
+      final term = '${item['term'] ?? ''}';
+      final state = '${item['state'] ?? ''}';
+      // A word that turned out to be verified under another gloss is the
+      // dictionary's to show, not a queue item.
+      if (term.isEmpty || state == 'translated') continue;
+      rows.add({
+        'kind': 'unverified',
+        'term': term,
+        'wordQueueId': '${item['wordQueueId'] ?? ''}',
+        'state': state,
+      });
+    }
+  }
+  return rows;
+}

@@ -6,7 +6,6 @@ import 'package:indigen_world_mobile/features/auth/auth_repository.dart';
 import 'package:indigen_world_mobile/features/community/data/community_models.dart';
 import 'package:indigen_world_mobile/features/community/data/community_repository.dart';
 import 'package:indigen_world_mobile/features/community/data/feed_fairness.dart';
-import 'package:indigen_world_mobile/features/explore/explore_feed.dart' show exploreWindowProvider;
 
 /// The community data layer, or `null` when Firebase is unavailable this
 /// launch. Every consumer treats `null` as "read-only preview".
@@ -119,20 +118,17 @@ final communityFeedWindowsProvider =
 final rawCommunityFeedProvider = StreamProvider<List<CommunityPost>>((ref) {
   final repository = ref.watch(communityRepositoryProvider);
   if (repository == null) return Stream.value(const <CommunityPost>[]);
-  // Explore's window widens as somebody scrolls, and community video is one of
-  // the two things it is made of — so the same window has to reach the query
-  // that supplies it, or the feed would stop growing halfway down.
   return repository.watchFeed(limit: ref.watch(communityFeedWindowProvider));
 });
 
 /// How many posts the community feed holds.
 ///
-/// Shared with Explore, whose infinite scroll widens it. The Community tab
-/// reads whatever it happens to be, which is never smaller than its own page.
+/// The Community tab's own, again. It used to be shared with Explore, which
+/// read its videos out of this feed, so every page Explore scrolled through
+/// re-queried the Community tab sitting behind it. Explore has a query and a
+/// window of its own now — see `rawExploreCommunityFeedProvider`.
 final communityFeedWindowProvider = Provider<int>((ref) {
-  final explore = ref.watch(exploreWindowProvider);
-  final forYou = ref.watch(communityFeedWindowsProvider(kForYouFeed));
-  final window = explore > forYou ? explore : forYou;
+  final window = ref.watch(communityFeedWindowsProvider(kForYouFeed));
   return window < CommunityRepository.feedPageSize
       ? CommunityRepository.feedPageSize
       : window;
