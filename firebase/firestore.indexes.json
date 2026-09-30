@@ -5,6 +5,9 @@
     { "collectionGroup": "labsFeedback", "queryScope": "COLLECTION", "fields": [{ "fieldPath": "uid", "order": "ASCENDING" }, { "fieldPath": "createdAt", "order": "DESCENDING" }, { "fieldPath": "__name__", "order": "ASCENDING" }] },
     { "collectionGroup": "labsFeedback", "queryScope": "COLLECTION", "fields": [{ "fieldPath": "status", "order": "ASCENDING" }, { "fieldPath": "createdAt", "order": "DESCENDING" }, { "fieldPath": "__name__", "order": "ASCENDING" }] },
     { "collectionGroup": "labsUpdates", "queryScope": "COLLECTION", "fields": [{ "fieldPath": "experimentId", "order": "ASCENDING" }, { "fieldPath": "createdAt", "order": "DESCENDING" }, { "fieldPath": "__name__", "order": "ASCENDING" }] },
+    { "collectionGroup": "labsUpdates", "queryScope": "COLLECTION", "fields": [{ "fieldPath": "createdAt", "order": "DESCENDING" }, { "fieldPath": "__name__", "order": "ASCENDING" }] },
+    { "collectionGroup": "labsFeedback", "queryScope": "COLLECTION", "fields": [{ "fieldPath": "createdAt", "order": "DESCENDING" }, { "fieldPath": "__name__", "order": "ASCENDING" }] },
+    { "collectionGroup": "labsAudit", "queryScope": "COLLECTION", "fields": [{ "fieldPath": "occurredAt", "order": "DESCENDING" }, { "fieldPath": "__name__", "order": "ASCENDING" }] },
     {
       "collectionGroup": "_supportWhatsappOutbox",
       "queryScope": "COLLECTION",
