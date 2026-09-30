@@ -6,6 +6,8 @@ date identifies when the post was prepared; it does not prove the update is live
 
 ## Posts
 
+- [2026-09-30: Small experiments, living culture — Indigen World Labs](2026-09-30-indigen-world-labs/README.md) — draft article; two functional integrated experiments, private activity, feedback and trusted administration. Local verification and screenshots; public deployment and live content/provider verification pending.
+
 - [2026-09-30: The review desk comes to the contributor portal](2026-09-30-contributor-review-desk/README.md) — draft article; guarded web review desk with four queues and validator-only navigation. TribeStudio Hosting deployed September 30; custom-domain files verified against the release build. Signed-in checks pending; newer dictionary output choices await their backend release. Includes an original workflow illustration.
 - [2026-09-30: More ways to build and share with Indigen World](2026-09-30-language-review-and-video-editor/README.md) — draft article; rules, indexes, 16 functions and hosting deployed September 30. TribeStudio video editor and reviewer tools for contributed language material.
 - [2026-09-28: Help the dictionary from wherever you are (Indigen World 0.1.29)](2026-09-28-help-the-dictionary/README.md) — draft article. The language loop is implemented and tested: Explore word prompts, Help add from search, topics and Kawuri, answer-then-sign-in, corrections, the reviewer's choice of what an answer becomes, and Kawuri lessons (1,571 app tests; backend 578 + 41 + 205). The 0.1.29 (38) bundle was built 2026-09-28; it includes 0.1.28 and is not uploaded. Rules, indexes, six functions and admin hosting await approval. Rendered screenshots use real queue words, verified Kasem only and a real Kawuri lesson.

@@ -13,6 +13,7 @@ import { withRouteLoadingTiming } from "../lib/routeLoading";
 type LazyPage = LazyExoticComponent<ComponentType>;
 
 export const PAGE_COMPONENTS: Record<string, LazyPage> = {
+  ...Object.fromEntries(['labs', 'labs/experiments', 'labs/kasem-practice', 'labs/cultural-story', 'labs/activity', 'labs/updates', 'labs/admin'].map(path => [path, lazy(() => import('../features/labs/LabsPage').then(({ LabsPage }) => ({ default: LabsPage })))])),
   home: lazy(() =>
     withRouteLoadingTiming(import("./HomePage")).then(({ HomePage }) => ({ default: HomePage }))
   ),

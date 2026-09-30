@@ -111,3 +111,6 @@ exports/
 # so they are supplied per machine (this file) or from CI secrets, never from
 # source control. Copy admob.local.example.json to create one.
 admob.local.json
+# Disposable Labs emulator configuration; production uses firebase.json.
+/.labs-local/
+/.labs-local.firebase.json

@@ -1,5 +1,10 @@
 {
   "indexes": [
+    { "collectionGroup": "labsDrafts", "queryScope": "COLLECTION", "fields": [{ "fieldPath": "uid", "order": "ASCENDING" }, { "fieldPath": "createdAt", "order": "DESCENDING" }, { "fieldPath": "__name__", "order": "ASCENDING" }] },
+    { "collectionGroup": "labsSessions", "queryScope": "COLLECTION", "fields": [{ "fieldPath": "uid", "order": "ASCENDING" }, { "fieldPath": "createdAt", "order": "DESCENDING" }, { "fieldPath": "__name__", "order": "ASCENDING" }] },
+    { "collectionGroup": "labsFeedback", "queryScope": "COLLECTION", "fields": [{ "fieldPath": "uid", "order": "ASCENDING" }, { "fieldPath": "createdAt", "order": "DESCENDING" }, { "fieldPath": "__name__", "order": "ASCENDING" }] },
+    { "collectionGroup": "labsFeedback", "queryScope": "COLLECTION", "fields": [{ "fieldPath": "status", "order": "ASCENDING" }, { "fieldPath": "createdAt", "order": "DESCENDING" }, { "fieldPath": "__name__", "order": "ASCENDING" }] },
+    { "collectionGroup": "labsUpdates", "queryScope": "COLLECTION", "fields": [{ "fieldPath": "experimentId", "order": "ASCENDING" }, { "fieldPath": "createdAt", "order": "DESCENDING" }, { "fieldPath": "__name__", "order": "ASCENDING" }] },
     {
       "collectionGroup": "_supportWhatsappOutbox",
       "queryScope": "COLLECTION",
@@ -1004,6 +1009,12 @@
     }
   ],
   "fieldOverrides": [
+    { "collectionGroup": "labsDrafts", "fieldPath": "creative", "indexes": [] },
+    { "collectionGroup": "labsDrafts", "fieldPath": "context", "indexes": [] },
+    { "collectionGroup": "labsDrafts", "fieldPath": "sources", "indexes": [] },
+    { "collectionGroup": "labsSessions", "fieldPath": "questions", "indexes": [] },
+    { "collectionGroup": "labsFeedback", "fieldPath": "description", "indexes": [] },
+    { "collectionGroup": "labsFeedbackNotes", "fieldPath": "notes", "indexes": [] },
     {
       "collectionGroup": "memberships",
       "fieldPath": "uid",

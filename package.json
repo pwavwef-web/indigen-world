@@ -20,6 +20,10 @@
     "services/functions"
   ],
   "scripts": {
+    "dev:labs": "node scripts/labs-web.mjs",
+    "emulators:labs": "npm run build:functions && node scripts/labs-emulators.mjs",
+    "seed:labs": "cross-env GCLOUD_PROJECT=demo-indigen-world FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099 node firebase/seed/labs-demo.mjs",
+    "test:labs": "npm run build:functions && node --test firebase/tests/labs.test.mjs && node scripts/labs-emulators.mjs --test",
     "build": "npm run --workspaces --if-present build",
     "typecheck": "npm run build:web-ui && npm run --workspaces --if-present typecheck",
     "test": "npm run test:admob-config && npm run test:contracts && npm run test:function-helpers && npm run test:rules && npm run test:storage-rules && npm run test:e2e && npm run test:kawuri-e2e && npm run test:contributor-e2e",
