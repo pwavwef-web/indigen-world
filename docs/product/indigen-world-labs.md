@@ -1,6 +1,6 @@
 # Indigen World Labs
 
-Implementation prepared September 30, 2026. **Production deployment authorised by Chinedum; deployment evidence is recorded in the release post README once verified.**
+**Deployed September 30, 2026:** [Indigen World Labs](https://indigenworld.com/labs), version 0.1.0 signed-in alpha. Deployment details and verification limits are recorded in [the release post README](../../apps/updates-blog/posts/2026-09-30-indigen-world-labs/README.md).
 
 Labs is an integrated website feature at `/labs`, using the shared Firebase project and accounts. The registry lives in `packages/contracts/labs.mjs`, with record types in `labs.d.ts`; UI modules live in `apps/website/src/features/labs`; the trusted gateway is `services/functions/src/labs.ts` and is exported by the existing Functions entry. No second account database or separate application backend is introduced. A future Labs domain can serve the website build with the same Firebase coordinates and authorised Auth/App Check domain configuration.
 
@@ -67,7 +67,7 @@ Queries use 20-record pages plus one lookahead, ordered by createdAt (audit: occ
 
 Run `npm run test:labs` with emulator ports free. This builds the Functions bundle, runs focused tests and runs the callable/rules suites in disposable emulators. `npm run check:website` covers website typecheck, site validation, production build and route metadata. `npm run test:contracts` validates existing schemas/fixtures. No repository lint command exists for this website/backend. Browser verification and results are recorded in the release post README.
 
-Before public launch:
+Checklist for subsequent releases and optional activation (the initial deployed release evidence is linked above):
 
 1. Review this scoped implementation alongside existing repository work; integrate it into the production-main release workflow. The normal website predeploy gate remains intact.
 2. Review the prototype rules and callable checks; confirm the supported Node 22 production function load. Deploy only the intended changes: `labsApi`, reviewed rules/indexes and the website Hosting build, through the existing conventions. The rules/index files include other repository changes; prepare a reviewed release snapshot before deployment.
@@ -76,4 +76,4 @@ Before public launch:
 5. Test guest/member/other-owner/admin roles on the actual host, complete practice, save/reopen/export/delete a private draft, submit/review feedback and confirm kill switches. Verify links to dictionary, contributor routes and TribeStudio. Optionally enable/test the real Vertex assistant; provider success has not been verified by this task.
 6. Publish a Labs update describing actual availability. Update the release post’s availability statement only after deployment and live verification. Let Chinedum upload the screenshots, publish the Blogger article and insert its URL into `share.md`.
 
-Chinedum authorised production deployment on September 30, 2026. DNS changes, Blogger publication and messages to community members remain outside this deployment request.
+Chinedum authorised production deployment on September 30, 2026. Website Hosting, `labsApi`, Labs rules and indexes were released. Production verification found 32 eligible sources and one practice topic in the bounded sample; a six-question practice session, private draft save/reopen/revise/delete, feedback and owner isolation passed using temporary accounts that were then removed. Aggregate counters include these verification requests. Both experiments use the default enabled, signed-in alpha controls; no tester invitations or public experiment updates were created. Automatic assistance remains disabled. The in-app browser could not load the public host during verification; HTTP and Firebase client SDK checks passed. Google sign-in, production admin UI, audio playback and successful provider output remain unverified. DNS, Blogger publication and community messages were not changed.

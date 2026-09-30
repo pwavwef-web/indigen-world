@@ -6,7 +6,7 @@ date identifies when the post was prepared; it does not prove the update is live
 
 ## Posts
 
-- [2026-09-30: Small experiments, living culture — Indigen World Labs](2026-09-30-indigen-world-labs/README.md) — draft article; two functional integrated experiments, private activity, feedback and trusted administration. Local verification and screenshots; public deployment and live content/provider verification pending.
+- [2026-09-30: Small experiments, living culture — Indigen World Labs](2026-09-30-indigen-world-labs/README.md) — signed-in alpha deployed September 30; reviewed practice, private stories, activity and feedback verified against production. Actual local screenshots; automatic assistance disabled. Blogger article remains a draft.
 
 - [2026-09-30: The review desk comes to the contributor portal](2026-09-30-contributor-review-desk/README.md) — draft article; guarded web review desk with four queues and validator-only navigation. TribeStudio Hosting deployed September 30; custom-domain files verified against the release build. Signed-in checks pending; newer dictionary output choices await their backend release. Includes an original workflow illustration.
 - [2026-09-30: More ways to build and share with Indigen World](2026-09-30-language-review-and-video-editor/README.md) — draft article; rules, indexes, 16 functions and hosting deployed September 30. TribeStudio video editor and reviewer tools for contributed language material.
