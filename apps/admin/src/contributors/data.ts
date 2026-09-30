@@ -203,6 +203,16 @@ export interface ContributorPayments {
   requests: ContributorPaymentRequest[];
 }
 
+export type ContributorRewardSettings = { pointsPerExpression: number; dailyCap: number; redemptionMinimum: number; cedisPerRedemption: number };
+export type ContributorRedemption = Omit<ContributorPaymentRequest, 'status'> & {
+  status: 'submitted' | 'approved' | 'rejected' | 'fulfilled' | 'paid';
+  points: number; kind: 'airtime' | 'data'; network: string; phoneNumber: string;
+};
+export type ContributorRewards = { rewards: ContributorRewardSettings; requests: ContributorRedemption[] };
+export const loadContributorRewards = httpsCallable<Record<string, never>, ContributorRewards>(functions, 'listContributorRewards');
+export const saveContributorRewardSettings = httpsCallable<ContributorRewardSettings, ContributorRewardSettings>(functions, 'setContributorRewardSettings');
+export const decideContributorRedemption = httpsCallable<{ requestId: string; action: 'approve' | 'reject' | 'fulfill'; note: string; paymentReference?: string }, unknown>(functions, 'decideContributorRedemption');
+
 export interface ContributorAuditEntry {
   id: string;
   action: string;
@@ -368,3 +378,5 @@ export async function fetchContributorAuditEntries(): Promise<ContributorAuditEn
     }];
   });
 }
+
+export async function prepareDailyTasks(input: { contributorId: string; day: string; title: string; instructions: string; expressions: string[]; initialWork?: string }): Promise<AssignmentResult> { return (await httpsCallable<typeof input, AssignmentResult>(functions, 'prepareContributorDailyTasks')(input)).data; }

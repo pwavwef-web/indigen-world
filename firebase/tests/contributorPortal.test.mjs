@@ -7,6 +7,7 @@ import { HttpsError } from 'firebase-functions/v2/https';
 import { requireAuth, requireRole } from '../../services/functions/lib/auth.js';
 import { normalizeMsisdn } from '../../services/functions/lib/sms.js';
 import { guarded } from '../../services/functions/lib/contributor-common.js';
+import { rewardSettings } from '../../services/functions/lib/contributor-rewards.js';
 import { COLLECTION_CAMPAIGN_ID, buildCollectionCampaignDocument, buildCollectionContributionReceipt,
   buildCollectionSubmissionDocument, parseCollectionContributionInput } from '../../services/functions/lib/collection-contributions.js';
 import { INVITED_SOURCE_DETAIL, buildExpressionReceipt, buildExpressionSubmissionDocument } from '../../services/functions/lib/expressions.js';
@@ -27,13 +28,14 @@ async function harness({ smsOk = true, configured = true } = {}) {
     records.set(path, next);
   };
   const reference = path => ({ get: async () => ({ exists: records.has(path), updateTime: 'version', get: key => key.split('.').reduce((o,k) => o?.[k], records.get(path)) }), update: async data => update(path, data), path, id: path.split('/').at(-1), collection: name => ({ doc: (id = `work-${++generated}`) => reference(`${path}/${name}/${id}`) }) });
-  const db = { collection: name => ({ doc: (id = `work-${++generated}`) => reference(`${name}/${id}`) }), batch: () => { const writes = []; return {
+  const query = (name, field, value) => ({ query: true, limit: () => query(name, field, value), get: async () => ({ docs: [...records.entries()].filter(([path, data]) => path.startsWith(`${name}/`) && path.split('/').length === 2 && data[field] === value).map(([path, data]) => ({ id: path.split('/').at(-1), data: () => data, get: key => data[key] })) }) });
+  const db = { collection: name => ({ doc: (id = `work-${++generated}`) => reference(`${name}/${id}`), where: (field, _operator, value) => query(name, field, value) }), batch: () => { const writes = []; return {
     set: (ref, data, options) => writes.push(() => records.set(ref.path, { ...(options?.merge ? records.get(ref.path) : {}), ...data })),
     create: (ref, data) => { assert.ok(!records.has(ref.path)); writes.push(() => records.set(ref.path, data)); },
     update: (ref, data) => writes.push(() => update(ref.path, data)),
     commit: async () => writes.forEach(fn => fn()) }; }, doc: reference, runTransaction: async fn => {
     const writes = [];
-    const result = await fn({ get: async ref => ({ exists: records.has(ref.path), id: ref.id, ref,
+    const result = await fn({ get: async ref => ref.query ? ref.get() : ({ exists: records.has(ref.path), id: ref.id, ref,
       data: () => records.get(ref.path), get: key => key.split('.').reduce((o,k) => o?.[k], records.get(ref.path)) }),
       set: (ref, data) => writes.push(() => records.set(ref.path, data)),
       create: (ref, data) => { assert.ok(!records.has(ref.path)); writes.push(() => records.set(ref.path, data)); },
@@ -46,7 +48,7 @@ async function harness({ smsOk = true, configured = true } = {}) {
   const code = readFileSync(path, 'utf8');
   const executable = code.replace(/^import[\s\S]*?;\n/gm, '').replace(/\bexport (?=(?:async )?function|const)/g, '');
   const api = runInNewContext(executable + '\n;({saveExpressionAnswer,onContributorExpressionReviewed,parseExpressionAnswer,assignContributorExpressions,assignmentInstructions,inviteExpressionContributor,activateExpressionContributor,resendContributorInvitation,contributorPhone,reportContributorIssue,updateContributorIssue})', {
-    process, URL, createHash, HttpsError, requireAuth, requireRole, guarded, getFirestore: () => db,
+    process, URL, createHash, HttpsError, requireAuth, requireRole, guarded, rewardSettings, getFirestore: () => db,
     ARKESEL_API_KEY: 'test-secret', normalizeMsisdn, isSmsConfigured: () => configured,
     sendSmsToMsisdn: async (to, message) => { messages.push({ to, message }); return { ok: smsOk, ...(smsOk ? { id: 'sms-1' } : { error: 'network' }) }; },
     getAuth: () => ({
@@ -61,6 +63,12 @@ async function harness({ smsOk = true, configured = true } = {}) {
     buildCollectionSubmissionDocument, parseCollectionContributionInput,
     INVITED_SOURCE_DETAIL, buildExpressionReceipt, buildExpressionSubmissionDocument, publicationTargetFor,
   });
+  const rewardCode = readFileSync(new URL('../../services/functions/lib/contributor-rewards.js', import.meta.url), 'utf8')
+    .replace(/^import[\s\S]*?;\n/gm, '').replace(/\bexport (?=(?:async )?function|const)/g, '');
+  Object.assign(api, runInNewContext(rewardCode + '\n;({redeemContributorPoints,decideContributorRedemption})', {
+    process, HttpsError, requireAuth, requireRole, normalizeMsisdn, getFirestore: () => db,
+    onCall: (_options, fn) => fn, consumeRateLimit: async () => {},
+  }));
   records.set('contributorAccounts/alice', { status: 'active' });
   const itemPath = 'contributorAccounts/alice/works/work/items/item';
   records.set(itemPath, { expression: 'How are you?', revision: 0, status: 'draft' });
@@ -402,3 +410,99 @@ test('an optional usage note travels with the draft, survives older clients and 
   assert.equal(h.records.get(`collectionContributions/${submissionId}`).usageContext, 'Said to an elder when arriving at their home.');
   await assert.rejects(h.saveExpressionAnswer(h.request({ revision: 3, context: 'x'.repeat(1001) })), { code: 'invalid-argument' });
 });
+
+test('approved expressions award ten points up to the daily cap; submissions and repeated reviews do not award twice', async () => {
+  const h = await harness();
+  for (let index = 0; index < 31; index++) {
+    const path = `contributorAccounts/alice/works/work/items/item-${index}`;
+    h.records.set(path, { expression: `Expression ${index}`, revision: 0, status: 'draft' });
+    const request = h.request({ item: `item-${index}`, submit: true, publicationPermission: true });
+    const result = await h.saveExpressionAnswer(request);
+    assert.equal(h.records.get('contributorAccounts/alice').rewardBalance, index ? Math.min(index * 10, 300) : undefined);
+    if (index === 0) await h.saveExpressionAnswer(request);
+    const submissionPath = `submissions/${result.submissionId}`;
+    h.records.set(submissionPath, { ...h.records.get(submissionPath), status: 'APPROVED', moderation: { decidedAt: new Date().toISOString() } });
+    await h.onContributorExpressionReviewed({ params: { submissionId: result.submissionId } });
+    if (index === 0) await h.onContributorExpressionReviewed({ params: { submissionId: result.submissionId } });
+  }
+  const account = h.records.get('contributorAccounts/alice');
+  assert.equal(account.rewardBalance, 300);
+  assert.equal(account.rewardLifetime, 300);
+  const day = new Date().toISOString().slice(0, 10);
+  assert.equal(h.records.get(`contributorAccounts/alice/rewardDays/${day}`).points, 300);
+  const firstId = createHash('sha256').update('alice/work/item-0').digest('hex');
+  const cappedId = createHash('sha256').update('alice/work/item-30').digest('hex');
+  assert.equal(h.records.get(`contributorAccounts/alice/rewardCredits/${firstId}`).points, 10);
+  assert.equal(h.records.get(`contributorAccounts/alice/rewardCredits/${cappedId}`).points, 0);
+});
+
+test('airtime and data redemption reserves points, validates destination, and refunds rejected requests', async () => {
+  const h = await harness();
+  h.records.set('contributorAccounts/alice', { status: 'active', rewardBalance: 600, rewardLifetime: 600 });
+  const request = choice => ({ auth: { uid: 'alice' }, data: { points: 300, kind: 'airtime', network: 'MTN', phoneNumber: '0241234567', ...choice } });
+  await assert.rejects(h.redeemContributorPoints(request({ kind: 'cash' })), { code: 'invalid-argument' });
+  await assert.rejects(h.redeemContributorPoints(request({ phoneNumber: 'not a number' })), { code: 'invalid-argument' });
+  const first = await h.redeemContributorPoints(request());
+  const saved = h.records.get(`contributorRedemptions/${first.requestId}`);
+  assert.equal(saved.amountMinor, 500);
+  assert.equal(saved.kind, 'airtime');
+  assert.equal(saved.phoneNumber, '+233241234567');
+  assert.equal(saved.bankSnapshot, undefined);
+  assert.equal(h.records.get('contributorAccounts/alice').rewardBalance, 300);
+  await assert.rejects(h.redeemContributorPoints(request({ kind: 'data' })), { code: 'failed-precondition' });
+  const admin = (action, reference = '') => ({ auth: { uid: 'admin', token: { role: 'admin' } }, data: { requestId: first.requestId, action, note: 'Delivery unavailable', paymentReference: reference } });
+  await h.decideContributorRedemption(admin('reject'));
+  assert.equal(h.records.get('contributorAccounts/alice').rewardBalance, 600);
+  const second = await h.redeemContributorPoints(request({ kind: 'data', network: 'Telecel' }));
+  const decide = (action, reference = '') => ({ auth: { uid: 'admin', token: { role: 'admin' } }, data: { requestId: second.requestId, action, note: 'Delivery unavailable', paymentReference: reference } });
+  await h.decideContributorRedemption(decide('approve'));
+  await h.decideContributorRedemption(decide('fulfill', 'DELIVERY-123'));
+  assert.equal(h.records.get(`contributorRedemptions/${second.requestId}`).status, 'fulfilled');
+  assert.equal(h.records.get('contributorAccounts/alice').rewardBalance, 300);
+  const third = await h.redeemContributorPoints(request({ kind: 'data', network: 'AT' }));
+  const adminThird = action => ({ auth: { uid: 'admin', token: { role: 'admin' } }, data: { requestId: third.requestId, action, note: 'Delivery unavailable' } });
+  await h.decideContributorRedemption(adminThird('approve'));
+  await h.decideContributorRedemption(adminThird('reject'));
+  assert.equal(h.records.get('contributorAccounts/alice').rewardBalance, 300);
+});
+
+test('contributors may redeem any whole-point amount from the minimum through their balance', async () => {
+  const h = await harness();
+  h.records.set('contributorAccounts/alice', { status: 'active', rewardBalance: 350, rewardLifetime: 350 });
+  const request = points => ({ auth: { uid: 'alice' }, data: { points, kind: 'data', network: 'MTN', phoneNumber: '0241234567' } });
+  await assert.rejects(h.redeemContributorPoints(request(299)), { code: 'failed-precondition' });
+  await assert.rejects(h.redeemContributorPoints(request(351)), { code: 'failed-precondition' });
+  const result = await h.redeemContributorPoints(request(350));
+  assert.equal(h.records.get(`contributorRedemptions/${result.requestId}`).amountMinor, 583);
+  assert.equal(h.records.get('contributorAccounts/alice').rewardBalance, 0);
+});
+
+test('expression streak advances once per UTC day and resets after a missed day', async () => {
+  const h = await harness();
+  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+  const older = new Date(Date.now() - 3 * 86400000).toISOString().slice(0, 10);
+  h.records.set('contributorAccounts/alice', { status: 'active', streakLastDay: yesterday, streakCount: 2, streakBest: 4 });
+  const submit = async item => {
+    h.records.set(`contributorAccounts/alice/works/work/items/${item}`, { expression: item, revision: 0, status: 'draft' });
+    await h.saveExpressionAnswer(h.request({ item, submit: true, publicationPermission: true }));
+  };
+  await submit('streak-1');
+  assert.equal(h.records.get('contributorAccounts/alice').streakCount, 3);
+  assert.equal(h.records.get('contributorAccounts/alice').streakBest, 4);
+  await submit('streak-2');
+  assert.equal(h.records.get('contributorAccounts/alice').streakCount, 3);
+  h.records.set('contributorAccounts/alice', { ...h.records.get('contributorAccounts/alice'), streakLastDay: older, streakCount: 5, streakBest: 5 });
+  await submit('streak-3');
+  assert.equal(h.records.get('contributorAccounts/alice').streakCount, 1);
+  assert.equal(h.records.get('contributorAccounts/alice').streakBest, 5);
+});
+ test('active contributors can report account problems before assignment, without bypassing task ownership', async () => {
+ const api=await harness();
+ const req={auth:{uid:'alice',token:{}},data:{requestId:'account-help',category:'account',description:'I need help accessing my account'}};
+ const result=await api.reportContributorIssue(req);
+ assert.equal(api.records.get('contributorIssues/'+result.id).work,'');
+ await assert.rejects(api.reportContributorIssue({...req,data:{...req.data,category:'translation'}}),/Choose an assignment/);
+ await assert.rejects(api.reportContributorIssue({...req,data:{...req.data,item:'other-item'}}),/Choose an assignment/);
+ api.records.set('contributorAccounts/alice',{status:'inactive'});
+ await assert.rejects(api.reportContributorIssue(req),/active contributor/);
+ });

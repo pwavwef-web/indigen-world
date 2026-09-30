@@ -4,6 +4,7 @@ import { canValidate, useAuth } from '../auth';
 import { BrandMark, Icon, cx, type IconName } from './components';
 import { friendlyError, initials, itemStatus, metricsFor, type FriendlyError } from './model';
 import type { AccountTab, PaymentsView, Section, SelfView, WorkspaceData } from './types';
+import { NotificationCentre } from './notifications';
 import { OverviewPage } from './pages/OverviewPage';
 import { AssignmentsPage } from './pages/AssignmentsPage';
 import { AssignmentPage } from './pages/AssignmentPage';
@@ -12,6 +13,7 @@ import { ActivityPage } from './pages/ActivityPage';
 import { GuidePage } from './pages/GuidePage';
 import { KawuriPage } from './pages/KawuriPage';
 import { AccountPage } from './pages/AccountPage';
+import { RewardsPage } from './rewards';
 
 /**
  * The contributor workspace shell: persistent navigation, the page for the
@@ -48,7 +50,7 @@ export interface PortalRoute {
   notFound: boolean;
 }
 
-const SIMPLE_SECTIONS: Section[] = ['assignments', 'contributions', 'activity', 'guide', 'kawuri'];
+const SIMPLE_SECTIONS: Section[] = ['assignments', 'contributions', 'activity', 'guide', 'kawuri', 'rewards', 'streak'];
 const ACCOUNT_TABS: AccountTab[] = ['profile', 'security', 'notifications', 'payments'];
 
 export function parsePortalRoute(path: string, search: string, base: string, preview: boolean): PortalRoute {
@@ -92,16 +94,18 @@ interface NavItem {
 }
 
 export const NAV: NavItem[] = [
-  { section: 'overview', label: 'Overview', short: 'Overview', icon: 'overview' },
-  { section: 'assignments', label: 'Assignments', short: 'Assignments', icon: 'assignments' },
+  { section: 'overview', label: 'Home', short: 'Home', icon: 'overview' },
+  { section: 'assignments', label: 'Tasks', short: 'Tasks', icon: 'assignments' },
   { section: 'contributions', label: 'My contributions', short: 'Contributions', icon: 'contributions' },
+  { section: 'rewards', label: 'Points', short: 'Points', icon: 'spark' },
+  { section: 'streak', label: 'Streak', short: 'Streak', icon: 'activity' },
   { section: 'activity', label: 'Activity', short: 'Activity', icon: 'activity' },
-  { section: 'guide', label: 'Platform guide', short: 'Guide', icon: 'guide' },
+  { section: 'guide', label: 'Help & guide', short: 'Help', icon: 'guide' },
   { section: 'kawuri', label: 'Kawuri Intelligence', short: 'Kawuri', icon: 'kawuri' },
   { section: 'account', label: 'Account & settings', short: 'Account', icon: 'account' },
 ];
 
-const MOBILE_PRIMARY: Section[] = ['overview', 'assignments', 'contributions', 'kawuri'];
+const MOBILE_PRIMARY: Section[] = ['overview', 'assignments', 'contributions', 'rewards'];
 
 // ---------------------------------------------------------------------------
 // Shared slow reads
@@ -219,6 +223,8 @@ export function WorkspaceShell({ banner }: { banner?: ReactNode }) {
         href={hrefFor(item.section)}
         onClick={go(item.section)}
         className={cx(`cw-nav__link cw-nav__link--${variant}`, active && 'is-active')}
+        aria-label={item.label + (count ? `, ${count.label}` : '')}
+        title={item.label}
         aria-current={active ? 'page' : undefined}
       >
         <Icon name={item.icon} />
@@ -235,12 +241,18 @@ export function WorkspaceShell({ banner }: { banner?: ReactNode }) {
         <aside className="cw-side" aria-label="Contributor workspace">
           <div className="cw-brand">
             <BrandMark />
-            <span className="cw-brand__copy"><strong>Contributor workspace</strong><small>Indigen World · TribeStudio</small></span>
+            <span className="cw-brand__copy"><strong>TribeStudio<span className="cw-brand__period">.</span></strong><small>THE CONTRIBUTOR SPACE</small></span>
           </div>
+          <p className="cw-nav-caption">Your workspace</p>
           <nav className="cw-nav" aria-label="Workspace sections">
             {NAV.map((item) => link(item, 'side'))}
             {reviewLink('side')}
           </nav>
+          <PortalLink to={data.paths.section('guide', { section: 'good-contribution' })} className="cw-side-story">
+            <Icon name="spark" />
+            <strong>A living language.<br />A shared future.</strong>
+            <span>Make every expression count <Icon name="arrow" /></span>
+          </PortalLink>
           <div className="cw-side__footer">
             <span className="cw-avatar" aria-hidden="true">
               {self.value?.profile.photoUrl ? <img src={self.value.profile.photoUrl} alt="" /> : initials(displayName)}
@@ -262,8 +274,13 @@ export function WorkspaceShell({ banner }: { banner?: ReactNode }) {
 
         <div className="cw-main">
           {banner}
+          <div className="cw-desktop-bar">
+            <span>CONTRIBUTOR SPACE <span aria-hidden="true">/</span> <strong>{current.label}</strong></span>
+            <PortalLink to={data.paths.section('guide')} className="cw-desktop-help"><Icon name="help" />Help & guidance</PortalLink>
+          </div>
           <main id="main-content" tabIndex={-1} className="cw-content">
-            {route.notFound ? <NotFound /> : <PageFor route={route} />}
+            <NotificationCentre />
+            {route.notFound ? <NotFound /> : <PageFor key={`${data.uid}:${route.section}`} route={route} />}
           </main>
         </div>
 
@@ -293,6 +310,10 @@ export function WorkspaceShell({ banner }: { banner?: ReactNode }) {
 
 function PageFor({ route }: { route: PortalRoute }) {
   switch (route.section) {
+    case 'rewards':
+      return <RewardsPage history={route.query.get('view') === 'history'} />;
+    case 'streak':
+      return <RewardsPage streak />;
     case 'assignments':
       return route.work ? <AssignmentPage key={route.work} workId={route.work} itemId={route.item} /> : <AssignmentsPage />;
     case 'contributions':

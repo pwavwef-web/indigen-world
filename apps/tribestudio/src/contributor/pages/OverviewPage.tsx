@@ -1,4 +1,6 @@
-import { useMemo } from 'react';
+import { DailyTasks } from '../DailyTasks';
+import { HomeStreak } from '../HomeStreak';
+import { useMemo, useState } from 'react';
 import { useRoute } from '../../router';
 import { canValidate, useAuth } from '../../auth';
 import {
@@ -29,6 +31,7 @@ import {
   type Work,
 } from '../model';
 import { GUIDE } from '../guide';
+import { artwork } from '../artwork';
 import { PortalLink, paymentsNeedAttention, useShared, useWorkspace } from '../workspace';
 
 /**
@@ -53,6 +56,7 @@ export function currentAssignment(works: Work[], items: Record<string, Item[]>):
 export function OverviewPage() {
   const data = useWorkspace();
   const { role } = useAuth();
+  const [onboarded, setOnboarded] = useState(() => { try { return localStorage.getItem(`contributor-intro:${data.uid}`) === 'done'; } catch { return false; } });
   const { self, payments } = useShared();
   const { navigate } = useRoute();
   const now = useNow();
@@ -84,8 +88,26 @@ export function OverviewPage() {
   };
 
   return (
-    <div className="cw-page">
-      <PageHeader kicker="Overview" title={name ? `Welcome back, ${name}` : 'Welcome back'} description={summary} id="page-title" actions={!data.preview && canValidate(role) ? <PortalLink to="/contributor/review" className="button--primary"><Icon name="shield" />Open review desk</PortalLink> : null} />
+    <div className="cw-page cw-page--home">
+      <PageHeader kicker="YOUR WORDS MAKE A WORLD" title={name ? `Welcome back, ${name}.` : 'Welcome back.'} id="page-title"
+        actions={<><HomeStreak />{!data.preview && canValidate(role) ? <PortalLink to="/contributor/review" className="button--primary"><Icon name="shield" />Open review desk</PortalLink> : null}</>} />
+
+      <section className="cw-welcome" aria-labelledby="welcome-title">
+        <img className="cw-welcome__art" src={artwork.languageStudio} alt="" width="1536" height="1024" fetchPriority="high" />
+        <div className="cw-welcome__copy">
+          <span className="cw-welcome__eyebrow"><span aria-hidden="true">✦</span> EVERY EXPRESSION MATTERS</span>
+          <h2 id="welcome-title">Your words.<br />Our living heritage.</h2>
+          <p>A little of your time. A lasting place for Kasem.</p>
+          <PortalLink to={work ? data.paths.work(work.id, next?.id) : data.paths.section('guide')} className="cw-welcome__button">
+            {work ? next ? 'Continue my work' : 'View my assignment' : 'Explore the guide'}<Icon name="arrow" />
+          </PortalLink>
+        </div>
+        <span className="cw-welcome__caption">LANGUAGE CONNECTS US.</span>
+      </section>
+
+      <section className="cw-impact" aria-label="Your contributions across all assignments">
+        {loading ? <Skeleton lines={2} label="Counting your contributions" /> : <MetricTiles metrics={metrics} />}
+      </section>
 
       {data.worksState === 'error' || data.itemsState === 'error' ? (
         <Notice tone="danger" title="Your assignments could not be loaded" action={<button type="button" onClick={() => window.location.reload()}>Reload</button>}>
@@ -98,7 +120,6 @@ export function OverviewPage() {
           {returnedWork ? (
             <Notice tone="warning" title={`${pluralise(returnedWork, 'expression')} returned for revision`}
               action={<button type="button" onClick={() => navigate(data.paths.section('contributions', { filter: 'returned' }))}>Read the feedback</button>}>
-              <p>Reviewers left feedback. Revise and resubmit; your earlier version stays on record.</p>
             </Notice>
           ) : null}
           {attentionPayments ? (
@@ -110,6 +131,7 @@ export function OverviewPage() {
         </div>
       ) : null}
 
+      {!onboarded && metrics.submitted === 0 ? <details className="cw-onboarding" open><summary>Get started</summary><ol><li><PortalLink to={data.paths.section('guide')}>Read the contribution guide</PortalLink></li><li><PortalLink to={data.paths.section('assignments')}>Open your tasks and save a draft</PortalLink></li><li>Submit for review, then follow feedback in My contributions.</li></ol><button type="button" onClick={() => { setOnboarded(true); try { localStorage.setItem(`contributor-intro:${data.uid}`, 'done'); } catch { /* Optional preference. */ } }}>Got it</button></details> : null}
       <div className="cw-overview-grid">
         <Card
           className="cw-current"
@@ -119,12 +141,12 @@ export function OverviewPage() {
         >
           {loading ? <Skeleton lines={4} label="Loading your current assignment" /> : work ? (
             <div className="cw-current__body">
+              <p className="cw-current__summary">{summary}</p>
               <div className="cw-current__title">
                 <h3>{work.title}</h3>
                 <p className="cw-meta-row">
                   {due ? <span className={`cw-due cw-due--${due.tone}`}><Icon name="clock" />{due.label}</span> : <span className="cw-due"><Icon name="clock" />No due date</span>}
                   <span>{pluralise(workItems.length, 'expression')}</span>
-                  <span>Assigned {formatDate(work.createdAt)}</span>
                 </p>
               </div>
               <SegmentBar metrics={workMetrics} label={`Progress on ${work.title}`} />
@@ -146,23 +168,20 @@ export function OverviewPage() {
           )}
         </Card>
 
-        <Card title="Your contributions" labelledBy="your-contributions" className="cw-summary-card" meta="Across all assignments">
-          {loading ? <Skeleton lines={3} label="Counting your contributions" /> : <MetricTiles metrics={metrics} />}
-          <p className="cw-footnote">Submitted counts every expression you have sent for review; the other three show where each one is now. <PortalLink to={data.paths.section('guide', { section: 'review' })} className="cw-text-link">How review works</PortalLink></p>
-        </Card>
+        <DailyTasks />
 
         <Card title="Recent activity" labelledBy="recent-activity" className="cw-activity-card" actions={<PortalLink to={data.paths.section('activity')} className="cw-text-link">View all</PortalLink>}>
           {data.roundsState === 'loading' ? <Skeleton lines={4} label="Loading your activity" /> : data.roundsState === 'error' ? (
             <p className="cw-muted">Your review history could not be loaded just now. Your assignments above are up to date.</p>
-          ) : <ActivityList events={events.slice(0, 6)} onOpen={openEvent} now={now} emptyText="Nothing yet. Submissions and reviewer decisions appear here as they happen." />}
+          ) : <ActivityList events={events.slice(0, 4)} onOpen={openEvent} now={now} emptyText="Your submissions and review decisions will appear here." />}
         </Card>
 
         <div className="cw-side-stack">
           <PulsePanel pulse={data.pulse} onPrivacy={() => navigate(data.paths.account('notifications'))} />
           <Card title="Kawuri Intelligence" labelledBy="kawuri-entry" className="cw-kawuri-entry">
-            {next && work ? <p className="cw-muted">Next up: “{next.expression}”</p> : null}
-            <p>Kawuri can explain assignment instructions and the English you are translating, and suggest the context reviewers look for.</p>
-            <p className="cw-muted">Suggestions only. Kawuri never writes Kasem for you and nothing it says counts as reviewed.</p>
+            <img className="cw-kawuri-entry__art" src={artwork.livingKnowledge} alt="" width="1536" height="1024" loading="lazy" />
+            <p>A fresh perspective when you need one.</p>
+            <p className="cw-muted">Help with English meaning and context. Your Kasem stays yours.</p>
             <button type="button" onClick={() => navigate(data.paths.section('kawuri', work ? { work: work.id, ...(next ? { item: next.id } : {}) } : undefined))}><Icon name="kawuri" />Ask Kawuri</button>
           </Card>
           <Card title="Platform guide" labelledBy="guide-entry" className="cw-guide-entry">

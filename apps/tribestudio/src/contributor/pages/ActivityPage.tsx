@@ -32,9 +32,9 @@ export function ActivityPage() {
     <div className="cw-page">
       <PageHeader
         kicker="Activity"
-        title="Activity"
+        title="See your work move forward."
         id="page-title"
-        description="Everything that has happened to your work: what you sent, what reviewers decided, new assignments and payment-detail updates. It updates as it happens."
+        description="Submissions, review decisions and updates, as they happen."
       />
       <div className="cw-two-column">
         <div>

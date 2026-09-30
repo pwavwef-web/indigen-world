@@ -5,6 +5,7 @@ import { HttpsError, onCall } from 'firebase-functions/v2/https';
 import { onDocumentWritten } from 'firebase-functions/v2/firestore';
 import { requireAuth, requireRole } from './auth.js';
 import { guarded } from './contributor-common.js';
+import { rewardSettings } from './contributor-rewards.js';
 import { consumeRateLimit } from './rate-limit.js';
 import { ARKESEL_API_KEY, isSmsConfigured, normalizeMsisdn, sendSmsToMsisdn } from './sms.js';
 import { COLLECTION_CAMPAIGN_ID, buildCollectionCampaignDocument } from './collection-contributions.js';
@@ -690,10 +691,17 @@ export const saveExpressionAnswer = onCall(options, guarded('saveExpressionAnswe
         ...buildExpressionReceipt(submissionId, uid, contribution),
         notes: reviewerNotes, contributorPortal: portal, alternativeExpressions: answer.alternatives,
       });
+      const day = now.slice(0, 10);
+      if (!previousId && member.get('streakLastDay') !== day) {
+        const yesterday = new Date(Date.parse(`${day}T00:00:00Z`) - 86400000).toISOString().slice(0, 10);
+        const streak = member.get('streakLastDay') === yesterday ? Number(member.get('streakCount') ?? 0) + 1 : 1;
+        tx.update(account, { streakLastDay: day, streakCount: streak,
+          streakBest: Math.max(streak, Number(member.get('streakBest') ?? 0)) });
+      }
     }
     tx.update(ref, { ...answer, revision, updatedAt: now, unsure: skip,
       ...(skip ? { skippedAt: now } : {}),
-      ...(submit ? { submissionId, status: 'submitted', feedback: '', reviewedAt: null } : {}) });
+      ...(submit ? { submissionId, submittedAt: now, status: 'submitted', feedback: '', reviewedAt: null } : {}) });
     return { revision, ...(submit ? { submissionId } : {}) };
   });
 }));
@@ -720,6 +728,28 @@ export const onContributorExpressionReviewed = onDocumentWritten(
       const target = publicationTargetFor(data, snap.id);
       const published = await tx.get(db.doc(`${target.collection}/${target.id}`));
       const verified = ['APPROVED', 'PUBLISHED'].includes(data.status);
+      const firstSubmissionId = createHash('sha256').update(`${portal.contributorId}/${portal.work}/${portal.item}`).digest('hex');
+      const accountRef = db.doc(`contributorAccounts/${portal.contributorId}`);
+      const creditRef = accountRef.collection('rewardCredits').doc(firstSubmissionId);
+      const approvalDate = typeof data.moderation?.decidedAt === 'string' && !Number.isNaN(Date.parse(data.moderation.decidedAt))
+        ? new Date(data.moderation.decidedAt).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10);
+      const dayRef = accountRef.collection('rewardDays').doc(approvalDate);
+      const [credit, account, day, rewards] = verified ? await Promise.all([
+        tx.get(creditRef), tx.get(accountRef), tx.get(dayRef), tx.get(db.doc('settings/contributorRewards')),
+      ]) : [null, null, null, null];
+      if (verified && credit && !credit.exists && account?.exists) {
+        const settings = rewardSettings(rewards?.data() ?? {});
+        const earned = Number(day?.get('points') ?? 0);
+        const award = Math.max(0, Math.min(settings.pointsPerExpression, settings.dailyCap - earned));
+        const now = new Date().toISOString();
+        tx.create(creditRef, { submissionId: snap.id, work: portal.work, item: portal.item,
+          day: approvalDate, points: award, source: 'approval', createdAt: now });
+        if (award > 0) {
+          tx.set(dayRef, { day: approvalDate, points: earned + award, updatedAt: now });
+          tx.update(accountRef, { rewardBalance: Number(account.get('rewardBalance') ?? 0) + award,
+            rewardLifetime: Number(account.get('rewardLifetime') ?? 0) + award });
+        }
+      }
       tx.update(itemRef, {
         status: verified ? 'verified' : String(data.status).toLowerCase(), feedback: data.moderation?.feedback ?? '',
         reviewedAt: data.moderation?.decidedAt ?? null,
@@ -743,9 +773,12 @@ export const reportContributorIssue = onCall(options, guarded('reportContributor
   if ((await db.doc(`contributorAccounts/${uid}`).get()).get('status') !== 'active') throw new HttpsError('permission-denied', 'An active contributor account is required.');
   const category = text(req.data?.category, 30), description = text(req.data?.description, 2000);
   if (!['translation', 'assignment', 'saving', 'account', 'other'].includes(category)) throw new HttpsError('invalid-argument', 'Choose a valid issue type.');
-  const work = id(req.data?.work), item = req.data?.item ? id(req.data.item) : '';
-  const assignment = db.doc(`contributorAccounts/${uid}/works/${work}`);
-  if (!(await assignment.get()).exists || (item && !(await assignment.collection('items').doc(item).get()).exists)) throw new HttpsError('permission-denied', 'Assignment or expression is unavailable.');
+  const work = req.data?.work ? id(req.data.work) : '', item = req.data?.item ? id(req.data.item) : '';
+  if (!work && (item || !['account', 'other'].includes(category))) throw new HttpsError('invalid-argument', 'Choose an assignment for this issue type.');
+  if (work) {
+    const assignment = db.doc(`contributorAccounts/${uid}/works/${work}`);
+    if (!(await assignment.get()).exists || (item && !(await assignment.collection('items').doc(item).get()).exists)) throw new HttpsError('permission-denied', 'Assignment or expression is unavailable.');
+  }
   const requestId = id(req.data?.requestId);
   const ref = db.collection('contributorIssues').doc(createHash('sha256').update(`${uid}:${requestId}`).digest('hex'));
   await db.runTransaction(async tx => {

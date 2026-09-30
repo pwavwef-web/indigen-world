@@ -1,3 +1,5 @@
+import { useListMemory, useListScroll } from './listMemory';
+import { ReviewTiming } from './ReviewTiming';
 import { useEffect, useRef, useState, type MouseEvent, type ReactNode } from 'react';
 import { httpsCallable } from 'firebase/functions';
 import { functions } from '../firebase';
@@ -98,11 +100,13 @@ export function ContributionWorkspace({ items, work, onPending, accountId, saveA
       try { window.localStorage.setItem(positionKey, selected); } catch { /* Position memory is optional. */ }
     }
   }, [positionKey, selected]);
-  const [filter, setFilter] = useState<(typeof FILTERS)[number]>('All');
-  const [query, setQuery] = useState('');
+  const [filter, setFilter] = useListMemory<(typeof FILTERS)[number]>(`${positionKey}:filter`, 'All', FILTERS);
+  const [query, setQuery] = useListMemory<string>(`${positionKey}:query`, '');
   const [pending, setPending] = useState(false);
   const [mobileEditor, setMobileEditor] = useState(Boolean(initialItem));
   const [confirmation, setConfirmation] = useState('');
+  useListScroll(`${positionKey}:scroll:${filter}:${query}`, items.length>0, !mobileEditor);
+  useListScroll(`${positionKey}:inner-scroll:${filter}:${query}`, items.length>0, !mobileEditor, '.cw-list__items');
   useEffect(() => {
     onEditingChange?.(mobileEditor);
     return () => onEditingChange?.(false);
@@ -315,8 +319,10 @@ export function ExpressionEditor({ item, itemNumber = 1, itemTotal = 1, hasNextI
     changeAnswer('alternatives', next.join('\n'));
   };
   const cannotSubmit = !translation.trim() ? 'Enter a Kasem translation to submit.'
-    : !publication ? 'Confirm publication permission to submit.'
+    : !publication ? 'Tick the required sharing permission to submit.'
       : blocked.current ? 'Retry saving your draft before submitting.' : '';
+  const submitHelp = recovery ? 'Restore or discard the recovered draft before submitting.'
+    : cannotSubmit || 'Ready to send. You can review your answer before confirming.';
   const sendReviewedAnswer = async () => {
     if (locked || recovery || blocked.current || cannotSubmit || busy || submitting.current) return;
     submitting.current = true;
@@ -346,7 +352,9 @@ export function ExpressionEditor({ item, itemNumber = 1, itemTotal = 1, hasNextI
   const detailed = itemStatus(item);
   const listedAlternatives = savedAlternatives.filter((value) => value.trim());
   return (
-    <form className="contributor-editor" onSubmit={(event) => {
+    <form className="contributor-editor" onInvalid={(event) => {
+      event.currentTarget.querySelector<HTMLElement>(':invalid')?.scrollIntoView({ block: 'center' });
+    }} onSubmit={(event) => {
       event.preventDefault();
       if (locked || recovery || blocked.current || cannotSubmit || busy || submitting.current) return;
       reviewNext.current = (event.nativeEvent as SubmitEvent | undefined)?.submitter?.getAttribute('value') === 'next';
@@ -365,7 +373,7 @@ export function ExpressionEditor({ item, itemNumber = 1, itemTotal = 1, hasNextI
         </dl>
         <div className="contributor-review-actions">
           <button type="button" autoFocus disabled={busy} onClick={() => reviewDialog.current?.close()}>Back to editing</button>
-          <button type="button" className="button--primary" disabled={busy || Boolean(cannotSubmit)} onClick={() => void sendReviewedAnswer()}>{busy ? 'Submitting…' : 'Confirm submission'}</button>
+          <button type="button" className="button--primary contributor-submit-cta" disabled={busy || Boolean(cannotSubmit)} onClick={() => void sendReviewedAnswer()}>{busy ? 'Submitting…' : 'Confirm submission'}</button>
         </div>
       </dialog>
 
@@ -377,6 +385,7 @@ export function ExpressionEditor({ item, itemNumber = 1, itemTotal = 1, hasNextI
         <span className={`cw-chip cw-chip--${STATUS_META[detailed].tone} status-badge state-${statusSlug(state)}`}>{STATUS_META[detailed].label}</span>
       </header>
 
+      <ReviewTiming item={item} />
       {item.feedback ? (
         <section className="cw-feedback" aria-label="Reviewer feedback">
           <strong>Reviewer feedback</strong>
@@ -407,6 +416,7 @@ export function ExpressionEditor({ item, itemNumber = 1, itemTotal = 1, hasNextI
       <div className="editor-save-state">
         <span className={`save-indicator ${status === 'Couldn’t save' ? 'is-error' : ''}`} aria-hidden="true">{status === 'Saving…' ? '•' : status === 'Couldn’t save' ? '!' : '✓'}</span>
         <span role="status" aria-live="polite">{locked ? (item.status === 'verified' ? 'Approved — locked' : 'Submitted — locked while under review') : status}</span>
+        {!locked ? <button type="button" disabled={busy || Boolean(recovery) || blocked.current || !dirty.current} onClick={() => void persist().catch(() => undefined)}>Save draft</button> : null}
         {error && !locked ? <button type="button" disabled={busy} onClick={retrySave}>Retry save now</button> : null}
         {extras.renderKawuri && !locked ? (
           <button type="button" className="cw-kawuri-toggle" aria-expanded={kawuriOpen} onClick={() => setKawuriOpen((open) => !open)}>
@@ -431,7 +441,7 @@ export function ExpressionEditor({ item, itemNumber = 1, itemTotal = 1, hasNextI
           aria-describedby="translation-help"
           onChange={(event) => changeAnswer('translation', event.target.value)}
         />
-        <small id="translation-help">Translate the meaning naturally, rather than word for word. <GuideHint section="good-contribution" extras={extras}>What makes a good translation</GuideHint></small>
+        <small id="translation-help">Write it as you would say it. <GuideHint section="good-contribution" extras={extras}>Translation tips</GuideHint></small>
       </label>
 
       {!locked ? (
@@ -457,6 +467,7 @@ export function ExpressionEditor({ item, itemNumber = 1, itemTotal = 1, hasNextI
         </div>
       ) : null}
 
+      <details className="cw-optional" open={Boolean(item.alternatives.length || item.context)}><summary>Alternative translations and usage note (optional)</summary>
       <section className="alternative-translations">
         <div className="cw-field-head">
           <span className="cw-field-label">Alternative translations</span>
@@ -471,7 +482,7 @@ export function ExpressionEditor({ item, itemNumber = 1, itemTotal = 1, hasNextI
             </span>
           </label>
         ))}
-        {!locked && alternativeValues.length < 12 ? <button className="add-alternative" type="button" disabled={busy || Boolean(recovery)} onClick={() => setAlternativeCount((count) => Math.min(12, count + 1))}>+ Add another way of saying this</button> : null}
+        {!locked && alternativeValues.length < 12 ? <button className="add-alternative" type="button" disabled={busy || Boolean(recovery)} onClick={() => setAlternativeCount((count) => Math.min(12, count + 1))}>+ Add an alternative</button> : null}
       </section>
 
       <label className="cw-context-field">
@@ -487,25 +498,37 @@ export function ExpressionEditor({ item, itemNumber = 1, itemTotal = 1, hasNextI
           onFocus={(event) => { activeField.current = event.currentTarget; }}
           onChange={(event) => changeAnswer('context', event.target.value)}
         />
-        <small id="context-help">Reviewers read this first. For an idiom, give the literal meaning and what it means in use. <GuideHint section="alternatives-context" extras={extras}>Context that helps reviewers</GuideHint></small>
+        <small id="context-help">For idioms, add the literal and intended meaning. <GuideHint section="alternatives-context" extras={extras}>Context tips</GuideHint></small>
       </label>
 
+      </details>
       {!locked ? (
         <>
-          <details className="permission-section">
-            <summary>Permissions &amp; AI use <span aria-hidden="true">⌄</span></summary>
-            <div>
-              <label className="contributor-check"><input type="checkbox" required checked={publication} onChange={(event) => setPublication(event.target.checked)} />I have permission to share this expression for review and dictionary publication.</label>
-              <label className="contributor-check"><input type="checkbox" checked={training} onChange={(event) => setTraining(event.target.checked)} />Allow an approved translation to be used for Kawuri AI training <strong>(optional)</strong>.</label>
-              <GuideHint section="review" extras={extras}>What these permissions mean</GuideHint>
+          <section className="permission-section" aria-labelledby="submission-permission-title">
+            <div className="permission-section__heading">
+              <h3 id="submission-permission-title">Permission to submit</h3>
+              <p>Your draft is saved automatically. Submit it below to send it to the Review Desk.</p>
             </div>
-          </details>
+            <label className="contributor-check contributor-check--required">
+              <input type="checkbox" required disabled={busy || Boolean(recovery)} checked={publication} onChange={(event) => setPublication(event.target.checked)} />
+              <span><strong>Required to submit</strong>I have permission to share this expression for review and dictionary publication.</span>
+            </label>
+            <label className="contributor-check">
+              <input type="checkbox" disabled={busy || Boolean(recovery)} checked={training} onChange={(event) => setTraining(event.target.checked)} />
+              <span><strong>AI training (optional)</strong>Allow an approved translation to be used for Kawuri AI training.</span>
+            </label>
+            <GuideHint section="review" extras={extras}>What these permissions mean</GuideHint>
+          </section>
           {error ? (
             <div role="alert" className="cw-inline-alert">
               <p>Your text is still here. Check your connection and retry. {error} If another device changed this draft, copy your text before reloading.</p>
               <button type="button" onClick={retrySave}>Retry save</button>
             </div>
           ) : null}
+          <div className="contributor-submit-wrap">
+            <p id="submit-help">{submitHelp}</p>
+            <button type="submit" value={hasNextIncomplete ? 'next' : 'submit'} className="button--primary contributor-submit-cta" aria-describedby="submit-help" disabled={busy || Boolean(recovery) || blocked.current}>{busy ? 'Submitting…' : revising ? 'Resubmit for review →' : 'Submit for review →'}</button>
+          </div>
           <section className="unsure-section">
             <div><strong>Not sure about this one?</strong><p>Flag it and move on. Your draft stays private and nothing is sent for review.</p></div>
             <button type="button" disabled={busy || Boolean(recovery) || blocked.current} onClick={async () => {
@@ -524,13 +547,6 @@ export function ExpressionEditor({ item, itemNumber = 1, itemTotal = 1, hasNextI
               }
             }}>Skip / I’m not sure →</button>
           </section>
-          <div className="contributor-submit-wrap">
-            {cannotSubmit ? <p id="submit-help">{cannotSubmit}</p> : null}
-            <div className="contributor-submit-actions">
-              <button type="button" disabled={busy || Boolean(recovery) || blocked.current || !dirty.current} onClick={() => void persist().catch(() => undefined)}>Save draft</button>
-              <button value={hasNextIncomplete ? 'next' : 'submit'} className="button--primary" aria-describedby={cannotSubmit ? 'submit-help' : undefined} disabled={busy || Boolean(recovery) || Boolean(cannotSubmit)}>{busy ? 'Submitting…' : revising ? 'Review resubmission →' : 'Review submission →'}</button>
-            </div>
-          </div>
         </>
       ) : (
         <p role="status" className="cw-locked-note">{item.status === 'verified' ? 'Approved by the Review Desk. Approved expressions cannot be edited.' : 'Submitted. It stays locked while it waits for review; you will see the decision here and in Activity.'}</p>

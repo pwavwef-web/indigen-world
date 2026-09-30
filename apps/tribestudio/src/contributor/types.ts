@@ -197,6 +197,7 @@ export interface AccountSummary {
 export type SaveAnswer = (data: Record<string, unknown>) => Promise<{ data: { revision: number; submissionId?: string } }>;
 
 export interface WorkspaceServices {
+  unlockDailyPreview?(): void;
   saveAnswer: SaveAnswer;
   loadPayments(): Promise<PaymentsView>;
   uploadStatement(file: File, onProgress?: (fraction: number) => void): Promise<{ uploadId: string; fileName: string }>;
@@ -215,7 +216,7 @@ export interface WorkspaceServices {
   signOut(): Promise<void>;
 }
 
-export type Section = 'overview' | 'assignments' | 'contributions' | 'activity' | 'guide' | 'kawuri' | 'account';
+export type Section = 'overview' | 'assignments' | 'contributions' | 'activity' | 'guide' | 'kawuri' | 'account' | 'rewards' | 'streak';
 export type AccountTab = 'profile' | 'security' | 'notifications' | 'payments';
 
 export interface PortalPaths {

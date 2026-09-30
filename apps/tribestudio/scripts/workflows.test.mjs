@@ -22,6 +22,9 @@ async function load(path, names, mocks = {}) {
   if (path.startsWith('src/contributor/') && !path.endsWith('model.ts')) {
     mocks = { ...await load('src/contributor/model.ts', MODEL_EXPORTS), ...mocks };
   }
+  if (path === 'src/contributor/editor.tsx') {
+    mocks = { ...await load('src/contributor/ReviewTiming.tsx', ['ReviewTiming'], mocks), ...await load('src/contributor/listMemory.ts', ['useListMemory', 'useListScroll'], mocks), ...mocks };
+  }
   const { code } = await transformWithOxc(readFileSync(resolve(root, path), 'utf8'), path, { jsx: { runtime: 'classic' } });
   const executable = code.replace(/^import[\s\S]*?;\n/gm, '').replace(/\bexport (?=(?:async )?function|const|let|class)/g, '');
   return runInNewContext(executable + '\n;({' + names.join(',') + '})', { URL, URLSearchParams, Blob, File, Event, console, ...mocks });
@@ -441,6 +444,11 @@ test('contributor autosave keeps full expressions and submits with the latest re
   tree = h.render(ExpressionEditor, props); h.flush();
   for (const fn of timers.values()) fn(); timers.clear(); await tick();
   tree = h.render(ExpressionEditor, props);
+  assert.equal(find(tree, n => n.type === 'button' && n.props.type === 'submit').props.disabled, false,
+    'Submit remains reachable so the browser can guide contributors to missing permission');
+  await tree.props.onSubmit({ preventDefault() {} });
+  find(tree, n => n.type === 'button' && n.props.children.includes('Confirm submission')).props.onClick(); await tick();
+  assert.equal(calls.length, 1, 'Neither submission action can send without explicit sharing permission');
   find(tree, n => n.type === 'input' && n.props.required).props.onChange({ target: { checked: true } });
   tree = h.render(ExpressionEditor, props);
   await tree.props.onSubmit({ preventDefault() {} });
@@ -485,7 +493,7 @@ test('failed contributor autosave retains text and prevents unsafe submission', 
   tree = h.render(ExpressionEditor, props);
   assert.equal(find(tree, n => n.type === 'textarea' && n.props.required).props.value, 'Keep this draft');
   assert.ok(find(tree, n => n.props?.role === 'alert'));
-  assert.equal(find(tree, n => n.type === 'button' && !n.props.type).props.disabled, true);
+  assert.equal(find(tree, n => n.type === 'button' && n.props.type === 'submit').props.disabled, true);
   h.dispose();
 });
 

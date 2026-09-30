@@ -31,6 +31,8 @@ export {
   rerunPayoutStatementCheck,
   decideContributorPaymentRequest,
 } from './contributor-payments.js';
+export { setContributorRewardSettings, getContributorRewards, redeemContributorPoints,
+  listContributorRewards, decideContributorRedemption } from './contributor-rewards.js';
 
 export { decideReview } from './validation.js';
 export { setUserRole } from './identity.js';
@@ -180,3 +182,17 @@ export { getContributorSelf, updateContributorSelf, saveContributorSettings } fr
 export { onContributorPulseSubmissionWritten } from './contributor-pulse.js';
 export { kawuriContributorAssist } from './contributor-assist.js';
 export { listKnowledgeRecords, getKnowledgeRecord, saveKnowledgeRecord, reviewKnowledgeRecord, withdrawKnowledgeRecord, readKnowledgeAudio } from './knowledge-workspace.js';
+export { prepareContributorDailyTasks, getContributorDailyTasks, requestMoreContributorTasks } from './contributor-daily-tasks.js';
+export { supportPortal, listSupportCases, getSupportCase, updateSupportCase, onSupportEmailCreated, supportEscalationSweep } from './support.js';
+// Firebase resolves all declared secrets during discovery, even for a filtered
+// deployment. Do not load this module until the owner finishes Meta onboarding.
+export let supportWhatsappWebhook: typeof import('./support-whatsapp.js').supportWhatsappWebhook;
+export let onSupportWhatsappEvent: typeof import('./support-whatsapp.js').onSupportWhatsappEvent;
+export let onSupportWhatsappOutbox: typeof import('./support-whatsapp.js').onSupportWhatsappOutbox;
+if (process.env.ENABLE_SUPPORT_WHATSAPP === 'true') {
+  const whatsapp = await import('./support-whatsapp.js');
+  supportWhatsappWebhook = whatsapp.supportWhatsappWebhook;
+  onSupportWhatsappEvent = whatsapp.onSupportWhatsappEvent;
+  onSupportWhatsappOutbox = whatsapp.onSupportWhatsappOutbox;
+}
+

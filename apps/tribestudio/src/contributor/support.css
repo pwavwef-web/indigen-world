@@ -1,0 +1,26 @@
+.iw-support { display: grid; gap: 14px; }
+.iw-support h1, .iw-support p { margin: 0; }
+.iw-support form { display: grid; gap: 14px; }
+.iw-support label { display: grid; gap: 6px; font-weight: 650; }
+.iw-support input, .iw-support textarea, .iw-support select { width: 100%; min-width: 0; box-sizing: border-box; padding: 11px; color: inherit; background: #fff; border: 1px solid #cbd5ce; border-radius: 10px; font: inherit; }
+.iw-support textarea { resize: vertical; }
+.iw-support .iw-support__consent { display: flex; align-items: flex-start; font-size: .82rem; font-weight: 450; }
+.iw-support .iw-support__consent input { width: 18px; min-width: 18px; height: 18px; min-height: 18px; margin: 2px 0 0; padding: 0; flex-shrink: 0; box-shadow: none; }
+.iw-support .iw-support__trap { display: none; }
+.iw-support__privacy, .iw-support small { color: #52645b; font-size: .8rem; }
+.iw-support__notice { padding: 12px; border-radius: 10px; background: #e5f3e9; color: #214c35; }
+.iw-support__case, .iw-support__message header { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; }
+.iw-support__case { padding: 12px 0; border-block: 1px solid #d7dfd9; text-transform: capitalize; }
+.iw-support__messages { display: grid; gap: 12px; }
+.iw-support__message { padding: 14px; border: 1px solid #d7dfd9; border-radius: 12px; background: #fff; overflow-wrap: anywhere; }
+.iw-support__message--assistant, .iw-support__message--team { background: #eef5ee; }
+.iw-support__message header { font-size: .78rem; }
+.iw-support__message time { color: #647168; }
+.iw-support__message p { margin-top: 10px; white-space: pre-wrap; font-size: .9rem; }
+.iw-support__actions, .iw-support footer { display: flex; flex-wrap: wrap; gap: 8px 16px; }
+.iw-support__actions button { padding: 9px 12px; border: 1px solid #bacbbf; border-radius: 9px; background: white; color: #234c34; font: inherit; font-size: .82rem; cursor: pointer; }
+.iw-support button:disabled { opacity: .6; cursor: wait; }
+.iw-support footer { padding-top: 12px; font-size: .85rem; }
+.cw-auth:has(.iw-support) .cw-auth__panel { width: min(620px, 100%); }
+.cw-auth:has(.iw-support) .cw-auth__story { position: sticky; top: 0; height: 100vh; }
+@media (max-width: 760px) { .cw-auth:has(.iw-support) .cw-auth__story { display: none; } }

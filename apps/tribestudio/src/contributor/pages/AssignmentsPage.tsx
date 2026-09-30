@@ -1,4 +1,6 @@
-import { useMemo, useState } from 'react';
+import { DailyTasks } from '../DailyTasks';
+import { useListMemory, useListScroll } from '../listMemory';
+import { useMemo } from 'react';
 import { useRoute } from '../../router';
 import { Chip, EmptyNote, Icon, Notice, PageHeader, SegmentBar, Skeleton, useNow } from '../components';
 import { WORK_STATE_META, dueInfo, formatDate, metricsFor, nextContribution, pluralise, workState, type Work, type WorkState } from '../model';
@@ -19,7 +21,7 @@ export function AssignmentsPage() {
   const data = useWorkspace();
   const { navigate } = useRoute();
   const now = useNow();
-  const [filter, setFilter] = useState<Filter>('all');
+  const [filter, setFilter] = useListMemory<Filter>(`contributor-list:${data.uid}:tasks:filter`, 'all', FILTERS.map(x=>x.id));
   const rows = useMemo(() => data.works.map((work: Work) => {
     const items = data.items[work.id] ?? [];
     const state = workState(items);
@@ -30,15 +32,17 @@ export function AssignmentsPage() {
   const visible = rows.filter((row) => FILTERS.find((entry) => entry.id === filter)!.matches(row.state));
   const loading = data.worksState === 'loading' || (data.worksState === 'ready' && data.itemsState === 'loading');
 
+  useListScroll(`contributor-list:${data.uid}:tasks:scroll:${filter}`, !loading);
   return (
     <div className="cw-page">
       <PageHeader
-        kicker="Assignments"
-        title="Assignments"
+        kicker="ONE EXPRESSION AT A TIME"
+        title="Make room for your words."
         id="page-title"
-        description="Sets of English expressions the team has asked you to translate into Kasem. Open one to read its instructions and work through it."
+        description="Your assignments, ready when you are."
         actions={<PortalLink to={data.paths.section('guide', { section: 'assignments' })} className="cw-button-secondary"><Icon name="guide" />How assignments work</PortalLink>}
       />
+      <DailyTasks />
       <div className="cw-toolbar" role="group" aria-label="Filter assignments">
         {FILTERS.map((entry) => {
           const count = rows.filter((row) => entry.matches(row.state)).length;
@@ -69,7 +73,7 @@ export function AssignmentsPage() {
                     <h2><PortalLink to={data.paths.work(work.id)}>{work.title}</PortalLink></h2>
                     <Chip tone={WORK_STATE_META[state].tone}>{WORK_STATE_META[state].label}</Chip>
                   </div>
-                  {work.instructions ? <p className="cw-assignment__instructions">{work.instructions}</p> : null}
+                  {work.instructions ? <details className="cw-assignment__brief"><summary>Read the brief</summary><p>{work.instructions}</p></details> : null}
                   <p className="cw-meta-row">
                     {due ? <span className={`cw-due cw-due--${due.tone}`}><Icon name="clock" />{due.label}</span> : <span className="cw-due"><Icon name="clock" />No due date</span>}
                     <span>{pluralise(items.length, 'expression')}</span>
@@ -78,8 +82,8 @@ export function AssignmentsPage() {
                   </p>
                   <SegmentBar metrics={metrics} label={`Progress on ${work.title}`} showLegend={false} />
                   <p className="cw-assignment__progress">
-                    <strong>{metrics.awaiting + metrics.approved} of {items.length}</strong> sent and not returned
-                    {metrics.approved ? ` · ${metrics.approved} approved` : ''}
+                    <strong>{metrics.approved} approved · {metrics.awaiting} awaiting review</strong>
+
                     {metrics.returned ? <span className="cw-text-warning"> · {metrics.returned} returned</span> : ''}
                     {metrics.drafts ? ` · ${metrics.drafts} draft${metrics.drafts === 1 ? '' : 's'}` : ''}
                   </p>

@@ -80,7 +80,7 @@ export function PageHeader({ kicker, title, description, actions, breadcrumb, id
       {breadcrumb ? <nav className="cw-breadcrumb" aria-label="Breadcrumb">{breadcrumb}</nav> : null}
       <div className="cw-page-head__row">
         <div className="cw-page-head__copy">
-          {kicker ? <p className="cw-kicker">{kicker}</p> : null}
+          {kicker && kicker !== title ? <p className="cw-kicker">{kicker}</p> : null}
           <h1 id={id} tabIndex={-1}>{title}</h1>
           {description ? <p className="cw-page-head__description">{description}</p> : null}
         </div>
@@ -175,16 +175,16 @@ export function SegmentBar({ metrics, label = 'Assignment progress', showLegend 
 
 export function MetricTiles({ metrics }: { metrics: Metrics }) {
   const tiles = [
-    { key: 'submitted', label: 'Submitted', value: metrics.submitted, note: 'Sent to the Review Desk' },
-    { key: 'awaiting', label: 'Awaiting review', value: metrics.awaiting, note: 'No decision yet' },
-    { key: 'approved', label: 'Approved', value: metrics.approved, note: 'Accepted by a reviewer' },
-    { key: 'returned', label: 'Returned for revision', value: metrics.returned, note: metrics.returned ? 'Needs your attention' : 'Nothing to revise' },
+    { key: 'submitted', label: 'Submitted', value: metrics.submitted, note: 'Sent for review', icon: 'contributions' as const },
+    { key: 'awaiting', label: 'Awaiting review', value: metrics.awaiting, note: 'With the reviewers', icon: 'clock' as const },
+    { key: 'approved', label: 'Approved', value: metrics.approved, note: 'Accepted by a reviewer', icon: 'check' as const },
+    { key: 'returned', label: 'To revisit', value: metrics.returned, note: metrics.returned ? 'Reviewer feedback awaits' : 'Nothing to revise', icon: 'assignments' as const },
   ];
   return (
     <dl className="cw-metrics">
       {tiles.map((tile) => (
         <div key={tile.key} className={cx('cw-metric', `cw-metric--${tile.key}`, tile.key === 'returned' && tile.value > 0 && 'is-attention')}>
-          <dt>{tile.label}</dt>
+          <dt><span className="cw-metric__icon"><Icon name={tile.icon} /></span>{tile.label}</dt>
           <dd><span className="cw-metric__value">{tile.value}</span><span className="cw-metric__note">{tile.note}</span></dd>
         </div>
       ))}

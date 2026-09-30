@@ -11,6 +11,9 @@ import { livePaths, liveServices, useLiveWorkspace } from './data';
 import { invitationLinkOwner, WorkspaceContext, WorkspaceShell } from './workspace';
 import type { AccountSummary, WorkspaceData } from './types';
 import './contributor.css';
+import './studio-refresh.css';
+import { artwork } from './artwork';
+import { SupportPage } from './SupportPage';
 
 /**
  * The contributor portal at /contributor.
@@ -55,6 +58,7 @@ export function ContributorPortal() {
     });
   }, [user?.uid, code, reviewRoute]);
 
+  if (path === '/contributor/support') return <AuthFrame><SupportPage /></AuthFrame>;
   if (!ready) return <AuthFrame><p className="cw-auth__message" role="status">Opening your workspace…</p></AuthFrame>;
   if (reviewRoute && !code) {
     if (!user) return <AuthFrame><ContributorSignIn code={null} /><button className="cw-auth__secondary" onClick={() => void signIn().catch(() => setError('Google sign-in did not complete. Try again.'))}>Sign in with Google</button>{error ? <p role="alert">{error}</p> : null}</AuthFrame>;
@@ -95,16 +99,29 @@ export function ContributorPortal() {
 }
 
 function AuthFrame({ children }: { children: ReactNode }) {
+  const { path } = useRoute();
   return (
     <div className="cw-auth iwx">
+      <aside className="cw-auth__story">
+        <img src={artwork.languageStudio} alt="" width="1536" height="1024" fetchPriority="high" />
+        <div className="cw-auth__story-copy">
+          <span className="cw-kicker">INDIGEN WORLD · TRIBESTUDIO</span>
+          <h2>A language lives<br />through its people.</h2>
+          <p>Bring your words, your knowledge, your voice.<br />Let’s keep Kasem growing, together.</p>
+        </div>
+        <span className="cw-auth__story-caption">A space for the people behind the words.</span>
+      </aside>
+      <div className="cw-auth__entry">
       <div className="cw-auth__panel">
         <div className="cw-auth__brand">
           <BrandMark />
-          <span><strong>Contributor workspace</strong><small>Indigen World · TribeStudio</small></span>
+          <span><strong>TribeStudio.</strong><small>Your contributor space</small></span>
         </div>
         <main id="main-content" tabIndex={-1}>{children}</main>
+        {path !== '/contributor/support' && <p><a href="/contributor/support">Need help signing in? Contact support</a></p>}
       </div>
       <p className="cw-auth__foot">For invited contributors documenting Kasem. Indigen World never asks for your password by phone or SMS.</p>
+      </div>
     </div>
   );
 }
@@ -174,14 +191,15 @@ export function ContributorSignIn({ code }: { code: string | null }) {
               : reason instanceof Error ? reason.message.replace(/^Firebase: /, '') : 'Sign-in did not complete.');
       } finally { setBusy(false); }
     }}>
-      <h1>{code ? 'Set your password' : reset ? 'Reset your password' : 'Sign in'}</h1>
+      <h1>{code ? 'Set your password' : reset ? 'Reset your password' : 'Good to have you here.'}</h1>
       <p>{code
         ? 'Choose a password for your contributor account.'
         : reset
           ? 'Enter the email your invitation was sent to. We will email you a link to choose a new password.'
-          : 'New account? Use your invited email and your phone number as the temporary password, including the country code (for example +233241234567). Already activated? Use the password you chose.'}</p>
+          : 'Sign in to pick up where you left off.'}</p>
       <label>Email<input type="email" autoComplete="username" required value={email} readOnly={Boolean(code)} onChange={(event) => setEmail(event.target.value)} /></label>
       {!reset ? <label>{code ? 'New password' : 'Password'}<input type="password" minLength={code ? 8 : undefined} required autoComplete={code ? 'new-password' : 'current-password'} value={password} onChange={(event) => setPassword(event.target.value)} /></label> : null}
+      {!code && !reset ? <details className="cw-auth__help"><summary>First time here?</summary><p>Use your invited email and your phone number as the temporary password, including the country code (for example +233241234567). You’ll choose your own password after signing in.</p></details> : null}
       {notice ? <p role="status" className="cw-auth__notice">{notice}</p> : null}
       {error ? <p role="alert" className="cw-auth__error">{error}</p> : null}
       <button type="submit" className="cw-auth__primary" disabled={busy || !email}>{busy ? 'Please wait…' : reset ? 'Send reset link' : code ? 'Save password and sign in' : 'Sign in'}</button>

@@ -191,7 +191,7 @@
           ]
         },
         {
-          "regex": "^/(studio(/.*)?|workspace|creators(/.*)?)$",
+          "regex": "^/(studio(/.*)?|workspace|creators(/.*)?|contributor(/.*)?)$",
           "headers": [
             { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
           ]
@@ -228,6 +228,10 @@
         }
       ],
       "rewrites": [
+        {
+          "source": "/api/support",
+          "function": { "functionId": "supportPortal", "region": "us-central1" }
+        },
         {
           "source": "**",
           "destination": "/index.html"

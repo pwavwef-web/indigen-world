@@ -32,7 +32,7 @@ test('Hosting revalidates SPA routes without slowing fingerprinted assets', () =
   assert.match(rootRule.headers[0].value, /no-cache, no-store/);
   assert.match(routeRule.headers[0].value, /no-cache, no-store/);
   const route = new RegExp(routeRule.regex);
-  for (const path of ['/studio', '/studio/profile', '/workspace', '/creators', '/creators/join']) {
+  for (const path of ['/studio', '/studio/profile', '/workspace', '/creators', '/creators/join', '/contributor', '/contributor/assignments', '/contributor/account/payments', '/contributor/invited-user/work-id']) {
     assert.ok(route.test(path), path);
   }
   for (const path of ['/assets/main-hash.js', '/icons/icon-512.png']) {
