@@ -6,6 +6,8 @@ date identifies when the post was prepared; it does not prove the update is live
 
 ## Posts
 
+- [2026-10-01: Play a mission, share your knowledge — Culture Quest](2026-10-01-culture-quest/README.md) — implemented locally; daily contribution missions, XP, levels and badges with Labs review integration. Deployment and integration verification pending; actual component screenshots with simulated responses. Blogger article remains a draft.
+
 - [2026-09-30: Small experiments, living culture — Indigen World Labs](2026-09-30-indigen-world-labs/README.md) — signed-in alpha deployed September 30; reviewed practice, private stories, activity and feedback verified against production. Actual local screenshots; automatic assistance disabled. Blogger article remains a draft.
 
 - [2026-09-30: The review desk comes to the contributor portal](2026-09-30-contributor-review-desk/README.md) — draft article; guarded web review desk with four queues and validator-only navigation. TribeStudio Hosting deployed September 30; custom-domain files verified against the release build. Signed-in checks pending; newer dictionary output choices await their backend release. Includes an original workflow illustration.

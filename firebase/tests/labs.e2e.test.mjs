@@ -87,7 +87,7 @@ after(async () => {
 });
 test("guests can discover; signed-in controls do not execute for guests", async () => {
   const boot = await guest("bootstrap");
-  assert.equal(boot.experiments.length, 2);
+  assert.equal(boot.experiments.length, LABS_REGISTRY.length);
   assert.equal(boot.canAdmin, false);
   await assert.rejects(
     guest("sources", { experimentId: "kasem-practice" }),
@@ -137,6 +137,33 @@ test("empty content abstains, then only explicit reviewed material enters practi
     false,
   );
 });
+test("quest contributions persist once, enforce daily cards, and respect access", async () => {
+  await db.doc("labsQuests/labs-e2e-member").delete();
+  await assert.rejects(guest("quest"), (e) => e.code === "functions/unauthenticated");
+  const { quest } = await member("quest");
+  assert.equal(quest.cards.length, 3);
+  const payload = { day: quest.day, sourceRef: quest.cards[0].ref, kind: "usage", description: "A useful community usage note for review.", evidence: "Personal experience in the stated dialect." };
+  await assert.rejects(member("submitQuest", { ...payload, sourceRef: "dictionaryEntries:forged" }), (e) => e.code === "functions/invalid-argument");
+  await assert.rejects(other("submitQuest", payload), (e) => e.code === "functions/failed-precondition");
+  await assert.rejects(member("submitQuest", { ...payload, day: "2000-01-01" }), (e) => e.code === "functions/failed-precondition");
+  await assert.rejects(member("submitQuest", { ...payload, description: "short" }), (e) => e.code === "functions/invalid-argument");
+  const results = await Promise.all([member("submitQuest", payload), member("submitQuest", payload)]);
+  assert.ok(results.every((r) => r.quest.xp === 20));
+  assert.equal((await member("quest")).quest.missions, 1);
+  const reports = await db.collection("labsFeedback").where("uid", "==", "labs-e2e-member").where("experimentId", "==", "culture-quest").get();
+  assert.equal(reports.size, 1);
+  assert.equal(reports.docs[0].get("sourceRef"), payload.sourceRef);
+  assert.equal(reports.docs[0].get("status"), "submitted");
+  await db.doc("labsExperiments/culture-quest").update({ enabled: false });
+  await unavailable(member("submitQuest", payload));
+  await unavailable(member("quest"));
+  await db.doc("labsExperiments/culture-quest").update({ enabled: true });
+  await db.doc("labsQuests/labs-e2e-member").update({ day: "2000-01-01" });
+  const reset = (await member("quest")).quest;
+  assert.equal(reset.xp, 20);
+  assert.deepEqual(reset.completed, []);
+});
+
 test("a session persists, scores source matches and completes once", async () => {
   const { session } = await member("startPractice", {
     topic: "E2E fixture topic",

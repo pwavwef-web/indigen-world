@@ -170,7 +170,7 @@ export function Activity() {
                 )}
                 <p className="labs-meta">
                   {record.experimentId} · v{record.version} ·{" "}
-                  {(record as LabsFeedback).reference || "General feedback"}
+                  {(record as LabsFeedback).sourceRef || (record as LabsFeedback).reference || "General feedback"}
                 </p>
               </>
             )}

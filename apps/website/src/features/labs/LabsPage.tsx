@@ -22,6 +22,7 @@ import {
 } from "./api";
 import { PracticeWorkspace, StoryWorkspace } from "./workspaces";
 import { Activity, Admin, Updates } from "./records";
+import { QuestWorkspace } from "./quest";
 import "./labs.css";
 
 export function useTask() {
@@ -259,7 +260,7 @@ function Preview({ experiment }: { experiment: Experiment }) {
       className={`labs-preview labs-preview-${experiment.id}`}
       aria-hidden="true"
     >
-      {experiment.id === "kasem-practice" ? (
+      {experiment.id === "culture-quest" ? (<><span className="labs-preview-label">PLAY / CONTRIBUTE</span><div className="labs-preview-word">Explore.<br />Contribute.<br /><em>Level up.</em></div><span className="labs-preview-foot">Three missions. A living archive.</span></>) : experiment.id === "kasem-practice" ? (
         <>
           <span className="labs-preview-label">KASEM / PRACTICE</span>
           <div className="labs-preview-word">
@@ -349,7 +350,7 @@ function Catalogue({ experiments }: { experiments: Experiment[] }) {
         <p className="labs-eyebrow">THE EXPERIMENTS</p>
         <h1>Find your next small discovery.</h1>
         <p>
-          Two focused experiments. Try what interests you and tell us what you
+          Focused experiments. Try what interests you and tell us what you
           learn.
         </p>
       </div>
@@ -367,7 +368,7 @@ function Catalogue({ experiments }: { experiments: Experiment[] }) {
             value={category}
             onChange={(e) => setCategory(e.target.value)}
           >
-            {["All", "Language", "Creating"].map((c) => (
+            {["All", "Language", "Creating", "Contributing"].map((c) => (
               <option key={c}>{c}</option>
             ))}
           </select>
@@ -420,6 +421,7 @@ function ExperimentShell({
       loaded &&
       experiment.enabled &&
       !retired &&
+      (experiment.id !== "culture-quest" || !!userId) &&
       (experiment.access === "public" || !!userId) &&
       (experiment.access !== "invited testers" ||
         invited.includes(experiment.id) ||
@@ -452,7 +454,7 @@ function ExperimentShell({
           <h2>
             {experiment.id === "kasem-practice"
               ? "A few minutes of practice"
-              : "A story starts here"}
+              : experiment.id === "culture-quest" ? "An expedition with a purpose" : "A story starts here"}
           </h2>
           {!allowed &&
           !(
@@ -487,6 +489,8 @@ function ExperimentShell({
                         : "The team is testing this version with a smaller group."}
               </p>
             </div>
+          ) : experiment.id === "culture-quest" ? (
+            <QuestWorkspace key={userId} />
           ) : experiment.id === "kasem-practice" ? (
             <PracticeWorkspace
               key={userId ?? "guest"}
@@ -705,7 +709,7 @@ export function LabsPage() {
               <div className="labs-section-heading">
                 <div>
                   <p className="labs-eyebrow">START EXPLORING</p>
-                  <h2>Two ways to get involved.</h2>
+                  <h2>More ways to get involved.</h2>
                 </div>
                 <Link to="/labs/experiments">View all experiments ↗</Link>
               </div>

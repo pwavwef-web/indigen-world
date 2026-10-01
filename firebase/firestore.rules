@@ -25,6 +25,7 @@ service cloud.firestore {
     match /labsUpdates/{id} { allow read: if true; allow write: if false; }
     match /labsDrafts/{id} { allow read: if isSignedIn() && resource.data.uid == request.auth.uid; allow write: if false; }
     match /labsSessions/{id} { allow read: if isSignedIn() && resource.data.uid == request.auth.uid; allow write: if false; }
+    match /labsQuests/{uid} { allow read: if isOwner(uid); allow write: if false; }
     match /labsFeedback/{id} { allow read: if isSignedIn() && (resource.data.uid == request.auth.uid || role() in ['admin', 'super_admin']); allow write: if false; }
     match /labsFeedbackNotes/{id} { allow read: if role() in ['admin', 'super_admin']; allow write: if false; }
     match /labsMetrics/{id} { allow read: if role() in ['admin', 'super_admin']; allow write: if false; }

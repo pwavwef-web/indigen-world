@@ -31,6 +31,12 @@ The local runner generates ignored `.labs-local/` and `.labs-local.firebase.json
 
 ## Workflows
 
+Culture Quest's discovery layer includes a three-stop map, matching with exact reviewed source meanings, free peeking, no failure penalty, keepsake and level celebrations, and automatic guidance to the next unfinished stop. Ambiguous repeated headwords and insufficient distinct choices use a reveal instead of matching. Warm-up guesses are ephemeral and receive no XP. Animations respect reduced motion.
+
+The second stop reverses source/meaning matching. Reviewed audio may be played as a clue when present. Cultural and literature sources reveal instead of presenting language matches. Daily goal and mission-step indicators guide the flow; writing prompts help members add their own context; source credits expand on demand. Switching stops retains unsent writing for the current mounted session (not through reload). The field guide includes this visit's discoveries and sources with saved completed contributions. Navigation focuses the active mission and respects reduced motion.
+
+- `/labs/culture-quest`: signed-in daily contribution expedition. Up to three server-selected reviewed source snapshots, usage/context notes or correction proposals with evidence, optional skipping, 20 participation XP per submitted source per UTC day, levels every 100 XP and lifetime mission badges at 1/3/10. Daily completion resets at 00:00 UTC; XP remains. Transactional `labsQuests/{uid}` progress prevents duplicate submission rewards. Notes enter the existing Labs feedback queue with source references and snapshots, and appear under My activity → Feedback. No automatic publication, verified contributor points or payments. This new experiment is implemented locally, not confirmed deployed; callable/rules tests need a Java-enabled emulator host.
+
 - `/labs`: home, two registry-backed previews and the primary Explore experiments action.
 - `/labs/experiments`: text search, category and lifecycle filters.
 - `/labs/kasem-practice`: selectable topics from available reviewed sources, up to six questions, meanings, whole-expression/sentence matching, and listening only with publication-reviewed audio evidence. Results, per-question reports and source links. Exact source text is preserved. Ambiguous spellings, duplicate meanings, mixed dialect topics and multi-sense glosses are skipped. Honest empty/error states replace unsuitable content.
