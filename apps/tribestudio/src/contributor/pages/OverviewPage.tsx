@@ -1,28 +1,24 @@
-import { DailyTasks } from '../DailyTasks';
-import { HomeStreak } from '../HomeStreak';
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { useRoute } from '../../router';
-import { canValidate, useAuth } from '../../auth';
 import {
   ActivityList,
-  Card,
-  Chip,
-  EmptyNote,
+  Badge,
+  EmptyState,
   Icon,
-  MetricTiles,
   Notice,
   PageHeader,
+  Panel,
   PulsePanel,
   SegmentBar,
   Skeleton,
+  StatList,
+  cx,
   useNow,
+  type StatItem,
 } from '../components';
 import {
   WORK_STATE_META,
-  activityFrom,
   dueInfo,
-  firstName,
-  formatDate,
   metricsFor,
   nextContribution,
   pluralise,
@@ -30,13 +26,17 @@ import {
   type Item,
   type Work,
 } from '../model';
+import { ACTION_LABEL, STATE_META, TYPE_META, sentRows, summarise, type SubmissionRow } from '../submissions';
+import { loadExpressionDraft } from '../../creator/expressions-data';
 import { GUIDE } from '../guide';
-import { artwork } from '../artwork';
 import { PortalLink, paymentsNeedAttention, useShared, useWorkspace } from '../workspace';
+import { DailyBatch } from '../DailyTasks';
 
 /**
- * The first screen after sign-in. It answers three questions, in order: what
- * should I do next, what have I submitted, what needs my attention.
+ * The first screen after sign-in. It answers three questions, in order:
+ * what needs my attention, what should I do next, and where does my work
+ * stand. Personal figures come only from the contributor's own records;
+ * community figures appear only when the live feed has something to show.
  */
 
 /** The assignment worth continuing: returned work first, then due soonest, then newest. */
@@ -53,146 +53,200 @@ export function currentAssignment(works: Work[], items: Record<string, Item[]>):
   return ranked[0] ?? works[0] ?? null;
 }
 
+/** Where a row's next action leads. */
+export function rowActionHref(row: SubmissionRow, paths: ReturnType<typeof useWorkspace>['paths']): string {
+  if (row.type === 'assigned' && row.work) return paths.work(row.work, row.item);
+  if (row.action === 'correct' && row.id) return paths.section('contribute', { type: 'expression', correct: row.id });
+  if (row.action === 'record_again') return paths.section('contribute', { type: 'recording' });
+  return paths.section('contributions', { view: row.key });
+}
+
 export function OverviewPage() {
   const data = useWorkspace();
-  const { role } = useAuth();
-  const [onboarded, setOnboarded] = useState(() => { try { return localStorage.getItem(`contributor-intro:${data.uid}`) === 'done'; } catch { return false; } });
-  const { self, payments } = useShared();
+  const { self, payments, rewards, rows, revisions, events } = useShared();
   const { navigate } = useRoute();
   const now = useNow();
-  const allItems = useMemo(() => Object.values(data.items).flat(), [data.items]);
-  const metrics = useMemo(() => metricsFor(allItems), [allItems]);
   const work = useMemo(() => currentAssignment(data.works, data.items), [data.items, data.works]);
   const workItems = work ? data.items[work.id] ?? [] : [];
   const workMetrics = metricsFor(workItems);
   const state = workState(workItems);
   const next = nextContribution(workItems);
   const due = work ? dueInfo(work.deadline, state === 'complete' || state === 'awaiting_review', new Date(now)) : null;
-  const events = useMemo(() => activityFrom(data.rounds, data.works, data.paymentNotices), [data.paymentNotices, data.rounds, data.works]);
-  const name = firstName(self.value?.profile.displayName || data.displayName || '');
+  const summary = useMemo(() => summarise(rows), [rows]);
+  const sent = useMemo(() => sentRows(rows), [rows]);
+  const name = (self.value?.profile.displayName || data.displayName || '').trim();
   const loading = data.worksState === 'loading' || (data.worksState === 'ready' && data.itemsState === 'loading');
-  const remaining = workMetrics.notStarted + workMetrics.drafts + workMetrics.unsure;
-  const returnedWork = metrics.returned;
   const attentionPayments = paymentsNeedAttention(payments.value);
-
-  const summary = loading ? 'Loading your assignments…'
-    : !work ? 'You have no assignments yet. When the team assigns expressions to you, they appear here.'
-      : returnedWork ? `${pluralise(returnedWork, 'expression')} came back with reviewer feedback. Start there.`
-        : remaining ? `${pluralise(remaining, 'expression')} left in “${work.title}”${due && work.deadline ? `, due ${formatDate(work.deadline)}` : ''}.`
-          : metrics.awaiting ? 'Everything assigned to you has been submitted. Reviewer decisions will appear here.'
-            : 'Everything assigned to you has been reviewed.';
+  const localDraft = useMemo(() => loadExpressionDraft(data.uid), [data.uid]);
+  const attentionCount = revisions.length + (attentionPayments ? 1 : 0);
 
   const openEvent = (event: { work?: string; item?: string; link?: string }) => {
     if (event.link) navigate(event.link);
     else if (event.work) navigate(data.paths.work(event.work, event.item));
   };
 
+  const stats: StatItem[] = [
+    { key: 'drafts', label: 'Drafts', value: summary.drafts, hint: 'Saved, not sent', href: data.paths.section('contributions', { status: 'drafts' }) },
+    { key: 'review', label: 'Awaiting review', value: summary.inReview, hint: 'With reviewers', href: data.paths.section('contributions', { status: 'in_review' }) },
+    { key: 'action', label: 'Needs your action', value: summary.action, hint: summary.action ? 'Reviewer feedback waiting' : 'Nothing to revise', href: data.paths.section('revisions'), attention: summary.action > 0 },
+    { key: 'approved', label: 'Approved', value: summary.approved + summary.published, hint: summary.published ? `${summary.published} published` : 'Accepted by a reviewer', href: data.paths.section('contributions', { status: 'approved' }) },
+  ].map((item) => ({ ...item, onOpen: () => navigate(item.href) }));
+
   return (
-    <div className="cw-page cw-page--home">
-      <PageHeader kicker="YOUR WORDS MAKE A WORLD" title={name ? `Welcome back, ${name}.` : 'Welcome back.'} id="page-title"
-        actions={<><HomeStreak />{!data.preview && canValidate(role) ? <PortalLink to="/contributor/review" className="button--primary"><Icon name="shield" />Open review desk</PortalLink> : null}</>} />
-
-      <section className="cw-welcome" aria-labelledby="welcome-title">
-        <img className="cw-welcome__art" src={artwork.languageStudio} alt="" width="1536" height="1024" fetchPriority="high" />
-        <div className="cw-welcome__copy">
-          <span className="cw-welcome__eyebrow"><span aria-hidden="true">✦</span> EVERY EXPRESSION MATTERS</span>
-          <h2 id="welcome-title">Your words.<br />Our living heritage.</h2>
-          <p>A little of your time. A lasting place for Kasem.</p>
-          <PortalLink to={work ? data.paths.work(work.id, next?.id) : data.paths.section('guide')} className="cw-welcome__button">
-            {work ? next ? 'Continue my work' : 'View my assignment' : 'Explore the guide'}<Icon name="arrow" />
-          </PortalLink>
-        </div>
-        <span className="cw-welcome__caption">LANGUAGE CONNECTS US.</span>
-      </section>
-
-      <section className="cw-impact" aria-label="Your contributions across all assignments">
-        {loading ? <Skeleton lines={2} label="Counting your contributions" /> : <MetricTiles metrics={metrics} />}
-      </section>
+    <div className="cw-page cw-overview">
+      <PageHeader
+        title="Overview"
+        description={name ? `Signed in as ${name}. Your tasks, submissions and reviewer feedback in one place.` : 'Your tasks, submissions and reviewer feedback in one place.'}
+        actions={<PortalLink to={data.paths.section('contribute')} className={cx('cw-btn', attentionCount ? '' : 'cw-btn--primary')}><Icon name="plus" />Start a contribution</PortalLink>}
+      />
 
       {data.worksState === 'error' || data.itemsState === 'error' ? (
-        <Notice tone="danger" title="Your assignments could not be loaded" action={<button type="button" onClick={() => window.location.reload()}>Reload</button>}>
+        <Notice tone="danger" title="Your tasks could not be loaded" action={<button type="button" onClick={() => window.location.reload()}>Reload</button>}>
           <p>Check your connection. Drafts you have already saved are safe on the server.</p>
         </Notice>
       ) : null}
 
-      {returnedWork || attentionPayments ? (
-        <div className="cw-attention" aria-label="Needs your attention">
-          {returnedWork ? (
-            <Notice tone="warning" title={`${pluralise(returnedWork, 'expression')} returned for revision`}
-              action={<button type="button" onClick={() => navigate(data.paths.section('contributions', { filter: 'returned' }))}>Read the feedback</button>}>
-            </Notice>
-          ) : null}
-          {attentionPayments ? (
-            <Notice tone="warning" title="Your payment details need attention"
-              action={<button type="button" onClick={() => navigate(data.paths.account('payments'))}>Open payment details</button>}>
-              <p>{payments.value?.bank?.nextStep || payments.value?.momo?.nextStep || 'A finance reviewer needs something from you before payments can be sent.'}</p>
-            </Notice>
-          ) : null}
-        </div>
-      ) : null}
-
-      {!onboarded && metrics.submitted === 0 ? <details className="cw-onboarding" open><summary>Get started</summary><ol><li><PortalLink to={data.paths.section('guide')}>Read the contribution guide</PortalLink></li><li><PortalLink to={data.paths.section('assignments')}>Open your tasks and save a draft</PortalLink></li><li>Submit for review, then follow feedback in My contributions.</li></ol><button type="button" onClick={() => { setOnboarded(true); try { localStorage.setItem(`contributor-intro:${data.uid}`, 'done'); } catch { /* Optional preference. */ } }}>Got it</button></details> : null}
-      <div className="cw-overview-grid">
-        <Card
-          className="cw-current"
-          title={work ? 'Current assignment' : 'Assignments'}
-          labelledBy="current-assignment"
-          actions={work ? <Chip tone={WORK_STATE_META[state].tone}>{WORK_STATE_META[state].label}</Chip> : null}
-        >
-          {loading ? <Skeleton lines={4} label="Loading your current assignment" /> : work ? (
-            <div className="cw-current__body">
-              <p className="cw-current__summary">{summary}</p>
-              <div className="cw-current__title">
-                <h3>{work.title}</h3>
-                <p className="cw-meta-row">
-                  {due ? <span className={`cw-due cw-due--${due.tone}`}><Icon name="clock" />{due.label}</span> : <span className="cw-due"><Icon name="clock" />No due date</span>}
-                  <span>{pluralise(workItems.length, 'expression')}</span>
-                </p>
-              </div>
-              <SegmentBar metrics={workMetrics} label={`Progress on ${work.title}`} />
-              <div className="cw-current__actions">
-                {next ? (
-                  <button type="button" className="button--primary cw-button-lg" onClick={() => navigate(data.paths.work(work.id, next.id))}>
-                    {['rejected', 'needs_revision'].includes(next.status) ? 'Revise returned expression' : next.translation.trim() ? 'Continue translating' : 'Start translating'}
-                    <Icon name="arrow" />
-                  </button>
+      <div className="cw-overview__grid">
+        <div className="cw-overview__main">
+          {attentionCount ? (
+            <Panel title="Needs your attention" description={`${pluralise(attentionCount, 'item')} waiting for you`} flush className="cw-attention">
+              <ul className="cw-list-rows">
+                {revisions.slice(0, 3).map((row) => (
+                  <li key={row.key} className="cw-row-item">
+                    <span className="cw-row-item__icon cw-row-item__icon--warning" aria-hidden="true"><Icon name="revisions" /></span>
+                    <div className="cw-row-item__copy">
+                      <strong><span lang={row.titleLang}>{row.title}</span> · {STATE_META[row.state].label.toLowerCase()}</strong>
+                      <span>{row.feedback ? <>Reviewer: “{truncate(row.feedback, 140)}”</> : TYPE_META[row.type].label}</span>
+                    </div>
+                    <PortalLink to={rowActionHref(row, data.paths)} className="cw-btn cw-btn--primary cw-btn--sm">{row.action ? ACTION_LABEL[row.action] : 'Open'}</PortalLink>
+                  </li>
+                ))}
+                {revisions.length > 3 ? (
+                  <li className="cw-row-item cw-row-item--more">
+                    <span />
+                    <span className="cw-muted">{pluralise(revisions.length - 3, 'more revision request')}</span>
+                    <PortalLink to={data.paths.section('revisions')} className="cw-text-link">View all<Icon name="arrow" /></PortalLink>
+                  </li>
                 ) : null}
-                <PortalLink to={data.paths.work(work.id)} className="cw-button-secondary">View assignment</PortalLink>
-                {data.works.length > 1 ? <PortalLink to={data.paths.section('assignments')} className="cw-text-link">All {data.works.length} assignments</PortalLink> : null}
+                {attentionPayments ? (
+                  <li className="cw-row-item">
+                    <span className="cw-row-item__icon cw-row-item__icon--warning" aria-hidden="true"><Icon name="bank" /></span>
+                    <div className="cw-row-item__copy">
+                      <strong>Your payment details need attention</strong>
+                      <span>{payments.value?.bank?.nextStep || payments.value?.momo?.nextStep || 'A finance reviewer needs something from you.'}</span>
+                    </div>
+                    <PortalLink to={data.paths.account('payments')} className="cw-btn cw-btn--sm">Open payment details</PortalLink>
+                  </li>
+                ) : null}
+              </ul>
+            </Panel>
+          ) : null}
+
+          <Panel
+            title="Continue where you left off"
+            actions={data.works.length > 1 ? <PortalLink to={data.paths.section('assignments')} className="cw-text-link">All {data.works.length} tasks<Icon name="arrow" /></PortalLink> : undefined}
+          >
+            {loading ? <Skeleton lines={4} label="Loading your current task" /> : work ? (
+              <div className="cw-current">
+                <div className="cw-current__head">
+                  <div className="cw-current__title">
+                    <h3>{work.title}</h3>
+                    <p className="cw-page-head__meta">
+                      <span className={cx(due && `cw-due cw-due--${due.tone}`)}><Icon name="clock" className="cw-icon--sm" />{due ? due.label : 'No due date'}</span>
+                      <span>{pluralise(workItems.length, 'expression')}</span>
+                      {work.dialect ? <span>{work.dialect}</span> : null}
+                    </p>
+                  </div>
+                  <Badge tone={WORK_STATE_META[state].tone}>{WORK_STATE_META[state].label}</Badge>
+                </div>
+                <SegmentBar metrics={workMetrics} label={`Progress on ${work.title}`} />
+                <div className="cw-inline-actions">
+                  {next ? (
+                    <PortalLink to={data.paths.work(work.id, next.id)} className="cw-btn cw-btn--primary">
+                      {['rejected', 'needs_revision'].includes(next.status) ? 'Revise returned expression' : next.translation.trim() ? 'Continue translating' : 'Start translating'}
+                      <Icon name="arrow" />
+                    </PortalLink>
+                  ) : null}
+                  <PortalLink to={data.paths.work(work.id)} className="cw-btn">Open task</PortalLink>
+                </div>
+                {localDraft ? (
+                  <p className="cw-current__extra"><Icon name="edit" className="cw-icon--sm" />You also have an unsent everyday expression saved in this browser. <PortalLink to={data.paths.section('contribute', { type: 'expression' })} className="cw-text-link">Continue it</PortalLink></p>
+                ) : null}
               </div>
-            </div>
-          ) : (
-            <EmptyNote title="No assignments yet">
-              The team assigns sets of expressions to invited contributors. While you wait, read how assignments work in the Platform guide.
-            </EmptyNote>
-          )}
-        </Card>
+            ) : (
+              <EmptyState
+                title={localDraft ? 'You have an unsent expression' : 'No tasks assigned yet'}
+                icon="assignments"
+                variant="bare"
+                actions={<>
+                  <PortalLink to={data.paths.section('contribute', { type: 'expression' })} className="cw-btn cw-btn--primary">{localDraft ? 'Continue your expression' : 'Share an everyday expression'}</PortalLink>
+                  <PortalLink to={data.paths.section('guide', { section: 'assignments' })} className="cw-btn">How tasks work</PortalLink>
+                </>}
+              >
+                The team sends translation tasks to invited contributors. While you wait, you can share an everyday Kasem expression you know well.
+              </EmptyState>
+            )}
+          </Panel>
 
-        <DailyTasks />
+          {sent.length || summary.drafts ? (
+            <Panel
+              title="Your submissions"
+              description="Across tasks, expressions, words and recordings"
+              flush
+              actions={<PortalLink to={data.paths.section('contributions')} className="cw-text-link">My submissions<Icon name="arrow" /></PortalLink>}
+            >
+              <StatList items={stats} label="Your submissions by status" />
+            </Panel>
+          ) : !loading && data.receiptsState !== 'loading' ? (
+            <Panel title="How your work moves">
+              <ol className="cw-steps">
+                <li><span className="cw-steps__n">1</span><div><strong>Translate or share</strong><p>Work on an assigned task, or share an expression, word or recording you know.</p></div></li>
+                <li><span className="cw-steps__n">2</span><div><strong>A reviewer checks it</strong><p>Kasem-speaking reviewers approve it or explain what to change.</p></div></li>
+                <li><span className="cw-steps__n">3</span><div><strong>You see the decision</strong><p>Every decision and its feedback appears in My submissions.</p></div></li>
+              </ol>
+            </Panel>
+          ) : null}
 
-        <Card title="Recent activity" labelledBy="recent-activity" className="cw-activity-card" actions={<PortalLink to={data.paths.section('activity')} className="cw-text-link">View all</PortalLink>}>
-          {data.roundsState === 'loading' ? <Skeleton lines={4} label="Loading your activity" /> : data.roundsState === 'error' ? (
-            <p className="cw-muted">Your review history could not be loaded just now. Your assignments above are up to date.</p>
-          ) : <ActivityList events={events.slice(0, 4)} onOpen={openEvent} now={now} emptyText="Your submissions and review decisions will appear here." />}
-        </Card>
-
-        <div className="cw-side-stack">
-          <PulsePanel pulse={data.pulse} onPrivacy={() => navigate(data.paths.account('notifications'))} />
-          <Card title="Kawuri Intelligence" labelledBy="kawuri-entry" className="cw-kawuri-entry">
-            <img className="cw-kawuri-entry__art" src={artwork.livingKnowledge} alt="" width="1536" height="1024" loading="lazy" />
-            <p>A fresh perspective when you need one.</p>
-            <p className="cw-muted">Help with English meaning and context. Your Kasem stays yours.</p>
-            <button type="button" onClick={() => navigate(data.paths.section('kawuri', work ? { work: work.id, ...(next ? { item: next.id } : {}) } : undefined))}><Icon name="kawuri" />Ask Kawuri</button>
-          </Card>
-          <Card title="Platform guide" labelledBy="guide-entry" className="cw-guide-entry">
-            <ul className="cw-guide-links">
-              {GUIDE.slice(0, 4).map((section) => (
-                <li key={section.id}><PortalLink to={data.paths.section('guide', { section: section.id })}>{section.title}<Icon name="arrow" /></PortalLink></li>
-              ))}
-            </ul>
-          </Card>
+          <Panel
+            title="Recent activity"
+            flush
+            actions={<PortalLink to={data.paths.section('activity')} className="cw-text-link">All updates<Icon name="arrow" /></PortalLink>}
+          >
+            {data.roundsState === 'loading' ? <div className="cw-panel__pad"><Skeleton lines={3} label="Loading your activity" /></div> : data.roundsState === 'error' ? (
+              <p className="cw-muted cw-panel__pad">Your review history could not be loaded just now. Your tasks above are up to date.</p>
+            ) : <ActivityList events={events.slice(0, 5)} onOpen={openEvent} now={now} emptyText="Submissions and reviewer decisions will appear here." />}
+          </Panel>
         </div>
+
+        <aside className="cw-overview__side" aria-label="More for you">
+          <DailyBatch compact />
+          {rewards.value ? (
+            <Panel
+              title="Points"
+              actions={<PortalLink to={data.paths.section('rewards')} className="cw-text-link">Rewards<Icon name="arrow" /></PortalLink>}
+            >
+              <div className="cw-points-mini">
+                <span className="cw-points-mini__value">{rewards.value.rewards.balance.toLocaleString()}</span>
+                <span className="cw-muted">points available</span>
+              </div>
+              <p className="cw-muted cw-small">Each approved assigned translation earns {rewards.value.rewards.pointsPerExpression} points, up to {rewards.value.rewards.dailyCap} a day. Points are not cash.</p>
+            </Panel>
+          ) : null}
+          <PulsePanel pulse={data.pulse} onPrivacy={() => navigate(data.paths.account('notifications'))} />
+          <Panel title="Guidelines">
+            <ul className="cw-link-list">
+              {GUIDE.slice(0, 4).map((section) => (
+                <li key={section.id}><PortalLink to={data.paths.section('guide', { section: section.id })}>{section.title}<Icon name="chevron" /></PortalLink></li>
+              ))}
+              <li><PortalLink to={data.paths.section('kawuri', work ? { work: work.id, ...(next ? { item: next.id } : {}) } : undefined)}>Ask Kawuri about a task<Icon name="chevron" /></PortalLink></li>
+            </ul>
+          </Panel>
+        </aside>
       </div>
     </div>
   );
+}
+
+function truncate(value: string, max: number): string {
+  return value.length > max ? `${value.slice(0, max - 1).trimEnd()}…` : value;
 }

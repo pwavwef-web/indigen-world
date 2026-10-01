@@ -4,33 +4,37 @@ import { doc, onSnapshot } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { auth, db, functions } from '../firebase';
 import { canValidate, signIn, signOutUser, useAuth } from '../auth';
-import { ReviewDesk } from './review/ReviewDesk';
+import { ReviewDesk } from './lazy';
 import { useRoute } from '../router';
-import { BrandMark } from './components';
+import { BrandMark, Icon } from './components';
 import { livePaths, liveServices, useLiveWorkspace } from './data';
 import { invitationLinkOwner, WorkspaceContext, WorkspaceShell } from './workspace';
 import type { AccountSummary, WorkspaceData } from './types';
-import './contributor.css';
-import './studio-refresh.css';
-import { artwork } from './artwork';
+import './styles/portal.css';
+import './styles/shell.css';
+import './styles/pages.css';
 import { SupportPage } from './SupportPage';
 
 /**
  * The contributor portal at /contributor.
  *
- * Access is decided exactly as before the rebuild: a signed-in account whose
+ * Access is decided exactly as before the redesign: a signed-in account whose
  * `contributorAccounts/{uid}` record is active. Everything else — the
  * workspace's reads and writes — starts only after that check passes, and
  * the server repeats it on every callable. An invitation link for another
  * account, a revoked invitation and a temporary password each get their own
  * explanation instead of an empty page.
+ *
+ * /contributor/review and everything under it is the review workspace. It
+ * needs a review role, not a contributor invitation, and never starts the
+ * contributor's own reads.
  */
 export function ContributorPortal() {
   const { user, ready, role, refreshToken } = useAuth();
   const { path, search } = useRoute();
   const linkOwner = invitationLinkOwner(path);
   const code = new URLSearchParams(search).get('oobCode');
-  const reviewRoute = path === '/contributor/review';
+  const reviewRoute = path === '/contributor/review' || path.startsWith('/contributor/review/');
   const [access, setAccess] = useState<'loading' | 'active' | 'denied'>('loading');
   const [account, setAccount] = useState<AccountSummary | null>(null);
   const [error, setError] = useState('');
@@ -61,8 +65,30 @@ export function ContributorPortal() {
   if (path === '/contributor/support') return <AuthFrame><SupportPage /></AuthFrame>;
   if (!ready) return <AuthFrame><p className="cw-auth__message" role="status">Opening your workspace…</p></AuthFrame>;
   if (reviewRoute && !code) {
-    if (!user) return <AuthFrame><ContributorSignIn code={null} /><button className="cw-auth__secondary" onClick={() => void signIn().catch(() => setError('Google sign-in did not complete. Try again.'))}>Sign in with Google</button>{error ? <p role="alert">{error}</p> : null}</AuthFrame>;
-    if (!canValidate(role)) return <AuthFrame><h1>Validator access required</h1><p>The review desk is available to accounts with review permission. Contact the team if you need access.</p><button className="cw-auth__primary" onClick={() => void refreshToken()}>Refresh access</button><button className="cw-auth__secondary" onClick={() => void signOutUser()}>Sign out</button></AuthFrame>;
+    if (!user) {
+      return (
+        <AuthFrame review>
+          <ContributorSignIn code={null} />
+          <button type="button" className="cw-auth__secondary" onClick={() => void signIn().catch(() => setError('Google sign-in did not complete. Try again.'))}>Sign in with Google</button>
+          {error ? <p role="alert" className="cw-auth__error">{error}</p> : null}
+        </AuthFrame>
+      );
+    }
+    if (!canValidate(role)) {
+      return (
+        <AuthFrame review>
+          <div className="cw-auth__message" role="alert">
+            <h1>Reviewer access required</h1>
+            <p>The review workspace is open to accounts the team has given review permission. Signed in as {user.email ?? 'this account'}. If you were given access recently, refresh it.</p>
+          </div>
+          <div className="cw-auth__actions">
+            <button type="button" className="cw-auth__primary" onClick={() => void refreshToken()}>Refresh access</button>
+            <a className="cw-btn cw-auth__secondary" href="/contributor">Go to the contributor workspace</a>
+            <button type="button" className="cw-auth__secondary" onClick={() => void signOutUser()}>Sign out</button>
+          </div>
+        </AuthFrame>
+      );
+    }
     return <ReviewDesk key={user.uid} />;
   }
   if (code || !user) return <AuthFrame><ContributorSignIn code={code} /></AuthFrame>;
@@ -88,6 +114,7 @@ export function ContributorPortal() {
         </div>
         <div className="cw-auth__actions">
           {error ? <button type="button" className="cw-auth__primary" onClick={() => window.location.reload()}>Try again</button> : null}
+          {canValidate(role) ? <a className="cw-btn cw-auth__secondary" href="/contributor/review">Open the review workspace</a> : null}
           <button type="button" className="cw-auth__secondary" onClick={() => void signOutUser()}>Sign out</button>
         </div>
       </AuthFrame>
@@ -98,29 +125,48 @@ export function ContributorPortal() {
   return <ActiveWorkspace uid={user.uid} email={user.email ?? ''} displayName={user.displayName ?? ''} account={account} />;
 }
 
-function AuthFrame({ children }: { children: ReactNode }) {
+/**
+ * The frame around sign-in and access messages: a quiet identity panel on
+ * wide screens, and the form on its own on a phone.
+ */
+function AuthFrame({ children, review = false }: { children: ReactNode; review?: boolean }) {
   const { path } = useRoute();
   return (
-    <div className="cw-auth iwx">
-      <aside className="cw-auth__story">
-        <img src={artwork.languageStudio} alt="" width="1536" height="1024" fetchPriority="high" />
-        <div className="cw-auth__story-copy">
-          <span className="cw-kicker">INDIGEN WORLD · TRIBESTUDIO</span>
-          <h2>A language lives<br />through its people.</h2>
-          <p>Bring your words, your knowledge, your voice.<br />Let’s keep Kasem growing, together.</p>
+    <div className="cw-auth">
+      <aside className="cw-auth__story" aria-label="About this workspace">
+        <div className="cw-auth__mark">
+          <BrandMark />
+          <span><strong>TribeStudio</strong><small>Indigen World</small></span>
         </div>
-        <span className="cw-auth__story-caption">A space for the people behind the words.</span>
+        <div className="cw-auth__statement">
+          <h2>{review ? 'Review Kasem contributions with care.' : 'Document Kasem with care.'}</h2>
+          <p>{review
+            ? 'The review workspace is for people the team has asked to check contributions before anything is published.'
+            : 'This workspace is for invited contributors working with Indigen World on the Kasem language.'}</p>
+          <ul className="cw-auth__points">
+            {(review ? [
+              'Every decision is recorded with the reviewer and the reason.',
+              'Contributors see your feedback and can revise their work.',
+              'You cannot decide on your own submissions.',
+            ] : [
+              'Translate the expressions assigned to you. Drafts save as you type.',
+              'Kasem-speaking reviewers check every submission and explain their decisions.',
+              'Nothing is published until a reviewer approves it.',
+            ]).map((point) => <li key={point}><Icon name="check" />{point}</li>)}
+          </ul>
+        </div>
+        <p className="cw-auth__story-foot">Indigen World never asks for your password or a code by phone, SMS or WhatsApp.</p>
       </aside>
       <div className="cw-auth__entry">
-      <div className="cw-auth__panel">
-        <div className="cw-auth__brand">
-          <BrandMark />
-          <span><strong>TribeStudio.</strong><small>Your contributor space</small></span>
+        <div className="cw-auth__panel">
+          <div className="cw-auth__brand">
+            <BrandMark />
+            <span><strong>TribeStudio</strong><small>{review ? 'Review workspace' : 'Contributor workspace'}</small></span>
+          </div>
+          <main id="main-content" tabIndex={-1}>{children}</main>
         </div>
-        <main id="main-content" tabIndex={-1}>{children}</main>
-        {path !== '/contributor/support' && <p><a href="/contributor/support">Need help signing in? Contact support</a></p>}
-      </div>
-      <p className="cw-auth__foot">For invited contributors documenting Kasem. Indigen World never asks for your password by phone or SMS.</p>
+        {path !== '/contributor/support' ? <p className="cw-auth__support">Trouble signing in? <a href="/contributor/support">Contact support</a></p> : null}
+        <p className="cw-auth__foot">For invited contributors documenting Kasem. Indigen World never asks for your password by phone or SMS.</p>
       </div>
     </div>
   );
@@ -153,7 +199,7 @@ export function ContributorActivation() {
       } finally { setBusy(false); }
     }}>
       <h1>Choose your password</h1>
-      <p>Replace the temporary password from your invitation with one only you know. Then your assignments open.</p>
+      <p>Replace the temporary password from your invitation with one only you know. Use at least 8 characters, and not your phone number.</p>
       <label>New password<input type="password" autoComplete="new-password" minLength={8} maxLength={128} required value={password} onChange={(event) => setPassword(event.target.value)} /></label>
       <label>Confirm password<input type="password" autoComplete="new-password" minLength={8} maxLength={128} required value={confirm} onChange={(event) => setConfirm(event.target.value)} /></label>
       {error ? <p role="alert" className="cw-auth__error">{error}</p> : null}
@@ -191,15 +237,15 @@ export function ContributorSignIn({ code }: { code: string | null }) {
               : reason instanceof Error ? reason.message.replace(/^Firebase: /, '') : 'Sign-in did not complete.');
       } finally { setBusy(false); }
     }}>
-      <h1>{code ? 'Set your password' : reset ? 'Reset your password' : 'Good to have you here.'}</h1>
+      <h1>{code ? 'Set your password' : reset ? 'Reset your password' : 'Sign in'}</h1>
       <p>{code
         ? 'Choose a password for your contributor account.'
         : reset
           ? 'Enter the email your invitation was sent to. We will email you a link to choose a new password.'
-          : 'Sign in to pick up where you left off.'}</p>
+          : 'Use the email address your invitation was sent to.'}</p>
       <label>Email<input type="email" autoComplete="username" required value={email} readOnly={Boolean(code)} onChange={(event) => setEmail(event.target.value)} /></label>
       {!reset ? <label>{code ? 'New password' : 'Password'}<input type="password" minLength={code ? 8 : undefined} required autoComplete={code ? 'new-password' : 'current-password'} value={password} onChange={(event) => setPassword(event.target.value)} /></label> : null}
-      {!code && !reset ? <details className="cw-auth__help"><summary>First time here?</summary><p>Use your invited email and your phone number as the temporary password, including the country code (for example +233241234567). You’ll choose your own password after signing in.</p></details> : null}
+      {!code && !reset ? <details className="cw-auth__help"><summary>First time signing in?</summary><p>Use your invited email, and your phone number as the temporary password, including the country code (for example +233241234567). You will choose your own password straight after.</p></details> : null}
       {notice ? <p role="status" className="cw-auth__notice">{notice}</p> : null}
       {error ? <p role="alert" className="cw-auth__error">{error}</p> : null}
       <button type="submit" className="cw-auth__primary" disabled={busy || !email}>{busy ? 'Please wait…' : reset ? 'Send reset link' : code ? 'Save password and sign in' : 'Sign in'}</button>

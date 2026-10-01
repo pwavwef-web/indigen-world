@@ -56,6 +56,10 @@ export interface SubmissionRound {
   decidedAt: string;
   feedback: string;
   revisionOf: string;
+  /** What was sent in this round, so earlier versions stay visible after a revision. */
+  kasem?: string;
+  alternatives?: string[];
+  context?: string;
 }
 
 export type Status = 'Not started' | 'Drafts' | 'Submitted' | 'Needs revision' | 'I’m not sure';

@@ -1,11 +1,28 @@
 import { useMemo, useRef, useState } from 'react';
+// Styles first, as ContributorPortal loads them, so the cascade matches production.
+import './styles/portal.css';
+import './styles/shell.css';
+import './styles/pages.css';
+import { useRoute } from '../router';
 import { WorkspaceContext, WorkspaceShell } from './workspace';
-import { STATEMENT_TYPES, statementProblem } from './data';
+import { STATEMENT_TYPES, audioProblem, statementProblem } from './data';
 import type { Item, SubmissionRound, Work } from './model';
-import type { AssistResult, PaymentsView, PortalPaths, SelfView, Settings, WorkspaceData, WorkspaceServices } from './types';
+import type { ReceiptRecord, RecordingRecord } from './submissions';
+import type {
+  AssistResult,
+  DailyTasks,
+  PaymentsView,
+  PortalPaths,
+  RedemptionRequest,
+  RewardCredit,
+  SelfView,
+  Settings,
+  WordOption,
+  WorkspaceData,
+  WorkspaceServices,
+} from './types';
 import { MOMO_NETWORKS } from './types';
-import './contributor.css';
-import './studio-refresh.css';
+import { ReviewPreview } from './review/ReviewPreview';
 
 /**
  * Local preview of the contributor workspace — development builds only
@@ -16,6 +33,11 @@ import './studio-refresh.css';
  * Nothing is sent anywhere: saves, uploads, codes and Kawuri answers are
  * simulated in this tab and reset on reload. Kasem text is shown as a
  * bracketed placeholder rather than invented.
+ *
+ * /contributor/preview/review shows the review workspace the same way
+ * (review/ReviewPreview.tsx). "Simulate a dropped connection" in the banner
+ * makes every send fail as an unreachable server would, so recovery can be
+ * exercised without touching Firebase.
  */
 
 const DAILY_FIRST = ["Good morning.","How are you today?","Please come inside.","The children are at school.","I am going to the farm.","Please bring some water.","We will meet this evening.","Where is your mother?","I have finished my work.","The road is busy.","Let us eat together.","Please speak slowly.","I do not understand.","See you next week.","What is your name?"];
@@ -71,6 +93,57 @@ const ROUNDS: SubmissionRound[] = Object.entries(ITEMS).flatMap(([work, items]) 
   return [sent];
 }));
 
+// Open contributions, recordings and point credits, in the shapes the live
+// listeners produce (data.ts). Sample only.
+const RECEIPTS: ReceiptRecord[] = [
+  {
+    id: 'preview-expression-waiting', kind: 'expression', phrase: '[Sample Kasem expression]', meaning: 'Welcome back from your journey.',
+    context: 'Said by the household to a relative arriving home.', literalTranslation: '', expressionKind: 'phrase', partOfSpeech: '', dialect: 'Navrongo',
+    sourceType: 'elder', sourceDetail: 'Learned from a grandparent (sample).', speakerName: '', exampleKasem: '', exampleEnglish: '',
+    status: 'submitted', reviewFeedback: '', publicationPermission: true, aiTraining: false, revisionOf: '', correctedBy: '', createdAt: iso(20), reviewedAt: '', hasAudio: false,
+  },
+  {
+    id: 'preview-expression-declined', kind: 'expression', phrase: '[Sample Kasem greeting]', meaning: 'Goodbye, travel well.',
+    context: 'Said at the door.', literalTranslation: '', expressionKind: 'phrase', partOfSpeech: '', dialect: 'Paga',
+    sourceType: 'self', sourceDetail: '', speakerName: '', exampleKasem: '', exampleEnglish: '',
+    status: 'rejected', reviewFeedback: 'The meaning given is “goodbye”, but this is said when someone arrives. Please check the English meaning and say who says it to whom.',
+    publicationPermission: true, aiTraining: false, revisionOf: '', correctedBy: '', createdAt: iso(80), reviewedAt: iso(50), hasAudio: false,
+  },
+  {
+    id: 'preview-word-approved', kind: 'word', phrase: '[Sample Kasem word]', meaning: 'calabash', context: '', literalTranslation: '', expressionKind: '', partOfSpeech: 'noun',
+    dialect: 'Navrongo', sourceType: '', sourceDetail: 'Everyday use at home (sample).', speakerName: '', exampleKasem: '[Sample Kasem example sentence]',
+    exampleEnglish: 'She filled the calabash with water.', status: 'approved', reviewFeedback: '', publicationPermission: true, aiTraining: false,
+    revisionOf: '', correctedBy: '', createdAt: iso(140), reviewedAt: iso(100), hasAudio: true,
+  },
+  {
+    id: 'preview-expression-published', kind: 'expression', phrase: '[Sample Kasem blessing]', meaning: 'May your day go well.',
+    context: 'Said in the morning to anyone, young or old.', literalTranslation: '', expressionKind: 'phrase', partOfSpeech: '', dialect: 'Navrongo',
+    sourceType: 'family', sourceDetail: 'My mother (sample).', speakerName: '', exampleKasem: '', exampleEnglish: '',
+    status: 'published', reviewFeedback: 'Natural and clear. Thank you.', publicationPermission: true, aiTraining: true,
+    revisionOf: '', correctedBy: '', createdAt: iso(320), reviewedAt: iso(260), hasAudio: false,
+  },
+];
+
+const RECORDINGS: RecordingRecord[] = [
+  { id: 'preview-recording-waiting', entryId: 'w-farm', headword: '[Sample word: farm]', meaning: 'farm', status: 'submitted', outcome: '', decisionNote: '', publishConsent: true, durationMs: 1800, createdAt: iso(6), decidedAt: '' },
+  { id: 'preview-recording-declined', entryId: 'w-market', headword: '[Sample word: market]', meaning: 'market', status: 'rejected', outcome: '', decisionNote: 'The end of the word is cut off. Please leave a short pause before you stop recording.', publishConsent: true, durationMs: 900, createdAt: iso(60), decidedAt: iso(40) },
+];
+
+const WORDS: WordOption[] = [
+  { id: 'w-water', kasem: '[Sample word: water]', english: 'water', partOfSpeech: 'noun', homographIndex: 0, hasAudio: true },
+  { id: 'w-farm', kasem: '[Sample word: farm]', english: 'farm', partOfSpeech: 'noun', homographIndex: 0, hasAudio: false },
+  { id: 'w-market', kasem: '[Sample word: market]', english: 'market', partOfSpeech: 'noun', homographIndex: 0, hasAudio: false },
+  { id: 'w-greet', kasem: '[Sample word: greet]', english: 'to greet', partOfSpeech: 'verb', homographIndex: 0, hasAudio: false },
+  { id: 'w-child', kasem: '[Sample word: child]', english: 'child', partOfSpeech: 'noun', homographIndex: 1, hasAudio: false },
+];
+
+const CREDITS: RewardCredit[] = Object.entries(ITEMS).flatMap(([work, items]) => items.filter((item) => item.status === 'verified').map((item) => ({
+  id: `${item.submissionId}`, submissionId: `${item.submissionId}`, work, item: item.id,
+  day: (item.reviewedAt ?? iso(24)).slice(0, 10), points: 10, createdAt: item.reviewedAt ?? iso(24),
+})));
+
+const REWARD_RULES = { pointsPerExpression: 10, dailyCap: 300, redemptionMinimum: 300, cedisPerRedemption: 5 };
+
 const SELF: SelfView = {
   contributorId: 'preview-contributor',
   profile: { displayName: 'Sample Contributor', photoUrl: '', location: 'Navrongo', biography: '', dialect: 'Navrongo', otherLanguages: 'English', expertise: ['language'], roles: ['translator'], contributionTypes: ['expressions'], publicVisibility: 'hidden' },
@@ -120,6 +193,17 @@ function previewPaths(): PortalPaths {
 }
 
 export function ContributorPreview() {
+  const { path } = useRoute();
+  if (path === '/contributor/preview/review' || path.startsWith('/contributor/preview/review/')) return <ReviewPreview />;
+  return <ContributorWorkspacePreview />;
+}
+
+/** A dropped connection, as a callable reports it. */
+function unreachable(): Error {
+  return Object.assign(new Error(''), { code: 'functions/unavailable' });
+}
+
+function ContributorWorkspacePreview() {
   const [items, setItems] = useState<Record<string, Item[]>>(()=>({...ITEMS,'daily-preview-first':DAILY_FIRST.map((expression,index)=>({id:'first-'+index,expression,translation:index<14?PLACEHOLDER:'',alternatives:[],revision:index<14?1:0,status:index<14?'submitted':'draft',...(index<14?{submissionId:'daily-sent-'+index,submittedAt:new Date().toISOString()}:{}),updatedAt:new Date().toISOString()}))}));
   const [dailyUnlocked, setDailyUnlocked] = useState(false);
   const works = useMemo<Work[]>(() => [
@@ -132,14 +216,32 @@ export function ContributorPreview() {
   const payments = useRef<PaymentsView>(initialPayments());
   const self = useRef<SelfView>(SELF);
   const pendingCode = useRef('');
+  const [receipts, setReceipts] = useState<ReceiptRecord[]>(RECEIPTS);
+  const [recordings, setRecordings] = useState<RecordingRecord[]>(RECORDINGS);
+  const [offline, setOffline] = useState(false);
+  const offlineRef = useRef(false);
+  offlineRef.current = offline;
+  const requests = useRef(new Map<string, string>());
+  const redemptions = useRef<RedemptionRequest[]>([]);
+  const spent = useRef(0);
+  const sendable = async (ms = 400) => {
+    await wait(ms);
+    if (offlineRef.current) throw unreachable();
+  };
+  const daily = (): DailyTasks => {
+    const first = previewData.current.items['daily-preview-first'] ?? [];
+    const submitted = first.filter((item) => item.submissionId).length;
+    const unlocked = previewData.current.works.some((work) => work.id === 'daily-preview-extra');
+    return {
+      day: new Date().toISOString().slice(0, 10),
+      status: unlocked ? 'extra_unlocked' : submitted >= 15 ? 'eligible' : 'in_progress',
+      submitted, firstWork: 'daily-preview-first', extraWork: unlocked ? 'daily-preview-extra' : '',
+    };
+  };
 
   const services = useMemo<WorkspaceServices>(() => ({
-    unlockDailyPreview() {
-      setDailyUnlocked(true);
-      setItems(current=>current['daily-preview-extra']?current:{...current,'daily-preview-extra':DAILY_EXTRA.map((expression,index)=>({id:'extra-'+index,expression,translation:'',alternatives:[],revision:0,status:'draft',updatedAt:new Date().toISOString()}))});
-    },
     async saveAnswer(data) {
-      await wait(300);
+      await sendable(300);
       const revision = Number(data.revision) + 1;
       const submissionId = data.submit ? `preview-${String(data.item)}-${revision}` : undefined;
       setItems((current) => ({
@@ -231,6 +333,91 @@ export function ContributorPreview() {
         generatedAt: new Date().toISOString(),
       };
     },
+    async loadRewards() {
+      await wait(250);
+      const earned = CREDITS.reduce((sum, credit) => sum + credit.points, 0);
+      return {
+        rewards: { ...REWARD_RULES, balance: earned - spent.current, lifetime: earned },
+        streak: { current: 2, best: 5, lastDay: new Date().toISOString().slice(0, 10), activeToday: true },
+        requests: redemptions.current,
+      };
+    },
+    async redeem(choice) {
+      await sendable(500);
+      const earned = CREDITS.reduce((sum, credit) => sum + credit.points, 0);
+      if (choice.points < REWARD_RULES.redemptionMinimum || choice.points > earned - spent.current) {
+        throw Object.assign(new Error(`Redeem at least ${REWARD_RULES.redemptionMinimum} points, up to your available balance.`), { code: 'functions/failed-precondition' });
+      }
+      spent.current += choice.points;
+      redemptions.current = [{ id: `preview-redemption-${redemptions.current.length + 1}`, amountMinor: Math.round(choice.points / REWARD_RULES.redemptionMinimum * REWARD_RULES.cedisPerRedemption * 100), currency: 'GHS', description: `${choice.points} points for ${choice.kind}`, status: 'submitted', points: choice.points, kind: choice.kind, network: choice.network, phoneNumber: choice.phoneNumber, createdAt: new Date().toISOString() }, ...redemptions.current];
+    },
+    async loadDaily() { await wait(200); return daily(); },
+    async requestMoreDaily() {
+      await sendable(400);
+      if (daily().status === 'in_progress') throw Object.assign(new Error('Submit all fifteen in today’s first batch before asking for more.'), { code: 'functions/failed-precondition' });
+      setDailyUnlocked(true);
+      setItems((current) => current['daily-preview-extra'] ? current : { ...current, 'daily-preview-extra': DAILY_EXTRA.map((expression, index) => ({ id: 'extra-' + index, expression, translation: '', alternatives: [], revision: 0, status: 'draft', updatedAt: new Date().toISOString() })) });
+      return { ...daily(), status: 'extra_unlocked', extraWork: 'daily-preview-extra' };
+    },
+    async submitExpression(draft, requestId) {
+      await sendable(600);
+      const known = requests.current.get(requestId);
+      if (known) return { contributionId: known };
+      const id = `preview-expression-${requests.current.size + 1}`;
+      requests.current.set(requestId, id);
+      const now = new Date().toISOString();
+      setReceipts((current) => [{
+        id, kind: 'expression', phrase: draft.phrase.trim(), meaning: draft.meaning.trim(), context: draft.context.trim(), literalTranslation: draft.literalTranslation.trim(),
+        expressionKind: draft.kind, partOfSpeech: '', dialect: draft.dialect, sourceType: draft.sourceType, sourceDetail: draft.sourceDetail.trim(), speakerName: draft.speakerName.trim(),
+        exampleKasem: '', exampleEnglish: '', status: 'submitted', reviewFeedback: '', publicationPermission: draft.publish === 'yes', aiTraining: draft.aiTraining,
+        revisionOf: draft.revisionOf, correctedBy: '', createdAt: now, reviewedAt: '', hasAudio: false,
+      }, ...current.map((receipt) => receipt.id === draft.revisionOf ? { ...receipt, correctedBy: id } : receipt)]);
+      return { contributionId: id };
+    },
+    async submitWord(draft, requestId) {
+      await sendable(600);
+      const known = requests.current.get(requestId);
+      if (known) return { contributionId: known };
+      const id = `preview-word-${requests.current.size + 1}`;
+      requests.current.set(requestId, id);
+      setReceipts((current) => [{
+        id, kind: 'word', phrase: draft.headword.trim(), meaning: draft.meaning.trim(), context: draft.notes.trim(), literalTranslation: '', expressionKind: '',
+        partOfSpeech: draft.partOfSpeech, dialect: draft.dialect, sourceType: '', sourceDetail: draft.source.trim(), speakerName: '',
+        exampleKasem: draft.exampleKasem.trim(), exampleEnglish: draft.exampleEnglish.trim(), status: 'submitted', reviewFeedback: '',
+        publicationPermission: draft.publicationPermission === 'yes', aiTraining: false, revisionOf: '', correctedBy: '', createdAt: new Date().toISOString(), reviewedAt: '', hasAudio: Boolean(draft.pronunciation),
+      }, ...current]);
+      return { contributionId: id };
+    },
+    async withdrawContribution(contributionId) {
+      await sendable(400);
+      setReceipts((current) => current.map((receipt) => receipt.id === contributionId ? { ...receipt, status: 'withdrawn' } : receipt));
+    },
+    async findWords(spelling) {
+      await wait(250);
+      const needle = spelling.trim().toLocaleLowerCase();
+      return needle ? WORDS.filter((word) => word.kasem.toLocaleLowerCase().includes(needle) || word.english.toLocaleLowerCase().includes(needle)) : [];
+    },
+    async wordsNeedingRecording() { await wait(250); return WORDS.filter((word) => !word.hasAudio); },
+    async uploadAudio(file, purpose, onProgress) {
+      const problem = audioProblem(file);
+      if (problem) throw Object.assign(new Error(problem), { code: 'invalid-file' });
+      for (const step of [0.3, 0.7, 1]) {
+        await wait(200);
+        if (offlineRef.current) throw Object.assign(new Error(''), { code: 'storage/retry-limit-exceeded' });
+        onProgress?.(step);
+      }
+      return { storagePath: `preview/${purpose}/${Date.now()}`, mimeType: file.type || 'audio/webm', sizeBytes: file.size, name: file.name || 'recording' };
+    },
+    async submitRecording(input) {
+      await sendable(500);
+      const known = requests.current.get(input.requestId);
+      if (known) return { id: known };
+      const id = `preview-recording-${requests.current.size + 1}`;
+      requests.current.set(input.requestId, id);
+      const word = WORDS.find((entry) => entry.id === input.entryId);
+      setRecordings((current) => [{ id, entryId: input.entryId, headword: word?.kasem ?? '', meaning: word?.english ?? '', status: 'submitted', outcome: '', decisionNote: '', publishConsent: input.publishConsent, durationMs: input.durationMs, createdAt: new Date().toISOString(), decidedAt: '' }, ...current]);
+      return { id };
+    },
     async changePassword() { await wait(400); },
     async sendPasswordReset() { await wait(300); },
     async signOut() { window.location.assign('/contributor'); },
@@ -247,6 +434,12 @@ export function ContributorPreview() {
     itemsState: 'ready',
     rounds: ROUNDS,
     roundsState: 'ready',
+    receipts,
+    receiptsState: 'ready',
+    recordings,
+    recordingsState: 'ready',
+    credits: CREDITS,
+    creditsState: 'ready',
     paymentNotices: [{ id: 'n1', title: 'Your bank account needs attention', body: 'The account number is cut off at the edge of the photo.', createdAt: iso(8) }],
     pulse: {
       state: 'live',
@@ -261,14 +454,15 @@ export function ContributorPreview() {
     services,
     paths: previewPaths(),
     preview: true,
-  }), [items, services, works]);
+  }), [items, receipts, recordings, services, works]);
 
   return (
     <WorkspaceContext.Provider value={value}>
       <WorkspaceShell banner={(
         <div className="cw-preview-banner" role="note">
           <strong>Local preview · sample data</strong>
-          <span>Nothing is saved or sent. Kasem text is a placeholder. The MoMo code is 123456. Community activity is sample data.</span>
+          <span>Nothing is saved or sent. Kasem text is a placeholder. The MoMo code is 123456. Community activity and points are sample data.</span>
+          <label className="cw-preview-banner__toggle"><input type="checkbox" checked={offline} onChange={(event) => setOffline(event.target.checked)} />Simulate a dropped connection</label>
         </div>
       )} />
     </WorkspaceContext.Provider>

@@ -27,14 +27,17 @@ export function AccountPage({ tab }: { tab: AccountTab }) {
   return (
     <div className="cw-page">
       <PageHeader
-        kicker="Account & settings"
-        title="Account & settings"
-        id="page-title"
-        description="Your identity, preferences and payment details. All in your hands."
+        title="Profile and settings"
+        description="How the team knows you, how you sign in, what you hear about, and where separately arranged payments are sent."
       />
-      <label className="cw-account-select">Account section<select value={tab} onChange={event=>navigateTo(data.paths.account(event.target.value as AccountTab))}>{TABS.map(entry=><option value={entry.id} key={entry.id}>{entry.label}</option>)}</select></label>
       <div className="cw-account">
-        <nav className="cw-account__tabs" aria-label="Account sections">
+        <label className="cw-account-select cw-field">
+          <span className="cw-field-label">Section</span>
+          <select value={tab} onChange={(event) => navigateTo(data.paths.account(event.target.value as AccountTab))}>
+            {TABS.map((entry) => <option value={entry.id} key={entry.id}>{entry.label}{entry.id === 'payments' && attention ? ' — needs attention' : ''}</option>)}
+          </select>
+        </label>
+        <nav className="cw-account__tabs" aria-label="Settings sections">
           {TABS.map((entry) => (
             <PortalLink key={entry.id} to={data.paths.account(entry.id)} className={cx('cw-account__tab', entry.id === tab && 'is-active')} ariaLabel={entry.id === 'payments' && attention ? `${entry.label}, needs attention` : undefined}>
               <Icon name={entry.icon} />{entry.label}{entry.id === 'payments' && attention ? <span className="cw-nav__badge cw-nav__badge--danger" aria-hidden="true">!</span> : null}
@@ -42,7 +45,14 @@ export function AccountPage({ tab }: { tab: AccountTab }) {
           ))}
         </nav>
         <div className="cw-account__panel">
-          {tab === 'profile' ? <ProfilePanel /> : tab === 'security' ? <SecurityPanel /> : tab === 'notifications' ? <NotificationsPanel /> : <><div className="cw-note"><strong>Bank and MoMo payments</strong><p>These details are for separately arranged payments. Airtime and data point rewards use the recipient number entered in Points → Redeem; they do not require a bank statement.</p></div><PaymentsPanel /></>}
+          {tab === 'profile' ? <ProfilePanel /> : tab === 'security' ? <SecurityPanel /> : tab === 'notifications' ? <NotificationsPanel /> : (
+            <>
+              <Notice tone="neutral" title="Payment details are separate from points">
+                <p>These details are for payments the team arranges with you separately. Airtime and data from your points use the number you enter in Rewards, and need no bank statement.</p>
+              </Notice>
+              <PaymentsPanel />
+            </>
+          )}
         </div>
       </div>
     </div>
@@ -120,7 +130,7 @@ function ProfileForm({ self }: { self: SelfView }) {
       <div className="cw-photo-row">
         <span className="cw-avatar cw-avatar--large" aria-hidden="true">{form.photoUrl ? <img src={form.photoUrl} alt="" /> : initials(form.displayName)}</span>
         <div>
-          <span className="cw-field-label">Photo <small>(optional)</small></span>
+          <span className="cw-field-label">Photo <span className="cw-field__tag">Optional</span></span>
           <p className="cw-muted">JPEG, PNG or WebP, up to 5 MB. Shown on your contributor profile if the team makes it public.</p>
           <div className="cw-inline-actions">
             <input ref={fileInput} type="file" accept="image/jpeg,image/png,image/webp" className="cw-sr" id="profile-photo" tabIndex={-1} aria-hidden="true" onChange={(event) => void uploadPhoto(event.target.files?.[0])} />
@@ -131,7 +141,7 @@ function ProfileForm({ self }: { self: SelfView }) {
       </div>
       <div className="cw-form-grid">
         <label className="cw-field">
-          <span className="cw-field-label">Display name <span className="cw-required" aria-hidden="true">*</span></span>
+          <span className="cw-field-label">Display name <span className="cw-field__tag">Required</span></span>
           <input value={form.displayName} maxLength={80} required autoComplete="name" aria-invalid={Boolean(nameProblem)} aria-describedby="display-name-help" onChange={(event) => field('displayName', event.target.value)} />
           <small id="display-name-help">{nameProblem || 'Used in the workspace, and in community activity only if you choose to be named.'}</small>
         </label>
@@ -152,7 +162,7 @@ function ProfileForm({ self }: { self: SelfView }) {
           <input value={form.otherLanguages} maxLength={200} placeholder="For example, English, Twi, French" onChange={(event) => field('otherLanguages', event.target.value)} />
         </label>
         <label className="cw-field cw-field--wide">
-          <span className="cw-field-label">About you <small>(optional)</small></span>
+          <span className="cw-field-label">About you <span className="cw-field__tag">Optional</span></span>
           <textarea value={form.biography} maxLength={1000} rows={3} placeholder="A sentence or two about your connection to Kasem." onChange={(event) => field('biography', event.target.value)} />
         </label>
       </div>
@@ -303,7 +313,7 @@ function NotificationsForm({ self }: { self: SelfView }) {
   return (
     <form className="cw-stack" onSubmit={(event) => void submit(event)}>
       {error ? <ErrorNote error={error} /> : null}
-      <Card title="Community activity" meta="How you appear in “Community today” on the Overview and Activity pages.">
+      <Card title="Community activity" meta="How you appear in “Community today” on the Overview.">
         <fieldset className="cw-choice-group">
           <legend className="cw-sr">Show my contributions in community activity</legend>
           {VISIBILITY.map((option) => (
@@ -313,9 +323,9 @@ function NotificationsForm({ self }: { self: SelfView }) {
             </label>
           ))}
         </fieldset>
-        <p className="cw-muted">Only counts are shared — never the expressions, your translations or your assignments. <PortalLink to={data.paths.section('guide', { section: 'privacy' })} className="cw-text-link">Privacy in the guide</PortalLink></p>
+        <p className="cw-muted">Only counts are shared — never the expressions, your translations or your tasks. <PortalLink to={data.paths.section('guide', { section: 'privacy' })} className="cw-text-link">Privacy in the guidelines</PortalLink></p>
       </Card>
-      <Card title="Updates" meta="In-app updates always appear in Activity.">
+      <Card title="Emails and texts" meta="Updates always appear in the workspace under Updates and My submissions.">
         <div className="cw-switches">
           <Switch checked={notifications.reviewEmail} onChange={() => toggle('reviewEmail')} label="Email me when a reviewer decides on my work" hint={`Sent to ${self.contact.email || data.email}.`} />
           <Switch checked={notifications.paymentEmail} onChange={() => toggle('paymentEmail')} label="Email me about payment verification" hint="When a finance reviewer verifies your details or needs something from you." />

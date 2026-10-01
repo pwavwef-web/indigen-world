@@ -1,24 +1,83 @@
-import { useEffect, useState } from 'react';
-import { httpsCallable } from 'firebase/functions';
-import { functions } from '../firebase';
+import { useState } from 'react';
 import { useRoute } from '../router';
-import { useWorkspace } from './workspace';
-type Daily = { day:string; status:string; submitted:number; firstWork:string; extraWork:string };
-const getDaily=httpsCallable<Record<string,never>,Daily>(functions,'getContributorDailyTasks');
-const more=httpsCallable<Record<string,never>,Daily>(functions,'requestMoreContributorTasks');
+import { Icon, Panel, ProgressBar } from './components';
+import { friendlyError } from './model';
+import { useShared, useWorkspace } from './workspace';
 
-export function DailyTasks() {
- const data=useWorkspace();const {navigate}=useRoute();const [daily,setDaily]=useState<Daily|null>(null),[error,setError]=useState(''),[busy,setBusy]=useState(false);
- const submittedKey=Object.values(data.items).flat().filter(x=>x.submissionId).map(x=>x.submissionId).sort().join(',');
- useEffect(()=>{let active=true;const refresh=()=>{if(data.preview){setDaily({day:new Date().toISOString().slice(0,10),status:data.works.some(x=>x.id==='daily-preview-extra')?'extra_unlocked':(data.items['daily-preview-first']??[]).filter(x=>x.submissionId).length===15?'eligible':'in_progress',submitted:(data.items['daily-preview-first']??[]).filter(x=>x.submissionId).length,firstWork:'daily-preview-first',extraWork:data.works.some(x=>x.id==='daily-preview-extra')?'daily-preview-extra':''});return;}void getDaily({}).then(r=>{if(active){setDaily(r.data);setError('');}}).catch(e=>{if(active)setError(e instanceof Error?e.message:'Daily tasks could not be loaded.');});};refresh();const timer=setInterval(refresh,60000);return()=>{active=false;clearInterval(timer);};},[data.uid,data.preview,submittedKey,data.works.length]);
- const extraItems=daily?.extraWork?data.items[daily.extraWork]:undefined;
- const finished=Boolean(extraItems?.length===15&&extraItems.every(x=>x.submissionId));
- return <section className="cw-card cw-daily-tasks" aria-label="Daily tasks"><h2>Today’s tasks</h2><p>15 to start · Request another 15 once per UTC day after submitting the first batch.</p>
- {error&&<p role="alert">{error}</p>}
- {!daily&&!error&&<p>Loading today’s tasks…</p>}
- {daily?.status==='not_prepared'&&<p>The team has not prepared today’s tasks yet. Your existing work remains available below.</p>}
- {daily?.status==='in_progress'&&<><p>{daily.submitted} of 15 submitted. Approval is not required to request the next batch.</p><button onClick={()=>navigate(data.paths.work(daily.firstWork))}>Continue first 15</button></>}
- {daily?.status==='eligible'&&<><p>Your first 15 are submitted. You can request today’s final 15.</p><button className="button--primary" disabled={busy} onClick={async()=>{setBusy(true);setError('');try{if(data.preview){data.services.unlockDailyPreview?.();setDaily({...daily,status:'extra_unlocked',extraWork:'daily-preview-extra'});navigate(data.paths.work('daily-preview-extra'));}else{const r=await more({});setDaily(r.data);navigate(data.paths.work(r.data.extraWork));}}catch(e){setError(e instanceof Error?e.message:'Could not unlock tasks. Try again.');}finally{setBusy(false);}}}>{busy?'Unlocking…':'Request 15 more tasks'}</button></>}
- {daily?.status==='extra_unlocked'&&<><p>{finished?'You’re done for today’s batch. Follow review updates in My contributions.':'You’ve used today’s extra request. Your second batch is ready.'}</p>{!finished&&<button onClick={()=>navigate(data.paths.work(daily.extraWork))}>Open extra 15</button>}<p className="cw-muted">A new daily batch depends on tasks prepared by the team.</p></>}
- </section>;
+const BATCH = 15;
+
+/**
+ * Today's batch (contributor-daily-tasks.ts): the team prepares fifteen
+ * expressions a day for a contributor, and a second fifteen can be requested
+ * once all of the first are submitted. Approval is not required to ask for
+ * the second batch. When nothing is prepared for today the panel is not
+ * shown at all on the overview, and says so plainly on the Tasks page.
+ */
+export function DailyBatch({ compact = false }: { compact?: boolean }) {
+  const data = useWorkspace();
+  const { daily } = useShared();
+  const { navigate } = useRoute();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const value = daily.value;
+
+  if (!value) {
+    if (compact) return null;
+    return daily.state === 'error' ? (
+      <Panel title="Today’s batch">
+        <p className="cw-muted">Today’s batch could not be checked. Your assigned tasks below are unaffected. <button type="button" className="cw-link-button" onClick={daily.refresh}>Try again</button></p>
+      </Panel>
+    ) : null;
+  }
+  if (value.status === 'not_prepared') {
+    return compact ? null : (
+      <Panel title="Today’s batch">
+        <p className="cw-muted">The team has not prepared a daily batch for you today. Your other tasks are below.</p>
+      </Panel>
+    );
+  }
+
+  const extraItems = value.extraWork ? data.items[value.extraWork] ?? [] : [];
+  const extraDone = extraItems.length === BATCH && extraItems.every((item) => item.submissionId);
+  const extraSubmitted = extraItems.filter((item) => item.submissionId).length;
+
+  const requestMore = async () => {
+    setBusy(true);
+    setError('');
+    try {
+      const next = await data.services.requestMoreDaily();
+      daily.set(next);
+      if (next.extraWork) navigate(data.paths.work(next.extraWork));
+    } catch (reason) {
+      setError(friendlyError(reason, 'Requesting more tasks').message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Panel title="Today’s batch" description="Fifteen to start, fifteen more on request once a day" className="cw-daily">
+      {value.status === 'in_progress' ? (
+        <div className="cw-stack cw-stack--sm">
+          <div className="cw-row cw-row--between"><strong>First batch</strong><span className="cw-muted cw-tabular">{value.submitted} of {BATCH} submitted</span></div>
+          <ProgressBar value={value.submitted} max={BATCH} label="First batch submitted" />
+          <p className="cw-muted cw-small">Submit all fifteen to unlock a second batch today. Approval is not needed first.</p>
+          <div><button type="button" onClick={() => navigate(data.paths.work(value.firstWork))}>Continue first batch<Icon name="arrow" /></button></div>
+        </div>
+      ) : value.status === 'eligible' ? (
+        <div className="cw-stack cw-stack--sm">
+          <p>All fifteen in today’s first batch are submitted. You can ask for fifteen more today.</p>
+          <div><button type="button" className="button--primary" disabled={busy} onClick={() => void requestMore()}>{busy ? 'Requesting…' : 'Request fifteen more'}</button></div>
+        </div>
+      ) : value.status === 'extra_unlocked' ? (
+        <div className="cw-stack cw-stack--sm">
+          <div className="cw-row cw-row--between"><strong>Second batch</strong><span className="cw-muted cw-tabular">{extraSubmitted} of {BATCH} submitted</span></div>
+          <ProgressBar value={extraSubmitted} max={BATCH} label="Second batch submitted" />
+          <p className="cw-muted cw-small">{extraDone ? 'You have finished today’s batches. Follow their review in My submissions.' : 'You have used today’s extra request. A new batch depends on what the team prepares.'}</p>
+          {!extraDone && value.extraWork ? <div><button type="button" onClick={() => navigate(data.paths.work(value.extraWork))}>Open second batch<Icon name="arrow" /></button></div> : null}
+        </div>
+      ) : null}
+      {error ? <p role="alert" className="cw-field__error">{error}</p> : null}
+    </Panel>
+  );
 }

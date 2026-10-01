@@ -1,0 +1,215 @@
+/* =========================================================================
+   Review workspace
+   -------------------------------------------------------------------------
+   Layout for the reviewer's screens. Everything else — controls, panels,
+   tables, notices — comes from portal.css, so the two workspaces stay one
+   design system. Class prefix: rv-.
+   ========================================================================= */
+
+/* The workspace name under the brand says which side of the portal this is. */
+.cw--review .cw-brand__copy small { color: var(--cw-violet); }
+
+/* Shared helpers first used here. */
+.cw-row-link { color: inherit; text-decoration: none; }
+.cw-row-link:hover { color: var(--cw-accent); text-decoration: underline; }
+
+.cw-skeleton-inline {
+  display: inline-block;
+  width: 40px;
+  height: 28px;
+  border-radius: var(--cw-radius-sm);
+  background: linear-gradient(90deg, #edf0f4 0%, #f6f7f9 40%, #edf0f4 80%);
+  background-size: 200% 100%;
+  animation: cw-shimmer 1.4s linear infinite;
+  vertical-align: middle;
+}
+
+/* ---- Overview ------------------------------------------------------------ */
+.rv-waiting .cw-row-item { min-height: 60px; }
+.rv-waiting__count { display: inline-flex; justify-content: flex-end; min-width: 56px; }
+.rv-waiting__count .cw-btn { min-width: 52px; justify-content: center; }
+
+.rv-safeguards { display: grid; gap: 10px; }
+.rv-safeguards li {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  gap: var(--cw-space-2);
+  color: var(--cw-text-2);
+  font-size: var(--cw-text-md);
+}
+.rv-safeguards .cw-icon { margin-top: 3px; color: var(--cw-accent); }
+
+/* ---- Queue --------------------------------------------------------------- */
+.rv-queue .cw-tabs { margin-bottom: calc(var(--cw-space-2) * -1); }
+
+.rv-table th[scope='row'] { min-width: 15rem; }
+.rv-flags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.rv-flags:empty { display: none; }
+
+@media (max-width: 759px) {
+  .rv-table th[scope='row'] { min-width: 0; }
+}
+
+/* ---- Review screen -------------------------------------------------------- */
+.rv-review {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 380px);
+  align-items: start;
+  gap: var(--cw-space-6);
+}
+
+.rv-review__material { display: grid; gap: var(--cw-space-6); min-width: 0; }
+.rv-review__decision { display: grid; gap: var(--cw-space-4); min-width: 0; }
+.rv-decision { border-color: var(--cw-accent-line); }
+
+@media (max-width: 1099px) {
+  .rv-review { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Source beside contribution. */
+.rv-compare {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: stretch;
+  gap: var(--cw-space-3);
+}
+
+.rv-compare__side {
+  display: grid;
+  align-content: start;
+  gap: 6px;
+  min-width: 0;
+  padding: var(--cw-space-4);
+  border: 1px solid var(--cw-border);
+  border-radius: var(--cw-radius);
+  background: var(--cw-surface-subtle);
+}
+
+.rv-compare__side--contributed { border-color: var(--cw-accent-line); background: var(--cw-accent-soft); }
+
+.rv-compare__label {
+  color: var(--cw-text-3);
+  font-size: var(--cw-text-xs);
+  font-weight: var(--cw-weight-semibold);
+  letter-spacing: 0.02em;
+}
+
+.rv-compare__text {
+  color: var(--cw-text);
+  font-size: var(--cw-text-lg);
+  font-weight: var(--cw-weight-medium);
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.rv-compare__arrow { display: grid; place-items: center; color: var(--cw-text-3); }
+
+@media (max-width: 599px) {
+  .rv-compare { grid-template-columns: minmax(0, 1fr); }
+  .rv-compare__arrow { transform: rotate(90deg); }
+}
+
+/* Before and after a resubmission. */
+.rv-diff { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--cw-space-3); }
+.rv-diff > div { display: grid; align-content: start; gap: 6px; min-width: 0; }
+.rv-diff__text {
+  padding: var(--cw-space-3);
+  border: 1px solid var(--cw-border);
+  border-left-width: 3px;
+  border-radius: var(--cw-radius-sm);
+  font-size: var(--cw-text-base);
+  overflow-wrap: anywhere;
+}
+.rv-diff__text.is-old { border-left-color: var(--cw-danger); background: var(--cw-danger-soft); }
+.rv-diff__text.is-new { border-left-color: var(--cw-success); background: var(--cw-success-soft); }
+
+@media (max-width: 599px) {
+  .rv-diff { grid-template-columns: minmax(0, 1fr); }
+}
+
+.rv-senses { display: grid; gap: 6px; padding-left: 1.2em; list-style: decimal; }
+.rv-longtext { display: block; max-height: 320px; overflow: auto; white-space: pre-wrap; }
+.rv-check-row { flex-wrap: nowrap; }
+.rv-check-row > input { flex: 1 1 auto; min-width: 0; }
+
+.rv-media { display: grid; gap: 6px; }
+.rv-media audio { width: 100%; max-width: 520px; }
+.rv-media__visual {
+  display: block;
+  max-width: 100%;
+  max-height: 420px;
+  border: 1px solid var(--cw-border);
+  border-radius: var(--cw-radius);
+  background: var(--cw-surface-subtle);
+}
+
+/* The decision. */
+.rv-rubric { display: grid; gap: var(--cw-space-3); min-width: 0; margin: 0; padding: 0; border: 0; }
+.rv-rubric legend { margin-bottom: var(--cw-space-2); }
+.rv-rubric__row { display: grid; gap: 6px; }
+.rv-rubric__copy { display: grid; gap: 1px; }
+.rv-rubric__copy strong { font-size: var(--cw-text-md); font-weight: var(--cw-weight-semibold); }
+.rv-rubric__copy span { color: var(--cw-text-3); font-size: var(--cw-text-sm); }
+.rv-rubric .cw-segmented { width: 100%; }
+.rv-rubric .cw-segmented button { flex: 1 1 0; }
+
+.rv-snippets { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 2px; }
+
+/* Sentences. */
+.rv-judgment {
+  display: grid;
+  gap: var(--cw-space-3);
+  min-width: 0;
+  margin: var(--cw-space-2) 0 0;
+  padding: var(--cw-space-4) 0 0;
+  border: 0;
+  border-top: 1px solid var(--cw-border);
+}
+.rv-judgment legend { float: left; width: 100%; margin-bottom: var(--cw-space-2); }
+.rv-judgment legend + * { clear: both; }
+.rv-judgment__grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--cw-space-3); }
+
+@media (max-width: 1299px) {
+  .rv-judgment__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 599px) {
+  .rv-judgment__grid { grid-template-columns: minmax(0, 1fr); }
+}
+
+.cw-check.is-invalid { color: var(--cw-danger); }
+.rv-load-audio { justify-self: start; }
+
+.rv-summary { display: grid; gap: 0; }
+.rv-summary > li { display: grid; gap: 6px; padding: var(--cw-space-3) 0; }
+.rv-summary > li + li { border-top: 1px solid var(--cw-border); }
+.rv-summary__marks { display: flex; flex-wrap: wrap; gap: 4px; }
+
+/* ---- History and account --------------------------------------------------- */
+.rv-history-note { border-top: 1px solid var(--cw-border); }
+
+.rv-account { max-width: 760px; }
+.rv-account__who { display: flex; align-items: center; gap: var(--cw-space-5); }
+.rv-account__who .cw-facts { flex: 1 1 auto; }
+
+@media (max-width: 599px) {
+  .rv-account__who { flex-direction: column; align-items: flex-start; }
+}
+
+/* Overview counts: one quiet button per queue; the page's single primary
+   action is "Start reviewing". */
+.rv-count { gap: 4px; min-width: 64px; font-weight: var(--cw-weight-semibold); }
+.rv-count.is-zero { color: var(--cw-text-3); font-weight: var(--cw-weight-medium); }
+
+/* Queue filters: search, then five selects on one row where there is room. */
+.cw-filterbar.rv-filterbar { grid-template-columns: minmax(200px, 1.6fr) repeat(auto-fit, minmax(128px, 1fr)); }
+
+/* A short decision panel follows the reader down a long page. (The full
+   decision panel is taller than a screen, so it scrolls with the page.) */
+@media (min-width: 1100px) {
+  .rv-review__decision--sticky { position: sticky; top: var(--cw-space-6); }
+}
+
+.rv-conflict { scroll-margin-top: calc(var(--cw-topbar-height) + var(--cw-space-4)); }
+.rv-conflict:focus { outline: none; }
+.rv-conflict:focus-visible .cw-notice { box-shadow: var(--cw-focus-ring); }

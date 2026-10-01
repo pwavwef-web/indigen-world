@@ -1,4 +1,6 @@
-# Contributor studio artwork
+# Contributor studio artwork (retired)
+
+**Retired on 2026-10-01.** The contributor and reviewer workspaces were redesigned without decorative artwork, and the two images below were removed from the portal. This record of how they were made is kept because earlier release notes link to it (`apps/updates-blog/posts/2026-09-26-contributor-studio-refresh`). The images remain in the repository history.
 
 Generated on 2026-09-26 using the built-in image_gen tool. These are conceptual, decorative illustrations, not photographs of people, cultural records, or documented objects. Blank pages intentionally avoid invented Kasem. Both images are bundled by Vite with fingerprinted URLs and encoded as WebP (approximately 144 KiB and 176 KiB).
 

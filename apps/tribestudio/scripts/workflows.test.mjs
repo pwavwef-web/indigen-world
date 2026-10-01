@@ -23,7 +23,7 @@ async function load(path, names, mocks = {}) {
     mocks = { ...await load('src/contributor/model.ts', MODEL_EXPORTS), ...mocks };
   }
   if (path === 'src/contributor/editor.tsx') {
-    mocks = { ...await load('src/contributor/ReviewTiming.tsx', ['ReviewTiming'], mocks), ...await load('src/contributor/listMemory.ts', ['useListMemory', 'useListScroll'], mocks), ...mocks };
+    mocks = { ...await load('src/contributor/listMemory.ts', ['useListMemory', 'useListScroll'], mocks), ...mocks };
   }
   const { code } = await transformWithOxc(readFileSync(resolve(root, path), 'utf8'), path, { jsx: { runtime: 'classic' } });
   const executable = code.replace(/^import[\s\S]*?;\n/gm, '').replace(/\bexport (?=(?:async )?function|const|let|class)/g, '');
@@ -514,7 +514,7 @@ test('uninvited signed-in users cannot render the contributor dashboard or load 
     ...h.api, functions: {}, db: {}, httpsCallable: () => () => {},
     useAuth: () => ({ user: { uid: 'outsider' }, ready: true }),
     useRoute: () => ({ path: '/contributor/outsider/work', search: '', navigate() {} }),
-    invitationLinkOwner,
+    invitationLinkOwner, canValidate: () => false,
     doc: (_db, ...parts) => parts.join('/'), collection: (_db, ...parts) => parts.join('/'),
     onSnapshot: (path, cb) => { paths.push(path); cb({ get: () => undefined }); return () => {}; },
   });
@@ -685,7 +685,7 @@ test('skip needs no translation or consent and advances only after the flag save
     });
     const props = { item: { id: 'item', expression: 'Hello', translation: '', alternatives: [], revision: 0 }, work: 'work', onPending() {}, onSkipped: () => advances.push(true) };
     const tree = h.render(ExpressionEditor, props); h.flush();
-    await find(tree, n => n.type === 'button' && n.props.children?.includes('Skip / I’m not sure →')).props.onClick();
+    await find(tree, n => n.type === 'button' && n.props.children?.includes('Flag as unsure and skip')).props.onClick();
     assert.equal(calls[0].skip, true); assert.equal(calls[0].submit, false);
     assert.equal(calls[0].translation, ''); assert.equal(calls[0].publicationPermission, false);
     assert.deepEqual(advances, fail ? [] : [true]);
@@ -974,4 +974,154 @@ test('each expression shows where its review stands, and a declined one can be c
   assert.equal(page.calls[0].payload.revisionOf, 'old-1');
   assert.equal(page.calls[0].payload.dialect, 'Paga');
   page.h.dispose();
+});
+
+// ---------------------------------------------------------------------------
+// Redesigned portal: submission tracking, review rules, rewards and routes
+// ---------------------------------------------------------------------------
+
+test('submission tracking keeps approval, publication and contribution types apart', async () => {
+  const { receiptRows, recordingRows, assignedRows, filterRows, summarise, revisionRows, parseRowKey, TYPE_META, STATE_META } = await load('src/contributor/submissions.ts',
+    ['receiptRows', 'recordingRows', 'assignedRows', 'filterRows', 'summarise', 'revisionRows', 'parseRowKey', 'TYPE_META', 'STATE_META']);
+  const receipt = (id, kind, status, extra = {}) => ({ id, kind, phrase: `[${id}]`, meaning: 'meaning', status, reviewFeedback: '', createdAt: '2026-09-20T10:00:00Z', reviewedAt: '', correctedBy: '', ...extra });
+  const rows = [
+    ...receiptRows([
+      receipt('expr-approved', 'expression', 'approved'),
+      receipt('expr-published', 'expression', 'published'),
+      receipt('expr-declined', 'expression', 'rejected', { reviewFeedback: 'Check the meaning.', reviewedAt: '2026-09-22T10:00:00Z' }),
+      receipt('expr-corrected', 'expression', 'rejected', { correctedBy: 'expr-new' }),
+      receipt('word-waiting', 'word', 'submitted'),
+    ]),
+    ...recordingRows([{ id: 'rec-declined', headword: '[word]', meaning: 'farm', status: 'rejected', decisionNote: 'Cut off at the end.', createdAt: '2026-09-21T10:00:00Z', decidedAt: '2026-09-23T10:00:00Z' }]),
+    ...assignedRows([{ id: 'w', title: 'Task' }], { w: [{ id: 'i', expression: 'Hello', translation: '[draft]', alternatives: [], revision: 1, status: 'draft' }] }, []),
+  ];
+  const state = (key) => rows.find((row) => row.key === key).state;
+  assert.equal(state('expression.expr-approved'), 'approved');
+  assert.equal(state('expression.expr-published'), 'published');
+  assert.notEqual(STATE_META.approved.label, STATE_META.published.label, 'approval never reads as publication');
+  assert.match(STATE_META.approved.description, /Publication is a separate step/);
+  assert.equal(rows.find((row) => row.key === 'word.word-waiting').type, 'word', 'a word stays a word');
+  assert.match(TYPE_META.expression.destination, /never as a dictionary word/);
+  assert.match(TYPE_META.word.destination, /dictionary/);
+  // A declined expression can be corrected once; a corrected one cannot again.
+  assert.equal(rows.find((row) => row.key === 'expression.expr-declined').action, 'correct');
+  assert.equal(rows.find((row) => row.key === 'expression.expr-corrected').action, null);
+  assert.equal(rows.find((row) => row.key === 'recording.rec-declined').action, 'record_again');
+  assert.deepEqual(revisionRows(rows).map((row) => row.key), ['recording.rec-declined', 'expression.expr-declined']);
+  assert.deepEqual(filterRows(rows, { status: 'action', type: 'all', query: '' }).map((row) => row.key).sort(), ['expression.expr-declined', 'recording.rec-declined']);
+  assert.deepEqual(filterRows(rows, { status: 'all', type: 'word', query: '' }).map((row) => row.key), ['word.word-waiting']);
+  assert.deepEqual(filterRows(rows, { status: 'all', type: 'all', query: 'cut off' }).map((row) => row.key), ['recording.rec-declined']);
+  const summary = summarise(rows);
+  assert.equal(summary.total, rows.length);
+  assert.equal(summary.drafts + summary.inReview + summary.action + summary.approved + summary.published + summary.notAccepted, rows.length, 'every row lands in exactly one bucket');
+  assert.equal(summary.approved, 1);
+  assert.equal(summary.published, 1);
+  assert.deepEqual(plain(parseRowKey('task.w.i')), { type: 'assigned', work: 'w', item: 'i' });
+  assert.deepEqual(plain(parseRowKey('word.abc')), { type: 'word', id: 'abc' });
+  assert.equal(parseRowKey('expression.a.b'), null);
+  assert.equal(parseRowKey('nonsense'), null);
+});
+
+test('the review queue filters on real fields and sorts stably, oldest first', async () => {
+  const { filterQueue, itemDialect, itemType, dialectsIn, ageLabel } = await load('src/contributor/review/model.ts', ['filterQueue', 'itemDialect', 'itemType', 'dialectsIn', 'ageLabel']);
+  const now = Date.parse('2026-10-01T12:00:00Z');
+  const at = (days) => new Date(now - days * 86_400_000).toISOString();
+  const rows = [
+    { id: 'b', status: 'SUBMITTED', collectionKind: 'expressions', expression: { phrase: '[b]', meaning: 'evening greeting', dialect: 'Paga' }, lifecycle: { createdAt: at(2) } },
+    { id: 'a', status: 'SUBMITTED', collectionKind: 'expressions', expression: { phrase: '[a]', meaning: 'morning greeting', dialect: 'Navrongo' }, lifecycle: { createdAt: at(2) } },
+    { id: 'c', status: 'SUBMITTED', collectionKind: 'dictionary', body: '[c]', title: 'water', dialect: 'Paga', lifecycle: { createdAt: at(8) } },
+    { id: 'd', status: 'SUBMITTED', contributorPortal: { work: 'w', item: 'i' }, title: 'Thank you', expression: { phrase: '[d]', dialect: 'Kasem' }, lifecycle: { createdAt: at(0.5) } },
+  ];
+  const ids = (filters) => filterQueue('contributions', rows, { type: 'all', dialect: 'all', age: 'any', query: '', sort: 'oldest', ...filters }, now).map((row) => row.id);
+  assert.deepEqual(ids({}), ['c', 'a', 'b', 'd'], 'oldest first; equal times fall back to the id');
+  assert.deepEqual(ids({ sort: 'newest' }), ['d', 'a', 'b', 'c']);
+  assert.deepEqual(ids({ type: 'word' }), ['c']);
+  assert.deepEqual(ids({ type: 'assigned' }), ['d']);
+  assert.deepEqual(ids({ dialect: 'Paga' }), ['c', 'b']);
+  assert.deepEqual(ids({ age: '7' }), ['c']);
+  assert.deepEqual(ids({ query: 'MORNING' }), ['a']);
+  assert.equal(itemType('contributions', rows[3]), 'assigned');
+  assert.equal(itemDialect(rows[3]), '', 'an assigned translation records the language, not a dialect');
+  assert.deepEqual([...dialectsIn(rows)], ['Navrongo', 'Paga']);
+  assert.equal(ageLabel(Date.parse(at(3)), now), '3 days');
+  assert.equal(ageLabel(0, now), 'Unknown');
+});
+
+test('review decisions name what they do, require a reason, and carry what the reviewer saw', async () => {
+  const { decisionsFor, decisionRequest, decisionLabel, decisionError, publishTarget, FEEDBACK_MINIMUM, sentenceReviewProblems, emptySentenceJudgment } = await load('src/contributor/review/model.ts',
+    ['decisionsFor', 'decisionRequest', 'decisionLabel', 'decisionError', 'publishTarget', 'FEEDBACK_MINIMUM', 'sentenceReviewProblems', 'emptySentenceJudgment']);
+  const assigned = { id: 's1', status: 'SUBMITTED', collectionKind: 'expressions', contributorPortal: { work: 'w', item: 'i' }, permissions: { publication: true }, lifecycle: { version: 3 } };
+  assert.deepEqual([...decisionsFor('contributions', assigned)], ['APPROVE', 'REJECT', 'ESCALATE_CULTURAL'], 'collection work cannot be sent for revision');
+  assert.equal(decisionLabel('contributions', 'REJECT', assigned), 'Return with feedback');
+  assert.equal(decisionLabel('contributions', 'REJECT', { ...assigned, contributorPortal: undefined }), 'Reject');
+  assert.deepEqual([...decisionsFor('contributions', { ...assigned, status: 'APPROVED' })], ['PUBLISH', 'REJECT']);
+  assert.deepEqual([...decisionsFor('contributions', { ...assigned, status: 'APPROVED', permissions: { publication: false } })], ['ARCHIVE', 'REJECT'], 'no publication without permission');
+  assert.equal(FEEDBACK_MINIMUM, 15);
+  assert.throws(() => decisionRequest('contributions', assigned, 'REJECT', 'Too short.', 'headword', ''), /at least 15 characters/);
+  const request = decisionRequest('contributions', assigned, 'APPROVE', '', 'headword', '', { expectedStatus: 'SUBMITTED', expectedVersion: 3, scores: { meaning: 1, spelling: 0 } });
+  assert.deepEqual(plain(request.data), { submissionId: 's1', decision: 'APPROVE', feedback: '', expectedStatus: 'SUBMITTED', expectedVersion: 3, scores: { meaning: 1, spelling: 0 } });
+  assert.equal('scores' in decisionRequest('contributions', assigned, 'APPROVE', '', 'headword', '', { scores: {} }).data, false, 'an empty checklist is not sent');
+  // Recordings: approve or decline, with the reason required to decline.
+  const recording = { id: 'r1', status: 'submitted' };
+  assert.deepEqual([...decisionsFor('recordings', recording)], ['approve', 'reject']);
+  assert.throws(() => decisionRequest('recordings', recording, 'reject', '', '', ''), /at least 15 characters/);
+  assert.deepEqual(plain(decisionRequest('recordings', recording, 'reject', 'The word is cut off at the end.', '', '')), { callable: 'decidePronunciationRecording', data: { recordingId: 'r1', decision: 'reject', note: 'The word is cut off at the end.' } });
+  assert.equal(decisionsFor('recordings', { ...recording, status: 'approved' }).length, 0);
+  // A publish keeps what the approval chose a dictionary answer to become.
+  assert.deepEqual(plain(publishTarget('PUBLISH', { moderation: { publishAs: 'variant', linkedEntryId: 'entry-1' } })), { target: 'variant', entryId: 'entry-1' });
+  assert.deepEqual(plain(publishTarget('APPROVE', { moderation: { publishAs: 'variant' } })), { target: 'headword', entryId: '' });
+  assert.deepEqual(plain(publishTarget('PUBLISH', { moderation: { publishAs: 'nonsense' } })), { target: 'headword', entryId: '' });
+  // Conflicts are told apart from failures.
+  assert.equal(decisionError({ code: 'functions/aborted', message: 'This item changed while you were reviewing it.' }).conflict, true);
+  assert.equal(decisionError({ code: 'functions/failed-precondition', message: 'That recording has already been decided.' }).conflict, true);
+  assert.equal(decisionError({ code: 'functions/unavailable', message: '' }).conflict, false);
+  assert.match(decisionError({ code: 'functions/internal', message: 'internal' }).message, /nothing was recorded/);
+  // Sentence judgments: a concern needs an explanation, and dialect competence is confirmed.
+  const concern = { ...emptySentenceJudgment(), meaning: 'different' };
+  assert.deepEqual(sentenceReviewProblems([emptySentenceJudgment()], true).length, 0);
+  assert.deepEqual(plain(sentenceReviewProblems([concern], true)).map((entry) => entry.field), ['sentence-0-explanation']);
+  assert.deepEqual(plain(sentenceReviewProblems([{ ...concern, explanation: 'The verb is in the wrong tense.' }], false)).map((entry) => entry.field), ['sentence-competent']);
+});
+
+test('the rewards ledger shows awards and redemptions as points, and eligibility says why', async () => {
+  const { ledgerFrom, redemptionEligibility } = await load('src/contributor/rewards.tsx', ['ledgerFrom', 'redemptionEligibility'], { createContext: () => ({}) });
+  const credits = [
+    { id: 'c1', submissionId: 's1', work: 'w', item: 'i1', day: '2026-09-20', points: 10, createdAt: '2026-09-20T10:00:00Z' },
+    { id: 'c2', submissionId: 's2', work: 'w', item: 'i2', day: '2026-09-20', points: 0, createdAt: '2026-09-20T11:00:00Z' },
+  ];
+  const requests = [
+    { id: 'r1', amountMinor: 500, currency: 'GHS', description: '', status: 'rejected', points: 300, kind: 'airtime', network: 'MTN', phoneNumber: '+233241234567', createdAt: '2026-09-25T10:00:00Z', decidedAt: '2026-09-26T10:00:00Z', adminNote: 'Number not registered.' },
+    { id: 'legacy-cash', amountMinor: 1000, currency: 'GHS', description: '', status: 'paid', createdAt: '2026-09-01T10:00:00Z' },
+  ];
+  const rows = ledgerFrom(credits, requests, [{ id: 'w', title: 'Everyday' }], { w: [{ id: 'i1', expression: 'Good morning.' }] });
+  assert.deepEqual(plain(rows.map((row) => row.id)), ['return:r1', 'request:r1', 'credit:c2', 'credit:c1']);
+  assert.equal(rows.find((row) => row.id === 'credit:c1').title, 'Approved: “Good morning.”');
+  assert.equal(rows.find((row) => row.id === 'credit:c2').status.label, 'Daily limit reached');
+  assert.equal(rows.find((row) => row.id === 'request:r1').points, -300);
+  assert.equal(rows.find((row) => row.id === 'return:r1').points, 300, 'a refused request returns its points');
+  assert.ok(!rows.some((row) => row.id.includes('legacy-cash')), 'cash payment requests are not points');
+  assert.ok(!rows.find((row) => row.id === 'request:r1').detail.includes('1234567'), 'the phone number is masked');
+  const short = redemptionEligibility(120, 300, []);
+  assert.equal(short.eligible, false);
+  assert.match(short.checks[0].label, /At least 300 points available \(you have 120\)/);
+  assert.equal(redemptionEligibility(450, 300, [{ ...requests[0], status: 'submitted' }]).eligible, false, 'one request at a time');
+  assert.equal(redemptionEligibility(450, 300, requests).eligible, true);
+});
+
+test('review routes map every page and keep links inside their workspace', async () => {
+  const { isDesk } = await load('src/contributor/review/model.ts', ['isDesk']);
+  const { parseReviewRoute, reviewPaths } = await load('src/contributor/review/ReviewDesk.tsx', ['parseReviewRoute', 'reviewPaths'], { createContext: () => ({}), isDesk });
+  const base = '/contributor/review';
+  const route = (path, search = '') => parseReviewRoute(path, search, base);
+  assert.equal(route(base).page, 'overview');
+  for (const page of ['queue', 'history', 'guide', 'account']) assert.equal(route(`${base}/${page}`).page, page);
+  assert.deepEqual(plain({ ...route(`${base}/recordings/rec%2F1`), query: undefined }), { page: 'item', desk: 'recordings', id: 'rec/1', notFound: false });
+  assert.equal(route(`${base}/unknown-desk/x`).notFound, true);
+  assert.equal(route(`${base}/queue/extra`).notFound, true);
+  assert.equal(route(`${base}/queue`, '?desk=sentences&view=disputed').query.get('view'), 'disputed');
+  const paths = reviewPaths('/contributor/preview/review');
+  assert.equal(paths.item('recordings', 'rec/1'), '/contributor/preview/review/recordings/rec%2F1');
+  assert.equal(paths.queue({ desk: 'names', view: '', q: 'x' }), '/contributor/preview/review/queue?desk=names&q=x');
+  assert.equal(paths.guide('feedback'), '/contributor/preview/review/guide?section=feedback');
+  assert.equal(paths.overview(), '/contributor/preview/review');
 });

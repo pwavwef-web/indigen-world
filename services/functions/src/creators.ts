@@ -8,6 +8,7 @@ import {
   type PublishableMedia,
 } from './published-media.js';
 import { consumeRateLimit } from './rate-limit.js';
+import { parseDecisionExpectation, staleDecisionProblem } from './review-guards.js';
 import {
   buildPublishedContentDocument,
   collectionKindForSubmission,
@@ -675,6 +676,9 @@ export const decideSubmission = onCall(
       throw new HttpsError('invalid-argument', 'That dictionary entry id is not valid.');
     }
     const reason = asString(data.reason, 30).trim().toLowerCase();
+    // The status and version the reviewer saw, sent by the TribeStudio review
+    // workspace. A decision made on an item that has since moved on is refused.
+    const expectation = parseDecisionExpectation(data);
 
     const db = getFirestore();
     const submissionRef = db.collection('submissions').doc(submissionId);
@@ -701,6 +705,8 @@ export const decideSubmission = onCall(
         throw new HttpsError('not-found', 'Submission not found.');
       }
       const submission = snap.data() as Record<string, any>;
+      const stale = staleDecisionProblem({ status: submission.status, version: submission.lifecycle?.version }, expectation);
+      if (stale) throw new HttpsError('aborted', stale);
       const collectionKind = collectionKindForSubmission(submission);
       const contributionPointer = submission.collectionContribution;
       let contributionId = '';

@@ -114,7 +114,12 @@ export function looksLikeSingleWord(phrase: string): boolean {
   return trimmed.length > 0 && !/\s/.test(trimmed);
 }
 
-export async function submitExpression(draft: ExpressionDraft): Promise<{ contributionId: string }> {
+/**
+ * Sends one expression for review. `requestId`, when given, makes a retry of
+ * the same send return the same contribution instead of filing a duplicate —
+ * the case where the network dropped the answer after the server saved it.
+ */
+export async function submitExpression(draft: ExpressionDraft, requestId?: string): Promise<{ contributionId: string }> {
   const call = httpsCallable<Record<string, unknown>, { contributionId: string; submissionId: string }>(
     functions,
     'submitExpression',
@@ -135,6 +140,7 @@ export async function submitExpression(draft: ExpressionDraft): Promise<{ contri
     aiTraining: draft.aiTraining,
     culturalPermissionTier: 'public',
     ...(draft.revisionOf ? { revisionOf: draft.revisionOf } : {}),
+    ...(requestId ? { requestId } : {}),
   });
   return { contributionId: response.data.contributionId };
 }

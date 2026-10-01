@@ -3,6 +3,13 @@ import { HttpsError, onCall } from 'firebase-functions/v2/https';
 import { requireAuth } from './auth.js';
 import { consumeRateLimit } from './rate-limit.js';
 import {
+  REQUEST_CONFLICT_MESSAGE,
+  parseRequestId,
+  replayOutcome,
+  requestDocumentId,
+  requestFingerprint,
+} from './review-guards.js';
+import {
   COLLECTION_KINDS,
   collectionKindForSubmission,
   publicationTargetFor,
@@ -700,26 +707,43 @@ export const submitCollectionContribution = onCall(
     const uid = requireAuth(req);
     await consumeRateLimit('submitCollectionContribution', uid, 10);
     const input = parseCollectionContributionInput(req.data, uid);
+    // Optional: the same request sent twice (a retry after a dropped
+    // connection) answers with the contribution the first attempt created.
+    const requestId = parseRequestId((req.data as Record<string, unknown>).requestId);
+    const fingerprint = requestId ? requestFingerprint(input) : '';
     const db = getFirestore();
-    const contributionRef = db.collection('collectionContributions').doc();
+    const contributionRef = requestId
+      ? db.collection('collectionContributions').doc(requestDocumentId(uid, 'collection', requestId))
+      : db.collection('collectionContributions').doc();
     const submissionRef = db.collection('submissions').doc(contributionRef.id);
     const campaignRef = db.collection('campaigns').doc(COLLECTION_CAMPAIGN_ID);
     const auditRef = db.collection('auditLogs').doc();
     const notificationRef = db.collection('notifications').doc();
     const now = nowIso();
 
+    let replayed = false;
     await db.runTransaction(async (tx) => {
+      replayed = false;
+      if (requestId) {
+        const existing = await tx.get(contributionRef);
+        const outcome = replayOutcome(existing.exists ? existing.data() : null, uid, fingerprint);
+        if (outcome === 'conflict') throw new HttpsError('already-exists', REQUEST_CONFLICT_MESSAGE);
+        if (outcome === 'replay') { replayed = true; return; }
+      }
       const campaign = await tx.get(campaignRef);
       if (!campaign.exists) {
         tx.set(campaignRef, buildCollectionCampaignDocument(now));
       }
 
-      tx.set(contributionRef, buildCollectionContributionReceipt(
-        contributionRef.id,
-        submissionRef.id,
-        uid,
-        input,
-      ));
+      tx.set(contributionRef, {
+        ...buildCollectionContributionReceipt(
+          contributionRef.id,
+          submissionRef.id,
+          uid,
+          input,
+        ),
+        ...(requestId ? { requestFingerprint: fingerprint } : {}),
+      });
       tx.set(submissionRef, buildCollectionSubmissionDocument(
         submissionRef.id,
         uid,
@@ -757,6 +781,7 @@ export const submitCollectionContribution = onCall(
       contributionId: contributionRef.id,
       submissionId: submissionRef.id,
       status: 'SUBMITTED' as const,
+      ...(replayed ? { replayed: true } : {}),
     };
   },
 );
