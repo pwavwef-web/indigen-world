@@ -1,4 +1,6 @@
 import type { Item, PaymentNotice, SubmissionRound, Work } from './model';
+import type { ReceiptRecord, RecordingRecord } from './submissions';
+import type { ExpressionDraft } from '../creator/expressions-data';
 
 /**
  * The shapes the contributor workspace reads and the services it calls.
@@ -194,10 +196,134 @@ export interface AccountSummary {
   phoneMasked: string;
 }
 
+// ---------------------------------------------------------------------------
+// Points and redemption (contributor-rewards.ts)
+// ---------------------------------------------------------------------------
+
+/** The configured award and redemption rules (`settings/contributorRewards`). */
+export interface RewardRules {
+  pointsPerExpression: number;
+  dailyCap: number;
+  redemptionMinimum: number;
+  cedisPerRedemption: number;
+}
+
+export interface RewardBalance extends RewardRules {
+  balance: number;
+  lifetime: number;
+}
+
+export interface Streak {
+  current: number;
+  best: number;
+  lastDay: string;
+  activeToday: boolean;
+}
+
+export type RedemptionStatus = 'submitted' | 'approved' | 'rejected' | 'paid' | 'fulfilled';
+
+export interface RedemptionRequest {
+  id: string;
+  amountMinor: number;
+  currency: 'GHS';
+  description: string;
+  status: RedemptionStatus;
+  points?: number;
+  kind?: 'airtime' | 'data';
+  network?: string;
+  phoneNumber?: string;
+  createdAt: string;
+  adminNote?: string;
+  decidedAt?: string | null;
+  paidAt?: string | null;
+  paymentReference?: string;
+}
+
+export interface RewardView {
+  rewards: RewardBalance;
+  streak: Streak;
+  requests: RedemptionRequest[];
+}
+
+export interface RedemptionChoice {
+  points: number;
+  kind: 'airtime' | 'data';
+  network: 'MTN' | 'Telecel' | 'AT';
+  phoneNumber: string;
+}
+
+/** One award, written by the backend when a reviewer approves an assigned translation. */
+export interface RewardCredit {
+  id: string;
+  submissionId: string;
+  work: string;
+  item: string;
+  /** The UTC day the approval counted towards. */
+  day: string;
+  points: number;
+  createdAt: string;
+}
+
+// ---------------------------------------------------------------------------
+// Daily batches (contributor-daily-tasks.ts)
+// ---------------------------------------------------------------------------
+
+export interface DailyTasks {
+  day: string;
+  status: 'not_prepared' | 'in_progress' | 'eligible' | 'extra_unlocked' | string;
+  submitted: number;
+  firstWork: string;
+  extraWork: string;
+}
+
+// ---------------------------------------------------------------------------
+// Open contributions
+// ---------------------------------------------------------------------------
+
+/** A short dictionary word, as the workspace's compact form collects it. */
+export interface WordDraft {
+  headword: string;
+  partOfSpeech: string;
+  meaning: string;
+  dialect: string;
+  exampleKasem: string;
+  exampleEnglish: string;
+  source: string;
+  notes: string;
+  consentGranted: boolean;
+  publicationPermission: '' | 'yes' | 'no';
+  pronunciation: UploadedAudio | null;
+}
+
+export interface UploadedAudio {
+  storagePath: string;
+  mimeType: string;
+  sizeBytes: number;
+  name: string;
+  durationMs?: number;
+}
+
+/** A published dictionary word that a pronunciation can be recorded for. */
+export interface WordOption {
+  id: string;
+  kasem: string;
+  english: string;
+  partOfSpeech: string;
+  homographIndex: number;
+  hasAudio: boolean;
+}
+
+export interface RecordingInput {
+  entryId: string;
+  storagePath: string;
+  durationMs: number;
+  publishConsent: boolean;
+  requestId: string;
+}
+
 export type SaveAnswer = (data: Record<string, unknown>) => Promise<{ data: { revision: number; submissionId?: string } }>;
 
 export interface WorkspaceServices {
-  unlockDailyPreview?(): void;
   saveAnswer: SaveAnswer;
   loadPayments(): Promise<PaymentsView>;
   uploadStatement(file: File, onProgress?: (fraction: number) => void): Promise<{ uploadId: string; fileName: string }>;
@@ -214,9 +340,34 @@ export interface WorkspaceServices {
   changePassword(current: string, next: string): Promise<void>;
   sendPasswordReset(): Promise<void>;
   signOut(): Promise<void>;
+  // Points and redemption
+  loadRewards(): Promise<RewardView>;
+  redeem(choice: RedemptionChoice): Promise<void>;
+  // Daily batches
+  loadDaily(): Promise<DailyTasks>;
+  requestMoreDaily(): Promise<DailyTasks>;
+  // Open contributions
+  submitExpression(draft: ExpressionDraft, requestId: string): Promise<{ contributionId: string }>;
+  submitWord(draft: WordDraft, requestId: string): Promise<{ contributionId: string }>;
+  withdrawContribution(contributionId: string): Promise<void>;
+  findWords(spelling: string): Promise<WordOption[]>;
+  wordsNeedingRecording(): Promise<WordOption[]>;
+  uploadAudio(file: File, purpose: 'pronunciation' | 'word', onProgress?: (fraction: number) => void): Promise<UploadedAudio>;
+  submitRecording(input: RecordingInput): Promise<{ id: string }>;
 }
 
-export type Section = 'overview' | 'assignments' | 'contributions' | 'activity' | 'guide' | 'kawuri' | 'account' | 'rewards' | 'streak';
+export type Section =
+  | 'overview'
+  | 'assignments'
+  | 'contribute'
+  | 'contributions'
+  | 'revisions'
+  | 'activity'
+  | 'guide'
+  | 'kawuri'
+  | 'account'
+  | 'rewards'
+  | 'streak';
 export type AccountTab = 'profile' | 'security' | 'notifications' | 'payments';
 
 export interface PortalPaths {
@@ -237,6 +388,12 @@ export interface WorkspaceData {
   itemsState: LoadState;
   rounds: SubmissionRound[];
   roundsState: LoadState;
+  receipts: ReceiptRecord[];
+  receiptsState: LoadState;
+  recordings: RecordingRecord[];
+  recordingsState: LoadState;
+  credits: RewardCredit[];
+  creditsState: LoadState;
   paymentNotices: PaymentNotice[];
   pulse: PulseState;
   services: WorkspaceServices;

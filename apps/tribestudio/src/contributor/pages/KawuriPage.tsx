@@ -1,16 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRoute } from '../../router';
-import { Card, EmptyNote, Notice, PageHeader, Skeleton } from '../components';
+import { Card, EmptyState, Notice, PageHeader, Skeleton } from '../components';
 import { KawuriResultView, useAssist } from '../kawuri';
 import { nextContribution } from '../model';
 import type { AssistMode } from '../types';
 import { useWorkspace } from '../workspace';
-import { artwork } from '../artwork';
 
 const MODES: { id: AssistMode; title: string; body: string; needsItem: boolean }[] = [
-  { id: 'explain_assignment', title: 'Explain the instructions', body: 'Find a clear starting point.', needsItem: false },
-  { id: 'context_needed', title: 'What context does this need?', body: 'Explore meaning, tone and usage.', needsItem: true },
-  { id: 'check_draft', title: 'Check my saved draft', body: 'Spot missing details before sending.', needsItem: true },
+  { id: 'explain_assignment', title: 'Explain the instructions', body: 'A plain summary of what the task asks for.', needsItem: false },
+  { id: 'context_needed', title: 'What context does this need?', body: 'Questions about meaning, tone and who says it.', needsItem: true },
+  { id: 'check_draft', title: 'Check my saved draft', body: 'Missing details to look at before you send.', needsItem: true },
 ];
 
 /**
@@ -56,23 +55,21 @@ export function KawuriPage({ initialWork, initialItem, initialMode }: { initialW
   return (
     <div className="cw-page">
       <PageHeader
-        kicker="Kawuri Intelligence"
-        title="A spark for your next expression."
-        id="page-title"
-        description="Explore the English. Find the context. Bring your own Kasem."
+        title="Kawuri assistant"
+        description="Help with the English and the context of a task. Kawuri never writes or judges your Kasem, and never changes your work."
       />
-      <Notice tone="info" title="Kawuri suggests; reviewers decide">
-        <p>AI suggestions only. Kawuri never writes or judges your Kasem, and never changes your work.</p>
+      <Notice tone="neutral" title="Suggestions, not decisions">
+        <p>Checks follow fixed rules, sources come from the task and the published dictionary, and suggestions come from an AI model and are labelled as not reviewed. Reviewers decide what is correct.</p>
       </Notice>
 
-      {data.worksState === 'loading' ? <div className="cw-card"><Skeleton lines={3} label="Loading your assignments" /></div> : noWork ? (
-        <EmptyNote title="Nothing to work on yet">Kawuri works from your assignments. It will be available here once you have one.</EmptyNote>
+      {data.worksState === 'loading' ? <div className="cw-card"><Skeleton lines={3} label="Loading your tasks" /></div> : noWork ? (
+        <EmptyState title="Nothing to work on yet" icon="kawuri">Kawuri works from your assigned tasks. It will be available here once you have one.</EmptyState>
       ) : (
         <div className="cw-kawuri-layout">
           <Card title="What should Kawuri look at?" className="cw-kawuri-context">
             <div className="cw-form-grid">
               <label className="cw-field">
-                <span className="cw-field-label">Assignment</span>
+                <span className="cw-field-label">Task</span>
                 <select value={workId} onChange={(event) => { setWorkId(event.target.value); setItemId(''); setMode(null); reset(); }}>
                   {data.works.map((work) => <option key={work.id} value={work.id}>{work.title}</option>)}
                 </select>
@@ -121,11 +118,7 @@ export function KawuriPage({ initialWork, initialItem, initialMode }: { initialW
               </Card>
             ) : null}
             {!busy && !result && !error ? (
-              <div className="cw-empty cw-kawuri-placeholder">
-                <img src={artwork.livingKnowledge} alt="" width="1536" height="1024" />
-                <strong>Let’s find a little clarity.</strong>
-                <p>Choose a prompt to see checks, sources and suggestions here.</p>
-              </div>
+              <EmptyState title="Choose what Kawuri should look at" icon="kawuri" variant="inline">Checks, sources and suggestions appear here.</EmptyState>
             ) : null}
           </div>
         </div>

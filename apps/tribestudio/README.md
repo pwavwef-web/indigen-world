@@ -49,6 +49,13 @@ marketing surfaces with their own identity and the kit never reaches them.**
 They share only the blue — their primary action, their brand mark and the
 sign-in gate.
 
+The contributor and reviewer workspaces (`/contributor`, `/contributor/review`)
+are not under `.iwx`. They have their own restrained tokens and shell in
+[`src/contributor/styles/`](src/contributor/styles) — `portal.css` holds the
+tokens and controls, scoped to `.cw` — and take only `TableShell` from the kit,
+so their tables stay contained. See
+[docs/product/contributor-portal.md](../../docs/product/contributor-portal.md).
+
 Layout chrome lives in [`src/creator/studio-shell.css`](src/creator/studio-shell.css):
 the navigation rail, the command bar, the status rail and the app's own
 `.button`/`.field` classes re-pointed at the kit's treatment inside the

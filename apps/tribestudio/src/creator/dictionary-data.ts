@@ -143,7 +143,7 @@ export async function fetchMyDictionaryContributions(
  * example would make a well-documented word look bare in the queue. The entry
  * screen suppresses the duplicate at render time instead.
  */
-export async function submitDictionaryEntry(draft: EntryDraft): Promise<void> {
+export async function submitDictionaryEntry(draft: EntryDraft, requestId?: string): Promise<{ contributionId: string }> {
   if (draft.culturalPermissionTier !== 'public') {
     throw new Error('This dictionary accepts public cultural material only. Do not submit community-only, restricted or sacred material.');
   }
@@ -153,12 +153,12 @@ export async function submitDictionaryEntry(draft: EntryDraft): Promise<void> {
     .flatMap((sense) => sense.examples)
     .find((example) => example.kasem.trim() || example.english.trim());
 
-  const call = httpsCallable<Record<string, unknown>, unknown>(
+  const call = httpsCallable<Record<string, unknown>, { contributionId?: string; submissionId?: string }>(
     functions,
     'submitCollectionContribution',
   );
 
-  await call({
+  const response = await call({
     collectionKind: 'dictionary',
     culturalPermissionTier: draft.culturalPermissionTier,
     lexicalKind: 'word',
@@ -192,7 +192,10 @@ export async function submitDictionaryEntry(draft: EntryDraft): Promise<void> {
     involvesMinors: null,
     usesThirdPartyMaterial: false,
     participantConsentConfirmed: draft.consentGranted,
+    // A retry of the same send returns the contribution already filed.
+    ...(requestId ? { requestId } : {}),
   });
+  return { contributionId: String(response?.data?.contributionId ?? response?.data?.submissionId ?? '') };
 }
 
 export type AssistSeverity = 'ask' | 'warn' | 'note';

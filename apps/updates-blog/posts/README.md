@@ -6,6 +6,8 @@ date identifies when the post was prepared; it does not prove the update is live
 
 ## Posts
 
+- [2026-10-01: A clearer workspace for contributing and reviewing](2026-10-01-contributor-and-reviewer-workspaces/README.md) — draft article; redesigned TribeStudio contributor and review workspaces with guided forms, submission tracking, plain rewards and backend review safeguards. Implemented and tested in the repository October 1; not deployed (five Functions and TribeStudio hosting). Actual screenshots from the local preview with sample data.
+
 - [2026-09-30: Small experiments, living culture — Indigen World Labs](2026-09-30-indigen-world-labs/README.md) — signed-in alpha deployed September 30; reviewed practice, private stories, activity and feedback verified against production. Actual local screenshots; automatic assistance disabled. Blogger article remains a draft.
 
 - [2026-09-30: The review desk comes to the contributor portal](2026-09-30-contributor-review-desk/README.md) — draft article; guarded web review desk with four queues and validator-only navigation. TribeStudio Hosting deployed September 30; custom-domain files verified against the release build. Signed-in checks pending; newer dictionary output choices await their backend release. Includes an original workflow illustration.

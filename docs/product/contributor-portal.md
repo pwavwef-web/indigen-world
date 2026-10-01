@@ -177,3 +177,97 @@ Still open after deployment:
 - Signed statement links need the runtime service account to hold Service Account Token Creator on itself. It does today; the emulator test confirms the call fails without it.
 
 Tests: `npm run test:contributor-portal` (backend unit tests and Studio workflow tests), `npm run test:contributor-e2e` (callables, triggers, rules and Storage against the emulators), `npm run test:rules` and `npm run test:storage-rules`.
+
+## Contributor and reviewer workspaces — 2026-10-01
+
+**Status: implemented on branch `claude/zen-faraday-lskj12`; not deployed.** Hosting can go out before or after the Functions below: older Functions ignore the new optional fields, so the safeguards switch on when the Functions are deployed.
+
+The contributor portal and the review desk were redesigned together as one workspace with two sides: **Contributing** and **Reviewing**. Accounts with both roles switch between them from the sidebar. Access is unchanged: an active `contributorAccounts/{uid}` record for the contributor side, and `canValidate` (validator, reviewer, admin, super_admin) for the review side, both enforced again by every callable.
+
+### Design system
+
+- Tokens and base controls live in `apps/tribestudio/src/contributor/styles/portal.css`, scoped to `.cw` and `.cw-auth`: neutral surfaces, one blue accent (`#1f50d6`), signal colours with soft and line variants, a type scale, a 4px spacing grid, radii, shadows for floating things only, and motion that `prefers-reduced-motion` turns off. `shell.css` holds the shared shell, `pages.css` the page layouts and `review.css` the review screens. The Kassena triangle band (indigo and terracotta, from `@indigen-world/design-tokens`) appears once per screen.
+- Shared components: `components.tsx` (panels, badges, notices, fields, filters, pagination, confirmation dialog, empty and loading states) and `shell.tsx` (sidebar, role switcher, top bar and bottom tab bar under 1024px). Both workspaces use them; nothing is styled per page.
+- The portal no longer uses the console kit's `.iwx` surface styles. It keeps `TableShell` for every table, so `validate-studio` still guarantees tables are contained.
+- Removed: decorative artwork, the gradient Kawuri card, the gamified points banner and the separate streak page (a quiet line on Rewards now).
+- The review workspace, the guided contribution forms and profile settings load on demand (`lazy.tsx`). A contributor's first visit now downloads about 53 KB of compressed portal code, against 58 KB before the redesign.
+
+### Contributor routes
+
+| Route | Page |
+|---|---|
+| `/contributor` | Overview: what needs attention (revisions, payment details), where to continue, submission counts by status, recent activity, today's batch, points, Community today (only with live data) |
+| `/contributor/assignments` | Tasks |
+| `/contributor/{uid}/{work}?item=` | A task and its editor. Unchanged, so SMS links keep working |
+| `/contributor/contribute` | Start a contribution: assigned tasks, everyday expression, dictionary word or pronunciation |
+| `/contributor/contribute?type=expression` (`&correct={id}`) | Four-step expression form; `correct` corrects a declined expression once |
+| `/contributor/contribute?type=word` | Dictionary word form |
+| `/contributor/contribute?type=recording` (`&entry={id}`) | Pronunciation: choose a published word, record or upload, send |
+| `/contributor/contributions?status=&type=&view=` | My submissions; `view={row key}` opens one submission with its feedback and history |
+| `/contributor/revisions` | Work returned with feedback, declined expressions that can be corrected, recordings to record again |
+| `/contributor/rewards` | Points, rules, redemption and the points ledger |
+| `/contributor/activity` | Updates |
+| `/contributor/guide?section=` | Guidelines |
+| `/contributor/kawuri` | Kawuri assistant |
+| `/contributor/account/{profile,security,notifications,payments}` | Profile and settings |
+
+`/contributor/streak` opens Rewards, and the old `contributions?filter=` values map to the new status filters.
+
+### Review routes
+
+| Route | Page |
+|---|---|
+| `/contributor/review` | Overview: server counts for every queue, the oldest waiting contribution, your recent decisions |
+| `/contributor/review/queue?desk=&view=&type=&dialect=&age=&q=&sort=&page=` | Queue. Filters live in the address, so a filtered queue can be bookmarked |
+| `/contributor/review/{desk}/{id}` | One item: the material, its history and the decision |
+| `/contributor/review/history` | Items whose latest decision is yours (contributions, pronunciations, Kasem names) |
+| `/contributor/review/guide?section=` | Review guidelines, each section naming its source |
+| `/contributor/review/account` | Who you are signed in as and what review access allows |
+
+Desks: contributions (`submissions`), pronunciations (`pronunciationRecordings`), sentences (`grammarNotes`), Kasem names and adverts. Queues are ordered by the existing indexes where they exist (submissions oldest first; recordings newest first and sorted on the client), cut at 250 per status with a notice, filtered by type, dialect and waiting time on the client, sorted stably (ties by id) and paged 20 at a time.
+
+### What changed in the workflows
+
+- **Assigned translations:** the existing editor with its autosave, recovery copy, conflict check, skip and resubmission rounds, restyled. It now asks for confirmation before sending, and the retry controls appear for every failed save, including failures that carry no message.
+- **Everyday expressions:** four steps (the expression, meaning and use, source and permission, check and send) with examples beside unfamiliar fields, validation per step, a draft kept in the browser, and a request id so a retried send is filed once. A declined expression can be corrected once, linked to the original.
+- **Dictionary words:** a compact form with a duplicate-spelling check against published words and an optional pronunciation that uploads once and is reused on retry.
+- **Pronunciations:** record (the microphone is released afterwards; 30 seconds at most) or upload a file, listen back, record again, choose whether it may be published, send. Typed and recorded work stays on the page if the upload or send fails.
+- **Tracking:** one list for all four kinds, with search, type and status filters, sorting and pages of 25. A submission page shows where it stands, the reviewer's feedback, what was sent and every round. Status names keep approval, publication, "kept, not published" and withdrawal apart; approval never reads as publication or payment.
+- **Rewards:** available points, points earned, translations awaiting review, and a cash balance stated as "None — points are not money". The rules come from `settings/contributorRewards`; the ledger joins `rewardCredits` with airtime and data redemption requests. Redemption shows the exact conditions and is reviewed by hand, so it is not instant.
+- **Review:** the source and the contribution side by side, the previous round and the last reviewer's request for resubmissions, the attached audio or media, a dictionary spelling check for words, an optional four-point checklist saved as `scores`, and decision cards that say what each decision does for that item. Sending work back needs at least 15 characters of feedback; reusable reasons are starting points. Every decision is confirmed in a dialog. Own submissions show no decision controls. If someone else decides first, the decision is refused and the reviewer is told. Sentences are judged per version on meaning, grammar, naturalness and context fit, with dialect competence confirmed and a written explanation for any concern.
+
+### Backend changes (Functions deploy needed)
+
+- `decideSubmission` accepts optional `expectedStatus` and `expectedVersion` (`lifecycle.version`) and refuses a decision made on an out-of-date view with `aborted`, writing nothing.
+- `decidePronunciationRecording` refuses decisions on the reviewer's own recording and claims the decision in a transaction: a two-minute `decisionLock` stops a second decision while an approval copies audio, and is cleared when it finishes or fails. Rejections are written inside the claim and now leave an audit row as approvals do.
+- `submitExpression`, `submitCollectionContribution` and `submitPronunciationRecording` accept an optional `requestId`. The record's id is derived from the caller and the request, and the request content is fingerprinted (`requestFingerprint`): the same request again returns the first record (`replayed: true`); a different request under the same id is refused with `already-exists`.
+- `submitPronunciationRecording` accepts an optional `source` (`learn_speak`, the default, or `contributor_portal`).
+- The rules above are pure functions in `services/functions/src/review-guards.ts`.
+- No Firestore rules, Storage rules or indexes change. Portal uploads use `creator-submissions/{uid}/{collection-contributions|pronunciations}/{id}/take.{ext}`, which the existing Storage rules already allow.
+
+Deploy: `firebase deploy --only functions:decideSubmission,functions:decidePronunciationRecording,functions:submitExpression,functions:submitCollectionContribution,functions:submitPronunciationRecording`, then TribeStudio hosting.
+
+### Records and migration
+
+No record is rewritten, deleted or backfilled. Records created before this change display as before; new fields appear only on records created or decided after the Functions deploy.
+
+- **Expressions filed as dictionary words.** Invited contributors' expressions published before 2026-09-27 are still in `dictionaryEntries`. `decideSubmission` already moves one to `expressionEntries`, and takes the dictionary row down, when it is published again. The plan: list the affected submissions (published submissions with `contributorPortal` set whose `dictionaryEntries/collection_{submissionId}` row is published), have an editor confirm each, then either call `decideSubmission` with `PUBLISH` for each (accepted for published work; one transaction moves it), or unpublish it in Admin → Contributors → Expression review and publish it again from the review workspace (it is not public in between). Not run here: it changes public records.
+- **Mobile proverbs** submitted through Collection dictionary contributions still publish to `dictionaryEntries` as sayings. Routing them to Expressions is a mobile and backend change outside this one.
+- Points, redemptions and payment details are unchanged.
+
+### Not built, and why
+
+- **Assigned reviews.** There is no assignment model for reviewers in the backend; every reviewer sees every queue. Conflicting decisions are prevented by the expected-status check instead.
+- **Open forms for sentences and longer texts.** Sentences go through the existing sentence workflow, and longer texts through TribeStudio creator submissions. The contribute page says so rather than offering a form the backend cannot take.
+- **Review history for sentences and adverts.** The sentence projection does not record when each reviewer judged, and adverts record no reviewer. The history page says this.
+- **Bulk decisions.** Not supported by the callables, so not offered.
+- Review turnaround times and payment rates are not published; the guidelines say so.
+
+### Verification — 2026-10-01
+
+- `apps/tribestudio`: `npm test` — 69 tests, including new tests for submission states, queue filtering and sorting, decision rules and requests, publish targets, conflict messages, sentence judgments, the rewards ledger and eligibility, and review routes; `npm run build` and the root `npm run typecheck` and `npm run build` pass.
+- Backend: `npm run test:function-helpers` — 594 of 595 pass, including the new `firebase/tests/reviewGuards.test.mjs` (8 tests) and the updated recording assertion. The one failure, `languageLoop.test.mjs`, needs the generated, git-ignored `data/word-seed/word-queue.ndjson` and fails the same way without this change.
+- Emulator end-to-end tests: 51 of 51 pass, including the new `reviewSafeguards.e2e.test.mjs` (a retried send creates one expression and a changed one is refused; a stale decision is refused and nothing changes; a recording cannot be decided by its speaker, twice, or while another decision holds it) and the existing contributor, expression, creator, decision, dictionary, language-loop and form suites.
+- The Functions emulator cannot load `lib/bundle.mjs` on Node 22.22 because `services/functions/src/index.ts` has a top-level `await import('./support-whatsapp.js')`; the runs above used a local build with that optional block removed from the generated file. The source is unchanged.
+- Browser journeys against the dev-only preview (`/contributor/preview`, `/contributor/preview/review`), at 1440px and 390px: find a task, save, submit and track it; revise and resubmit after feedback; keep typed work through a dropped connection and retry; send a guided expression once after a failed send; read the rewards rules and state; review text and audio, require feedback, refuse decisions on one's own work, and refuse a decision someone else made first; judge a sentence. Screens were checked at 1440, 834 and 390px with no horizontal scrolling and no console errors.
+- Still to do after deployment: a signed-in production smoke test of both workspaces, including one decision of each kind on designated test records.

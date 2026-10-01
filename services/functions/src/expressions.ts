@@ -45,6 +45,13 @@ import {
 } from './collection-contributions.js';
 import { NO_FORMS } from './kasem-morphology.js';
 import { expressionEntryId } from './publication.js';
+import {
+  REQUEST_CONFLICT_MESSAGE,
+  parseRequestId,
+  replayOutcome,
+  requestDocumentId,
+  requestFingerprint,
+} from './review-guards.js';
 
 const REGION = 'us-central1';
 const ENFORCE_APP_CHECK = process.env.ENFORCE_APP_CHECK === 'true';
@@ -508,8 +515,14 @@ export const submitExpression = onCall(
     const uid = requireAuth(req);
     await consumeRateLimit('submitExpression', uid, 20);
     const contribution = parseExpressionContribution(req.data);
+    // Optional: the same request sent twice (a retry after a dropped
+    // connection) answers with the expression the first attempt created.
+    const requestId = parseRequestId((req.data as JsonRecord).requestId);
+    const fingerprint = requestId ? requestFingerprint(contribution) : '';
     const db = getFirestore();
-    const contributionRef = db.collection('collectionContributions').doc();
+    const contributionRef = requestId
+      ? db.collection('collectionContributions').doc(requestDocumentId(uid, 'expression', requestId))
+      : db.collection('collectionContributions').doc();
     const submissionRef = db.collection('submissions').doc(contributionRef.id);
     const campaignRef = db.collection('campaigns').doc(COLLECTION_CAMPAIGN_ID);
     const notificationRef = db.collection('notifications').doc();
@@ -517,7 +530,15 @@ export const submitExpression = onCall(
     const now = new Date().toISOString();
     const { phrase } = contribution.expression;
 
+    let replayed = false;
     await db.runTransaction(async (tx) => {
+      replayed = false;
+      if (requestId) {
+        const existing = await tx.get(contributionRef);
+        const outcome = replayOutcome(existing.exists ? existing.data() : null, uid, fingerprint);
+        if (outcome === 'conflict') throw new HttpsError('already-exists', REQUEST_CONFLICT_MESSAGE);
+        if (outcome === 'replay') { replayed = true; return; }
+      }
       const campaign = await tx.get(campaignRef);
       const previousRef = contribution.revisionOf
         ? db.collection('collectionContributions').doc(contribution.revisionOf)
@@ -544,7 +565,10 @@ export const submitExpression = onCall(
         tx.update(previousRef, { correctedBy: contributionRef.id });
       }
       if (!campaign.exists) tx.set(campaignRef, buildCollectionCampaignDocument(now));
-      tx.set(contributionRef, buildExpressionReceipt(contributionRef.id, uid, contribution));
+      tx.set(contributionRef, {
+        ...buildExpressionReceipt(contributionRef.id, uid, contribution),
+        ...(requestId ? { requestFingerprint: fingerprint } : {}),
+      });
       tx.set(submissionRef, buildExpressionSubmissionDocument(submissionRef.id, uid, contribution, now));
       tx.set(notificationRef, {
         id: notificationRef.id,
@@ -582,6 +606,7 @@ export const submitExpression = onCall(
       contributionId: contributionRef.id,
       submissionId: submissionRef.id,
       status: 'SUBMITTED' as const,
+      ...(replayed ? { replayed: true } : {}),
     };
   },
 );

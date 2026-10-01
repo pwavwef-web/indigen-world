@@ -1,36 +1,40 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type MouseEvent, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useRoute } from '../router';
 import { canValidate, useAuth } from '../auth';
-import { BrandMark, Icon, cx, type IconName } from './components';
-import { friendlyError, initials, itemStatus, metricsFor, type FriendlyError } from './model';
-import type { AccountTab, PaymentsView, Section, SelfView, WorkspaceData } from './types';
-import { NotificationCentre } from './notifications';
+import { EmptyState, PageHeader } from './components';
+import { activityFrom, friendlyError, itemStatus, type ActivityEvent, type FriendlyError } from './model';
+import { assignedRows, receiptRows, recordingRows, revisionRows, type SubmissionRow } from './submissions';
+import type { AccountTab, DailyTasks, PaymentsView, RewardView, Section, SelfView, WorkspaceData } from './types';
+import { AppShell, RouteLink, type NavEntry } from './shell';
 import { OverviewPage } from './pages/OverviewPage';
 import { AssignmentsPage } from './pages/AssignmentsPage';
 import { AssignmentPage } from './pages/AssignmentPage';
 import { ContributionsPage } from './pages/ContributionsPage';
+import { RevisionsPage } from './pages/RevisionsPage';
 import { ActivityPage } from './pages/ActivityPage';
 import { GuidePage } from './pages/GuidePage';
 import { KawuriPage } from './pages/KawuriPage';
-import { AccountPage } from './pages/AccountPage';
+import { AccountPage, ContributePage } from './lazy';
 import { RewardsPage } from './rewards';
 
 /**
- * The contributor workspace shell: persistent navigation, the page for the
- * current route, and the two slow reads every page may want (the
- * contributor's own profile and their payment verification status), fetched
- * once and shared.
+ * The contributor workspace shell: navigation, the page for the current
+ * route, and the slower reads several pages share (profile, payment
+ * verification, points, today's batch), fetched once.
  *
  * Routes (all under /contributor):
  *   /contributor                         Overview
- *   /contributor/assignments             Assignments
- *   /contributor/{uid}/{work}[?item=]    One assignment — the address every SMS
+ *   /contributor/assignments             Tasks
+ *   /contributor/{uid}/{work}[?item=]    One task — the address every SMS
  *                                        invitation carries, kept as it was
- *   /contributor/contributions           My contributions
- *   /contributor/activity                Activity
- *   /contributor/guide[?section=]        Platform guide
- *   /contributor/kawuri[?work=&item=]    Kawuri Intelligence
- *   /contributor/account[/{tab}]         Account & settings
+ *   /contributor/contribute[?type=]      Start a contribution
+ *   /contributor/contributions[?view=]   My submissions, and one submission
+ *   /contributor/revisions               Revision requests
+ *   /contributor/rewards                 Points and redemption (/streak lands here)
+ *   /contributor/activity                Updates
+ *   /contributor/guide[?section=]        Guidelines
+ *   /contributor/kawuri[?work=&item=]    Kawuri assistant
+ *   /contributor/account[/{tab}]         Profile and settings
  */
 
 export const WorkspaceContext = createContext<WorkspaceData | null>(null);
@@ -50,8 +54,10 @@ export interface PortalRoute {
   notFound: boolean;
 }
 
-const SIMPLE_SECTIONS: Section[] = ['assignments', 'contributions', 'activity', 'guide', 'kawuri', 'rewards', 'streak'];
+const SIMPLE_SECTIONS: Section[] = ['assignments', 'contribute', 'contributions', 'revisions', 'activity', 'guide', 'kawuri', 'rewards', 'streak'];
 const ACCOUNT_TABS: AccountTab[] = ['profile', 'security', 'notifications', 'payments'];
+/** First path segments that are workspace pages, never an account id. */
+const RESERVED = new Set(['account', 'review', 'preview', 'support', ...SIMPLE_SECTIONS]);
 
 export function parsePortalRoute(path: string, search: string, base: string, preview: boolean): PortalRoute {
   const query = new URLSearchParams(search);
@@ -65,7 +71,7 @@ export function parsePortalRoute(path: string, search: string, base: string, pre
     return { ...route, section: 'account', accountTab: tab, notFound: Boolean(second) && tab !== second };
   }
   // Live: /contributor/{uid}/{work}. Preview: /contributor/preview/assignment/{work}.
-  if (rest.length === 2 && (preview ? first === 'assignment' : true)) {
+  if (rest.length === 2 && (preview ? first === 'assignment' : !RESERVED.has(first))) {
     return { ...route, section: 'assignments', work: second, item: query.get('item') ?? undefined };
   }
   return { ...route, notFound: true };
@@ -73,12 +79,13 @@ export function parsePortalRoute(path: string, search: string, base: string, pre
 
 /**
  * The account an SMS invitation link belongs to: /contributor/{uid}/{work}.
- * Account pages have the same two-segment shape (/contributor/account/{tab}),
- * so they are never read as a link for someone else's account.
+ * Workspace pages can have the same two-segment shape (/contributor/account/
+ * {tab}, /contributor/review/queue), so they are never read as a link for
+ * someone else's account.
  */
 export function invitationLinkOwner(path: string): string | null {
   const [root, uid, work, ...extra] = path.split('/').filter(Boolean);
-  if (root !== 'contributor' || !uid || !work || extra.length || uid === 'account') return null;
+  if (root !== 'contributor' || !uid || !work || extra.length || RESERVED.has(uid)) return null;
   try {
     return decodeURIComponent(uid);
   } catch {
@@ -86,32 +93,25 @@ export function invitationLinkOwner(path: string): string | null {
   }
 }
 
-interface NavItem {
-  section: Section;
-  label: string;
-  short: string;
-  icon: IconName;
-}
-
-export const NAV: NavItem[] = [
-  { section: 'overview', label: 'Home', short: 'Home', icon: 'overview' },
-  { section: 'assignments', label: 'Tasks', short: 'Tasks', icon: 'assignments' },
-  { section: 'contributions', label: 'My contributions', short: 'Contributions', icon: 'contributions' },
-  { section: 'rewards', label: 'Points', short: 'Points', icon: 'spark' },
-  { section: 'streak', label: 'Streak', short: 'Streak', icon: 'activity' },
-  { section: 'activity', label: 'Activity', short: 'Activity', icon: 'activity' },
-  { section: 'guide', label: 'Help & guide', short: 'Help', icon: 'guide' },
-  { section: 'kawuri', label: 'Kawuri Intelligence', short: 'Kawuri', icon: 'kawuri' },
-  { section: 'account', label: 'Account & settings', short: 'Account', icon: 'account' },
-];
-
-const MOBILE_PRIMARY: Section[] = ['overview', 'assignments', 'contributions', 'rewards'];
+export const SECTION_TITLES: Record<Section, string> = {
+  overview: 'Overview',
+  assignments: 'Tasks',
+  contribute: 'Start a contribution',
+  contributions: 'My submissions',
+  revisions: 'Revisions',
+  rewards: 'Rewards',
+  streak: 'Rewards',
+  activity: 'Updates',
+  guide: 'Guidelines',
+  kawuri: 'Kawuri assistant',
+  account: 'Profile and settings',
+};
 
 // ---------------------------------------------------------------------------
 // Shared slow reads
 // ---------------------------------------------------------------------------
 
-interface Resource<T> {
+export interface Resource<T> {
   value: T | null;
   state: 'loading' | 'ready' | 'error';
   error: FriendlyError | null;
@@ -153,6 +153,14 @@ function useResource<T>(load: () => Promise<T>, what: string): Resource<T> {
 interface ShellShared {
   self: Resource<SelfView>;
   payments: Resource<PaymentsView>;
+  rewards: Resource<RewardView>;
+  daily: Resource<DailyTasks>;
+  /** Every piece of work the contributor has touched, in one vocabulary. */
+  rows: SubmissionRow[];
+  revisions: SubmissionRow[];
+  events: ActivityEvent[];
+  unseenUpdates: number;
+  markUpdatesSeen: () => void;
   navigateTo: (to: string) => void;
   /** The phone editor is open: the tab bar steps aside for its sticky actions. */
   setEditing: (editing: boolean) => void;
@@ -174,6 +182,20 @@ export function paymentsNeedAttention(payments: PaymentsView | null): boolean {
     || Boolean(payments.bank?.legacy && !payments.bank.statement);
 }
 
+/** Events that tell the contributor something new — not the record of what they did themselves. */
+const NEWS: ActivityEvent['kind'][] = ['approved', 'returned', 'in_review', 'archived', 'assigned', 'payment'];
+
+function useUpdatesSeen(uid: string): [string, () => void] {
+  const key = `contributor-updates-seen:${uid}`;
+  const [seen, setSeen] = useState(() => { try { return window.localStorage.getItem(key) ?? ''; } catch { return ''; } });
+  const mark = useCallback(() => {
+    const now = new Date().toISOString();
+    setSeen(now);
+    try { window.localStorage.setItem(key, now); } catch { /* A per-browser convenience only. */ }
+  }, [key]);
+  return [seen, mark];
+}
+
 // ---------------------------------------------------------------------------
 // Shell
 // ---------------------------------------------------------------------------
@@ -181,129 +203,100 @@ export function paymentsNeedAttention(payments: PaymentsView | null): boolean {
 export function WorkspaceShell({ banner }: { banner?: ReactNode }) {
   const data = useWorkspace();
   const { role } = useAuth();
-  const reviewLink = (variant: 'side' | 'sheet') => !data.preview && canValidate(role) ? <PortalLink to="/contributor/review" className={`cw-nav__link cw-nav__link--${variant}`} ariaLabel="Review desk"><Icon name="shield" /><span className="cw-nav__label">Review desk</span></PortalLink> : null;
   const { path, search, navigate } = useRoute();
   const route = useMemo(() => parsePortalRoute(path, search, data.paths.base, data.preview), [path, search, data.paths.base, data.preview]);
   const self = useResource(data.services.loadSelf, 'Your profile');
   const payments = useResource(data.services.loadPayments, 'Payment settings');
-  const moreDialog = useRef<HTMLDialogElement>(null);
+  const rewards = useResource(data.services.loadRewards, 'Your points');
+  const daily = useResource(data.services.loadDaily, 'Today’s tasks');
   const [editing, setEditing] = useState(false);
+  const [seen, markSeen] = useUpdatesSeen(data.uid);
 
-  const allItems = useMemo(() => Object.values(data.items).flat(), [data.items]);
-  const returned = useMemo(() => metricsFor(allItems).returned, [allItems]);
-  const openAssignments = useMemo(() => data.works.filter((work) => (data.items[work.id] ?? [])
+  // Approvals add credits and submissions change today's batch; refresh the
+  // two callables when the records they summarise move, not on a timer.
+  const creditKey = data.credits.map((credit) => credit.id).join(',');
+  const submittedKey = Object.values(data.items).flat().filter((item) => item.submissionId).length;
+  const refreshRewards = rewards.refresh;
+  const refreshDaily = daily.refresh;
+  const firstCredit = useRef(true);
+  useEffect(() => { if (firstCredit.current) { firstCredit.current = false; return; } refreshRewards(); }, [creditKey, refreshRewards]);
+  const firstSubmit = useRef(true);
+  useEffect(() => { if (firstSubmit.current) { firstSubmit.current = false; return; } refreshDaily(); }, [submittedKey, data.works.length, refreshDaily]);
+
+  const rows = useMemo(() => [
+    ...assignedRows(data.works, data.items, data.rounds),
+    ...receiptRows(data.receipts),
+    ...recordingRows(data.recordings),
+  ], [data.items, data.receipts, data.recordings, data.rounds, data.works]);
+  const revisions = useMemo(() => revisionRows(rows), [rows]);
+  const events = useMemo(() => activityFrom(data.rounds, data.works, data.paymentNotices), [data.paymentNotices, data.rounds, data.works]);
+  const unseenUpdates = useMemo(() => events.filter((event) => NEWS.includes(event.kind) && (!seen || event.at > seen)).length, [events, seen]);
+  const openTasks = useMemo(() => data.works.filter((work) => (data.items[work.id] ?? [])
     .some((item) => ['not_started', 'draft', 'unsure'].includes(itemStatus(item)))).length, [data.items, data.works]);
   const paymentAttention = paymentsNeedAttention(payments.value);
+
+  const shared = useMemo<ShellShared>(() => ({
+    self, payments, rewards, daily, rows, revisions, events, unseenUpdates, markUpdatesSeen: markSeen, navigateTo: navigate, setEditing,
+  }), [self, payments, rewards, daily, rows, revisions, events, unseenUpdates, markSeen, navigate]);
+
+  const href = (section: Section) => (section === 'account' ? data.paths.account('profile') : data.paths.section(section));
+  const nav: NavEntry[] = [
+    { id: 'overview', label: 'Overview', short: 'Overview', href: href('overview'), icon: 'overview' },
+    { id: 'assignments', label: 'Tasks', short: 'Tasks', href: href('assignments'), icon: 'assignments',
+      badge: openTasks ? { text: String(openTasks), tone: 'info', label: `${openTasks} with work remaining` } : null },
+    { id: 'contributions', label: 'My submissions', short: 'Submissions', href: href('contributions'), icon: 'contributions' },
+    { id: 'revisions', label: 'Revisions', short: 'Revisions', href: href('revisions'), icon: 'revisions',
+      badge: revisions.length ? { text: String(revisions.length), tone: 'warning', label: `${revisions.length} waiting for you` } : null },
+    { id: 'rewards', label: 'Rewards', short: 'Rewards', href: href('rewards'), icon: 'rewards' },
+  ];
+  const secondary = {
+    label: 'Help',
+    items: [
+      { id: 'guide', label: 'Guidelines', href: href('guide'), icon: 'guide' as const },
+      { id: 'kawuri', label: 'Kawuri assistant', href: href('kawuri'), icon: 'kawuri' as const },
+    ],
+  };
+  const activeId = route.notFound ? null : route.section === 'streak' ? 'rewards' : route.section;
+  const title = route.notFound ? 'Page not found' : SECTION_TITLES[route.section];
+  const work = route.work ? data.works.find((entry) => entry.id === route.work) : undefined;
+  const trail = [
+    { label: 'Contributor workspace', href: data.paths.base },
+    ...(route.section === 'overview' && !route.notFound ? [] : [{ label: route.work ? 'Tasks' : title, href: route.work ? href('assignments') : undefined }]),
+    ...(route.work ? [{ label: work?.title ?? 'Task' }] : []),
+    ...(route.section === 'contributions' && route.query.get('view') ? [{ label: 'Submission' }] : []),
+  ];
   const displayName = self.value?.profile.displayName || data.displayName || data.email;
-
-  const shared = useMemo<ShellShared>(() => ({ self, payments, navigateTo: navigate, setEditing }), [self, payments, navigate]);
-  const hrefFor = (section: Section) => (section === 'account' ? data.paths.account('profile') : data.paths.section(section));
-  const go = (section: Section) => (event: MouseEvent<HTMLAnchorElement>) => {
-    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
-    event.preventDefault();
-    moreDialog.current?.close();
-    navigate(hrefFor(section));
-  };
-  const badge = (section: Section): { text: string; tone: 'warning' | 'info' | 'danger'; label: string } | null => {
-    if (section === 'contributions' && returned) return { text: String(returned), tone: 'warning', label: `${returned} returned for revision` };
-    if (section === 'assignments' && openAssignments) return { text: String(openAssignments), tone: 'info', label: `${openAssignments} with work remaining` };
-    if (section === 'account' && paymentAttention) return { text: '!', tone: 'danger', label: 'payment details need attention' };
-    return null;
-  };
-  const current = NAV.find((item) => item.section === route.section) ?? NAV[0];
-
-  useEffect(() => { document.title = `${current.label} · Contributor workspace`; }, [current.label]);
-
-  const link = (item: NavItem, variant: 'side' | 'bottom' | 'sheet') => {
-    const active = item.section === route.section;
-    const count = badge(item.section);
-    return (
-      <a
-        key={item.section}
-        href={hrefFor(item.section)}
-        onClick={go(item.section)}
-        className={cx(`cw-nav__link cw-nav__link--${variant}`, active && 'is-active')}
-        aria-label={item.label + (count ? `, ${count.label}` : '')}
-        title={item.label}
-        aria-current={active ? 'page' : undefined}
-      >
-        <Icon name={item.icon} />
-        <span className="cw-nav__label">{variant === 'bottom' ? item.short : item.label}</span>
-        {count ? <span className={cx('cw-nav__badge', `cw-nav__badge--${count.tone}`)}><span aria-hidden="true">{count.text}</span><span className="cw-sr">{count.label}</span></span> : null}
-      </a>
-    );
-  };
 
   return (
     <SharedContext.Provider value={shared}>
-      <div className={cx('cw iwx', editing && 'is-editing')}>
-        <a href="#main-content" className="cw-skip">Skip to content</a>
-        <aside className="cw-side" aria-label="Contributor workspace">
-          <div className="cw-brand">
-            <BrandMark />
-            <span className="cw-brand__copy"><strong>TribeStudio<span className="cw-brand__period">.</span></strong><small>THE CONTRIBUTOR SPACE</small></span>
-          </div>
-          <p className="cw-nav-caption">Your workspace</p>
-          <nav className="cw-nav" aria-label="Workspace sections">
-            {NAV.map((item) => link(item, 'side'))}
-            {reviewLink('side')}
-          </nav>
-          <PortalLink to={data.paths.section('guide', { section: 'good-contribution' })} className="cw-side-story">
-            <Icon name="spark" />
-            <strong>A living language.<br />A shared future.</strong>
-            <span>Make every expression count <Icon name="arrow" /></span>
-          </PortalLink>
-          <div className="cw-side__footer">
-            <span className="cw-avatar" aria-hidden="true">
-              {self.value?.profile.photoUrl ? <img src={self.value.profile.photoUrl} alt="" /> : initials(displayName)}
-            </span>
-            <span className="cw-side__who"><strong>{displayName}</strong><small>{data.email}</small></span>
-            <button type="button" className="cw-icon-button" onClick={() => void data.services.signOut()} aria-label="Sign out" title="Sign out"><Icon name="logout" /></button>
-          </div>
-        </aside>
-
-        <header className="cw-topbar">
-          <div className="cw-topbar__brand"><BrandMark /><span>{current.label}</span></div>
-          <a href={data.paths.account('profile')} onClick={go('account')} className="cw-topbar__account" aria-label={`Account and settings${paymentAttention ? ', payment details need attention' : ''}`}>
-            <span className="cw-avatar cw-avatar--small" aria-hidden="true">
-              {self.value?.profile.photoUrl ? <img src={self.value.profile.photoUrl} alt="" /> : initials(displayName)}
-            </span>
-            {paymentAttention ? <span className="cw-topbar__dot" aria-hidden="true" /> : null}
-          </a>
-        </header>
-
-        <div className="cw-main">
-          {banner}
-          <div className="cw-desktop-bar">
-            <span>CONTRIBUTOR SPACE <span aria-hidden="true">/</span> <strong>{current.label}</strong></span>
-            <PortalLink to={data.paths.section('guide')} className="cw-desktop-help"><Icon name="help" />Help & guidance</PortalLink>
-          </div>
-          <main id="main-content" tabIndex={-1} className="cw-content">
-            <NotificationCentre />
-            {route.notFound ? <NotFound /> : <PageFor key={`${data.uid}:${route.section}`} route={route} />}
-          </main>
-        </div>
-
-        <nav className="cw-bottom" aria-label="Workspace sections">
-          {NAV.filter((item) => MOBILE_PRIMARY.includes(item.section)).map((item) => link(item, 'bottom'))}
-          <button type="button" className={cx('cw-nav__link cw-nav__link--bottom', !MOBILE_PRIMARY.includes(route.section) && 'is-active')} onClick={() => moreDialog.current?.showModal()} aria-haspopup="dialog">
-            <Icon name="more" />
-            <span className="cw-nav__label">More</span>
-            {paymentAttention ? <span className="cw-nav__badge cw-nav__badge--danger"><span aria-hidden="true">!</span><span className="cw-sr">payment details need attention</span></span> : null}
-          </button>
-        </nav>
-        <dialog ref={moreDialog} className="cw-sheet" aria-label="More sections">
-          <div className="cw-sheet__head">
-            <strong>More</strong>
-            <button type="button" className="cw-icon-button" onClick={() => moreDialog.current?.close()} aria-label="Close"><Icon name="close" /></button>
-          </div>
-          <nav className="cw-sheet__nav" aria-label="More sections">
-            {NAV.filter((item) => !MOBILE_PRIMARY.includes(item.section)).map((item) => link(item, 'sheet'))}
-            {reviewLink('sheet')}
-          </nav>
-          <button type="button" className="cw-sheet__signout" onClick={() => void data.services.signOut()}><Icon name="logout" />Sign out</button>
-        </dialog>
-      </div>
+      <AppShell
+        workspaceLabel="Contributor workspace"
+        homeHref={data.paths.base}
+        nav={nav}
+        secondary={secondary}
+        activeId={activeId}
+        primaryAction={{ id: 'contribute', label: 'Start a contribution', short: 'Contribute', href: href('contribute'), icon: 'plus' }}
+        roles={data.preview
+          ? { current: 'contributor', contributorHref: data.paths.base, validatorHref: `${data.paths.base}/review` }
+          : canValidate(role) ? { current: 'contributor', contributorHref: data.paths.base, validatorHref: '/contributor/review' } : null}
+        user={{
+          name: displayName,
+          email: data.email,
+          photoUrl: self.value?.profile.photoUrl,
+          accountHref: data.paths.account('profile'),
+          accountLabel: paymentAttention ? 'Profile and settings — payment details need attention' : 'Profile and settings',
+        }}
+        updates={{ href: href('activity'), count: unseenUpdates }}
+        trail={trail}
+        mobileTabs={['overview', 'assignments', 'contributions', 'revisions']}
+        title={title}
+        banner={banner}
+        editing={editing}
+        wide={Boolean(route.work)}
+        onSignOut={() => void data.services.signOut()}
+      >
+        {route.notFound ? <NotFound /> : <PageFor key={`${data.uid}:${route.section}`} route={route} />}
+      </AppShell>
     </SharedContext.Provider>
   );
 }
@@ -311,13 +304,16 @@ export function WorkspaceShell({ banner }: { banner?: ReactNode }) {
 function PageFor({ route }: { route: PortalRoute }) {
   switch (route.section) {
     case 'rewards':
-      return <RewardsPage history={route.query.get('view') === 'history'} />;
     case 'streak':
-      return <RewardsPage streak />;
+      return <RewardsPage history={route.query.get('view') === 'history'} />;
     case 'assignments':
       return route.work ? <AssignmentPage key={route.work} workId={route.work} itemId={route.item} /> : <AssignmentsPage />;
+    case 'contribute':
+      return <ContributePage type={route.query.get('type') ?? ''} correct={route.query.get('correct') ?? ''} entry={route.query.get('entry') ?? ''} />;
     case 'contributions':
-      return <ContributionsPage initialFilter={route.query.get('filter') ?? ''} />;
+      return <ContributionsPage initialFilter={route.query.get('filter') ?? route.query.get('status') ?? ''} view={route.query.get('view') ?? ''} />;
+    case 'revisions':
+      return <RevisionsPage />;
     case 'activity':
       return <ActivityPage />;
     case 'guide':
@@ -333,35 +329,19 @@ function PageFor({ route }: { route: PortalRoute }) {
 
 function NotFound() {
   const { paths } = useWorkspace();
-  const { navigate } = useRoute();
   return (
     <div className="cw-page">
-      <div className="cw-empty cw-empty--page">
-        <strong>This page does not exist</strong>
-        <p>The link may be mistyped or out of date. Your assignments and contributions are unaffected.</p>
-        <button type="button" className="button--primary" onClick={() => navigate(paths.section('overview'))}>Go to the overview</button>
-      </div>
+      <PageHeader title="This page does not exist" description="The link may be mistyped or out of date. Your tasks and submissions are unaffected." />
+      <EmptyState title="Nothing at this address" icon="search" actions={<PortalLink to={paths.base} className="cw-btn cw-btn--primary">Go to the overview</PortalLink>}>
+        Use the navigation to find your tasks, submissions and rewards.
+      </EmptyState>
     </div>
   );
 }
 
 /** A plain anchor that navigates inside the workspace without a reload. */
 export function PortalLink({ to, children, className, ariaLabel }: { to: string; children: ReactNode; className?: string; ariaLabel?: string }) {
-  const { navigate } = useRoute();
-  return (
-    <a
-      href={to}
-      className={className}
-      aria-label={ariaLabel}
-      onClick={(event) => {
-        if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
-        event.preventDefault();
-        navigate(to);
-      }}
-    >
-      {children}
-    </a>
-  );
+  return <RouteLink to={to} className={className} ariaLabel={ariaLabel}>{children}</RouteLink>;
 }
 
 export function useGuideLink(): (section: string) => string {

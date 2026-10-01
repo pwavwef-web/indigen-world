@@ -172,7 +172,8 @@ test('a recording belongs to its maker, names a word, and says whether it may be
     durationMs: 1800,
     publishConsent: false,
   };
-  assert.deepEqual(recordings.parseRecordingSubmission(base, 'learner-1'), base);
+  // Older clients send no source: the take came from the Learn tab.
+  assert.deepEqual(recordings.parseRecordingSubmission(base, 'learner-1'), { ...base, source: 'learn_speak' });
   assert.throws(() => recordings.parseRecordingSubmission(base, 'learner-2'), /Upload the recording/);
   assert.throws(() => recordings.parseRecordingSubmission({ ...base, durationMs: 90_000 }, 'learner-1'), /30 seconds/);
   assert.throws(() => recordings.parseRecordingSubmission({ ...base, publishConsent: 'yes' }, 'learner-1'), /publish/);

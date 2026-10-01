@@ -1,26 +1,37 @@
 import { useEffect, useMemo, useState } from 'react';
-import { collection, doc, limit, onSnapshot, orderBy, query, where, type Timestamp } from 'firebase/firestore';
+import { collection, doc, getDocs, limit, onSnapshot, orderBy, query, where, type Timestamp } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { getDownloadURL, ref, uploadBytesResumable } from 'firebase/storage';
 import { EmailAuthProvider, reauthenticateWithCredential, sendPasswordResetEmail, updatePassword } from 'firebase/auth';
 import { auth, db, functions, storage } from '../firebase';
 import { signOutUser } from '../auth';
+import { submitExpression as sendExpression, withdrawExpression } from '../creator/expressions-data';
+import { fetchHeadwordMatches, submitDictionaryEntry } from '../creator/dictionary-data';
+import { emptyDraft, emptySense } from '../creator/lexicon';
 import type { Item, PaymentNotice, SubmissionRound, Work } from './model';
+import type { ReceiptRecord, RecordingRecord } from './submissions';
 import type {
   AccountTab,
+  DailyTasks,
   LoadState,
   PortalPaths,
   PulseEntry,
   PulseState,
+  RewardCredit,
+  RewardView,
   Section,
+  UploadedAudio,
+  WordDraft,
+  WordOption,
   WorkspaceServices,
 } from './types';
 
 /**
  * The live half of the contributor workspace: Firestore listeners for what
  * the contributor may read directly (their assignments, their own review
- * rounds, their notifications, the community pulse), and callables for
- * everything the backend must check first.
+ * rounds and receipts, their recordings and point awards, their
+ * notifications, the community pulse), and callables for everything the
+ * backend must check first.
  *
  * Every listener reports failure instead of hanging on "Loading…": a rule
  * that is not deployed yet, or a dropped connection, becomes an honest empty
@@ -35,6 +46,7 @@ export const STATEMENT_TYPES: Record<string, string> = {
 export const STATEMENT_MAX_BYTES = 10 * 1024 * 1024;
 export const STATEMENT_MIN_BYTES = 1024;
 export const PHOTO_MAX_BYTES = 5 * 1024 * 1024;
+export const AUDIO_MAX_BYTES = 5 * 1024 * 1024;
 
 /** Today in UTC, which is local time in Ghana; the backend keys the pulse the same way. */
 export function pulseDay(now = new Date()): string {
@@ -45,6 +57,10 @@ function iso(value: unknown): string {
   if (typeof value === 'string') return value;
   const stamp = value as Timestamp | null;
   return stamp && typeof stamp.toDate === 'function' ? stamp.toDate().toISOString() : '';
+}
+
+function text(value: unknown): string {
+  return typeof value === 'string' ? value : '';
 }
 
 export function livePaths(uid: string): PortalPaths {
@@ -61,6 +77,56 @@ export function livePaths(uid: string): PortalPaths {
   };
 }
 
+/** A receipt in `collectionContributions`, in the shape the workspace lists. Portal rounds are listed from their assignment instead. */
+export function receiptFromDoc(id: string, data: Record<string, unknown>): ReceiptRecord | null {
+  if (data.contributorPortal) return null;
+  const kind = data.collectionKind === 'expressions' ? 'expression' : data.collectionKind === 'dictionary' ? 'word' : null;
+  if (!kind) return null;
+  const expression = (data.expression && typeof data.expression === 'object' ? data.expression : {}) as Record<string, unknown>;
+  const source = (expression.source && typeof expression.source === 'object' ? expression.source : {}) as Record<string, unknown>;
+  return {
+    id,
+    kind,
+    phrase: text(expression.phrase) || text(data.body),
+    meaning: text(expression.meaning) || text(data.title),
+    context: text(expression.context) || text(data.usageContext),
+    literalTranslation: text(expression.literalTranslation) || text(data.literalTranslation),
+    expressionKind: text(expression.kind) || text(data.lexicalKind),
+    partOfSpeech: kind === 'word' ? text(data.format) : '',
+    dialect: text(expression.dialect) || text(data.dialect),
+    sourceType: text(source.type),
+    sourceDetail: text(source.detail) || text(data.source),
+    speakerName: text(source.speakerName),
+    exampleKasem: text(data.kasemExample),
+    exampleEnglish: text(data.englishExample),
+    status: (text(data.status) || 'submitted').toLowerCase(),
+    reviewFeedback: text(data.reviewFeedback),
+    publicationPermission: data.publicationPermission === true,
+    aiTraining: data.aiTraining === true,
+    revisionOf: text(data.revisionOf),
+    correctedBy: text(data.correctedBy),
+    createdAt: iso(data.createdAt),
+    reviewedAt: iso(data.reviewedAt),
+    hasAudio: Boolean(data.mediaStoragePath) && data.mediaType === 'audio',
+  };
+}
+
+export function recordingFromDoc(id: string, data: Record<string, unknown>): RecordingRecord {
+  return {
+    id,
+    entryId: text(data.entryId),
+    headword: text(data.headword),
+    meaning: text(data.meaning),
+    status: text(data.status) || 'submitted',
+    outcome: text(data.outcome),
+    decisionNote: text(data.decisionNote),
+    publishConsent: data.publishConsent === true,
+    durationMs: typeof data.durationMs === 'number' ? data.durationMs : 0,
+    createdAt: iso(data.createdAt),
+    decidedAt: iso(data.decidedAt),
+  };
+}
+
 export interface LiveWorkspace {
   works: Work[];
   worksState: LoadState;
@@ -68,6 +134,12 @@ export interface LiveWorkspace {
   itemsState: LoadState;
   rounds: SubmissionRound[];
   roundsState: LoadState;
+  receipts: ReceiptRecord[];
+  receiptsState: LoadState;
+  recordings: RecordingRecord[];
+  recordingsState: LoadState;
+  credits: RewardCredit[];
+  creditsState: LoadState;
   paymentNotices: PaymentNotice[];
   pulse: PulseState;
 }
@@ -79,6 +151,12 @@ export function useLiveWorkspace(uid: string): LiveWorkspace {
   const [itemErrors, setItemErrors] = useState<Record<string, boolean>>({});
   const [rounds, setRounds] = useState<SubmissionRound[]>([]);
   const [roundsState, setRoundsState] = useState<LoadState>('loading');
+  const [receipts, setReceipts] = useState<ReceiptRecord[]>([]);
+  const [receiptsState, setReceiptsState] = useState<LoadState>('loading');
+  const [recordings, setRecordings] = useState<RecordingRecord[]>([]);
+  const [recordingsState, setRecordingsState] = useState<LoadState>('loading');
+  const [credits, setCredits] = useState<RewardCredit[]>([]);
+  const [creditsState, setCreditsState] = useState<LoadState>('loading');
   const [paymentNotices, setPaymentNotices] = useState<PaymentNotice[]>([]);
   const [pulseEntries, setPulseEntries] = useState<PulseEntry[]>([]);
   const [pulseTotals, setPulseTotals] = useState<PulseState['totals']>(null);
@@ -111,6 +189,7 @@ export function useLiveWorkspace(uid: string): LiveWorkspace {
       if (!portal || typeof portal.work !== 'string' || typeof portal.item !== 'string') return [];
       const lifecycle = (data.lifecycle ?? {}) as Record<string, unknown>;
       const moderation = (data.moderation ?? {}) as Record<string, unknown>;
+      const expression = (data.expression ?? {}) as Record<string, unknown>;
       return [{
         id: entry.id,
         work: portal.work,
@@ -121,10 +200,42 @@ export function useLiveWorkspace(uid: string): LiveWorkspace {
         decidedAt: iso(moderation.decidedAt),
         feedback: String(moderation.feedback ?? ''),
         revisionOf: String(data.revisionOf ?? ''),
+        kasem: text(expression.phrase) || text(data.body),
+        alternatives: Array.isArray(data.alternativeExpressions) ? data.alternativeExpressions.map(String) : [],
+        context: text(expression.context) || text(data.usageContext),
       }];
     }));
     setRoundsState('ready');
   }, () => setRoundsState('error')), [uid]);
+
+  useEffect(() => onSnapshot(query(collection(db, 'collectionContributions'), where('authUid', '==', uid), limit(300)), (snapshot) => {
+    setReceipts(snapshot.docs.flatMap((entry) => {
+      const receipt = receiptFromDoc(entry.id, entry.data() as Record<string, unknown>);
+      return receipt ? [receipt] : [];
+    }));
+    setReceiptsState('ready');
+  }, () => setReceiptsState('error')), [uid]);
+
+  useEffect(() => onSnapshot(query(collection(db, 'pronunciationRecordings'), where('uid', '==', uid), limit(200)), (snapshot) => {
+    setRecordings(snapshot.docs.map((entry) => recordingFromDoc(entry.id, entry.data() as Record<string, unknown>)));
+    setRecordingsState('ready');
+  }, () => setRecordingsState('error')), [uid]);
+
+  useEffect(() => onSnapshot(query(collection(db, 'contributorAccounts', uid, 'rewardCredits'), orderBy('createdAt', 'desc'), limit(300)), (snapshot) => {
+    setCredits(snapshot.docs.map((entry) => {
+      const data = entry.data() as Record<string, unknown>;
+      return {
+        id: entry.id,
+        submissionId: text(data.submissionId),
+        work: text(data.work),
+        item: text(data.item),
+        day: text(data.day),
+        points: typeof data.points === 'number' ? data.points : 0,
+        createdAt: iso(data.createdAt),
+      };
+    }));
+    setCreditsState('ready');
+  }, () => setCreditsState('error')), [uid]);
 
   useEffect(() => onSnapshot(query(collection(db, 'notifications'), where('authUid', '==', uid), limit(100)), (snapshot) => {
     setPaymentNotices(snapshot.docs.flatMap((entry) => {
@@ -177,7 +288,10 @@ export function useLiveWorkspace(uid: string): LiveWorkspace {
     entries: pulseEntries,
   }), [pulseEntries, pulseStatus, pulseTotals]);
 
-  return { works, worksState, items, itemsState, rounds, roundsState, paymentNotices, pulse };
+  return {
+    works, worksState, items, itemsState, rounds, roundsState, receipts, receiptsState,
+    recordings, recordingsState, credits, creditsState, paymentNotices, pulse,
+  };
 }
 
 function callable<Input, Output>(name: string) {
@@ -185,13 +299,13 @@ function callable<Input, Output>(name: string) {
   return async (input: Input): Promise<Output> => (await call(input)).data;
 }
 
-function randomId(): string {
+export function randomId(): string {
   const bytes = new Uint8Array(12);
   crypto.getRandomValues(bytes);
   return Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
 }
 
-function upload(path: string, file: File, contentType: string, onProgress?: (fraction: number) => void): Promise<void> {
+function upload(path: string, file: Blob, contentType: string, onProgress?: (fraction: number) => void): Promise<void> {
   return new Promise((resolve, reject) => {
     const task = uploadBytesResumable(ref(storage, path), file, { contentType });
     task.on('state_changed', (snapshot) => {
@@ -206,6 +320,56 @@ export function statementProblem(file: Pick<File, 'type' | 'size'>): string {
   if (file.size < STATEMENT_MIN_BYTES) return 'That file is too small to be a statement.';
   if (file.size > STATEMENT_MAX_BYTES) return 'That file is larger than 10 MB. Export a smaller PDF or take a clearer photo of just the first page.';
   return '';
+}
+
+/** The same limits the recording callable enforces: audio, under 5 MB. */
+export function audioProblem(file: Pick<File, 'type' | 'size'>): string {
+  if (!file.type.startsWith('audio/')) return 'Choose an audio recording (for example .m4a, .mp3, .ogg or .webm).';
+  if (file.size <= 0) return 'That recording is empty. Record it again.';
+  if (file.size > AUDIO_MAX_BYTES) return 'That recording is larger than 5 MB. Keep it to a few seconds.';
+  return '';
+}
+
+function audioExtension(type: string): string {
+  if (type.includes('mp4') || type.includes('m4a') || type.includes('aac')) return 'm4a';
+  if (type.includes('mpeg') || type.includes('mp3')) return 'mp3';
+  if (type.includes('ogg')) return 'ogg';
+  if (type.includes('wav')) return 'wav';
+  return 'webm';
+}
+
+function wordOption(id: string, data: Record<string, unknown>): WordOption {
+  return {
+    id,
+    kasem: text(data.kasemText) || text(data.headword),
+    english: text(data.englishText) || text(data.translation),
+    partOfSpeech: text(data.partOfSpeech),
+    homographIndex: Number(data.homographIndex ?? 0) || 0,
+    hasAudio: Boolean(text(data.audioUrl)),
+  };
+}
+
+/** The compact word form, turned into the dictionary desk's entry draft. */
+export function entryFromWord(draft: WordDraft) {
+  const entry = emptyDraft();
+  const sense = emptySense();
+  sense.definition = draft.meaning.trim();
+  sense.examples = [{ kasem: draft.exampleKasem.trim(), english: draft.exampleEnglish.trim() }];
+  return {
+    ...entry,
+    headword: draft.headword.trim(),
+    partOfSpeech: draft.partOfSpeech,
+    dialect: draft.dialect,
+    senses: [sense],
+    source: draft.source.trim(),
+    notes: draft.notes.trim(),
+    culturalPermissionTier: 'public',
+    consentGranted: draft.consentGranted,
+    publicationPermission: draft.publicationPermission === 'yes',
+    pronunciation: draft.pronunciation
+      ? { storagePath: draft.pronunciation.storagePath, mimeType: draft.pronunciation.mimeType, sizeBytes: draft.pronunciation.sizeBytes, mediaType: 'audio' as const, name: draft.pronunciation.name }
+      : null,
+  };
 }
 
 export function liveServices(uid: string, email: string): WorkspaceServices {
@@ -246,5 +410,40 @@ export function liveServices(uid: string, email: string): WorkspaceServices {
     },
     sendPasswordReset: () => sendPasswordResetEmail(auth, email, { url: `${window.location.origin}/contributor` }),
     signOut: () => signOutUser(),
+    loadRewards: () => callable<Record<string, never>, RewardView>('getContributorRewards')({}),
+    async redeem(choice) {
+      await callable<typeof choice, { requestId: string }>('redeemContributorPoints')(choice);
+    },
+    loadDaily: () => callable<Record<string, never>, DailyTasks>('getContributorDailyTasks')({}),
+    requestMoreDaily: () => callable<Record<string, never>, DailyTasks>('requestMoreContributorTasks')({}),
+    submitExpression: (draft, requestId) => sendExpression(draft, requestId),
+    submitWord: (draft, requestId) => submitDictionaryEntry(entryFromWord(draft), requestId),
+    withdrawContribution: (contributionId) => withdrawExpression(contributionId),
+    async findWords(spelling) {
+      const matches = await fetchHeadwordMatches(spelling);
+      return matches.map((match) => ({ id: match.id, kasem: match.kasemText, english: match.englishText, partOfSpeech: match.partOfSpeech, homographIndex: match.homographIndex, hasAudio: false }));
+    },
+    async wordsNeedingRecording() {
+      // Two equality filters are served by Firestore's single-field indexes; no
+      // composite index is needed. Entries written before `audioUrl` existed
+      // simply do not appear here — they can still be found by spelling.
+      const snapshot = await getDocs(query(collection(db, 'dictionaryEntries'), where('isPublished', '==', true), where('audioUrl', '==', ''), limit(40)));
+      return snapshot.docs.map((entry) => wordOption(entry.id, entry.data() as Record<string, unknown>))
+        .filter((word) => word.kasem)
+        .sort((a, b) => a.kasem.localeCompare(b.kasem));
+    },
+    async uploadAudio(file, purpose, onProgress) {
+      const problem = audioProblem(file);
+      if (problem) throw Object.assign(new Error(problem), { code: 'invalid-file' });
+      const folder = purpose === 'word' ? 'collection-contributions' : 'pronunciations';
+      const id = randomId();
+      const storagePath = `creator-submissions/${uid}/${folder}/${id}/take.${audioExtension(file.type)}`;
+      await upload(storagePath, file, file.type, onProgress);
+      return { storagePath, mimeType: file.type, sizeBytes: file.size, name: file.name } satisfies UploadedAudio;
+    },
+    async submitRecording(input) {
+      // `source` lets reviewers see the take came from this workspace, not the Learn tab.
+      return callable<typeof input & { source: string }, { id: string }>('submitPronunciationRecording')({ ...input, source: 'contributor_portal' });
+    },
   };
 }
