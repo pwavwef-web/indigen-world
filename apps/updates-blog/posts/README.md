@@ -6,7 +6,7 @@ date identifies when the post was prepared; it does not prove the update is live
 
 ## Posts
 
-- [2026-10-01: Play a mission, share your knowledge — Culture Quest](2026-10-01-culture-quest/README.md) — implemented locally; daily contribution missions, XP, levels and badges with Labs review integration. Deployment and integration verification pending; actual component screenshots with simulated responses. Blogger article remains a draft.
+- [2026-10-01: Play a mission, share your knowledge — Culture Quest](2026-10-01-culture-quest/README.md) — deployed October 1; daily contribution missions, XP, levels and badges with Labs review integration. Public route and release asset verified; signed-in gameplay and emulator integration verification pending; actual component screenshots with simulated responses. Blogger article remains a draft.
 
 - [2026-09-30: Small experiments, living culture — Indigen World Labs](2026-09-30-indigen-world-labs/README.md) — signed-in alpha deployed September 30; reviewed practice, private stories, activity and feedback verified against production. Actual local screenshots; automatic assistance disabled. Blogger article remains a draft.
 

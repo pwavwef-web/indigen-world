@@ -1,6 +1,6 @@
 # Play a mission, share your knowledge: Culture Quest
 
-Status: **Implemented locally; deployment, live verification and Blogger publication pending.**
+Status: **Deployed October 1, 2026; public route and release asset verified. Signed-in game verification and Blogger publication pending.**
 
 - Title: Play a mission, share your knowledge: Culture Quest
 - Labels: Indigen World, Labs, Contributions, Culture Quest, Feature
@@ -46,4 +46,4 @@ Credit: Indigen World, local Culture Quest component screenshots, October 1, 202
 4. Upload both PNG files to Blogger and replace each local image source with its uploaded URL. Preserve alt text and simulated-development captions; keep the mobile image at a readable width.
 5. Chinedum publishes and shares. Replace the published article URL placeholder in `share.md` after publication.
 
-No deployment, Blogger publication or community messages were performed.
+Firebase deployment completed October 1, 2026 from `origin/main` commit `a594902`: `labsApi` (us-central1), Firestore rules and Indigen World Hosting. The custom-domain Culture Quest route returned HTTP 200 with its metadata; served Labs JavaScript SHA-256 matched the release build. Backend build and nine policy tests passed again. Emulator integration tests remain unexecuted because Java is unavailable. Signed-in submissions, review and daily reset remain unverified on production. No Blogger publication or community messages were performed.
