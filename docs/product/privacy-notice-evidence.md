@@ -3,8 +3,8 @@
 The canonical public notice is implemented in `apps/website/src/content/privacy.tsx`,
 rendered by `apps/website/src/pages/PrivacyPage.tsx`. This is an implementation
 review, not final legal approval. No production feature flags or privacy choices
-were changed to write this notice. Deployment is authorised on 2 October 2026;
-release evidence will be recorded after verification.
+were changed to write this notice. The user authorised production deployment on
+2 October 2026. The website is deployed; release evidence is recorded below.
 
 ## Evidence used
 
@@ -65,6 +65,18 @@ local website assets, not a client-side Omni generation.
 Website typecheck, existing route/privacy validation and production build passed.
 Browser checks and release screenshots are documented in
 `apps/updates-blog/posts/2026-10-02-ecosystem-privacy-notice/README.md`.
+
+## Production release
+
+Source commit `6b548f2848c3af2899a82e750f0df77596745f30` was pushed to `main`
+and deployed with `npm run deploy:website` to Firebase Hosting site
+`indigen-world` in project `project-kassena-7e026`. The CLI confirmed release
+completion and deploy success on 2 October 2026. Verification from 11:37 UTC
+confirmed the custom-domain page, all 21 sections, the Contact request route,
+the keyboard section deep link, desktop/mobile layouts and video controls.
+The released page JS/CSS, header poster and video returned HTTP 200 and
+matched the built asset SHA-256 hashes. The release post includes a verified
+production screenshot. Blogger publication and community sharing remain pending.
 
 ## Outstanding approval facts
 

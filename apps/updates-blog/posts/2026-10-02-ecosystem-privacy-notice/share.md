@@ -12,7 +12,7 @@ Read the update: **[PUBLISHED ARTICLE URL — replace after Chinedum publishes]*
 
 The notice remains an implementation summary pending final legal approval.
 
-## Before release
+## Current availability
 
-An expanded privacy notice and refreshed page are prepared and locally verified.
-Deployment and publication are pending; do not share this as a live release yet.
+The website release is live and verified at https://indigenworld.com/privacy.
+The Blogger article remains a draft. Replace the article URL above after publication.

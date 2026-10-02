@@ -6,7 +6,7 @@ date identifies when the post was prepared; it does not prove the update is live
 
 ## Posts
 
-- [2026-10-02: A clearer privacy notice for the whole ecosystem](2026-10-02-ecosystem-privacy-notice/README.md) — expanded notice and Gemini Omni animated header verified locally; deployment, legal approval and publication pending.
+- [2026-10-02: A clearer privacy notice for the whole ecosystem](2026-10-02-ecosystem-privacy-notice/README.md) — expanded notice and Gemini Omni animated header deployed and verified October 2; final legal approval and Blogger publication pending.
 
 - [2026-10-01: Play a mission, share your knowledge — Culture Quest](2026-10-01-culture-quest/README.md) — deployed October 1; daily contribution missions, XP, levels and badges with Labs review integration. Public route and release asset verified; signed-in gameplay and emulator integration verification pending; actual component screenshots with simulated responses. Blogger article remains a draft.
 
