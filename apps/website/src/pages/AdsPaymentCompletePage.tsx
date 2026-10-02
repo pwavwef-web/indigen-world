@@ -1,3 +1,4 @@
+import { PageMotion } from "../components/PageMotion";
 /**
  * src/pages/AdsPaymentCompletePage.tsx
  *
@@ -61,6 +62,7 @@ export function AdsPaymentCompletePage() {
   return (
     <>
       <section className="page-hero page-hero--legal">
+        <PageMotion />
         <div className="container">
           <SectionHeading
             eyebrow="Adverts"

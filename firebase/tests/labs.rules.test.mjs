@@ -37,6 +37,7 @@ before(async () => {
     for (const [path, data] of Object.entries({
       "labsDrafts/private": { uid: "alice", creative: "private text" },
       "labsSessions/session": { uid: "alice" },
+      "labsQuests/alice": { uid: "alice", xp: 20 },
       "labsFeedback/report": { uid: "alice", status: "submitted" },
       "labsFeedbackNotes/report": { notes: "staff only" },
       "labsExperiments/kasem-practice": { enabled: true },
@@ -54,7 +55,7 @@ const db = (uid, role) =>
     ? env.authenticatedContext(uid, role ? { role } : {}).firestore()
     : env.unauthenticatedContext().firestore();
 test("only the owner reads private drafts and sessions, including against administrators", async () => {
-  for (const path of ["labsDrafts/private", "labsSessions/session"]) {
+  for (const path of ["labsDrafts/private", "labsSessions/session", "labsQuests/alice"]) {
     await assertSucceeds(getDoc(doc(db("alice"), path)));
     for (const context of [db(), db("bob"), db("staff", "admin")])
       await assertFails(getDoc(doc(context, path)));
@@ -91,6 +92,7 @@ test("configuration and updates are public; all client writes are denied, even f
     for (const path of [
       "labsDrafts/private",
       "labsSessions/session",
+      "labsQuests/alice",
       "labsFeedback/report",
       "labsFeedbackNotes/report",
       "labsExperiments/kasem-practice",

@@ -1,3 +1,4 @@
+import { PageMotion } from "../components/PageMotion";
 /**
  * src/pages/CommunityPage.tsx
  *
@@ -183,6 +184,7 @@ export function CommunityPage() {
   return (
     <>
       <section className="page-hero page-hero--legal">
+        <PageMotion />
         <div className="container">
           <SectionHeading eyebrow="Community" title="Shared from Indigen" light as="h1" />
         </div>

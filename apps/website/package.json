@@ -12,13 +12,16 @@
     "preview": "vite preview",
     "typecheck": "tsc -b --pretty false",
     "test": "node ./scripts/validate-site.mjs",
+    "test:motion": "node ./scripts/check-motion.mjs",
     "check": "npm run typecheck && npm test && npm run build"
   },
   "dependencies": {
     "@fontsource-variable/noto-sans": "5.3.0",
+    "@remotion/player": "4.0.532",
     "firebase": "^11.3.0",
     "react": "^19.2.8",
-    "react-dom": "^19.2.8"
+    "react-dom": "^19.2.8",
+    "remotion": "4.0.532"
   },
   "devDependencies": {
     "@types/react": "^19.2.17",

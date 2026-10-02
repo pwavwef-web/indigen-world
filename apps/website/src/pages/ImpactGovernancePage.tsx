@@ -1,3 +1,4 @@
+import { PageMotion } from "../components/PageMotion";
 /**
  * src/pages/ImpactGovernancePage.tsx
  *
@@ -8,7 +9,6 @@
  * sitemap.
  */
 import { useDocumentMeta } from "../lib/useDocumentMeta";
-import { useRevealOnScroll } from "../lib/useRevealOnScroll";
 import { ROUTES_BY_PATH } from "../content/navigation";
 import { PERMISSION_RULES, PRINCIPLES } from "../content/principles";
 import { IMPACT_TARGETS } from "../content/kasena";
@@ -19,11 +19,11 @@ const route = ROUTES_BY_PATH["impact-governance"];
 
 export function ImpactGovernancePage() {
   useDocumentMeta(route.title, route.description);
-  useRevealOnScroll(route.path);
 
   return (
     <>
       <section className="page-hero page-hero--governance">
+        <PageMotion />
         <div className="container">
           <SectionHeading
             eyebrow="Cultural governance"

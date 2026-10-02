@@ -1,6 +1,16 @@
 /** Public registry; lifecycle, access and availability are independent. */
 export const LABS_REGISTRY = [
   {
+    id: "culture-quest", slug: "culture-quest", name: "Culture Quest",
+    purpose: "Play a small expedition. Help living culture grow.",
+    category: "Contributing", status: "alpha", access: "signed-in",
+    enabled: true, version: "0.1.0", updatedAt: "2026-10-01",
+    instructions: "Explore three source cards each UTC day. Add a usage note or flag a correction with evidence, or skip anything you do not know. Earn expedition XP for submitted missions.",
+    limitations: "Submissions enter the Labs review queue and do not change published sources. XP is game progress, not verified contributor points, money or a claim of language expertise. One submission per source per day; no rewards for skipping.",
+    destination: "/contribute", destinationLabel: "Explore other contributions",
+    feedbackTypes: ["bug", "language issue", "usability", "suggestion", "positive feedback"],
+  },
+  {
     id: "kasem-practice",
     slug: "kasem-practice",
     name: "Kasem Practice Lab",

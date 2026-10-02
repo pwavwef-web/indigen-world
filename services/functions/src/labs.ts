@@ -348,6 +348,48 @@ export const labsApi = onCall(options, async (req) => {
     return { session };
   }
   const uid = requireAuth(req);
+  if (action === "quest" || action === "submitQuest") {
+    const day = now().slice(0, 10);
+    const ref = db.doc(`labsQuests/${uid}`);
+    // Canonical source cards are selected by the server and retained for this day.
+    const available = action === "quest" ? (await sources()).slice(0, 90) : [];
+    return db.runTransaction(async (tx) => {
+      const config = await access(tx, req, "culture-quest");
+      const stored = (await tx.get(ref)).data();
+      if (action === "quest") {
+        if (stored?.day === day) return { quest: stored };
+        const offset = available.length ? parseInt(createHash("sha256").update(`${uid}:${day}`).digest("hex").slice(0, 8), 16) % available.length : 0;
+        const cards = [...available.slice(offset), ...available.slice(0, offset)].slice(0, 3);
+        const quest = { uid, day, cards, completed: [] as string[], xp: stored?.xp ?? 0, missions: stored?.missions ?? 0, version: config.version };
+        tx.set(ref, quest);
+        return { quest };
+      }
+      if (!stored || stored.day !== day || d.day !== day)
+        throw new HttpsError("failed-precondition", "A new expedition is ready. Reload before contributing.");
+      const sourceRef = text(d.sourceRef, 200, true);
+      const source = (stored.cards as LabsSource[]).find((s) => s.ref === sourceRef);
+      if (!source) throw new HttpsError("invalid-argument", "Choose a source from your expedition.");
+      if (stored.completed.includes(sourceRef)) return { quest: stored };
+      const kind = choice(d.kind, ["usage", "correction"]);
+      const description = text(d.description, 3000, true);
+      const evidence = text(d.evidence, 1500, true);
+      if (description.trim().length < 20 || evidence.trim().length < 10)
+        throw new HttpsError("invalid-argument", "Add a useful note (20 characters) and its context or evidence (10 characters).");
+      const feedback = db.collection("labsFeedback").doc();
+      tx.set(feedback, {
+        id: feedback.id, uid, experimentId: config.id, version: stored.version,
+        type: kind === "correction" ? "language issue" : "suggestion",
+        reference: "", sourceRef, sourceUrl: source.url,
+        description: `${kind === "usage" ? "Usage note" : "Correction proposal"}: ${description}`,
+        steps: evidence, contactConsent: false, status: "submitted", response: "",
+        createdAt: now(), updatedAt: now(), sourceSnapshot: source, questDay: day,
+      });
+      const quest = { ...stored, completed: [...stored.completed, sourceRef], xp: stored.xp + 20, missions: stored.missions + 1 };
+      tx.set(ref, quest);
+      event(tx, config.id, "feedbackSubmitted");
+      return { quest };
+    });
+  }
   if (action === "completePractice") {
     const ref = db.doc(`labsSessions/${id(d.id)}`);
     return db.runTransaction(async (tx) => {

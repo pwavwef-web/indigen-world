@@ -1,203 +1,113 @@
-/**
- * src/pages/PrivacyPage.tsx
- *
- * New page — the uploaded template had no Privacy or Terms page at
- * all, despite both being P0 in the brief's sitemap. Marked in-page as
- * a placeholder pending the project manager's approved legal copy,
- * since legal text sign-off isn't a website-lead decision per the
- * brief's decision-boundaries section.
- *
- * The website is the ecosystem's canonical legal home: the Indigen
- * World mobile app and TribeStudio have no separate privacy pages, so
- * this notice covers all three surfaces. Product-specific sections
- * describe what each collects rather than pretending one flat policy
- * fits a marketing site, a consumer app, and a contributor workspace.
- *
- * The keyboard section is not optional decoration. Google Play requires an
- * app that ships an input method to disclose how typed text is handled, and
- * this notice is the disclosure the Play listing points at. The claims in it
- * are enforced by the code: KasemInputMethodService writes to the active app's
- * InputConnection and holds no reference to Firebase, to the network, or to
- * the Flutter engine, and KasemKeyboardChannel carries settings only — it has
- * no method that accepts or returns typed text. If that ever changes, this
- * section has to change first.
- */
+import { useEffect, useRef, useState } from "react";
 import { useDocumentMeta } from "../lib/useDocumentMeta";
+import { useSiteMotion } from "../features/motion/SiteMotion";
 import { ROUTES_BY_PATH } from "../content/navigation";
-import { SectionHeading } from "../components/SectionHeading";
-import { Link } from "../app/router";
+import { PRIVACY_SECTIONS } from "../content/privacy";
+import { Link, scrollToTop } from "../app/router";
+import "../styles/privacy.css";
 
 const route = ROUTES_BY_PATH["privacy"];
 
-export function PrivacyPage() {
-  useDocumentMeta(route.title, route.description);
+function PrivacyHero() {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [motionAllowed, setMotionAllowed] = useState(false);
+  const { paused, reduced, toggle } = useSiteMotion();
+  const [failed, setFailed] = useState(false);
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    const connection = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection;
+    setMotionAllowed(!reduced && !connection?.saveData);
+  }, [reduced]);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !motionAllowed || failed) return;
+    let inView = true;
+    const update = () => {
+      if (paused || document.hidden || !inView) video.pause();
+      else void video.play().catch((error: unknown) => {
+        // Scrolling away or effect cleanup can interrupt an outstanding play().
+        if (!(error instanceof DOMException && error.name === "AbortError")) setFailed(true);
+      });
+    };
+    const observer = new IntersectionObserver(([entry]) => { inView = entry.isIntersecting; update(); });
+    observer.observe(video);
+    document.addEventListener("visibilitychange", update);
+    update();
+    return () => { observer.disconnect(); document.removeEventListener("visibilitychange", update); video.pause(); };
+  }, [motionAllowed, paused, failed]);
 
   return (
-    <>
-      <section className="page-hero page-hero--legal">
-        <div className="container">
-          <SectionHeading eyebrow="Legal" title="Privacy notice" light as="h1" />
+    <section className="privacy-hero" id="privacy-top" aria-labelledby="privacy-title" data-motion-theme="care">
+      <div className="privacy-hero__art" aria-hidden="true">
+        <img src="/images/privacy-stewardship.jpg" alt="" width="1280" height="720" fetchPriority="high" />
+        {motionAllowed && !failed && <video
+          ref={videoRef}
+          className={ready ? "is-ready" : ""}
+          src="/media/privacy-stewardship.mp4"
+          muted loop playsInline preload="none" tabIndex={-1}
+          onPlaying={() => setReady(true)} onError={() => setFailed(true)}
+        />}
+      </div>
+      <div className="container privacy-hero__content">
+        <p className="eyebrow">Privacy notice · Indigen World</p>
+        <h1 id="privacy-title">Your information.<br /><span>Our responsibility.</span></h1>
+        <p className="privacy-hero__intro">Understand what you share, where it goes, and the choices you have — from learning a word to contributing to a cultural archive.</p>
+        <div className="privacy-hero__actions">
+          <a href="#privacy-overview" className="privacy-button">Read the privacy notice <span aria-hidden="true">↓</span></a>
+          <Link to="contact" className="privacy-hero__contact">Make a privacy request <span aria-hidden="true">↗</span></Link>
+        </div>
+        <p className="privacy-hero__date">Last reviewed <time dateTime="2026-10-02">2 October 2026</time> · Implementation notice</p>
+      </div>
+      <div className="container privacy-hero__foot">
+        <span>AI-generated illustration inspired by community stewardship.</span>
+        {!reduced && <button type="button" className="privacy-motion" aria-pressed={paused} onClick={toggle}>{paused ? "Resume animations" : "Pause animations"}</button>}
+      </div>
+    </section>
+  );
+}
+
+export function PrivacyPage() {
+  useDocumentMeta(route.title, route.description);
+  // The app shell can attempt fragment scrolling before this lazy route mounts.
+  useEffect(() => scrollToTop(), []);
+
+  return (
+    <div className="privacy-page">
+      <PrivacyHero />
+      <section className="privacy-overview container" id="privacy-overview" aria-labelledby="privacy-overview-title">
+        <div className="privacy-overview__heading" data-reveal>
+          <p className="eyebrow">The notice at a glance</p>
+          <h2 id="privacy-overview-title">Different ways to participate.<br />Clearer choices about your data.</h2>
+          <p>These highlights are a starting point. The full notice below explains the details and limits for each part of the ecosystem.</p>
+        </div>
+        <div className="privacy-principles">
+          <a href="#mobile" data-reveal><span className="privacy-principles__number">01 / On your device</span><h3>Offline has a place.</h3><p>Local drafts and saved words are different from submitted work and cloud records.</p><span className="privacy-principles__link">See what stays local ↗</span></a>
+          <a href="#culture" data-reveal><span className="privacy-principles__number">02 / With permission</span><h3>Culture carries context.</h3><p>Consent, source, licence and cultural permissions guide review and publication.</p><span className="privacy-principles__link">Understand cultural permissions ↗</span></a>
+          <a href="#rights" data-reveal><span className="privacy-principles__number">03 / Your choices</span><h3>A route to be heard.</h3><p>Ask for access, correction, deletion or a review of how your information is used.</p><span className="privacy-principles__link">Find your request route ↗</span></a>
         </div>
       </section>
-
-      <section className="section section--white">
-        <div className="container legal-copy">
-          <h2>Who this covers</h2>
-          <p>
-            Indigen World is one ecosystem with three user-facing products: this public website,
-            the Indigen World mobile app (Indigen), and TribeStudio for creators, contributors and
-            validators. An internal Admin console supports governance and is not offered to the
-            public. This notice explains what each product collects and why. Where a product does
-            something different, it is called out in its own section below.
-          </p>
-
-          <h2>This website</h2>
-          <p>
-            When you use a form on this site — including Contact, Get Involved, tester programme
-            administration, or Venacula, the Indigen World newsletter — we collect only the fields
-            shown on that form. Depending on the form, this may include your name, contact details,
-            testing email, country, consent choices, and the message or note you provide.
-          </p>
-
-          <h2>How we use it</h2>
-          <p>
-            Contact and Get Involved submissions are used to respond to you and route your request.
-            Tester programme details are used to verify participation and prepare, deliver and
-            administer the recognition or rewards described on the relevant form.
-            If you subscribe to Venacula, we use your email only to send the newsletter and related
-            Indigen World updates. We do not sell this information or publish form responses.
-            Newsletter delivery will not begin until every email can include a working unsubscribe
-            link.
-          </p>
-
-          <h2>What we don't collect here</h2>
-          <p>
-            This website's general forms are not for audio recordings, sacred or restricted
-            cultural knowledge, minors' data, or detailed cultural submissions. Language and
-            cultural contributions belong to the consent-based process inside the mobile app and
-            TribeStudio, described below.
-          </p>
-
-          <h2>The Indigen World mobile app</h2>
-          <p>
-            The mobile app is offline-first, and much of what you create stays on your device.
-            Saved words, drafts of contributions and corrections, and your explicit offline
-            submission queue are stored locally on your phone until you choose to sync or submit
-            them.
-          </p>
-          <p>
-            When you sign in, submit a contribution or correction, post in the community preview,
-            or interact with Explore (likes, comments, saves), the relevant content and your
-            account identity are sent to our Firebase backend so the feature can work and, where
-            applicable, be reviewed. Community posts and their media attachments, threaded replies,
-            and attributed Explore content are shared with other users of that surface by design.
-          </p>
-          <p>
-            Contribution rewards and points remain pending until a trusted reviewer approves the
-            underlying contribution — we store the contribution and its review state, not a promise
-            of payment. Dictionary fixtures shipped in the beta are clearly labelled synthetic data,
-            not real community language data.
-          </p>
-
-          <h2>Advertising in the mobile app</h2>
-          <p>
-            Guests and free members may see advertising in Community, Explore and Collection.
-            Campaigns placed directly with Indigen World are given priority. When no suitable
-            Indigen World campaign is available, Google Mobile Ads (AdMob) may fill the same
-            position after the required advertising privacy choice has been completed. Paid
-            Indigen Plus, Patron and Creator memberships remove both kinds of advertising.
-          </p>
-          <p>
-            For Google-provided advertising, Google may process an advertising identifier, device
-            and app information, an approximate region, and advert interactions for delivery,
-            measurement and fraud prevention, and for personalisation only where your choice
-            permits it. Where required, the app presents Google's consent message and provides an
-            Advertising privacy choices entry in Settings. If consent does not permit an advert or
-            Google has no advert to return, the position is removed.
-          </p>
-
-          <h2>The Kasem keyboard</h2>
-          <p>
-            The Android app includes an optional Kasem keyboard — a system input method you can
-            switch on in Android's own keyboard settings. Android requires you to enable and select
-            it yourself; it is never turned on for you.
-          </p>
-          <p>
-            <strong>The keyboard does not collect anything.</strong> It has no learning
-            dictionary, no prediction, no typing history and no analytics. What you type goes
-            directly to the app you are typing into and nowhere else. It is never stored, never
-            sent to Indigen World or any other server, and never passed into the rest of the
-            Indigen app — there is no code path from the keyboard to our backend, and the keyboard
-            works with no network connection at all.
-          </p>
-          <p>
-            The only things it saves are the three settings on its own page: which language it
-            starts in, and whether key presses vibrate or make a sound. Those stay on your device.
-            This applies wherever you use it — in Indigen, in a messaging app, in a browser, or
-            anywhere else you can type.
-          </p>
-
-          <h2>Recordings, and playing music in the background</h2>
-          <p>
-            The app asks for your microphone only at the moment you choose to record — saying a
-            word for a dictionary entry, or recording audio for a contribution. Nothing is captured
-            before you start a recording or after you stop it, and a recording stays on your device
-            until you submit it. If you submit one, it travels with the contribution it belongs to
-            and is reviewed like any other contribution.
-          </p>
-          <p>
-            When you play something from the music library, playback continues while the app is in
-            the background or your screen is off, and a notification with the usual controls is
-            shown for as long as it is playing. That is the only reason the app runs a background
-            service, and it runs only while there is something playing.
-          </p>
-
-          <h2>TribeStudio</h2>
-          <p>
-            TribeStudio is a workspace for signed-in creators, contributors, cultural custodians
-            and validators. Sign-in is handled by Firebase Authentication, and your role is read
-            from an access claim on your account. We process the content you submit — lexical
-            entries, corrections, stories, proverbs, oral histories and media — together with the
-            dialect, source, consent, licence and cultural-permission metadata attached to it.
-          </p>
-          <p>
-            Validators' review notes and decisions (approve, reject, request changes) and the
-            resulting audit records are stored so that content governance is accountable and
-            traceable. Campaign and bounty participation and contributor history are retained to
-            operate rewards and show your own record of work.
-          </p>
-
-          <h2>Cultural data and consent</h2>
-          <p>
-            Language and cultural content is governed, not just collected. Consent, licensing and
-            cultural-permission metadata travel with the content it describes, and restricted or
-            sacred material is handled through the dedicated, consent-based contribution flows —
-            never through this website's general forms. We do not repurpose cultural submissions
-            beyond the permissions recorded with them.
-          </p>
-
-          <h2>Analytics</h2>
-          <p>
-            Where privacy-safe analytics are enabled, they are limited to high-level events such as
-            page views, screen views, CTA choices and submission outcomes. Analytics never capture
-            the contents of form messages, phone numbers, personal or cultural content. In the
-            mobile app, production telemetry is disabled outside the production build.
-          </p>
-
-          <h2>Your rights</h2>
-          <p>
-            You can ask us to correct or delete information you've submitted at any time through
-            the <Link to="contact">contact page</Link>. In the mobile app, locally-stored saved
-            words and drafts can be removed on your own device. During this MVP stage, account and
-            server-side requests are handled manually by the team.
-          </p>
-
-          <p className="legal-disclaimer">
-            This page is a plain-language implementation summary, not final legal text. Approved
-            legal copy from the project manager will replace this before public launch.
-          </p>
-        </div>
-      </section>
-    </>
+      <div className="container privacy-layout">
+        <aside className="privacy-contents">
+          <nav aria-label="Privacy notice sections">
+            <p className="eyebrow">In this notice</p>
+            <ol>{PRIVACY_SECTIONS.map(section => <li key={section.id}><a href={`#${section.id}`}>{section.shortTitle}</a></li>)}</ol>
+            <Link className="privacy-contents__contact" to="contact">Contact the privacy team ↗</Link>
+          </nav>
+        </aside>
+        <article className="privacy-copy" aria-label="Full privacy notice">
+          <div className="privacy-status"><strong>A notice grounded in how the products work.</strong><p>This is a plain-language implementation summary pending final legal approval. It describes data handling and available choices; it does not announce a release of every feature mentioned.</p></div>
+          {PRIVACY_SECTIONS.map((section, index) => <section className="privacy-copy__section" key={section.id} id={section.id} aria-labelledby={`${section.id}-title`}>
+            <div data-reveal>
+              <span className="privacy-copy__number" aria-hidden="true">{String(index + 1).padStart(2, "0")}</span>
+              <h2 id={`${section.id}-title`}>{section.title}</h2>
+              {section.content}
+            </div>
+          </section>)}
+          <div className="privacy-request" data-reveal><p className="eyebrow">Let’s resolve it</p><h2>Have a question about your information?</h2><p>Tell us which product or record is involved and what you need. Account and server-side requests are handled by the team.</p><Link to="contact" className="privacy-button">Make a privacy request <span aria-hidden="true">↗</span></Link><a href="#privacy-top" className="privacy-request__top">Back to the top ↑</a></div>
+        </article>
+      </div>
+    </div>
   );
 }

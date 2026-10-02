@@ -1,3 +1,4 @@
+import { PageMotion } from "../../components/PageMotion";
 import { useEffect, useState } from "react";
 import type {
   Experiment,
@@ -84,6 +85,7 @@ export function Activity() {
   return (
     <>
       <div className="labs-page-heading">
+        <PageMotion placement="inline" />
         <p className="labs-eyebrow">YOUR SPACE</p>
         <h1>A little progress, kept here.</h1>
         <p>
@@ -170,7 +172,7 @@ export function Activity() {
                 )}
                 <p className="labs-meta">
                   {record.experimentId} · v{record.version} ·{" "}
-                  {(record as LabsFeedback).reference || "General feedback"}
+                  {(record as LabsFeedback).sourceRef || (record as LabsFeedback).reference || "General feedback"}
                 </p>
               </>
             )}
@@ -200,6 +202,7 @@ export function Updates() {
   return (
     <>
       <div className="labs-page-heading">
+        <PageMotion placement="inline" />
         <p className="labs-eyebrow">AS WE LEARN</p>
         <h1>Follow the experiments.</h1>
         <p>Changes, limitations and next steps, shared by the Labs team.</p>
@@ -619,6 +622,7 @@ export function Admin({
   return (
     <>
       <div className="labs-page-heading">
+        <PageMotion placement="inline" />
         <p className="labs-eyebrow">LABS ADMINISTRATION</p>
         <h1>Care for the experiments.</h1>
         <p>Control availability, listen to testers and explain what changes.</p>

@@ -8,6 +8,12 @@ date identifies when the post was prepared; it does not prove the update is live
 
 - [2026-10-02: A Community feed built around culture and choice](2026-10-02-community-feed-algorithm/README.md) — unpublished development preview; opt-in behavioral ranking, distinct-actor trends, emerging voices and cultural diversity implemented locally. Disabled by default; rollout pending. Includes an original workflow illustration.
 
+- [2026-10-02: A little movement, with a purpose](2026-10-02-public-website-in-motion/README.md) — themed public-page and Labs animations, scroll reveals and motion preferences; implemented locally, deployment and publication pending. Includes actual preview screenshots.
+
+- [2026-10-02: A clearer privacy notice for the whole ecosystem](2026-10-02-ecosystem-privacy-notice/README.md) — expanded notice and Gemini Omni animated header deployed and verified October 2; final legal approval and Blogger publication pending.
+
+- [2026-10-01: Play a mission, share your knowledge — Culture Quest](2026-10-01-culture-quest/README.md) — deployed October 1; daily contribution missions, XP, levels and badges with Labs review integration. Public route and release asset verified; signed-in gameplay and emulator integration verification pending; actual component screenshots with simulated responses. Blogger article remains a draft.
+
 - [2026-09-30: Small experiments, living culture — Indigen World Labs](2026-09-30-indigen-world-labs/README.md) — signed-in alpha deployed September 30; reviewed practice, private stories, activity and feedback verified against production. Actual local screenshots; automatic assistance disabled. Blogger article remains a draft.
 
 - [2026-09-30: The review desk comes to the contributor portal](2026-09-30-contributor-review-desk/README.md) — draft article; guarded web review desk with four queues and validator-only navigation. TribeStudio Hosting deployed September 30; custom-domain files verified against the release build. Signed-in checks pending; newer dictionary output choices await their backend release. Includes an original workflow illustration.

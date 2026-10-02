@@ -1,3 +1,4 @@
+import { PageMotion } from "../components/PageMotion";
 /**
  * src/pages/GetInvolvedPage.tsx
  *
@@ -10,7 +11,6 @@
  */
 import { useState } from "react";
 import { useDocumentMeta } from "../lib/useDocumentMeta";
-import { useRevealOnScroll } from "../lib/useRevealOnScroll";
 import { ROUTES_BY_PATH } from "../content/navigation";
 import { SectionHeading } from "../components/SectionHeading";
 import {
@@ -69,7 +69,6 @@ const ROUTE_EXPECTATIONS: Record<InterestRoute, string> = {
 
 export function GetInvolvedPage() {
   useDocumentMeta(route.title, route.description);
-  useRevealOnScroll(route.path);
   const [selectedRoute, setSelectedRoute] = useState<InterestRoute | "">(
     interestRouteFromLocation
   );
@@ -97,6 +96,7 @@ export function GetInvolvedPage() {
   return (
     <>
       <section className="page-hero page-hero--involved">
+        <PageMotion />
         <div className="container">
           <SectionHeading
             eyebrow="Get involved"

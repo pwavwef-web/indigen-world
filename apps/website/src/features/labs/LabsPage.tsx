@@ -1,3 +1,4 @@
+import { PageMotion } from "../../components/PageMotion";
 import {
   useCallback,
   useEffect,
@@ -22,6 +23,7 @@ import {
 } from "./api";
 import { PracticeWorkspace, StoryWorkspace } from "./workspaces";
 import { Activity, Admin, Updates } from "./records";
+import { QuestWorkspace } from "./quest";
 import "./labs.css";
 
 export function useTask() {
@@ -259,7 +261,7 @@ function Preview({ experiment }: { experiment: Experiment }) {
       className={`labs-preview labs-preview-${experiment.id}`}
       aria-hidden="true"
     >
-      {experiment.id === "kasem-practice" ? (
+      {experiment.id === "culture-quest" ? (<><span className="labs-preview-label">PLAY / CONTRIBUTE</span><div className="labs-preview-word">Explore.<br />Contribute.<br /><em>Level up.</em></div><span className="labs-preview-foot">Three missions. A living archive.</span></>) : experiment.id === "kasem-practice" ? (
         <>
           <span className="labs-preview-label">KASEM / PRACTICE</span>
           <div className="labs-preview-word">
@@ -346,10 +348,11 @@ function Catalogue({ experiments }: { experiments: Experiment[] }) {
   return (
     <>
       <div className="labs-page-heading">
+        <PageMotion placement="inline" />
         <p className="labs-eyebrow">THE EXPERIMENTS</p>
         <h1>Find your next small discovery.</h1>
         <p>
-          Two focused experiments. Try what interests you and tell us what you
+          Focused experiments. Try what interests you and tell us what you
           learn.
         </p>
       </div>
@@ -367,7 +370,7 @@ function Catalogue({ experiments }: { experiments: Experiment[] }) {
             value={category}
             onChange={(e) => setCategory(e.target.value)}
           >
-            {["All", "Language", "Creating"].map((c) => (
+            {["All", "Language", "Creating", "Contributing"].map((c) => (
               <option key={c}>{c}</option>
             ))}
           </select>
@@ -420,6 +423,7 @@ function ExperimentShell({
       loaded &&
       experiment.enabled &&
       !retired &&
+      (experiment.id !== "culture-quest" || !!userId) &&
       (experiment.access === "public" || !!userId) &&
       (experiment.access !== "invited testers" ||
         invited.includes(experiment.id) ||
@@ -437,6 +441,7 @@ function ExperimentShell({
         ← All experiments
       </Link>
       <div className="labs-detail-heading">
+        <PageMotion placement="inline" />
         <div>
           <p className="labs-eyebrow">
             {experiment.category.toUpperCase()} /{" "}
@@ -452,7 +457,7 @@ function ExperimentShell({
           <h2>
             {experiment.id === "kasem-practice"
               ? "A few minutes of practice"
-              : "A story starts here"}
+              : experiment.id === "culture-quest" ? "An expedition with a purpose" : "A story starts here"}
           </h2>
           {!allowed &&
           !(
@@ -487,6 +492,8 @@ function ExperimentShell({
                         : "The team is testing this version with a smaller group."}
               </p>
             </div>
+          ) : experiment.id === "culture-quest" ? (
+            <QuestWorkspace key={userId} />
           ) : experiment.id === "kasem-practice" ? (
             <PracticeWorkspace
               key={userId ?? "guest"}
@@ -681,31 +688,15 @@ export function LabsPage() {
                   Made for the curious. Built with the community.
                 </p>
               </div>
-              <div className="labs-hero-art" aria-hidden="true">
-                <div className="labs-orbit">
-                  <span className="labs-orbit-title">
-                    Learn
-                    <br />
-                    <em>Create</em>
-                    <br />
-                    Connect
-                  </span>
-                  <span className="labs-orbit-note">
-                    ROOTED IN CULTURE
-                    <br />
-                    OPEN TO POSSIBILITY
-                  </span>
-                </div>
-                <div className="labs-art-label">
-                  01 — An idea becomes something you can try.
-                </div>
+              <div className="labs-hero-art labs-hero-art--motion">
+                <PageMotion placement="art" />
               </div>
             </section>
             <section>
               <div className="labs-section-heading">
                 <div>
                   <p className="labs-eyebrow">START EXPLORING</p>
-                  <h2>Two ways to get involved.</h2>
+                  <h2>More ways to get involved.</h2>
                 </div>
                 <Link to="/labs/experiments">View all experiments ↗</Link>
               </div>
@@ -759,6 +750,7 @@ export function LabsPage() {
             <Activity key={user.uid} />
           ) : (
             <div className="labs-empty">
+              <PageMotion placement="inline" />
               <h1>My activity</h1>
               <p>
                 Sign in above to reopen your private drafts, practice sessions
@@ -786,6 +778,7 @@ export function LabsPage() {
             </>
           ) : (
             <div className="labs-empty">
+              <PageMotion placement="inline" />
               <h1>Admin access required</h1>
               <p>
                 This workspace is available to administrators with a trusted

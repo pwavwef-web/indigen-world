@@ -1,6 +1,6 @@
+import { PageMotion } from "../components/PageMotion";
 import { useState } from "react";
 import { useDocumentMeta } from "../lib/useDocumentMeta";
-import { useRevealOnScroll } from "../lib/useRevealOnScroll";
 import { ROUTES_BY_PATH } from "../content/navigation";
 import {
   ECOSYSTEM_PRODUCTS,
@@ -34,10 +34,6 @@ export function EcosystemPage() {
 
   const [audience, setAudience] = useState<AudienceFilter>("all");
 
-  // Filtering replaces product-card DOM nodes. Include the selected audience
-  // so newly mounted cards are observed and do not remain at opacity: 0.
-  useRevealOnScroll(`${route.path}:${audience}`);
-
   const filteredProducts = PUBLIC_PRODUCTS.filter((p) => {
     if (audience === "all") return true;
     return PRODUCT_IDS_BY_AUDIENCE[audience].includes(p.id);
@@ -46,6 +42,7 @@ export function EcosystemPage() {
   return (
     <>
       <section className="page-hero page-hero--ecosystem">
+        <PageMotion />
         <div className="container">
           <SectionHeading
             eyebrow="One ecosystem, three products"

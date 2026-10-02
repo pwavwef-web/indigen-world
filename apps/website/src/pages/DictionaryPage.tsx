@@ -1,3 +1,4 @@
+import { PageMotion } from "../components/PageMotion";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "../components/Button";
 import { Icon } from "../components/Icon";
@@ -299,6 +300,7 @@ export function DictionaryPage() {
   return (
     <section className="dictionary-page">
       <div className="dictionary-page__masthead">
+        <PageMotion />
         <div className="container dictionary-page__intro">
           <div>
             <p className="eyebrow">Collection · Dictionary</p>

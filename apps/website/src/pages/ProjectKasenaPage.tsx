@@ -1,3 +1,4 @@
+import { PageMotion } from "../components/PageMotion";
 /**
  * src/pages/ProjectKasenaPage.tsx
  *
@@ -6,7 +7,6 @@
  */
 import { Fragment } from "react";
 import { useDocumentMeta } from "../lib/useDocumentMeta";
-import { useRevealOnScroll } from "../lib/useRevealOnScroll";
 import { ROUTES_BY_PATH } from "../content/navigation";
 import {
   KASENA_POINTS,
@@ -23,11 +23,11 @@ const route = ROUTES_BY_PATH["project-kassena"];
 
 export function ProjectKasenaPage() {
   useDocumentMeta(route.title, route.description);
-  useRevealOnScroll(route.path);
 
   return (
     <>
       <section className="page-hero page-hero--kasena">
+        <PageMotion />
         <div className="container kasena-grid">
           <div className="kasena-copy">
             <SectionHeading

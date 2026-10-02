@@ -1,3 +1,4 @@
+import { PageMotion } from "../components/PageMotion";
 /**
  * src/pages/ContactPage.tsx
  *
@@ -5,7 +6,6 @@
  * takedown requests.
  */
 import { useDocumentMeta } from "../lib/useDocumentMeta";
-import { useRevealOnScroll } from "../lib/useRevealOnScroll";
 import { ROUTES_BY_PATH } from "../content/navigation";
 import { SectionHeading } from "../components/SectionHeading";
 import { ContactForm } from "../features/forms/ContactForm";
@@ -13,11 +13,11 @@ import { ContactForm } from "../features/forms/ContactForm";
 const route = ROUTES_BY_PATH["contact"];
 export function ContactPage() {
   useDocumentMeta(route.title, route.description);
-  useRevealOnScroll(route.path);
 
   return (
     <>
       <section className="page-hero page-hero--contact">
+        <PageMotion />
         <div className="container">
           <SectionHeading
             eyebrow="Contact Indigen World"
