@@ -1,6 +1,6 @@
 # Run the trail, share a word: Word Trail
 
-Status: **Implemented and locally verified October 2, 2026. Production deployment verification and Blogger publication pending.**
+Status: **Deployed and verified October 2, 2026. Blogger publication pending.**
 
 - Title: Run the trail, share a word: Word Trail
 - Labels: Indigen World, Labs, Kasem, Contributions, Word Trail, Feature
@@ -28,18 +28,22 @@ Status: **Implemented and locally verified October 2, 2026. Production deploymen
 - Game simulation tests: 4 passed, covering lane bounds, rock/log collisions, jumping, collectible points, three-life failure, safe completion and section speed limits.
 - Website typecheck, site validation, production build and 25-route metadata generation passed.
 - Browser check uses the actual RunnerWorkspace with a labelled disposable account/queue and simulated callables: section gameplay to checkpoint, pause, phone controls, failed-submit text retention, retry, saved reload, alternative prompt, empty gate and reduced-motion preference. Both screenshot assets came from this checker. Full Labs route/catalogue responsive checks also included.
-- Live deployment and signed-in production verification: pending. Do not describe this feature as confirmed live until the release evidence below is updated.
+- Live route and release JavaScript verified against the production build. Signed-in trail creation, early checkpoint rejection, a genuine queue prompt after the section boundary, blocked continuation before saving and invalid-answer rejection passed. Temporary verification account, trail and rate-limit records were removed. No fake translation was submitted to production. Successful translation receipt creation/unlock and duplicate protection were verified in the emulators; a positive translation submission was not performed on production.
 
 ## Image credits and Blogger handoff
 
 Credit: Indigen World, October 2, 2026. Original code-drawn fictional game scenery and actual local component screenshots. No borrowed Temple Run assets or claimed real monument. Screenshots visibly label the simulated account/queue; no private member data or invented Kasem translations appear.
 
-1. Deploy the reviewed release through the existing production-main workflow: `labsApi` plus Indigen World Hosting. This uses the existing queue index, rules and triggers; no new rules/index deployment is required.
-2. Verify the live route/assets, registry and authenticated gate behavior. Update status and article availability using actual release evidence.
+1. Review the confirmed deployment and verification evidence below. This release uses the existing queue index, rules and triggers; no new rules/index deployment was required.
+2. Before promoting beyond alpha, verify a genuine speaker's positive translation submission and reviewer handling on the live service. Google popup sign-in and live administrative pause controls were not exercised by this verification.
 3. Create a Blogger draft with the metadata above and paste `post.html` in HTML mode.
 4. Upload both PNG assets to Blogger; replace local image sources with uploaded URLs. Keep descriptive alt text and local-development captions. Keep the phone screenshot narrow enough to read.
 5. Chinedum publishes and shares. Replace the article URL placeholder in `share.md` after publication.
 
 ## Release evidence
 
-Pending production deployment verification.
+Firebase deployment completed October 2, 2026 from production `origin/main` commit `7015f874fa9d25c2c173af7d6c0d603b66c4356d`, with the normal clean-source and production-main gates intact: `labsApi` (Node.js 22, second generation, us-central1) and only the `indigen-world` Hosting site. No rules/index deployment, Blogger publication or community messages.
+
+`https://indigenworld.com/labs/word-trail` returned HTTP 200 with Word Trail metadata. Served `LabsPage-C9lDI-HP.js` SHA-256 `fb70cc6d4dac4bd5495b03a9a9c5a7abe4d844095022bb4e0ebf6092d3c7efdc` matched the release build. Public bootstrap confirmed the enabled, signed-in alpha registry. An authenticated disposable account started a trail, was refused an early checkpoint, received an actual queue word after 30 seconds, could not continue through the closed gate and could not submit an empty answer. All of that account's verification records were removed.
+
+An isolated release checkout kept unrelated mobile, wallpaper and community-post work out of this release. A task-local DNS resolver and GitHub Git database API were used to work around the host's DNS/Git transport problems; the uploaded tree and commit hashes exactly matched the reviewed local commit. Computer network settings were unchanged.
