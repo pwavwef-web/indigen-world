@@ -1,0 +1,228 @@
+{
+  "deployment": {
+    "projectId": "project-kassena-7e026",
+    "commit": "6c1bd3e9ab45ddfe82b6d85820b498d67be135ec",
+    "checkedAt": "2026-10-02T12:16:00.678Z",
+    "functions": [
+      {
+        "id": "getCommunityFeed",
+        "state": "ACTIVE",
+        "uri": "https://getcommunityfeed-esksehdtfa-uc.a.run.app",
+        "updateTime": "2026-10-02T12:13:35.026113604Z"
+      },
+      {
+        "id": "saveCommunityFeedPreferences",
+        "state": "ACTIVE",
+        "uri": "https://savecommunityfeedpreferences-esksehdtfa-uc.a.run.app",
+        "updateTime": "2026-10-02T12:13:35.222858332Z"
+      },
+      {
+        "id": "communityFeedFeedback",
+        "state": "ACTIVE",
+        "uri": "https://communityfeedfeedback-esksehdtfa-uc.a.run.app",
+        "updateTime": "2026-10-02T12:13:33.953119914Z"
+      },
+      {
+        "id": "recordCommunityRecommendationEvent",
+        "state": "ACTIVE",
+        "uri": "https://recordcommunityrecommendationevent-esksehdtfa-uc.a.run.app",
+        "updateTime": "2026-10-02T12:13:36.055026862Z"
+      },
+      {
+        "id": "curateCommunityFeedPost",
+        "state": "ACTIVE",
+        "uri": "https://curatecommunityfeedpost-esksehdtfa-uc.a.run.app",
+        "updateTime": "2026-10-02T12:13:36.221035009Z"
+      },
+      {
+        "id": "indexCommunityFeedPost",
+        "state": "ACTIVE",
+        "uri": "https://indexcommunityfeedpost-esksehdtfa-uc.a.run.app",
+        "updateTime": "2026-10-02T12:13:49.386348446Z"
+      },
+      {
+        "id": "updateCommunityFeedTrends",
+        "state": "ACTIVE",
+        "uri": "https://updatecommunityfeedtrends-esksehdtfa-uc.a.run.app",
+        "updateTime": "2026-10-02T12:13:36.674673837Z"
+      }
+    ],
+    "indexes": [
+      {
+        "name": "projects/project-kassena-7e026/databases/(default)/collectionGroups/communityPosts/indexes/CICAgLix9IYK",
+        "state": "READY",
+        "fields": [
+          {
+            "field": "isReply",
+            "order": "ASCENDING"
+          },
+          {
+            "field": "category",
+            "order": "ASCENDING"
+          },
+          {
+            "field": "createdAt",
+            "order": "DESCENDING"
+          },
+          {
+            "field": "__name__",
+            "order": "DESCENDING"
+          }
+        ]
+      },
+      {
+        "name": "projects/project-kassena-7e026/databases/(default)/collectionGroups/communityFeedFeatures/indexes/CICAgPjC9ogK",
+        "state": "READY",
+        "fields": [
+          {
+            "field": "trendExpiresAt",
+            "order": "DESCENDING"
+          },
+          {
+            "field": "trendPopularity",
+            "order": "DESCENDING"
+          },
+          {
+            "field": "__name__",
+            "order": "DESCENDING"
+          }
+        ]
+      },
+      {
+        "name": "projects/project-kassena-7e026/databases/(default)/collectionGroups/communityFeedFeatures/indexes/CICAgPifq5IK",
+        "state": "READY",
+        "fields": [
+          {
+            "field": "emerging",
+            "order": "ASCENDING"
+          },
+          {
+            "field": "createdAt",
+            "order": "DESCENDING"
+          },
+          {
+            "field": "__name__",
+            "order": "DESCENDING"
+          }
+        ]
+      },
+      {
+        "name": "projects/project-kassena-7e026/databases/(default)/collectionGroups/communityRecommendationEvents/indexes/CICAgPj-05MK",
+        "state": "READY",
+        "fields": [
+          {
+            "field": "uid",
+            "order": "ASCENDING"
+          },
+          {
+            "field": "createdAt",
+            "order": "DESCENDING"
+          },
+          {
+            "field": "__name__",
+            "order": "DESCENDING"
+          }
+        ]
+      },
+      {
+        "name": "projects/project-kassena-7e026/databases/(default)/collectionGroups/communityFeedFeatures/indexes/CICAgLiI_5oK",
+        "state": "READY",
+        "fields": [
+          {
+            "field": "editorial",
+            "order": "ASCENDING"
+          },
+          {
+            "field": "createdAt",
+            "order": "DESCENDING"
+          },
+          {
+            "field": "__name__",
+            "order": "DESCENDING"
+          }
+        ]
+      },
+      {
+        "name": "projects/project-kassena-7e026/databases/(default)/collectionGroups/communityFeedFeatures/indexes/CICAgLix4JsK",
+        "state": "READY",
+        "fields": [
+          {
+            "field": "tags",
+            "arrayConfig": "CONTAINS"
+          },
+          {
+            "field": "createdAt",
+            "order": "DESCENDING"
+          },
+          {
+            "field": "__name__",
+            "order": "DESCENDING"
+          }
+        ]
+      }
+    ],
+    "ttl": [
+      {
+        "collection": "communityFeedSessions",
+        "state": "ACTIVE",
+        "indexes": 0
+      },
+      {
+        "collection": "communityRecommendationEvents",
+        "state": "ACTIVE",
+        "indexes": 0
+      }
+    ],
+    "scheduler": {
+      "state": "ENABLED",
+      "schedule": "every 15 minutes",
+      "timeZone": "Etc/UTC"
+    },
+    "unauthenticatedRequest": {
+      "status": 401,
+      "error": "UNAUTHENTICATED"
+    }
+  },
+  "authenticatedSmoke": {
+    "projectId": "project-kassena-7e026",
+    "checks": [
+      {
+        "name": "authenticated For You",
+        "items": 2,
+        "model": "cultural-balance-v2"
+      },
+      {
+        "name": "Following with empty explicit follows",
+        "items": 0
+      },
+      {
+        "name": "consent off blocks event storage",
+        "passed": true
+      },
+      {
+        "name": "consented idempotent event and private feedback",
+        "passed": true
+      },
+      {
+        "name": "preference change invalidates old cursor",
+        "passed": true
+      }
+    ],
+    "cleanup": true
+  },
+  "backfill": {
+    "scanned": 66,
+    "updated": 66,
+    "skipped": 0,
+    "repeatDryRunChanges": 0
+  },
+  "mobile": {
+    "rolloutFlag": "COMMUNITY_RECOMMENDATIONS",
+    "defaultEnabled": false,
+    "released": false
+  },
+  "publication": {
+    "bloggerPublished": false,
+    "sharingMessagesSent": false
+  }
+}

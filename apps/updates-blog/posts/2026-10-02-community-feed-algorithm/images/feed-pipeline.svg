@@ -42,7 +42,7 @@
     <rect x="80" y="674" width="1280" height="120" rx="20" fill="#153734" stroke="#3a6761"/>
     <text x="110" y="719" fill="#fbf5e9" font-size="25" font-weight="600">Popularity has a small, bounded role.</text>
     <text x="110" y="760" fill="#bacdc8" font-size="22">Cultural discovery, learning, safety and your choices shape the feed.</text>
-    <text x="80" y="855" fill="#daa859" font-size="20">DEVELOPMENT PREVIEW · IMPLEMENTED LOCALLY · DISABLED BY DEFAULT</text>
+    <text x="80" y="855" fill="#daa859" font-size="20">BACKEND DEPLOYED · MOBILE ROLLOUT PENDING · OCTOBER 2, 2026</text>
     <text x="80" y="889" fill="#8ca9a2" font-size="18">Original workflow illustration · October 2, 2026 · Not an app screenshot</text>
   </g>
 </svg>

@@ -1,16 +1,27 @@
 import {feedContentFingerprint} from '../lib/community-feed-signals.js';
 import {initializeApp} from 'firebase-admin/app';
-import {FieldPath,FieldValue,Timestamp,getFirestore} from 'firebase-admin/firestore';
+import {FieldPath,FieldValue,Firestore,Timestamp,getFirestore} from 'firebase-admin/firestore';
+import {createRequire} from 'node:module';
 
 const args=process.argv.slice(2);
 if(args.includes('--help')) {
-  console.log('Usage: node services/functions/scripts/backfill-community-feed-features.mjs --project PROJECT_ID [--apply]\nDefault: read-only dry run. Set FIRESTORE_EMULATOR_HOST for emulator use. Uses Application Default Credentials otherwise.');
+  console.log('Usage: node services/functions/scripts/backfill-community-feed-features.mjs --project PROJECT_ID [--apply] [--firebase-login]\nDefault: read-only dry run. Set FIRESTORE_EMULATOR_HOST for emulator use. Uses Application Default Credentials; --firebase-login uses the existing Firebase CLI login in memory.');
   process.exit(0);
 }
 const projectIndex=args.indexOf('--project'), projectId=args[projectIndex+1];
-if(projectIndex<0 || !projectId || projectId.startsWith('--') || args.some(a=>a.startsWith('--') && !['--project','--apply'].includes(a))) throw Error('Specify --project PROJECT_ID; only --apply is optional. See --help.');
-initializeApp({projectId});
-const db=getFirestore(), apply=args.includes('--apply');
+if(projectIndex<0 || !projectId || projectId.startsWith('--') || args.some(a=>a.startsWith('--') && !['--project','--apply','--firebase-login'].includes(a))) throw Error('Specify --project PROJECT_ID. See --help for optional flags.');
+let db;
+if(args.includes('--firebase-login')) {
+  const require=createRequire(import.meta.url), auth=require('firebase-tools/lib/auth.js');
+  const account=auth.getGlobalDefaultAccount(); if(!account) throw Error('Sign in with the Firebase CLI first.');
+  const token=await auth.getAccessToken(account.tokens.refresh_token,['https://www.googleapis.com/auth/cloud-platform']);
+  const {OAuth2Client}=require('google-auth-library'), authClient=new OAuth2Client();
+  authClient.setCredentials({access_token:token.access_token,expiry_date:Date.now()+Math.min(token.expires_in ?? 3000,3000)*1000});
+  db=new Firestore({projectId,authClient,preferRest:true});
+} else {
+  initializeApp({projectId}); db=getFirestore();
+}
+const apply=args.includes('--apply');
 let after, scanned=0, changed=0, skipped=0;
 const metadata=(data)=>({createdAt:data.createdAt,duplicateKey:feedContentFingerprint(data)});
 for(;;) {

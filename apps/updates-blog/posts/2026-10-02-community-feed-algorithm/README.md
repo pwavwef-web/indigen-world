@@ -6,7 +6,10 @@
 - **Suggested permalink:** community-feed-culture-and-choice
 - **Prepared:** October 2, 2026
 - **Publication:** Blogger draft; not published or shared.
-- **Deployment:** Not deployed. `COMMUNITY_RECOMMENDATIONS` defaults to false.
+- **Backend deployment:** October 2, 2026, `project-kassena-7e026`, `us-central1`.
+  Seven functions and Firestore rules/indexes deployed; active functions, ready
+  indexes, TTL and scheduler confirmed through Cloud APIs.
+- **Mobile rollout:** Not released. `COMMUNITY_RECOMMENDATIONS` defaults to false.
 
 ## What this update covers
 
@@ -21,7 +24,7 @@ in `docs/product/community-recommendations.md`.
 This post supersedes the earlier development preview's statement that activity
 does not yet influence ranking. Older release drafts are preserved. No live
 release, complete bot/harm detector, collaborative model or million-user SLA is
-claimed. Viewing-duration/skip ingestion is supported but accurate mobile
+claimed for the mobile feature. Viewing-duration/skip ingestion is supported but accurate mobile
 instrumentation remains future work. Share events represent share intent.
 
 ## Image credits and upload
@@ -50,17 +53,21 @@ Local checks passed: Functions build, 18 backend unit tests, 12 Firestore
 integration tests, the 251-test Community suite, eight updated client/preferences
 tests and clean Flutter analysis. The illustration and article were rendered and
 visually checked. Exact evidence and limits are recorded in the product design.
+Authenticated production smoke checks passed for both feed modes, consent/event
+idempotency, feedback and cursor invalidation. The temporary test account and
+its private test data were cleaned up. Retrieval metadata was backfilled for 66
+posts; a second dry run reported zero changes. No phone/UI or load test is claimed.
 The backend includes authentication, rate limiting, owner-bound sessions,
 consent/idempotency checks, current safety rechecks and server-only feature/event
 collections. The scheduled trend sampler is bounded and logs saturation.
 
-Before enabling: deploy the five callables, indexing trigger and
-`updateCommunityFeedTrends`, rules and indexes to the chosen staging project;
-backfill retrieval metadata using the documented dry-run/apply script; curate
-representative cultural and emerging posts; confirm index/TTL readiness; verify
+Backend delivery is complete for the production project. Before enabling a mobile
+release: curate representative cultural and emerging posts; verify
 two accounts, private communities, blocked accounts, consent on/off, pagination
-and topic controls; measure load/cost and exercise rollback. Enable the Flutter
+and topic controls in the actual app; measure load/cost and exercise rollback. Enable the Flutter
 flag only in a build targeting that verified backend. App Check must be configured
 before enforcing it for consuming clients.
 
-Repository preparation does not deploy, publish or send messages.
+The user explicitly authorized GitHub push and Firebase deployment. Those steps
+were completed. The Blogger article remains unpublished, and no sharing messages
+were sent. Mobile/store rollout remains a separate release step.

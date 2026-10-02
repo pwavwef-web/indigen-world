@@ -1,5 +1,5 @@
 <article>
-  <p><strong>Development preview:</strong> this Community recommendation system is implemented in the repository. It has not been deployed or released in the mobile app, and it is disabled by default.</p>
+  <p><strong>Development preview:</strong> the Community recommendation backend was deployed and its APIs verified on October 2, 2026. The mobile recommendation feature has not been released and remains disabled by default.</p>
   <p>Indigen World brings people together through cultural stories, language learning, questions, music and shared knowledge. We have built a recommendation pipeline that helps readers find relevant public posts while making room for unfamiliar cultures and emerging voices.</p>
   <figure>
     <img src="images/feed-pipeline.png" alt="Illustration of the Community pipeline: gather public posts, apply safety filters, score relevance and learning value, balance cultures and voices, then explain the recommendation." style="width:100%;height:auto;max-width:100%;" />
@@ -16,6 +16,6 @@
   <p>For You limits repeated authors and the concentration of a named topic, culture or public community. It suppresses duplicate posts and makes room for learning content and emerging contributors when suitable posts exist. These rules can produce a shorter feed when eligible content is limited.</p>
   <p>Trending uses a bounded sample of distinct public participants. Private bookmarks and watch histories never enter public trends. Reported posts are hidden for the reporting reader, while reviewed harmful posts can be limited or excluded from recommendations. Automated detection of every form of harmful content is not part of this preview.</p>
   <h2>What happens before release</h2>
-  <p>The backend and mobile checks are local verification. Backend deployment, index readiness, signed-in staging checks, device testing and load testing still need to happen before the feature is enabled in a released app. Future work includes richer cultural taxonomy, privacy-preserving similar-reader recommendations, accurate viewing instrumentation and models trained on sufficient consented data.</p>
+  <p>The backend functions, rules and indexes are deployed. Local backend and mobile tests passed, and an isolated production account verified the feed APIs, consent controls and feedback. Actual app checks, device testing, load testing and rollout review still need to happen before the feature is enabled in a released app. Future work includes richer cultural taxonomy, privacy-preserving similar-reader recommendations, accurate viewing instrumentation and models trained on sufficient consented data.</p>
   <p>The aim is a Community that supports cultural discovery, useful conversations and learning while giving readers clear choices.</p>
 </article>

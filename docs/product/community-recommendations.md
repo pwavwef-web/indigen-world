@@ -1,6 +1,7 @@
 # Community recommendations: implementation and scale plan
 
-Prepared October 1–2, 2026. This is a repository implementation, **not a confirmed live release**.
+Prepared October 1–2, 2026. **Backend deployed October 2** to
+`project-kassena-7e026`; the mobile recommendation feature has not been released.
 The Flutter rollout flag `COMMUNITY_RECOMMENDATIONS` defaults to false. Deploy and
 validate the backend before building with `--dart-define=COMMUNITY_RECOMMENDATIONS=true`.
 
@@ -503,8 +504,33 @@ unsafe trend exclusion, idempotent post indexing and delivery diversity after
 edits. Emulator shutdown succeeded. The 251-test Community mobile suite passed,
 followed by eight updated client/preferences tests, including stable pagination,
 per-kind event deduplication, expiry refresh and network retry. Flutter analysis
-of Community and those two test files reported no issues. No production
-deployment, signed-in staging UI session, physical phone check or load test is claimed.
+of Community and those two test files reported no issues. After integrating the
+latest GitHub main, the Functions build, 18 backend tests and 12 integration tests
+passed again; the upstream Labs helper tests and Blogger theme checks also passed.
+No signed-in staging UI session, physical phone check or load test is claimed.
+
+### Production delivery evidence — October 2, 2026
+
+Implementation commit `a268f80` was pushed with upstream integration at
+`6c1bd3e9ab45ddfe82b6d85820b498d67be135ec`. Firebase deployment completed for all
+five Community callables, `indexCommunityFeedPost`, `updateCommunityFeedTrends`,
+Firestore rules and indexes in `project-kassena-7e026`, region `us-central1`.
+At 12:16 UTC, the Cloud APIs confirmed all seven functions `ACTIVE`, all six new
+composite indexes `READY`, both TTL policies `ACTIVE`, and the 15-minute scheduler
+`ENABLED`. An unauthenticated feed request returned HTTP 401/UNAUTHENTICATED.
+
+The metadata backfill scanned and updated 66 existing posts without changing
+curation. A follow-up dry run reported zero changes and zero skipped posts.
+An isolated temporary production Auth account verified authenticated For You
+(`cultural-balance-v2`), empty Following before explicit follows, consent-off event
+rejection, consented/idempotent impressions, private less feedback and preference
+cursor invalidation. The test account, its preferences, sessions, events and rate
+limit rows were removed afterward. No real member's follows or preferences changed.
+
+Sanitized deployment and smoke receipts are saved in
+[`community-feed-deployment.json`](community-feed-deployment.json). This confirms
+backend deployment and API behavior; it does not establish released mobile/UI
+availability, universal moderation, trend-job execution, or production load capacity.
 
 Run `npm run test:community-feed` and `npm run test:community-feed:integration`.
 The latter uses `.community-feed-test.firebase.json`, demo project
@@ -527,6 +553,9 @@ node services/functions/scripts/backfill-community-feed-features.mjs --project Y
 ```
 
 The script uses Application Default Credentials or `FIRESTORE_EMULATOR_HOST`.
+Add `--firebase-login` to use an existing Firebase CLI login in memory when ADC
+is unavailable; this requires the repository's development dependencies. It
+does not write credentials to disk or print tokens.
 It pages by document ID, skips invalid timestamps, rereads posts transactionally
 before applying metadata, and preserves all reviewer/trend fields. It does not
 guess cultural tags, change moderation or mark accounts as emerging. Review its
