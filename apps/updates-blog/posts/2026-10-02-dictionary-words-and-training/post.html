@@ -1,0 +1,20 @@
+<p>A dictionary should help you look up words. Complete expressions and sentence translations belong in the language data our models learn from. We have prepared an update that makes that distinction clearer and explains the purpose of the contributor portal before anyone starts work.</p>
+<p><strong>Release status:</strong> these changes are implemented in the repository. Production deployment, cleanup of older dictionary copies and the app release are pending.</p>
+<figure>
+  <img src="images/dictionary-and-training.png" alt="Diagram showing dictionary word entries separately from whole expressions retained as reviewed training source data" width="1400" height="820" />
+  <figcaption>Conceptual illustration of the revised workflow. A sentence can illustrate a word without becoming a dictionary headword.</figcaption>
+</figure>
+<h2>A dictionary for words</h2>
+<p>The updated dictionary readers leave out records marked as expressions, phrases, idioms or proverbs. Words remain available with their meanings, pronunciation information and usage examples. Classification uses the record’s type and source; a space in a legitimate word entry is not enough to remove it.</p>
+<p>Reviewed expression contributions are kept whole and routed to the separate expression collection. Their punctuation, alternatives and meaning are preserved. A cleanup tool is ready to retire older expression copies from the dictionary while keeping the original submissions and their recorded permissions.</p>
+<h2>Contributing means helping train our models</h2>
+<p>The invited contributor portal now explains that all future language and cultural submissions will be used to train and evaluate Indigen World language models, including Kawuri. New contributors read and accept this agreement during activation. Existing contributors must accept it before continuing.</p>
+<p>If you do not want your contributions used for model training, do not continue as a contributor. The agreement is required, and the portal offers a clear way to leave.</p>
+<figure>
+  <img src="images/contributor-sign-in.jpg" alt="TribeStudio sign-in page explaining that all contributor submissions are used for model training and evaluation" width="1264" height="802" />
+  <figcaption>The revised sign-in notice, captured from the local application. This is a development preview; the new flow is not yet confirmed live.</figcaption>
+</figure>
+<h2>One agreement, then your usual contribution workflow</h2>
+<p>After accepting the agreement, open an assignment, write your translation and add any alternatives or usage notes. Confirm that you have permission to share the material, then submit it for review. There is no separate optional AI-training checkbox on each portal submission.</p>
+<p>Review and quality checks still determine which examples enter a training dataset. Preparing eligible source data does not mean a model has already been trained. Earlier submissions keep their original permissions; accepting the new agreement does not rewrite an earlier refusal.</p>
+<p>This agreement covers contributed content. Passwords, contact details, payment information and support messages are not training contributions. The change described here applies to the invited contributor portal; other contribution workflows retain their own permission requirements.</p>

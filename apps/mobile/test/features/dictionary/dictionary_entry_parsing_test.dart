@@ -12,34 +12,31 @@ import 'package:indigen_world_mobile/features/collection/collection_data.dart';
 import 'package:indigen_world_mobile/features/dictionary/translation_display.dart';
 
 void main() {
-  test('a reviewed proverb keeps its distinct meanings and usage evidence', () {
-    final entry = dictionaryEntryFromData('proverb', {
-      'kasemText': 'Kasem saying, with a pause',
-      'lexicalKind': 'proverb',
-      'englishText': 'A lesson about patience',
-      'literalTranslation': 'The literal wording',
-      'usageContext': 'Said when a task takes time',
-      'frenchTranslation': 'Une leçon de patience',
-      'authenticationStatus': 'reviewed',
-      'isPublished': true,
-    })!;
-    expect(entry.translation, 'A lesson about patience');
-    expect(entry.headword, 'Kasem saying, with a pause');
-    expect(entry.literalTranslation, 'The literal wording');
-    expect(entry.usageContext, 'Said when a task takes time');
-    expect(entry.frenchTranslation, 'Une leçon de patience');
-    expect(entry.authenticationStatus, 'reviewed');
+  test('expressions and non-word entries never enter the dictionary', () {
+    for (final fields in <Map<String, dynamic>>[
+      {'contentKind': 'expression'},
+      {'collectionKind': 'expressions'},
+      {'lexicalKind': 'phrase'},
+      {'lexicalKind': 'idiom'},
+      {'lexicalKind': 'proverb'},
+    ]) {
+      expect(dictionaryEntryFromData('expression', {
+        'kasemText': 'A whole expression, with clauses / intact',
+        'englishText': 'Hello, how are you?',
+        'isPublished': true,
+        ...fields,
+      }), isNull);
+    }
   });
-  test('contributor expressions preserve punctuation and complete alternatives', () {
-    final expression = List.filled(8, 'A whole expression, with clauses / intact').join(' ');
-    final entry = dictionaryEntryFromData('expression', {
-      'contentKind': 'expression', 'kasemText': expression,
-      'englishText': 'Hello, how are you?', 'alternativeExpressions': ['Another, complete expression'],
-      'isPublished': true,
-    })!;
-    expect(entry.headword, expression);
-    expect(entry.renderings, [expression, 'Another, complete expression']);
-    expect(entry.translations, ['Hello, how are you?']);
+  test('legacy words and word entries with sentence examples remain', () {
+    for (final fields in <Map<String, dynamic>>[{}, {'lexicalKind': 'word'}]) {
+      final entry = dictionaryEntryFromData('word', {
+        'kasemText': 'Na', 'englishText': 'water', 'isPublished': true,
+        'kasemExample': 'A complete example sentence.', ...fields,
+      });
+      expect(entry, isNotNull);
+      expect(entry!.example, 'A complete example sentence.');
+    }
   });
   group('several meanings', () {
     test('a legacy single translation is split into a list', () {

@@ -238,6 +238,11 @@ DictionaryEntry? _dictionaryEntryFromDoc(
 ) => dictionaryEntryFromData(doc.id, doc.data());
 
 DictionaryEntry? dictionaryEntryFromData(String id, Map<String, dynamic> data) {
+  if (data['contentKind'] == 'expression' ||
+      data['collectionKind'] == 'expressions' ||
+      const ['phrase', 'idiom', 'proverb'].contains(data['lexicalKind'])) {
+    return null;
+  }
   final kasem = _firstText(data, const [
     'kasemText',
     'headword',
@@ -279,12 +284,7 @@ DictionaryEntry? dictionaryEntryFromData(String id, Map<String, dynamic> data) {
   // the headword filed the entry under a comma and offered the dictionary a
   // word nobody can look up, so the first rendering is the headword and the
   // rest travel beside it.
-  final isExpression = data['contentKind'] == 'expression' ||
-      const ['phrase', 'idiom', 'proverb'].contains(data['lexicalKind']);
-  // An expression is a whole utterance; punctuation is not a word separator.
-  final renderings = isExpression
-      ? <String>[kasem, ..._stringList(data['alternativeExpressions'])]
-      : _renderings(data, kasem: kasem);
+  final renderings = _renderings(data, kasem: kasem);
   final headword = renderings.isNotEmpty ? renderings.first : kasem;
   final attribution = _sentenceAttribution(data);
 
@@ -292,9 +292,7 @@ DictionaryEntry? dictionaryEntryFromData(String id, Map<String, dynamic> data) {
     id: id,
     headword: headword,
     translation: english,
-    translations: isExpression
-        ? <String>[english]
-        : _translations(data, english: english),
+    translations: _translations(data, english: english),
     renderings: renderings,
     // `partOfSpeechId` is the stable, lowercase, hyphenated value the review
     // pipeline writes beside the free text; it is consulted only when the free

@@ -222,7 +222,6 @@ export function ExpressionEditor({ item, itemNumber = 1, itemTotal = 1, hasNextI
   const [context, setContext] = useState(item.context ?? '');
   const [alternativeCount, setAlternativeCount] = useState(item.alternatives.length);
   const [publication, setPublication] = useState(false);
-  const [training, setTraining] = useState(false);
   const [status, setStatus] = useState('Saved');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -267,7 +266,7 @@ export function ExpressionEditor({ item, itemNumber = 1, itemTotal = 1, hasNextI
       const result = await saveAnswer({
         work, item: item.id, revision: revision.current, translation: answer.translation,
         alternatives: answer.alternatives.split('\n').filter((value) => value.trim()), context: answer.context,
-        submit, skip, publicationPermission: publication, aiTraining: training,
+        submit, skip, publicationPermission: publication,
       });
       revision.current = result.data.revision;
       if (payload.current.translation === answer.translation && payload.current.alternatives === answer.alternatives
@@ -369,7 +368,7 @@ export function ExpressionEditor({ item, itemNumber = 1, itemTotal = 1, hasNextI
           <div><dt>Alternative translations</dt><dd>{listedAlternatives.length ? <ul>{listedAlternatives.map((value, index) => <li key={index}>{value}</li>)}</ul> : 'None added.'}</dd></div>
           <div><dt>Usage note</dt><dd>{context.trim() || 'None added.'}</dd></div>
           <div><dt>Publication permission</dt><dd>{publication ? 'Granted' : 'Not granted'}</dd></div>
-          <div><dt>Optional AI training</dt><dd>{training ? 'Allowed' : 'Not allowed'}</dd></div>
+          <div><dt>Model training and evaluation</dt><dd>Included under your contributor agreement</dd></div>
         </dl>
         <div className="contributor-review-actions">
           <button type="button" autoFocus disabled={busy} onClick={() => reviewDialog.current?.close()}>Back to editing</button>
@@ -511,12 +510,9 @@ export function ExpressionEditor({ item, itemNumber = 1, itemTotal = 1, hasNextI
             </div>
             <label className="contributor-check contributor-check--required">
               <input type="checkbox" required disabled={busy || Boolean(recovery)} checked={publication} onChange={(event) => setPublication(event.target.checked)} />
-              <span><strong>Required to submit</strong>I have permission to share this expression for review and dictionary publication.</span>
+              <span><strong>Required to submit</strong>I have permission to share this expression for review, expression publication and model training.</span>
             </label>
-            <label className="contributor-check">
-              <input type="checkbox" disabled={busy || Boolean(recovery)} checked={training} onChange={(event) => setTraining(event.target.checked)} />
-              <span><strong>AI training (optional)</strong>Allow an approved translation to be used for Kawuri AI training.</span>
-            </label>
+            <p>All submissions are used for language model training and evaluation under your contributor agreement. Reviewed expressions stay in the expression collection and training data; the dictionary contains words.</p>
             <GuideHint section="review" extras={extras}>What these permissions mean</GuideHint>
           </section>
           {error ? (

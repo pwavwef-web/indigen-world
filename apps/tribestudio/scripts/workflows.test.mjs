@@ -456,7 +456,7 @@ test('contributor autosave keeps full expressions and submits with the latest re
   find(tree, n => n.type === 'button' && n.props.children.includes('Confirm submission')).props.onClick(); await tick();
   assert.equal(calls[0].translation, 'A whole expression, with punctuation');
   assert.equal(calls[1].revision, 1); assert.equal(calls[1].submit, true);
-  assert.equal(calls[1].aiTraining, false);
+  assert.equal('aiTraining' in calls[1], false, 'the contributor agreement replaces the per-submission opt-out');
   h.dispose();
 });
 
@@ -700,9 +700,10 @@ test('activation confirms the chosen password before calling the backend', async
     ...h.api, functions: {}, httpsCallable: (_functions, name) => async data => calls.push({ name, ...data }),
     auth: { currentUser: { email: 'speaker@example.com' } },
     signInWithEmailAndPassword: async (_auth, email, password) => signIns.push({ email, password }),
+    CONTRIBUTOR_TRAINING_TERMS_VERSION: 'contributor-training-v2', CONTRIBUTOR_TRAINING_NOTICE: 'All submissions are used for model training.',
   });
   let tree = h.render(ContributorActivation);
-  find(tree, n => n.type === 'input').props.onChange({ target: { value: 'new-password' } });
+  find(tree, n => n.type === 'input' && n.props.type === 'password').props.onChange({ target: { value: 'new-password' } });
   tree = h.render(ContributorActivation);
   await tree.props.onSubmit({ preventDefault() {} });
   assert.equal(calls.length, 0);
@@ -711,7 +712,12 @@ test('activation confirms the chosen password before calling the backend', async
   find(labels[1], n => n.type === 'input').props.onChange({ target: { value: 'new-password' } });
   tree = h.render(ContributorActivation);
   await tree.props.onSubmit({ preventDefault() {} });
-  assert.deepEqual(calls, [{ name: 'activateExpressionContributor', password: 'new-password' }]);
+  assert.equal(calls.length, 0, 'matching passwords are insufficient without accepting training use');
+  tree = h.render(ContributorActivation);
+  find(tree, n => n.type?.name === 'TrainingTerms').props.onChange(true);
+  tree = h.render(ContributorActivation);
+  await tree.props.onSubmit({ preventDefault() {} });
+  assert.deepEqual(calls, [{ name: 'activateExpressionContributor', password: 'new-password', acceptTrainingTerms: true, trainingTermsVersion: 'contributor-training-v2' }]);
   assert.deepEqual(signIns, [{ email: 'speaker@example.com', password: 'new-password' }]);
 });
 

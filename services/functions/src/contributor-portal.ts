@@ -11,11 +11,17 @@ import { ARKESEL_API_KEY, isSmsConfigured, normalizeMsisdn, sendSmsToMsisdn } fr
 import { COLLECTION_CAMPAIGN_ID, buildCollectionCampaignDocument } from './collection-contributions.js';
 import { INVITED_SOURCE_DETAIL, buildExpressionReceipt, buildExpressionSubmissionDocument,
   type ExpressionContribution } from './expressions.js';
-import { publicationTargetFor } from './publication.js';
 
 const options = { region: 'us-central1', invoker: 'public' as const,
   enforceAppCheck: process.env.ENFORCE_APP_CHECK === 'true' };
 const origin = 'https://tribestudio.indigenworld.com';
+export const CONTRIBUTOR_TRAINING_TERMS_VERSION = 'contributor-training-v2';
+
+function requireTrainingAgreement(data: Record<string, unknown>) {
+  if (data.acceptTrainingTerms !== true || data.trainingTermsVersion !== CONTRIBUTOR_TRAINING_TERMS_VERSION) {
+    throw new HttpsError('failed-precondition', 'All contributor submissions are used to train and evaluate our language models. Accept the contributor training agreement to continue.');
+  }
+}
 const contributorRoles = ['translator', 'storyteller', 'researcher', 'reviewer'] as const;
 const contributionTypes = ['expressions', 'articles', 'stories', 'research', 'audio'] as const;
 const accountStatuses = ['active', 'suspended', 'deactivated'] as const;
@@ -143,7 +149,8 @@ export function contributorPhone(value: unknown): string {
 export function contributorInvitationMessage(email: string, phone: string, portalUrl: string, temporary: boolean): string {
   return `Indigen World: Your contributor assignment is ready. ${portalUrl}\nEmail: ${email}\n`
     + (temporary ? `Temporary password: your phone number ${phone}. Sign in, then choose a new password.`
-      : 'Sign in with your existing password. If forgotten, use Forgot password on the portal.');
+      : 'Sign in with your existing password. If forgotten, use Forgot password on the portal.')
+    + '\nAll contributor submissions are used to train and evaluate our language models. Continue only if you agree.';
 }
 
 async function deliverContributorInvitation(uid: string, email: string, phone: string, portalUrl: string, temporary: boolean, passwordPhone = phone) {
@@ -306,6 +313,7 @@ export const activateExpressionContributor = onCall(options, guarded('activateEx
     throw new HttpsError('permission-denied', 'Sign in with your email and temporary password.');
   }
   await consumeRateLimit('activateExpressionContributor', uid, 10);
+  requireTrainingAgreement(req.data ?? {});
   const password = req.data?.password;
   if (typeof password !== 'string' || password.length < 8 || password.length > 128) {
     throw new HttpsError('invalid-argument', 'Choose a password of 8–128 characters.');
@@ -320,7 +328,8 @@ export const activateExpressionContributor = onCall(options, guarded('activateEx
   }
   await getAuth().updateUser(uid, { password });
   await ref.update({ requiresPasswordChange: false, temporaryPhonePassword: false,
-    'invitation.status': 'accepted', activatedAt: new Date().toISOString() });
+    'invitation.status': 'accepted', activatedAt: new Date().toISOString(),
+    trainingAgreement: { version: CONTRIBUTOR_TRAINING_TERMS_VERSION, acceptedAt: new Date().toISOString() } });
   return { activated: true };
 }));
 
@@ -609,6 +618,25 @@ export const cancelContributorInvitation = onCall(options, async req => {
   return { contributorId };
 });
 
+/** Existing contributors accept the current terms before further contribution. */
+export const acceptContributorTrainingTerms = onCall(options, guarded('acceptContributorTrainingTerms', async req => {
+  const uid = requireAuth(req);
+  await consumeRateLimit('acceptContributorTrainingTerms', uid, 10);
+  requireTrainingAgreement(req.data ?? {});
+  const db = getFirestore();
+  const ref = db.doc(`contributorAccounts/${uid}`);
+  return db.runTransaction(async tx => {
+    const account = await tx.get(ref);
+    if (account.get('status') !== 'active' || account.get('requiresPasswordChange') === true) {
+      throw new HttpsError('failed-precondition', 'An active, activated contributor account is required.');
+    }
+    if (account.get('trainingAgreement.version') !== CONTRIBUTOR_TRAINING_TERMS_VERSION) {
+      tx.update(ref, { trainingAgreement: { version: CONTRIBUTOR_TRAINING_TERMS_VERSION, acceptedAt: new Date().toISOString() } });
+    }
+    return { accepted: true, version: CONTRIBUTOR_TRAINING_TERMS_VERSION };
+  });
+}));
+
 export const saveExpressionAnswer = onCall(options, guarded('saveExpressionAnswer', async req => {
   const uid = requireAuth(req);
   await consumeRateLimit('saveExpressionAnswer', uid, 120);
@@ -629,6 +657,12 @@ export const saveExpressionAnswer = onCall(options, guarded('saveExpressionAnswe
       tx.get(db.doc(`campaigns/${COLLECTION_CAMPAIGN_ID}`)), tx.get(db.doc(`contributors/${uid}`))]);
     if (member.get('requiresPasswordChange') === true) throw new HttpsError('failed-precondition', 'Activate your account and choose your own password first.');
     if (member.get('status') !== 'active' || !row.exists) throw new HttpsError('permission-denied', 'An active invitation is required.');
+    if (member.get('trainingAgreement.version') !== CONTRIBUTOR_TRAINING_TERMS_VERSION) {
+      throw new HttpsError('failed-precondition', 'Accept the contributor training agreement before continuing. Reload the portal to read it.');
+    }
+    if (submit && req.data?.aiTraining === false) {
+      throw new HttpsError('failed-precondition', 'Training use is required for contributor submissions. Reload the portal to continue.');
+    }
     const permissions = profile.get('permissions') as Record<string, unknown> | undefined;
     // Older invitations predate contributor profiles, so a missing permissions
     // map retains their existing access. Once an administrator records the
@@ -676,15 +710,16 @@ export const saveExpressionAnswer = onCall(options, guarded('saveExpressionAnswe
           source: { type: 'invited-speaker', detail: INVITED_SOURCE_DETAIL, speakerName: '' },
         },
         publicationPermission: true,
-        aiTraining: req.data?.aiTraining === true,
+        aiTraining: true,
         revisionOf: null,
       };
       const reviewerNotes = expressionReviewNotes(answer.alternatives, usageContext);
-      const submission = buildExpressionSubmissionDocument(submissionId, uid, contribution, now, 'contributor-expression-v1');
+      const submission = buildExpressionSubmissionDocument(submissionId, uid, contribution, now, CONTRIBUTOR_TRAINING_TERMS_VERSION);
       const portal = { contributorId: uid, work, item };
       if (!campaign.exists) tx.set(campaign.ref, buildCollectionCampaignDocument(now));
       if (previousId) tx.delete(db.doc(`contributorTrainingPairs/${previousId}`));
       tx.create(db.doc(`submissions/${submissionId}`), { ...submission, contributorPortal: portal,
+        trainingAgreement: member.get('trainingAgreement'),
         ...(previousId ? { revisionOf: previousId, previousReview: previous?.get('moderation') ?? null } : {}),
         translationNotes: reviewerNotes, alternativeExpressions: answer.alternatives });
       tx.create(db.doc(`collectionContributions/${submissionId}`), {
@@ -722,11 +757,8 @@ export const onContributorExpressionReviewed = onDocumentWritten(
       const itemRef = db.doc(`contributorAccounts/${portal.contributorId}/works/${portal.work}/items/${portal.item}`);
       const item = await tx.get(itemRef);
       if (item.get('submissionId') !== snap.id) return;
-      // The public record this expression is published as: its own entry in
-      // `expressionEntries`, or — for one approved before expressions had a
-      // home — the dictionary row it was published into then.
-      const target = publicationTargetFor(data, snap.id);
-      const published = await tx.get(db.doc(`${target.collection}/${target.id}`));
+      // Training eligibility follows review and the original permission,
+      // independently of which public collection holds the expression.
       const verified = ['APPROVED', 'PUBLISHED'].includes(data.status);
       const firstSubmissionId = createHash('sha256').update(`${portal.contributorId}/${portal.work}/${portal.item}`).digest('hex');
       const accountRef = db.doc(`contributorAccounts/${portal.contributorId}`);
@@ -755,10 +787,11 @@ export const onContributorExpressionReviewed = onDocumentWritten(
         reviewedAt: data.moderation?.decidedAt ?? null,
       });
       const training = db.doc(`contributorTrainingPairs/${snap.id}`);
-      if (verified && published.get('isPublished') === true
+      if (verified
         && data.permissions?.aiTraining === true && data.permissions?.publication === true) {
         tx.set(training, { id: snap.id, language: 'xsm', english: data.title, kasem: data.body,
           alternatives: data.alternativeExpressions ?? [], sourceSubmission: snap.id,
+          context: data.usageContext ?? '', dialect: data.dialect ?? '', literalTranslation: data.literalTranslation ?? '',
           contributorId: data.authUid, consentVersion: data.permissions.consentVersion,
           reviewedAt: data.moderation?.decidedAt ?? null, kind: 'expression' });
       } else tx.delete(training);

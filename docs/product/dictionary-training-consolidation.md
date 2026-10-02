@@ -1,5 +1,7 @@
 # Dictionary collection and training consolidation
 
+2026-10-02 update: the invited contributor portal now has a separate required training agreement and dictionary word filtering, implemented locally with deployment pending. See [Dictionary words and contributor training agreement](dictionary-word-scope-and-training.md). This earlier proposed consolidation still describes community word/evidence collection; its optional-purpose design does not define the new portal agreement.
+
 Assessment: 2026-09-11. Queue fixes implemented locally; the consolidation below is a proposed implementation design. No production inventory, migration or training run has been performed.
 
 The guided queue already feeds the ordinary dictionary submission and review workflow. Sentence training uses the separate, versioned `kasemEvidence` workflow. Consolidate their collection experience and link their evidence; preserve their different publication and training decisions.

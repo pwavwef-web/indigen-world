@@ -45,6 +45,8 @@ function text(data: DocumentData, keys: string[], fallback = ""): string {
 }
 
 function readEntry(id: string, data: DocumentData): DictionaryEntry | null {
+  if (data.contentKind === 'expression' || data.collectionKind === 'expressions'
+    || ['phrase', 'idiom', 'proverb'].includes(data.lexicalKind)) return null;
   const headword = text(data, ["kasemText", "headword", "kasem", "word"]);
   const translation = text(data, ["englishText", "translation", "english", "definition"]);
   if (!headword || !translation) return null;

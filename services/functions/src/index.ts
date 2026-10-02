@@ -8,6 +8,7 @@ export { labsApi } from './labs.js';
 
 export {
   activateExpressionContributor,
+  acceptContributorTrainingTerms,
   inviteExpressionContributor,
   assignContributorExpressions,
   listExpressionContributors,

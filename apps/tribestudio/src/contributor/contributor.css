@@ -1511,6 +1511,8 @@ button.cw-activity__row:hover { background: #f5f7fb !important; }
 }
 
 .contributor-check > span { display: grid; gap: 4px; }
+.cw-auth .contributor-check { display: flex; align-items: flex-start; gap: 12px; }
+.cw-auth .contributor-check input { flex: 0 0 24px; width: 24px; height: 24px; min-height: 24px; padding: 0; margin: 2px 0 0; accent-color: #254e47; }
 .contributor-check strong { font-weight: 750; }
 .contributor-check--required { padding: 14px; border-radius: 10px; background: #fff; }
 .cw .contributor-check input { flex: 0 0 24px; width: 24px; height: 24px; margin-top: 2px; accent-color: var(--cw-blue); }

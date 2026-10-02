@@ -39,7 +39,7 @@ export const GUIDE: GuideSection[] = [
     points: [
       'Your work saves automatically about a second after you stop typing. If saving fails, your text stays on the page and a recovery copy is kept in this browser until the save succeeds.',
       'Not sure about an expression? Choose “Skip / I’m not sure”. It is flagged for you, nothing is sent for review, and you can come back to it at any time.',
-      'When a translation is ready, read the visible “Permission to submit” panel and tick the required sharing statement if you agree. AI training is optional. Choose “Submit for review”, check your answer, then choose “Confirm submission”. A submitted expression is locked while it waits for a reviewer.',
+      'Before entering the workspace, accept the contributor agreement: all future submissions are used for language model training and evaluation. If you do not agree, leave the portal. When a translation is ready, confirm you have permission to share it, choose “Submit for review”, check your answer, then choose “Confirm submission”. A submitted expression is locked while it waits for a reviewer.',
       'You can hold several assignments at once. Each keeps its own drafts and progress.',
     ],
     source: 'Contributor portal product notes (assignments, drafts and skipping)',
@@ -88,7 +88,7 @@ export const GUIDE: GuideSection[] = [
       'Awaiting review: with the Review Desk. It stays locked until a reviewer decides.',
       'Approved: accepted. If you gave publication permission, it is added to the Kasem dictionary.',
       'Returned: a reviewer rejected this version or asked for changes, with written feedback. Read the feedback, revise the translation and resubmit. Each resubmission is a new review round; the earlier decision stays on record.',
-      'Publication permission is required to submit. AI training is optional and separate: an approved translation is used for Kawuri training only if you ticked that box when you submitted it.',
+      'Publication permission and model training use are required for portal submissions. The agreement you accept on entry covers all future contributions; there is no per-submission training opt-out. Review and quality checks still decide which examples enter a dataset. Earlier submissions keep their original recorded permissions. Expressions are published separately from dictionary words.',
       'Decisions appear in Activity and, if you choose, by email (Account & settings → Notifications).',
     ],
     pending: ['How long review normally takes has not been published yet.'],

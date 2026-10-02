@@ -130,19 +130,14 @@ function publicationIdFor(collection: PublicationCollection, submissionId: strin
 /**
  * Whether a submission is an expression — a whole phrase, idiom or saying.
  *
- * Two shapes say yes. New work says so outright, with `collectionKind:
- * 'expressions'`. Expressions translated in the invited contributor workspace
- * before that kind existed were filed as dictionary phrases; they carry
- * `contributorPortal` and a non-word lexical kind, and they are expressions
- * all the same. Nothing else filed under the dictionary is: a word typed on a
- * phone or at the dictionary desk stays a word.
+ * New work declares `collectionKind: 'expressions'`. Older phrases, idioms
+ * and proverbs filed under dictionary also belong with expressions, regardless
+ * of which contribution surface they came from. Legacy untyped words remain.
  */
 export function isExpressionSubmission(submission: JsonRecord): boolean {
   const kind = collectionKindForSubmission(submission);
-  if (kind === 'expressions') return true;
-  return kind === 'dictionary'
-    && Boolean(submission.contributorPortal)
-    && submissionLexicalKind(submission) !== 'word';
+  if (kind === 'expressions' || submission.contentKind === 'expression') return true;
+  return kind === 'dictionary' && submissionLexicalKind(submission) !== 'word';
 }
 
 /**

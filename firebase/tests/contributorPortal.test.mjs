@@ -47,7 +47,7 @@ async function harness({ smsOk = true, configured = true } = {}) {
   const path = new URL('../../services/functions/lib/contributor-portal.js', import.meta.url);
   const code = readFileSync(path, 'utf8');
   const executable = code.replace(/^import[\s\S]*?;\n/gm, '').replace(/\bexport (?=(?:async )?function|const)/g, '');
-  const api = runInNewContext(executable + '\n;({saveExpressionAnswer,onContributorExpressionReviewed,parseExpressionAnswer,assignContributorExpressions,assignmentInstructions,inviteExpressionContributor,activateExpressionContributor,resendContributorInvitation,contributorPhone,reportContributorIssue,updateContributorIssue})', {
+  const api = runInNewContext(executable + '\n;({acceptContributorTrainingTerms,saveExpressionAnswer,onContributorExpressionReviewed,parseExpressionAnswer,assignContributorExpressions,assignmentInstructions,inviteExpressionContributor,activateExpressionContributor,resendContributorInvitation,contributorPhone,reportContributorIssue,updateContributorIssue})', {
     process, URL, createHash, HttpsError, requireAuth, requireRole, guarded, rewardSettings, getFirestore: () => db,
     ARKESEL_API_KEY: 'test-secret', normalizeMsisdn, isSmsConfigured: () => configured,
     sendSmsToMsisdn: async (to, message) => { messages.push({ to, message }); return { ok: smsOk, ...(smsOk ? { id: 'sms-1' } : { error: 'network' }) }; },
@@ -69,7 +69,7 @@ async function harness({ smsOk = true, configured = true } = {}) {
     process, HttpsError, requireAuth, requireRole, normalizeMsisdn, getFirestore: () => db,
     onCall: (_options, fn) => fn, consumeRateLimit: async () => {},
   }));
-  records.set('contributorAccounts/alice', { status: 'active' });
+  records.set('contributorAccounts/alice', { status: 'active', trainingAgreement: { version: 'contributor-training-v2', acceptedAt: '2026-10-02T00:00:00.000Z' } });
   const itemPath = 'contributorAccounts/alice/works/work/items/item';
   records.set(itemPath, { expression: 'How are you?', revision: 0, status: 'draft' });
   const request = (data = {}, uid = 'alice') => ({ auth: { uid }, data: { work: 'work', item: 'item', revision: 0,
@@ -105,13 +105,34 @@ test('submission is idempotent and uses the shared Contributions pipeline with K
   assert.equal(submission.expression.phrase, 'Kasem expression');
   assert.equal(submission.expression.source.type, 'invited-speaker');
   assert.equal(submission.expression.source.detail, INVITED_SOURCE_DETAIL);
-  assert.equal(submission.permissions.consentVersion, 'contributor-expression-v1');
+  assert.equal(submission.permissions.consentVersion, 'contributor-training-v2');
   assert.equal(submission.title, 'How are you?');
   assert.deepEqual(Array.from(submission.translations), ['Kasem expression', 'Another expression']);
-  assert.equal(submission.permissions.aiTraining, false);
+  assert.equal(submission.permissions.aiTraining, true);
+  assert.equal(submission.trainingAgreement.acceptedAt, '2026-10-02T00:00:00.000Z');
   assert.equal(submission.collectionContribution.id, result.submissionId);
   assert.ok(h.records.has(`collectionContributions/${result.submissionId}`));
   await assert.rejects(h.saveExpressionAnswer(h.request({ revision: 1 })), { code: 'failed-precondition' });
+});
+
+test('contributors must accept current training terms; acceptance never rewrites earlier submissions', async () => {
+  const h = await harness();
+  h.records.set('contributorAccounts/alice', { status: 'active' });
+  h.records.set('submissions/old', { permissions: { aiTraining: false, consentVersion: 'contributor-expression-v1' } });
+  await assert.rejects(h.saveExpressionAnswer(h.request()), { code: 'failed-precondition' });
+  await assert.rejects(h.acceptContributorTrainingTerms(h.request({ acceptTrainingTerms: false, trainingTermsVersion: 'contributor-training-v2' })), { code: 'failed-precondition' });
+  await assert.rejects(h.acceptContributorTrainingTerms(h.request({ acceptTrainingTerms: true, trainingTermsVersion: 'stale' })), { code: 'failed-precondition' });
+  const acceptance = h.request({ acceptTrainingTerms: true, trainingTermsVersion: 'contributor-training-v2' });
+  await h.acceptContributorTrainingTerms(acceptance);
+  const recorded = h.records.get('contributorAccounts/alice').trainingAgreement;
+  await h.acceptContributorTrainingTerms(acceptance);
+  assert.equal(h.records.get('contributorAccounts/alice').trainingAgreement.acceptedAt, recorded.acceptedAt);
+  assert.equal(h.records.get('submissions/old').permissions.aiTraining, false);
+  await assert.rejects(h.saveExpressionAnswer(h.request({ submit: true, publicationPermission: true, aiTraining: false })), { code: 'failed-precondition' });
+  const result = await h.saveExpressionAnswer(h.request({ submit: true, publicationPermission: true }));
+  assert.equal(h.records.get(`submissions/${result.submissionId}`).permissions.aiTraining, true);
+  h.records.set('contributorAccounts/alice', { status: 'suspended' });
+  await assert.rejects(h.acceptContributorTrainingTerms(acceptance), { code: 'failed-precondition' });
 });
 test('publication consent and nonempty translation are mandatory only when submitting', async () => {
   const h = await harness();
@@ -138,7 +159,7 @@ test('training projection follows current reviewed state, consent and withdrawal
   // An expression is published to expressionEntries, not the dictionary.
   h.records.set(`dictionaryEntries/collection_${submissionId}`, { isPublished: true });
   await h.onContributorExpressionReviewed(event);
-  assert.equal(h.records.has(training), false, 'a dictionary row is not where an expression is published');
+  assert.equal(h.records.has(training), true, 'reviewed training data does not require dictionary publication');
   h.records.set(`expressionEntries/expr_${submissionId}`, { isPublished: true });
   await h.onContributorExpressionReviewed(event);
   await h.onContributorExpressionReviewed(event);
@@ -164,7 +185,7 @@ test('approval without training consent never creates training data', async () =
   const h = await harness();
   const { submissionId } = await h.saveExpressionAnswer(h.request({ submit: true, publicationPermission: true }));
   const key = `submissions/${submissionId}`;
-  h.records.set(key, { ...h.records.get(key), status: 'APPROVED' });
+  h.records.set(key, { ...h.records.get(key), status: 'APPROVED', permissions: { ...h.records.get(key).permissions, aiTraining: false, consentVersion: 'contributor-expression-v1' } });
   await h.onContributorExpressionReviewed({ params: { submissionId } });
   assert.equal(h.records.has(`contributorTrainingPairs/${submissionId}`), false);
 });
@@ -280,7 +301,8 @@ test('new invitation uses phone as temporary password and activation is required
   assert.equal(account.requiresPasswordChange, true);
   h.records.set('contributorAccounts/alice', { status: 'active', requiresPasswordChange: true });
   await assert.rejects(h.saveExpressionAnswer(h.request()), { code: 'failed-precondition' });
-  const activate = password => ({ auth: { uid: 'new-user', token: { firebase: { sign_in_provider: 'password' } } }, data: { password } });
+  const activate = password => ({ auth: { uid: 'new-user', token: { firebase: { sign_in_provider: 'password' } } }, data: { password, acceptTrainingTerms: true, trainingTermsVersion: 'contributor-training-v2' } });
+  await assert.rejects(h.activateExpressionContributor({ ...activate('my-new-password'), data: { password: 'my-new-password' } }), { code: 'failed-precondition' });
   await assert.rejects(h.activateExpressionContributor(activate('+233241234567')), { code: 'invalid-argument' });
   await assert.rejects(h.activateExpressionContributor(activate('short')), { code: 'invalid-argument' });
   await assert.rejects(h.activateExpressionContributor({ ...activate('my-new-password'), auth: { uid: 'new-user', token: { firebase: { sign_in_provider: 'google.com' } } } }), { code: 'permission-denied' });
@@ -481,7 +503,7 @@ test('expression streak advances once per UTC day and resets after a missed day'
   const h = await harness();
   const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
   const older = new Date(Date.now() - 3 * 86400000).toISOString().slice(0, 10);
-  h.records.set('contributorAccounts/alice', { status: 'active', streakLastDay: yesterday, streakCount: 2, streakBest: 4 });
+  h.records.set('contributorAccounts/alice', { ...h.records.get('contributorAccounts/alice'), streakLastDay: yesterday, streakCount: 2, streakBest: 4 });
   const submit = async item => {
     h.records.set(`contributorAccounts/alice/works/work/items/${item}`, { expression: item, revision: 0, status: 'draft' });
     await h.saveExpressionAnswer(h.request({ item, submit: true, publicationPermission: true }));

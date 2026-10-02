@@ -175,10 +175,16 @@ test('profile and settings: internal notes never reach the contributor; choices 
 });
 
 test('a submission reaches the live pulse under the chosen name, and a decision links back to the expression', async () => {
+  const draft = { work: 'w1', item: 'i1', revision: 0, translation: '[e2e Kasem]', alternatives: [] };
+  await rejectsWith(call(clients.alice, 'saveExpressionAnswer', draft), 'failed-precondition');
+  await rejectsWith(call(clients.alice, 'acceptContributorTrainingTerms', { acceptTrainingTerms: true, trainingTermsVersion: 'old' }), 'failed-precondition');
+  await call(clients.alice, 'acceptContributorTrainingTerms', { acceptTrainingTerms: true, trainingTermsVersion: 'contributor-training-v2' });
+  await rejectsWith(call(clients.alice, 'saveExpressionAnswer', { ...draft, submit: true, publicationPermission: true, aiTraining: false }), 'failed-precondition');
   const saved = await call(clients.alice, 'saveExpressionAnswer', { work: 'w1', item: 'i1', revision: 0, translation: '[e2e Kasem]', alternatives: [], context: 'Said to an elder.' });
   const submitted = await call(clients.alice, 'saveExpressionAnswer', { work: 'w1', item: 'i1', revision: saved.revision, translation: '[e2e Kasem]', alternatives: [], context: 'Said to an elder.', submit: true, publicationPermission: true });
   assert.ok(submitted.submissionId);
   assert.equal((await db.doc(`submissions/${submitted.submissionId}`).get()).get('usageContext'), 'Said to an elder.');
+  assert.equal((await db.doc(`submissions/${submitted.submissionId}`).get()).get('permissions.aiTraining'), true);
   const totals = await until(async () => {
     const snapshot = await db.doc(`contributorPulseTotals/${today}`).get();
     return snapshot.exists && (snapshot.get('submitted') ?? []).length ? snapshot : null;

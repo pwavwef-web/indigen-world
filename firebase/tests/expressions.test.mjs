@@ -201,8 +201,9 @@ test('an invited translator expression filed as a dictionary phrase is still an 
   const legacy = { collectionKind: 'dictionary', lexicalKind: 'phrase', contributorPortal: { work: 'w' } };
   assert.equal(isExpressionSubmission(legacy), true);
   assert.deepEqual(publicationDestinationFor(legacy, 's4'), { collection: 'expressionEntries', id: 'expr_s4' });
-  // A phone contributor's phrase is not touched by this change.
-  assert.equal(isExpressionSubmission({ collectionKind: 'dictionary', lexicalKind: 'phrase' }), false);
+  // Non-word contributions from every entry point belong with expressions.
+  assert.equal(isExpressionSubmission({ collectionKind: 'dictionary', lexicalKind: 'phrase' }), true);
+  assert.equal(isExpressionSubmission({ collectionKind: 'dictionary', contentKind: 'expression' }), true);
 });
 
 test('a recorded publication is honoured, but only under this submission’s own id', () => {

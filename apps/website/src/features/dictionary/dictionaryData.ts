@@ -36,6 +36,8 @@ function firstText(data: DocumentData, keys: string[], fallback = ""): string {
 }
 
 function entryFromData(id: string, data: DocumentData): DictionaryEntry | null {
+  if (data.contentKind === 'expression' || data.collectionKind === 'expressions'
+    || ['phrase', 'idiom', 'proverb'].includes(data.lexicalKind)) return null;
   const headword = firstText(data, ["kasemText", "headword", "kasem", "word"]);
   const translation = firstText(data, [
     "englishText",

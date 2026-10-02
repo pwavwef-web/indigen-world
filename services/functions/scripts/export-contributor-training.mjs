@@ -20,14 +20,15 @@ for (;;) {
   for (const row of page.docs) {
     const source = await db.doc(`submissions/${row.id}`).get();
     const s = source.data();
-    if (!s?.contributorPortal || !['APPROVED', 'PUBLISHED'].includes(s.status)
+    if (!s?.contributorPortal || s.contributorPortal.contributorId !== s.authUid || !['APPROVED', 'PUBLISHED'].includes(s.status)
       || s.permissions?.aiTraining !== true || s.permissions?.publication !== true) continue;
-    const dictionary = await db.doc(`dictionaryEntries/collection_${row.id}`).get();
-    if (dictionary.get('isPublished') !== true) continue;
+    // Review and recorded training permission control eligibility. Dictionary
+    // publication is unrelated: expressions remain usable after cleanup.
     // Preserve each expression, punctuation and alternatives as complete utterances.
     console.log(JSON.stringify({ sourceSubmission: row.id, contributorId: s.authUid,
       language: 'xsm', kind: 'expression', english: s.title, kasem: s.body,
       alternatives: s.alternativeExpressions ?? [], consentVersion: s.permissions.consentVersion,
+      context: s.usageContext ?? '', dialect: s.dialect ?? '', literalTranslation: s.literalTranslation ?? '',
       reviewedAt: s.moderation?.decidedAt, exportedAt: new Date().toISOString() }));
   }
   cursor = page.docs.at(-1);

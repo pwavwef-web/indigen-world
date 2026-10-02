@@ -187,6 +187,7 @@ export interface PulseState {
 }
 
 export interface AccountSummary {
+  trainingTermsVersion?: string;
   status: string;
   requiresPasswordChange: boolean;
   defaultWork: string;

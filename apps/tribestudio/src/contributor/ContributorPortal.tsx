@@ -14,6 +14,7 @@ import './contributor.css';
 import './studio-refresh.css';
 import { artwork } from './artwork';
 import { SupportPage } from './SupportPage';
+import { CONTRIBUTOR_TRAINING_NOTICE, CONTRIBUTOR_TRAINING_TERMS_VERSION } from './trainingTerms';
 
 /**
  * The contributor portal at /contributor.
@@ -48,6 +49,7 @@ export function ContributorPortal() {
         requiresPasswordChange: snapshot.get('requiresPasswordChange') === true,
         defaultWork: String(snapshot.get('defaultWork') ?? ''),
         activatedAt: String(snapshot.get('activatedAt') ?? ''),
+        trainingTermsVersion: String(snapshot.get('trainingAgreement.version') ?? ''),
         phoneMasked: '',
       });
       setAccess('active');
@@ -95,6 +97,7 @@ export function ContributorPortal() {
   }
   if (access === 'loading' || !account) return <AuthFrame><p className="cw-auth__message" role="status">Checking your invitation…</p></AuthFrame>;
   if (account.requiresPasswordChange) return <AuthFrame><ContributorActivation /></AuthFrame>;
+  if (account.trainingTermsVersion !== CONTRIBUTOR_TRAINING_TERMS_VERSION) return <AuthFrame><ContributorTrainingAgreement /></AuthFrame>;
   return <ActiveWorkspace uid={user.uid} email={user.email ?? ''} displayName={user.displayName ?? ''} account={account} />;
 }
 
@@ -139,14 +142,16 @@ function ActiveWorkspace({ uid, email, displayName, account }: { uid: string; em
 export function ContributorActivation() {
   const [password, setPassword] = useState(''), [confirm, setConfirm] = useState('');
   const [busy, setBusy] = useState(false), [error, setError] = useState('');
+  const [accepted, setAccepted] = useState(false);
   return (
     <form className="contributor-auth" onSubmit={async (event) => {
       event.preventDefault();
       if (password !== confirm) { setError('The two passwords do not match.'); return; }
+      if (!accepted) { setError('Accept the contributor training agreement to continue.'); return; }
       setBusy(true); setError('');
       try {
         const email = auth.currentUser?.email;
-        await httpsCallable(functions, 'activateExpressionContributor')({ password });
+        await httpsCallable(functions, 'activateExpressionContributor')({ password, acceptTrainingTerms: true, trainingTermsVersion: CONTRIBUTOR_TRAINING_TERMS_VERSION });
         if (email) await signInWithEmailAndPassword(auth, email, password);
       } catch (reason) {
         setError(reason instanceof Error ? reason.message : 'Activation did not complete. Please try again.');
@@ -154,10 +159,12 @@ export function ContributorActivation() {
     }}>
       <h1>Choose your password</h1>
       <p>Replace the temporary password from your invitation with one only you know. Then your assignments open.</p>
+      <TrainingTerms accepted={accepted} onChange={setAccepted} busy={busy} />
       <label>New password<input type="password" autoComplete="new-password" minLength={8} maxLength={128} required value={password} onChange={(event) => setPassword(event.target.value)} /></label>
       <label>Confirm password<input type="password" autoComplete="new-password" minLength={8} maxLength={128} required value={confirm} onChange={(event) => setConfirm(event.target.value)} /></label>
       {error ? <p role="alert" className="cw-auth__error">{error}</p> : null}
-      <button className="cw-auth__primary" disabled={busy}>{busy ? 'Activating…' : 'Activate and open my workspace'}</button>
+      <button className="cw-auth__primary" disabled={busy || !accepted}>{busy ? 'Activating…' : 'Agree and activate my workspace'}</button>
+      <button type="button" className="cw-auth__secondary" disabled={busy} onClick={() => void signOutUser()}>Leave contributor portal</button>
     </form>
   );
 }
@@ -197,6 +204,7 @@ export function ContributorSignIn({ code }: { code: string | null }) {
         : reset
           ? 'Enter the email your invitation was sent to. We will email you a link to choose a new password.'
           : 'Sign in to pick up where you left off.'}</p>
+      {!reset && <p>All contributor submissions are used to train and evaluate our language models. Continue only if you agree. You will read and accept the full agreement before contributing.</p>}
       <label>Email<input type="email" autoComplete="username" required value={email} readOnly={Boolean(code)} onChange={(event) => setEmail(event.target.value)} /></label>
       {!reset ? <label>{code ? 'New password' : 'Password'}<input type="password" minLength={code ? 8 : undefined} required autoComplete={code ? 'new-password' : 'current-password'} value={password} onChange={(event) => setPassword(event.target.value)} /></label> : null}
       {!code && !reset ? <details className="cw-auth__help"><summary>First time here?</summary><p>Use your invited email and your phone number as the temporary password, including the country code (for example +233241234567). You’ll choose your own password after signing in.</p></details> : null}
@@ -210,3 +218,34 @@ export function ContributorSignIn({ code }: { code: string | null }) {
 }
 
 export type { WorkspaceData };
+
+function TrainingTerms({ accepted, onChange, busy }: { accepted: boolean; onChange: (value: boolean) => void; busy: boolean }) {
+  return <section className="permission-section">
+    <h2>Contributing means helping train our models</h2>
+    <p>{CONTRIBUTOR_TRAINING_NOTICE}</p>
+    <label className="contributor-check contributor-check--required">
+      <input type="checkbox" required checked={accepted} disabled={busy} onChange={event => onChange(event.target.checked)} />
+      <span>I agree that all my future contributor submissions will be used for model training and evaluation, and I have permission to contribute this content.</span>
+    </label>
+  </section>;
+}
+
+function ContributorTrainingAgreement() {
+  const [accepted, setAccepted] = useState(false), [busy, setBusy] = useState(false), [error, setError] = useState('');
+  return <form className="contributor-auth" onSubmit={async event => {
+    event.preventDefault();
+    if (!accepted) return;
+    setBusy(true); setError('');
+    try {
+      await httpsCallable(functions, 'acceptContributorTrainingTerms')({ acceptTrainingTerms: true, trainingTermsVersion: CONTRIBUTOR_TRAINING_TERMS_VERSION });
+    } catch (reason) { setError(reason instanceof Error ? reason.message : 'The agreement could not be saved. Try again.'); }
+    finally { setBusy(false); }
+  }}>
+    <h1>Before you continue contributing</h1>
+    <TrainingTerms accepted={accepted} onChange={setAccepted} busy={busy} />
+    <p>This agreement applies to new submissions. Earlier submissions keep their recorded permissions.</p>
+    {error && <p role="alert">{error}</p>}
+    <button className="cw-auth__primary" disabled={busy || !accepted}>{busy ? 'Saving…' : 'Agree and open my workspace'}</button>
+    <button type="button" className="cw-auth__secondary" disabled={busy} onClick={() => void signOutUser()}>Leave contributor portal</button>
+  </form>;
+}
