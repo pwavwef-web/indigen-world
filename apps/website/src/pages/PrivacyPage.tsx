@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useDocumentMeta } from "../lib/useDocumentMeta";
-import { useRevealOnScroll } from "../lib/useRevealOnScroll";
+import { useSiteMotion } from "../features/motion/SiteMotion";
 import { ROUTES_BY_PATH } from "../content/navigation";
 import { PRIVACY_SECTIONS } from "../content/privacy";
 import { Link, scrollToTop } from "../app/router";
@@ -11,18 +11,14 @@ const route = ROUTES_BY_PATH["privacy"];
 function PrivacyHero() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [motionAllowed, setMotionAllowed] = useState(false);
-  const [paused, setPaused] = useState(false);
+  const { paused, reduced, toggle } = useSiteMotion();
   const [failed, setFailed] = useState(false);
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    const preference = window.matchMedia("(prefers-reduced-motion: reduce)");
     const connection = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection;
-    const update = () => setMotionAllowed(!preference.matches && !connection?.saveData);
-    update();
-    preference.addEventListener("change", update);
-    return () => preference.removeEventListener("change", update);
-  }, []);
+    setMotionAllowed(!reduced && !connection?.saveData);
+  }, [reduced]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -43,7 +39,7 @@ function PrivacyHero() {
   }, [motionAllowed, paused, failed]);
 
   return (
-    <section className="privacy-hero" id="privacy-top" aria-labelledby="privacy-title">
+    <section className="privacy-hero" id="privacy-top" aria-labelledby="privacy-title" data-motion-theme="care">
       <div className="privacy-hero__art" aria-hidden="true">
         <img src="/images/privacy-stewardship.jpg" alt="" width="1280" height="720" fetchPriority="high" />
         {motionAllowed && !failed && <video
@@ -66,7 +62,7 @@ function PrivacyHero() {
       </div>
       <div className="container privacy-hero__foot">
         <span>AI-generated illustration inspired by community stewardship.</span>
-        {motionAllowed && !failed && <button type="button" className="privacy-motion" aria-pressed={paused} onClick={() => setPaused(value => !value)}>{paused ? "Play header animation" : "Pause header animation"}</button>}
+        {!reduced && <button type="button" className="privacy-motion" aria-pressed={paused} onClick={toggle}>{paused ? "Resume animations" : "Pause animations"}</button>}
       </div>
     </section>
   );
@@ -74,7 +70,6 @@ function PrivacyHero() {
 
 export function PrivacyPage() {
   useDocumentMeta(route.title, route.description);
-  useRevealOnScroll(route.path);
   // The app shell can attempt fragment scrolling before this lazy route mounts.
   useEffect(() => scrollToTop(), []);
 

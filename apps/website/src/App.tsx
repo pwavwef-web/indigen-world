@@ -1,3 +1,5 @@
+import { SiteMotionProvider } from "./features/motion/SiteMotion";
+import { useRevealOnScroll } from "./lib/useRevealOnScroll";
 import { Suspense, useEffect, useRef, useState } from "react";
 import { ToastProvider, Modal } from "@indigen-world/web-ui";
 import { useRoute, scrollToTop } from "./app/router";
@@ -9,7 +11,12 @@ import { PAGE_COMPONENTS, NotFoundPage } from "./pages";
 import { ROUTES_BY_PATH } from "./content/navigation";
 
 export function App() {
-  const { path } = useRoute();
+  return <SiteMotionProvider><AnimatedApp /></SiteMotionProvider>;
+}
+
+function AnimatedApp() {
+  const { path, params } = useRoute();
+  useRevealOnScroll(`${path}:${Object.values(params).join(":")}`);
   const hasMounted = useRef(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
 

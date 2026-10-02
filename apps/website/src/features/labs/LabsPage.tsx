@@ -1,3 +1,4 @@
+import { PageMotion } from "../../components/PageMotion";
 import {
   useCallback,
   useEffect,
@@ -347,6 +348,7 @@ function Catalogue({ experiments }: { experiments: Experiment[] }) {
   return (
     <>
       <div className="labs-page-heading">
+        <PageMotion placement="inline" />
         <p className="labs-eyebrow">THE EXPERIMENTS</p>
         <h1>Find your next small discovery.</h1>
         <p>
@@ -439,6 +441,7 @@ function ExperimentShell({
         ← All experiments
       </Link>
       <div className="labs-detail-heading">
+        <PageMotion placement="inline" />
         <div>
           <p className="labs-eyebrow">
             {experiment.category.toUpperCase()} /{" "}
@@ -685,24 +688,8 @@ export function LabsPage() {
                   Made for the curious. Built with the community.
                 </p>
               </div>
-              <div className="labs-hero-art" aria-hidden="true">
-                <div className="labs-orbit">
-                  <span className="labs-orbit-title">
-                    Learn
-                    <br />
-                    <em>Create</em>
-                    <br />
-                    Connect
-                  </span>
-                  <span className="labs-orbit-note">
-                    ROOTED IN CULTURE
-                    <br />
-                    OPEN TO POSSIBILITY
-                  </span>
-                </div>
-                <div className="labs-art-label">
-                  01 — An idea becomes something you can try.
-                </div>
+              <div className="labs-hero-art labs-hero-art--motion">
+                <PageMotion placement="art" />
               </div>
             </section>
             <section>
@@ -763,6 +750,7 @@ export function LabsPage() {
             <Activity key={user.uid} />
           ) : (
             <div className="labs-empty">
+              <PageMotion placement="inline" />
               <h1>My activity</h1>
               <p>
                 Sign in above to reopen your private drafts, practice sessions
@@ -790,6 +778,7 @@ export function LabsPage() {
             </>
           ) : (
             <div className="labs-empty">
+              <PageMotion placement="inline" />
               <h1>Admin access required</h1>
               <p>
                 This workspace is available to administrators with a trusted

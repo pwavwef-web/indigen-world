@@ -1,3 +1,4 @@
+import { PageMotion } from "../components/PageMotion";
 /**
  * src/pages/AboutPage.tsx
  *
@@ -8,7 +9,6 @@
  * the people responsible for it one shared home.
  */
 import { useDocumentMeta } from "../lib/useDocumentMeta";
-import { useRevealOnScroll } from "../lib/useRevealOnScroll";
 import { ROUTES_BY_PATH } from "../content/navigation";
 import { TEAM_MEMBERS } from "../content/team";
 import { Button } from "../components/Button";
@@ -18,11 +18,11 @@ const route = ROUTES_BY_PATH["about"];
 
 export function AboutPage() {
   useDocumentMeta(route.title, route.description);
-  useRevealOnScroll(route.path);
 
   return (
     <>
       <section className="page-hero page-hero--about">
+        <PageMotion />
         <div className="container">
           <SectionHeading
             eyebrow="Why Indigen World"

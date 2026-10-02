@@ -62,6 +62,32 @@ hierarchy, discovery paths, indexing policy and primary visitor journeys.
 
 ## Updating content
 
+### Page motion
+
+Public headers use themed Remotion Player illustrations; their theme mapping and SVG artwork live
+in `src/features/motion/`. `PageMotion` supplies a still fallback, lazy playback, an offscreen/tab
+visibility pause and the shared pause preference. `motion.css` handles ordinary document heading,
+scroll and card motion. The app observes lazy content through `useRevealOnScroll`; content is only
+hidden after it has an observer. The privacy page retains its stewardship video and shares the saved
+pause choice. The existing Beyond the Reef film retains its own playback.
+
+Preview motion in the normal Vite website. No video export or Studio server is required for the
+embedded Player. Keep `remotion` and `@remotion/player` pinned to the same version.
+
+For browser verification, build the site, start the production preview on port 5174, and run from
+the repository root:
+
+```bash
+npm run test:motion --workspace @indigen-world/website
+```
+
+The check uses `playwright-core` and an installed Chrome/Edge. `CHROMIUM_EXECUTABLE` can select another
+browser executable; `PLAYWRIGHT_PACKAGE` can point to a bundled Playwright module if dependencies
+are provided separately. `MOTION_PREVIEW_URL` overrides the default preview URL. Checks cover route
+layouts, playback, pause persistence, visibility handling, live reduced-motion changes, and a failed
+Player download. The independent Blogger feed is blocked for these local checks. Signed-in service
+workflows are not part of the animation test.
+
 Editable product, status, team, principle and Project Kassena copy lives under `src/content/`.
 Navigation and route metadata live in `src/content/navigation.ts`. Page layouts live under
 `src/pages/`; shared UI is under `src/components/`; form behavior is under `src/features/forms/`.

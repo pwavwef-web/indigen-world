@@ -1,3 +1,4 @@
+import { PageMotion } from "../components/PageMotion";
 /**
  * src/pages/NotFoundPage.tsx
  *
@@ -17,6 +18,7 @@ export function NotFoundPage() {
 
   return (
     <section className="section not-found" aria-labelledby="not-found-title">
+      <PageMotion />
       <div className="not-found__glow not-found__glow--one" aria-hidden="true" />
       <div className="not-found__glow not-found__glow--two" aria-hidden="true" />
       <div className="container not-found__layout">

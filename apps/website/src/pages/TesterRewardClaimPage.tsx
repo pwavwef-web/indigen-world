@@ -1,3 +1,4 @@
+import { PageMotion } from "../components/PageMotion";
 import { SectionHeading } from "../components/SectionHeading";
 import { TesterRewardClaimForm } from "../features/forms/TesterRewardClaimForm";
 import { useDocumentMeta } from "../lib/useDocumentMeta";
@@ -21,6 +22,7 @@ export function TesterRewardClaimPage() {
   return (
     <>
       <section className="page-hero page-hero--tester-claim">
+        <PageMotion />
         <div className="container">
           <SectionHeading eyebrow="Indigen World testing programme" title="Claim your Founding Tester recognition." body="Thank you for giving your time, care and honest feedback during this testing cycle. Use this private-distribution form to tell us how your recognition should appear." light as="h1" />
         </div>

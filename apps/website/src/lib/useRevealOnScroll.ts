@@ -1,42 +1,39 @@
-/**
- * src/lib/useRevealOnScroll.ts
- *
- * Powers the subtle fade/rise-in effect on `[data-reveal]` elements as
- * they scroll into view — carried over from the uploaded template's
- * inline IntersectionObserver effect in App.tsx, extracted into a
- * reusable hook so it can re-run whenever the route changes (each page
- * mounts a fresh set of `[data-reveal]` elements that need observing).
- *
- * Respects `prefers-reduced-motion`: reduced-motion users get every
- * element visible immediately rather than animated, matching the
- * brief's requirement to honour that OS-level preference.
- */
-import { useEffect } from "react";
+import { useEffect } from 'react';
+import { useSiteMotion } from '../features/motion/SiteMotion';
 
+/** Observe lazy route content and new cards without hiding unobserved content. */
 export function useRevealOnScroll(dependency: unknown): void {
+  const { paused, reduced } = useSiteMotion();
   useEffect(() => {
-    const revealItems = Array.from(document.querySelectorAll<HTMLElement>("[data-reveal]"));
-
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      revealItems.forEach((item) => item.classList.add("is-visible"));
-      return undefined;
-    }
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add("is-visible");
-            observer.unobserve(entry.target);
-          }
-        });
-      },
-      { threshold: 0.14 }
-    );
-
-    revealItems.forEach((item) => observer.observe(item));
-    return () => observer.disconnect();
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional:
-    // re-scan whenever `dependency` (the current route) changes.
-  }, [dependency]);
+    const root = document.getElementById('main-content');
+    if (!root) return;
+    const selector = '[data-reveal], .section-heading, .journey-card, .product-card, .involvement-route-card, .audience-card, .today-path, .update-card, .labs-card, .labs-panel, .legal-copy > h2, .kicker-list > li, .process-list > li, .contribute-task > li, .contribute-review > li';
+    const seen = new WeakSet<Element>();
+    const observer = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('is-visible');
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0, rootMargin: '0px 0px -24px 0px' });
+    const scan = () => root.querySelectorAll<HTMLElement>(selector).forEach(item => {
+      if (seen.has(item)) return;
+      seen.add(item);
+      if (item.parentElement?.closest(selector)) return;
+      if (paused || reduced) { item.classList.add('is-visible'); return; }
+      if (item.getBoundingClientRect().top < window.innerHeight) {
+        item.classList.add('is-visible');
+      } else {
+        const siblings = Array.from(item.parentElement?.children ?? []);
+        item.style.setProperty('--reveal-delay', `${Math.min(siblings.indexOf(item), 4) * 65}ms`);
+        item.classList.add('motion-ready');
+        observer.observe(item);
+      }
+    });
+    scan();
+    const mutations = new MutationObserver(scan);
+    mutations.observe(root, { childList: true, subtree: true });
+    return () => { observer.disconnect(); mutations.disconnect(); };
+  }, [dependency, paused, reduced]);
 }

@@ -144,7 +144,7 @@ button {
  * so gating the reveal on JS is not a content-visibility regression.
  */
 @media (prefers-reduced-motion: no-preference) {
-  [data-reveal] {
+  [data-reveal].motion-ready {
     opacity: 0;
     transform: translateY(14px);
     transition:
@@ -152,7 +152,7 @@ button {
       transform var(--motion-duration) var(--motion-ease);
     will-change: opacity, transform;
   }
-  [data-reveal].is-visible {
+  [data-reveal].motion-ready.is-visible {
     opacity: 1;
     transform: none;
   }

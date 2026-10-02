@@ -1,3 +1,4 @@
+import { PageMotion } from "../components/PageMotion";
 /**
  * src/pages/TermsPage.tsx
  *
@@ -23,6 +24,7 @@ export function TermsPage() {
   return (
     <>
       <section className="page-hero page-hero--legal">
+        <PageMotion />
         <div className="container">
           <SectionHeading eyebrow="Legal" title="Terms of use" light as="h1" />
         </div>

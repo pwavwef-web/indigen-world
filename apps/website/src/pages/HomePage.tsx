@@ -1,5 +1,5 @@
+import { PageMotion } from "../components/PageMotion";
 import { useDocumentMeta } from "../lib/useDocumentMeta";
-import { useRevealOnScroll } from "../lib/useRevealOnScroll";
 import { ROUTES_BY_PATH } from "../content/navigation";
 import { IMPACT_TARGETS } from "../content/kasena";
 import { Button } from "../components/Button";
@@ -11,7 +11,6 @@ const route = ROUTES_BY_PATH.home;
 
 export function HomePage() {
   useDocumentMeta(route.title, route.description);
-  useRevealOnScroll(route.path);
   return <>
     <section className="hero" id="top">
       <div className="hero__pattern" aria-hidden="true" />
@@ -27,7 +26,7 @@ export function HomePage() {
           </div>
           <p className="tiny">No account needed to browse. Contributing uses a free Google sign-in, so you can follow the review.</p>
         </div>
-        <div className="hero-visual" aria-hidden="true" data-reveal />
+        <div className="hero-visual"><PageMotion placement="art" /></div>
       </div>
     </section>
     <section className="section section--white" id="find-your-path">
