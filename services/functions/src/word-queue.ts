@@ -575,13 +575,10 @@ async function applyQueueOutcome(
  * thousand commonest words 1..1000 and everything else from 1000 up, so rank
  * order *is* frequency order and no second sort field is needed.
  */
-export const nextQueueWords = onCall(CALLABLE_OPTIONS, async (req) => {
-  const uid = requireAuth(req);
-  await consumeRateLimit('nextQueueWords', uid, 60);
-  const limit = parseQueueBatchLimit(req.data);
-
+export async function queueBatchFor(uid: string, limit: number, excluded: string[] = []) {
   const db = getFirestore();
-  const progress = await readProgress(db, uid);
+  const saved = await readProgress(db, uid);
+  const progress = { ...saved, skipped: [...saved.skipped, ...excluded] };
 
   let cursor: DocumentSnapshot | null = null;
   const batch = await scanQueueBatch(progress, limit, async (size) => {
@@ -606,6 +603,12 @@ export const nextQueueWords = onCall(CALLABLE_OPTIONS, async (req) => {
     // back, try again" — which are very different messages to a volunteer.
     exhausted: batch.exhausted,
   };
+}
+
+export const nextQueueWords = onCall(CALLABLE_OPTIONS, async (req) => {
+  const uid = requireAuth(req);
+  await consumeRateLimit('nextQueueWords', uid, 60);
+  return queueBatchFor(uid, parseQueueBatchLimit(req.data));
 });
 
 // ---------------------------------------------------------------------------
@@ -1194,7 +1197,22 @@ async function reviseQueueAnswer(
  * next batch already deprioritises the word), and the trigger's first firing
  * finds the ledger agreeing with the status and does nothing at all.
  */
-export const submitWordTranslation = onCall(CALLABLE_OPTIONS, async (req) => {
+export interface QueueTranslationReceipt {
+  wordId: string;
+  contributionId: string;
+  submissionId: string;
+  translations: readonly string[];
+  status: 'SUBMITTED';
+}
+
+/** Trusted callers can commit a checkpoint in the same transaction as its real answer. */
+export async function submitQueueTranslation(
+  req: Parameters<typeof requireAuth>[0],
+  checkpoint?: {
+    validate(tx: FirebaseFirestore.Transaction): Promise<QueueTranslationReceipt | null>;
+    complete(tx: FirebaseFirestore.Transaction, receipt: QueueTranslationReceipt): void;
+  },
+): Promise<QueueTranslationReceipt | JsonRecord> {
   const uid = requireAuth(req);
   await consumeRateLimit('submitWordTranslation', uid, 60);
   const input = parseWordTranslationInput(req.data, uid);
@@ -1211,6 +1229,8 @@ export const submitWordTranslation = onCall(CALLABLE_OPTIONS, async (req) => {
   const now = nowIso();
 
   return db.runTransaction(async (tx) => {
+    const previous = await checkpoint?.validate(tx);
+    if (previous) return previous;
     const [wordSnap, progressSnap, campaignSnap] = await tx.getAll(
       wordRef,
       progressRef,
@@ -1323,15 +1343,19 @@ export const submitWordTranslation = onCall(CALLABLE_OPTIONS, async (req) => {
       occurredAt: now,
     });
 
-    return {
+    const receipt: QueueTranslationReceipt = {
       wordId: input.wordId,
       contributionId: contributionRef.id,
       submissionId: submissionRef.id,
       translations: input.translations,
       status: 'SUBMITTED' as const,
     };
+    checkpoint?.complete(tx, receipt);
+    return receipt;
   });
-});
+}
+
+export const submitWordTranslation = onCall(CALLABLE_OPTIONS, async (req) => submitQueueTranslation(req));
 
 // ---------------------------------------------------------------------------
 // Closing the loop

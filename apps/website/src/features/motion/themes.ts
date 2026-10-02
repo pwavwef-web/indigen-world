@@ -9,7 +9,7 @@ export function themeForPage(path: string): MotionTheme {
     communities: 'community', post: 'story', 'ads/payment-complete': 'complete',
     'founding-tester-claim-7q4m9x2k': 'complete',
     labs: 'discovery', 'labs/experiments': 'network', 'labs/kasem-practice': 'language',
-    'labs/cultural-story': 'story', 'labs/culture-quest': 'compass',
+    'labs/cultural-story': 'story', 'labs/culture-quest': 'compass', 'labs/word-trail': 'compass',
     'labs/activity': 'review', 'labs/updates': 'message', 'labs/admin': 'care',
   };
   return themes[path] ?? 'compass';

@@ -18,6 +18,7 @@ import type {
 } from "@indigen-world/contracts/labs";
 import { requireAuth, requireRole, roleSatisfies } from "./auth.js";
 import { consumeRateLimit } from "./rate-limit.js";
+import { runnerAction } from "./labs-runner.js";
 import { generateStructured } from "./kawuri-vertex.js";
 import { googleProjectId } from "./google-api-auth.js";
 import {
@@ -348,6 +349,8 @@ export const labsApi = onCall(options, async (req) => {
     return { session };
   }
   const uid = requireAuth(req);
+  if (["runner", "beginRunnerSection", "runnerCheckpoint", "runnerWord", "submitRunnerWord"].includes(action))
+    return runnerAction(req, d, access);
   if (action === "quest" || action === "submitQuest") {
     const day = now().slice(0, 10);
     const ref = db.doc(`labsQuests/${uid}`);

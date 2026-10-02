@@ -112,3 +112,34 @@ export interface LabsAudit {
   occurredAt: string;
 }
 export const LABS_REGISTRY: readonly Experiment[];
+export interface RunnerWord {
+  id: string;
+  word: string;
+  sentence: string;
+  sentenceSource: string;
+  attribution: { tatoebaId: string; contributor: string; licence: string } | null;
+  tier: string;
+  rank: number;
+  pendingCount: number;
+}
+export interface RunnerReceipt {
+  wordId: string;
+  contributionId: string;
+  submissionId: string;
+  translations: readonly string[];
+  status: "SUBMITTED";
+}
+export interface RunnerRun {
+  id: string;
+  uid: string;
+  version: string;
+  section: number;
+  phase: "ready" | "running" | "checkpoint";
+  score: number;
+  checkpoints: number;
+  word: RunnerWord | null;
+  skippedWordIds: string[];
+  startedAt: string | null;
+  updatedAt: string;
+  lastReceipt: (RunnerReceipt & { section: number }) | null;
+}

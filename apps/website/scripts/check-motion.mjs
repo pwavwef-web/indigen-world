@@ -15,7 +15,7 @@ const browser = await chromium.launch({ executablePath, headless: true });
 const routes = ['/', '/about', '/ecosystem', '/project-kassena', '/dictionary', '/contribute',
   '/impact-governance', '/get-involved', '/contact', '/privacy', '/terms', '/post', '/communities',
   '/ads/payment-complete', '/founding-tester-claim-7q4m9x2k', '/labs', '/labs/experiments',
-  '/labs/kasem-practice', '/labs/cultural-story', '/labs/culture-quest', '/labs/activity',
+  '/labs/kasem-practice', '/labs/cultural-story', '/labs/culture-quest', '/labs/word-trail', '/labs/activity',
   '/labs/updates', '/labs/admin', '/beyond-the-reef', '/not-a-public-page'];
 const screenshots = process.argv.includes('--screenshots');
 const repoRoot = fileURLToPath(new URL('../../../', import.meta.url));

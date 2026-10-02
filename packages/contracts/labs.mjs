@@ -1,6 +1,16 @@
 /** Public registry; lifecycle, access and availability are independent. */
 export const LABS_REGISTRY = [
   {
+    id: "word-trail", slug: "word-trail", name: "Word Trail",
+    purpose: "Run the trail. Keep your language moving.",
+    category: "Contributing", status: "alpha", access: "signed-in",
+    enabled: true, version: "0.1.0", updatedAt: "2026-10-02",
+    instructions: "Dodge between three lanes, jump over logs and collect sparks. Every 300 metres, translate a real English word from your queue into Kasem to open the next section. Use arrow keys or the touch controls. You can choose another word if you are unsure.",
+    limitations: "Translations are saved for community review before the trail resumes; saving does not verify their accuracy. Game points are separate from contributor rewards and money. Sign-in and an internet connection are required at checkpoints. An empty queue keeps the gate closed. Reloading restarts the current running section; saved checkpoints and points remain.",
+    destination: "https://tribestudio.indigenworld.com/contributor", destinationLabel: "Follow your translations in TribeStudio",
+    feedbackTypes: ["bug", "language issue", "usability", "suggestion", "positive feedback"],
+  },
+  {
     id: "culture-quest", slug: "culture-quest", name: "Culture Quest",
     purpose: "Play a small expedition. Help living culture grow.",
     category: "Contributing", status: "alpha", access: "signed-in",

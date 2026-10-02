@@ -24,6 +24,7 @@ import {
 import { PracticeWorkspace, StoryWorkspace } from "./workspaces";
 import { Activity, Admin, Updates } from "./records";
 import { QuestWorkspace } from "./quest";
+import { RunnerWorkspace } from "./runner";
 import "./labs.css";
 
 export function useTask() {
@@ -261,7 +262,7 @@ function Preview({ experiment }: { experiment: Experiment }) {
       className={`labs-preview labs-preview-${experiment.id}`}
       aria-hidden="true"
     >
-      {experiment.id === "culture-quest" ? (<><span className="labs-preview-label">PLAY / CONTRIBUTE</span><div className="labs-preview-word">Explore.<br />Contribute.<br /><em>Level up.</em></div><span className="labs-preview-foot">Three missions. A living archive.</span></>) : experiment.id === "kasem-practice" ? (
+      {experiment.id === "word-trail" ? (<><span className="labs-preview-label">RUN / CONTRIBUTE</span><div className="labs-preview-word">Dodge.<br />Translate.<br /><em>Keep going.</em></div><span className="labs-preview-foot">A word opens the next section.</span></>) : experiment.id === "culture-quest" ? (<><span className="labs-preview-label">PLAY / CONTRIBUTE</span><div className="labs-preview-word">Explore.<br />Contribute.<br /><em>Level up.</em></div><span className="labs-preview-foot">Three missions. A living archive.</span></>) : experiment.id === "kasem-practice" ? (
         <>
           <span className="labs-preview-label">KASEM / PRACTICE</span>
           <div className="labs-preview-word">
@@ -423,7 +424,7 @@ function ExperimentShell({
       loaded &&
       experiment.enabled &&
       !retired &&
-      (experiment.id !== "culture-quest" || !!userId) &&
+      (!["culture-quest", "word-trail"].includes(experiment.id) || !!userId) &&
       (experiment.access === "public" || !!userId) &&
       (experiment.access !== "invited testers" ||
         invited.includes(experiment.id) ||
@@ -457,7 +458,7 @@ function ExperimentShell({
           <h2>
             {experiment.id === "kasem-practice"
               ? "A few minutes of practice"
-              : experiment.id === "culture-quest" ? "An expedition with a purpose" : "A story starts here"}
+              : experiment.id === "word-trail" ? "Every word takes you further" : experiment.id === "culture-quest" ? "An expedition with a purpose" : "A story starts here"}
           </h2>
           {!allowed &&
           !(
@@ -492,6 +493,8 @@ function ExperimentShell({
                         : "The team is testing this version with a smaller group."}
               </p>
             </div>
+          ) : experiment.id === "word-trail" ? (
+            <RunnerWorkspace key={userId} />
           ) : experiment.id === "culture-quest" ? (
             <QuestWorkspace key={userId} />
           ) : experiment.id === "kasem-practice" ? (

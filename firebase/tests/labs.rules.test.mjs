@@ -25,7 +25,7 @@ before(async () => {
     projectId: "demo-labs-rules",
     firestore: {
       host: "127.0.0.1",
-      port: 8080,
+      port: 8080 + Number(process.env.LABS_TEST_PORT_OFFSET || 0),
       rules: readFileSync(
         new URL("../firestore.rules", import.meta.url),
         "utf8",
@@ -38,6 +38,7 @@ before(async () => {
       "labsDrafts/private": { uid: "alice", creative: "private text" },
       "labsSessions/session": { uid: "alice" },
       "labsQuests/alice": { uid: "alice", xp: 20 },
+      "labsRunners/alice": { uid: "alice", score: 300, phase: "checkpoint" },
       "labsFeedback/report": { uid: "alice", status: "submitted" },
       "labsFeedbackNotes/report": { notes: "staff only" },
       "labsExperiments/kasem-practice": { enabled: true },
@@ -54,6 +55,12 @@ const db = (uid, role) =>
   uid
     ? env.authenticatedContext(uid, role ? { role } : {}).firestore()
     : env.unauthenticatedContext().firestore();
+test("Word Trail state is callable-only; even its owner cannot read or forge progress directly", async () => {
+  for (const context of [db(), db("alice"), db("bob"), db("staff", "admin")]) {
+    await assertFails(getDoc(doc(context, "labsRunners/alice")));
+    await assertFails(setDoc(doc(context, "labsRunners/alice"), { uid: "alice", score: 999999, phase: "ready" }));
+  }
+});
 test("only the owner reads private drafts and sessions, including against administrators", async () => {
   for (const path of ["labsDrafts/private", "labsSessions/session", "labsQuests/alice"]) {
     await assertSucceeds(getDoc(doc(db("alice"), path)));

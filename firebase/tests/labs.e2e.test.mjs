@@ -40,7 +40,7 @@ async function client(name, uid, role) {
     name,
   );
   apps.push(app);
-  connectAuthEmulator(getAuth(app), "http://127.0.0.1:9099", {
+  connectAuthEmulator(getAuth(app), `http://${process.env.FIREBASE_AUTH_EMULATOR_HOST || "127.0.0.1:9099"}`, {
     disableWarnings: true,
   });
   if (uid)
@@ -49,7 +49,7 @@ async function client(name, uid, role) {
       await adminAuth(adminApp).createCustomToken(uid, role ? { role } : {}),
     );
   const functions = getFunctions(app);
-  connectFunctionsEmulator(functions, "127.0.0.1", 5001);
+  connectFunctionsEmulator(functions, "127.0.0.1", 5001 + Number(process.env.LABS_TEST_PORT_OFFSET || 0));
   return async (action, data = {}) =>
     (await httpsCallable(functions, "labsApi")({ ...data, action })).data;
 }
@@ -84,6 +84,69 @@ before(async () => {
 after(async () => {
   for (const app of apps) await deleteApp(app);
   await adminDelete(adminApp);
+});
+
+test("Word Trail gates require a real queue answer; saving and duplicate retries unlock exactly once", async () => {
+  await assert.rejects(guest("runner"), e => e.code === "functions/unauthenticated");
+  for (const [n, word] of [[1, "DEVELOPMENT WORD A"], [2, "DEVELOPMENT WORD B"], [3, "DEVELOPMENT WORD C"]])
+    await db.doc(`wordQueue/labs-runner-${n}`).set({ word, sentence: "Disposable integration fixture.", status: "open", rank: n, pendingCount: 0, approvedCount: 0 });
+  let { run } = await member("runner", { restart: true });
+  const params = { id: run.id, section: run.section };
+  await assert.rejects(other("beginRunnerSection", params), e => ["functions/not-found", "functions/failed-precondition"].includes(e.code));
+  await assert.rejects(member("runnerCheckpoint", { ...params, score: 300 }), e => e.code === "functions/failed-precondition");
+  await member("beginRunnerSection", params);
+  await assert.rejects(member("runnerCheckpoint", { ...params, score: 300 }), e => e.code === "functions/failed-precondition");
+  await db.doc("labsRunners/labs-e2e-member").update({ startedAt: new Date(Date.now() - 31000).toISOString() });
+  await assert.rejects(member("runnerCheckpoint", { ...params, score: 99999 }), e => e.code === "functions/invalid-argument");
+  ({ run } = await member("runnerCheckpoint", { ...params, score: 340 }));
+  assert.equal(run.phase, "checkpoint"); assert.equal(run.score, 340);
+  assert.ok(run.word.id.startsWith("labs-runner-"));
+  await assert.rejects(member("beginRunnerSection", params), e => e.code === "functions/failed-precondition");
+  const firstWord = run.word.id;
+  ({ run } = await member("runnerWord", { ...params, another: true }));
+  assert.notEqual(run.word.id, firstWord); assert.equal(run.phase, "checkpoint");
+  const answer = { ...params, translations: "DEVELOPMENT TRANSLATION", dialect: "Disposable fixture", partOfSpeech: "noun", publicationPermission: false, aiTraining: false, credit: "anonymous" };
+  await assert.rejects(member("submitRunnerWord", { ...answer, translations: " " }), e => e.code === "functions/invalid-argument");
+  assert.equal((await member("runner")).run.phase, "checkpoint");
+  const responses = await Promise.all([member("submitRunnerWord", answer), member("submitRunnerWord", answer)]);
+  const finished = responses[0].run;
+  assert.equal(finished.section, 2); assert.equal(finished.phase, "ready");
+  assert.equal(finished.score, 440); assert.equal(finished.checkpoints, 1);
+  assert.equal(responses[1].run.lastReceipt.contributionId, finished.lastReceipt.contributionId);
+  const contribution = await db.doc(`collectionContributions/${finished.lastReceipt.contributionId}`).get();
+  const submission = await db.doc(`submissions/${finished.lastReceipt.submissionId}`).get();
+  assert.equal(contribution.get("wordQueueId"), run.word.id);
+  assert.equal(submission.get("wordQueueId"), run.word.id);
+  assert.equal(submission.get("permissions.aiTraining"), false);
+  const retry = await member("submitRunnerWord", answer); assert.equal(retry.run.score, 440);
+  assert.equal((await member("runner")).run.checkpoints, 1);
+  await member("beginRunnerSection", { id: finished.id, section: 2 });
+  await db.doc("labsRunners/labs-e2e-member").update({ startedAt: new Date(Date.now() - 31000).toISOString() });
+  const next = await member("runnerCheckpoint", { id: finished.id, section: 2, score: 300 });
+  assert.notEqual(next.run.word.id, run.word.id);
+  await admin("adminConfig", { experimentId: "word-trail", enabled: false, status: "alpha", access: "signed-in", version: "0.1.0", limitations: "Paused test" });
+  await assert.rejects(member("runner"), e => e.code === "functions/failed-precondition");
+  await db.doc("labsExperiments/word-trail").set(LABS_REGISTRY.find(e => e.id === "word-trail"));
+});
+
+test("Word Trail empty queue stays gated and invitation/retirement controls apply", async () => {
+  const all = await db.collection("wordQueue").get();
+  await db.doc("wordQueueProgress/labs-e2e-other").set({ uid: "labs-e2e-other", answered: all.docs.map(d => d.id), skipped: [] });
+  const { run } = await other("runner", { restart: true });
+  const params = { id: run.id, section: 1 };
+  await other("beginRunnerSection", params);
+  await db.doc("labsRunners/labs-e2e-other").update({ startedAt: new Date(Date.now() - 31000).toISOString() });
+  const gate = await other("runnerCheckpoint", { ...params, score: 300 });
+  assert.equal(gate.run.word, null); assert.equal(gate.run.phase, "checkpoint");
+  await assert.rejects(other("beginRunnerSection", params), e => e.code === "functions/failed-precondition");
+  const base = LABS_REGISTRY.find(e => e.id === "word-trail");
+  await db.doc("labsExperiments/word-trail").set({ ...base, access: "invited testers" });
+  await assert.rejects(other("runner"), e => e.code === "functions/permission-denied");
+  await db.doc("labsTesters/labs-e2e-other").set({ experiments: ["word-trail"] });
+  assert.equal((await other("runner")).run.id, run.id);
+  await db.doc("labsExperiments/word-trail").set({ ...base, status: "retired" });
+  await assert.rejects(other("runner"), e => e.code === "functions/failed-precondition");
+  await db.doc("labsExperiments/word-trail").set(base);
 });
 test("guests can discover; signed-in controls do not execute for guests", async () => {
   const boot = await guest("bootstrap");
@@ -384,7 +447,7 @@ test("admin role is server-enforced, controls are audited and pause covers prote
   );
   assert.equal((await member("getDraft", { id: savedId })).draft.id, savedId);
   await admin("adminConfig", { ...config, experimentId: config.id });
-  const practice = LABS_REGISTRY[0];
+  const practice = LABS_REGISTRY.find(e => e.id === "kasem-practice");
   await admin("adminConfig", {
     ...practice,
     experimentId: practice.id,
@@ -400,7 +463,7 @@ test("admin role is server-enforced, controls are audited and pause covers prote
   );
 });
 test("invitation changes are trusted, and retirement/graduation stop execution", async () => {
-  const practice = LABS_REGISTRY[0];
+  const practice = LABS_REGISTRY.find(e => e.id === "kasem-practice");
   await admin("adminConfig", {
     ...practice,
     experimentId: practice.id,

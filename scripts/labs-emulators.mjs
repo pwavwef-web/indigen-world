@@ -30,6 +30,15 @@ writeFileSync(
 const mainConfig = JSON.parse(
   readFileSync(resolve(root, "firebase.json"), "utf8"),
 );
+const portOffset = Number(process.env.LABS_TEST_PORT_OFFSET || 0);
+if (!Number.isInteger(portOffset) || portOffset < 0 || portOffset > 1000)
+  throw new Error("LABS_TEST_PORT_OFFSET must be an integer from 0 to 1000.");
+if (portOffset) {
+  for (const config of Object.values(mainConfig.emulators))
+    if (config && typeof config === "object" && typeof config.port === "number") config.port += portOffset;
+  mainConfig.emulators.hub = { port: 4400 + portOffset };
+  mainConfig.emulators.logging = { port: 4500 + portOffset };
+}
 writeFileSync(
   localConfig,
   JSON.stringify(

@@ -13,6 +13,7 @@
     "typecheck": "tsc -b --pretty false",
     "test": "node ./scripts/validate-site.mjs",
     "test:motion": "node ./scripts/check-motion.mjs",
+    "test:runner": "node --test ./scripts/runner-engine.test.mjs && node ./scripts/check-runner.mjs",
     "check": "npm run typecheck && npm test && npm run build"
   },
   "dependencies": {

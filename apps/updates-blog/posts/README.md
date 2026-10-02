@@ -6,6 +6,8 @@ date identifies when the post was prepared; it does not prove the update is live
 
 ## Posts
 
+- [2026-10-02: Run the trail, share a word — Word Trail](2026-10-02-word-trail/README.md) — three-lane runner with real word queue translation checkpoints; local gameplay, backend integration and responsive checks passed. Production verification and Blogger publication pending. Includes actual component screenshots with labelled simulated account/queue.
+
 - [2026-10-02: A Community feed built around culture and choice](2026-10-02-community-feed-algorithm/README.md) — unpublished development preview; backend deployed and APIs verified October 2. Opt-in behavioral ranking, distinct-actor trends, emerging voices and cultural diversity; mobile flag disabled and app rollout pending. Includes an original workflow illustration.
 
 - [2026-10-02: A little movement, with a purpose](2026-10-02-public-website-in-motion/README.md) — themed public-page and Labs animations, scroll reveals and motion preferences; deployed October 2 with verified production assets. Blogger publication pending. Includes actual preview screenshots.
