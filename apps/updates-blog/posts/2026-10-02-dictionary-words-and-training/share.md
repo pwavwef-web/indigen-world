@@ -4,4 +4,4 @@ The dictionary is for words. Whole expressions stay together in our language dat
 
 Read the update: **[PUBLISHED ARTICLE URL — replace after Chinedum publishes]**
 
-Current status: draft copy; deployment and dictionary cleanup are pending. Do not share this as a live release yet.
+Current status: backend and web changes are live and production dictionary cleanup is verified. The Android reader update is pending; the Blogger article remains unpublished. Chinedum can publish the article and replace the URL above before sharing.

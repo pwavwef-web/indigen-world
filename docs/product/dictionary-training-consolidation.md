@@ -1,6 +1,6 @@
 # Dictionary collection and training consolidation
 
-2026-10-02 update: the invited contributor portal now has a separate required training agreement and dictionary word filtering, implemented locally with deployment pending. See [Dictionary words and contributor training agreement](dictionary-word-scope-and-training.md). This earlier proposed consolidation still describes community word/evidence collection; its optional-purpose design does not define the new portal agreement.
+2026-10-02 update: the invited contributor portal now has a separate required training agreement and dictionary word filtering, deployed with production dictionary cleanup verified. See [Dictionary words and contributor training agreement](dictionary-word-scope-and-training.md). This earlier proposed consolidation still describes community word/evidence collection; its optional-purpose design does not define the new portal agreement.
 
 Assessment: 2026-09-11. Queue fixes implemented locally; the consolidation below is a proposed implementation design. No production inventory, migration or training run has been performed.
 

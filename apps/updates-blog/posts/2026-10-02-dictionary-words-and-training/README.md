@@ -1,6 +1,6 @@
 # Words in the dictionary, expressions for model learning
 
-Status: **Draft article. Implemented and verified locally on 2026-10-02. Not deployed. Production dictionary cleanup, Android release, model training, Blogger publication and sharing have not been performed.**
+Status: **Unpublished article. Backend and web hosting deployed and verified on 2026-10-02; production dictionary cleanup complete. Android app release, model training, Blogger publication and sharing have not been performed.**
 
 | Field | Value |
 |---|---|
@@ -28,10 +28,14 @@ Status: **Draft article. Implemented and verified locally on 2026-10-02. Not dep
 
 ## Deployment and publication handoff
 
-1. Deploy `activateExpressionContributor`, `acceptContributorTrainingTerms`, `saveExpressionAnswer`, `onContributorExpressionReviewed`, `inviteExpressionContributor`, `resendContributorInvitation` and `decideSubmission`; release TribeStudio, website and standalone dictionary hosting. No new Firestore rule or index is required for this implementation.
+1. Completed October 2: deploy `activateExpressionContributor`, `acceptContributorTrainingTerms`, `saveExpressionAnswer`, `onContributorExpressionReviewed`, `inviteExpressionContributor`, `resendContributorInvitation` and `decideSubmission`; release TribeStudio, website and standalone dictionary hosting. No new Firestore rule or index is required for this implementation.
 2. Build and release the mobile app containing the dictionary reader change. Server cleanup also removes classified expression copies from older app versions’ published queries.
-3. Run the cleanup with Application Default Credentials in dry-run mode, review the inventory and then apply it using the commands in `docs/product/dictionary-word-scope-and-training.md`. Keep the inventory and audit evidence. No production inventory has been performed here.
-4. Verify activation with an invited account, the agreement gate for an existing account, submission with training permission, review, export, withdrawal and public dictionary results. Confirm the actual released versions and cleanup counts in this README.
+3. Completed October 2: dry-run inventory, recovery snapshot, transactional cleanup and verification using the commands in `docs/product/dictionary-word-scope-and-training.md`. Inventory and audit evidence are retained: 38 expression copies retired, 340 other published entries retained, 38 source submissions unchanged, 30 permitted training pairs preserved and 8 earlier refusals retained. Repeat inventory: zero candidates.
+4. Emulator agreement, activation, submission, cleanup/export and withdrawal checks passed. Hosting assets and callable authentication were verified live; a real contributor activation was not exercised. For a subsequent human acceptance check, verify activation with an invited account, the agreement gate for an existing account, submission with training permission, review, export, withdrawal and public dictionary results. Confirm the actual released versions and cleanup counts in this README.
 5. Only after those checks, update the availability paragraph in `post.html`, upload the images, paste the article into Blogger HTML view and set the metadata above. Preview on desktop and phone, then Chinedum can publish and replace the article URL placeholder in `share.md`.
 
 Preparation does not authorize external publication or messaging. Chinedum owns the publishing and sharing handoff.
+
+## Confirmed release evidence
+
+Implementation commit: `a1e5098109e44e86fcd7ca15c82c4fd46e256690`. All seven function updates and Hosting releases for TribeStudio, indigen-world and kasem-dictionary succeeded. Live asset hashes, including the contributor agreement chunk, matched the release build on default URLs and the TribeStudio/public-site custom domains. The website's existing advertising configuration was verified. Private recovery evidence is retained under ignored production-backups and .labs-local paths documented in the product runbook. Existing app clients need a refresh/sync; no new Android binary has been distributed.
