@@ -8,7 +8,7 @@ date identifies when the post was prepared; it does not prove the update is live
 
 - [2026-10-02: A Community feed built around culture and choice](2026-10-02-community-feed-algorithm/README.md) — unpublished development preview; opt-in behavioral ranking, distinct-actor trends, emerging voices and cultural diversity implemented locally. Disabled by default; rollout pending. Includes an original workflow illustration.
 
-- [2026-10-02: A little movement, with a purpose](2026-10-02-public-website-in-motion/README.md) — themed public-page and Labs animations, scroll reveals and motion preferences; implemented locally, deployment and publication pending. Includes actual preview screenshots.
+- [2026-10-02: A little movement, with a purpose](2026-10-02-public-website-in-motion/README.md) — themed public-page and Labs animations, scroll reveals and motion preferences; deployed October 2 with verified production assets. Blogger publication pending. Includes actual preview screenshots.
 
 - [2026-10-02: A clearer privacy notice for the whole ecosystem](2026-10-02-ecosystem-privacy-notice/README.md) — expanded notice and Gemini Omni animated header deployed and verified October 2; final legal approval and Blogger publication pending.
 

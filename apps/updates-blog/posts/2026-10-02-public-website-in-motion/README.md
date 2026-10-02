@@ -1,10 +1,10 @@
 # A little movement, with a purpose
 
-Status: **Implemented and checked locally; production deployment and Blogger publication pending.**
+Status: **Deployed October 2, 2026; production assets verified. Blogger publication pending.**
 
 - Title: A little movement, with a purpose
 - Labels: Indigen World, Website, Design, Accessibility, Labs
-- Search description: Purposeful page animations, gentle scroll reveals and remembered motion controls are coming to the Indigen World public website.
+- Search description: Indigen World now has purposeful page animations, gentle scroll reveals and remembered motion controls across its public website.
 - Custom permalink: public-website-in-motion
 - Article: `post.html`
 - Sharing copy: `share.md`
@@ -19,7 +19,7 @@ Status: **Implemented and checked locally; production deployment and Blogger pub
 - Pause/resume is stored under `indigen-world-motion-paused` in browser localStorage, with a session fallback if storage is unavailable. The privacy page explains this choice. The new artwork stops offscreen and when the document reports a hidden tab. Reduced-motion changes are observed live and substitute static SVG artwork.
 - The Remotion Player is a separate lazy chunk (about 98 KB gzip in the verified local build). Reduced-motion visitors use the shared still illustration without downloading that chunk. A local animation error boundary preserves the illustration when loading fails.
 - Illustrations are decorative: they do not report payment confirmation, review approval, live activity, language authenticity or measured impact. These changes do not modify backend permissions or experiment access.
-- Not deployed during this task. Existing product status text is unchanged; the screenshots are not evidence of a production rollout or successful signed-in Labs workflows.
+- Deployed to Firebase Hosting site `indigen-world` on October 2, 2026 from `origin/main` commit `b28265547c4af05e9c7657ac6c0dffebd81a73d1`. The screenshots remain local preview images; they do not claim successful signed-in Labs workflows.
 
 ## Verification
 
@@ -33,8 +33,15 @@ Status: **Implemented and checked locally; production deployment and Blogger pub
 
 Credit: Indigen World, actual local production-preview screenshots, October 2, 2026. The animated abstract illustrations were authored in React/SVG for this update. Existing background artwork remains from the website. These visuals are illustrations, not photographs or representations of community-owned cultural symbols. No private account data appears in the screenshots.
 
-1. Review and deploy the intended website commit through the repository's existing release workflow. Verify the released pages on a phone and desktop, pause/resume, navigation and device reduced-motion preferences.
-2. Update the deployment status here and the article's availability paragraph only after confirmed production evidence. Do not publish the draft as a live release before that check.
+1. Review the draft for publication. The website deployment is complete; the existing guarded release command verified `origin/main` and reran the required checks before uploading.
+2. Keep the confirmed availability and verification limits below when publishing. Any later functionality changes need fresh verification.
 3. Chinedum creates a Blogger draft with the title, labels, search description and permalink above, then pastes `post.html` in HTML mode.
 4. Upload all four PNG files to Blogger. Replace their local `images/...` sources in the article with the uploaded URLs, preserving descriptive alt text and captions. Keep the mobile screenshot at a readable width and the desktop screenshots responsive.
 5. Chinedum publishes and shares when ready. Replace the marked article URL placeholder in `share.md` with the published Blogger URL. No external publication or messages were performed by this task.
+
+## Production deployment evidence
+
+- `npm run deploy:website -- --non-interactive` completed successfully for `project-kassena-7e026`, Hosting site `indigen-world`, on October 2, 2026. The website guard verified `origin/main` at `b2826554`; TypeScript, route/privacy checks, production build and metadata generation passed.
+- The custom domain `https://indigenworld.com` returned HTTP 200 for the homepage, ecosystem, dictionary, contribute, privacy, Labs and Kasem Practice Lab. Its HTML references the exact deployed entry script. SHA-256 hashes of the served entry, Remotion artwork, page motion, SVG scene, motion context and privacy CSS/JavaScript match the local release build.
+- The complete browser motion suite also passed against `https://indigenworld.com`: all 25 routes at 1440 and 360 pixels, reachable controls, playback, saved pause across navigation/reload, scroll reveals, keyboard card motion, offscreen pause/resume, simulated tab visibility, live/fresh reduced-motion preferences and failed-download still fallback. The preserved privacy video advances, pauses, shares the saved preference across routes, resumes and switches to its still with reduced motion. This is frontend verification; authenticated service workflows and the independent Blogger feed remain outside its scope.
+- Website Hosting was released. No backend functions, database rules or app releases were changed by this deployment. Blogger publication and sharing remain with Chinedum.
