@@ -88,7 +88,7 @@ export const ROUTES: AppRoute[] = [
   {
     path: "privacy",
     title: "Privacy",
-    description: "Indigen World's privacy notice.",
+    description: "How Indigen World handles information across the website, dictionary, mobile app, TribeStudio and Labs, with choices for consent, advertising and privacy requests.",
   },
   {
     path: "terms",
