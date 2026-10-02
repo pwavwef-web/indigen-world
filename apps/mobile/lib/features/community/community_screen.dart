@@ -26,6 +26,7 @@ import 'package:indigen_world_mobile/features/community/data/community_space_pro
 import 'package:indigen_world_mobile/features/community/data/compose_draft_store.dart';
 import 'package:indigen_world_mobile/features/community/data/feed_discovery.dart';
 import 'package:indigen_world_mobile/features/community/data/post_category.dart';
+import 'package:indigen_world_mobile/features/community/feed_preferences_screen.dart';
 import 'package:indigen_world_mobile/features/community/media_picker.dart';
 import 'package:indigen_world_mobile/features/community/people_screen.dart';
 import 'package:indigen_world_mobile/features/community/post_detail_screen.dart';
@@ -544,6 +545,7 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
                 edgeOffset: kCommunityHeaderHeight,
                 onRefresh: () async {
                   ref
+                    ..invalidate(communityFeedClientProvider)
                     ..invalidate(rawCommunityFeedProvider)
                     ..invalidate(rawFollowingFeedProvider)
                     ..invalidate(followingIdsProvider)
@@ -912,11 +914,14 @@ class _FeedPost extends ConsumerWidget {
             builder: (context) => PostDetailScreen(postId: post.id),
           ),
         ),
-        onOpenAuthor: () => Navigator.of(context).push(
-          MaterialPageRoute<void>(
-            builder: (context) => CommunityProfileScreen(uid: post.authorId),
-          ),
-        ),
+        onOpenAuthor: () {
+          unawaited(actions.trackRecommendation(post, 'profile-visit'));
+          Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (context) => CommunityProfileScreen(uid: post.authorId),
+            ),
+          );
+        },
         onOpenQuoted: post.quotedPostId == null
             ? null
             : () => Navigator.of(context).push(
@@ -1351,6 +1356,16 @@ class _FeedTabs extends StatelessWidget {
           selected: selected == 1,
           onTap: () => onChanged(1),
         ),
+        if (communityRecommendationsEnabled)
+          IconButton(
+            tooltip: 'Your feed interests',
+            icon: const Icon(Icons.tune_rounded),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => const FeedPreferencesScreen(),
+              ),
+            ),
+          ),
         // Not a third feed. It sits in the same row, set in the same type, so
         // it reads as part of where you can go from here — but it has no rule
         // under it, because it is never where you *are*: it opens the
@@ -1529,6 +1544,7 @@ class _FeedError extends ConsumerWidget {
       action: FilledButton.icon(
         onPressed: () {
           ref
+            ..invalidate(communityFeedClientProvider)
             ..invalidate(rawCommunityFeedProvider)
             ..invalidate(rawFollowingFeedProvider);
         },

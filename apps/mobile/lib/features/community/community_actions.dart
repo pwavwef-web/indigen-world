@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -232,16 +235,29 @@ class CommunityActions {
   /// best-effort, never spoken about, and never allowed to interrupt the feed.
   Future<void> trackView(CommunityPost post) async {
     // A private community's posts have no public counter to move.
-    if (_viewTrackingRefused || post.isPrivateCommunityPost) return;
+    if (post.isPrivateCommunityPost) return;
     final uid = ref.read(currentUidProvider);
     final repository = ref.read(communityRepositoryProvider);
     if (uid == null || repository == null || post.authorId == uid) return;
+    await trackRecommendation(post, 'impression');
+    if (_viewTrackingRefused) return;
     try {
       if (!await repository.trackView(uid: uid, postId: post.id)) {
         _viewTrackingRefused = true;
       }
     } on Object {
       // View tracking is telemetry. It must never interrupt reading the feed.
+    }
+  }
+
+  Future<void> trackRecommendation(CommunityPost post, String kind) async {
+    if (post.isPrivateCommunityPost) return;
+    if (ref
+            .read(communityFeedPreferencesProvider)
+            .asData
+            ?.value['behavioralConsent'] ==
+        true) {
+      await ref.read(communityFeedClientProvider)?.event(post.id, kind);
     }
   }
 
@@ -280,6 +296,7 @@ class CommunityActions {
     HapticFeedback.selectionClick();
     // A members-only post has no public page to link to.
     if (post.isPrivateCommunityPost) return;
+    unawaited(trackRecommendation(post, 'share'));
     final preview = post.text.trim().isEmpty
         ? 'See this Kasem community post'
         : post.text.trim();
@@ -413,6 +430,24 @@ class CommunityActions {
             label: 'Edit post',
           ),
         if (!isMine) ...[
+          if (public && communityRecommendationsEnabled) ...[
+            const GlassAction(
+              value: 'more',
+              icon: Icons.add_circle_outline,
+              label: 'Show more like this',
+            ),
+            const GlassAction(
+              value: 'less',
+              icon: Icons.remove_circle_outline,
+              label: 'Show less like this',
+            ),
+            if (post.category != null)
+              GlassAction(
+                value: 'mute-topic',
+                icon: Icons.filter_alt_off_outlined,
+                label: 'Mute ${post.category!.wire} topic',
+              ),
+          ],
           const GlassAction(
             value: 'hide',
             icon: Icons.visibility_off_outlined,
@@ -455,6 +490,10 @@ class CommunityActions {
 
     if (choice == null || !context.mounted) return;
     switch (choice) {
+      case 'more':
+      case 'less':
+      case 'mute-topic':
+        await _feedFeedback(context, post, choice);
       case 'save':
         await toggleSave(context, post);
       case 'share':
@@ -546,11 +585,41 @@ class CommunityActions {
     }
   }
 
+  Future<void> _feedFeedback(
+    BuildContext context,
+    CommunityPost post,
+    String action,
+  ) async {
+    final profile = await requireProfile(context);
+    if (profile == null) return;
+    try {
+      await FirebaseFunctions.instance
+          .httpsCallable('communityFeedFeedback')
+          .call<Object?>({'postId': post.id, 'action': action});
+      ref.invalidate(communityFeedClientProvider);
+      if (context.mounted) {
+        showCommunityMessage(context, 'Your feed preference was saved.');
+      }
+    } on Object {
+      if (context.mounted) {
+        showCommunityMessage(
+          context,
+          'Could not save this feed preference. Please try again.',
+        );
+      }
+    }
+  }
+
   Future<void> _hide(BuildContext context, CommunityPost post) async {
     final profile = await requireProfile(context);
     final repository = ref.read(communityRepositoryProvider);
     if (profile == null || repository == null) return;
     await repository.hidePost(uid: profile.uid, postId: post.id);
+    if (communityRecommendationsEnabled &&
+        !post.isPrivateCommunityPost &&
+        context.mounted) {
+      await _feedFeedback(context, post, 'not-interested');
+    }
     if (context.mounted) {
       showCommunityMessage(context, 'You will see less like this.');
     }

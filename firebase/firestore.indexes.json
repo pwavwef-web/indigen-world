@@ -1,5 +1,11 @@
 {
   "indexes": [
+    {"collectionGroup":"communityRecommendationEvents","queryScope":"COLLECTION","fields":[{"fieldPath":"uid","order":"ASCENDING"},{"fieldPath":"createdAt","order":"DESCENDING"}]},
+    {"collectionGroup":"communityFeedFeatures","queryScope":"COLLECTION","fields":[{"fieldPath":"emerging","order":"ASCENDING"},{"fieldPath":"createdAt","order":"DESCENDING"}]},
+    {"collectionGroup":"communityFeedFeatures","queryScope":"COLLECTION","fields":[{"fieldPath":"trendExpiresAt","order":"DESCENDING"},{"fieldPath":"trendPopularity","order":"DESCENDING"}]},
+    {"collectionGroup":"communityFeedFeatures","queryScope":"COLLECTION","fields":[{"fieldPath":"tags","arrayConfig":"CONTAINS"},{"fieldPath":"createdAt","order":"DESCENDING"}]},
+    {"collectionGroup":"communityFeedFeatures","queryScope":"COLLECTION","fields":[{"fieldPath":"editorial","order":"ASCENDING"},{"fieldPath":"createdAt","order":"DESCENDING"}]},
+    {"collectionGroup":"communityPosts","queryScope":"COLLECTION","fields":[{"fieldPath":"isReply","order":"ASCENDING"},{"fieldPath":"category","order":"ASCENDING"},{"fieldPath":"createdAt","order":"DESCENDING"}]},
     { "collectionGroup": "labsDrafts", "queryScope": "COLLECTION", "fields": [{ "fieldPath": "uid", "order": "ASCENDING" }, { "fieldPath": "createdAt", "order": "DESCENDING" }, { "fieldPath": "__name__", "order": "ASCENDING" }] },
     { "collectionGroup": "labsSessions", "queryScope": "COLLECTION", "fields": [{ "fieldPath": "uid", "order": "ASCENDING" }, { "fieldPath": "createdAt", "order": "DESCENDING" }, { "fieldPath": "__name__", "order": "ASCENDING" }] },
     { "collectionGroup": "labsFeedback", "queryScope": "COLLECTION", "fields": [{ "fieldPath": "uid", "order": "ASCENDING" }, { "fieldPath": "createdAt", "order": "DESCENDING" }, { "fieldPath": "__name__", "order": "ASCENDING" }] },
@@ -1012,6 +1018,10 @@
     }
   ],
   "fieldOverrides": [
+    {"collectionGroup":"communityFeedSessions","fieldPath":"items","indexes":[]},
+    {"collectionGroup":"communityFeedSessions","fieldPath":"issued","indexes":[]},
+    {"collectionGroup":"communityFeedSessions","fieldPath":"expiresAt","ttl":true,"indexes":[]},
+    {"collectionGroup":"communityRecommendationEvents","fieldPath":"expiresAt","ttl":true,"indexes":[]},
     { "collectionGroup": "labsDrafts", "fieldPath": "creative", "indexes": [] },
     { "collectionGroup": "labsDrafts", "fieldPath": "context", "indexes": [] },
     { "collectionGroup": "labsDrafts", "fieldPath": "sources", "indexes": [] },

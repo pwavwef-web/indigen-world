@@ -1292,6 +1292,21 @@ service cloud.firestore {
         && existsAfter(communityViewPath(postId));
     }
 
+    // Preference changes go through validated, rate-limited callables.
+    match /communityFeedPreferences/{uid} {
+      allow read: if isSignedIn() && request.auth.uid == uid;
+      allow write: if false;
+    }
+    match /communityFeedFeatures/{postId} {
+      allow read, write: if false;
+    }
+    match /communityFeedSessions/{sessionId} {
+      allow read, write: if false;
+    }
+    match /communityRecommendationEvents/{eventId} {
+      allow read, write: if false;
+    }
+
     match /communityProfiles/{uid} {
       // Public so guests can read the feed before signing in.
       allow read: if true;

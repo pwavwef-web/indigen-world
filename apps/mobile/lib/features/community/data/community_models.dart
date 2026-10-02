@@ -192,11 +192,17 @@ class CommunityPoll {
   CommunityPoll includingBallot(String? optionId) {
     if (optionId == null) return this;
     var adjusted = false;
-    final counted = options.map((option) {
-      if (option.id != optionId || option.voteCount > 0) return option;
-      adjusted = true;
-      return CommunityPollOption(id: option.id, text: option.text, voteCount: 1);
-    }).toList(growable: false);
+    final counted = options
+        .map((option) {
+          if (option.id != optionId || option.voteCount > 0) return option;
+          adjusted = true;
+          return CommunityPollOption(
+            id: option.id,
+            text: option.text,
+            voteCount: 1,
+          );
+        })
+        .toList(growable: false);
     if (!adjusted) return this;
     return CommunityPoll(
       options: counted,
@@ -538,6 +544,7 @@ class CommunityPost {
     this.community,
     this.category,
     this.reel,
+    this.recommendationReason,
   });
 
   final String id;
@@ -603,6 +610,9 @@ class CommunityPost {
   /// The topic, context, attribution and rights declared when this post was
   /// made through the reel creator. Null on every other post.
   final ReelPostDetails? reel;
+
+  /// Server-issued explanation, never persisted on the author's post.
+  final String? recommendationReason;
 
   /// The community whose members-only collection holds this post, or null for
   /// every post that lives in `communityPosts`.
@@ -701,6 +711,7 @@ class CommunityPost {
       },
       category: PostCategory.fromWire(data['category']),
       reel: ReelPostDetails.fromMap(data['reel']),
+      recommendationReason: data['recommendationReason'] as String?,
     );
   }
 
@@ -739,6 +750,7 @@ class CommunityPost {
     resharedByUsername: username,
     resharedByAvatarUrl: avatarUrl,
     resharedAt: createdAt,
+    recommendationReason: recommendationReason,
     community: community,
     category: category,
     reel: reel,
@@ -776,6 +788,7 @@ class CommunityPost {
     resharedByUsername: resharedByUsername,
     resharedByAvatarUrl: resharedByAvatarUrl,
     resharedAt: resharedAt,
+    recommendationReason: recommendationReason,
     community: community,
     category: category,
     reel: reel,

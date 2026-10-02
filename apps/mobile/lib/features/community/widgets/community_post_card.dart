@@ -159,6 +159,18 @@ class CommunityPostCard extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    if (post.recommendationReason case final reason?)
+                      Padding(
+                        padding: EdgeInsets.only(
+                          left: avatarSize + gutter,
+                          right: 10,
+                          bottom: 6,
+                        ),
+                        child: Text(
+                          reason,
+                          style: TextStyle(fontSize: 12, color: brand.mutedInk),
+                        ),
+                      ),
                     if (community != null) ...[
                       Padding(
                         padding: EdgeInsets.only(
@@ -853,7 +865,8 @@ class _Unfurled extends StatelessWidget {
               width: double.infinity,
               // No spinner and no broken-image glyph: a card whose picture is
               // still coming should look like a card, not like a fault.
-              placeholder: (context, _) => ColoredBox(color: brand.surfaceMuted),
+              placeholder: (context, _) =>
+                  ColoredBox(color: brand.surfaceMuted),
               errorWidget: (context, _, _) =>
                   ColoredBox(color: brand.surfaceMuted),
             ),

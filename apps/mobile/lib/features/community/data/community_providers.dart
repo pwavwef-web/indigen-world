@@ -1,11 +1,49 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/firebase_ready.dart';
 import 'package:indigen_world_mobile/features/auth/auth_repository.dart';
+import 'package:indigen_world_mobile/features/community/data/community_feed_client.dart';
 import 'package:indigen_world_mobile/features/community/data/community_models.dart';
 import 'package:indigen_world_mobile/features/community/data/community_repository.dart';
 import 'package:indigen_world_mobile/features/community/data/feed_fairness.dart';
+
+/// Enable after deploying functions, rules and indexes. Guests keep the public feed.
+const communityRecommendationsEnabled = bool.fromEnvironment(
+  'COMMUNITY_RECOMMENDATIONS',
+  defaultValue: false,
+);
+
+final communityFeedPreferencesProvider = StreamProvider<Map<String, dynamic>>((
+  ref,
+) {
+  final uid = ref.watch(currentUidProvider);
+  if (!ref.watch(firebaseReadyProvider) ||
+      uid == null ||
+      !communityRecommendationsEnabled) {
+    return Stream.value(const {});
+  }
+  return FirebaseFirestore.instance
+      .doc('communityFeedPreferences/$uid')
+      .snapshots()
+      .map((s) => s.data() ?? {});
+});
+
+final communityFeedClientProvider = Provider<CommunityFeedClient?>((ref) {
+  if (!communityRecommendationsEnabled ||
+      !ref.watch(firebaseReadyProvider) ||
+      ref.watch(currentUidProvider) == null) {
+    return null;
+  }
+  // Preference and graph changes start a new session, including immediate mutes.
+  ref.watch(communityFeedPreferencesProvider);
+  ref.watch(followingIdsProvider);
+  ref.watch(myHiddenPostsProvider);
+  ref.watch(myMutedProfilesProvider);
+  ref.watch(myBlockedProfilesProvider);
+  return CommunityFeedClient(FirebaseFunctions.instance);
+});
 
 /// The community data layer, or `null` when Firebase is unavailable this
 /// launch. Every consumer treats `null` as "read-only preview".
@@ -118,6 +156,12 @@ final communityFeedWindowsProvider =
 final rawCommunityFeedProvider = StreamProvider<List<CommunityPost>>((ref) {
   final repository = ref.watch(communityRepositoryProvider);
   if (repository == null) return Stream.value(const <CommunityPost>[]);
+  final client = ref.watch(communityFeedClientProvider);
+  if (client != null) {
+    return Stream.fromFuture(
+      client.load('for-you', ref.watch(communityFeedWindowProvider)),
+    );
+  }
   return repository.watchFeed(limit: ref.watch(communityFeedWindowProvider));
 });
 
@@ -148,6 +192,7 @@ final communityFeedWindowProvider = Provider<int>((ref) {
 /// already hold beats an error, and an error beats a spinner.
 AsyncValue<List<CommunityPost>> visibleCommunityFeed(
   AsyncValue<List<CommunityPost>> raw, {
+  bool applyFairness = true,
   required Set<String> hidden,
   required Set<String> muted,
   required Set<String> blocked,
@@ -163,7 +208,9 @@ AsyncValue<List<CommunityPost>> visibleCommunityFeed(
   final posts = raw.value;
   if (posts != null) {
     return AsyncData(
-      preventPostBurial(posts.where(visible).toList(growable: false)),
+      applyFairness
+          ? preventPostBurial(posts.where(visible).toList(growable: false))
+          : posts.where(visible).toList(growable: false),
     );
   }
   final error = raw.error;
@@ -182,6 +229,7 @@ final communityFeedProvider = Provider<AsyncValue<List<CommunityPost>>>((ref) {
       ref.watch(myBlockedProfilesProvider).asData?.value ?? const <String>{};
   return visibleCommunityFeed(
     ref.watch(rawCommunityFeedProvider),
+    applyFairness: !communityRecommendationsEnabled,
     hidden: hidden,
     muted: muted,
     blocked: blocked,
@@ -198,6 +246,15 @@ final followingIdsProvider = StreamProvider<List<String>>((ref) {
 
 final rawFollowingFeedProvider = StreamProvider<List<CommunityPost>>((ref) {
   final repository = ref.watch(communityRepositoryProvider);
+  final client = ref.watch(communityFeedClientProvider);
+  if (client != null) {
+    return Stream.fromFuture(
+      client.load(
+        'following',
+        ref.watch(communityFeedWindowsProvider(kFollowingFeed)),
+      ),
+    );
+  }
   final following = ref.watch(followingIdsProvider).asData?.value;
   if (repository == null || following == null || following.isEmpty) {
     return Stream.value(const <CommunityPost>[]);
@@ -217,6 +274,7 @@ final followingFeedProvider = Provider<AsyncValue<List<CommunityPost>>>((ref) {
       ref.watch(myBlockedProfilesProvider).asData?.value ?? const <String>{};
   return visibleCommunityFeed(
     ref.watch(rawFollowingFeedProvider),
+    applyFairness: false,
     hidden: hidden,
     muted: muted,
     blocked: blocked,

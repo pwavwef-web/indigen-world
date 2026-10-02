@@ -6,6 +6,8 @@ date identifies when the post was prepared; it does not prove the update is live
 
 ## Posts
 
+- [2026-10-02: A Community feed built around culture and choice](2026-10-02-community-feed-algorithm/README.md) — unpublished development preview; opt-in behavioral ranking, distinct-actor trends, emerging voices and cultural diversity implemented locally. Disabled by default; rollout pending. Includes an original workflow illustration.
+
 - [2026-09-30: Small experiments, living culture — Indigen World Labs](2026-09-30-indigen-world-labs/README.md) — signed-in alpha deployed September 30; reviewed practice, private stories, activity and feedback verified against production. Actual local screenshots; automatic assistance disabled. Blogger article remains a draft.
 
 - [2026-09-30: The review desk comes to the contributor portal](2026-09-30-contributor-review-desk/README.md) — draft article; guarded web review desk with four queues and validator-only navigation. TribeStudio Hosting deployed September 30; custom-domain files verified against the release build. Signed-in checks pending; newer dictionary output choices await their backend release. Includes an original workflow illustration.

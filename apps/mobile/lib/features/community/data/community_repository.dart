@@ -396,26 +396,74 @@ class CommunityRepository {
     }
   }
 
-  /// Posts from the people [authorIds] follow. Firestore caps `whereIn` at 30
-  /// values, so the caller passes the most recent follows.
+  /// Merge all follow groups; Firestore's 30-value query limit is not a limit
+  /// on the people a member should see.
   Stream<List<CommunityPost>> watchFollowingFeed(
     List<String> authorIds, {
     int limit = feedPageSize,
   }) {
     if (authorIds.isEmpty) return Stream.value(const <CommunityPost>[]);
-    final ids = authorIds.take(30).toList(growable: false);
-    return _watchFeedWithReposts(
-      postQuery: _posts
-          .where('authorId', whereIn: ids)
-          .where('isReply', isEqualTo: false)
-          .orderBy('createdAt', descending: true)
-          .limit(limit),
-      repostQuery: _reposts
-          .where('reposterId', whereIn: ids)
-          .orderBy('createdAt', descending: true)
-          .limit(limit),
-      limit: limit,
+    final uniqueIds = authorIds.toSet().toList(growable: false);
+    Stream<List<CommunityPost>> group(List<String> ids) =>
+        _watchFeedWithReposts(
+          postQuery: _posts
+              .where('authorId', whereIn: ids)
+              .where('isReply', isEqualTo: false)
+              .orderBy('createdAt', descending: true)
+              .limit(limit),
+          repostQuery: _reposts
+              .where('reposterId', whereIn: ids)
+              .orderBy('createdAt', descending: true)
+              .limit(limit),
+          limit: limit,
+        );
+    final groups = <List<String>>[
+      for (var i = 0; i < uniqueIds.length; i += 30)
+        uniqueIds.sublist(i, (i + 30).clamp(0, uniqueIds.length)),
+    ];
+    if (groups.length == 1) return group(groups.first);
+    late final StreamController<List<CommunityPost>> controller;
+    final subscriptions = <StreamSubscription<List<CommunityPost>>>[];
+    final pages = <int, List<CommunityPost>>{};
+    controller = StreamController<List<CommunityPost>>(
+      onListen: () {
+        for (var i = 0; i < groups.length; i++) {
+          final index = i;
+          subscriptions.add(
+            group(groups[i]).listen(
+              (posts) {
+                pages[index] = posts;
+                if (pages.length != groups.length || controller.isClosed) {
+                  return;
+                }
+                final merged = <String, CommunityPost>{};
+                for (final page in pages.values) {
+                  for (final post in page) {
+                    merged['${post.id}:${post.resharedById ?? ''}'] = post;
+                  }
+                }
+                final sorted = merged.values.toList()
+                  ..sort(
+                    (a, b) => (b.feedTimestamp ?? DateTime(1970)).compareTo(
+                      a.feedTimestamp ?? DateTime(1970),
+                    ),
+                  );
+                controller.add(sorted.take(limit).toList(growable: false));
+              },
+              onError: (Object error, StackTrace stack) {
+                if (!controller.isClosed) controller.addError(error, stack);
+              },
+            ),
+          );
+        }
+      },
+      onCancel: () async {
+        for (final subscription in subscriptions) {
+          await subscription.cancel();
+        }
+      },
     );
+    return controller.stream;
   }
 
   /// Combines canonical posts and recent reshare edges into the same feed shape

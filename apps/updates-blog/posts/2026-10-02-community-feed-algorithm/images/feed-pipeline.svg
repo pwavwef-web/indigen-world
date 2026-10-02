@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="920" viewBox="0 0 1440 920" role="img" aria-labelledby="title desc">
+  <title id="title">Community discovery with culture and choice at its centre</title>
+  <desc id="desc">Illustration of the implemented pipeline: gather relevant public posts, filter for safety, score interests and freshness, balance cultures and voices, and explain recommendations. Following is recent and explicit; For You adds opt-in activity and grounded discovery.</desc>
+  <defs>
+    <linearGradient id="bg" x2="1" y2="1"><stop stop-color="#102d2b"/><stop offset="1" stop-color="#071c20"/></linearGradient>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0L10 5L0 10" fill="none" stroke="#daa859" stroke-width="2"/></marker>
+  </defs>
+  <rect width="1440" height="920" fill="url(#bg)"/>
+  <g font-family="Segoe UI, Arial, sans-serif">
+    <text x="80" y="84" fill="#daa859" font-size="23" font-weight="600" letter-spacing="3">INDIGEN WORLD · COMMUNITY</text>
+    <text x="80" y="161" fill="#fbf5e9" font-size="52" font-weight="700">Discovery with culture at its centre</text>
+    <text x="80" y="206" fill="#bacdc8" font-size="25">Relevant posts. New voices. Clear choices.</text>
+    <rect x="80" y="253" width="620" height="141" rx="22" fill="#183c39" stroke="#3a6761"/>
+    <rect x="740" y="253" width="620" height="141" rx="22" fill="#183c39" stroke="#3a6761"/>
+    <text x="110" y="299" fill="#daa859" font-size="28" font-weight="700">Following</text>
+    <text x="110" y="341" fill="#fbf5e9" font-size="22">Recent posts from explicit follows:</text>
+    <text x="110" y="373" fill="#bacdc8" font-size="21">people, cultures, languages and public interests</text>
+    <text x="770" y="299" fill="#daa859" font-size="28" font-weight="700">For You</text>
+    <text x="770" y="341" fill="#fbf5e9" font-size="22">Chosen interests + grounded discovery</text>
+    <text x="770" y="373" fill="#bacdc8" font-size="21">Recent activity helps only when you opt in</text>
+    <g fill="#f6efe1">
+      <rect x="80" y="444" width="230" height="178" rx="20"/>
+      <rect x="342" y="444" width="230" height="178" rx="20"/>
+      <rect x="604" y="444" width="230" height="178" rx="20"/>
+      <rect x="866" y="444" width="230" height="178" rx="20"/>
+      <rect x="1128" y="444" width="232" height="178" rx="20"/>
+    </g>
+    <g fill="#173c38" font-size="25" font-weight="700">
+      <text x="103" y="486">1 · Gather</text><text x="365" y="486">2 · Filter</text>
+      <text x="627" y="486">3 · Score</text><text x="889" y="486">4 · Balance</text><text x="1151" y="486">5 · Explain</text>
+    </g>
+    <g fill="#365853" font-size="21">
+      <text x="103" y="528">Follows and tags</text><text x="103" y="561">New contributors</text><text x="103" y="594">Public trends</text>
+      <text x="365" y="528">Current visibility</text><text x="365" y="561">Blocks and mutes</text><text x="365" y="594">Moderation gates</text>
+      <text x="627" y="528">Cultural relevance</text><text x="627" y="561">Learning value</text><text x="627" y="594">Freshness</text>
+      <text x="889" y="528">Cultures and topics</text><text x="889" y="561">Authors and voices</text><text x="889" y="594">Fewer duplicates</text>
+      <text x="1151" y="528">Why this post?</text><text x="1151" y="561">More or less</text><text x="1151" y="594">Interest controls</text>
+    </g>
+    <g stroke="#daa859" stroke-width="2" marker-end="url(#arrow)">
+      <path d="M313 530H337"/><path d="M575 530H599"/><path d="M837 530H861"/><path d="M1099 530H1123"/>
+    </g>
+    <rect x="80" y="674" width="1280" height="120" rx="20" fill="#153734" stroke="#3a6761"/>
+    <text x="110" y="719" fill="#fbf5e9" font-size="25" font-weight="600">Popularity has a small, bounded role.</text>
+    <text x="110" y="760" fill="#bacdc8" font-size="22">Cultural discovery, learning, safety and your choices shape the feed.</text>
+    <text x="80" y="855" fill="#daa859" font-size="20">DEVELOPMENT PREVIEW · IMPLEMENTED LOCALLY · DISABLED BY DEFAULT</text>
+    <text x="80" y="889" fill="#8ca9a2" font-size="18">Original workflow illustration · October 2, 2026 · Not an app screenshot</text>
+  </g>
+</svg>
