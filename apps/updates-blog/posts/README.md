@@ -6,6 +6,8 @@ date identifies when the post was prepared; it does not prove the update is live
 
 ## Posts
 
+- [2026-10-03: Kawuri answers from reviewed records](2026-10-03-kawuri-reviewed-answers/README.md) — unpublished article; backend deployed and verified October 3. Chat and community answers now quote eligible records or fixed help, with unsupported language withheld. Includes a labelled workflow illustration.
+
 - [2026-10-03: Browse Kasem literature by category](2026-10-03-literature-category-tabs/README.md) — illustrated draft held at the owner's request until the mobile update is deployed and publication is authorized again; five primary category tabs implemented and tested.
 
 - [2026-10-03: Kawuri corpus contributions with sources and review history](2026-10-03-kawuri-corpus-workspace/README.md) — backend, Storage rules, indexes and TribeStudio deployed and verified October 3; policy-dependent authentication and corpus publication remain gated. Blogger publication remains with Chinedum. Includes actual component screenshots with synthetic data.

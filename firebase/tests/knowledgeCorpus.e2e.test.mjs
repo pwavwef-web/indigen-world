@@ -9,6 +9,7 @@ import { input, policy, grant, review } from './knowledgeCorpus.test.mjs';
 import { saveKnowledgeRecord, getKnowledgeRecord, listKnowledgeRecords, reviewKnowledgeRecord, withdrawKnowledgeRecord, getKnowledgeProgress } from '../../services/functions/lib/knowledge-workspace.js';
 import { releaseKnowledgeRecord, resolveKnowledgeRecords, revokeKnowledgeRelease, exportKnowledgeRecords } from '../../services/functions/lib/knowledge-release.js';
 import { configureKnowledgeGovernance } from '../../services/functions/lib/knowledge-governance.js';
+import { loadGroundingSources, renderGroundedAnswer } from '../../services/functions/lib/kawuri-grounding.js';
 
 const projectId = 'demo-knowledge-corpus';
 let app, db, env;
@@ -114,6 +115,22 @@ test('held-out source families cannot leak into retrieval or training exports', 
   await invoke(withdrawKnowledgeRecord, 'owner', { id: r.id, revision: 1 });
   assert.equal((await invoke(exportKnowledgeRecords, 'manager', { destination: 'evaluation' })).records.some(x => x.recordId === r.id), false);
 });
+test('closed chat renderer uses only current Kawuri releases and honours reviewer revocation and withdrawal', async () => {
+  const r = await authenticate(await create({ ...input(), original: 'fixture-reviewed-form', english: 'Synthetic reviewed meaning.',
+    valueStates: { english: 'known', french: 'not_yet_translated', region: 'unknown', context: 'not_applicable' } }));
+  assert.equal((await loadGroundingSources()).expressions.some(x => x.id === r.id + '-r1'), false);
+  await release(r, 'kawuri');
+  const sources = await loadGroundingSources();
+  const answer = renderGroundedAnswer({ kind: 'language', query: 'Synthetic reviewed meaning.', examples: false, category: 'general', topic: 'about' }, sources);
+  assert.match(answer.reply, /fixture-reviewed-form/);
+  assert.match(answer.reply, /Synthetic test fixture/);
+  await db.doc('knowledgeRoleGrants/reviewer-b').update({ active: false });
+  assert.equal((await loadGroundingSources()).expressions.some(x => x.id === r.id + '-r1'), false);
+  await db.doc('knowledgeRoleGrants/reviewer-b').set(grant);
+  await invoke(withdrawKnowledgeRecord, 'owner', { id: r.id, revision: r.revision });
+  assert.equal((await loadGroundingSources()).expressions.some(x => x.id === r.id + '-r1'), false);
+});
+
 test('history metrics count submitted objects once and use server timestamps', async () => {
   const progress = await invoke(getKnowledgeProgress, 'owner');
   assert.equal(progress.timezone, 'UTC'); assert.ok(Date.parse(progress.refreshedAt));
