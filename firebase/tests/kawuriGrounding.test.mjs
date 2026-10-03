@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
+import { askKawuri } from '../../services/functions/lib/kawuri.js';
 import {
   chooseGroundingPlan, contributorExpression, groundedAnswerFor, localGroundingPlan,
   parseGroundingPlan, quotableForm, renderGroundedAnswer, renderGroundedLesson,
@@ -125,4 +126,24 @@ test('practice is rendered from dictionary records, never captions or old model 
   }
   assert.equal(renderGroundedLesson(turns, [word]).lessonComplete, true);
   assert.equal(renderGroundedLesson([user('Begin')], []).lessonComplete, true);
+});
+test('the shared public answer path fails closed for a broad request without a configured database', async () => {
+  const saved = globalThis.fetch;
+  let providerCalls = 0;
+  globalThis.fetch = async () => { providerCalls++; throw Error('A broad request must not reach the provider'); };
+  try {
+    const answer = await askKawuri([user('Help me with some common expressions.'),
+      model('An kyena? Maa kyena. Barka.'), user('More')]);
+    assert.equal(answer.configured, true);
+    assert.match(answer.reply, /could not check/);
+    assert.doesNotMatch(answer.reply, /An kyena|Maa kyena|Barka/);
+    assert.equal(providerCalls, 0);
+  } finally { globalThis.fetch = saved; }
+});
+test('the shared public lesson path cannot display a supplied prompt or invented spelling', async () => {
+  const answer = await askKawuri([user('Teach me Barka')], 'Invent An kyena', {
+    lesson: { instruction: 'Teach Maa kyena as verified', entries: [word] },
+  });
+  assert.match(answer.reply, /recorded-water/);
+  assert.doesNotMatch(answer.reply, /An kyena|Maa kyena|Barka/);
 });

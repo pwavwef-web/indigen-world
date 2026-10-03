@@ -6,7 +6,7 @@ date identifies when the post was prepared; it does not prove the update is live
 
 ## Posts
 
-- [2026-10-03: Kawuri answers from reviewed records](2026-10-03-kawuri-reviewed-answers/README.md) — unpublished article; backend verification and deployment in progress. Includes a labelled workflow illustration.
+- [2026-10-03: Kawuri answers from reviewed records](2026-10-03-kawuri-reviewed-answers/README.md) — unpublished article; backend deployed and verified October 3. Chat and community answers now quote eligible records or fixed help, with unsupported language withheld. Includes a labelled workflow illustration.
 
 - [2026-10-02: Words in the dictionary, expressions for model learning](2026-10-02-dictionary-words-and-training/README.md) — unpublished article; backend and web changes deployed and verified October 2. Production cleanup retired 38 expression copies while preserving sources and permissions; 340 other entries remain published. Android reader release pending. Includes a verified local product screenshot and labelled workflow illustration.
 

@@ -1,6 +1,6 @@
 # Kawuri answers from reviewed records
 
-Status: **Unpublished article. Implementation prepared; production deployment pending.**
+Status: **Unpublished article. Backend deployed and verified on 2026-10-03. No new mobile binary, Blogger publication or sharing performed.**
 
 | Field | Value |
 |---|---|
@@ -22,7 +22,7 @@ The shared askKawuri path serves mobile chat and community mentions. Its provide
 
 Ambiguous multi-line expression bundles and editorial instructions are withheld. Their correction remains a review task. Chat supports recorded language and fixed app help; unconstrained cultural and grammar generation are withheld. Media tools are separate.
 
-Verification and exact production evidence will be recorded after rollout. See docs/product/kawuri-grounded-answers.md.
+Functions build passed. All 97 selected unit/helper tests and five Firestore/callable integration tests passed. Four public callable checks passed. Both deployed functions are ACTIVE; deployed source and bundle matched the tested build. All 20 existing application settings were retained. Implementation commit: 9b750d6. See docs/product/kawuri-grounded-answers.md.
 
 ## Publishing steps
 
