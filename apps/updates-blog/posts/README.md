@@ -6,6 +6,8 @@ date identifies when the post was prepared; it does not prove the update is live
 
 ## Posts
 
+- [2026-10-03: Kawuri answers from reviewed records](2026-10-03-kawuri-reviewed-answers/README.md) — unpublished article; backend verification and deployment in progress. Includes a labelled workflow illustration.
+
 - [2026-10-02: Words in the dictionary, expressions for model learning](2026-10-02-dictionary-words-and-training/README.md) — unpublished article; backend and web changes deployed and verified October 2. Production cleanup retired 38 expression copies while preserving sources and permissions; 340 other entries remain published. Android reader release pending. Includes a verified local product screenshot and labelled workflow illustration.
 
 - [2026-10-02: Run the trail, share a word — Word Trail](2026-10-02-word-trail/README.md) — deployed and verified October 2; three-lane runner with real word queue translation checkpoints. Local gameplay, atomic submissions, duplicate protection and responsive checks passed; live route/assets and authenticated queue gates verified. Positive translation submission checked in emulators. Actual component screenshots with labelled simulated account/queue; Blogger publication pending.
