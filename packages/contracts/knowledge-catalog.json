@@ -1,0 +1,836 @@
+{
+  "schemaVersion": 2,
+  "status": "provisional capture contract; release requires approved category policy",
+  "categories": [
+    {
+      "id": "lexicon",
+      "label": "Lexicon",
+      "description": "Separate each meaning and preserve spelling, morphology and real examples.",
+      "fields": [
+        {
+          "key": "partOfSpeech",
+          "label": "Part of speech",
+          "hint": "For example noun, verb, particle; write unknown if unresolved.",
+          "multiline": false,
+          "requirement": "optional",
+          "reviewRecommended": true
+        },
+        {
+          "key": "definitionKasem",
+          "label": "Definition in Kasem",
+          "hint": "Explain this meaning in Kasem.",
+          "multiline": true,
+          "requirement": "optional",
+          "reviewRecommended": false
+        },
+        {
+          "key": "sense",
+          "label": "Meaning and sense",
+          "hint": "Specify this meaning and distinguish other senses.",
+          "multiline": true,
+          "requirement": "optional",
+          "reviewRecommended": true
+        },
+        {
+          "key": "ipa",
+          "label": "IPA and tone",
+          "hint": "Record a verified transcription; leave unknown analysis explicit.",
+          "multiline": true,
+          "requirement": "optional",
+          "reviewRecommended": false
+        },
+        {
+          "key": "morphology",
+          "label": "Word forms and structure",
+          "hint": "Record noun class, plural, conjugation, or morphemes where known.",
+          "multiline": true,
+          "requirement": "optional",
+          "reviewRecommended": false
+        },
+        {
+          "key": "example",
+          "label": "Attested example",
+          "hint": "A real Kasem example with its English meaning and situation.",
+          "multiline": true,
+          "requirement": "optional",
+          "reviewRecommended": true
+        },
+        {
+          "key": "usage",
+          "label": "Usage limits",
+          "hint": "Register, restrictions, collocations and uncommon uses.",
+          "multiline": true,
+          "requirement": "optional",
+          "reviewRecommended": false
+        },
+        {
+          "key": "etymology",
+          "label": "Origin and related words",
+          "hint": "Distinguish documented origins from hypotheses.",
+          "multiline": true,
+          "requirement": "optional",
+          "reviewRecommended": false
+        },
+        {
+          "key": "genderClass",
+          "label": "Gender or noun class",
+          "hint": "Record only what the source supports. Leave unresolved analysis explicit.",
+          "requirement": "optional",
+          "multiline": true
+        },
+        {
+          "key": "plural",
+          "label": "Plural form",
+          "hint": "Record only what the source supports. Leave unresolved analysis explicit.",
+          "requirement": "optional",
+          "multiline": true
+        },
+        {
+          "key": "rootStem",
+          "label": "Root or stem",
+          "hint": "Record only what the source supports. Leave unresolved analysis explicit.",
+          "requirement": "optional",
+          "multiline": true
+        },
+        {
+          "key": "usageType",
+          "label": "Usage type: traditional, everyday, formal or archaic",
+          "hint": "Record only what the source supports. Leave unresolved analysis explicit.",
+          "requirement": "optional",
+          "multiline": true
+        }
+      ],
+      "sourceSection": 3,
+      "provisional": false
+    },
+    {
+      "id": "grammar",
+      "label": "Grammar",
+      "description": "Describe scoped rules supported by examples and counterexamples.",
+      "fields": [
+        {
+          "key": "rule",
+          "label": "Rule or claim",
+          "hint": "State the proposed pattern without treating a hypothesis as a fact.",
+          "multiline": true,
+          "requirement": "optional",
+          "reviewRecommended": true
+        },
+        {
+          "key": "scope",
+          "label": "Scope and exceptions",
+          "hint": "Where, when and in which dialect this pattern applies.",
+          "multiline": true,
+          "requirement": "optional",
+          "reviewRecommended": true
+        },
+        {
+          "key": "structure",
+          "label": "Linguistic structure",
+          "hint": "Word order, clause roles and morpheme analysis. Mark unresolved analysis.",
+          "multiline": true,
+          "requirement": "optional",
+          "reviewRecommended": false
+        },
+        {
+          "key": "examples",
+          "label": "Supporting examples",
+          "hint": "Kasem examples, meanings and contextual differences.",
+          "multiline": true,
+          "requirement": "optional",
+          "reviewRecommended": true
+        },
+        {
+          "key": "counterexamples",
+          "label": "Counterexamples",
+          "hint": "Contexts where the claim fails or another form is preferred.",
+          "multiline": true,
+          "requirement": "optional",
+          "reviewRecommended": false
+        },
+        {
+          "key": "evidence",
+          "label": "Evidence references",
+          "hint": "Link reviewed sentence IDs or exact source locations.",
+          "multiline": true,
+          "requirement": "optional",
+          "reviewRecommended": false
+        },
+        {
+          "key": "grammarCategory",
+          "label": "Grammar category",
+          "hint": "Record only what the source supports. Leave unresolved analysis explicit.",
+          "requirement": "optional",
+          "multiline": true
+        },
+        {
+          "key": "negativeContrast",
+          "label": "Negative or contrast form",
+          "hint": "Record only what the source supports. Leave unresolved analysis explicit.",
+          "requirement": "optional",
+          "multiline": true
+        },
+        {
+          "key": "explanation",
+          "label": "Explanation",
+          "hint": "Record only what the source supports. Leave unresolved analysis explicit.",
+          "requirement": "optional",
+          "multiline": true
+        }
+      ],
+      "sourceSection": 4,
+      "provisional": false
+    },
+    {
+      "id": "expressions",
+      "label": "Expressions",
+      "description": "Capture natural idioms and everyday expressions in their social setting.",
+      "fields": [
+        {
+          "key": "literalMeaning",
+          "label": "Literal meaning",
+          "hint": "Separate literal wording from intended meaning.",
+          "multiline": true,
+          "requirement": "optional",
+          "reviewRecommended": false
+        },
+        {
+          "key": "intendedMeaning",
+          "label": "Intended meaning",
+          "hint": "What a speaker communicates.",
+          "multiline": true,
+          "requirement": "optional",
+          "reviewRecommended": true
+        },
+        {
+          "key": "speakerRelationship",
+          "label": "Who says it to whom",
+          "hint": "Relationships, age, social setting and register.",
+          "multiline": true,
+          "requirement": "optional",
+          "reviewRecommended": true
+        },
+        {
+          "key": "response",
+          "label": "Natural response",
+          "hint": "Typical reply, when one is expected.",
+          "multiline": true,
+          "requirement": "optional",
+          "reviewRecommended": false
+        },
+        {
+          "key": "alternatives",
+          "label": "Alternatives and limits",
+          "hint": "Other forms and situations where this expression is unsuitable.",
+          "multiline": true,
+          "requirement": "optional",
+          "reviewRecommended": false
+        },
+        {
+          "key": "register",
+          "label": "Register",
+          "hint": "Record only what the source supports. Leave unresolved analysis explicit.",
+          "requirement": "optional",
+          "multiline": true
+        },
+        {
+          "key": "culturalSignificance",
+          "label": "Cultural significance",
+          "hint": "Record only what the source supports. Leave unresolved analysis explicit.",
+          "requirement": "optional",
+          "multiline": true
+        },
+        {
+          "key": "frenchEquivalent",
+          "label": "French equivalent, if any",
+          "hint": "Record only what the source supports. Leave unresolved analysis explicit.",
+          "requirement": "optional",
+          "multiline": true
+        }
+      ],
+      "sourceSection": 5,
+      "provisional": false
+    },
+    {
+      "id": "sentences",
+      "label": "Sentences",
+      "description": "Keep full meaning, context and linguistic structure together.",
+      "fields": [
+        {
+          "key": "sentenceType",
+          "label": "Sentence type",
+          "hint": "Statement, question, command, negative or another construction.",
+          "multiline": false,
+          "requirement": "optional",
+          "reviewRecommended": true
+        },
+        {
+          "key": "literalMeaning",
+          "label": "Literal reading",
+          "hint": "A literal paraphrase; never force uncertain particles into English words.",
+          "multiline": true,
+          "requirement": "optional",
+          "reviewRecommended": false
+        },
+        {
+          "key": "structure",
+          "label": "Word or phrase analysis",
+          "hint": "Align known words/phrases, roles and morphemes; label unknown spans.",
+          "multiline": true,
+          "requirement": "optional",
+          "reviewRecommended": false
+        },
+        {
+          "key": "construction",
+          "label": "Construction",
+          "hint": "For example focus, possession, negation or tense.",
+          "multiline": true,
+          "requirement": "optional",
+          "reviewRecommended": false
+        },
+        {
+          "key": "previousTurn",
+          "label": "Preceding conversation",
+          "hint": "What came immediately before this sentence.",
+          "multiline": true,
+          "requirement": "optional",
+          "reviewRecommended": false
+        },
+        {
+          "key": "alternatives",
+          "label": "Acceptable alternatives",
+          "hint": "Alternative wordings with any difference in meaning.",
+          "multiline": true,
+          "requirement": "optional",
+          "reviewRecommended": false
+        }
+      ],
+      "sourceSection": 2,
+      "provisional": true
+    },
+    {
+      "id": "proverbs",
+      "label": "Proverbs",
+      "description": "Preserve the words, interpretation and cultural authority behind a saying.",
+      "fields": [
+        {
+          "key": "literalMeaning",
+          "label": "Literal translation",
+          "hint": "The image or literal wording used in the proverb.",
+          "multiline": true,
+          "requirement": "optional",
+          "reviewRecommended": true
+        },
+        {
+          "key": "interpretation",
+          "label": "Interpretation",
+          "hint": "The lesson, figurative meaning and alternative interpretations.",
+          "multiline": true,
+          "requirement": "optional",
+          "reviewRecommended": true
+        },
+        {
+          "key": "use",
+          "label": "When and by whom it is used",
+          "hint": "A real use case, speaker/audience and restrictions.",
+          "multiline": true,
+          "requirement": "optional",
+          "reviewRecommended": true
+        },
+        {
+          "key": "authority",
+          "label": "Cultural source",
+          "hint": "Elder, storyteller or documented source; use a consented name or reference.",
+          "multiline": true,
+          "requirement": "optional",
+          "reviewRecommended": false
+        },
+        {
+          "key": "englishEquivalent",
+          "label": "English equivalent, if any",
+          "hint": "Record a verified equivalent, no direct equivalent, or unknown.",
+          "multiline": true,
+          "requirement": "optional",
+          "reviewRecommended": false
+        },
+        {
+          "key": "frenchEquivalent",
+          "label": "French equivalent, if any",
+          "hint": "Record a verified equivalent, no direct equivalent, or unknown.",
+          "multiline": true,
+          "requirement": "optional",
+          "reviewRecommended": false
+        },
+        {
+          "key": "misuse",
+          "label": "Misuse and cautions",
+          "hint": "Contexts where this proverb would mislead or offend.",
+          "multiline": true,
+          "requirement": "optional",
+          "reviewRecommended": false
+        },
+        {
+          "key": "historicalContext",
+          "label": "Historical and cultural context",
+          "hint": "Record only what the source supports. Leave unresolved analysis explicit.",
+          "requirement": "optional",
+          "multiline": true
+        },
+        {
+          "key": "lesson",
+          "label": "Lesson",
+          "hint": "Record only what the source supports. Leave unresolved analysis explicit.",
+          "requirement": "optional",
+          "multiline": true
+        },
+        {
+          "key": "exampleSituation",
+          "label": "Example situation",
+          "hint": "Record only what the source supports. Leave unresolved analysis explicit.",
+          "requirement": "optional",
+          "multiline": true
+        }
+      ],
+      "sourceSection": 6,
+      "provisional": false
+    },
+    {
+      "id": "literature",
+      "label": "Literature",
+      "description": "Document a sourced passage, story, song or poem without losing its identity.",
+      "fields": [
+        {
+          "key": "genre",
+          "label": "Genre",
+          "hint": "Story, poem, song, folktale, oral history or other form.",
+          "multiline": false,
+          "requirement": "optional",
+          "reviewRecommended": true
+        },
+        {
+          "key": "creator",
+          "label": "Author or narrator",
+          "hint": "Consented attribution or a source identifier.",
+          "multiline": true,
+          "requirement": "optional",
+          "reviewRecommended": true
+        },
+        {
+          "key": "workTitle",
+          "label": "Title of the full work",
+          "hint": "Keep the parent work identifiable.",
+          "multiline": true,
+          "requirement": "optional",
+          "reviewRecommended": true
+        },
+        {
+          "key": "location",
+          "label": "Passage location",
+          "hint": "Page, chapter, verse, episode or recording time.",
+          "multiline": true,
+          "requirement": "optional",
+          "reviewRecommended": true
+        },
+        {
+          "key": "themes",
+          "label": "Themes and meaning",
+          "hint": "Explain themes, symbolism and cultural setting.",
+          "multiline": true,
+          "requirement": "optional",
+          "reviewRecommended": false
+        },
+        {
+          "key": "segments",
+          "label": "Passage alignment",
+          "hint": "Numbered Kasem segments and matching translations, preserving sequence.",
+          "multiline": true,
+          "requirement": "optional",
+          "reviewRecommended": false
+        },
+        {
+          "key": "editorialNotes",
+          "label": "Editorial changes",
+          "hint": "Describe transcription, spelling or translation changes; keep original text intact.",
+          "multiline": true,
+          "requirement": "optional",
+          "reviewRecommended": false
+        },
+        {
+          "key": "community",
+          "label": "Storyteller community",
+          "hint": "Record only what the source supports. Leave unresolved analysis explicit.",
+          "requirement": "optional",
+          "multiline": true
+        },
+        {
+          "key": "origin",
+          "label": "Approximate origin or age, if known",
+          "hint": "Record only what the source supports. Leave unresolved analysis explicit.",
+          "requirement": "optional",
+          "multiline": true
+        },
+        {
+          "key": "characters",
+          "label": "Characters",
+          "hint": "Record only what the source supports. Leave unresolved analysis explicit.",
+          "requirement": "optional",
+          "multiline": true
+        },
+        {
+          "key": "lesson",
+          "label": "Lesson",
+          "hint": "Record only what the source supports. Leave unresolved analysis explicit.",
+          "requirement": "optional",
+          "multiline": true
+        },
+        {
+          "key": "culturalReferences",
+          "label": "Cultural references and traditional objects",
+          "hint": "Record only what the source supports. Leave unresolved analysis explicit.",
+          "requirement": "optional",
+          "multiline": true
+        },
+        {
+          "key": "places",
+          "label": "Places",
+          "hint": "Record only what the source supports. Leave unresolved analysis explicit.",
+          "requirement": "optional",
+          "multiline": true
+        },
+        {
+          "key": "translator",
+          "label": "Translator reference",
+          "hint": "Record only what the source supports. Leave unresolved analysis explicit.",
+          "requirement": "optional",
+          "multiline": true
+        }
+      ],
+      "sourceSection": 7,
+      "provisional": false
+    },
+    {
+      "id": "dialogue",
+      "label": "Dialogue",
+      "description": "Retain speaker turns, relationships and the purpose of a conversation.",
+      "fields": [
+        {
+          "key": "participants",
+          "label": "Participants",
+          "hint": "Consented speaker IDs and their relationship; avoid unnecessary personal information.",
+          "multiline": true,
+          "requirement": "optional",
+          "reviewRecommended": true
+        },
+        {
+          "key": "turns",
+          "label": "Speaker turns",
+          "hint": "Number each turn and identify the speaker; align translations.",
+          "multiline": true,
+          "requirement": "optional",
+          "reviewRecommended": true
+        },
+        {
+          "key": "goal",
+          "label": "Conversation goal",
+          "hint": "What the speakers are trying to achieve.",
+          "multiline": true,
+          "requirement": "optional",
+          "reviewRecommended": true
+        },
+        {
+          "key": "register",
+          "label": "Register and politeness",
+          "hint": "Formal/informal speech and any social conventions.",
+          "multiline": true,
+          "requirement": "optional",
+          "reviewRecommended": false
+        },
+        {
+          "key": "nonverbal",
+          "label": "Pauses and nonverbal context",
+          "hint": "Meaningful pauses, overlap or gestures.",
+          "multiline": true,
+          "requirement": "optional",
+          "reviewRecommended": false
+        },
+        {
+          "key": "situation",
+          "label": "Situation",
+          "hint": "Record only what the source supports. Leave unresolved analysis explicit.",
+          "requirement": "optional",
+          "multiline": true
+        },
+        {
+          "key": "speakerRelationship",
+          "label": "Speaker relationship",
+          "hint": "Record only what the source supports. Leave unresolved analysis explicit.",
+          "requirement": "optional",
+          "multiline": true
+        },
+        {
+          "key": "ageRange",
+          "label": "Relevant age ranges",
+          "hint": "Record only what the source supports. Leave unresolved analysis explicit.",
+          "requirement": "optional",
+          "multiline": true
+        },
+        {
+          "key": "setting",
+          "label": "Setting",
+          "hint": "Record only what the source supports. Leave unresolved analysis explicit.",
+          "requirement": "optional",
+          "multiline": true
+        },
+        {
+          "key": "emotion",
+          "label": "Emotion and tone",
+          "hint": "Record only what the source supports. Leave unresolved analysis explicit.",
+          "requirement": "optional",
+          "multiline": true
+        },
+        {
+          "key": "culturalContext",
+          "label": "Cultural context",
+          "hint": "Record only what the source supports. Leave unresolved analysis explicit.",
+          "requirement": "optional",
+          "multiline": true
+        }
+      ],
+      "sourceSection": 8,
+      "provisional": false
+    },
+    {
+      "id": "pronunciation",
+      "label": "Pronunciation",
+      "description": "Connect recordings to precise transcripts, speakers and recording conditions.",
+      "fields": [
+        {
+          "key": "transcription",
+          "label": "Pronunciation transcription",
+          "hint": "IPA/tone when verified, or an explicit unresolved transcription.",
+          "multiline": true,
+          "requirement": "optional",
+          "reviewRecommended": true
+        },
+        {
+          "key": "tone",
+          "label": "Tone and stress",
+          "hint": "Verified tone/stress patterns and contrasts.",
+          "multiline": true,
+          "requirement": "optional",
+          "reviewRecommended": false
+        },
+        {
+          "key": "speakerBackground",
+          "label": "Speaker background",
+          "hint": "Dialect and relevant language experience using a consented or pseudonymous ID.",
+          "multiline": true,
+          "requirement": "optional",
+          "reviewRecommended": true
+        },
+        {
+          "key": "minimalPairs",
+          "label": "Contrast and minimal pairs",
+          "hint": "Examples that distinguish sounds or tones.",
+          "multiline": true,
+          "requirement": "optional",
+          "reviewRecommended": false
+        },
+        {
+          "key": "recordingNotes",
+          "label": "Recording notes",
+          "hint": "Device, noise, clipping and whether the speech is isolated or contextual.",
+          "multiline": true,
+          "requirement": "optional",
+          "reviewRecommended": false
+        },
+        {
+          "key": "ageRange",
+          "label": "Speaker age range, when relevant",
+          "hint": "Record only what the source supports. Leave unresolved analysis explicit.",
+          "requirement": "optional",
+          "multiline": true
+        },
+        {
+          "key": "gender",
+          "label": "Speaker gender, only where relevant and consented",
+          "hint": "Record only what the source supports. Leave unresolved analysis explicit.",
+          "requirement": "optional",
+          "multiline": true
+        },
+        {
+          "key": "pronunciationNotes",
+          "label": "Pronunciation and variation notes",
+          "hint": "Record only what the source supports. Leave unresolved analysis explicit.",
+          "requirement": "optional",
+          "multiline": true
+        }
+      ],
+      "sourceSection": 9,
+      "provisional": false
+    },
+    {
+      "id": "culture",
+      "label": "Culture",
+      "description": "Record cultural knowledge with local interpretation and access restrictions.",
+      "fields": [
+        {
+          "key": "topic",
+          "label": "Cultural topic",
+          "hint": "Practice, ceremony, object, institution or concept.",
+          "multiline": false,
+          "requirement": "optional",
+          "reviewRecommended": true
+        },
+        {
+          "key": "explanation",
+          "label": "Community explanation",
+          "hint": "Describe the significance in the community’s own terms.",
+          "multiline": true,
+          "requirement": "optional",
+          "reviewRecommended": true
+        },
+        {
+          "key": "authority",
+          "label": "Knowledge source",
+          "hint": "Who can attest to this account, using consented attribution.",
+          "multiline": true,
+          "requirement": "optional",
+          "reviewRecommended": true
+        },
+        {
+          "key": "protocol",
+          "label": "Access and use protocol",
+          "hint": "Who may see, repeat, translate or reuse this knowledge.",
+          "multiline": true,
+          "requirement": "optional",
+          "reviewRecommended": true
+        },
+        {
+          "key": "variation",
+          "label": "Local or generational variation",
+          "hint": "Different practices or interpretations; do not erase disagreement.",
+          "multiline": true,
+          "requirement": "optional",
+          "reviewRecommended": false
+        },
+        {
+          "key": "misinterpretations",
+          "label": "Common misinterpretations",
+          "hint": "Explain what outside readers commonly misunderstand.",
+          "multiline": true,
+          "requirement": "optional",
+          "reviewRecommended": false
+        },
+        {
+          "key": "terminology",
+          "label": "Kasem terminology",
+          "hint": "Record only what the source supports. Leave unresolved analysis explicit.",
+          "requirement": "optional",
+          "multiline": true
+        },
+        {
+          "key": "history",
+          "label": "History",
+          "hint": "Record only what the source supports. Leave unresolved analysis explicit.",
+          "requirement": "optional",
+          "multiline": true
+        },
+        {
+          "key": "relatedCeremony",
+          "label": "Related ceremony",
+          "hint": "Record only what the source supports. Leave unresolved analysis explicit.",
+          "requirement": "optional",
+          "multiline": true
+        },
+        {
+          "key": "venaculaReference",
+          "label": "Venacula reference",
+          "hint": "Record only what the source supports. Leave unresolved analysis explicit.",
+          "requirement": "optional",
+          "multiline": true
+        },
+        {
+          "key": "studioReference",
+          "label": "Tribe Studio reference",
+          "hint": "Record only what the source supports. Leave unresolved analysis explicit.",
+          "requirement": "optional",
+          "multiline": true
+        }
+      ],
+      "sourceSection": 10,
+      "provisional": false
+    },
+    {
+      "id": "qa",
+      "label": "Question and answer",
+      "description": "Build grounded answers with references, reasoning and uncertainty.",
+      "fields": [
+        {
+          "key": "question",
+          "label": "Question",
+          "hint": "The exact question being answered.",
+          "multiline": true,
+          "requirement": "optional",
+          "reviewRecommended": true
+        },
+        {
+          "key": "answer",
+          "label": "Proposed answer",
+          "hint": "The answer and its limits; explicitly record unknown or no direct equivalent when appropriate.",
+          "multiline": true,
+          "requirement": "optional",
+          "reviewRecommended": true
+        },
+        {
+          "key": "evidence",
+          "label": "Supporting evidence",
+          "hint": "Stable record IDs or exact source references; explain a documented evidence gap.",
+          "multiline": true,
+          "requirement": "optional",
+          "reviewRecommended": true
+        },
+        {
+          "key": "reasoning",
+          "label": "Explanation",
+          "hint": "Explain why the answer follows from the evidence.",
+          "multiline": true,
+          "requirement": "optional",
+          "reviewRecommended": false
+        },
+        {
+          "key": "uncertainty",
+          "label": "Unknowns and acceptable alternatives",
+          "hint": "Record when the answer should abstain or accept another response.",
+          "multiline": true,
+          "requirement": "optional",
+          "reviewRecommended": false
+        },
+        {
+          "key": "topic",
+          "label": "Topic",
+          "hint": "The area of knowledge this question tests.",
+          "multiline": false,
+          "requirement": "optional",
+          "reviewRecommended": false
+        },
+        {
+          "key": "exampleType",
+          "label": "Example type: translation, cultural explanation or uncertainty",
+          "hint": "Record only what the source supports. Leave unresolved analysis explicit.",
+          "requirement": "optional",
+          "multiline": true
+        },
+        {
+          "key": "noEvidenceExpectation",
+          "label": "Expected behaviour when no evidence exists",
+          "hint": "Record only what the source supports. Leave unresolved analysis explicit.",
+          "requirement": "optional",
+          "multiline": true
+        }
+      ],
+      "sourceSection": 11,
+      "provisional": false
+    }
+  ]
+}

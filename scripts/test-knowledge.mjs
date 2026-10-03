@@ -1,0 +1,14 @@
+import { mkdirSync, writeFileSync, readFileSync, existsSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { spawn } from 'node:child_process';
+const root = resolve(import.meta.dirname, '..');
+const scratch = resolve(root, '.tooling/knowledge-tests');
+mkdirSync(scratch, { recursive: true });
+const config = resolve(scratch, 'firebase.json');
+writeFileSync(resolve(scratch, 'firestore.rules'), readFileSync(resolve(root, 'firebase/firestore.rules')));
+writeFileSync(config, JSON.stringify({ firestore: { rules: 'firestore.rules' }, emulators: { firestore: { host: '127.0.0.1', port: 8187 }, ui: { enabled: false }, hub: { port: 4487 }, logging: { port: 4587 }, singleProjectMode: true } }, null, 2));
+const localJava = resolve(root, '.tooling/jdk21/jdk-21.0.12+8/bin');
+const env = { ...process.env, GCLOUD_PROJECT: 'demo-knowledge-corpus', PATH: (existsSync(localJava) ? `${localJava}${process.platform === 'win32' ? ';' : ':'}` : '') + process.env.PATH };
+const child = spawn(process.execPath, [resolve(root, 'node_modules/firebase-tools/lib/bin/firebase.js'), 'emulators:exec', '--project', 'demo-knowledge-corpus', '--only', 'firestore', '--config', config, 'node --test --test-concurrency=1 firebase/tests/knowledgeCorpus.e2e.test.mjs'], { cwd: root, stdio: 'inherit', windowsHide: true, env });
+child.on('exit', code => { process.exitCode = code ?? 1; });
+process.on('SIGINT', () => child.kill('SIGINT'));

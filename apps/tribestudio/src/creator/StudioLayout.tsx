@@ -42,6 +42,7 @@ const VIDEO_NAV: NavItem[] = [
 ];
 
 const STUDIO_NAV: NavItem[] = [
+  { to: '/contributor/corpus', label: 'Corpus workspace', icon: 'lexicon', group: 'Create', hint: 'Document sourced language and cultural knowledge' },
   { to: '/studio', label: 'Dashboard', icon: 'dashboard', group: 'Workspace', hint: 'What needs doing, and where your work stands' },
   { to: '/studio/opportunities', label: 'Opportunities', icon: 'opportunities', group: 'Workspace', hint: 'Open campaigns and what each one asks for' },
   { to: '/studio/expressions', label: 'Share an expression', icon: 'expressions', group: 'Create', hint: 'Send an everyday Kasem expression for review, and follow its status' },

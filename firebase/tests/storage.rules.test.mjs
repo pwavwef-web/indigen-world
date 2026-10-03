@@ -13,7 +13,7 @@ import { getFirestore as adminFirestore } from 'firebase-admin/firestore';
 import { getStorage as adminStorage } from 'firebase-admin/storage';
 import { deleteApp, initializeApp as clientInit } from 'firebase/app';
 import { connectAuthEmulator, getAuth as clientAuth, signInWithCustomToken } from 'firebase/auth';
-import { connectStorageEmulator, getBytes, getStorage, ref, uploadBytes } from 'firebase/storage';
+import { connectStorageEmulator, deleteObject, getBytes, getStorage, ref, uploadBytes } from 'firebase/storage';
 
 const PROJECT_ID = 'demo-indigen-world';
 const BUCKET = `${PROJECT_ID}.appspot.com`;
@@ -66,6 +66,22 @@ test('sentence audio is private, owner-scoped, typed, and immutable', async () =
   await assert.rejects(getBytes(ref(anonymous, path)));
   await assert.rejects(uploadBytes(ref(owner, path), audio, { contentType: 'audio/mpeg' }));
   await assert.rejects(uploadBytes(ref(stranger, path + '2'), audio, { contentType: 'audio/mpeg' }));
+  await assert.rejects(uploadBytes(ref(owner, path + '.txt'), audio, { contentType: 'text/plain' }));
+});
+
+test('corpus originals remain private and cannot be overwritten or deleted by clients', async () => {
+  const owner = await clientFor('corpus-storage-owner', 'corpus-storage-owner');
+  const reviewer = await clientFor('corpus-storage-reviewer', 'corpus-storage-reviewer', { role: 'validator' });
+  const other = await clientFor('corpus-storage-other', 'corpus-storage-other');
+  const path = 'knowledgeAudio/corpus-storage-owner/test-original.wav';
+  const audio = new TextEncoder().encode('RIFF0000WAVEfmt synthetic test');
+  await uploadBytes(ref(owner, path), audio, { contentType: 'audio/wav' });
+  assert.equal((await getBytes(ref(owner, path))).byteLength, audio.byteLength);
+  await assert.rejects(getBytes(ref(reviewer, path)));
+  await assert.rejects(getBytes(ref(other, path)));
+  await assert.rejects(uploadBytes(ref(owner, path), audio, { contentType: 'audio/wav' }));
+  await assert.rejects(deleteObject(ref(owner, path)));
+  await assert.rejects(uploadBytes(ref(other, path + '-other'), audio, { contentType: 'audio/wav' }));
   await assert.rejects(uploadBytes(ref(owner, path + '.txt'), audio, { contentType: 'text/plain' }));
 });
 

@@ -97,7 +97,7 @@ export const NAV: NavItem[] = [
   { section: 'overview', label: 'Home', short: 'Home', icon: 'overview' },
   { section: 'assignments', label: 'Tasks', short: 'Tasks', icon: 'assignments' },
   { section: 'contributions', label: 'My contributions', short: 'Contributions', icon: 'contributions' },
-  { section: 'rewards', label: 'Points', short: 'Points', icon: 'spark' },
+  { section: 'rewards', label: 'Recognition history', short: 'Recognition', icon: 'activity' },
   { section: 'streak', label: 'Streak', short: 'Streak', icon: 'activity' },
   { section: 'activity', label: 'Activity', short: 'Activity', icon: 'activity' },
   { section: 'guide', label: 'Help & guide', short: 'Help', icon: 'guide' },
@@ -105,7 +105,7 @@ export const NAV: NavItem[] = [
   { section: 'account', label: 'Account & settings', short: 'Account', icon: 'account' },
 ];
 
-const MOBILE_PRIMARY: Section[] = ['overview', 'assignments', 'contributions', 'rewards'];
+const MOBILE_PRIMARY: Section[] = ['overview', 'assignments', 'contributions', 'activity'];
 
 // ---------------------------------------------------------------------------
 // Shared slow reads
@@ -246,7 +246,7 @@ export function WorkspaceShell({ banner }: { banner?: ReactNode }) {
           <p className="cw-nav-caption">Your workspace</p>
           <nav className="cw-nav" aria-label="Workspace sections">
             {NAV.map((item) => link(item, 'side'))}
-            {reviewLink('side')}
+            <PortalLink to="/contributor/corpus" className="cw-nav__link cw-nav__link--side"><Icon name="contributions" /><span>Contribute to the corpus</span></PortalLink>{reviewLink('side')}
           </nav>
           <PortalLink to={data.paths.section('guide', { section: 'good-contribution' })} className="cw-side-story">
             <Icon name="spark" />
@@ -299,7 +299,7 @@ export function WorkspaceShell({ banner }: { banner?: ReactNode }) {
           </div>
           <nav className="cw-sheet__nav" aria-label="More sections">
             {NAV.filter((item) => !MOBILE_PRIMARY.includes(item.section)).map((item) => link(item, 'sheet'))}
-            {reviewLink('sheet')}
+            <PortalLink to="/contributor/corpus" className="cw-nav__link cw-nav__link--sheet">Contribute to the corpus</PortalLink>{reviewLink('sheet')}
           </nav>
           <button type="button" className="cw-sheet__signout" onClick={() => void data.services.signOut()}><Icon name="logout" />Sign out</button>
         </dialog>
@@ -311,7 +311,7 @@ export function WorkspaceShell({ banner }: { banner?: ReactNode }) {
 function PageFor({ route }: { route: PortalRoute }) {
   switch (route.section) {
     case 'rewards':
-      return <RewardsPage history={route.query.get('view') === 'history'} />;
+      return <RewardsPage history={route.query.get('view') !== 'redeem'} />;
     case 'streak':
       return <RewardsPage streak />;
     case 'assignments':

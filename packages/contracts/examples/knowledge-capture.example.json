@@ -1,0 +1,17 @@
+{
+  "datasetType": "expressions",
+  "language": "xsm",
+  "title": "Synthetic provisional draft",
+  "original": "TEST ONLY",
+  "details": {
+    "literalMeaning": "Synthetic literal reading",
+    "intendedMeaning": "Synthetic intended meaning"
+  },
+  "rights": {
+    "state": "unresolved"
+  },
+  "valueStates": {
+    "french": "not_yet_translated"
+  },
+  "structured": {}
+}

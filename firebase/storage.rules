@@ -61,6 +61,16 @@ service firebase.storage {
     }
 
     // ---- Raw creator submissions: private, owner-writable -------------------
+    // Corpus originals are immutable. Retention/deletion is a governed server operation.
+    match /knowledgeAudio/{uid}/{fileName} {
+      allow read: if isSignedIn() && request.auth.uid == uid;
+      allow create: if isSignedIn() && request.auth.uid == uid && !isBlockedCreator()
+        && resource == null && request.resource.size > 0
+        && request.resource.size < 20 * 1024 * 1024
+        && request.resource.contentType.matches('audio/.*');
+      allow update, delete: if false;
+    }
+
     match /grammarAudio/{uid}/{fileName} {
       // Reviewers use readGrammarAudio so withdrawal and revision are checked.
       allow read: if isSignedIn() && request.auth.uid == uid;

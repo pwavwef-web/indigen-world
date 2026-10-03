@@ -22,6 +22,7 @@ const named = <T extends Record<string, unknown>>(loader: () => Promise<T>, key:
   lazy(() => loader().then((m) => ({ default: m[key] as ComponentType })));
 
 const LexiconWorkspace = named(() => import('./workspace/LexiconWorkspace'), 'LexiconWorkspace');
+const KnowledgePreview = import.meta.env.DEV ? named(() => import('./knowledge/KnowledgePreview'), 'KnowledgePreview') : null;
 const ContributorPreview = import.meta.env.DEV ? named(() => import('./contributor/ContributorPreview'), 'ContributorPreview') : null;
 const ContributorPortal = named(() => import('./contributor/ContributorPortal'), 'ContributorPortal');
 const LandingPage = named(() => import('./creator/pages/LandingPage'), 'LandingPage');
@@ -305,6 +306,7 @@ function Routed() {
     }
   }, [path]);
 
+  if (path === '/contributor/preview/corpus' && KnowledgePreview) return <Suspense fallback={<FullPageLoader />}><KnowledgePreview /></Suspense>;
   if ((path === '/contributor/preview' || path.startsWith('/contributor/preview/')) && ContributorPreview) {
     return <Suspense fallback={<FullPageLoader />}><ContributorPreview /></Suspense>;
   }

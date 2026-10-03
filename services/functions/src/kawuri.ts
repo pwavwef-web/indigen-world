@@ -1,3 +1,4 @@
+import { knowledgeContextFor } from './knowledge-retrieval.js';
 import { HttpsError, onCall } from 'firebase-functions/v2/https';
 import { applicationDefault } from 'firebase-admin/app';
 import { logger } from 'firebase-functions';
@@ -178,6 +179,7 @@ export interface KawuriAnswer {
   verified?: VerifiedWord[];
   /** Words the dictionary could not answer, and where each stands in the queue. */
   unverified?: UnverifiedWord[];
+  corpusSources?: { recordId: string; revision: number; category: string; authentication: string; attribution: string }[];
   /** True when a lesson's closing message has been sent. */
   lessonComplete?: boolean;
 }
@@ -339,10 +341,11 @@ export async function askKawuri(
   // Ordered last in the instruction so it has the final word on a question
   // where all three have something to say.
   const asked = turns[turns.length - 1]?.text ?? '';
-  const [lookup, grammar, corpus] = await Promise.all([
+  const [lookup, grammar, corpus, knowledge] = await Promise.all([
     dictionaryLookupFor(asked),
     grammarContextFor(asked),
     corpusContextFor(asked, turns.slice(0, -1).map(turn => turn.text).join('\n')),
+    knowledgeContextFor(asked).catch(() => ({ records: [], briefing: '' })),
   ]);
   // Where each word the dictionary could not answer stands in the word queue:
   // told to the model so it can say an answer is waiting for review rather
@@ -356,6 +359,7 @@ export async function askKawuri(
     lesson?.instruction,
     lookup.briefing,
     unverifiedBriefing(unverified),
+    knowledge.briefing,
     grammar,
     corpus,
   ]
@@ -418,7 +422,7 @@ export async function askKawuri(
       });
     }
     const { reply, complete } = stripLessonMarker(replyFromGemini(payload));
-    return { configured: true, reply, verified, unverified, lessonComplete: lesson ? complete : false };
+    return { configured: true, reply, verified, unverified, corpusSources: knowledge.records.map(({ recordId, revision, category, authentication, attribution }) => ({ recordId, revision, category, authentication, attribution })), lessonComplete: lesson ? complete : false };
   } catch (error) {
     logger.error('Kawuri request threw', {
       errorType: error instanceof Error ? error.name : 'unknown',
