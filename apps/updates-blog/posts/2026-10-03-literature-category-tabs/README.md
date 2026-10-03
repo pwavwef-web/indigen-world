@@ -1,6 +1,6 @@
 # Browse Kasem literature by category
 
-Status: **Release article prepared; mobile deployment and Blogger publication blocked by missing release configuration and sign-in.** Implemented and tested locally. No Android bundle or Google Play rollout was produced for this task. Do not present these tabs as live until a released build containing them is available.
+Status: **Draft held at the owner's request until the mobile update is deployed. Do not publish or schedule the Blogger post yet.** Implemented and tested locally. No Android bundle or Google Play rollout was produced for this task. Keep the article, images, and share copy prepared for a future release; signing in to Blogger does not lift this hold.
 
 | Field | Value |
 |---|---|
@@ -64,9 +64,11 @@ flutter test ../updates-blog/posts/2026-10-03-literature-category-tabs/render_li
 
 ## Before publishing
 
+Publication is on hold by the owner's instruction on 2026-10-03. Resume only after the mobile update is deployed and the owner asks to publish the article.
+
 1. Build and release a mobile version containing this change.
 2. Verify Collection → Literature on a phone: existing folktale in All and Folktales, horizontally scrolling tabs, empty Poetry and Food & recipes, and opening the story reader. Verify any additional genres actually published at release time.
 3. Update the availability paragraph in `post.html` and this status with the confirmed release version and distribution evidence. The repository implementation alone does not establish release availability.
 4. Upload both PNG files to Blogger. Replace each relative `src="images/..."` in HTML with its uploaded Blogger URL, or replace the image in Compose view in the same position. Preserve the descriptive alt text and captions; retain Folktales as the first image.
 5. Paste `post.html` in a new Blogger post’s HTML view. Enter the title, labels, search description, and custom permalink above. Preview before publishing.
-6. After publication, replace `[PUBLISHED_ARTICLE_URL]` in `share.md` before sharing. The owner has requested publication of this article; sending community announcements remains a handoff to Chinedum.
+6. After a future authorized publication, replace `[PUBLISHED_ARTICLE_URL]` in `share.md` before sharing. Sending community announcements remains a handoff to Chinedum.

@@ -1,5 +1,7 @@
 # Share copy — use after the mobile update is available
 
+**On hold:** Do not publish or share yet. Wait for the mobile update to be deployed and the owner to request article publication again.
+
 Find your next Kasem read by category. Open Collection → Literature and browse Folktales, Drama, Poetry, or Food & recipes. The existing illustrated folktale is in Folktales, and All keeps the full reading collection together. Empty tabs will fill as work is published.
 
 Read the update: [PUBLISHED_ARTICLE_URL]

@@ -6,7 +6,7 @@ date identifies when the post was prepared; it does not prove the update is live
 
 ## Posts
 
-- [2026-10-03: Browse Kasem literature by category](2026-10-03-literature-category-tabs/README.md) — illustrated release article prepared; five primary category tabs implemented and tested. Mobile deployment requires release configuration; Blogger publication requires sign-in.
+- [2026-10-03: Browse Kasem literature by category](2026-10-03-literature-category-tabs/README.md) — illustrated draft held at the owner's request until the mobile update is deployed and publication is authorized again; five primary category tabs implemented and tested.
 
 - [2026-10-02: Words in the dictionary, expressions for model learning](2026-10-02-dictionary-words-and-training/README.md) — unpublished article; backend and web changes deployed and verified October 2. Production cleanup retired 38 expression copies while preserving sources and permissions; 340 other entries remain published. Android reader release pending. Includes a verified local product screenshot and labelled workflow illustration.
 
