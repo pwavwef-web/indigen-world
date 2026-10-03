@@ -261,6 +261,33 @@ void main() {
     expect(find.text('Dictionary'), findsOneWidget);
   });
 
+  testWidgets('literature genres find the portal and open its category tabs', (
+    tester,
+  ) async {
+    await _pumpCollection(tester);
+    await tester.enterText(
+      find.byKey(const Key('collection-search-field')),
+      'cooking',
+    );
+    await tester.pump(const Duration(milliseconds: 320));
+    expect(find.text('Literature'), findsOneWidget);
+    expect(find.text('Music'), findsNothing);
+    await tester.tap(find.text('Literature'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 700));
+    expect(find.byKey(const Key('literature-category-tabs')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('literature-tab-folktales')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('literature-tab-recipes')),
+      findsOneWidget,
+    );
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
   testWidgets('empty categories remain accessible without filter pills', (
     tester,
   ) async {

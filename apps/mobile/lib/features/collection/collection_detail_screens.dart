@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
@@ -10,6 +11,7 @@ import 'package:indigen_world_mobile/features/ads/data/served_ad.dart';
 import 'package:indigen_world_mobile/features/ads/widgets/sponsored_card.dart';
 import 'package:indigen_world_mobile/features/collection/collection_data.dart';
 import 'package:indigen_world_mobile/features/collection/illustrated_document_screen.dart';
+import 'package:indigen_world_mobile/features/collection/literature_categories.dart';
 import 'package:indigen_world_mobile/features/collection/widgets/collection_card_surface.dart';
 import 'package:indigen_world_mobile/features/community/widgets/community_avatar.dart';
 import 'package:indigen_world_mobile/features/contribute/contribute_screen.dart';
@@ -100,6 +102,18 @@ class _PublishedCollectionScreenState
     extends ConsumerState<PublishedCollectionScreen> {
   final _searchController = TextEditingController();
   var _query = '';
+  var _literatureCategoryId = LiteratureCategory.all.id;
+
+  @override
+  void didUpdateWidget(PublishedCollectionScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.kind == CollectionKind.literature && widget.items is AsyncData) {
+      final categories = literatureCategoriesFor(widget.items.asData!.value);
+      if (!categories.any((category) => category.id == _literatureCategoryId)) {
+        _literatureCategoryId = LiteratureCategory.all.id;
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -115,7 +129,16 @@ class _PublishedCollectionScreenState
   @override
   Widget build(BuildContext context) {
     final items = widget.items;
-    final all = items.asData?.value ?? const <PublishedReel>[];
+    final all = items.value ?? const <PublishedReel>[];
+    final categories = widget.kind == CollectionKind.literature
+        ? literatureCategoriesFor(all)
+        : const <LiteratureCategory>[];
+    final selectedCategory = categories.isEmpty
+        ? null
+        : categories.firstWhere(
+            (category) => category.id == _literatureCategoryId,
+            orElse: () => LiteratureCategory.all,
+          );
     // Only worth offering once there is enough to lose something in. A search
     // field over three songs is a control that can only ever hide two of them.
     final searchable = all.length >= _searchFrom;
@@ -126,6 +149,7 @@ class _PublishedCollectionScreenState
         child: RefreshIndicator(
           onRefresh: widget.onReload,
           child: CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
             slivers: [
               SliverToBoxAdapter(
                 child: BrandHeader(
@@ -133,6 +157,19 @@ class _PublishedCollectionScreenState
                   title: _title,
                 ),
               ),
+              if (selectedCategory != null)
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+                    child: _LiteratureCategoryTabs(
+                      categories: categories,
+                      selectedId: selectedCategory.id,
+                      items: items.hasValue ? all : null,
+                      onSelected: (category) =>
+                          setState(() => _literatureCategoryId = category.id),
+                    ),
+                  ),
+                ),
               if (searchable)
                 SliverToBoxAdapter(
                   child: Padding(
@@ -170,7 +207,7 @@ class _PublishedCollectionScreenState
                     child: Center(child: CircularProgressIndicator()),
                   ),
                 ],
-                _ => _body(all),
+                _ => _body(all, selectedCategory),
               },
             ],
           ),
@@ -181,35 +218,46 @@ class _PublishedCollectionScreenState
 
   void _reloadNow() => unawaited(widget.onReload());
 
-  List<Widget> _body(List<PublishedReel> all) {
-    if (all.isEmpty) {
-      return [
-        SliverFillRemaining(
-          hasScrollBody: false,
-          child: _CollectionEmptyState(kind: widget.kind),
-        ),
-      ];
-    }
-
+  List<Widget> _body(
+    List<PublishedReel> all,
+    LiteratureCategory? selectedCategory,
+  ) {
     final query = _query.toLowerCase();
-    final visible = query.isEmpty
-        ? all
-        : all
-              .where((item) => publishedReelMatches(item, query))
-              .toList(growable: false);
+    final filteringCategory =
+        selectedCategory != null &&
+        selectedCategory.id != LiteratureCategory.all.id;
+    final visible = all
+        .where((item) {
+          if (filteringCategory &&
+              literatureCategoryFor(item).id != selectedCategory.id) {
+            return false;
+          }
+          return query.isEmpty || publishedReelMatches(item, query);
+        })
+        .toList(growable: false);
     if (visible.isEmpty) {
       return [
         SliverFillRemaining(
           hasScrollBody: false,
-          child: _CollectionEmptyState(kind: widget.kind, searching: true),
+          child: _CollectionEmptyState(
+            kind: widget.kind,
+            searching: query.isNotEmpty,
+            categoryLabel: filteringCategory ? selectedCategory.label : null,
+            onViewAll: filteringCategory
+                ? () => setState(() {
+                    _literatureCategoryId = LiteratureCategory.all.id;
+                    _searchController.clear();
+                    _query = '';
+                  })
+                : null,
+          ),
         ),
       ];
     }
 
-    // Adverts only over the whole channel. Splicing them through a search
-    // result would put a paid card between somebody and the one thing they
-    // came in and typed the name of.
-    final rows = query.isEmpty
+    // Adverts only over the whole channel. Search and category results stay
+    // focused on the work somebody came to find.
+    final rows = query.isEmpty && !filteringCategory
         ? collectionRowsWithAds(
             items: visible,
             inventory: ref.watch(collectionInventoryProvider),
@@ -262,6 +310,106 @@ class _PublishedCollectionScreenState
     CollectionKind.dictionary => 'Words with a living context.',
     CollectionKind.video => 'Watch it as it happened.',
   };
+}
+
+class _LiteratureCategoryTabs extends StatefulWidget {
+  const _LiteratureCategoryTabs({
+    required this.categories,
+    required this.selectedId,
+    required this.items,
+    required this.onSelected,
+  });
+
+  final List<LiteratureCategory> categories;
+  final String selectedId;
+  final List<PublishedReel>? items;
+  final ValueChanged<LiteratureCategory> onSelected;
+
+  @override
+  State<_LiteratureCategoryTabs> createState() =>
+      _LiteratureCategoryTabsState();
+}
+
+class _LiteratureCategoryTabsState extends State<_LiteratureCategoryTabs>
+    with TickerProviderStateMixin {
+  late TabController _controller;
+
+  int get _selectedIndex => widget.categories.indexWhere(
+    (category) => category.id == widget.selectedId,
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    _createController();
+  }
+
+  void _createController() {
+    _controller = TabController(
+      length: widget.categories.length,
+      initialIndex: _selectedIndex,
+      vsync: this,
+    );
+  }
+
+  @override
+  void didUpdateWidget(_LiteratureCategoryTabs oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!listEquals(
+      oldWidget.categories.map((c) => c.id).toList(),
+      widget.categories.map((c) => c.id).toList(),
+    )) {
+      _controller.dispose();
+      _createController();
+    } else if (_controller.index != _selectedIndex) {
+      _controller.animateTo(_selectedIndex);
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final counts = <String, int>{};
+    for (final item in widget.items ?? const <PublishedReel>[]) {
+      final id = literatureCategoryFor(item).id;
+      counts[id] = (counts[id] ?? 0) + 1;
+    }
+    return TabBar(
+      key: const Key('literature-category-tabs'),
+      controller: _controller,
+      isScrollable: true,
+      tabAlignment: TabAlignment.start,
+      labelPadding: const EdgeInsets.symmetric(horizontal: 12),
+      onTap: (index) => widget.onSelected(widget.categories[index]),
+      tabs: [
+        for (final category in widget.categories)
+          Tab(
+            key: ValueKey('literature-tab-${category.id}'),
+            height: (28 + MediaQuery.textScalerOf(context).scale(16))
+                .clamp(48, double.infinity)
+                .toDouble(),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(category.label),
+                if (widget.items != null) ...[
+                  const SizedBox(width: 6),
+                  Text(
+                    '${category.id == LiteratureCategory.all.id ? widget.items!.length : counts[category.id] ?? 0}',
+                    style: const TextStyle(fontSize: 12),
+                  ),
+                ],
+              ],
+            ),
+          ),
+      ],
+    );
+  }
 }
 
 /// Drops a channel's cache and waits for what replaces it.
@@ -930,10 +1078,17 @@ class _DetailBlock extends StatelessWidget {
 }
 
 class _CollectionEmptyState extends StatelessWidget {
-  const _CollectionEmptyState({required this.kind, this.searching = false});
+  const _CollectionEmptyState({
+    required this.kind,
+    this.searching = false,
+    this.categoryLabel,
+    this.onViewAll,
+  });
 
   final CollectionKind kind;
   final bool searching;
+  final String? categoryLabel;
+  final VoidCallback? onViewAll;
 
   @override
   Widget build(BuildContext context) => Center(
@@ -958,7 +1113,11 @@ class _CollectionEmptyState extends StatelessWidget {
           const SizedBox(height: 18),
           Text(
             searching
-                ? 'No matching words yet'
+                ? kind == CollectionKind.literature
+                      ? 'No matches in ${categoryLabel ?? 'Literature'}'
+                      : 'No matching words yet'
+                : categoryLabel != null
+                ? 'No ${categoryLabel!.toLowerCase()} published yet'
                 : '${kind.label} is ready for its first published piece',
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.titleLarge,
@@ -966,9 +1125,26 @@ class _CollectionEmptyState extends StatelessWidget {
           if (searching) ...[
             const SizedBox(height: 8),
             Text(
-              'Try another spelling, English word, or dialect.',
+              kind == CollectionKind.literature
+                  ? 'Try another title, writer, or dialect.'
+                  : 'Try another spelling, English word, or dialect.',
               textAlign: TextAlign.center,
               style: TextStyle(color: context.brand.mutedInk, height: 1.4),
+            ),
+          ],
+          if (categoryLabel != null && !searching) ...[
+            const SizedBox(height: 8),
+            Text(
+              'Published pieces will appear here when they are added.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: context.brand.mutedInk, height: 1.4),
+            ),
+          ],
+          if (onViewAll != null) ...[
+            const SizedBox(height: 12),
+            TextButton(
+              onPressed: onViewAll,
+              child: const Text('View all literature'),
             ),
           ],
           // Audiobooks are the one shelf nobody fills from a phone. A narrated
