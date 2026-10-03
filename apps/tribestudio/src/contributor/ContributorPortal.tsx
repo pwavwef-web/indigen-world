@@ -1,3 +1,4 @@
+import { KnowledgeWorkspace } from '../knowledge/KnowledgeWorkspace';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { confirmPasswordReset, sendPasswordResetEmail, signInWithEmailAndPassword, verifyPasswordResetCode } from 'firebase/auth';
 import { doc, onSnapshot } from 'firebase/firestore';
@@ -31,13 +32,14 @@ export function ContributorPortal() {
   const { path, search } = useRoute();
   const linkOwner = invitationLinkOwner(path);
   const code = new URLSearchParams(search).get('oobCode');
+  const corpusRoute = path === '/contributor/corpus';
   const reviewRoute = path === '/contributor/review';
   const [access, setAccess] = useState<'loading' | 'active' | 'denied'>('loading');
   const [account, setAccount] = useState<AccountSummary | null>(null);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (!user || code || reviewRoute) return;
+    if (!user || code || reviewRoute || corpusRoute) return;
     return onSnapshot(doc(db, 'contributorAccounts', user.uid), (snapshot) => {
       if (snapshot.get('status') !== 'active') {
         setAccess('denied');
@@ -58,10 +60,12 @@ export function ContributorPortal() {
       setAccount(null);
       setError('Your contributor invitation could not be checked just now.');
     });
-  }, [user?.uid, code, reviewRoute]);
+  }, [user?.uid, code, reviewRoute, corpusRoute]);
 
   if (path === '/contributor/support') return <AuthFrame><SupportPage /></AuthFrame>;
   if (!ready) return <AuthFrame><p className="cw-auth__message" role="status">Opening your workspace…</p></AuthFrame>;
+  if (corpusRoute && !user && !code) return <AuthFrame><ContributorSignIn code={null} /><button className="cw-auth__secondary" onClick={() => void signIn().catch(() => setError('Google sign-in did not complete. Try again.'))}>Sign in with Google</button>{error && <p role="alert">{error}</p>}</AuthFrame>;
+  if (corpusRoute && user && !code) return <main id="main-content" tabIndex={-1}><KnowledgeWorkspace key={user.uid} /></main>;
   if (reviewRoute && !code) {
     if (!user) return <AuthFrame><ContributorSignIn code={null} /><button className="cw-auth__secondary" onClick={() => void signIn().catch(() => setError('Google sign-in did not complete. Try again.'))}>Sign in with Google</button>{error ? <p role="alert">{error}</p> : null}</AuthFrame>;
     if (!canValidate(role)) return <AuthFrame><h1>Validator access required</h1><p>The review desk is available to accounts with review permission. Contact the team if you need access.</p><button className="cw-auth__primary" onClick={() => void refreshToken()}>Refresh access</button><button className="cw-auth__secondary" onClick={() => void signOutUser()}>Sign out</button></AuthFrame>;
@@ -204,7 +208,7 @@ export function ContributorSignIn({ code }: { code: string | null }) {
         : reset
           ? 'Enter the email your invitation was sent to. We will email you a link to choose a new password.'
           : 'Sign in to pick up where you left off.'}</p>
-      {!reset && <p>All contributor submissions are used to train and evaluate our language models. Continue only if you agree. You will read and accept the full agreement before contributing.</p>}
+      {!reset && path === '/contributor/corpus' ? <p>Corpus permissions are chosen per record. Saving a draft does not grant publication or model training rights.</p> : !reset && <p>All contributor submissions are used to train and evaluate our language models. Continue only if you agree. You will read and accept the full agreement before contributing.</p>}
       <label>Email<input type="email" autoComplete="username" required value={email} readOnly={Boolean(code)} onChange={(event) => setEmail(event.target.value)} /></label>
       {!reset ? <label>{code ? 'New password' : 'Password'}<input type="password" minLength={code ? 8 : undefined} required autoComplete={code ? 'new-password' : 'current-password'} value={password} onChange={(event) => setPassword(event.target.value)} /></label> : null}
       {!code && !reset ? <details className="cw-auth__help"><summary>First time here?</summary><p>Use your invited email and your phone number as the temporary password, including the country code (for example +233241234567). You’ll choose your own password after signing in.</p></details> : null}

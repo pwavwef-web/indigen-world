@@ -10,7 +10,10 @@
   "main": "./index.mjs",
   "types": "./index.d.ts",
   "exports": {
-    "./labs": { "types": "./labs.d.ts", "default": "./labs.mjs" },
+    "./labs": {
+      "types": "./labs.d.ts",
+      "default": "./labs.mjs"
+    },
     ".": {
       "types": "./index.d.ts",
       "default": "./index.mjs"
@@ -21,7 +24,12 @@
     "./schemas/*.json": "./schemas/*.json",
     "./examples/*.json": "./examples/*.json",
     "./package.json": "./package.json",
-    "./content/creator-guidelines.mjs": "./content/creator-guidelines.mjs"
+    "./content/creator-guidelines.mjs": "./content/creator-guidelines.mjs",
+    "./knowledge": {
+      "types": "./knowledge.d.ts",
+      "default": "./knowledge.mjs"
+    },
+    "./knowledge-catalog.json": "./knowledge-catalog.json"
   },
   "files": [
     "labs.mjs",
@@ -31,7 +39,10 @@
     "creator-models.d.ts",
     "content",
     "schemas",
-    "examples"
+    "examples",
+    "knowledge.mjs",
+    "knowledge.d.ts",
+    "knowledge-catalog.json"
   ],
   "scripts": {
     "test": "node scripts/validate.mjs",

@@ -1,3 +1,4 @@
+import { resolveKnowledge } from './knowledge-release.js';
 import { createHash } from "node:crypto";
 import {
   FieldPath,
@@ -62,11 +63,7 @@ async function sources(): Promise<LabsSource[]> {
       .where("isPublished", "==", true)
       .limit(150)
       .get(),
-    db
-      .collection("knowledgeRecords")
-      .where("status", "==", "gold")
-      .limit(60)
-      .get(),
+    resolveKnowledge('tribestudio', '', '', 60),
     db
       .collection("pronunciationRecordings")
       .where("status", "==", "approved")
@@ -110,37 +107,13 @@ async function sources(): Promise<LabsSource[]> {
     )
       s.topic += ` · ${entry.get("dialect")}`;
   }
-  for (const doc of knowledge.docs) {
-    const d = doc.data(),
-      p = d.permissions;
-    if (
-      !p ||
-      p.publication !== true ||
-      p.sourceConfirmed !== true ||
-      p.culturalAccess !== "open" ||
-      typeof p.licence !== "string" ||
-      !p.licence.trim() ||
-      !["culture", "literature"].includes(d.datasetType)
-    )
-      continue;
-    if (
-      d.isDevelopmentFixture === true &&
-      !googleProjectId().startsWith("demo-")
-    )
-      continue;
-    result.push({
-      ref: `knowledgeRecords:${doc.id}`,
-      kind: d.datasetType,
-      original: text(d.original, 30000),
-      meaning: text(d.english, 30000, true),
-      context: text(d.context, 12000),
-      attribution: `${text(d.source, 2000)} — ${text(d.sourceReference, 2000)} — ${p.licence}`,
-      topic: d.datasetType === "culture" ? "Cultural accounts" : "Literature",
-      reviewed: true,
-      revision: String(d.revision),
-      url: "",
-      audioUrl: "",
-    });
+  const aiKnowledge = knowledge.records.length ? await resolveKnowledge('kawuri', '', '', 60) : { records: [] };
+  for (const record of knowledge.records) {
+    if (!aiKnowledge.records.some(r => r.recordId === record.recordId && r.revision === record.revision)) continue;
+    if (!['culture', 'literature'].includes(record.category)) continue;
+    result.push({ ref: `knowledgeRecords:${record.recordId}`, kind: record.category as 'culture' | 'literature',
+      original: record.original, meaning: record.english, context: record.context, attribution: record.attribution,
+      topic: record.category === 'culture' ? 'Cultural accounts' : 'Literature', reviewed: true, revision: String(record.revision), url: '', audioUrl: '' });
   }
   return result;
 }

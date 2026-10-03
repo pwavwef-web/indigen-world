@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import { askKawuri } from '../../services/functions/lib/kawuri.js';
 import {
   chooseGroundingPlan, contributorExpression, groundedAnswerFor, localGroundingPlan,
-  parseGroundingPlan, quotableForm, renderGroundedAnswer, renderGroundedLesson,
+  parseGroundingPlan, quotableForm, releasedExpression, renderGroundedAnswer, renderGroundedLesson,
 } from '../../services/functions/lib/kawuri-grounding.js';
 
 const user = text => ({ role: 'user', text });
@@ -146,4 +146,26 @@ test('the shared public lesson path cannot display a supplied prompt or invented
   });
   assert.match(answer.reply, /recorded-water/);
   assert.doesNotMatch(answer.reply, /An kyena|Maa kyena|Barka/);
+});
+test('governed corpus quotes require the correct destination, authentication and whole recorded form', () => {
+  const projection = { recordId: 'corpus-example', revision: 3, authentication: 'gold', destination: 'kawuri',
+    category: 'expressions', english: 'How are you?', original: 'Ko ye tɛ?', region: 'recorded region',
+    context: 'recorded context', attribution: 'consented attribution' };
+  const record = releasedExpression(projection);
+  assert.equal(record.id, 'corpus-example-r3');
+  const answer = renderGroundedAnswer(plan('How are you?'), { words: [], expressions: [record] });
+  assert.match(answer.reply, /Ko ye tɛ\?/);
+  assert.match(answer.reply, /corpus-example-r3/);
+  assert.match(answer.reply, /consented attribution/);
+  for(const patch of [{ destination: 'training' }, { authentication: 'community' }, { category: 'grammar' },
+    { english: '' }, { original: 'First\nSecond' }]) assert.equal(releasedExpression({ ...projection, ...patch }), null);
+});
+test('corpus categories do not turn a lexical item into an expression or an expression into a proverb', () => {
+  const base = { recordId: 'corpus', revision: 1, authentication: 'gold', destination: 'kawuri',
+    category: 'lexicon', english: 'water', original: 'fixture-water', region: '', context: '', attribution: 'speaker' };
+  const word = releasedExpression(base);
+  assert.match(renderGroundedAnswer(plan('water'), { words: [], expressions: [word] }).reply, /fixture-water/);
+  assert.doesNotMatch(renderGroundedAnswer(plan('', { examples: true }), { words: [], expressions: [word] }).reply, /fixture-water/);
+  const proverb = releasedExpression({ ...base, category: 'proverbs' });
+  assert.match(renderGroundedAnswer(plan('', { examples: true, category: 'proverbs' }), { words: [], expressions: [proverb] }).reply, /fixture-water/);
 });

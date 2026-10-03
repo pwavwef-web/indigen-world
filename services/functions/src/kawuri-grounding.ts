@@ -3,6 +3,8 @@ import { logger } from 'firebase-functions';
 import { dictionaryRecordFrom, englishSenses, normaliseTerm, sentenceRequest, translationTerms, type DictionaryRecord } from './kawuri-dictionary.js';
 import { publicSentences, type EvidenceNote } from './kasem-evidence.js';
 import { heldOutEvidenceIds } from './kasem-dataset.js';
+import { resolveKnowledge } from './knowledge-release.js';
+import type { knowledgeProjection } from './knowledge-policy.js';
 
 /** No provider-authored text crosses this boundary. Plans select a lookup or a
  * fixed help topic; all displayed language comes from current source records. */
@@ -29,7 +31,8 @@ export interface GroundingPlan {
 export interface GroundingTurn { role: 'user' | 'model'; text: string }
 export interface QuotedExpression {
   id: string; english: string; kasem: string; alternatives: string[];
-  dialect: string; context: string; source: 'contributor' | 'evidence';
+  dialect: string; context: string; source: 'contributor' | 'evidence' | 'corpus';
+  category?: string; attribution?: string;
 }
 export interface GroundingSources { words: DictionaryRecord[]; expressions: QuotedExpression[] }
 export interface GroundedAnswer {
@@ -76,6 +79,33 @@ export function contributorExpression(id: string, source: Record<string, unknown
     dialect: clean(source.dialect), context: clean(source.usageContext), source: 'contributor' };
 }
 
+/** Accept only projections from the existing destination resolver. It rechecks
+ * policy, exact revision, reviewer grants, rights, splits and relationships. */
+export function releasedExpression(record: ReturnType<typeof knowledgeProjection>): QuotedExpression | null {
+  if (record.destination !== 'kawuri' || record.authentication !== 'gold'
+    || !['lexicon', 'expressions', 'sentences', 'proverbs'].includes(record.category)
+    || (record.valueStates?.english !== undefined && record.valueStates.english !== 'known')
+    || !record.english.trim() || !quotableForm(record.original)) return null;
+  return { id: record.recordId + '-r' + record.revision, english: record.english, kasem: record.original,
+    alternatives: [], dialect: record.region, context: record.context, source: 'corpus',
+    category: record.category, attribution: record.attribution };
+}
+
+async function loadReleasedExpressions(): Promise<QuotedExpression[]> {
+  const expressions: QuotedExpression[] = [];
+  let cursor = '';
+  for (let page = 0; page < MAX_RECORDS / 100; page++) {
+    const result = await resolveKnowledge('kawuri', '', cursor, 100);
+    for (const record of result.records) {
+      const expression = releasedExpression(record);
+      if (expression) expressions.push(expression);
+    }
+    if (!result.nextCursor) return expressions;
+    cursor = result.nextCursor;
+  }
+  throw new Error('Released corpus requires a paginated retrieval index.');
+}
+
 function isWord(data: Record<string, unknown>): boolean {
   return data.isPublished === true && data.contentKind !== 'expression'
     && data.collectionKind !== 'expressions' && !['phrase', 'idiom', 'proverb'].includes(clean(data.lexicalKind));
@@ -85,10 +115,11 @@ function isWord(data: Record<string, unknown>): boolean {
  * upload; evaluation evidence remains excluded even from this local lookup. */
 export async function loadGroundingSources(): Promise<GroundingSources> {
   const db = getFirestore();
-  const [dictionary, pairs, evidence] = await Promise.all([
+  const [dictionary, pairs, evidence, released] = await Promise.all([
     db.collection('dictionaryEntries').where('isPublished', '==', true).limit(MAX_RECORDS + 1).get(),
     db.collection('contributorTrainingPairs').limit(MAX_RECORDS + 1).get(),
     db.collection('kasemEvidence').where('schemaVersion', '==', 2).limit(MAX_RECORDS + 1).get(),
+    loadReleasedExpressions(),
   ]);
   if ([dictionary, pairs, evidence].some(snapshot => snapshot.size > MAX_RECORDS)) throw new Error('Grounding index requires pagination.');
   const words = dictionary.docs.flatMap(doc => {
@@ -96,7 +127,7 @@ export async function loadGroundingSources(): Promise<GroundingSources> {
     const record = isWord(data) ? dictionaryRecordFrom(doc.id, data) : null;
     return record && record.kasem && record.english ? [record] : [];
   });
-  const expressions: QuotedExpression[] = [];
+  const expressions: QuotedExpression[] = [...released];
   // Bound getAll batches; source IDs are Firestore document IDs, not paths from clients.
   for (let offset = 0; offset < pairs.size; offset += 100) {
     const page = pairs.docs.slice(offset, offset + 100);
@@ -185,7 +216,9 @@ function expressionBlock(record: QuotedExpression, index: number): string {
     ...record.alternatives.map(form => `Recorded alternative: ${form}`),
     record.dialect ? `Recorded dialect: ${record.dialect}` : '',
     record.context ? `Contributor's recorded context: ${record.context}` : '',
-    `Source: ${record.source === 'contributor' ? 'reviewed contributor expression' : 'reviewed sentence evidence'}.`]
+    record.attribution ? `Recorded attribution: ${record.attribution}` : '',
+    `Source: ${record.source === 'contributor' ? 'reviewed contributor expression' : record.source === 'corpus'
+      ? 'authenticated Kawuri corpus (' + record.id + ')' : 'reviewed sentence evidence'}.`]
     .filter(Boolean).join('\n');
 }
 function wordBlock(record: DictionaryRecord, index: number): string {
@@ -195,7 +228,8 @@ function wordBlock(record: DictionaryRecord, index: number): string {
     .filter(Boolean).join('\n');
 }
 function categoryMatches(record: QuotedExpression, category: ExampleCategory): boolean {
-  if (category === 'proverbs') return false; // No reviewed expression-kind metadata: do not invent that classification.
+  if (record.category === 'lexicon') return false;
+  if (category === 'proverbs') return record.source === 'corpus' && record.category === 'proverbs';
   if (category === 'greetings') return /^(?:hello|hi|how are you|good (?:morning|afternoon|evening|night)|welcome|goodbye|see you)/i.test(record.english);
   if (category === 'gratitude') return /^thank/i.test(record.english);
   return true;

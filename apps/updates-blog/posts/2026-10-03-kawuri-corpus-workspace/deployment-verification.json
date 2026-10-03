@@ -1,0 +1,206 @@
+{
+  "verifiedAt": "2026-10-03T16:59:39.430Z",
+  "functions": [
+    {
+      "name": "labsApi",
+      "state": "ACTIVE",
+      "updateTime": "2026-10-03T16:54:42.932733772Z"
+    },
+    {
+      "name": "kawuriChat",
+      "state": "ACTIVE",
+      "updateTime": "2026-10-03T16:54:43.718531134Z"
+    },
+    {
+      "name": "resolveKnowledgeRecords",
+      "state": "ACTIVE",
+      "updateTime": "2026-10-03T16:54:38.504785943Z"
+    },
+    {
+      "name": "revokeKnowledgeRelease",
+      "state": "ACTIVE",
+      "updateTime": "2026-10-03T16:54:40.246632801Z"
+    },
+    {
+      "name": "releaseKnowledgeRecord",
+      "state": "ACTIVE",
+      "updateTime": "2026-10-03T16:54:39.323421059Z"
+    },
+    {
+      "name": "withdrawKnowledgeRecord",
+      "state": "ACTIVE",
+      "updateTime": "2026-10-03T16:54:39.977802189Z"
+    },
+    {
+      "name": "getKnowledgeProgress",
+      "state": "ACTIVE",
+      "updateTime": "2026-10-03T16:54:42.455618081Z"
+    },
+    {
+      "name": "saveKnowledgeRecord",
+      "state": "ACTIVE",
+      "updateTime": "2026-10-03T16:54:41.294074522Z"
+    },
+    {
+      "name": "listKnowledgeRecords",
+      "state": "ACTIVE",
+      "updateTime": "2026-10-03T16:54:41.104363923Z"
+    },
+    {
+      "name": "getKnowledgeRecord",
+      "state": "ACTIVE",
+      "updateTime": "2026-10-03T16:54:39.530617690Z"
+    },
+    {
+      "name": "configureKnowledgeGovernance",
+      "state": "ACTIVE",
+      "updateTime": "2026-10-03T16:54:31.261351882Z"
+    },
+    {
+      "name": "exportKnowledgeRecords",
+      "state": "ACTIVE",
+      "updateTime": "2026-10-03T16:54:42.660115853Z"
+    },
+    {
+      "name": "readKnowledgeAudio",
+      "state": "ACTIVE",
+      "updateTime": "2026-10-03T16:54:42.516593245Z"
+    },
+    {
+      "name": "reviewKnowledgeRecord",
+      "state": "ACTIVE",
+      "updateTime": "2026-10-03T16:54:37.777730891Z"
+    }
+  ],
+  "gates": [
+    {
+      "name": "getKnowledgeProgress",
+      "status": 401,
+      "error": "UNAUTHENTICATED"
+    },
+    {
+      "name": "listKnowledgeRecords",
+      "status": 401,
+      "error": "UNAUTHENTICATED"
+    },
+    {
+      "name": "getKnowledgeRecord",
+      "status": 401,
+      "error": "UNAUTHENTICATED"
+    },
+    {
+      "name": "saveKnowledgeRecord",
+      "status": 401,
+      "error": "UNAUTHENTICATED"
+    },
+    {
+      "name": "reviewKnowledgeRecord",
+      "status": 401,
+      "error": "UNAUTHENTICATED"
+    },
+    {
+      "name": "withdrawKnowledgeRecord",
+      "status": 401,
+      "error": "UNAUTHENTICATED"
+    },
+    {
+      "name": "readKnowledgeAudio",
+      "status": 401,
+      "error": "UNAUTHENTICATED"
+    },
+    {
+      "name": "releaseKnowledgeRecord",
+      "status": 401,
+      "error": "UNAUTHENTICATED"
+    },
+    {
+      "name": "revokeKnowledgeRelease",
+      "status": 401,
+      "error": "UNAUTHENTICATED"
+    },
+    {
+      "name": "resolveKnowledgeRecords",
+      "status": 401,
+      "error": "UNAUTHENTICATED"
+    },
+    {
+      "name": "exportKnowledgeRecords",
+      "status": 401,
+      "error": "UNAUTHENTICATED"
+    },
+    {
+      "name": "configureKnowledgeGovernance",
+      "status": 401,
+      "error": "UNAUTHENTICATED"
+    }
+  ],
+  "indexes": [
+    {
+      "name": "projects/project-kassena-7e026/databases/(default)/collectionGroups/knowledgeRecords/indexes/CICAgJiWxIIK",
+      "state": "READY",
+      "fields": [
+        {
+          "fieldPath": "authorUid",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "schemaVersion",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "workflow",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "name": "projects/project-kassena-7e026/databases/(default)/collectionGroups/knowledgeRecords/indexes/CICAgPjgiJoK",
+      "state": "READY",
+      "fields": [
+        {
+          "fieldPath": "authorUid",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "schemaVersion",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "submittedAt",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "ASCENDING"
+        }
+      ]
+    }
+  ],
+  "hosting": [
+    {
+      "name": "sites/tribestudio/releases/1791046748156000",
+      "releaseTime": "2026-10-03T16:59:08.156Z",
+      "version": "sites/tribestudio/versions/de5f248b88d2d25f"
+    }
+  ],
+  "sites": [
+    {
+      "host": "tribestudio.web.app",
+      "status": 200,
+      "htmlSha256": "22bffe90c891d41aa12fd88ede04e95aa36f486e1d2af32427903143c9adb331",
+      "corpusChunk": "ContributorPortal-D2tMkVkn.js",
+      "corpusSha256": "ab04dee60249af7e84f34ee132d1a5c6adc21fd8b402d879fd259bdef06a75da"
+    },
+    {
+      "host": "tribestudio.indigenworld.com",
+      "status": 200,
+      "htmlSha256": "22bffe90c891d41aa12fd88ede04e95aa36f486e1d2af32427903143c9adb331",
+      "corpusChunk": "ContributorPortal-D2tMkVkn.js",
+      "corpusSha256": "ab04dee60249af7e84f34ee132d1a5c6adc21fd8b402d879fd259bdef06a75da"
+    }
+  ]
+}

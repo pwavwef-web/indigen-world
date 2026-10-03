@@ -1,0 +1,42 @@
+import { createRequire } from 'node:module';
+import { mkdirSync, writeFileSync } from 'node:fs';
+import assert from 'node:assert/strict';
+if (!process.env.PLAYWRIGHT_MODULE_PATH) throw new Error('Set PLAYWRIGHT_MODULE_PATH to the installed playwright/package.json path.');
+const require = createRequire(process.env.PLAYWRIGHT_MODULE_PATH);
+const { chromium } = require('playwright');
+const browser = await chromium.launch({...(process.env.BROWSER_EXECUTABLE ? { executablePath: process.env.BROWSER_EXECUTABLE } : {}),headless:true});
+const page = await browser.newPage({ viewport:{width:1440,height:1050} });
+const errors=[]; page.on('pageerror',e=>errors.push(e.message));
+await page.route('**/*',route=> { const url=route.request().url(); if(url.startsWith('http://127.0.0.1:5189') || url.startsWith('data:') || url.startsWith('blob:')) return route.continue(); return route.abort(); });
+mkdirSync('.tooling/knowledge-tests/screens',{recursive:true});
+await page.goto('http://127.0.0.1:5189/contributor/preview/corpus');
+await page.getByRole('heading',{name:'Every detail has a source.'}).waitFor();
+await page.getByRole('button',{name:'Contribute',exact:true}).waitFor({state:'visible'});
+await page.screenshot({path:'.tooling/knowledge-tests/screens/corpus-desktop.png'});
+for(const width of [360,768,1440]) {
+ await page.setViewportSize({width,height:1000});
+ assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth),false,`Overflow at ${width}`);
+ await page.screenshot({path:`.tooling/knowledge-tests/screens/corpus-${width}.png`});
+}
+await page.getByRole('button',{name:'Contribute',exact:true}).click();
+await page.getByRole('combobox',{name:/^Dataset area/}).selectOption('expressions');
+await page.getByLabel('Record title',{exact:false}).fill('Synthetic expression for review');
+await page.getByLabel('Original Kasem',{exact:false}).first().fill('TEST ONLY ɛ ɔ ŋ');
+await page.getByLabel('Source attribution',{exact:false}).fill('Synthetic test source');
+await page.getByLabel('Source reference',{exact:false}).fill('test-fixture:1');
+await page.getByRole('checkbox',{name:'Community review',exact:false}).check();
+await page.getByRole('button',{name:'Check before submission'}).click();
+await page.getByRole('button',{name:'Submit for review',exact:true}).click();
+await page.getByRole('status').filter({hasText:'Receipt:'}).waitFor();
+assert.match(await page.locator('.kw-editor-head').innerText(),/Submitted.*Community/s);
+for (const width of [360,768,1440]) { await page.setViewportSize({width,height:1000}); assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth),false,`Editor overflow at ${width}`); }
+await page.locator('.kw-editor-head').scrollIntoViewIfNeeded();
+await page.screenshot({path:'.tooling/knowledge-tests/screens/corpus-submitted.png'});
+await page.getByRole('button',{name:'Corpus reference',exact:true}).click();
+await page.getByText('No eligible records in this page.',{exact:false}).waitFor();
+await page.getByRole('button',{name:'Guide and policies',exact:true}).click();
+await page.getByText('Provisional drafts only',{exact:false}).waitFor();
+writeFileSync('.tooling/knowledge-tests/browser-result.json',JSON.stringify({errors,viewports:[360,768,1440],flow:'draft, category change, submit receipt, community authentication, empty controlled reference, policy guide'},null,2));
+assert.deepEqual(errors,[]);
+await browser.close();
+console.log('Browser checks passed at 360, 768 and 1440 pixels.');

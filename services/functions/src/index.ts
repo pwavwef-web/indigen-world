@@ -184,7 +184,7 @@ export { reportContributorIssue, getContributorIssues, listContributorIssues, up
 export { getContributorSelf, updateContributorSelf, saveContributorSettings } from './contributor-profile.js';
 export { onContributorPulseSubmissionWritten } from './contributor-pulse.js';
 export { kawuriContributorAssist } from './contributor-assist.js';
-export { listKnowledgeRecords, getKnowledgeRecord, saveKnowledgeRecord, reviewKnowledgeRecord, withdrawKnowledgeRecord, readKnowledgeAudio } from './knowledge-workspace.js';
+export { getKnowledgeProgress, listKnowledgeRecords, getKnowledgeRecord, saveKnowledgeRecord, reviewKnowledgeRecord, withdrawKnowledgeRecord, readKnowledgeAudio } from './knowledge-workspace.js';
 export { prepareContributorDailyTasks, getContributorDailyTasks, requestMoreContributorTasks } from './contributor-daily-tasks.js';
 export { supportPortal, listSupportCases, getSupportCase, updateSupportCase, onSupportEmailCreated, supportEscalationSweep } from './support.js';
 // Firebase resolves all declared secrets during discovery, even for a filtered
@@ -199,3 +199,7 @@ if (process.env.ENABLE_SUPPORT_WHATSAPP === 'true') {
   onSupportWhatsappOutbox = whatsapp.onSupportWhatsappOutbox;
 }
 
+
+export { releaseKnowledgeRecord, revokeKnowledgeRelease, resolveKnowledgeRecords, exportKnowledgeRecords } from './knowledge-release.js';
+
+export { configureKnowledgeGovernance } from './knowledge-governance.js';

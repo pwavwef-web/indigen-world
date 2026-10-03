@@ -336,10 +336,8 @@ test("cultural sources require gold review and explicit public reuse rights", as
     .set({ ...base, status: "submitted" });
   try {
     const data = await member("sources", { experimentId: "cultural-story" });
-    assert.ok(
-      data.sources.some((s) => s.ref === `knowledgeRecords:${refs[0]}`),
-    );
-    for (const ref of refs.slice(1))
+    // Legacy Gold is not evidence of an eligible exact-revision release.
+    for (const ref of refs)
       assert.equal(
         data.sources.some((s) => s.ref === `knowledgeRecords:${ref}`),
         false,

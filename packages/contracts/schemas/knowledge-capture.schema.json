@@ -1,0 +1,1349 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://indigen.world/contracts/knowledge-capture.schema.json",
+  "title": "Kawuri provisional capture contract version 2",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "datasetType": {
+      "enum": [
+        "lexicon",
+        "grammar",
+        "expressions",
+        "sentences",
+        "proverbs",
+        "literature",
+        "dialogue",
+        "pronunciation",
+        "culture",
+        "qa"
+      ]
+    },
+    "language": {
+      "const": "xsm"
+    },
+    "title": {
+      "type": "string",
+      "maxLength": 200
+    },
+    "original": {
+      "type": "string",
+      "maxLength": 30000
+    },
+    "english": {
+      "type": "string",
+      "maxLength": 30000
+    },
+    "french": {
+      "type": "string",
+      "maxLength": 30000
+    },
+    "context": {
+      "type": "string",
+      "maxLength": 12000
+    },
+    "region": {
+      "type": "string",
+      "maxLength": 200
+    },
+    "source": {
+      "type": "string",
+      "maxLength": 2000
+    },
+    "sourceType": {
+      "enum": [
+        "speaker",
+        "literature",
+        "recording",
+        "other"
+      ]
+    },
+    "sourceReference": {
+      "type": "string",
+      "maxLength": 2000
+    },
+    "details": {
+      "type": "object"
+    },
+    "variants": {
+      "type": "array",
+      "maxItems": 20,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "form": {
+            "type": "string",
+            "maxLength": 4000
+          },
+          "context": {
+            "type": "string",
+            "maxLength": 4000
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 4000
+          }
+        }
+      }
+    },
+    "relatedRecordIds": {
+      "type": "array",
+      "maxItems": 30,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "maxLength": 200
+      }
+    },
+    "permissions": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "review": {
+          "type": "boolean"
+        },
+        "sourceConfirmed": {
+          "type": "boolean"
+        },
+        "publication": {
+          "type": "boolean"
+        },
+        "providerRetrieval": {
+          "type": "boolean"
+        },
+        "modelTraining": {
+          "type": "boolean"
+        },
+        "evaluation": {
+          "type": "boolean"
+        },
+        "audio": {
+          "type": "boolean"
+        },
+        "licence": {
+          "type": "string",
+          "maxLength": 2000
+        },
+        "culturalAccess": {
+          "enum": [
+            "open",
+            "restricted",
+            "sensitive"
+          ]
+        }
+      }
+    },
+    "audio": {
+      "type": "array",
+      "maxItems": 12,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "path": {
+            "type": "string",
+            "maxLength": 300
+          },
+          "label": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "transcript": {
+            "type": "string",
+            "maxLength": 12000
+          },
+          "speakerId": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "region": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "kind": {
+            "enum": [
+              "isolated",
+              "in_context"
+            ]
+          },
+          "environment": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "quality": {
+            "type": "string",
+            "maxLength": 2000
+          }
+        }
+      }
+    },
+    "rights": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "state": {
+          "enum": [
+            "unresolved",
+            "documented",
+            "withdrawn"
+          ]
+        },
+        "holder": {
+          "type": "string",
+          "maxLength": 2000
+        },
+        "evidence": {
+          "type": "string",
+          "maxLength": 2000
+        },
+        "version": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "publicAttribution": {
+          "type": "string",
+          "maxLength": 1000
+        },
+        "restrictions": {
+          "type": "string",
+          "maxLength": 4000
+        },
+        "expiresAt": {
+          "type": "string",
+          "maxLength": 40
+        },
+        "preservation": {
+          "type": "boolean"
+        },
+        "derivedMedia": {
+          "type": "boolean"
+        },
+        "speechSynthesis": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "state"
+      ]
+    },
+    "valueStates": {
+      "type": "object",
+      "propertyNames": {
+        "pattern": "^(english|french|region|context|details\\.[A-Za-z]+)$"
+      },
+      "additionalProperties": {
+        "enum": [
+          "known",
+          "unknown",
+          "not_applicable",
+          "not_yet_translated",
+          "no_direct_equivalent"
+        ]
+      }
+    },
+    "structured": {
+      "type": "object"
+    },
+    "relations": {
+      "type": "array",
+      "maxItems": 30,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "type": {
+            "enum": [
+              "illustrates_rule",
+              "variant_of",
+              "translates",
+              "related_proverb",
+              "related_story",
+              "related_concept",
+              "pronunciation_of",
+              "supports",
+              "supersedes"
+            ]
+          },
+          "recordId": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 1
+          }
+        },
+        "required": [
+          "type",
+          "recordId",
+          "revision"
+        ]
+      }
+    },
+    "requestContext": {
+      "type": "string",
+      "maxLength": 200
+    },
+    "split": {
+      "enum": [
+        "unassigned",
+        "train",
+        "evaluation"
+      ]
+    },
+    "sourceFamily": {
+      "type": "string",
+      "maxLength": 200
+    }
+  },
+  "required": [
+    "datasetType",
+    "rights"
+  ],
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "datasetType": {
+            "const": "lexicon"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "details": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "partOfSpeech": {
+                "type": "string",
+                "maxLength": 12000
+              },
+              "definitionKasem": {
+                "type": "string",
+                "maxLength": 12000
+              },
+              "sense": {
+                "type": "string",
+                "maxLength": 12000
+              },
+              "ipa": {
+                "type": "string",
+                "maxLength": 12000
+              },
+              "morphology": {
+                "type": "string",
+                "maxLength": 12000
+              },
+              "example": {
+                "type": "string",
+                "maxLength": 12000
+              },
+              "usage": {
+                "type": "string",
+                "maxLength": 12000
+              },
+              "etymology": {
+                "type": "string",
+                "maxLength": 12000
+              },
+              "genderClass": {
+                "type": "string",
+                "maxLength": 12000
+              },
+              "plural": {
+                "type": "string",
+                "maxLength": 12000
+              },
+              "rootStem": {
+                "type": "string",
+                "maxLength": 12000
+              },
+              "usageType": {
+                "type": "string",
+                "maxLength": 12000
+              }
+            }
+          },
+          "structured": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "senses": {
+                "type": "array",
+                "maxItems": 100,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "pattern": "^[\\w-]+$",
+                      "maxLength": 80
+                    },
+                    "original": {
+                      "type": "string",
+                      "maxLength": 12000
+                    },
+                    "english": {
+                      "type": "string",
+                      "maxLength": 12000
+                    },
+                    "french": {
+                      "type": "string",
+                      "maxLength": 12000
+                    },
+                    "speakerId": {
+                      "type": "string",
+                      "maxLength": 100
+                    },
+                    "context": {
+                      "type": "string",
+                      "maxLength": 4000
+                    },
+                    "translator": {
+                      "type": "string",
+                      "maxLength": 200
+                    },
+                    "translationState": {
+                      "enum": [
+                        "known",
+                        "unknown",
+                        "not_applicable",
+                        "not_yet_translated",
+                        "no_direct_equivalent"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "id"
+                  ]
+                }
+              },
+              "examples": {
+                "type": "array",
+                "maxItems": 100,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "pattern": "^[\\w-]+$",
+                      "maxLength": 80
+                    },
+                    "original": {
+                      "type": "string",
+                      "maxLength": 12000
+                    },
+                    "english": {
+                      "type": "string",
+                      "maxLength": 12000
+                    },
+                    "french": {
+                      "type": "string",
+                      "maxLength": 12000
+                    },
+                    "speakerId": {
+                      "type": "string",
+                      "maxLength": 100
+                    },
+                    "context": {
+                      "type": "string",
+                      "maxLength": 4000
+                    },
+                    "translator": {
+                      "type": "string",
+                      "maxLength": 200
+                    },
+                    "translationState": {
+                      "enum": [
+                        "known",
+                        "unknown",
+                        "not_applicable",
+                        "not_yet_translated",
+                        "no_direct_equivalent"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "id"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "datasetType": {
+            "const": "grammar"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "details": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "rule": {
+                "type": "string",
+                "maxLength": 12000
+              },
+              "scope": {
+                "type": "string",
+                "maxLength": 12000
+              },
+              "structure": {
+                "type": "string",
+                "maxLength": 12000
+              },
+              "examples": {
+                "type": "string",
+                "maxLength": 12000
+              },
+              "counterexamples": {
+                "type": "string",
+                "maxLength": 12000
+              },
+              "evidence": {
+                "type": "string",
+                "maxLength": 12000
+              },
+              "grammarCategory": {
+                "type": "string",
+                "maxLength": 12000
+              },
+              "negativeContrast": {
+                "type": "string",
+                "maxLength": 12000
+              },
+              "explanation": {
+                "type": "string",
+                "maxLength": 12000
+              }
+            }
+          },
+          "structured": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "examples": {
+                "type": "array",
+                "maxItems": 100,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "pattern": "^[\\w-]+$",
+                      "maxLength": 80
+                    },
+                    "original": {
+                      "type": "string",
+                      "maxLength": 12000
+                    },
+                    "english": {
+                      "type": "string",
+                      "maxLength": 12000
+                    },
+                    "french": {
+                      "type": "string",
+                      "maxLength": 12000
+                    },
+                    "speakerId": {
+                      "type": "string",
+                      "maxLength": 100
+                    },
+                    "context": {
+                      "type": "string",
+                      "maxLength": 4000
+                    },
+                    "translator": {
+                      "type": "string",
+                      "maxLength": 200
+                    },
+                    "translationState": {
+                      "enum": [
+                        "known",
+                        "unknown",
+                        "not_applicable",
+                        "not_yet_translated",
+                        "no_direct_equivalent"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "id"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "datasetType": {
+            "const": "expressions"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "details": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "literalMeaning": {
+                "type": "string",
+                "maxLength": 12000
+              },
+              "intendedMeaning": {
+                "type": "string",
+                "maxLength": 12000
+              },
+              "speakerRelationship": {
+                "type": "string",
+                "maxLength": 12000
+              },
+              "response": {
+                "type": "string",
+                "maxLength": 12000
+              },
+              "alternatives": {
+                "type": "string",
+                "maxLength": 12000
+              },
+              "register": {
+                "type": "string",
+                "maxLength": 12000
+              },
+              "culturalSignificance": {
+                "type": "string",
+                "maxLength": 12000
+              },
+              "frenchEquivalent": {
+                "type": "string",
+                "maxLength": 12000
+              }
+            }
+          },
+          "structured": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "dialogueTurns": {
+                "type": "array",
+                "maxItems": 100,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "pattern": "^[\\w-]+$",
+                      "maxLength": 80
+                    },
+                    "original": {
+                      "type": "string",
+                      "maxLength": 12000
+                    },
+                    "english": {
+                      "type": "string",
+                      "maxLength": 12000
+                    },
+                    "french": {
+                      "type": "string",
+                      "maxLength": 12000
+                    },
+                    "speakerId": {
+                      "type": "string",
+                      "maxLength": 100
+                    },
+                    "context": {
+                      "type": "string",
+                      "maxLength": 4000
+                    },
+                    "translator": {
+                      "type": "string",
+                      "maxLength": 200
+                    },
+                    "translationState": {
+                      "enum": [
+                        "known",
+                        "unknown",
+                        "not_applicable",
+                        "not_yet_translated",
+                        "no_direct_equivalent"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "id"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "datasetType": {
+            "const": "sentences"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "details": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "sentenceType": {
+                "type": "string",
+                "maxLength": 12000
+              },
+              "literalMeaning": {
+                "type": "string",
+                "maxLength": 12000
+              },
+              "structure": {
+                "type": "string",
+                "maxLength": 12000
+              },
+              "construction": {
+                "type": "string",
+                "maxLength": 12000
+              },
+              "previousTurn": {
+                "type": "string",
+                "maxLength": 12000
+              },
+              "alternatives": {
+                "type": "string",
+                "maxLength": 12000
+              }
+            }
+          },
+          "structured": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {}
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "datasetType": {
+            "const": "proverbs"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "details": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "literalMeaning": {
+                "type": "string",
+                "maxLength": 12000
+              },
+              "interpretation": {
+                "type": "string",
+                "maxLength": 12000
+              },
+              "use": {
+                "type": "string",
+                "maxLength": 12000
+              },
+              "authority": {
+                "type": "string",
+                "maxLength": 12000
+              },
+              "englishEquivalent": {
+                "type": "string",
+                "maxLength": 12000
+              },
+              "frenchEquivalent": {
+                "type": "string",
+                "maxLength": 12000
+              },
+              "misuse": {
+                "type": "string",
+                "maxLength": 12000
+              },
+              "historicalContext": {
+                "type": "string",
+                "maxLength": 12000
+              },
+              "lesson": {
+                "type": "string",
+                "maxLength": 12000
+              },
+              "exampleSituation": {
+                "type": "string",
+                "maxLength": 12000
+              }
+            }
+          },
+          "structured": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "examples": {
+                "type": "array",
+                "maxItems": 100,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "pattern": "^[\\w-]+$",
+                      "maxLength": 80
+                    },
+                    "original": {
+                      "type": "string",
+                      "maxLength": 12000
+                    },
+                    "english": {
+                      "type": "string",
+                      "maxLength": 12000
+                    },
+                    "french": {
+                      "type": "string",
+                      "maxLength": 12000
+                    },
+                    "speakerId": {
+                      "type": "string",
+                      "maxLength": 100
+                    },
+                    "context": {
+                      "type": "string",
+                      "maxLength": 4000
+                    },
+                    "translator": {
+                      "type": "string",
+                      "maxLength": 200
+                    },
+                    "translationState": {
+                      "enum": [
+                        "known",
+                        "unknown",
+                        "not_applicable",
+                        "not_yet_translated",
+                        "no_direct_equivalent"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "id"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "datasetType": {
+            "const": "literature"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "details": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "genre": {
+                "type": "string",
+                "maxLength": 12000
+              },
+              "creator": {
+                "type": "string",
+                "maxLength": 12000
+              },
+              "workTitle": {
+                "type": "string",
+                "maxLength": 12000
+              },
+              "location": {
+                "type": "string",
+                "maxLength": 12000
+              },
+              "themes": {
+                "type": "string",
+                "maxLength": 12000
+              },
+              "segments": {
+                "type": "string",
+                "maxLength": 12000
+              },
+              "editorialNotes": {
+                "type": "string",
+                "maxLength": 12000
+              },
+              "community": {
+                "type": "string",
+                "maxLength": 12000
+              },
+              "origin": {
+                "type": "string",
+                "maxLength": 12000
+              },
+              "characters": {
+                "type": "string",
+                "maxLength": 12000
+              },
+              "lesson": {
+                "type": "string",
+                "maxLength": 12000
+              },
+              "culturalReferences": {
+                "type": "string",
+                "maxLength": 12000
+              },
+              "places": {
+                "type": "string",
+                "maxLength": 12000
+              },
+              "translator": {
+                "type": "string",
+                "maxLength": 12000
+              }
+            }
+          },
+          "structured": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "segments": {
+                "type": "array",
+                "maxItems": 100,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "pattern": "^[\\w-]+$",
+                      "maxLength": 80
+                    },
+                    "original": {
+                      "type": "string",
+                      "maxLength": 12000
+                    },
+                    "english": {
+                      "type": "string",
+                      "maxLength": 12000
+                    },
+                    "french": {
+                      "type": "string",
+                      "maxLength": 12000
+                    },
+                    "speakerId": {
+                      "type": "string",
+                      "maxLength": 100
+                    },
+                    "context": {
+                      "type": "string",
+                      "maxLength": 4000
+                    },
+                    "translator": {
+                      "type": "string",
+                      "maxLength": 200
+                    },
+                    "translationState": {
+                      "enum": [
+                        "known",
+                        "unknown",
+                        "not_applicable",
+                        "not_yet_translated",
+                        "no_direct_equivalent"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "id"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "datasetType": {
+            "const": "dialogue"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "details": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "participants": {
+                "type": "string",
+                "maxLength": 12000
+              },
+              "turns": {
+                "type": "string",
+                "maxLength": 12000
+              },
+              "goal": {
+                "type": "string",
+                "maxLength": 12000
+              },
+              "register": {
+                "type": "string",
+                "maxLength": 12000
+              },
+              "nonverbal": {
+                "type": "string",
+                "maxLength": 12000
+              },
+              "situation": {
+                "type": "string",
+                "maxLength": 12000
+              },
+              "speakerRelationship": {
+                "type": "string",
+                "maxLength": 12000
+              },
+              "ageRange": {
+                "type": "string",
+                "maxLength": 12000
+              },
+              "setting": {
+                "type": "string",
+                "maxLength": 12000
+              },
+              "emotion": {
+                "type": "string",
+                "maxLength": 12000
+              },
+              "culturalContext": {
+                "type": "string",
+                "maxLength": 12000
+              }
+            }
+          },
+          "structured": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "dialogueTurns": {
+                "type": "array",
+                "maxItems": 100,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "pattern": "^[\\w-]+$",
+                      "maxLength": 80
+                    },
+                    "original": {
+                      "type": "string",
+                      "maxLength": 12000
+                    },
+                    "english": {
+                      "type": "string",
+                      "maxLength": 12000
+                    },
+                    "french": {
+                      "type": "string",
+                      "maxLength": 12000
+                    },
+                    "speakerId": {
+                      "type": "string",
+                      "maxLength": 100
+                    },
+                    "context": {
+                      "type": "string",
+                      "maxLength": 4000
+                    },
+                    "translator": {
+                      "type": "string",
+                      "maxLength": 200
+                    },
+                    "translationState": {
+                      "enum": [
+                        "known",
+                        "unknown",
+                        "not_applicable",
+                        "not_yet_translated",
+                        "no_direct_equivalent"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "id"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "datasetType": {
+            "const": "pronunciation"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "details": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "transcription": {
+                "type": "string",
+                "maxLength": 12000
+              },
+              "tone": {
+                "type": "string",
+                "maxLength": 12000
+              },
+              "speakerBackground": {
+                "type": "string",
+                "maxLength": 12000
+              },
+              "minimalPairs": {
+                "type": "string",
+                "maxLength": 12000
+              },
+              "recordingNotes": {
+                "type": "string",
+                "maxLength": 12000
+              },
+              "ageRange": {
+                "type": "string",
+                "maxLength": 12000
+              },
+              "gender": {
+                "type": "string",
+                "maxLength": 12000
+              },
+              "pronunciationNotes": {
+                "type": "string",
+                "maxLength": 12000
+              }
+            }
+          },
+          "structured": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {}
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "datasetType": {
+            "const": "culture"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "details": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "topic": {
+                "type": "string",
+                "maxLength": 12000
+              },
+              "explanation": {
+                "type": "string",
+                "maxLength": 12000
+              },
+              "authority": {
+                "type": "string",
+                "maxLength": 12000
+              },
+              "protocol": {
+                "type": "string",
+                "maxLength": 12000
+              },
+              "variation": {
+                "type": "string",
+                "maxLength": 12000
+              },
+              "misinterpretations": {
+                "type": "string",
+                "maxLength": 12000
+              },
+              "terminology": {
+                "type": "string",
+                "maxLength": 12000
+              },
+              "history": {
+                "type": "string",
+                "maxLength": 12000
+              },
+              "relatedCeremony": {
+                "type": "string",
+                "maxLength": 12000
+              },
+              "venaculaReference": {
+                "type": "string",
+                "maxLength": 12000
+              },
+              "studioReference": {
+                "type": "string",
+                "maxLength": 12000
+              }
+            }
+          },
+          "structured": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {}
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "datasetType": {
+            "const": "qa"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "details": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "question": {
+                "type": "string",
+                "maxLength": 12000
+              },
+              "answer": {
+                "type": "string",
+                "maxLength": 12000
+              },
+              "evidence": {
+                "type": "string",
+                "maxLength": 12000
+              },
+              "reasoning": {
+                "type": "string",
+                "maxLength": 12000
+              },
+              "uncertainty": {
+                "type": "string",
+                "maxLength": 12000
+              },
+              "topic": {
+                "type": "string",
+                "maxLength": 12000
+              },
+              "exampleType": {
+                "type": "string",
+                "maxLength": 12000
+              },
+              "noEvidenceExpectation": {
+                "type": "string",
+                "maxLength": 12000
+              }
+            }
+          },
+          "structured": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "qaExamples": {
+                "type": "array",
+                "maxItems": 100,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "pattern": "^[\\w-]+$",
+                      "maxLength": 80
+                    },
+                    "original": {
+                      "type": "string",
+                      "maxLength": 12000
+                    },
+                    "english": {
+                      "type": "string",
+                      "maxLength": 12000
+                    },
+                    "french": {
+                      "type": "string",
+                      "maxLength": 12000
+                    },
+                    "speakerId": {
+                      "type": "string",
+                      "maxLength": 100
+                    },
+                    "context": {
+                      "type": "string",
+                      "maxLength": 4000
+                    },
+                    "translator": {
+                      "type": "string",
+                      "maxLength": 200
+                    },
+                    "translationState": {
+                      "enum": [
+                        "known",
+                        "unknown",
+                        "not_applicable",
+                        "not_yet_translated",
+                        "no_direct_equivalent"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "id"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}
