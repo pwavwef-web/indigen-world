@@ -8,7 +8,7 @@ date identifies when the post was prepared; it does not prove the update is live
 
 - [2026-10-03: Browse Kasem literature by category](2026-10-03-literature-category-tabs/README.md) — illustrated draft held at the owner's request until the mobile update is deployed and publication is authorized again; five primary category tabs implemented and tested.
 
-- [2026-10-03: Kawuri corpus contributions with sources and review history](2026-10-03-kawuri-corpus-workspace/README.md) — implemented corpus workspace with category capture, explicit rights, revision history and policy-controlled review/release. Deployment verification pending; Blogger publication remains with Chinedum. Includes actual component screenshots with synthetic data.
+- [2026-10-03: Kawuri corpus contributions with sources and review history](2026-10-03-kawuri-corpus-workspace/README.md) — backend, Storage rules, indexes and TribeStudio deployed and verified October 3; policy-dependent authentication and corpus publication remain gated. Blogger publication remains with Chinedum. Includes actual component screenshots with synthetic data.
 
 - [2026-10-02: Words in the dictionary, expressions for model learning](2026-10-02-dictionary-words-and-training/README.md) — unpublished article; backend and web changes deployed and verified October 2. Production cleanup retired 38 expression copies while preserving sources and permissions; 340 other entries remain published. Android reader release pending. Includes a verified local product screenshot and labelled workflow illustration.
 

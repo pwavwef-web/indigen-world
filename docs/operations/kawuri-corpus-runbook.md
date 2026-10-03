@@ -14,6 +14,10 @@ The `grant` action accepts an account UID and an explicit active flag, category 
 
 Reviewer scope grants currently cover a category rather than individual task assignments. Reviewers confirm the checklist within their scope. The approved operational procedure must define qualification checks, assignment, conflicts, appeals and escalation before enabling grants. The software disallows self-authentication.
 
+## Clean release preparation
+
+Install the lockfile dependencies with `npm ci` and build `npm run build:web-ui` before portal checks. The Hosting predeploy hook builds console-ui and runs the production-main gate plus TribeStudio checks. Deploy from a clean checkout matching `origin/main`. When the multi-site Firebase configuration invokes unrelated Hosting hooks, use a temporary configuration containing only the existing TribeStudio Hosting entry, preserving its predeploy commands, headers and rewrites. Deploy the corpus backend, Storage rules and indexes before releasing the portal. Verify both domains and callable gates; record evidence in the dated release post.
+
 ## Verification commands
 
 1. `npm run test:contracts`

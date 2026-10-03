@@ -1,6 +1,6 @@
 # Kawuri corpus contributions with sources and review history
 
-Status: **Implemented and locally verified. Push and deployment requested; verification pending. Article not published or shared.**
+Status: **Pushed and deployed on 3 October 2026. Live route, assets and access gates verified. Article not published or shared.**
 
 | Field | Value |
 |---|---|
@@ -41,4 +41,12 @@ The user's request authorizes code push and deployment. It does not authorize pu
 
 ## Deployment verification
 
-Pending at preparation time. Record the pushed commit, Hosting release, selected Functions deployment, Storage/index status and live checks here after successful release. Preserve any remaining limitations explicitly.
+- Deployment source: `origin/main` commit `0c08a77471e79b8ba180e99b34b1a812176fe71c`. A following documentation-only commit records this evidence.
+- Live route: [TribeStudio corpus workspace](https://tribestudio.indigenworld.com/contributor/corpus), also verified at `https://tribestudio.web.app/contributor/corpus`.
+- Hosting release: `sites/tribestudio/releases/1791046748156000`; version `de5f248b88d2d25f`, released 3 October 2026. Both domains returned HTTP 200 with HTML and `ContributorPortal-D2tMkVkn.js` bytes matching the clean release build. Full hashes and API status evidence are in `deployment-verification.json`.
+- Functions: twelve corpus operations created; `kawuriChat` and `labsApi` updated. All fourteen are ACTIVE in `us-central1` on Node.js 22. All twelve private corpus callables returned HTTP 401 / UNAUTHENTICATED to signed-out requests.
+- Storage rules compiled and were released successfully. Both new `knowledgeRecords` compound indexes are READY. Existing Firestore default-deny rules protect the server-only corpus collections.
+- The production sign-in page passed browser checks at 360, 768 and 1440 px: email/password and Google choices, per-record rights notice, no horizontal overflow or uncaught page errors.
+- Positive capture, review, release, withdrawal and export operations were verified against emulators. No production contributor account was impersonated, no production corpus test records were inserted, and no actual speaker pilot was performed.
+- Read-only preflight found no current corpus policy and zero corpus records. This deployment did not approve policy, assign reviewers, migrate legacy content, publish corpus records or start model training. Sentence submission and qualified Gold authentication remain gated.
+- Clean-checkout preparation required `npm ci`, `npm run build:web-ui`, and the existing console UI build. Hosting was deployed with a temporary configuration containing only the unchanged TribeStudio Hosting entry, retaining its production-main verification and all required checks; the default multi-site command had also invoked the unrelated website hook. No other Hosting site was deployed.
