@@ -1,6 +1,6 @@
 # Help Fill the Jars: A living window into our launch progress
 
-Status: **Implemented and verified on the public website (`@indigen-world/website`); passed typecheck, site structure assertions, 11 calculation invariants, and production build with prerendered metadata on 2026-10-04. This article is unpublished; no community sharing performed.**
+Status: **Deployed to Firebase Hosting (site: indigen-world) on 2026-10-04. Live routes at https://indigenworld.com/progress and https://indigen-world.web.app/progress verified with 200 OK. This article is unpublished; no community sharing performed.**
 
 | Field | Value |
 |---|---|
