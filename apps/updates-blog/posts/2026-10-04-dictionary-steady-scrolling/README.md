@@ -1,10 +1,10 @@
 # A steadier place to look up Kasem
 
-Status: **Implemented locally; production deployment and Blogger publication pending.**
+Status: **Deployed October 4, 2026; public assets and live scrolling verified. Blogger publication pending.**
 
 - Title: A steadier place to look up Kasem
 - Labels: Kasem Dictionary, Website, Accessibility, Fixes
-- Search description: A prepared Kasem Dictionary fix keeps panels steady when scrolling upward and preserves your place when returning to results on phones.
+- Search description: A Kasem Dictionary fix keeps panels steady when scrolling upward and preserves your place when returning to results on phones.
 - Custom permalink: dictionary-steady-scrolling
 - Article: `post.html`
 - Sharing copy: `share.md`
@@ -72,7 +72,35 @@ The old live stylesheet failed the same geometry assertion (panel top moved
 between approximately 73px and 100px). Independently, one wheel action on the
 live site at 1918×880 produced four alternating navigation visibility changes
 within about 253ms, confirming the feedback loop seen in the recording.
-These results verify the local fix; they do not confirm a live deployment.
+The preceding checks were run locally; subsequent live verification is recorded below.
+
+## Deployment evidence
+
+Firebase Hosting site `kasem-dictionary` was released on October 4, 2026 from
+clean `origin/main` commit `835fa3d1fe8bb4e28d470548ffd955d76974fb51`.
+The deployment retained the production-main guard and dictionary type checks,
+publication-boundary validation and build. A disposable config selected the
+existing dictionary Hosting entry only: Firebase's multi-site predeploy runner
+initially ran an unrelated website check, which failed before any site upload.
+No other Hosting site, functions, database rules or indexes were released.
+
+At 12:16 UTC, `www.venacula.com` and `kasem-dictionary.web.app` returned HTTP
+200 with the release assets; `venacula.com` redirected to the canonical www
+address. Both public assets matched the locally verified release byte for byte:
+
+```text
+index-DUM72Nsq.js  e5d3861e0c3ddd7e0cebfe85b80451612d5f3b2c1bf7d723b94ba749cec8fbc5
+index-Ft0fkmDB.css fe62b36ebfecd375b1b74d4e5a95a7dc950bab7cd3e357fc000cc7025c8b05c4
+```
+
+An independent agent subsequently ran the complete browser regression against
+`https://www.venacula.com` and passed at the recording viewport, desktop, tablet,
+reduced-motion desktop, and 390/360px mobile widths. Repeated wheel cycles,
+boundary overscroll, panel geometry, settled positions, all four collection
+controls and search passed. Mobile Next/Previous → Results retained the original
+results position and focus. No uncaught browser errors occurred.
+
+Blogger publication and community sharing remain with Chinedum.
 
 ## Image credits
 
@@ -86,8 +114,8 @@ the modal screen used in the mobile return-position check.
 
 ## Publishing handoff
 
-1. Deploy the reviewed dictionary build and verify upward scrolling on the public
-   domain before changing this article's availability claim to live.
+1. Website deployment is complete; confirm the release evidence above before
+   publishing the article.
 2. Create a Blogger post with the metadata above and paste `post.html` into HTML
    view.
 3. Upload both actual image files from `images/` using Blogger. Replace the two
