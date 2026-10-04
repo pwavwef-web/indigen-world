@@ -1,0 +1,202 @@
+{
+  "checkedAt": "2026-10-04T17:50:09.248Z",
+  "deployedCommit": "67d06b1b7ff7a5a6f24a36e5d60133a95e62107a",
+  "assets": [
+    {
+      "url": "https://indigenworld.com/progress",
+      "status": 200,
+      "bytes": 2951,
+      "sha256": "51b8e9d4c4460c5dc67be06bedcee83521c1ad367de96277c99157b9ddb9b864",
+      "matches": true
+    },
+    {
+      "url": "https://indigenworld.com/assets/index-OFDcroQy.js",
+      "status": 200,
+      "bytes": 207298,
+      "sha256": "00c79436b456346007c8ae55160b70f1f3bdd9d3f8e5457c1b61f836840e4880",
+      "matches": true
+    },
+    {
+      "url": "https://indigenworld.com/assets/jsx-runtime-Cltr0gcK.js",
+      "status": 200,
+      "bytes": 8430,
+      "sha256": "e26f105e9234109963ded8d5eba4b903477be697960ecda8ea710c5151aab8c3",
+      "matches": true
+    },
+    {
+      "url": "https://indigenworld.com/assets/SiteMotion-D87wFnt3.js",
+      "status": 200,
+      "bytes": 849,
+      "sha256": "dc48b725406ab81f9490d98ddcda5fd3d013dd43b467b9d6629f1012ae751da5",
+      "matches": true
+    },
+    {
+      "url": "https://indigenworld.com/assets/useDocumentMeta-Bb6PdDgU.js",
+      "status": 200,
+      "bytes": 8111,
+      "sha256": "30ca4b59c47587f405a337317796d5346bde1f8dbb8be5b332092ec29a7dcce3",
+      "matches": true
+    },
+    {
+      "url": "https://indigenworld.com/assets/Icon-_kPzNm4E.js",
+      "status": 200,
+      "bytes": 4527,
+      "sha256": "701d1b28866c4977857705de9e62fa340cceee927558fa6445a4826386466d8d",
+      "matches": true
+    },
+    {
+      "url": "https://indigenworld.com/assets/EditorialScene-Cn7cZQ12.js",
+      "status": 200,
+      "bytes": 7357,
+      "sha256": "bc0ef55dcc0c7154e8baacdc862816f549e22ddc93057496676d76321557e16c",
+      "matches": true
+    },
+    {
+      "url": "https://indigenworld.com/assets/PageMotion-BlDVPmor.js",
+      "status": 200,
+      "bytes": 3739,
+      "sha256": "df994e35e63dce06a80703b86c0ae03e99356002facc857be9946ed5d6cc75ec",
+      "matches": true
+    },
+    {
+      "url": "https://indigenworld.com/assets/index-SNPJk2CA.css",
+      "status": 200,
+      "bytes": 153466,
+      "sha256": "1a705cb244f85d13f23e06caae4bc4d2a536291bbb5a4b0870a9f9438c1d9475",
+      "matches": true
+    },
+    {
+      "url": "https://indigenworld.com/assets/ProgressPage-CXh_su3U.js",
+      "status": 200,
+      "bytes": 68204,
+      "sha256": "029213177d80a41f1e522f1e013d745a873008cef4dbf987bb6bad01ccf207ff",
+      "matches": true
+    },
+    {
+      "url": "https://indigenworld.com/assets/progress/terracotta-pot.png",
+      "status": 200,
+      "bytes": 2519059,
+      "sha256": "4fd9863b59ce4b3e9f47827743ae3ddb16ca906e7e1b26dbef6299711dbf011a",
+      "matches": true
+    },
+    {
+      "url": "https://indigenworld.com/assets/progress/smoked-clay-pot.png",
+      "status": 200,
+      "bytes": 2181807,
+      "sha256": "72cbf737a63eb43864886b9ed5ab242fd1ee86839a2a9400e4d999bcb05db5ea",
+      "matches": true
+    },
+    {
+      "url": "https://indigen-world.web.app/progress",
+      "status": 200,
+      "bytes": 2951,
+      "sha256": "51b8e9d4c4460c5dc67be06bedcee83521c1ad367de96277c99157b9ddb9b864",
+      "matches": true
+    },
+    {
+      "url": "https://indigen-world.web.app/assets/index-OFDcroQy.js",
+      "status": 200,
+      "bytes": 207298,
+      "sha256": "00c79436b456346007c8ae55160b70f1f3bdd9d3f8e5457c1b61f836840e4880",
+      "matches": true
+    },
+    {
+      "url": "https://indigen-world.web.app/assets/jsx-runtime-Cltr0gcK.js",
+      "status": 200,
+      "bytes": 8430,
+      "sha256": "e26f105e9234109963ded8d5eba4b903477be697960ecda8ea710c5151aab8c3",
+      "matches": true
+    },
+    {
+      "url": "https://indigen-world.web.app/assets/SiteMotion-D87wFnt3.js",
+      "status": 200,
+      "bytes": 849,
+      "sha256": "dc48b725406ab81f9490d98ddcda5fd3d013dd43b467b9d6629f1012ae751da5",
+      "matches": true
+    },
+    {
+      "url": "https://indigen-world.web.app/assets/useDocumentMeta-Bb6PdDgU.js",
+      "status": 200,
+      "bytes": 8111,
+      "sha256": "30ca4b59c47587f405a337317796d5346bde1f8dbb8be5b332092ec29a7dcce3",
+      "matches": true
+    },
+    {
+      "url": "https://indigen-world.web.app/assets/Icon-_kPzNm4E.js",
+      "status": 200,
+      "bytes": 4527,
+      "sha256": "701d1b28866c4977857705de9e62fa340cceee927558fa6445a4826386466d8d",
+      "matches": true
+    },
+    {
+      "url": "https://indigen-world.web.app/assets/EditorialScene-Cn7cZQ12.js",
+      "status": 200,
+      "bytes": 7357,
+      "sha256": "bc0ef55dcc0c7154e8baacdc862816f549e22ddc93057496676d76321557e16c",
+      "matches": true
+    },
+    {
+      "url": "https://indigen-world.web.app/assets/PageMotion-BlDVPmor.js",
+      "status": 200,
+      "bytes": 3739,
+      "sha256": "df994e35e63dce06a80703b86c0ae03e99356002facc857be9946ed5d6cc75ec",
+      "matches": true
+    },
+    {
+      "url": "https://indigen-world.web.app/assets/index-SNPJk2CA.css",
+      "status": 200,
+      "bytes": 153466,
+      "sha256": "1a705cb244f85d13f23e06caae4bc4d2a536291bbb5a4b0870a9f9438c1d9475",
+      "matches": true
+    },
+    {
+      "url": "https://indigen-world.web.app/assets/ProgressPage-CXh_su3U.js",
+      "status": 200,
+      "bytes": 68204,
+      "sha256": "029213177d80a41f1e522f1e013d745a873008cef4dbf987bb6bad01ccf207ff",
+      "matches": true
+    },
+    {
+      "url": "https://indigen-world.web.app/assets/progress/terracotta-pot.png",
+      "status": 200,
+      "bytes": 2519059,
+      "sha256": "4fd9863b59ce4b3e9f47827743ae3ddb16ca906e7e1b26dbef6299711dbf011a",
+      "matches": true
+    },
+    {
+      "url": "https://indigen-world.web.app/assets/progress/smoked-clay-pot.png",
+      "status": 200,
+      "bytes": 2181807,
+      "sha256": "72cbf737a63eb43864886b9ed5ab242fd1ee86839a2a9400e4d999bcb05db5ea",
+      "matches": true
+    }
+  ],
+  "browser": {
+    "counts": [
+      "357 words verified",
+      "105 expressions verified",
+      "0 sentences verified",
+      "1 stories verified",
+      "2 songs verified",
+      "0 narrations verified",
+      "0 videos verified",
+      "2 patterns verified",
+      "0 proverbs verified",
+      "357 recordings verified"
+    ],
+    "categoryCount": 10,
+    "sampleControlsAbsent": true,
+    "views": [
+      "Jars",
+      "Tanks",
+      "Local pots",
+      "Table"
+    ],
+    "popup": true,
+    "pause": true,
+    "potteryLoaded": true,
+    "mobileNoOverflow": true,
+    "mobileCarousel": true,
+    "errors": []
+  }
+}

@@ -8,7 +8,7 @@ date identifies when the post was prepared; it does not prove the update is live
 
 - [2026-10-04: One design for every workspace](2026-10-04-one-design-for-every-workspace/README.md) — TribeStudio Hosting deployed October 4 (17:48 UTC); live routes, release assets and sign-in screens verified on both hostnames. All three workspaces, the public creator pages and sign-in screens on the Comitia design system with a Display panel (dark mode, text size, contrast, animations off). Signed-in production journeys unverified; article unpublished. Includes actual screenshots of labelled test records.
 
-- [2026-10-04: An open, animated space for our community progress](2026-10-04-floating-progress-vessels/README.md) — floating glass jars and tanks, generated pottery artwork, mobile swipe galleries and details in popups. Implemented and verified locally; this version is not deployed. Includes actual screenshots with labelled sample data; Blogger publication pending.
+- [2026-10-04: An open, animated space for our community progress](2026-10-04-floating-progress-vessels/README.md) — floating glass jars and tanks, generated pottery artwork, mobile swipe galleries and details in popups. Deployed October 4; public assets and live browser behavior verified. Includes actual screenshots with labelled sample data; Blogger publication pending.
 
 - [2026-10-04: Website animations that leave room to read](2026-10-04-clear-website-headers/README.md) — shared headers reserve space for text, actions and search alongside or above their decorative artwork. Deployed October 4; all 13 shared banner layouts and public release assets verified. Includes actual preview screenshots; Blogger publication pending.
 
