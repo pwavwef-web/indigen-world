@@ -14,9 +14,12 @@ interface CategoryBreakdownModalProps {
   progress: CategoryProgress | null;
   fixtureMode?: boolean;
   onClose: () => void;
+  onOpenPledge?: (progress: CategoryProgress) => void;
+  onOpenShare?: (progress: CategoryProgress) => void;
+  onOpenAudit?: (progress: CategoryProgress) => void;
 }
 
-export function CategoryBreakdownModal({ progress, fixtureMode = false, onClose }: CategoryBreakdownModalProps) {
+export function CategoryBreakdownModal({ progress, fixtureMode = false, onClose, onOpenPledge, onOpenShare, onOpenAudit }: CategoryBreakdownModalProps) {
   if (!progress) return null;
 
   const { category, approvedCount, target, percentage } = progress;
@@ -63,6 +66,12 @@ export function CategoryBreakdownModal({ progress, fixtureMode = false, onClose 
           <p>{category.explanation}</p>
           <h4 className="breakdown-section-heading">How you can help</h4>
           <p>{category.activeQueuePrompt.taskLabel}. Add context and attribution in TribeStudio so a reviewer can check your contribution.</p>
+          {progress.velocityWeek > 0 && <p className="tiny muted">{fixtureMode ? 'Sample pace' : 'Verified this week'}: {progress.velocityWeek.toLocaleString()} {category.unitPlural}.</p>}
+          <div className="category-detail-actions">
+            <button type="button" onClick={() => onOpenPledge?.(progress)}><Icon name="check" size={14} /> Make a pledge</button>
+            <button type="button" onClick={() => onOpenShare?.(progress)}><Icon name="chat" size={14} /> Share progress</button>
+            <button type="button" onClick={() => onOpenAudit?.(progress)}><Icon name="source" size={14} /> How we count</button>
+          </div>
           {fixtureMode && <p className="tiny muted">Illustrative prompt: {category.activeQueuePrompt.promptText}</p>}
           {fixtureMode && <>
           <h4 className="breakdown-section-heading">Illustrative sub-category breakdown</h4>

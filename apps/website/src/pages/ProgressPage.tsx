@@ -7,6 +7,7 @@ import { Link } from '../app/router';
 import { ProgressPopup } from '../features/progress/ProgressDialog';
 import { Button } from '../components/Button';
 import { Icon } from '../components/Icon';
+import { BrandMark } from '../components/BrandMark';
 import { useProgressMotion } from '../features/progress/useProgressMotion';
 import { fetchLiveLaunchProgress } from '../features/progress/progressData';
 import { VerticalJar } from '../features/progress/VerticalJar';
@@ -68,6 +69,8 @@ export function ProgressPage() {
   const [pledgeProgress, setPledgeProgress] = useState<CategoryProgress | null>(null);
   const [shareProgress, setShareProgress] = useState<CategoryProgress | null>(null);
   const [auditProgress, setAuditProgress] = useState<CategoryProgress | null>(null);
+  const galleryRef = useRef<HTMLDivElement>(null);
+  const scrollGallery = (direction: number) => galleryRef.current?.scrollBy({ left: direction * galleryRef.current.clientWidth * 0.85, behavior: canAnimate ? 'smooth' : 'instant' });
 
   // Selected category for the Launch Pace Calculator
   const [paceCategoryId, setPaceCategoryId] = useState<string>('lexicon');
@@ -144,35 +147,45 @@ export function ProgressPage() {
   const closePopup = () => setPopup(null);
 
   return (
-    <div className="progress-immersive" data-motion={canAnimate ? 'animated' : 'static'}>
+    <div className="progress-immersive progress-observatory" data-motion={canAnimate ? 'animated' : 'static'}>
+      <div className="observatory-atmosphere" aria-hidden="true"><span /><span /><span /></div>
       <header className="progress-immersive-header">
         <div className="progress-immersive-nav">
-          <Link to="home" className="control-toggle-btn"><Icon name="arrow" size={14} /> Back to website</Link>
+          <Link to="home" className="observatory-brand" aria-label="Back to website"><BrandMark /><span>Indigen<strong>World</strong></span></Link>
           <div className="progress-actions-group">
-            <button type="button" className="control-toggle-btn" aria-haspopup="dialog" onClick={() => setPopup('view')}>
-              <Icon name="layers" size={14} /> {viewLabel}
-            </button>
             <button type="button" className="control-toggle-btn" aria-haspopup="dialog" onClick={() => setPopup('settings')}>
               <Icon name="context" size={14} /> Options
             </button>
-            <button type="button" className={`control-toggle-btn ${isMotionPaused ? 'is-active' : ''}`} onClick={toggleMotionPause} aria-pressed={isMotionPaused}>
-              <Icon name={isMotionPaused ? 'play' : 'pause'} size={14} /> {isMotionPaused ? 'Resume motion' : 'Pause motion'}
+            <button type="button" className={`control-toggle-btn motion-control ${isMotionPaused ? 'is-active' : ''}`} onClick={toggleMotionPause} aria-pressed={isMotionPaused} aria-label={isMotionPaused ? 'Resume motion' : 'Pause motion'} title={isMotionPaused ? 'Resume motion' : 'Pause motion'}>
+              <Icon name={isMotionPaused ? 'play' : 'pause'} size={14} /><span>{isMotionPaused ? 'Resume motion' : 'Pause motion'}</span>
             </button>
           </div>
         </div>
         <div className="progress-immersive-heading">
-          <p className="eyebrow">Community launch progress</p>
-          <h1>Help fill the jars.</h1>
+          <p className="eyebrow"><span className="observatory-live-dot" /> KASEM · LIVING HERITAGE</p>
+          <h1>Help fill <em>the jars.</em></h1>
+          <p className="observatory-intro">A little from you. A future for all of us.</p>
           <div className="progress-hero-summary">
-            <span className="progress-window-pill"><span className="progress-window-pill__dot" aria-hidden="true" />{state.launchConfig.launchWindowLabel}</span>
             <span className="progress-stats-pill">{state.totalWithTargetsCount > 0 ? <><strong>{state.targetsReachedCount} / {state.totalWithTargetsCount}</strong> targets reached</> : '10 contribution categories'}</span>
             {prefersReducedMotion && <span className="progress-summary-badge">Reduced motion</span>}
           </div>
+        </div>
+        <div className="observatory-toolbar">
+          <div className="observatory-views" role="group" aria-label="Progress view">
+            {(['vertical', 'horizontal', 'cultural', 'table'] as const).map(mode => <button key={mode} type="button" aria-pressed={viewMode === mode} onClick={() => handleViewModeChange(mode)}>
+              <Icon name={mode === 'vertical' ? 'volume' : mode === 'horizontal' ? 'layers' : mode === 'cultural' ? 'source' : 'context'} size={14} />
+              {{ vertical: 'Jars', horizontal: 'Tanks', cultural: 'Local pots', table: 'Table' }[mode]}
+            </button>)}
+          </div>
+          <button className="observatory-text-button" type="button" aria-haspopup="dialog" onClick={() => setPopup('about')}><Icon name="check" size={14} /> Verified contributions <Icon name="context" size={13} /></button>
         </div>
       </header>
 
       <section className="progress-immersive-stage" id="vessels-section" aria-label="Community contribution progress">
         <div className="container">
+          <div className="observatory-gallery-heading"><span>{viewLabel}<small> / {String(state.categories.length).padStart(2, '0')} COLLECTIONS</small></span>
+            {(viewMode === 'vertical' || viewMode === 'cultural') && <div className="observatory-gallery-controls"><button type="button" onClick={() => scrollGallery(-1)} aria-label="Previous collections"><span aria-hidden="true">←</span></button><button type="button" onClick={() => scrollGallery(1)} aria-label="Next collections"><span aria-hidden="true">→</span></button></div>}
+          </div>
           {state.status === 'loading' && <p className="progress-status" role="status">Loading verified contribution counts…</p>}
           {state.status === 'error' && (
             <div className="callout callout--warn" role="alert">
@@ -186,6 +199,8 @@ export function ProgressPage() {
           {viewMode === 'vertical' && (
             <div
               className="vessels-gallery vessels-gallery--vertical"
+              ref={galleryRef}
+              tabIndex={0}
               aria-label="Category jars progress gallery"
             >
               {state.categories.map((progress, index) => (
@@ -206,6 +221,7 @@ export function ProgressPage() {
           {viewMode === 'horizontal' && (
             <div
               className="vessels-gallery vessels-gallery--horizontal"
+              ref={galleryRef}
               aria-label="Category horizontal tanks progress list"
             >
               {state.categories.map((progress, index) => (
@@ -226,7 +242,9 @@ export function ProgressPage() {
           {viewMode === 'cultural' && (
             <div
               className="vessels-gallery vessels-gallery--cultural"
-              aria-label="Traditional Kasena earthenware vessels gallery"
+              ref={galleryRef}
+              tabIndex={0}
+              aria-label="Illustrated earthenware progress vessels gallery"
             >
               {state.categories.map((progress, index) => (
                 <CulturalPot
@@ -257,8 +275,6 @@ export function ProgressPage() {
           <nav className="progress-discovery-bar" aria-label="Explore progress details">
             <button type="button" className="control-toggle-btn" aria-haspopup="dialog" onClick={() => setPopup('about')}><Icon name="source" size={14} /> How it works</button>
             <button type="button" className="control-toggle-btn" aria-haspopup="dialog" onClick={() => setPopup('pace')}><Icon name="arrow" size={14} /> Launch pace</button>
-            {import.meta.env.DEV && useFixtures && <button type="button" className="control-toggle-btn" aria-haspopup="dialog" onClick={() => setPopup('milestones')}><Icon name="bookmark" size={14} /> Sample milestones</button>}
-            {import.meta.env.DEV && useFixtures && <button type="button" className="control-toggle-btn" aria-haspopup="dialog" onClick={() => setPopup('honors')}><Icon name="check" size={14} /> Sample contributors</button>}
             <button type="button" className="control-toggle-btn is-active" aria-haspopup="dialog" onClick={() => setPopup('contribute')}><Icon name="chat" size={14} /> Add your voice</button>
           </nav>
         </div>
@@ -280,9 +296,12 @@ export function ProgressPage() {
       {popup === 'settings' && (
         <ProgressPopup title="Progress options" onClose={closePopup}>
           <div className="progress-popup-options">
+            <button type="button" className="progress-popup-option" onClick={() => setPopup('view')}><Icon name="layers" size={16} /> Choose your view</button>
             <button type="button" className="progress-popup-option" aria-pressed={soundEnabled} onClick={handleToggleSound}><Icon name="volume" size={16} /> {soundEnabled ? 'Chimes on' : 'Enable sound'}</button>
             <button type="button" className="progress-popup-option" onClick={handlePrintBulletin}><Icon name="bookmark" size={16} /> Print flyer</button>
             {import.meta.env.DEV && <button type="button" className={`progress-popup-option ${useFixtures ? 'is-active' : ''}`} aria-pressed={useFixtures} onClick={() => { setUseFixtures((prev) => !prev); closePopup(); }}><Icon name="context" size={16} /> {useFixtures ? 'Return to live progress' : 'Preview sample targets'}</button>}
+            {import.meta.env.DEV && useFixtures && <button type="button" className="progress-popup-option" onClick={() => setPopup('milestones')}><Icon name="bookmark" size={16} /> Sample milestones</button>}
+            {import.meta.env.DEV && useFixtures && <button type="button" className="progress-popup-option" onClick={() => setPopup('honors')}><Icon name="check" size={16} /> Sample contributors</button>}
             <button type="button" className="progress-popup-option" onClick={() => { void loadData(useFixtures); closePopup(); }}><Icon name="arrow" size={16} /> Refresh counts</button>
           </div>
           {import.meta.env.DEV && <p className="tiny muted">Preview mode uses sample counts and targets to demonstrate the liquid colours and levels. It does not show live community progress.</p>}
@@ -413,6 +432,7 @@ export function ProgressPage() {
       {popup === 'about' && <ProgressPopup title="How progress works" onClose={closePopup}>
         <p>Every approved contribution helps preserve Kasem heritage. Open a vessel’s details to explore its category, share its progress, or make a pledge.</p>
         <p>Liquid colour moves from red through yellow and blue to green as a vessel fills. More progress brings more bubbles. Counts and percentages show the exact progress.</p>
+        <p>Local pots use generated pottery illustrations and a separate fill gauge because clay is opaque. They are artistic interpretations, not photographs of authenticated Kasena artifacts.</p>
         <p><strong>{state.launchConfig.launchWindowLabel}</strong></p>
         {state.launchConfig.notes && <p className="tiny muted">{state.launchConfig.notes}</p>}
           {/* Transparent Methodology & Integrity */}
@@ -429,7 +449,7 @@ export function ProgressPage() {
               <article className="methodology-card">
                 <h4>Approved contributions only</h4>
                 <p>
-                  Launch progress measures approved, usable heritage data. Submissions awaiting review appear as compact pending indicators and only fill the vessel when independent reviewers verify them.
+                  Launch progress measures approved, usable heritage data. Submissions awaiting review only fill a vessel after reviewers verify them.
                 </p>
               </article>
 
@@ -467,6 +487,9 @@ export function ProgressPage() {
       <CategoryBreakdownModal
         progress={breakdownProgress}
         fixtureMode={state.fixtureMode}
+        onOpenPledge={(progress) => { setBreakdownProgress(null); setPledgeProgress(progress); }}
+        onOpenShare={(progress) => { setBreakdownProgress(null); setShareProgress(progress); }}
+        onOpenAudit={(progress) => { setBreakdownProgress(null); setAuditProgress(progress); }}
         onClose={() => setBreakdownProgress(null)}
       />
 

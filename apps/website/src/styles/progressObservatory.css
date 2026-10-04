@@ -1,0 +1,180 @@
+/* A light, open exhibition space: the vessels themselves are the interface. */
+.progress-observatory {
+  --ink: #12344d;
+  --muted: #536f82;
+  --blue: #087bcc;
+  position: relative;
+  isolation: isolate;
+  overflow: clip;
+  color: var(--ink);
+  background: radial-gradient(ellipse at 80% 10%, #def6ff 0, transparent 38%), radial-gradient(ellipse at 10% 48%, #d7effa 0, transparent 45%), #f1f8fc;
+  padding-bottom: 55px;
+}
+.observatory-atmosphere { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: -1; }
+.observatory-atmosphere::before {
+  content: ''; position: absolute; width: 1200px; height: 1200px; top: -760px; right: -300px; border-radius: 50%;
+  border: 1px solid #70adc02a; box-shadow: 0 0 0 85px #81b9cf08, 0 0 0 86px #70adc020, 0 0 0 175px #81b9cf06, 0 0 0 176px #70adc018;
+}
+.observatory-atmosphere::after {
+  content: ''; position: absolute; inset: 350px -50% auto; height: 950px;
+  background-image: linear-gradient(#83bac018 1px, transparent 1px), linear-gradient(90deg, #83bac018 1px, transparent 1px);
+  background-size: 80px 80px; transform: perspective(600px) rotateX(68deg); transform-origin: center top;
+  mask-image: linear-gradient(transparent, #0006 50%, transparent);
+}
+.observatory-atmosphere span { position: absolute; width: 450px; height: 450px; border-radius: 50%; background: #a4e7f620; filter: blur(60px); }
+.observatory-atmosphere span:nth-child(1) { top: 200px; left: -200px; }
+.observatory-atmosphere span:nth-child(2) { top: 700px; right: -180px; background: #b7d9fa40; }
+.observatory-atmosphere span:nth-child(3) { top: -200px; left: 35%; }
+.progress-observatory[data-motion="animated"] .observatory-atmosphere span { animation: atmosphereDrift 16s ease-in-out infinite alternate; }
+.progress-observatory .container, .progress-observatory .progress-immersive-header { width: min(1440px, calc(100% - 100px)); max-width: 1440px; margin-inline: auto; }
+.progress-observatory .progress-immersive-header { padding: 26px 0 0; border: 0; }
+.progress-observatory .progress-immersive-nav { margin-bottom: 54px; gap: 12px; }
+.progress-observatory .observatory-brand { gap: 10px; color: var(--ink); font-size: 17px; line-height: 1.1; letter-spacing: -.04em; }
+.observatory-brand > span:last-child { display: flex; flex-direction: column; }
+.observatory-brand strong { font-weight: 500; }
+.observatory-brand .brand-mark { width: 42px; height: 42px; border-radius: 50%; background: #e6f3f9; border: 1px solid #97c5da; box-shadow: 0 4px 12px #55829c18; }
+.progress-observatory .progress-actions-group { width: auto; gap: 8px; }
+.progress-observatory .control-toggle-btn { min-height: 42px; background: #ffffff70; border: 1px solid #96b6c84a; color: var(--ink); border-radius: 30px; padding: 9px 16px; box-shadow: 0 3px 9px #33678605; font-weight: 500; }
+.progress-observatory .control-toggle-btn:hover { color: #006aa8; background: #fff; border-color: #90bbce; }
+.progress-observatory .control-toggle-btn.is-active { color: #006ba6; background: #dceff8; }
+.progress-observatory .progress-immersive-heading { display: flex; flex-direction: column; align-items: center; gap: 0; text-align: center; }
+.progress-observatory .progress-immersive-heading .eyebrow { display: flex; align-items: center; gap: 8px; color: #45778e; font-size: 10px; font-weight: 600; letter-spacing: .2em; margin: 0 0 16px; }
+.observatory-live-dot { height: 6px; width: 6px; background: #158faf; border-radius: 50%; box-shadow: 0 0 0 4px #158faf13; }
+.progress-observatory .progress-immersive-heading h1 { font-size: clamp(40px, 5.2vw, 76px); font-weight: 600; letter-spacing: -.065em; color: var(--ink); line-height: 1.05; }
+.progress-observatory h1 em { font-style: normal; color: #087fb4; }
+.progress-observatory .progress-immersive-heading .observatory-intro { font-size: 15px; color: var(--muted); margin: 17px 0 0; letter-spacing: -.01em; }
+.progress-observatory .progress-hero-summary { display: flex; align-items: center; margin: 17px 0 0; gap: 8px; }
+.progress-observatory .progress-stats-pill { color: #497086; background: transparent; border: 0; padding: 0; font-size: 11px; font-weight: 400; }
+.progress-observatory .progress-stats-pill strong { color: #135277; font-weight: 700; }
+.progress-observatory .progress-summary-badge { color: #32697d; background: #e0eef5; font-size: 10px; border-color: #8bb6c552; }
+.observatory-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 15px; padding: 26px 0 20px; margin-top: 24px; border-bottom: 1px solid #91bacb45; }
+.observatory-views { display: flex; gap: 3px; border: 1px solid #8fb3c64f; background: #ffffff66; border-radius: 40px; padding: 5px; box-shadow: inset 0 2px 5px #50738906, 0 5px 15px #4b88ad06; }
+.observatory-views button { display: inline-flex; align-items: center; gap: 7px; border: 0; border-radius: 30px; background: transparent; color: #45647b; padding: 11px 20px; min-height: 42px; font: inherit; font-size: 12px; cursor: pointer; transition: background 200ms, box-shadow 200ms; }
+.observatory-views button[aria-pressed="true"] { background: linear-gradient(125deg, #168ac9, #0068b7); color: white; box-shadow: 0 4px 10px #007dbb28, inset 0 1px 1px #ffffff60; }
+.observatory-views button:hover:not([aria-pressed="true"]) { background: #dfedf5; }
+.observatory-text-button { display: inline-flex; align-items: center; gap: 8px; border: 0; background: none; color: #4d7187; cursor: pointer; min-height: 44px; font: inherit; font-size: 11px; }
+.progress-observatory .progress-immersive-stage { padding-top: 0; }
+.observatory-gallery-heading { display: flex; justify-content: space-between; align-items: center; padding: 22px 0 4px; font-size: 13px; font-weight: 600; color: #254c65; }
+.observatory-gallery-heading small { color: #698696; font-size: 9px; font-weight: 500; letter-spacing: .1em; margin-left: 8px; }
+.observatory-gallery-controls { display: none; }
+.progress-observatory .vessels-gallery--vertical, .progress-observatory .vessels-gallery--cultural { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 28px 20px; padding: 24px 0 30px; }
+.floating-vessel { display: flex; flex-direction: column; min-width: 0; position: relative; }
+.floating-vessel-heading { display: flex; align-items: center; gap: 7px; min-height: 36px; justify-content: center; }
+.floating-vessel-heading h2 { margin: 0; color: var(--ink); font-weight: 600; font-size: 12px; line-height: 1.25; letter-spacing: -.02em; }
+.vessel-index { color: #7297ab; font-size: 9px; letter-spacing: .05em; }
+.vessel-complete { color: #048456; display: flex; }
+.vessel-inspect { display: block; text-align: center; padding: 0; border: 0; width: 100%; background: transparent; color: inherit; font: inherit; cursor: pointer; border-radius: 18px; }
+.vessel-stage { position: relative; height: 265px; display: grid; place-items: center; perspective: 900px; }
+.vessel-volume { position: absolute; inset: 0; width: 100%; height: 100%; min-height: 0; transform-origin: center 60%; transition: transform 500ms; }
+.glass-vessel-svg { display: block; width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 8px 5px #37637b18); }
+.vessel-ground { position: absolute; bottom: 9px; width: 70%; height: 17px; border-radius: 50%; background: radial-gradient(ellipse, #52899b30, #7bb2c419 45%, transparent 72%); filter: blur(3px); }
+.vessel-readout { position: absolute; right: 2%; top: 24%; display: inline-flex; align-items: center; gap: 5px; border: 1px solid #ffffffbd; border-radius: 30px; padding: 7px 10px; background: #ffffffc2; backdrop-filter: blur(12px); box-shadow: 0 5px 16px #235b7812, inset 0 1px white; color: #24536d; font-size: 15px; font-weight: 600; }
+.vessel-readout small { font-size: 9px; margin-left: -4px; font-weight: 500; }
+.vessel-readout > svg { color: #5e8a9f; }
+.vessel-counter { display: block; margin: 6px 0 3px; line-height: 1.4; font-size: 11px; color: #536f82; }
+.vessel-counter strong { color: #173e59; font-size: 19px; font-weight: 600; letter-spacing: -.04em; }
+.vessel-counter > span { display: block; }
+.vessel-target { font-size: 10px; color: #617e91; display: block; margin: 7px 0 0; }
+.vessel-target > span { display: inline-flex; align-items: center; gap: 2px; color: #197dac; }
+.progress-observatory .floating-vessel-cta { display: flex; align-self: center; justify-content: center; gap: 9px; margin-top: 18px; padding: 9px 15px; min-height: 40px; color: #1a6e97; border: 1px solid #99c6db80; background: #f5fbfd80; box-shadow: 0 3px 9px #3b6e8905; border-radius: 30px; font-size: 11px; font-weight: 500; white-space: normal; }
+.progress-observatory .floating-vessel-cta:hover { background: #087bbe; color: white; border-color: #087bbe; box-shadow: 0 5px 12px #087bbe26; transform: translateY(-2px); }
+.vessel-inspect:hover .vessel-volume { transform: rotateY(-9deg) rotateX(3deg) translateY(-7px); }
+.floating-vessel[data-motion="animated"] { animation: observatoryEnter 800ms ease both; animation-delay: calc(var(--vessel-index) * 55ms); }
+.floating-vessel[data-motion="animated"] .glass-vessel-svg, .floating-vessel[data-motion="animated"] .heritage-pot-art img { animation: vesselLevitate 6s ease-in-out infinite; animation-delay: calc(var(--vessel-index) * -0.63s); }
+.floating-vessel[data-motion="animated"] .liquid-bubble { animation-name: liquidBubbleRise; animation-timing-function: linear; animation-iteration-count: infinite; }
+.floating-vessel[data-motion="animated"] .liquid-bubble--horizontal { animation-name: liquidBubbleDrift; }
+.floating-vessel[data-motion="animated"] .liquid-ripple { animation: liquidRipple 3.2s infinite ease-in-out; transform-box: fill-box; transform-origin: center; }
+.floating-vessel[data-motion="animated"] .liquid-wave { animation: observatorySurface 4s infinite ease-in-out alternate; transform-box: fill-box; transform-origin: center; }
+.floating-vessel[data-motion="animated"] .tank-meniscus-wave { animation: observatorySurface 3s infinite ease-in-out alternate; transform-box: fill-box; transform-origin: center; }
+.progress-observatory .vessels-gallery--horizontal { display: grid; grid-template-columns: 1fr; gap: 0; padding: 18px 0 30px; }
+.floating-vessel--horizontal { display: grid; grid-template-columns: 180px minmax(0, 1fr) 145px; align-items: center; gap: 16px; padding: 6px 0; }
+.floating-vessel--horizontal .floating-vessel-heading { justify-content: flex-start; }
+.floating-vessel--horizontal .vessel-inspect { display: grid; grid-template-columns: minmax(0, 1fr) 130px; align-items: center; text-align: right; column-gap: 24px; }
+.floating-vessel--horizontal .vessel-stage { grid-row: span 2; height: 90px; }
+.floating-vessel--horizontal .vessel-counter { margin: 0; align-self: end; }
+.floating-vessel--horizontal .vessel-target { align-self: start; }
+.floating-vessel--horizontal .vessel-readout { top: 1px; right: 40px; font-size: 12px; padding: 4px 8px; }
+.floating-vessel--horizontal .vessel-ground { bottom: 5px; height: 9px; width: 92%; }
+.progress-observatory .floating-vessel--horizontal .floating-vessel-cta { margin: 0; justify-self: end; }
+.heritage-pot-art { position: relative; height: 100%; width: 100%; display: grid; place-items: center; }
+.heritage-pot-art img { display: block; width: 100%; height: 100%; object-fit: contain; padding: 20px 8px 14px; filter: drop-shadow(0 14px 8px #34211623); }
+.heritage-pot-gauge { position: absolute; right: 5px; bottom: 34px; width: 5px; height: 130px; border-radius: 20px; background: #d0e1e8; box-shadow: inset 0 1px 2px #3f647c30; overflow: hidden; }
+.heritage-pot-gauge span { position: absolute; bottom: 0; width: 100%; background: var(--liquid-colour); border-radius: inherit; }
+.heritage-pot-gauge-label { position: absolute; bottom: 20px; right: 0; color: #567588; font-size: 7px; letter-spacing: .12em; }
+.progress-observatory .progress-discovery-bar { position: relative; z-index: 8; margin: 16px auto 0; flex-wrap: nowrap; justify-content: center; gap: 4px; width: max-content; max-width: calc(100% - 24px); padding: 6px; background: #f6fcffdd; backdrop-filter: blur(20px); border: 1px solid #ffffffee; border-radius: 50px; box-shadow: 0 12px 32px #38688725, 0 1px 3px #7aacc339; }
+.progress-observatory .progress-discovery-bar .control-toggle-btn { background: transparent; border-color: transparent; box-shadow: none; font-size: 11px; padding: 11px 18px; white-space: nowrap; }
+.progress-observatory .progress-discovery-bar .control-toggle-btn.is-active { color: #fff; background: linear-gradient(125deg, #148cca, #076cad); box-shadow: 0 4px 9px #087bbb24; }
+.progress-observatory .progress-status { color: #49718b; font-size: 12px; padding: 10px 0; }
+.progress-observatory .progress-preview-notice { background: #fff8e6; color: #795b27; border: 1px solid #cfb76d50; font-size: 11px; border-radius: 10px; padding: 8px 12px; }
+.category-detail-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 18px 0; }
+.category-detail-actions button { display: inline-flex; align-items: center; gap: 7px; min-height: 44px; border: 1px solid #b5ccda; border-radius: 24px; background: #eef7fb; color: #1a587e; font: inherit; font-size: 12px; padding: 9px 14px; cursor: pointer; }
+.category-detail-actions button:hover { background: #def0fa; }
+.progress-observatory button:focus-visible, .progress-observatory a:focus-visible { outline: 3px solid #0783bb; outline-offset: 4px; }
+.progress-observatory .vessels-gallery:focus-visible { outline: 2px solid #0783bb; outline-offset: 5px; border-radius: 12px; }
+@keyframes vesselLevitate { 0%, 100% { transform: translateY(0) rotate(-.5deg); } 50% { transform: translateY(-7px) rotate(.5deg); } }
+@keyframes atmosphereDrift { to { transform: translate(70px, 45px) scale(1.1); } }
+@keyframes observatoryEnter { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+@keyframes observatorySurface { from { transform: scaleY(.85); opacity: .6; } to { transform: scaleY(1.1); opacity: .85; } }
+@media (min-width: 1600px) { .vessel-stage { height: 310px; } .floating-vessel-heading h2 { font-size: 14px; } }
+@media (max-width: 1200px) {
+  .progress-observatory .container, .progress-observatory .progress-immersive-header { width: calc(100% - 56px); }
+  .progress-observatory .vessels-gallery--vertical, .progress-observatory .vessels-gallery--cultural { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .vessel-stage { height: 285px; }
+  .floating-vessel--horizontal { grid-template-columns: 150px minmax(0, 1fr) 120px; gap: 10px; }
+  .floating-vessel--horizontal .vessel-inspect { grid-template-columns: minmax(0, 1fr) 100px; column-gap: 8px; }
+}
+@media (max-width: 760px) {
+  .progress-observatory .container, .progress-observatory .progress-immersive-header { width: calc(100% - 36px); }
+  .progress-observatory .progress-immersive-nav { margin-bottom: 44px; flex-wrap: nowrap; }
+  .progress-observatory .progress-immersive-header { padding-top: 20px; }
+  .progress-observatory .observatory-brand { font-size: 15px; }
+  .observatory-brand .brand-mark { width: 36px; height: 36px; }
+  .progress-observatory .progress-actions-group { justify-content: flex-end; gap: 6px; }
+  .progress-observatory .control-toggle-btn { padding: 8px 12px; min-height: 40px; font-size: 11px; }
+  .motion-control span { display: none; }
+  .progress-observatory .motion-control { width: 40px; padding: 0; justify-content: center; }
+  .progress-observatory .progress-immersive-heading { align-items: center; }
+  .progress-observatory .progress-immersive-heading h1 { font-size: clamp(36px, 8.7vw, 56px); }
+  .progress-observatory .progress-immersive-heading .observatory-intro { font-size: 12px; margin-top: 13px; }
+  .observatory-toolbar { justify-content: center; margin-top: 12px; padding: 20px 0 18px; }
+  .observatory-views { width: 100%; }
+  .observatory-views button { flex: 1; justify-content: center; gap: 5px; padding: 9px 6px; font-size: 11px; }
+  .observatory-views button svg { display: none; }
+  .observatory-text-button { display: none; }
+  .observatory-gallery-heading { font-size: 12px; padding-top: 16px; }
+  .observatory-gallery-heading small { font-size: 8px; letter-spacing: .04em; }
+  .observatory-gallery-controls { display: flex; gap: 6px; }
+  .observatory-gallery-controls button { width: 40px; height: 40px; border-radius: 50%; background: #ffffff80; border: 1px solid #aac9d880; color: #37657d; font-size: 16px; cursor: pointer; }
+  .progress-observatory .vessels-gallery--vertical, .progress-observatory .vessels-gallery--cultural { display: flex; gap: 14px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: thin; scrollbar-color: #a4c7d9 transparent; padding: 20px 5px 25px; margin-inline: -5px; }
+  .floating-vessel--vertical, .floating-vessel--cultural { flex: 0 0 85%; scroll-snap-align: center; }
+  .floating-vessel-heading { min-height: 28px; }
+  .floating-vessel-heading h2 { font-size: 14px; }
+  .vessel-stage { height: 300px; }
+  .vessel-readout { right: 7%; top: 23%; font-size: 18px; padding: 8px 12px; }
+  .vessel-counter strong { font-size: 23px; }
+  .vessel-counter { font-size: 12px; }
+  .progress-observatory .floating-vessel-cta { margin-top: 18px; min-height: 44px; font-size: 12px; padding-inline: 23px; }
+  .heritage-pot-gauge { right: 12px; }
+  .heritage-pot-gauge-label { right: 7px; }
+  .floating-vessel--horizontal { grid-template-columns: minmax(0, 1fr) auto; gap: 0 8px; padding: 16px 0; border-bottom: 1px solid #a4c5d535; }
+  .floating-vessel--horizontal .vessel-inspect { grid-row: 2; grid-column: 1 / -1; grid-template-columns: minmax(0, 1fr) 80px; }
+  .floating-vessel--horizontal .vessel-stage { height: 95px; }
+  .floating-vessel--horizontal .vessel-counter strong { font-size: 17px; }
+  .floating-vessel--horizontal .vessel-counter { font-size: 9px; }
+  .floating-vessel--horizontal .vessel-target { font-size: 8px; }
+  .floating-vessel--horizontal .vessel-readout { top: 3px; right: 22px; font-size: 11px; padding: 3px 6px; }
+  .floating-vessel--horizontal .floating-vessel-heading { justify-content: flex-start; }
+  .floating-vessel--horizontal .floating-vessel-heading h2 { font-size: 11px; }
+  .progress-observatory .floating-vessel--horizontal .floating-vessel-cta { grid-row: 1; grid-column: 2; font-size: 10px; padding: 7px 10px; min-height: 38px; }
+  .progress-observatory .progress-discovery-bar .control-toggle-btn { font-size: 10px; padding: 9px 12px; min-height: 44px; }
+  .progress-observatory .progress-discovery-bar { position: relative; left: auto; bottom: auto; transform: none; margin: 20px auto 0; gap: 0; }
+  .progress-observatory .progress-discovery-bar svg { width: 12px; }
+}
+@media (prefers-reduced-motion: reduce) { .floating-vessel *, .floating-vessel { animation: none !important; transition: none !important; } .vessel-inspect:hover .vessel-volume { transform: none; } }
+.progress-observatory[data-motion="static"] .vessel-inspect:hover .vessel-volume { transform: none; }
+@media print {
+  .progress-observatory { background: white; padding-bottom: 0; }
+  .observatory-atmosphere, .observatory-toolbar, .observatory-gallery-controls, .floating-vessel-cta { display: none !important; }
+  .progress-observatory .vessels-gallery--vertical, .progress-observatory .vessels-gallery--cultural { display: grid; grid-template-columns: repeat(3, 1fr); overflow: visible; }
+  .floating-vessel { break-inside: avoid; animation: none; }
+}

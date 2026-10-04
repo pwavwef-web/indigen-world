@@ -22,6 +22,8 @@ const progressCalculationSource = read('src/features/progress/progressCalculatio
 const progressDataSource = read('src/features/progress/progressData.ts');
 const verticalJarSource = read('src/features/progress/VerticalJar.tsx');
 const horizontalTankSource = read('src/features/progress/HorizontalTank.tsx');
+const glassVesselSource = read('src/features/progress/GlassVessel.tsx');
+const vesselPresentationSource = read('src/features/progress/VesselPresentation.tsx');
 const progressPageSource = read('src/pages/ProgressPage.tsx');
 const progressDialogSource = read('src/features/progress/ProgressDialog.tsx');
 const navigationSource = read('src/content/navigation.ts');
@@ -404,10 +406,11 @@ const testCategory = { id: 'lexicon', title: 'Words & Meanings' };
   );
 
   // Vessel rendering and accessibility
-  assert.match(verticalJarSource, /<clipPath id=\{`cavity-\$\{clipId\}`\}>/, 'vertical jar clips liquid to interior vessel shape');
-  assert.match(horizontalTankSource, /<clipPath id=\{`tank-cavity-\$\{clipId\}`\}>/, 'horizontal tank clips liquid to interior vessel shape');
-  assert.match(verticalJarSource, /role="progressbar"/, 'vertical jar exposes accessible progressbar role');
-  assert.match(horizontalTankSource, /role="progressbar"/, 'horizontal tank exposes accessible progressbar role');
+  assert.match(glassVesselSource, /<clipPath id=\{`cavity-\$\{id\}`\}>/, 'shared glass renderer clips liquid to the cavity');
+  assert.match(glassVesselSource, /<clipPath id=\{`fill-\$\{id\}`\}>/, 'bubbles and surface effects remain inside the exact fill');
+  assert.match(verticalJarSource, /<GlassVessel progress=/, 'vertical jar uses the shared glass renderer');
+  assert.match(horizontalTankSource, /<GlassVessel progress=\{props.progress\} horizontal/, 'tank uses horizontal fill geometry');
+  assert.match(vesselPresentationSource, /role="progressbar"/, 'all vessel views expose accessible progressbar semantics');
 
   // Page view switch and motion controls
   assert.match(progressPageSource, /Vertical jars/, 'segmented switch includes Vertical jars');
@@ -445,8 +448,8 @@ const testCategory = { id: 'lexicon', title: 'Words & Meanings' };
   assert.match(progressPageSource, /Back to website/, 'full-screen page provides back navigation');
   assert.doesNotMatch(progressPageSource + verticalJarSource + horizontalTankSource + read('src/features/progress/CulturalPot.tsx'), /<(?:details|summary|select)\b/, 'progress controls use popup choices instead of dropdowns');
   assert.match(progressPageSource, /<ProgressPopup\b/, 'explanation buttons open popups');
-  assert.match(verticalJarSource, /onOpenBreakdown/, 'jar categories can open their explanation');
-  assert.match(horizontalTankSource, /onOpenBreakdown/, 'tank categories can open their explanation');
+  assert.match(vesselPresentationSource, /onOpenBreakdown/, 'all vessel categories can open their explanation');
+  assert.match(vesselPresentationSource, /<button type="button" className="vessel-inspect"/, 'vessel inspection is keyboard accessible');
   assert.match(progressDialogSource, /\.showModal\(\)/, 'native dialog contains modal focus');
   assert.match(progressDialogSource, /aria-labelledby=/, 'popup has an accessible title');
   assert.match(progressDialogSource, /onCancel=/, 'Escape closes the popup');
