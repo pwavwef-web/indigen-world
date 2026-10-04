@@ -6,6 +6,7 @@ date identifies when the post was prepared; it does not prove the update is live
 
 ## Posts
 
+- [2026-10-04: Help Fill the Jars — track our community progress toward launch](2026-10-04-help-fill-the-jars-progress/README.md) — public website feature implemented and verified on October 4; 10 distinct heritage categories, switchable vertical jars and horizontal tanks, SVG liquid dynamics, honest unconfigured target states, and direct contribution CTAs. Prerendered metadata and 11 calculation invariants verified. Illustrated article unpublished.
 - [2026-10-03: Workspaces rebuilt around the work](2026-10-03-workspaces-rebuilt/README.md) — TribeStudio Hosting and three compatible review functions deployed October 4; live routes, assets and anonymous authentication gates verified. Authenticated production journeys remain unverified. Illustrated article unpublished.
 - [2026-10-03: Kawuri answers from reviewed records](2026-10-03-kawuri-reviewed-answers/README.md) — unpublished article; backend deployed and verified October 3. Chat and community answers now quote eligible records or fixed help, with unsupported language withheld. Includes a labelled workflow illustration.
 

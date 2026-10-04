@@ -82,6 +82,11 @@ export const PAGE_COMPONENTS: Record<string, LazyPage> = {
       ({ TesterRewardClaimPage }) => ({ default: TesterRewardClaimPage })
     )
   ),
+  progress: lazy(() =>
+    withRouteLoadingTiming(import("./ProgressPage")).then(({ ProgressPage }) => ({
+      default: ProgressPage,
+    }))
+  ),
 };
 
 export { NotFoundPage } from "./NotFoundPage";

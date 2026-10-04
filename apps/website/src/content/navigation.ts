@@ -69,6 +69,13 @@ export const ROUTES: AppRoute[] = [
       "Share an everyday Kasem expression with its meaning, context and source. A Kasem-speaking reviewer checks every one before it is published as an expression.",
   },
   {
+    path: "progress",
+    navLabel: "Our Progress",
+    title: "Help fill the jars",
+    description:
+      "Follow community contributions bringing Indigen World closer to our planned launch targets across words, expressions, sentences, literature, audio and video.",
+  },
+  {
     path: "impact-governance",
     navLabel: "Impact & Governance",
     title: "Impact & Governance",

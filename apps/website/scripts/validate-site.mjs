@@ -18,6 +18,7 @@ const routes = [
   ["/privacy", "PrivacyPage.tsx"],
   ["/terms", "TermsPage.tsx"],
   ["/beyond-the-reef", "BeyondTheReefPage.tsx"],
+  ["/progress", "ProgressPage.tsx"],
 ];
 
 const pageIndex = read("src/pages/index.ts");

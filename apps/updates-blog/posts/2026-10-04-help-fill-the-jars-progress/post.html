@@ -1,0 +1,68 @@
+<article>
+<h2>Help Fill the Jars: Track our community progress toward launch</h2>
+<p>As we work toward our planned December/January launch window, we want every community member to see clearly where we stand, celebrate what has already been preserved, and find an immediate way to help. Today, we are introducing a new animated public progress page at <strong>indigenworld.com/progress</strong>, built around a simple, visual metaphor: <em>Help Fill the Jars</em>.</p>
+
+<p><strong>Availability:</strong> Implemented and verified in the Indigen World web repository on 4 October 2026. The page is integrated into public navigation and the footer under &ldquo;Our Progress&rdquo;. Live progress counts read directly from approved Firestore records via secure server-side aggregations. Because launch targets are being finalized with language custodians, categories without a confirmed remote target honestly display &ldquo;Target being set&rdquo; rather than arbitrary numbers.</p>
+
+<figure>
+  <img src="images/fill-the-jars-vertical.jpg" alt="A gallery of transparent glass jars containing blue liquid at different fill levels with measurement marks and contribution buttons." style="max-width:100%;height:auto"/>
+  <figcaption>The vertical jars view: transparent vessels fill from bottom to top with moving liquid and rising bubbles as verified contributions are approved. Illustration: Indigen World.</figcaption>
+</figure>
+
+<h3>Two genuinely different ways to view our progress</h3>
+<p>Visitors can switch seamlessly between two carefully composed views using an accessible segmented control at the top of the page:</p>
+<ul>
+  <li><strong>Vertical jars:</strong> Upright transparent glass jars where blue liquid fills upward, bubbles rise gently through the liquid, and calibrated measurement marks indicate progress. Each jar rests on a subtle glass pedestal with its category details and contribution button directly below.</li>
+  <li><strong>Horizontal tanks:</strong> Sleek horizontal vessels where liquid advances from left to right behind curved menisci, with bubbles drifting horizontally toward the advancing edge.</li>
+</ul>
+<p>The switch preserves all counts, filters, and animation states without reloads. Your preferred view is automatically remembered locally on your device.</p>
+
+<figure>
+  <img src="images/progress-horizontal-tanks.jpg" alt="Horizontal transparent cylindrical tanks with blue liquid advancing left to right, bubbles drifting, and action buttons beside each category." style="max-width:100%;height:auto"/>
+  <figcaption>The horizontal tanks view: an alternative panoramic perspective with bubbles drifting horizontally toward the advancing fill edge. Illustration: Indigen World.</figcaption>
+</figure>
+
+<h3>Ten distinct heritage categories</h3>
+<p>Language and living heritage cannot be reduced to a single generic number. We have preserved the authentic distinctions of the Indigen World ecosystem across ten dedicated categories:</p>
+<ol>
+  <li><strong>Words &amp; Meanings:</strong> Published dictionary headwords with approved senses, parts of speech, and attributions.</li>
+  <li><strong>Everyday Expressions:</strong> Full greetings, idioms, and conversational sayings captured in real social context.</li>
+  <li><strong>Kasem Sentences:</strong> Confirmed bilingual sentence pairs illustrating authentic grammatical structure and syntax.</li>
+  <li><strong>Stories &amp; Folklore:</strong> Published oral narratives, legends, and cultural histories with full authorial attribution.</li>
+  <li><strong>Songs &amp; Lyrics:</strong> Master audio recordings of traditional and contemporary Kasem songs.</li>
+  <li><strong>Oral Narrations:</strong> Spoken-word readings and oral history recordings by native speakers.</li>
+  <li><strong>Cultural Videos:</strong> Documented craft traditions, festivals, and elder conversations on film.</li>
+  <li><strong>Grammar Patterns:</strong> Structured morphological and dialect rules explained with real examples.</li>
+  <li><strong>Proverbs &amp; Wisdom:</strong> Timeless sayings paired with literal readings and cultural guidance.</li>
+  <li><strong>Pronunciation Takes:</strong> Verified native audio recordings linked directly to dictionary entries.</li>
+</ol>
+<p>We never merge distinct categories or split multi-word expressions into individual words merely to inflate milestone statistics.</p>
+
+<h3>Trustworthy counting and data integrity</h3>
+<p>Every vessel reflects genuine, verified work ready for our community:</p>
+<ul>
+  <li><strong>Approved contributions only:</strong> Launch progress measures verified, usable material. Pending submissions appear as compact &ldquo;Awaiting review&rdquo; notes and do not inflate the liquid fill until community validators approve them.</li>
+  <li><strong>Honest target states:</strong> If a category milestone is being agreed upon with community custodians, the jar displays &ldquo;Target being set&rdquo; rather than publishing an unverified number. Development fixtures with sample targets can be previewed using an explicit developer control, keeping test fixtures clearly separated from production reality.</li>
+  <li><strong>No artificial urgency:</strong> The category that genuinely needs the most help is highlighted based on remaining target percentage, without countdown timers, guilt-inducing copy, or gamified point screens.</li>
+  <li><strong>Privacy-preserving queries:</strong> Aggregations are calculated on the server using Firebase count queries. No private contributor data, unapproved drafts, or personal notes are ever downloaded to a visitor&rsquo;s browser.</li>
+</ul>
+
+<figure>
+  <img src="images/progress-mobile-view.jpg" alt="Smartphone interface at 390px showing the segmented switch, honest Target being set status, 340 verified words, and trustworthy counting principles." width="390" style="max-width:100%;height:auto"/>
+  <figcaption>Responsive mobile view at 390px: vessels reflow into an intuitive single column without horizontal scrolling, highlighting honest targets and clear action buttons. Illustration: Indigen World.</figcaption>
+</figure>
+
+<h3>Respectful motion and battery-friendly performance</h3>
+<p>Motion brings the page to life, but remains respectful of your device and preferences:</p>
+<ul>
+  <li>A prominent <strong>Pause motion</strong> button lets you stop all continuous liquid and bubble animations at any time.</li>
+  <li>Animations automatically pause whenever the browser tab is hidden or when vessels scroll outside the viewport.</li>
+  <li>Visitors with <code>prefers-reduced-motion</code> enabled in their operating system receive a clean, static presentation with no continuous animations.</li>
+  <li>All decorative bubbles and SVG movement effects are hidden from screen readers via <code>aria-hidden="true"</code>, while assistive technology receives standard <code>progressbar</code> announcements.</li>
+</ul>
+
+<h3>How you can help fill the jars</h3>
+<p>Underneath every vessel is an invitation with a category-specific action—whether to <em>Suggest a word</em>, <em>Share an expression</em>, <em>Add a sentence</em>, or <em>Record audio</em>. Clicking any button takes you directly to the relevant workflow in TribeStudio with the category pre-selected. Signed-out visitors are guided through quick sign-in and returned directly to their chosen contribution flow.</p>
+
+<p>Visit <a href="https://indigenworld.com/progress">indigenworld.com/progress</a> to explore our collective progress and help bring launch closer.</p>
+</article>
