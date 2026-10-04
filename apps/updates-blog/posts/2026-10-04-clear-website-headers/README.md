@@ -1,6 +1,6 @@
 # Website animations that leave room to read
 
-Status: **Implemented and previewed October 4, 2026; production deployment and Blogger publication pending.**
+Status: **Deployed October 4, 2026; public assets and all 13 shared banner layouts verified. Blogger publication pending.**
 
 - Title: Website animations that leave room to read
 - Labels: Indigen World, Website, Accessibility, Dictionary, Contributions
@@ -35,3 +35,11 @@ Credit: Indigen World, actual local production-preview screenshots, October 4, 2
 4. Review, publish and share when ready. Replace the clearly marked published article URL placeholder in `share.md` after publication.
 
 Preparing this repository post does not publish it or send community messages.
+
+## Production deployment evidence
+
+- `npm run deploy:website -- --non-interactive` completed October 4, 2026 for Firebase Hosting site `indigen-world` in `project-kassena-7e026`, from commit `2bdf99950311b72065084e1e039b40739bfa1c5f`. The guarded deployment verified the clean release checkout matched `origin/main` and reran the website checks and production build before upload.
+- The served entry script, main stylesheet, PageMotion module, About module, Contribute module and Dictionary module match the release build byte for byte on `https://indigenworld.com`.
+- All 13 shared banner routes were checked on the public domain at 1440 and 360 pixels. Every complete content container is separate from its artwork; no horizontal overflow occurs, and visible enabled links and form controls are reachable.
+- A fresh 390-pixel reduced-motion dictionary visit keeps the illustration separate, has no playback button, accepts a search term and clears it through the header search control.
+- Only website Hosting was released. Backend functions, database rules and mobile releases were not changed. The Blogger article and community sharing remain with Chinedum.
