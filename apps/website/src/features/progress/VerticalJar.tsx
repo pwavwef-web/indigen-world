@@ -18,14 +18,17 @@ import React, { useId } from 'react';
 import type { CategoryProgress } from './progressTypes';
 import { Icon } from '../../components/Icon';
 import { Button } from '../../components/Button';
+import { liquidAppearance } from './liquidAppearance';
+import '../../styles/progressLiquid.css';
 
 interface VerticalJarProps {
   progress: CategoryProgress;
   canAnimate: boolean;
   staggerIndex?: number;
+  onInfo: (progress: CategoryProgress) => void;
 }
 
-export function VerticalJar({ progress, canAnimate, staggerIndex = 0 }: VerticalJarProps) {
+export function VerticalJar({ progress, canAnimate, staggerIndex = 0, onInfo }: VerticalJarProps) {
   const {
     category,
     approvedCount,
@@ -40,25 +43,31 @@ export function VerticalJar({ progress, canAnimate, staggerIndex = 0 }: Vertical
   } = progress;
 
   const clipId = useId();
+  const appearance = liquidAppearance(fillPercentage, isTargetSetting);
 
   // Jar internal cavity geometry
   // Top of interior cavity: Y = 76
-  // Bottom of interior cavity: Y = 286
-  // Total fillable height: 210px
-  const interiorBottomY = 286;
-  const maxFillHeight = 210;
-  const currentFillHeight = isTargetSetting ? 0 : (fillPercentage / 100) * maxFillHeight;
+  // Bottom of interior cavity: Y = 290
+  // Total fillable height: 214px
+  const interiorBottomY = 290;
+  const maxFillHeight = 214;
+  const currentFillHeight = (appearance.fillPercent / 100) * maxFillHeight;
   const surfaceY = interiorBottomY - currentFillHeight;
 
   // Staggered entrance delay
   const entranceStyle: React.CSSProperties = {
     animationDelay: `${staggerIndex * 70}ms`,
-  };
+    '--liquid-colour': appearance.colour,
+    '--liquid-deep': appearance.deep,
+    '--liquid-light': appearance.light,
+  } as React.CSSProperties;
 
   return (
     <article
       className={`vessel-card vessel-card--vertical ${isTargetReached ? 'vessel-card--reached' : ''} ${needsContributions ? 'vessel-card--highlighted' : ''}`}
       style={entranceStyle}
+      data-motion={canAnimate ? 'active' : 'paused'}
+      data-liquid-stage={appearance.stage}
       aria-labelledby={`jar-title-${category.id}`}
     >
       {/* Target status banner */}
@@ -91,7 +100,8 @@ export function VerticalJar({ progress, canAnimate, staggerIndex = 0 }: Vertical
       <div
         className="vessel-graphic vessel-graphic--vertical"
         role="progressbar"
-        aria-valuenow={approvedCount}
+        aria-label={`${category.title} approved contributions`}
+        aria-valuenow={isTargetSetting ? undefined : Math.min(approvedCount, target ?? 0)}
         aria-valuemin={0}
         aria-valuemax={target ?? undefined}
         aria-valuetext={
@@ -107,18 +117,18 @@ export function VerticalJar({ progress, canAnimate, staggerIndex = 0 }: Vertical
         >
           <defs>
             {/* Liquid linear gradient */}
-            <linearGradient id={`liquid-grad-${clipId}`} x1="0%" y1="100%" x2="0%" y2="0%">
-              <stop offset="0%" stopColor="#0f3b70" stopOpacity="0.94" />
-              <stop offset="40%" stopColor="#0284c7" stopOpacity="0.88" />
-              <stop offset="85%" stopColor="#38bdf8" stopOpacity="0.90" />
-              <stop offset="100%" stopColor="#7dd3fc" stopOpacity="0.96" />
+            <linearGradient className="liquid-volume" id={`liquid-grad-${clipId}`} x1="0%" y1="100%" x2="0%" y2="0%">
+              <stop offset="0%" stopColor={appearance.deep} stopOpacity="0.98" />
+              <stop offset="40%" stopColor={appearance.colour} stopOpacity="0.94" />
+              <stop offset="85%" stopColor={appearance.light} stopOpacity="0.92" />
+              <stop offset="100%" stopColor={appearance.surface} stopOpacity="0.98" />
             </linearGradient>
 
             {/* Surface wave gradient */}
             <linearGradient id={`surface-grad-${clipId}`} x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="#7dd3fc" stopOpacity="0.95" />
-              <stop offset="50%" stopColor="#e0f2fe" stopOpacity="1" />
-              <stop offset="100%" stopColor="#7dd3fc" stopOpacity="0.95" />
+              <stop offset="0%" stopColor={appearance.light} stopOpacity="0.95" />
+              <stop offset="50%" stopColor={appearance.surface} stopOpacity="1" />
+              <stop offset="100%" stopColor={appearance.light} stopOpacity="0.95" />
             </linearGradient>
 
             {/* Glass body reflections */}
@@ -150,11 +160,14 @@ export function VerticalJar({ progress, canAnimate, staggerIndex = 0 }: Vertical
                    Z"
               />
             </clipPath>
+            <clipPath id={`jar-fill-${clipId}`}>
+              <rect x="48" y={surfaceY} width="144" height={currentFillHeight} />
+            </clipPath>
           </defs>
 
           {/* Jar base drop shadow */}
           <ellipse cx="120" cy="308" rx="72" ry="10" fill="rgba(20, 37, 67, 0.12)" />
-          <ellipse cx="120" cy="306" rx="58" ry="6" fill="rgba(2, 132, 199, 0.15)" />
+          <ellipse className="liquid-glow" cx="120" cy="306" rx="58" ry="6" fill={appearance.colour} />
 
           {/* Rear glass wall */}
           <path
@@ -175,13 +188,13 @@ export function VerticalJar({ progress, canAnimate, staggerIndex = 0 }: Vertical
           {/* Liquid and Bubbles (strictly inside cavity) */}
           <g clipPath={`url(#cavity-${clipId})`}>
             {currentFillHeight > 0 ? (
-              <>
+              <g clipPath={`url(#jar-fill-${clipId})`}>
                 {/* Liquid Body */}
                 <rect
                   x="48"
                   y={surfaceY}
                   width="144"
-                  height={currentFillHeight + 10}
+                  height={currentFillHeight}
                   fill={`url(#liquid-grad-${clipId})`}
                   className="jar-liquid-fill"
                 />
@@ -195,7 +208,7 @@ export function VerticalJar({ progress, canAnimate, staggerIndex = 0 }: Vertical
                      L 48,${surfaceY + 8}
                      Z`}
                   fill={`url(#surface-grad-${clipId})`}
-                  className={canAnimate ? 'jar-surface-wave' : ''}
+                  className="liquid-surface liquid-surface--vertical"
                 />
 
                 {/* Sub-surface glow line */}
@@ -210,24 +223,24 @@ export function VerticalJar({ progress, canAnimate, staggerIndex = 0 }: Vertical
                 />
 
                 {/* Bubbles rising vertically through liquid */}
-                {canAnimate ? (
-                  <g className="jar-bubbles" aria-hidden="true">
-                    <circle cx="85" cy={interiorBottomY - 15} r="3.5" className="bubble bubble--1" />
-                    <circle cx="140" cy={interiorBottomY - 25} r="5" className="bubble bubble--2" />
-                    <circle cx="110" cy={interiorBottomY - 10} r="2.5" className="bubble bubble--3" />
-                    <circle cx="165" cy={interiorBottomY - 40} r="4" className="bubble bubble--4" />
-                    <circle cx="70" cy={interiorBottomY - 35} r="3" className="bubble bubble--5" />
-                    <circle cx="125" cy={interiorBottomY - 50} r="4.5" className="bubble bubble--6" />
-                    <circle cx="95" cy={interiorBottomY - 60} r="2" className="bubble bubble--7" />
-                  </g>
-                ) : (
-                  <g className="jar-bubbles--static" aria-hidden="true">
-                    <circle cx="85" cy={surfaceY + 30} r="3" fill="rgba(255, 255, 255, 0.4)" />
-                    <circle cx="140" cy={surfaceY + 50} r="4" fill="rgba(255, 255, 255, 0.4)" />
-                    <circle cx="110" cy={surfaceY + 70} r="2.5" fill="rgba(255, 255, 255, 0.35)" />
-                  </g>
-                )}
-              </>
+                <g className="jar-bubbles" aria-hidden="true">
+                  {Array.from({ length: appearance.bubbleCount }, (_, index) => (
+                    <circle
+                      key={index}
+                      cx={68 + ((index * 37) % 105)}
+                      cy={canAnimate ? interiorBottomY - 3 : surfaceY + currentFillHeight * (0.18 + ((index * 17) % 68) / 100)}
+                      r={(1.6 + (index % 4) * 0.75) * appearance.bubbleScale}
+                      className="liquid-bubble liquid-bubble--vertical"
+                      style={{
+                        '--bubble-duration': `${appearance.bubbleDuration + (index % 4) * 0.4}s`,
+                        '--bubble-delay': `${-index * 0.71}s`,
+                        '--bubble-rise': `${-currentFillHeight}px`,
+                        '--bubble-sway': `${index % 2 ? -4 : 4}px`,
+                      } as React.CSSProperties}
+                    />
+                  ))}
+                </g>
+              </g>
             ) : null}
 
             {/* Subtle internal depth shadow */}
@@ -317,7 +330,7 @@ export function VerticalJar({ progress, canAnimate, staggerIndex = 0 }: Vertical
             y1="35"
             x2="154"
             y2="35"
-            stroke={isTargetReached ? '#d97706' : '#0284c7'}
+            stroke={appearance.colour}
             strokeWidth="2.5"
             strokeLinecap="round"
           />
@@ -327,8 +340,8 @@ export function VerticalJar({ progress, canAnimate, staggerIndex = 0 }: Vertical
             cx="120"
             cy="35"
             r="11"
-            fill={isTargetReached ? '#fef3c7' : '#e0f2fe'}
-            stroke={isTargetReached ? '#d97706' : '#0284c7'}
+            fill={appearance.surface}
+            stroke={appearance.colour}
             strokeWidth="1.5"
           />
           <g transform="translate(112, 27) scale(0.65)">
@@ -369,7 +382,6 @@ export function VerticalJar({ progress, canAnimate, staggerIndex = 0 }: Vertical
         <h3 id={`jar-title-${category.id}`} className="vessel-title">
           {category.title}
         </h3>
-        <p className="vessel-description">{category.description}</p>
 
         {/* Count and Target Display */}
         <div className="vessel-metric">
@@ -412,15 +424,9 @@ export function VerticalJar({ progress, canAnimate, staggerIndex = 0 }: Vertical
       </div>
 
       {/* Accessible Details Expander for Review Criteria */}
-      <details className="vessel-details">
-        <summary className="vessel-details__summary">How this is counted</summary>
-        <div className="vessel-details__content">
-          <p>{category.explanation}</p>
-          <p className="tiny muted">
-            <strong>Eligibility rule:</strong> {category.countingRule}. Unapproved or withdrawn submissions do not inflate progress.
-          </p>
-        </div>
-      </details>
+      <button type="button" className="vessel-info-button" aria-haspopup="dialog" aria-label={`About ${category.title} and how it is counted`} onClick={() => onInfo(progress)}>
+        About &amp; counting
+      </button>
     </article>
   );
 }

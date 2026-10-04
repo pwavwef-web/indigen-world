@@ -22,6 +22,9 @@ const progressDataSource = read('src/features/progress/progressData.ts');
 const verticalJarSource = read('src/features/progress/VerticalJar.tsx');
 const horizontalTankSource = read('src/features/progress/HorizontalTank.tsx');
 const progressPageSource = read('src/pages/ProgressPage.tsx');
+const progressDialogSource = read('src/features/progress/ProgressDialog.tsx');
+const navigationSource = read('src/content/navigation.ts');
+const appSource = read('src/App.tsx');
 
 // Pure calculation invariant harness
 function calculateCategoryProgress(category, approvedCount, target, awaitingReviewCount = 0) {
@@ -369,4 +372,21 @@ const testCategory = { id: 'lexicon', title: 'Words & Meanings' };
   assert.match(progressPageSource, /useProgressMotion/, 'motion hook with pause and reduced motion support is wired');
 }
 
-console.log('All 11 progress calculation and integrity invariants verified successfully!');
+// 12. Fullscreen route and popup presentation remain wired into the public page.
+{
+  const progressRoute = navigationSource.match(/\{\s*path:\s*"progress",[^}]*\}/)?.[0] ?? '';
+  assert.match(progressRoute, /immersive:\s*true/, 'progress is registered as an immersive route');
+  assert.match(appSource, /\{immersive\s*\?\s*null\s*:\s*<Header\s*\/>\}/, 'immersive route hides the global header');
+  assert.match(appSource, /\{immersive\s*\?\s*null\s*:\s*<Footer\s*\/>\}/, 'immersive route hides the global footer');
+  assert.match(progressPageSource, /Back to website/, 'fullscreen page provides visible back navigation');
+  assert.doesNotMatch(progressPageSource + verticalJarSource + horizontalTankSource, /<(?:details|summary|select)\b/, 'progress explanations and controls no longer use dropdowns');
+  assert.match(progressPageSource, /<ProgressDialog\b/, 'page explanation buttons open the modal popup');
+  assert.match(verticalJarSource, /onInfo/, 'vertical categories can open their explanation');
+  assert.match(horizontalTankSource, /onInfo/, 'horizontal categories can open their explanation');
+  assert.match(progressDialogSource, /\.showModal\(\)/, 'native dialog supplies modal focus containment');
+  assert.match(progressDialogSource, /aria-labelledby=/, 'popup has an accessible title');
+  assert.match(progressDialogSource, /onCancel=/, 'Escape closes the popup');
+  assert.match(progressDialogSource, /previouslyFocused.*\.focus\(/, 'closing the popup restores trigger focus');
+}
+
+console.log('All 12 progress calculation and presentation invariants verified successfully!');

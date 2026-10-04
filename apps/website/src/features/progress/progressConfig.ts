@@ -33,7 +33,7 @@ export const CONTRIBUTION_CATEGORIES: CategoryDefinition[] = [
     unit: 'expression',
     unitPlural: 'expressions',
     description: 'Greetings, blessings, idioms, and everyday sayings preserved whole with context.',
-    explanation: 'Captured in full social context with speaker relationship, situation, and source consent. Published to expressionEntries after reviewer approval.',
+    explanation: 'Captured in full social context with speaker relationship, situation, and source consent. Counts after reviewer approval and publication.',
     countingRule: 'expressionEntries where isPublished == true and authenticationStatus == "reviewed"',
     ctaLabel: 'Share an expression',
     ctaUrl: 'https://tribestudio.indigenworld.com/studio/expressions',

@@ -17,14 +17,17 @@ import React, { useId } from 'react';
 import type { CategoryProgress } from './progressTypes';
 import { Icon } from '../../components/Icon';
 import { Button } from '../../components/Button';
+import { liquidAppearance } from './liquidAppearance';
+import '../../styles/progressLiquid.css';
 
 interface HorizontalTankProps {
   progress: CategoryProgress;
   canAnimate: boolean;
   staggerIndex?: number;
+  onInfo: (progress: CategoryProgress) => void;
 }
 
-export function HorizontalTank({ progress, canAnimate, staggerIndex = 0 }: HorizontalTankProps) {
+export function HorizontalTank({ progress, canAnimate, staggerIndex = 0, onInfo }: HorizontalTankProps) {
   const {
     category,
     approvedCount,
@@ -39,6 +42,7 @@ export function HorizontalTank({ progress, canAnimate, staggerIndex = 0 }: Horiz
   } = progress;
 
   const clipId = useId();
+  const appearance = liquidAppearance(fillPercentage, isTargetSetting);
 
   // Horizontal chamber geometry
   // Left interior: X = 34
@@ -46,17 +50,22 @@ export function HorizontalTank({ progress, canAnimate, staggerIndex = 0 }: Horiz
   // Height: 72px (Y = 28 to 100)
   const interiorLeftX = 34;
   const maxFillWidth = 332;
-  const currentFillWidth = isTargetSetting ? 0 : (fillPercentage / 100) * maxFillWidth;
+  const currentFillWidth = (appearance.fillPercent / 100) * maxFillWidth;
   const advancingEdgeX = interiorLeftX + currentFillWidth;
 
   const entranceStyle: React.CSSProperties = {
     animationDelay: `${staggerIndex * 60}ms`,
-  };
+    '--liquid-colour': appearance.colour,
+    '--liquid-deep': appearance.deep,
+    '--liquid-light': appearance.light,
+  } as React.CSSProperties;
 
   return (
     <article
       className={`vessel-card vessel-card--horizontal ${isTargetReached ? 'vessel-card--reached' : ''} ${needsContributions ? 'vessel-card--highlighted' : ''}`}
       style={entranceStyle}
+      data-motion={canAnimate ? 'active' : 'paused'}
+      data-liquid-stage={appearance.stage}
       aria-labelledby={`tank-title-${category.id}`}
     >
       <div className="tank-layout">
@@ -93,7 +102,6 @@ export function HorizontalTank({ progress, canAnimate, staggerIndex = 0 }: Horiz
                   </span>
                 )}
               </div>
-              <p className="vessel-description">{category.description}</p>
             </div>
           </div>
 
@@ -127,7 +135,8 @@ export function HorizontalTank({ progress, canAnimate, staggerIndex = 0 }: Horiz
         <div
           className="vessel-graphic vessel-graphic--horizontal"
           role="progressbar"
-          aria-valuenow={approvedCount}
+          aria-label={`${category.title} approved contributions`}
+          aria-valuenow={isTargetSetting ? undefined : Math.min(approvedCount, target ?? 0)}
           aria-valuemin={0}
           aria-valuemax={target ?? undefined}
           aria-valuetext={
@@ -143,16 +152,16 @@ export function HorizontalTank({ progress, canAnimate, staggerIndex = 0 }: Horiz
           >
             <defs>
               {/* Horizontal liquid gradient */}
-              <linearGradient id={`tank-liquid-${clipId}`} x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="#0f3b70" stopOpacity="0.94" />
-                <stop offset="60%" stopColor="#0284c7" stopOpacity="0.90" />
-                <stop offset="90%" stopColor="#38bdf8" stopOpacity="0.92" />
-                <stop offset="100%" stopColor="#7dd3fc" stopOpacity="0.96" />
+              <linearGradient className="liquid-volume" id={`tank-liquid-${clipId}`} x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor={appearance.deep} stopOpacity="0.98" />
+                <stop offset="60%" stopColor={appearance.colour} stopOpacity="0.94" />
+                <stop offset="90%" stopColor={appearance.light} stopOpacity="0.92" />
+                <stop offset="100%" stopColor={appearance.surface} stopOpacity="0.98" />
               </linearGradient>
 
               {/* Advancing meniscus gradient */}
               <linearGradient id={`meniscus-grad-${clipId}`} x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="#7dd3fc" stopOpacity="0.8" />
+                <stop offset="0%" stopColor={appearance.light} stopOpacity="0.8" />
                 <stop offset="100%" stopColor="#ffffff" stopOpacity="0.95" />
               </linearGradient>
 
@@ -168,10 +177,14 @@ export function HorizontalTank({ progress, canAnimate, staggerIndex = 0 }: Horiz
               <clipPath id={`tank-cavity-${clipId}`}>
                 <rect x="34" y="28" width="332" height="74" rx="20" />
               </clipPath>
+              <clipPath id={`tank-fill-${clipId}`}>
+                <rect x="34" y="28" width={currentFillWidth} height="74" />
+              </clipPath>
             </defs>
 
             {/* Rear shadow */}
             <ellipse cx="200" cy="116" rx="160" ry="8" fill="rgba(20, 37, 67, 0.10)" />
+            <ellipse className="liquid-glow" cx="200" cy="114" rx="145" ry="6" fill={appearance.colour} />
 
             {/* Left & Right mounting hardware / end-caps */}
             <rect x="18" y="42" width="16" height="46" rx="4" fill="#94a3b8" />
@@ -194,7 +207,7 @@ export function HorizontalTank({ progress, canAnimate, staggerIndex = 0 }: Horiz
             {/* Liquid & Horizontal Bubbles */}
             <g clipPath={`url(#tank-cavity-${clipId})`}>
               {currentFillWidth > 0 ? (
-                <>
+                <g clipPath={`url(#tank-fill-${clipId})`}>
                   {/* Liquid fill block */}
                   <rect
                     x="34"
@@ -213,26 +226,27 @@ export function HorizontalTank({ progress, canAnimate, staggerIndex = 0 }: Horiz
                        L ${advancingEdgeX},28
                        Z`}
                     fill={`url(#meniscus-grad-${clipId})`}
-                    className={canAnimate ? 'tank-surface-wave' : ''}
+                    className="liquid-surface liquid-surface--horizontal"
                   />
 
                   {/* Horizontal Bubbles drifting right toward the advancing edge */}
-                  {canAnimate ? (
-                    <g className="tank-bubbles" aria-hidden="true">
-                      <circle cx="50" cy="50" r="3.5" className="h-bubble h-bubble--1" />
-                      <circle cx="90" cy="65" r="4.5" className="h-bubble h-bubble--2" />
-                      <circle cx="140" cy="42" r="2.5" className="h-bubble h-bubble--3" />
-                      <circle cx="180" cy="72" r="4.0" className="h-bubble h-bubble--4" />
-                      <circle cx="230" cy="54" r="3.0" className="h-bubble h-bubble--5" />
-                      <circle cx="280" cy="62" r="4.5" className="h-bubble h-bubble--6" />
-                    </g>
-                  ) : (
-                    <g className="tank-bubbles--static" aria-hidden="true">
-                      <circle cx={advancingEdgeX - 25} cy="50" r="3" fill="rgba(255, 255, 255, 0.4)" />
-                      <circle cx={advancingEdgeX - 60} cy="65" r="4" fill="rgba(255, 255, 255, 0.4)" />
-                    </g>
-                  )}
-                </>
+                  <g className="tank-bubbles" aria-hidden="true">
+                    {Array.from({ length: appearance.bubbleCount }, (_, index) => (
+                      <circle
+                        key={index}
+                        cx={canAnimate ? interiorLeftX + 3 : interiorLeftX + currentFillWidth * (0.12 + ((index * 17) % 76) / 100)}
+                        cy={42 + ((index * 13) % 43)}
+                        r={(1.5 + (index % 4) * 0.65) * appearance.bubbleScale}
+                        className="liquid-bubble liquid-bubble--horizontal"
+                        style={{
+                          '--bubble-duration': `${appearance.bubbleDuration + (index % 4) * 0.4}s`,
+                          '--bubble-delay': `${-index * 0.71}s`,
+                          '--bubble-drift': `${currentFillWidth}px`,
+                        } as React.CSSProperties}
+                      />
+                    ))}
+                  </g>
+                </g>
               ) : null}
 
               {/* Glass internal depth */}
@@ -315,15 +329,9 @@ export function HorizontalTank({ progress, canAnimate, staggerIndex = 0 }: Horiz
             {category.ctaLabel}
           </Button>
 
-          <details className="vessel-details vessel-details--horizontal">
-            <summary className="vessel-details__summary">How this is counted</summary>
-            <div className="vessel-details__content">
-              <p>{category.explanation}</p>
-              <p className="tiny muted">
-                <strong>Eligibility rule:</strong> {category.countingRule}.
-              </p>
-            </div>
-          </details>
+          <button type="button" className="vessel-info-button" aria-haspopup="dialog" aria-label={`About ${category.title} and how it is counted`} onClick={() => onInfo(progress)}>
+            About &amp; counting
+          </button>
         </div>
       </div>
     </article>

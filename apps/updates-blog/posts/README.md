@@ -6,6 +6,8 @@ date identifies when the post was prepared; it does not prove the update is live
 
 ## Posts
 
+- [2026-10-04: More room to watch our community progress grow](2026-10-04-progress-fullscreen-popups/README.md) — fullscreen progress redesign with popup explanations, red/yellow/blue/green liquid, and growing bubbles. Implemented and verified locally with actual product screenshots; website deployment pending and article unpublished.
+
 - [2026-10-04: A steadier place to look up Kasem](2026-10-04-dictionary-steady-scrolling/README.md) — dictionary scroll feedback fix and mobile result-position preservation implemented and verified; deployed October 4 with verified public assets and live scroll regressions; Blogger publication pending. Includes verified local product screenshots.
 
 - [2026-10-04: Help Fill the Jars — track our community progress toward launch](2026-10-04-help-fill-the-jars-progress/README.md) — public website feature implemented and verified on October 4; 10 distinct heritage categories, switchable vertical jars and horizontal tanks, SVG liquid dynamics, honest unconfigured target states, and direct contribution CTAs. Prerendered metadata and 11 calculation invariants verified. Illustrated article unpublished.

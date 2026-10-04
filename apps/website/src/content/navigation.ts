@@ -67,6 +67,7 @@ export const ROUTES: AppRoute[] = [
   },
   {
     path: "progress",
+    immersive: true,
     navLabel: "Our Progress",
     title: "Help fill the jars",
     description:

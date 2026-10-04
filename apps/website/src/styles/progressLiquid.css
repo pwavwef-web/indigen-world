@@ -1,0 +1,90 @@
+/* Animated optics always stay inside the actual filled SVG region. */
+.liquid-volume stop {
+  transition: stop-color 650ms ease;
+}
+
+.vessel-card .liquid-bubble {
+  fill: rgba(255, 255, 255, 0.24);
+  stroke: rgba(255, 255, 255, 0.7);
+  stroke-width: 0.65;
+}
+
+.vessel-card[data-motion="active"] .liquid-bubble--vertical {
+  animation: liquidBubbleRise var(--bubble-duration, 5s) linear infinite;
+  animation-delay: var(--bubble-delay, 0s);
+}
+
+.vessel-card[data-motion="active"] .liquid-bubble--horizontal {
+  animation: liquidBubbleDrift var(--bubble-duration, 5s) linear infinite;
+  animation-delay: var(--bubble-delay, 0s);
+}
+
+.vessel-card[data-motion="active"] .liquid-surface--vertical {
+  animation: liquidSurfaceSway 3.8s ease-in-out infinite alternate;
+}
+
+.vessel-card[data-motion="active"] .liquid-surface--horizontal {
+  animation: liquidMeniscusSway 3.2s ease-in-out infinite alternate;
+}
+
+.vessel-card[data-motion="active"] .liquid-glow {
+  animation: liquidGlowBreathe 4.8s ease-in-out infinite;
+}
+
+.liquid-glow {
+  opacity: 0.28;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.liquid-surface {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+/* This guard also catches existing badge and target-celebration animations. */
+.vessel-card[data-motion="paused"],
+.vessel-card[data-motion="paused"] *,
+.vessel-card[data-motion="paused"] *::before,
+.vessel-card[data-motion="paused"] *::after {
+  animation: none !important;
+}
+
+@keyframes liquidBubbleRise {
+  0% { transform: translate(0, 0); opacity: 0; }
+  12% { opacity: 0.8; }
+  78% { opacity: 0.65; }
+  100% { transform: translate(var(--bubble-sway, 3px), var(--bubble-rise, -100px)); opacity: 0; }
+}
+
+@keyframes liquidBubbleDrift {
+  0% { transform: translate(0, 0); opacity: 0; }
+  12% { opacity: 0.8; }
+  78% { opacity: 0.65; }
+  100% { transform: translate(var(--bubble-drift, 100px), -6px); opacity: 0; }
+}
+
+@keyframes liquidSurfaceSway {
+  from { transform: translateX(-2px) scaleY(0.8); }
+  to { transform: translateX(2px) scaleY(1.2); }
+}
+
+@keyframes liquidMeniscusSway {
+  from { transform: scaleX(0.75); opacity: 0.75; }
+  to { transform: scaleX(1.05); opacity: 1; }
+}
+
+@keyframes liquidGlowBreathe {
+  0%, 100% { opacity: 0.18; transform: scaleX(0.92); }
+  50% { opacity: 0.34; transform: scaleX(1.07); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vessel-card,
+  .vessel-card *,
+  .vessel-card *::before,
+  .vessel-card *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
