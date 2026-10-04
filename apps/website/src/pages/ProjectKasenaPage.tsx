@@ -27,7 +27,6 @@ export function ProjectKasenaPage() {
   return (
     <>
       <section className="page-hero page-hero--kasena">
-        <PageMotion />
         <div className="container kasena-grid">
           <div className="kasena-copy">
             <SectionHeading
@@ -72,6 +71,7 @@ export function ProjectKasenaPage() {
             <Button to="dictionary" variant="secondary" className="module-preview__button">
               Open the Kasem dictionary
             </Button>
+            <PageMotion placement="inline" />
           </div>
         </div>
       </section>

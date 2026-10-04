@@ -34,6 +34,23 @@ async function open(page, route) {
   await page.waitForTimeout(800);
 }
 async function artwork(page) { return page.locator('.page-motion__art svg').first().evaluate(svg => svg.outerHTML); }
+async function checkKassenaLayout(page, width) {
+  const art = await page.locator('.page-motion').boundingBox();
+  for (const selector of ['.kasena-copy', '.module-preview__header', '.module-preview__list', '.module-preview__note', '.module-preview__button']) {
+    const content = await page.locator(selector).boundingBox();
+    assert(art.x + art.width <= content.x + 1 || content.x + content.width <= art.x + 1 ||
+      art.y + art.height <= content.y + 1 || content.y + content.height <= art.y + 1,
+    `Project Kassena: illustration overlaps ${selector} at ${width}px`);
+  }
+  for (const name of ['Support the Kasem pilot', 'Open the Kasem dictionary']) {
+    await page.getByRole('link', { name, exact: true }).click({ trial: true, timeout: 3000 });
+  }
+  if (width >= 900) {
+    const heading = await page.locator('.kasena-copy .section-heading').boundingBox();
+    const copy = await page.locator('.kasena-copy').boundingBox();
+    assert(heading.width >= copy.width * 0.95, `Project Kassena: heading unnecessarily narrowed at ${width}px`);
+  }
+}
 try {
   const ctx = await context();
   const page = await ctx.newPage();
@@ -45,6 +62,7 @@ try {
       await open(page, route);
       const sizes = await page.evaluate(() => ({ content: document.documentElement.scrollWidth, viewport: innerWidth }));
       assert(sizes.content <= sizes.viewport + 1, `${route} overflows at ${width}px: ${sizes.content}`);
+      if (route === '/project-kassena') await checkKassenaLayout(page, width);
       if (route !== '/beyond-the-reef') {
         assert.equal(await page.locator(route === '/privacy' ? '.privacy-hero' : '.page-motion').count(), 1, `${route}: exactly one page illustration`);
         const toggle = page.getByRole('button', { name: 'Pause animations', exact: false });
@@ -64,6 +82,14 @@ try {
     console.log(`Checked all ${routes.length} routes at ${width}px.`);
   }
   assert.deepEqual(errors, [], 'No uncaught page errors');
+  for (const width of [900, 999, 1000, 1920]) {
+    await page.setViewportSize({ width, height: 1000 });
+    await open(page, '/project-kassena');
+    await checkKassenaLayout(page, width);
+  }
+  await page.getByRole('link', { name: 'Open the Kasem dictionary', exact: true }).click();
+  await page.waitForURL(origin + '/dictionary');
+  console.log('Project Kassena text, controls and illustration remain separate across mobile and desktop breakpoints.');
   await page.setViewportSize({ width: 1440, height: 1000 });
   await open(page, '/');
   const moving = await artwork(page); await page.waitForTimeout(240);

@@ -120,6 +120,9 @@
 .module-preview__button {
   margin-top: 18px;
 }
+.module-preview > .page-motion {
+  margin: 24px 0 0;
+}
 
 .roadmap {
   display: grid;
