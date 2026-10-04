@@ -1,6 +1,6 @@
 # Sharing handoff for Chinedum
 
-Use after deployment and the article's availability statement have been confirmed.
+Use after Chinedum publishes the article and confirms its availability statement.
 
 TribeStudio and the contributor and validator workspaces have a new shared map: clearer actions, easier draft recovery, contribution feedback and focused review. Existing records and permissions stay intact.
 
@@ -8,4 +8,4 @@ Read what changed: **[PUBLISHED ARTICLE URL — REPLACE AFTER BLOGGER PUBLICATIO
 
 Short version: A clearer home for creating, contributing and reviewing in Indigen World. **[PUBLISHED ARTICLE URL — REPLACE AFTER BLOGGER PUBLICATION]**
 
-Current status: repository implementation and local verification only; article unpublished.
+Current status: workspaces deployed 4 October 2026; live routes and release assets verified. Authenticated production and external-service outcomes remain unverified. Article unpublished.

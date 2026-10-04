@@ -1,6 +1,6 @@
 # Workspaces rebuilt around the work
 
-Status: **Implemented and verified locally. Not deployed; this article is unpublished. No community sharing performed.**
+Status: **Deployed to TribeStudio Hosting on 2026-10-04, with the three compatible review Functions updates. Live routes, release assets and anonymous authentication gates verified. This article is unpublished; no community sharing performed.**
 
 | Field | Value |
 |---|---|
@@ -25,14 +25,16 @@ Blogger: use Insert image → Upload from computer for each image. Replace each 
 
 ## Implementation and release evidence
 
-The preservation inventory and detailed verification record are in `docs/product/workspace-reconstruction-2026-10-03.md`. Builds, automated tests and browser checks are local evidence only. Publication must distinguish implemented changes from a confirmed live release. Existing authentication, role permissions, consent and financial services remain the source of truth. Optional review guards require their compatible Functions changes in a coordinated rollout; older clients remain compatible.
+The preservation inventory and detailed verification record are in `docs/product/workspace-reconstruction-2026-10-03.md`. Production source 934614410ccf9befde013dd52e5032cebbc36c78 was deployed to `hosting:tribestudio`; `decideSubmission`, `decideAdCampaign` and `decideKasemNameRequest` updated successfully from reconstruction source 8e063b4. Both tribestudio.indigenworld.com and tribestudio.web.app served the release index on creator, contributor, review and corpus routes, with no-cache headers. Nine entry assets matched the release bytes. All three anonymous review requests returned 401 UNAUTHENTICATED. Native-browser checks verified live sign-in screens, including the corrected desktop alignment and phone layout. The reconciled frontend passed 68 tests, typecheck and build; 71 backend regression tests and the Functions build also passed. Existing authentication, role permissions, consent and financial services remain the source of truth. Older clients remain compatible with the optional review guards.
+
+Signed-in production journeys, real microphone hardware, paid AI, handset SMS and bank/finance delivery were not exercised during this deployment. Local authenticated workflow checks and screenshots are separate evidence. The public website, dictionary, admin Hosting sites, security rules and indexes were not deployed.
 
 ## Publishing steps
 
-1. Complete the separately authorised deployment and verify the intended authenticated production journeys. Do not publish a live-availability claim from local evidence alone.
-2. Confirm configured-service checks for services being announced, and update the availability paragraph and this release status using actual release evidence.
+1. Verify any authenticated production journeys and configured external-service outcomes to be claimed in the announcement. Deployment and public entry checks are confirmed; private production flows remain unverified.
+2. Keep the availability paragraph and service limits accurate using the evidence above.
 3. Upload the included images, replace article image URLs and preview the HTML in Blogger.
 4. Set the title, labels, description and permalink above. Chinedum can publish the article.
 5. Replace the clearly marked article URL placeholder in share.md before sharing.
 
-No deployment, external publication or messages are authorised by this repository handoff.
+The owner separately authorised this deployment. Preparing this article does not authorise Blogger publication or sending messages; those remain with Chinedum.
