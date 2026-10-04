@@ -1199,6 +1199,10 @@ export const decideAdCampaign = onCall(
       const snap = await tx.get(campaignRef);
       if (!snap.exists) throw new HttpsError('not-found', 'Campaign not found.');
 
+      if ((data.expectedStatus != null && data.expectedStatus !== snap.get('status'))
+        || (data.expectedUpdatedAtMillis != null && data.expectedUpdatedAtMillis !== snap.get('updatedAt')?.toMillis?.())) {
+        throw new HttpsError('aborted', 'This advert changed. Load the latest version before deciding.');
+      }
       const previousStatus = String(snap.get('status') ?? 'DRAFT');
       if (!AD_DECISION_PRECONDITIONS[decision].has(previousStatus)) {
         throw new HttpsError(

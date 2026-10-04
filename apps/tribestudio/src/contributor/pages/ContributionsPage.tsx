@@ -49,9 +49,9 @@ export function ContributionsPage({ initialFilter }: { initialFilter: string }) 
     <div className="cw-page">
       <PageHeader
         kicker="My contributions"
-        title="Every word, a contribution."
+        title="My contributions"
         id="page-title"
-        description="Your words, drafts and reviewer feedback in one place."
+        description="Expression drafts, review decisions and corrections."
       />
       <div className="cw-toolbar cw-toolbar--split">
         <div className="cw-filters" role="group" aria-label="Filter contributions">

@@ -309,7 +309,7 @@ export function VoiceRecorder({ onAudioReady }: { onAudioReady: (file: File) => 
             disabled={starting}
             onClick={() => void startRecording()}
           >
-            {starting ? 'Opening microphone…' : '🔴 Start Recording'}
+            {starting ? 'Opening microphone…' : 'Record audio'}
           </button>
         ) : (
           <button
@@ -317,7 +317,7 @@ export function VoiceRecorder({ onAudioReady }: { onAudioReady: (file: File) => 
             className="button button--danger button--small stop-btn"
             onClick={stopRecording}
           >
-            ⏹ Stop Recording ({formatTime(seconds)})
+            Stop recording ({formatTime(seconds)})
           </button>
         )}
         {recording && <span className="recording-pulse">Recording live audio…</span>}

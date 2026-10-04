@@ -29,7 +29,7 @@ export function GuidePage({ section }: { section: string }) {
     <div className="cw-page">
       <PageHeader
         kicker="Platform guide"
-        title="A little guidance. A great start."
+        title="Help & guide"
         id="page-title"
         description="Find what you need, then get back to creating."
       />

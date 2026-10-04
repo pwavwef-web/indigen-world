@@ -31,7 +31,7 @@ import {
   type Work,
 } from '../model';
 import { GUIDE } from '../guide';
-import { artwork } from '../artwork';
+import { ProcessGuide } from '../../interface/WorkspaceFrame';
 import { PortalLink, paymentsNeedAttention, useShared, useWorkspace } from '../workspace';
 
 /**
@@ -89,21 +89,14 @@ export function OverviewPage() {
 
   return (
     <div className="cw-page cw-page--home">
-      <PageHeader kicker="YOUR WORDS MAKE A WORLD" title={name ? `Welcome back, ${name}.` : 'Welcome back.'} id="page-title"
+      <PageHeader kicker="Contributor overview" title={name ? `Your work, ${name}` : 'Your work'} id="page-title"
         actions={<><HomeStreak />{!data.preview && canValidate(role) ? <PortalLink to="/contributor/review" className="button--primary"><Icon name="shield" />Open review desk</PortalLink> : null}</>} />
 
-      <section className="cw-welcome" aria-labelledby="welcome-title">
-        <img className="cw-welcome__art" src={artwork.languageStudio} alt="" width="1536" height="1024" fetchPriority="high" />
-        <div className="cw-welcome__copy">
-          <span className="cw-welcome__eyebrow"><span aria-hidden="true">✦</span> EVERY EXPRESSION MATTERS</span>
-          <h2 id="welcome-title">Your words.<br />Our living heritage.</h2>
-          <p>A little of your time. A lasting place for Kasem.</p>
-          <PortalLink to={work ? data.paths.work(work.id, next?.id) : data.paths.section('guide')} className="cw-welcome__button">
-            {work ? next ? 'Continue my work' : 'View my assignment' : 'Explore the guide'}<Icon name="arrow" />
-          </PortalLink>
-        </div>
-        <span className="cw-welcome__caption">LANGUAGE CONNECTS US.</span>
-      </section>
+      <ProcessGuide label="Contribution journey" steps={[
+        { title: 'Translate', detail: 'Open an assignment and save a draft', icon: 'translation' },
+        { title: 'Review & send', detail: 'Check context and permissions', icon: 'check' },
+        { title: 'Follow feedback', detail: 'Track decisions and revise if asked', icon: 'activity' },
+      ]} />
 
       <section className="cw-impact" aria-label="Your contributions across all assignments">
         {loading ? <Skeleton lines={2} label="Counting your contributions" /> : <MetricTiles metrics={metrics} />}
@@ -179,8 +172,6 @@ export function OverviewPage() {
         <div className="cw-side-stack">
           <PulsePanel pulse={data.pulse} onPrivacy={() => navigate(data.paths.account('notifications'))} />
           <Card title="Kawuri Intelligence" labelledBy="kawuri-entry" className="cw-kawuri-entry">
-            <img className="cw-kawuri-entry__art" src={artwork.livingKnowledge} alt="" width="1536" height="1024" loading="lazy" />
-            <p>A fresh perspective when you need one.</p>
             <p className="cw-muted">Help with English meaning and context. Your Kasem stays yours.</p>
             <button type="button" onClick={() => navigate(data.paths.section('kawuri', work ? { work: work.id, ...(next ? { item: next.id } : {}) } : undefined))}><Icon name="kawuri" />Ask Kawuri</button>
           </Card>

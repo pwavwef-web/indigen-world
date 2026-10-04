@@ -1,3 +1,4 @@
+import { Icon } from '../../interface/icons';
 import type { ReactNode } from 'react';
 import type { MusicTrack, Sticker } from './api';
 import { ENTRANCES, EXITS, LOOKS } from './looks';
@@ -298,7 +299,7 @@ export function Inspector({ editor, stickers, tracks, onReplace }: { editor: Edi
   }
   return (
     <aside className="ve-inspector" aria-label="Inspector">
-      <div className="ve-inspector__head"><div><span>Inspector</span><strong>{title}</strong></div><button type="button" aria-label="Close the inspector" onClick={() => editor.select(null)}>×</button></div>
+      <div className="ve-inspector__head"><div><span>Inspector</span><strong>{title}</strong></div><button type="button" aria-label="Close the inspector" onClick={() => editor.select(null)}><Icon name="close" /></button></div>
       {body}
     </aside>
   );

@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
+import { getDownloadURL, ref } from 'firebase/storage';
+import { storage } from '../../firebase';
 import type { Submission } from '@indigen-world/contracts/creator-models';
 import { Link, matchRoute, useRoute } from '../../router';
 import { trackEvent } from '../../analytics';
 import {
   canWithdrawSubmission,
-  fetchSubmission,
+  watchSubmission,
   withdrawSubmission,
 } from '../data';
 import { LoadError, Skeleton, StatusPill, SUBMISSION_STATUS_LABELS, useReloadable } from '../components';
@@ -18,16 +20,23 @@ export function SubmissionDetailPage() {
   const [confirmingWithdraw, setConfirmingWithdraw] = useState(false);
   const [withdrawing, setWithdrawing] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [mediaUrl, setMediaUrl] = useState('');
+  const [mediaError, setMediaError] = useState(false);
+  const [mediaRetry, setMediaRetry] = useState(0);
+  useEffect(() => {
+    let active = true;
+    setMediaUrl(''); setMediaError(false);
+    if (sub?.media?.storagePath) void getDownloadURL(ref(storage, sub.media.storagePath))
+      .then(url => { if (active) setMediaUrl(url); })
+      .catch(() => { if (active) setMediaError(true); });
+    return () => { active = false; };
+  }, [sub?.media?.storagePath, mediaRetry]);
 
   useEffect(() => {
     if (!id) return;
-    let active = true;
     setFailed(false);
     setLoading(true);
-    void fetchSubmission(id)
-      .then((s) => { if (!active) return; setSub(s); setLoading(false); })
-      .catch(() => { if (active) { setFailed(true); setLoading(false); } });
-    return () => { active = false; };
+    return watchSubmission(id, value => { setSub(value); setLoading(false); }, () => { setFailed(true); setLoading(false); });
   }, [id, reloadKey, setFailed]);
 
   const withdraw = async () => {
@@ -54,7 +63,7 @@ export function SubmissionDetailPage() {
 
   return (
     <div className="page">
-      <p className="breadcrumb"><Link to="/studio/submissions">Submissions</Link> / {sub.title || 'Untitled'}</p>
+      <p className="breadcrumb"><Link to="/studio/submissions">Content library</Link> / {sub.title || 'Untitled'}</p>
       <header className="page__head">
         <div><h1>{sub.title || 'Untitled'}</h1><p className="muted">{sub.category}</p></div>
         <div className="page__head-actions">
@@ -85,6 +94,9 @@ export function SubmissionDetailPage() {
 
       <div className="cols">
         <div>
+          {sub.media?.storagePath ? <section className="panel"><h2>Source material</h2><div className="submission-preview">
+            {mediaError ? <p role="alert">The attachment could not be loaded. <button type="button" onClick={() => setMediaRetry(value => value + 1)}>Retry preview</button></p> : !mediaUrl ? <p role="status">Loading attachment…</p> : sub.media.mediaType === 'image' ? <img src={mediaUrl} alt={sub.altText || sub.title || 'Submitted image'} /> : sub.media.mediaType === 'audio' ? <audio controls aria-label="Submitted recording" src={mediaUrl} /> : sub.media.mediaType === 'video' ? <video controls playsInline aria-label="Submitted video" src={mediaUrl} /> : <a href={mediaUrl} target="_blank" rel="noreferrer">Open attached document</a>}
+          </div>{sub.caption ? <p className="muted">{sub.caption}</p> : null}</section> : null}
           <section className="panel"><h2>Description</h2><p>{sub.description || '—'}</p></section>
           {sub.body ? <section className="panel"><h2>Body</h2><p className="preserve-lines">{sub.body}</p></section> : null}
           {sub.translation?.sourceContent || sub.translation?.translatedContent ? (

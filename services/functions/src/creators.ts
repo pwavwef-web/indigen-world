@@ -701,6 +701,12 @@ export const decideSubmission = onCall(
         throw new HttpsError('not-found', 'Submission not found.');
       }
       const submission = snap.data() as Record<string, any>;
+      // Optional read guards bind a new review UI to the evidence it displayed.
+      // Older clients retain their existing transactional status preconditions.
+      if ((data.expectedStatus != null && data.expectedStatus !== submission.status)
+        || (data.expectedVersion != null && data.expectedVersion !== submission.lifecycle?.version)) {
+        throw new HttpsError('aborted', 'This submission changed. Load the latest version before deciding.');
+      }
       const collectionKind = collectionKindForSubmission(submission);
       const contributionPointer = submission.collectionContribution;
       let contributionId = '';

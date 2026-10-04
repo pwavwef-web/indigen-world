@@ -180,3 +180,18 @@ test('the preview\'s entrances and exits are the renderer\'s', { skip: !renderer
     }
   }
 });
+
+
+test('failed-save recovery is account and project scoped, preserves edits, and rejects malformed copies', async () => {
+  const storage = new Map();
+  const window = { localStorage:{ getItem:key=>storage.get(key) || null, setItem:(key,value)=>storage.set(key,value), removeItem:key=>storage.delete(key) } };
+  const { readEditorRecovery, writeEditorRecovery, clearEditorRecovery } = await load('src/creator/editor/recovery.ts',['readEditorRecovery','writeEditorRecovery','clearEditorRecovery'],{ window,normaliseProject:model.normaliseProject,Date });
+  const project = model.newProject('Local recovered film','16:9','blank');
+  assert.equal(writeEditorRecovery('alice','film',project,3),true);
+  const recovered = readEditorRecovery('alice','film');
+  assert.equal(recovered.project.title,project.title); assert.equal(recovered.revision,3);
+  assert.equal(readEditorRecovery('bob','film'),null); assert.equal(readEditorRecovery('alice','other-film'),null);
+  storage.set('tribestudio:video-recovery:alice:film','{"uid":"alice","id":"film","revision":3,"project":{"title":"bad"}}');
+  assert.equal(readEditorRecovery('alice','film'),null);
+  writeEditorRecovery('alice','film',project,3); clearEditorRecovery('alice','film'); assert.equal(readEditorRecovery('alice','film'),null);
+});

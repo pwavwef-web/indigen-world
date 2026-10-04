@@ -161,6 +161,24 @@ test('content is not public before approval, and publishing is idempotent', asyn
   assert.equal((await db.doc('submissions/sub-e2e').get()).get('status'), 'APPROVED');
 });
 
+test('a decision based on stale displayed evidence aborts without changing the submission', async () => {
+  const submissionId = 'stale-review-e2e';
+  await db.doc(`submissions/${submissionId}`).set({
+    id: submissionId, authUid: 'other-creator', campaign: { collection: 'campaigns', id: CAMPAIGN },
+    creator: { collection: 'creatorProfiles', id: 'other-creator' }, status: 'SUBMITTED', title: 'Revised evidence',
+    disclosures: { involvesMinors: false, usesThirdPartyMaterial: false },
+    permissions: { review: true, publication: true, promotion: false, aiTraining: false },
+    lifecycle: { ...life(), version: 2 },
+  });
+  for (const expected of [{ expectedStatus: 'SUBMITTED', expectedVersion: 1 }, { expectedStatus: 'RESUBMITTED', expectedVersion: 2 }]) {
+    await assert.rejects(call(validatorApp, 'decideSubmission')({ submissionId, decision: 'APPROVE', feedback: '', ...expected }), error => error?.code === 'functions/aborted');
+    assert.equal((await db.doc(`submissions/${submissionId}`).get()).get('status'), 'SUBMITTED');
+    assert.equal((await db.doc(`publishedContent/pub_${submissionId}`).get()).exists, false);
+  }
+  await call(validatorApp, 'decideSubmission')({ submissionId, decision: 'REQUEST_REVISION', feedback: 'Please clarify the source.', expectedStatus: 'SUBMITTED', expectedVersion: 2 });
+  assert.equal((await db.doc(`submissions/${submissionId}`).get()).get('status'), 'NEEDS_REVISION');
+});
+
 test('collection submission rejects missing governance answers', async () => {
   await assert.rejects(
     call(creatorApp, 'submitCollectionContribution')({

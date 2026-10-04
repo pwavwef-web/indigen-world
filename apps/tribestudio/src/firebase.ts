@@ -10,11 +10,12 @@ import { initializeAppCheck, ReCaptchaEnterpriseProvider } from 'firebase/app-ch
 // tribestudio), inside the shared project-kassena-7e026 project. These values are
 // public web-app identifiers, not secrets — privileged actions are enforced by
 // Security Rules and Functions, never the client.
+const usingEmulators = import.meta.env.VITE_USE_EMULATORS === 'true';
 export const firebaseConfig = {
   apiKey: 'AIzaSyDe9TAz3pl0tiNqpIZZ0EQxmPEgMtf6kRA',
   authDomain: 'project-kassena-7e026.firebaseapp.com',
-  projectId: 'project-kassena-7e026',
-  storageBucket: 'project-kassena-7e026.firebasestorage.app',
+  projectId: usingEmulators ? 'demo-indigen-world' : 'project-kassena-7e026',
+  storageBucket: usingEmulators ? 'demo-indigen-world.appspot.com' : 'project-kassena-7e026.firebasestorage.app',
   messagingSenderId: '111428711822',
   appId: '1:111428711822:web:eddc5b73a667f17329a0df',
   measurementId: 'G-EMK17K5HS7',
@@ -25,7 +26,6 @@ export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const functions = getFunctions(app);
 export const storage = getStorage(app);
-const usingEmulators = import.meta.env.VITE_USE_EMULATORS === 'true';
 
 // Callable Functions enforce App Check outside the emulator. Configure a
 // reCAPTCHA Enterprise web key in the deployment environment; the key is a

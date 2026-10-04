@@ -27,6 +27,7 @@ async function load(path, names, mocks = {}) {
   }
   const { code } = await transformWithOxc(readFileSync(resolve(root, path), 'utf8'), path, { jsx: { runtime: 'classic' } });
   const executable = code.replace(/^import[\s\S]*?;\n/gm, '').replace(/\bexport (?=(?:async )?function|const|let|class)/g, '');
+  mocks = { Icon: 'Icon', ProcessGuide: 'ProcessGuide', WorkspaceDialog: 'WorkspaceDialog', ...mocks };
   return runInNewContext(executable + '\n;({' + names.join(',') + '})', { URL, URLSearchParams, Blob, File, Event, console, ...mocks });
 }
 
@@ -86,6 +87,80 @@ const input = {
   permissions: { review: true, publication: true, promotion: false, aiTraining: false }, consentVersion: 'test',
 };
 const plain = (value) => JSON.parse(JSON.stringify(value));
+
+test('creator account read failure blocks entry and an explicit retry restores the workspace', async () => {
+  const h = hooks(), user = {uid:'creator',email:'creator@example.test'};
+  let disconnected = true, profileWrites = 0;
+  const { ApplicationStatusGate } = await load('src/creator/CreatorAccess.tsx', ['ApplicationStatusGate'], {
+    ...h.api, WorkspaceEntry:'WorkspaceEntry',FullPageLoader:'FullPageLoader',StatusPill:'StatusPill',WhatsAppCard:'WhatsAppCard',
+    useAuth: () => ({user,creatorStatus:'approved',refreshToken:async () => {}}), useConfig: () => ({whatsappUrl:''}),
+    fetchMyMembership: async () => { if (disconnected) throw new Error('Network unavailable'); return {status:'approved'}; },
+    fetchMyApplications: async () => [], fetchMyProfile: async () => ({status:'approved'}),
+    ensureCreatorProfile: async () => { profileWrites += 1; }, signOutUser() {},
+  });
+  const render = () => h.render(ApplicationStatusGate,{children:'PRIVATE WORKSPACE'});
+  assert.equal(render().type,'FullPageLoader'); h.flush(); await tick();
+  let tree = render(); h.flush();
+  assert.match(JSON.stringify(tree),/Could not check creator access/);
+  assert.ok(!JSON.stringify(tree).includes('PRIVATE WORKSPACE'));
+  assert.equal(profileWrites,0,'failed access reads cannot mint a profile');
+  disconnected = false;
+  find(tree,n => n.type === 'button' && n.props.children.includes('Try again')).props.onClick();
+  render(); h.flush(); await tick();
+  tree = render(); h.flush();
+  assert.match(JSON.stringify(tree),/PRIVATE WORKSPACE/);
+  assert.equal(profileWrites,0);
+  h.dispose();
+});
+
+async function videoEditorHarness(saveProject) {
+  const h = hooks(), storage = new Map(), timers = new Map(); let timerId = 0;
+  const window = { localStorage: { getItem: key => storage.get(key) ?? null, setItem: (key,value) => storage.set(key,value), removeItem: key => storage.delete(key) },
+    setTimeout: fn => { timers.set(++timerId,fn); return timerId; }, clearTimeout: id => timers.delete(id), addEventListener() {}, removeEventListener() {} };
+  const model = await load('src/creator/editor/model.ts', ['newProject','normaliseProject','totalDuration'], { crypto:globalThis.crypto,Math });
+  const recovery = await load('src/creator/editor/recovery.ts', ['readEditorRecovery','writeEditorRecovery','clearEditorRecovery'], { window,Date,JSON,...model });
+  const { useEditor } = await load('src/creator/editor/useEditor.ts', ['useEditor'], { ...h.api,...model,...recovery,window,
+    useAuth: () => ({ user:{uid:'editor-owner'} }), loadProject: async () => ({ project:model.newProject('Saved project','9:16','blank'),revision:1,consent:null,plan:null }),
+    subscribeLastRender: () => () => {}, subscribeMedia: (_id,change) => { change([]); return () => {}; }, saveProject });
+  const render = () => h.render(() => useEditor('film'));
+  render(); h.flush(); await tick(); render(); h.flush(); await tick();
+  return { render,recovery,h,runTimers: async () => { const pending = [...timers.values()]; timers.clear(); pending.forEach(fn => fn()); await tick(); } };
+}
+
+test('video recovery retains redo and automatic edits after a save failure', async () => {
+  const editor = await videoEditorHarness(async () => { throw new Error('Connection lost'); });
+  editor.render().commit(project => ({ ...project,title:'Edited project' }));
+  editor.render().undo();
+  assert.equal(editor.recovery.readEditorRecovery('editor-owner','film').project.title,'Saved project');
+  editor.render().redo();
+  assert.equal(editor.recovery.readEditorRecovery('editor-owner','film').project.title,'Edited project');
+  editor.render().apply(project => ({ ...project,title:'Completed media edit' }));
+  await editor.render().retrySave();
+  assert.equal(editor.render().saveState,'error');
+  assert.equal(editor.recovery.readEditorRecovery('editor-owner','film').project.title,'Completed media edit');
+  assert.equal(editor.recovery.readEditorRecovery('another-owner','film'),null);
+  editor.h.dispose();
+});
+
+test('video saves serialize and retain edits made while the first save is running', async () => {
+  const writes = []; let completeFirst;
+  const editor = await videoEditorHarness(async (id,project,revision) => {
+    writes.push({ id,title:project.title,revision });
+    if (writes.length === 1) await new Promise(resolve => { completeFirst = resolve; });
+  });
+  editor.render().commit(project => ({ ...project,title:'First edit' }));
+  const firstSave = editor.render().retrySave();
+  editor.render().commit(project => ({ ...project,title:'Newer edit' }));
+  await editor.render().retrySave();
+  assert.equal(writes.length,1,'a second write cannot overlap the first');
+  completeFirst(); await firstSave;
+  assert.equal(editor.recovery.readEditorRecovery('editor-owner','film').project.title,'Newer edit');
+  await editor.runTimers();
+  assert.deepEqual(writes,[{id:'film',title:'First edit',revision:2},{id:'film',title:'Newer edit',revision:3}]);
+  assert.equal(editor.render().saveState,'saved');
+  assert.equal(editor.recovery.readEditorRecovery('editor-owner','film'),null);
+  editor.h.dispose();
+});
 
 test('text and link-only submissions omit media; saved media and metadata survive edits', async () => {
   const { buildSubmission } = await load('src/creator/data.ts', ['buildSubmission']);
@@ -882,7 +957,7 @@ const EXPRESSION_DATA_EXPORTS = ['EVERYDAY_STATEMENT', 'EXPRESSION_DIALECTS', 'E
 async function expressionPage({ receipts = [] } = {}) {
   const h = hooks(), calls = [];
   const window = {
-    setTimeout: () => 0, clearTimeout() {}, requestAnimationFrame: () => 0,
+    setTimeout: () => 0, clearTimeout() {}, requestAnimationFrame: () => 0, addEventListener() {}, removeEventListener() {},
     localStorage: { getItem: () => null, setItem() {}, removeItem() {} },
   };
   const data = await load('src/creator/expressions-data.ts', EXPRESSION_DATA_EXPORTS, {
@@ -929,7 +1004,10 @@ test('the expression form sends nothing until the five pieces are there, then se
   assert.equal(page.calls.length, 0, 'an incomplete expression is never sent');
 
   tree = fillExpression(page, tree);
-  form().props.onSubmit({ preventDefault() {} }); await tick(); await tick();
+  form().props.onSubmit({ preventDefault() {} }); await tick();
+  assert.equal(page.calls.length, 0, 'reviewing does not submit');
+  tree = page.render();
+  find(tree, (n) => n.type === 'button' && JSON.stringify(n.props.children).includes('Confirm and send')).props.onClick(); await tick(); await tick();
   assert.equal(page.calls.length, 1);
   const { name, payload } = page.calls[0];
   assert.equal(name, 'submitExpression');
@@ -975,7 +1053,10 @@ test('each expression shows where its review stands, and a declined one can be c
   find(labelled(tree, 'nothing sacred'), (n) => n.type === 'input').props.onChange({ target: { checked: true } });
   find(labelled(tree, 'Publish it after review'), (n) => n.type === 'input').props.onChange();
   tree = page.render();
-  find(tree, (n) => n.type === 'form').props.onSubmit({ preventDefault() {} }); await tick(); await tick();
+  find(tree, (n) => n.type === 'form').props.onSubmit({ preventDefault() {} }); await tick();
+  assert.equal(page.calls.length, 0, 'corrections are reviewed before sending');
+  tree = page.render();
+  find(tree, (n) => n.type === 'button' && JSON.stringify(n.props.children).includes('Confirm and send')).props.onClick(); await tick(); await tick();
   assert.equal(page.calls.length, 1);
   assert.equal(page.calls[0].payload.revisionOf, 'old-1');
   assert.equal(page.calls[0].payload.dialect, 'Paga');

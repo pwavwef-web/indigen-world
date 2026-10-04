@@ -25,15 +25,16 @@ export function targetProblem(target: string, item: ReviewRecord): string | null
 export function decisionRequest(desk: Desk, item: ReviewRecord, decision: string, feedback: string, target: string, entryId: string) {
   if (!decisionsFor(desk, item).includes(decision)) throw new Error('This action is unavailable for the current status.');
   if (['REJECT', 'REQUEST_REVISION', 'reject'].includes(decision) && feedback.trim().length < 5) throw new Error('Explain the reason in at least 5 characters.');
-  if (desk === 'names') return { callable: 'decideKasemNameRequest', data: { requestId: item.id, decision, note: feedback.trim() } };
-  if (desk === 'adverts') return { callable: 'decideAdCampaign', data: { campaignId: item.id, decision, feedback: feedback.trim() } };
+  const expected = { expectedStatus: item.status, ...(item.lifecycle?.version != null ? { expectedVersion: item.lifecycle.version } : {}), ...(item.updatedAt?.toMillis ? { expectedUpdatedAtMillis: item.updatedAt.toMillis() } : {}) };
+  if (desk === 'names') return { callable: 'decideKasemNameRequest', data: { ...expected, requestId: item.id, decision, note: feedback.trim() } };
+  if (desk === 'adverts') return { callable: 'decideAdCampaign', data: { ...expected, campaignId: item.id, decision, feedback: feedback.trim() } };
   const dictionary = item.collectionKind?.toLowerCase() === 'dictionary';
   if (dictionary && ['APPROVE', 'PUBLISH'].includes(decision)) {
     const problem = targetProblem(target, item);
     if (problem) throw new Error(problem);
     if (['variant', 'example'].includes(target) && !entryId.trim()) throw new Error('Choose the existing dictionary entry this refers to.');
   }
-  return { callable: 'decideSubmission', data: { submissionId: item.id, decision, feedback: feedback.trim(), ...(dictionary && ['APPROVE', 'PUBLISH'].includes(decision) ? { publishAs: target, entryId: entryId.trim() } : {}) } };
+  return { callable: 'decideSubmission', data: { ...expected, submissionId: item.id, decision, feedback: feedback.trim(), ...(dictionary && ['APPROVE', 'PUBLISH'].includes(decision) ? { publishAs: target, entryId: entryId.trim() } : {}) } };
 }
 export const DIMENSIONS: Record<string, Record<string, string>> = {
   meaning: { 'cannot-judge': 'Cannot judge', faithful: 'Faithful', partial: 'Part missing', different: 'Different meaning' },

@@ -1,9 +1,10 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type MouseEvent, type ReactNode } from 'react';
+import { useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useRoute } from '../router';
 import { canValidate, useAuth } from '../auth';
-import { BrandMark, Icon, cx, type IconName } from './components';
-import { friendlyError, initials, itemStatus, metricsFor, type FriendlyError } from './model';
+import { cx, type IconName } from './components';
+import { friendlyError, itemStatus, metricsFor, type FriendlyError } from './model';
 import type { AccountTab, PaymentsView, Section, SelfView, WorkspaceData } from './types';
+import { WorkspaceFrame, type WorkspaceDestination } from '../interface/WorkspaceFrame';
 import { NotificationCentre } from './notifications';
 import { OverviewPage } from './pages/OverviewPage';
 import { AssignmentsPage } from './pages/AssignmentsPage';
@@ -33,7 +34,7 @@ import { RewardsPage } from './rewards';
  *   /contributor/account[/{tab}]         Account & settings
  */
 
-export const WorkspaceContext = createContext<WorkspaceData | null>(null);
+import { WorkspaceContext, SharedContext } from './context';
 
 export function useWorkspace(): WorkspaceData {
   const value = useContext(WorkspaceContext);
@@ -105,7 +106,6 @@ export const NAV: NavItem[] = [
   { section: 'account', label: 'Account & settings', short: 'Account', icon: 'account' },
 ];
 
-const MOBILE_PRIMARY: Section[] = ['overview', 'assignments', 'contributions', 'activity'];
 
 // ---------------------------------------------------------------------------
 // Shared slow reads
@@ -150,7 +150,7 @@ function useResource<T>(load: () => Promise<T>, what: string): Resource<T> {
   return { value, state, error, refresh, set };
 }
 
-interface ShellShared {
+export interface ShellShared {
   self: Resource<SelfView>;
   payments: Resource<PaymentsView>;
   navigateTo: (to: string) => void;
@@ -158,7 +158,7 @@ interface ShellShared {
   setEditing: (editing: boolean) => void;
 }
 
-const SharedContext = createContext<ShellShared | null>(null);
+
 
 export function useShared(): ShellShared {
   const value = useContext(SharedContext);
@@ -181,131 +181,29 @@ export function paymentsNeedAttention(payments: PaymentsView | null): boolean {
 export function WorkspaceShell({ banner }: { banner?: ReactNode }) {
   const data = useWorkspace();
   const { role } = useAuth();
-  const reviewLink = (variant: 'side' | 'sheet') => !data.preview && canValidate(role) ? <PortalLink to="/contributor/review" className={`cw-nav__link cw-nav__link--${variant}`} ariaLabel="Review desk"><Icon name="shield" /><span className="cw-nav__label">Review desk</span></PortalLink> : null;
   const { path, search, navigate } = useRoute();
   const route = useMemo(() => parsePortalRoute(path, search, data.paths.base, data.preview), [path, search, data.paths.base, data.preview]);
   const self = useResource(data.services.loadSelf, 'Your profile');
   const payments = useResource(data.services.loadPayments, 'Payment settings');
-  const moreDialog = useRef<HTMLDialogElement>(null);
   const [editing, setEditing] = useState(false);
-
-  const allItems = useMemo(() => Object.values(data.items).flat(), [data.items]);
-  const returned = useMemo(() => metricsFor(allItems).returned, [allItems]);
-  const openAssignments = useMemo(() => data.works.filter((work) => (data.items[work.id] ?? [])
-    .some((item) => ['not_started', 'draft', 'unsure'].includes(itemStatus(item)))).length, [data.items, data.works]);
-  const paymentAttention = paymentsNeedAttention(payments.value);
-  const displayName = self.value?.profile.displayName || data.displayName || data.email;
-
+  const returned = metricsFor(Object.values(data.items).flat()).returned;
+  const openAssignments = data.works.filter(work => (data.items[work.id] ?? []).some(item => ['not_started', 'draft', 'unsure'].includes(itemStatus(item)))).length;
   const shared = useMemo<ShellShared>(() => ({ self, payments, navigateTo: navigate, setEditing }), [self, payments, navigate]);
-  const hrefFor = (section: Section) => (section === 'account' ? data.paths.account('profile') : data.paths.section(section));
-  const go = (section: Section) => (event: MouseEvent<HTMLAnchorElement>) => {
-    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
-    event.preventDefault();
-    moreDialog.current?.close();
-    navigate(hrefFor(section));
-  };
-  const badge = (section: Section): { text: string; tone: 'warning' | 'info' | 'danger'; label: string } | null => {
-    if (section === 'contributions' && returned) return { text: String(returned), tone: 'warning', label: `${returned} returned for revision` };
-    if (section === 'assignments' && openAssignments) return { text: String(openAssignments), tone: 'info', label: `${openAssignments} with work remaining` };
-    if (section === 'account' && paymentAttention) return { text: '!', tone: 'danger', label: 'payment details need attention' };
-    return null;
-  };
-  const current = NAV.find((item) => item.section === route.section) ?? NAV[0];
-
-  useEffect(() => { document.title = `${current.label} · Contributor workspace`; }, [current.label]);
-
-  const link = (item: NavItem, variant: 'side' | 'bottom' | 'sheet') => {
-    const active = item.section === route.section;
-    const count = badge(item.section);
-    return (
-      <a
-        key={item.section}
-        href={hrefFor(item.section)}
-        onClick={go(item.section)}
-        className={cx(`cw-nav__link cw-nav__link--${variant}`, active && 'is-active')}
-        aria-label={item.label + (count ? `, ${count.label}` : '')}
-        title={item.label}
-        aria-current={active ? 'page' : undefined}
-      >
-        <Icon name={item.icon} />
-        <span className="cw-nav__label">{variant === 'bottom' ? item.short : item.label}</span>
-        {count ? <span className={cx('cw-nav__badge', `cw-nav__badge--${count.tone}`)}><span aria-hidden="true">{count.text}</span><span className="cw-sr">{count.label}</span></span> : null}
-      </a>
-    );
-  };
-
-  return (
-    <SharedContext.Provider value={shared}>
-      <div className={cx('cw iwx', editing && 'is-editing')}>
-        <a href="#main-content" className="cw-skip">Skip to content</a>
-        <aside className="cw-side" aria-label="Contributor workspace">
-          <div className="cw-brand">
-            <BrandMark />
-            <span className="cw-brand__copy"><strong>TribeStudio<span className="cw-brand__period">.</span></strong><small>THE CONTRIBUTOR SPACE</small></span>
-          </div>
-          <p className="cw-nav-caption">Your workspace</p>
-          <nav className="cw-nav" aria-label="Workspace sections">
-            {NAV.map((item) => link(item, 'side'))}
-            <PortalLink to="/contributor/corpus" className="cw-nav__link cw-nav__link--side"><Icon name="contributions" /><span>Contribute to the corpus</span></PortalLink>{reviewLink('side')}
-          </nav>
-          <PortalLink to={data.paths.section('guide', { section: 'good-contribution' })} className="cw-side-story">
-            <Icon name="spark" />
-            <strong>A living language.<br />A shared future.</strong>
-            <span>Make every expression count <Icon name="arrow" /></span>
-          </PortalLink>
-          <div className="cw-side__footer">
-            <span className="cw-avatar" aria-hidden="true">
-              {self.value?.profile.photoUrl ? <img src={self.value.profile.photoUrl} alt="" /> : initials(displayName)}
-            </span>
-            <span className="cw-side__who"><strong>{displayName}</strong><small>{data.email}</small></span>
-            <button type="button" className="cw-icon-button" onClick={() => void data.services.signOut()} aria-label="Sign out" title="Sign out"><Icon name="logout" /></button>
-          </div>
-        </aside>
-
-        <header className="cw-topbar">
-          <div className="cw-topbar__brand"><BrandMark /><span>{current.label}</span></div>
-          <a href={data.paths.account('profile')} onClick={go('account')} className="cw-topbar__account" aria-label={`Account and settings${paymentAttention ? ', payment details need attention' : ''}`}>
-            <span className="cw-avatar cw-avatar--small" aria-hidden="true">
-              {self.value?.profile.photoUrl ? <img src={self.value.profile.photoUrl} alt="" /> : initials(displayName)}
-            </span>
-            {paymentAttention ? <span className="cw-topbar__dot" aria-hidden="true" /> : null}
-          </a>
-        </header>
-
-        <div className="cw-main">
-          {banner}
-          <div className="cw-desktop-bar">
-            <span>CONTRIBUTOR SPACE <span aria-hidden="true">/</span> <strong>{current.label}</strong></span>
-            <PortalLink to={data.paths.section('guide')} className="cw-desktop-help"><Icon name="help" />Help & guidance</PortalLink>
-          </div>
-          <main id="main-content" tabIndex={-1} className="cw-content">
-            <NotificationCentre />
-            {route.notFound ? <NotFound /> : <PageFor key={`${data.uid}:${route.section}`} route={route} />}
-          </main>
-        </div>
-
-        <nav className="cw-bottom" aria-label="Workspace sections">
-          {NAV.filter((item) => MOBILE_PRIMARY.includes(item.section)).map((item) => link(item, 'bottom'))}
-          <button type="button" className={cx('cw-nav__link cw-nav__link--bottom', !MOBILE_PRIMARY.includes(route.section) && 'is-active')} onClick={() => moreDialog.current?.showModal()} aria-haspopup="dialog">
-            <Icon name="more" />
-            <span className="cw-nav__label">More</span>
-            {paymentAttention ? <span className="cw-nav__badge cw-nav__badge--danger"><span aria-hidden="true">!</span><span className="cw-sr">payment details need attention</span></span> : null}
-          </button>
-        </nav>
-        <dialog ref={moreDialog} className="cw-sheet" aria-label="More sections">
-          <div className="cw-sheet__head">
-            <strong>More</strong>
-            <button type="button" className="cw-icon-button" onClick={() => moreDialog.current?.close()} aria-label="Close"><Icon name="close" /></button>
-          </div>
-          <nav className="cw-sheet__nav" aria-label="More sections">
-            {NAV.filter((item) => !MOBILE_PRIMARY.includes(item.section)).map((item) => link(item, 'sheet'))}
-            <PortalLink to="/contributor/corpus" className="cw-nav__link cw-nav__link--sheet">Contribute to the corpus</PortalLink>{reviewLink('sheet')}
-          </nav>
-          <button type="button" className="cw-sheet__signout" onClick={() => void data.services.signOut()}><Icon name="logout" />Sign out</button>
-        </dialog>
-      </div>
-    </SharedContext.Provider>
-  );
+  const destinations: WorkspaceDestination[] = NAV.map(item => ({
+    to: item.section === 'account' ? data.paths.account('profile') : data.paths.section(item.section),
+    label: item.section === 'overview' ? 'Overview' : item.section === 'assignments' ? 'Assignments' : item.label,
+    icon: item.icon,
+    group: ['overview','assignments','contributions','activity'].includes(item.section) ? 'Your work' : ['guide','kawuri'].includes(item.section) ? 'Resources' : 'Account',
+    active: item.section === route.section,
+    badge: item.section === 'contributions' && returned ? returned : item.section === 'assignments' && openAssignments ? openAssignments : item.section === 'account' && paymentsNeedAttention(payments.value) ? '!' : undefined,
+  }));
+  if (!data.preview) destinations.push({ to: '/contributor/corpus',label:'Corpus workspace',icon:'guide',group:'Your work' });
+  if (!data.preview && canValidate(role)) destinations.push({ to: '/contributor/review', label: 'Review workspace', icon: 'shield', group: 'Resources' });
+  return <SharedContext.Provider value={shared}>
+    <WorkspaceFrame identity="Contribute" destinations={destinations} account={self.value?.profile.displayName || data.displayName || data.email} photo={self.value?.profile.photoUrl} onSignOut={() => void data.services.signOut()} banner={banner}>
+      <div className={cx('cw iwx', editing && 'is-editing')}><div className="cw-content"><NotificationCentre />{route.notFound ? <NotFound /> : <PageFor key={`${data.uid}:${route.section}`} route={route} />}</div></div>
+    </WorkspaceFrame>
+  </SharedContext.Provider>;
 }
 
 function PageFor({ route }: { route: PortalRoute }) {

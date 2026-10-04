@@ -5,6 +5,7 @@ import {
   getDocs,
   limit,
   orderBy,
+  onSnapshot,
   query,
   setDoc,
   updateDoc,
@@ -244,6 +245,10 @@ export async function fetchMySubmissions(uid: string): Promise<Submission[]> {
 export async function fetchSubmission(id: string): Promise<Submission | null> {
   const snap = await getDoc(doc(db, 'submissions', id));
   return snap.exists() ? (snap.data() as Submission) : null;
+}
+
+export function watchSubmission(id: string, receive: (submission: Submission | null) => void, fail: () => void) {
+  return onSnapshot(doc(db, 'submissions', id), snapshot => receive(snapshot.exists() ? snapshot.data() as Submission : null), fail);
 }
 
 export function newSubmissionId(): string {

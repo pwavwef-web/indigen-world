@@ -1,3 +1,4 @@
+import { Icon } from '../../../interface/icons';
 import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { useAuth } from '../../../auth';
 import { fetchMyStudioVideoJobs, uploadStudioVideoAsset, type StudioVideoJob } from '../../data';
@@ -135,10 +136,10 @@ export function ScenesPanel({ editor, ai, canVideo, consent, askConsent, onPickM
                     {busy ? 'Making…' : scene.generation?.status === 'failed' ? 'Try AI again' : scene.media ? 'Remake with AI' : 'Make with AI'}{plan && !busy ? ` · $${plan.estimateUsd.toFixed(2)}` : ''}
                   </button>
                 ) : null}
-                <button type="button" aria-label="Move up" disabled={i === 0} onClick={() => editor.commit(moveScene(scene.id, i - 1))}>↑</button>
-                <button type="button" aria-label="Move down" disabled={i === scenes.length - 1} onClick={() => editor.commit(moveScene(scene.id, i + 1))}>↓</button>
-                <button type="button" aria-label="Duplicate scene" onClick={() => editor.commit(duplicateScene(scene.id))}>⧉</button>
-                <button type="button" aria-label="Delete scene" onClick={() => { editor.commit(removeScene(scene.id)); editor.select(null); }}>✕</button>
+                <button type="button" aria-label="Move up" disabled={i === 0} onClick={() => editor.commit(moveScene(scene.id, i - 1))}><Icon name="up" /></button>
+                <button type="button" aria-label="Move down" disabled={i === scenes.length - 1} onClick={() => editor.commit(moveScene(scene.id, i + 1))}><Icon name="down" /></button>
+                <button type="button" aria-label="Duplicate scene" onClick={() => editor.commit(duplicateScene(scene.id))}><Icon name="copy" /></button>
+                <button type="button" aria-label="Delete scene" onClick={() => { editor.commit(removeScene(scene.id)); editor.select(null); }}><Icon name="trash" /></button>
               </div>
             </li>
           );
@@ -291,10 +292,10 @@ export function MediaPanel({ editor, projectId, pickFor, onPicked }: {
         {editor.mediaList.map((m) => (
           <div key={m.id} className="ve-asset">
             <button type="button" className="vx-asset-main" onClick={() => useMedia(m)} disabled={m.status !== 'ready'}>
-              <span className={`ve-asset__thumb ve-asset__thumb--${m.kind}`}>{m.kind === 'image' && editor.urls.get(m.id) ? <img src={editor.urls.get(m.id)} alt="" /> : m.kind === 'audio' ? '♪' : '▶'}{m.source === 'ai' ? <b>AI</b> : null}</span>
+              <span className={`ve-asset__thumb ve-asset__thumb--${m.kind}`}>{m.kind === 'image' && editor.urls.get(m.id) ? <img src={editor.urls.get(m.id)} alt="" /> : <Icon name={m.kind === 'audio' ? 'audio' : 'video'} />}{m.source === 'ai' ? <b>AI</b> : null}</span>
               <span><strong>{m.fileName}</strong><small>{m.kind}{m.durationSec ? ` · ${fmt(m.durationSec)}` : ''}{used.has(m.id) ? ' · in use' : ''}</small></span>
             </button>
-            {!used.has(m.id) ? <button type="button" className="vx-icon" aria-label={`Delete ${m.fileName}`} onClick={() => { if (window.confirm(`Delete ${m.fileName} from this project? The file cannot be brought back.`)) void deleteMedia(projectId, m); }}>✕</button> : null}
+            {!used.has(m.id) ? <button type="button" className="vx-icon" aria-label={`Delete ${m.fileName}`} onClick={() => { if (window.confirm(`Delete ${m.fileName} from this project? The file cannot be brought back.`)) void deleteMedia(projectId, m); }}><Icon name="trash" /></button> : null}
           </div>
         ))}
       </div>

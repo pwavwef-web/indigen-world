@@ -1,3 +1,5 @@
+import { useAuth } from '../../auth';
+import { readEditorRecovery, writeEditorRecovery, clearEditorRecovery, type EditorRecovery } from './recovery';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { loadProject, mediaUrl, saveProject, subscribeLastRender, subscribeMedia, type ProjectPlanInfo, type ProjectSummary } from './api';
 import { totalDuration, type EditorProject, type ProjectMedia } from './model';
@@ -25,6 +27,10 @@ type Edit = (project: EditorProject) => EditorProject;
  * bar — the member must never believe a project is safe when it is not.
  */
 export function useEditor(projectId: string) {
+  const { user } = useAuth(); const uid = user?.uid || '';
+  const [recovery, setRecovery] = useState<EditorRecovery | null>(null);
+  const saving = useRef(false);
+  const recoverable = useRef(true);
   const [project, setProject] = useState<EditorProject | null>(null);
   const [missing, setMissing] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -33,6 +39,10 @@ export function useEditor(projectId: string) {
   const [plan, setPlan] = useState<ProjectPlanInfo | null>(null);
   const [lastRender, setLastRender] = useState<ProjectSummary['lastRender']>(null);
   const [mediaList, setMediaList] = useState<ProjectMedia[]>([]);
+  const [mediaError, setMediaError] = useState(false);
+  const [mediaAttempt, setMediaAttempt] = useState(0);
+  const [previewError, setPreviewError] = useState(false);
+  const [previewAttempt, setPreviewAttempt] = useState(0);
   const [urls, setUrls] = useState<Map<string, string>>(new Map());
   const [selection, setSelection] = useState<Selection>(null);
   const [time, setTime] = useState(0);
@@ -64,18 +74,22 @@ export function useEditor(projectId: string) {
         setConsent(loaded.consent);
         setPlan(loaded.plan);
         setSaveState('saved');
+        setRecovery(readEditorRecovery(uid, projectId));
       })
       .catch((e: unknown) => {
         if (active) setLoadError(e instanceof Error ? e.message : 'This project could not be opened.');
       });
-    const stopMedia = subscribeMedia(projectId, setMediaList, () => undefined);
     const stopRender = subscribeLastRender(projectId, setLastRender);
     return () => {
       active = false;
-      stopMedia();
       stopRender();
     };
-  }, [projectId]);
+  }, [projectId, uid]);
+
+  useEffect(() => {
+    setMediaError(false);
+    return subscribeMedia(projectId, setMediaList, () => setMediaError(true));
+  }, [projectId, mediaAttempt]);
 
   const media = useMemo(() => new Map(mediaList.map((m) => [m.id, m])), [mediaList]);
 
@@ -88,27 +102,29 @@ export function useEditor(projectId: string) {
         .then((url) => {
           if (active) setUrls((current) => new Map(current).set(m.id, url));
         })
-        .catch(() => undefined);
+        .catch(() => { if (active) setPreviewError(true); });
     }
     return () => {
       active = false;
     };
-  }, [mediaList, urls]);
+  }, [mediaList, urls, previewAttempt]);
 
   const flush = useCallback(async () => {
     const current = latest.current;
-    if (!current || !dirty.current) return;
+    if (!current || !dirty.current || saving.current) return;
+    saving.current = true;
     dirty.current = false;
     setSaveState('saving');
     try {
       revision.current += 1;
       await saveProject(projectId, current, revision.current);
+      if (!dirty.current) clearEditorRecovery(uid, projectId);
       setSaveState(dirty.current ? 'unsaved' : 'saved');
     } catch {
       dirty.current = true;
       setSaveState('error');
-    }
-  }, [projectId]);
+    } finally { saving.current = false; if (dirty.current && latest.current !== current) saveTimer.current = window.setTimeout(() => void flush(), 900); }
+  }, [projectId, uid]);
 
   const scheduleSave = useCallback(() => {
     if (saveTimer.current) window.clearTimeout(saveTimer.current);
@@ -118,12 +134,19 @@ export function useEditor(projectId: string) {
   // Save on the way out, and warn about a tab closed mid-save.
   useEffect(() => {
     const beforeUnload = (event: BeforeUnloadEvent) => {
-      if (!dirty.current) return;
+      if (!dirty.current && !saving.current) return;
       void flush();
       event.preventDefault();
+      event.returnValue = '';
     };
+    const beforeNavigate = (event: Event) => {
+      if ((dirty.current || saving.current) && !recoverable.current && !window.confirm('This video has unsaved changes and browser recovery is unavailable. Leave and risk losing them?')) { event.preventDefault(); return; }
+      void flush();
+    };
+    window.addEventListener('studio:before-navigate', beforeNavigate);
     window.addEventListener('beforeunload', beforeUnload);
     return () => {
+      window.removeEventListener('studio:before-navigate', beforeNavigate);
       window.removeEventListener('beforeunload', beforeUnload);
       if (saveTimer.current) window.clearTimeout(saveTimer.current);
       void flush();
@@ -139,11 +162,12 @@ export function useEditor(projectId: string) {
     if (history.current.length > 80) history.current.shift();
     future.current = [];
     latest.current = next;
+    recoverable.current = writeEditorRecovery(uid, projectId, next, revision.current);
     dirty.current = true;
     setProject(next);
     setSaveState('unsaved');
     scheduleSave();
-  }, [scheduleSave]);
+  }, [scheduleSave, uid, projectId]);
 
   /**
    * A change the member did not make — an AI video finishing, an upload
@@ -157,35 +181,38 @@ export function useEditor(projectId: string) {
     if (next === current) return;
     latest.current = next;
     history.current = history.current.map(edit);
+    recoverable.current = writeEditorRecovery(uid, projectId, next, revision.current);
     dirty.current = true;
     setProject(next);
     setSaveState('unsaved');
     scheduleSave();
-  }, [scheduleSave]);
+  }, [scheduleSave, uid, projectId]);
 
   const undo = useCallback(() => {
     const previous = history.current.pop();
     if (!previous || !latest.current) return;
     future.current.push(latest.current);
     latest.current = previous;
+    recoverable.current = writeEditorRecovery(uid, projectId, previous, revision.current);
     dirty.current = true;
     setProject(previous);
     setSaveState('unsaved');
     scheduleSave();
     bump((n) => n + 1);
-  }, [scheduleSave]);
+  }, [scheduleSave, uid, projectId]);
 
   const redo = useCallback(() => {
     const next = future.current.pop();
     if (!next || !latest.current) return;
     history.current.push(latest.current);
     latest.current = next;
+    recoverable.current = writeEditorRecovery(uid, projectId, next, revision.current);
     dirty.current = true;
     setProject(next);
     setSaveState('unsaved');
     scheduleSave();
     bump((n) => n + 1);
-  }, [scheduleSave]);
+  }, [scheduleSave, uid, projectId]);
 
   const duration = project ? totalDuration(project) : 0;
 
@@ -217,6 +244,15 @@ export function useEditor(projectId: string) {
 
   return {
     project,
+    recovery,
+    restoreRecovery: () => {
+      if (!recovery) return;
+      if (latest.current) history.current.push(latest.current);
+      latest.current = recovery.project; dirty.current = true;
+      recoverable.current = writeEditorRecovery(uid, projectId, recovery.project, revision.current);
+      setProject(recovery.project); setRecovery(null); setSaveState('unsaved'); scheduleSave();
+    },
+    discardRecovery: () => { clearEditorRecovery(uid, projectId); setRecovery(null); },
     missing,
     loadError,
     saveState,
@@ -225,6 +261,9 @@ export function useEditor(projectId: string) {
     setConsent,
     plan,
     lastRender,
+    mediaError,
+    previewError,
+    retryMedia: () => { setMediaAttempt(value => value + 1); setPreviewError(false); setPreviewAttempt(value => value + 1); },
     media,
     mediaList,
     urls,

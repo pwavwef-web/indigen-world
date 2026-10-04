@@ -1,3 +1,4 @@
+import { WorkspaceDialog, ProcessGuide } from '../../interface/WorkspaceFrame';
 import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../../auth';
 import { useQueryParam, useRoute } from '../../router';
@@ -59,10 +60,12 @@ function NewVideo({ onClose }: { onClose: () => void }) {
   const [files, setFiles] = useState<File[]>([]);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [createdId, setCreatedId] = useState<string | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
 
+  const sending = useRef(false);
   const create = async () => {
-    if (!user) return;
+    if (!user || sending.current || createdId) return; sending.current = true;
     setError(null);
     try {
       let project: EditorProject = newProject(title, aspect, origin);
@@ -83,6 +86,7 @@ function NewVideo({ onClose }: { onClose: () => void }) {
       }
       setBusy('Creating the project…');
       const projectId = await createProject(user.uid, project, plan);
+      setCreatedId(projectId);
 
       if ((origin === 'footage' || origin === 'audio') && files.length) {
         const scenes = [...project.timeline.scenes];
@@ -114,7 +118,7 @@ function NewVideo({ onClose }: { onClose: () => void }) {
       }
       navigate(`/studio/editor/${projectId}`);
     } catch (e) {
-      setBusy(null);
+      sending.current = false; setBusy(null);
       setError(errorMessage(e, 'The project could not be created. Try again.'));
     }
   };
@@ -124,10 +128,8 @@ function NewVideo({ onClose }: { onClose: () => void }) {
   const ready = (!needsText || text.trim().length >= 8) && (!needsFiles || files.length > 0);
 
   return (
-    <div className="vx-sheet" role="dialog" aria-modal="true" aria-labelledby="vx-new-title">
-      <button type="button" className="vx-sheet__backdrop" aria-label="Close" onClick={onClose} disabled={Boolean(busy)} />
-      <div className="vx-sheet__card vx-export vx-new">
-        <div className="vx-export__head"><h2 id="vx-new-title">New video</h2><button type="button" className="vx-icon" aria-label="Close" onClick={onClose} disabled={Boolean(busy)}>×</button></div>
+    <WorkspaceDialog title="New video" onClose={onClose} busy={Boolean(busy)} className="vx-export vx-new">
+
         <fieldset className="vx-choice"><legend>Start</legend>
           {STARTS.map((s) => (
             <label key={s.id} className={origin === s.id ? 'is-on' : ''}>
@@ -157,13 +159,12 @@ function NewVideo({ onClose }: { onClose: () => void }) {
           </>
         ) : null}
         {busy ? <p className="vx-export__status" role="status">{busy}</p> : null}
-        {error ? <p className="vx-panel-error" role="alert">{error}</p> : null}
+        {error ? <p className="vx-panel-error" role="alert">{error}{createdId ? ' Your project and successful uploads are saved. Open it to continue and retry any missing media.' : ''}</p> : null}
         <div className="vx-sheet__actions">
           <button type="button" onClick={onClose} disabled={Boolean(busy)}>Cancel</button>
-          <button type="button" disabled={!ready || Boolean(busy)} onClick={() => void create()}>Create →</button>
+          {createdId && error ? <button type="button" onClick={() => navigate('/studio/editor/' + createdId)}>Open saved project</button> : <button type="button" disabled={!ready || Boolean(busy)} onClick={() => void create()}>Create →</button>}
         </div>
-      </div>
-    </div>
+    </WorkspaceDialog>
   );
 }
 
@@ -223,6 +224,7 @@ export function ProjectsPage() {
         <div><h1>Video editor</h1><p>Reels, clips and longer videos — saved as you work, rendered to MP4 for any platform.</p></div>
         <button type="button" className="ve-export-button" onClick={() => setCreating(true)}>+ New video</button>
       </header>
+      <ProcessGuide label="Video project workflow" steps={[{title:'Build your scenes',detail:'Footage, script, recording or a blank timeline',icon:'video'},{title:'Edit & preview',detail:'Arrange media, sound and captions',icon:'search'},{title:'Export',detail:'Render an MP4 or create a post',icon:'external'}]} />
       {opening ? <p className="vx-export__status" role="status">{opening}</p> : null}
       {error ? <p className="vx-panel-error" role="alert">{error} <button type="button" className="vx-link" onClick={load}>Try again</button></p> : null}
       {projects === null && !error ? <p className="ve-panel__empty">Loading your videos…</p> : null}
@@ -246,7 +248,7 @@ export function ProjectsPage() {
           </li>
         ))}
       </ul>
-      {creating ? <NewVideo onClose={() => setCreating(false)} /> : null}
+      {creating ? <NewVideo onClose={() => { setCreating(false); load(); }} /> : null}
     </div>
   );
 }

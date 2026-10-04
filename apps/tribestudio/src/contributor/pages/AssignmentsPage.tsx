@@ -36,8 +36,8 @@ export function AssignmentsPage() {
   return (
     <div className="cw-page">
       <PageHeader
-        kicker="ONE EXPRESSION AT A TIME"
-        title="Make room for your words."
+        kicker="Your work"
+        title="Assignments"
         id="page-title"
         description="Your assignments, ready when you are."
         actions={<PortalLink to={data.paths.section('guide', { section: 'assignments' })} className="cw-button-secondary"><Icon name="guide" />How assignments work</PortalLink>}

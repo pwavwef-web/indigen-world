@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import { useAuth } from '../../auth';
 import { Link } from '../../router';
+import { Icon } from '../../interface/icons';
 import { Field, LoadError, Skeleton, VoiceRecorder } from '../components';
 import {
   createStudioVideoJob,
@@ -459,7 +460,7 @@ export function StudioVideoPage() {
         </div>
         <div className="video-hero__aside">
           <Link to="/studio/video/jobs" className="button button--ghost-dark button--small">Your videos</Link>
-          <span className="video-hero__mark" aria-hidden="true">▶</span>
+          <span className="video-hero__mark" aria-hidden="true"><Icon name="video" /></span>
         </div>
       </header>
 

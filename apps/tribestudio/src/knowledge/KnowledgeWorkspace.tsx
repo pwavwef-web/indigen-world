@@ -1,16 +1,17 @@
+import { Icon, type IconName } from "../interface/icons";
 import { ReleasePanel } from './ReleasePanel';
 import { AUTHENTICATION_LABELS, VALUE_STATES, REVIEW_CHECKS, WORKFLOW_LABELS, knowledgeState, submissionIssues, type ReviewScope } from '@indigen-world/contracts/knowledge';
 import { CaptureFields } from './CaptureFields';
 import { CorpusReference } from './CorpusReference';
 import { useId, useEffect, useMemo, useRef, useState } from 'react';
-import { signOutUser, useAuth } from '../auth';
+import { useAuth } from '../auth';
 import { useRoute } from '../router';
 import { blankRecord, editable, knowledgeServices, missingFields, needsCulturalReview,
   type AudioClip, type CatalogEntry, type DatasetType, type KnowledgeRecord, type KnowledgeServices,
   type RecordDetail, type RecordInput, type ReviewInput, type KnowledgeProgress } from './data';
 import './knowledge.css';
 
-const DATASET_MARKS: Record<DatasetType, string> = { lexicon: 'Aa', grammar: '↔', expressions: '“ ”', sentences: '≡', proverbs: '◈', literature: '▤', dialogue: '↗', pronunciation: '◖', culture: '✧', qa: '?' };
+const DATASET_MARKS: Record<DatasetType, IconName> = { lexicon: "guide", grammar: "translation", expressions: "translation", sentences: "doc", proverbs: "guide", literature: "doc", dialogue: "audio", pronunciation: "audio", culture: "opportunities", qa: "kawuri" };
 const PERMISSIONS = [
   ['review', 'Community review', 'Allow authorised reviewers to assess this record. Required to submit.'],
   ['sourceConfirmed', 'I have permission to contribute this source', 'Required for release. Leave unchecked while rights evidence is unresolved.'],
@@ -103,16 +104,16 @@ export function KnowledgeDesk({ uid, services, preview = false, related = '' }: 
   return <div className={`kw${preview ? ' kw--preview' : ''}`}>
     {preview ? <div className="kw-preview" role="status">LOCAL PREVIEW · All example records are synthetic. Saves and reviews stay in this browser session.</div> : null}
     <header className="kw-hero">
-      <div><p className="kw-eyebrow">KAWURI · KASEM KNOWLEDGE</p><h1>Every detail has a source.</h1><p>A shared workspace for language, culture and the evidence behind them. Collect carefully. Review together.</p></div>
+      <div><p className="kw-eyebrow">KAWURI · KASEM KNOWLEDGE</p><h1>Corpus workspace</h1><p>Create and review sourced language and cultural records.</p></div>
       <button type="button" className="kw-primary" disabled={!catalog.length || opening} onClick={create}><span aria-hidden="true">＋</span> Contribute</button>
     </header>
-    <nav className="kw-topnav" aria-label="Corpus workspace"><a href="/contributor">Overview and requests</a><button aria-pressed={tab === 'records'} onClick={() => { if (canLeave()) setTab('records'); }}>My submissions</button><button aria-pressed={tab === 'reference'} onClick={() => { if (canLeave()) { setTab('reference'); setDetail(null); setNewType(null); } }}>Corpus reference</button><button aria-pressed={tab === 'guide'} onClick={() => { if (canLeave()) { setTab('guide'); setDetail(null); setNewType(null); } }}>Guide and policies</button><a href="/contributor/account">Settings</a>{!preview && <button onClick={() => { if (canLeave()) void signOutUser(); }}>Sign out</button>}</nav>
+    <nav className="kw-topnav" aria-label="Corpus workspace"><button aria-pressed={tab === 'records'} onClick={() => { if (canLeave()) setTab('records'); }}>My submissions</button><button aria-pressed={tab === 'reference'} onClick={() => { if (canLeave()) { setTab('reference'); setDetail(null); setNewType(null); } }}>Corpus reference</button><button aria-pressed={tab === 'guide'} onClick={() => { if (canLeave()) { setTab('guide'); setDetail(null); setNewType(null); } }}>Guide and policies</button></nav>
     <section className="kw-progress" aria-label="Contribution history">{progress ? <><div className="kw-metrics">{[["Submitted objects", progress.submitted], ["Awaiting review", (progress.counts.submitted ?? 0) + (progress.counts.in_review ?? 0)], ["Returned", progress.counts.changes_requested ?? 0], ["Review complete", progress.counts.review_complete ?? 0]].map(([label, count]) => <div key={label}><strong>{count}</strong><span>{label}</span></div>)}</div><p>{progress.period} · {progress.timezone} · Refreshed {new Date(progress.refreshedAt).toISOString()}<br />{progress.definition}</p></> : <p>{progressError || 'Loading server-confirmed history…'}</p>}<button onClick={() => setAttempt(n => n + 1)}>Refresh history</button></section>
     {tab === 'reference' ? <CorpusReference services={services} /> : tab === 'guide' ? <section className="kw-guide"><h2>Contribute with context</h2><ol><li>Choose a category and preserve the original wording.</li><li>Describe meanings separately. Mark unknown or untranslated fields explicitly.</li><li>Identify the source, recordings and exact related revisions.</li><li>Document consent and choose each permitted use.</li><li>Check the full record, then submit. Keep the receipt.</li><li>Respond to reviewer feedback with a new revision.</li></ol><h3>Authentication and release are separate</h3><p>Only reviewers with current qualifications and category-specific grants can authenticate. Administrative access alone does not qualify someone. Public release, AI retrieval, training and evaluation each require permission and a release manager.</p><p>Current policy: {policy.approved ? policy.version : 'Awaiting approval'}. Sentences: {policy.sentenceEnabled ? 'Approved capture enabled' : 'Provisional drafts only'}. Downstream release: {policy.releaseEnabled ? 'Subject to eligibility checks' : 'Disabled'}.</p><p>Original recordings remain private and immutable. Withdraw a record to stop future corpus use. Already downloaded exports or trained models require a separate removal process.</p><p>Existing assignment recognition remains in the account workspace. Corpus submissions do not earn points or promise payment.</p><a href="/contributor/support">Get help or appeal a decision</a></section> : <>
     <div className="kw-principles"><span><i aria-hidden="true">01</i> Preserve the original</span><span><i aria-hidden="true">02</i> Keep context attached</span><span><i aria-hidden="true">03</i> Human review, explicit rights</span></div>
     <nav className="kw-catalog" aria-label="Dataset areas">
-      <button type="button" className={!category ? 'is-selected' : ''} onClick={() => setCategory('')} aria-pressed={!category}><span aria-hidden="true">⊞</span><strong>All areas</strong><small>One connected archive</small></button>
-      {catalog.map((area) => <button key={area.id} type="button" className={category === area.id ? 'is-selected' : ''} onClick={() => setCategory(area.id)} aria-pressed={category === area.id} title={area.description}><span aria-hidden="true">{DATASET_MARKS[area.id]}</span><strong>{area.label}</strong><small>{area.description}</small></button>)}
+      <button type="button" className={!category ? 'is-selected' : ''} onClick={() => setCategory('')} aria-pressed={!category}><Icon name="overview" /><strong>All areas</strong><small>One connected archive</small></button>
+      {catalog.map((area) => <button key={area.id} type="button" className={category === area.id ? 'is-selected' : ''} onClick={() => setCategory(area.id)} aria-pressed={category === area.id} title={area.description}><span aria-hidden="true"><Icon name={DATASET_MARKS[area.id]} /></span><strong>{area.label}</strong><small>{area.description}</small></button>)}
     </nav>
     <div className="kw-workspace-heading"><div><p className="kw-eyebrow">KNOWLEDGE WORKSPACE</p><h2>{catalog.find((area) => area.id === category)?.label ?? 'Your records, with their evidence'}</h2></div><p>Choose · Describe · Evidence · Rights · Check · Review</p></div>
     <div className="kw-info">Records stay private to you and authorised reviewers. Authentication belongs to an exact revision under an approved reviewer policy. It does not publish a record or put it into AI training. Sentence capture remains provisional until approved.</div>

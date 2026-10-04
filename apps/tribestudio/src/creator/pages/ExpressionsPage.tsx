@@ -1,3 +1,4 @@
+import { ProcessGuide, WorkspaceDialog } from '../../interface/WorkspaceFrame';
 /**
  * Everyday Kasem expressions: one clear task, and where it stands.
  *
@@ -69,6 +70,8 @@ export function ExpressionsPage() {
   const [draft, setDraft] = useState<ExpressionDraft>(() => (uid ? loadExpressionDraft(uid) : null) ?? emptyExpressionDraft());
   const [restored] = useState(() => Boolean(uid && loadExpressionDraft(uid)));
   const [busy, setBusy] = useState(false);
+  const [reviewing, setReviewing] = useState(false);
+  const sending = useRef(false);
   const [error, setError] = useState('');
   const [sent, setSent] = useState<string | null>(null);
   const [mine, setMine] = useState<MyExpression[]>([]);
@@ -99,6 +102,13 @@ export function ExpressionsPage() {
     return () => window.clearTimeout(timer);
   }, [uid, draft, sent]);
 
+  const latestDraft = useRef({ draft, sent }); latestDraft.current = { draft, sent };
+  useEffect(() => {
+    const flush = () => { if (uid && !latestDraft.current.sent) saveExpressionDraft(uid, latestDraft.current.draft); };
+    window.addEventListener('studio:before-navigate', flush); window.addEventListener('pagehide', flush);
+    return () => { flush(); window.removeEventListener('studio:before-navigate', flush); window.removeEventListener('pagehide', flush); };
+  }, [uid]);
+
   const update = <K extends keyof ExpressionDraft>(key: K, value: ExpressionDraft[K]) => {
     setError('');
     setDraft((current) => ({ ...current, [key]: value }));
@@ -108,18 +118,20 @@ export function ExpressionsPage() {
   const correcting = draft.revisionOf ? mine.find((item) => item.id === draft.revisionOf) : undefined;
   const singleWord = looksLikeSingleWord(draft.phrase);
 
-  const submit = async (event: FormEvent) => {
-    event.preventDefault();
+  const submit = async (event?: FormEvent) => {
+    event?.preventDefault();
+    if (sending.current) return;
     const missing = missingPiece(draft);
     if (missing) {
       setError(missing);
       window.requestAnimationFrame(() => errorRef.current?.focus());
       return;
     }
-    setBusy(true);
+    sending.current = true; setBusy(true);
     setError('');
     try {
       await submitExpression(draft);
+      setReviewing(false);
       // Enumerated fields only: never the expression or anything identifying.
       trackEvent('expression_submitted', { kind: draft.kind, source: draft.sourceType, correction: draft.revisionOf ? 1 : 0 });
       clearExpressionDraft(uid);
@@ -131,7 +143,7 @@ export function ExpressionsPage() {
       setError(errorMessage(err));
       window.requestAnimationFrame(() => errorRef.current?.focus());
     } finally {
-      setBusy(false);
+      sending.current = false; setBusy(false);
     }
   };
 
@@ -183,8 +195,7 @@ export function ExpressionsPage() {
           <p className="hero__eyebrow">Everyday Kasem expressions · open to everyone</p>
           <h1>Share an expression</h1>
           <p className="muted expr__lede">
-            Send one greeting, blessing, idiom or saying that you use, with what it means, when it is said and
-            who you learned it from. A Kasem-speaking reviewer checks it before anyone else can see it.
+            Share a greeting, blessing, idiom or saying with its meaning, context and source. A Kasem-speaking reviewer checks it.
           </p>
         </div>
         <a className="button button--ghost-dark button--small" href={WEBSITE_CAMPAIGN_URL} target="_blank" rel="noreferrer">
@@ -192,6 +203,8 @@ export function ExpressionsPage() {
         </a>
       </header>
 
+      <ProcessGuide label="Expression contribution process" steps={[{title:'Write the expression',detail:'Phrase, meaning and everyday context',icon:'translation'},{title:'Check the source',detail:'Attribution and explicit permission',icon:'user'},{title:'Review & send',detail:'Follow feedback here after submission',icon:'shield'}]} />
+      {reviewing ? <WorkspaceDialog title="Review expression" onClose={() => setReviewing(false)} busy={busy}><dl className="iw-confirmation"><div><dt>Expression</dt><dd>{draft.phrase}</dd></div><div><dt>Meaning</dt><dd>{draft.meaning}</dd></div><div><dt>Context</dt><dd>{draft.context}</dd></div><div><dt>Source</dt><dd>{draft.sourceDetail}</dd></div><div><dt>Publication</dt><dd>{draft.publish === 'yes' ? 'Permission granted' : 'Your selected publication choice is kept'}</dd></div></dl><p className="muted">Your expression stays private during review. Your permission choices are sent with it.</p><div className="actions"><button type="button" disabled={busy} onClick={() => setReviewing(false)}>Back to editing</button><button type="button" className="button button--primary" disabled={busy} onClick={() => void submit()}>{busy ? 'Sending…' : 'Confirm and send'}</button></div>{error ? <p role="alert">{error}</p> : null}</WorkspaceDialog> : null}
       <div className="cols expr__cols" ref={formTopRef}>
         <div>
           {sent ? (
@@ -208,7 +221,7 @@ export function ExpressionsPage() {
               </div>
             </section>
           ) : (
-            <form className="panel expr-form" onSubmit={(event) => void submit(event)} noValidate>
+            <form className="panel expr-form" onSubmit={(event) => { event.preventDefault(); const missing = missingPiece(draft); if (missing) { setError(missing); window.requestAnimationFrame(() => errorRef.current?.focus()); } else setReviewing(true); }} noValidate>
               {restored && !draft.revisionOf ? (
                 <p className="callout callout--info">An unfinished expression was restored from this browser. Nothing has been sent.</p>
               ) : null}
@@ -380,7 +393,7 @@ export function ExpressionsPage() {
                   Clear
                 </button>
                 <button type="submit" className="button button--primary" disabled={busy}>
-                  {busy ? 'Sending…' : draft.revisionOf ? 'Send the correction for review' : 'Send for review'}
+                  {busy ? 'Sending…' : draft.revisionOf ? 'Review correction' : 'Review expression'}
                 </button>
               </div>
             </form>
@@ -401,7 +414,7 @@ export function ExpressionsPage() {
             </ol>
             <p className="tiny">You can withdraw an expression at any time, even after it is published. There is no payment for this campaign.</p>
           </section>
-          <section className="panel expr-tips">
+          <details className="panel expr-tips"><summary>Examples and material to avoid</summary>
             <h2>Good to send</h2>
             <ul>
               <li>Greetings for different times of day</li>
@@ -415,7 +428,7 @@ export function ExpressionsPage() {
               <li>Private family matters, or anything you were asked not to share</li>
               <li>Long stories — share those as <Link to="/studio/submissions/new?type=writing">writing</Link></li>
             </ul>
-          </section>
+          </details>
         </aside>
       </div>
 

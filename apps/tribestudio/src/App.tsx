@@ -1,7 +1,6 @@
-import { Suspense, lazy, useEffect, useRef, useState, type ComponentType, type ReactNode } from 'react';
+import { Suspense, lazy, useEffect, useRef, useState, type ComponentType } from 'react';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from './firebase';
-import type { CreatorApplication, CreatorMembership, CreatorProfile } from '@indigen-world/contracts/creator-models';
 import { ToastProvider } from '@indigen-world/web-ui';
 import { Link, RouterProvider, matchRoute, useRoute } from './router';
 import { canMakeVideo, signIn, useAuth } from './auth';
@@ -11,9 +10,8 @@ import { FullPageLoader, RouteLoader } from './LoadingScreen';
 import { CreatorProvider } from './creator/CreatorProvider';
 import { PublicLayout } from './creator/PublicLayout';
 import { StudioLayout } from './creator/StudioLayout';
-import { ensureCreatorProfile, fetchMyApplications, fetchMyMembership, fetchMyProfile } from './creator/data';
-import { StatusPill, WhatsAppCard } from './creator/components';
-import { useConfig } from './creator/CreatorProvider';
+import { ApplicationStatusGate } from './creator/CreatorAccess';
+import { WorkspaceEntry } from './interface/WorkspaceFrame';
 
 // Route-based code-splitting: each page (and the heavy Lexicon workspace) loads
 // as its own chunk behind the <Suspense> boundaries in the layouts, so the
@@ -47,18 +45,6 @@ const ExpressionsPage = named(() => import('./creator/pages/ExpressionsPage'), '
 const NotificationsPage = named(() => import('./creator/pages/NotificationsPage'), 'NotificationsPage');
 const HelpPage = named(() => import('./creator/pages/HelpPage'), 'HelpPage');
 
-function BrandMark() {
-  return (
-    <span className="brand__mark" aria-hidden="true">
-      <svg viewBox="0 0 64 64">
-        <path d="M15 47V23l17-9 17 9v24" />
-        <path d="M24 44V29m8 15V24m8 20V29" />
-        <circle cx="32" cy="14" r="4" />
-      </svg>
-    </span>
-  );
-}
-
 /**
  * The sign-in wall in front of the studio.
  *
@@ -68,154 +54,23 @@ function BrandMark() {
  */
 function SignInGate({ path }: { path: string }) {
   const forExpressions = path.startsWith('/studio/expressions');
+  const [busy, setBusy] = useState(false), [error, setError] = useState('');
   return (
-    <div className="signin">
-      <div className="signin__card">
-        <BrandMark />
-        <h1>{forExpressions ? 'Share a Kasem expression' : 'TribeStudio'}</h1>
+    <WorkspaceEntry title={forExpressions ? 'Share language with context.' : undefined} description={forExpressions ? 'Send an expression, follow its review and keep control of your permissions.' : undefined}>
+        <p className="iw-entry-kicker">Create · Sign in</p>
+        <h1>{forExpressions ? 'Share a Kasem expression' : 'Welcome to TribeStudio'}</h1>
         {forExpressions ? (
-          <p>
-            Sign in with Google to send an everyday expression for review. Your account is how you see its review
-            status, get the reviewer’s answer, and withdraw it if you change your mind. It takes a few seconds and costs nothing.
-          </p>
+          <p>Sign in to send an expression, follow reviewer feedback and withdraw your contribution when needed.</p>
         ) : (
           <p>Sign in to save your draft and share your work. You can preview your post before publishing.</p>
         )}
-        <button type="button" className="button button--primary" onClick={() => void signIn()}>
-          Sign in with Google
+        {error ? <p role="alert" className="iw-entry-error">{error}</p> : null}
+        <button type="button" className="cw-auth__primary" disabled={busy} onClick={async () => { setBusy(true); setError(''); try { await signIn(); } catch { setError('Sign-in did not complete. Check your connection and try again.'); } finally { setBusy(false); } }}>
+          {busy ? 'Opening sign-in…' : 'Sign in with Google'}
         </button>
-      </div>
-    </div>
+    </WorkspaceEntry>
   );
 }
-
-/**
- * Guards the studio.
- *
- * The gate used to be "approved creators only", which locked everyday people
- * out of publishing anything at all. Publishing to Explore is now open to any
- * signed-in account: the studio opens for everybody, and approval means only
- * what it should mean - eligibility for campaigns, which carry rewards.
- *
- * The one thing still turned away here is an account that has been suspended,
- * revoked or rejected. That is a moderation outcome, and it has to hold.
- */
-function ApplicationStatusGate({ children }: { children: ReactNode }) {
-  const { user, creatorStatus, refreshToken } = useAuth();
-  const { whatsappUrl } = useConfig();
-  const [loading, setLoading] = useState(true);
-  const [membership, setMembership] = useState<CreatorMembership | null>(null);
-  const [applications, setApplications] = useState<CreatorApplication[]>([]);
-  const [profile, setProfile] = useState<CreatorProfile | null>(null);
-
-  useEffect(() => {
-    if (!user) return;
-    let active = true;
-    void Promise.all([
-      fetchMyMembership(user.uid),
-      fetchMyApplications(user.uid),
-      fetchMyProfile(user.uid),
-    ]).then(async ([m, a, p]) => {
-      if (!active) return;
-      setMembership(m);
-      setApplications(a);
-      setProfile(p);
-      if (m?.status === 'approved' && creatorStatus !== 'approved') {
-        await refreshToken();
-      }
-      if (active) setLoading(false);
-    }).catch(() => {
-      if (active) setLoading(false);
-    });
-    return () => {
-      active = false;
-    };
-  }, [user, creatorStatus, refreshToken]);
-
-  // Membership status is lowercase, application status is UPPERCASE, and profile
-  // status is lowercase - normalize once so no blocked state slips through the
-  // case mismatch (previously WITHDRAWN/REVOKED were misclassified as active).
-  const application = applications[0] ?? null;
-  const status = String(
-    membership?.status ?? application?.status ?? profile?.status ?? 'not_started',
-  ).toUpperCase();
-  const blocked = ['REJECTED', 'SUSPENDED', 'REVOKED', 'WITHDRAWN'].includes(status);
-
-  // Mint a minimal creator profile for anyone arriving without one, so their
-  // first post has something to attribute itself to. Runs after the initial
-  // read, and never for a blocked account.
-  useEffect(() => {
-    if (loading || blocked || !user || profile) return;
-    let active = true;
-    void ensureCreatorProfile(
-      user.uid,
-      user.displayName ?? user.email ?? '',
-      user.photoURL ?? null,
-    ).then((created) => {
-      if (active && created) setProfile(created);
-    });
-    return () => {
-      active = false;
-    };
-  }, [loading, blocked, user, profile]);
-
-  if (loading) {
-    return <FullPageLoader note="Checking your creator access…" />;
-  }
-
-  if (!blocked) {
-    return <>{children}</>;
-  }
-
-  return (
-    <PublicLayout>
-      <div className="status-screen">
-        <section className="status-screen__panel">
-          <p className="hero__eyebrow">Creator access</p>
-          <h1>Studio access is not available</h1>
-          <p className="muted">
-            This account cannot publish to Indigen World at the moment. If you think that
-            is a mistake, reply on the official creator channel and the team will look
-            at it.
-          </p>
-          <dl className="success__meta">
-            <div>
-              <dt>Status</dt>
-              <dd><StatusPill status={status} labels={STATUS_LABELS} /></dd>
-            </div>
-            {application?.reference || profile?.reference ? (
-              <div>
-                <dt>Reference</dt>
-                <dd>{application?.reference ?? profile?.reference}</dd>
-              </div>
-            ) : null}
-          </dl>
-          <div className="success__actions">
-            <button type="button" className="button button--ghost-dark" onClick={() => void refreshToken()}>
-              Refresh access
-            </button>
-          </div>
-          <WhatsAppCard url={whatsappUrl} compact />
-        </section>
-      </div>
-    </PublicLayout>
-  );
-}
-
-const STATUS_LABELS: Record<string, string> = {
-  NOT_STARTED: 'Not started',
-  PENDING: 'Pending review',
-  WAITLISTED: 'Waitlisted',
-  APPROVED: 'Approved',
-  REJECTED: 'Not selected',
-  SUSPENDED: 'Suspended',
-  REVOKED: 'Revoked',
-  SUBMITTED: 'Submitted',
-  UNDER_REVIEW: 'Under review',
-  NEEDS_INFO: 'More information requested',
-  ACTIVE: 'Active',
-  WITHDRAWN: 'Withdrawn',
-};
 
 /**
  * Shown where the AI video pages would be for an account without an approved
@@ -300,7 +155,7 @@ function Routed() {
   // navigation is announced and the skip link lands somewhere focusable.
   useEffect(() => {
     if (hasMounted.current) {
-      document.getElementById('main-content')?.focus();
+      document.getElementById('main-content')?.focus({ preventScroll: true });
     } else {
       hasMounted.current = true;
     }

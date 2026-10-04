@@ -1,3 +1,5 @@
+import { WorkspaceDialog } from '../../interface/WorkspaceFrame';
+import { Icon, type IconName } from '../../interface/icons';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { canMakeVideo, useAuth } from '../../auth';
 import { matchRoute, useRoute } from '../../router';
@@ -18,15 +20,15 @@ import './editor.css';
 
 type Tab = 'scenes' | 'media' | 'music' | 'stickers' | 'text' | 'captions' | 'audio' | 'continuity';
 
-const TABS: { id: Tab; label: string; glyph: string }[] = [
-  { id: 'scenes', label: 'Scenes', glyph: '▤' },
-  { id: 'media', label: 'Media', glyph: '⤒' },
-  { id: 'music', label: 'Music', glyph: '♫' },
-  { id: 'stickers', label: 'Stickers', glyph: '★' },
-  { id: 'text', label: 'Text', glyph: 'T' },
-  { id: 'captions', label: 'Captions', glyph: '❝' },
-  { id: 'audio', label: 'Sound', glyph: '◖' },
-  { id: 'continuity', label: 'Continuity', glyph: '∞' },
+const TABS: { id: Tab; label: string; icon: IconName }[] = [
+  { id: 'scenes', label: 'Scenes', icon: 'assignments' },
+  { id: 'media', label: 'Media', icon: 'upload' },
+  { id: 'music', label: 'Music', icon: 'music' },
+  { id: 'stickers', label: 'Stickers', icon: 'spark' },
+  { id: 'text', label: 'Text', icon: 'doc' },
+  { id: 'captions', label: 'Captions', icon: 'translation' },
+  { id: 'audio', label: 'Sound', icon: 'sound' },
+  { id: 'continuity', label: 'Continuity', icon: 'shield' },
 ];
 
 const SAVE_LABEL = { saved: 'Saved', saving: 'Saving…', unsaved: 'Unsaved changes', error: 'Not saved — retry', loading: 'Opening…' } as const;
@@ -39,10 +41,7 @@ function ConsentDialog({ onConfirm, onCancel }: { onConfirm: (c: AiConsent) => v
   const [dialect, setDialect] = useState('');
   const ready = rights && cultural && (!person || personConsent);
   return (
-    <div className="vx-sheet" role="dialog" aria-modal="true" aria-labelledby="vx-consent-title">
-      <button type="button" className="vx-sheet__backdrop" aria-label="Cancel" onClick={onCancel} />
-      <div className="vx-sheet__card vx-export">
-        <h2 id="vx-consent-title">Before making AI video</h2>
+    <WorkspaceDialog title="Before making AI video" onClose={onCancel} className="vx-export">
         <p className="vx-export__lede">These are the same statements the AI Video page asks for. They are saved with this project and sent with each scene you generate.</p>
         <label className="ve-check"><input type="checkbox" checked={rights} onChange={(e) => setRights(e.target.checked)} />I have the right to use everything I describe or upload, and I allow it to be processed by an AI video service.</label>
         <label className="ve-check"><input type="checkbox" checked={cultural} onChange={(e) => setCultural(e.target.checked)} />Nothing I ask for shows sacred or restricted cultural material without the permission of the people it belongs to.</label>
@@ -69,8 +68,7 @@ function ConsentDialog({ onConfirm, onCancel }: { onConfirm: (c: AiConsent) => v
             },
           })}>Confirm</button>
         </div>
-      </div>
-    </div>
+    </WorkspaceDialog>
   );
 }
 
@@ -101,7 +99,7 @@ export function EditorPage() {
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement | null;
-      if (target?.closest('input, textarea, select, [contenteditable="true"]')) return;
+      if (target?.closest('dialog, input, textarea, select, [contenteditable="true"]')) return;
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z') {
         event.preventDefault();
         if (event.shiftKey) editor.redo();
@@ -164,16 +162,17 @@ export function EditorPage() {
   );
 
   return (
-    <div className="ve page vx">
+    <div className="ve page vx">{editor.recovery ? <section className="vx-recovery" role="status"><div><strong>Unsaved video edits found on this device</strong><p>{'Compare the saved project before restoring this local copy. No saved work is replaced until you choose.'}</p></div><button type="button" onClick={editor.restoreRecovery}>Restore local draft</button><button type="button" onClick={editor.discardRecovery}>Keep saved project</button></section> : null}
+      {editor.mediaError || editor.previewError ? <div className="vx-recovery" role="alert"><div><strong>{editor.mediaError ? 'The media library could not be loaded.' : 'Some media previews could not be loaded.'}</strong><p>Your edits remain open. Retry before relying on the preview.</p></div><button type="button" onClick={editor.retryMedia}>Retry media</button></div> : null}
       <header className="ve-topbar">
         <div className="ve-project">
-          <button type="button" className="ve-back" aria-label="Back to your videos" onClick={() => navigate('/studio/editor')}>←</button>
+          <button type="button" className="ve-back" aria-label="Back to your videos" onClick={() => navigate('/studio/editor')}><Icon name="back" /></button>
           <label><span>Video editor · {project.aspect}</span><input aria-label="Project name" value={project.title} maxLength={120} onChange={(e) => editor.commit((p) => ({ ...p, title: e.target.value }))} /></label>
         </div>
         <div className="ve-topbar__tools">
           <button type="button" className={`ve-save-state vx-save vx-save--${editor.saveState}`} onClick={() => editor.saveState === 'error' && void editor.retrySave()} aria-live="polite">{SAVE_LABEL[editor.saveState]}</button>
-          <button type="button" className="ve-icon-button" aria-label="Undo" title="Undo (Ctrl/⌘ Z)" disabled={!editor.canUndo} onClick={editor.undo}>↶</button>
-          <button type="button" className="ve-icon-button" aria-label="Redo" title="Redo (Ctrl/⌘ Shift Z)" disabled={!editor.canRedo} onClick={editor.redo}>↷</button>
+          <button type="button" className="ve-icon-button" aria-label="Undo" title="Undo (Ctrl/⌘ Z)" disabled={!editor.canUndo} onClick={editor.undo}><Icon name="undo" /></button>
+          <button type="button" className="ve-icon-button" aria-label="Redo" title="Redo (Ctrl/⌘ Shift Z)" disabled={!editor.canRedo} onClick={editor.redo}><Icon name="redo" /></button>
           <button type="button" className="vx-secondary" disabled={project.timeline.scenes.length === 0} onClick={() => setExporting('preview')}>Preview render</button>
           <button type="button" className="ve-export-button" disabled={project.timeline.scenes.length === 0} onClick={() => setExporting('export')}>Export</button>
         </div>
@@ -183,12 +182,12 @@ export function EditorPage() {
         <nav className="ve-toolrail" aria-label="Editing tools">
           {TABS.map((t) => (
             <button type="button" key={t.id} className={tab === t.id ? 'is-on' : ''} aria-pressed={tab === t.id} onClick={() => { setTab(t.id); if (t.id !== 'media') setPickFor(null); }}>
-              <b aria-hidden="true">{t.glyph}</b><span>{t.label}</span>
+              <Icon name={t.icon} /><span>{t.label}</span>
             </button>
           ))}
         </nav>
         <aside className="ve-library" aria-label={TABS.find((t) => t.id === tab)?.label}>{panel}</aside>
-        <main className="ve-stage-area">
+        <section className="ve-stage-area" aria-label="Video preview">
           <Stage
             project={project}
             media={editor.media}
@@ -203,11 +202,11 @@ export function EditorPage() {
             onEmptyClick={() => setTab('media')}
           />
           <div className="ve-playback">
-            <button type="button" className="ve-transport" disabled={editor.duration <= 0} aria-label={editor.playing ? 'Pause' : 'Play'} onClick={() => { if (editor.time >= editor.duration - 0.05) editor.seek(0); editor.setPlaying(!editor.playing); }}>{editor.playing ? '❚❚' : '▶'}</button>
+            <button type="button" className="ve-transport" disabled={editor.duration <= 0} aria-label={editor.playing ? 'Pause' : 'Play'} onClick={() => { if (editor.time >= editor.duration - 0.05) editor.seek(0); editor.setPlaying(!editor.playing); }}><Icon name={editor.playing ? 'pause' : 'play'} /></button>
             <span className="ve-time"><strong>{fmt(editor.time)}.{Math.floor((editor.time % 1) * 10)}</strong> / {fmt(editor.duration)}</span>
             <input type="range" min={0} max={Math.max(editor.duration, 0.1)} step={0.01} value={editor.time} aria-label="Playhead" onChange={(e) => editor.seek(Number(e.target.value))} />
           </div>
-        </main>
+        </section>
         <Inspector editor={editor} stickers={stickers} tracks={tracks} onReplace={replace} />
         <Timeline project={project} media={editor.media} stickerNames={stickerNames} time={editor.time} zoom={zoom} selection={editor.selection} onSelect={editor.select} onSeek={editor.seek} onCommit={editor.commit} toolbar={toolbar} />
       </div>

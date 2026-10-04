@@ -1,3 +1,4 @@
+import { Icon } from '../../interface/icons';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { getDownloadURL, ref } from 'firebase/storage';
 import { storage } from '../../firebase';
@@ -435,16 +436,12 @@ function SubmissionEditor({ existing }: { existing: Submission | null }) {
       {!online ? <div className="callout callout--warn" role="status"><strong>You are offline.</strong> You can keep writing in this tab. Keep it open: your latest changes will save when you reconnect. Uploading and publishing need a connection.</div> : null}
       {isOpenPost ? (
         <div className="callout callout--info">
-          <strong>This publishes straight to Explore.</strong> There is no queue and
-          no approval step — what you post is what people see. So the two things
-          that matter are yours to get right: you hold the rights to this work,
-          and anyone in it agreed to be in it. Anything reported gets reviewed
-          afterwards, and can be taken down.
+          <strong>Publish to Explore after preview.</strong> Confirm your rights and the consent of anyone featured.
+          <details><summary>Publication and reports</summary><p>Open posts go live without prior review. Reported content may be reviewed and taken down.</p></details>
         </div>
       ) : (
         <div className="callout callout--info">
-          <strong>Campaign entry.</strong> Campaign submissions carry rewards, so
-          this one is reviewed before it is published.
+          <strong>Campaign entry.</strong> This entry goes to review before publication. Check the opportunity for eligibility and any rewards.
         </div>
       )}
       {existing?.moderation?.feedback ? <div className="callout callout--warn"><strong>Reviewer feedback: </strong>{existing.moderation.feedback}</div> : null}
@@ -466,7 +463,7 @@ function SubmissionEditor({ existing }: { existing: Submission | null }) {
                     aria-pressed={studioType === option.value}
                     onClick={() => setStudioType(option.value)}
                   >
-                    <strong>{option.label}</strong>
+                    <Icon name={option.value === 'video' ? 'video' : option.value === 'audio' ? 'audio' : option.value === 'image' ? 'image' : option.value === 'translation' ? 'translation' : 'doc'} /><strong>{option.label}</strong>
                     <span>{option.body}</span>
                   </button>
                 ))}
@@ -504,11 +501,11 @@ function SubmissionEditor({ existing }: { existing: Submission | null }) {
             </Field>
             {studioType === 'writing' ? (
               <>
-                <Field label="Folklore Narrative &amp; Story Body" htmlFor="body" hint="For oral histories, include original Kasem lines or structured paragraphs.">
+                <Field label="Story or article" htmlFor="body" hint="For oral histories, include original Kasem lines or structured paragraphs.">
                   <textarea id="body" rows={8} value={body} onChange={(e) => setBody(e.target.value)} placeholder="Write or paste your cultural story, folklore, or proverbs here…" />
                 </Field>
                 <div className="field-row">
-                  <Field label="Linguistic &amp; Dialect Notes" htmlFor="translationNotes">
+                  <Field label="Language or dialect notes" htmlFor="translationNotes">
                     <textarea id="translationNotes" value={translationNotes} onChange={(e) => setTranslationNotes(e.target.value)} placeholder="Notes on tonal inflections, rare words, or community-specific idioms..." />
                   </Field>
                 </div>
@@ -560,21 +557,21 @@ function SubmissionEditor({ existing }: { existing: Submission | null }) {
 
         {step === 1 ? (
           <section>
-            <h2>Media &amp; Voice Recording Studio</h2>
+            <h2>Media</h2>
 
             {/* In-Browser Voice Recording Studio */}
             <div className="voice-studio-card iw-glass-card">
               <div className="voice-studio-head">
-                <span className="voice-icon">🎙️</span>
+                <Icon name="audio" />
                 <div>
-                  <strong>In-Browser Audio &amp; Voice Recorder</strong>
+                  <strong>Record audio</strong>
                   <p className="tiny muted">Record oral stories, pronunciations, or songs directly from your microphone.</p>
                 </div>
               </div>
               <fieldset disabled={!online || saving || (uploadPct !== null && uploadPct < 100)}><VoiceRecorder onAudioReady={(file) => void handleFile(file)} /></fieldset>
             </div>
 
-            <div className="or-divider"><span>OR UPLOAD MEDIA FILE</span></div>
+            <div className="or-divider"><span>Or upload a file</span></div>
 
             <Field label={media ? 'Replace attachment' : 'Original media file'} htmlFor="media-file" hint={mediaLimits?.acceptedMimeTypes?.length ? `Accepted: ${mediaLimits.acceptedMimeTypes.join(', ')}` : 'Video, audio, image or document.'}>
               <input id="media-file" type="file" disabled={!online || saving || (uploadPct !== null && uploadPct < 100)} onChange={(e) => void handleFile(e.target.files?.[0])} />

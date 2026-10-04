@@ -57,7 +57,7 @@ export function KawuriPage({ initialWork, initialItem, initialMode }: { initialW
     <div className="cw-page">
       <PageHeader
         kicker="Kawuri Intelligence"
-        title="A spark for your next expression."
+        title="Kawuri assistance"
         id="page-title"
         description="Explore the English. Find the context. Bring your own Kasem."
       />

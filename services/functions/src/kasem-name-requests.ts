@@ -378,6 +378,9 @@ export const decideKasemNameRequest = onCall(CALL_OPTIONS, async (req) => {
     if (!snap.exists) {
       throw new HttpsError('not-found', 'That request no longer exists.');
     }
+    if (data.expectedStatus != null && data.expectedStatus !== snap.get('status')) {
+      throw new HttpsError('aborted', 'This request changed. Load the latest version before deciding.');
+    }
     if (snap.get('status') !== 'pending') {
       throw new HttpsError('failed-precondition', 'That request has already been answered.');
     }

@@ -23,7 +23,8 @@ const publicLayout = read('src/creator/PublicLayout.tsx');
 const studioLayout = read('src/creator/StudioLayout.tsx');
 const profilePage = read('src/creator/pages/ProfilePage.tsx');
 const creatorStyles = read('src/creator/creator.css');
-const shellStyles = read('src/creator/studio-shell.css');
+const shellStyles = read('src/interface/workspace.css');
+const workspaceFrame = read('src/interface/WorkspaceFrame.tsx');
 
 // Route-based code-splitting: pages must be lazy-loaded, not statically imported.
 const LAZY_PAGES = [
@@ -53,8 +54,8 @@ assert.match(app, /<NotFoundPage variant="studio"/, 'unknown studio routes rende
 assert.match(app, /<PublicLayout><NotFoundPage/, 'unknown public routes render the branded 404 page');
 assert.match(notFound, /aria-label="Error 404"/, 'the not-found page exposes an accessible 404 code');
 assert.match(publicLayout, /aria-current=/, 'public navigation exposes its active route');
-assert.match(studioLayout, /aria-current=/, 'studio navigation exposes its active route');
-assert.match(shellStyles, /backdrop-filter:\s*blur/, 'navigation retains its glass treatment');
+assert.match(workspaceFrame, /aria-current=/, 'studio navigation exposes its active route');
+assert.match(studioLayout, /WorkspaceFrame/, 'creator workspace uses the shared navigation foundation');
 assert.match(profilePage, /className="profile-hero"/, 'profile has a clear identity hero');
 assert.match(profilePage, /aria-label="Profile sections"/, 'profile has section navigation');
 assert.match(profilePage, /className="profile-savebar"/, 'profile has a persistent save surface');
@@ -118,11 +119,11 @@ const kitDir = resolve(root, '../../packages/console-ui/src');
 const readKit = (file) => readFileSync(resolve(kitDir, file), 'utf8');
 const kit = readKit('kit.css');
 
-assert.match(studioLayout, /className={`studio iwx/,
+assert.match(workspaceFrame, /iw-workspace iwx/,
   'the workspace shell carries the kit scope class the package styles hang off');
-assert.match(studioLayout, /CommandPalette/, 'the workspace mounts the command palette');
-assert.match(studioLayout, /studio__status/, 'the workspace reports its state in a status rail');
-assert.match(shellStyles, /overflow-x: clip/,
+assert.match(workspaceFrame, /CommandPalette/, 'the workspace mounts the command palette');
+assert.match(workspaceFrame, /studio__status/, 'the workspace reports its state in a status rail');
+assert.match(shellStyles, /overflow-x:\s*clip/,
   'the page body contains stray width instead of scrolling sideways');
 assert.match(kit, /\.table-shell \{[\s\S]*?overflow-x: auto/,
   'the table shell is the only element allowed to scroll sideways');

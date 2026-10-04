@@ -1,3 +1,4 @@
+import { Icon } from '../../../interface/icons';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { errorMessage, listMusicTracks, listStickers, type MusicTrack, type Sticker } from '../api';
 import { ENTER_SEC } from '../looks';
@@ -114,7 +115,7 @@ export function MusicPanel({ project, onCommit, onSelect, time, duration, sugges
         {shown.map((t) => (
           <li key={t.id} className={`vx-track-row${inUse.has(t.id) ? ' is-used' : ''}`}>
             <button type="button" className="vx-play" aria-label={`${previewing === t.id ? 'Stop' : 'Play'} a preview of ${t.title}`} onClick={() => preview(t)}>
-              {previewing === t.id ? '❚❚' : '▶'}
+              <Icon name={previewing === t.id ? "pause" : "play"} />
             </button>
             <div className="vx-track-row__body">
               <strong>{t.title}{inUse.has(t.id) ? <b className="vx-badge">In use</b> : null}</strong>

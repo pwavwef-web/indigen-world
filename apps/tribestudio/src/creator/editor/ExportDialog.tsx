@@ -1,3 +1,4 @@
+import { WorkspaceDialog } from '../../interface/WorkspaceFrame';
 import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../../auth';
 import { useRoute } from '../../router';
@@ -134,13 +135,7 @@ export function ExportDialog({ editor, projectId, preview: openAsPreview, onClos
   const size = frameSize({ aspect, resolution, quality: preview ? 'draft' : quality });
 
   return (
-    <div className="vx-sheet" role="dialog" aria-modal="true" aria-labelledby="vx-export-title">
-      <button type="button" className="vx-sheet__backdrop" aria-label="Close" onClick={onClose} />
-      <div className="vx-sheet__card vx-export">
-        <div className="vx-export__head">
-          <h2 id="vx-export-title">{preview ? 'Preview render' : 'Export video'}</h2>
-          <button type="button" className="vx-icon" aria-label="Close" onClick={onClose}>×</button>
-        </div>
+    <WorkspaceDialog title={preview ? 'Preview render' : 'Export video'} onClose={onClose} className="vx-export">
 
         {phase === 'choose' ? (
           <>
@@ -229,7 +224,6 @@ export function ExportDialog({ editor, projectId, preview: openAsPreview, onClos
             </ul>
           </details>
         ) : null}
-      </div>
-    </div>
+    </WorkspaceDialog>
   );
 }

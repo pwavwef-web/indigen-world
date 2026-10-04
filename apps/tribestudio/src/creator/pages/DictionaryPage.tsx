@@ -1,3 +1,4 @@
+import { ProcessGuide, WorkspaceDialog } from '../../interface/WorkspaceFrame';
 /**
  * The dictionary desk: write a full Kasem entry, and see it as a learner will.
  *
@@ -91,6 +92,8 @@ export function DictionaryPage() {
   const { user } = useAuth();
   const [draft, setDraft] = useState<EntryDraft>(() => loadDraft() ?? emptyDraft());
   const [busy, setBusy] = useState(false);
+  const [reviewing, setReviewing] = useState(false);
+  const sending = useRef(false);
   const [toast, setToast] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null);
   const [matches, setMatches] = useState<PublishedHeadword[]>([]);
   const [mine, setMine] = useState<MyDictionaryContribution[]>([]);
@@ -122,6 +125,13 @@ export function DictionaryPage() {
     const timer = window.setTimeout(() => saveDraft(draft), 600);
     return () => window.clearTimeout(timer);
   }, [draft]);
+
+  const latestDraft = useRef(draft); latestDraft.current = draft;
+  useEffect(() => {
+    const flush = () => saveDraft(latestDraft.current);
+    window.addEventListener('studio:before-navigate', flush); window.addEventListener('pagehide', flush);
+    return () => { flush(); window.removeEventListener('studio:before-navigate', flush); window.removeEventListener('pagehide', flush); };
+  }, []);
 
   // What already exists under this spelling. Debounced against typing for the
   // same reason, and it warns rather than blocks — see `fetchHeadwordMatches`.
@@ -340,6 +350,7 @@ export function DictionaryPage() {
   };
 
   const submit = async () => {
+    if (sending.current) return;
     if (!canSubmit) {
       flash(
         'err',
@@ -353,9 +364,10 @@ export function DictionaryPage() {
       );
       return;
     }
-    setBusy(true);
+    sending.current = true; setBusy(true);
     try {
       await submitDictionaryEntry(draft);
+      setReviewing(false);
       clearDraft();
       setDraft(emptyDraft());
       setMatches([]);
@@ -364,22 +376,20 @@ export function DictionaryPage() {
     } catch (err) {
       flash('err', err instanceof Error ? err.message : 'The entry was not sent.');
     } finally {
-      setBusy(false);
+      sending.current = false; setBusy(false);
     }
   };
 
   if (!user) return null;
 
   return (
-    <div className="dict">
+    <div className="page dict">
       <header className="dict__head">
         <div>
           <p className="hero__eyebrow">Dictionary</p>
           <h1>Write an entry</h1>
           <p className="panel__hint">
-            Everything here reaches the same review desk and the same published dictionary
-            as a contribution made on a phone. Only the headword, one meaning and a source
-            are required — the rest is there for the words you know well.
+            Add a headword, meaning and source. Preview the entry as you write; optional details stay close to the word.
           </p>
         </div>
         <div className="dict__meter" aria-label="How complete this entry is">
@@ -396,6 +406,13 @@ export function DictionaryPage() {
         </div>
       </header>
 
+      <ProcessGuide label="Dictionary contribution process" steps={[{title:'Describe the word',detail:'Headword, meanings and examples',icon:'guide'},{title:'Check the entry',detail:'Source, permission and pronunciation',icon:'search'},{title:'Send for review',detail:'Follow the decision in your contribution history',icon:'shield'}]} />
+      {reviewing ? <WorkspaceDialog title="Review dictionary entry" onClose={() => setReviewing(false)} busy={busy}>
+        <p className="muted">This remains a dictionary word. A reviewer checks it before publication.</p>
+        <dl className="iw-confirmation"><div><dt>Headword</dt><dd>{draft.headword}</dd></div><div><dt>Meanings</dt><dd>{draft.senses.map(sense => sense.definition).filter(Boolean).join('; ')}</dd></div><div><dt>Source</dt><dd>{draft.source}</dd></div><div><dt>Publication permission</dt><dd>{draft.publicationPermission ? 'Granted if approved' : 'Not granted'}</dd></div></dl>
+        {toast?.kind === 'err' ? <p role="alert">{toast.text}</p> : null}
+        <div className="actions"><button type="button" disabled={busy} onClick={() => setReviewing(false)}>Back to editing</button><button type="button" className="button button--primary" disabled={busy} onClick={() => void submit()}>{busy ? 'Sending…' : 'Confirm and send'}</button></div>
+      </WorkspaceDialog> : null}
       {restored ? (
         <p className="callout callout--info dict__restored">
           An unfinished entry was restored from this browser. Nothing was sent.
@@ -760,6 +777,7 @@ export function DictionaryPage() {
                 className="button button--ghost-dark"
                 disabled={busy}
                 onClick={() => {
+                  if (!window.confirm('Clear this entry and its saved draft?')) return;
                   clearDraft();
                   setDraft(emptyDraft());
                   setMatches([]);
@@ -772,9 +790,9 @@ export function DictionaryPage() {
                 type="button"
                 className="button button--primary"
                 disabled={busy}
-                onClick={() => void submit()}
+                onClick={() => { if (canSubmit) setReviewing(true); else void submit(); }}
               >
-                {busy ? 'Sending…' : 'Send for review'}
+                {busy ? 'Sending…' : 'Review entry'}
               </button>
             </div>
           </section>
@@ -788,9 +806,7 @@ export function DictionaryPage() {
             <h2 className="dict__preview-heading">As a learner will see it</h2>
             <EntryPreview draft={draft} />
             <p className="tiny dict__preview-note">
-              The same layout the app draws, from the fields on the left. Sections that are
-              empty are not drawn at all — an entry with nothing recorded is shorter, never
-              padded with prose about what it does not have.
+              Preview updates as you write. Empty sections are omitted.
             </p>
           </div>
         </aside>

@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { enums } from '@indigen-world/contracts';
 import lexicalEntrySchema from '@indigen-world/contracts/schemas/lexical-entry.schema.json';
-import { Link } from '../router';
+import { ProcessGuide } from '../interface/WorkspaceFrame';
 import { canContribute, canValidate, useAuth, type Role } from '../auth';
 import {
   createEntry,
@@ -69,24 +69,10 @@ export function LexiconWorkspace() {
   if (!user) return null;
 
   return (
-    <div className="shell">
-      <header className="topbar">
-        <div className="brand">
-          <Link to="/studio" className="button button--ghost button--small">← Workspace</Link>
-          <span className="brand__text">
-            <strong>Lexicon workspace</strong>
-            <small>Contribute &amp; validate</small>
-          </span>
-        </div>
-        <div className="topbar__account">
-          <span className="account-name">
-            {user.displayName ?? user.email}
-            {role ? <span className="role-chip">{role}</span> : null}
-          </span>
-        </div>
-      </header>
-
-      <nav className="tabs">
+    <div className="page iw-lexicon">
+      <header className="page__head"><div><h1>Lexicon tools</h1><p className="muted">Create lexical entries or review the existing validation queue.</p></div></header>
+      <ProcessGuide label="Lexical entry workflow" steps={[{title:'Describe',detail:'Headword, meaning and usage'},{title:'Check permissions',detail:'Consent, licence and cultural access'},{title:'Submit for validation',detail:'Follow feedback in your submissions'}]} />
+      <nav className="tabs" aria-label="Lexicon task">
         <button type="button" className={tab === 'contribute' ? 'tab is-active' : 'tab'} onClick={() => setTab('contribute')}>
           Contribute
         </button>
@@ -97,7 +83,7 @@ export function LexiconWorkspace() {
         ) : null}
       </nav>
 
-      <main className="content">
+      <section className="content" aria-label="Lexicon task content">
         {tab === 'contribute' && canContribute(role) ? (
           <ContributeTab role={role} uid={user.uid} flash={flash} />
         ) : tab === 'contribute' ? (
@@ -108,7 +94,7 @@ export function LexiconWorkspace() {
         ) : (
           <ReviewTab flash={flash} />
         )}
-      </main>
+      </section>
 
       {toast ? <div className={`toast toast--${toast.kind}`}>{toast.text}</div> : null}
     </div>
@@ -125,7 +111,12 @@ function ContributeTab({
   flash: (kind: 'ok' | 'err', text: string) => void;
 }) {
   const [languages, setLanguages] = useState<LanguageOption[]>([]);
-  const [form, setForm] = useState<EntryInput>(() => emptyForm('kasem'));
+  const [form, setForm] = useState<EntryInput>(() => {
+    try { const saved = JSON.parse(localStorage.getItem('tribestudio:lexicon-draft:' + uid) || 'null'); if (saved && typeof saved.headword === 'string' && typeof saved.definition === 'string') return { ...emptyForm('kasem'), ...saved }; } catch { /* Recovery is optional. */ }
+    return emptyForm('kasem');
+  });
+  const saving = useRef(false);
+  useEffect(() => { try { localStorage.setItem('tribestudio:lexicon-draft:' + uid, JSON.stringify(form)); } catch { /* Keep the editor open if storage is unavailable. */ } }, [form,uid]);
   const [entries, setEntries] = useState<LexicalEntryDoc[]>([]);
   const [busy, setBusy] = useState(false);
 
@@ -145,7 +136,7 @@ function ContributeTab({
   useEffect(() => {
     void fetchLanguages().then((langs) => {
       setLanguages(langs);
-      if (langs.length > 0) setForm((f) => ({ ...f, languageId: langs[0].id }));
+      if (langs.length > 0) setForm((f) => ({ ...f, languageId: langs.some(lang => lang.id === f.languageId) ? f.languageId : langs[0].id }));
     });
     void loadEntries();
   }, [loadEntries]);
@@ -156,6 +147,7 @@ function ContributeTab({
   const valid = form.headword.trim() && form.definition.trim();
 
   const save = async (status: 'draft' | 'submitted') => {
+    if (saving.current) return;
     if (!valid) {
       flash('err', 'A headword and definition are required.');
       return;
@@ -164,6 +156,7 @@ function ContributeTab({
       flash('err', 'Please confirm consent before submitting for review.');
       return;
     }
+    saving.current = true;
     setBusy(true);
     try {
       await createEntry(uid, form, status);
@@ -173,6 +166,7 @@ function ContributeTab({
     } catch (err) {
       flash('err', err instanceof Error ? err.message : 'Save failed.');
     } finally {
+      saving.current = false;
       setBusy(false);
     }
   };

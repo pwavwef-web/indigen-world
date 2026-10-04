@@ -1,3 +1,4 @@
+import { Icon, type IconName } from '../../interface/icons';
 import { useEffect, useState } from 'react';
 import type { Campaign, Submission } from '@indigen-world/contracts/creator-models';
 import { Link, useQueryParam, useRoute } from '../../router';
@@ -37,6 +38,8 @@ export function SubmissionsPage() {
 
   // An expression is followed on its own page, which shows the reviewer's
   // answer and offers the correction; it is named by its Kasem, not its gloss.
+  const collectionDestination = (s: Submission) => s.collectionKind === 'dictionary' ? '/studio/dictionary' : s.collectionKind === 'expressions' ? '/studio/expressions' : null;
+  const formatIcon = (s: Submission): IconName => s.collectionKind === 'dictionary' ? 'guide' : s.collectionKind === 'expressions' ? 'translation' : ({ writing:'doc',image:'image',audio:'audio',video:'video',translation:'translation' } as Record<string,IconName>)[s.studioType || 'writing'] || 'doc';
   const isExpression = (s: Submission) => s.collectionKind === 'expressions';
   const titleOf = (s: Submission) => (isExpression(s) ? s.expression?.phrase ?? s.body ?? s.title : s.title) || 'Untitled';
 
@@ -45,7 +48,7 @@ export function SubmissionsPage() {
       id: 'title',
       header: 'Title',
       cell: (s) => (
-        <Link to={isExpression(s) ? '/studio/expressions' : `/studio/submissions/${s.id}`}>{titleOf(s)}</Link>
+        <Link className="iw-content-title" to={collectionDestination(s) || `/studio/submissions/${s.id}`}><Icon name={formatIcon(s)} /><span>{titleOf(s)}</span></Link>
       ),
       sort: (s) => titleOf(s),
       search: (s) => `${titleOf(s)} ${s.title ?? ''}`,
@@ -54,7 +57,7 @@ export function SubmissionsPage() {
       id: 'category',
       header: 'Category',
       width: '150px',
-      cell: (s) => (isExpression(s) ? 'Expression' : s.category || '—'),
+      cell: (s) => (s.collectionKind === 'dictionary' ? 'Dictionary word' : isExpression(s) ? 'Expression' : s.category || '—'),
       sort: (s) => s.category ?? '',
       search: (s) => s.category ?? '',
     },
@@ -81,8 +84,8 @@ export function SubmissionsPage() {
       width: '86px',
       cell: (s) => (
         <span className="dt-actions">
-          {isExpression(s) ? (
-            <Link to="/studio/expressions" className="button button--small">Open</Link>
+          {collectionDestination(s) ? (
+            <Link to={collectionDestination(s)!} className="button button--small">Open</Link>
           ) : ['DRAFT', 'NEEDS_REVISION'].includes(s.status) ? (
             <Link to={`/studio/submissions/${s.id}/edit`} className="button button--small button--primary">Continue</Link>
           ) : (
@@ -93,8 +96,8 @@ export function SubmissionsPage() {
     },
   ];
 
-  if (failed) return <div className="page"><h1>Your content</h1><LoadError onRetry={retry} /></div>;
-  if (loading) return <div className="page"><h1>Submissions</h1><Skeleton lines={5} /></div>;
+  if (failed) return <div className="page"><h1>Content library</h1><LoadError onRetry={retry} /></div>;
+  if (loading) return <div className="page"><h1>Content library</h1><Skeleton lines={5} /></div>;
 
   return (
     <div className="page">

@@ -1,3 +1,4 @@
+import { Icon } from '../interface/icons';
 import { useEffect, useState } from 'react';
 import { PortalLink, useWorkspace } from './workspace';
 import { livePaymentService, previewService, type Streak } from './rewards';
@@ -22,7 +23,7 @@ export function HomeStreak() {
   const title = failed ? 'View your streak' : !streak ? 'Loading streak…' : streak.current ? `${streak.current}-day streak` : 'Start your streak';
   const hint = failed ? 'Streak unavailable right now.' : !streak ? 'Checking your activity' : streak.activeToday ? 'You’ve contributed today.' : streak.current ? 'Submit a new task today to keep it going.' : 'Submit a new task today to begin.';
   return <PortalLink to={data.paths.section('streak')} className="cw-home-streak" ariaLabel={title + '. ' + hint + ' View streak details.'}>
-    <strong><span aria-hidden="true">🔥</span> {title} <span aria-hidden="true">→</span></strong>
+    <strong><Icon name="activity" /> {title} <span aria-hidden="true">→</span></strong>
     <small>{hint}</small>
   </PortalLink>;
 }
