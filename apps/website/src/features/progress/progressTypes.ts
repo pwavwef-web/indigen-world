@@ -2,8 +2,11 @@
  * src/features/progress/progressTypes.ts
  *
  * Types for the Indigen World launch progress tracking system ("Help Fill the Jars").
- * Models categories, counting units, targets, validation criteria, and aggregate metrics.
+ * Models categories, counting units, targets, validation criteria, aggregate metrics,
+ * cultural palettes, breakdown drawers, milestone history, and audit parameters.
  */
+
+import type { IconName } from '../../components/Icon';
 
 export type ContributionCategoryId =
   | 'lexicon'
@@ -17,9 +20,33 @@ export type ContributionCategoryId =
   | 'proverbs'
   | 'pronunciation';
 
-export type VesselViewMode = 'vertical' | 'horizontal';
+export type VesselViewMode = 'vertical' | 'horizontal' | 'cultural' | 'table';
 
-import type { IconName } from '../../components/Icon';
+export interface CulturalPalette {
+  primary: string;
+  secondary: string;
+  glow: string;
+  liquidGrad: [string, string, string, string];
+  earthTone: string;
+}
+
+export interface CategorySubBreakdown {
+  label: string;
+  count: number;
+  percentage: number;
+}
+
+export interface CategoryTaskPrompt {
+  taskLabel: string;
+  promptText: string;
+  actionUrl: string;
+}
+
+export interface AuditQueryInfo {
+  collection: string;
+  filter: string;
+  securityRule: string;
+}
 
 export interface CategoryDefinition {
   id: ContributionCategoryId;
@@ -34,6 +61,13 @@ export interface CategoryDefinition {
   ctaUrl: string;
   iconName: IconName;
   accentHue: string;
+  culturalPalette: CulturalPalette;
+  hasAudioSample?: boolean;
+  sampleAudioType?: 'word' | 'song' | 'narration';
+  sampleAudioLabel?: string;
+  breakdowns: CategorySubBreakdown[];
+  activeQueuePrompt: CategoryTaskPrompt;
+  auditQuery: AuditQueryInfo;
   highlightCategory?: boolean;
 }
 
@@ -48,6 +82,9 @@ export interface CategoryProgress {
   isBeyondTarget: boolean;
   isTargetSetting: boolean;
   needsContributions: boolean;
+  velocityWeek: number;
+  sparklineData: number[];
+  pledgeCount: number;
 }
 
 export interface LaunchProgressConfig {
@@ -56,6 +93,22 @@ export interface LaunchProgressConfig {
   categoryTargets: Record<ContributionCategoryId, number | null>;
   notes?: string;
   updatedAt?: string;
+}
+
+export interface MilestoneRecord {
+  id: string;
+  date: string;
+  title: string;
+  categoryId: ContributionCategoryId;
+  description: string;
+  countReached: number;
+}
+
+export interface ContributorHonor {
+  name: string;
+  location: string;
+  role: string;
+  category: string;
 }
 
 export interface ProgressState {
@@ -67,4 +120,5 @@ export interface ProgressState {
   targetsReachedCount: number;
   totalWithTargetsCount: number;
   fixtureMode: boolean;
+  totalCommunityPledges: number;
 }

@@ -5,29 +5,39 @@
  *
  * Visual highlights:
  *  - Accurate SVG liquid fill geometry from left to right [0% to 100%].
- *  - Advancing vertical meniscus curve.
- *  - Bubbles drifting horizontally toward the advancing fill edge.
- *  - Translucent glass walls, specular gleams, and mounting hardware.
- *  - Clear surrounding metadata, count, target, and percentage.
- *  - Prominent contribution CTA directly below the vessel.
- *  - Responsive without horizontal scroll on mobile viewports.
+ *  - Category-specific cultural palette gradients.
+ *  - Review queue vapor layer on advancing edge.
+ *  - 30-day growth sparkline and velocity tags.
+ *  - Active direct queue task prompt.
+ *  - Audio sample preview and modal actions (Breakdown, Pledge, Share, Audit).
  */
 
-import React, { useId } from 'react';
+import React, { useId, useState } from 'react';
 import type { CategoryProgress } from './progressTypes';
 import { Icon } from '../../components/Icon';
 import { Button } from '../../components/Button';
-import { liquidAppearance } from './liquidAppearance';
-import '../../styles/progressLiquid.css';
+import { playSampleAudioPreview, playVesselChime } from './progressAudio';
+import { getLiquidVisuals, LiquidBubbles } from './liquidVisuals';
 
 interface HorizontalTankProps {
   progress: CategoryProgress;
   canAnimate: boolean;
   staggerIndex?: number;
-  onInfo: (progress: CategoryProgress) => void;
+  onOpenBreakdown?: (progress: CategoryProgress) => void;
+  onOpenShare?: (progress: CategoryProgress) => void;
+  onOpenAudit?: (progress: CategoryProgress) => void;
+  onOpenPledge?: (progress: CategoryProgress) => void;
 }
 
-export function HorizontalTank({ progress, canAnimate, staggerIndex = 0, onInfo }: HorizontalTankProps) {
+export function HorizontalTank({
+  progress,
+  canAnimate,
+  staggerIndex = 0,
+  onOpenBreakdown,
+  onOpenShare,
+  onOpenAudit,
+  onOpenPledge,
+}: HorizontalTankProps) {
   const {
     category,
     approvedCount,
@@ -39,40 +49,68 @@ export function HorizontalTank({ progress, canAnimate, staggerIndex = 0, onInfo 
     isBeyondTarget,
     isTargetSetting,
     needsContributions,
+    velocityWeek,
+    sparklineData,
+    pledgeCount,
   } = progress;
 
   const clipId = useId();
-  const appearance = liquidAppearance(fillPercentage, isTargetSetting);
+  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
 
   // Horizontal chamber geometry
-  // Left interior: X = 34
-  // Total fillable width: 332px
-  // Height: 72px (Y = 28 to 100)
   const interiorLeftX = 34;
   const maxFillWidth = 332;
-  const currentFillWidth = (appearance.fillPercent / 100) * maxFillWidth;
+  const liquid = getLiquidVisuals(fillPercentage, isTargetSetting);
+  const currentFillWidth = liquid.fill * maxFillWidth;
   const advancingEdgeX = interiorLeftX + currentFillWidth;
+
+  const handleAudioPreview = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsPlayingAudio(true);
+    playSampleAudioPreview(category.sampleAudioType || 'word');
+    setTimeout(() => setIsPlayingAudio(false), 1200);
+  };
+
+  const handleCardClick = () => {
+    playVesselChime();
+    onOpenBreakdown?.(progress);
+  };
+
+  // Sparkline points
+  const sparkMin = Math.min(...sparklineData, 0);
+  const sparkMax = Math.max(...sparklineData, target ?? 100);
+  const sparkRange = Math.max(1, sparkMax - sparkMin);
+  const sparkPoints = sparklineData
+    .map((val, idx) => {
+      const x = 10 + (idx / Math.max(1, sparklineData.length - 1)) * 60;
+      const y = 28 - ((val - sparkMin) / sparkRange) * 20;
+      return `${x},${y}`;
+    })
+    .join(' ');
 
   const entranceStyle: React.CSSProperties = {
     animationDelay: `${staggerIndex * 60}ms`,
-    '--liquid-colour': appearance.colour,
-    '--liquid-deep': appearance.deep,
-    '--liquid-light': appearance.light,
+    animation: canAnimate ? undefined : 'none',
+    '--liquid-colour': liquid.colour,
+    '--liquid-glow': `color-mix(in srgb, ${liquid.colour} 18%, transparent)`,
   } as React.CSSProperties;
+
+  const palette = category.culturalPalette;
 
   return (
     <article
       className={`vessel-card vessel-card--horizontal ${isTargetReached ? 'vessel-card--reached' : ''} ${needsContributions ? 'vessel-card--highlighted' : ''}`}
       style={entranceStyle}
-      data-motion={canAnimate ? 'active' : 'paused'}
-      data-liquid-stage={appearance.stage}
+      data-motion={canAnimate ? 'animated' : 'static'}
+      data-liquid-stage={liquid.stage}
       aria-labelledby={`tank-title-${category.id}`}
+      onClick={handleCardClick}
     >
       <div className="tank-layout">
         {/* Left / Top Info Header */}
         <div className="tank-header">
           <div className="tank-header__icon-title">
-            <div className="vessel-icon-badge" aria-hidden="true">
+            <div className="vessel-icon-badge" style={{ backgroundColor: `${palette.primary}18`, color: palette.primary }} aria-hidden="true">
               <Icon name={category.iconName} size={22} />
             </div>
             <div>
@@ -101,33 +139,49 @@ export function HorizontalTank({ progress, canAnimate, staggerIndex = 0, onInfo 
                     In progress
                   </span>
                 )}
+
+                {velocityWeek > 0 && (
+                  <span className="vessel-velocity-pill" title={`${velocityWeek} approved this week`}>
+                    +{velocityWeek}/wk
+                  </span>
+                )}
               </div>
+              <button type="button" className="vessel-info-button" onClick={(event) => { event.stopPropagation(); onOpenBreakdown?.(progress); }}>
+                <Icon name="context" size={14} /> About &amp; how to help
+              </button>
             </div>
           </div>
 
           {/* Counts & Percentage readout */}
-          <div className="tank-metrics">
-            <div className="vessel-metric__main">
-              <span className="vessel-metric__count">{approvedCount.toLocaleString()}</span>
-              <span className="vessel-metric__unit">
-                {approvedCount === 1 ? category.unit : category.unitPlural}
+          <div className="tank-header__readout">
+            <div className="tank-metric-counts">
+              <span className="tank-metric__approved">{approvedCount.toLocaleString()}</span>
+              <span className="tank-metric__target">
+                {isTargetSetting ? 'Target setting' : `/ ${target?.toLocaleString()} ${category.unitPlural}`}
               </span>
             </div>
-            <div className="tank-metrics__status">
+
+            <div className="tank-metric-percent">
               {isTargetSetting ? (
-                <span className="vessel-target-state">Launch target being set</span>
+                <span className="tank-percent-setting">Target setting</span>
               ) : (
-                <span className="vessel-target-state">
-                  of <strong>{target?.toLocaleString()}</strong> targeted ({percentage}%)
-                </span>
+                <span className="tank-percent-value">{percentage}%</span>
               )}
-              {awaitingReviewCount != null && awaitingReviewCount > 0 ? (
-                <span className="vessel-review-note" title="Submissions awaiting review">
-                  <span className="vessel-review-note__dot" aria-hidden="true" />
-                  {awaitingReviewCount} awaiting review
-                </span>
-              ) : null}
             </div>
+
+            {/* Sparkline */}
+            {sparklineData.length > 1 && <div className="tank-sparkline-box" title="30-day verified growth">
+              <svg viewBox="0 0 80 32" className="sparkline-svg" aria-hidden="true">
+                <polyline
+                  fill="none"
+                  stroke={palette.primary}
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  points={sparkPoints}
+                />
+              </svg>
+            </div>}
           </div>
         </div>
 
@@ -141,197 +195,179 @@ export function HorizontalTank({ progress, canAnimate, staggerIndex = 0, onInfo 
           aria-valuemax={target ?? undefined}
           aria-valuetext={
             isTargetSetting
-              ? `${approvedCount} ${category.unitPlural} approved; target is being set`
+              ? `${approvedCount} ${category.unitPlural} approved; target being set`
               : `${approvedCount} of ${target} ${category.unitPlural} approved (${percentage}%)`
           }
         >
           <svg
-            viewBox="0 0 400 130"
+            viewBox="0 0 400 128"
             className={`tank-svg ${canAnimate ? 'tank-svg--animated' : 'tank-svg--static'}`}
             aria-hidden="true"
           >
             <defs>
-              {/* Horizontal liquid gradient */}
-              <linearGradient className="liquid-volume" id={`tank-liquid-${clipId}`} x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor={appearance.deep} stopOpacity="0.98" />
-                <stop offset="60%" stopColor={appearance.colour} stopOpacity="0.94" />
-                <stop offset="90%" stopColor={appearance.light} stopOpacity="0.92" />
-                <stop offset="100%" stopColor={appearance.surface} stopOpacity="0.98" />
+              {/* Cultural liquid gradient */}
+              <linearGradient id={`tank-grad-${clipId}`} x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor={liquid.gradient[0]} stopOpacity="0.94" />
+                <stop offset="45%" stopColor={liquid.gradient[1]} stopOpacity="0.9" />
+                <stop offset="85%" stopColor={liquid.gradient[2]} stopOpacity="0.92" />
+                <stop offset="100%" stopColor={liquid.gradient[3]} stopOpacity="0.96" />
               </linearGradient>
 
-              {/* Advancing meniscus gradient */}
-              <linearGradient id={`meniscus-grad-${clipId}`} x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor={appearance.light} stopOpacity="0.8" />
-                <stop offset="100%" stopColor="#ffffff" stopOpacity="0.95" />
-              </linearGradient>
-
-              {/* Glass surface reflection */}
-              <linearGradient id={`tank-glass-${clipId}`} x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stopColor="#ffffff" stopOpacity="0.4" />
-                <stop offset="25%" stopColor="#ffffff" stopOpacity="0.1" />
-                <stop offset="75%" stopColor="#ffffff" stopOpacity="0.04" />
+              {/* Glass glare highlight */}
+              <linearGradient id={`tank-glare-${clipId}`} x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stopColor="#ffffff" stopOpacity="0.5" />
+                <stop offset="35%" stopColor="#ffffff" stopOpacity="0.1" />
+                <stop offset="80%" stopColor="#ffffff" stopOpacity="0.0" />
                 <stop offset="100%" stopColor="#ffffff" stopOpacity="0.25" />
               </linearGradient>
 
-              {/* Chamber interior clip path */}
+              {/* Tank interior cavity clip path */}
               <clipPath id={`tank-cavity-${clipId}`}>
-                <rect x="34" y="28" width="332" height="74" rx="20" />
+                <rect x="34" y="28" width="332" height="72" rx="36" ry="36" />
               </clipPath>
-              <clipPath id={`tank-fill-${clipId}`}>
-                <rect x="34" y="28" width={currentFillWidth} height="74" />
+              <clipPath id={`tank-liquid-bounds-${clipId}`}>
+                <rect x="34" y="28" width={currentFillWidth} height="72" />
               </clipPath>
             </defs>
 
-            {/* Rear shadow */}
-            <ellipse cx="200" cy="116" rx="160" ry="8" fill="rgba(20, 37, 67, 0.10)" />
-            <ellipse className="liquid-glow" cx="200" cy="114" rx="145" ry="6" fill={appearance.colour} />
+            {/* Tank Mounting Hardware Feet */}
+            <rect x="68" y="96" width="18" height="18" rx="4" fill="#64748b" />
+            <rect x="314" y="96" width="18" height="18" rx="4" fill="#64748b" />
+            <ellipse cx="77" cy="114" rx="14" ry="4" fill="rgba(15, 23, 42, 0.2)" />
+            <ellipse cx="323" cy="114" rx="14" ry="4" fill="rgba(15, 23, 42, 0.2)" />
 
-            {/* Left & Right mounting hardware / end-caps */}
-            <rect x="18" y="42" width="16" height="46" rx="4" fill="#94a3b8" />
-            <rect x="14" y="46" width="6" height="38" rx="2" fill="#64748b" />
-            <rect x="366" y="42" width="16" height="46" rx="4" fill="#94a3b8" />
-            <rect x="380" y="46" width="6" height="38" rx="2" fill="#64748b" />
-
-            {/* Rear chamber wall */}
+            {/* Glass Tank Shell Background */}
             <rect
               x="32"
               y="26"
               width="336"
-              height="78"
-              rx="22"
+              height="76"
+              rx="38"
+              ry="38"
               fill="rgba(240, 249, 255, 0.45)"
-              stroke="rgba(30, 58, 102, 0.16)"
-              strokeWidth="2"
+              stroke="rgba(186, 230, 253, 0.85)"
+              strokeWidth="2.5"
             />
 
-            {/* Liquid & Horizontal Bubbles */}
+            {/* Clipped Liquid Fill and Meniscus */}
             <g clipPath={`url(#tank-cavity-${clipId})`}>
-              {currentFillWidth > 0 ? (
-                <g clipPath={`url(#tank-fill-${clipId})`}>
-                  {/* Liquid fill block */}
+              {/* Liquid Fill */}
+              {!isTargetSetting && currentFillWidth > 0 && (
+                <g className="tank-liquid-group">
                   <rect
+                    className="liquid-fill"
                     x="34"
                     y="28"
                     width={currentFillWidth}
-                    height="74"
-                    fill={`url(#tank-liquid-${clipId})`}
-                    className="tank-liquid-fill"
+                    height="72"
+                    fill={`url(#tank-grad-${clipId})`}
                   />
 
-                  {/* Advancing liquid meniscus curve */}
+                  {/* Advancing Liquid Meniscus Wave */}
                   <path
-                    d={`M ${advancingEdgeX - 4},28
-                       Q ${advancingEdgeX + (canAnimate ? 4 : 2)},65 ${advancingEdgeX - 4},102
-                       L ${advancingEdgeX},102
-                       L ${advancingEdgeX},28
-                       Z`}
-                    fill={`url(#meniscus-grad-${clipId})`}
-                    className="liquid-surface liquid-surface--horizontal"
+                    d={`M ${advancingEdgeX} 28 Q ${advancingEdgeX + 6} 64 ${advancingEdgeX} 100 L ${advancingEdgeX - 6} 100 L ${advancingEdgeX - 6} 28 Z`}
+                    fill={liquid.gradient[3]}
+                    opacity="0.85"
+                    className="tank-meniscus-wave"
                   />
 
-                  {/* Horizontal Bubbles drifting right toward the advancing edge */}
-                  <g className="tank-bubbles" aria-hidden="true">
-                    {Array.from({ length: appearance.bubbleCount }, (_, index) => (
-                      <circle
-                        key={index}
-                        cx={canAnimate ? interiorLeftX + 3 : interiorLeftX + currentFillWidth * (0.12 + ((index * 17) % 76) / 100)}
-                        cy={42 + ((index * 13) % 43)}
-                        r={(1.5 + (index % 4) * 0.65) * appearance.bubbleScale}
-                        className="liquid-bubble liquid-bubble--horizontal"
-                        style={{
-                          '--bubble-duration': `${appearance.bubbleDuration + (index % 4) * 0.4}s`,
-                          '--bubble-delay': `${-index * 0.71}s`,
-                          '--bubble-drift': `${currentFillWidth}px`,
-                        } as React.CSSProperties}
-                      />
-                    ))}
-                  </g>
+                  {/* Drifting horizontal bubbles */}
+                    <g className="tank-bubbles" clipPath={`url(#tank-liquid-bounds-${clipId})`}>
+                      <LiquidBubbles fillPercentage={liquid.fill * 100} x={34} y={32} width={currentFillWidth} height={64} horizontal />
+                    </g>
                 </g>
-              ) : null}
+              )}
 
-              {/* Glass internal depth */}
-              <rect
-                x="34"
-                y="28"
-                width="332"
-                height="74"
-                rx="20"
-                fill={`url(#tank-glass-${clipId})`}
-                style={{ mixBlendMode: 'overlay' }}
-              />
+              {/* Review Queue droplets on advancing edge */}
+              {awaitingReviewCount !== null && awaitingReviewCount !== undefined && awaitingReviewCount > 0 && (
+                <g className="tank-review-droplets" opacity="0.8">
+                  <circle cx={Math.min(355, advancingEdgeX + 16)} cy="64" r="3" fill="#facc15" />
+                  <circle cx={Math.min(360, advancingEdgeX + 26)} cy="56" r="2" fill="#facc15" />
+                </g>
+              )}
             </g>
 
-            {/* Calibrated measurement tick marks along bottom rail */}
-            <g className="tank-gauges" opacity="0.45" stroke="rgba(30, 58, 102, 0.6)" strokeWidth="1.2">
-              {/* 25% */}
-              <line x1="117" y1="94" x2="117" y2="102" />
-              {/* 50% */}
-              <line x1="200" y1="92" x2="200" y2="102" />
-              {/* 75% */}
-              <line x1="283" y1="94" x2="283" y2="102" />
-              {/* 100% */}
-              <line x1="366" y1="90" x2="366" y2="102" />
-            </g>
+            {/* Tank Cap End Ring Accents */}
+            <ellipse cx="48" cy="64" rx="10" ry="34" fill="none" stroke="rgba(186, 230, 253, 0.7)" strokeWidth="2" />
+            <ellipse cx="352" cy="64" rx="10" ry="34" fill="none" stroke="rgba(186, 230, 253, 0.7)" strokeWidth="2" />
 
-            {/* Foreground Glass Outlines */}
+            {/* Longitudinal Glass Reflection Glare */}
             <rect
-              x="32"
-              y="26"
-              width="336"
-              height="78"
-              rx="22"
-              fill="none"
-              stroke="rgba(255, 255, 255, 0.85)"
-              strokeWidth="3"
+              x="52"
+              y="32"
+              width="296"
+              height="18"
+              rx="9"
+              ry="9"
+              fill={`url(#tank-glare-${clipId})`}
+              pointerEvents="none"
             />
-            <rect
-              x="32"
-              y="26"
-              width="336"
-              height="78"
-              rx="22"
-              fill="none"
-              stroke="rgba(30, 58, 102, 0.22)"
-              strokeWidth="1.5"
-            />
-
-            {/* Top horizontal specular gleam */}
-            <line
-              x1="52"
-              y1="34"
-              x2="348"
-              y2="34"
-              stroke="rgba(255, 255, 255, 0.75)"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-            />
-
-            {/* Target Reached celebration stars */}
-            {isTargetReached ? (
-              <g className="tank-celebration-stars" aria-hidden="true">
-                <path
-                  d="M 366,22 L 369,28 L 375,30 L 369,32 L 366,38 L 364,32 L 358,30 L 364,28 Z"
-                  fill="#f59e0b"
-                />
-              </g>
-            ) : null}
           </svg>
         </div>
 
-        {/* Action and details row */}
-        <div className="tank-footer">
-          <Button
-            href={category.ctaUrl}
-            external
-            variant={needsContributions ? 'primary' : 'secondary'}
-            className="vessel-cta-button"
-          >
-            {category.ctaLabel}
-          </Button>
+        {/* Active Direct Queue Task Prompt */}
 
-          <button type="button" className="vessel-info-button" aria-haspopup="dialog" aria-label={`About ${category.title} and how it is counted`} onClick={() => onInfo(progress)}>
-            About &amp; counting
-          </button>
+        {/* Footer actions and CTA */}
+        <div className="tank-footer" onClick={(e) => e.stopPropagation()}>
+          <div className="vessel-actions-strip">
+            {category.hasAudioSample && (
+              <button
+                type="button"
+                className={`vessel-tool-btn ${isPlayingAudio ? 'is-playing' : ''}`}
+                onClick={handleAudioPreview}
+                title={`Listen to sample ${category.sampleAudioLabel}`}
+              >
+                <Icon name="volume" size={13} />
+                {isPlayingAudio ? 'Playing…' : 'Sample'}
+              </button>
+            )}
+
+            <button
+              type="button"
+              className="vessel-tool-btn"
+              onClick={() => onOpenBreakdown?.(progress)}
+              title="Inspect composition"
+            >
+              <Icon name="layers" size={13} /> Breakdown
+            </button>
+
+            <button
+              type="button"
+              className="vessel-tool-btn"
+              onClick={() => onOpenPledge?.(progress)}
+              title={`Pledge contributions (${pledgeCount} pledged)`}
+            >
+              <Icon name="check" size={13} /> Pledge
+            </button>
+
+            <button
+              type="button"
+              className="vessel-tool-btn"
+              onClick={() => onOpenShare?.(progress)}
+              title="Share progress"
+            >
+              <Icon name="chat" size={13} /> Share
+            </button>
+
+            <button
+              type="button"
+              className="vessel-tool-btn"
+              onClick={() => onOpenAudit?.(progress)}
+              title="Inspect query math"
+            >
+              <Icon name="source" size={13} /> Audit
+            </button>
+          </div>
+
+          <div className="tank-cta-group">
+            <Button
+              href={category.ctaUrl}
+              external
+              variant={needsContributions ? 'primary' : 'secondary'}
+            >
+              {category.ctaLabel}
+            </Button>
+          </div>
         </div>
       </div>
     </article>

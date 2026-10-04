@@ -89,3 +89,5 @@ date identifies when the post was prepared; it does not prove the update is live
 6. Add the new post to this list so Chinedum can find it.
 
 - [2026-10-01: Bring Indigen World to your desktop](2026-10-01-desktop-wallpapers/README.md) — 50 AI-generated wallpaper illustrations prepared in the repository; Blogger publication and public distribution pending.
+
+- [2026-10-04: Immersive community progress](2026-10-04-immersive-progress/README.md) — repository draft; deployment stopped at user request.
