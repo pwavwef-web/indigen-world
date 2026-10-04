@@ -28,7 +28,7 @@ Actual product screenshots, visually inspected after capture:
 - `images/progress-fullscreen-desktop.png`: Desktop fullscreen progress gallery, captured from a 1440 × 1000 browser viewport as a full-page PNG.
 - `images/progress-popup-mobile.png`: Mobile explanation popup, captured from a 390 × 844 browser viewport.
 
-Credit: Indigen World. Both screenshots were captured from the actual locally served product at `http://127.0.0.1:5179/progress` on 2026-10-04 at 13:52 UTC. The page used live production aggregate counts, including 357 words and 105 expressions, without fixture or sample data. Motion was manually paused for these still captures. The captions identify them as local previews; the images do not themselves prove deployment of the redesign.
+Credit: Indigen World. Both screenshots were captured from the actual locally served product at `http://127.0.0.1:5179/progress` on 2026-10-04 at 13:59 UTC, after the final popup copy cleanup. The page used live production aggregate counts, including 357 words and 105 expressions, without fixture or sample data. Motion was manually paused for these still captures. The captions identify them as local previews; the images do not themselves prove deployment of the redesign.
 
 Blogger: choose Insert image → Upload from computer for both assets, replace each relative `src` in `post.html` with its Blogger image URL, and keep the descriptive alt text and captions. Preview the article at desktop and phone widths.
 
@@ -37,7 +37,7 @@ Blogger: choose Insert image → Upload from computer for both assets, replace e
 - `npm run check:website` passed on 2026-10-04: TypeScript checks, all 13 public-route checks, all 12 progress calculation/presentation invariants, four runtime helper tests and the production build.
 - The existing 11 progress checks are preserved. The added presentation check covers immersive route wiring, hidden global header/footer, popup buttons, native dialog accessibility, Escape handling and focus-restoration hooks.
 - Runtime tests import the actual liquid appearance helper and cover empty/invalid inputs, unknown targets, exact colour milestones and colour continuity, increasing and bounded bubble volume, and exceeded-target clamping.
-- Behavioral checks passed in an isolated local Chromium browser: 10 categories without global header/footer or dropdowns, no production sample controls, all popup paths, Escape and backdrop dismissal, body scroll lock, trigger focus restoration, both vessel views, and mobile layout without horizontal overflow or clipped popups. Reduced motion stopped vessel bubbles and background auras.
+- Behavioral checks passed in an isolated local Chromium browser, most recently at 14:00 UTC on 2026-10-04: 10 categories without global header/footer or dropdowns, no production sample controls, all popup paths, Escape and backdrop dismissal, body scroll lock, trigger focus restoration, both vessel views, and mobile layout without horizontal overflow or clipped popups. Reduced motion stopped vessel bubbles and background auras.
 - Screenshot captures were visually inspected. The local preview used live production data; test fixtures were not used in the release images.
 - Deployment status: pending. Update this section and the article availability statement only after public Hosting release evidence is available.
 
