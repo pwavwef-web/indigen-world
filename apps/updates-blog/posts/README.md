@@ -83,3 +83,5 @@ date identifies when the post was prepared; it does not prove the update is live
 5. Confirm the release is available to its intended audience before publishing
    release claims. Replace the sharing placeholder with the published article URL.
 6. Add the new post to this list so Chinedum can find it.
+
+- [2026-10-01: Bring Indigen World to your desktop](2026-10-01-desktop-wallpapers/README.md) — 50 AI-generated wallpaper illustrations prepared in the repository; Blogger publication and public distribution pending.

@@ -106,6 +106,9 @@ apps/mobile/android/app/production/
 # Media exports
 exports/
 
+# Oversized wallpaper bundle; keep the individual source wallpapers instead.
+assets/wallpapers/indigen-world-50.zip
+
 
 # Production AdMob identifiers. Every value embeds the account's publisher id,
 # so they are supplied per machine (this file) or from CI secrets, never from
