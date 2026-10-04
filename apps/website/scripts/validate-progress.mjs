@@ -325,8 +325,8 @@ const testCategory = { id: 'lexicon', title: 'Words & Meanings' };
   );
   assert.match(
     progressConfigSource,
-    /lexicon:\s*null,[\s\S]*?expressions:\s*null/,
-    'production categoryTargets default to null ("Target being set")'
+    /lexicon:\s*200000,[\s\S]*?expressions:\s*1000/,
+    'production categoryTargets configure confirmed launch targets'
   );
 
   // Calculation implementation matches invariants
