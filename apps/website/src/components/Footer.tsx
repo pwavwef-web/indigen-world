@@ -52,6 +52,7 @@ export function Footer() {
             <Link to="dictionary">Dictionary</Link>
             <Link to="contribute">Contribute</Link>
             <Link to="progress">Our Progress</Link>
+            <Link to="labs">Labs</Link>
             <a href="https://updates.indigenworld.com">Updates</a>
           </div>
           <div>
