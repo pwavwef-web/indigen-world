@@ -6,6 +6,7 @@ date identifies when the post was prepared; it does not prove the update is live
 
 ## Posts
 
+- [2026-10-04: One design for every workspace](2026-10-04-one-design-for-every-workspace/README.md) — unpublished article; TribeStudio, contributor and validator workspaces, public creator pages and sign-in screens redrawn on the Comitia design system with a Display panel (dark mode, text size, contrast, animations off). Implemented and verified locally against Auth/Firestore/Storage emulators (typecheck, 68 tests, build, 60+ screenshots without page overflow); callable-backed steps unverified; not committed or deployed. Includes actual screenshots of labelled test records.
 - [2026-10-04: Website animations that leave room to read](2026-10-04-clear-website-headers/README.md) — shared headers reserve space for text, actions and search alongside or above their decorative artwork. Deployed October 4; all 13 shared banner layouts and public release assets verified. Includes actual preview screenshots; Blogger publication pending.
 
 - [2026-10-04: More room to watch our community progress grow](2026-10-04-progress-fullscreen-popups/README.md) — fullscreen progress redesign with popup explanations, red/yellow/blue/green liquid, and growing bubbles. Deployed October 4 with verified public assets and actual local product screenshots; article unpublished.
