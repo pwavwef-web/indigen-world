@@ -1,0 +1,163 @@
+{
+  "verifiedAt": "2026-10-04T16:44:48.961Z",
+  "commit": "761213f7b532d31cfffe920b124e79a1c7a8778f",
+  "project": "project-kassena-7e026",
+  "site": "indigen-world",
+  "results": [
+    {
+      "url": "https://indigenworld.com/progress",
+      "status": 200,
+      "contentType": "text/html; charset=utf-8",
+      "sha256": "060daa0134fae15671df7d273ea4af18afb176347686623133aa1a41de1e95c0",
+      "matchesBuild": true
+    },
+    {
+      "url": "https://indigenworld.com/assets/index-DsVr_MUE.js",
+      "status": 200,
+      "contentType": "text/javascript; charset=utf-8",
+      "sha256": "9f69f3b34c5ef207ec64c6dbbebc51aa20716b8cf66200c423d5fcda2ba62b0c",
+      "matchesBuild": true
+    },
+    {
+      "url": "https://indigenworld.com/assets/jsx-runtime-Cltr0gcK.js",
+      "status": 200,
+      "contentType": "text/javascript; charset=utf-8",
+      "sha256": "e26f105e9234109963ded8d5eba4b903477be697960ecda8ea710c5151aab8c3",
+      "matchesBuild": true
+    },
+    {
+      "url": "https://indigenworld.com/assets/SiteMotion-D87wFnt3.js",
+      "status": 200,
+      "contentType": "text/javascript; charset=utf-8",
+      "sha256": "dc48b725406ab81f9490d98ddcda5fd3d013dd43b467b9d6629f1012ae751da5",
+      "matchesBuild": true
+    },
+    {
+      "url": "https://indigenworld.com/assets/useDocumentMeta-Bb6PdDgU.js",
+      "status": 200,
+      "contentType": "text/javascript; charset=utf-8",
+      "sha256": "30ca4b59c47587f405a337317796d5346bde1f8dbb8be5b332092ec29a7dcce3",
+      "matchesBuild": true
+    },
+    {
+      "url": "https://indigenworld.com/assets/Icon-_kPzNm4E.js",
+      "status": 200,
+      "contentType": "text/javascript; charset=utf-8",
+      "sha256": "701d1b28866c4977857705de9e62fa340cceee927558fa6445a4826386466d8d",
+      "matchesBuild": true
+    },
+    {
+      "url": "https://indigenworld.com/assets/EditorialScene-Cn7cZQ12.js",
+      "status": 200,
+      "contentType": "text/javascript; charset=utf-8",
+      "sha256": "bc0ef55dcc0c7154e8baacdc862816f549e22ddc93057496676d76321557e16c",
+      "matchesBuild": true
+    },
+    {
+      "url": "https://indigenworld.com/assets/PageMotion-DrWZ0n15.js",
+      "status": 200,
+      "contentType": "text/javascript; charset=utf-8",
+      "sha256": "b8d05307d4c524f869538661a979037b1121cbcd23c3db9a7e4d41c4c1c49a82",
+      "matchesBuild": true
+    },
+    {
+      "url": "https://indigenworld.com/assets/index-C6RXupcY.css",
+      "status": 200,
+      "contentType": "text/css; charset=utf-8",
+      "sha256": "dfaac76ca587aeccae6411d631a85eccdcdf488fc6c16d9ff2fbc6107ec4d8fc",
+      "matchesBuild": true
+    },
+    {
+      "url": "https://indigenworld.com/assets/firebaseApp-Ww4njMJ6.js",
+      "status": 200,
+      "contentType": "text/javascript; charset=utf-8",
+      "sha256": "736f9823ab08fc0dd1ec093a01d7b7dc8f337bae8a49cf80484f77a5f7cafecb",
+      "matchesBuild": true
+    },
+    {
+      "url": "https://indigenworld.com/assets/ProgressPage-B_p7z5Tb.js",
+      "status": 200,
+      "contentType": "text/javascript; charset=utf-8",
+      "sha256": "f9c9464abd6f7a2e514949145ca8927bfb0ecc6589271caca34b76c1e7b23f9b",
+      "matchesBuild": true
+    },
+    {
+      "url": "https://indigen-world.web.app/progress",
+      "status": 200,
+      "contentType": "text/html; charset=utf-8",
+      "sha256": "060daa0134fae15671df7d273ea4af18afb176347686623133aa1a41de1e95c0",
+      "matchesBuild": true
+    },
+    {
+      "url": "https://indigen-world.web.app/assets/index-DsVr_MUE.js",
+      "status": 200,
+      "contentType": "text/javascript; charset=utf-8",
+      "sha256": "9f69f3b34c5ef207ec64c6dbbebc51aa20716b8cf66200c423d5fcda2ba62b0c",
+      "matchesBuild": true
+    },
+    {
+      "url": "https://indigen-world.web.app/assets/jsx-runtime-Cltr0gcK.js",
+      "status": 200,
+      "contentType": "text/javascript; charset=utf-8",
+      "sha256": "e26f105e9234109963ded8d5eba4b903477be697960ecda8ea710c5151aab8c3",
+      "matchesBuild": true
+    },
+    {
+      "url": "https://indigen-world.web.app/assets/SiteMotion-D87wFnt3.js",
+      "status": 200,
+      "contentType": "text/javascript; charset=utf-8",
+      "sha256": "dc48b725406ab81f9490d98ddcda5fd3d013dd43b467b9d6629f1012ae751da5",
+      "matchesBuild": true
+    },
+    {
+      "url": "https://indigen-world.web.app/assets/useDocumentMeta-Bb6PdDgU.js",
+      "status": 200,
+      "contentType": "text/javascript; charset=utf-8",
+      "sha256": "30ca4b59c47587f405a337317796d5346bde1f8dbb8be5b332092ec29a7dcce3",
+      "matchesBuild": true
+    },
+    {
+      "url": "https://indigen-world.web.app/assets/Icon-_kPzNm4E.js",
+      "status": 200,
+      "contentType": "text/javascript; charset=utf-8",
+      "sha256": "701d1b28866c4977857705de9e62fa340cceee927558fa6445a4826386466d8d",
+      "matchesBuild": true
+    },
+    {
+      "url": "https://indigen-world.web.app/assets/EditorialScene-Cn7cZQ12.js",
+      "status": 200,
+      "contentType": "text/javascript; charset=utf-8",
+      "sha256": "bc0ef55dcc0c7154e8baacdc862816f549e22ddc93057496676d76321557e16c",
+      "matchesBuild": true
+    },
+    {
+      "url": "https://indigen-world.web.app/assets/PageMotion-DrWZ0n15.js",
+      "status": 200,
+      "contentType": "text/javascript; charset=utf-8",
+      "sha256": "b8d05307d4c524f869538661a979037b1121cbcd23c3db9a7e4d41c4c1c49a82",
+      "matchesBuild": true
+    },
+    {
+      "url": "https://indigen-world.web.app/assets/index-C6RXupcY.css",
+      "status": 200,
+      "contentType": "text/css; charset=utf-8",
+      "sha256": "dfaac76ca587aeccae6411d631a85eccdcdf488fc6c16d9ff2fbc6107ec4d8fc",
+      "matchesBuild": true
+    },
+    {
+      "url": "https://indigen-world.web.app/assets/firebaseApp-Ww4njMJ6.js",
+      "status": 200,
+      "contentType": "text/javascript; charset=utf-8",
+      "sha256": "736f9823ab08fc0dd1ec093a01d7b7dc8f337bae8a49cf80484f77a5f7cafecb",
+      "matchesBuild": true
+    },
+    {
+      "url": "https://indigen-world.web.app/assets/ProgressPage-B_p7z5Tb.js",
+      "status": 200,
+      "contentType": "text/javascript; charset=utf-8",
+      "sha256": "f9c9464abd6f7a2e514949145ca8927bfb0ecc6589271caca34b76c1e7b23f9b",
+      "matchesBuild": true
+    }
+  ],
+  "passed": true
+}

@@ -10,4 +10,4 @@ Short version: More colour, more bubbles, less clutter. Explore Indigen World's 
 
 Progress page: https://indigenworld.com/progress
 
-Current status: Draft prepared 4 October 2026. Implementation reviewed and local product screenshots included. Merged with current main after website typecheck, tests and production build passed. Deployment remains stopped at the user's request; live verification pending. Blogger article unpublished; no community messages sent.
+Current status: Website deployed and verified on 4 October 2026 from commit 761213f7. Website checks and production build passed; all 22 live page and asset responses matched the build. Live phone screenshot included. Blogger article unpublished; no community messages sent.

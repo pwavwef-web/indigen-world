@@ -1,6 +1,6 @@
 # Help Fill the Jars, with more room to see our progress
 
-Status: **Draft prepared on 2026-10-04. Implementation and local popup review complete; product screenshots included. Merged with current main after website typecheck, tests and production build passed. Deployment remains stopped at the user's request. Blogger article unpublished. Publication and sharing handoff remain with Chinedum.**
+Status: **Deployed to the public website and verified on 2026-10-04. Product screenshots and deployment evidence included. Blogger article unpublished; no community messages sent. Publication and sharing handoff remain with Chinedum.**
 
 | Field | Value |
 |---|---|
@@ -17,10 +17,11 @@ Credit: Indigen World. Use verified product screenshots from this implementation
 
 - `images/progress-fullscreen-desktop.png`: Desktop progress page showing the compact controls and vessels, with the website header and footer hidden on this route.
 - `images/progress-popup-mobile.png`: Phone-width progress page with a popup open, showing its labelled choices and close control.
+- `images/progress-live-traditional-pots.jpg`: Verified live phone layout at 390 × 844, showing the traditional-pot view and production word count of 357. Captured from `https://indigenworld.com/progress` on 2026-10-04 after deployment, with motion paused.
 
-Both assets are actual product screenshots captured during local browser verification on 2026-10-04. If sample targets are used to demonstrate the colour range, keep the sample notice visible and label the screenshot and caption as a sample preview.
+The two PNG assets are actual product screenshots captured during local browser verification on 2026-10-04; the new JPG shows the verified live release. If sample targets are used to demonstrate the colour range, keep the sample notice visible and label the screenshot and caption as a sample preview.
 
-Blogger: Insert image → Upload from computer for each asset. Replace the relative image `src` values in `post.html` with the uploaded Blogger URLs. Preserve descriptive alt text and captions, then preview desktop and phone widths.
+Blogger: Insert image → Upload from computer for all three assets. Replace the relative image `src` values in `post.html` with the uploaded Blogger URLs. Preserve descriptive alt text and captions, then preview desktop and phone widths.
 
 ## Implementation and release evidence
 
@@ -34,9 +35,13 @@ Availability limits: live counts depend on the existing public progress data ser
 
 ## Publishing steps
 
-Merge verification on 2026-10-04: reconciled with current main, preserving its newer header layout changes. `npm run build:web-ui` and `npm run check:website` passed in the isolated release checkout, including public route validation, progress calculation and popup checks, all four liquid appearance tests, and the production build. This completes the previously pending repository checks; deployment and live verification remain pending.
+Merge verification on 2026-10-04: reconciled with current main, preserving its newer header layout changes. `npm run build:web-ui` and `npm run check:website` passed in the isolated release checkout, including public route validation, progress calculation and popup checks, all four liquid appearance tests, and the production build.
 
-1. Confirm deployment and live page verification; update this status, the article's availability paragraph, and sharing status with the release evidence.
+Deployment on 2026-10-04 resumed at the user's request. `npm run deploy:website` successfully released only the `indigen-world` Hosting site in `project-kassena-7e026`, from clean `origin/main` commit `761213f7b532d31cfffe920b124e79a1c7a8778f`. The production-source guard, website typecheck, 13 public-route checks, progress checks, four liquid appearance tests, and production build all passed. Firebase also ran the configured dictionary and TribeStudio predeploy checks; their Hosting sites were not released.
+
+Live asset verification at 16:44 UTC returned HTTP 200 for `/progress` and ten JavaScript/CSS assets on both `https://indigenworld.com` and `https://indigen-world.web.app`. All 22 responses matched the tested build by SHA-256; see `deployment-verification.json`. Live browser verification confirmed production aggregate counts, the view-selection popup, data table, traditional pots, and pause motion. The phone layout was visually inspected at 390 × 844. This evidence supersedes the earlier stopped-deployment status above. Available now: [public progress page](https://indigenworld.com/progress).
+
+1. Review the confirmed deployment evidence above before publishing the article.
 2. Upload both product screenshots, replace article image URLs, and preview the article in Blogger.
 3. Set the title, labels, description, and custom permalink above. Chinedum decides when to publish.
 4. Replace the published article URL placeholder in `share.md` before community sharing.
