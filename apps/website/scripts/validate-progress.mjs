@@ -8,6 +8,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { transform } from 'rolldown/experimental';
 
 const root = resolve(import.meta.dirname, '..');
 const read = (path) => readFileSync(resolve(root, path), 'utf8');
@@ -25,6 +26,48 @@ const progressPageSource = read('src/pages/ProgressPage.tsx');
 const progressDialogSource = read('src/features/progress/ProgressDialog.tsx');
 const navigationSource = read('src/content/navigation.ts');
 const appSource = read('src/App.tsx');
+
+// Run actual TypeScript helpers through the transform runtime already used by Vite.
+async function helperModule(filename, source) {
+  const transformed = await transform(filename, source);
+  assert.deepEqual(transformed.errors, [], `${filename} transforms without errors`);
+  return `data:text/javascript;base64,${Buffer.from(transformed.code).toString('base64')}`;
+}
+const configModule = await helperModule('progressConfig.ts', progressConfigSource);
+const actualCalculation = await import(await helperModule('progressCalculation.ts',
+  progressCalculationSource.replace("from './progressConfig'", `from '${configModule}'`)));
+const actualConfig = await import(configModule);
+const { liquidAppearance } = await import(await helperModule('liquidAppearance.ts', read('src/features/progress/liquidAppearance.ts')));
+
+// Colours, bubbles and live measurements must follow actual progress, not samples.
+{
+  assert.equal(liquidAppearance(0).bubbleCount, 0, 'empty liquid contains no bubbles');
+  assert.equal(liquidAppearance(0).stage, 'red');
+  assert.equal(liquidAppearance(25).stage, 'yellow');
+  assert.equal(liquidAppearance(50).stage, 'blue');
+  assert.equal(liquidAppearance(75).stage, 'green');
+  assert.equal(liquidAppearance(100).stage, 'green');
+  assert.equal(liquidAppearance(125).fillPercent, 100, 'overflow is visually clamped');
+  assert.equal(liquidAppearance(-5).fillPercent, 0, 'negative liquid is clamped');
+  for (const value of [NaN, Infinity, -Infinity]) {
+    assert.equal(liquidAppearance(value).bubbleCount, 0, 'invalid fill never creates bubbles');
+  }
+  assert.equal(liquidAppearance(90, true).stage, 'unknown', 'missing targets remain neutral');
+  assert.equal(liquidAppearance(90, true).bubbleCount, 0, 'missing targets do not imply fill');
+  let previousCount = 0;
+  let previousScale = 0;
+  for (let fill = 0; fill <= 100; fill += 1) {
+    const visual = liquidAppearance(fill);
+    assert.ok(visual.bubbleCount >= previousCount && visual.bubbleCount <= 14, 'bubble count grows monotonically within its budget');
+    assert.ok(visual.bubbleScale >= previousScale, 'bubble size grows with liquid');
+    previousCount = visual.bubbleCount;
+    previousScale = visual.bubbleScale;
+  }
+  const live = actualCalculation.buildProgressList(actualConfig.FIXTURE_APPROVED_COUNTS, actualConfig.DEFAULT_PRODUCTION_CONFIG);
+  assert.ok(live.every((category) => category.velocityWeek === 0 && category.pledgeCount === 0 && category.sparklineData.length === 0), 'live progress never inherits demonstration velocity, pledges or history');
+  const preview = actualCalculation.buildProgressList(actualConfig.FIXTURE_APPROVED_COUNTS, { ...actualConfig.DEFAULT_PRODUCTION_CONFIG, categoryTargets: actualConfig.FIXTURE_TARGETS }, undefined, true);
+  assert.ok(preview.some((category) => category.velocityWeek > 0 && category.pledgeCount > 0 && category.sparklineData.length > 0), 'sample measurements remain available in explicit fixture preview');
+}
 
 // Pure calculation invariant harness
 function calculateCategoryProgress(category, approvedCount, target, awaitingReviewCount = 0) {
@@ -369,24 +412,45 @@ const testCategory = { id: 'lexicon', title: 'Words & Meanings' };
   // Page view switch and motion controls
   assert.match(progressPageSource, /Vertical jars/, 'segmented switch includes Vertical jars');
   assert.match(progressPageSource, /Horizontal tanks/, 'segmented switch includes Horizontal tanks');
+  assert.match(progressPageSource, /Traditional pots/, 'segmented switch includes Traditional pots');
+  assert.match(progressPageSource, /Data table/, 'segmented switch includes Data table');
   assert.match(progressPageSource, /useProgressMotion/, 'motion hook with pause and reduced motion support is wired');
+
+  // 20 Upgrades verification
+  assert.ok(existsSync(resolve(root, 'src/features/progress/CulturalPot.tsx')), 'CulturalPot component exists');
+  assert.ok(existsSync(resolve(root, 'src/features/progress/ProgressDataTable.tsx')), 'ProgressDataTable component exists');
+  assert.ok(existsSync(resolve(root, 'src/features/progress/CategoryBreakdownModal.tsx')), 'CategoryBreakdownModal exists');
+  assert.ok(existsSync(resolve(root, 'src/features/progress/PledgeModal.tsx')), 'PledgeModal exists');
+  assert.ok(existsSync(resolve(root, 'src/features/progress/ShareVesselModal.tsx')), 'ShareVesselModal exists');
+  assert.ok(existsSync(resolve(root, 'src/features/progress/AuditQueryModal.tsx')), 'AuditQueryModal exists');
+  assert.ok(existsSync(resolve(root, 'src/features/progress/EmbedWidgetModal.tsx')), 'EmbedWidgetModal exists');
+  assert.ok(existsSync(resolve(root, 'src/features/progress/progressAudio.ts')), 'progressAudio synthesizer exists');
+
+  // Pace projection calculation verification
+  const calculateProjectedDays = (approved, target, velocityWeek) => {
+    if (target === null || target <= approved || velocityWeek <= 0) return null;
+    return Math.ceil((target - approved) / (velocityWeek / 7));
+  };
+  assert.equal(calculateProjectedDays(800, 1000, 70), 20, 'calculates projected days accurately');
+  assert.equal(calculateProjectedDays(1000, 1000, 70), null, 'returns null when target reached');
+  assert.equal(calculateProjectedDays(500, null, 70), null, 'returns null when target is setting');
 }
 
-// 12. Fullscreen route and popup presentation remain wired into the public page.
+// Full-screen presentation and popup interaction wiring.
 {
   const progressRoute = navigationSource.match(/\{\s*path:\s*"progress",[^}]*\}/)?.[0] ?? '';
   assert.match(progressRoute, /immersive:\s*true/, 'progress is registered as an immersive route');
   assert.match(appSource, /\{immersive\s*\?\s*null\s*:\s*<Header\s*\/>\}/, 'immersive route hides the global header');
   assert.match(appSource, /\{immersive\s*\?\s*null\s*:\s*<Footer\s*\/>\}/, 'immersive route hides the global footer');
-  assert.match(progressPageSource, /Back to website/, 'fullscreen page provides visible back navigation');
-  assert.doesNotMatch(progressPageSource + verticalJarSource + horizontalTankSource, /<(?:details|summary|select)\b/, 'progress explanations and controls no longer use dropdowns');
-  assert.match(progressPageSource, /<ProgressDialog\b/, 'page explanation buttons open the modal popup');
-  assert.match(verticalJarSource, /onInfo/, 'vertical categories can open their explanation');
-  assert.match(horizontalTankSource, /onInfo/, 'horizontal categories can open their explanation');
-  assert.match(progressDialogSource, /\.showModal\(\)/, 'native dialog supplies modal focus containment');
+  assert.match(progressPageSource, /Back to website/, 'full-screen page provides back navigation');
+  assert.doesNotMatch(progressPageSource + verticalJarSource + horizontalTankSource + read('src/features/progress/CulturalPot.tsx'), /<(?:details|summary|select)\b/, 'progress controls use popup choices instead of dropdowns');
+  assert.match(progressPageSource, /<ProgressPopup\b/, 'explanation buttons open popups');
+  assert.match(verticalJarSource, /onOpenBreakdown/, 'jar categories can open their explanation');
+  assert.match(horizontalTankSource, /onOpenBreakdown/, 'tank categories can open their explanation');
+  assert.match(progressDialogSource, /\.showModal\(\)/, 'native dialog contains modal focus');
   assert.match(progressDialogSource, /aria-labelledby=/, 'popup has an accessible title');
   assert.match(progressDialogSource, /onCancel=/, 'Escape closes the popup');
-  assert.match(progressDialogSource, /previouslyFocused.*\.focus\(/, 'closing the popup restores trigger focus');
+  assert.match(progressDialogSource, /opener\.focus\(/, 'closing restores trigger focus');
 }
 
-console.log('All 12 progress calculation and presentation invariants verified successfully!');
+console.log('Progress calculation, liquid behaviour, fixture separation and popup presentation checks passed.');

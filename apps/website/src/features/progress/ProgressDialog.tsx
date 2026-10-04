@@ -1,54 +1,65 @@
-import { useEffect, useId, useRef, type ReactNode } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 
-interface ProgressDialogProps {
-  isOpen: boolean;
-  title: string;
-  onClose: () => void;
+/** Native modal semantics keep keyboard focus inside and make the page inert. */
+export function ProgressDialog({ children, labelledBy, onClose }: {
   children: ReactNode;
-}
-
-/** Native modal semantics trap focus and make the page behind the popup inert. */
-export function ProgressDialog({ isOpen, title, onClose, children }: ProgressDialogProps) {
-  const dialog = useRef<HTMLDialogElement>(null);
-  const closeButton = useRef<HTMLButtonElement>(null);
-  const titleId = useId();
+  labelledBy: string;
+  onClose: () => void;
+}) {
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
 
   useEffect(() => {
-    const element = dialog.current;
-    if (!isOpen || !element) return;
-    const previouslyFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const previousOverflow = document.body.style.overflow;
-    element.showModal();
     document.body.style.overflow = 'hidden';
-    closeButton.current?.focus({ preventScroll: true });
+    dialog.showModal();
     return () => {
-      element.close();
+      dialog.close();
       document.body.style.overflow = previousOverflow;
-      if (previouslyFocused?.isConnected) previouslyFocused.focus({ preventScroll: true });
+      if (opener?.isConnected) opener.focus({ preventScroll: true });
     };
-  }, [isOpen]);
-
-  if (!isOpen) return null;
+  }, []);
 
   return createPortal(
     <dialog
-      ref={dialog}
-      className="progress-dialog"
-      aria-labelledby={titleId}
-      onCancel={(event) => { event.preventDefault(); onClose(); }}
+      ref={dialogRef}
+      className="progress-modal-overlay progress-dialog"
+      aria-labelledby={labelledBy}
+      onCancel={(event) => {
+        event.preventDefault();
+        closeRef.current();
+      }}
       onClick={(event) => {
-        if (event.target !== event.currentTarget) return;
-        const bounds = event.currentTarget.getBoundingClientRect();
-        if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) onClose();
+        if (event.target === event.currentTarget) closeRef.current();
       }}
     >
-      <div className="progress-dialog__header">
-        <h2 id={titleId}>{title}</h2>
-        <button ref={closeButton} type="button" className="progress-dialog__close" onClick={onClose} aria-label="Close information popup">×</button>
-      </div>
-      <div className="progress-dialog__body">{children}</div>
+      {children}
     </dialog>,
     document.body,
+  );
+}
+
+export function ProgressPopup({ title, children, onClose }: {
+  title: string;
+  children: ReactNode;
+  onClose: () => void;
+}) {
+  return (
+    <ProgressDialog labelledBy="progress-popup-title" onClose={onClose}>
+      <div className="progress-modal-card">
+        <div className="progress-modal-header">
+          <h2 id="progress-popup-title">{title}</h2>
+          <button type="button" className="progress-modal-close" onClick={onClose} aria-label={`Close ${title}`}>
+            &times;
+          </button>
+        </div>
+        <div className="progress-modal-body">{children}</div>
+      </div>
+    </ProgressDialog>
   );
 }

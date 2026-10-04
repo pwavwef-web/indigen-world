@@ -194,7 +194,7 @@ export async function fetchLiveLaunchProgress(options?: {
       notes: 'Sample targets and counts for UI development and motion verification.',
     };
 
-    const categories = buildProgressList(FIXTURE_APPROVED_COUNTS, fixtureConfig);
+    const categories = buildProgressList(FIXTURE_APPROVED_COUNTS, fixtureConfig, undefined, true);
     const summary = calculateTargetsSummary(categories);
 
     return {
@@ -205,6 +205,7 @@ export async function fetchLiveLaunchProgress(options?: {
       targetsReachedCount: summary.reachedCount,
       totalWithTargetsCount: summary.totalWithTargets,
       fixtureMode: true,
+      totalCommunityPledges: categories.reduce((sum, c) => sum + c.pledgeCount, 0),
     };
   }
 
@@ -248,18 +249,20 @@ export async function fetchLiveLaunchProgress(options?: {
 
     if (!anySuccess && !cached) {
       // Complete offline or Firestore failure with no cache
+      const emptyCategories = buildProgressList(
+        {} as Record<ContributionCategoryId, number>,
+        launchConfig,
+      );
       return {
         status: 'error',
-        categories: buildProgressList(
-          {} as Record<ContributionCategoryId, number>,
-          launchConfig,
-        ),
+        categories: emptyCategories,
         launchConfig,
         lastUpdated: null,
         error: 'Unable to reach the Indigen World verification service. Please check your connection.',
         targetsReachedCount: 0,
         totalWithTargetsCount: 0,
         fixtureMode: false,
+        totalCommunityPledges: emptyCategories.reduce((sum, c) => sum + c.pledgeCount, 0),
       };
     }
 
@@ -276,6 +279,7 @@ export async function fetchLiveLaunchProgress(options?: {
       targetsReachedCount: summary.reachedCount,
       totalWithTargetsCount: summary.totalWithTargets,
       fixtureMode: false,
+      totalCommunityPledges: categories.reduce((sum, c) => sum + c.pledgeCount, 0),
     };
   } catch (err) {
     if (cached) {
@@ -290,21 +294,24 @@ export async function fetchLiveLaunchProgress(options?: {
         targetsReachedCount: summary.reachedCount,
         totalWithTargetsCount: summary.totalWithTargets,
         fixtureMode: false,
+        totalCommunityPledges: categories.reduce((sum, c) => sum + c.pledgeCount, 0),
       };
     }
 
+    const emptyCategories = buildProgressList(
+      {} as Record<ContributionCategoryId, number>,
+      DEFAULT_PRODUCTION_CONFIG,
+    );
     return {
       status: 'error',
-      categories: buildProgressList(
-        {} as Record<ContributionCategoryId, number>,
-        DEFAULT_PRODUCTION_CONFIG,
-      ),
+      categories: emptyCategories,
       launchConfig: DEFAULT_PRODUCTION_CONFIG,
       lastUpdated: null,
       error: 'Live progress is temporarily unavailable. We are reconnecting…',
       targetsReachedCount: 0,
       totalWithTargetsCount: 0,
       fixtureMode: false,
+      totalCommunityPledges: emptyCategories.reduce((sum, c) => sum + c.pledgeCount, 0),
     };
   }
 }
