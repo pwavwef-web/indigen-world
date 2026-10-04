@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { subscribeToDictionary, type DictionaryEntry } from "./firebase";
+import { COLLECTIONS, type CollectionKind } from "./collections";
+import { useScrollHeader } from "./useScrollHeader";
 
 const LETTERS = "ABCDEƐFGHIƖJKLMNŊOƆPQRSTUƲVWXYZ".split("");
 const RECENT_KEY = "kasena-dictionary:recent-words";
@@ -31,7 +33,7 @@ function EntryDetail({ entry, saved, onToggleSaved }: {
     return (
       <section className="detail empty-detail" aria-live="polite">
         <span className="empty-detail__glyph" aria-hidden="true">Aa</span>
-        <h2>Choose a word</h2>
+        <h2>Choose an entry</h2>
         <p>Select an entry to read its meaning, pronunciation and use in context.</p>
       </section>
     );
@@ -40,7 +42,7 @@ function EntryDetail({ entry, saved, onToggleSaved }: {
   return (
     <article className="detail" aria-label={`Definition of ${entry.headword}`}>
       <div className="detail__topline">
-        <span className="published-pill">{entry.authenticationStatus === "gold" ? "Expert authenticated" : entry.authenticationStatus === "reviewed" ? "Community reviewed" : "Published entry"}</span>
+        <span className="published-pill">{entry.sourceCollection === "kasemNames" ? "Curated name" : entry.authenticationStatus === "gold" ? "Expert authenticated" : entry.authenticationStatus === "reviewed" ? "Community reviewed" : "Published entry"}</span>
         <button className={saved ? "save-button is-saved" : "save-button"} type="button" onClick={onToggleSaved} aria-pressed={saved}>
           <span aria-hidden="true">{saved ? "★" : "☆"}</span> {saved ? "Saved" : "Save"}
         </button>
@@ -69,15 +71,18 @@ function EntryDetail({ entry, saved, onToggleSaved }: {
         {entry.culturalNote && <div><dt>Usage and context</dt><dd>{entry.culturalNote}</dd></div>}
       </dl>
       <details className="source-note"><summary>Source and attribution</summary><p>{entry.attribution}</p></details>
-      <a className="knowledge-link" href={`https://tribestudio.indigenworld.com/studio/knowledge?related=${encodeURIComponent(`dictionaryEntries:${entry.id}`)}`}>
+      <a className="knowledge-link" href={entry.sourceCollection === "kasemNames" ? "https://tribestudio.indigenworld.com/studio/knowledge" : `https://tribestudio.indigenworld.com/studio/knowledge?related=${encodeURIComponent(entry.id.includes(":") ? entry.id : `${entry.sourceCollection}:${entry.id}`)}`}>
         Contribute context or a pronunciation <span aria-hidden="true">↗</span>
       </a>
-      <p className="knowledge-link__hint">Add a source, regional usage or recording in TribeStudio. Your record will be linked to this word for human review.</p>
+      <p className="knowledge-link__hint">{entry.sourceCollection === "kasemNames" ? "Share the name and its cultural context with a source in TribeStudio for human review." : "Add a source, regional usage or recording in TribeStudio. Your record will be linked to this entry for human review."}</p>
     </article>
   );
 }
 
 export function App() {
+  const [collectionKind, setCollectionKind] = useState<CollectionKind>("words");
+  const collection = COLLECTIONS[collectionKind];
+  const browseRef = useRef<HTMLDivElement>(null);
   const [entries, setEntries] = useState<DictionaryEntry[]>([]);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [retry, setRetry] = useState(0);
@@ -87,13 +92,26 @@ export function App() {
   const [recentOnly, setRecentOnly] = useState(false);
   const [recent, setRecent] = useState<string[]>(() => [...readSaved(RECENT_KEY)]);
   const [mobileDetail, setMobileDetail] = useState(false);
+  const { headerHidden, showHeader } = useScrollHeader({ disabled: mobileDetail });
   const searchRef = useRef<HTMLInputElement>(null);
+  const showSearch = () => {
+    setMobileDetail(false);
+    showHeader();
+    browseRef.current?.scrollTo(0, 0);
+    if (window.matchMedia("(max-width: 700px)").matches) window.scrollTo(0, 0);
+    requestAnimationFrame(() => {
+      browseRef.current?.scrollTo(0, 0);
+      searchRef.current?.focus({ preventScroll: true });
+    });
+  };
   const returnFocusRef = useRef<HTMLElement | null>(null);
   const openEntry = (id: string) => {
     setSelectedId(id);
     const mobileLayout = window.matchMedia("(max-width: 700px)").matches;
     if (mobileLayout) {
-      returnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+      if (!mobileDetail) {
+        returnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+      }
       setMobileDetail(true);
     }
     requestAnimationFrame(() => {
@@ -121,13 +139,13 @@ export function App() {
     return () => {
       document.body.style.overflow = previousOverflow;
       mobileLayout.removeEventListener("change", closeWhenLayoutChanges);
-      requestAnimationFrame(() => returnFocusRef.current?.focus());
+      requestAnimationFrame(() => returnFocusRef.current?.focus({ preventScroll: true }));
     };
   }, [mobileDetail]);
   useEffect(() => {
     const shortcut = (event: KeyboardEvent) => {
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
-        event.preventDefault(); setMobileDetail(false); requestAnimationFrame(() => searchRef.current?.focus());
+        event.preventDefault(); showSearch();
       }
       if (event.key === "Escape") setMobileDetail(false);
     };
@@ -138,15 +156,18 @@ export function App() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   useEffect(() => {
+    setEntries([]);
+    setSelectedId(null);
     setStatus("loading");
     return subscribeToDictionary(
       (next) => {
         setEntries(next);
         setStatus("ready");
       },
-      () => setStatus("error")
+      () => setStatus("error"),
+      collectionKind
     );
-  }, [retry]);
+  }, [retry, collectionKind]);
 
   useEffect(() => {
     const context = document.modelContext;
@@ -213,7 +234,6 @@ export function App() {
   };
   const returnToResults = () => {
     setMobileDetail(false);
-    requestAnimationFrame(() => searchRef.current?.focus());
   };
   const toggleSaved = () => {
     if (!selected) return;
@@ -227,12 +247,17 @@ export function App() {
   };
 
   return (
-    <div className={mobileDetail ? "app-shell showing-detail" : "app-shell"}>
-      <header className="app-header">
+    <div className={`app-shell collection-${collectionKind}${mobileDetail ? " showing-detail" : ""}${headerHidden ? " header-hidden" : ""}`}>
+      <header className="app-header" onFocusCapture={showHeader}>
         <a className="brand" href="/" aria-label="Kasem Dictionary home">
           <span className="brand__mark" aria-hidden="true">K</span>
           <span><strong>Kasem</strong><small>Dictionary</small></span>
         </a>
+        <nav className="collection-switch" aria-label="Kasem collections">
+          {(Object.keys(COLLECTIONS) as CollectionKind[]).map(kind => <button key={kind} type="button" aria-pressed={collectionKind === kind} className={collectionKind === kind ? "is-active" : ""} onClick={() => {
+            setCollectionKind(kind); setQueryText(""); setLetter(null); setSavedOnly(false); setRecentOnly(false); showSearch();
+          }}><span aria-hidden="true">{COLLECTIONS[kind].icon}</span>{COLLECTIONS[kind].label}</button>)}
+        </nav>
         <nav className="header-links" aria-label="Dictionary links">
           <span className="language-pair">Kasem <b aria-hidden="true">↔</b> English</span>
           <a href="https://indigenworld.com/dictionary">Indigen World <span aria-hidden="true">↗</span></a>
@@ -241,10 +266,11 @@ export function App() {
 
       <main>
         <section className="dictionary-app" aria-label="Dictionary browser">
-          <div className="browse-panel">
+          <div className="browse-panel" ref={browseRef}>
             <section className="search-area" aria-labelledby="app-title">
-              <p className="eyebrow">THE KASEM COLLECTION</p>
-              <h1 id="app-title">Look up a word</h1>
+              <div className="collection-intro"><p className="eyebrow">THE KASEM COLLECTION</p><span className="collection-glyph" aria-hidden="true">{collection.icon}</span></div>
+              <h1 id="app-title">{collection.title}</h1>
+              <p className="collection-description">{collection.description}</p>
               <label className="search-box">
                 <span className="search-box__icon" aria-hidden="true">⌕</span>
                 <span className="sr-only">Search Kasem or English</span>
@@ -261,7 +287,7 @@ export function App() {
                   placeholder="Search Kasem or English" autoComplete="off" />
                 {queryText && <button type="button" onClick={() => setQueryText("")} aria-label="Clear search">×</button>}
               </label>
-              <p className="search-hint">Find a word. Discover its meaning. <kbd>⌘ / Ctrl K</kbd></p>
+              <p className="search-hint">Search in {collection.label.toLowerCase()} <kbd>⌘ / Ctrl K</kbd></p>
               <div className="character-keys" aria-label="Kasem characters">
                 <span>Kasem keys</span>{["ɛ", "ɩ", "ŋ", "ɔ", "ʋ"].map(character => <button type="button" key={character} onClick={() => {
                   const input = searchRef.current;
@@ -272,11 +298,11 @@ export function App() {
                 }}>{character}</button>)}
               </div>
             </section>
-            <div className="view-tabs" role="group" aria-label="Word list view">
-              <button type="button" className={!savedOnly && !recentOnly ? "is-active" : ""} onClick={() => { setSavedOnly(false); setRecentOnly(false); }} aria-pressed={!savedOnly && !recentOnly}>All words</button>
+            <div className="list-toolbar"><div className="view-tabs" role="group" aria-label="Word list view">
+              <button type="button" className={!savedOnly && !recentOnly ? "is-active" : ""} onClick={() => { setSavedOnly(false); setRecentOnly(false); }} aria-pressed={!savedOnly && !recentOnly}>{collection.all}</button>
               <button type="button" className={recentOnly ? "is-active" : ""} onClick={() => { setRecentOnly(true); setSavedOnly(false); }} aria-pressed={recentOnly}>Recent</button>
-              <button type="button" className={savedOnly ? "is-active" : ""} onClick={() => { setSavedOnly(true); setRecentOnly(false); }} aria-pressed={savedOnly}>Saved {saved.size || ""}</button>
-            </div>
+              <button type="button" className={savedOnly ? "is-active" : ""} onClick={() => { setSavedOnly(true); setRecentOnly(false); }} aria-pressed={savedOnly}>Saved {entries.filter(entry => saved.has(entry.id)).length || ""}</button>
+            </div><button className="toolbar-search" type="button" onClick={showSearch} aria-label="Back to search">⌕</button></div>
             <details className="alphabet-disclosure"><summary>Browse alphabetically <span>A–Z</span></summary><div className="alphabet" aria-label="Browse by first letter">
               <button type="button" className={letter === null ? "is-active" : ""} onClick={() => setLetter(null)} aria-pressed={letter === null}>All</button>
               {LETTERS.map((item) => (
@@ -286,13 +312,13 @@ export function App() {
 
             </details>
             <div className="result-heading" aria-live="polite">
-              <div><span>{letter ? `${letter} words` : savedOnly ? "Saved words" : recentOnly ? "Recent words" : "All words"}</span><strong>{status === "ready" ? filtered.length.toLocaleString() : "—"}</strong></div>
+              <div><span>{letter ? `${letter} · ${collection.label}` : savedOnly ? `Saved ${collection.label.toLowerCase()}` : recentOnly ? `Recent ${collection.label.toLowerCase()}` : collection.all}</span><strong>{status === "ready" ? filtered.length.toLocaleString() : "—"}</strong></div>
               <span className="live-badge"><i /> {status === "ready" ? "Up to date" : status === "loading" ? "Connecting" : "Unavailable"}</span>
             </div>
 
             {status === "loading" && <div className="loading-list" role="status" aria-label="Loading dictionary"><i /><i /><i /><i /></div>}
             {status === "error" && <div className="list-state" role="alert"><h2>Unable to refresh the dictionary</h2><p>Check your connection and try again.</p><button type="button" onClick={() => setRetry((value) => value + 1)}>Try again</button></div>}
-            {status === "ready" && filtered.length === 0 && <div className="list-state"><h2>{savedOnly || recentOnly || queryText || letter ? "No matching words" : "Published entries are being prepared"}</h2><p>{recentOnly ? "Words you open will appear here." : savedOnly ? "Save a word to keep it in your personal list." : queryText || letter ? "Try another word or clear your filters." : "Reviewed Kasem entries will appear here as they are approved for publication."}</p>{(savedOnly || recentOnly || queryText || letter) && <button type="button" onClick={() => { setSavedOnly(false); setRecentOnly(false); setQueryText(""); setLetter(null); }}>Clear filters</button>}</div>}
+            {status === "ready" && filtered.length === 0 && <div className="list-state"><span className="empty-detail__glyph" aria-hidden="true">{collection.icon}</span><h2>{savedOnly || recentOnly || queryText || letter ? "No matching entries" : `${collection.label} are on their way`}</h2><p>{recentOnly ? "Entries you open will appear here." : savedOnly ? "Save an entry to keep it in your personal list." : queryText || letter ? "Try another search or clear your filters." : `Published ${collection.label.toLowerCase()} will appear here when available.`}</p>{(savedOnly || recentOnly || queryText || letter) && <button type="button" onClick={() => { setSavedOnly(false); setRecentOnly(false); setQueryText(""); setLetter(null); }}>Clear filters</button>}</div>}
             {status === "ready" && filtered.length > 0 && <div className="word-list">{filtered.map((entry) => (
               <button key={entry.id} type="button" className={selectedId === entry.id ? "word-card is-active" : "word-card"} onClick={() => openEntry(entry.id)} aria-pressed={selectedId === entry.id}>
                 <span className="word-card__letter" aria-hidden="true">{firstLetter(entry.headword)}</span>
@@ -304,26 +330,25 @@ export function App() {
           </div>
 
           <div className="definition-panel" role={mobileDetail ? "dialog" : undefined} aria-modal={mobileDetail || undefined} aria-labelledby={mobileDetail ? "definition-title" : undefined}>
-            <div className="panel-heading" tabIndex={-1}><div><span className="eyebrow">KASEM · ENGLISH</span><h2 id="definition-title">Definition</h2></div><button className="mobile-back" type="button" onClick={returnToResults}>← Results</button>
+            <div className="panel-heading" tabIndex={-1}><div><span className="eyebrow">KASEM · ENGLISH <span className="heading-spark" aria-hidden="true">✦</span></span><h2 id="definition-title">{collection.heading}</h2></div><button className="mobile-back" type="button" onClick={returnToResults}>← Results</button>
               <div className="entry-navigation" aria-label="Navigate results"><button type="button" aria-label="Previous word" disabled={selectedIndex <= 0} onClick={() => openEntry(filtered[selectedIndex - 1].id)}>←</button><span>{selectedIndex >= 0 ? selectedIndex + 1 : 0} / {filtered.length}</span><button type="button" aria-label="Next word" disabled={selectedIndex < 0 || selectedIndex >= filtered.length - 1} onClick={() => openEntry(filtered[selectedIndex + 1].id)}>→</button></div>
             </div>
-            <EntryDetail entry={selected} saved={selected ? saved.has(selected.id) : false} onToggleSaved={toggleSaved} />
+            <EntryDetail key={selected?.id ?? "empty"} entry={selected} saved={selected ? saved.has(selected.id) : false} onToggleSaved={toggleSaved} />
           </div>
           <aside className="explore-panel" aria-label="Explore dictionary">
             <h2>Explore</h2>
-            <p className="explore-label">Nearby words</p>
-            <p className="explore-description">Continue through the Kasem dictionary.</p>
+            <p className="explore-label">More to discover</p>
+            <p className="explore-description">Keep exploring the {collection.label.toLowerCase()} collection.</p>
             {selected && entries.slice(Math.max(0, entries.findIndex(entry => entry.id === selected.id) - 2), entries.findIndex(entry => entry.id === selected.id) + 6).filter(entry => entry.id !== selected.id).map(entry => (
               <button className="nearby-word" type="button" key={entry.id} onClick={() => { exploreEntry(entry.id); }}><strong>{entry.headword}</strong><span>{entry.translation}</span></button>
             ))}
             {!selected && <p className="explore-description">Choose a word to explore nearby entries.</p>}
-            {dailyWord && <div className="collection-note"><span>WORD OF THE DAY</span><h3 lang="xsm">{dailyWord.headword}</h3><p>{dailyWord.translation}</p><button type="button" onClick={() => exploreEntry(dailyWord.id)}>Discover this word <span aria-hidden="true">↗</span></button></div>}
-            <div className="keyboard-note"><span>Make yourself at home</span><p>↑ ↓ Move through search results<br />Enter Open a word<br />Esc Return to results</p></div>
+            {dailyWord && <div className="collection-note"><span>{collection.singular.toUpperCase()} OF THE DAY</span><h3 lang="xsm">{dailyWord.headword}</h3><p>{dailyWord.translation}</p><button type="button" onClick={() => exploreEntry(dailyWord.id)}>Discover this {collection.singular} <span aria-hidden="true">↗</span></button></div>}
           </aside>
         </section>
       </main>
 
-      <footer><span>Kasem Dictionary</span><span>Only reviewed, published entries are shown.</span></footer>
+      <footer><span>Kasem lives here. <b aria-hidden="true">✦</b></span><span>Published words, expressions & curated names · Indigen World</span></footer>
     </div>
   );
 }
