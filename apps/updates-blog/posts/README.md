@@ -6,7 +6,7 @@ date identifies when the post was prepared; it does not prove the update is live
 
 ## Posts
 
-- [2026-10-04: One design for every workspace](2026-10-04-one-design-for-every-workspace/README.md) — unpublished article; TribeStudio, contributor and validator workspaces, public creator pages and sign-in screens redrawn on the Comitia design system with a Display panel (dark mode, text size, contrast, animations off). Implemented and verified locally against Auth/Firestore/Storage emulators (typecheck, 68 tests, build, 60+ screenshots without page overflow); callable-backed steps unverified; not committed or deployed. Includes actual screenshots of labelled test records.
+- [2026-10-04: One design for every workspace](2026-10-04-one-design-for-every-workspace/README.md) — TribeStudio Hosting deployed October 4 (17:48 UTC); live routes, release assets and sign-in screens verified on both hostnames. All three workspaces, the public creator pages and sign-in screens on the Comitia design system with a Display panel (dark mode, text size, contrast, animations off). Signed-in production journeys unverified; article unpublished. Includes actual screenshots of labelled test records.
 
 - [2026-10-04: An open, animated space for our community progress](2026-10-04-floating-progress-vessels/README.md) — floating glass jars and tanks, generated pottery artwork, mobile swipe galleries and details in popups. Implemented and verified locally; this version is not deployed. Includes actual screenshots with labelled sample data; Blogger publication pending.
 
