@@ -1,4 +1,4 @@
-import { Icon } from '../../../interface/icons';
+import { Icon } from '../../../ui';
 import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { useAuth } from '../../../auth';
 import { fetchMyStudioVideoJobs, uploadStudioVideoAsset, type StudioVideoJob } from '../../data';

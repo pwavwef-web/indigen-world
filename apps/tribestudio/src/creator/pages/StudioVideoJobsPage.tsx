@@ -2,7 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { DataTable, type DataColumn } from '@indigen-world/console-ui';
 import { useAuth } from '../../auth';
 import { Link } from '../../router';
-import { EmptyState, LoadError, Skeleton, useReloadable } from '../components';
+import { LoadError, useReloadable } from '../components';
+import { Badge, ButtonLink, EmptyState, Icon, Notice, PageHeader, Skeleton, type Tone } from '../../ui';
 import {
   fetchMyStudioVideoJobs,
   fetchStudioVideoPlayback,
@@ -19,13 +20,13 @@ const STATUS_LABELS: Record<StudioVideoJob['status'], string> = {
   CANCELLED: 'Cancelled',
 };
 
-const STATUS_TONE: Record<StudioVideoJob['status'], string> = {
+const STATUS_TONE: Record<StudioVideoJob['status'], Tone> = {
   SUBMITTING: 'info',
   QUEUED: 'info',
   RUNNING: 'info',
-  SUCCEEDED: 'ok',
-  FAILED: 'err',
-  CANCELLED: 'muted',
+  SUCCEEDED: 'success',
+  FAILED: 'danger',
+  CANCELLED: 'neutral',
 };
 
 const MODEL_LABELS: Record<string, string> = {
@@ -184,9 +185,9 @@ export function StudioVideoJobsPage() {
       header: 'Status',
       width: '110px',
       cell: (job) => (
-        <span className={`pill pill--${STATUS_TONE[job.status] ?? 'muted'}`}>
+        <Badge tone={STATUS_TONE[job.status] ?? 'neutral'} dot live={PENDING.has(job.status)}>
           {STATUS_LABELS[job.status] ?? job.status}
-        </span>
+        </Badge>
       ),
       sort: (job) => STATUS_LABELS[job.status] ?? job.status,
       search: (job) => STATUS_LABELS[job.status] ?? job.status,
@@ -202,7 +203,7 @@ export function StudioVideoJobsPage() {
             <>
               <button
                 type="button"
-                className="button button--small"
+                className="ts-btn ts-btn--secondary ts-btn--sm"
                 disabled={opening?.jobId === job.id}
                 aria-pressed={viewing?.job.id === job.id}
                 onClick={() => void openVideo(job, 'watch')}
@@ -211,7 +212,7 @@ export function StudioVideoJobsPage() {
               </button>
               <button
                 type="button"
-                className="button button--small"
+                className="ts-btn ts-btn--ghost ts-btn--sm"
                 disabled={opening?.jobId === job.id}
                 onClick={() => void openVideo(job, 'download')}
               >
@@ -219,13 +220,13 @@ export function StudioVideoJobsPage() {
               </button>
               <Link
                 to={`/studio/editor?job=${encodeURIComponent(job.id)}`}
-                className="button button--small button--primary"
+                className="ts-btn ts-btn--primary ts-btn--sm"
               >
                 Edit &amp; post
               </Link>
             </>
           ) : (
-            <Link to={`/studio/video?job=${encodeURIComponent(job.id)}`} className="button button--small">
+            <Link to={`/studio/video?job=${encodeURIComponent(job.id)}`} className="ts-btn ts-btn--secondary ts-btn--sm">
               {PENDING.has(job.status) ? 'Watch' : 'Open'}
             </Link>
           )}
@@ -234,19 +235,28 @@ export function StudioVideoJobsPage() {
     },
   ];
 
+  const header = (
+    <PageHeader
+      kicker="Tools"
+      title="Your videos"
+      description="Every video you asked the studio to make, with its status and charge. Finished videos can be watched, edited and posted."
+      actions={<ButtonLink to="/studio/video" variant="primary" icon="sparkles">Make a video</ButtonLink>}
+    />
+  );
+
   if (failed) {
     return (
-      <div className="page">
-        <h1>Your videos</h1>
+      <div className="ts-page">
+        {header}
         <LoadError onRetry={retry} title="We couldn’t load your videos" />
       </div>
     );
   }
   if (loading) {
     return (
-      <div className="page">
-        <h1>Your videos</h1>
-        <Skeleton lines={5} />
+      <div className="ts-page">
+        {header}
+        <div className="ts-panel"><Skeleton lines={5} label="Loading your videos" /></div>
       </div>
     );
   }
@@ -254,31 +264,25 @@ export function StudioVideoJobsPage() {
   const failedJobs = jobs.filter((job) => job.status === 'FAILED' && job.failureReason);
 
   return (
-    <div className="page">
-      <header className="page__head">
-        <h1>Your videos</h1>
-        <div className="page__head-actions">
-          <Link to="/studio/video" className="button button--primary button--small">Make a video</Link>
-        </div>
-      </header>
+    <div className="ts-page video-jobs">
+      {header}
 
       {anyPending ? (
-        <div className="callout callout--info" role="status">
-          A video is being made right now. It finishes on our side even if you close this page — this
-          list updates on its own.
-        </div>
+        <Notice tone="info" role="status" icon="hourglass" title="A video is being made right now.">
+          It finishes on our side even if you close this page — this list updates on its own.
+        </Notice>
       ) : null}
-      {openError ? <div className="callout callout--warn" role="alert">{openError}</div> : null}
+      {openError ? <Notice tone="danger" role="alert">{openError}</Notice> : null}
 
       {viewing ? (
         <section className="video-viewer" ref={viewerRef} aria-label="Video preview">
           <div className="video-viewer__head">
             <div>
               <h2>{describe(viewing.job)}</h2>
-              <p className="tiny muted">Only you can see this until you publish it.</p>
+              <p className="ts-hint"><Icon name="lock" />Only you can see this until you publish it.</p>
             </div>
-            <button type="button" className="button button--small" onClick={() => setViewing(null)}>
-              Close
+            <button type="button" className="ts-btn ts-btn--ghost ts-btn--sm" onClick={() => setViewing(null)}>
+              <Icon name="close" />Close
             </button>
           </div>
           <video
@@ -293,18 +297,16 @@ export function StudioVideoJobsPage() {
           {playbackStalled ? (
             // Signed links last half an hour; a player left open longer than
             // that stops loading instead of failing loudly.
-            <div className="callout callout--warn" role="status">
-              The preview stopped loading. Press Watch again to reopen it.
-            </div>
+            <Notice tone="warning" role="status">The preview stopped loading. Press Watch again to reopen it.</Notice>
           ) : null}
           <div className="video-result__actions">
-            <a className="button button--small" href={viewing.downloadUrl}>Download</a>
+            <a className="ts-btn ts-btn--secondary ts-btn--sm" href={viewing.downloadUrl}><Icon name="download" />Download</a>
             {viewing.job.outputStoragePath ? (
               <Link
                 to={`/studio/submissions/new?generated=${encodeURIComponent(viewing.job.outputStoragePath)}`}
-                className="button button--small button--primary"
+                className="ts-btn ts-btn--primary ts-btn--sm"
               >
-                Publish
+                <Icon name="globe" />Publish
               </Link>
             ) : null}
           </div>
@@ -313,11 +315,14 @@ export function StudioVideoJobsPage() {
 
       {jobs.length === 0 ? (
         <EmptyState
+          boxed
+          icon="film"
           title="No videos yet"
           body="Write a Kasem script, describe the scene or bring your own footage, and the studio will make a video you can publish."
-          action={<Link to="/studio/video" className="button button--primary">Make your first video</Link>}
+          actions={<ButtonLink to="/studio/video" variant="primary" icon="sparkles">Make your first video</ButtonLink>}
         />
       ) : (
+        <section className="ts-panel ts-panel--flush" aria-label="Your AI video jobs">
         <DataTable
           caption="Your AI video jobs"
           columns={columns}
@@ -329,11 +334,12 @@ export function StudioVideoJobsPage() {
           pageSize={20}
           empty={{ title: 'Nothing matches that search' }}
         />
+        </section>
       )}
 
       {failedJobs.length > 0 ? (
-        <section className="video-failures">
-          <h2>Why a video failed</h2>
+        <section className="ts-panel video-failures">
+          <h2 className="ts-panel__title">Why a video failed</h2>
           <dl>
             {failedJobs.map((job) => (
               <div key={job.id}>

@@ -1,4 +1,4 @@
-import { Icon } from '../../interface/icons';
+import { Icon } from '../../ui';
 import type { ReactNode } from 'react';
 import type { MusicTrack, Sticker } from './api';
 import { ENTRANCES, EXITS, LOOKS } from './looks';

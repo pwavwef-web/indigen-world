@@ -5,6 +5,7 @@ import { httpsCallable } from 'firebase/functions';
 import { functions } from '../firebase';
 import { contributionState, itemStatus, STATUS_META, type Item, type Status } from './model';
 import type { SaveAnswer } from './types';
+import { Icon } from '../ui/icons';
 
 /**
  * The translation workspace: the expression list and the editor.
@@ -18,6 +19,9 @@ import type { SaveAnswer } from './types';
  *   - links from each field to the matching Platform guide section;
  *   - an inline Kawuri check and "Report a problem", injected by the page so
  *     this module stays free of routing and network code beyond saving.
+ *
+ * Its controls are plain elements with design-system classes rather than kit
+ * components, so the workflow tests can drive them directly.
  */
 
 const save = httpsCallable<Record<string, unknown>, { revision: number; submissionId?: string }>(functions, 'saveExpressionAnswer');
@@ -59,11 +63,16 @@ function statusSlug(status: Status) {
   return status.toLocaleLowerCase().replace(/[^a-z]+/g, '-').replace(/(^-|-$)/g, '');
 }
 
+const DOT: Record<string, string> = {
+  approved: 'var(--success-dot)', awaiting_review: 'var(--c-blue)', returned: 'var(--warning-dot)',
+  draft: 'var(--c-blue-soft)', unsure: '#a78bfa', not_started: 'var(--border-strong)', archived: '#94a3b8',
+};
+
 function GuideHint({ section, children, extras }: { section: string; children: ReactNode; extras: EditorExtras }) {
   const href = extras.guideHref ? extras.guideHref(section) : `/contributor/guide?section=${section}`;
   return (
     <a
-      className="cw-guide-hint"
+      className="ts-link cw-guide-hint"
       href={href}
       onClick={(event: MouseEvent<HTMLAnchorElement>) => {
         if (!extras.onNavigate || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
@@ -125,24 +134,32 @@ export function ContributionWorkspace({ items, work, onPending, accountId, saveA
   const counts = Object.fromEntries(FILTERS.map((label) => [label, label === 'All' ? items.length : items.filter((candidate) => contributionState(candidate) === label).length]));
 
   if (!items.length) {
-    return <div className="cw-empty"><strong>No expressions in this assignment</strong><p>The team has not added expressions yet. Check back later, or report a problem if you expected some.</p></div>;
+    return (
+      <div className="ts-empty ts-empty--boxed">
+        <span className="ts-empty__icon" aria-hidden="true"><Icon name="inbox" /></span>
+        <p className="ts-empty__title">No expressions in this assignment</p>
+        <p className="ts-empty__body">The team has not added expressions yet. Check back later, or report a problem if you expected some.</p>
+      </div>
+    );
   }
   return (
     <>
-      {confirmation ? <p className="cw-confirmation" role="status">{confirmation}</p> : null}
+      {confirmation ? <p className="ts-notice ts-notice--success cw-confirmation" role="status"><Icon name="check-circle" className="ts-notice__icon" /><span>{confirmation}</span></p> : null}
       <div className={'contributor-workspace' + (mobileEditor ? ' is-editing' : '')}>
         <section className="cw-list" aria-label="Expressions in this assignment">
-          <label className="cw-search">
-            <span className="cw-sr">Search expressions</span>
-            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
-            <input type="search" value={query} disabled={pending} onChange={(event) => { setQuery(event.target.value); setSelected(''); }} placeholder="Search expressions and translations" />
-          </label>
-          <div className="cw-filters" role="group" aria-label="Filter expressions">
-            {FILTERS.map((label) => (
-              <button key={label} type="button" className="cw-filter" disabled={pending} aria-pressed={filter === label} onClick={() => { setFilter(label); setSelected(''); }}>
-                {label === 'I’m not sure' ? 'Unsure' : label}<span className="cw-filter__count">{counts[label]}</span>
-              </button>
-            ))}
+          <div className="cw-list__tools">
+            <label className="ts-search">
+              <span className="sr-only">Search expressions</span>
+              <Icon name="search" />
+              <input type="search" value={query} disabled={pending} onChange={(event) => { setQuery(event.target.value); setSelected(''); }} placeholder="Search expressions and translations" />
+            </label>
+            <div className="ts-chips ts-chips--scroll" role="group" aria-label="Filter expressions">
+              {FILTERS.map((label) => (
+                <button key={label} type="button" className="ts-chip" disabled={pending} aria-pressed={filter === label} onClick={() => { setFilter(label); setSelected(''); }}>
+                  {label === 'I’m not sure' ? 'Unsure' : label}<span className="ts-count">{counts[label]}</span>
+                </button>
+              ))}
+            </div>
           </div>
           <ul className="cw-list__items">
             {visible.map((candidate, index) => {
@@ -155,19 +172,20 @@ export function ContributionWorkspace({ items, work, onPending, accountId, saveA
                     <span className="cw-list__copy">
                       <strong>{candidate.expression}</strong>
                       <small>
-                        <span className={`cw-dot cw-dot--status-${status}`} aria-hidden="true" />
+                        <span className="ts-dot" style={{ ['--dot' as string]: DOT[status] ?? 'var(--text-4)' }} aria-hidden="true" />
                         {STATUS_META[status].label}{recovery ? ' · Unsaved copy on this device' : ''}
                       </small>
                     </span>
+                    <Icon name="chevron" className="cw-list__go" />
                   </button>
                 </li>
               );
             })}
           </ul>
-          {!visible.length ? <p className="cw-muted cw-list__none">No expressions match. Try another search or filter.</p> : null}
+          {!visible.length ? <p className="ts-muted cw-list__none">No expressions match. Try another search or filter.</p> : null}
         </section>
         <div className="cw-editor-pane">
-          <button type="button" className="cw-back" disabled={pending} onClick={() => setMobileEditor(false)}>← All expressions</button>
+          <button type="button" className="ts-btn ts-btn--ghost ts-btn--sm cw-back" disabled={pending} onClick={() => setMobileEditor(false)}><Icon name="back" />All expressions</button>
           {item ? (
             <ExpressionEditor
               accountId={accountId}
@@ -193,7 +211,7 @@ export function ContributionWorkspace({ items, work, onPending, accountId, saveA
                 if (next && remaining) { setFilter('All'); setQuery(''); choose(remaining.id); }
               }}
             />
-          ) : <p className="cw-muted">Choose an expression to begin.</p>}
+          ) : <p className="ts-muted">Choose an expression to begin.</p>}
           {/* Outside the editor's form: the report dialog has a form of its own. */}
           {item && extras.renderReport ? <div className="cw-editor__footer">{extras.renderReport(item.id)}</div> : null}
         </div>
@@ -350,6 +368,8 @@ export function ExpressionEditor({ item, itemNumber = 1, itemTotal = 1, hasNextI
   const state = contributionState(item);
   const detailed = itemStatus(item);
   const listedAlternatives = savedAlternatives.filter((value) => value.trim());
+  const saveTone = status === 'Couldn’t save' ? ' is-error' : status === 'Saving…' ? ' is-saving' : '';
+  const chipTone = STATUS_META[detailed].tone;
   return (
     <form className="contributor-editor" onInvalid={(event) => {
       event.currentTarget.querySelector<HTMLElement>(':invalid')?.scrollIntoView({ block: 'center' });
@@ -359,77 +379,96 @@ export function ExpressionEditor({ item, itemNumber = 1, itemTotal = 1, hasNextI
       reviewNext.current = (event.nativeEvent as SubmitEvent | undefined)?.submitter?.getAttribute('value') === 'next';
       reviewDialog.current?.showModal();
     }}>
-      <dialog ref={reviewDialog} className="cw-dialog contributor-review-dialog" aria-labelledby="review-answer-title" onCancel={(event) => { if (busy) event.preventDefault(); }}>
-        <h2 id="review-answer-title">Review your submission</h2>
-        <p className="cw-dialog__lede">Once confirmed, this expression is locked until a reviewer decides.</p>
-        <dl className="cw-review-list">
-          <div><dt>English expression</dt><dd>{item.expression}</dd></div>
-          <div><dt>Kasem translation</dt><dd className="review-answer-text">{translation}</dd></div>
-          <div><dt>Alternative translations</dt><dd>{listedAlternatives.length ? <ul>{listedAlternatives.map((value, index) => <li key={index}>{value}</li>)}</ul> : 'None added.'}</dd></div>
-          <div><dt>Usage note</dt><dd>{context.trim() || 'None added.'}</dd></div>
-          <div><dt>Publication permission</dt><dd>{publication ? 'Granted' : 'Not granted'}</dd></div>
-          <div><dt>Model training and evaluation</dt><dd>Included under your contributor agreement</dd></div>
-        </dl>
-        <div className="contributor-review-actions">
-          <button type="button" autoFocus disabled={busy} onClick={() => reviewDialog.current?.close()}>Back to editing</button>
-          <button type="button" className="button--primary contributor-submit-cta" disabled={busy || Boolean(cannotSubmit)} onClick={() => void sendReviewedAnswer()}>{busy ? 'Submitting…' : 'Confirm submission'}</button>
+      <dialog ref={reviewDialog} className="ts-dialog contributor-review-dialog" aria-labelledby="review-answer-title" onCancel={(event) => { if (busy) event.preventDefault(); }}>
+        <div className="ts-dialog__head">
+          <div>
+            <h2 className="ts-dialog__title" id="review-answer-title">Review your submission</h2>
+            <p className="ts-dialog__lede">Once confirmed, this expression is locked until a reviewer decides.</p>
+          </div>
+        </div>
+        <div className="ts-dialog__body">
+          <dl className="ts-kv">
+            <div><dt>English expression</dt><dd>{item.expression}</dd></div>
+            <div><dt>Kasem translation</dt><dd className="review-answer-text" lang="xsm">{translation}</dd></div>
+            <div><dt>Alternatives</dt><dd>{listedAlternatives.length ? <ul className="cw-review-alts">{listedAlternatives.map((value, index) => <li key={index} lang="xsm">{value}</li>)}</ul> : 'None added.'}</dd></div>
+            <div><dt>Usage note</dt><dd>{context.trim() || 'None added.'}</dd></div>
+            <div><dt>Sharing permission</dt><dd>{publication ? 'Granted' : 'Not granted'}</dd></div>
+            <div><dt>Model training and evaluation</dt><dd>Included under your contributor agreement</dd></div>
+          </dl>
+          <p className="ts-consequence cw-review-next"><Icon name="send" /><span>Next: a reviewer reads it and approves it or returns it with feedback. You will see the decision on this expression and in Activity.</span></p>
+        </div>
+        <div className="ts-dialog__foot contributor-review-actions">
+          <button type="button" className="ts-btn ts-btn--ghost" autoFocus disabled={busy} onClick={() => reviewDialog.current?.close()}>Back to editing</button>
+          <button type="button" className="ts-btn ts-btn--primary contributor-submit-cta" disabled={busy || Boolean(cannotSubmit)} onClick={() => void sendReviewedAnswer()}>{busy ? 'Submitting…' : 'Confirm submission'}</button>
         </div>
       </dialog>
 
       <header className="cw-editor__head">
-        <div>
-          <p className="cw-kicker">Expression {itemNumber} of {itemTotal}</p>
+        <div className="cw-editor__heading">
+          <p className="ts-kicker">Expression {itemNumber} of {itemTotal}</p>
           <h2 className="cw-editor__expression">{item.expression}</h2>
         </div>
-        <span className={`cw-chip cw-chip--${STATUS_META[detailed].tone} status-badge state-${statusSlug(state)}`}>{STATUS_META[detailed].label}</span>
+        <span className={`ts-badge ts-badge--${chipTone === 'neutral' ? 'neutral' : chipTone} status-badge state-${statusSlug(state)}`}><span className="ts-badge__dot" aria-hidden="true" /><span>{STATUS_META[detailed].label}</span></span>
       </header>
 
       <ReviewTiming item={item} />
       {item.feedback ? (
         <section className="cw-feedback" aria-label="Reviewer feedback">
-          <strong>Reviewer feedback</strong>
-          <p>{item.feedback}</p>
-          {revising ? <small>Revise your translation below, then resubmit it. Your earlier version and this decision stay on record. <GuideHint section="review" extras={extras}>How revisions work</GuideHint></small> : null}
+          <span className="cw-feedback__icon" aria-hidden="true"><Icon name="message" /></span>
+          <div>
+            <strong>Reviewer feedback</strong>
+            <p>{item.feedback}</p>
+            {revising ? <small>Revise your translation below, then resubmit it. Your earlier version and this decision stay on record. <GuideHint section="review" extras={extras}>How revisions work</GuideHint></small> : null}
+          </div>
         </section>
       ) : null}
 
       {recovery ? (
         <section className="cw-feedback cw-feedback--recovery" aria-label="Unsaved draft">
-          <strong>Unsaved draft found on this device</strong>
-          <p>{recovery.revision !== item.revision ? 'The saved version has changed since this copy was made. Compare both before restoring.' : 'Your previous edits can be recovered.'}</p>
-          <pre className="contributor-recovery-text">{recovery.translation}{recovery.alternatives ? `\nAlternatives:\n${recovery.alternatives}` : ''}{recovery.context ? `\nUsage note:\n${recovery.context}` : ''}</pre>
-          <div className="cw-inline-actions">
-            {!locked ? <button type="button" onClick={() => {
-              revision.current = item.revision;
-              changeAnswer('translation', recovery.translation);
-              changeAnswer('alternatives', recovery.alternatives);
-              changeAnswer('context', recovery.context);
-              setRecovery(null);
-            }}>Restore draft</button> : null}
-            <button type="button" onClick={() => { try { window.localStorage.removeItem(storageKey); } catch { /* Storage may be unavailable. */ } setRecovery(null); }}>Discard recovery copy</button>
+          <span className="cw-feedback__icon" aria-hidden="true"><Icon name="refresh" /></span>
+          <div>
+            <strong>Unsaved draft found on this device</strong>
+            <p>{recovery.revision !== item.revision ? 'The saved version has changed since this copy was made. Compare both before restoring.' : 'Your previous edits can be recovered.'}</p>
+            <pre className="contributor-recovery-text" lang="xsm">{recovery.translation}{recovery.alternatives ? `\nAlternatives:\n${recovery.alternatives}` : ''}{recovery.context ? `\nUsage note:\n${recovery.context}` : ''}</pre>
+            <div className="ts-cluster">
+              {!locked ? <button type="button" className="ts-btn ts-btn--primary ts-btn--sm" onClick={() => {
+                revision.current = item.revision;
+                changeAnswer('translation', recovery.translation);
+                changeAnswer('alternatives', recovery.alternatives);
+                changeAnswer('context', recovery.context);
+                setRecovery(null);
+              }}>Restore draft</button> : null}
+              <button type="button" className="ts-btn ts-btn--ghost ts-btn--sm" onClick={() => { try { window.localStorage.removeItem(storageKey); } catch { /* Storage may be unavailable. */ } setRecovery(null); }}>Discard recovery copy</button>
+            </div>
           </div>
         </section>
       ) : null}
-      {storageError ? <p role="alert" className="cw-inline-alert">{storageError}</p> : null}
+      {storageError ? <p role="alert" className="ts-notice ts-notice--warning">{storageError}</p> : null}
 
-      <div className="editor-save-state">
-        <span className={`save-indicator ${status === 'Couldn’t save' ? 'is-error' : ''}`} aria-hidden="true">{status === 'Saving…' ? '•' : status === 'Couldn’t save' ? '!' : '✓'}</span>
-        <span role="status" aria-live="polite">{locked ? (item.status === 'verified' ? 'Approved — locked' : 'Submitted — locked while under review') : status}</span>
-        {!locked ? <button type="button" disabled={busy || Boolean(recovery) || blocked.current || !dirty.current} onClick={() => void persist().catch(() => undefined)}>Save draft</button> : null}
-        {error && !locked ? <button type="button" disabled={busy} onClick={retrySave}>Retry save now</button> : null}
-        {extras.renderKawuri && !locked ? (
-          <button type="button" className="cw-kawuri-toggle" aria-expanded={kawuriOpen} onClick={() => setKawuriOpen((open) => !open)}>
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z" /></svg>
-            {kawuriOpen ? 'Hide Kawuri check' : 'Check with Kawuri'}
-          </button>
-        ) : null}
+      <div className="editor-save-state cw-savebar">
+        <span className={`ts-save${saveTone}`}>
+          <span className="ts-save__mark" aria-hidden="true"><Icon name={status === 'Couldn’t save' ? 'alert' : locked ? 'lock' : 'check'} /></span>
+          <span role="status" aria-live="polite">{locked ? (item.status === 'verified' ? 'Approved — locked' : 'Submitted — locked while under review') : status}</span>
+        </span>
+        <span className="cw-savebar__actions">
+          {!locked ? <button type="button" className="ts-btn ts-btn--ghost ts-btn--sm" disabled={busy || Boolean(recovery) || blocked.current || !dirty.current} onClick={() => void persist().catch(() => undefined)}>Save draft</button> : null}
+          {error && !locked ? <button type="button" className="ts-btn ts-btn--sm" disabled={busy} onClick={retrySave}>Retry save now</button> : null}
+          {extras.renderKawuri && !locked ? (
+            <button type="button" className="ts-btn ts-btn--soft ts-btn--sm cw-kawuri-toggle" aria-expanded={kawuriOpen} onClick={() => setKawuriOpen((open) => !open)}>
+              <Icon name="kawuri" />
+              {kawuriOpen ? 'Hide Kawuri check' : 'Check with Kawuri'}
+            </button>
+          ) : null}
+        </span>
       </div>
 
       {kawuriOpen && extras.renderKawuri ? extras.renderKawuri(item.id, { translation, alternatives: listedAlternatives, context }, () => setKawuriOpen(false)) : null}
 
-      <label className="translation-field">
-        <span className="cw-field-label">Kasem translation <span aria-hidden="true" className="cw-required">*</span></span>
+      <label className="ts-field translation-field">
+        <span className="ts-label">Kasem translation <span aria-hidden="true" className="ts-required">*</span></span>
         <textarea
+          className="ts-textarea cw-translation"
+          lang="xsm"
           ref={(node) => { if (node && !activeField.current) activeField.current = node; }}
           onFocus={(event) => { activeField.current = event.currentTarget; }}
           required
@@ -440,15 +479,15 @@ export function ExpressionEditor({ item, itemNumber = 1, itemTotal = 1, hasNextI
           aria-describedby="translation-help"
           onChange={(event) => changeAnswer('translation', event.target.value)}
         />
-        <small id="translation-help">Write it as you would say it. <GuideHint section="good-contribution" extras={extras}>Translation tips</GuideHint></small>
+        <small className="ts-hint" id="translation-help">Write it as you would say it. <GuideHint section="good-contribution" extras={extras}>Translation tips</GuideHint></small>
       </label>
 
       {!locked ? (
         <div className="contributor-characters" role="group" aria-label="Kasem characters">
-          <small>Insert a Kasem character</small>
+          <small>Insert a Kasem letter</small>
           <div>
             {KASEM_CHARACTERS.map((char) => (
-              <button type="button" key={char} aria-label={`Insert ${char}`} disabled={busy || Boolean(recovery)} onMouseDown={(event) => event.preventDefault()} onClick={() => {
+              <button type="button" key={char} className="cw-letter" aria-label={`Insert ${char}`} disabled={busy || Boolean(recovery)} onMouseDown={(event) => event.preventDefault()} onClick={() => {
                 const field = activeField.current;
                 if (!field) return;
                 const start = field.selectionStart ?? field.value.length;
@@ -466,68 +505,75 @@ export function ExpressionEditor({ item, itemNumber = 1, itemTotal = 1, hasNextI
         </div>
       ) : null}
 
-      <details className="cw-optional" open={Boolean(item.alternatives.length || item.context)}><summary>Alternative translations and usage note (optional)</summary>
-      <section className="alternative-translations">
-        <div className="cw-field-head">
-          <span className="cw-field-label">Alternative translations</span>
-          <small>Optional · up to 12 · <GuideHint section="alternatives-context" extras={extras}>When to add one</GuideHint></small>
-        </div>
-        {alternativeValues.map((value, index) => (
-          <label key={index}>
-            <span className="cw-sr">Alternative {index + 1}</span>
-            <span className="cw-alternative">
-              <input name="alternatives" data-alternative-index={index} maxLength={500} disabled={locked || busy || Boolean(recovery)} value={value} placeholder={`Another natural way to say it (${index + 1})`} onFocus={(event) => { activeField.current = event.currentTarget; }} onChange={(event) => updateAlternative(index, event.target.value)} />
-              <button type="button" aria-label={`Remove alternative ${index + 1}`} disabled={busy || locked} onClick={() => removeAlternative(index)}>×</button>
-            </span>
+      <details className="ts-disclosure cw-optional" open={Boolean(item.alternatives.length || item.context)}>
+        <summary><Icon name="layers" /><span>Alternatives and usage note<small>Optional · reviewers read the usage note first</small></span><Icon name="chevron" className="ts-disclosure__chev" /></summary>
+        <div className="ts-disclosure__body">
+          <section className="alternative-translations ts-stack ts-stack--sm">
+            <div className="ts-row ts-row--between" style={{ flexWrap: 'wrap' }}>
+              <span className="ts-label">Alternative translations</span>
+              <small className="ts-hint">Up to 12 · <GuideHint section="alternatives-context" extras={extras}>When to add one</GuideHint></small>
+            </div>
+            {alternativeValues.map((value, index) => (
+              <label key={index} className="cw-alternative">
+                <span className="sr-only">Alternative {index + 1}</span>
+                <input className="ts-input ts-input--sm" lang="xsm" name="alternatives" data-alternative-index={index} maxLength={500} disabled={locked || busy || Boolean(recovery)} value={value} placeholder={`Another natural way to say it (${index + 1})`} onFocus={(event) => { activeField.current = event.currentTarget; }} onChange={(event) => updateAlternative(index, event.target.value)} />
+                <button type="button" className="ts-btn ts-btn--ghost ts-btn--icon ts-btn--sm" aria-label={`Remove alternative ${index + 1}`} disabled={busy || locked} onClick={() => removeAlternative(index)}><Icon name="close" /></button>
+              </label>
+            ))}
+            {!locked && alternativeValues.length < 12 ? <button className="add-alternative ts-btn ts-btn--ghost ts-btn--sm" type="button" disabled={busy || Boolean(recovery)} onClick={() => setAlternativeCount((count) => Math.min(12, count + 1))}><Icon name="plus" />Add an alternative</button> : null}
+          </section>
+
+          <label className="ts-field cw-context-field">
+            <span className="ts-label">Usage note <span className="ts-optional">Optional</span></span>
+            <textarea
+              className="ts-textarea"
+              name="context"
+              maxLength={1000}
+              rows={3}
+              disabled={locked || busy || Boolean(recovery)}
+              value={context}
+              placeholder="Who says this, to whom, and when? Formal or casual? Anything a reviewer should know."
+              aria-describedby="context-help"
+              onFocus={(event) => { activeField.current = event.currentTarget; }}
+              onChange={(event) => changeAnswer('context', event.target.value)}
+            />
+            <small className="ts-hint" id="context-help">For idioms, add the literal and intended meaning. <GuideHint section="alternatives-context" extras={extras}>Context tips</GuideHint></small>
           </label>
-        ))}
-        {!locked && alternativeValues.length < 12 ? <button className="add-alternative" type="button" disabled={busy || Boolean(recovery)} onClick={() => setAlternativeCount((count) => Math.min(12, count + 1))}>+ Add an alternative</button> : null}
-      </section>
-
-      <label className="cw-context-field">
-        <span className="cw-field-label">Usage note <small>(optional)</small></span>
-        <textarea
-          name="context"
-          maxLength={1000}
-          rows={3}
-          disabled={locked || busy || Boolean(recovery)}
-          value={context}
-          placeholder="Who says this, to whom, and when? Formal or casual? Anything a reviewer should know."
-          aria-describedby="context-help"
-          onFocus={(event) => { activeField.current = event.currentTarget; }}
-          onChange={(event) => changeAnswer('context', event.target.value)}
-        />
-        <small id="context-help">For idioms, add the literal and intended meaning. <GuideHint section="alternatives-context" extras={extras}>Context tips</GuideHint></small>
-      </label>
-
+        </div>
       </details>
+
       {!locked ? (
         <>
-          <section className="permission-section" aria-labelledby="submission-permission-title">
-            <div className="permission-section__heading">
-              <h3 id="submission-permission-title">Permission to submit</h3>
-              <p>Your draft is saved automatically. Submit it below to send it to the Review Desk.</p>
-            </div>
-            <label className="contributor-check contributor-check--required">
+          <section className="permission-section cw-permission" aria-labelledby="submission-permission-title">
+            <h3 id="submission-permission-title" className="sr-only">Permission to submit</h3>
+            <label className="ts-check ts-check--card ts-check--required">
               <input type="checkbox" required disabled={busy || Boolean(recovery)} checked={publication} onChange={(event) => setPublication(event.target.checked)} />
-              <span><strong>Required to submit</strong>I have permission to share this expression for review, expression publication and model training.</span>
+              <span className="ts-check__copy">
+                <strong>I have permission to share this expression</strong>
+                <small>For review, expression publication and model training. Required to submit. Your draft is saved automatically either way.</small>
+              </span>
             </label>
-            <p>All submissions are used for language model training and evaluation under your contributor agreement. Reviewed expressions stay in the expression collection and training data; the dictionary contains words.</p>
-            <GuideHint section="review" extras={extras}>What these permissions mean</GuideHint>
+            <p className="ts-hint">All submissions are used for language model training and evaluation under your contributor agreement. Reviewed expressions stay in the expression collection; the dictionary contains words. <GuideHint section="review" extras={extras}>What these permissions mean</GuideHint></p>
           </section>
           {error ? (
-            <div role="alert" className="cw-inline-alert">
-              <p>Your text is still here. Check your connection and retry. {error} If another device changed this draft, copy your text before reloading.</p>
-              <button type="button" onClick={retrySave}>Retry save</button>
+            <div role="alert" className="ts-notice ts-notice--danger">
+              <Icon name="alert" className="ts-notice__icon" />
+              <div className="ts-notice__body">
+                <p>Your text is still here. Check your connection and retry. {error} If another device changed this draft, copy your text before reloading.</p>
+              </div>
+              <div className="ts-notice__action"><button type="button" className="ts-btn ts-btn--sm" onClick={retrySave}>Retry save</button></div>
             </div>
           ) : null}
-          <div className="contributor-submit-wrap">
-            <p id="submit-help">{submitHelp}</p>
-            <button type="submit" value={hasNextIncomplete ? 'next' : 'submit'} className="button--primary contributor-submit-cta" aria-describedby="submit-help" disabled={busy || Boolean(recovery) || blocked.current}>{busy ? 'Submitting…' : revising ? 'Resubmit for review →' : 'Submit for review →'}</button>
+          <div className="contributor-submit-wrap cw-submit">
+            <p id="submit-help" className={cannotSubmit || recovery ? 'ts-hint' : 'ts-hint cw-submit__ready'}>{!cannotSubmit && !recovery ? <Icon name="check-circle" /> : null}{submitHelp}</p>
+            <button type="submit" value={hasNextIncomplete ? 'next' : 'submit'} className="ts-btn ts-btn--primary ts-btn--lg contributor-submit-cta" aria-describedby="submit-help" disabled={busy || Boolean(recovery) || blocked.current}>{busy ? 'Submitting…' : revising ? 'Resubmit for review →' : 'Submit for review →'}</button>
           </div>
-          <section className="unsure-section">
-            <div><strong>Not sure about this one?</strong><p>Flag it and move on. Your draft stays private and nothing is sent for review.</p></div>
-            <button type="button" disabled={busy || Boolean(recovery) || blocked.current} onClick={async () => {
+          <section className="unsure-section cw-unsure">
+            <div>
+              <strong>Not sure about this one?</strong>
+              <p>Flag it and move on. Your draft stays private and nothing is sent for review.</p>
+            </div>
+            <button type="button" className="ts-btn ts-btn--ghost ts-btn--sm" disabled={busy || Boolean(recovery) || blocked.current} onClick={async () => {
               submitting.current = true;
               setBusy(true);
               onPending(true);
@@ -545,7 +591,7 @@ export function ExpressionEditor({ item, itemNumber = 1, itemTotal = 1, hasNextI
           </section>
         </>
       ) : (
-        <p role="status" className="cw-locked-note">{item.status === 'verified' ? 'Approved by the Review Desk. Approved expressions cannot be edited.' : 'Submitted. It stays locked while it waits for review; you will see the decision here and in Activity.'}</p>
+        <p role="status" className="ts-notice ts-notice--neutral cw-locked-note"><Icon name="lock" className="ts-notice__icon" /><span>{item.status === 'verified' ? 'Approved by the Review Desk. Approved expressions cannot be edited.' : 'Submitted. It stays locked while it waits for review; you will see the decision here and in Activity.'}</span></p>
       )}
     </form>
   );

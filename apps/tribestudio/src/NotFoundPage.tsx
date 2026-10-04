@@ -1,4 +1,4 @@
-import { Link } from './router';
+import { ButtonLink, Icon, Page } from './ui';
 
 interface NotFoundPageProps {
   variant?: 'public' | 'studio';
@@ -9,27 +9,25 @@ export function NotFoundPage({ variant = 'public' }: NotFoundPageProps) {
   const inStudio = variant === 'studio';
 
   return (
-    <section className={`not-found-page not-found-page--${variant}`} aria-labelledby="not-found-title">
-      <div className="not-found-page__halo" aria-hidden="true" />
-      <div className="not-found-page__code" aria-label="Error 404">
-        <span>4</span>
-        <span className="not-found-page__orb">TS</span>
-        <span>4</span>
-      </div>
-      <p className="not-found-page__eyebrow">This path is outside the map</p>
-      <h1 id="not-found-title">Page not found</h1>
-      <p>
-        The page may have moved as TribeStudio grows. Head back to a familiar workspace and
-        continue creating.
-      </p>
-      <div className="not-found-page__actions">
-        <Link to={inStudio ? '/studio' : '/creators'} className="button button--primary">
-          {inStudio ? 'Back to dashboard' : 'Back to creator programme'}
-        </Link>
-        <Link to={inStudio ? '/studio/help' : '/creators/faq'} className="button button--glass">
-          {inStudio ? 'Open help' : 'Visit the FAQ'}
-        </Link>
-      </div>
-    </section>
+    <Page width="medium" className={inStudio ? undefined : 'ts-public-page'}>
+      <section aria-labelledby="not-found-title" className="ts-panel ts-panel--dashed">
+        <div className="ts-empty">
+          <span className="ts-empty__icon" aria-hidden="true"><Icon name="map" /></span>
+          <p className="ts-kicker" aria-label="Error 404">404 · Off the map</p>
+          <h1 id="not-found-title" className="ts-empty__title" style={{ fontSize: 'var(--fs-2xl)' }}>This page does not exist</h1>
+          <p className="ts-empty__body">
+            The link may be mistyped or out of date. Your drafts, projects and contributions are unaffected.
+          </p>
+          <div className="ts-empty__actions">
+            <ButtonLink to={inStudio ? '/studio' : '/creators'} variant="primary" icon="home">
+              {inStudio ? 'Back to the overview' : 'Back to the creator programme'}
+            </ButtonLink>
+            <ButtonLink to={inStudio ? '/studio/help' : '/creators/faq'} icon="help">
+              {inStudio ? 'Open help' : 'Read the FAQ'}
+            </ButtonLink>
+          </div>
+        </div>
+      </section>
+    </Page>
   );
 }

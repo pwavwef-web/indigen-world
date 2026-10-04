@@ -6,7 +6,7 @@ import type { Item, SubmissionRound, Work } from './model';
 import type { AssistResult, PaymentsView, PortalPaths, SelfView, Settings, WorkspaceData, WorkspaceServices } from './types';
 import { MOMO_NETWORKS } from './types';
 import './contributor.css';
-import '../interface/screens.css';
+
 
 /**
  * Local preview of the contributor workspace — development builds only
@@ -267,7 +267,7 @@ export function ContributorPreview() {
   return (
     <WorkspaceContext.Provider value={value}>
       <WorkspaceShell banner={(
-        <div className="cw-preview-banner" role="note">
+        <div className="ts-banner" role="note">
           <strong>Local preview · sample data</strong>
           <span>Nothing is saved or sent. Kasem text is a placeholder. The MoMo code is 123456. Community activity is sample data.</span>
         </div>

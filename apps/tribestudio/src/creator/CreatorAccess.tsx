@@ -2,7 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import type { CreatorApplication, CreatorMembership, CreatorProfile } from '@indigen-world/contracts/creator-models';
 import { signOutUser, useAuth } from '../auth';
 import { FullPageLoader } from '../LoadingScreen';
-import { WorkspaceEntry } from '../interface/WorkspaceFrame';
+import { AuthScreen, Button, KeyValue } from '../ui';
 import { ensureCreatorProfile, fetchMyApplications, fetchMyMembership, fetchMyProfile } from './data';
 import { StatusPill, WhatsAppCard } from './components';
 import { useConfig } from './CreatorProvider';
@@ -26,6 +26,7 @@ export function ApplicationStatusGate({ children }: { children: ReactNode }) {
   const [membership, setMembership] = useState<CreatorMembership | null>(null);
   const [applications, setApplications] = useState<CreatorApplication[]>([]);
   const [profile, setProfile] = useState<CreatorProfile | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -83,41 +84,40 @@ export function ApplicationStatusGate({ children }: { children: ReactNode }) {
     return <FullPageLoader note="Checking your creator access…" />;
   }
 
-  if (failed) return <WorkspaceEntry title="Your creator account." description="Reconnect to continue with your saved work."><h1>Could not check creator access</h1><p role="alert">Your account could not be loaded. Check your connection and retry.</p><button type="button" className="cw-auth__primary" onClick={() => setAttempt(value => value + 1)}>Try again</button><p><button type="button" onClick={() => void signOutUser()}>Sign out</button></p></WorkspaceEntry>;
+  if (failed) {
+    return (
+      <AuthScreen workspace="create" title="Could not check creator access" lede="Your account could not be loaded, so the studio stays closed rather than guessing. Check your connection and try again.">
+        <div className="ts-auth__form" role="alert">
+          <Button variant="primary" size="lg" block icon="refresh" onClick={() => setAttempt((value) => value + 1)}>Try again</Button>
+          <Button variant="ghost" block onClick={() => void signOutUser()}>Sign out</Button>
+        </div>
+      </AuthScreen>
+    );
+  }
 
   if (!blocked) {
     return <>{children}</>;
   }
 
   return (
-    <WorkspaceEntry title="Your creator account." description="Check access and contact the team when you need help.">
-          <p className="hero__eyebrow">Creator access</p>
-          <h1>Studio access is not available</h1>
-          <p className="muted">
-            This account cannot publish to Indigen World at the moment. If you think that
-            is a mistake, reply on the official creator channel and the team will look
-            at it.
-          </p>
-          <dl className="success__meta">
-            <div>
-              <dt>Status</dt>
-              <dd><StatusPill status={status} labels={STATUS_LABELS} /></dd>
-            </div>
-            {application?.reference || profile?.reference ? (
-              <div>
-                <dt>Reference</dt>
-                <dd>{application?.reference ?? profile?.reference}</dd>
-              </div>
-            ) : null}
-          </dl>
-          <div className="success__actions">
-            <button type="button" className="button button--ghost-dark" onClick={() => void refreshToken()}>
-              Refresh access
-            </button>
-            <button type="button" onClick={() => void signOutUser()}>Sign out</button>
-          </div>
-          <WhatsAppCard url={whatsappUrl} compact />
-    </WorkspaceEntry>
+    <AuthScreen
+      workspace="create"
+      title="Studio access is not available"
+      lede="This account cannot publish to Indigen World at the moment. If you think that is a mistake, reply on the official creator channel and the team will look at it."
+      wide
+    >
+      <KeyValue items={[
+        { label: 'Status', value: <StatusPill status={status} labels={STATUS_LABELS} /> },
+        { label: 'Reference', value: application?.reference ?? profile?.reference ?? '', hidden: !(application?.reference || profile?.reference) },
+      ]} />
+      <div className="ts-auth__form">
+        <Button variant="primary" block icon="refresh" busy={refreshing} onClick={async () => { setRefreshing(true); try { await refreshToken(); } finally { setRefreshing(false); } }}>
+          Refresh access
+        </Button>
+        <Button variant="ghost" block onClick={() => void signOutUser()}>Sign out</Button>
+      </div>
+      <WhatsAppCard url={whatsappUrl} compact />
+    </AuthScreen>
   );
 }
 

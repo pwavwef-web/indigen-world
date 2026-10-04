@@ -7,16 +7,15 @@ import { httpsCallable } from 'firebase/functions';
 import { auth, db, functions } from '../firebase';
 import { canValidate, signIn, signOutUser, useAuth } from '../auth';
 import { ReviewDesk } from './review/ReviewDesk';
+import { reviewNav } from './review/nav';
 import { useRoute } from '../router';
-import { BrandMark } from './components';
 import { livePaths, liveServices, useLiveWorkspace } from './data';
-import { invitationLinkOwner, WorkspaceShell } from './workspace';
+import { contributorNav, invitationLinkOwner, WorkspaceShell } from './workspace';
 import type { AccountSummary, WorkspaceData } from './types';
-import './contributor.css';
-import '../interface/screens.css';
-import { ProcessGuide, WorkspaceFrame } from '../interface/WorkspaceFrame';
+import { AppShell, AuthScreen, AuthWaiting, GoogleButton, Icon, useWorkspaceAccess, type WorkspaceId } from '../ui';
 import { SupportPage } from './SupportPage';
 import { CONTRIBUTOR_TRAINING_NOTICE, CONTRIBUTOR_TRAINING_TERMS_VERSION } from './trainingTerms';
+import './contributor.css';
 
 /**
  * The contributor portal at /contributor.
@@ -38,6 +37,8 @@ export function ContributorPortal() {
   const [access, setAccess] = useState<'loading' | 'active' | 'denied'>('loading');
   const [account, setAccount] = useState<AccountSummary | null>(null);
   const [error, setError] = useState('');
+  const [googleBusy, setGoogleBusy] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     if (!user || code || reviewRoute || corpusRoute) return;
@@ -63,78 +64,131 @@ export function ContributorPortal() {
     });
   }, [user?.uid, code, reviewRoute, corpusRoute]);
 
-  if (path === '/contributor/support') return <AuthFrame><SupportPage /></AuthFrame>;
-  if (!ready) return <AuthFrame><p className="cw-auth__message" role="status">Opening your workspace…</p></AuthFrame>;
-  if (corpusRoute && !user && !code) return <AuthFrame><ContributorSignIn code={null} /><button className="cw-auth__secondary" onClick={() => void signIn().catch(() => setError('Google sign-in did not complete. Try again.'))}>Sign in with Google</button>{error && <p role="alert">{error}</p>}</AuthFrame>;
-  if (corpusRoute && user && !code) return <WorkspaceFrame identity="Contribute" account={user.displayName || user.email || 'Contributor'} onSignOut={() => void signOutUser()} destinations={[{to:'/contributor/corpus',label:'Corpus workspace',icon:'guide',group:'Your work',active:true},{to:'/contributor',label:'Assignments & account',icon:'assignments',group:'Your work'},{to:'/studio',label:'Creator workspace',icon:'video',group:'Workspaces'},...(canValidate(role) ? [{to:'/contributor/review',label:'Review workspace',icon:'shield' as const,group:'Workspaces'}] : [])]}><KnowledgeWorkspace key={user.uid} /></WorkspaceFrame>;
+  // Google sign-in is offered where validators and corpus reviewers arrive;
+  // invited contributors use the email from their invitation.
+  const google = () => (
+    <>
+      <p className="ts-auth__or">or</p>
+      <GoogleButton busy={googleBusy} label={reviewRoute ? 'Validators: continue with Google' : 'Continue with Google'} onClick={() => {
+        setGoogleBusy(true);
+        setError('');
+        void signIn().catch(() => setError('Google sign-in did not complete. Try again.')).finally(() => setGoogleBusy(false));
+      }} />
+      {error ? <p role="alert" className="ts-error"><Icon name="alert" />{error}</p> : null}
+    </>
+  );
+
+  if (path === '/contributor/support') return <AuthFrame wide><SupportPage /></AuthFrame>;
+  if (!ready) return <AuthFrame title="Opening your workspace"><AuthWaiting>Checking your sign-in…</AuthWaiting></AuthFrame>;
+  if (corpusRoute && !user && !code) return <AuthFrame><ContributorSignIn code={null} />{google()}</AuthFrame>;
+  if (corpusRoute && user && !code) return <CorpusShell />;
   if (reviewRoute && !code) {
-    if (!user) return <AuthFrame><ContributorSignIn code={null} /><button className="cw-auth__secondary" onClick={() => void signIn().catch(() => setError('Google sign-in did not complete. Try again.'))}>Sign in with Google</button>{error ? <p role="alert">{error}</p> : null}</AuthFrame>;
-    if (!canValidate(role)) return <AuthFrame><h1>Validator access required</h1><p>The review desk is available to accounts with review permission. Contact the team if you need access.</p><button className="cw-auth__primary" onClick={() => void refreshToken()}>Refresh access</button><button className="cw-auth__secondary" onClick={() => void signOutUser()}>Sign out</button></AuthFrame>;
+    if (!user) return <AuthFrame><ContributorSignIn code={null} />{google()}</AuthFrame>;
+    if (!canValidate(role)) {
+      return (
+        <AuthFrame title="Validator access required" lede="The review desk opens for accounts with review permission. If you were given that permission recently, refresh your access; otherwise contact the team.">
+          <div className="ts-auth__form">
+            <button type="button" className="ts-btn ts-btn--primary ts-btn--lg ts-btn--block" disabled={refreshing} aria-busy={refreshing || undefined} onClick={async () => { setRefreshing(true); try { await refreshToken(); } finally { setRefreshing(false); } }}>
+              <span className="ts-btn__spinner" aria-hidden="true" /><span>{refreshing ? 'Checking…' : 'Refresh access'}</span>
+            </button>
+            <button type="button" className="ts-btn ts-btn--ghost ts-btn--block" onClick={() => void signOutUser()}><span>Sign out</span></button>
+          </div>
+        </AuthFrame>
+      );
+    }
     return <ReviewDesk key={user.uid} />;
   }
   if (code || !user) return <AuthFrame><ContributorSignIn code={code} /></AuthFrame>;
   if (linkOwner && user.uid !== linkOwner) {
     return (
-      <AuthFrame>
-        <div className="cw-auth__message" role="alert">
-          <strong>This invitation link belongs to another account</strong>
-          <p>You are signed in as {user.email ?? 'a different account'}. Sign out, then sign in with the email address the invitation was sent to.</p>
+      <AuthFrame title="This link belongs to another account" lede={`You are signed in as ${user.email ?? 'a different account'}. Sign out, then sign in with the email address the invitation was sent to.`}>
+        <div className="ts-auth__form" role="alert">
+          <button type="button" className="ts-btn ts-btn--primary ts-btn--lg ts-btn--block" onClick={() => void signOutUser()}><Icon name="logout" /><span>Sign out and switch account</span></button>
         </div>
-        <button type="button" className="cw-auth__secondary" onClick={() => void signOutUser()}>Sign out</button>
       </AuthFrame>
     );
   }
   if (access === 'denied') {
     return (
-      <AuthFrame>
-        <div className="cw-auth__message" role="alert">
-          <strong>{error ? 'We could not check your invitation' : 'This workspace is for invited contributors'}</strong>
-          <p>{error
-            ? `${error} Check your connection and try again. If it keeps happening, contact the team member who invited you.`
-            : 'This account does not have an active contributor invitation. If you expected one, contact the team member who invited you.'}</p>
-        </div>
-        <div className="cw-auth__actions">
-          {error ? <button type="button" className="cw-auth__primary" onClick={() => window.location.reload()}>Try again</button> : null}
-          <button type="button" className="cw-auth__secondary" onClick={() => void signOutUser()}>Sign out</button>
+      <AuthFrame
+        title={error ? 'We could not check your invitation' : 'This workspace is for invited contributors'}
+        lede={error
+          ? `${error} Check your connection and try again. If it keeps happening, contact the team member who invited you.`
+          : 'This account does not have an active contributor invitation. If you expected one, contact the team member who invited you.'}
+      >
+        <div className="ts-auth__form" role="alert">
+          {error ? <button type="button" className="ts-btn ts-btn--primary ts-btn--lg ts-btn--block" onClick={() => window.location.reload()}><Icon name="refresh" /><span>Try again</span></button> : null}
+          <a className="ts-btn ts-btn--secondary ts-btn--block" href="/studio"><Icon name="pen" /><span>Open the creator studio instead</span></a>
+          <button type="button" className="ts-btn ts-btn--ghost ts-btn--block" onClick={() => void signOutUser()}><span>Sign out</span></button>
         </div>
       </AuthFrame>
     );
   }
-  if (access === 'loading' || !account) return <AuthFrame><p className="cw-auth__message" role="status">Checking your invitation…</p></AuthFrame>;
+  if (access === 'loading' || !account) return <AuthFrame title="Opening your workspace"><AuthWaiting>Checking your invitation…</AuthWaiting></AuthFrame>;
   if (account.requiresPasswordChange) return <AuthFrame><ContributorActivation /></AuthFrame>;
-  if (account.trainingTermsVersion !== CONTRIBUTOR_TRAINING_TERMS_VERSION) return <AuthFrame><ContributorTrainingAgreement /></AuthFrame>;
+  if (account.trainingTermsVersion !== CONTRIBUTOR_TRAINING_TERMS_VERSION) return <AuthFrame wide><ContributorTrainingAgreement /></AuthFrame>;
   return <ActiveWorkspace uid={user.uid} email={user.email ?? ''} displayName={user.displayName ?? ''} account={account} />;
 }
 
-function AuthFrame({ children }: { children: ReactNode }) {
+/**
+ * Every state in front of the contributor and validator workspaces, in the
+ * sign-in frame of the workspace being entered. Declared at module level so
+ * a form inside keeps what was typed when the portal re-renders.
+ */
+function AuthFrame({ children, title, lede, wide = false }: { children: ReactNode; title?: ReactNode; lede?: ReactNode; wide?: boolean }) {
   const { path } = useRoute();
-  const review = path === "/contributor/review";
+  const review = path === '/contributor/review';
+  const support = path === '/contributor/support';
+  const workspace: WorkspaceId = review ? 'review' : 'contribute';
   return (
-    <div className="cw-auth iwx iw-auth">
-      <aside className="cw-auth__story">
-        <div className="cw-auth__story-copy">
-          <span className="cw-kicker">INDIGEN WORLD · {review ? 'REVIEW' : 'CONTRIBUTE'}</span>
-          <h2>{review ? 'A focused workspace for careful review.' : <>A workspace for<br />your language knowledge.</>}</h2>
-          <p>{review ? 'Inspect source material, record decisions and preserve the review history.' : 'Sign in with your invitation to translate expressions and follow reviewer feedback.'}</p>
-          <ProcessGuide label={review ? "Review workflow" : "Contributor workflow"} steps={review ? [{ title: 'Choose a queue', detail: 'Find records awaiting your review' }, { title: 'Inspect the evidence', detail: 'Read the context and recorded permissions' }, { title: 'Record a decision', detail: 'Keep reasons and review history together' }] : [
-            { title: 'Open your assignment', detail: 'Your prompts and instructions stay together' },
-            { title: 'Write and review', detail: 'Save privately, then check before sending' },
-            { title: 'Continue with feedback', detail: 'See the outcome and any requested corrections' },
-          ]} />
-        </div>
-      </aside>
-      <div className="cw-auth__entry">
-      <div className="cw-auth__panel">
-        <div className="cw-auth__brand">
-          <BrandMark />
-          <span><strong>TribeStudio.</strong><small>{review ? 'Your review space' : 'Your contributor space'}</small></span>
-        </div>
-        <main id="main-content" tabIndex={-1}>{children}</main>
-        {path !== '/contributor/support' && <p><a href="/contributor/support">Need help signing in? Contact support</a></p>}
-      </div>
-      <p className="cw-auth__foot">{review ? 'Access is limited to accounts with review permission.' : 'For invited contributors documenting Kasem.'} Indigen World never asks for your password by phone or SMS.</p>
-      </div>
-    </div>
+    <AuthScreen
+      workspace={workspace}
+      title={title}
+      lede={lede}
+      wide={wide}
+      journey={!title && !wide && !support
+        ? review
+          ? [{ icon: 'inbox', label: 'Choose a queue' }, { icon: 'eye', label: 'Inspect the evidence' }, { icon: 'shield', label: 'Record a decision' }]
+          : [{ icon: 'assignments', label: 'Open an assignment' }, { icon: 'translation', label: 'Translate and check' }, { icon: 'send', label: 'Send for review' }]
+        : undefined}
+      note={support ? undefined : (
+        <>
+          {review ? 'Access is limited to accounts with review permission.' : 'For invited contributors documenting Kasem.'}{' '}
+          Indigen World never asks for your password by phone or SMS. <a href="/contributor/support">Need help signing in?</a>
+        </>
+      )}
+    >
+      {children}
+    </AuthScreen>
+  );
+}
+
+/** The corpus workspace for any signed-in account: its own records, and a review queue for qualified reviewers. */
+function CorpusShell() {
+  const { user, role } = useAuth();
+  const { path } = useRoute();
+  const access = useWorkspaceAccess();
+  // Corpus records belong to two portals: contributors write them and
+  // validators review them. A validator who is not also an invited
+  // contributor stays inside the validator portal's map.
+  const reviewing = !access.contributor && canValidate(role);
+  const nav = access.contributor
+    ? contributorNav({ path, extras: [] }).map((item) => ({ ...item, active: item.to === '/contributor/corpus' }))
+    : reviewing
+      ? reviewNav({ path })
+      : [
+        { to: '/contributor/corpus', label: 'Corpus records', icon: 'database' as const, group: 'Your work', active: true, dock: true },
+        { to: '/contributor/support', label: 'Help & support', icon: 'help' as const, group: 'Help', dock: true },
+      ];
+  return (
+    <AppShell
+      workspace={reviewing ? 'review' : 'contribute'}
+      nav={nav}
+      account={{ name: user?.displayName || user?.email || (reviewing ? 'Validator' : 'Contributor'), photo: user?.photoURL, role: reviewing ? 'Validator' : 'Contributor' }}
+      onSignOut={() => void signOutUser()}
+    >
+      <KnowledgeWorkspace key={user?.uid} />
+    </AppShell>
   );
 }
 
@@ -153,7 +207,7 @@ export function ContributorActivation() {
   const [busy, setBusy] = useState(false), [error, setError] = useState('');
   const [accepted, setAccepted] = useState(false);
   return (
-    <form className="contributor-auth" onSubmit={async (event) => {
+    <form className="ts-auth__form contributor-auth" onSubmit={async (event) => {
       event.preventDefault();
       if (password !== confirm) { setError('The two passwords do not match.'); return; }
       if (!accepted) { setError('Accept the contributor training agreement to continue.'); return; }
@@ -166,14 +220,16 @@ export function ContributorActivation() {
         setError(reason instanceof Error ? reason.message : 'Activation did not complete. Please try again.');
       } finally { setBusy(false); }
     }}>
-      <h1>Choose your password</h1>
-      <p>Replace the temporary password from your invitation with one only you know. Then your assignments open.</p>
+      <div className="ts-auth__head">
+        <h1 id="auth-title" className="ts-auth__title">Choose your password</h1>
+        <p className="ts-auth__lede">Replace the temporary password from your invitation with one only you know. Your assignments open straight after.</p>
+      </div>
+      <label className="ts-field"><span className="ts-label">New password</span><input className="ts-input" type="password" autoComplete="new-password" minLength={8} maxLength={128} required value={password} onChange={(event) => setPassword(event.target.value)} aria-describedby="activation-password-hint" /><span className="ts-hint" id="activation-password-hint">At least 8 characters. Do not reuse your phone number.</span></label>
+      <label className="ts-field"><span className="ts-label">Confirm password</span><input className="ts-input" type="password" autoComplete="new-password" minLength={8} maxLength={128} required value={confirm} onChange={(event) => setConfirm(event.target.value)} aria-invalid={Boolean(confirm && confirm !== password) || undefined} /></label>
       <TrainingTerms accepted={accepted} onChange={setAccepted} busy={busy} />
-      <label>New password<input type="password" autoComplete="new-password" minLength={8} maxLength={128} required value={password} onChange={(event) => setPassword(event.target.value)} /></label>
-      <label>Confirm password<input type="password" autoComplete="new-password" minLength={8} maxLength={128} required value={confirm} onChange={(event) => setConfirm(event.target.value)} /></label>
-      {error ? <p role="alert" className="cw-auth__error">{error}</p> : null}
-      <button className="cw-auth__primary" disabled={busy || !accepted}>{busy ? 'Activating…' : 'Agree and activate my workspace'}</button>
-      <button type="button" className="cw-auth__secondary" disabled={busy} onClick={() => void signOutUser()}>Leave contributor portal</button>
+      {error ? <p role="alert" className="ts-notice ts-notice--danger">{error}</p> : null}
+      <button className="ts-btn ts-btn--primary ts-btn--lg ts-btn--block" disabled={busy || !accepted} aria-busy={busy || undefined}><span className="ts-btn__spinner" aria-hidden="true" /><span>{busy ? 'Activating…' : 'Agree and activate my workspace'}</span></button>
+      <button type="button" className="ts-btn ts-btn--ghost ts-btn--block" disabled={busy} onClick={() => void signOutUser()}><span>Leave contributor portal</span></button>
     </form>
   );
 }
@@ -183,11 +239,12 @@ export function ContributorSignIn({ code }: { code: string | null }) {
   const [email, setEmail] = useState(''), [password, setPassword] = useState('');
   const [error, setError] = useState(''), [busy, setBusy] = useState(false);
   const [reset, setReset] = useState(false), [notice, setNotice] = useState('');
+  const review = path === '/contributor/review';
   useEffect(() => {
     if (code) void verifyPasswordResetCode(auth, code).then(setEmail).catch(() => setError('This link has expired or was already used. Sign in with your password, or ask for a fresh invitation.'));
   }, [code]);
   return (
-    <form className="contributor-auth" onSubmit={async (event) => {
+    <form className="ts-auth__form contributor-auth" onSubmit={async (event) => {
       event.preventDefault(); setBusy(true); setError('');
       try {
         if (reset) {
@@ -207,21 +264,43 @@ export function ContributorSignIn({ code }: { code: string | null }) {
               : reason instanceof Error ? reason.message.replace(/^Firebase: /, '') : 'Sign-in did not complete.');
       } finally { setBusy(false); }
     }}>
-      <h1>{code ? 'Set your password' : reset ? 'Reset your password' : 'Sign in'}</h1>
-      <p>{code
-        ? 'Choose a password for your contributor account.'
-        : reset
-          ? 'Enter the email your invitation was sent to. We will email you a link to choose a new password.'
-          : 'Sign in to pick up where you left off.'}</p>
-      {!reset && path !== '/contributor/review' && <p>All contributor submissions are used to train and evaluate our language models. Continue only if you agree. You will read and accept the full agreement before contributing.</p>}
-      <label>Email<input type="email" autoComplete="username" required value={email} readOnly={Boolean(code)} onChange={(event) => setEmail(event.target.value)} /></label>
-      {!reset ? <label>{code ? 'New password' : 'Password'}<input type="password" minLength={code ? 8 : undefined} required autoComplete={code ? 'new-password' : 'current-password'} value={password} onChange={(event) => setPassword(event.target.value)} /></label> : null}
-      {!code && !reset && path !== '/contributor/review' ? <details className="cw-auth__help"><summary>First time here?</summary><p>Use your invited email and your phone number as the temporary password, including the country code (for example +233241234567). You’ll choose your own password after signing in.</p></details> : null}
-      {notice ? <p role="status" className="cw-auth__notice">{notice}</p> : null}
-      {error ? <p role="alert" className="cw-auth__error">{error}</p> : null}
-      <button type="submit" className="cw-auth__primary" disabled={busy || !email}>{busy ? 'Please wait…' : reset ? 'Send reset link' : code ? 'Save password and sign in' : 'Sign in'}</button>
-      {!code ? <button type="button" className="cw-auth__secondary" disabled={busy} onClick={() => { setReset(!reset); setError(''); setNotice(''); }}>{reset ? 'Back to sign in' : 'Forgot password?'}</button> : null}
-      {code ? <button type="button" className="cw-auth__secondary" onClick={() => navigate(path, { replace: true })}>Already activated? Sign in</button> : null}
+      <div className="ts-auth__head">
+        <h1 id="auth-title" className="ts-auth__title">{code ? 'Set your password' : reset ? 'Reset your password' : review ? 'Validator sign-in' : 'Contributor sign-in'}</h1>
+        <p className="ts-auth__lede">{code
+          ? 'Choose a password for your contributor account.'
+          : reset
+            ? 'Enter the email your invitation was sent to. We will email you a link to choose a new password.'
+            : review ? 'Sign in to your review desk.' : 'Sign in to pick up where you left off.'}</p>
+      </div>
+      {!reset && !review ? (
+        <p className="ts-notice ts-notice--info ts-notice--plain" style={{ fontSize: 'var(--fs-xs)' }}>
+          Contributor submissions are used to train and evaluate our language models. You will read and accept the full agreement before contributing.
+        </p>
+      ) : null}
+      <label className="ts-field"><span className="ts-label">Email</span><input className="ts-input" type="email" autoComplete="username" required value={email} readOnly={Boolean(code)} onChange={(event) => setEmail(event.target.value)} /></label>
+      {!reset ? (
+        <label className="ts-field">
+          <span className="ts-auth__label-row">
+            <span className="ts-label">{code ? 'New password' : 'Password'}</span>
+            {!code ? <button type="button" className="ts-link" style={{ fontSize: 'var(--fs-xs)' }} disabled={busy} onClick={() => { setReset(true); setError(''); setNotice(''); }}>Forgot password?</button> : null}
+          </span>
+          <input className="ts-input" type="password" minLength={code ? 8 : undefined} required autoComplete={code ? 'new-password' : 'current-password'} value={password} onChange={(event) => setPassword(event.target.value)} />
+        </label>
+      ) : null}
+      {!code && !reset && !review ? (
+        <details className="ts-auth__help">
+          <summary><Icon name="chevron" />First time here?</summary>
+          <p>Use your invited email and your phone number as the temporary password, including the country code (for example +233241234567). You’ll choose your own password after signing in.</p>
+        </details>
+      ) : null}
+      {notice ? <p role="status" className="ts-notice ts-notice--success">{notice}</p> : null}
+      {error ? <p role="alert" className="ts-notice ts-notice--danger">{error}</p> : null}
+      <button type="submit" className="ts-btn ts-btn--primary ts-btn--lg ts-btn--block" disabled={busy || !email} aria-busy={busy || undefined}>
+        <span className="ts-btn__spinner" aria-hidden="true" />
+        <span>{busy ? 'Please wait…' : reset ? 'Send reset link' : code ? 'Save password and sign in' : 'Sign in'}</span>
+      </button>
+      {reset ? <button type="button" className="ts-btn ts-btn--ghost ts-btn--block" disabled={busy} onClick={() => { setReset(false); setError(''); setNotice(''); }}>Back to sign in</button> : null}
+      {code ? <button type="button" className="ts-btn ts-btn--ghost ts-btn--block" onClick={() => navigate(path, { replace: true })}>Already activated? Sign in</button> : null}
     </form>
   );
 }
@@ -229,32 +308,38 @@ export function ContributorSignIn({ code }: { code: string | null }) {
 export type { WorkspaceData };
 
 function TrainingTerms({ accepted, onChange, busy }: { accepted: boolean; onChange: (value: boolean) => void; busy: boolean }) {
-  return <section className="permission-section">
-    <h2>Contributing means helping train our models</h2>
-    <p>{CONTRIBUTOR_TRAINING_NOTICE}</p>
-    <label className="contributor-check contributor-check--required">
-      <input type="checkbox" required checked={accepted} disabled={busy} onChange={event => onChange(event.target.checked)} />
-      <span>I agree that all my future contributor submissions will be used for model training and evaluation, and I have permission to contribute this content.</span>
-    </label>
-  </section>;
+  return (
+    <section className="ts-auth__terms" aria-labelledby="training-terms-title">
+      <h2 id="training-terms-title"><Icon name="shield" /> Contributing helps train our models</h2>
+      <p>{CONTRIBUTOR_TRAINING_NOTICE}</p>
+      <label className="ts-check ts-check--card ts-check--required">
+        <input type="checkbox" required checked={accepted} disabled={busy} onChange={event => onChange(event.target.checked)} />
+        <span className="ts-check__copy"><strong>I agree</strong><small>All my future contributor submissions will be used for model training and evaluation, and I have permission to contribute this content.</small></span>
+      </label>
+    </section>
+  );
 }
 
 function ContributorTrainingAgreement() {
   const [accepted, setAccepted] = useState(false), [busy, setBusy] = useState(false), [error, setError] = useState('');
-  return <form className="contributor-auth" onSubmit={async event => {
-    event.preventDefault();
-    if (!accepted) return;
-    setBusy(true); setError('');
-    try {
-      await httpsCallable(functions, 'acceptContributorTrainingTerms')({ acceptTrainingTerms: true, trainingTermsVersion: CONTRIBUTOR_TRAINING_TERMS_VERSION });
-    } catch (reason) { setError(reason instanceof Error ? reason.message : 'The agreement could not be saved. Try again.'); }
-    finally { setBusy(false); }
-  }}>
-    <h1>Before you continue contributing</h1>
-    <TrainingTerms accepted={accepted} onChange={setAccepted} busy={busy} />
-    <p>This agreement applies to new submissions. Earlier submissions keep their recorded permissions.</p>
-    {error && <p role="alert">{error}</p>}
-    <button className="cw-auth__primary" disabled={busy || !accepted}>{busy ? 'Saving…' : 'Agree and open my workspace'}</button>
-    <button type="button" className="cw-auth__secondary" disabled={busy} onClick={() => void signOutUser()}>Leave contributor portal</button>
-  </form>;
+  return (
+    <form className="ts-auth__form contributor-auth" onSubmit={async event => {
+      event.preventDefault();
+      if (!accepted) return;
+      setBusy(true); setError('');
+      try {
+        await httpsCallable(functions, 'acceptContributorTrainingTerms')({ acceptTrainingTerms: true, trainingTermsVersion: CONTRIBUTOR_TRAINING_TERMS_VERSION });
+      } catch (reason) { setError(reason instanceof Error ? reason.message : 'The agreement could not be saved. Try again.'); }
+      finally { setBusy(false); }
+    }}>
+      <div className="ts-auth__head">
+        <h1 id="auth-title" className="ts-auth__title">Before you continue contributing</h1>
+        <p className="ts-auth__lede">The contributor agreement changed. It applies to new submissions; earlier submissions keep their recorded permissions.</p>
+      </div>
+      <TrainingTerms accepted={accepted} onChange={setAccepted} busy={busy} />
+      {error ? <p role="alert" className="ts-notice ts-notice--danger">{error}</p> : null}
+      <button className="ts-btn ts-btn--primary ts-btn--lg ts-btn--block" disabled={busy || !accepted} aria-busy={busy || undefined}><span className="ts-btn__spinner" aria-hidden="true" /><span>{busy ? 'Saving…' : 'Agree and open my workspace'}</span></button>
+      <button type="button" className="ts-btn ts-btn--ghost ts-btn--block" disabled={busy} onClick={() => void signOutUser()}>Leave contributor portal</button>
+    </form>
+  );
 }

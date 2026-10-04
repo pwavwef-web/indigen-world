@@ -1,0 +1,500 @@
+/* ==========================================================================
+   Base: reset, reading type, focus, scrollbars, and the defaults every
+   unclassed control inherits so a stray <button> or <select> still looks like
+   it belongs to the product.
+   ========================================================================== */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  font-family: var(--font-body);
+  font-size: 100%;
+  line-height: 1.5;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  font-feature-settings: "cv11", "ss01", "ss03";
+  scroll-behavior: smooth;
+  scroll-padding-top: 5.5rem;
+  background: var(--bg);
+}
+
+body {
+  margin: 0;
+  min-height: 100svh;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: var(--fs-base);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  /* Long words, links and identifiers wrap inside their box instead of
+     pushing the page sideways. */
+  overflow-wrap: break-word;
+  transition:
+    background-color var(--dur-2) ease,
+    color var(--dur-2) ease;
+}
+
+#root {
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  isolation: isolate;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  margin: 0;
+  font-family: var(--font-display);
+  color: var(--text);
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+
+p {
+  margin: 0;
+  text-wrap: pretty;
+}
+
+ul,
+ol {
+  margin: 0;
+  padding: 0;
+}
+
+dl,
+dd,
+figure,
+blockquote,
+fieldset {
+  margin: 0;
+}
+
+fieldset {
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+legend {
+  padding: 0;
+}
+
+img,
+svg,
+video,
+canvas,
+audio,
+iframe {
+  display: block;
+  max-width: 100%;
+}
+
+img,
+video {
+  height: auto;
+}
+
+a {
+  color: var(--accent-text);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.18em;
+}
+
+a:hover {
+  color: var(--accent-hover);
+}
+
+code,
+kbd,
+pre,
+samp {
+  font-family: var(--font-mono);
+  font-size: 0.875em;
+}
+
+code {
+  padding: 0.1em 0.35em;
+  border-radius: var(--r-sm);
+  background: var(--surface-sunken);
+  color: var(--text-2);
+  overflow-wrap: anywhere;
+}
+
+pre {
+  margin: 0;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+hr {
+  height: 1px;
+  margin: var(--space-4) 0;
+  border: 0;
+  background: var(--border);
+}
+
+small {
+  font-size: var(--fs-xs);
+}
+
+strong,
+b {
+  font-weight: 650;
+}
+
+[lang="xsm"] {
+  font-family: var(--font-kasem);
+  font-feature-settings: normal;
+}
+
+::selection {
+  background: rgba(47, 107, 255, 0.22);
+}
+
+/* -- Focus ---------------------------------------------------------------------
+   Comitia's 3px blue ring, offset so it never sits on top of the control. */
+:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 3px;
+  transition: outline-offset var(--dur-1) var(--ease-out);
+}
+
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+[tabindex="-1"]:focus {
+  outline: none;
+}
+
+/* -- Scrollbars ------------------------------------------------------------------ */
+* {
+  scrollbar-color: rgba(47, 107, 255, 0.5) transparent;
+  scrollbar-width: thin;
+}
+
+::-webkit-scrollbar {
+  width: 0.65rem;
+  height: 0.65rem;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: rgba(47, 107, 255, 0.45);
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(47, 107, 255, 0.7);
+}
+
+/* -- Controls --------------------------------------------------------------------
+   Plain controls inherit the product look. The video editor opts out with its
+   own scope because its controls are tools, not form fields. */
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+  letter-spacing: inherit;
+}
+
+button,
+[role="button"],
+input,
+select,
+textarea,
+a,
+label {
+  touch-action: manipulation;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+:where(button:not([class])) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  min-height: 2.5rem;
+  padding: 0.55rem 1rem;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r);
+  background: var(--surface);
+  color: var(--text);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  line-height: 1.2;
+  text-align: center;
+  transition:
+    border-color var(--dur-2) ease,
+    color var(--dur-2) ease,
+    background-color var(--dur-2) ease,
+    box-shadow var(--dur-2) ease,
+    transform var(--dur-1) var(--ease-out);
+}
+
+:where(button:not([class])):hover:not(:disabled) {
+  border-color: var(--accent-line);
+  color: var(--accent-text);
+}
+
+:where(button:not([class])):active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+:where(button:not([class])):disabled {
+  opacity: 0.5;
+}
+
+:where(
+    input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"], [type="color"], [type="hidden"]):not([class]),
+    select:not([class]),
+    textarea:not([class])
+  ) {
+  width: 100%;
+  min-height: 3rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  background: var(--surface);
+  color: var(--text);
+  font-size: var(--fs-base);
+  line-height: 1.4;
+  outline: none;
+  transition:
+    border-color var(--dur-2) ease,
+    box-shadow var(--dur-2) ease,
+    background-color var(--dur-2) ease;
+}
+
+:where(textarea:not([class])) {
+  min-height: 6.5rem;
+  resize: vertical;
+}
+
+:where(select:not([class])) {
+  appearance: none;
+  padding-right: 2.5rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%235d667b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.9rem center;
+  background-size: 1rem;
+  cursor: pointer;
+}
+
+:where(
+    input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"], [type="color"], [type="hidden"]):not([class]),
+    select:not([class]),
+    textarea:not([class])
+  ):hover:not(:disabled):not(:focus) {
+  border-color: var(--border-strong);
+}
+
+:where(
+    input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"], [type="color"], [type="hidden"]):not([class]),
+    select:not([class]),
+    textarea:not([class])
+  ):focus {
+  border-color: var(--c-blue);
+  box-shadow: 0 0 0 4px var(--accent-ring);
+}
+
+:where(
+    input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"], [type="color"], [type="hidden"]):not([class]),
+    select:not([class]),
+    textarea:not([class])
+  ):disabled,
+:where(input[readonly]:not([class])) {
+  background: var(--surface-sunken);
+  color: var(--text-3);
+  cursor: not-allowed;
+}
+
+:where(input[aria-invalid="true"], textarea[aria-invalid="true"], select[aria-invalid="true"]) {
+  border-color: var(--danger-line);
+}
+
+::placeholder {
+  color: var(--text-4);
+  opacity: 1;
+}
+
+input[type="checkbox"],
+input[type="radio"] {
+  width: 1.125rem;
+  height: 1.125rem;
+  margin: 0;
+  flex: 0 0 auto;
+  accent-color: var(--c-blue);
+  cursor: pointer;
+}
+
+input[type="range"] {
+  accent-color: var(--c-blue);
+}
+
+input[type="file"]:not([class]) {
+  max-width: 100%;
+  font-size: var(--fs-sm);
+  color: var(--text-3);
+}
+
+input[type="file"]::file-selector-button {
+  margin-right: 0.75rem;
+  padding: 0.5rem 0.9rem;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color var(--dur-2) ease, color var(--dur-2) ease;
+}
+
+input[type="file"]::file-selector-button:hover {
+  border-color: var(--accent-line);
+  color: var(--accent-text);
+}
+
+audio {
+  width: 100%;
+  max-width: 32rem;
+  height: 2.75rem;
+  border-radius: var(--r-full);
+}
+
+details > summary {
+  cursor: pointer;
+  list-style: none;
+}
+
+details > summary::-webkit-details-marker {
+  display: none;
+}
+
+dialog {
+  color: var(--text);
+}
+
+/* -- Skip link (Comitia) --------------------------------------------------------- */
+.skip-link,
+.ts-skip {
+  position: fixed;
+  top: 0.75rem;
+  left: 0.75rem;
+  z-index: 200;
+  padding: 0.75rem 1rem;
+  border-radius: var(--r);
+  background: var(--c-ink);
+  color: #fff;
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  text-decoration: none;
+  box-shadow: var(--shadow-lift);
+  transform: translateY(-220%);
+  transition: transform var(--dur-1) ease;
+}
+
+.skip-link:focus-visible,
+.ts-skip:focus-visible {
+  transform: translateY(0);
+  outline-color: #fff;
+  color: #fff;
+}
+
+/* -- Utilities ------------------------------------------------------------------- */
+.sr-only,
+.ts-sr,
+.cw-sr {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+.ts-truncate {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ts-clamp-2,
+.ts-clamp-3 {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.ts-clamp-2 {
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+.ts-clamp-3 {
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+}
+
+.ts-break {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.ts-mono {
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  overflow-wrap: anywhere;
+}
+
+.ts-muted {
+  color: var(--text-3);
+}
+
+.ts-faint {
+  color: var(--text-4);
+}
+
+.ts-nowrap {
+  white-space: nowrap;
+}
+
+.ts-num {
+  font-variant-numeric: tabular-nums;
+}
+
+[hidden] {
+  display: none !important;
+}

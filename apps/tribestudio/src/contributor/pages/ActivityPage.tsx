@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { useRoute } from '../../router';
 import { ActivityList, Card, EmptyNote, Notice, PageHeader, PulsePanel, Skeleton, useNow } from '../components';
 import { activityFrom, groupByDay, type ActivityEvent } from '../model';
+import { FilterChips } from '../../ui';
 import { useWorkspace } from '../workspace';
 
 type Filter = 'all' | 'reviews' | 'submissions' | 'assignments' | 'payments';
@@ -29,43 +30,42 @@ export function ActivityPage() {
   };
 
   return (
-    <div className="cw-page">
+    <div className="ts-page">
       <PageHeader
-        kicker="Activity"
+        kicker="Your work"
         title="Activity"
         id="page-title"
-        description="Submissions, review decisions and updates, as they happen."
+        description="Your submissions, review decisions and account updates, newest first. Select a row to open it."
       />
-      <div className="cw-two-column">
-        <div>
-          <div className="cw-toolbar" role="group" aria-label="Filter activity">
-            {FILTERS.map((entry) => (
-              <button key={entry.id} type="button" className="cw-filter" aria-pressed={filter === entry.id} onClick={() => setFilter(entry.id)}>
-                {entry.label}<span className="cw-filter__count">{entry.kinds ? events.filter((event) => entry.kinds!.includes(event.kind)).length : events.length}</span>
-              </button>
-            ))}
-          </div>
+      <div className="ts-split">
+        <div className="ts-stack">
+          <FilterChips
+            label="Filter activity"
+            value={filter}
+            onChange={setFilter}
+            options={FILTERS.map((entry) => ({ value: entry.id, label: entry.label, count: entry.kinds ? events.filter((event) => entry.kinds!.includes(event.kind)).length : events.length }))}
+          />
           {data.roundsState === 'error' ? (
             <Notice tone="warning" title="Your review history could not be loaded">
               <p>New assignments still show below. Reload the page to try again.</p>
             </Notice>
           ) : null}
-          {data.roundsState === 'loading' ? <div className="cw-card"><Skeleton lines={6} label="Loading your activity" /></div> : groups.length === 0 ? (
-            <EmptyNote title="Nothing here yet">Submissions and reviewer decisions will appear here as they happen.</EmptyNote>
+          {data.roundsState === 'loading' ? <div className="ts-panel"><Skeleton lines={6} label="Loading your activity" /></div> : groups.length === 0 ? (
+            <EmptyNote title="Nothing here yet" icon="activity">Submissions and reviewer decisions will appear here as they happen.</EmptyNote>
           ) : (
-            <div className="cw-timeline">
+            <div className="ts-stack ts-stack--md ts-stagger">
               {groups.map((group) => (
-                <Card key={group.label} title={group.label} className="cw-timeline__day">
+                <Card key={group.label} title={group.label}>
                   <ActivityList events={group.events} onOpen={open} now={now} />
                 </Card>
               ))}
             </div>
           )}
         </div>
-        <aside className="cw-side-stack" aria-label="Community">
+        <aside className="ts-stack ts-split__rail--sticky" aria-label="Community">
           <PulsePanel pulse={data.pulse} onPrivacy={() => navigate(data.paths.account('notifications'))} />
           <Card title="About this feed">
-            <p className="cw-muted">Your timeline is private to you. “Community today” shows only counts and the names of contributors who chose to be named; you can change how you appear under Account & settings.</p>
+            <p className="ts-muted" style={{ fontSize: 'var(--fs-sm)' }}>Your timeline is private to you. “Community today” shows only counts and the names of contributors who chose to be named; you can change how you appear under Account & settings.</p>
           </Card>
         </aside>
       </div>

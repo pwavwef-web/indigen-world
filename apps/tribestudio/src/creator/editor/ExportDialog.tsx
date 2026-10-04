@@ -1,4 +1,4 @@
-import { WorkspaceDialog } from '../../interface/WorkspaceFrame';
+import { Dialog as WorkspaceDialog } from '../../ui';
 import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../../auth';
 import { useRoute } from '../../router';

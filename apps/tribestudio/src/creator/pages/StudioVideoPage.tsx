@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import { useAuth } from '../../auth';
 import { Link } from '../../router';
-import { Icon } from '../../interface/icons';
-import { Field, LoadError, Skeleton, VoiceRecorder } from '../components';
+import { Badge, ButtonLink, Icon, PageHeader, Skeleton } from '../../ui';
+import { Field, LoadError, VoiceRecorder } from '../components';
 import {
   createStudioVideoJob,
   fetchStudioVideoCapabilities,
@@ -435,14 +435,23 @@ export function StudioVideoPage() {
     }
   }, [availableDurations, duration]);
 
-  if (loading) return <div className="page"><h1>AI Video</h1><Skeleton lines={7} /></div>;
+  const header = (
+    <PageHeader
+      kicker="Kasem video maker"
+      title="Create a Kasem video"
+      description="Write what will be said, choose the kind of video, and create it. TribeStudio keeps your files private until you publish."
+      actions={<ButtonLink to="/studio/video/jobs" variant="secondary" icon="hourglass">Your videos</ButtonLink>}
+    />
+  );
+
+  if (loading) return <div className="ts-page">{header}<div className="ts-panel"><Skeleton lines={7} title label="Opening the video studio" /></div></div>;
   if (loadFailed) {
     return (
-      <div className="page">
-        <h1>AI Video</h1>
+      <div className="ts-page">
+        {header}
         <LoadError title="We couldn’t open the video studio" onRetry={() => setReloadKey((key) => key + 1)} />
         {loadFailure ? <div className="callout callout--warn" role="alert">{loadFailure}</div> : null}
-        <p className="tiny muted">
+        <p className="ts-hint">
           Video making is open to approved creators. If this keeps happening, check{' '}
           <Link to="/studio/profile">your profile</Link> for your creator status.
         </p>
@@ -451,32 +460,22 @@ export function StudioVideoPage() {
   }
 
   return (
-    <div className="page video-studio">
-      <header className="video-hero">
-        <div>
-          <p className="hero__eyebrow">Kasem video maker</p>
-          <h1>Create a Kasem video</h1>
-          <p>Write what will be said, choose the kind of video, and create it. TribeStudio keeps your files private until you publish.</p>
-        </div>
-        <div className="video-hero__aside">
-          <Link to="/studio/video/jobs" className="button button--ghost-dark button--small">Your videos</Link>
-          <span className="video-hero__mark" aria-hidden="true"><Icon name="video" /></span>
-        </div>
-      </header>
+    <div className="ts-page video-studio">
+      {header}
 
       {job ? (
         <section className={`video-result video-result--${job.status.toLowerCase()}`} aria-live="polite">
           <div className="video-result__head">
             <div>
-              <p className="hero__eyebrow">{MODEL_LABELS[job.model] ?? job.model}</p>
+              <p className="ts-overline">{MODEL_LABELS[job.model] ?? job.model}</p>
               <h2>{statusCopy(job.status)}</h2>
-              <p className="muted">Estimated provider charge: {formatUsd(job.costEstimate.amountUsd)} · updated {new Date(job.updatedAt).toLocaleTimeString()}</p>
+              <p className="ts-muted">Estimated provider charge: {formatUsd(job.costEstimate.amountUsd)} · updated {new Date(job.updatedAt).toLocaleTimeString()}</p>
             </div>
-            {!TERMINAL_STATUSES.has(job.status) ? <span className="video-spinner" aria-label="Generation in progress" /> : null}
+            {!TERMINAL_STATUSES.has(job.status) ? <span className="video-spinner" role="img" aria-label="Generation in progress" /> : <Badge tone={job.status === 'SUCCEEDED' ? 'success' : job.status === 'FAILED' ? 'danger' : 'neutral'} dot>{statusCopy(job.status)}</Badge>}
           </div>
           {job.failureReason ? <div className="callout callout--warn">{job.failureReason}</div> : null}
           {jobPending ? (
-            <p className="tiny muted">
+            <p className="ts-hint">
               You can close this page. The video keeps building and waits for you under{' '}
               <Link to="/studio/video/jobs">your videos</Link>.
             </p>
@@ -493,23 +492,23 @@ export function StudioVideoPage() {
               <div className="video-result__actions">
                 <Link
                   to={`/studio/editor?job=${encodeURIComponent(job.id)}`}
-                  className="button button--primary"
+                  className="ts-btn ts-btn--primary"
                 >
-                  Edit before posting
+                  <Icon name="film" />Edit before posting
                 </Link>
-                <a className="button button--ghost-dark" href={downloadUrl ?? outputUrl}>Download original</a>
+                <a className="ts-btn ts-btn--secondary" href={downloadUrl ?? outputUrl}><Icon name="download" />Download original</a>
               </div>
             </div>
           ) : null}
           {error ? <div className="callout callout--warn" role="alert">{error}</div> : null}
           <div className="video-result__actions">
             {jobPending ? (
-              <button type="button" className="button button--ghost-dark" disabled={refreshing} onClick={() => void refresh()}>
+              <button type="button" className="ts-btn ts-btn--secondary" disabled={refreshing} onClick={() => void refresh()}>
                 {refreshing ? 'Checking…' : 'Check now'}
               </button>
             ) : null}
-            <Link to="/studio/video/jobs" className="button button--ghost-dark">Your videos</Link>
-            <button type="button" className="button button--ghost-dark" onClick={startAnother}>Start another video</button>
+            <Link to="/studio/video/jobs" className="ts-btn ts-btn--ghost">Your videos</Link>
+            <button type="button" className="ts-btn ts-btn--ghost" onClick={startAnother}><Icon name="plus" />Start another video</button>
           </div>
         </section>
       ) : (
@@ -519,7 +518,7 @@ export function StudioVideoPage() {
               <span className="video-step__number">1</span>
               <div className="video-step__body">
                 <h2>Write your script</h2>
-                <p className="muted">Type the Kasem words that will be spoken or guide the story. This does not need to be a previous submission.</p>
+                <p className="ts-muted">Type the Kasem words that will be spoken or guide the story. This does not need to be a previous submission.</p>
                 <Field label="Kasem script" htmlFor="video-script" hint="Up to 4,000 characters. Write it exactly as it should be spoken.">
                   <textarea
                     id="video-script"
@@ -534,7 +533,7 @@ export function StudioVideoPage() {
                   <Field label="Dialect or community variety" htmlFor="video-dialect">
                     <input id="video-dialect" maxLength={80} value={dialect} onChange={(event) => setDialect(event.target.value)} placeholder="For example: Navrongo" />
                   </Field>
-                  <span className="tiny muted">{script.length.toLocaleString()} / 4,000 characters</span>
+                  <span className="ts-counter">{script.length.toLocaleString()} / 4,000 characters</span>
                 </div>
               </div>
             </section>
@@ -562,9 +561,9 @@ export function StudioVideoPage() {
                     <Field label={`Add an image ${referenceRequired ? '(required with the selected quality)' : '(optional)'}`} htmlFor="reference-image" hint="Use your own JPEG, PNG or WebP under 20 MB.">
                       <input id="reference-image" type="file" accept="image/*" disabled={uploading !== null} onChange={(event) => void handleUpload('image', event)} />
                     </Field>
-                    {referenceImage ? <p className="asset-ready"><span>✓</span>{referenceImage.name}</p> : null}
-                    <details className="video-advanced">
-                      <summary>Quality, length and format</summary>
+                    {referenceImage ? <p className="ts-file video-asset"><span className="ts-file__icon" aria-hidden="true"><Icon name="image" /></span><span className="ts-file__name">{referenceImage.name}</span><Icon name="check-circle" className="video-asset__ok" /></p> : null}
+                    <details className="ts-disclosure video-advanced">
+                      <summary><Icon name="settings" /><span>Quality, length and format</span><Icon name="chevron" className="ts-disclosure__chev" /></summary>
                       <div className="field-row">
                         <Field
                           label="Model"
@@ -597,16 +596,16 @@ export function StudioVideoPage() {
                     <div className="media-pair">
                       <Field label="Your video" htmlFor="source-video" hint="A video you control, under 200 MB.">
                         <input id="source-video" type="file" accept="video/*" disabled={uploading !== null} onChange={(event) => void handleUpload('video', event)} />
-                        {sourceVideo ? <p className="asset-ready"><span>✓</span>{sourceVideo.name}</p> : null}
+                        {sourceVideo ? <p className="ts-file video-asset"><span className="ts-file__icon" aria-hidden="true"><Icon name="video" /></span><span className="ts-file__name">{sourceVideo.name}</span><Icon name="check-circle" className="video-asset__ok" /></p> : null}
                       </Field>
                       <Field label="Kasem recording" htmlFor="source-audio" hint="Record it here, or upload audio matching the script above (under 50 MB).">
                         <input id="source-audio" type="file" accept="audio/*" disabled={uploading !== null} onChange={(event) => void handleUpload('audio', event)} />
                         <VoiceRecorder onAudioReady={(file) => void uploadAudioFile(file)} />
-                        {sourceAudio ? <p className="asset-ready"><span>✓</span>{sourceAudio.name}</p> : null}
+                        {sourceAudio ? <p className="ts-file video-asset"><span className="ts-file__icon" aria-hidden="true"><Icon name="audio" /></span><span className="ts-file__name">{sourceAudio.name}</span><Icon name="check-circle" className="video-asset__ok" /></p> : null}
                       </Field>
                     </div>
-                    <details className="video-advanced">
-                      <summary>Quality, length and timing</summary>
+                    <details className="ts-disclosure video-advanced">
+                      <summary><Icon name="settings" /><span>Quality, length and timing</span><Icon name="chevron" className="ts-disclosure__chev" /></summary>
                       <div className="field-row">
                         <Field label="Quality" htmlFor="lipsync-model">
                           <select id="lipsync-model" value={lipSyncModel} onChange={(event) => setLipSyncModel(event.target.value as typeof lipSyncModel)}>
@@ -632,7 +631,7 @@ export function StudioVideoPage() {
                   </div>
                 )}
                 {uploading ? (
-                  <div className="upload"><div className="upload__bar"><span style={{ width: `${uploadPct}%` }} /></div><span className="tiny">Uploading {uploading}… {uploadPct}%</span></div>
+                  <div className="upload"><div className="upload__bar"><span style={{ width: `${uploadPct}%` }} /></div><span className="ts-hint">Uploading {uploading}… {uploadPct}%</span></div>
                 ) : null}
               </div>
             </section>
@@ -641,16 +640,16 @@ export function StudioVideoPage() {
               <span className="video-step__number">3</span>
               <div className="video-step__body">
                 <h2>Confirm you can use it</h2>
-                <p className="muted">These permissions are only for making this video. They do not give permission to train an AI model.</p>
+                <p className="ts-muted">These permissions are only for making this video. They do not give permission to train an AI model.</p>
                 <div className="consent-list">
-                  <label className="checkbox"><input type="checkbox" checked={aiPermission} onChange={(event) => setAiPermission(event.target.checked)} /><span>I allow TribeStudio to send this script and selected media to the video provider for this job.</span></label>
-                  <label className="checkbox"><input type="checkbox" checked={rightsConfirmed && culturalPermission} onChange={(event) => { setRightsConfirmed(event.target.checked); setCulturalPermission(event.target.checked); }} /><span>I own or control this material and have the cultural permission to use it.</span></label>
-                  <label className="checkbox"><input type="checkbox" checked={noMinors && noThirdParty} onChange={(event) => { setNoMinors(event.target.checked); setNoThirdParty(event.target.checked); }} /><span>No minors or third-party music, images, voices or footage are included.</span></label>
+                  <label className="ts-check ts-check--card"><input type="checkbox" checked={aiPermission} onChange={(event) => setAiPermission(event.target.checked)} /><span>I allow TribeStudio to send this script and selected media to the video provider for this job.</span></label>
+                  <label className="ts-check ts-check--card"><input type="checkbox" checked={rightsConfirmed && culturalPermission} onChange={(event) => { setRightsConfirmed(event.target.checked); setCulturalPermission(event.target.checked); }} /><span>I own or control this material and have the cultural permission to use it.</span></label>
+                  <label className="ts-check ts-check--card"><input type="checkbox" checked={noMinors && noThirdParty} onChange={(event) => { setNoMinors(event.target.checked); setNoThirdParty(event.target.checked); }} /><span>No minors or third-party music, images, voices or footage are included.</span></label>
                   {operation === 'generate_visual' ? (
-                    <label className="checkbox"><input type="checkbox" checked={containsPerson} onChange={(event) => setContainsPerson(event.target.checked)} /><span>The requested video includes a recognisable person.</span></label>
+                    <label className="ts-check ts-check--card"><input type="checkbox" checked={containsPerson} onChange={(event) => setContainsPerson(event.target.checked)} /><span>The requested video includes a recognisable person.</span></label>
                   ) : null}
                   {recognisableConsentRequired ? (
-                    <label className="checkbox"><input type="checkbox" checked={participantConsent && likenessConsent && (operation !== 'lip_sync' || voiceConsent)} onChange={(event) => { setParticipantConsent(event.target.checked); setLikenessConsent(event.target.checked); if (operation === 'lip_sync') setVoiceConsent(event.target.checked); }} /><span>{operation === 'lip_sync' ? 'Everyone shown and the recorded speaker agreed to participation, likeness use and AI lip-sync.' : 'Every recognisable person agreed to participate and have their likeness used.'}</span></label>
+                    <label className="ts-check ts-check--card"><input type="checkbox" checked={participantConsent && likenessConsent && (operation !== 'lip_sync' || voiceConsent)} onChange={(event) => { setParticipantConsent(event.target.checked); setLikenessConsent(event.target.checked); if (operation === 'lip_sync') setVoiceConsent(event.target.checked); }} /><span>{operation === 'lip_sync' ? 'Everyone shown and the recorded speaker agreed to participation, likeness use and AI lip-sync.' : 'Every recognisable person agreed to participate and have their likeness used.'}</span></label>
                   ) : null}
                 </div>
               </div>
@@ -658,26 +657,27 @@ export function StudioVideoPage() {
           </div>
 
           <aside className="video-summary">
-            <p className="hero__eyebrow">Your video</p>
+            <p className="ts-overline">Your video</p>
             <h2>{operation === 'generate_visual' ? 'New visual' : 'Speaking video'}</h2>
             <dl>
               <div><dt>Language</dt><dd>Kasem · xsm</dd></div>
               <div><dt>Length</dt><dd>{duration} seconds</dd></div>
               <div><dt>Estimated charge</dt><dd>{formatUsd(costEstimate)}</dd></div>
             </dl>
-            <p className="tiny muted">One generation using {modelLabel}. The final provider charge may vary slightly.</p>
+            <p className="ts-hint">One generation using {modelLabel}. The final provider charge may vary slightly.</p>
             {modelCapability?.provider === 'gemini' ? (
-              <p className="tiny muted">
+              <p className="ts-hint">
                 Gemini Omni is asked for a silent soundtrack on purpose — a generated voice would
                 not be speaking Kasem. Add your own recording with “Sync someone speaking”, or in
                 editing.
               </p>
             ) : null}
             {error ? <div className="callout callout--warn" role="alert">{error}</div> : null}
-            <button type="button" className="button button--primary button--block" disabled={creating || uploading !== null} onClick={() => void submit()}>
+            <button type="button" className="ts-btn ts-btn--primary ts-btn--lg ts-btn--block" aria-busy={creating || undefined} disabled={creating || uploading !== null} onClick={() => void submit()}>
+              <span className="ts-btn__spinner" aria-hidden="true" /><Icon name="sparkles" />
               {creating ? 'Starting securely…' : `Create for about ${formatUsd(costEstimate)}`}
             </button>
-            <p className="video-summary__safety">Your files stay private until you publish. Provider keys never enter this browser.</p>
+            <p className="video-summary__safety"><Icon name="lock" />Your files stay private until you publish. Provider keys never enter this browser.</p>
           </aside>
         </div>
       )}

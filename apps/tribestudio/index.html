@@ -2,8 +2,9 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#101c36" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#0f1830" />
+    <meta name="color-scheme" content="light dark" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="TribeStudio" />
@@ -17,18 +18,44 @@
     <link rel="manifest" href="/manifest.webmanifest" />
     <title>TribeStudio — Indigen World</title>
     <!--
+      Display preferences, before the first paint.
+
+      The Display panel (src/ui/display.tsx) stores colour mode, animations,
+      text size and contrast in this browser. Applying them here, ahead of the
+      stylesheet, means a dark-mode visitor never sees a white flash and a
+      visitor who switched animations off never sees the boot screen move.
+    -->
+    <script>
+      (function () {
+        var root = document.documentElement;
+        var prefs = {};
+        try { prefs = JSON.parse(localStorage.getItem('tribestudio.display') || '{}') || {}; } catch (error) { prefs = {}; }
+        var theme = prefs.theme === 'light' || prefs.theme === 'dark' ? prefs.theme : 'system';
+        var dark = theme === 'dark' || (theme === 'system' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        root.dataset.theme = theme;
+        root.dataset.themeResolved = dark ? 'dark' : 'light';
+        root.style.colorScheme = dark ? 'dark' : 'light';
+        if (prefs.fontScale === 'sm' || prefs.fontScale === 'lg') root.dataset.fontScale = prefs.fontScale;
+        if (prefs.contrast === true) root.dataset.contrast = 'high';
+        if (prefs.motion === 'on' || prefs.motion === 'off') root.dataset.motion = prefs.motion;
+      })();
+    </script>
+    <!--
       Boot screen.
 
       Inlined rather than imported so it paints on the first frame, before the
-      stylesheet or the app bundle has been fetched. The studio ships a ~400KB
-      Firebase chunk and its palette lives in a CSS file the browser has not
-      read yet, so both the markup and the colours are literal here: on a slow
-      connection this used to be a blank white page for several seconds, which
-      reads as a broken link rather than as loading.
-
-      Removed by src/main.tsx once React has mounted.
+      stylesheet or the app bundle has been fetched. Its colours are literal
+      copies of src/ui/tokens.css for the same reason. The mark draws itself
+      while the ~400 KB Firebase chunk arrives, so the wait reads as progress
+      rather than as a broken link. Removed by src/main.tsx once React mounts.
     -->
     <style>
+      html {
+        background: #f6f7fb;
+      }
+      html[data-theme-resolved="dark"] {
+        background: #08111f;
+      }
       #boot {
         position: fixed;
         inset: 0;
@@ -37,55 +64,72 @@
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        gap: 22px;
-        background: #fffdf8;
+        gap: 20px;
+        background-color: #f6f7fb;
+        background-image:
+          radial-gradient(ellipse at 50% 38%, transparent 30%, #f6f7fb 78%),
+          linear-gradient(rgba(15, 24, 48, 0.05) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(15, 24, 48, 0.05) 1px, transparent 1px);
+        background-size: auto, 28px 28px, 28px 28px;
         font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-        /* Faded out by main.tsx, so the app is never revealed mid-paint. */
         transition: opacity 260ms cubic-bezier(0.2, 0.8, 0.2, 1);
+      }
+      html[data-theme-resolved="dark"] #boot {
+        background-color: #08111f;
+        background-image:
+          radial-gradient(ellipse at 50% 38%, transparent 30%, #08111f 78%),
+          linear-gradient(rgba(237, 243, 255, 0.045) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(237, 243, 255, 0.045) 1px, transparent 1px);
       }
       #boot[data-leaving="true"] {
         opacity: 0;
         pointer-events: none;
       }
       .boot__mark {
-        width: 68px;
-        height: 68px;
-        border-radius: 18px;
-        background: #101c36;
+        width: 56px;
+        height: 56px;
+        border-radius: 16px;
+        background: radial-gradient(circle at 70% 18%, rgba(34, 211, 238, 0.32), transparent 52%), linear-gradient(160deg, #13224a, #0f1830 70%);
         display: grid;
         place-items: center;
-        box-shadow: 0 12px 32px rgba(16, 28, 54, 0.18);
+        box-shadow: 0 16px 40px rgba(15, 24, 48, 0.14);
       }
       .boot__mark svg {
         width: 40px;
         height: 40px;
         fill: none;
-        stroke: #b65a3a;
-        stroke-width: 2.6;
+        stroke-width: 3.2;
         stroke-linecap: round;
         stroke-linejoin: round;
       }
+      .boot__mark .frame {
+        stroke: #8eb4ff;
+      }
+      .boot__mark .line {
+        stroke: #ffffff;
+      }
+      .boot__mark .sun {
+        fill: #22d3ee;
+        stroke: none;
+      }
       /* The roof line draws itself, so the wait reads as progress. */
-      .boot__mark path,
-      .boot__mark circle {
+      .boot__mark .frame,
+      .boot__mark .line {
         stroke-dasharray: 120;
         animation: boot-draw 1.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
       }
-      .boot__mark path:nth-child(2) {
+      .boot__mark .line {
         animation-delay: 0.18s;
       }
-      .boot__mark circle {
-        animation-delay: 0.36s;
+      .boot__mark .sun {
+        animation: boot-sun 1.8s ease-in-out infinite;
       }
       @keyframes boot-draw {
         0% {
           stroke-dashoffset: 120;
           opacity: 0.25;
         }
-        45% {
-          stroke-dashoffset: 0;
-          opacity: 1;
-        }
+        45%,
         85% {
           stroke-dashoffset: 0;
           opacity: 1;
@@ -95,29 +139,44 @@
           opacity: 0.25;
         }
       }
+      @keyframes boot-sun {
+        0%,
+        100% {
+          opacity: 0.45;
+        }
+        50% {
+          opacity: 1;
+        }
+      }
       .boot__words {
         text-align: center;
         display: grid;
-        gap: 6px;
+        gap: 4px;
       }
       .boot__name {
         margin: 0;
-        font-size: 1.02rem;
-        font-weight: 650;
-        letter-spacing: 0.14em;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.16em;
         text-transform: uppercase;
-        color: #172033;
+        color: #2459e6;
       }
       .boot__note {
         margin: 0;
-        font-size: 0.86rem;
-        color: #4c5568;
+        font-size: 14px;
+        color: #5d667b;
+      }
+      html[data-theme-resolved="dark"] .boot__name {
+        color: #8eb4ff;
+      }
+      html[data-theme-resolved="dark"] .boot__note {
+        color: #9aa7c0;
       }
       .boot__bar {
-        width: 132px;
-        height: 3px;
+        width: 136px;
+        height: 4px;
         border-radius: 999px;
-        background: #d8d2c6;
+        background: rgba(47, 107, 255, 0.12);
         overflow: hidden;
       }
       .boot__bar span {
@@ -125,8 +184,8 @@
         width: 40%;
         height: 100%;
         border-radius: 999px;
-        background: #b65a3a;
-        animation: boot-slide 1.5s ease-in-out infinite;
+        background: #2f6bff;
+        animation: boot-slide 1.4s ease-in-out infinite;
       }
       @keyframes boot-slide {
         0% {
@@ -136,34 +195,41 @@
           transform: translateX(330%);
         }
       }
-      /* Someone who asked for less motion gets a still screen, not a jittery
-         one: the mark and the bar simply sit there. */
+      /* Less motion: the mark and the bar simply sit there. */
+      html[data-motion="off"] .boot__mark .frame,
+      html[data-motion="off"] .boot__mark .line,
+      html[data-motion="off"] .boot__mark .sun,
+      html[data-motion="off"] .boot__bar span {
+        animation: none;
+        stroke-dasharray: none;
+        opacity: 1;
+      }
+      html[data-motion="off"] .boot__bar span {
+        width: 100%;
+      }
       @media (prefers-reduced-motion: reduce) {
-        .boot__mark path,
-        .boot__mark circle,
-        .boot__bar span {
+        html:not([data-motion="on"]) .boot__mark .frame,
+        html:not([data-motion="on"]) .boot__mark .line,
+        html:not([data-motion="on"]) .boot__mark .sun,
+        html:not([data-motion="on"]) .boot__bar span {
           animation: none;
-        }
-        .boot__mark path,
-        .boot__mark circle {
           stroke-dasharray: none;
           opacity: 1;
         }
-        .boot__bar span {
+        html:not([data-motion="on"]) .boot__bar span {
           width: 100%;
         }
       }
     </style>
   </head>
   <body>
-    <a class="skip-link" href="#main-content">Skip to main content</a>
     <div id="root"></div>
     <div id="boot" role="status" aria-live="polite">
       <span class="boot__mark" aria-hidden="true">
         <svg viewBox="0 0 64 64">
-          <path d="M15 47V23l17-9 17 9v24" />
-          <path d="M24 44V29m8 15V24m8 20V29" />
-          <circle cx="32" cy="14" r="4" />
+          <path class="frame" d="M15 47V23l17-9 17 9v24" />
+          <path class="line" d="M24 44V29m8 15V24m8 20V29" />
+          <circle class="sun" cx="32" cy="14" r="4" />
         </svg>
       </span>
       <span class="boot__words">

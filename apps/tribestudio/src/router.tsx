@@ -17,6 +17,8 @@ import {
   type MouseEvent,
   type ReactNode,
 } from 'react';
+import { flushSync } from 'react-dom';
+import { withViewTransition } from './ui/motion';
 
 interface RouteContextValue {
   path: string;
@@ -34,6 +36,8 @@ function currentPath(): string {
 export function RouterProvider({ children }: { children: ReactNode }) {
   const [location, setLocation] = useState(() => ({ path: currentPath(), search: window.location.search }));
   const previousUrl = useRef(`${window.location.pathname}${window.location.search}`);
+  const shownPath = useRef(location.path);
+  shownPath.current = location.path;
 
   useEffect(() => {
     const onPop = () => {
@@ -57,8 +61,16 @@ export function RouterProvider({ children }: { children: ReactNode }) {
       window.history.pushState({}, '', `${url.pathname}${url.search}`);
     }
     previousUrl.current = `${url.pathname}${url.search}`;
-    setLocation({ path: currentPath(), search: window.location.search });
-    window.scrollTo({ top: 0, behavior: 'auto' });
+    const next = { path: currentPath(), search: window.location.search };
+    // A change of page cross-fades the content area (the shell stays put);
+    // a change of query on the same page, such as a filter, swaps at once.
+    const samePage = next.path === shownPath.current;
+    const apply = () => {
+      flushSync(() => setLocation(next));
+      window.scrollTo({ top: 0, behavior: 'auto' });
+    };
+    if (samePage) apply();
+    else withViewTransition(apply);
   }, []);
 
   const value = useMemo(() => ({ ...location, navigate }), [location, navigate]);

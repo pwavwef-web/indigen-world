@@ -1,54 +1,51 @@
+import { BrandMark } from './ui/BrandMark';
+
 /**
- * The studio's loading states, in one place.
+ * The studio's two loading states.
  *
- * There were four different ones before this: a centred "Loading…", a centred
- * "Opening your studio...", a muted paragraph inside a page, and a bare
- * `notice`. Three of them were unstyled text on an empty page, which reads as
- * a failed navigation rather than as work in progress — and none of them
- * resembled the boot screen the visitor had just been looking at.
- *
- * `FullPageLoader` continues that boot screen: same mark, same drawing
- * animation, same words, so a cold start and an auth check look like one
- * uninterrupted wait instead of two screens.
- *
- * `RouteLoader` is the quieter one, for a lazy page arriving inside a shell
- * that is already drawn. It holds the content area rather than the viewport,
- * because replacing a drawn sidebar with a full-screen splash is a worse
- * experience than the wait it is covering.
+ * `FullPageLoader` continues the boot screen in index.html — the same mark on
+ * the same grid ground — so a cold start and an access check read as one
+ * wait. `RouteLoader` is the quieter one for a lazy page arriving inside a
+ * shell that is already drawn: it holds the content area with the shape of a
+ * page instead of replacing a drawn sidebar with a splash.
  */
-
-/** The drawing house-mark, shared with the boot screen in index.html. */
-function LoaderMark() {
-  return (
-    <span className="loader__mark" aria-hidden="true">
-      <svg viewBox="0 0 64 64">
-        <path d="M15 47V23l17-9 17 9v24" />
-        <path d="M24 44V29m8 15V24m8 20V29" />
-        <circle cx="32" cy="14" r="4" />
-      </svg>
-    </span>
-  );
-}
-
 export function FullPageLoader({ note = 'Opening your workspace…' }: { note?: string }) {
+  // Same geometry as #boot in index.html, so the hand-over is invisible.
   return (
-    <div className="loader loader--full" role="status" aria-live="polite">
-      <LoaderMark />
-      <div className="loader__words">
-        <p className="loader__name">TribeStudio</p>
-        <p className="loader__note">{note}</p>
-      </div>
-      <span className="loader__bar" aria-hidden="true"><span /></span>
+    <div className="ts-boot" role="status" aria-live="polite">
+      <BrandMark size="56px" live className="ts-boot__mark" />
+      <span className="ts-boot__words">
+        <span className="ts-boot__name">TribeStudio</span>
+        <span className="ts-boot__note">{note}</span>
+      </span>
+      <span className="ts-boot__bar" aria-hidden="true"><span /></span>
     </div>
   );
 }
 
 export function RouteLoader({ note = 'Loading' }: { note?: string }) {
   return (
-    <div className="loader loader--route" role="status" aria-live="polite">
-      <LoaderMark />
-      <p className="loader__note">{note}</p>
-      <span className="loader__bar" aria-hidden="true"><span /></span>
+    <div className="ts-page" role="status" aria-live="polite" aria-label={note}>
+      <div className="ts-skeleton" aria-hidden="true">
+        <span className="ts-skel ts-skel--line" style={{ width: '7rem' }} />
+        <span className="ts-skel ts-skel--title" style={{ height: '1.9rem', maxWidth: '22rem' }} />
+        <span className="ts-skel ts-skel--line" style={{ maxWidth: '34rem' }} />
+      </div>
+      <div className="ts-stats" aria-hidden="true">
+        {[0, 1, 2, 3].map((index) => (
+          <div key={index} className="ts-stat">
+            <span className="ts-skel ts-skel--line" style={{ width: '55%' }} />
+            <span className="ts-skel ts-skel--title" style={{ width: '40%', height: '1.6rem' }} />
+          </div>
+        ))}
+      </div>
+      <div className="ts-panel" aria-hidden="true">
+        <span className="ts-skel ts-skel--title" style={{ width: '30%' }} />
+        <span className="ts-skel ts-skel--line" />
+        <span className="ts-skel ts-skel--line" style={{ width: '86%' }} />
+        <span className="ts-skel ts-skel--line" style={{ width: '64%' }} />
+      </div>
+      <span className="sr-only">{note}</span>
     </div>
   );
 }

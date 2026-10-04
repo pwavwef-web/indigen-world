@@ -1,0 +1,90 @@
+/* Lexicon tools: the original lexical-entry workflow on the shared system. */
+
+.lx-steps {
+  min-width: min(100%, 20rem);
+}
+
+@media (max-width: 720px) {
+  .lx-steps {
+    display: none;
+  }
+}
+
+.lx-pair {
+  display: grid;
+  gap: var(--space-4);
+}
+
+@media (min-width: 640px) {
+  .lx-pair {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.lx-queue {
+  display: grid;
+  gap: var(--space-3);
+  list-style: none;
+}
+
+.lx-entry {
+  gap: var(--space-4);
+}
+
+@media (min-width: 1024px) {
+  .lx-entry {
+    grid-template-columns: minmax(0, 1fr) minmax(20rem, 26rem);
+    align-items: start;
+  }
+}
+
+.lx-entry__main {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.lx-entry__main > .ts-link {
+  justify-self: start;
+}
+
+.lx-entry__headword {
+  font-family: var(--font-display);
+  font-size: var(--fs-xl);
+  font-weight: 700;
+}
+
+.lx-entry__definition {
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+  line-height: 1.6;
+}
+
+.lx-entry__decide {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-radius: var(--r-lg);
+  background: var(--surface-sunken);
+}
+
+.lx-decisions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+
+.lx-decision--approve:hover:not(:disabled) {
+  border-color: var(--success-dot);
+  color: var(--success);
+}
+
+.lx-decision--changes:hover:not(:disabled) {
+  border-color: var(--warning-dot);
+  color: var(--warning);
+}
+
+.lx-decision--reject:hover:not(:disabled) {
+  border-color: var(--danger-dot);
+  color: var(--danger);
+}

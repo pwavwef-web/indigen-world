@@ -1,10 +1,9 @@
 import { useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useRoute } from '../router';
-import { canValidate, useAuth } from '../auth';
-import { cx, type IconName } from './components';
+import { type IconName } from './components';
 import { friendlyError, itemStatus, metricsFor, type FriendlyError } from './model';
 import type { AccountTab, PaymentsView, Section, SelfView, WorkspaceData } from './types';
-import { WorkspaceFrame, type WorkspaceDestination } from '../interface/WorkspaceFrame';
+import { AppShell, EmptyState, Button, Page, type NavItem } from '../ui';
 import { NotificationCentre } from './notifications';
 import { OverviewPage } from './pages/OverviewPage';
 import { AssignmentsPage } from './pages/AssignmentsPage';
@@ -87,24 +86,57 @@ export function invitationLinkOwner(path: string): string | null {
   }
 }
 
-interface NavItem {
+interface SectionEntry {
   section: Section;
   label: string;
   short: string;
   icon: IconName;
+  group: string;
+  dock?: boolean;
+  hint?: string;
 }
 
-export const NAV: NavItem[] = [
-  { section: 'overview', label: 'Home', short: 'Home', icon: 'overview' },
-  { section: 'assignments', label: 'Tasks', short: 'Tasks', icon: 'assignments' },
-  { section: 'contributions', label: 'My contributions', short: 'Contributions', icon: 'contributions' },
-  { section: 'rewards', label: 'Recognition history', short: 'Recognition', icon: 'activity' },
-  { section: 'streak', label: 'Streak', short: 'Streak', icon: 'activity' },
-  { section: 'activity', label: 'Activity', short: 'Activity', icon: 'activity' },
-  { section: 'guide', label: 'Help & guide', short: 'Help', icon: 'guide' },
-  { section: 'kawuri', label: 'Kawuri Intelligence', short: 'Kawuri', icon: 'kawuri' },
-  { section: 'account', label: 'Account & settings', short: 'Account', icon: 'account' },
+/** The contributor portal's sections, in the order they appear in the sidebar. */
+export const NAV: SectionEntry[] = [
+  { section: 'overview', label: 'Overview', short: 'Home', icon: 'home', group: 'Your work', dock: true },
+  { section: 'assignments', label: 'Assignments', short: 'Tasks', icon: 'assignments', group: 'Your work', dock: true, hint: 'Expressions assigned to you' },
+  { section: 'contributions', label: 'My contributions', short: 'My work', icon: 'contributions', group: 'Your work', dock: true, hint: 'Drafts, submissions and review decisions' },
+  { section: 'activity', label: 'Activity', short: 'Activity', icon: 'activity', group: 'Your work' },
+  { section: 'rewards', label: 'Recognition', short: 'Recognition', icon: 'award', group: 'Recognition', hint: 'Points history and airtime or data requests' },
+  { section: 'streak', label: 'Streak', short: 'Streak', icon: 'flame', group: 'Recognition' },
+  { section: 'guide', label: 'Help & guide', short: 'Help', icon: 'guide', group: 'Help', dock: true },
+  { section: 'kawuri', label: 'Kawuri assistance', short: 'Kawuri', icon: 'kawuri', group: 'Help', hint: 'Meaning and context help — never writes your Kasem' },
+  { section: 'account', label: 'Account & settings', short: 'Account', icon: 'settings', group: 'Account' },
 ];
+
+/**
+ * The portal's destinations for the shell. `extras` adds per-section badges
+ * (open assignments, returned work, payment attention).
+ */
+export function contributorNav({ path, paths, extras = [], active }: {
+  path: string;
+  paths?: { section(section: Section): string; account(tab: AccountTab): string };
+  extras?: { section: Section; badge?: ReactNode }[];
+  active?: Section;
+}): NavItem[] {
+  const to = (section: Section) => paths
+    ? (section === 'account' ? paths.account('profile') : paths.section(section))
+    : section === 'overview' ? '/contributor' : section === 'account' ? '/contributor/account/profile' : `/contributor/${section}`;
+  const items: NavItem[] = NAV.map((entry) => ({
+    to: to(entry.section),
+    label: entry.label,
+    short: entry.short,
+    icon: entry.icon,
+    group: entry.group,
+    dock: entry.dock,
+    hint: entry.hint,
+    active: entry.section === active,
+    badge: extras.find((extra) => extra.section === entry.section)?.badge,
+  }));
+  // The corpus workspace sits beside assignments: same people, different records.
+  items.splice(3, 0, { to: '/contributor/corpus', label: 'Corpus records', icon: 'database', group: 'Your work', hint: 'Sourced language and cultural records', active: path === '/contributor/corpus' });
+  return items;
+}
 
 
 // ---------------------------------------------------------------------------
@@ -180,7 +212,6 @@ export function paymentsNeedAttention(payments: PaymentsView | null): boolean {
 
 export function WorkspaceShell({ banner }: { banner?: ReactNode }) {
   const data = useWorkspace();
-  const { role } = useAuth();
   const { path, search, navigate } = useRoute();
   const route = useMemo(() => parsePortalRoute(path, search, data.paths.base, data.preview), [path, search, data.paths.base, data.preview]);
   const self = useResource(data.services.loadSelf, 'Your profile');
@@ -189,21 +220,35 @@ export function WorkspaceShell({ banner }: { banner?: ReactNode }) {
   const returned = metricsFor(Object.values(data.items).flat()).returned;
   const openAssignments = data.works.filter(work => (data.items[work.id] ?? []).some(item => ['not_started', 'draft', 'unsure'].includes(itemStatus(item)))).length;
   const shared = useMemo<ShellShared>(() => ({ self, payments, navigateTo: navigate, setEditing }), [self, payments, navigate]);
-  const destinations: WorkspaceDestination[] = NAV.map(item => ({
-    to: item.section === 'account' ? data.paths.account('profile') : data.paths.section(item.section),
-    label: item.section === 'overview' ? 'Overview' : item.section === 'assignments' ? 'Assignments' : item.label,
-    icon: item.icon,
-    group: ['overview','assignments','contributions','activity'].includes(item.section) ? 'Your work' : ['guide','kawuri'].includes(item.section) ? 'Resources' : 'Account',
-    active: item.section === route.section,
-    badge: item.section === 'contributions' && returned ? returned : item.section === 'assignments' && openAssignments ? openAssignments : item.section === 'account' && paymentsNeedAttention(payments.value) ? '!' : undefined,
-  }));
-  if (!data.preview) destinations.push({ to: '/contributor/corpus',label:'Corpus workspace',icon:'guide',group:'Your work' });
-  if (!data.preview && canValidate(role)) destinations.push({ to: '/contributor/review', label: 'Review workspace', icon: 'shield', group: 'Resources' });
-  return <SharedContext.Provider value={shared}>
-    <WorkspaceFrame identity="Contribute" destinations={destinations} account={self.value?.profile.displayName || data.displayName || data.email} photo={self.value?.profile.photoUrl} onSignOut={() => void data.services.signOut()} banner={banner}>
-      <div className={cx('cw iwx', editing && 'is-editing')}><div className="cw-content"><NotificationCentre />{route.notFound ? <NotFound /> : <PageFor key={`${data.uid}:${route.section}`} route={route} />}</div></div>
-    </WorkspaceFrame>
-  </SharedContext.Provider>;
+  const nav = contributorNav({
+    path,
+    paths: data.paths,
+    active: route.notFound ? undefined : route.section,
+    extras: [
+      { section: 'assignments', badge: openAssignments || undefined },
+      { section: 'contributions', badge: returned || undefined },
+      { section: 'account', badge: paymentsNeedAttention(payments.value) ? '!' : undefined },
+    ],
+  }).filter((item) => !data.preview || item.to !== '/contributor/corpus');
+  const workTitle = route.section === 'assignments' && route.work ? data.works.find((work) => work.id === route.work)?.title : undefined;
+  return (
+    <SharedContext.Provider value={shared}>
+      <AppShell
+        workspace="contribute"
+        nav={nav}
+        title={workTitle}
+        account={{ name: self.value?.profile.displayName || data.displayName || data.email || 'Contributor', photo: self.value?.profile.photoUrl, role: 'Invited contributor' }}
+        onSignOut={() => void data.services.signOut()}
+        banner={banner}
+        dockHidden={editing}
+      >
+        <div className="cw">
+          <NotificationCentre />
+          {route.notFound ? <NotFound /> : <PageFor key={`${data.uid}:${route.section}`} route={route} />}
+        </div>
+      </AppShell>
+    </SharedContext.Provider>
+  );
 }
 
 function PageFor({ route }: { route: PortalRoute }) {
@@ -233,13 +278,15 @@ function NotFound() {
   const { paths } = useWorkspace();
   const { navigate } = useRoute();
   return (
-    <div className="cw-page">
-      <div className="cw-empty cw-empty--page">
-        <strong>This page does not exist</strong>
-        <p>The link may be mistyped or out of date. Your assignments and contributions are unaffected.</p>
-        <button type="button" className="button--primary" onClick={() => navigate(paths.section('overview'))}>Go to the overview</button>
-      </div>
-    </div>
+    <Page width="medium">
+      <EmptyState
+        boxed
+        icon="map"
+        title="This page does not exist"
+        body="The link may be mistyped or out of date. Your assignments and contributions are unaffected."
+        actions={<Button variant="primary" icon="home" onClick={() => navigate(paths.section('overview'))}>Go to the overview</Button>}
+      />
+    </Page>
   );
 }
 

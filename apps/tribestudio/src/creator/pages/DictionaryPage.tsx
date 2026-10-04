@@ -1,4 +1,3 @@
-import { ProcessGuide, WorkspaceDialog } from '../../interface/WorkspaceFrame';
 /**
  * The dictionary desk: write a full Kasem entry, and see it as a learner will.
  *
@@ -61,6 +60,7 @@ import { TableShell } from '@indigen-world/console-ui';
 import { VoiceRecorder } from '../components';
 import { KasemPalette, insertIntoField } from '../KasemPalette';
 import { uploadSubmissionMedia } from '../data';
+import { Badge, Dialog, EmptyState, Icon, Notice, PageHeader, Skeleton, Steps, type Tone } from '../../ui';
 
 const TIERS = enums.culturalPermissionTier as readonly string[];
 const TIER_LABELS: Record<string, string> = {
@@ -71,6 +71,16 @@ const TIER_LABELS: Record<string, string> = {
 };
 
 const DIALECTS = ['Navrongo', 'Paga', 'Chiana', 'Other', 'Not sure'];
+
+/** Contribution statuses as the review desk writes them, in the studio's tones. */
+function statusTone(status: string): Tone {
+  const value = status.toLowerCase();
+  if (value === 'published' || value === 'approved') return 'success';
+  if (value === 'rejected') return 'danger';
+  if (value === 'needs_revision' || value === 'revision_requested') return 'warning';
+  if (value === 'withdrawn') return 'neutral';
+  return 'info';
+}
 
 /** The cross-class offers, kept short for the reason the mobile form keeps them short. */
 function crossClassOffers(declared: string): string[] {
@@ -383,40 +393,40 @@ export function DictionaryPage() {
   if (!user) return null;
 
   return (
-    <div className="page dict">
-      <header className="dict__head">
-        <div>
-          <p className="hero__eyebrow">Dictionary</p>
-          <h1>Write an entry</h1>
-          <p className="panel__hint">
-            Add a headword, meaning and source. Preview the entry as you write; optional details stay close to the word.
-          </p>
-        </div>
-        <div className="dict__meter" aria-label="How complete this entry is">
-          <div className="dict__meter-ring" style={{ ['--pct' as string]: `${progress.score}%` }}>
-            <strong>{progress.score}%</strong>
-          </div>
-          <ul className="dict__meter-list">
-            {progress.items.map((item) => (
-              <li key={item.label} className={item.done ? 'is-done' : ''} title={item.hint}>
-                <span aria-hidden="true">{item.done ? '✓' : '○'}</span> {item.label}
-              </li>
-            ))}
-          </ul>
-        </div>
-      </header>
+    <div className="ts-page dict">
+      <PageHeader
+        kicker="Dictionary"
+        title="Write an entry"
+        description="Add a headword, meaning and source. Preview the entry as you write; optional details stay close to the word."
+      />
 
-      <ProcessGuide label="Dictionary contribution process" steps={[{title:'Describe the word',detail:'Headword, meanings and examples',icon:'guide'},{title:'Check the entry',detail:'Source, permission and pronunciation',icon:'search'},{title:'Send for review',detail:'Follow the decision in your contribution history',icon:'shield'}]} />
-      {reviewing ? <WorkspaceDialog title="Review dictionary entry" onClose={() => setReviewing(false)} busy={busy}>
-        <p className="muted">This remains a dictionary word. A reviewer checks it before publication.</p>
-        <dl className="iw-confirmation"><div><dt>Headword</dt><dd>{draft.headword}</dd></div><div><dt>Meanings</dt><dd>{draft.senses.map(sense => sense.definition).filter(Boolean).join('; ')}</dd></div><div><dt>Source</dt><dd>{draft.source}</dd></div><div><dt>Publication permission</dt><dd>{draft.publicationPermission ? 'Granted if approved' : 'Not granted'}</dd></div></dl>
-        {toast?.kind === 'err' ? <p role="alert">{toast.text}</p> : null}
-        <div className="actions"><button type="button" disabled={busy} onClick={() => setReviewing(false)}>Back to editing</button><button type="button" className="button button--primary" disabled={busy} onClick={() => void submit()}>{busy ? 'Sending…' : 'Confirm and send'}</button></div>
-      </WorkspaceDialog> : null}
+      <div className="dict__top">
+        <section className="ts-panel ts-panel--tight dict__guide" aria-label="Dictionary contribution process">
+          <Steps label="Dictionary contribution process" steps={[
+            { title: 'Describe the word', detail: 'Headword, meanings and examples', icon: 'book' },
+            { title: 'Check the entry', detail: 'Source, permission and pronunciation', icon: 'search' },
+            { title: 'Send for review', detail: 'Follow the decision in your contribution history', icon: 'shield' },
+          ]} />
+        </section>
+      </div>
+
+      {reviewing ? (
+        <Dialog title="Review dictionary entry" lede="This remains a dictionary word. A reviewer checks it before publication." onClose={() => setReviewing(false)} busy={busy}>
+          <dl className="ts-kv">
+            <div><dt>Headword</dt><dd className="cr-kasem">{draft.headword}</dd></div>
+            <div><dt>Meanings</dt><dd>{draft.senses.map(sense => sense.definition).filter(Boolean).join('; ')}</dd></div>
+            <div><dt>Source</dt><dd>{draft.source}</dd></div>
+            <div><dt>Publication permission</dt><dd>{draft.publicationPermission ? 'Granted if approved' : 'Not granted'}</dd></div>
+          </dl>
+          {toast?.kind === 'err' ? <p className="ts-error" role="alert"><Icon name="alert" />{toast.text}</p> : null}
+          <div className="cr-dialog-actions">
+            <button type="button" className="ts-btn ts-btn--ghost" disabled={busy} onClick={() => setReviewing(false)}>Back to editing</button>
+            <button type="button" className="ts-btn ts-btn--primary" disabled={busy} onClick={() => void submit()}><Icon name="send" />{busy ? 'Sending…' : 'Confirm and send'}</button>
+          </div>
+        </Dialog>
+      ) : null}
       {restored ? (
-        <p className="callout callout--info dict__restored">
-          An unfinished entry was restored from this browser. Nothing was sent.
-        </p>
+        <Notice tone="info" icon="refresh">An unfinished entry was restored from this browser. Nothing was sent.</Notice>
       ) : null}
 
       <div className="dict__cols">
@@ -424,13 +434,13 @@ export function DictionaryPage() {
         {/* The editor                                                        */}
         {/* ---------------------------------------------------------------- */}
         <div className="dict__editor">
-          <section className="panel">
+          <section className="ts-panel dict__panel">
             <h2>The word</h2>
 
             <KasemPalette onInsert={insertCharacter} />
 
-            <div className="field">
-              <label htmlFor="headword">Kasem headword *</label>
+            <div className="ts-field">
+              <label className="ts-label" htmlFor="headword">Kasem headword *</label>
               <input
                 id="headword"
                 value={draft.headword}
@@ -439,7 +449,7 @@ export function DictionaryPage() {
                 placeholder="e.g. bakeira"
                 autoComplete="off"
               />
-              <p className="field__hint">
+              <p className="ts-hint">
                 Exactly as it is said and spelled. Several spellings of the same word can be
                 separated with commas — the first becomes the headword.
               </p>
@@ -447,7 +457,7 @@ export function DictionaryPage() {
 
             {assist.length > 0 ? (
               <div className="dict__assist" role="status">
-                <p className="tiny muted">Before you send — worth a look:</p>
+                <p className="dict__assist-title"><Icon name="info" />Before you send — worth a look</p>
                 <ul>
                   {assist.map((check) => (
                     <li key={check.id} className={`dict__assist-item dict__assist-item--${check.severity}`}>
@@ -469,23 +479,24 @@ export function DictionaryPage() {
               </div>
             ) : null}
 
-            <div className="field">
-              <label htmlFor="pronunciation">Say the word (optional)</label>
-              <p className="field__hint">
+            <div className="ts-field">
+              <label className="ts-label" htmlFor="pronunciation">Say the word (optional)</label>
+              <p className="ts-hint">
                 A recording of the headword being said. It becomes the pronunciation a reader
                 hears on the published entry, so a word entered at a desk is no more silent than
                 one entered on a phone.
               </p>
               <VoiceRecorder onAudioReady={(file) => void attachPronunciation(file)} />
               {audioPct !== null && audioPct < 100 ? (
-                <div className="upload"><div className="upload__bar"><span style={{ width: `${audioPct}%` }} /></div><span className="tiny">Uploading… {audioPct}%</span></div>
+                <div className="upload"><div className="upload__bar"><span style={{ width: `${audioPct}%` }} /></div><span className="ts-hint">Uploading… {audioPct}%</span></div>
               ) : null}
               {draft.pronunciation ? (
-                <p className="asset-ready">
-                  <span>✓</span>{draft.pronunciation.name}
+                <p className="ts-file dict__asset">
+                  <span className="ts-file__icon" aria-hidden="true"><Icon name="audio" /></span>
+                  <span className="ts-file__name">{draft.pronunciation.name}</span>
                   <button
                     type="button"
-                    className="button button--small button--ghost-dark"
+                    className="ts-btn ts-btn--ghost ts-btn--sm"
                     onClick={() => { update('pronunciation', null); setAudioPct(null); }}
                   >
                     Remove
@@ -524,8 +535,8 @@ export function DictionaryPage() {
             ) : null}
 
             <div className="field-row">
-              <div className="field">
-                <label htmlFor="pos">Word class *</label>
+              <div className="ts-field">
+                <label className="ts-label" htmlFor="pos">Word class *</label>
                 <select
                   id="pos"
                   value={draft.partOfSpeech}
@@ -538,8 +549,8 @@ export function DictionaryPage() {
                   ))}
                 </select>
               </div>
-              <div className="field">
-                <label htmlFor="dialect">Dialect or region *</label>
+              <div className="ts-field">
+                <label className="ts-label" htmlFor="dialect">Dialect or region *</label>
                 <select
                   id="dialect"
                   value={draft.dialect}
@@ -555,16 +566,14 @@ export function DictionaryPage() {
             </div>
 
             {crossClassOffers(draft.partOfSpeech).length > 0 ? (
-              <div className="field">
-                <label>Is it also used another way?</label>
-                <div className="chips">
+              <div className="ts-field">
+                <p className="ts-label" id="also-used-label">Is it also used another way?</p>
+                <div className="ts-chips" role="group" aria-labelledby="also-used-label">
                   {crossClassOffers(draft.partOfSpeech).map((id) => (
                     <button
                       key={id}
                       type="button"
-                      className={
-                        draft.alsoUsedAs.includes(id) ? 'chip chip--on' : 'chip'
-                      }
+                      className="ts-chip"
                       aria-pressed={draft.alsoUsedAs.includes(id)}
                       onClick={() => toggleAlsoUsedAs(id)}
                     >
@@ -572,15 +581,15 @@ export function DictionaryPage() {
                     </button>
                   ))}
                 </div>
-                <p className="field__hint">
+                <p className="ts-hint">
                   A Kasem word is routinely more than one class. Saying so here draws both
                   halves of its paradigm on the entry.
                 </p>
               </div>
             ) : null}
 
-            <div className="field">
-              <label htmlFor="ipa">How it is said (IPA)</label>
+            <div className="ts-field">
+              <label className="ts-label" htmlFor="ipa">How it is said (IPA)</label>
               <input
                 id="ipa"
                 value={draft.ipa}
@@ -588,7 +597,7 @@ export function DictionaryPage() {
                 onChange={(e) => update('ipa', e.target.value)}
                 placeholder="bàkéːrà"
               />
-              <p className="field__hint">
+              <p className="ts-hint">
                 Without the slashes — the entry adds them. The transcription is what
                 survives when there is no speaker to ask.
               </p>
@@ -596,7 +605,7 @@ export function DictionaryPage() {
           </section>
 
           {/* -------------------------------------------------------------- */}
-          <section className="panel">
+          <section className="ts-panel dict__panel">
             <div className="panel__head panel__head--spread">
               <div>
                 <h2>What it means</h2>
@@ -605,7 +614,7 @@ export function DictionaryPage() {
                   its example sentence goes with it.
                 </p>
               </div>
-              <span className="badge">{draft.senses.length} of {MAX_SENSES}</span>
+              <Badge tone="accent">{draft.senses.length} of {MAX_SENSES}</Badge>
             </div>
 
             {draft.senses.map((sense, index) => (
@@ -627,17 +636,17 @@ export function DictionaryPage() {
 
             <button
               type="button"
-              className="button button--ghost-dark dict__add"
+              className="ts-btn ts-btn--secondary dict__add"
               onClick={addSense}
               disabled={draft.senses.length >= MAX_SENSES}
             >
-              + Add another meaning
+              <Icon name="plus" />Add another meaning
             </button>
           </section>
 
           {/* -------------------------------------------------------------- */}
           {formGroups.size > 0 ? (
-            <section className="panel">
+            <section className="ts-panel dict__panel">
               <h2>The forms it takes</h2>
               <p className="panel__hint">
                 Questions about talking, not about grammar. The noun class is worked out
@@ -656,8 +665,8 @@ export function DictionaryPage() {
                     </h3>
                     <div className="dict__forms-grid">
                       {FORM_SLOTS.filter((slot) => slot.group === group).map((slot) => (
-                        <div className="field" key={slot.id}>
-                          <label htmlFor={`form-${slot.id}`}>{slot.label}</label>
+                        <div className="ts-field" key={slot.id}>
+                          <label className="ts-label" htmlFor={`form-${slot.id}`}>{slot.label}</label>
                           <input
                             id={`form-${slot.id}`}
                             value={draft.forms[slot.id] ?? ''}
@@ -683,11 +692,11 @@ export function DictionaryPage() {
           ) : null}
 
           {/* -------------------------------------------------------------- */}
-          <section className="panel">
+          <section className="ts-panel dict__panel">
             <h2>The rest of the entry</h2>
 
-            <div className="field">
-              <label htmlFor="kasem-def">The whole word, said in Kasem</label>
+            <div className="ts-field">
+              <label className="ts-label" htmlFor="kasem-def">The whole word, said in Kasem</label>
               <textarea
                 id="kasem-def"
                 value={draft.kasemDefinition}
@@ -695,14 +704,14 @@ export function DictionaryPage() {
                 onChange={(e) => update('kasemDefinition', e.target.value)}
                 placeholder="What you would say to a child who asked what this word means"
               />
-              <p className="field__hint">
+              <p className="ts-hint">
                 The only text on the record written in the language rather than about it,
                 and the most valuable string this project collects.
               </p>
             </div>
 
-            <div className="field">
-              <label htmlFor="etymology">Where the word comes from</label>
+            <div className="ts-field">
+              <label className="ts-label" htmlFor="etymology">Where the word comes from</label>
               <textarea
                 id="etymology"
                 value={draft.etymology}
@@ -710,13 +719,13 @@ export function DictionaryPage() {
                 onChange={(e) => update('etymology', e.target.value)}
                 placeholder="A borrowing, a compound, a story — where anybody knows"
               />
-              <p className="field__hint">
+              <p className="ts-hint">
                 Usually nobody has written this down, and leaving it blank says so honestly.
               </p>
             </div>
 
-            <div className="field">
-              <label htmlFor="source">Where it came from *</label>
+            <div className="ts-field">
+              <label className="ts-label" htmlFor="source">Where it came from *</label>
               <input
                 id="source"
                 value={draft.source}
@@ -725,8 +734,8 @@ export function DictionaryPage() {
               />
             </div>
 
-            <div className="field">
-              <label htmlFor="notes">Context for reviewers</label>
+            <div className="ts-field">
+              <label className="ts-label" htmlFor="notes">Context for reviewers</label>
               <textarea
                 id="notes"
                 value={draft.notes}
@@ -736,9 +745,9 @@ export function DictionaryPage() {
             </div>
 
             <div className="field-row">
-              <div className="field">
-                <label htmlFor="tier">Cultural permission</label>
-                <p className="tiny">This dictionary accepts public cultural material only. Community-only, restricted and sacred material cannot be submitted here.</p>
+              <div className="ts-field">
+                <label className="ts-label" htmlFor="tier">Cultural permission</label>
+                <p className="ts-hint">This dictionary accepts public cultural material only. Community-only, restricted and sacred material cannot be submitted here.</p>
                 <select
                   id="tier"
                   value={draft.culturalPermissionTier}
@@ -753,7 +762,7 @@ export function DictionaryPage() {
               </div>
             </div>
 
-            <label className="checkbox">
+            <label className="ts-check ts-check--card">
               <input
                 type="checkbox"
                 checked={draft.consentGranted}
@@ -762,7 +771,7 @@ export function DictionaryPage() {
               I have permission to share this for community review, and it is nothing
               private, sacred, disputed or copyrighted.
             </label>
-            <label className="checkbox">
+            <label className="ts-check ts-check--card">
               <input
                 type="checkbox"
                 checked={draft.publicationPermission}
@@ -771,10 +780,10 @@ export function DictionaryPage() {
               Indigen World may publish this entry if it is approved.
             </label>
 
-            <div className="actions">
+            <div className="cr-compose__actions dict__actions">
               <button
                 type="button"
-                className="button button--ghost-dark"
+                className="ts-btn ts-btn--ghost"
                 disabled={busy}
                 onClick={() => {
                   if (!window.confirm('Clear this entry and its saved draft?')) return;
@@ -788,11 +797,11 @@ export function DictionaryPage() {
               </button>
               <button
                 type="button"
-                className="button button--primary"
+                className="ts-btn ts-btn--primary"
                 disabled={busy}
                 onClick={() => { if (canSubmit) setReviewing(true); else void submit(); }}
               >
-                {busy ? 'Sending…' : 'Review entry'}
+                {busy ? 'Sending…' : 'Review entry'}<Icon name="arrow" />
               </button>
             </div>
           </section>
@@ -803,9 +812,23 @@ export function DictionaryPage() {
         {/* ---------------------------------------------------------------- */}
         <aside className="dict__preview-col">
           <div className="dict__preview-sticky">
+            <section className="ts-panel ts-panel--tight dict__meter" aria-label="How complete this entry is">
+              <div className="dict__meter-ring" style={{ ['--pct' as string]: `${progress.score}%` }}>
+                <strong>{progress.score}%</strong>
+              </div>
+              <ul className="dict__meter-list">
+                {progress.items.map((item) => (
+                  <li key={item.label} className={item.done ? 'is-done' : ''} title={item.hint}>
+                    <span className="dict__meter-mark" aria-hidden="true">{item.done ? <Icon name="check" /> : null}</span>
+                    <span>{item.label}</span>
+                    <span className="sr-only">{item.done ? '(done)' : '(not yet)'}</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
             <h2 className="dict__preview-heading">As a learner will see it</h2>
             <EntryPreview draft={draft} />
-            <p className="tiny dict__preview-note">
+            <p className="ts-hint dict__preview-note">
               Preview updates as you write. Empty sections are omitted.
             </p>
           </div>
@@ -813,34 +836,34 @@ export function DictionaryPage() {
       </div>
 
       {/* ------------------------------------------------------------------ */}
-      <section className="panel dict__mine">
-        <h2>Entries you have sent</h2>
+      <section className="ts-panel dict__mine" aria-labelledby="dict-mine-title">
+        <div className="ts-panel__head"><div><h2 id="dict-mine-title" className="ts-panel__title">Entries you have sent</h2><p className="ts-panel__desc">Each entry and where its review stands.</p></div></div>
         {loadingMine ? (
-          <p className="notice">Loading your entries…</p>
+          <Skeleton lines={3} label="Loading your entries" />
         ) : mine.length === 0 ? (
-          <p className="notice">Nothing yet. The first entry you send appears here.</p>
+          <EmptyState compact icon="book" title="Nothing sent yet" body="The first entry you send appears here, with its review status." />
         ) : (
-          <ul className="list">
+          <ul className="dict__mine-list ts-stagger">
             {mine.map((item) => (
-              <li key={item.id} className="list__item">
-                <div>
-                  <strong>{item.body}</strong>
-                  <span className="muted"> · {item.title}</span>
-                  {item.senseCount > 1 ? (
-                    <span className="muted"> · {item.senseCount} meanings</span>
-                  ) : null}
+              <li key={item.id} className="dict__mine-item">
+                <div className="dict__mine-main">
+                  <p className="dict__mine-word">
+                    <strong className="cr-kasem">{item.body}</strong>
+                    <span className="ts-muted">{item.title}</span>
+                    {item.senseCount > 1 ? <span className="ts-faint">{item.senseCount} meanings</span> : null}
+                  </p>
                   {item.reviewFeedback ? (
-                    <p className="muted tiny">{item.reviewFeedback}</p>
+                    <p className="cr-mine__feedback"><span>Reviewer:</span> {item.reviewFeedback}</p>
                   ) : null}
                 </div>
-                <div className="list__side">
-                  <span className={`badge badge--${item.status}`}>{item.status}</span>
+                <div className="cr-mine__actions">
+                  <Badge tone={statusTone(item.status)} dot caps>{item.status.replace(/_/g, ' ')}</Badge>
                   {canWithdrawContribution(item.status) ? (
                     confirmWithdraw === item.id ? (
-                      <>
+                      <span className="cr-mine__confirm">
                         <button
                           type="button"
-                          className="button button--small button--danger"
+                          className="ts-btn ts-btn--danger ts-btn--sm"
                           disabled={withdrawing === item.id}
                           onClick={() => void withdraw(item.id)}
                         >
@@ -848,17 +871,17 @@ export function DictionaryPage() {
                         </button>
                         <button
                           type="button"
-                          className="button button--small button--ghost-dark"
+                          className="ts-btn ts-btn--ghost ts-btn--sm"
                           disabled={withdrawing === item.id}
                           onClick={() => setConfirmWithdraw(null)}
                         >
                           Keep
                         </button>
-                      </>
+                      </span>
                     ) : (
                       <button
                         type="button"
-                        className="button button--small button--ghost-dark"
+                        className="ts-btn ts-btn--ghost ts-btn--sm"
                         onClick={() => setConfirmWithdraw(item.id)}
                       >
                         {item.status.toLowerCase() === 'published' ? 'Revoke publication' : 'Withdraw'}
@@ -872,7 +895,7 @@ export function DictionaryPage() {
         )}
       </section>
 
-      {toast ? <div className={`toast toast--${toast.kind}`}>{toast.text}</div> : null}
+      {toast ? <div className={`cr-toast cr-toast--${toast.kind}`} role={toast.kind === 'err' ? 'alert' : 'status'}><Icon name={toast.kind === 'err' ? 'alert' : 'check'} />{toast.text}</div> : null}
     </div>
   );
 }
@@ -915,36 +938,36 @@ function SenseEditor({
         <div className="dict__sense-tools">
           <button
             type="button"
-            className="button button--small button--ghost"
+            className="ts-btn ts-btn--ghost ts-btn--sm"
             onClick={() => onMove(-1)}
             disabled={index === 0}
             aria-label={`Move meaning ${index + 1} up`}
           >
-            ↑
+            <Icon name="up" />
           </button>
           <button
             type="button"
-            className="button button--small button--ghost"
+            className="ts-btn ts-btn--ghost ts-btn--sm"
             onClick={() => onMove(1)}
             disabled={index === total - 1}
             aria-label={`Move meaning ${index + 1} down`}
           >
-            ↓
+            <Icon name="down" />
           </button>
           <button
             type="button"
-            className="button button--small button--ghost"
+            className="ts-btn ts-btn--ghost ts-btn--sm"
             onClick={onRemove}
             disabled={total <= 1}
             aria-label={`Remove meaning ${index + 1}`}
           >
-            ✕
+            <Icon name="trash" />
           </button>
         </div>
       </div>
 
-      <div className="field">
-        <label htmlFor={`def-${sense.key}`}>
+      <div className="ts-field">
+        <label className="ts-label" htmlFor={`def-${sense.key}`}>
           {index === 0 ? 'What it means in English *' : 'What else it means'}
         </label>
         <input
@@ -958,8 +981,8 @@ function SenseEditor({
 
       {sense.examples.map((example, exampleIndex) => (
         <div className="dict__example" key={`${sense.key}-ex-${exampleIndex}`}>
-          <div className="field">
-            <label htmlFor={`ex-k-${sense.key}-${exampleIndex}`}>
+          <div className="ts-field">
+            <label className="ts-label" htmlFor={`ex-k-${sense.key}-${exampleIndex}`}>
               Kasem sentence for this meaning
             </label>
             <input
@@ -970,8 +993,8 @@ function SenseEditor({
               placeholder="Use the word with THIS meaning"
             />
           </div>
-          <div className="field">
-            <label htmlFor={`ex-e-${sense.key}-${exampleIndex}`}>What that sentence means</label>
+          <div className="ts-field">
+            <label className="ts-label" htmlFor={`ex-e-${sense.key}-${exampleIndex}`}>What that sentence means</label>
             <input
               id={`ex-e-${sense.key}-${exampleIndex}`}
               value={example.english}
@@ -982,11 +1005,11 @@ function SenseEditor({
           {sense.examples.length > 1 ? (
             <button
               type="button"
-              className="button button--small button--ghost dict__example-drop"
+              className="ts-btn ts-btn--ghost ts-btn--sm ts-btn--icon dict__example-drop"
               onClick={() => onRemoveExample(exampleIndex)}
               aria-label={`Remove sentence ${exampleIndex + 1}`}
             >
-              ✕
+              <Icon name="close" />
             </button>
           ) : null}
         </div>
@@ -995,15 +1018,15 @@ function SenseEditor({
       <div className="dict__sense-actions">
         <button
           type="button"
-          className="button button--small button--ghost"
+          className="ts-btn ts-btn--ghost ts-btn--sm"
           onClick={onAddExample}
           disabled={sense.examples.length >= 4}
         >
-          + Another sentence
+          <Icon name="plus" />Another sentence
         </button>
         <button
           type="button"
-          className="button button--small button--ghost"
+          className="ts-btn ts-btn--ghost ts-btn--sm"
           onClick={() => setOpen((value) => !value)}
           aria-expanded={open}
         >
@@ -1014,8 +1037,8 @@ function SenseEditor({
       {open ? (
         <div className="dict__sense-more">
           <div className="field-row">
-            <div className="field">
-              <label htmlFor={`reg-${sense.key}`}>How is it said?</label>
+            <div className="ts-field">
+              <label className="ts-label" htmlFor={`reg-${sense.key}`}>How is it said?</label>
               <select
                 id={`reg-${sense.key}`}
                 value={sense.register}
@@ -1029,8 +1052,8 @@ function SenseEditor({
                 ))}
               </select>
             </div>
-            <div className="field">
-              <label htmlFor={`dom-${sense.key}`}>What is it about?</label>
+            <div className="ts-field">
+              <label className="ts-label" htmlFor={`dom-${sense.key}`}>What is it about?</label>
               <select
                 id={`dom-${sense.key}`}
                 value={sense.domain}
@@ -1047,8 +1070,8 @@ function SenseEditor({
           </div>
 
           {index > 0 ? (
-            <div className="field">
-              <label htmlFor={`pos-${sense.key}`}>Word class for this meaning</label>
+            <div className="ts-field">
+              <label className="ts-label" htmlFor={`pos-${sense.key}`}>Word class for this meaning</label>
               <select
                 id={`pos-${sense.key}`}
                 value={sense.partOfSpeech}
@@ -1064,15 +1087,15 @@ function SenseEditor({
                   </option>
                 ))}
               </select>
-              <p className="field__hint">
+              <p className="ts-hint">
                 A word that is a noun in its first meanings and a verb in a later one is
                 ordinary. Saying so here groups the meanings the way a dictionary does.
               </p>
             </div>
           ) : null}
 
-          <div className="field">
-            <label htmlFor={`kd-${sense.key}`}>This meaning, said in Kasem</label>
+          <div className="ts-field">
+            <label className="ts-label" htmlFor={`kd-${sense.key}`}>This meaning, said in Kasem</label>
             <textarea
               id={`kd-${sense.key}`}
               value={sense.kasemDefinition}
@@ -1081,8 +1104,8 @@ function SenseEditor({
             />
           </div>
 
-          <div className="field">
-            <label htmlFor={`un-${sense.key}`}>When is it used?</label>
+          <div className="ts-field">
+            <label className="ts-label" htmlFor={`un-${sense.key}`}>When is it used?</label>
             <textarea
               id={`un-${sense.key}`}
               value={sense.usageNote}
@@ -1092,8 +1115,8 @@ function SenseEditor({
           </div>
 
           <div className="field-row">
-            <div className="field">
-              <label htmlFor={`syn-${sense.key}`}>Kasem words that mean the same</label>
+            <div className="ts-field">
+              <label className="ts-label" htmlFor={`syn-${sense.key}`}>Kasem words that mean the same</label>
               <input
                 id={`syn-${sense.key}`}
                 value={sense.synonyms}
@@ -1102,8 +1125,8 @@ function SenseEditor({
                 placeholder="Separate them with commas"
               />
             </div>
-            <div className="field">
-              <label htmlFor={`ant-${sense.key}`}>And words that mean the opposite</label>
+            <div className="ts-field">
+              <label className="ts-label" htmlFor={`ant-${sense.key}`}>And words that mean the opposite</label>
               <input
                 id={`ant-${sense.key}`}
                 value={sense.antonyms}
@@ -1165,7 +1188,8 @@ function EntryPreview({ draft }: { draft: EntryDraft }) {
   if (!headword && senses.length === 0) {
     return (
       <div className="dict__preview dict__preview--empty">
-        <p className="muted">
+        <span className="dict__preview-empty-icon" aria-hidden="true"><Icon name="book" /></span>
+        <p className="ts-muted">
           Type a headword and a meaning, and the entry appears here exactly as the app
           will draw it.
         </p>
@@ -1192,9 +1216,9 @@ function EntryPreview({ draft }: { draft: EntryDraft }) {
 
       <div className="dict__pv-chips">
         {draft.dialect && draft.dialect !== 'Not sure' ? (
-          <span className="dict__pv-chip">📍 {draft.dialect}</span>
+          <span className="dict__pv-chip"><Icon name="pin" />{draft.dialect}</span>
         ) : null}
-        <span className="dict__pv-chip">🌐 Kasem</span>
+        <span className="dict__pv-chip"><Icon name="globe" />Kasem</span>
       </div>
 
       {/* The senses. Numbered only when there is more than one to tell apart. */}

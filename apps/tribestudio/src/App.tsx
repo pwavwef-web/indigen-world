@@ -1,9 +1,9 @@
-import { Suspense, lazy, useEffect, useRef, useState, type ComponentType } from 'react';
+import { Suspense, lazy, useEffect, useMemo, useRef, useState, type ComponentType } from 'react';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from './firebase';
 import { ToastProvider } from '@indigen-world/web-ui';
-import { Link, RouterProvider, matchRoute, useRoute } from './router';
-import { canMakeVideo, signIn, useAuth } from './auth';
+import { RouterProvider, matchRoute, useRoute } from './router';
+import { canMakeVideo, signIn, signOutUser, useAuth } from './auth';
 import { ErrorBoundary } from './ErrorBoundary';
 import { NotFoundPage } from './NotFoundPage';
 import { FullPageLoader, RouteLoader } from './LoadingScreen';
@@ -11,7 +11,7 @@ import { CreatorProvider } from './creator/CreatorProvider';
 import { PublicLayout } from './creator/PublicLayout';
 import { StudioLayout } from './creator/StudioLayout';
 import { ApplicationStatusGate } from './creator/CreatorAccess';
-import { WorkspaceEntry } from './interface/WorkspaceFrame';
+import { AuthScreen, Button, ButtonLink, EmptyState, GoogleButton, Notice, Page, WorkspaceAccessContext } from './ui';
 
 // Route-based code-splitting: each page (and the heavy Lexicon workspace) loads
 // as its own chunk behind the <Suspense> boundaries in the layouts, so the
@@ -55,20 +55,37 @@ const HelpPage = named(() => import('./creator/pages/HelpPage'), 'HelpPage');
 function SignInGate({ path }: { path: string }) {
   const forExpressions = path.startsWith('/studio/expressions');
   const [busy, setBusy] = useState(false), [error, setError] = useState('');
+  const start = async () => {
+    setBusy(true);
+    setError('');
+    try {
+      await signIn();
+    } catch {
+      setError('Sign-in did not complete. Check your connection and try again.');
+    } finally {
+      setBusy(false);
+    }
+  };
   return (
-    <WorkspaceEntry title={forExpressions ? 'Share language with context.' : undefined} description={forExpressions ? 'Send an expression, follow its review and keep control of your permissions.' : undefined}>
-        <p className="iw-entry-kicker">Create · Sign in</p>
-        <h1>{forExpressions ? 'Share a Kasem expression' : 'Welcome to TribeStudio'}</h1>
-        {forExpressions ? (
-          <p>Sign in to send an expression, follow reviewer feedback and withdraw your contribution when needed.</p>
-        ) : (
-          <p>Sign in to save your draft and share your work. You can preview your post before publishing.</p>
-        )}
-        {error ? <p role="alert" className="iw-entry-error">{error}</p> : null}
-        <button type="button" className="cw-auth__primary" disabled={busy} onClick={async () => { setBusy(true); setError(''); try { await signIn(); } catch { setError('Sign-in did not complete. Check your connection and try again.'); } finally { setBusy(false); } }}>
-          {busy ? 'Opening sign-in…' : 'Sign in with Google'}
-        </button>
-    </WorkspaceEntry>
+    <AuthScreen
+      workspace="create"
+      title={forExpressions ? 'Share a Kasem expression' : 'Sign in to TribeStudio'}
+      lede={forExpressions
+        ? 'Sign in to send an expression, follow reviewer feedback and withdraw it whenever you need to.'
+        : 'Your drafts, posts and video projects are saved to your Indigen World account.'}
+      journey={forExpressions
+        ? [{ icon: 'pen', label: 'Write the expression' }, { icon: 'send', label: 'Send for review' }, { icon: 'eye', label: 'Follow the decision' }]
+        : [{ icon: 'pen', label: 'Create a draft' }, { icon: 'eye', label: 'Preview it' }, { icon: 'send', label: 'Publish or submit' }]}
+      note="Invited contributors and validators sign in from their own invitation link."
+    >
+      <div className="ts-auth__form">
+        {error ? <Notice tone="danger" role="alert">{error}</Notice> : null}
+        <GoogleButton onClick={() => void start()} busy={busy} />
+        <p className="ts-hint" style={{ textAlign: 'center' }}>
+          Contributor or validator? <a href="/contributor">Sign in with your email</a>
+        </p>
+      </div>
+    </AuthScreen>
   );
 }
 
@@ -80,22 +97,18 @@ function SignInGate({ path }: { path: string }) {
  */
 function VideoNotYetAvailable() {
   return (
-    <div className="page">
-      <h1>Video making opens with approval</h1>
-      <div className="callout callout--info">
-        <strong>Everything else in the studio is already yours.</strong> Posting to Explore, the
-        dictionary desk and your profile need no approval. Making a video does, because each one
-        buys a generation from a video provider.
-      </div>
-      <p className="muted">
-        If you have applied already, approval is the only thing outstanding — you will see this
-        section appear on its own. Your current status is on your profile.
-      </p>
-      <p className="section__more">
-        <Link to="/studio/profile" className="button button--primary button--small">Check your status</Link>{' '}
-        <Link to="/studio/submissions/new" className="button button--ghost-dark button--small">Post something now</Link>
-      </p>
-    </div>
+    <Page width="medium">
+      <EmptyState
+        boxed
+        icon="lock"
+        title="Video generation opens with approval"
+        body="Posting to Explore, editing your own footage, the dictionary desk and your profile need no approval. Generating a video does, because each one buys a render from a video provider. If you have applied, approval is the only thing outstanding — this section appears on its own once it is granted."
+        actions={<>
+          <ButtonLink to="/studio/profile" variant="primary" icon="user">Check your status</ButtonLink>
+          <ButtonLink to="/studio/editor" icon="film">Edit your own footage</ButtonLink>
+        </>}
+      />
+    </Page>
   );
 }
 
@@ -133,23 +146,30 @@ function Routed() {
   const hasMounted = useRef(false);
   const [contributorCheck, setContributorCheck] = useState('');
   const [contributorError, setContributorError] = useState(false);
+  const [contributorActive, setContributorActive] = useState<{ uid: string; active: boolean } | null>(null);
+  const [attempt, setAttempt] = useState(0);
   const contributorRoute = path === '/contributor' || path.startsWith('/contributor/');
   useEffect(() => {
-    if (!user || contributorRoute) return;
+    if (!user) return;
     let active = true;
     setContributorError(false);
     void getDoc(doc(db, 'contributorAccounts', user.uid)).then(account => {
       if (!active) return;
+      const isActive = account.get('status') === 'active';
+      setContributorActive({ uid: user.uid, active: isActive });
       // Invited contributors land on their workspace overview, which leads
       // with the assignment to continue. Deep links to an assignment
       // (/contributor/{uid}/{work}) are untouched: they are contributor routes.
-      if (account.get('status') === 'active' && account.get('defaultWork')) {
+      if (!contributorRoute && isActive && account.get('defaultWork')) {
         navigate('/contributor', { replace: true });
       }
       setContributorCheck(user.uid);
     }).catch(() => { if (active) setContributorError(true); });
     return () => { active = false; };
-  }, [user?.uid, contributorRoute, navigate]);
+    // The check runs once per account (and on retry); moving between
+    // contributor and studio routes must not re-read or re-redirect.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.uid, attempt, navigate]);
 
   // Move keyboard/screen-reader focus to the main region on route change so
   // navigation is announced and the skip link lands somewhere focusable.
@@ -161,47 +181,62 @@ function Routed() {
     }
   }, [path]);
 
-  if (path === '/contributor/preview/corpus' && KnowledgePreview) return <Suspense fallback={<FullPageLoader />}><KnowledgePreview /></Suspense>;
-  if ((path === '/contributor/preview' || path.startsWith('/contributor/preview/')) && ContributorPreview) {
-    return <Suspense fallback={<FullPageLoader />}><ContributorPreview /></Suspense>;
-  }
-  // Keyed by account only: moving between workspace sections keeps its
-  // listeners and state; signing in as someone else starts afresh.
-  if (contributorRoute) return <Suspense fallback={<FullPageLoader />}><ContributorPortal key={user?.uid ?? 'guest'} /></Suspense>;
-  if (user && contributorCheck !== user.uid) {
-    if (contributorError) return <div className="signin"><p>Unable to check your account. <button onClick={() => window.location.reload()}>Retry</button></p></div>;
-    return <FullPageLoader note="Opening your account…" />;
-  }
-  // ---- Public creator surfaces (no authentication required) ----
-  if (path === '/' || path === '/creators') return <PublicLayout><LandingPage /></PublicLayout>;
-  if (path === '/creators/guidelines') return <PublicLayout><GuidelinesPage /></PublicLayout>;
-  if (path === '/creators/faq') return <PublicLayout><FaqPage /></PublicLayout>;
-  if (path === '/creators/join') return <PublicLayout><JoinPage /></PublicLayout>;
-  if (path === '/creators/join/success') return <PublicLayout><SuccessPage /></PublicLayout>;
+  const access = useMemo(() => ({ contributor: user && contributorActive?.uid === user.uid ? contributorActive.active : null }), [user, contributorActive]);
 
-  // ---- Authenticated workspace ----
-  const isStudio = path === '/studio' || path.startsWith('/studio/');
-  const isWorkspace = path === '/workspace';
-  if (isStudio || isWorkspace) {
-    if (!ready) return <FullPageLoader />;
-    if (!user) return <SignInGate path={path} />;
-    if (isWorkspace) {
+  const content = (() => {
+    if (path === '/contributor/preview/corpus' && KnowledgePreview) return <Suspense fallback={<FullPageLoader />}><KnowledgePreview /></Suspense>;
+    if ((path === '/contributor/preview' || path.startsWith('/contributor/preview/')) && ContributorPreview) {
+      return <Suspense fallback={<FullPageLoader />}><ContributorPreview /></Suspense>;
+    }
+    // Keyed by account only: moving between workspace sections keeps its
+    // listeners and state; signing in as someone else starts afresh.
+    if (contributorRoute) return <Suspense fallback={<FullPageLoader />}><ContributorPortal key={user?.uid ?? 'guest'} /></Suspense>;
+    if (user && contributorCheck !== user.uid) {
+      if (contributorError) {
+        return (
+          <AuthScreen workspace="create" title="We could not open your account" lede="Your account details did not load. Nothing has changed; check your connection and try again.">
+            <div className="ts-auth__form">
+              <Button variant="primary" size="lg" block icon="refresh" onClick={() => setAttempt((value) => value + 1)}>Try again</Button>
+              <Button variant="ghost" block onClick={() => void signOutUser()}>Sign out</Button>
+            </div>
+          </AuthScreen>
+        );
+      }
+      return <FullPageLoader note="Opening your account…" />;
+    }
+    // ---- Public creator surfaces (no authentication required) ----
+    if (path === '/' || path === '/creators') return <PublicLayout><LandingPage /></PublicLayout>;
+    if (path === '/creators/guidelines') return <PublicLayout><GuidelinesPage /></PublicLayout>;
+    if (path === '/creators/faq') return <PublicLayout><FaqPage /></PublicLayout>;
+    if (path === '/creators/join') return <PublicLayout><JoinPage /></PublicLayout>;
+    if (path === '/creators/join/success') return <PublicLayout><SuccessPage /></PublicLayout>;
+
+    // ---- Authenticated workspace ----
+    const isStudio = path === '/studio' || path.startsWith('/studio/');
+    const isWorkspace = path === '/workspace';
+    if (isStudio || isWorkspace) {
+      if (!ready) return <FullPageLoader />;
+      if (!user) return <SignInGate path={path} />;
+      if (isWorkspace) {
+        return (
+          <StudioLayout>
+            <Suspense fallback={<RouteLoader note="Opening the lexicon workspace" />}>
+              <LexiconWorkspace />
+            </Suspense>
+          </StudioLayout>
+        );
+      }
       return (
-        <StudioLayout>
-          <Suspense fallback={<RouteLoader note="Opening the lexicon workspace" />}>
-            <LexiconWorkspace />
-          </Suspense>
-        </StudioLayout>
+        <ApplicationStatusGate>
+          <StudioLayout immersive={path.startsWith('/studio/editor/')}>{renderStudio(path, canMakeVideo(role))}</StudioLayout>
+        </ApplicationStatusGate>
       );
     }
-    return (
-      <ApplicationStatusGate>
-        <StudioLayout immersive={path.startsWith('/studio/editor/')}>{renderStudio(path, canMakeVideo(role))}</StudioLayout>
-      </ApplicationStatusGate>
-    );
-  }
 
-  return <PublicLayout><NotFoundPage /></PublicLayout>;
+    return <PublicLayout><NotFoundPage /></PublicLayout>;
+  })();
+
+  return <WorkspaceAccessContext.Provider value={access}>{content}</WorkspaceAccessContext.Provider>;
 }
 
 function App() {

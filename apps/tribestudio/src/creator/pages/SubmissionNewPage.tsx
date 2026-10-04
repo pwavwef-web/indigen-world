@@ -1,4 +1,4 @@
-import { Icon } from '../../interface/icons';
+import { Breadcrumb, ButtonLink, Consequence, EmptyState, Icon, KeyValue, LoadFailure, Loading, Notice, PageHeader, ProgressBar, type IconName } from '../../ui';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { getDownloadURL, ref } from 'firebase/storage';
 import { storage } from '../../firebase';
@@ -33,6 +33,16 @@ const STUDIO_OPTIONS: { value: StudioType; label: string; body: string }[] = [
   { value: 'image', label: 'Image / visual story', body: 'Single images, galleries, captions and context.' },
   { value: 'translation', label: 'Translation', body: 'Source and translated text with notes.' },
 ];
+
+const FORMAT_ICON: Record<StudioType, IconName> = { writing: 'doc', video: 'video', audio: 'audio', image: 'image', translation: 'translation' };
+
+const FORMAT_TIP: Record<StudioType, string> = {
+  writing: 'Write a short story: what happened, who was involved, and why it matters to you.',
+  audio: 'Record a short memory or explanation. Introduce the topic and add context for listeners.',
+  video: 'Share a short video with a title and context. Check the preview before publishing.',
+  image: 'Choose a photo and explain what it shows. Add alternative text for people who cannot see it.',
+  translation: 'Add the original text, your translation, and any notes about meaning or usage.',
+};
 
 function mediaTypeFor(mime: string): MediaType {
   if (mime.startsWith('image/')) return 'image';
@@ -81,8 +91,13 @@ function SubmissionLoader({ id }: { id?: string }) {
     });
     return () => { active = false; };
   }, [id, user, retry]);
-  if (loading) return <div className="page"><RouteLoader note="Opening your post" /></div>;
-  if (error) return <div className="page"><p role="alert">{error}</p><button type="button" onClick={() => setRetry((n) => n + 1)}>Retry</button><p><Link to="/studio/submissions">Back to submissions</Link></p></div>;
+  if (loading) return <div className="ts-page"><RouteLoader note="Opening your post" /></div>;
+  if (error) return (
+    <div className="ts-page ts-page--medium">
+      <LoadFailure title="This post cannot be opened" body={error} onRetry={() => setRetry((n) => n + 1)} compact={false} />
+      <Link className="ts-link" to="/studio/submissions">Back to your content</Link>
+    </div>
+  );
   return <SubmissionEditor existing={existing} />;
 }
 
@@ -259,7 +274,12 @@ function SubmissionEditor({ existing }: { existing: Submission | null }) {
     consentVersion: config?.termsVersion ?? 'creator-terms-unversioned',
   }), [user, campaignId, studioType, title, category, primaryLanguage, dialect, description, body, tags, targetAudience, sourceReferences, translationNotes, sourceLanguage, targetLanguage, sourceContent, translatedContent, translatorNotes, caption, altText, englishSummary, culturalContext, externalPostUrl, involvesMinors, usesThirdParty, sourceInfo, attRights, attParticipants, attGuardian, attCopyright, permReview, permPublish, permPromo, permAi, media, config, existing]);
 
-  const snapshot = JSON.stringify(draftInput);
+  // The account id (each useAuth() resolves on its own, a moment after mount)
+  // and the terms version (it arrives with the platform configuration) are not
+  // edits, so they never make an untouched form dirty — otherwise opening the
+  // composer would autosave an empty draft.
+  const snapshotOf = (input: SubmissionDraftInput) => JSON.stringify({ ...input, uid: null, consentVersion: null });
+  const snapshot = snapshotOf(draftInput);
   const initialSnapshot = useRef(snapshot);
   const dirty = snapshot !== (savedSnapshot ?? initialSnapshot.current);
   const dirtyRef = useRef(false);
@@ -294,31 +314,38 @@ function SubmissionEditor({ existing }: { existing: Submission | null }) {
     return () => { active = false; };
   }, [media, previewRetry]);
 
-  const attachmentPreview = media ? <div className="submission-preview">
-    {previewError ? <p role="alert">{previewError} <button type="button" onClick={() => setPreviewRetry((n) => n + 1)}>Retry preview</button></p> : !previewUrl ? <p>Loading attachment…</p> :
+  const attachmentPreview = media ? <div className="cr-attachment">
+    {previewError ? <p className="ts-error" role="alert"><Icon name="alert" />{previewError} <button type="button" className="ts-link" onClick={() => setPreviewRetry((n) => n + 1)}>Retry preview</button></p> : !previewUrl ? <p className="cr-attachment__loading"><span className="ts-spinner" aria-hidden="true" />Loading attachment…</p> :
       media.mediaType === 'image' ? <img src={previewUrl} alt={altText || 'Attachment preview'} /> :
       media.mediaType === 'audio' ? <audio controls src={previewUrl} /> :
       media.mediaType === 'video' ? <video controls playsInline src={previewUrl} /> :
-      <a href={previewUrl} target="_blank" rel="noreferrer">Open attached document</a>}
+      <a className="ts-btn ts-btn--secondary ts-btn--sm" href={previewUrl} target="_blank" rel="noreferrer"><Icon name="doc" />Open attached document</a>}
   </div> : null;
 
-  if (loading) return <div className="page"><p className="muted">Loading…</p></div>;
+  if (loading) return <div className="ts-page"><Loading label="Opening the composer" /></div>;
 
   if (!isOpenPost && !campaign) {
-    return <div className="page"><h1>Campaign not found</h1><Link to="/studio/opportunities" className="button button--ghost-dark">Back</Link></div>;
+    return (
+      <div className="ts-page ts-page--medium">
+        <EmptyState boxed icon="opportunities" title="Campaign not found" body="This campaign may have ended, or the link may be incomplete."
+          actions={<ButtonLink to="/studio/opportunities" variant="secondary" icon="back">Back to opportunities</ButtonLink>} />
+      </div>
+    );
   }
 
   // Gate: a campaign only accepts entries while it is open. An open post has
   // no such window — the feed is always accepting.
   if (!isOpenPost && campaign && !submissionsOpen(campaign) && existing?.status !== 'NEEDS_REVISION') {
     return (
-      <div className="page">
-        <h1>Submissions are not open yet</h1>
-        <div className="callout callout--info">
-          <strong>{campaign.title}</strong> is not accepting entries right now. We’ll announce the moment it opens.
-        </div>
+      <div className="ts-page ts-page--medium">
+        <PageHeader
+          breadcrumb={<Breadcrumb items={[{ label: 'Opportunities', to: '/studio/opportunities' }, { label: campaign.title }]} />}
+          kicker="Campaign entry"
+          title="Submissions are not open yet"
+          description={<><strong>{campaign.title}</strong> is not accepting entries right now. Openings are announced on the creator channel.</>}
+        />
         <WhatsAppCard url={whatsappUrl} />
-        <p className="section__more"><Link to="/studio/opportunities">← Back to opportunities</Link></p>
+        <Link className="ts-link" to="/studio/opportunities"><Icon name="back" />Back to opportunities</Link>
       </div>
     );
   }
@@ -360,7 +387,7 @@ function SubmissionEditor({ existing }: { existing: Submission | null }) {
     try {
       await saveSubmission(draftInput, 'DRAFT', persistedRef.current ? undefined : null);
       persistedRef.current = true;
-      setSavedSnapshot(JSON.stringify(draftInput));
+      setSavedSnapshot(snapshotOf(draftInput));
       setSaveStatus('Saved to your account');
       try { window.sessionStorage.setItem(recoveryKey, submissionId.current); } catch { /* Saving to the account already succeeded. */ }
       return true;
@@ -424,249 +451,387 @@ function SubmissionEditor({ existing }: { existing: Submission | null }) {
   const next = async () => { const problem = validate(step); if (problem) { showProblem(problem); return; } if (!online || await saveDraft()) setStep((s) => Math.min(s + 1, 3)); };
   const back = () => setStep((s) => Math.max(s - 1, 0));
 
+  const failedSave = saveStatus.startsWith('Not saved');
+  const uploading = uploadPct !== null && uploadPct < 100;
+  const saveText = saving ? 'Saving…' : dirty ? failedSave ? saveStatus : 'Unsaved changes' : saveStatus || 'Drafts save automatically as you work.';
+  const formatLabel = STUDIO_OPTIONS.find((o) => o.value === studioType)?.label ?? studioType;
+  const mediaSummary = media ? `${media.mediaType} · ${Math.round((media.sizeBytes ?? 0) / 1024)} KB` : externalPostUrl ? 'External link' : studioType === 'writing' || studioType === 'translation' ? 'Optional' : 'None';
+  const languageName = (code: string) => (code === 'xsm' ? 'Kasem' : 'English');
+
   return (
-    <div className="page submission-editor">
-      <p className="breadcrumb"><Link to="/studio/submissions">Your content</Link> / {existing ? 'Edit' : 'New'}</p>
-      <h1>{existing ? 'Edit submission' : isOpenPost ? 'New post' : 'New campaign submission'}</h1>
-      {!existing && recoverableId && recoverableId !== submissionId.current ? <div className="callout callout--info">
-        <strong>You have a saved draft from this session.</strong> <Link to={`/studio/submissions/${encodeURIComponent(recoverableId)}/edit`}>Resume saved draft</Link>
-        <button type="button" className="button button--small" onClick={() => { setRecoverableId(null); try { window.sessionStorage.removeItem(recoveryKey); } catch { /* Optional pointer. */ } }}>Start a separate post</button>
-      </div> : null}
-      {sourceLink ? <div className="callout callout--info"><strong>Continue from what you discovered.</strong> <a href={sourceLink} target="_blank" rel="noreferrer">View the original</a><p>The link is in your source references. Add your own work and confirm permission for anything you reuse.</p></div> : null}
-      {!online ? <div className="callout callout--warn" role="status"><strong>You are offline.</strong> You can keep writing in this tab. Keep it open: your latest changes will save when you reconnect. Uploading and publishing need a connection.</div> : null}
-      {isOpenPost ? (
-        <div className="callout callout--info">
-          <strong>Publish to Explore after preview.</strong> Confirm your rights and the consent of anyone featured.
-          <details><summary>Publication and reports</summary><p>Open posts go live without prior review. Reported content may be reviewed and taken down.</p></details>
+    <div className="ts-page cr-compose">
+      <PageHeader
+        breadcrumb={<Breadcrumb items={[{ label: 'Content library', to: '/studio/submissions' }, { label: existing ? 'Edit' : 'New' }]} />}
+        kicker={isOpenPost ? 'Open post' : 'Campaign entry'}
+        title={existing ? 'Edit submission' : isOpenPost ? 'New post' : 'New campaign submission'}
+        description={isOpenPost
+          ? 'Publishes to Explore after you preview it. Until then the draft is private to you.'
+          : <>For <strong>{campaign?.title ?? 'this campaign'}</strong>. Entries are reviewed before anything is published.</>}
+      />
+
+      <div className="cr-compose__bar">
+        <Stepper steps={STEPS} current={step} />
+        <div className="cr-compose__save">
+          <p className={`ts-save cr-save${saving ? ' is-saving' : ''}${failedSave ? ' is-error' : ''}${dirty && !saving && !failedSave ? ' is-dirty' : ''}`} role="status" aria-live="polite">
+            <span className="ts-save__mark" aria-hidden="true"><Icon name={failedSave ? 'alert' : dirty ? 'edit' : 'check'} /></span>
+            {saveText}
+          </p>
+          {failedSave && online ? <button type="button" className="ts-btn ts-btn--secondary ts-btn--sm" disabled={saving} onClick={() => void saveDraft()}>Retry saving</button> : null}
         </div>
-      ) : (
-        <div className="callout callout--info">
-          <strong>Campaign entry.</strong> This entry goes to review before publication. Check the opportunity for eligibility and any rewards.
-        </div>
-      )}
-      {existing?.moderation?.feedback ? <div className="callout callout--warn"><strong>Reviewer feedback: </strong>{existing.moderation.feedback}</div> : null}
-      <p role="status" aria-live="polite">{saving ? "Saving…" : dirty ? saveStatus.startsWith("Not saved") ? saveStatus : "Unsaved changes" : saveStatus || "Drafts save automatically as you work."}</p>
-      {saveStatus.startsWith("Not saved") && online ? <button type="button" className="button button--small" disabled={saving} onClick={() => void saveDraft()}>Retry saving</button> : null}
-      <Stepper steps={STEPS} current={step} />
+      </div>
 
-      <div className="join__card">
-        {step === 0 ? (
-          <section>
-            <h2>Content details</h2>
-            <Field label="Studio type">
-              <div className="studio-options">
-                {STUDIO_OPTIONS.map((option) => (
-                  <button
-                    key={option.value}
-                    type="button"
-                    className={studioType === option.value ? 'studio-option is-on' : 'studio-option'}
-                    aria-pressed={studioType === option.value}
-                    onClick={() => setStudioType(option.value)}
-                  >
-                    <Icon name={option.value === 'video' ? 'video' : option.value === 'audio' ? 'audio' : option.value === 'image' ? 'image' : option.value === 'translation' ? 'translation' : 'doc'} /><strong>{option.label}</strong>
-                    <span>{option.body}</span>
-                  </button>
-                ))}
-              </div>
-            </Field>
-            <div className="callout callout--info"><strong>Try this format</strong><p>{({ writing: 'Write a short story: what happened, who was involved, and why it matters to you.', audio: 'Record a short memory or explanation. Introduce the topic and add context for listeners.', video: 'Share a short video with a title and context. Check the preview before publishing.', image: 'Choose a photo and explain what it shows. Add alternative text for people who cannot see it.', translation: 'Add the original text, your translation, and any notes about meaning or usage.' })[studioType]}</p><p className="tiny">Your draft stays private until you choose to publish or submit it for review.</p></div>
-            <Field label="Content title" htmlFor="t"><input id="t" value={title} onChange={(e) => setTitle(e.target.value)} /></Field>
-            <div className="field-row">
-              <Field label="Category" htmlFor="cat">
-                <select id="cat" value={category} onChange={(e) => setCategory(e.target.value)}>
-                  <option value="">Select…</option>
-                  {categories.map((c) => <option key={c} value={c}>{c}</option>)}
-                </select>
-              </Field>
-              <Field label="Primary language" htmlFor="pl">
-                <select id="pl" value={primaryLanguage} onChange={(e) => setPrimaryLanguage(e.target.value)}>
-                  <option value="xsm">Kasem</option>
-                  <option value="en">English</option>
-                </select>
-              </Field>
-            </div>
-            <Field label="Dialect / community variant" htmlFor="dl">
-              <select id="dl" value={dialect} onChange={(e) => setDialect(e.target.value)}>
-                <option value="">Select…</option>
-                {dialects.map((d) => <option key={d.slug} value={d.slug}>{d.label}</option>)}
-              </select>
-            </Field>
-            <Field label="Short description" htmlFor="desc"><textarea id="desc" value={description} onChange={(e) => setDescription(e.target.value)} /></Field>
-            <Field label="Source links and context (optional)" htmlFor="sources"><textarea id="sources" value={sourceReferences} onChange={(event) => setSourceReferences(event.target.value)} placeholder="Add public source links and explain where the knowledge comes from." /></Field>
-            <Field label="Tags" htmlFor="tags" hint="Comma-separated.">
-              <input id="tags" value={tags} onChange={(e) => setTags(e.target.value)} placeholder="folktale, greeting, market, elder-story" />
-            </Field>
-            <Field label="Target audience" htmlFor="audience">
-              <input id="audience" value={targetAudience} onChange={(e) => setTargetAudience(e.target.value)} placeholder="Children, learners, diaspora families, researchers…" />
-            </Field>
-            {studioType === 'writing' ? (
-              <>
-                <Field label="Story or article" htmlFor="body" hint="For oral histories, include original Kasem lines or structured paragraphs.">
-                  <textarea id="body" rows={8} value={body} onChange={(e) => setBody(e.target.value)} placeholder="Write or paste your cultural story, folklore, or proverbs here…" />
-                </Field>
-                <div className="field-row">
-                  <Field label="Language or dialect notes" htmlFor="translationNotes">
-                    <textarea id="translationNotes" value={translationNotes} onChange={(e) => setTranslationNotes(e.target.value)} placeholder="Notes on tonal inflections, rare words, or community-specific idioms..." />
-                  </Field>
-                </div>
-              </>
-            ) : null}
-            {studioType === 'translation' ? (
-              <>
-                <div className="field-row">
-                  <Field label="Source language" htmlFor="sourceLang">
-                    <select id="sourceLang" value={sourceLanguage} onChange={(e) => setSourceLanguage(e.target.value)}>
-                      <option value="xsm">Kasem</option>
-                      <option value="en">English</option>
-                    </select>
-                  </Field>
-                  <Field label="Target language" htmlFor="targetLang">
-                    <select id="targetLang" value={targetLanguage} onChange={(e) => setTargetLanguage(e.target.value)}>
-                      <option value="en">English</option>
-                      <option value="xsm">Kasem</option>
-                    </select>
-                  </Field>
-                </div>
-                <div className="field-row field-row--wide">
-                  <Field label={`${sourceLanguage === 'xsm' ? 'Kasem' : 'English'} source text`} htmlFor="sourceContent">
-                    <textarea id="sourceContent" rows={6} value={sourceContent} onChange={(e) => setSourceContent(e.target.value)} placeholder="Original sentences or oral transcription..." />
-                  </Field>
-                  <Field label={`${targetLanguage === 'xsm' ? 'Kasem' : 'English'} translation`} htmlFor="translatedContent">
-                    <textarea id="translatedContent" rows={6} value={translatedContent} onChange={(e) => setTranslatedContent(e.target.value)} placeholder="Accurate contextual translation..." />
-                  </Field>
-                </div>
-                <Field label="Translator &amp; Cultural Notes" htmlFor="translatorNotes">
-                  <textarea id="translatorNotes" value={translatorNotes} onChange={(e) => setTranslatorNotes(e.target.value)} placeholder="Explain word nuances or cultural metaphors..." />
-                </Field>
-              </>
-            ) : null}
-            <Field label="English translation or summary" htmlFor="es"><textarea id="es" value={englishSummary} onChange={(e) => setEnglishSummary(e.target.value)} placeholder="Summary in English for community members and researchers" /></Field>
-            <Field label="Cultural context or explanation" htmlFor="cc"><textarea id="cc" value={culturalContext} onChange={(e) => setCulturalContext(e.target.value)} placeholder="Historical background, ceremonial relevance, or lineage background" /></Field>
-            {studioType === 'image' ? (
-              <>
-                <Field label="Caption" htmlFor="caption">
-                  <input id="caption" value={caption} onChange={(e) => setCaption(e.target.value)} />
-                </Field>
-                <Field label="Alternative text" htmlFor="altText" hint="Required for accessibility.">
-                  <textarea id="altText" value={altText} onChange={(e) => setAltText(e.target.value)} />
-                </Field>
-              </>
-            ) : null}
-          </section>
-        ) : null}
+      {!existing && recoverableId && recoverableId !== submissionId.current ? (
+        <Notice
+          tone="info"
+          title="You have a saved draft from this session."
+          action={(
+            <span className="ts-cluster">
+              <Link className="ts-btn ts-btn--secondary ts-btn--sm" to={`/studio/submissions/${encodeURIComponent(recoverableId)}/edit`}>Resume saved draft</Link>
+              <button type="button" className="ts-btn ts-btn--ghost ts-btn--sm" onClick={() => { setRecoverableId(null); try { window.sessionStorage.removeItem(recoveryKey); } catch { /* Optional pointer. */ } }}>Start a separate post</button>
+            </span>
+          )}
+        >
+          Resume it, or keep this one as a separate post.
+        </Notice>
+      ) : null}
+      {sourceLink ? (
+        <Notice
+          tone="info"
+          title="Continue from what you discovered."
+          action={<a className="ts-btn ts-btn--secondary ts-btn--sm" href={sourceLink} target="_blank" rel="noreferrer">View the original<Icon name="external" /></a>}
+        >
+          The link is in your source references. Add your own work and confirm permission for anything you reuse.
+        </Notice>
+      ) : null}
+      {!online ? (
+        <Notice tone="warning" icon="wifi-off" title="You are offline.">
+          You can keep writing in this tab. Keep it open: your latest changes save when you reconnect. Uploading and publishing need a connection.
+        </Notice>
+      ) : null}
+      {existing?.moderation?.feedback ? (
+        <Notice tone="warning" icon="message" title="Reviewer feedback">
+          <span className="preserve-lines">{existing.moderation.feedback}</span>
+        </Notice>
+      ) : null}
 
-        {step === 1 ? (
-          <section>
-            <h2>Media</h2>
-
-            {/* In-Browser Voice Recording Studio */}
-            <div className="voice-studio-card iw-glass-card">
-              <div className="voice-studio-head">
-                <Icon name="audio" />
+      <div className="cr-compose__layout">
+        <div className="cr-compose__card">
+          {step === 0 ? (
+            <section className="cr-step" aria-labelledby="cr-step-title">
+              <header className="cr-step__head">
+                <span className="cr-step__n" aria-hidden="true">1</span>
                 <div>
-                  <strong>Record audio</strong>
-                  <p className="tiny muted">Record oral stories, pronunciations, or songs directly from your microphone.</p>
+                  <h2 id="cr-step-title">Content details</h2>
+                  <p>Choose a format, then tell people what the post is.</p>
+                </div>
+              </header>
+
+              <fieldset className="cr-fieldset">
+                <legend className="ts-label">Format</legend>
+                <div className="cr-formats">
+                  {STUDIO_OPTIONS.map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      className={studioType === option.value ? 'cr-format is-on' : 'cr-format'}
+                      aria-pressed={studioType === option.value}
+                      onClick={() => setStudioType(option.value)}
+                    >
+                      <span className="cr-format__icon" aria-hidden="true"><Icon name={FORMAT_ICON[option.value]} /></span>
+                      <strong>{option.label}</strong>
+                      <span>{option.body}</span>
+                    </button>
+                  ))}
+                </div>
+              </fieldset>
+
+              <div className="cr-group">
+                <h3 className="cr-group__title">About the post</h3>
+                <Field label="Content title" htmlFor="t"><input id="t" className="ts-input" value={title} onChange={(e) => setTitle(e.target.value)} /></Field>
+                <div className="field-row">
+                  <Field label="Category" htmlFor="cat">
+                    <select id="cat" className="ts-select" value={category} onChange={(e) => setCategory(e.target.value)}>
+                      <option value="">Select…</option>
+                      {categories.map((c) => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                  </Field>
+                  <Field label="Primary language" htmlFor="pl">
+                    <select id="pl" className="ts-select" value={primaryLanguage} onChange={(e) => setPrimaryLanguage(e.target.value)}>
+                      <option value="xsm">Kasem</option>
+                      <option value="en">English</option>
+                    </select>
+                  </Field>
+                </div>
+                <Field label="Dialect / community variant" htmlFor="dl">
+                  <select id="dl" className="ts-select" value={dialect} onChange={(e) => setDialect(e.target.value)}>
+                    <option value="">Select…</option>
+                    {dialects.map((d) => <option key={d.slug} value={d.slug}>{d.label}</option>)}
+                  </select>
+                </Field>
+                <Field label="Short description" htmlFor="desc"><textarea id="desc" className="ts-textarea" value={description} onChange={(e) => setDescription(e.target.value)} /></Field>
+              </div>
+
+              {studioType === 'writing' ? (
+                <div className="cr-group">
+                  <h3 className="cr-group__title">The writing</h3>
+                  <Field label="Story or article" htmlFor="body" hint="For oral histories, include original Kasem lines or structured paragraphs.">
+                    <textarea id="body" className="ts-textarea cr-body" rows={8} value={body} onChange={(e) => setBody(e.target.value)} placeholder="Write or paste your cultural story, folklore, or proverbs here…" />
+                  </Field>
+                  <Field label="Language or dialect notes" htmlFor="translationNotes">
+                    <textarea id="translationNotes" className="ts-textarea" value={translationNotes} onChange={(e) => setTranslationNotes(e.target.value)} placeholder="Notes on tonal inflections, rare words, or community-specific idioms..." />
+                  </Field>
+                </div>
+              ) : null}
+              {studioType === 'translation' ? (
+                <div className="cr-group">
+                  <h3 className="cr-group__title">The translation</h3>
+                  <div className="field-row">
+                    <Field label="Source language" htmlFor="sourceLang">
+                      <select id="sourceLang" className="ts-select" value={sourceLanguage} onChange={(e) => setSourceLanguage(e.target.value)}>
+                        <option value="xsm">Kasem</option>
+                        <option value="en">English</option>
+                      </select>
+                    </Field>
+                    <Field label="Target language" htmlFor="targetLang">
+                      <select id="targetLang" className="ts-select" value={targetLanguage} onChange={(e) => setTargetLanguage(e.target.value)}>
+                        <option value="en">English</option>
+                        <option value="xsm">Kasem</option>
+                      </select>
+                    </Field>
+                  </div>
+                  <div className="field-row">
+                    <Field label={`${sourceLanguage === 'xsm' ? 'Kasem' : 'English'} source text`} htmlFor="sourceContent">
+                      <textarea id="sourceContent" className="ts-textarea" rows={6} value={sourceContent} onChange={(e) => setSourceContent(e.target.value)} placeholder="Original sentences or oral transcription..." />
+                    </Field>
+                    <Field label={`${targetLanguage === 'xsm' ? 'Kasem' : 'English'} translation`} htmlFor="translatedContent">
+                      <textarea id="translatedContent" className="ts-textarea" rows={6} value={translatedContent} onChange={(e) => setTranslatedContent(e.target.value)} placeholder="Accurate contextual translation..." />
+                    </Field>
+                  </div>
+                  <Field label="Translator and cultural notes" htmlFor="translatorNotes">
+                    <textarea id="translatorNotes" className="ts-textarea" value={translatorNotes} onChange={(e) => setTranslatorNotes(e.target.value)} placeholder="Explain word nuances or cultural metaphors..." />
+                  </Field>
+                </div>
+              ) : null}
+              {studioType === 'image' ? (
+                <div className="cr-group">
+                  <h3 className="cr-group__title">The image</h3>
+                  <Field label="Caption" htmlFor="caption">
+                    <input id="caption" className="ts-input" value={caption} onChange={(e) => setCaption(e.target.value)} />
+                  </Field>
+                  <Field label="Alternative text" htmlFor="altText" hint="Required for accessibility. Describe what the image shows for people who cannot see it.">
+                    <textarea id="altText" className="ts-textarea" value={altText} onChange={(e) => setAltText(e.target.value)} />
+                  </Field>
+                </div>
+              ) : null}
+
+              <div className="cr-group">
+                <h3 className="cr-group__title">Context</h3>
+                <Field label="English translation or summary" htmlFor="es"><textarea id="es" className="ts-textarea" value={englishSummary} onChange={(e) => setEnglishSummary(e.target.value)} placeholder="Summary in English for community members and researchers" /></Field>
+                <Field label="Cultural context or explanation" htmlFor="cc"><textarea id="cc" className="ts-textarea" value={culturalContext} onChange={(e) => setCulturalContext(e.target.value)} placeholder="Historical background, ceremonial relevance, or lineage background" /></Field>
+                <Field label="Source links and context (optional)" htmlFor="sources"><textarea id="sources" className="ts-textarea" value={sourceReferences} onChange={(event) => setSourceReferences(event.target.value)} placeholder="Add public source links and explain where the knowledge comes from." /></Field>
+                <div className="field-row">
+                  <Field label="Tags" htmlFor="tags" hint="Comma-separated.">
+                    <input id="tags" className="ts-input" value={tags} onChange={(e) => setTags(e.target.value)} placeholder="folktale, greeting, market" />
+                  </Field>
+                  <Field label="Target audience" htmlFor="audience">
+                    <input id="audience" className="ts-input" value={targetAudience} onChange={(e) => setTargetAudience(e.target.value)} placeholder="Children, learners, families…" />
+                  </Field>
                 </div>
               </div>
-              <fieldset disabled={!online || saving || (uploadPct !== null && uploadPct < 100)}><VoiceRecorder onAudioReady={(file) => void handleFile(file)} /></fieldset>
-            </div>
+            </section>
+          ) : null}
 
-            <div className="or-divider"><span>Or upload a file</span></div>
+          {step === 1 ? (
+            <section className="cr-step" aria-labelledby="cr-step-title">
+              <header className="cr-step__head">
+                <span className="cr-step__n" aria-hidden="true">2</span>
+                <div>
+                  <h2 id="cr-step-title">Media</h2>
+                  <p>{['video', 'audio', 'image'].includes(studioType) ? 'Record, upload or link the material this post is built around.' : 'Optional for this format: add a recording, a file or a link.'}</p>
+                </div>
+              </header>
 
-            <Field label={media ? 'Replace attachment' : 'Original media file'} htmlFor="media-file" hint={mediaLimits?.acceptedMimeTypes?.length ? `Accepted: ${mediaLimits.acceptedMimeTypes.join(', ')}` : 'Video, audio, image or document.'}>
-              <input id="media-file" type="file" disabled={!online || saving || (uploadPct !== null && uploadPct < 100)} onChange={(e) => void handleFile(e.target.files?.[0])} />
-            </Field>
-            {attachmentPreview}
-            {media ? <button type="button" className="button button--small" disabled={saving || (uploadPct !== null && uploadPct < 100)} onClick={() => { setMedia(undefined); setUploadPct(null); }}>Remove attachment</button> : null}
-            {failedFile ? <button type="button" className="button button--small" disabled={!online || saving} onClick={() => void handleFile(failedFile)}>Retry upload: {failedFile.name}</button> : null}
-            {media && uploadPct === null ? <p className="tiny">Your saved media is attached. Upload a file to replace it.</p> : null}
-            {uploadPct !== null ? (
-              <div className="upload">
-                <div className="upload__bar"><span style={{ width: `${uploadPct}%` }} /></div>
-                <span className="tiny">{uploadPct < 100 ? `Uploading… ${uploadPct}%` : 'Upload complete'}</span>
+              <div className="cr-record">
+                <div className="cr-record__head">
+                  <span className="cr-format__icon" aria-hidden="true"><Icon name="mic" /></span>
+                  <div>
+                    <strong>Record audio</strong>
+                    <p>Oral stories, pronunciations or songs, straight from your microphone.</p>
+                  </div>
+                </div>
+                <fieldset className="cr-fieldset" disabled={!online || saving || uploading}><VoiceRecorder onAudioReady={(file) => void handleFile(file)} /></fieldset>
               </div>
-            ) : null}
-            <Field label="Link to an existing public post (optional)" htmlFor="ext"><input id="ext" value={externalPostUrl} onChange={(e) => setExternalPostUrl(e.target.value)} placeholder="https://…" /></Field>
-            <Field label="Disclosures">
-              <label className="checkbox"><input type="checkbox" checked={involvesMinors} onChange={(e) => setInvolvesMinors(e.target.checked)} /> Minors appear in this content.</label>
-              <label className="checkbox"><input type="checkbox" checked={usesThirdParty} onChange={(e) => setUsesThirdParty(e.target.checked)} /> This uses third-party music, images or footage.</label>
-            </Field>
-            <Field label="Source or inspiration (optional)" htmlFor="src"><input id="src" value={sourceInfo} onChange={(e) => setSourceInfo(e.target.value)} /></Field>
-          </section>
-        ) : null}
 
-        {step === 2 ? (
-          <section>
-            <h2>Permissions</h2>
-            <p className="muted">Each permission is a separate, understandable choice.</p>
-            {isOpenPost ? (
-              <label className="perm"><input id="perm-publish" type="checkbox" checked={permPublish} onChange={(e) => setPermPublish(e.target.checked)} /> <span><strong>Publication</strong> — publish this to the Explore feed in Indigen World. <em>(Required to post.)</em></span></label>
-            ) : (
-              <>
-                <label className="perm"><input id="perm-review" type="checkbox" checked={permReview} onChange={(e) => setPermReview(e.target.checked)} /> <span><strong>Review</strong> — allow our team to review this submission. <em>(Required to enter.)</em></span></label>
-                <label className="perm"><input id="perm-publish" type="checkbox" checked={permPublish} onChange={(e) => setPermPublish(e.target.checked)} /> <span><strong>Publication</strong> — allow approved content to be published in Indigen World products.</span></label>
-              </>
-            )}
-            <label className="perm"><input type="checkbox" checked={permPromo} onChange={(e) => setPermPromo(e.target.checked)} /> <span><strong>Promotion</strong> — allow approved excerpts to be used for campaign promotion.</span></label>
-            <label className="perm perm--ai"><input type="checkbox" checked={permAi} onChange={(e) => setPermAi(e.target.checked)} /> <span><strong>AI / machine-learning research</strong> — optional. Off by default and never required to enter.</span></label>
+              <div className="cr-or" aria-hidden="true"><span>or upload a file</span></div>
 
-            <h2>Confirmations</h2>
-            <label className="checkbox"><input id="att-rights" type="checkbox" checked={attRights} onChange={(e) => setAttRights(e.target.checked)} /> I created this, or have permission to submit it.</label>
-            <label className="checkbox"><input id="att-participants" type="checkbox" checked={attParticipants} onChange={(e) => setAttParticipants(e.target.checked)} /> Anyone featured has consented.</label>
-            <label className="checkbox"><input id="att-guardian" type="checkbox" checked={attGuardian} onChange={(e) => setAttGuardian(e.target.checked)} /> Required guardian permission exists for any minors.</label>
-            <label className="checkbox"><input id="att-copyright" type="checkbox" checked={attCopyright} onChange={(e) => setAttCopyright(e.target.checked)} /> This does not unlawfully use copyrighted material.</label>
-          </section>
-        ) : null}
-
-        {step === 3 ? (
-          <section>
-            <h2>Preview your post</h2>
-            <article className="submission-preview">
-              <p className="tiny muted">{user?.displayName || 'You'} · {primaryLanguage === 'xsm' ? 'Kasem' : 'English'}</p>
-              <h3>{title || 'Untitled'}</h3><p>{description}</p>
+              <Field label={media ? 'Replace attachment' : 'Original media file'} htmlFor="media-file" hint={mediaLimits?.acceptedMimeTypes?.length ? `Accepted: ${mediaLimits.acceptedMimeTypes.join(', ')}` : 'Video, audio, image or document.'}>
+                <div className={uploading ? 'ts-drop cr-drop is-busy' : 'ts-drop cr-drop'}>
+                  <span className="ts-drop__icon" aria-hidden="true"><Icon name="upload" /></span>
+                  <span className="ts-drop__title">{media ? 'Choose a different file' : 'Choose a file'}</span>
+                  <span>or drop it here</span>
+                  <input id="media-file" type="file" disabled={!online || saving || uploading} onChange={(e) => void handleFile(e.target.files?.[0])} />
+                </div>
+              </Field>
+              {uploadPct !== null ? (
+                <div className="cr-upload" aria-live="polite">
+                  <ProgressBar value={uploadPct} active={uploadPct < 100} tone={uploadPct >= 100 ? 'success' : undefined} label="Upload progress" />
+                  <span className="ts-hint">{uploadPct < 100 ? `Uploading… ${uploadPct}%` : 'Upload complete'}</span>
+                </div>
+              ) : null}
               {attachmentPreview}
-              {caption ? <p>{caption}</p> : null}
-              {studioType === 'writing' ? <p className="submission-preview__text">{body}</p> : null}
-              {studioType === 'translation' ? <div className="field-row"><div><h4>{sourceLanguage === 'xsm' ? 'Kasem' : 'English'} source</h4><p className="submission-preview__text">{sourceContent}</p></div><div><h4>{targetLanguage === 'xsm' ? 'Kasem' : 'English'} translation</h4><p className="submission-preview__text">{translatedContent}</p></div></div> : null}
-              {englishSummary ? <p>{englishSummary}</p> : null}
-              {culturalContext ? <p>{culturalContext}</p> : null}
-              {/^https?:\/\//i.test(externalPostUrl.trim()) ? <a href={externalPostUrl.trim()} target="_blank" rel="noreferrer">Open linked post</a> : null}
-            </article>
-            <p className="tiny muted">Content preview. Explore may arrange the post differently on each device.</p>
-            <h2>Review &amp; submit</h2>
-            <dl className="review-list">
-              <div><dt>Title</dt><dd>{title || '—'}</dd></div>
-              <div><dt>Studio</dt><dd>{STUDIO_OPTIONS.find((o) => o.value === studioType)?.label ?? studioType}</dd></div>
-              <div><dt>Category</dt><dd>{category || '—'}</dd></div>
-              <div><dt>Media</dt><dd>{media ? `${media.mediaType} · ${Math.round((media.sizeBytes ?? 0) / 1024)} KB` : externalPostUrl ? 'External link' : studioType === 'writing' || studioType === 'translation' ? 'Optional' : 'None'}</dd></div>
-              <div><dt>Publication permission</dt><dd>{permPublish ? 'Granted' : 'Not granted'}</dd></div>
-              <div><dt>AI-training permission</dt><dd>{permAi ? 'Granted' : 'Off (default)'}</dd></div>
-            </dl>
-            <p className="tiny">
-              {isOpenPost
-                ? 'This goes live on Explore as soon as you post it, credited to you.'
-                : 'Submitted content is not published automatically. It is reviewed first.'}
-            </p>
-          </section>
-        ) : null}
+              {media || failedFile ? (
+                <div className="ts-cluster">
+                  {media ? <button type="button" className="ts-btn ts-btn--danger-ghost ts-btn--sm" disabled={saving || uploading} onClick={() => { setMedia(undefined); setUploadPct(null); }}>Remove attachment</button> : null}
+                  {failedFile ? <button type="button" className="ts-btn ts-btn--secondary ts-btn--sm" disabled={!online || saving} onClick={() => void handleFile(failedFile)}>Retry upload: {failedFile.name}</button> : null}
+                </div>
+              ) : null}
+              {media && uploadPct === null ? <p className="ts-hint">Your saved media is attached. Upload a file to replace it.</p> : null}
 
-        {error ? <div className="callout callout--warn" role="alert">{error}</div> : null}
+              <Field label="Link to an existing public post (optional)" htmlFor="ext"><input id="ext" className="ts-input" value={externalPostUrl} onChange={(e) => setExternalPostUrl(e.target.value)} placeholder="https://…" /></Field>
 
-        <div className="join__actions">
-          {step > 0 ? <button type="button" className="button button--ghost-dark" onClick={back} disabled={saving}>Back</button> : <span />}
-          <div className="join__actions-right">
-            <button type="button" className="button button--ghost-dark" onClick={() => void saveDraft()} disabled={saving || (uploadPct !== null && uploadPct < 100)}>Save draft</button>
-            {step < 3 ? (
-              <button type="button" className="button button--primary" onClick={next} disabled={saving || (uploadPct !== null && uploadPct < 100)}>Continue</button>
-            ) : (
-              <button type="button" className="button button--primary" onClick={() => void submit()} disabled={!online || saving || (uploadPct !== null && uploadPct < 100)}>
-                {saving
-                  ? (isOpenPost ? 'Publishing…' : 'Submitting…')
-                  : (isOpenPost ? 'Publish to Explore' : 'Submit for review')}
-              </button>
-            )}
+              <fieldset className="cr-fieldset">
+                <legend className="ts-label">Disclosures</legend>
+                <div className="cr-checks">
+                  <label className="ts-check ts-check--card"><input type="checkbox" checked={involvesMinors} onChange={(e) => setInvolvesMinors(e.target.checked)} /><span className="ts-check__copy"><strong>Minors appear in this content</strong><small>You will be asked to confirm guardian permission.</small></span></label>
+                  <label className="ts-check ts-check--card"><input type="checkbox" checked={usesThirdParty} onChange={(e) => setUsesThirdParty(e.target.checked)} /><span className="ts-check__copy"><strong>Uses third-party music, images or footage</strong><small>Name the source below.</small></span></label>
+                </div>
+              </fieldset>
+              <Field label="Source or inspiration (optional)" htmlFor="src"><input id="src" className="ts-input" value={sourceInfo} onChange={(e) => setSourceInfo(e.target.value)} /></Field>
+            </section>
+          ) : null}
+
+          {step === 2 ? (
+            <section className="cr-step" aria-labelledby="cr-step-title">
+              <header className="cr-step__head">
+                <span className="cr-step__n" aria-hidden="true">3</span>
+                <div>
+                  <h2 id="cr-step-title">Permissions</h2>
+                  <p>Each permission is a separate choice. Only the ones marked required are needed to {isOpenPost ? 'post' : 'enter'}.</p>
+                </div>
+              </header>
+
+              <div className="cr-perms">
+                {isOpenPost ? (
+                  <label className="cr-perm"><input id="perm-publish" type="checkbox" checked={permPublish} onChange={(e) => setPermPublish(e.target.checked)} /><span className="cr-perm__copy"><strong>Publication <em className="cr-perm__req">Required to post</em></strong><span>Publish this to the Explore feed in Indigen World.</span></span></label>
+                ) : (
+                  <>
+                    <label className="cr-perm"><input id="perm-review" type="checkbox" checked={permReview} onChange={(e) => setPermReview(e.target.checked)} /><span className="cr-perm__copy"><strong>Review <em className="cr-perm__req">Required to enter</em></strong><span>Allow our team to review this submission.</span></span></label>
+                    <label className="cr-perm"><input id="perm-publish" type="checkbox" checked={permPublish} onChange={(e) => setPermPublish(e.target.checked)} /><span className="cr-perm__copy"><strong>Publication</strong><span>Allow approved content to be published in Indigen World products.</span></span></label>
+                  </>
+                )}
+                <label className="cr-perm"><input type="checkbox" checked={permPromo} onChange={(e) => setPermPromo(e.target.checked)} /><span className="cr-perm__copy"><strong>Promotion <em className="cr-perm__opt">Optional</em></strong><span>Allow approved excerpts to be used for campaign promotion.</span></span></label>
+                <label className="cr-perm cr-perm--ai"><input type="checkbox" checked={permAi} onChange={(e) => setPermAi(e.target.checked)} /><span className="cr-perm__copy"><strong>AI / machine-learning research <em className="cr-perm__opt">Optional</em></strong><span>Off by default and never required to enter.</span></span></label>
+              </div>
+
+              <fieldset className="cr-fieldset">
+                <legend className="ts-label">Confirmations</legend>
+                <div className="cr-checks">
+                  <label className="ts-check ts-check--card"><input id="att-rights" type="checkbox" checked={attRights} onChange={(e) => setAttRights(e.target.checked)} /><span className="ts-check__copy">I created this, or have permission to submit it.</span></label>
+                  <label className="ts-check ts-check--card"><input id="att-participants" type="checkbox" checked={attParticipants} onChange={(e) => setAttParticipants(e.target.checked)} /><span className="ts-check__copy">Anyone featured has consented.</span></label>
+                  <label className="ts-check ts-check--card"><input id="att-guardian" type="checkbox" checked={attGuardian} onChange={(e) => setAttGuardian(e.target.checked)} /><span className="ts-check__copy">Required guardian permission exists for any minors.</span></label>
+                  <label className="ts-check ts-check--card"><input id="att-copyright" type="checkbox" checked={attCopyright} onChange={(e) => setAttCopyright(e.target.checked)} /><span className="ts-check__copy">This does not unlawfully use copyrighted material.</span></label>
+                </div>
+              </fieldset>
+            </section>
+          ) : null}
+
+          {step === 3 ? (
+            <section className="cr-step" aria-labelledby="cr-step-title">
+              <header className="cr-step__head">
+                <span className="cr-step__n" aria-hidden="true">4</span>
+                <div>
+                  <h2 id="cr-step-title">Preview your post</h2>
+                  <p>Content preview. Explore may arrange the post differently on each device.</p>
+                </div>
+              </header>
+              <article className="cr-preview">
+                <p className="cr-preview__by"><span className="cr-preview__avatar" aria-hidden="true">{(user?.displayName || 'You').slice(0, 1).toUpperCase()}</span>{user?.displayName || 'You'} · {languageName(primaryLanguage)}</p>
+                <h3 className="cr-preview__title">{title || 'Untitled'}</h3>
+                {description ? <p className="cr-preview__desc">{description}</p> : null}
+                {attachmentPreview}
+                {caption ? <p className="cr-preview__caption">{caption}</p> : null}
+                {studioType === 'writing' ? <p className="cr-preview__text">{body}</p> : null}
+                {studioType === 'translation' ? (
+                  <div className="cr-preview__pair">
+                    <div><h4>{languageName(sourceLanguage)} source</h4><p className="cr-preview__text">{sourceContent}</p></div>
+                    <div><h4>{languageName(targetLanguage)} translation</h4><p className="cr-preview__text">{translatedContent}</p></div>
+                  </div>
+                ) : null}
+                {englishSummary ? <p>{englishSummary}</p> : null}
+                {culturalContext ? <p className="cr-preview__context">{culturalContext}</p> : null}
+                {/^https?:\/\//i.test(externalPostUrl.trim()) ? <a className="ts-link" href={externalPostUrl.trim()} target="_blank" rel="noreferrer">Open linked post<Icon name="external" /></a> : null}
+              </article>
+
+              <h3 className="cr-group__title">Review and {isOpenPost ? 'publish' : 'submit'}</h3>
+              <KeyValue items={[
+                { label: 'Title', value: title || '—' },
+                { label: 'Studio', value: formatLabel },
+                { label: 'Category', value: category || '—' },
+                { label: 'Media', value: mediaSummary },
+                { label: 'Publication permission', value: permPublish ? 'Granted' : 'Not granted' },
+                { label: 'AI-training permission', value: permAi ? 'Granted' : 'Off (default)' },
+              ]} />
+              <Consequence icon={isOpenPost ? 'globe' : 'shield'}>
+                {isOpenPost
+                  ? 'This goes live on Explore as soon as you post it, credited to you.'
+                  : 'Submitted content is not published automatically. It is reviewed first.'}
+              </Consequence>
+            </section>
+          ) : null}
+
+          {error ? <Notice tone="danger" role="alert">{error}</Notice> : null}
+
+          <div className="cr-compose__actions">
+            {step > 0 ? <button type="button" className="ts-btn ts-btn--ghost" onClick={back} disabled={saving}><Icon name="back" />Back</button> : <span />}
+            <div className="cr-compose__actions-right">
+              <button type="button" className="ts-btn ts-btn--secondary" onClick={() => void saveDraft()} disabled={saving || uploading}>Save draft</button>
+              {step < 3 ? (
+                <button type="button" className="ts-btn ts-btn--primary" onClick={next} disabled={saving || uploading}>Continue<Icon name="arrow" /></button>
+              ) : (
+                <button type="button" className="ts-btn ts-btn--primary" onClick={() => void submit()} disabled={!online || saving || uploading}>
+                  <Icon name={isOpenPost ? 'globe' : 'send'} />
+                  {saving
+                    ? (isOpenPost ? 'Publishing…' : 'Submitting…')
+                    : (isOpenPost ? 'Publish to Explore' : 'Submit for review')}
+                </button>
+              )}
+            </div>
           </div>
         </div>
+
+        <aside className="cr-compose__rail" aria-label="About this post">
+          <section className="ts-panel ts-panel--tight cr-rail-card">
+            <h2 className="cr-rail-card__title">What happens next</h2>
+            {isOpenPost ? (
+              <ol className="cr-path">
+                <li className={step < 3 ? 'is-current' : 'is-done'}><strong>Private draft</strong><span>Saved to your account as you work.</span></li>
+                <li className={step === 3 ? 'is-current' : undefined}><strong>You preview it</strong><span>Check the material and permissions.</span></li>
+                <li><strong>Live on Explore</strong><span>Published straight away, credited to you. Reported posts may be reviewed and taken down.</span></li>
+              </ol>
+            ) : (
+              <ol className="cr-path">
+                <li className={step < 3 ? 'is-current' : 'is-done'}><strong>Private draft</strong><span>Saved to your account as you work.</span></li>
+                <li className={step === 3 ? 'is-current' : undefined}><strong>Submitted for review</strong><span>The campaign team checks it against the brief.</span></li>
+                <li><strong>Decision</strong><span>Approved, returned with feedback, or not accepted. Approved entries can be published if you allow publication.</span></li>
+              </ol>
+            )}
+          </section>
+
+          <section className="ts-panel ts-panel--tight cr-rail-card">
+            <h2 className="cr-rail-card__title"><Icon name="spark" />Try this format</h2>
+            <p>{FORMAT_TIP[studioType]}</p>
+          </section>
+
+          <section className="ts-panel ts-panel--tight cr-rail-card">
+            <h2 className="cr-rail-card__title">This post</h2>
+            <KeyValue items={[
+              { label: 'Format', value: formatLabel },
+              { label: 'Language', value: languageName(primaryLanguage) },
+              { label: 'Media', value: mediaSummary },
+              { label: 'Publication', value: permPublish ? 'Granted' : 'Not granted' },
+            ]} />
+          </section>
+        </aside>
       </div>
     </div>
   );

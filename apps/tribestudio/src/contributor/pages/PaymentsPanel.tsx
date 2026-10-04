@@ -28,10 +28,10 @@ export function PaymentsPanel() {
   if (payments.state === 'loading' && !payments.value) return <Card><Skeleton lines={6} label="Loading payment details" /></Card>;
   if (!payments.value) {
     return (
-      <div className="cw-stack">
+      <div className="ts-stack">
         <ErrorNote title="Payment details could not be loaded" error={payments.error ?? { message: 'Try again in a moment.', reference: null, code: '' }} onRetry={payments.refresh} />
         <Card title="Your details are safe">
-          <p className="cw-muted">Nothing has been changed. Payment details are stored on the server, not in this browser, and are only shown here once the payment service responds.</p>
+          <p className="ts-hint">Nothing has been changed. Payment details are stored on the server, not in this browser, and are only shown here once the payment service responds.</p>
         </Card>
       </div>
     );
@@ -50,7 +50,7 @@ function PaymentDetails({ view, onChange }: { view: PaymentsView; onChange: (nex
     try { onChange(await data.services.setPreferred(method)); } catch (reason) { setError(friendlyError(reason, 'Saving your payment choice')); } finally { setPreferredBusy(false); }
   };
   return (
-    <div className="cw-stack">
+    <div className="ts-stack">
       <Card title="Where payments are sent" meta="Payments go only to details a finance reviewer has verified.">
         <div className={cx('cw-readiness', view.payoutReady ? 'is-ready' : 'is-not-ready')}>
           <Icon name={view.payoutReady ? 'shield' : 'clock'} />
@@ -63,7 +63,7 @@ function PaymentDetails({ view, onChange }: { view: PaymentsView; onChange: (nex
         </div>
         {view.bank && view.momo ? (
           <fieldset className="cw-choice-group cw-choice-group--inline" disabled={preferredBusy}>
-            <legend className="cw-field-label">Pay me by</legend>
+            <legend className="ts-label">Pay me by</legend>
             {(['bank', 'momo'] as const).map((method) => (
               <label key={method} className={cx('cw-choice', view.preferredMethod === method && 'is-selected')}>
                 <input type="radio" name="preferred" checked={view.preferredMethod === method} onChange={() => void choosePreferred(method)} />
@@ -73,7 +73,7 @@ function PaymentDetails({ view, onChange }: { view: PaymentsView; onChange: (nex
           </fieldset>
         ) : null}
         {error ? <ErrorNote error={error} /> : null}
-        <p className="cw-muted">Rates and payment schedules are not published in this workspace yet. <PortalLink to={data.paths.section('guide', { section: 'payments' })} className="cw-text-link">Payment details and eligibility</PortalLink></p>
+        <p className="ts-hint">Rates and payment schedules are not published in this workspace yet. <PortalLink to={data.paths.section('guide', { section: 'payments' })} className="ts-link">Payment details and eligibility</PortalLink></p>
       </Card>
       <BankSection bank={view.bank} checkMode={view.statementCheck} onChange={onChange} />
       <MomoSection momo={view.momo} challenge={view.momoChallenge} onChange={onChange} />
@@ -143,7 +143,7 @@ function BankSection({ bank, checkMode, onChange }: { bank: BankView | null; che
               {bank.nextStep ? <p><strong>Next step:</strong> {bank.nextStep}</p> : null}
             </Notice>
           ) : null}
-          <dl className="cw-facts">
+          <dl className="ts-kv">
             <div><dt>Bank</dt><dd>{bank.bankName}{bank.branch ? ` · ${bank.branch}` : ''}</dd></div>
             <div><dt>Account holder</dt><dd>{bank.accountName}</dd></div>
             <div><dt>Account number</dt><dd><span className="cw-masked">{bank.accountNumberMasked}</span></dd></div>
@@ -152,15 +152,15 @@ function BankSection({ bank, checkMode, onChange }: { bank: BankView | null; che
           </dl>
           {bank.status !== 'verified' || bank.automatedCheck.state !== 'off' ? <CheckSummary check={bank.automatedCheck} /> : null}
           {confirmRemove ? (
-            <Notice tone="warning" title="Remove your bank details?" action={<div className="cw-inline-actions"><button type="button" onClick={() => setConfirmRemove(false)} disabled={busy}>Keep them</button><button type="button" className="danger" onClick={() => void remove()} disabled={busy}>{busy ? 'Removing…' : 'Remove'}</button></div>}>
+            <Notice tone="warning" title="Remove your bank details?" action={<div className="ts-cluster"><button type="button" onClick={() => setConfirmRemove(false)} disabled={busy}>Keep them</button><button type="button" className="ts-btn ts-btn--danger ts-btn--sm" onClick={() => void remove()} disabled={busy}>{busy ? 'Removing…' : 'Remove'}</button></div>}>
               <p>The details and your statement are deleted. Payments cannot go to this account until you add it again and it is verified.</p>
             </Notice>
           ) : (
-            <div className="cw-inline-actions">
-              <button type="button" className={bank.status === 'verified' ? '' : 'button--primary'} onClick={() => setEditing(true)}>
+            <div className="ts-cluster">
+              <button type="button" className={bank.status === 'verified' ? 'ts-btn' : 'ts-btn ts-btn--primary'} onClick={() => setEditing(true)}>
                 {bank.status === 'verified' ? 'Change details' : bank.legacy && !bank.statement ? 'Upload a statement' : 'Update details or statement'}
               </button>
-              <button type="button" className="cw-link-button" onClick={() => setConfirmRemove(true)}>Remove</button>
+              <button type="button" className="ts-link" onClick={() => setConfirmRemove(true)}>Remove</button>
             </div>
           )}
         </>
@@ -244,23 +244,23 @@ function BankForm({ current, checkMode, onCancel, onSaved }: {
       ) : null}
       {error ? <ErrorNote error={error} /> : null}
       <div className="cw-form-grid">
-        <label className="cw-field">
-          <span className="cw-field-label">Bank name</span>
+        <label className="ts-field">
+          <span className="ts-label">Bank name</span>
           <input list="ghana-banks" value={bankName} maxLength={120} autoComplete="off" aria-invalid={Boolean(show('bankName'))} onChange={(event) => setBankName(event.target.value)} />
           <datalist id="ghana-banks">{GHANA_BANKS.map((name) => <option key={name} value={name} />)}</datalist>
-          {show('bankName') ? <small className="cw-text-danger">{show('bankName')}</small> : <small>Choose from the list or type a rural or community bank.</small>}
+          {show('bankName') ? <small className="ts-error">{show('bankName')}</small> : <small>Choose from the list or type a rural or community bank.</small>}
         </label>
-        <label className="cw-field">
-          <span className="cw-field-label">Branch <small>(optional)</small></span>
+        <label className="ts-field">
+          <span className="ts-label">Branch <small>(optional)</small></span>
           <input value={branch} maxLength={160} autoComplete="off" onChange={(event) => setBranch(event.target.value)} />
         </label>
-        <label className="cw-field">
-          <span className="cw-field-label">Account holder name</span>
+        <label className="ts-field">
+          <span className="ts-label">Account holder name</span>
           <input value={accountName} maxLength={160} autoComplete="name" aria-invalid={Boolean(show('accountName'))} onChange={(event) => setAccountName(event.target.value)} />
           <small className={show('accountName') ? 'cw-text-danger' : undefined}>{show('accountName') || 'Exactly as it appears on your statement.'}</small>
         </label>
-        <label className="cw-field">
-          <span className="cw-field-label">Account number</span>
+        <label className="ts-field">
+          <span className="ts-label">Account number</span>
           <input value={accountNumber} maxLength={60} inputMode="numeric" autoComplete="off" spellCheck={false} aria-invalid={Boolean(show('accountNumber'))} placeholder={current ? `Re-enter it (currently ${current.accountNumberMasked})` : ''} onChange={(event) => setAccountNumber(event.target.value)} />
           <small className={show('accountNumber') ? 'cw-text-danger' : undefined}>{show('accountNumber') || 'Shown masked after you save.'}</small>
         </label>
@@ -268,7 +268,7 @@ function BankForm({ current, checkMode, onCancel, onSaved }: {
 
       <div className="cw-upload">
         <div className="cw-upload__copy">
-          <span className="cw-field-label">Bank statement or bank letter</span>
+          <span className="ts-label">Bank statement or bank letter</span>
           <p>A recent statement, or a letter from your bank, showing <strong>your name, the bank and the account number</strong>. You may cover transactions and balances — they are not needed.</p>
           <ul className="cw-upload__facts">
             <li><strong>Why:</strong> so a finance reviewer can confirm the account is yours before any payment is sent.</li>
@@ -278,10 +278,10 @@ function BankForm({ current, checkMode, onCancel, onSaved }: {
           </ul>
         </div>
         <div className="cw-upload__picker">
-          <input ref={fileInput} id="statement-file" type="file" className="cw-sr" tabIndex={-1} aria-hidden="true" accept="application/pdf,image/jpeg,image/png,.pdf,.jpg,.jpeg,.png" onChange={(event) => { setFile(event.target.files?.[0] ?? null); }} />
+          <input ref={fileInput} id="statement-file" type="file" className="sr-only" tabIndex={-1} aria-hidden="true" accept="application/pdf,image/jpeg,image/png,.pdf,.jpg,.jpeg,.png" onChange={(event) => { setFile(event.target.files?.[0] ?? null); }} />
           <button type="button" onClick={() => fileInput.current?.click()} disabled={busy}><Icon name="upload" />{file ? 'Choose a different file' : 'Choose file'}</button>
           <span className="cw-upload__file" aria-live="polite">{file ? `${file.name} · ${formatBytes(file.size)}` : 'No file chosen'}</span>
-          {show('file') ? <small className="cw-text-danger">{show('file')}</small> : null}
+          {show('file') ? <small className="ts-error">{show('file')}</small> : null}
         </div>
       </div>
 
@@ -293,7 +293,7 @@ function BankForm({ current, checkMode, onCancel, onSaved }: {
       ) : null}
       <div className="cw-form__actions">
         {onCancel ? <button type="button" onClick={onCancel} disabled={busy}>Cancel</button> : null}
-        <button type="submit" className="button--primary" disabled={busy}>{busy ? 'Working…' : 'Submit for verification'}</button>
+        <button type="submit" className="ts-btn ts-btn--primary" disabled={busy}>{busy ? 'Working…' : 'Submit for verification'}</button>
       </div>
     </form>
   );
@@ -350,7 +350,7 @@ function MomoSection({ momo, challenge, onChange }: { momo: MomoView | null; cha
         />
       ) : momo ? (
         <>
-          <dl className="cw-facts">
+          <dl className="ts-kv">
             <div><dt>Network</dt><dd>{momo.networkLabel}</dd></div>
             <div><dt>Wallet number</dt><dd><span className="cw-masked">{momo.walletNumberMasked}</span></dd></div>
             <div><dt>Registered name</dt><dd>{momo.registeredName}</dd></div>
@@ -372,13 +372,13 @@ function MomoSection({ momo, challenge, onChange }: { momo: MomoView | null; cha
             </Notice>
           ) : null}
           {confirmRemove ? (
-            <Notice tone="warning" title="Remove this MoMo wallet?" action={<div className="cw-inline-actions"><button type="button" onClick={() => setConfirmRemove(false)} disabled={busy}>Keep it</button><button type="button" className="danger" onClick={() => void remove()} disabled={busy}>{busy ? 'Removing…' : 'Remove'}</button></div>}>
+            <Notice tone="warning" title="Remove this MoMo wallet?" action={<div className="ts-cluster"><button type="button" onClick={() => setConfirmRemove(false)} disabled={busy}>Keep it</button><button type="button" className="ts-btn ts-btn--danger ts-btn--sm" onClick={() => void remove()} disabled={busy}>{busy ? 'Removing…' : 'Remove'}</button></div>}>
               <p>Payments cannot go to this wallet until you verify it again.</p>
             </Notice>
           ) : (
-            <div className="cw-inline-actions">
+            <div className="ts-cluster">
               <button type="button" onClick={() => setChanging(true)}>Use a different number</button>
-              <button type="button" className="cw-link-button" onClick={() => setConfirmRemove(true)}>Remove</button>
+              <button type="button" className="ts-link" onClick={() => setConfirmRemove(true)}>Remove</button>
             </div>
           )}
         </>
@@ -426,27 +426,27 @@ function MomoForm({ current, onCancel, onSent }: {
       ) : null}
       {error ? <ErrorNote error={error} /> : null}
       <div className="cw-form-grid">
-        <label className="cw-field">
-          <span className="cw-field-label">Network</span>
+        <label className="ts-field">
+          <span className="ts-label">Network</span>
           <select value={network} onChange={(event) => setNetwork(event.target.value as MomoNetwork)}>
             {(Object.keys(MOMO_NETWORKS) as MomoNetwork[]).map((key) => <option key={key} value={key}>{MOMO_NETWORKS[key]}</option>)}
           </select>
         </label>
-        <label className="cw-field">
-          <span className="cw-field-label">Wallet number</span>
+        <label className="ts-field">
+          <span className="ts-label">Wallet number</span>
           <input type="tel" inputMode="tel" autoComplete="tel-national" value={walletNumber} maxLength={20} placeholder="024 123 4567" aria-invalid={Boolean(touched && numberProblem)} onChange={(event) => setWalletNumber(event.target.value)} />
           <small className={touched && numberProblem ? 'cw-text-danger' : undefined}>{touched && numberProblem ? numberProblem : 'A Ghana number that can receive SMS.'}</small>
         </label>
-        <label className="cw-field cw-field--wide">
-          <span className="cw-field-label">Registered name on the wallet</span>
+        <label className="ts-field cw-field--wide">
+          <span className="ts-label">Registered name on the wallet</span>
           <input value={registeredName} maxLength={120} autoComplete="name" aria-invalid={Boolean(touched && nameProblem)} onChange={(event) => setRegisteredName(event.target.value)} />
           <small className={touched && nameProblem ? 'cw-text-danger' : undefined}>{touched && nameProblem ? nameProblem : 'Exactly as your MoMo account shows it — a finance reviewer checks it.'}</small>
         </label>
       </div>
-      <p className="cw-muted">We will text a six-digit code to this number from “Indigen”. It expires after 10 minutes. We never ask for this code by phone.</p>
+      <p className="ts-hint">We will text a six-digit code to this number from “Indigen”. It expires after 10 minutes. We never ask for this code by phone.</p>
       <div className="cw-form__actions">
         {onCancel ? <button type="button" onClick={onCancel} disabled={busy}>Cancel</button> : null}
-        <button type="submit" className="button--primary" disabled={busy}>{busy ? 'Sending…' : 'Send code'}</button>
+        <button type="submit" className="ts-btn ts-btn--primary" disabled={busy}>{busy ? 'Sending…' : 'Send code'}</button>
       </div>
     </form>
   );
@@ -506,8 +506,8 @@ function CodeEntry({ challenge, pending, onVerified, onRestart, onResent }: {
       <p>We sent a six-digit code to <strong className="cw-masked">{challenge.walletNumberMasked}</strong> ({MOMO_NETWORKS[challenge.network]}). The SMS provider accepted it for delivery; it usually arrives within a minute.</p>
       {error ? <ErrorNote error={error} /> : null}
       {notice ? <Notice tone="success" role="status">{notice}</Notice> : null}
-      <label className="cw-field cw-code__field">
-        <span className="cw-field-label">Verification code</span>
+      <label className="ts-field cw-code__field">
+        <span className="ts-label">Verification code</span>
         <input
           value={code}
           onChange={(event) => setCode(event.target.value.replace(/\D/g, '').slice(0, 6))}
@@ -522,15 +522,15 @@ function CodeEntry({ challenge, pending, onVerified, onRestart, onResent }: {
         <small id="code-help" role="timer" aria-live="off">{expired ? 'This code has expired. Ask for a new one.' : `Expires in ${clock(expiresIn)}.`}</small>
       </label>
       <div className="cw-form__actions cw-form__actions--spread">
-        <div className="cw-inline-actions">
+        <div className="ts-cluster">
           {pending ? (
-            <button type="button" className="cw-link-button" disabled={busy || resendIn > 0} onClick={() => void resend()}>
+            <button type="button" className="ts-link" disabled={busy || resendIn > 0} onClick={() => void resend()}>
               {resendIn > 0 ? `Resend code in ${clock(resendIn)}` : 'Resend code'}
             </button>
           ) : null}
-          <button type="button" className="cw-link-button" disabled={busy} onClick={onRestart}>{pending ? 'Use a different number' : 'Start again'}</button>
+          <button type="button" className="ts-link" disabled={busy} onClick={onRestart}>{pending ? 'Use a different number' : 'Start again'}</button>
         </div>
-        <button type="submit" className="button--primary" disabled={busy || code.length !== 6 || expired}>{busy ? 'Checking…' : 'Confirm code'}</button>
+        <button type="submit" className="ts-btn ts-btn--primary" disabled={busy || code.length !== 6 || expired}>{busy ? 'Checking…' : 'Confirm code'}</button>
       </div>
     </form>
   );

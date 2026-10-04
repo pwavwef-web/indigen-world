@@ -9,49 +9,40 @@ import {
   type Metrics,
 } from './model';
 import type { PulseState, VerificationStatus } from './types';
+import {
+  Badge,
+  EmptyState,
+  Notice as KitNotice,
+  PageHeader as KitPageHeader,
+  Panel,
+  Skeleton as KitSkeleton,
+  StatCard,
+  StatGrid,
+  cx,
+  type Tone as KitTone,
+} from '../ui';
 
-/* Shared building blocks for the contributor workspace. Styling lives in
-   contributor.css under the `cw-` prefix; tones map onto the console kit's
-   signal colours so a status reads the same here as in the admin console. */
+/* Shared building blocks for the contributor workspace, on the studio's
+   design system. The names and props are the ones the portal's pages have
+   always used; only their look changed. */
 
 export type Tone = 'neutral' | 'info' | 'success' | 'warning' | 'danger' | 'violet';
 
-export function cx(...values: (string | false | null | undefined)[]): string {
-  return values.filter(Boolean).join(' ');
-}
+export { cx };
+export { Icon, type IconName } from '../ui/icons';
+export { BrandMark } from '../ui/BrandMark';
+import { Icon, type IconName } from '../ui/icons';
 
-export { Icon, type IconName } from '../interface/icons';
-import { Icon, type IconName } from '../interface/icons';
-
-export function BrandMark() {
-  return (
-    <span className="cw-brand__mark" aria-hidden="true">
-      <svg viewBox="0 0 64 64"><path d="M15 47V23l17-9 17 9v24" /><path d="M24 44V29m8 15V24m8 20V29" /><circle cx="32" cy="14" r="4" /></svg>
-    </span>
-  );
-}
-
-export function PageHeader({ kicker, title, description, actions, breadcrumb, id }: {
+export function PageHeader({ kicker, title, description, actions, breadcrumb, meta, id = 'page-title' }: {
   kicker?: string;
   title: ReactNode;
   description?: ReactNode;
   actions?: ReactNode;
   breadcrumb?: ReactNode;
+  meta?: ReactNode;
   id?: string;
 }) {
-  return (
-    <header className="cw-page-head">
-      {breadcrumb ? <nav className="cw-breadcrumb" aria-label="Breadcrumb">{breadcrumb}</nav> : null}
-      <div className="cw-page-head__row">
-        <div className="cw-page-head__copy">
-          {kicker && kicker !== title ? <p className="cw-kicker">{kicker}</p> : null}
-          <h1 id={id} tabIndex={-1}>{title}</h1>
-          {description ? <p className="cw-page-head__description">{description}</p> : null}
-        </div>
-        {actions ? <div className="cw-page-head__actions">{actions}</div> : null}
-      </div>
-    </header>
-  );
+  return <KitPageHeader kicker={kicker && kicker !== title ? kicker : undefined} title={title} description={description} actions={actions} breadcrumb={breadcrumb} meta={meta} id={id} />;
 }
 
 export function Card({ title, meta, actions, children, className, as = 'section', labelledBy }: {
@@ -63,25 +54,11 @@ export function Card({ title, meta, actions, children, className, as = 'section'
   as?: 'section' | 'article' | 'div';
   labelledBy?: string;
 }) {
-  const Element = as;
-  return (
-    <Element className={cx('cw-card', className)} aria-labelledby={labelledBy}>
-      {title || actions ? (
-        <div className="cw-card__head">
-          <div className="cw-card__title">
-            {title ? <h2 id={labelledBy}>{title}</h2> : null}
-            {meta ? <p className="cw-card__meta">{meta}</p> : null}
-          </div>
-          {actions ? <div className="cw-card__actions">{actions}</div> : null}
-        </div>
-      ) : null}
-      {children}
-    </Element>
-  );
+  return <Panel as={as} title={title} description={meta} actions={actions} className={className} labelledBy={labelledBy}>{children}</Panel>;
 }
 
 export function Chip({ tone = 'neutral', children, className }: { tone?: Tone; children: ReactNode; className?: string }) {
-  return <span className={cx('cw-chip', `cw-chip--${tone}`, className)}>{children}</span>;
+  return <Badge tone={tone as KitTone} dot className={className}>{children}</Badge>;
 }
 
 export function StatusChip({ status }: { status: ItemStatus }) {
@@ -102,6 +79,15 @@ export function VerificationChip({ status, label }: { status: VerificationStatus
   return <Chip tone={meta.tone}>{label ?? meta.label}</Chip>;
 }
 
+const SEGMENT_COLOUR: Record<string, string> = {
+  approved: 'var(--success-dot)',
+  awaiting: 'var(--c-blue)',
+  returned: 'var(--warning-dot)',
+  drafts: 'var(--c-blue-soft)',
+  unsure: '#a78bfa',
+  other: '#94a3b8',
+};
+
 /** Where every expression in a set stands, as one bar and a legend. */
 export function SegmentBar({ metrics, label = 'Assignment progress', showLegend = true }: { metrics: Metrics; label?: string; showLegend?: boolean }) {
   const total = Math.max(metrics.total, 1);
@@ -115,22 +101,22 @@ export function SegmentBar({ metrics, label = 'Assignment progress', showLegend 
   ];
   const done = metrics.approved + metrics.awaiting;
   return (
-    <div className="cw-segments">
+    <div className="ts-stack ts-stack--sm">
       <div
-        className="cw-segments__bar"
+        className="ts-meter"
         role="img"
         aria-label={`${label}: ${done} of ${metrics.total} sent and not returned. ${segments.filter((segment) => segment.value).map((segment) => `${segment.value} ${segment.label}`).join(', ')}; ${metrics.notStarted} not started.`}
       >
         {segments.map((segment) => segment.value ? (
-          <span key={segment.key} className={`cw-segments__part cw-segments__part--${segment.key}`} style={{ width: `${(segment.value / total) * 100}%` }} />
+          <span key={segment.key} className="ts-meter__part" style={{ width: `${(segment.value / total) * 100}%`, background: SEGMENT_COLOUR[segment.key] }} />
         ) : null)}
       </div>
       {showLegend ? (
-        <ul className="cw-segments__legend">
+        <ul className="ts-legend">
           {segments.filter((segment) => segment.value).map((segment) => (
-            <li key={segment.key}><span className={`cw-dot cw-dot--${segment.key}`} aria-hidden="true" />{segment.value} {segment.label}</li>
+            <li key={segment.key}><span className="ts-dot" style={{ ['--dot' as string]: SEGMENT_COLOUR[segment.key] }} aria-hidden="true" />{segment.value} {segment.label}</li>
           ))}
-          {metrics.notStarted ? <li><span className="cw-dot cw-dot--empty" aria-hidden="true" />{metrics.notStarted} not started</li> : null}
+          {metrics.notStarted ? <li><span className="ts-dot" style={{ ['--dot' as string]: 'var(--border-strong)' }} aria-hidden="true" />{metrics.notStarted} not started</li> : null}
         </ul>
       ) : null}
     </div>
@@ -138,21 +124,13 @@ export function SegmentBar({ metrics, label = 'Assignment progress', showLegend 
 }
 
 export function MetricTiles({ metrics }: { metrics: Metrics }) {
-  const tiles = [
-    { key: 'submitted', label: 'Submitted', value: metrics.submitted, note: 'Sent for review', icon: 'contributions' as const },
-    { key: 'awaiting', label: 'Awaiting review', value: metrics.awaiting, note: 'With the reviewers', icon: 'clock' as const },
-    { key: 'approved', label: 'Approved', value: metrics.approved, note: 'Accepted by a reviewer', icon: 'check' as const },
-    { key: 'returned', label: 'To revisit', value: metrics.returned, note: metrics.returned ? 'Reviewer feedback awaits' : 'Nothing to revise', icon: 'assignments' as const },
-  ];
   return (
-    <dl className="cw-metrics">
-      {tiles.map((tile) => (
-        <div key={tile.key} className={cx('cw-metric', `cw-metric--${tile.key}`, tile.key === 'returned' && tile.value > 0 && 'is-attention')}>
-          <dt><span className="cw-metric__icon"><Icon name={tile.icon} /></span>{tile.label}</dt>
-          <dd><span className="cw-metric__value">{tile.value}</span><span className="cw-metric__note">{tile.note}</span></dd>
-        </div>
-      ))}
-    </dl>
+    <StatGrid label="Your contributions across all assignments">
+      <StatCard icon="send" label="Submitted" value={metrics.submitted} hint="Sent for review" />
+      <StatCard icon="clock" label="Awaiting review" value={metrics.awaiting} hint="With the reviewers" />
+      <StatCard icon="check-circle" label="Approved" value={metrics.approved} hint="Accepted by a reviewer" />
+      <StatCard icon="refresh" label="To revisit" value={metrics.returned} hint={metrics.returned ? 'Reviewer feedback awaits' : 'Nothing to revise'} attention={metrics.returned > 0} />
+    </StatGrid>
   );
 }
 
@@ -163,44 +141,24 @@ export function Notice({ tone = 'info', title, children, action, role }: {
   action?: ReactNode;
   role?: 'alert' | 'status';
 }) {
-  const icon: IconName = tone === 'success' ? 'check' : tone === 'info' || tone === 'neutral' ? 'help' : 'alert';
-  return (
-    <div className={cx('cw-notice', `cw-notice--${tone}`)} role={role ?? (tone === 'danger' ? 'alert' : undefined)}>
-      <Icon name={icon} className="cw-notice__icon" />
-      <div className="cw-notice__body">
-        {title ? <strong>{title}</strong> : null}
-        {children ? <div>{children}</div> : null}
-      </div>
-      {action ? <div className="cw-notice__action">{action}</div> : null}
-    </div>
-  );
+  return <KitNotice tone={tone} title={title} action={action} role={role}>{children}</KitNotice>;
 }
 
 export function ErrorNote({ error, onRetry, title }: { error: FriendlyError; onRetry?: () => void; title?: string }) {
   return (
-    <Notice tone="danger" title={title} role="alert" action={onRetry ? <button type="button" onClick={onRetry}>Try again</button> : undefined}>
+    <Notice tone="danger" title={title} role="alert" action={onRetry ? <button type="button" className="ts-btn ts-btn--sm" onClick={onRetry}><Icon name="refresh" /><span>Try again</span></button> : undefined}>
       <p>{error.message}</p>
-      {error.reference && !error.message.includes(error.reference) ? <p className="cw-muted">Reference {error.reference}</p> : null}
+      {error.reference && !error.message.includes(error.reference) ? <p className="ts-muted">Reference {error.reference}</p> : null}
     </Notice>
   );
 }
 
-export function EmptyNote({ title, children, action }: { title: string; children?: ReactNode; action?: ReactNode }) {
-  return (
-    <div className="cw-empty">
-      <strong>{title}</strong>
-      {children ? <p>{children}</p> : null}
-      {action}
-    </div>
-  );
+export function EmptyNote({ title, children, action, icon = 'inbox' }: { title: string; children?: ReactNode; action?: ReactNode; icon?: IconName }) {
+  return <EmptyState boxed compact icon={icon} title={title} body={children} actions={action} />;
 }
 
 export function Skeleton({ lines = 3, label = 'Loading' }: { lines?: number; label?: string }) {
-  return (
-    <div className="cw-skeleton" role="status" aria-label={label}>
-      {Array.from({ length: lines }, (_, index) => <span key={index} style={{ width: `${92 - index * 14}%` }} />)}
-    </div>
-  );
+  return <KitSkeleton lines={lines} label={label} />;
 }
 
 /** Ticks once a minute so relative times ("3 min ago") stay true on an open page. */
@@ -224,54 +182,65 @@ export function PulsePanel({ pulse, onPrivacy }: { pulse: PulseState; onPrivacy?
   const today = new Date(now).toISOString().slice(0, 10);
   const entries = pulse.entries.filter((entry) => entry.day === today && (entry.submitted || entry.approved));
   const liveLabel = pulse.state === 'live' ? 'Live' : pulse.state === 'cached' ? 'Reconnecting' : pulse.state === 'loading' ? 'Connecting' : 'Unavailable';
+  const liveTone = pulse.state === 'live' ? 'success' : pulse.state === 'unavailable' ? 'neutral' : 'warning';
   return (
-    <Card
+    <Panel
       className="cw-pulse"
       title="Community today"
       labelledBy="cw-pulse-title"
-      actions={<span className={cx('cw-live', `cw-live--${pulse.state}`)}><span aria-hidden="true" />{liveLabel}</span>}
+      actions={<Badge tone={liveTone} live={pulse.state === 'live'} dot>{liveLabel}</Badge>}
     >
       {pulse.state === 'unavailable' ? (
-        <p className="cw-muted">
+        <p className="ts-muted" style={{ fontSize: 'var(--fs-sm)' }}>
           {pulse.reason === 'permission'
             ? 'Community activity is not available to this account yet. Your own work and progress are unaffected.'
             : 'Community activity could not be loaded. It will reconnect on its own when the connection returns.'}
         </p>
       ) : pulse.state === 'loading' ? <Skeleton lines={3} label="Loading community activity" /> : (
         <>
-          <dl className="cw-pulse__totals">
-            <div><dt>Sent for review</dt><dd>{pulse.totals?.submitted ?? 0}</dd></div>
-            <div><dt>Approved</dt><dd>{pulse.totals?.approved ?? 0}</dd></div>
-            <div><dt>Contributors</dt><dd>{pulse.totals?.contributors ?? 0}</dd></div>
+          <dl className="ts-facts" style={{ gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}>
+            <div className="ts-fact"><dt>Sent</dt><dd className="ts-num">{pulse.totals?.submitted ?? 0}</dd></div>
+            <div className="ts-fact"><dt>Approved</dt><dd className="ts-num">{pulse.totals?.approved ?? 0}</dd></div>
+            <div className="ts-fact"><dt>People</dt><dd className="ts-num">{pulse.totals?.contributors ?? 0}</dd></div>
           </dl>
           {entries.length ? (
-            <ol className="cw-pulse__feed" aria-live="polite" aria-label="Recent community activity">
+            <ol className="ts-list" aria-live="polite" aria-label="Recent community activity">
               {entries.slice(0, 6).map((entry) => (
-                <li key={entry.id} className="cw-pulse__row">
-                  <span className={cx('cw-pulse__avatar', !entry.label && 'is-anonymous')} aria-hidden="true">{entry.label ? entry.label[0].toUpperCase() : <Icon name="user" />}</span>
-                  <span className="cw-pulse__text">
-                    <strong>{entry.label ?? 'A contributor'}</strong>{' '}
-                    {entry.submitted ? `sent ${entry.submitted} expression${entry.submitted === 1 ? '' : 's'} for review` : ''}
-                    {entry.submitted && entry.approved ? ' and ' : ''}
-                    {entry.approved ? `had ${entry.approved} approved` : ''}
+                <li key={entry.id} className="ts-list__row ts-fade-in">
+                  <span className="ts-avatar ts-avatar--sm" aria-hidden="true">{entry.label ? entry.label[0].toUpperCase() : <Icon name="user" />}</span>
+                  <span className="ts-list__main">
+                    <span className="ts-list__title ts-list__title--wrap" style={{ fontWeight: 500 }}>
+                      <strong>{entry.label ?? 'A contributor'}</strong>{' '}
+                      {entry.submitted ? `sent ${entry.submitted} expression${entry.submitted === 1 ? '' : 's'} for review` : ''}
+                      {entry.submitted && entry.approved ? ' and ' : ''}
+                      {entry.approved ? `had ${entry.approved} approved` : ''}
+                    </span>
                   </span>
-                  <time dateTime={entry.updatedAt} title={formatDateTime(entry.updatedAt)}>{relativeTime(entry.updatedAt, now)}</time>
+                  <time className="ts-list__trail" dateTime={entry.updatedAt} title={formatDateTime(entry.updatedAt)}>{relativeTime(entry.updatedAt, now)}</time>
                 </li>
               ))}
             </ol>
           ) : (
-            <p className="cw-muted">No contributions yet today. Work sent for review appears here as it happens.</p>
+            <p className="ts-muted" style={{ fontSize: 'var(--fs-sm)' }}>No contributions yet today. Work sent for review appears here as it happens.</p>
           )}
         </>
       )}
-      {onPrivacy ? <button type="button" className="cw-link-button cw-pulse__privacy" onClick={onPrivacy}>How you appear here</button> : null}
-    </Card>
+      {onPrivacy ? <button type="button" className="ts-link ts-link--quiet" onClick={onPrivacy}><Icon name="eye" />How you appear here</button> : null}
+    </Panel>
   );
 }
 
 const ACTIVITY_ICON: Record<ActivityEvent['kind'], IconName> = {
-  submitted: 'arrow', resubmitted: 'arrow', approved: 'check', returned: 'alert', in_review: 'clock',
-  archived: 'doc', assigned: 'assignments', payment: 'bank',
+  submitted: 'send', resubmitted: 'refresh', approved: 'check', returned: 'alert', in_review: 'clock',
+  archived: 'archive', assigned: 'assignments', payment: 'bank',
+};
+
+const ACTIVITY_TONE: Partial<Record<ActivityEvent['kind'], { bg: string; fg: string }>> = {
+  approved: { bg: 'var(--success-surface)', fg: 'var(--success)' },
+  returned: { bg: 'var(--warning-surface)', fg: 'var(--warning)' },
+  submitted: { bg: 'var(--accent-soft)', fg: 'var(--accent-text)' },
+  resubmitted: { bg: 'var(--accent-soft)', fg: 'var(--accent-text)' },
+  payment: { bg: 'var(--violet-surface)', fg: 'var(--violet)' },
 };
 
 export function ActivityList({ events, onOpen, now = Date.now(), emptyText = 'Nothing here yet.' }: {
@@ -280,24 +249,28 @@ export function ActivityList({ events, onOpen, now = Date.now(), emptyText = 'No
   now?: number;
   emptyText?: string;
 }) {
-  if (!events.length) return <p className="cw-muted">{emptyText}</p>;
+  if (!events.length) return <p className="ts-muted" style={{ fontSize: 'var(--fs-sm)' }}>{emptyText}</p>;
   return (
-    <ol className="cw-activity">
+    <ol className="ts-list cw-activity">
       {events.map((event) => {
         const openable = Boolean(onOpen && (event.item || event.work || event.link));
+        const tone = ACTIVITY_TONE[event.kind];
         const body = (
           <>
-            <span className={cx('cw-activity__icon', `cw-activity__icon--${event.kind}`)} aria-hidden="true"><Icon name={ACTIVITY_ICON[event.kind]} /></span>
-            <span className="cw-activity__copy">
-              <span className="cw-activity__title">{event.title}</span>
-              {event.detail ? <span className="cw-activity__detail">{event.detail}</span> : null}
+            <span className="ts-list__lead" style={tone ? { background: tone.bg, color: tone.fg } : undefined} aria-hidden="true"><Icon name={ACTIVITY_ICON[event.kind]} /></span>
+            <span className="ts-list__main">
+              <span className="ts-list__title ts-list__title--wrap">{event.title}</span>
+              {event.detail ? <span className="ts-list__meta ts-list__meta--wrap ts-clamp-2">{event.detail}</span> : null}
             </span>
-            <time dateTime={event.at} title={formatDateTime(event.at)}>{relativeTime(event.at, now)}</time>
+            <span className="ts-list__trail">
+              <time dateTime={event.at} title={formatDateTime(event.at)}>{relativeTime(event.at, now)}</time>
+              {openable ? <Icon name="chevron" /> : null}
+            </span>
           </>
         );
         return (
           <li key={event.id}>
-            {openable ? <button type="button" className="cw-activity__row" onClick={() => onOpen?.(event)}>{body}</button> : <div className="cw-activity__row">{body}</div>}
+            {openable ? <button type="button" className="ts-list__row" onClick={() => onOpen?.(event)}>{body}</button> : <div className="ts-list__row">{body}</div>}
           </li>
         );
       })}

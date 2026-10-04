@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { enums } from '@indigen-world/contracts';
 import lexicalEntrySchema from '@indigen-world/contracts/schemas/lexical-entry.schema.json';
-import { ProcessGuide } from '../interface/WorkspaceFrame';
 import { canContribute, canValidate, useAuth, type Role } from '../auth';
 import {
   createEntry,
@@ -15,6 +14,8 @@ import {
   type LanguageOption,
   type LexicalEntryDoc,
 } from '../data';
+import { Badge, Button, EmptyState, Icon, Notice, PageHeader, Panel, Segmented, Steps, type Tone } from '../ui';
+import './lexicon.css';
 
 const PARTS_OF_SPEECH = (lexicalEntrySchema.properties.partOfSpeech.enum as string[]) ?? [];
 const TIERS = enums.culturalPermissionTier;
@@ -39,6 +40,10 @@ const STATUS_LABELS: Record<string, string> = {
   retired: 'Retired',
 };
 
+const STATUS_TONE: Record<string, Tone> = {
+  draft: 'neutral', submitted: 'info', in_review: 'info', needs_changes: 'warning', validated: 'success', rejected: 'danger', retired: 'neutral',
+};
+
 const emptyForm = (languageId: string): EntryInput => ({
   headword: '',
   partOfSpeech: PARTS_OF_SPEECH[0] ?? 'noun',
@@ -52,51 +57,59 @@ const emptyForm = (languageId: string): EntryInput => ({
 });
 
 function StatusBadge({ status }: { status: string }) {
-  return <span className={`badge badge--${status}`}>{STATUS_LABELS[status] ?? status}</span>;
+  return <Badge tone={STATUS_TONE[status] ?? 'neutral'} dot>{STATUS_LABELS[status] ?? status}</Badge>;
 }
 
 /** The original contributor/validator lexicon workspace, preserved and mounted at /workspace. */
 export function LexiconWorkspace() {
   const { user, role } = useAuth();
-  const [tab, setTab] = useState<'contribute' | 'review'>('contribute');
+  const [tab, setTab] = useState<'contribute' | 'review'>(() => (canValidate(role) && !canContribute(role) ? 'review' : 'contribute'));
   const [toast, setToast] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null);
+  const timer = useRef(0);
 
   const flash = useCallback((kind: 'ok' | 'err', text: string) => {
     setToast({ kind, text });
-    window.setTimeout(() => setToast(null), 4000);
+    window.clearTimeout(timer.current);
+    timer.current = window.setTimeout(() => setToast(null), 4000);
   }, []);
 
   if (!user) return null;
 
   return (
-    <div className="page iw-lexicon">
-      <header className="page__head"><div><h1>Lexicon tools</h1><p className="muted">Create lexical entries or review the existing validation queue.</p></div></header>
-      <ProcessGuide label="Lexical entry workflow" steps={[{title:'Describe',detail:'Headword, meaning and usage'},{title:'Check permissions',detail:'Consent, licence and cultural access'},{title:'Submit for validation',detail:'Follow feedback in your submissions'}]} />
-      <nav className="tabs" aria-label="Lexicon task">
-        <button type="button" className={tab === 'contribute' ? 'tab is-active' : 'tab'} onClick={() => setTab('contribute')}>
-          Contribute
-        </button>
-        {canValidate(role) ? (
-          <button type="button" className={tab === 'review' ? 'tab is-active' : 'tab'} onClick={() => setTab('review')}>
-            Review queue
-          </button>
-        ) : null}
-      </nav>
+    <div className="ts-page">
+      <PageHeader
+        kicker="Lexicon"
+        title="Lexicon tools"
+        description="Create lexical entries for validation, or decide on entries waiting in the validation queue."
+      />
+      <div className="ts-row ts-row--between" style={{ flexWrap: 'wrap', alignItems: 'center' }}>
+        <Segmented
+          label="Lexicon task"
+          value={tab}
+          onChange={setTab}
+          options={[
+            { value: 'contribute', label: 'Contribute', icon: 'pen' },
+            ...(canValidate(role) ? [{ value: 'review' as const, label: 'Validation queue', icon: 'shield' as const }] : []),
+          ]}
+        />
+        <Steps compact label="Lexical entry workflow" className="lx-steps" steps={[
+          { title: 'Describe', icon: 'edit' },
+          { title: 'Permissions', icon: 'lock' },
+          { title: 'Validation', icon: 'shield' },
+        ]} />
+      </div>
 
-      <section className="content" aria-label="Lexicon task content">
+      {toast ? <Notice tone={toast.kind === 'ok' ? 'success' : 'danger'} role={toast.kind === 'ok' ? 'status' : 'alert'}>{toast.text}</Notice> : null}
+
+      <section aria-label="Lexicon task content" className="ts-enter" key={tab}>
         {tab === 'contribute' && canContribute(role) ? (
           <ContributeTab role={role} uid={user.uid} flash={flash} />
         ) : tab === 'contribute' ? (
-          <section className="panel">
-            <h2>Contributor access required</h2>
-            <p className="notice">An administrator must grant your account a contributor role before these controls are available.</p>
-          </section>
+          <EmptyState boxed icon="lock" title="Contributor access required" body="An administrator must grant your account a contributor role before these controls are available." />
         ) : (
           <ReviewTab flash={flash} />
         )}
       </section>
-
-      {toast ? <div className={`toast toast--${toast.kind}`}>{toast.text}</div> : null}
     </div>
   );
 }
@@ -188,100 +201,97 @@ function ContributeTab({
   };
 
   return (
-    <div className="grid">
-      <section className="panel">
-        <h2>Add a Kasem entry</h2>
+    <div className="ts-split ts-split--even">
+      <Panel title="Add a Kasem entry" description="Kept in this browser until you save it.">
         {!canContribute(role) ? (
-          <p className="notice">
-            Your account does not yet have contributor access. An administrator must grant a role
-            before submissions will be accepted.
-          </p>
+          <Notice tone="warning">Your account does not yet have contributor access. An administrator must grant a role before submissions will be accepted.</Notice>
         ) : null}
-
-        <div className="field">
-          <label htmlFor="headword">Headword *</label>
-          <input id="headword" value={form.headword} onChange={(e) => update('headword', e.target.value)} placeholder="e.g. nia" />
-        </div>
-
-        <div className="field-row">
-          <div className="field">
-            <label htmlFor="pos">Part of speech</label>
-            <select id="pos" value={form.partOfSpeech} onChange={(e) => update('partOfSpeech', e.target.value)}>
-              {PARTS_OF_SPEECH.map((p) => (<option key={p} value={p}>{p}</option>))}
-            </select>
+        <div className="ts-stack ts-stack--md">
+          <label className="ts-field" htmlFor="headword">
+            <span className="ts-label">Headword <span className="ts-required" aria-hidden="true">*</span></span>
+            <input className="ts-input" id="headword" lang="xsm" value={form.headword} onChange={(e) => update('headword', e.target.value)} placeholder="e.g. nia" />
+          </label>
+          <div className="lx-pair">
+            <label className="ts-field" htmlFor="pos">
+              <span className="ts-label">Part of speech</span>
+              <select className="ts-select" id="pos" value={form.partOfSpeech} onChange={(e) => update('partOfSpeech', e.target.value)}>
+                {PARTS_OF_SPEECH.map((p) => (<option key={p} value={p}>{p}</option>))}
+              </select>
+            </label>
+            <label className="ts-field" htmlFor="lang">
+              <span className="ts-label">Language</span>
+              <select className="ts-select" id="lang" value={form.languageId} onChange={(e) => update('languageId', e.target.value)}>
+                {languageOptions.map((l) => (<option key={l.id} value={l.id}>{l.name}</option>))}
+              </select>
+            </label>
           </div>
-          <div className="field">
-            <label htmlFor="lang">Language</label>
-            <select id="lang" value={form.languageId} onChange={(e) => update('languageId', e.target.value)}>
-              {languageOptions.map((l) => (<option key={l.id} value={l.id}>{l.name}</option>))}
-            </select>
+          <label className="ts-field" htmlFor="def">
+            <span className="ts-label">Definition <span className="ts-required" aria-hidden="true">*</span></span>
+            <textarea className="ts-textarea" id="def" value={form.definition} onChange={(e) => update('definition', e.target.value)} placeholder="Meaning in plain language" />
+          </label>
+          <div className="lx-pair">
+            <label className="ts-field" htmlFor="en">
+              <span className="ts-label">English translation</span>
+              <input className="ts-input" id="en" value={form.englishTranslation} onChange={(e) => update('englishTranslation', e.target.value)} placeholder="e.g. water" />
+            </label>
+            <label className="ts-field" htmlFor="ex">
+              <span className="ts-label">Example sentence</span>
+              <input className="ts-input" id="ex" lang="xsm" value={form.example} onChange={(e) => update('example', e.target.value)} placeholder="A real Kasem sentence" />
+            </label>
+          </div>
+          <div className="lx-pair">
+            <label className="ts-field" htmlFor="tier">
+              <span className="ts-label">Cultural permission</span>
+              <select className="ts-select" id="tier" value={form.culturalPermissionTier} onChange={(e) => update('culturalPermissionTier', e.target.value)}>
+                {TIERS.map((t) => (<option key={t} value={t}>{TIER_LABELS[t] ?? t}</option>))}
+              </select>
+            </label>
+            <label className="ts-field" htmlFor="licence">
+              <span className="ts-label">Publication licence</span>
+              <select className="ts-select" id="licence" value={form.licence} onChange={(e) => update('licence', e.target.value)}>
+                {LICENCES.map((licence) => (<option key={licence} value={licence}>{licence.replaceAll('_', ' ')}</option>))}
+              </select>
+            </label>
+          </div>
+          <label className="ts-check ts-check--card ts-check--required">
+            <input type="checkbox" checked={form.consentGranted} onChange={(e) => update('consentGranted', e.target.checked)} />
+            <span className="ts-check__copy"><strong>Consent to publication review</strong><small>I confirm I have the right to contribute this and consent to its publication review under the selected licence. Required to submit.</small></span>
+          </label>
+          <div className="ts-panel__foot">
+            <span className="ts-hint">Submitted entries go to the validation queue.</span>
+            <div className="ts-cluster">
+              <Button disabled={busy} onClick={() => void save('draft')}>Save draft</Button>
+              <Button variant="primary" iconRight="send" busy={busy} onClick={() => void save('submitted')}>Submit for review</Button>
+            </div>
           </div>
         </div>
+      </Panel>
 
-        <div className="field">
-          <label htmlFor="def">Definition *</label>
-          <textarea id="def" value={form.definition} onChange={(e) => update('definition', e.target.value)} placeholder="Meaning in plain language" />
-        </div>
-
-        <div className="field">
-          <label htmlFor="en">English translation</label>
-          <input id="en" value={form.englishTranslation} onChange={(e) => update('englishTranslation', e.target.value)} placeholder="e.g. water" />
-        </div>
-
-        <div className="field">
-          <label htmlFor="ex">Example sentence</label>
-          <input id="ex" value={form.example} onChange={(e) => update('example', e.target.value)} placeholder="e.g. Nia pe yogo." />
-        </div>
-
-        <div className="field">
-          <label htmlFor="tier">Cultural permission</label>
-          <select id="tier" value={form.culturalPermissionTier} onChange={(e) => update('culturalPermissionTier', e.target.value)}>
-            {TIERS.map((t) => (<option key={t} value={t}>{TIER_LABELS[t] ?? t}</option>))}
-          </select>
-        </div>
-
-        <div className="field">
-          <label htmlFor="licence">Publication licence</label>
-          <select id="licence" value={form.licence} onChange={(e) => update('licence', e.target.value)}>
-            {LICENCES.map((licence) => (<option key={licence} value={licence}>{licence.replaceAll('_', ' ')}</option>))}
-          </select>
-        </div>
-
-        <label className="checkbox">
-          <input type="checkbox" checked={form.consentGranted} onChange={(e) => update('consentGranted', e.target.checked)} />
-          I confirm I have the right to contribute this and consent to its publication review under the selected licence.
-        </label>
-
-        <div className="actions">
-          <button type="button" className="button button--ghost-dark" disabled={busy} onClick={() => void save('draft')}>Save draft</button>
-          <button type="button" className="button button--primary" disabled={busy} onClick={() => void save('submitted')}>Submit for review</button>
-        </div>
-      </section>
-
-      <section className="panel">
-        <h2>My submissions</h2>
+      <Panel title="My submissions" description="Drafts and entries returned with changes can be submitted from here.">
         {entries.length === 0 ? (
-          <p className="notice">No submissions yet.</p>
+          <EmptyState compact icon="book" title="No submissions yet" body="Entries you save or submit appear here with their validation status." />
         ) : (
-          <ul className="list">
+          <ul className="ts-list">
             {entries.map((e) => (
-              <li key={e.id} className="list__item">
-                <div>
-                  <strong>{e.headword}</strong>
-                  <span className="muted"> · {e.partOfSpeech}</span>
-                  <p className="muted">{e.senses[0]?.definition}</p>
-                </div>
-                <div className="list__side">
-                  <StatusBadge status={e.governance.validationStatus} />
-                  {['draft', 'needs_changes'].includes(e.governance.validationStatus) ? (
-                    <button type="button" className="button button--small" onClick={() => void resubmit(e)}>Submit</button>
-                  ) : null}
+              <li key={e.id}>
+                <div className="ts-list__row">
+                  <span className="ts-list__lead" aria-hidden="true"><Icon name="book" /></span>
+                  <span className="ts-list__main">
+                    <span className="ts-list__title" lang="xsm">{e.headword} <span className="ts-faint" style={{ fontWeight: 400 }}>· {e.partOfSpeech}</span></span>
+                    <span className="ts-list__meta">{e.senses[0]?.definition}</span>
+                  </span>
+                  <span className="ts-list__trail">
+                    <StatusBadge status={e.governance.validationStatus} />
+                    {['draft', 'needs_changes'].includes(e.governance.validationStatus) ? (
+                      <Button size="sm" variant="soft" onClick={() => void resubmit(e)}>Submit</Button>
+                    ) : null}
+                  </span>
                 </div>
               </li>
             ))}
           </ul>
         )}
-      </section>
+      </Panel>
     </div>
   );
 }
@@ -328,125 +338,74 @@ function ReviewTab({ flash }: { flash: (kind: 'ok' | 'err', text: string) => voi
   );
 
   return (
-    <section className="panel">
-      <div className="panel__head panel__head--spread">
-        <div>
-          <h2>Elder &amp; Custodian Validation Queue</h2>
-          <p className="panel__hint">Review submitted lexical entries for dialect fidelity, orthography, and cultural permission.</p>
+    <div className="ts-stack">
+      <div className="ts-toolbar">
+        <div className="ts-stack" style={{ ['--gap' as string]: '0.15rem', flex: '1 1 18rem' }}>
+          <h2 className="ts-section-head__title">Elder &amp; custodian validation queue</h2>
+          <p className="ts-hint">Review submitted lexical entries for dialect fidelity, orthography and cultural permission.</p>
         </div>
-        <div className="queue-filter">
-          <label htmlFor="tier-filter" className="tiny">Filter by tier:</label>
-          <select
-            id="tier-filter"
-            value={filterTier}
-            onChange={(e) => setFilterTier(e.target.value)}
-          >
-            <option value="all">All Tiers ({queue.length})</option>
+        <label htmlFor="tier-filter" className="ts-row" style={{ gap: '0.5rem' }}>
+          <span className="ts-hint">Tier</span>
+          <select className="ts-select ts-select--sm" id="tier-filter" value={filterTier} onChange={(e) => setFilterTier(e.target.value)}>
+            <option value="all">All tiers ({queue.length})</option>
             {TIERS.map((t) => (
-              <option key={t} value={t}>
-                {TIER_LABELS[t] ?? t}
-              </option>
+              <option key={t} value={t}>{TIER_LABELS[t] ?? t}</option>
             ))}
           </select>
-        </div>
+        </label>
       </div>
 
       {loading ? (
-        <p className="notice">Loading validation queue…</p>
+        <div className="ts-panel"><div className="ts-skeleton" role="status" aria-label="Loading validation queue"><span className="ts-skel ts-skel--title" /><span className="ts-skel ts-skel--line" /><span className="ts-skel ts-skel--line" style={{ width: '72%' }} /></div></div>
       ) : filteredQueue.length === 0 ? (
-        <p className="notice">The validation queue is clear. No entries awaiting review.</p>
+        <EmptyState boxed icon="check" tone="success" title="The validation queue is clear" body="No entries are awaiting review at this tier." />
       ) : (
-        <ul className="list review-queue-list">
+        <ul className="lx-queue ts-stagger">
           {filteredQueue.map((e) => {
             const isInspecting = inspectingId === e.id;
-
+            const note = notes[e.id] ?? '';
+            const noteShort = note.trim().length < 10;
             return (
-              <li key={e.id} className="list__item list__item--card iw-glass-card">
-                <div className="review-entry-main">
-                  <div className="review-entry-head">
-                    <strong className="headword-text">{e.headword}</strong>
-                    <span className="pos-badge">{e.partOfSpeech}</span>
-                    <span className={`tier-tag tier-tag--${e.governance.culturalPermissionTier}`}>
+              <li key={e.id} className="ts-panel lx-entry">
+                <div className="lx-entry__main">
+                  <div className="ts-cluster">
+                    <strong className="lx-entry__headword" lang="xsm">{e.headword}</strong>
+                    <Badge>{e.partOfSpeech}</Badge>
+                    <Badge tone={e.governance.culturalPermissionTier === 'public' ? 'success' : 'warning'} dot>
                       {TIER_LABELS[e.governance.culturalPermissionTier] ?? e.governance.culturalPermissionTier}
-                    </span>
+                    </Badge>
                   </div>
-
-                  <p className="definition-text">{e.senses[0]?.definition}</p>
-
-                  {/* Dual-Diff / Detailed Inspection Drawer */}
-                  {isInspecting && (
-                    <div className="dual-diff-box">
-                      <div className="diff-col">
-                        <span className="diff-label">English Translation</span>
-                        <p>{e.senses[0]?.translations?.[0]?.text || '—'}</p>
-                      </div>
-                      <div className="diff-col">
-                        <span className="diff-label">Example Usage in Kasem</span>
-                        <p>{e.senses[0]?.examples?.[0] || '—'}</p>
-                      </div>
-                      <div className="diff-col">
-                        <span className="diff-label">Contributor &amp; Consent</span>
-                        <p className="tiny">
-                          ID: {e.governance.contributor.id} • Consent: {e.governance.consentStatus}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="review-meta-row">
-                    <button
-                      type="button"
-                      className="button button--ghost button--small inspect-toggle"
-                      onClick={() => setInspectingId(isInspecting ? null : e.id)}
-                    >
-                      {isInspecting ? '▲ Hide Full Context' : '▼ Inspect Full Linguistic Details'}
-                    </button>
-                  </div>
+                  <p className="lx-entry__definition">{e.senses[0]?.definition}</p>
+                  {isInspecting ? (
+                    <dl className="ts-facts ts-enter">
+                      <div className="ts-fact"><dt>English translation</dt><dd>{e.senses[0]?.translations?.[0]?.text || '—'}</dd></div>
+                      <div className="ts-fact"><dt>Example in Kasem</dt><dd lang="xsm">{e.senses[0]?.examples?.[0] || '—'}</dd></div>
+                      <div className="ts-fact"><dt>Contributor &amp; consent</dt><dd>{e.governance.contributor.id} · {e.governance.consentStatus}</dd></div>
+                    </dl>
+                  ) : null}
+                  <button type="button" className="ts-link" aria-expanded={isInspecting} onClick={() => setInspectingId(isInspecting ? null : e.id)}>
+                    <Icon name={isInspecting ? 'up' : 'eye'} />{isInspecting ? 'Hide details' : 'Inspect translation, example and consent'}
+                  </button>
                 </div>
 
-                <div className="list__side list__side--stack review-action-box">
-                  <label htmlFor={`review-${e.id}`} className="tiny">
-                    Custodian Review Notes * (min 10 chars)
+                <div className="lx-entry__decide">
+                  <label className="ts-field" htmlFor={`review-${e.id}`}>
+                    <span className="ts-label">Review notes <span className="ts-required" aria-hidden="true">*</span></span>
+                    <textarea
+                      className="ts-textarea"
+                      id={`review-${e.id}`}
+                      value={note}
+                      minLength={10}
+                      maxLength={2000}
+                      placeholder="Feedback, a correction, or the reason for approval"
+                      onChange={(event) => setNotes((current) => ({ ...current, [e.id]: event.target.value }))}
+                    />
+                    <small className={noteShort && note.length ? 'ts-error' : undefined}>{noteShort ? `At least 10 characters (${note.trim().length}/10) before a decision.` : 'Shared with the contributor.'}</small>
                   </label>
-                  <textarea
-                    id={`review-${e.id}`}
-                    value={notes[e.id] ?? ''}
-                    minLength={10}
-                    maxLength={2000}
-                    placeholder="Provide constructive feedback, tone correction, or approval rationale..."
-                    onChange={(event) =>
-                      setNotes((current) => ({ ...current, [e.id]: event.target.value }))
-                    }
-                  />
-
-                  <div className="decision-btn-group">
-                    <button
-                      type="button"
-                      className="button button--small button--approve"
-                      disabled={busyId === e.id || (notes[e.id]?.trim().length ?? 0) < 10}
-                      onClick={() => void decide(e.id, 'approved')}
-                      title="Shortcut: Approve (A)"
-                    >
-                      ✓ Approve
-                    </button>
-                    <button
-                      type="button"
-                      className="button button--small button--warn"
-                      disabled={busyId === e.id || (notes[e.id]?.trim().length ?? 0) < 10}
-                      onClick={() => void decide(e.id, 'needs_changes')}
-                      title="Shortcut: Request Changes (N)"
-                    >
-                      ✎ Needs Changes
-                    </button>
-                    <button
-                      type="button"
-                      className="button button--small button--reject"
-                      disabled={busyId === e.id || (notes[e.id]?.trim().length ?? 0) < 10}
-                      onClick={() => void decide(e.id, 'rejected')}
-                      title="Shortcut: Reject (R)"
-                    >
-                      ✕ Reject
-                    </button>
+                  <div className="lx-decisions" role="group" aria-label={`Decision for ${e.headword}`}>
+                    <Button size="sm" className="lx-decision lx-decision--approve" icon="check" disabled={busyId === e.id || noteShort} onClick={() => void decide(e.id, 'approved')}>Approve</Button>
+                    <Button size="sm" className="lx-decision lx-decision--changes" icon="refresh" disabled={busyId === e.id || noteShort} onClick={() => void decide(e.id, 'needs_changes')}>Needs changes</Button>
+                    <Button size="sm" className="lx-decision lx-decision--reject" icon="x-circle" disabled={busyId === e.id || noteShort} onClick={() => void decide(e.id, 'rejected')}>Reject</Button>
                   </div>
                 </div>
               </li>
@@ -454,6 +413,6 @@ function ReviewTab({ flash }: { flash: (kind: 'ok' | 'err', text: string) => voi
           })}
         </ul>
       )}
-    </section>
+    </div>
   );
 }

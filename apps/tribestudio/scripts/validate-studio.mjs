@@ -22,9 +22,8 @@ const notFound = read('src/NotFoundPage.tsx');
 const publicLayout = read('src/creator/PublicLayout.tsx');
 const studioLayout = read('src/creator/StudioLayout.tsx');
 const profilePage = read('src/creator/pages/ProfilePage.tsx');
-const creatorStyles = read('src/creator/creator.css');
-const shellStyles = read('src/interface/workspace.css');
-const workspaceFrame = read('src/interface/WorkspaceFrame.tsx');
+const shellStyles = read('src/ui/shell.css');
+const appShell = read('src/ui/AppShell.tsx');
 
 // Route-based code-splitting: pages must be lazy-loaded, not statically imported.
 const LAZY_PAGES = [
@@ -54,8 +53,8 @@ assert.match(app, /<NotFoundPage variant="studio"/, 'unknown studio routes rende
 assert.match(app, /<PublicLayout><NotFoundPage/, 'unknown public routes render the branded 404 page');
 assert.match(notFound, /aria-label="Error 404"/, 'the not-found page exposes an accessible 404 code');
 assert.match(publicLayout, /aria-current=/, 'public navigation exposes its active route');
-assert.match(workspaceFrame, /aria-current=/, 'studio navigation exposes its active route');
-assert.match(studioLayout, /WorkspaceFrame/, 'creator workspace uses the shared navigation foundation');
+assert.match(appShell, /aria-current=/, 'studio navigation exposes its active route');
+assert.match(studioLayout, /AppShell/, 'creator workspace uses the shared navigation foundation');
 assert.match(profilePage, /className="profile-hero"/, 'profile has a clear identity hero');
 assert.match(profilePage, /aria-label="Profile sections"/, 'profile has section navigation');
 assert.match(profilePage, /className="profile-savebar"/, 'profile has a persistent save surface');
@@ -110,22 +109,34 @@ assert.ok(!/prizePool|targetCount|currentCount|Bounty Target|15,000 GHS/.test(op
 assert.ok(!/Dialect Guardian|Kasem Wordsmith|Level \{/.test(dashboardPage), 'the dashboard does not pitch levels or badges');
 assert.match(dashboardPage, /\/studio\/expressions/, 'the dashboard leads to the expression task');
 
-// ── The workspace runs on the shared console kit ───────────────────────────
+// ── One design system across the three workspaces ────────────────────────────
 //
-// The kit is shared with the admin console, so it is read from the package:
-// a change that breaks the contract breaks both consoles, and this is one of
-// the two places that notices.
-const kitDir = resolve(root, '../../packages/console-ui/src');
-const readKit = (file) => readFileSync(resolve(kitDir, file), 'utf8');
-const kit = readKit('kit.css');
-
-assert.match(workspaceFrame, /iw-workspace iwx/,
-  'the workspace shell carries the kit scope class the package styles hang off');
-assert.match(workspaceFrame, /CommandPalette/, 'the workspace mounts the command palette');
-assert.match(workspaceFrame, /studio__status/, 'the workspace reports its state in a status rail');
+// Creator, contributor and validator screens share one shell, one set of
+// tokens and one display switch. These hold the parts a regression would
+// quietly break: the Comitia type and palette, the animation off switch, and
+// the shell's refusal to scroll sideways.
+const main = read('src/main.tsx');
+const tokens = read('src/ui/tokens.css');
+const motion = read('src/ui/motion.css');
+const display = read('src/ui/display.tsx');
+const components = read('src/ui/components.css');
+const indexHtml = read('index.html');
+assert.match(main, /@fontsource-variable\/sora/, 'Sora is the display face');
+assert.match(main, /@fontsource-variable\/inter/, 'Inter is the body face');
+assert.match(tokens, /--c-ink:\s*#0f1830/i, 'the palette starts from Comitia ink');
+assert.match(tokens, /--c-blue:\s*#2f6bff/i, 'the palette carries Comitia blue');
+assert.match(motion, /html\[data-motion="off"\]/, 'every animation obeys the off switch');
+assert.match(motion, /prefers-reduced-motion: reduce/, 'animations respect the system reduced-motion setting');
+assert.match(display, /Animations/, 'the display panel offers an animation switch');
+assert.match(indexHtml, /tribestudio\.display/, 'display preferences apply before the first paint');
+for (const layout of [studioLayout, read('src/contributor/workspace.tsx'), read('src/contributor/review/ReviewDesk.tsx')]) {
+  assert.match(layout, /<AppShell/, 'each workspace renders inside the shared shell');
+}
+assert.match(appShell, /CommandPalette/, 'the workspace mounts the command palette');
+assert.match(appShell, /className="ts-offline" role="status"/, 'the workspace reports a lost connection');
 assert.match(shellStyles, /overflow-x:\s*clip/,
   'the page body contains stray width instead of scrolling sideways');
-assert.match(kit, /\.table-shell \{[\s\S]*?overflow-x: auto/,
+assert.match(components, /\.table-shell \{[\s\S]*?overflow-x: auto/,
   'the table shell is the only element allowed to scroll sideways');
 
 // No table may escape its scroll container. A table is the one piece of markup
@@ -180,6 +191,6 @@ for (const file of loaderPages) {
 
 console.log(
   `Validated TribeStudio: ${LAZY_PAGES.length} lazy routes, ${errorStatePages} data pages with ` +
-    `error states, and the shared console kit across ${sourceFiles.length} screens ` +
+    `error states, and the shared design system across ${sourceFiles.length} screens ` +
     `(every table contained).`,
 );

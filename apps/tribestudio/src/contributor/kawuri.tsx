@@ -49,16 +49,16 @@ export function KawuriResultView({ result, guideHref, onNavigate, compact = fals
     if (!section) return null;
     const href = guideHref(id);
     return (
-      <a href={href} className="cw-source-link" onClick={(event) => { event.preventDefault(); onNavigate(href); }}>
+      <a href={href} className="ts-link cw-source-link" onClick={(event) => { event.preventDefault(); onNavigate(href); }}>
         {label ?? section.title}
       </a>
     );
   };
   return (
-    <div className={cx('cw-kawuri-result', compact && 'is-compact')}>
+    <div className={cx('cw-kawuri-result ts-stagger', compact && 'is-compact')}>
       {result.checks.length ? (
         <section className="cw-kawuri-block" aria-label="Checks">
-          <h3><Icon name="check" />Checks <small>Rules the workspace applies. No AI.</small></h3>
+          <h3 className="cw-kawuri-block__title"><span className="cw-kawuri-part cw-kawuri-part--rules" aria-hidden="true"><Icon name="check" /></span>Checks <small>Rules the workspace applies. No AI.</small></h3>
           <ul className="cw-checks">
             {result.checks.map((check) => (
               <li key={check.id}>
@@ -71,7 +71,7 @@ export function KawuriResultView({ result, guideHref, onNavigate, compact = fals
       ) : null}
 
       <section className="cw-kawuri-block cw-kawuri-block--ai" aria-label="Kawuri suggestions">
-        <h3><Icon name="spark" />Kawuri suggestions <Chip tone="violet">AI · not reviewed</Chip></h3>
+        <h3 className="cw-kawuri-block__title"><span className="cw-kawuri-part cw-kawuri-part--ai" aria-hidden="true"><Icon name="spark" /></span>Kawuri suggestions <Chip tone="violet">AI · not reviewed</Chip></h3>
         {!result.configured ? (
           <Notice tone="neutral" title="Suggestions unavailable">
             <p>{unavailableText(result.unavailableReason)} The checks and sources on this panel still apply.</p>
@@ -86,19 +86,19 @@ export function KawuriResultView({ result, guideHref, onNavigate, compact = fals
                     <p>{suggestion.text}</p>
                     <div className="cw-suggestion__actions">
                       {suggestion.guideSection ? guideLink(suggestion.guideSection) : null}
-                      <button type="button" className="cw-link-button" onClick={() => setDismissed((current) => [...current, suggestion.id])} aria-label={`Dismiss suggestion: ${suggestion.text}`}>Not helpful — dismiss</button>
+                      <button type="button" className="ts-link ts-link--quiet" onClick={() => setDismissed((current) => [...current, suggestion.id])} aria-label={`Dismiss suggestion: ${suggestion.text}`}><Icon name="close" />Not helpful — dismiss</button>
                     </div>
                   </li>
                 ))}
               </ul>
-            ) : result.suggestions.length ? <p className="cw-muted">You dismissed every suggestion.</p> : <p className="cw-muted">Kawuri had no suggestions for this.</p>}
+            ) : result.suggestions.length ? <p className="ts-muted">You dismissed every suggestion.</p> : <p className="ts-muted">Kawuri had no suggestions for this.</p>}
             {result.questions.length ? (
               <div className="cw-questions">
                 <strong>Questions a reviewer might ask</strong>
                 <ul>{result.questions.map((question) => <li key={question}>{question}</li>)}</ul>
               </div>
             ) : null}
-            {result.removed ? <p className="cw-muted">{result.removed} suggestion{result.removed === 1 ? ' was' : 's were'} removed because {result.removed === 1 ? 'it' : 'they'} contained Kasem. Kawuri is not allowed to write Kasem for you.</p> : null}
+            {result.removed ? <p className="ts-hint">{result.removed} suggestion{result.removed === 1 ? ' was' : 's were'} removed because {result.removed === 1 ? 'it' : 'they'} contained Kasem. Kawuri is not allowed to write Kasem for you.</p> : null}
             <p className="cw-kawuri-disclaimer">Suggestions are not verified Kasem knowledge and have not been reviewed. Only reviewers decide what is correct.</p>
           </>
         )}
@@ -106,7 +106,7 @@ export function KawuriResultView({ result, guideHref, onNavigate, compact = fals
 
       {!compact || result.sources.dictionary.length ? (
         <section className="cw-kawuri-block" aria-label="Sources">
-          <h3><Icon name="shield" />Sources <small>Reviewed material</small></h3>
+          <h3 className="cw-kawuri-block__title"><span className="cw-kawuri-part cw-kawuri-part--sources" aria-hidden="true"><Icon name="shield" /></span>Sources <small>Reviewed material</small></h3>
           {!compact && (result.sources.assignment.instructions || result.sources.assignment.dialect || result.sources.assignment.tone) ? (
             <div className="cw-source">
               <span className="cw-source__label">Assignment instructions</span>
@@ -127,9 +127,9 @@ export function KawuriResultView({ result, guideHref, onNavigate, compact = fals
                   </li>
                 ))}
               </ul>
-              <p className="cw-muted">These are single-word entries reviewers approved. A natural expression may use different words — translate the meaning.</p>
+              <p className="ts-hint">These are single-word entries reviewers approved. A natural expression may use different words — translate the meaning.</p>
             </div>
-          ) : !compact ? <p className="cw-muted">No published dictionary entries matched words in this expression.</p> : null}
+          ) : !compact ? <p className="ts-hint">No published dictionary entries matched words in this expression.</p> : null}
           {!compact && result.sources.guide.length ? (
             <div className="cw-source">
               <span className="cw-source__label">Platform guide</span>
@@ -188,18 +188,21 @@ export function KawuriDraftCheck({ assist, work, item, draft, onClose, guideHref
   return (
     <section className="cw-kawuri-inline" aria-label="Kawuri draft check" aria-busy={busy}>
       <div className="cw-kawuri-inline__head">
-        <strong><Icon name="kawuri" />Kawuri check</strong>
-        <span className="cw-muted">Reads the English, your usage note and the assignment. It never sees or judges your Kasem, and changes nothing.</span>
-        <div className="cw-inline-actions">
-          <button type="button" disabled={busy} onClick={() => void run({ mode: 'check_draft', work, item, draft })}>Check again</button>
-          <button type="button" className="cw-icon-button" onClick={onClose} aria-label="Close Kawuri check"><Icon name="close" /></button>
-        </div>
+        <span className="cw-kawuri-part cw-kawuri-part--ai" aria-hidden="true"><Icon name="kawuri" /></span>
+        <span className="cw-kawuri-inline__copy">
+          <strong>Kawuri check</strong>
+          <span className="ts-hint">Reads the English, your usage note and the assignment. It never sees or judges your Kasem, and changes nothing.</span>
+        </span>
+        <span className="ts-cluster">
+          <button type="button" className="ts-btn ts-btn--sm" disabled={busy} onClick={() => void run({ mode: 'check_draft', work, item, draft })}><Icon name="refresh" />Check again</button>
+          <button type="button" className="ts-btn ts-btn--ghost ts-btn--icon ts-btn--sm" onClick={onClose} aria-label="Close Kawuri check"><Icon name="close" /></button>
+        </span>
       </div>
       {busy && !result ? <Skeleton lines={3} label="Kawuri is checking your draft" /> : null}
       {error ? (
         <Notice tone="warning" title="Kawuri Intelligence is not available">
           <p>{error.message}</p>
-          <p className="cw-muted">Your draft is unaffected. The workspace needs the <code>kawuriContributorAssist</code> function for this check.</p>
+          <p className="ts-hint">Your draft is unaffected. The workspace needs the <code>kawuriContributorAssist</code> function for this check.</p>
         </Notice>
       ) : null}
       {result ? <KawuriResultView result={result} guideHref={guideHref} onNavigate={onNavigate} compact /> : null}

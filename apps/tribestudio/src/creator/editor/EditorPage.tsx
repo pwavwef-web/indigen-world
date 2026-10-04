@@ -1,5 +1,4 @@
-import { WorkspaceDialog } from '../../interface/WorkspaceFrame';
-import { Icon, type IconName } from '../../interface/icons';
+import { Dialog as WorkspaceDialog, Icon, type IconName } from '../../ui';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { canMakeVideo, useAuth } from '../../auth';
 import { matchRoute, useRoute } from '../../router';

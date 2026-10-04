@@ -12,13 +12,13 @@ import { KASEM_CHARACTERS } from './lexicon';
  */
 export function KasemPalette({ onInsert }: { onInsert: (char: string) => void }) {
   return (
-    <div className="dict__palette" role="group" aria-label="Kasem letters">
-      <span className="dict__palette-label">Kasem letters</span>
+    <div className="cr-keys" role="group" aria-label="Kasem letters">
+      <span className="cr-keys__label">Kasem letters</span>
       {KASEM_CHARACTERS.map((entry) => (
         <button
           key={entry.char}
           type="button"
-          className={entry.combining ? 'dict__key dict__key--mark' : 'dict__key'}
+          className={entry.combining ? 'cr-key cr-key--mark' : 'cr-key'}
           title={`${entry.name}${entry.combining ? ' (attaches to the letter before it)' : ''}`}
           aria-label={entry.name}
           onClick={() => onInsert(entry.char)}

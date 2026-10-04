@@ -150,7 +150,7 @@
 
 .vx-handles {
   position: absolute;
-  border: 1.5px dashed #9fb2ff;
+  border: 1.5px dashed #8eb4ff;
   border-radius: 4px;
   pointer-events: none;
   box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35);
@@ -165,7 +165,7 @@
   padding: 0;
   border: 2px solid #fff;
   border-radius: 50%;
-  background: #6d8cff;
+  background: #2f6bff;
   pointer-events: auto;
   cursor: grab;
 }
@@ -325,7 +325,7 @@
 }
 
 .vx-block.is-selected {
-  box-shadow: 0 0 0 2px #fff, 0 0 0 4px rgba(109, 140, 255, 0.55);
+  box-shadow: 0 0 0 2px #fff, 0 0 0 4px rgba(47, 107, 255, 0.55);
   z-index: 2;
 }
 
@@ -342,10 +342,10 @@
 .vx-block--scene {
   top: 5px;
   height: 36px;
-  background: linear-gradient(180deg, #3552a8, #27407f);
+  background: linear-gradient(180deg, #19327f, #27407f);
 }
 
-.vx-block--image { background: linear-gradient(180deg, #2e7f86, #1f6167); }
+.vx-block--image { background: linear-gradient(180deg, #0e7490, #155e75); }
 .vx-block--card { background: linear-gradient(180deg, #5a3f93, #432e70); }
 .vx-block--color { background: linear-gradient(180deg, #4b5566, #394150); }
 .vx-block--empty { background: repeating-linear-gradient(135deg, #2b3242 0 8px, #232937 8px 16px); color: #c9d2e3; }
@@ -455,9 +455,9 @@
 }
 
 .vx-chips button.is-on {
-  border-color: rgba(109, 140, 255, 0.6);
-  background: rgba(109, 140, 255, 0.2);
-  color: #d5deff;
+  border-color: rgba(47, 107, 255, 0.6);
+  background: rgba(47, 107, 255, 0.2);
+  color: #dbe7ff;
 }
 
 .vx-row-buttons {
@@ -493,7 +493,7 @@
 }
 
 .vx-track-row.is-used {
-  border-color: rgba(72, 213, 197, 0.45);
+  border-color: rgba(34, 211, 238, 0.45);
 }
 
 .vx-track-row__body {
@@ -563,7 +563,7 @@
   min-height: 0;
   border: 0;
   border-radius: 50%;
-  background: #6d8cff;
+  background: #2f6bff;
   color: #fff;
   font-size: 0.72rem;
   cursor: pointer;
@@ -574,10 +574,10 @@
   padding: 0 10px;
   font-size: 0.74rem;
   font-weight: 700;
-  border: 1px solid rgba(109, 140, 255, 0.5);
+  border: 1px solid rgba(47, 107, 255, 0.5);
   border-radius: 8px;
   background: transparent;
-  color: #c7d2ff;
+  color: #bcd2ff;
   font-weight: 650;
   cursor: pointer;
 }
@@ -585,8 +585,8 @@
 .vx-badge {
   padding: 1px 6px;
   border-radius: 999px;
-  background: rgba(72, 213, 197, 0.18);
-  color: #7fe7da;
+  background: rgba(34, 211, 238, 0.18);
+  color: #67e8f9;
   font-size: 0.6rem;
   font-weight: 700;
 }
@@ -596,7 +596,7 @@
   display: block;
   width: 100%;
   height: 16px;
-  fill: #6d8cff;
+  fill: #2f6bff;
   stroke: none;
   opacity: 0.7;
 }
@@ -622,7 +622,7 @@
   padding: 0;
   border: 0;
   background: transparent;
-  color: #9fb2ff;
+  color: #8eb4ff;
   font-size: 0.76rem;
   text-decoration: underline;
   cursor: pointer;
@@ -655,7 +655,7 @@
 }
 
 .vx-sticker:hover {
-  border-color: rgba(109, 140, 255, 0.6);
+  border-color: rgba(47, 107, 255, 0.6);
 }
 
 .vx-panel-error,
@@ -672,8 +672,8 @@
 }
 
 .vx-panel-ok {
-  background: rgba(72, 213, 197, 0.1);
-  color: #9ef0e5;
+  background: rgba(34, 211, 238, 0.1);
+  color: #a5f3fc;
 }
 
 .vx-scene-list {
@@ -693,7 +693,7 @@
 }
 
 .vx-scene-card.is-selected {
-  border-color: rgba(109, 140, 255, 0.6);
+  border-color: rgba(47, 107, 255, 0.6);
 }
 
 .vx-scene-card__head {
@@ -767,7 +767,7 @@
   white-space: nowrap;
 }
 
-.vx-status--ok { background: rgba(72, 213, 197, 0.15); color: #7fe7da; }
+.vx-status--ok { background: rgba(34, 211, 238, 0.15); color: #67e8f9; }
 .vx-status--wait { background: rgba(255, 214, 107, 0.15); color: #ffd66b; }
 .vx-status--bad { background: rgba(255, 107, 91, 0.15); color: #ffb3a8; }
 .vx-status--empty { background: rgba(255, 255, 255, 0.07); color: var(--ve-muted); }
@@ -867,7 +867,7 @@
   position: relative;
   display: inline-flex;
   font-size: 0.76rem;
-  color: #9fb2ff;
+  color: #8eb4ff;
   cursor: pointer;
 }
 
@@ -897,8 +897,8 @@
 }
 
 .vx-style-grid button.is-on {
-  border-color: rgba(109, 140, 255, 0.6);
-  background: rgba(109, 140, 255, 0.14);
+  border-color: rgba(47, 107, 255, 0.6);
+  background: rgba(47, 107, 255, 0.14);
 }
 
 .vx-style-grid small {
@@ -924,7 +924,7 @@
 }
 
 .vx-cues li.is-selected input {
-  border-color: rgba(109, 140, 255, 0.6);
+  border-color: rgba(47, 107, 255, 0.6);
 }
 
 .vx-cues input {
@@ -1059,8 +1059,8 @@
 }
 
 .vx-sheet__actions button:last-child {
-  border-color: #4f6cdb;
-  background: #5672df;
+  border-color: #1a4ff0;
+  background: #2459e6;
   color: #fff;
 }
 
@@ -1124,8 +1124,8 @@
 }
 
 .vx-choice label.is-on {
-  border-color: rgba(109, 140, 255, 0.65);
-  background: rgba(109, 140, 255, 0.12);
+  border-color: rgba(47, 107, 255, 0.65);
+  background: rgba(47, 107, 255, 0.12);
 }
 
 .vx-choice input {
@@ -1135,7 +1135,7 @@
 }
 
 .vx-choice label:focus-within {
-  outline: 2px solid #90a7ff;
+  outline: 2px solid #8eb4ff;
   outline-offset: 2px;
 }
 

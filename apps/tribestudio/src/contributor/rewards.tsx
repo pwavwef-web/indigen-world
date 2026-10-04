@@ -1,13 +1,11 @@
 import { PageHeader } from './components';
-import { Icon } from '../interface/icons';
-import { WorkspaceDialog } from '../interface/WorkspaceFrame';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { httpsCallable } from 'firebase/functions';
 import { functions } from '../firebase';
 import { useRoute } from '../router';
-import type { Item } from './model';
+import { friendlyError, type Item } from './model';
 import { useWorkspace } from './workspace';
-import './rewards.css';
+import { Badge, Button, Dialog, EmptyState, Icon, Notice, Segmented, StatCard, StatGrid, Steps } from '../ui';
 
 export type PaymentRequest = { id: string; amountMinor: number; currency: 'GHS'; description: string; status: 'submitted' | 'approved' | 'rejected' | 'paid' | 'fulfilled'; points?: number; kind?: 'airtime' | 'data'; network?: string; phoneNumber?: string; createdAt: string; adminNote?: string; paidAt?: string | null; paymentReference?: string };
 type Rewards = { balance: number; lifetime: number; pointsPerExpression: number; dailyCap: number; redemptionMinimum: number; cedisPerRedemption: number };
@@ -20,17 +18,29 @@ const redeemPoints = httpsCallable<RedemptionChoice, { requestId: string }>(func
 export const livePaymentService: ContributorPaymentService = { load: () => loadRewards({}), redeem: choice => redeemPoints(choice) };
 const previewState: RewardView = { rewards: { balance: 900, lifetime: 1200, pointsPerExpression: 10, dailyCap: 300, redemptionMinimum: 300, cedisPerRedemption: 5 }, streak: { current: 3, best: 5, lastDay: new Date(Date.now() - 86400000).toISOString().slice(0, 10), activeToday: false }, requests: [{ id: 'sample-delivered', points: 300, amountMinor: 500, currency: 'GHS', description: '300 points for airtime', kind: 'airtime', network: 'MTN', phoneNumber: '+233241234567', status: 'fulfilled', createdAt: new Date().toISOString(), paymentReference: 'SAMPLE-DELIVERY' }] };
 export const previewService: ContributorPaymentService = { load: async () => ({ data: structuredClone(previewState) }), redeem: async choice => { if (choice.points > previewState.rewards.balance) throw new Error('Not enough points.'); previewState.rewards.balance -= choice.points; previewState.requests.unshift({ ...choice, id: `sample-${Date.now()}`, amountMinor: Math.round(choice.points / 300 * 500), currency: 'GHS', description: `${choice.points} points for ${choice.kind}`, status: 'submitted', createdAt: new Date().toISOString() }); } };
+
 export function RewardsPage({ streak = false, history = false }: { streak?: boolean; history?: boolean }) {
   const data = useWorkspace(); const { navigate } = useRoute();
   const service = data.preview ? previewService : livePaymentService;
   const onOpenTasks = () => navigate(data.paths.section('assignments'));
-  return <div className="cw-page contributor-rewards-page"><PageHeader title={streak ? 'Activity streak' : 'Points & redemptions'} description={streak ? 'Daily submission activity, measured in UTC.' : 'Your points and airtime or data requests.'} />{streak ? <ContributorStreak service={service} onOpenTasks={onOpenTasks} /> : <ContributorRewards service={service} onOpenTasks={onOpenTasks} initialView={history ? 'history' : 'redeem'} />}</div>;
+  return (
+    <div className="ts-page contributor-rewards-page">
+      <PageHeader
+        kicker="Recognition"
+        title={streak ? 'Activity streak' : 'Points & redemptions'}
+        description={streak ? 'Days in a row with at least one new submission, counted in UTC.' : 'Points come from approved expressions and can be redeemed for airtime or mobile data. They are not cash.'}
+      />
+      {streak ? <ContributorStreak service={service} onOpenTasks={onOpenTasks} /> : <ContributorRewards service={service} onOpenTasks={onOpenTasks} initialView={history ? 'history' : 'redeem'} />}
+    </div>
+  );
 }
+
 export function RewardNotices() {
   const data = useWorkspace(); const { navigate, path } = useRoute();
   const items = useMemo(() => Object.values(data.items).flat(), [data.items]);
   return <ContributorActivityNotice items={path === data.paths.base ? [] : items} accountId={data.uid} service={data.preview ? previewService : livePaymentService} onOpenTasks={() => navigate(data.paths.section('contributions', { filter: 'returned' }))} onOpenHistory={() => navigate(data.paths.section('rewards', { view: 'history' }))} />;
 }
+
 export function ContributorActivityNotice({ items, accountId, service = livePaymentService, onOpenTasks, onOpenHistory }: {
   items: Item[]; accountId: string; service?: ContributorPaymentService; onOpenTasks: () => void; onOpenHistory: () => void;
 }) {
@@ -55,11 +65,25 @@ export function ContributorActivityNotice({ items, accountId, service = livePaym
   const revisions = items.filter(item => ['rejected', 'needs_revision'].includes(item.status)).length;
   const showDelivery = latestDelivery && latestDelivery.id !== dismissedId;
   if (!revisions && !showDelivery) return null;
-  return <div className="contributor-activity-notices" aria-label="Contributor updates">
-    {revisions > 0 && <section className="contributor-activity-notice is-revision"><div><strong>{revisions} {revisions === 1 ? 'expression needs' : 'expressions need'} revision</strong><p>Reviewer feedback is ready in Tasks.</p></div><button type="button" onClick={onOpenTasks}>View Tasks</button></section>}
-    {showDelivery && <section className="contributor-activity-notice is-delivered"><div><strong>{latestDelivery.kind === 'airtime' ? 'Airtime' : 'Mobile data'} delivered</strong><p>See the delivery details in your redemption history.</p></div><div className="contributor-activity-notice__actions"><button type="button" onClick={onOpenHistory}>View History</button><button type="button" aria-label="Dismiss delivery update" onClick={() => { setDismissedId(latestDelivery.id); try { window.localStorage.setItem(`contributor-delivery-seen:${accountId}`, latestDelivery.id); } catch { /* Dismiss for this session. */ } }}>×</button></div></section>}
-  </div>;
+  return (
+    <div className="ts-stack ts-stack--sm" aria-label="Contributor updates">
+      {revisions > 0 ? (
+        <Notice tone="warning" title={`${revisions} ${revisions === 1 ? 'expression needs' : 'expressions need'} revision`} action={<Button size="sm" onClick={onOpenTasks}>View tasks</Button>}>
+          <p>Reviewer feedback is ready.</p>
+        </Notice>
+      ) : null}
+      {showDelivery && latestDelivery ? (
+        <Notice tone="success" title={`${latestDelivery.kind === 'airtime' ? 'Airtime' : 'Mobile data'} delivered`} action={<>
+          <Button size="sm" onClick={onOpenHistory}>View history</Button>
+          <button type="button" className="ts-btn ts-btn--ghost ts-btn--icon ts-btn--sm" aria-label="Dismiss delivery update" onClick={() => { setDismissedId(latestDelivery.id); try { window.localStorage.setItem(`contributor-delivery-seen:${accountId}`, latestDelivery.id); } catch { /* Dismiss for this session. */ } }}><Icon name="close" /></button>
+        </>}>
+          <p>See the delivery details in your redemption history.</p>
+        </Notice>
+      ) : null}
+    </div>
+  );
 }
+
 export function ContributorStreak({ service = livePaymentService, onOpenTasks }: { service?: ContributorPaymentService; onOpenTasks: () => void }) {
   const [streak, setStreak] = useState<Streak | null>(null);
   const [error, setError] = useState('');
@@ -76,8 +100,52 @@ export function ContributorStreak({ service = livePaymentService, onOpenTasks }:
     const earned = Boolean(streak?.current && day <= last && day > last - streak.current * 86400000);
     return { label: new Intl.DateTimeFormat(undefined, { weekday: 'short', timeZone: 'UTC' }).format(new Date(day)), earned, today: index === 6 };
   });
-  return <section className="contributor-streak" aria-label="Contribution streak"><div className="contributor-streak__heading"><span className="contributor-kicker">KEEP CONTRIBUTING</span><h2>Your streak</h2><p>Submit at least one new expression each UTC day to keep your streak going.</p></div>{error && <p role="alert">{error}</p>}<div className="contributor-streak__hero"><span className="contributor-streak__flame" aria-hidden="true"><Icon name="activity" /></span><div><span>Current streak</span><strong>{streak ? streak.current : '—'} <small>{streak?.current === 1 ? 'day' : 'days'}</small></strong><p>{streak?.activeToday ? 'Today is complete. Come back tomorrow to keep it going.' : streak?.current ? 'Complete an expression today to continue your streak.' : 'Complete an expression today to start a streak.'}</p></div></div><div className="contributor-streak__week" aria-label="Last seven UTC days">{recent.map((day, index) => <div key={index}><span className={day.earned ? 'is-earned' : ''} aria-label={`${day.label}: ${day.earned ? 'completed' : 'not completed'}`}>{day.earned ? '✓' : '·'}</span><small>{day.today ? 'Today' : day.label}</small></div>)}</div><div className="contributor-streak__best"><span>Best streak</span><strong>{streak ? streak.best : '—'} {streak?.best === 1 ? 'day' : 'days'}</strong></div>{streak && !streak.activeToday && <button type="button" className="contributor-streak__tasks" onClick={onOpenTasks}>Go to Tasks <span aria-hidden="true">→</span></button>}</section>;
+  return (
+    <section className="ts-split ts-split--even" aria-label="Contribution streak">
+      <div className="ts-panel cw-streak-hero">
+        {error ? <p role="alert" className="ts-notice ts-notice--danger">{error}</p> : null}
+        <div className="cw-streak-hero__count">
+          <span className={`cw-streak-hero__flame${streak?.activeToday ? ' is-lit' : ''}`} aria-hidden="true"><Icon name="flame" /></span>
+          <div>
+            <p className="ts-overline">Current streak</p>
+            <p className="cw-streak-hero__value">{streak ? streak.current : '—'} <small>{streak?.current === 1 ? 'day' : 'days'}</small></p>
+          </div>
+        </div>
+        <p className="ts-muted" style={{ fontSize: 'var(--fs-sm)' }}>
+          {streak?.activeToday ? 'Today is complete. Come back tomorrow to keep it going.' : streak?.current ? 'Submit a new expression today to continue your streak.' : 'Submit a new expression today to start a streak.'}
+        </p>
+        <ol className="cw-week" aria-label="Last seven UTC days">
+          {recent.map((day, index) => (
+            <li key={index} className={day.earned ? 'is-earned' : day.today ? 'is-today' : ''}>
+              <span aria-label={`${day.label}: ${day.earned ? 'contributed' : 'no submission'}`}>{day.earned ? <Icon name="check" /> : null}</span>
+              <small>{day.today ? 'Today' : day.label}</small>
+            </li>
+          ))}
+        </ol>
+        {streak && !streak.activeToday ? <Button variant="primary" iconRight="arrow" onClick={onOpenTasks}>Go to assignments</Button> : null}
+      </div>
+      <div className="ts-stack">
+        <StatGrid columns={2}>
+          <StatCard icon="award" label="Best streak" value={streak ? streak.best : '—'} hint={streak?.best === 1 ? 'day' : 'days'} />
+          <StatCard icon="calendar" label="Counted in" value="UTC" animate={false} hint="A new day starts at 00:00 UTC" />
+        </StatGrid>
+        <div className="ts-panel ts-panel--tint">
+          <p className="ts-overline">What counts</p>
+          <p style={{ fontSize: 'var(--fs-sm)' }}>At least one expression sent for review for the first time that day (UTC). Approval is not needed; resubmitting a returned expression does not count.</p>
+        </div>
+      </div>
+    </section>
+  );
 }
+
+const REQUEST_STATUS: Record<PaymentRequest['status'], { label: string; tone: 'info' | 'success' | 'danger' | 'accent' }> = {
+  submitted: { label: 'Pending review', tone: 'info' },
+  approved: { label: 'Approved · awaiting delivery', tone: 'accent' },
+  rejected: { label: 'Rejected · points returned', tone: 'danger' },
+  paid: { label: 'Delivered', tone: 'success' },
+  fulfilled: { label: 'Delivered', tone: 'success' },
+};
+
 export function ContributorRewards({ service = livePaymentService, onOpenTasks, initialView = 'redeem' }: { service?: ContributorPaymentService; onOpenTasks: () => void; initialView?: 'redeem' | 'history' }) {
   const [rewards, setRewards] = useState<Rewards | null>(null);
   const [requests, setRequests] = useState<PaymentRequest[]>([]);
@@ -100,7 +168,7 @@ export function ContributorRewards({ service = livePaymentService, onOpenTasks, 
       const result = await service.load();
       setRewards(result.data.rewards ?? null); setRequests(result.data.requests);
       if (result.data.rewards) setPoints(String(result.data.rewards.redemptionMinimum));
-    } catch (reason) { setError(reason instanceof Error ? reason.message : 'Rewards could not be loaded.'); }
+    } catch (reason) { setError(friendlyError(reason, 'Your points').message); }
     finally { setLoading(false); }
   };
   useEffect(() => { void refresh(); }, []);
@@ -122,16 +190,161 @@ export function ContributorRewards({ service = livePaymentService, onOpenTasks, 
     return (historyStatus === 'all' || historyStatus === status)
       && (!query || [request.id, request.description, request.kind, request.network, request.phoneNumber, request.paymentReference].some(value => String(value ?? '').toLowerCase().includes(query)));
   });
-  return <section className="contributor-rewards" aria-label="Contributor rewards">
-    <div className="contributor-rewards__heading"><div><span className="contributor-rewards__eyebrow">Your contributions</span><h2>Your points</h2></div></div>
-    {error && <p role="alert">{error}</p>}{notice && <p role="status">{notice}</p>}
-    <div className="contributor-rewards__balance"><div className="contributor-rewards__balance-total"><span>Available points</span><strong><Icon name="activity" />{loading ? '…' : rewards?.balance.toLocaleString() ?? '—'}</strong></div></div>
-    {rewards && <>
-      <div className="contributor-rewards__tabs" role="tablist" aria-label="Reward options"><button type="button" role="tab" aria-selected={view === 'earn'} onClick={() => setView('earn')}>Earn</button><button type="button" role="tab" aria-selected={view === 'redeem'} onClick={() => setView('redeem')}>Redeem</button><button type="button" role="tab" aria-selected={view === 'history'} onClick={() => setView('history')}>History</button></div>
-      {view === 'history' ? <div className="contributor-rewards__history-view" role="tabpanel"><div className="contributor-rewards__history-tools"><label><span className="sr-only">Search redemptions</span><input type="search" placeholder="Search request ID or recipient" value={historySearch} onChange={event => setHistorySearch(event.target.value)} /></label><label><span className="sr-only">Filter redemption status</span><select value={historyStatus} onChange={event => setHistoryStatus(event.target.value)}><option value="all">All statuses</option><option value="pending">Pending</option><option value="approved">Approved</option><option value="delivered">Delivered</option><option value="rejected">Rejected</option></select></label><div className="contributor-rewards__history-meta"><span>Showing {matchingRedemptions.length} of {redemptions.length} redemptions</span><button type="button" onClick={() => void refresh()} disabled={loading}>{loading ? 'Refreshing…' : 'Refresh'}</button></div></div>{matchingRedemptions.length ? <div className="contributor-rewards__history-list">{matchingRedemptions.map(request => { const status = request.status === 'submitted' ? 'Pending' : request.status === 'approved' ? 'Approved' : request.status === 'rejected' ? 'Rejected' : 'Delivered'; return <article key={request.id}><dl><div><dt>Request ID</dt><dd><code>{request.id}</code></dd></div><div><dt>Reward</dt><dd>{request.kind === 'airtime' ? 'Airtime' : 'Mobile data'}</dd></div><div><dt>Network</dt><dd>{request.network || '—'}</dd></div><div><dt>Recipient</dt><dd>{request.phoneNumber || '—'}</dd></div><div><dt>Points</dt><dd>{request.points ?? '—'}</dd></div><div><dt>Value</dt><dd>GH₵{(request.amountMinor / 100).toFixed(2)}</dd></div><div><dt>Status</dt><dd><span className={`contributor-rewards__request-status is-${request.status}`}>{status}</span></dd></div><div><dt>Requested</dt><dd>{new Date(request.createdAt).toLocaleString()}</dd></div>{request.paymentReference && <div><dt>Delivery reference</dt><dd><code>{request.paymentReference}</code></dd></div>}</dl>{request.status === 'submitted' && <p>Waiting for the team to review your request.</p>}{request.status === 'approved' && <p>Approved and waiting for delivery.</p>}{request.status === 'rejected' && <p>{request.adminNote || 'Your points have been returned to your balance.'}</p>}{request.status === 'fulfilled' && <p>Delivery has been recorded.</p>}</article>; })}</div> : <p className="contributor-rewards__history-empty">{redemptions.length ? 'No redemptions match your search or status filter.' : 'No redemptions yet. Your requests will appear here.'}</p>}</div> : view === 'earn' ? <div className="contributor-rewards__earn" role="tabpanel"><div className="contributor-rewards__tile-icon" aria-hidden="true"><Icon name="contributions" /></div><div><h3>Complete expressions</h3><p>Earn {rewards.pointsPerExpression} points when an expression is approved. Submissions await review; revisions do not earn points again.</p><button className="contributor-rewards__earn-button" type="button" onClick={onOpenTasks}>Open assignments <span aria-hidden="true">→</span></button></div></div> : <div role="tabpanel" className="contributor-rewards__catalog"><p className="contributor-rewards__intro">Choose how many points to redeem, starting at {rewards.redemptionMinimum}. Every {rewards.redemptionMinimum} points is worth GH₵{rewards.cedisPerRedemption}.</p><label className="contributor-rewards__amount">Points to redeem<input type="number" min={rewards.redemptionMinimum} max={rewards.balance} step="1" inputMode="numeric" value={points} disabled={!eligible} onChange={event => setPoints(event.target.value)} /><small>{canRedeem ? `Worth GH₵${(amountMinor / 100).toFixed(2)}` : rewards.balance < rewards.redemptionMinimum ? `${rewards.redemptionMinimum} points required · ${rewards.balance} available` : `Choose ${rewards.redemptionMinimum}–${rewards.balance} available points`}</small></label>{(['airtime', 'data'] as const).map(option => <article key={option} className={`contributor-rewards__item ${selectedKind === option ? 'is-selected' : ''}`}><div className={`contributor-rewards__tile-icon is-${option}`} aria-hidden="true"><Icon name={option === 'airtime' ? 'phone' : 'doc'} /></div><div className="contributor-rewards__item-copy"><h3>{option === 'airtime' ? 'Airtime' : 'Mobile data'}</h3><p>GH₵{(canRedeem ? amountMinor / 100 : rewards.cedisPerRedemption).toFixed(2)} {canRedeem ? 'selected value' : 'minimum request value'}</p><strong><Icon name="activity" /> {canRedeem ? pointAmount : rewards.redemptionMinimum} points</strong></div><button type="button" disabled={!eligible} onClick={event => { lastSelectRef.current = event.currentTarget; setKind(option); setError(''); setSelectedKind(option); }}>Select</button></article>)}
-        {pendingRequest && <p className="contributor-rewards__hint">Your current redemption is being processed. You can request another after it is delivered or rejected.</p>}{rewards.balance < rewards.redemptionMinimum && <p className="contributor-rewards__hint">Earn {rewards.redemptionMinimum - rewards.balance} more points to redeem.</p>}
-        {selectedKind && eligible && <WorkspaceDialog title={`${kind === 'airtime' ? 'Airtime' : 'Data'} delivery details`} busy={busy} onClose={() => setSelectedKind(null)}><form ref={dialogRef} className="contributor-rewards__form" onSubmit={async event => { event.preventDefault(); if (busy || !service.redeem || !canRedeem) return; setBusy(true); setError(''); try { await service.redeem({ points: pointAmount, kind, network, phoneNumber }); setNotice(`${kind === 'airtime' ? 'Airtime' : 'Data'} redemption requested. The team will review and deliver it.`); setSelectedKind(null); await refresh(); setView('history'); window.dispatchEvent(new Event('contributor-rewards-updated')); } catch (reason) { setError(reason instanceof Error ? reason.message : 'Redemption could not be requested.'); } finally { setBusy(false); } }}><p className="contributor-rewards__dialog-summary">{pointAmount} points · GH₵{(amountMinor / 100).toFixed(2)} {kind === 'airtime' ? 'airtime' : 'mobile data'}</p>{error && <p role="alert">{error}</p>}<label>Mobile network<select value={network} onChange={event => setNetwork(event.target.value as 'MTN' | 'Telecel' | 'AT')}><option>MTN</option><option>Telecel</option><option>AT</option></select></label><label>Ghana mobile number<input type="tel" required inputMode="tel" autoComplete="tel" placeholder="0241234567" value={phoneNumber} onChange={event => setPhoneNumber(event.target.value)} /></label><button type="submit" disabled={busy || !canRedeem}>{busy ? 'Requesting…' : 'Redeem'}</button><small>The team reviews and delivers redemptions. Delivery is not instant.</small></form></WorkspaceDialog>}
-        <aside className="contributor-rewards__more"><div><span className="contributor-rewards__more-kicker">REQUESTS & DELIVERY</span><h3>How requests work</h3><p>Requests are reviewed by the team. Approval and delivery are separate states; follow both in Redemption history.</p></div></aside></div>}
-    </>}
-  </section>;
+
+  return (
+    <section className="ts-stack" aria-label="Contributor rewards">
+      {error ? <Notice tone="danger" role="alert" action={<Button size="sm" icon="refresh" onClick={() => void refresh()}>Try again</Button>}>{error}</Notice> : null}
+      {notice ? <Notice tone="success" role="status">{notice}</Notice> : null}
+      <StatGrid label="Your points">
+        <StatCard icon="award" label="Available points" value={loading && !rewards ? '…' : rewards?.balance ?? '—'} hint={rewards ? `Redeemable from ${rewards.redemptionMinimum}` : undefined} />
+        <StatCard icon="layers" label="Earned in total" value={loading && !rewards ? '…' : rewards?.lifetime ?? '—'} hint="Including points already redeemed" />
+        <StatCard icon="check-circle" label="Per approved expression" value={rewards?.pointsPerExpression ?? '—'} hint="Credited once, on approval" />
+        <StatCard icon="calendar" label="Daily limit" value={rewards?.dailyCap ?? '—'} hint="Points per approval day (UTC)" />
+      </StatGrid>
+
+      {rewards ? (
+        <>
+          <Segmented
+            label="Reward options"
+            value={view}
+            onChange={setView}
+            options={[
+              { value: 'earn', label: 'How points work', icon: 'info' },
+              { value: 'redeem', label: 'Redeem', icon: 'gift' },
+              { value: 'history', label: 'History', icon: 'clock', count: redemptions.length },
+            ]}
+          />
+
+          {view === 'earn' ? (
+            <div className="ts-panel ts-enter" role="tabpanel">
+              <Steps label="How points work" steps={[
+                { title: 'An expression is approved', detail: `${rewards.pointsPerExpression} points, credited once per expression. Revisions do not earn again.`, icon: 'check' },
+                { title: `Up to ${rewards.dailyCap} a day`, detail: 'Counted by approval date in UTC.', icon: 'calendar' },
+                { title: `Redeem from ${rewards.redemptionMinimum}`, detail: `Every ${rewards.redemptionMinimum} points = GH₵${rewards.cedisPerRedemption} of airtime or mobile data.`, icon: 'gift' },
+                { title: 'Reviewed, then delivered', detail: 'The team approves each request and records delivery.', icon: 'send' },
+              ]} />
+              <div className="ts-cluster">
+                <Button variant="primary" iconRight="arrow" onClick={onOpenTasks}>Open assignments</Button>
+                <span className="ts-hint">Points are redeemed for airtime or mobile data only.</span>
+              </div>
+            </div>
+          ) : view === 'history' ? (
+            <div className="ts-stack ts-enter" role="tabpanel">
+              <div className="ts-toolbar">
+                <label className="ts-search">
+                  <span className="sr-only">Search redemptions</span>
+                  <Icon name="search" />
+                  <input type="search" placeholder="Search request ID or recipient" value={historySearch} onChange={event => setHistorySearch(event.target.value)} />
+                </label>
+                <label>
+                  <span className="sr-only">Filter redemption status</span>
+                  <select className="ts-select ts-select--sm" value={historyStatus} onChange={event => setHistoryStatus(event.target.value)}>
+                    <option value="all">All statuses</option><option value="pending">Pending</option><option value="approved">Approved</option><option value="delivered">Delivered</option><option value="rejected">Rejected</option>
+                  </select>
+                </label>
+                <span className="ts-toolbar__count">{matchingRedemptions.length} of {redemptions.length}</span>
+                <Button size="sm" icon="refresh" busy={loading} onClick={() => void refresh()}>{loading ? 'Refreshing…' : 'Refresh'}</Button>
+              </div>
+              {matchingRedemptions.length ? (
+                <div className="ts-stack ts-stack--sm ts-stagger">
+                  {matchingRedemptions.map(request => {
+                    const meta = REQUEST_STATUS[request.status];
+                    return (
+                      <article key={request.id} className="ts-panel ts-panel--tight cw-redemption">
+                        <div className="ts-row ts-row--between" style={{ flexWrap: 'wrap' }}>
+                          <span className="ts-row">
+                            <span className="ts-card__icon" aria-hidden="true"><Icon name={request.kind === 'airtime' ? 'phone' : 'globe'} /></span>
+                            <span className="ts-stack" style={{ ['--gap' as string]: '0.1rem' }}>
+                              <strong>{request.kind === 'airtime' ? 'Airtime' : 'Mobile data'} · GH₵{(request.amountMinor / 100).toFixed(2)}</strong>
+                              <small className="ts-muted">{request.points ?? '—'} points · {new Date(request.createdAt).toLocaleString()}</small>
+                            </span>
+                          </span>
+                          <Badge tone={meta.tone} dot>{meta.label}</Badge>
+                        </div>
+                        <dl className="ts-facts">
+                          <div className="ts-fact"><dt>Network</dt><dd>{request.network || '—'}</dd></div>
+                          <div className="ts-fact"><dt>Recipient</dt><dd>{request.phoneNumber || '—'}</dd></div>
+                          <div className="ts-fact"><dt>Request ID</dt><dd><code>{request.id}</code></dd></div>
+                          {request.paymentReference ? <div className="ts-fact"><dt>Delivery reference</dt><dd><code>{request.paymentReference}</code></dd></div> : null}
+                        </dl>
+                        <p className="ts-hint">
+                          {request.status === 'submitted' ? 'Waiting for the team to review your request.'
+                            : request.status === 'approved' ? 'Approved and waiting for delivery.'
+                              : request.status === 'rejected' ? (request.adminNote || 'Your points have been returned to your balance.')
+                                : 'Delivery has been recorded.'}
+                        </p>
+                      </article>
+                    );
+                  })}
+                </div>
+              ) : <EmptyState boxed compact icon="clock" title={redemptions.length ? 'No match' : 'No redemptions yet'} body={redemptions.length ? 'No redemptions match your search or status filter.' : 'Your requests will appear here with their review and delivery status.'} />}
+            </div>
+          ) : (
+            <div className="ts-stack ts-enter" role="tabpanel">
+              <div className="ts-panel">
+                <div className="cw-redeem">
+                  <label className="ts-field cw-redeem__amount">
+                    <span className="ts-label">Points to redeem</span>
+                    <input className="ts-input" type="number" min={rewards.redemptionMinimum} max={rewards.balance} step="1" inputMode="numeric" value={points} disabled={!eligible} onChange={event => setPoints(event.target.value)} />
+                    <small>{canRedeem ? `Worth GH₵${(amountMinor / 100).toFixed(2)} of airtime or data` : rewards.balance < rewards.redemptionMinimum ? `${rewards.redemptionMinimum} points required · ${rewards.balance} available` : `Choose ${rewards.redemptionMinimum}–${rewards.balance} available points`}</small>
+                  </label>
+                  <p className="ts-hint cw-redeem__rate">Every {rewards.redemptionMinimum} points is worth GH₵{rewards.cedisPerRedemption} of airtime or mobile data.</p>
+                </div>
+                <div className="ts-grid ts-grid--2">
+                  {(['airtime', 'data'] as const).map(option => (
+                    <article key={option} className={`ts-card cw-reward-option${selectedKind === option ? ' is-selected' : ''}`}>
+                      <span className="ts-row">
+                        <span className="ts-card__icon" aria-hidden="true"><Icon name={option === 'airtime' ? 'phone' : 'globe'} /></span>
+                        <span className="ts-stack" style={{ ['--gap' as string]: '0.1rem' }}>
+                          <h3 className="ts-card__title">{option === 'airtime' ? 'Airtime' : 'Mobile data'}</h3>
+                          <span className="ts-card__body">GH₵{(canRedeem ? amountMinor / 100 : rewards.cedisPerRedemption).toFixed(2)} · {canRedeem ? pointAmount : rewards.redemptionMinimum} points</span>
+                        </span>
+                      </span>
+                      <button type="button" className="ts-btn ts-btn--primary ts-btn--sm" disabled={!eligible} onClick={event => { lastSelectRef.current = event.currentTarget; setKind(option); setError(''); setSelectedKind(option); }}>Choose {option === 'airtime' ? 'airtime' : 'data'}</button>
+                    </article>
+                  ))}
+                </div>
+                {pendingRequest ? <p className="ts-hint">Your current redemption is being processed. You can request another after it is delivered or rejected.</p> : null}
+                {rewards.balance < rewards.redemptionMinimum ? <p className="ts-hint">Earn {rewards.redemptionMinimum - rewards.balance} more points to redeem.</p> : null}
+              </div>
+              <div className="ts-panel ts-panel--tint">
+                <p className="ts-overline">Requests and delivery</p>
+                <p style={{ fontSize: 'var(--fs-sm)' }}>Each request is reviewed by the team. Approval and delivery are separate steps; follow both under History.</p>
+              </div>
+              {selectedKind && eligible ? (
+                <Dialog
+                  title={`${kind === 'airtime' ? 'Airtime' : 'Data'} delivery details`}
+                  lede={`${pointAmount} points · GH₵${(amountMinor / 100).toFixed(2)} of ${kind === 'airtime' ? 'airtime' : 'mobile data'}`}
+                  busy={busy}
+                  onClose={() => setSelectedKind(null)}
+                >
+                  <form ref={dialogRef} className="ts-stack ts-stack--md" onSubmit={async event => {
+                    event.preventDefault();
+                    if (busy || !service.redeem || !canRedeem) return;
+                    setBusy(true); setError('');
+                    try {
+                      await service.redeem({ points: pointAmount, kind, network, phoneNumber });
+                      setNotice(`${kind === 'airtime' ? 'Airtime' : 'Data'} redemption requested. The team will review and deliver it.`);
+                      setSelectedKind(null);
+                      await refresh();
+                      setView('history');
+                      window.dispatchEvent(new Event('contributor-rewards-updated'));
+                    } catch (reason) {
+                      setError(friendlyError(reason, 'The redemption service').message);
+                    } finally { setBusy(false); }
+                  }}>
+                    {error ? <p role="alert" className="ts-notice ts-notice--danger">{error}</p> : null}
+                    <label className="ts-field"><span className="ts-label">Mobile network</span><select className="ts-select" value={network} onChange={event => setNetwork(event.target.value as 'MTN' | 'Telecel' | 'AT')}><option>MTN</option><option>Telecel</option><option>AT</option></select></label>
+                    <label className="ts-field"><span className="ts-label">Ghana mobile number</span><input className="ts-input" type="tel" required inputMode="tel" autoComplete="tel" placeholder="0241234567" value={phoneNumber} onChange={event => setPhoneNumber(event.target.value)} /><small>The number that receives the {kind === 'airtime' ? 'airtime' : 'data'}.</small></label>
+                    <p className="ts-consequence"><Icon name="info" /><span>Next: the team reviews the request, then records delivery. Delivery is not instant; your points are returned if a request is rejected.</span></p>
+                    <button type="submit" className="ts-btn ts-btn--primary ts-btn--lg ts-btn--block" disabled={busy || !canRedeem} aria-busy={busy || undefined}><span className="ts-btn__spinner" aria-hidden="true" /><span>{busy ? 'Requesting…' : 'Request redemption'}</span></button>
+                  </form>
+                </Dialog>
+              ) : null}
+            </div>
+          )}
+        </>
+      ) : null}
+    </section>
+  );
 }

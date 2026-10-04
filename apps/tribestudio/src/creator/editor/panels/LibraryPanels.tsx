@@ -1,4 +1,4 @@
-import { Icon } from '../../../interface/icons';
+import { Icon } from '../../../ui';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { errorMessage, listMusicTracks, listStickers, type MusicTrack, type Sticker } from '../api';
 import { ENTER_SEC } from '../looks';

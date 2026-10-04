@@ -1,4 +1,5 @@
 import { KnowledgeDesk } from './KnowledgeWorkspace';
+import { AppShell } from '../ui';
 import { type CatalogEntry, type KnowledgeRecord, type KnowledgeServices } from './data';
 import catalog from '@indigen-world/contracts/knowledge-catalog.json';
 import { submissionIssues } from '@indigen-world/contracts/knowledge';
@@ -30,5 +31,17 @@ const service: KnowledgeServices = {
   audio: async () => { throw new Error('No recordings in this preview.'); },
 };
 export function KnowledgePreview() {
-  return <main id="main-content"><KnowledgeDesk uid={uid} services={service} preview /></main>;
+  return (
+    <AppShell
+      workspace="contribute"
+      nav={[
+        { to: '/contributor/preview/corpus', label: 'Corpus records', icon: 'database', group: 'Your work', active: true, dock: true },
+        { to: '/contributor/preview', label: 'Contributor preview', icon: 'home', group: 'Your work', dock: true },
+      ]}
+      account={{ name: 'Preview contributor', role: 'Local preview' }}
+      onSignOut={() => undefined}
+    >
+      <KnowledgeDesk uid={uid} services={service} preview />
+    </AppShell>
+  );
 }

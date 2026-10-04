@@ -2,6 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { trackEvent } from '../analytics';
 import { WHATSAPP_CHANNEL_URL } from './data';
+import { Icon } from '../ui/icons';
+import { Badge, EmptyState as KitEmptyState, LoadFailure, Notice, Skeleton as KitSkeleton, Steps, type Tone } from '../ui';
 
 // Human-readable labels shown alongside internal status codes.
 export const CAMPAIGN_STATUS_LABELS: Record<string, string> = {
@@ -41,80 +43,69 @@ export const SUBMISSION_STATUS_LABELS: Record<string, string> = {
   ARCHIVED: 'Archived',
 };
 
-const STATUS_TONE: Record<string, string> = {
-  APPROVED: 'ok',
-  PUBLISHED: 'ok',
-  SUBMISSIONS_OPEN: 'ok',
+const STATUS_TONE: Record<string, Tone> = {
+  APPROVED: 'success',
+  PUBLISHED: 'success',
+  SUBMISSIONS_OPEN: 'success',
   WAITLIST_OPEN: 'info',
   SUBMITTED: 'info',
   UNDER_REVIEW: 'info',
   RESUBMITTED: 'info',
   SCHEDULED: 'info',
-  NEEDS_REVISION: 'warn',
-  NEEDS_INFO: 'warn',
-  WAITLISTED: 'warn',
-  REJECTED: 'err',
-  SUSPENDED: 'err',
-  WITHDRAWN: 'muted',
-  ARCHIVED: 'muted',
-  DRAFT: 'muted',
+  NEEDS_REVISION: 'warning',
+  NEEDS_INFO: 'warning',
+  WAITLISTED: 'warning',
+  REJECTED: 'danger',
+  SUSPENDED: 'danger',
+  REVOKED: 'danger',
+  WITHDRAWN: 'neutral',
+  ARCHIVED: 'neutral',
+  DRAFT: 'neutral',
 };
 
-export function StatusPill({ status, labels }: { status: string; labels: Record<string, string> }) {
-  const tone = STATUS_TONE[status] ?? 'muted';
-  return <span className={`pill pill--${tone}`}>{labels[status] ?? status}</span>;
+export function statusTone(status: string): Tone {
+  return STATUS_TONE[status] ?? 'neutral';
 }
 
-/** Prominent WhatsApp Channel call-to-action. Opens safely in a new tab. */
+export function StatusPill({ status, labels }: { status: string; labels: Record<string, string> }) {
+  const tone = statusTone(status);
+  return <Badge tone={tone} dot live={status === 'UNDER_REVIEW'}>{labels[status] ?? status}</Badge>;
+}
+
+/** The official creator channel, as a compact call to action. Opens in a new tab. */
 export function WhatsAppCard({ url, compact }: { url?: string; compact?: boolean }) {
   const href = url || WHATSAPP_CHANNEL_URL;
   return (
-    <div className={compact ? 'wa-card wa-card--compact' : 'wa-card'}>
-      <div className="wa-card__body">
-        <strong>Follow Indigen World Creators on WhatsApp</strong>
-        <p>Receive campaign openings, creator resources, deadlines and winner announcements.</p>
+    <div className={compact ? 'cr-channel cr-channel--compact' : 'cr-channel'}>
+      <span className="cr-channel__icon" aria-hidden="true"><Icon name="message" /></span>
+      <div className="cr-channel__body">
+        <strong>Indigen World Creators on WhatsApp</strong>
+        <p>Campaign openings, creator resources, deadlines and winner announcements.</p>
       </div>
       <a
-        className="button button--whatsapp"
+        className="ts-btn ts-btn--secondary ts-btn--sm"
         href={href}
         target="_blank"
         rel="noopener noreferrer"
         onClick={() => trackEvent('whatsapp_cta_clicked')}
       >
-        Open WhatsApp Channel
+        <span>Open the channel</span>
+        <Icon name="external" />
       </a>
     </div>
   );
 }
 
 export function Stepper({ steps, current }: { steps: string[]; current: number }) {
-  return (
-    <ol className="stepper" aria-label="Progress">
-      {steps.map((label, index) => {
-        const state = index < current ? 'done' : index === current ? 'current' : 'todo';
-        return (
-          <li key={label} className={`stepper__item stepper__item--${state}`} aria-current={index === current ? 'step' : undefined}>
-            <span className="stepper__dot">{index < current ? '✓' : index + 1}</span>
-            <span className="stepper__label">{label}</span>
-          </li>
-        );
-      })}
-    </ol>
-  );
+  return <Steps label="Progress" current={current} steps={steps.map((title) => ({ title }))} />;
 }
 
-export function EmptyState({ title, body, action }: { title: string; body?: string; action?: ReactNode }) {
-  return (
-    <div className="empty">
-      <h3>{title}</h3>
-      {body ? <p>{body}</p> : null}
-      {action}
-    </div>
-  );
+export function EmptyState({ title, body, action, icon = 'inbox' }: { title: string; body?: string; action?: ReactNode; icon?: Parameters<typeof KitEmptyState>[0]['icon'] }) {
+  return <KitEmptyState boxed compact icon={icon} title={title} body={body} actions={action} />;
 }
 
 export function Callout({ tone = 'info', children }: { tone?: 'info' | 'warn' | 'ok'; children: ReactNode }) {
-  return <div className={`callout callout--${tone}`}>{children}</div>;
+  return <Notice tone={tone === 'warn' ? 'warning' : tone === 'ok' ? 'success' : 'info'}>{children}</Notice>;
 }
 
 /**
@@ -129,17 +120,7 @@ export function LoadError({
   onRetry: () => void;
   title?: string;
 }) {
-  return (
-    <div className="load-error" role="alert">
-      <h2>{title}</h2>
-      <p className="muted">
-        Something went wrong reaching the workspace. Check your connection and try again.
-      </p>
-      <button type="button" className="button button--primary" onClick={onRetry}>
-        Try again
-      </button>
-    </div>
-  );
+  return <LoadFailure title={title} body="Something went wrong reaching the workspace. Check your connection and try again." onRetry={onRetry} />;
 }
 
 /**
@@ -158,13 +139,7 @@ export function useReloadable() {
 }
 
 export function Skeleton({ lines = 3 }: { lines?: number }) {
-  return (
-    <div className="skeleton" aria-hidden="true">
-      {Array.from({ length: lines }).map((_, i) => (
-        <span key={i} className="skeleton__line" />
-      ))}
-    </div>
-  );
+  return <KitSkeleton lines={lines} />;
 }
 
 export function Field({
@@ -181,20 +156,20 @@ export function Field({
   children: ReactNode;
 }) {
   return (
-    <div className={error ? 'field field--error' : 'field'}>
-      <label htmlFor={htmlFor}>{label}</label>
-      {hint ? <p className="field__hint">{hint}</p> : null}
+    <div className={error ? 'ts-field field field--error' : 'ts-field field'}>
+      <label className="ts-label" htmlFor={htmlFor}>{label}</label>
       {children}
+      {hint ? <p className="ts-hint field__hint">{hint}</p> : null}
       {error ? (
-        <p className="field__error" role="alert">
-          {error}
+        <p className="ts-error field__error" role="alert">
+          <Icon name="alert" />{error}
         </p>
       ) : null}
     </div>
   );
 }
 
-/** In-Browser Voice Recorder for indigenous language & oral story recording */
+/** In-browser voice recorder for indigenous language and oral story recording. */
 export function VoiceRecorder({ onAudioReady }: { onAudioReady: (file: File) => void }) {
   const [recording, setRecording] = useState(false);
   const [starting, setStarting] = useState(false);
@@ -300,38 +275,48 @@ export function VoiceRecorder({ onAudioReady }: { onAudioReady: (file: File) => 
   };
 
   return (
-    <div className="voice-recorder">
-      <div className="voice-recorder__controls">
+    <div className={recording ? 'cr-recorder is-recording' : 'cr-recorder'}>
+      <div className="cr-recorder__controls">
         {!recording ? (
           <button
             type="button"
-            className="button button--primary button--small record-btn"
+            className="ts-btn ts-btn--primary cr-recorder__button"
             disabled={starting}
             onClick={() => void startRecording()}
           >
-            {starting ? 'Opening microphone…' : 'Record audio'}
+            <Icon name="mic" />
+            {starting ? 'Opening microphone…' : audioUrl ? 'Record again' : 'Record audio'}
           </button>
         ) : (
           <button
             type="button"
-            className="button button--danger button--small stop-btn"
+            className="ts-btn ts-btn--danger cr-recorder__button"
             onClick={stopRecording}
           >
-            Stop recording ({formatTime(seconds)})
+            <Icon name="stop" />
+            Stop recording
           </button>
         )}
-        {recording && <span className="recording-pulse">Recording live audio…</span>}
+        {recording ? (
+          <span className="cr-recorder__live" role="status">
+            <span className="cr-recorder__dot" aria-hidden="true" />
+            <span className="ts-num">{formatTime(seconds)}</span>
+            <span className="cr-recorder__wave" aria-hidden="true"><i /><i /><i /><i /><i /></span>
+            <span className="sr-only">Recording</span>
+          </span>
+        ) : (
+          <span className="ts-hint">Your browser asks for the microphone the first time.</span>
+        )}
       </div>
 
-      {error && <p className="field__error">{error}</p>}
+      {error && <p className="ts-error" role="alert"><Icon name="alert" />{error}</p>}
 
       {audioUrl && (
-        <div className="voice-recorder__preview">
-          <p className="tiny muted">✓ Audio captured successfully. Play preview:</p>
-          <audio controls src={audioUrl} className="audio-preview-player" />
+        <div className="cr-recorder__preview">
+          <p className="ts-save"><span className="ts-save__mark" aria-hidden="true"><Icon name="check" /></span>Recording captured — play it back before you continue.</p>
+          <audio controls src={audioUrl} />
         </div>
       )}
     </div>
   );
 }
-

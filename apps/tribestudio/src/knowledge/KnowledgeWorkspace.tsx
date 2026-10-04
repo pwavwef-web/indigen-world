@@ -1,4 +1,5 @@
-import { Icon, type IconName } from "../interface/icons";
+import { Icon, type IconName } from '../ui/icons';
+import { PageHeader, StatCard, StatGrid, Tabs } from '../ui';
 import { ReleasePanel } from './ReleasePanel';
 import { AUTHENTICATION_LABELS, VALUE_STATES, REVIEW_CHECKS, WORKFLOW_LABELS, knowledgeState, submissionIssues, type ReviewScope } from '@indigen-world/contracts/knowledge';
 import { CaptureFields } from './CaptureFields';
@@ -22,7 +23,20 @@ const PERMISSIONS = [
   ['audio', 'Recordings', 'Allow the attached recordings to be stored and heard within this workspace.'],
 ] as const;
 const date = (value: string) => value ? new Date(value).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) : '';
-const message = (error: unknown) => error instanceof Error ? error.message : 'The request could not be completed. Please retry.';
+// A callable that fails without its own sentence reports only its code
+// ("internal", "unavailable"); say what that means instead of showing the code.
+const BARE_CODES: Record<string, string> = {
+  internal: 'The records service could not complete that request. Try again in a moment.',
+  unavailable: 'The records service cannot be reached right now. Check your connection and try again.',
+  'deadline-exceeded': 'The records service took too long to answer. Try again.',
+  unauthenticated: 'Your session has ended. Sign in again to continue.',
+  'permission-denied': 'This account cannot open these records.',
+};
+const message = (error: unknown) => {
+  if (!(error instanceof Error)) return 'The request could not be completed. Please retry.';
+  const text = error.message.trim();
+  return BARE_CODES[text.toLowerCase()] ?? text;
+};
 const canLeave = () => window.dispatchEvent(new Event('knowledge:before-record', { cancelable: true }));
 
 export function KnowledgeWorkspace() {
@@ -74,13 +88,19 @@ export function KnowledgeDesk({ uid, services, preview = false, related = '' }: 
     setOpening(true); setError(''); setNotice('');
     try {
       const result = await services.get(record.id, revision);
-      if (epoch === openEpoch.current) { setDetail(result); setNewType(null); }
+      if (epoch === openEpoch.current) {
+        setDetail(result); setNewType(null);
+        // Stacked layouts put the record under the list; follow it there.
+        if (window.matchMedia('(max-width: 1099px)').matches) window.requestAnimationFrame(() => document.querySelector('.kw-detail')?.scrollIntoView({ block: 'start' }));
+      }
     } catch (reason) { if (epoch === openEpoch.current) setError(message(reason)); }
     finally { if (epoch === openEpoch.current) setOpening(false); }
   };
   const create = () => {
     if (!canLeave()) return;
     openEpoch.current += 1; setOpening(false); setDetail(null); setTab('records'); setNewType(category || 'lexicon'); setNotice('');
+    // The editor opens below the records list; bring it into view.
+    window.requestAnimationFrame(() => document.querySelector('.kw-detail')?.scrollIntoView({ block: 'start', behavior: document.documentElement.dataset.motion === 'off' ? 'auto' : 'smooth' }));
   };
   const saved = async (record: KnowledgeRecord, text: string) => {
     setNotice(text); setDetail({ record, reviews: [], history: detail?.history ?? [] }); setNewType(null);
@@ -101,41 +121,108 @@ export function KnowledgeDesk({ uid, services, preview = false, related = '' }: 
     && (!status || knowledgeState(record).workflow === status) && (!authFilter || knowledgeState(record).authentication === authFilter)
     && `${record.title} ${record.original} ${record.english} ${record.id} ${record.region}`.toLocaleLowerCase().includes(query.toLocaleLowerCase()));
   const selectedType = detail?.record.datasetType ?? newType;
-  return <div className={`kw${preview ? ' kw--preview' : ''}`}>
-    {preview ? <div className="kw-preview" role="status">LOCAL PREVIEW · All example records are synthetic. Saves and reviews stay in this browser session.</div> : null}
-    <header className="kw-hero">
-      <div><p className="kw-eyebrow">KAWURI · KASEM KNOWLEDGE</p><h1>Corpus workspace</h1><p>Create and review sourced language and cultural records.</p></div>
-      <button type="button" className="kw-primary" disabled={!catalog.length || opening} onClick={create}><span aria-hidden="true">＋</span> Contribute</button>
-    </header>
-    <nav className="kw-topnav" aria-label="Corpus workspace"><button aria-pressed={tab === 'records'} onClick={() => { if (canLeave()) setTab('records'); }}>My submissions</button><button aria-pressed={tab === 'reference'} onClick={() => { if (canLeave()) { setTab('reference'); setDetail(null); setNewType(null); } }}>Corpus reference</button><button aria-pressed={tab === 'guide'} onClick={() => { if (canLeave()) { setTab('guide'); setDetail(null); setNewType(null); } }}>Guide and policies</button></nav>
-    <section className="kw-progress" aria-label="Contribution history">{progress ? <><div className="kw-metrics">{[["Submitted objects", progress.submitted], ["Awaiting review", (progress.counts.submitted ?? 0) + (progress.counts.in_review ?? 0)], ["Returned", progress.counts.changes_requested ?? 0], ["Review complete", progress.counts.review_complete ?? 0]].map(([label, count]) => <div key={label}><strong>{count}</strong><span>{label}</span></div>)}</div><p>{progress.period} · {progress.timezone} · Refreshed {new Date(progress.refreshedAt).toISOString()}<br />{progress.definition}</p></> : <p>{progressError || 'Loading server-confirmed history…'}</p>}<button onClick={() => setAttempt(n => n + 1)}>Refresh history</button></section>
-    {tab === 'reference' ? <CorpusReference services={services} /> : tab === 'guide' ? <section className="kw-guide"><h2>Contribute with context</h2><ol><li>Choose a category and preserve the original wording.</li><li>Describe meanings separately. Mark unknown or untranslated fields explicitly.</li><li>Identify the source, recordings and exact related revisions.</li><li>Document consent and choose each permitted use.</li><li>Check the full record, then submit. Keep the receipt.</li><li>Respond to reviewer feedback with a new revision.</li></ol><h3>Authentication and release are separate</h3><p>Only reviewers with current qualifications and category-specific grants can authenticate. Administrative access alone does not qualify someone. Public release, AI retrieval, training and evaluation each require permission and a release manager.</p><p>Current policy: {policy.approved ? policy.version : 'Awaiting approval'}. Sentences: {policy.sentenceEnabled ? 'Approved capture enabled' : 'Provisional drafts only'}. Downstream release: {policy.releaseEnabled ? 'Subject to eligibility checks' : 'Disabled'}.</p><p>Original recordings remain private and immutable. Withdraw a record to stop future corpus use. Already downloaded exports or trained models require a separate removal process.</p><p>Existing assignment recognition remains in the account workspace. Corpus submissions do not earn points or promise payment.</p><a href="/contributor/support">Get help or appeal a decision</a></section> : <>
-    <div className="kw-principles"><span><i aria-hidden="true">01</i> Preserve the original</span><span><i aria-hidden="true">02</i> Keep context attached</span><span><i aria-hidden="true">03</i> Human review, explicit rights</span></div>
+  const setTabSafely = (next: 'records' | 'reference' | 'guide') => {
+    if (!canLeave()) return;
+    setTab(next);
+    if (next !== 'records') { setDetail(null); setNewType(null); }
+  };
+  const awaitingCount = progress ? (progress.counts.submitted ?? 0) + (progress.counts.in_review ?? 0) : 0;
+  return <div className={`ts-page kw${preview ? ' kw--preview' : ''}`}>
+    {preview ? <div className="ts-banner" role="status"><strong>Local preview</strong><span>All example records are synthetic. Saves and reviews stay in this browser session.</span></div> : null}
+    <PageHeader
+      kicker="Kawuri · Kasem knowledge"
+      title="Corpus records"
+      description="Create and review sourced language and cultural records. Each record keeps its original wording, meaning, source and permissions together."
+      actions={<button type="button" className="ts-btn ts-btn--primary" disabled={!catalog.length || opening} onClick={create}><Icon name="plus" /><span>New record</span></button>}
+    />
+    <Tabs label="Corpus workspace" items={[
+      { id: 'records', label: canReview ? 'Records and review' : 'My records', icon: 'database', active: tab === 'records', onSelect: () => setTabSafely('records') },
+      { id: 'reference', label: 'Corpus reference', icon: 'book', active: tab === 'reference', onSelect: () => setTabSafely('reference') },
+      { id: 'guide', label: 'Guide and policies', icon: 'guide', active: tab === 'guide', onSelect: () => setTabSafely('guide') },
+    ]} />
+    <section className="kw-progress" aria-label="Contribution history">
+      {progress ? (
+        <StatGrid label="Server-confirmed history">
+          <StatCard icon="send" label="Submitted" value={progress.submitted} hint="Objects, each counted once" />
+          <StatCard icon="hourglass" label="Awaiting review" value={awaitingCount} />
+          <StatCard icon="refresh" label="Returned" value={progress.counts.changes_requested ?? 0} attention={(progress.counts.changes_requested ?? 0) > 0} />
+          <StatCard icon="check-circle" label="Review complete" value={progress.counts.review_complete ?? 0} />
+        </StatGrid>
+      ) : <p className="ts-hint" role="status">{progressError || 'Loading server-confirmed history…'}</p>}
+      <p className="ts-hint kw-progress__note">
+        <span>{progress ? `${progress.period} · ${progress.timezone} · refreshed ${new Date(progress.refreshedAt).toLocaleString()}. ${progress.definition}` : ''}</span>
+        <button type="button" className="ts-link" onClick={() => setAttempt(n => n + 1)}><Icon name="refresh" />Refresh</button>
+      </p>
+    </section>
+    {tab === 'reference' ? <CorpusReference services={services} /> : tab === 'guide' ? (
+      <section className="ts-split">
+        <div className="ts-panel kw-guide">
+          <h2 className="ts-panel__title">Contribute with context</h2>
+          <ol className="kw-guide__steps">
+            <li>Choose a category and preserve the original wording.</li>
+            <li>Describe meanings separately. Mark unknown or untranslated fields explicitly.</li>
+            <li>Identify the source, recordings and exact related revisions.</li>
+            <li>Document consent and choose each permitted use.</li>
+            <li>Check the full record, then submit. Keep the receipt.</li>
+            <li>Respond to reviewer feedback with a new revision.</li>
+          </ol>
+          <h3 className="ts-section-head__title">Authentication and release are separate</h3>
+          <p>Only reviewers with current qualifications and category-specific grants can authenticate. Administrative access alone does not qualify someone. Public release, AI retrieval, training and evaluation each require permission and a release manager.</p>
+          <p>Original recordings remain private and immutable. Withdraw a record to stop future corpus use. Already downloaded exports or trained models require a separate removal process.</p>
+          <p>Existing assignment recognition remains in the account workspace. Corpus submissions do not earn points or promise payment.</p>
+          <p><a href="/contributor/support" className="ts-link"><Icon name="help" />Get help or appeal a decision</a></p>
+        </div>
+        <aside className="ts-panel ts-panel--tint">
+          <p className="ts-overline">Current policy</p>
+          <dl className="ts-kv">
+            <div><dt>Reviewer policy</dt><dd>{policy.approved ? policy.version : 'Awaiting approval'}</dd></div>
+            <div><dt>Sentences</dt><dd>{policy.sentenceEnabled ? 'Approved capture enabled' : 'Provisional drafts only'}</dd></div>
+            <div><dt>Downstream release</dt><dd>{policy.releaseEnabled ? 'Subject to eligibility checks' : 'Disabled'}</dd></div>
+          </dl>
+        </aside>
+      </section>
+    ) : <>
     <nav className="kw-catalog" aria-label="Dataset areas">
-      <button type="button" className={!category ? 'is-selected' : ''} onClick={() => setCategory('')} aria-pressed={!category}><Icon name="overview" /><strong>All areas</strong><small>One connected archive</small></button>
-      {catalog.map((area) => <button key={area.id} type="button" className={category === area.id ? 'is-selected' : ''} onClick={() => setCategory(area.id)} aria-pressed={category === area.id} title={area.description}><span aria-hidden="true"><Icon name={DATASET_MARKS[area.id]} /></span><strong>{area.label}</strong><small>{area.description}</small></button>)}
+      <button type="button" className={`kw-area${!category ? ' is-selected' : ''}`} onClick={() => setCategory('')} aria-pressed={!category}><span className="kw-area__icon" aria-hidden="true"><Icon name="layers" /></span><strong>All areas</strong><small>One connected archive</small></button>
+      {catalog.map((area) => <button key={area.id} type="button" className={`kw-area${category === area.id ? ' is-selected' : ''}`} onClick={() => setCategory(area.id)} aria-pressed={category === area.id} title={area.description}><span className="kw-area__icon" aria-hidden="true"><Icon name={DATASET_MARKS[area.id]} /></span><strong>{area.label}</strong><small>{area.description}</small></button>)}
     </nav>
-    <div className="kw-workspace-heading"><div><p className="kw-eyebrow">KNOWLEDGE WORKSPACE</p><h2>{catalog.find((area) => area.id === category)?.label ?? 'Your records, with their evidence'}</h2></div><p>Choose · Describe · Evidence · Rights · Check · Review</p></div>
-    <div className="kw-info">Records stay private to you and authorised reviewers. Authentication belongs to an exact revision under an approved reviewer policy. It does not publish a record or put it into AI training. Sentence capture remains provisional until approved.</div>
-    {error ? <div className="kw-alert" role="alert">{error} <button type="button" onClick={() => setAttempt((value) => value + 1)}>Retry loading records</button></div> : null}
-    {notice ? <div className="kw-success" role="status">{notice}</div> : null}
+    <p className="ts-notice ts-notice--neutral kw-info-strip"><Icon name="lock" className="ts-notice__icon" /><span>Records stay private to you and authorised reviewers. Authentication belongs to an exact revision under an approved reviewer policy; it does not publish a record or put it into AI training.{policy.sentenceEnabled ? '' : ' Sentence capture remains provisional until approved.'}</span></p>
+    {error ? <div className="ts-notice ts-notice--danger" role="alert"><Icon name="alert" className="ts-notice__icon" /><div className="ts-notice__body"><p>{error}</p></div><div className="ts-notice__action"><button type="button" className="ts-btn ts-btn--sm" onClick={() => setAttempt((value) => value + 1)}><Icon name="refresh" />Retry loading records</button></div></div> : null}
+    {notice ? <div className="ts-notice ts-notice--success" role="status"><Icon name="check-circle" className="ts-notice__icon" /><span>{notice}</span></div> : null}
     <div className="kw-desk">
       <section className="kw-records" aria-label="Records">
-        <div className="kw-tabs" role="group" aria-label="Record scope"><button type="button" aria-pressed={scope === 'mine'} onClick={() => setScope('mine')}>My records</button>{canReview ? <button type="button" aria-pressed={scope === 'review'} onClick={() => setScope('review')}>Review queue</button> : null}</div>
-        <label className="kw-search">Search loaded records<input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Title, Kasem, reference…" /></label>
-        <label className="kw-search">Review status<select value={status} onChange={(event) => setStatus(event.target.value)}><option value="">Every status</option>{Object.entries(WORKFLOW_LABELS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label>
-        <label className="kw-search">Authentication<select value={authFilter} onChange={e => setAuthFilter(e.target.value)}><option value="">Every level</option>{Object.entries(AUTHENTICATION_LABELS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label>
+        {canReview ? <div className="ts-seg ts-seg--block" role="group" aria-label="Record scope"><button type="button" className="ts-seg__item" aria-pressed={scope === 'mine'} onClick={() => setScope('mine')}>My records</button><button type="button" className="ts-seg__item" aria-pressed={scope === 'review'} onClick={() => setScope('review')}>Review queue</button></div> : null}
+        <label className="ts-search"><span className="sr-only">Search loaded records</span><Icon name="search" /><input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Title, Kasem, reference…" /></label>
+        <div className="kw-filters">
+          <label><span className="sr-only">Review status</span><select className="ts-select ts-select--sm" value={status} onChange={(event) => setStatus(event.target.value)}><option value="">Every status</option>{Object.entries(WORKFLOW_LABELS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label>
+          <label><span className="sr-only">Authentication</span><select className="ts-select ts-select--sm" value={authFilter} onChange={e => setAuthFilter(e.target.value)}><option value="">Every level</option>{Object.entries(AUTHENTICATION_LABELS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label>
+        </div>
         <div className="kw-record-list" aria-busy={loading}>
           {visible.map((record) => <button type="button" key={record.id} className={`kw-record${detail?.record.id === record.id ? ' is-active' : ''}`} onClick={() => void open(record)} disabled={opening} aria-pressed={detail?.record.id === record.id}>
-            <div><span className={`kw-badge kw-badge--${record.status}`}>{WORKFLOW_LABELS[knowledgeState(record).workflow]} · {AUTHENTICATION_LABELS[knowledgeState(record).authentication]}</span><small>v{record.revision}</small></div><strong>{record.title || 'Untitled draft'}</strong><p>{record.english || record.original || 'Ready for your next detail'}</p><footer><span>{catalog.find((area) => area.id === record.datasetType)?.label}</span><span>{date(record.updatedAt)}</span></footer>
+            <span className="kw-record__top"><span className="kw-record__area"><Icon name={DATASET_MARKS[record.datasetType]} />{catalog.find((area) => area.id === record.datasetType)?.label}</span><small>v{record.revision}</small></span>
+            <strong>{record.title || 'Untitled draft'}</strong>
+            <span className="kw-record__text">{record.english || record.original || 'Ready for your next detail'}</span>
+            <span className="kw-record__foot"><span className={`kw-badge kw-badge--${record.status}`}>{WORKFLOW_LABELS[knowledgeState(record).workflow]} · {AUTHENTICATION_LABELS[knowledgeState(record).authentication]}</span><span>{date(record.updatedAt)}</span></span>
           </button>)}
-          {loading ? <p className="kw-empty" role="status">Loading records…</p> : !visible.length ? <p className="kw-empty">{records.length ? 'No loaded records match these filters.' : scope === 'review' ? 'No records are ready for review yet.' : 'Start with one record. Save a draft as you gather the details.'}</p> : null}
+          {loading ? <p className="kw-empty" role="status"><span className="ts-spinner ts-spinner--sm" aria-hidden="true" />Loading records…</p> : !visible.length ? <p className="kw-empty">{records.length ? 'No loaded records match these filters.' : scope === 'review' ? 'No records are ready for review yet.' : 'Start with one record. Save a draft as you gather the details.'}</p> : null}
         </div>
-        {cursor ? <button type="button" className="kw-more" disabled={loading} onClick={() => void loadMore()}>Load more records</button> : null}
-        <p className="kw-footnote">Counts and filters cover loaded records.</p>
+        {cursor ? <button type="button" className="ts-btn ts-btn--sm ts-btn--block" disabled={loading} onClick={() => void loadMore()}>Load more records</button> : null}
+        <p className="ts-hint">Counts and filters cover loaded records.</p>
       </section>
       <section className="kw-detail" aria-label="Record detail" aria-busy={opening}>
-        {opening ? <p className="kw-empty" role="status">Opening the latest revision…</p> : selectedType ? <RecordEditor key={`${detail?.record.id ?? `new-${selectedType}`}:${detail?.record.revision ?? 0}`} uid={uid} services={services} onOpenVersion={(record, revision) => void open(record, revision)} sentenceEnabled={policy.sentenceEnabled} catalog={catalog} initial={detail} type={selectedType} related={related} canReview={canReview} onSaved={saved} /> : <div className="kw-welcome"><div aria-hidden="true">◈</div><p className="kw-eyebrow">A PLACE FOR THE FULL STORY</p><h2>Choose a record or begin one.</h2><p>Words, conversations, recordings and cultural knowledge belong beside their sources, translations and context.</p><button type="button" className="kw-primary" disabled={!catalog.length} onClick={create}>Create your first record</button><small>Incomplete drafts are welcome. Nothing is marked correct just because its fields are filled.</small></div>}
+        {opening ? <div className="ts-panel"><p className="ts-loading" role="status"><span className="ts-spinner" aria-hidden="true" />Opening the latest revision…</p></div> : selectedType ? <RecordEditor key={`${detail?.record.id ?? `new-${selectedType}`}:${detail?.record.revision ?? 0}`} uid={uid} services={services} onOpenVersion={(record, revision) => void open(record, revision)} sentenceEnabled={policy.sentenceEnabled} catalog={catalog} initial={detail} type={selectedType} related={related} canReview={canReview} onSaved={saved} /> : (
+          <div className="ts-panel ts-panel--dashed kw-welcome">
+            <div className="ts-empty">
+              <span className="ts-empty__icon" aria-hidden="true"><Icon name="database" /></span>
+              <p className="ts-empty__title">Choose a record or begin one</p>
+              <p className="ts-empty__body">Words, conversations, recordings and cultural knowledge belong beside their sources, translations and context. Incomplete drafts are welcome; nothing is marked correct just because its fields are filled.</p>
+              <div className="ts-empty__actions"><button type="button" className="ts-btn ts-btn--primary" disabled={!catalog.length} onClick={create}><Icon name="plus" /><span>Create your first record</span></button></div>
+            </div>
+            <ol className="kw-map" aria-label="Record path">
+              {['Choose', 'Describe', 'Evidence', 'Rights', 'Check', 'Review'].map((label, index) => <li key={label}><span>{String(index + 1).padStart(2, '0')}</span>{label}</li>)}
+            </ol>
+          </div>
+        )}
       </section>
     </div></>}
   </div>;
@@ -228,11 +315,11 @@ function RecordEditor({ uid, services, catalog, initial, type, related, canRevie
     finally { setBusy(false); }
   };
   return <div className="kw-editor">
-    <header className="kw-editor-head"><div><p className="kw-eyebrow">{existing ? `${existing.displayId ? `${existing.displayId} · ` : ''}${existing.id}` : 'NEW RECORD'}</p><h2>{existing?.title || `Document ${area?.label.toLocaleLowerCase() ?? 'knowledge'}`}</h2></div><span className={`kw-badge kw-badge--${existing?.status ?? 'draft'}`}>{existing ? `${WORKFLOW_LABELS[knowledgeState(existing).workflow]} · ${AUTHENTICATION_LABELS[knowledgeState(existing).authentication]}` : 'Unsaved draft'}</span></header>
+    <header className="kw-editor-head"><div><p className="ts-overline">{existing ? `${existing.displayId ? `${existing.displayId} · ` : ''}${existing.id}` : 'NEW RECORD'}</p><h2>{existing?.title || `Document ${area?.label.toLocaleLowerCase() ?? 'knowledge'}`}</h2></div><span className={`kw-badge kw-badge--${existing?.status ?? 'draft'}`}>{existing ? `${WORKFLOW_LABELS[knowledgeState(existing).workflow]} · ${AUTHENTICATION_LABELS[knowledgeState(existing).authentication]}` : 'Unsaved draft'}</span></header>
     {existing ? <div className="kw-revision">Revision {existing.revision} · Updated {date(existing.updatedAt)} · {existing.reviewCount} human review{existing.reviewCount === 1 ? '' : 's'}{existing.authorUid === uid ? ' · Your contribution' : ''}</div> : null}
-    {initial?.historical && existing ? <p className="kw-info">Historical revision {existing.revision}. <button onClick={() => onOpenVersion(existing, initial.currentVersion!)}>Open current revision</button></p> : null}
-    {existing?.status === 'gold' && !readOnly ? <p className="kw-info">Saving changes creates a new revision. Its review starts again and the Gold status is removed.</p> : null}
-    {existing?.status === 'withdrawn' ? <p className="kw-info">This record is withdrawn and cannot be edited or reviewed. Start a new record to contribute again.</p> : null}
+    {initial?.historical && existing ? <p className="ts-notice ts-notice--info">Historical revision {existing.revision}. <button onClick={() => onOpenVersion(existing, initial.currentVersion!)}>Open current revision</button></p> : null}
+    {existing?.status === 'gold' && !readOnly ? <p className="ts-notice ts-notice--info">Saving changes creates a new revision. Its review starts again and the Gold status is removed.</p> : null}
+    {existing?.status === 'withdrawn' ? <p className="ts-notice ts-notice--info">This record is withdrawn and cannot be edited or reviewed. Start a new record to contribute again.</p> : null}
     <div className="kw-editor-body">
       <form className="kw-form" onSubmit={(event) => { event.preventDefault(); void save(false); }}>
         <fieldset disabled={readOnly || busy}>
@@ -255,7 +342,7 @@ function RecordEditor({ uid, services, catalog, initial, type, related, canRevie
           </section>
           <section className="kw-section"><div className="kw-section-title"><span>04</span><div><h3>Variants and connections</h3><p>Different usage is evidence. Keep each alternative with its own context.</p></div></div>
             {draft.variants.map((variant, index) => <div className="kw-inset" key={index}><div className="kw-inset-head"><strong>Variant {index + 1}</strong><button type="button" onClick={() => update('variants', draft.variants.filter((_, position) => position !== index))}>Remove</button></div>{(['form', 'context', 'note'] as const).map((key) => <Field key={key} label={{ form: 'Alternative form', context: 'Where / when it is used', note: 'Difference or uncertainty' }[key]} value={variant[key]} onChange={(value) => update('variants', draft.variants.map((item, position) => position === index ? { ...item, [key]: value } : item))} />)}</div>)}
-            <button type="button" className="kw-secondary" disabled={draft.variants.length >= 12} onClick={() => update('variants', [...draft.variants, { form: '', context: '', note: '' }])}>＋ Add a variant</button>
+            <button type="button" className="ts-btn ts-btn--secondary" disabled={draft.variants.length >= 12} onClick={() => update('variants', [...draft.variants, { form: '', context: '', note: '' }])}>＋ Add a variant</button>
             <Field label="Related record references" multiline hint="One published reference per line: dictionaryEntries:entry-id or expressionEntries:entry-id. Use typed relationships below for corpus records. Linking never copies content or grants permission." value={draft.relatedRecordIds.join('\n')} onChange={(value) => update('relatedRecordIds', value.split('\n').filter(line => line.trim()))} max={4000} />
           </section>
           <section className="kw-section"><div className="kw-section-title"><span>05</span><div><h3>Recordings tied to exact words</h3><p>One clip, its exact transcript and its speaker. A transcript is not a timing alignment.</p></div></div>
@@ -278,12 +365,12 @@ function RecordEditor({ uid, services, catalog, initial, type, related, canRevie
           <CaptureFields record={draft} onChange={setDraft} />
         </fieldset>
         {draft.audio.length ? <section className="kw-section"><h3>Listen to attached clips</h3>{draft.audio.map((clip, index) => <div className="kw-listen" key={clip.path}><strong>{clip.label || `Recording ${index + 1}`}</strong>{audioUrls[clip.path] ? <audio controls preload="metadata" src={audioUrls[clip.path]} aria-label={`Play ${clip.label || `recording ${index + 1}`}`} /> : existing && existing.status !== 'withdrawn' ? <button type="button" disabled={audioLoading !== null} onClick={() => void listen(index)}>{audioLoading === index ? 'Loading private recording…' : 'Load private recording'}</button> : <p>Playback is unavailable.</p>}</div>)}</section> : null}
-        {error ? <div className="kw-alert" role="alert">{error}</div> : null}
-        {!readOnly ? <div className="kw-actions"><span role="status">{busy ? 'Saving…' : uploading !== null ? 'Recording upload in progress' : dirty ? 'Unsaved changes' : existing ? `Saved ${existing.updatedAt}` : 'New draft'}</span><button type="submit" className="kw-secondary" disabled={busy || uploading !== null}>Save draft</button><button type="button" className="kw-primary" disabled={busy || uploading !== null || missing.length > 0} onClick={() => setChecking(true)}>Check before submission</button></div> : null}
-        {checking && <section className="kw-check-preview" role="region" aria-label="Submission preview"><h3>Check your submission</h3><p>The complete original, translations, category details, sources, recordings and permissions are shown above exactly as reviewers will receive them. Check each section before confirming.</p><p>{draft.title} · {draft.datasetType} · {draft.audio.length} recordings · {draft.relations.length} relationships · Rights: {draft.rights.state}</p><button type="button" className="kw-primary" disabled={busy || missing.length > 0} onClick={() => void save(true)}>Submit for review</button><button type="button" onClick={() => setChecking(false)}>Continue editing</button></section>}
+        {error ? <div className="ts-notice ts-notice--danger" role="alert">{error}</div> : null}
+        {!readOnly ? <div className="kw-actions"><span role="status">{busy ? 'Saving…' : uploading !== null ? 'Recording upload in progress' : dirty ? 'Unsaved changes' : existing ? `Saved ${existing.updatedAt}` : 'New draft'}</span><button type="submit" className="ts-btn ts-btn--secondary" disabled={busy || uploading !== null}>Save draft</button><button type="button" className="ts-btn ts-btn--primary" disabled={busy || uploading !== null || missing.length > 0} onClick={() => setChecking(true)}>Check before submission</button></div> : null}
+        {checking && <section className="kw-check-preview" role="region" aria-label="Submission preview"><h3>Check your submission</h3><p>The complete original, translations, category details, sources, recordings and permissions are shown above exactly as reviewers will receive them. Check each section before confirming.</p><p>{draft.title} · {draft.datasetType} · {draft.audio.length} recordings · {draft.relations.length} relationships · Rights: {draft.rights.state}</p><button type="button" className="ts-btn ts-btn--primary" disabled={busy || missing.length > 0} onClick={() => void save(true)}>Submit for review</button><button type="button" onClick={() => setChecking(false)}>Continue editing</button></section>}
       </form>
       <aside className="kw-evidence">{initial?.canRelease ? <ReleasePanel detail={initial} services={services} /> : null}
-        <div className="kw-readiness"><p className="kw-eyebrow">BEFORE REVIEW</p><h3>{missing.length ? `${missing.length} detail${missing.length === 1 ? '' : 's'} to add` : 'Ready to submit'}</h3><p>Completeness is a preparation check. It is not proof of accuracy.</p>{missing.length ? <ul>{submissionIssues(draft, { sentenceEnabled }).map(issue => <li key={issue.field}><a href={`#kw-${issue.field.replaceAll('.', '-')}`}>{issue.message}</a></li>)}</ul> : <p className="kw-ready">Required fields and permissions are present.</p>}<small>Save a draft at any time.</small></div>
+        <div className="kw-readiness"><p className="ts-overline">BEFORE REVIEW</p><h3>{missing.length ? `${missing.length} detail${missing.length === 1 ? '' : 's'} to add` : 'Ready to submit'}</h3><p>Completeness is a preparation check. It is not proof of accuracy.</p>{missing.length ? <ul>{submissionIssues(draft, { sentenceEnabled }).map(issue => <li key={issue.field}><a href={`#kw-${issue.field.replaceAll('.', '-')}`}>{issue.message}</a></li>)}</ul> : <p className="kw-ready">Required fields and permissions are present.</p>}<small>Save a draft at any time.</small></div>
         {existing?.warnings.length ? <div className="kw-readiness"><h3>Review attention</h3><ul>{existing.warnings.map((warning) => <li key={warning}>{warning}</li>)}</ul></div> : null}
         <div className="kw-readiness"><h3>Authentication policy</h3><p>Gold requires assigned, qualified reviewers and the approved checklist and quorum. A dispute blocks release. Review counts alone never grant authority.</p>{needsCulturalReview(draft) ? <p>This record also needs authentication within an authorised cultural scope.</p> : null}<p>Changing the record starts a fresh review.</p></div>
         {existing && !initial?.historical && canReview && existing.authorUid !== uid && !['draft', 'withdrawn'].includes(existing.status) ? <ReviewPanel record={existing} services={services} reviews={initial?.reviews ?? []} onSaved={onSaved} /> : null}
@@ -310,5 +397,5 @@ function ReviewPanel({ record, services, reviews, onSaved }: { record: Knowledge
     catch (reason) { setError(message(reason)); }
     finally { setBusy(false); }
   };
-  return <section className="kw-readiness kw-review"><p className="kw-eyebrow">INDEPENDENT REVIEW</p><h3>Your assessment</h3><label className="kw-field"><span>Assigned review scope</span><select value={scope} onChange={e => setScope(e.target.value as ReviewScope)}><option value="language">Language</option><option value="culture">Culture</option><option value="curation">Provenance and structure</option></select><small>Your server-side qualification and assignment are checked before any decision.</small></label>{reviewed ? <p>You have already reviewed this revision. Reviews are retained unchanged.</p> : <><p>Read the original, meaning, context, source and recordings before deciding.</p><label className="kw-check"><input type="checkbox" checked={language} onChange={(event) => setLanguage(event.target.checked)} /><span>I can assess this Kasem variety.</span></label>{scope === 'culture' ? <label className="kw-check"><input type="checkbox" checked={cultural} onChange={(event) => setCultural(event.target.checked)} /><span>I can assess this cultural context and its restrictions.</span></label> : null}<label className="kw-field"><span>Decision</span><select value={decision} onChange={(event) => setDecision(event.target.value as ReviewInput['decision'])}><option value="approve">Approve this revision</option><option value="changes_requested">Request changes</option><option value="dispute">Raise a dispute</option></select></label>{REVIEW_CHECKS.map(key => <label className="kw-check" key={key}><input type="checkbox" checked={checklist[key] === true} onChange={e => setChecklist(current => ({ ...current, [key]: e.target.checked }))} /><span>Checked {key} within my scope, or confirmed not applicable</span></label>)}<Field label="Review explanation" multiline required value={note} onChange={setNote} max={4000} />{error ? <p role="alert">{error}</p> : null}<button type="button" className="kw-primary" disabled={busy || (scope === 'language' && !language) || (scope === 'culture' && !cultural) || note.trim().length < 10 || (decision === 'approve' && REVIEW_CHECKS.some(key => !checklist[key]))} onClick={() => void send()}>{busy ? 'Recording review…' : 'Record review'}</button></>}</section>;
+  return <section className="kw-readiness kw-review"><p className="ts-overline">INDEPENDENT REVIEW</p><h3>Your assessment</h3><label className="kw-field"><span>Assigned review scope</span><select value={scope} onChange={e => setScope(e.target.value as ReviewScope)}><option value="language">Language</option><option value="culture">Culture</option><option value="curation">Provenance and structure</option></select><small>Your server-side qualification and assignment are checked before any decision.</small></label>{reviewed ? <p>You have already reviewed this revision. Reviews are retained unchanged.</p> : <><p>Read the original, meaning, context, source and recordings before deciding.</p><label className="kw-check"><input type="checkbox" checked={language} onChange={(event) => setLanguage(event.target.checked)} /><span>I can assess this Kasem variety.</span></label>{scope === 'culture' ? <label className="kw-check"><input type="checkbox" checked={cultural} onChange={(event) => setCultural(event.target.checked)} /><span>I can assess this cultural context and its restrictions.</span></label> : null}<label className="kw-field"><span>Decision</span><select value={decision} onChange={(event) => setDecision(event.target.value as ReviewInput['decision'])}><option value="approve">Approve this revision</option><option value="changes_requested">Request changes</option><option value="dispute">Raise a dispute</option></select></label>{REVIEW_CHECKS.map(key => <label className="kw-check" key={key}><input type="checkbox" checked={checklist[key] === true} onChange={e => setChecklist(current => ({ ...current, [key]: e.target.checked }))} /><span>Checked {key} within my scope, or confirmed not applicable</span></label>)}<Field label="Review explanation" multiline required value={note} onChange={setNote} max={4000} />{error ? <p role="alert">{error}</p> : null}<button type="button" className="ts-btn ts-btn--primary" disabled={busy || (scope === 'language' && !language) || (scope === 'culture' && !cultural) || note.trim().length < 10 || (decision === 'approve' && REVIEW_CHECKS.some(key => !checklist[key]))} onClick={() => void send()}>{busy ? 'Recording review…' : 'Record review'}</button></>}</section>;
 }

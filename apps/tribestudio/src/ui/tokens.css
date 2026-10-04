@@ -1,0 +1,337 @@
+/* ==========================================================================
+   TribeStudio design tokens
+   --------------------------------------------------------------------------
+   One visual language for the creator, contributor and validator workspaces,
+   taken from Comitia (comitia.pwavwe.com): a navy ink on a cool mist ground,
+   one crisp blue signal, a cyan accent used sparingly, Sora for display and
+   Inter for reading.
+
+   Two deliberate departures from Comitia, both for legibility:
+   - secondary text is a solid slate (#5d667b) rather than ink at 50%, which
+     measured 3.4:1 on white and fails WCAG AA;
+   - filled buttons use #2c66f5 and blue text uses #2459e6, because white on
+     Comitia's #2f6bff is 4.50:1 and its blue text on the mist is 4.2:1.
+
+   The semantic names (--bg, --surface, --text, --border …) are the same ones
+   the shared @indigen-world packages read, so a shared component mounted in
+   the studio picks up this palette without its own stylesheet.
+   ========================================================================== */
+
+:root {
+  /* -- Comitia palette ---------------------------------------------------- */
+  --c-ink: #0f1830;
+  --c-mist: #f6f7fb;
+  --c-blue: #2f6bff;
+  --c-blue-fill: #2c66f5;
+  --c-blue-strong: #1a4ff0;
+  --c-blue-text: #2459e6;
+  --c-blue-deep: #19327f;
+  --c-blue-soft: #8eb4ff;
+  --c-blue-pale: #bcd2ff;
+  --c-blue-wash: #eaf0ff;
+  --c-cyan: #22d3ee;
+  --c-navy-900: #0b1225;
+  --c-navy-800: #0f1830;
+
+  /* -- Ground, surfaces and ink ------------------------------------------- */
+  --bg: var(--c-mist);
+  --bg-translucent: rgba(246, 247, 251, 0.82);
+  --surface: #ffffff;
+  --surface-glass: rgba(255, 255, 255, 0.86);
+  --surface-glass-strong: rgba(255, 255, 255, 0.95);
+  --surface-glass-border: rgba(255, 255, 255, 0.72);
+  --surface-sunken: #f2f4f9;
+  --surface-hover: rgba(15, 24, 48, 0.04);
+  --surface-pressed: rgba(15, 24, 48, 0.07);
+  --surface-elevated: #ffffff;
+  --surface-translucent: rgba(255, 255, 255, 0.82);
+  --surface-inverse: #0f1830;
+
+  --text: #0f1830;
+  --text-2: #3d4559;
+  --text-3: #5d667b;
+  --text-4: #7a8194;
+  --text-soft: var(--text-3);
+  --text-muted: var(--text-4);
+  --text-inverse: #ffffff;
+  --text-inverse-2: rgba(255, 255, 255, 0.72);
+
+  --border: rgba(15, 24, 48, 0.1);
+  --border-strong: rgba(15, 24, 48, 0.16);
+  --border-soft: rgba(15, 24, 48, 0.06);
+  --border-subtle: var(--border-soft);
+
+  /* -- Signal --------------------------------------------------------------- */
+  --accent: var(--c-blue-fill);
+  --accent-hover: var(--c-blue-strong);
+  --accent-text: var(--c-blue-text);
+  --accent-soft: rgba(47, 107, 255, 0.1);
+  --accent-softer: rgba(47, 107, 255, 0.05);
+  --accent-ring: rgba(47, 107, 255, 0.16);
+  --accent-line: rgba(47, 107, 255, 0.3);
+  --focus: var(--c-blue);
+
+  --success: #047857;
+  --success-strong: #065f46;
+  --success-surface: #ecfdf5;
+  --success-line: #a7f3d0;
+  --success-dot: #10b981;
+  --warning: #b45309;
+  --warning-strong: #78350f;
+  --warning-surface: #fffbeb;
+  --warning-line: #fde68a;
+  --warning-dot: #f59e0b;
+  --danger: #b91c1c;
+  --danger-strong: #991b1b;
+  --danger-fill: #dc2626;
+  --danger-surface: #fef2f2;
+  --danger-line: #fecaca;
+  --danger-dot: #ef4444;
+  --info: #075985;
+  --info-strong: #082f49;
+  --info-surface: #f0f9ff;
+  --info-line: #bae6fd;
+  --info-dot: #0ea5e9;
+  --neutral: #334155;
+  --neutral-surface: #f1f5f9;
+  --neutral-line: #e2e8f0;
+  --violet: #5b45c4;
+  --violet-surface: #f1eefe;
+  --violet-line: #d9d1fb;
+
+  /* -- Workspace identity ---------------------------------------------------
+     Each workspace keeps the shared blue for actions and adds one signature
+     colour for its identity mark, so a creator, a contributor and a validator
+     can tell at a glance which desk they are at. */
+  --ws: var(--c-blue);
+  --ws-text: var(--c-blue-text);
+  --ws-soft: rgba(47, 107, 255, 0.1);
+  --ws-line: rgba(47, 107, 255, 0.28);
+
+  /* -- Type ----------------------------------------------------------------- */
+  --font-display: "Sora Variable", "Sora", "Inter Variable", "Inter", system-ui, sans-serif;
+  --font-body: "Inter Variable", "Inter", "Noto Sans Variable", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-sans: var(--font-body);
+  --font-heading: var(--font-display);
+  --font-mono: ui-monospace, "SFMono-Regular", "Cascadia Code", Menlo, Consolas, monospace;
+  --font-kasem: "Inter Variable", "Noto Sans Variable", "Noto Sans", system-ui, sans-serif;
+
+  --fs-micro: 0.625rem;   /* 10px  labels in chrome */
+  --fs-tiny: 0.6875rem;   /* 11px  */
+  --fs-xs: 0.75rem;       /* 12px  */
+  --fs-sm: 0.875rem;      /* 14px  */
+  --fs-base: 1rem;        /* 16px  */
+  --fs-lg: 1.125rem;      /* 18px  */
+  --fs-xl: 1.25rem;       /* 20px  */
+  --fs-2xl: 1.5rem;       /* 24px  */
+  --fs-3xl: 1.875rem;     /* 30px  */
+  --fs-4xl: 2.25rem;      /* 36px  */
+
+  /* -- Space, shape, depth -------------------------------------------------- */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+
+  --r-xs: 4px;
+  --r-sm: 6px;
+  --r: 8px;
+  --r-lg: 12px;
+  --r-xl: 16px;
+  --r-2xl: 20px;
+  --r-full: 999px;
+  --radius-sm: var(--r);
+  --radius: var(--r-lg);
+  --radius-lg: var(--r-xl);
+  --radius-full: var(--r-full);
+
+  --shadow-xs: 0 1px 2px rgba(15, 24, 48, 0.05);
+  --shadow-card: 0 1px 2px rgba(15, 24, 48, 0.06), 0 8px 24px rgba(15, 24, 48, 0.06);
+  --shadow-hover: 0 2px 4px rgba(15, 24, 48, 0.05), 0 14px 32px rgba(15, 24, 48, 0.1);
+  --shadow-glass: 0 16px 40px rgba(15, 24, 48, 0.14);
+  --shadow-glow: 0 0 42px rgba(47, 107, 255, 0.28);
+  --shadow-lift: 0 20px 56px rgba(15, 24, 48, 0.24);
+  --shadow-button: 0 1px 2px rgba(15, 24, 48, 0.08), 0 6px 16px rgba(44, 102, 245, 0.22);
+  --shadow-sm: var(--shadow-xs);
+  --shadow-md: var(--shadow-card);
+  --shadow-lg: var(--shadow-glass);
+
+  --grid-line: rgba(15, 24, 48, 0.05);
+  --blur: 24px;
+
+  /* -- Layout ---------------------------------------------------------------- */
+  --sidebar: 17.5rem;
+  --sidebar-collapsed: 5rem;
+  --content-max: 82rem;
+  --gutter: 1rem;
+
+  /* -- Motion -----------------------------------------------------------------
+     One clock for the whole product. Short for feedback, medium for panels,
+     longer only for the first appearance of a page. */
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-emph: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-soft-spring: cubic-bezier(0.34, 1.32, 0.64, 1);
+  --dur-1: 120ms;
+  --dur-2: 200ms;
+  --dur-3: 320ms;
+  --dur-4: 520ms;
+  --dur-5: 900ms;
+  --stagger: 45ms;
+
+  color-scheme: light;
+}
+
+@media (min-width: 640px) {
+  :root {
+    --gutter: 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  :root {
+    --gutter: 2rem;
+  }
+}
+
+/* -- Workspace identities ----------------------------------------------------- */
+[data-workspace="contribute"] {
+  --ws: #0891b2;
+  --ws-text: #0e7490;
+  --ws-soft: rgba(8, 145, 178, 0.1);
+  --ws-line: rgba(8, 145, 178, 0.3);
+}
+
+[data-workspace="review"] {
+  --ws: #19327f;
+  --ws-text: #19327f;
+  --ws-soft: rgba(25, 50, 127, 0.09);
+  --ws-line: rgba(25, 50, 127, 0.26);
+}
+
+/* -- Dark (Comitia's night ground) -------------------------------------------- */
+:root[data-theme-resolved="dark"] {
+  --bg: #08111f;
+  --bg-translucent: rgba(8, 17, 31, 0.84);
+  --surface: #111b2e;
+  --surface-glass: rgba(17, 27, 46, 0.88);
+  --surface-glass-strong: rgba(17, 27, 46, 0.96);
+  --surface-glass-border: rgba(237, 243, 255, 0.08);
+  --surface-sunken: #0b1526;
+  --surface-hover: rgba(237, 243, 255, 0.05);
+  --surface-pressed: rgba(237, 243, 255, 0.09);
+  --surface-elevated: #16223a;
+  --surface-translucent: rgba(17, 27, 46, 0.86);
+  --surface-inverse: #edf3ff;
+
+  --text: #edf3ff;
+  --text-2: #c9d3e6;
+  --text-3: #9aa7c0;
+  --text-4: #7d8aa5;
+  --text-inverse: #0f1830;
+  --text-inverse-2: rgba(15, 24, 48, 0.7);
+
+  --border: rgba(237, 243, 255, 0.12);
+  --border-strong: rgba(237, 243, 255, 0.2);
+  --border-soft: rgba(237, 243, 255, 0.07);
+
+  --accent: #2c66f5;
+  --accent-hover: #4a7dff;
+  --accent-text: #8eb4ff;
+  --accent-soft: rgba(91, 140, 255, 0.16);
+  --accent-softer: rgba(91, 140, 255, 0.08);
+  --accent-ring: rgba(91, 140, 255, 0.28);
+  --accent-line: rgba(142, 180, 255, 0.4);
+  --focus: #8eb4ff;
+
+  --success: #6ee7b7;
+  --success-strong: #a7f3d0;
+  --success-surface: rgba(16, 185, 129, 0.12);
+  --success-line: rgba(110, 231, 183, 0.3);
+  --warning: #fcd34d;
+  --warning-strong: #fde68a;
+  --warning-surface: rgba(245, 158, 11, 0.12);
+  --warning-line: rgba(252, 211, 77, 0.3);
+  --danger: #fca5a5;
+  --danger-strong: #fecaca;
+  --danger-surface: rgba(239, 68, 68, 0.13);
+  --danger-line: rgba(252, 165, 165, 0.3);
+  --info: #7dd3fc;
+  --info-strong: #bae6fd;
+  --info-surface: rgba(14, 165, 233, 0.12);
+  --info-line: rgba(125, 211, 252, 0.3);
+  --neutral: #cbd5e1;
+  --neutral-surface: rgba(148, 163, 184, 0.12);
+  --neutral-line: rgba(203, 213, 225, 0.2);
+  --violet: #c4b5fd;
+  --violet-surface: rgba(139, 92, 246, 0.14);
+  --violet-line: rgba(196, 181, 253, 0.3);
+
+  --ws: #5b8cff;
+  --ws-text: #8eb4ff;
+  --ws-soft: rgba(91, 140, 255, 0.16);
+  --ws-line: rgba(142, 180, 255, 0.36);
+
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.28), 0 12px 32px rgba(0, 0, 0, 0.22);
+  --shadow-hover: 0 2px 4px rgba(0, 0, 0, 0.3), 0 18px 40px rgba(0, 0, 0, 0.32);
+  --shadow-glass: 0 18px 48px rgba(0, 0, 0, 0.32);
+  --shadow-lift: 0 22px 60px rgba(0, 0, 0, 0.46);
+  --shadow-button: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 20px rgba(44, 102, 245, 0.3);
+  --grid-line: rgba(237, 243, 255, 0.045);
+
+  color-scheme: dark;
+}
+
+:root[data-theme-resolved="dark"] [data-workspace="contribute"] {
+  --ws: #22d3ee;
+  --ws-text: #67e8f9;
+  --ws-soft: rgba(34, 211, 238, 0.13);
+  --ws-line: rgba(103, 232, 249, 0.32);
+}
+
+:root[data-theme-resolved="dark"] [data-workspace="review"] {
+  --ws: #a5b8ff;
+  --ws-text: #c7d3ff;
+  --ws-soft: rgba(165, 184, 255, 0.14);
+  --ws-line: rgba(199, 211, 255, 0.32);
+}
+
+/* -- High contrast (Display preferences) ---------------------------------------- */
+:root[data-contrast="high"] {
+  --text-2: #1f2637;
+  --text-3: #2c3448;
+  --text-4: #3d4559;
+  --border: rgba(5, 8, 22, 0.42);
+  --border-strong: rgba(5, 8, 22, 0.62);
+  --surface-glass: #ffffff;
+  --surface-glass-strong: #ffffff;
+  --accent: #1a3ea8;
+  --accent-hover: #102a75;
+  --accent-text: #1a3ea8;
+}
+
+:root[data-contrast="high"][data-theme-resolved="dark"] {
+  --text-2: #e6edfb;
+  --text-3: #d2dbee;
+  --text-4: #bac6dd;
+  --border: rgba(237, 243, 255, 0.4);
+  --border-strong: rgba(237, 243, 255, 0.6);
+  --surface-glass: #111b2e;
+  --surface-glass-strong: #111b2e;
+  --accent-text: #b8d0ff;
+}
+
+/* -- Text size (Display preferences) ------------------------------------------ */
+:root[data-font-scale="sm"] {
+  font-size: 93%;
+}
+
+:root[data-font-scale="lg"] {
+  font-size: 112.5%;
+}

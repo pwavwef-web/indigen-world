@@ -14,6 +14,24 @@ const MODEL_EXPORTS = ['contributionState', 'expressionView', 'submittedCount', 
   'metricsFor', 'workState', 'WORK_STATE_META', 'parseDate', 'formatDate', 'formatDateTime', 'relativeTime', 'dueInfo',
   'activityFrom', 'groupByDay', 'friendlyError', 'initials', 'firstName', 'pluralise', 'formatBytes'];
 
+// Design-system components stand in as named placeholders, like every other
+// mocked component: these tests read the tree a screen builds, not the kit's.
+const KIT = ['AppShell', 'Page', 'PageHeader', 'SectionHeader', 'Panel', 'ActionCard', 'StatCard', 'StatGrid', 'Badge',
+  'Count', 'Notice', 'Consequence', 'EmptyState', 'LoadFailure', 'Skeleton', 'SkeletonCards', 'Spinner', 'Loading', 'Field',
+  'Switch', 'CheckRow', 'Segmented', 'FilterChips', 'SearchField', 'Tabs', 'Steps', 'Breadcrumb', 'ProgressBar', 'KeyValue',
+  'Facts', 'Avatar', 'MediaFrame', 'SaveState', 'Disclosure', 'Dialog', 'Button', 'ButtonLink', 'ButtonAnchor', 'IconButton',
+  'BrandMark', 'CountUp', 'Reveal', 'AuthScreen', 'AuthFooter', 'AuthWaiting', 'GoogleButton', 'DisplayControl', 'Icon'];
+const KIT_MOCKS = {
+  ...Object.fromEntries(KIT.map((name) => [name, name])),
+  cx: (...values) => values.filter(Boolean).join(' '),
+  spotlight() {},
+  motionAllowed: () => false,
+  // React DOM's synchronous flush and the page cross-fade both run the update
+  // at once here, which is what they do when motion is off.
+  flushSync: (update) => update(),
+  withViewTransition: (update) => update(),
+};
+
 async function load(path, names, mocks = {}) {
   if (path.endsWith('SubmissionNewPage.tsx')) {
     mocks = { ...await load('src/creator/discoverySource.ts', ['discoverySource']), ...mocks };
@@ -27,7 +45,7 @@ async function load(path, names, mocks = {}) {
   }
   const { code } = await transformWithOxc(readFileSync(resolve(root, path), 'utf8'), path, { jsx: { runtime: 'classic' } });
   const executable = code.replace(/^import[\s\S]*?;\n/gm, '').replace(/\bexport (?=(?:async )?function|const|let|class)/g, '');
-  mocks = { Icon: 'Icon', ProcessGuide: 'ProcessGuide', WorkspaceDialog: 'WorkspaceDialog', ...mocks };
+  mocks = { ...KIT_MOCKS, ...mocks };
   return runInNewContext(executable + '\n;({' + names.join(',') + '})', { URL, URLSearchParams, Blob, File, Event, console, ...mocks });
 }
 
@@ -87,6 +105,9 @@ const input = {
   permissions: { review: true, publication: true, promotion: false, aiTraining: false }, consentVersion: 'test',
 };
 const plain = (value) => JSON.parse(JSON.stringify(value));
+/** A native button, or the design system's Button, which renders one. */
+const isButton = (node) => node.type === 'button' || node.type === 'Button';
+const hasClass = (node, name) => typeof node.props?.className === 'string' && node.props.className.split(/\s+/).includes(name);
 
 test('creator account read failure blocks entry and an explicit retry restores the workspace', async () => {
   const h = hooks(), user = {uid:'creator',email:'creator@example.test'};
@@ -105,7 +126,7 @@ test('creator account read failure blocks entry and an explicit retry restores t
   assert.ok(!JSON.stringify(tree).includes('PRIVATE WORKSPACE'));
   assert.equal(profileWrites,0,'failed access reads cannot mint a profile');
   disconnected = false;
-  find(tree,n => n.type === 'button' && n.props.children.includes('Try again')).props.onClick();
+  find(tree,n => isButton(n) && [n.props.children].flat(Infinity).includes('Try again')).props.onClick();
   render(); h.flush(); await tick();
   tree = render(); h.flush();
   assert.match(JSON.stringify(tree),/PRIVATE WORKSPACE/);
@@ -478,12 +499,13 @@ test('dashboard counts approved work separately from published work', async () =
     ...h.api, useAuth: () => ({user:{uid:'creator'}, role:'creator'}), useConfig: () => ({}), canContribute: () => false,
     fetchMySubmissions:'work', fetchMyProfile:'profile', fetchMyApplications:'applications', fetchPublicCampaigns:'campaigns', fetchMyNotifications:'notifications', fetchMyContributorScore:'score',
     useCreatorResource: (key) => ({data:resources[key], loading:false, failed:false, retry(){}}),
+    useCreatorNotifications: () => ({items:[], loading:false, failed:false, unread:0, retry(){}, markRead: async () => {}}),
     submissionsOpen: () => false, Link:'a', StatusPill:'pill', Skeleton:'skeleton', LoadError:'error', WhatsAppCard:'whatsapp', APPLICATION_STATUS_LABELS:{}, SUBMISSION_STATUS_LABELS:{},
   });
   const tree = h.render(DashboardPage);
   for (const status of ['APPROVED', 'PUBLISHED']) {
     const tile = find(tree, (node) => node.props?.to === `/studio/submissions?status=${status}`);
-    assert.equal(find(tile, (node) => node.props?.className === 'tile__value').props.children[0], 1);
+    assert.equal(tile.props.value, 1);
   }
 });
 
@@ -543,7 +565,7 @@ test('contributor adds and removes structured alternative translation fields', a
   });
   const props = { item: { id: 'item', expression: 'Hello', translation: '', alternatives: [], revision: 0, status: 'draft' }, work: 'work', onPending() {} };
   let tree = h.render(ExpressionEditor, props); h.flush();
-  find(tree, n => n.type === 'button' && n.props.className === 'add-alternative').props.onClick();
+  find(tree, n => n.type === 'button' && hasClass(n, 'add-alternative')).props.onClick();
   tree = h.render(ExpressionEditor, props);
   const alternative = find(tree, n => n.type === 'input' && n.props.name === 'alternatives');
   assert.ok(alternative); alternative.props.onChange({ target: { value: 'Alternative phrase' } });

@@ -1,4 +1,3 @@
-import { WorkspaceDialog, ProcessGuide } from '../../interface/WorkspaceFrame';
 import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../../auth';
 import { useQueryParam, useRoute } from '../../router';
@@ -27,8 +26,7 @@ import {
   type ProjectOrigin,
 } from './model';
 import { fmt } from './panels/LibraryPanels';
-import '../pages/video-editor.css';
-import './editor.css';
+import { Badge, Button, Dialog, EmptyState, Icon, Notice, PageHeader, SkeletonCards, Steps, spotlight } from '../../ui';
 
 /**
  * Your videos, and the way into a new one.
@@ -128,43 +126,69 @@ function NewVideo({ onClose }: { onClose: () => void }) {
   const ready = (!needsText || text.trim().length >= 8) && (!needsFiles || files.length > 0);
 
   return (
-    <WorkspaceDialog title="New video" onClose={onClose} busy={Boolean(busy)} className="vx-export vx-new">
-
-        <fieldset className="vx-choice"><legend>Start</legend>
-          {STARTS.map((s) => (
-            <label key={s.id} className={origin === s.id ? 'is-on' : ''}>
-              <input type="radio" name="origin" checked={origin === s.id} onChange={() => { setOrigin(s.id); setFiles([]); }} />
-              <strong>{s.label}</strong><small>{s.hint}</small>
-            </label>
-          ))}
+    <Dialog title="New video" lede="Choose how to start. Everything after this is saved as you work." onClose={onClose} busy={Boolean(busy)} size="lg" className="cr-newvideo">
+      <div className="ts-stack">
+        <fieldset className="cr-fieldset">
+          <legend className="ts-label">Start</legend>
+          <div className="cr-choices">
+            {STARTS.map((s) => (
+              <label key={s.id} className={origin === s.id ? 'cr-choice is-on' : 'cr-choice'}>
+                <input type="radio" name="origin" checked={origin === s.id} onChange={() => { setOrigin(s.id); setFiles([]); }} />
+                <strong>{s.label}</strong><span>{s.hint}</span>
+              </label>
+            ))}
+          </div>
         </fieldset>
-        <label className="ve-field"><span>Title</span><input value={title} maxLength={120} placeholder={needsText && origin === 'prompt' ? 'Leave empty to use the planner’s title' : 'Untitled video'} onChange={(e) => setTitle(e.target.value)} /></label>
-        <fieldset className="vx-choice vx-choice--row"><legend>Shape</legend>
-          {ASPECTS.map((a) => <label key={a.id} className={aspect === a.id ? 'is-on' : ''}><input type="radio" name="new-aspect" checked={aspect === a.id} onChange={() => setAspect(a.id)} /><strong>{a.label}</strong><small>{a.hint}</small></label>)}
+        <div className="ts-field">
+          <label className="ts-label" htmlFor="new-video-title">Title</label>
+          <input id="new-video-title" className="ts-input" value={title} maxLength={120} placeholder={needsText && origin === 'prompt' ? 'Leave empty to use the planner’s title' : 'Untitled video'} onChange={(e) => setTitle(e.target.value)} />
+        </div>
+        <fieldset className="cr-fieldset">
+          <legend className="ts-label">Shape</legend>
+          <div className="cr-choices cr-choices--compact">
+            {ASPECTS.map((a) => (
+              <label key={a.id} className={aspect === a.id ? 'cr-choice cr-choice--compact is-on' : 'cr-choice cr-choice--compact'}>
+                <input type="radio" name="new-aspect" checked={aspect === a.id} onChange={() => setAspect(a.id)} />
+                <strong><span className={`cr-aspect cr-aspect--${a.id.replace(":", "x")}`} aria-hidden="true" />{a.label}</strong>
+                <span>{a.hint}</span>
+              </label>
+            ))}
+          </div>
         </fieldset>
         {needsText ? (
           <>
-            <label className="ve-field"><span>{origin === 'prompt' ? 'What is the video about?' : 'Your script'}</span>
-              <textarea rows={origin === 'script' ? 9 : 5} value={text} maxLength={6000} onChange={(e) => setText(e.target.value)} placeholder={origin === 'prompt' ? 'For example: a one-minute welcome to the Paga crocodile pond for visitors, warm and respectful, ending with how to visit.' : 'Paste the words that will be spoken. They are kept exactly as written.'} />
-            </label>
-            {origin === 'prompt' ? <label className="ve-range"><span>Length <b>about {seconds} s</b></span><input type="range" min={15} max={180} step={5} value={seconds} onChange={(e) => setSeconds(Number(e.target.value))} /></label> : null}
-            <label className="ve-check"><input type="checkbox" checked={captions} onChange={(e) => setCaptions(e.target.checked)} />Add captions from the narration (you can time them to a recording later)</label>
-            <p className="ve-panel__note">The planner writes in English, or uses only your own words. It never invents Kasem.</p>
+            <div className="ts-field">
+              <label className="ts-label" htmlFor="new-video-text">{origin === 'prompt' ? 'What is the video about?' : 'Your script'}</label>
+              <textarea id="new-video-text" className="ts-textarea" rows={origin === 'script' ? 9 : 5} value={text} maxLength={6000} onChange={(e) => setText(e.target.value)} placeholder={origin === 'prompt' ? 'For example: a one-minute welcome to the Paga crocodile pond for visitors, warm and respectful, ending with how to visit.' : 'Paste the words that will be spoken. They are kept exactly as written.'} />
+            </div>
+            {origin === 'prompt' ? (
+              <div className="ts-field">
+                <label className="ts-label" htmlFor="new-video-length">Length <span className="ts-num cr-range-value">about {seconds} s</span></label>
+                <input id="new-video-length" className="cr-range" type="range" min={15} max={180} step={5} value={seconds} onChange={(e) => setSeconds(Number(e.target.value))} />
+              </div>
+            ) : null}
+            <label className="ts-check ts-check--card"><input type="checkbox" checked={captions} onChange={(e) => setCaptions(e.target.checked)} /><span className="ts-check__copy">Add captions from the narration (you can time them to a recording later)</span></label>
+            <p className="ts-hint">The planner writes in English, or uses only your own words. It never invents Kasem.</p>
           </>
         ) : null}
         {needsFiles ? (
-          <>
-            <input ref={fileInput} className="ve-file-input" type="file" multiple={origin === 'footage'} accept={origin === 'footage' ? 'video/*,image/png,image/jpeg,image/webp' : 'audio/*'} onChange={(e) => setFiles(Array.from(e.target.files ?? []))} />
-            <button type="button" className="ve-import" onClick={() => fileInput.current?.click()}><span><strong>{files.length ? `${files.length} file${files.length === 1 ? '' : 's'} chosen` : origin === 'footage' ? 'Choose clips or pictures' : 'Choose a recording or song'}</strong><small>{files.map((f) => f.name).join(', ') || 'They stay private until you post'}</small></span></button>
-          </>
+          <div className="ts-drop">
+            <span className="ts-drop__icon" aria-hidden="true"><Icon name={origin === 'footage' ? 'film' : 'audio'} /></span>
+            <span className="ts-drop__title">{files.length ? `${files.length} file${files.length === 1 ? '' : 's'} chosen` : origin === 'footage' ? 'Choose clips or pictures' : 'Choose a recording or song'}</span>
+            <span className="ts-truncate">{files.map((f) => f.name).join(', ') || 'They stay private until you post'}</span>
+            <input ref={fileInput} type="file" aria-label={origin === 'footage' ? 'Choose clips or pictures' : 'Choose a recording or song'} multiple={origin === 'footage'} accept={origin === 'footage' ? 'video/*,image/png,image/jpeg,image/webp' : 'audio/*'} onChange={(e) => setFiles(Array.from(e.target.files ?? []))} />
+          </div>
         ) : null}
-        {busy ? <p className="vx-export__status" role="status">{busy}</p> : null}
-        {error ? <p className="vx-panel-error" role="alert">{error}{createdId ? ' Your project and successful uploads are saved. Open it to continue and retry any missing media.' : ''}</p> : null}
-        <div className="vx-sheet__actions">
-          <button type="button" onClick={onClose} disabled={Boolean(busy)}>Cancel</button>
-          {createdId && error ? <button type="button" onClick={() => navigate('/studio/editor/' + createdId)}>Open saved project</button> : <button type="button" disabled={!ready || Boolean(busy)} onClick={() => void create()}>Create →</button>}
+        {busy ? <p className="ts-save is-saving" role="status"><span className="ts-save__mark" aria-hidden="true" />{busy}</p> : null}
+        {error ? <Notice tone="danger" role="alert">{error}{createdId ? ' Your project and successful uploads are saved. Open it to continue and retry any missing media.' : ''}</Notice> : null}
+        <div className="cr-dialog-actions">
+          <button type="button" className="ts-btn ts-btn--ghost" onClick={onClose} disabled={Boolean(busy)}>Cancel</button>
+          {createdId && error
+            ? <button type="button" className="ts-btn ts-btn--secondary" onClick={() => navigate('/studio/editor/' + createdId)}>Open saved project</button>
+            : <button type="button" className="ts-btn ts-btn--primary" disabled={!ready || Boolean(busy)} onClick={() => void create()}>Create<Icon name="arrow" /></button>}
         </div>
-    </WorkspaceDialog>
+      </div>
+    </Dialog>
   );
 }
 
@@ -219,35 +243,55 @@ export function ProjectsPage() {
   };
 
   return (
-    <div className="ve page vx vx-projects">
-      <header className="vx-projects__head">
-        <div><h1>Video editor</h1><p>Reels, clips and longer videos — saved as you work, rendered to MP4 for any platform.</p></div>
-        <button type="button" className="ve-export-button" onClick={() => setCreating(true)}>+ New video</button>
-      </header>
-      <ProcessGuide label="Video project workflow" steps={[{title:'Build your scenes',detail:'Footage, script, recording or a blank timeline',icon:'video'},{title:'Edit & preview',detail:'Arrange media, sound and captions',icon:'search'},{title:'Export',detail:'Render an MP4 or create a post',icon:'external'}]} />
-      {opening ? <p className="vx-export__status" role="status">{opening}</p> : null}
-      {error ? <p className="vx-panel-error" role="alert">{error} <button type="button" className="vx-link" onClick={load}>Try again</button></p> : null}
-      {projects === null && !error ? <p className="ve-panel__empty">Loading your videos…</p> : null}
+    <div className="ts-page cr-projects">
+      <PageHeader
+        kicker="Your work"
+        title="Video projects"
+        description="Reels, clips and longer videos — saved as you work, rendered to MP4 for any platform."
+        actions={<Button variant="primary" icon="plus" onClick={() => setCreating(true)}>New video</Button>}
+      />
+      <section className="ts-panel ts-panel--tight cr-projects__guide" aria-label="Video project workflow">
+        <Steps label="Video project workflow" steps={[
+          { title: 'Build your scenes', detail: 'Footage, script, recording or a blank timeline', icon: 'layers' },
+          { title: 'Edit and preview', detail: 'Arrange media, sound and captions', icon: 'film' },
+          { title: 'Export', detail: 'Render an MP4 or create a post', icon: 'upload' },
+        ]} />
+      </section>
+      {opening ? <p className="ts-save is-saving" role="status"><span className="ts-save__mark" aria-hidden="true" />{opening}</p> : null}
+      {error ? <Notice tone="danger" role="alert" action={<button type="button" className="ts-btn ts-btn--secondary ts-btn--sm" onClick={load}>Try again</button>}>{error}</Notice> : null}
+      {projects === null && !error ? <SkeletonCards count={3} label="Loading your videos" /> : null}
       {projects && projects.length === 0 ? (
-        <div className="vx-projects__empty">
-          <strong>No videos yet</strong>
-          <span>Start from an idea, a script, your footage or a recording.</span>
-          <button type="button" className="ve-export-button" onClick={() => setCreating(true)}>Make your first video</button>
-        </div>
+        <EmptyState
+          boxed
+          icon="film"
+          title="No videos yet"
+          body="Start from an idea, a script, your footage or a recording."
+          actions={<Button variant="primary" icon="plus" onClick={() => setCreating(true)}>Make your first video</Button>}
+        />
       ) : null}
-      <ul className="vx-project-grid">
-        {(projects ?? []).map((p) => (
-          <li key={p.id} className="vx-project-card">
-            <button type="button" className="vx-project-card__open" onClick={() => navigate(`/studio/editor/${p.id}`)}>
-              <span className={`vx-frame-badge vx-frame-badge--${p.aspect.replace(':', 'x')}`} aria-hidden="true" />
-              <strong>{p.title}</strong>
-              <small>{ASPECTS.find((a) => a.id === p.aspect)?.label} · {p.sceneCount} scene{p.sceneCount === 1 ? '' : 's'} · {fmt(p.durationSec)}</small>
-              <small>{p.lastRender ? `Last export ${p.lastRender.status}${p.lastRender.finishedAt ? ` · ${new Date(p.lastRender.finishedAt).toLocaleDateString()}` : ''}` : 'Not exported yet'} · edited {p.updatedAt ? new Date(p.updatedAt).toLocaleDateString() : ''}</small>
-            </button>
-            <button type="button" className="vx-link" onClick={() => void remove(p)}>Delete</button>
-          </li>
-        ))}
-      </ul>
+      {projects && projects.length > 0 ? (
+        <ul className="cr-projects__grid ts-stagger">
+          {projects.map((p) => (
+            <li key={p.id} className="ts-card cr-project ts-spotlight" onPointerMove={spotlight}>
+              <button type="button" className="cr-project__open" onClick={() => navigate(`/studio/editor/${p.id}`)}>
+                <span className="cr-project__frame" aria-hidden="true">
+                  <span className={`cr-aspect cr-aspect--${p.aspect.replace(":", "x")}`} />
+                  <span className="cr-project__duration ts-num">{fmt(p.durationSec)}</span>
+                </span>
+                <strong className="cr-project__title ts-clamp-2">{p.title}</strong>
+                <small>{ASPECTS.find((a) => a.id === p.aspect)?.label} · {p.sceneCount} scene{p.sceneCount === 1 ? '' : 's'}</small>
+                <small className="cr-project__edited">Edited {p.updatedAt ? new Date(p.updatedAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) : '—'}</small>
+              </button>
+              <div className="cr-project__foot">
+                <Badge tone={p.lastRender?.status === 'succeeded' ? 'success' : p.lastRender?.status === 'failed' ? 'danger' : 'neutral'} dot>
+                  {p.lastRender ? `Last export ${p.lastRender.status}` : 'Not exported yet'}
+                </Badge>
+                <button type="button" className="ts-btn ts-btn--danger-ghost ts-btn--sm" onClick={() => void remove(p)}><Icon name="trash" />Delete</button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      ) : null}
       {creating ? <NewVideo onClose={() => { setCreating(false); load(); }} /> : null}
     </div>
   );

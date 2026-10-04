@@ -3,7 +3,8 @@ import type { PublishedContent } from '@indigen-world/contracts/creator-models';
 import { Link } from '../../router';
 import { useAuth } from '../../auth';
 import { fetchMyPublished } from '../data';
-import { EmptyState, LoadError, Skeleton, useReloadable } from '../components';
+import { LoadError, useReloadable } from '../components';
+import { Badge, ButtonAnchor, ButtonLink, EmptyState, Icon, PageHeader, SkeletonCards, spotlight, type IconName } from '../../ui';
 
 const KIND_LABELS: Record<string, string> = {
   music: 'Music',
@@ -12,6 +13,8 @@ const KIND_LABELS: Record<string, string> = {
   audiobooks: 'Audiobooks',
   video: 'Video',
 };
+
+const MEDIA_ICON: Record<string, IconName> = { image: 'image', audio: 'audio', video: 'video', document: 'doc' };
 
 const MEDIA_LABELS: Record<string, string> = {
   image: 'Photo',
@@ -71,83 +74,85 @@ export function PublishedPage() {
     }
   };
 
+  const header = (
+    <PageHeader
+      kicker="Your work"
+      title="Published work"
+      description="What readers see: the public page, its thumbnail and the credit line, with the link to share."
+      actions={(
+        <>
+          <ButtonLink to="/studio/submissions" variant="secondary" icon="library">Content library</ButtonLink>
+          <ButtonLink to="/studio/submissions/new" variant="primary" icon="plus">New post</ButtonLink>
+        </>
+      )}
+    />
+  );
+
   if (failed) {
     return (
-      <div className="page">
-        <h1>Published work</h1>
+      <div className="ts-page">
+        {header}
         <LoadError onRetry={retry} title="We couldn’t load your published work" />
       </div>
     );
   }
   if (loading) {
     return (
-      <div className="page">
-        <h1>Published work</h1>
-        <Skeleton lines={5} />
+      <div className="ts-page">
+        {header}
+        <SkeletonCards count={3} label="Loading your published work" />
       </div>
     );
   }
 
   return (
-    <div className="page">
-      <header className="page__head">
-        <h1>Published work</h1>
-        <div className="page__head-actions">
-          <Link to="/studio/submissions" className="button button--ghost-dark button--small">Your work</Link>
-          <Link to="/studio/submissions/new" className="button button--primary button--small">New post</Link>
-        </div>
-      </header>
+    <div className="ts-page cr-published">
+      {header}
 
       {items.length === 0 ? (
         <EmptyState
+          boxed
+          icon="globe"
           title="Nothing public yet"
           body="Anything you post to Explore appears here with the link readers open, so you can check how it landed and share it."
-          action={<Link to="/studio/submissions/new" className="button button--primary">Post something</Link>}
+          actions={<ButtonLink to="/studio/submissions/new" variant="primary" icon="plus">Post something</ButtonLink>}
         />
       ) : (
-        <div className="published-grid">
+        <div className="cr-published__grid ts-stagger">
           {items.map((item) => (
-            <article key={item.id} className="published-card">
-              {item.thumbnailUrl ? (
-                <img className="published-card__thumb" src={item.thumbnailUrl} alt="" loading="lazy" />
-              ) : (
-                <div className="published-card__thumb published-card__thumb--empty" aria-hidden="true">
-                  {MEDIA_LABELS[item.mediaType ?? ''] ?? 'Post'}
-                </div>
-              )}
-              <div className="published-card__body">
-                <h2>{item.title || 'Untitled'}</h2>
-                <p className="tiny muted">
-                  {item.publishedAt ? new Date(item.publishedAt).toLocaleDateString() : 'Just now'}
-                  {item.collectionKind ? ` · ${KIND_LABELS[item.collectionKind] ?? item.collectionKind}` : ''}
-                  {item.mediaType ? ` · ${MEDIA_LABELS[item.mediaType] ?? item.mediaType}` : ''}
+            <article key={item.id} className="ts-card cr-pub ts-spotlight" onPointerMove={spotlight}>
+              <div className="cr-pub__thumb">
+                {item.thumbnailUrl ? (
+                  <img src={item.thumbnailUrl} alt="" loading="lazy" />
+                ) : (
+                  <span className="cr-pub__placeholder" aria-hidden="true"><Icon name={MEDIA_ICON[item.mediaType ?? ''] ?? 'doc'} /></span>
+                )}
+                {item.mediaType ? <Badge tone="neutral" className="cr-pub__kind">{MEDIA_LABELS[item.mediaType] ?? item.mediaType}</Badge> : null}
+              </div>
+              <div className="cr-pub__body">
+                <h2 className="cr-pub__title ts-clamp-2">{item.title || 'Untitled'}</h2>
+                <p className="cr-pub__meta">
+                  <Icon name="calendar" />
+                  <span className="ts-truncate">
+                    {item.publishedAt ? new Date(item.publishedAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) : 'Just now'}
+                    {item.collectionKind ? ` · ${KIND_LABELS[item.collectionKind] ?? item.collectionKind}` : ''}
+                  </span>
                 </p>
-                {item.description ? <p className="published-card__desc">{item.description}</p> : null}
-                <p className="tiny muted">
+                {item.description ? <p className="cr-pub__desc ts-clamp-3">{item.description}</p> : null}
+                <p className="cr-pub__credit">
                   Credited to {item.creatorAttribution?.displayName || 'you'}
                   {item.licenceDisplay ? ` · ${item.licenceDisplay}` : ''}
                 </p>
                 {item.correctionState && item.correctionState !== 'none' ? (
-                  <p className="tiny">This record is marked “{item.correctionState.replace(/_/g, ' ')}”.</p>
+                  <Badge tone="warning" dot>Marked “{item.correctionState.replace(/_/g, ' ')}”</Badge>
                 ) : null}
-                <div className="published-card__actions">
-                  <a
-                    className="button button--small"
-                    href={postUrl(item)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    Open as a reader
-                  </a>
-                  <button type="button" className="button button--small button--ghost-dark" onClick={() => void copyLink(item)}>
+                <div className="cr-pub__actions">
+                  <ButtonAnchor href={postUrl(item)} target="_blank" rel="noopener noreferrer" variant="secondary" size="sm" iconRight="external">Open as a reader</ButtonAnchor>
+                  <button type="button" className={copied === item.id ? 'ts-btn ts-btn--soft ts-btn--sm is-copied' : 'ts-btn ts-btn--ghost ts-btn--sm'} onClick={() => void copyLink(item)} aria-live="polite">
+                    <Icon name={copied === item.id ? 'check' : 'copy'} />
                     {copied === item.id ? 'Link copied' : 'Copy link'}
                   </button>
-                  <Link
-                    to={`/studio/submissions/${item.submission?.id ?? ''}`}
-                    className="button button--small button--ghost-dark"
-                  >
-                    Manage
-                  </Link>
+                  <Link to={`/studio/submissions/${item.submission?.id ?? ''}`} className="ts-btn ts-btn--ghost ts-btn--sm">Manage</Link>
                 </div>
               </div>
             </article>

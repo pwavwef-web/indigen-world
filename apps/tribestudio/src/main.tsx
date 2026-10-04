@@ -1,13 +1,16 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import '@indigen-world/design-tokens/tokens.css';
+// Sora for display, Inter for reading: Comitia's pairing, self-hosted so the
+// studio needs no third-party font request and still renders offline.
+import '@fontsource-variable/sora/wght.css';
+import '@fontsource-variable/inter/wght.css';
+import './ui/tokens.css';
+import './ui/base.css';
+import './ui/motion.css';
+import './ui/components.css';
+import './ui/shell.css';
+import './ui/auth.css';
 import App from './App';
-import './styles.css';
-import './creator/creator.css';
-import './interface/screens.css';
-// The shared console kit is loaded last so its standardised table, control and
-// status treatments settle over anything a page stylesheet declared first.
-import '@indigen-world/console-ui/kit.css';
 
 // Only the production site installs a worker. Local Vite development must
 // never inherit an old worker that intercepts hot module reloads.

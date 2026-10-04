@@ -1,0 +1,1282 @@
+/* ==========================================================================
+   Workspace shell
+   --------------------------------------------------------------------------
+   Comitia's administration layout: a white glass sidebar holding the brand,
+   the workspace switcher, grouped navigation and the signed-in person; a
+   sticky header card that names where you are; the page beneath it. On a
+   phone the sidebar becomes a drawer and the four most used destinations sit
+   in a dock at the bottom of the screen.
+   ========================================================================== */
+
+.ts-app {
+  position: relative;
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 100svh;
+  min-width: 0;
+  background: var(--bg);
+  overflow-x: clip;
+}
+
+/* A slow, faint light at the top of every workspace, the moving version of
+   the radial wash on the public site. Purely decorative. */
+.ts-ambient {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.ts-ambient::before,
+.ts-ambient::after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(10px);
+}
+
+.ts-ambient::before {
+  top: -22rem;
+  right: -14rem;
+  width: 46rem;
+  height: 46rem;
+  background: radial-gradient(circle, rgba(47, 107, 255, 0.11), transparent 62%);
+  animation: ts-drift 26s ease-in-out infinite;
+}
+
+.ts-ambient::after {
+  bottom: -26rem;
+  left: 10%;
+  width: 40rem;
+  height: 40rem;
+  background: radial-gradient(circle, rgba(34, 211, 238, 0.07), transparent 62%);
+  animation: ts-drift-b 32s ease-in-out infinite;
+}
+
+[data-workspace="review"] .ts-ambient::before {
+  background: radial-gradient(circle, rgba(25, 50, 127, 0.1), transparent 62%);
+}
+
+[data-workspace="contribute"] .ts-ambient::after {
+  background: radial-gradient(circle, rgba(34, 211, 238, 0.1), transparent 62%);
+}
+
+/* -- Sidebar ------------------------------------------------------------------- */
+.ts-sidebar {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  width: min(var(--sidebar), 86vw);
+  height: 100svh;
+  padding: var(--space-4);
+  overflow-x: hidden;
+  overflow-y: auto;
+  border-right: 1px solid var(--border);
+  background: var(--surface-glass-strong);
+  -webkit-backdrop-filter: blur(var(--blur));
+  backdrop-filter: blur(var(--blur));
+  transform: translateX(-102%);
+  transition:
+    transform var(--dur-3) var(--ease-emph),
+    width var(--dur-3) var(--ease-emph),
+    box-shadow var(--dur-3) ease;
+  scrollbar-gutter: stable;
+}
+
+.ts-sidebar[data-open="true"] {
+  transform: none;
+  box-shadow: var(--shadow-lift);
+}
+
+.ts-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 55;
+  border: 0;
+  background: rgba(15, 24, 48, 0.4);
+  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
+  animation: ts-backdrop-in var(--dur-3) ease both;
+}
+
+@media (min-width: 1024px) {
+  .ts-sidebar {
+    position: sticky;
+    z-index: 30;
+    width: var(--sidebar);
+    flex: 0 0 auto;
+    transform: none;
+    box-shadow: none;
+  }
+
+  .ts-sidebar[data-open="true"] {
+    box-shadow: none;
+  }
+
+  .ts-scrim {
+    display: none;
+  }
+
+  .ts-app[data-collapsed="true"] .ts-sidebar {
+    width: var(--sidebar-collapsed);
+    padding-inline: var(--space-3);
+  }
+}
+
+@media (min-width: 1280px) {
+  .ts-sidebar {
+    padding: var(--space-5);
+  }
+}
+
+.ts-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+  padding: 0.35rem 0.4rem;
+  border-radius: var(--r-lg);
+  color: var(--text);
+  text-decoration: none;
+  transition: background-color var(--dur-2) ease;
+}
+
+.ts-brand:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+.ts-brand__copy {
+  display: grid;
+  min-width: 0;
+  line-height: 1.25;
+}
+
+.ts-brand__name {
+  overflow: hidden;
+  font-family: var(--font-display);
+  font-size: var(--fs-base);
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ts-brand__sub {
+  overflow: hidden;
+  color: var(--text-3);
+  font-size: var(--fs-tiny);
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The Indigen World mark, set like Comitia's logo tile. */
+.ts-mark {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: var(--mark, 2.4rem);
+  height: var(--mark, 2.4rem);
+  flex: 0 0 auto;
+  border-radius: calc(var(--mark, 2.4rem) * 0.28);
+  background:
+    radial-gradient(circle at 70% 18%, rgba(34, 211, 238, 0.32), transparent 52%),
+    linear-gradient(160deg, #13224a, #0f1830 70%);
+  box-shadow: var(--shadow-glass), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+.ts-mark svg {
+  width: 72%;
+  height: 72%;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.ts-mark__frame {
+  stroke: #8eb4ff;
+  stroke-width: 3.2;
+}
+
+.ts-mark__line {
+  stroke: #ffffff;
+  stroke-width: 3.2;
+}
+
+.ts-mark__sun {
+  fill: #22d3ee;
+  stroke: none;
+}
+
+.ts-mark--draw .ts-mark__frame,
+.ts-mark--draw .ts-mark__line {
+  stroke-dasharray: 90;
+  animation: ts-draw 1.1s var(--ease-emph) both;
+  --draw-length: 90;
+}
+
+.ts-mark--draw .ts-mark__line {
+  animation-delay: 0.25s;
+}
+
+.ts-mark--draw .ts-mark__sun {
+  animation: ts-pop 500ms var(--ease-soft-spring) 0.7s both;
+  transform-origin: 32px 14px;
+}
+
+.ts-mark--live .ts-mark__sun {
+  animation: ts-breathe 3.2s ease-in-out infinite;
+}
+
+/* Workspace switcher (Comitia's election-workspace box) */
+.ts-switcher {
+  display: grid;
+  gap: 0.4rem;
+  padding: 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  background: var(--surface-sunken);
+}
+
+.ts-switcher__label {
+  color: var(--text-3);
+  font-size: var(--fs-micro);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.ts-switcher__options {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.ts-switcher__option {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+  padding: 0.45rem 0.55rem;
+  border: 1px solid transparent;
+  border-radius: var(--r);
+  color: var(--text-2);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  text-decoration: none;
+  transition: background-color var(--dur-2) ease, color var(--dur-2) ease, border-color var(--dur-2) ease;
+}
+
+.ts-switcher__option:hover {
+  background: var(--surface);
+  color: var(--text);
+}
+
+.ts-switcher__option[aria-current="true"] {
+  border-color: var(--border);
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow-xs);
+}
+
+.ts-switcher__glyph {
+  display: inline-grid;
+  place-items: center;
+  width: 1.65rem;
+  height: 1.65rem;
+  flex: 0 0 auto;
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  color: var(--text-3);
+  box-shadow: inset 0 0 0 1px var(--border);
+}
+
+.ts-switcher__glyph .ts-icon {
+  width: 0.95rem;
+  height: 0.95rem;
+}
+
+.ts-switcher__option[aria-current="true"] .ts-switcher__glyph {
+  background: var(--ws);
+  color: #fff;
+  box-shadow: none;
+}
+
+.ts-switcher__option > span:last-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ts-sidebar__primary {
+  width: 100%;
+}
+
+/* Navigation */
+.ts-nav {
+  position: relative;
+  display: grid;
+  align-content: start;
+  gap: var(--space-4);
+  flex: 1 1 auto;
+  /* The section list scrolls on its own so the account stays in reach; on a
+     very short window the whole sidebar scrolls instead. */
+  min-height: min(12rem, 40svh);
+  margin-inline: calc(var(--space-2) * -1);
+  padding: 0.15rem var(--space-2);
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+
+.ts-nav__group {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.ts-nav__heading {
+  padding: 0 0.75rem 0.25rem;
+  color: var(--text-4);
+  font-size: var(--fs-micro);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.ts-nav__link {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  min-height: 2.6rem;
+  min-width: 0;
+  padding: 0.55rem 0.75rem;
+  border-radius: var(--r-lg);
+  color: var(--text-3);
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  text-decoration: none;
+  transition: color var(--dur-2) ease, background-color var(--dur-2) ease;
+  isolation: isolate;
+}
+
+.ts-nav__link > .ts-icon {
+  width: 1.15rem;
+  height: 1.15rem;
+  flex: 0 0 auto;
+  transition: transform var(--dur-3) var(--ease-soft-spring), color var(--dur-2) ease;
+}
+
+.ts-nav__link:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+.ts-nav__link:hover > .ts-icon {
+  transform: translateX(1px) scale(1.06);
+}
+
+.ts-nav__link[aria-current="page"] {
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  font-weight: 600;
+}
+
+/* The gliding pill: one element that moves to the current destination. */
+.ts-nav__indicator {
+  position: absolute;
+  top: 0;
+  left: var(--space-2);
+  right: var(--space-2);
+  z-index: 0;
+  height: var(--indicator-h, 2.6rem);
+  border-radius: var(--r-lg);
+  background: var(--accent-soft);
+  opacity: 0;
+  transform: translateY(var(--indicator-y, 0));
+  transition:
+    transform var(--dur-4) var(--ease-emph),
+    height var(--dur-3) var(--ease-emph),
+    opacity var(--dur-2) ease;
+  pointer-events: none;
+}
+
+.ts-nav__indicator::before {
+  content: "";
+  position: absolute;
+  top: 0.55rem;
+  bottom: 0.55rem;
+  left: 0;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--c-blue);
+}
+
+.ts-nav.has-indicator .ts-nav__indicator {
+  opacity: 1;
+}
+
+.ts-nav.has-indicator .ts-nav__link[aria-current="page"] {
+  background: transparent;
+}
+
+.ts-nav__link > span:not(.ts-count):not(.ts-nav__badge) {
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ts-nav__link .ts-count {
+  margin-left: auto;
+}
+
+.ts-nav__badge {
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  margin-left: auto;
+  padding: 0 0.35rem;
+  border-radius: var(--r-full);
+  background: var(--warning-dot);
+  color: #3b1d02;
+  font-size: var(--fs-tiny);
+  font-weight: 700;
+}
+
+.ts-nav__link.is-disabled {
+  color: var(--text-4);
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* Signed-in person */
+.ts-account {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  min-width: 0;
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border);
+}
+
+.ts-account__copy {
+  display: grid;
+  min-width: 0;
+  flex: 1 1 auto;
+  line-height: 1.3;
+}
+
+.ts-account__name {
+  overflow: hidden;
+  color: var(--text);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ts-account__role {
+  overflow: hidden;
+  color: var(--text-3);
+  font-size: var(--fs-tiny);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ts-account__out {
+  color: var(--danger);
+}
+
+.ts-collapse {
+  display: none;
+}
+
+@media (min-width: 1024px) {
+  .ts-collapse {
+    display: inline-flex;
+    align-self: flex-start;
+  }
+
+  .ts-app[data-collapsed="true"] .ts-brand__copy,
+  .ts-app[data-collapsed="true"] .ts-switcher__label,
+  .ts-app[data-collapsed="true"] .ts-switcher__option > span:last-child,
+  .ts-app[data-collapsed="true"] .ts-nav__heading,
+  .ts-app[data-collapsed="true"] .ts-nav__link > span,
+  .ts-app[data-collapsed="true"] .ts-nav__link .ts-count,
+  .ts-app[data-collapsed="true"] .ts-account__copy,
+  .ts-app[data-collapsed="true"] .ts-sidebar__primary > span {
+    display: none;
+  }
+
+  .ts-app[data-collapsed="true"] .ts-brand,
+  .ts-app[data-collapsed="true"] .ts-switcher__option,
+  .ts-app[data-collapsed="true"] .ts-nav__link,
+  .ts-app[data-collapsed="true"] .ts-account {
+    justify-content: center;
+  }
+
+  .ts-app[data-collapsed="true"] .ts-switcher {
+    padding: 0.35rem;
+  }
+
+  .ts-app[data-collapsed="true"] .ts-account {
+    flex-direction: column;
+  }
+
+  .ts-app[data-collapsed="true"] .ts-sidebar__primary {
+    width: 2.75rem;
+    min-width: 2.75rem;
+    padding: 0;
+    align-self: center;
+  }
+
+  .ts-app[data-collapsed="true"] .ts-collapse {
+    align-self: center;
+  }
+}
+
+/* -- Body and header card ----------------------------------------------------- */
+.ts-body {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* Sticky content starts below the sticky header card; bottom bars rise above the dock. */
+.ts-app {
+  --sticky-top: 5.75rem;
+  --dock-space: 0px;
+}
+
+@media (max-width: 1023px) {
+  .ts-app[data-has-dock="true"]:not([data-dock="hidden"]) {
+    --dock-space: calc(4.4rem + env(safe-area-inset-bottom));
+  }
+}
+
+.ts-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  padding: var(--space-3) var(--gutter) 0;
+}
+
+.ts-topbar__card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 3.75rem;
+  max-width: var(--content-max);
+  margin-inline: auto;
+  padding: 0.55rem 0.75rem 0.55rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  background: var(--surface-glass);
+  box-shadow: var(--shadow-card);
+  -webkit-backdrop-filter: blur(var(--blur));
+  backdrop-filter: blur(var(--blur));
+}
+
+.ts-topbar__menu {
+  flex: 0 0 auto;
+}
+
+@media (min-width: 1024px) {
+  .ts-topbar__menu {
+    display: none;
+  }
+}
+
+.ts-topbar__where {
+  display: grid;
+  min-width: 0;
+  flex: 1 1 auto;
+  line-height: 1.3;
+}
+
+.ts-topbar__kicker {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+  color: var(--text-3);
+  font-size: var(--fs-micro);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.ts-topbar__kicker i {
+  width: 0.45rem;
+  height: 0.45rem;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--ws);
+  box-shadow: 0 0 0 3px var(--ws-soft);
+}
+
+.ts-topbar__title {
+  overflow: hidden;
+  color: var(--text);
+  font-family: var(--font-display);
+  font-size: var(--fs-base);
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  animation: ts-enter-soft var(--dur-3) var(--ease-emph) both;
+}
+
+.ts-topbar__trail {
+  display: none;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (min-width: 1180px) {
+  .ts-topbar__trail {
+    display: block;
+    max-width: 26rem;
+  }
+}
+
+.ts-topbar__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex: 0 0 auto;
+}
+
+.ts-jump {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 2.25rem;
+  padding: 0.35rem 0.5rem 0.35rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  background: var(--surface);
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color var(--dur-2) ease, color var(--dur-2) ease, box-shadow var(--dur-2) ease;
+}
+
+.ts-jump:hover {
+  border-color: var(--accent-line);
+  color: var(--text);
+  box-shadow: 0 0 0 3px var(--accent-softer);
+}
+
+.ts-jump .ts-icon {
+  width: 1rem;
+  height: 1rem;
+}
+
+@media (max-width: 720px) {
+  .ts-jump > span,
+  .ts-jump > .ts-kbd {
+    display: none;
+  }
+
+  .ts-jump {
+    width: 2.25rem;
+    padding: 0;
+    justify-content: center;
+  }
+}
+
+.ts-bell {
+  position: relative;
+}
+
+.ts-bell__dot {
+  position: absolute;
+  top: 0.45rem;
+  right: 0.5rem;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--danger-dot);
+  box-shadow: 0 0 0 2px var(--surface);
+}
+
+.ts-offline {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  max-width: var(--content-max);
+  margin: var(--space-3) auto 0;
+  padding: 0.55rem 0.9rem;
+  border: 1px solid var(--warning-line);
+  border-radius: var(--r);
+  background: var(--warning-surface);
+  color: var(--warning-strong);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  animation: ts-enter-soft var(--dur-3) var(--ease-emph) both;
+}
+
+.ts-offline .ts-icon {
+  width: 1rem;
+  height: 1rem;
+  flex: 0 0 auto;
+}
+
+.ts-main {
+  width: 100%;
+  max-width: calc(var(--content-max) + var(--gutter) * 2);
+  margin-inline: auto;
+  padding: var(--space-6) var(--gutter) calc(var(--space-12) + env(safe-area-inset-bottom));
+  outline: none;
+  view-transition-name: ts-main;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.ts-main > * {
+  min-width: 0;
+}
+
+.ts-app[data-immersive="true"] .ts-main {
+  max-width: none;
+  padding: var(--space-3) var(--space-3) var(--space-6);
+}
+
+.ts-app[data-immersive="true"] .ts-topbar__card {
+  max-width: none;
+}
+
+.ts-app[data-immersive="true"] .ts-topbar {
+  padding-inline: var(--space-3);
+}
+
+.ts-page {
+  display: grid;
+  gap: var(--space-6);
+  min-width: 0;
+}
+
+.ts-page > * {
+  min-width: 0;
+}
+
+.ts-page--narrow {
+  max-width: 52rem;
+}
+
+.ts-page--medium {
+  max-width: 64rem;
+}
+
+.ts-footer-note {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--space-2);
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: 0 var(--gutter) var(--space-6);
+  color: var(--text-4);
+  font-size: var(--fs-tiny);
+}
+
+/* -- Mobile dock --------------------------------------------------------------- */
+.ts-dock {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 50;
+  display: grid;
+  grid-template-columns: repeat(var(--dock-cols, 5), minmax(0, 1fr));
+  gap: 0.15rem;
+  padding: 0.35rem 0.5rem max(0.5rem, env(safe-area-inset-bottom));
+  border-top: 1px solid var(--border);
+  background: var(--surface-glass-strong);
+  -webkit-backdrop-filter: blur(var(--blur));
+  backdrop-filter: blur(var(--blur));
+  box-shadow: 0 -8px 24px rgba(15, 24, 48, 0.06);
+  transition: transform var(--dur-3) var(--ease-emph);
+}
+
+.ts-app[data-dock="hidden"] .ts-dock {
+  transform: translateY(110%);
+}
+
+.ts-dock__item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.15rem;
+  min-height: 3.25rem;
+  min-width: 0;
+  padding: 0.25rem;
+  border: 0;
+  border-radius: var(--r-lg);
+  background: transparent;
+  color: var(--text-3);
+  font-size: var(--fs-micro);
+  font-weight: 700;
+  text-decoration: none;
+  transition: background-color var(--dur-2) ease, color var(--dur-2) ease;
+}
+
+.ts-dock__item > span:last-child {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ts-dock__item .ts-icon {
+  width: 1.3rem;
+  height: 1.3rem;
+  transition: transform var(--dur-3) var(--ease-soft-spring);
+}
+
+.ts-dock__item[aria-current="page"] {
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+
+.ts-dock__item[aria-current="page"] .ts-icon {
+  transform: translateY(-1px);
+}
+
+.ts-dock__badge {
+  position: absolute;
+  top: 0.35rem;
+  left: calc(50% + 0.35rem);
+  min-width: 1rem;
+  height: 1rem;
+  padding: 0 0.25rem;
+  border-radius: var(--r-full);
+  background: var(--warning-dot);
+  color: #3b1d02;
+  font-size: 0.6rem;
+  line-height: 1rem;
+  text-align: center;
+}
+
+@media (min-width: 1024px) {
+  .ts-dock {
+    display: none;
+  }
+}
+
+@media (max-width: 1023px) {
+  .ts-app[data-has-dock="true"] .ts-main {
+    padding-bottom: calc(6rem + env(safe-area-inset-bottom));
+  }
+
+  .ts-app[data-has-dock="true"][data-dock="hidden"] .ts-main {
+    padding-bottom: calc(var(--space-12) + env(safe-area-inset-bottom));
+  }
+}
+
+/* -- Display preferences (Comitia's "Display" control) ---------------------------- */
+.ts-display-toggle {
+  position: fixed;
+  right: max(1.25rem, env(safe-area-inset-right));
+  bottom: max(1.25rem, env(safe-area-inset-bottom));
+  z-index: 70;
+  display: none;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 2.75rem;
+  padding: 0 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--r-full);
+  background: var(--surface-glass-strong);
+  color: var(--text);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  box-shadow: var(--shadow-card);
+  cursor: pointer;
+  -webkit-backdrop-filter: blur(var(--blur));
+  backdrop-filter: blur(var(--blur));
+  transition: transform var(--dur-2) var(--ease-out), box-shadow var(--dur-2) ease, border-color var(--dur-2) ease;
+}
+
+.ts-display-toggle:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent-line);
+  box-shadow: var(--shadow-hover);
+}
+
+.ts-display-toggle .ts-icon {
+  width: 1rem;
+  height: 1rem;
+}
+
+@media (min-width: 1024px) {
+  .ts-display-toggle {
+    display: inline-flex;
+  }
+}
+
+.ts-display-toggle--always {
+  display: inline-flex;
+}
+
+.ts-display {
+  position: fixed;
+  right: 0.75rem;
+  bottom: calc(5.5rem + env(safe-area-inset-bottom));
+  left: 0.75rem;
+  z-index: 90;
+  display: grid;
+  gap: var(--space-4);
+  max-height: calc(100svh - 7rem);
+  padding: var(--space-4);
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  background: var(--surface-glass-strong);
+  color: var(--text);
+  box-shadow: var(--shadow-lift);
+  -webkit-backdrop-filter: blur(var(--blur));
+  backdrop-filter: blur(var(--blur));
+  animation: ts-dialog-in var(--dur-3) var(--ease-emph) both;
+}
+
+@media (min-width: 640px) {
+  .ts-display {
+    right: 1.25rem;
+    left: auto;
+    bottom: 4.75rem;
+    width: 24rem;
+  }
+}
+
+.ts-display__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.ts-display__head h2 {
+  margin-top: 0.2rem;
+  font-size: var(--fs-base);
+  font-weight: 700;
+}
+
+.ts-display fieldset {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.ts-display legend {
+  margin-bottom: 0.5rem;
+  color: var(--text-2);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+}
+
+.ts-display__options {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.ts-display__option {
+  min-height: 2.5rem;
+  padding: 0.45rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  background: var(--surface);
+  color: var(--text-2);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color var(--dur-2) ease, border-color var(--dur-2) ease, color var(--dur-2) ease, transform var(--dur-1) var(--ease-out);
+}
+
+.ts-display__option:hover {
+  border-color: var(--accent-line);
+}
+
+.ts-display__option:active {
+  transform: scale(0.97);
+}
+
+.ts-display__option[aria-pressed="true"] {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+
+.ts-display__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border-radius: var(--r-lg);
+  background: var(--surface-sunken);
+}
+
+.ts-display__row p {
+  font-size: var(--fs-xs);
+  font-weight: 700;
+}
+
+.ts-display__row small {
+  display: block;
+  color: var(--text-3);
+  font-size: var(--fs-tiny);
+  font-weight: 500;
+}
+
+.ts-display__step {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.ts-display__step button {
+  width: 2.75rem;
+  height: 2.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  background: var(--surface);
+  color: var(--text);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.ts-display__step button:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+/* -- Command palette (console-ui CommandPalette, restyled) ------------------------ */
+.iwx-pal__backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 110;
+  display: grid;
+  align-items: start;
+  justify-items: center;
+  padding: max(10vh, 4rem) 1rem 1rem;
+  background: rgba(15, 24, 48, 0.42);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  animation: ts-backdrop-in var(--dur-2) ease both;
+}
+
+.iwx-pal {
+  display: flex;
+  flex-direction: column;
+  width: min(36rem, 100%);
+  max-height: min(32rem, 76svh);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  background: var(--surface-glass-strong);
+  color: var(--text);
+  box-shadow: var(--shadow-lift);
+  -webkit-backdrop-filter: blur(var(--blur));
+  backdrop-filter: blur(var(--blur));
+  animation: ts-dialog-in var(--dur-3) var(--ease-emph) both;
+}
+
+.iwx-pal__field {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.iwx-pal__prompt {
+  color: var(--accent-text);
+  font-family: var(--font-mono);
+  font-weight: 700;
+}
+
+.iwx-pal__field input {
+  min-width: 0;
+  flex: 1 1 auto;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font-size: var(--fs-base);
+  outline: none;
+}
+
+.iwx-pal__list {
+  padding: 0.4rem;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.iwx-pal__section {
+  padding: 0.6rem 0.65rem 0.3rem;
+  color: var(--text-4);
+  font-size: var(--fs-micro);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.iwx-pal__item {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.5rem 0.65rem;
+  border: 0;
+  border-radius: var(--r-lg);
+  background: transparent;
+  color: var(--text-2);
+  font: inherit;
+  font-size: var(--fs-sm);
+  text-align: left;
+  cursor: pointer;
+  transition: background-color var(--dur-1) ease, color var(--dur-1) ease;
+}
+
+.iwx-pal__item[aria-selected="true"],
+.iwx-pal__item:hover {
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+
+.iwx-pal__item .ts-icon {
+  width: 1.1rem;
+  height: 1.1rem;
+  flex: 0 0 auto;
+}
+
+.iwx-pal__item-copy {
+  display: grid;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.iwx-pal__item-copy > * {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.iwx-pal__item-copy small,
+.iwx-pal__item-copy span + span {
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+}
+
+.iwx-pal__trail {
+  color: var(--text-4);
+  font-size: var(--fs-xs);
+}
+
+.iwx-pal__empty {
+  padding: var(--space-6) var(--space-4);
+  color: var(--text-3);
+  font-size: var(--fs-sm);
+  text-align: center;
+}
+
+.iwx-pal__foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  padding: 0.6rem 1rem;
+  border-top: 1px solid var(--border);
+  color: var(--text-4);
+  font-size: var(--fs-tiny);
+}
+
+/* -- Print: the page, not the chrome -------------------------------------------- */
+@media print {
+  .ts-sidebar,
+  .ts-topbar,
+  .ts-dock,
+  .ts-display-toggle,
+  .ts-ambient {
+    display: none !important;
+  }
+
+  .ts-main {
+    padding: 0;
+  }
+}
+
+/* A slim note under the header card: local previews, maintenance notices. */
+.ts-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 0.75rem;
+  margin: var(--space-3) max(var(--gutter), calc((100% - var(--content-max)) / 2)) 0;
+  padding: 0.55rem 0.9rem;
+  border: 1px dashed var(--accent-line);
+  border-radius: var(--r);
+  background: var(--accent-softer);
+  color: var(--text-2);
+  font-size: var(--fs-xs);
+  line-height: 1.5;
+}
+
+.ts-banner strong {
+  color: var(--accent-text);
+  font-weight: 700;
+}
+
+
+/* A banner placed inside a page sits on the page's own grid. */
+.ts-main .ts-banner {
+  margin: 0;
+}
+
+/* The workspace keeps its Display switch in the header card, beside Go to. */
+.ts-topbar__display {
+  min-height: 2.5rem;
+  padding-inline: 0.7rem;
+}
+
+.ts-topbar__display .ts-icon {
+  width: 1.05rem;
+  height: 1.05rem;
+}
+
+.ts-topbar__display-label {
+  display: none;
+}
+
+@media (min-width: 1280px) {
+  .ts-topbar__display-label {
+    display: inline;
+  }
+}
+
+.ts-display.ts-display--bar {
+  top: calc(var(--space-3) + 4.25rem);
+  right: max(var(--gutter), 1.25rem);
+  bottom: auto;
+  left: auto;
+  width: min(24rem, calc(100vw - 2rem));
+  max-height: calc(100svh - 6.5rem);
+}

@@ -1,0 +1,453 @@
+/* ==========================================================================
+   Sign-in and access screens
+   --------------------------------------------------------------------------
+   Comitia's staff sign-in, carried over: a faint 28px grid on the mist, the
+   mark on its own tile, one glass card no wider than a phone, and a quiet
+   footer. Every access state (checking, activation, agreement, a link for
+   another account, no access) uses this one frame so nobody wonders whether
+   they have left the product.
+   ========================================================================== */
+
+.ts-auth {
+  position: relative;
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100svh;
+  padding: var(--space-12) var(--space-4) var(--space-6);
+  overflow: hidden;
+  isolation: isolate;
+  background-color: var(--bg);
+  background-image:
+    linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+  background-size: 28px 28px;
+  background-position: center top;
+}
+
+/* Two slow lights behind the card. */
+.ts-auth::before,
+.ts-auth::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.ts-auth::before {
+  top: -14rem;
+  left: 50%;
+  width: 52rem;
+  height: 34rem;
+  margin-left: -26rem;
+  background: radial-gradient(ellipse at center, rgba(47, 107, 255, 0.13), transparent 64%);
+  animation: ts-drift 22s ease-in-out infinite;
+}
+
+.ts-auth::after {
+  right: -10rem;
+  bottom: -14rem;
+  width: 34rem;
+  height: 34rem;
+  background: radial-gradient(circle, rgba(34, 211, 238, 0.1), transparent 62%);
+  animation: ts-drift-b 28s ease-in-out infinite;
+}
+
+.ts-auth[data-workspace="review"]::before {
+  background: radial-gradient(ellipse at center, rgba(25, 50, 127, 0.14), transparent 64%);
+}
+
+/* Grid fades out toward the edges so the card is the focus. */
+.ts-auth__vignette {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: radial-gradient(ellipse at 50% 38%, transparent 30%, var(--bg) 78%);
+  pointer-events: none;
+}
+
+.ts-auth__inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 25rem;
+}
+
+.ts-auth__inner--wide {
+  max-width: 34rem;
+}
+
+.ts-auth__mark {
+  --mark: 3.5rem;
+  animation: ts-pop var(--dur-4) var(--ease-emph) both;
+}
+
+.ts-auth__card {
+  position: relative;
+  display: grid;
+  gap: var(--space-5);
+  width: 100%;
+  margin-top: var(--space-6);
+  padding: var(--space-8) var(--space-6);
+  border: 1px solid var(--surface-glass-border);
+  border-radius: var(--r-xl);
+  background: var(--surface-glass);
+  box-shadow: var(--shadow-card), 0 30px 60px -30px rgba(15, 24, 48, 0.18);
+  -webkit-backdrop-filter: blur(var(--blur));
+  backdrop-filter: blur(var(--blur));
+  animation: ts-enter var(--dur-4) var(--ease-emph) 80ms both;
+}
+
+:root[data-theme-resolved="dark"] .ts-auth__card {
+  border-color: var(--border);
+}
+
+@media (min-width: 480px) {
+  .ts-auth__card {
+    padding: var(--space-8);
+  }
+}
+
+.ts-auth__card > * {
+  min-width: 0;
+}
+
+.ts-auth__head {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.ts-auth__workspace {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  justify-self: start;
+  margin-bottom: calc(var(--space-2) - var(--space-5));
+  padding: 0.2rem 0.6rem 0.2rem 0.3rem;
+  border-radius: var(--r-full);
+  background: var(--ws-soft);
+  color: var(--ws-text);
+  font-size: var(--fs-tiny);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.ts-auth__workspace .ts-icon {
+  width: 1.15rem;
+  height: 1.15rem;
+  padding: 0.18rem;
+  border-radius: 50%;
+  background: var(--ws);
+  color: #fff;
+}
+
+.ts-auth__title {
+  font-size: var(--fs-xl);
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.ts-auth__title:focus {
+  outline: none;
+}
+
+.ts-auth__lede {
+  color: var(--text-3);
+  font-size: var(--fs-sm);
+  line-height: 1.55;
+}
+
+.ts-auth__form {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.ts-auth__form > * {
+  animation: ts-enter var(--dur-4) var(--ease-emph) both;
+}
+
+.ts-auth__form > :nth-child(1) { animation-delay: 160ms; }
+.ts-auth__form > :nth-child(2) { animation-delay: 210ms; }
+.ts-auth__form > :nth-child(3) { animation-delay: 260ms; }
+.ts-auth__form > :nth-child(4) { animation-delay: 310ms; }
+.ts-auth__form > :nth-child(5) { animation-delay: 360ms; }
+.ts-auth__form > :nth-child(n + 6) { animation-delay: 400ms; }
+
+.ts-auth__label-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.ts-auth__actions {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.ts-auth__or {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  color: var(--text-4);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+}
+
+.ts-auth__or::before,
+.ts-auth__or::after {
+  content: "";
+  height: 1px;
+  flex: 1 1 auto;
+  background: var(--border);
+}
+
+.ts-auth__google {
+  gap: 0.65rem;
+}
+
+.ts-auth__google svg {
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
+.ts-auth__help {
+  border: 0;
+  background: transparent;
+}
+
+.ts-auth__help > summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--accent-text);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+}
+
+.ts-auth__help > summary .ts-icon {
+  width: 1rem;
+  height: 1rem;
+  transition: transform var(--dur-3) var(--ease-emph);
+}
+
+.ts-auth__help[open] > summary .ts-icon {
+  transform: rotate(90deg);
+}
+
+.ts-auth__help > p {
+  margin-top: var(--space-2);
+  padding: var(--space-3);
+  border-radius: var(--r-lg);
+  background: var(--surface-sunken);
+  color: var(--text-2);
+  font-size: var(--fs-xs);
+  line-height: 1.6;
+  animation: ts-enter-soft var(--dur-3) var(--ease-emph) both;
+}
+
+.ts-auth__terms {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  background: var(--surface-sunken);
+}
+
+.ts-auth__terms h2 {
+  font-size: var(--fs-sm);
+  font-weight: 700;
+}
+
+.ts-auth__terms p {
+  color: var(--text-2);
+  font-size: var(--fs-xs);
+  line-height: 1.6;
+}
+
+.ts-auth__journey {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-2);
+  width: 100%;
+  margin-top: var(--space-5);
+  list-style: none;
+  animation: ts-enter var(--dur-4) var(--ease-emph) 420ms both;
+}
+
+.ts-auth__journey li {
+  display: grid;
+  justify-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+  color: var(--text-3);
+  font-size: var(--fs-tiny);
+  font-weight: 600;
+  text-align: center;
+}
+
+.ts-auth__journey .ts-icon {
+  width: 2rem;
+  height: 2rem;
+  padding: 0.45rem;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--ws-text);
+}
+
+.ts-auth__note {
+  margin-top: var(--space-4);
+  max-width: 25rem;
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+  line-height: 1.55;
+  text-align: center;
+  animation: ts-fade var(--dur-4) ease 500ms both;
+}
+
+.ts-auth__state {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4) 0;
+  color: var(--text-3);
+  font-size: var(--fs-sm);
+  text-align: center;
+}
+
+/* The in-app continuation of the boot screen (index.html #boot): identical
+   geometry, so the hand-over from HTML to React cannot be seen. */
+.ts-boot {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  background-color: var(--bg);
+  background-image:
+    radial-gradient(ellipse at 50% 38%, transparent 30%, var(--bg) 78%),
+    linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+  background-size: auto, 28px 28px, 28px 28px;
+}
+
+.ts-boot__mark {
+  border-radius: 16px;
+}
+
+.ts-boot__words {
+  display: grid;
+  gap: 4px;
+  text-align: center;
+}
+
+.ts-boot__name {
+  color: var(--accent-text);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  line-height: normal;
+  text-transform: uppercase;
+}
+
+.ts-boot__note {
+  color: var(--text-3);
+  font-size: 14px;
+  line-height: normal;
+}
+
+.ts-boot__bar {
+  width: 136px;
+  height: 4px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--accent-soft);
+}
+
+.ts-boot__bar > span {
+  display: block;
+  width: 40%;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--c-blue);
+  animation: ts-boot-slide 1.4s ease-in-out infinite;
+}
+
+@keyframes ts-boot-slide {
+  0% {
+    transform: translateX(-110%);
+  }
+  100% {
+    transform: translateX(330%);
+  }
+}
+
+/* Footer (Comitia's, in TribeStudio's words) */
+.ts-auth-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  width: 100%;
+  max-width: 64rem;
+  margin-top: var(--space-12);
+  padding-top: var(--space-6);
+  border-top: 1px solid var(--border);
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+  animation: ts-fade var(--dur-4) ease 600ms both;
+}
+
+.ts-auth-foot__brand {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.ts-auth-foot__brand .ts-mark {
+  --mark: 2rem;
+}
+
+.ts-auth-foot__brand strong {
+  display: block;
+  color: var(--text);
+  font-family: var(--font-display);
+  font-size: var(--fs-sm);
+}
+
+.ts-auth-foot nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 1.1rem;
+}
+
+.ts-auth-foot a {
+  color: var(--text-3);
+  text-decoration: none;
+  transition: color var(--dur-2) ease;
+}
+
+.ts-auth-foot a:hover {
+  color: var(--accent-text);
+}
+
+@media (max-width: 640px) {
+  .ts-auth-foot {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .ts-auth-foot nav {
+    justify-content: center;
+  }
+}
