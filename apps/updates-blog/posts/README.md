@@ -6,6 +6,8 @@ date identifies when the post was prepared; it does not prove the update is live
 
 ## Posts
 
+- [2026-10-04: Website animations that leave room to read](2026-10-04-clear-website-headers/README.md) — shared headers reserve space for text, actions and search alongside or above their decorative artwork. Implemented with verified preview screenshots; website deployment and Blogger publication pending.
+
 - [2026-10-04: More room to watch our community progress grow](2026-10-04-progress-fullscreen-popups/README.md) — fullscreen progress redesign with popup explanations, red/yellow/blue/green liquid, and growing bubbles. Deployed October 4 with verified public assets and actual local product screenshots; article unpublished.
 
 - [2026-10-04: A steadier place to look up Kasem](2026-10-04-dictionary-steady-scrolling/README.md) — dictionary scroll feedback fix and mobile result-position preservation implemented and verified; deployed October 4 with verified public assets and live scroll regressions; Blogger publication pending. Includes verified local product screenshots.

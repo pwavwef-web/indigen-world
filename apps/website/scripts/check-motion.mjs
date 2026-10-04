@@ -34,6 +34,25 @@ async function open(page, route) {
   await page.waitForTimeout(800);
 }
 async function artwork(page) { return page.locator('.page-motion__art svg').first().evaluate(svg => svg.outerHTML); }
+async function checkBannerLayout(page, route, width) {
+  const banner = page.locator('.page-motion--banner');
+  if (!await banner.count()) return false;
+  const art = await banner.boundingBox();
+  const content = banner.locator('..').locator(':scope > .container');
+  const box = await content.boundingBox();
+  assert(art.x + art.width <= box.x + 1 || box.x + box.width <= art.x + 1 ||
+    art.y + art.height <= box.y + 1 || box.y + box.height <= art.y + 1,
+  `${route}: artwork overlaps the content column at ${width}px`);
+  const controls = content.locator('a, button, input, select, textarea');
+  for (const control of await controls.all()) {
+    if (await control.isVisible() && await control.isEnabled()) {
+      await control.click({ trial: true, timeout: 3000 });
+    }
+  }
+  const sizes = await page.evaluate(() => ({ content: document.documentElement.scrollWidth, viewport: innerWidth }));
+  assert(sizes.content <= sizes.viewport + 1, `${route}: horizontal overflow at ${width}px`);
+  return true;
+}
 async function checkKassenaLayout(page, width) {
   const art = await page.locator('.page-motion').boundingBox();
   for (const selector of ['.kasena-copy', '.module-preview__header', '.module-preview__list', '.module-preview__note', '.module-preview__button']) {
@@ -55,6 +74,7 @@ try {
   const ctx = await context();
   const page = await ctx.newPage();
   const errors = [];
+  const bannerRoutes = new Set();
   page.on('pageerror', error => errors.push(error.message));
   for (const width of [1440, 360]) {
     await page.setViewportSize({ width, height: width === 1440 ? 1000 : 800 });
@@ -63,6 +83,7 @@ try {
       const sizes = await page.evaluate(() => ({ content: document.documentElement.scrollWidth, viewport: innerWidth }));
       assert(sizes.content <= sizes.viewport + 1, `${route} overflows at ${width}px: ${sizes.content}`);
       if (route === '/project-kassena') await checkKassenaLayout(page, width);
+      if (await checkBannerLayout(page, route, width)) bannerRoutes.add(route);
       if (route !== '/beyond-the-reef') {
         assert.equal(await page.locator(route === '/privacy' ? '.privacy-hero' : '.page-motion').count(), 1, `${route}: exactly one page illustration`);
         const toggle = page.getByRole('button', { name: 'Pause animations', exact: false });
@@ -82,6 +103,14 @@ try {
     console.log(`Checked all ${routes.length} routes at ${width}px.`);
   }
   assert.deepEqual(errors, [], 'No uncaught page errors');
+  for (const width of [320, 999, 1000, 1920]) {
+    await page.setViewportSize({ width, height: 1000 });
+    for (const route of bannerRoutes) {
+      await open(page, route);
+      await checkBannerLayout(page, route, width);
+    }
+    console.log(`Checked all ${bannerRoutes.size} banner layouts for overlap and reachable controls at ${width}px.`);
+  }
   for (const width of [900, 999, 1000, 1920]) {
     await page.setViewportSize({ width, height: 1000 });
     await open(page, '/project-kassena');
@@ -133,6 +162,11 @@ try {
   assert.equal(await artwork(page), reducedStill, 'Reduced motion is static');
   assert.equal(await page.locator('h1').evaluate(el => getComputedStyle(el).animationName), 'none');
   assert.equal(await page.locator('.motion-ready:not(.is-visible)').count(), 0, 'Reduced motion reveals all content');
+  for (const route of bannerRoutes) {
+    await open(page, route);
+    await checkBannerLayout(page, route, 1440);
+    assert.equal(await page.locator('.page-motion__toggle').count(), 0, `${route}: reduced motion retains a clear static illustration`);
+  }
   await ctx.close();
 
   const reducedContext = await context({ reducedMotion: 'reduce', viewport: { width: 390, height: 844 } });

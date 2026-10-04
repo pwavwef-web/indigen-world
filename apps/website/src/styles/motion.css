@@ -3,8 +3,8 @@
 .page-motion__art { width: 100%; height: 100%; pointer-events: none; }
 .page-motion__art svg { display: block; }
 .page-motion--banner {
-  position: absolute; inset: 100px max(2%, calc((100vw - 1240px) / 2)) 25px auto;
-  width: min(40%, 560px); z-index: 3; pointer-events: none;
+  width: 100%; height: 220px; pointer-events: none;
+  grid-column: 1; grid-row: 2;
 }
 .page-motion--banner .page-motion__art {
   border-radius: 28px; border: 1px solid rgba(220, 234, 255, .16);
@@ -27,11 +27,17 @@
 .page-motion__toggle:hover { background: #224779; }
 .page-motion__toggle:focus-visible { outline: 3px solid #67e8df; outline-offset: 3px; }
 .hero-visual { overflow: hidden; }
-.page-hero:has(> .page-motion) > .container { z-index: 2; }
-.dictionary-page__intro { position: relative; z-index: 2; }
-.dictionary-page__masthead > .page-motion .page-motion__art { opacity: .4; }
-.not-found > .page-motion .page-motion__art { opacity: .25; }
-.not-found__layout { position: relative; z-index: 2; }
+/* Reserve space for the entire content column, including actions and facts.
+   Artwork must never be an overlay on an independently laid-out container. */
+:is(.page-hero, .dictionary-page__masthead, .not-found):has(> .page-motion--banner) {
+  display: grid; grid-template-columns: minmax(0, 1fr); gap: 24px;
+  padding-inline: max(16px, calc((100% - 1180px) / 2));
+}
+:is(.page-hero, .dictionary-page__masthead, .not-found):has(> .page-motion--banner) > .container {
+  width: 100%; min-width: 0; margin: 0; grid-column: 1; grid-row: 1;
+}
+.page-hero:has(> .page-motion--banner) .section-heading { max-width: 640px; }
+.page-hero:has(> .page-motion--banner) .section-heading:last-child { margin-bottom: 0; }
 .labs-root .labs-hero-art--motion { background: #19327f; border-radius: 24px; }
 .labs-root :is(.labs-detail-heading, .labs-page-heading):has(> .page-motion) {
   display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 0 32px; align-items: start;
@@ -43,13 +49,27 @@
 .labs-root .labs-detail-heading:has(> .page-motion) > .labs-tag { margin-top: 0; width: fit-content; }
 .site-motion[data-motion-paused="true"] :is(.page-hero, .hero, .dictionary-page__masthead, .privacy-hero, .labs-root) * { animation: none !important; transition: none !important; }
 @media (min-width: 1000px) {
-  .page-hero:has(> .page-motion) .section-heading { max-width: min(640px, 56%); }
+  :is(.page-hero, .dictionary-page__masthead):has(> .page-motion--banner) {
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 32px; align-items: start;
+  }
+  :is(.page-hero, .dictionary-page__masthead) > .page-motion--banner {
+    grid-column: 2; grid-row: 1; height: clamp(240px, 24vw, 320px);
+  }
+  .dictionary-page__masthead:has(> .page-motion--banner) .dictionary-page__intro {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
+@media (min-width: 660px) {
+  :is(.page-hero, .dictionary-page__masthead, .not-found):has(> .page-motion--banner) {
+    padding-inline: max(20px, calc((100% - 1180px) / 2));
+  }
+}
+.not-found > .page-motion--banner {
+  max-width: 560px; justify-self: center;
+}
+.not-found:has(> .page-motion--banner) > .container { justify-self: center; }
 @media (max-width: 999px) {
-  .page-motion--banner { inset: 70px -140px 0 auto; width: 540px; }
-  .page-motion--banner .page-motion__art { opacity: .18; border: 0; background: none; backdrop-filter: none; }
-  .page-motion--banner .page-motion__toggle { right: 156px; bottom: 6px; }
-  .page-hero:has(> .page-motion), .dictionary-page__masthead:has(> .page-motion) { padding-bottom: 62px; }
+  .page-motion--banner { max-width: 560px; justify-self: center; }
   .labs-root :is(.labs-detail-heading, .labs-page-heading):has(> .page-motion) { display: flex; flex-direction: column; gap: 12px; }
   .labs-root :is(.labs-detail-heading, .labs-page-heading) > .page-motion { order: 3; height: 160px; margin: 8px 0 12px; }
 }
