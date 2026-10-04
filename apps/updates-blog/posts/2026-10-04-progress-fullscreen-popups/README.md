@@ -1,6 +1,6 @@
 # More room to watch our community progress grow
 
-Status: **Implemented and verified locally on 2026-10-04. Actual product screenshots included. Public website deployment and live verification are pending. Blogger article unpublished; no community messages sent.**
+Status: **Deployed to the public website and verified on 2026-10-04. Actual product screenshots included. Blogger article unpublished; no community messages sent.**
 
 | Field | Value |
 |---|---|
@@ -39,7 +39,9 @@ Blogger: choose Insert image → Upload from computer for both assets, replace e
 - Runtime tests import the actual liquid appearance helper and cover empty/invalid inputs, unknown targets, exact colour milestones and colour continuity, increasing and bounded bubble volume, and exceeded-target clamping.
 - Behavioral checks passed in an isolated local Chromium browser, most recently at 14:00 UTC on 2026-10-04: 10 categories without global header/footer or dropdowns, no production sample controls, all popup paths, Escape and backdrop dismissal, body scroll lock, trigger focus restoration, both vessel views, and mobile layout without horizontal overflow or clipped popups. Reduced motion stopped vessel bubbles and background auras.
 - Screenshot captures were visually inspected. The local preview used live production data; test fixtures were not used in the release images.
-- Deployment status: pending. Update this section and the article availability statement only after public Hosting release evidence is available.
+- Firebase Hosting released the public website successfully on 2026-10-04 from `origin/main` commit `d77ba347a4771913a9f1243661605215117b6e20`. All required production checks passed before release.
+- Live verification at 14:19 UTC returned HTTP 200 for `/progress`, the main JavaScript/CSS and the progress JavaScript/CSS on both `https://indigenworld.com` and `https://indigen-world.web.app`. SHA-256 checks confirmed all ten responses match the tested production build. The verification report is saved in `outputs/progress-page-release/fullscreen-verification.json` in the primary checkout.
+- Available now: [public progress page](https://indigenworld.com/progress). Screenshots remain labelled local previews; interactive browser checks were performed locally against the same verified release assets.
 
 ## Publishing handoff
 
