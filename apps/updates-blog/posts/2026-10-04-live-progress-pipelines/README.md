@@ -1,6 +1,6 @@
 # Watch verified contributions flow into the jars
 
-Status: **Deployed to production on 2026-10-05 from `origin/main` commit `13c9ab4`: two Firestore indexes, the `publicProgress` rule, six functions and the `indigen-world` website. The public page reads “Live”, its ten counts match the server projection, and served assets match the tested build on both hostnames. A production approval travelling the pipes had not yet been observed when this was written (see Live release evidence). Blogger article unpublished; publication and sharing remain with Chinedum.**
+Status: **Deployed to production on 2026-10-05 from `origin/main` commit `13c9ab4`: two Firestore indexes, the `publicProgress` rule, six functions and the `indigen-world` website. The public page reads “Live”, its ten counts match the server projection, and served assets match the tested build on both hostnames. Real reviewer approvals after the release were counted live, and one was watched arriving on the public page: at 00:31:33 UTC a pulse left the pump and “+1 approved” reached Everyday Expressions as it went from 111 to 112 (see Live release evidence). Blogger article unpublished; publication and sharing remain with Chinedum.**
 
 | Field | Value |
 |---|---|
@@ -83,13 +83,14 @@ Source: `origin/main` at `13c9ab4` (a fast-forward from `cf003ae`), deployed fro
 - `https://indigenworld.com/progress` and `https://indigen-world.web.app/progress` return 200, and the page HTML, `assets/ProgressPage-Bo47zsp4.js` and `assets/index-BAEC9v9y.css` match the tested build by SHA-256 on both hostnames.
 - A fresh Chromium session (1440 × 1000 and 390 × 844) found the status “Live”, all ten displayed counts equal to the projection, all ten inlets joined to pipes, the pump linking to `https://tribestudio.indigenworld.com/`, percentages 0.18%, 10.9%, 0%, 1%, 0%, 0%, 0%, 0.04%, 0%, 0.02%, and no runtime errors.
 - Function logs since the release show clean starts and the reconcile run, with no warnings or errors.
-- **Not yet observed:** an approval made by a reviewer in production travelling the pipes. The path is deployed and booted and was verified end to end against the emulator, but no counted record changed in production between the release and this note. The next published approval should raise `publicProgress/current` to revision 2 with one event; confirm that, then remove this line.
+- **A real approval, counted live:** at 00:28:16 UTC a reviewer published an everyday expression. `onExpressionEntryProgress` ran (HTTP 200, no warnings), and `publicProgress/current` moved from revision 1 to 2 with exactly one event, `{ id: "2.expressions", category: "expressions", delta: 1, total: 110, kind: "approval" }` — no other field, collection or record identifier.
+- **Seen on the public page:** a fresh headless browser on `https://indigenworld.com/progress`, with all ten jars on screen, recorded a later real approval: the pulse element appeared at 00:31:33.3 UTC and the “+1 approved” cue arrived in Everyday Expressions at 00:31:35.1 as its count went from 111 to 112. The status stayed “Live”, no other vessel was cued, and there were no runtime errors. (Recorded from the page's DOM; the still capture came too late to show the moving pulse.)
 
 Machine-readable evidence: `deployment-verification.json`.
 
 ## Publishing steps
 
-1. Confirm the first production approval arrives (see Live release evidence) and update the status above.
+1. Release and first live approval are confirmed above; no further deployment step is needed before publishing.
 2. Upload the five images, replace the image URLs, and preview the article in Blogger.
 3. Set the title, labels, search description and custom permalink above. Chinedum decides when to publish.
 4. Replace the published-article URL placeholder in `share.md` before sharing.

@@ -83,7 +83,7 @@
       "0.02%"
     ]
   },
-  "productionApprovalObserved": false,
+  "productionApprovalObserved": true,
   "assets": [
     {
       "url": "https://indigenworld.com/progress",
@@ -141,5 +141,37 @@
       "sha256": "e165ddfdf52cd847f3a0cf69fd9be99345451e5eb7acbb50438f61c7b4d3cc24",
       "matches": true
     }
-  ]
+  ],
+  "firstProductionApproval": {
+    "at": "2026-10-05T00:28:16.716Z",
+    "trigger": "onExpressionEntryProgress",
+    "triggerStatus": 200,
+    "projectionRevision": {
+      "from": 1,
+      "to": 2
+    },
+    "event": {
+      "id": "2.expressions",
+      "category": "expressions",
+      "delta": 1,
+      "total": 110,
+      "kind": "approval"
+    }
+  },
+  "livePageApprovalObserved": {
+    "page": "https://indigenworld.com/progress",
+    "viewport": "1440x2300",
+    "pulseAt": "2026-10-05T00:31:33.324Z",
+    "arrivalAt": "2026-10-05T00:31:35.115Z",
+    "category": "expressions",
+    "cue": "+1 approved",
+    "count": {
+      "from": 111,
+      "to": 112
+    },
+    "otherVesselsCued": 0,
+    "status": "live",
+    "runtimeErrors": 0,
+    "source": "DOM mutation record"
+  }
 }
