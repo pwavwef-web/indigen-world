@@ -1,6 +1,6 @@
 <div class="iw-release-post">
   <p>Our progress page now shows where verified contributions come from and where they go. TribeStudio sits at the top of the page as a pump, glass pipes run to every collection, and when a reviewer approves a contribution you can watch it travel down the pipe into its own jar.</p>
-  <p>This update is built and tested, and it is waiting to be released. The availability section below explains what that means.</p>
+  <p>The update went live on October 5, 2026.</p>
 
   <h2>From TribeStudio to the right jar</h2>
   <p>Every contribution to Indigen World is made and reviewed in TribeStudio. On the progress page, TribeStudio is now the pump that feeds the whole network. Select it to open the studio.</p>
@@ -21,15 +21,15 @@
   <h2>Honest numbers, even when they are small</h2>
   <p>Our launch targets are ambitious, so most collections are still a small fraction of one percent. Each jar now fills to exactly its approved total divided by its target, and percentages keep enough precision to tell a little progress from none. 357 words of 200,000 shows as 0.18%. Two grammar patterns of 5,000 now shows as 0.04%, where the page used to round it to 0%. A jar is never given a fake minimum fill to look busier.</p>
   <figure>
-    <img src="images/pipelines-jars-production-counts.jpg" alt="Jars view showing real counts: 357 words at 0.18 percent, 107 expressions at 10.7 percent, 1 story at 1 percent, 2 grammar patterns at 0.04 percent, songs at 0, and a dash for pronunciation, with an Updated time beside the pump." style="width:100%;height:auto;" />
-    <figcaption>Real production counts on October 4, 2026, shown in a local preview before release. The page labels these counted totals “Updated” with their time, because the live feed is not deployed yet. Pronunciation shows a dash rather than a guess: the index it needs is part of this release.</figcaption>
+    <img src="images/pipelines-jars-live.jpg" alt="The live progress page reading Live beside the TribeStudio pump, with ten jars and their real counts: 357 words at 0.18 percent, 109 expressions at 10.9 percent, 1 story at 1 percent, 2 grammar patterns at 0.04 percent, 93 pronunciation recordings at 0.02 percent, and 0 in the other collections." style="width:100%;height:auto;" />
+    <figcaption>The live page on October 5, 2026, with the real totals at release. Small numbers keep their true size: two grammar patterns fill 0.04% of their jar, and 93 pronunciation recordings fill 0.02% of theirs.</figcaption>
   </figure>
 
   <h2>Counts that mean verified</h2>
   <p>While connecting the pipes, we checked every collection against what “verified” promises:</p>
   <ul>
-    <li><strong>Reviewed work only.</strong> Open posts that creators publish directly, without a reviewer, no longer fill Stories, Songs, Narrations or Videos. When this update is released, Songs &amp; Lyrics will read 0 instead of 2, because both songs counted so far were published openly.</li>
-    <li><strong>Pronunciations are recordings.</strong> The page used to count every published word as a pronunciation. It now counts published words that carry a reviewed public recording: 93 on October 4, not 357.</li>
+    <li><strong>Reviewed work only.</strong> Open posts that creators publish directly, without a reviewer, no longer fill Stories, Songs, Narrations or Videos. Songs &amp; Lyrics now reads 0 instead of 2, because both songs counted before were published openly.</li>
+    <li><strong>Pronunciations are recordings.</strong> The page used to count every published word as a pronunciation. It now counts published words that carry a reviewed public recording: 93 at release, not 357.</li>
     <li><strong>A proverb is counted once.</strong> Proverbs fill Proverbs &amp; Wisdom and are no longer counted again under Everyday Expressions.</li>
     <li><strong>Sentences match the public corpus.</strong> Only confirmed sentences that visitors can actually read count, and a sentence leaves the count if its contributor’s consent expires.</li>
   </ul>
@@ -54,5 +54,5 @@
   <p>Pause motion at the top of the page stops the decorative movement. If your device asks for reduced motion, approvals appear as a still highlight instead of a moving pulse. Screen readers hear a short, polite summary of new approvals rather than every effect.</p>
 
   <h2>Availability</h2>
-  <p>This update is implemented and has been tested end to end against a local copy of our database, but it is <strong>not live yet</strong>. It needs the new counting service, its security rule and two database indexes to be released together with the website. Until then, <a href="https://indigenworld.com/progress">indigenworld.com/progress</a> continues to show the current design. We will update this article when the release is confirmed.</p>
+  <p>The pipelines are live at <a href="https://indigenworld.com/progress">indigenworld.com/progress</a>. The counting service, its security rule, two database indexes and the website were released together on October 5, 2026, and the public page was checked in a fresh browser on desktop and phone: it reads “Live”, and every count matches the verified totals. Each approval published from now on travels the pipes as it happens.</p>
 </div>

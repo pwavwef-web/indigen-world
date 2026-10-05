@@ -1,8 +1,9 @@
 # Progress pipelines
 
 How the public `/progress` page shows verified totals and plays a real approval
-travelling from TribeStudio into its collection's vessel. Prepared 2026-10-04;
-release record: `apps/updates-blog/posts/2026-10-04-live-progress-pipelines/`.
+travelling from TribeStudio into its collection's vessel. Prepared 2026-10-04,
+deployed 2026-10-05 (`13c9ab4`); release record:
+`apps/updates-blog/posts/2026-10-04-live-progress-pipelines/`.
 
 ## 1. Code map
 

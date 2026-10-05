@@ -1,0 +1,145 @@
+{
+  "checkedAt": "2026-10-05T00:25:18.374Z",
+  "deployedCommit": "13c9ab401363d3208a1e3e058968a32a96a98049",
+  "project": "project-kassena-7e026",
+  "releasedAt": {
+    "indexes": "2026-10-05T00:08Z",
+    "indexesReady": "2026-10-05T00:12Z",
+    "rules": "2026-10-05T00:12Z",
+    "functions": "2026-10-05T00:16Z",
+    "projectionInitialised": "2026-10-05T00:18:01Z",
+    "hosting": "2026-10-05T00:20Z"
+  },
+  "indexes": {
+    "created": [
+      "dictionaryEntries(isPublished,audioUrl)",
+      "kasemSentences(status,projectionVersion,expiresAtMillis)"
+    ],
+    "liveBefore": 84,
+    "liveAfter": 86,
+    "state": "READY"
+  },
+  "rules": {
+    "liveBeforeMatchedMainCommit": "cf003ae",
+    "releasedRuleset": "projects/project-kassena-7e026/rulesets/4d7c1b42-cbe2-4a25-a7cc-1b81805cbdef",
+    "releasedMatchesCommittedFile": true
+  },
+  "functions": {
+    "liveBefore": 185,
+    "liveAfter": 191,
+    "added": [
+      "onDictionaryEntryProgress",
+      "onExpressionEntryProgress",
+      "onGrammarRuleProgress",
+      "onKasemSentenceProgress",
+      "onPublishedContentProgress",
+      "reconcilePublicProgress"
+    ],
+    "removed": []
+  },
+  "projection": {
+    "revision": 1,
+    "events": 0,
+    "topLevelFields": [
+      "categories",
+      "events",
+      "revision",
+      "schemaVersion",
+      "updatedAt"
+    ],
+    "totals": {
+      "audiobooks": 0,
+      "expressions": 109,
+      "grammar": 2,
+      "lexicon": 357,
+      "literature": 1,
+      "music": 0,
+      "pronunciation": 93,
+      "proverbs": 0,
+      "sentences": 0,
+      "video": 0
+    }
+  },
+  "livePage": {
+    "status": "Live",
+    "viewports": [
+      "1440x1000",
+      "390x844"
+    ],
+    "countsMatchProjection": true,
+    "inletsJoined": "10/10",
+    "pumpHref": "https://tribestudio.indigenworld.com/",
+    "runtimeErrors": 0,
+    "percentages": [
+      "0.18%",
+      "10.9%",
+      "0%",
+      "1%",
+      "0%",
+      "0%",
+      "0%",
+      "0.04%",
+      "0%",
+      "0.02%"
+    ]
+  },
+  "productionApprovalObserved": false,
+  "assets": [
+    {
+      "url": "https://indigenworld.com/progress",
+      "status": 200,
+      "bytes": 2951,
+      "sha256": "e564c80764ab1e5179200e74da9d10b900dbb743795250355c22d37898d0559f",
+      "matches": true
+    },
+    {
+      "url": "https://indigenworld.com/assets/ProgressPage-Bo47zsp4.js",
+      "status": 200,
+      "bytes": 96853,
+      "sha256": "b1929f3324b2e4ec9143050e9c377eed0be6bf61b0494447dbbd2707a9ce9679",
+      "matches": true
+    },
+    {
+      "url": "https://indigenworld.com/assets/index-BAEC9v9y.css",
+      "status": 200,
+      "bytes": 167053,
+      "sha256": "865382222c15ee19af9f923c19890ce83f3d028f77f6e52ce45dc5a20ab476d5",
+      "matches": true
+    },
+    {
+      "url": "https://indigenworld.com/assets/index-BZGwwuYQ.js",
+      "status": 200,
+      "bytes": 207301,
+      "sha256": "e165ddfdf52cd847f3a0cf69fd9be99345451e5eb7acbb50438f61c7b4d3cc24",
+      "matches": true
+    },
+    {
+      "url": "https://indigen-world.web.app/progress",
+      "status": 200,
+      "bytes": 2951,
+      "sha256": "e564c80764ab1e5179200e74da9d10b900dbb743795250355c22d37898d0559f",
+      "matches": true
+    },
+    {
+      "url": "https://indigen-world.web.app/assets/ProgressPage-Bo47zsp4.js",
+      "status": 200,
+      "bytes": 96853,
+      "sha256": "b1929f3324b2e4ec9143050e9c377eed0be6bf61b0494447dbbd2707a9ce9679",
+      "matches": true
+    },
+    {
+      "url": "https://indigen-world.web.app/assets/index-BAEC9v9y.css",
+      "status": 200,
+      "bytes": 167053,
+      "sha256": "865382222c15ee19af9f923c19890ce83f3d028f77f6e52ce45dc5a20ab476d5",
+      "matches": true
+    },
+    {
+      "url": "https://indigen-world.web.app/assets/index-BZGwwuYQ.js",
+      "status": 200,
+      "bytes": 207301,
+      "sha256": "e165ddfdf52cd847f3a0cf69fd9be99345451e5eb7acbb50438f61c7b4d3cc24",
+      "matches": true
+    }
+  ]
+}

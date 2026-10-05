@@ -1,6 +1,6 @@
 # Watch verified contributions flow into the jars
 
-Status: **Implemented and verified locally on 2026-10-04 (branch `claude/progress-pipelines`). Not deployed: the counting functions, the `publicProgress` rule, two Firestore indexes and the website all still need releasing. Blogger article unpublished; publication and sharing remain with Chinedum.**
+Status: **Deployed to production on 2026-10-05 from `origin/main` commit `13c9ab4`: two Firestore indexes, the `publicProgress` rule, six functions and the `indigen-world` website. The public page reads “Live”, its ten counts match the server projection, and served assets match the tested build on both hostnames. A production approval travelling the pipes had not yet been observed when this was written (see Live release evidence). Blogger article unpublished; publication and sharing remain with Chinedum.**
 
 | Field | Value |
 |---|---|
@@ -51,13 +51,13 @@ Server rules live in `services/functions/src/public-progress.ts` (`countsToward`
 
 ## Images and credits
 
-Credit: Indigen World. All five images are actual product screenshots captured on October 4, 2026 in headless Chrome. None shows private contributor information.
+Credit: Indigen World. All five images are actual product screenshots captured in headless Chrome. None shows private contributor information.
 
-- `images/approval-travelling-live.jpg` and `images/approval-arriving-live.jpg`: 1440 × 1060, the page running against a local Firestore emulator (`website-emulators` preview) with **labelled test data**; the approval was written, then counted by the real trigger handler and delivered to the page's real snapshot listener.
-- `images/pipelines-jars-production-counts.jpg`: 1440 × 1060, local preview reading **real production counts** before release (status “Updated”, pronunciation “—” until its index is deployed).
-- `images/pipelines-tanks-sample.jpg` (1440 × 1000) and `images/pipelines-jars-mobile-sample.jpg` (390 × 844): development preview with **sample counts and targets**; the sample notice or “Sample data” label is visible.
+- `images/approval-travelling-live.jpg` and `images/approval-arriving-live.jpg` (October 4): 1440 × 1060, the page running against a local Firestore emulator (`website-emulators` preview) with **labelled test data**; the approval was written, then counted by the real trigger handler and delivered to the page's real snapshot listener.
+- `images/pipelines-jars-live.jpg` (October 5, after release): 1440 × 1060, the **live production page** at `https://indigenworld.com/progress` reading “Live”, with real totals.
+- `images/pipelines-tanks-sample.jpg` (1440 × 1000) and `images/pipelines-jars-mobile-sample.jpg` (390 × 844), October 4: development preview with **sample counts and targets**; the sample notice or “Sample data” label is visible.
 
-Blogger: Insert image → Upload from computer for each image. Replace each relative `src` in `post.html` with its Blogger URL, keep every alt text and caption (including the test-data and sample-data labels), and preview at desktop and phone widths. If the article is published after release, consider replacing the production-counts screenshot with a live capture showing “Live”.
+Blogger: Insert image → Upload from computer for each image. Replace each relative `src` in `post.html` with its Blogger URL, keep every alt text and caption (including the test-data and sample-data labels), and preview at desktop and phone widths.
 
 ## Verification (all on 2026-10-04)
 
@@ -68,20 +68,28 @@ Blogger: Insert image → Upload from computer for each image. Replace each rela
 - `npm run test:progress:live` (Firestore emulator + `website-emulators` preview) — passed three consecutive runs: initial load live with no replay; approval; duplicate delivery; unapproved draft; retraction; burst of three (“+3 approved”); view switch mid-flow; offline → reconnect caught up silently; hidden tab; off-screen vessel; live target change.
 - `npm run build:functions` — clean.
 
-## Deployment (not done; needs the owner's go-ahead)
+## Deployment (done 2026-10-05, project `project-kassena-7e026`)
 
-Project `project-kassena-7e026`. Order matters: the page works before the backend (it falls back to labelled snapshots), but Pronunciation shows “—” until its index exists.
+Source: `origin/main` at `13c9ab4` (a fast-forward from `cf003ae`), deployed from a clean detached checkout. Times UTC.
 
-1. **Indexes:** `firebase deploy --only firestore:indexes --project project-kassena-7e026`; wait until `dictionaryEntries (isPublished, audioUrl)` and `kasemSentences (status, projectionVersion, expiresAtMillis)` finish building.
-2. **Rules:** first confirm the deployed ruleset matches `origin/main`'s `firebase/firestore.rules` (a rules deploy replaces the whole ruleset, and other branches have shipped rules before), then `firebase deploy --only firestore:rules --project project-kassena-7e026`.
-3. **Functions** (six creates; each create can take 10+ minutes): delete any stale `services/functions/functions.yaml`, `npm run build:functions`, capture `firebase functions:list`, then `FUNCTIONS_DISCOVERY_TIMEOUT=180 firebase deploy --only functions:onDictionaryEntryProgress,functions:onExpressionEntryProgress,functions:onKasemSentenceProgress,functions:onGrammarRuleProgress,functions:onPublishedContentProgress,functions:reconcilePublicProgress --project project-kassena-7e026`, and diff `functions:list` afterwards.
-4. **Initialise:** force-run the `reconcilePublicProgress` Cloud Scheduler job (or wait up to 15 minutes), then check `publicProgress/current` against expectations (words 357+, pronunciation about 93, songs 0, expressions 107+).
-5. **Website:** merge to `main`, push, then `npm run deploy:website` (its predeploy checks require a clean tree matching `origin/main`).
-6. **Live check:** the public page should read “Live”; approve one real contribution and watch it arrive in the right jar. Only then update this status and the article's Availability section.
+1. **Indexes** (00:08): production had the 84 indexes in the file and nothing else, so the deploy created only `dictionaryEntries (isPublished, audioUrl)` and `kasemSentences (status, projectionVersion, expiresAtMillis)`; both `READY` at 00:12. The public pronunciation count query then returned 93.
+2. **Rules** (00:12): the live ruleset was first fetched from the Rules API and found byte-identical to `cf003ae`'s `firebase/firestore.rules`, so the release added only the `publicProgress` block. The released ruleset (`4d7c1b42-…`) was re-fetched and matches the committed file exactly.
+3. **Functions** (00:13–00:16): no stale `functions.yaml`, fresh build, deployed by explicit `--only` list with `FUNCTIONS_DISCOVERY_TIMEOUT=180`. Six successful creates; `firebase functions:list` went from 185 to 191 with exactly these six added and nothing removed. (Seven community-automation functions are live but not exported from `main`; the explicit list is what kept them untouched.) All six services passed their startup probes.
+4. **Initialise** (00:18): force-ran `firebase-schedule-reconcilePublicProgress-us-central1`. `publicProgress/current` appeared at revision 1 with no events and all ten totals: words 357, expressions 109, sentences 0, stories 1, songs 0, narrations 0, videos 0, grammar 2, proverbs 0, pronunciation 93. Only the five whitelisted top-level fields exist.
+5. **Website** (00:20): `npm run deploy:website`; predeploy verified the source as `origin/main` at `13c9ab4` and passed the full website check (15 unit tests, validation, build, prerender). Only `hosting[indigen-world]` was released (47 new files).
+
+## Live release evidence
+
+- `https://indigenworld.com/progress` and `https://indigen-world.web.app/progress` return 200, and the page HTML, `assets/ProgressPage-Bo47zsp4.js` and `assets/index-BAEC9v9y.css` match the tested build by SHA-256 on both hostnames.
+- A fresh Chromium session (1440 × 1000 and 390 × 844) found the status “Live”, all ten displayed counts equal to the projection, all ten inlets joined to pipes, the pump linking to `https://tribestudio.indigenworld.com/`, percentages 0.18%, 10.9%, 0%, 1%, 0%, 0%, 0%, 0.04%, 0%, 0.02%, and no runtime errors.
+- Function logs since the release show clean starts and the reconcile run, with no warnings or errors.
+- **Not yet observed:** an approval made by a reviewer in production travelling the pipes. The path is deployed and booted and was verified end to end against the emulator, but no counted record changed in production between the release and this note. The next published approval should raise `publicProgress/current` to revision 2 with one event; confirm that, then remove this line.
+
+Machine-readable evidence: `deployment-verification.json`.
 
 ## Publishing steps
 
-1. Complete and verify the deployment above; update this status, the article's Availability section and the sharing status with the evidence.
+1. Confirm the first production approval arrives (see Live release evidence) and update the status above.
 2. Upload the five images, replace the image URLs, and preview the article in Blogger.
 3. Set the title, labels, search description and custom permalink above. Chinedum decides when to publish.
 4. Replace the published-article URL placeholder in `share.md` before sharing.

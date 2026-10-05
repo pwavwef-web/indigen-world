@@ -1,6 +1,6 @@
 # Sharing copy for Chinedum
 
-**Not yet released. Use only after the update is live and the article is published.**
+**Released October 5, 2026. Use after the article is published.**
 
 Every approved contribution now has somewhere to go. On our progress page, TribeStudio pumps verified work through glass pipes into each collection's jar, and when a reviewer approves a word, an expression or a song, you can watch it arrive. The numbers are exact, even when they are small.
 
