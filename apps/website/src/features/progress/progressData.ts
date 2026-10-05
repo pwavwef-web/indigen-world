@@ -143,6 +143,8 @@ function snapshotPlan(db: Firestore, id: ContributionCategoryId): { add: Query[]
       return { add: [query(collection(db, 'kasemSentences'), where('status', '==', 'confirmed'), where('projectionVersion', '==', 2))], subtract: [] };
     case 'grammar':
       return { add: [query(collection(db, 'grammarRules'), where('status', '==', 'published'))], subtract: [] };
+    case 'music':
+      return { add: [published('music')], subtract: [] };
     default:
       return { add: [published(id)], subtract: [query(published(id), where('publicationRoute', '==', 'open'))] };
   }

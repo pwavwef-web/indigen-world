@@ -78,7 +78,7 @@ test('the first projection holds exact historical totals and no events', async (
   assert.deepEqual(data.events, []);
   assert.deepEqual(totals(data), {
     lexicon: 3, pronunciation: 1, expressions: 2, proverbs: 1, sentences: 1,
-    grammar: 1, literature: 1, music: 1, audiobooks: 0, video: 0,
+    grammar: 1, literature: 1, music: 2, audiobooks: 0, video: 0,
   });
 });
 
@@ -147,7 +147,7 @@ test('a retraction is a correction, not an approval', async () => {
   assert.equal(data.events.at(-1).delta, -1);
 });
 
-test('an open post fills nothing; a reviewed one fills only its own vessel', async () => {
+test('an open video fills nothing; a reviewed one fills only its own vessel', async () => {
   const before = await current();
   const open = { publicationStatus: 'published', collectionKind: 'video', publicationRoute: 'open' };
   await db.doc('publishedContent/pub_open_video').set(open);
@@ -159,6 +159,39 @@ test('an open post fills nothing; a reviewed one fills only its own vessel', asy
   await progress.onPublishedContentProgress.run(change('pub_reviewed_video', undefined, reviewed));
   const data = await current();
   assert.deepEqual(totals(data), { ...totals(before), video: 1 });
+});
+
+test('open songs count once on publication and leave the count on withdrawal', async () => {
+  const before = await current();
+  const ref = db.doc('publishedContent/new_open_song');
+  const draft = { publicationStatus: 'draft', collectionKind: 'music', publicationRoute: 'open' };
+  await ref.set(draft);
+  await progress.onPublishedContentProgress.run(change(ref.id, undefined, draft));
+  assert.deepEqual(totals(await current()), totals(before), 'drafts do not count');
+
+  const published = { ...draft, publicationStatus: 'published' };
+  await ref.set(published);
+  const event = change(ref.id, draft, published);
+  await progress.onPublishedContentProgress.run(event);
+  const counted = await current();
+  assert.deepEqual(totals(counted), { ...totals(before), music: 3 });
+  assert.equal(counted.events.at(-1).category, 'music');
+  assert.equal(counted.events.at(-1).delta, 1);
+  await progress.onPublishedContentProgress.run(event);
+  assert.equal((await current()).revision, counted.revision, 'redelivery does not double count');
+
+  const reviewed = { ...published, publicationRoute: 'collection_review' };
+  await ref.set(reviewed);
+  await progress.onPublishedContentProgress.run(change(ref.id, published, reviewed));
+  assert.equal((await current()).revision, counted.revision, 'a route change does not count the song again');
+
+  const withdrawn = { ...reviewed, publicationStatus: 'unpublished' };
+  await ref.set(withdrawn);
+  await progress.onPublishedContentProgress.run(change(ref.id, reviewed, withdrawn));
+  const corrected = await current();
+  assert.deepEqual(totals(corrected), totals(before));
+  assert.equal(corrected.events.at(-1).delta, -1);
+  assert.equal(corrected.events.at(-1).kind, 'correction');
 });
 
 test('a missed trigger is caught up by the reconcile without a fresh event', async () => {

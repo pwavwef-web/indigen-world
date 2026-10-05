@@ -20,7 +20,7 @@ export function ConnectionStatus({ state, confirmedAtMs }: { state: ConnectionSt
   const title = state === 'live'
     ? 'Approvals appear here as they are committed.'
     : state === 'snapshot'
-      ? 'Counted from verified records; refreshed every few minutes, not instantly.'
+      ? 'Counted from collection records; refreshed every few minutes, not instantly.'
       : undefined;
   return (
     <p className="pipeline-status" data-state={state} title={title}>

@@ -89,7 +89,7 @@ export function ProgressDataTable({
               Category {sortField === 'title' ? (sortAsc ? '▲' : '▼') : ''}
             </th>
             <th scope="col" onClick={() => handleSort('approved')} className="sortable-th">
-              Approved {sortField === 'approved' ? (sortAsc ? '▲' : '▼') : ''}
+              Counted {sortField === 'approved' ? (sortAsc ? '▲' : '▼') : ''}
             </th>
             <th scope="col">Review Queue</th>
             <th scope="col">Target</th>
@@ -121,7 +121,7 @@ export function ProgressDataTable({
                 </th>
                 <td>
                   <strong>{formatCount(approvedCount)}</strong> {item.isCountKnown ? category.unitPlural : 'count unavailable'}
-                  {arrival && <span className="table-arrival-tag" key={arrival.key} aria-hidden="true">{approvalLabel(arrival.delta)}</span>}
+                  {arrival && <span className="table-arrival-tag" key={arrival.key} aria-hidden="true">{approvalLabel(arrival.delta, category.id)}</span>}
                 </td>
                 <td>
                   {awaitingReviewCount ? (

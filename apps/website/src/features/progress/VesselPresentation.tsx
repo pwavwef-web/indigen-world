@@ -42,12 +42,14 @@ export function VesselPresentation({ progress, canAnimate, staggerIndex = 0, fil
   const liquid = getLiquidVisuals(fill * 100, unknown);
   const percent = percentParts(approvedCount, target);
   const titleId = `vessel-title-${category.id}`;
+  const countLabel = category.id === 'music' ? 'published' : 'verified';
+  const progressLabel = category.id === 'music' ? 'published' : 'approved';
   const open = () => onOpenBreakdown?.(progress);
   const valueText = !isCountKnown
     ? `${category.title}: count unavailable`
     : isTargetSetting
-      ? `${formatCount(approvedCount)} ${category.unitPlural} approved; target is being set`
-      : `${formatCount(approvedCount)} of ${formatCount(target)} ${category.unitPlural} approved (${percent?.text ?? '0%'})`;
+      ? `${formatCount(approvedCount)} ${category.unitPlural} ${progressLabel}; target is being set`
+      : `${formatCount(approvedCount)} of ${formatCount(target)} ${category.unitPlural} ${progressLabel} (${percent?.text ?? '0%'})`;
 
   return <article className={`floating-vessel floating-vessel--${kind}`} aria-labelledby={titleId} data-category={category.id}
     data-motion={canAnimate ? 'animated' : 'static'} data-liquid-stage={liquid.stage}
@@ -67,7 +69,7 @@ export function VesselPresentation({ progress, canAnimate, staggerIndex = 0, fil
         {!isCountKnown ? '—' : isTargetSetting ? 'Target being set' : <>{percent?.qualifier}{percent?.value}<small>%</small></>}
       </span>
       {arrival && <span className="vessel-arrival-badge" key={arrival.key} aria-hidden="true">
-        {approvalLabel(arrival.delta)}{arrival.milestone ? ' · target reached' : ''}
+        {approvalLabel(arrival.delta, category.id)}{arrival.milestone ? ' · target reached' : ''}
       </span>}
     </div>
     <div className="vessel-info">
@@ -76,7 +78,7 @@ export function VesselPresentation({ progress, canAnimate, staggerIndex = 0, fil
         <span>{category.title}</span>
         {isTargetReached && <span className="vessel-complete" title={isBeyondTarget ? 'Beyond target' : 'Target reached'}><Icon name="check" size={13} /></span>}
       </h2>
-      <p className="vessel-counter"><strong>{formatCount(approvedCount)}</strong> <span>{isCountKnown ? `${category.unitPlural} verified` : 'count unavailable'}</span></p>
+      <p className="vessel-counter"><strong>{formatCount(approvedCount)}</strong> <span>{isCountKnown ? `${category.unitPlural} ${countLabel}` : 'count unavailable'}</span></p>
       <p className="vessel-target">
         {isTargetSetting ? 'Target being set' : <>of {formatCount(target)}</>}
         {' · '}

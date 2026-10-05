@@ -19,15 +19,18 @@ import { onSchedule } from 'firebase-functions/v2/scheduler';
  *                                     serves: confirmed, projectionVersion 2,
  *                                     consent not expired
  *   grammar        grammarRules       status published
+ *   music          publishedContent   published, collectionKind music (all routes)
  *   literature…    publishedContent   published, that collectionKind, and NOT
- *   (music, audiobooks, video)        publicationRoute 'open'
+ *   (audiobooks, video)               publicationRoute 'open'
  *
  * ── Why open posts are left out ───────────────────────────────────────────
  * `open-publishing.ts` publishes ordinary TribeStudio posts with "no
  * verification, no queue, no reviewer", and the seeded song that uses the
  * same route says its lines "have not been independently reviewed". The page
  * says it shows verified contributions, so a route that is unreviewed by
- * design cannot fill a vessel. Campaign, collection-review and admin library
+ * design cannot fill a reviewed-work vessel. Songs instead measure the public
+ * music library, including open publications, and are labelled published.
+ * Campaign, collection-review and admin library
  * publications count, as do older records that predate the route field.
  *
  * ── Why a recount and not an increment ────────────────────────────────────
@@ -141,7 +144,7 @@ export function countsToward(category: ProgressCategory, data: RecordData, nowMs
     default:
       return data.publicationStatus === 'published'
         && data.collectionKind === CONTENT_KIND[category]
-        && data.publicationRoute !== 'open';
+        && (category === 'music' || data.publicationRoute !== 'open');
   }
 }
 
@@ -192,7 +195,7 @@ export function countPlan(db: Firestore, category: ProgressCategory, nowMs: numb
       const published = db.collection('publishedContent')
         .where('publicationStatus', '==', 'published')
         .where('collectionKind', '==', CONTENT_KIND[category]);
-      return { add: [published], subtract: [published.where('publicationRoute', '==', 'open')] };
+      return { add: [published], subtract: category === 'music' ? [] : [published.where('publicationRoute', '==', 'open')] };
     }
   }
 }

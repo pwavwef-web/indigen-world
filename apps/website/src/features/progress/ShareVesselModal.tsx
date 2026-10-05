@@ -31,10 +31,10 @@ export function ShareVesselModal({ progress, fixtureMode = false, onClose }: Sha
   const countText = formatCount(approvedCount);
 
   const shareText = !progress.isCountKnown
-    ? `Help fill the Kasem ${category.title} jar! Follow our verified launch progress: https://indigenworld.com/progress`
+    ? `Help fill the Kasem ${category.title} jar! Follow our launch progress: https://indigenworld.com/progress`
     : fixtureMode
     ? `Sample preview only — ${category.title}: ${countText} sample ${category.unitPlural} against a sample target of ${targetText} ${percentText}. Explore live progress: https://indigenworld.com/progress`
-    : `Help fill the Kasem ${category.title} jar! We currently have ${countText} approved ${category.unitPlural} of our ${targetText} launch target ${percentText}. Every contribution counts: https://indigenworld.com/progress`;
+    : `Help fill the Kasem ${category.title} jar! We currently have ${countText} ${category.id === 'music' ? 'published' : 'approved'} ${category.unitPlural} of our ${targetText} launch target ${percentText}. Every contribution counts: https://indigenworld.com/progress`;
 
   const handleCopyText = async () => {
     try {

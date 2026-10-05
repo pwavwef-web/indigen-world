@@ -80,6 +80,8 @@ test('a fresh approval plays once; redelivery and view switches cannot replay it
   const again = ingestPublicProgress(fresh.state, next, live);
   assert.deepEqual(again.approvals, [], 'the same document delivered twice plays nothing');
   assert.equal(approvalLabel(fresh.approvals[0].delta), '+1 approved');
+  assert.equal(approvalLabel(2, 'music'), '+2 published');
+  assert.equal(approvalLabel(2, 'literature'), '+2 approved');
 });
 
 test('busy traffic is batched truthfully by collection', () => {

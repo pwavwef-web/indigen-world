@@ -483,7 +483,8 @@ const testCategory = { id: 'lexicon', title: 'Words & Meanings' };
   assert.match(progressPageSource, /\{import\.meta\.env\.DEV && live\.fixtureMode && <DevSimulationHook/, 'the simulation hook is never mounted in production');
   assert.match(connectionStatusSource, /case 'live': return 'Live';/, 'connection states are labelled');
   assert.match(progressDataSource, /doc\(db, 'publicProgress', 'current'\)/, 'the page subscribes to the server projection');
-  assert.match(progressDataSource, /where\('publicationRoute', '==', 'open'\)/, 'the snapshot fallback leaves out unreviewed open posts');
+  assert.match(progressDataSource, /case 'music':\s*return \{ add: \[published\('music'\)\], subtract: \[\] \}/, 'the snapshot fallback includes every published song');
+  assert.match(progressDataSource, /where\('publicationRoute', '==', 'open'\)/, 'the other media categories still exclude open posts');
 }
 
 console.log('Progress calculation, liquid behaviour, fixture separation, pipeline and popup presentation checks passed.');

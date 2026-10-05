@@ -148,11 +148,11 @@ export function ProgressPage() {
     const wait = Math.max(1200, state.last + ANNOUNCE_WINDOW_MS - Date.now());
     state.timer = window.setTimeout(() => {
       // The new total keeps two similar announcements distinct, so both are read.
-      const parts = [...state.pending.entries()].map(([id, { delta, total }]) => `${CATEGORIES_BY_ID[id].title} ${approvalLabel(delta)}, now ${formatCount(total)}`);
+      const parts = [...state.pending.entries()].map(([id, { delta, total }]) => `${CATEGORIES_BY_ID[id].title} ${approvalLabel(delta, id)}, now ${formatCount(total)}`);
       state.pending.clear();
       state.timer = undefined;
       state.last = Date.now();
-      if (parts.length) setAnnouncement(`New verified contributions: ${parts.join(', ')}.`);
+      if (parts.length) setAnnouncement(`New contributions: ${parts.join(', ')}.`);
     }, wait);
   }, []);
   useEffect(() => () => window.clearTimeout(announceRef.current.timer), []);
@@ -243,7 +243,7 @@ export function ProgressPage() {
         <div className="progress-immersive-heading">
           <p className="eyebrow"><span className="observatory-live-dot" /> KASEM · LIVING HERITAGE</p>
           <h1>Help fill <em>the jars.</em></h1>
-          <p className="observatory-intro">Every approved contribution moves us closer.</p>
+          <p className="observatory-intro">Every contribution moves us closer.</p>
           <div className="progress-hero-summary">
             <span className="progress-stats-pill">{showVessels && summary.totalWithTargets > 0 ? <><strong>{summary.reachedCount} / {summary.totalWithTargets}</strong> targets reached</> : '10 contribution categories'}</span>
             {prefersReducedMotion && <span className="progress-summary-badge">Reduced motion</span>}
@@ -265,7 +265,7 @@ export function ProgressPage() {
           <div className="observatory-gallery-heading"><span>{viewLabel}<small> / {String(categories.length).padStart(2, '0')} COLLECTIONS</small></span>
             {viewMode === 'cultural' && <div className="observatory-gallery-controls"><button type="button" onClick={() => scrollGallery(-1)} aria-label="Previous collections"><span aria-hidden="true">←</span></button><button type="button" onClick={() => scrollGallery(1)} aria-label="Next collections"><span aria-hidden="true">→</span></button></div>}
           </div>
-          {!showVessels && live.connection !== 'error' && live.connection !== 'offline' && <p className="progress-status" role="status">Loading verified contribution counts…</p>}
+          {!showVessels && live.connection !== 'error' && live.connection !== 'offline' && <p className="progress-status" role="status">Loading contribution counts…</p>}
           {!showVessels && (live.connection === 'error' || live.connection === 'offline') && (
             <div className="callout callout--warn" role="alert">
               <strong>{live.connection === 'offline' ? 'You are offline. Verified counts will load when you reconnect.' : live.error ?? 'Verified counts are unavailable right now.'}</strong>
@@ -489,8 +489,8 @@ export function ProgressPage() {
       </ProgressPopup>}
       {popup === 'about' && <ProgressPopup title="How progress works" onClose={closePopup}>
         <p>TribeStudio is the pump. When a reviewer approves a contribution and it is published, the change travels down the pipe into its own collection’s vessel. Collections never share liquid: each fills on its own.</p>
-        <p>A vessel fills to exactly its approved total divided by its target, so a small collection shows a small sliver and its precise percentage. The pulse in the pipe marks an approval arriving; its size is not the size of the collection.</p>
-        <p><strong>Live</strong> means this page is subscribed to verified totals and shows approvals within moments of their being committed. <strong>Updated</strong> with a time means the totals were counted at that time instead. Totals counted before you opened the page are history and are never replayed as new.</p>
+        <p>A vessel fills to exactly its counted total divided by its target, so a small collection shows a small sliver and its precise percentage. Songs &amp; Lyrics counts all published songs, including songs creators publish directly. Its pulse marks a publication arriving; the other collections show approvals.</p>
+        <p><strong>Live</strong> means this page is subscribed to collection totals and shows changes within moments of their being committed. <strong>Updated</strong> with a time means the totals were counted at that time instead. Totals counted before you opened the page are history and are never replayed as new.</p>
         <p>Local pots use generated pottery illustrations and a separate fill gauge because clay is opaque. They are artistic interpretations, not photographs of authenticated Kasena artifacts.</p>
         <p><strong>{live.config.launchWindowLabel}</strong></p>
         {live.config.notes && <p className="tiny muted">{live.config.notes}</p>}
@@ -505,9 +505,9 @@ export function ProgressPage() {
 
             <div className="methodology-grid">
               <article className="methodology-card">
-                <h4>Approved contributions only</h4>
+                <h4>Clear counting rules</h4>
                 <p>
-                  Launch progress measures approved, usable heritage data. Submissions awaiting review, and posts published openly without review, never fill a vessel.
+                  Songs &amp; Lyrics measures the published music library, including open publications; publication does not imply independent review. Other collections measure approved, usable heritage data and exclude open posts. Drafts and unpublished work never fill a vessel.
                 </p>
               </article>
 

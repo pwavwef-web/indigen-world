@@ -16,7 +16,7 @@ const at = (seconds, nanoseconds = 0) => new Timestamp(1_790_000_000 + seconds, 
 const count = (category, total, seconds, nanoseconds = 0) => ({ category, total, readTime: at(seconds, nanoseconds) });
 const initialised = (totals = {}) => planProgressUpdate(null, PROGRESS_CATEGORIES.map((category) => count(category, totals[category] ?? 0, 0)), 'reconcile').next;
 
-test('each category counts only its own reviewed, public records', () => {
+test('each category counts its public records under its own publication rule', () => {
   assert.equal(countsToward('lexicon', { isPublished: true }, now), true);
   assert.equal(countsToward('lexicon', { isPublished: false, mergedInto: 'other' }, now), false, 'a merged entry no longer counts');
   assert.equal(countsToward('pronunciation', { isPublished: true, audioUrl: 'https://x/a.m4a' }, now), true);
@@ -44,8 +44,12 @@ test('each category counts only its own reviewed, public records', () => {
   assert.equal(countsToward('music', { ...song, publicationRoute: 'collection_review' }, now), true);
   assert.equal(countsToward('music', { ...song, publicationRoute: 'reviewed' }, now), true);
   assert.equal(countsToward('music', song, now), true, 'records older than the route field still count');
-  assert.equal(countsToward('music', { ...song, publicationRoute: 'open' }, now), false, 'open posts were never reviewed');
+  assert.equal(countsToward('music', { ...song, publicationRoute: 'open' }, now), true, 'the music library counts open publications');
   assert.equal(countsToward('music', { ...song, publicationStatus: 'unpublished' }, now), false);
+  assert.equal(countsToward('music', { ...song, publicationRoute: 'open', publicationStatus: 'draft' }, now), false);
+  for (const category of ['literature', 'audiobooks', 'video']) {
+    assert.equal(countsToward(category, { ...song, collectionKind: category, publicationRoute: 'open' }, now), false, `${category} still requires review`);
+  }
   assert.equal(countsToward('literature', song, now), false, 'one kind never fills another');
   assert.equal(countsToward('audiobooks', { publicationStatus: 'published', collectionKind: 'audiobooks', publicationRoute: 'admin' }, now), true);
 
@@ -74,9 +78,13 @@ test('only a change in eligibility asks for a recount, in the right categories',
   );
   assert.deepEqual(
     changedCategories('publishedContent', undefined, { publicationStatus: 'published', collectionKind: 'music', publicationRoute: 'open' }, now),
-    [],
-    'an open post fills nothing',
+    ['music'],
+    'an open song fills the music vessel',
   );
+  const openSong = { publicationStatus: 'published', collectionKind: 'music', publicationRoute: 'open' };
+  assert.deepEqual(changedCategories('publishedContent', openSong, { ...openSong, publicationRoute: 'collection_review' }, now), [], 'reviewing a published song does not count it twice');
+  assert.deepEqual(changedCategories('publishedContent', openSong, { ...openSong, publicationStatus: 'unpublished' }, now), ['music']);
+  assert.deepEqual(changedCategories('publishedContent', openSong, undefined, now), ['music']);
   assert.deepEqual(
     changedCategories('publishedContent', undefined, { publicationStatus: 'published', collectionKind: 'video', publicationRoute: 'collection_review' }, now),
     ['video'],

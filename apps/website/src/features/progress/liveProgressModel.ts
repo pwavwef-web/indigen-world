@@ -263,7 +263,7 @@ export function enqueueApprovals(
   return { queue: next, overflow };
 }
 
-/** "+1 approved", "+12 approved" */
-export function approvalLabel(delta: number): string {
-  return `+${Math.max(1, Math.floor(delta)).toLocaleString('en-US')} approved`;
+/** Songs count publications; the other categories count approvals. */
+export function approvalLabel(delta: number, category?: ContributionCategoryId): string {
+  return `+${Math.max(1, Math.floor(delta)).toLocaleString('en-US')} ${category === 'music' ? 'published' : 'approved'}`;
 }
