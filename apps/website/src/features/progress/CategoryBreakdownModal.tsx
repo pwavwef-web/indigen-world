@@ -8,6 +8,7 @@
 import { ProgressDialog } from './ProgressDialog';
 import { Button } from '../../components/Button';
 import { Icon } from '../../components/Icon';
+import { formatCount, formatPercent } from './progressFormat';
 import type { CategoryProgress } from './progressTypes';
 
 interface CategoryBreakdownModalProps {
@@ -22,7 +23,8 @@ interface CategoryBreakdownModalProps {
 export function CategoryBreakdownModal({ progress, fixtureMode = false, onClose, onOpenPledge, onOpenShare, onOpenAudit }: CategoryBreakdownModalProps) {
   if (!progress) return null;
 
-  const { category, approvedCount, target, percentage } = progress;
+  const { category, approvedCount, target } = progress;
+  const percentText = formatPercent(approvedCount, target);
 
   return (
     <ProgressDialog labelledBy="breakdown-title" onClose={onClose}>
@@ -48,16 +50,16 @@ export function CategoryBreakdownModal({ progress, fixtureMode = false, onClose,
           <div className="breakdown-stats-summary">
             <div className="breakdown-stat-pill">
               <span className="tiny muted">{fixtureMode ? 'Sample records' : 'Approved records'}</span>
-              <strong>{approvedCount.toLocaleString()} {category.unitPlural}</strong>
+              <strong>{progress.isCountKnown ? `${formatCount(approvedCount)} ${category.unitPlural}` : 'Count unavailable'}</strong>
             </div>
             <div className="breakdown-stat-pill">
               <span className="tiny muted">Launch Target</span>
               <strong>{target ? `${target.toLocaleString()} ${category.unitPlural}` : 'Target being set'}</strong>
             </div>
-            {percentage !== null && (
+            {percentText && (
               <div className="breakdown-stat-pill">
                 <span className="tiny muted">Current Progress</span>
-                <strong>{percentage}%</strong>
+                <strong>{percentText}</strong>
               </div>
             )}
           </div>

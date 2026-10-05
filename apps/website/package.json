@@ -11,9 +11,10 @@
     "build": "tsc -b && vite build && node ./scripts/prerender-meta.mjs && node ./scripts/emit-well-known.mjs && node ./scripts/emit-app-ads.mjs",
     "preview": "vite preview",
     "typecheck": "tsc -b --pretty false",
-    "test": "node ./scripts/validate-site.mjs && node ./scripts/validate-progress.mjs && node --experimental-strip-types --test ./scripts/liquidAppearance.test.mjs",
+    "test": "node ./scripts/validate-site.mjs && node ./scripts/validate-progress.mjs && node --experimental-strip-types --test ./scripts/liquidAppearance.test.mjs ./scripts/progressLive.test.mjs",
     "test:motion": "node ./scripts/check-motion.mjs",
     "test:progress:browser": "node ./scripts/check-progress.mjs",
+    "test:progress:live": "node ./scripts/check-progress-live.mjs",
     "test:runner": "node --experimental-strip-types --test ./scripts/runner-engine.test.mjs && node ./scripts/check-runner.mjs",
     "check": "npm run typecheck && npm test && npm run build"
   },

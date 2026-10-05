@@ -1,317 +1,167 @@
 /**
  * src/features/progress/progressData.ts
  *
- * Secure aggregate data fetcher for Indigen World launch progress.
+ * Where the progress page's numbers come from.
  *
- * Uses Firestore server-side aggregation (`getCountFromServer`) to retrieve
- * only approved, verified counts without downloading full records or exposing
- * contributor identities, private notes, or unreviewed submissions.
+ *   Live      `publicProgress/current`, written only by the backend
+ *             (services/functions/src/public-progress.ts) from server-side
+ *             counts. A snapshot listener delivers its totals and the
+ *             sanitized ring of recent changes the page animates.
+ *   Snapshot  When that document is missing or unreadable (before the backend
+ *             is deployed, or if the listener fails) the same rules are
+ *             measured with aggregate count queries and refreshed on a timer.
+ *             This is labelled "Updated hh:mm", never "Live".
+ *   Cache     The last numbers this device saw, shown while connecting and
+ *             labelled as cached.
  *
- * Handles loading, network errors, stale cache, and honest missing targets.
+ * Only aggregate counts and the public projection are ever requested: no
+ * contribution record, contributor or note is downloaded into the browser.
  */
 
 import {
   collection,
   doc,
   getCountFromServer,
-  getDoc,
+  onSnapshot,
   query,
   where,
   type Firestore,
+  type Query,
+  type Unsubscribe,
 } from 'firebase/firestore';
-import { websiteFirestore } from '../../lib/firebaseApp';
-import {
-  DEFAULT_PRODUCTION_CONFIG,
-  FIXTURE_APPROVED_COUNTS,
-  FIXTURE_TARGETS,
-} from './progressConfig';
-import {
-  buildProgressList,
-  calculateTargetsSummary,
-} from './progressCalculation';
-import type {
-  ContributionCategoryId,
-  LaunchProgressConfig,
-  ProgressState,
-} from './progressTypes';
+import { DEFAULT_PRODUCTION_CONFIG } from './progressConfig';
+import { parsePublicProgress, PROGRESS_CATEGORY_IDS, type PublicProgressView } from './liveProgressModel';
+import type { ContributionCategoryId, LaunchProgressConfig } from './progressTypes';
 
-const CACHE_KEY = 'iw_launch_progress_cache_v1';
+const CACHE_KEY = 'iw_launch_progress_cache_v2';
 
-interface StoredCache {
-  counts: Record<ContributionCategoryId, number>;
-  config: LaunchProgressConfig;
-  timestamp: string;
+export type NullableTotals = Partial<Record<ContributionCategoryId, number | null>>;
+
+export interface CachedProgress {
+  totals: NullableTotals;
+  savedAtMs: number;
 }
 
-function loadLocalCache(): StoredCache | null {
+export function loadCachedProgress(): CachedProgress | null {
   try {
     const raw = localStorage.getItem(CACHE_KEY);
     if (!raw) return null;
-    return JSON.parse(raw) as StoredCache;
+    const parsed = JSON.parse(raw) as Partial<CachedProgress>;
+    if (!parsed || typeof parsed.savedAtMs !== 'number' || !parsed.totals || typeof parsed.totals !== 'object') return null;
+    const totals: NullableTotals = {};
+    for (const id of PROGRESS_CATEGORY_IDS) {
+      const value = (parsed.totals as Record<string, unknown>)[id];
+      if (typeof value === 'number' && Number.isInteger(value) && value >= 0) totals[id] = value;
+    }
+    return Object.keys(totals).length ? { totals, savedAtMs: parsed.savedAtMs } : null;
   } catch {
     return null;
   }
 }
 
-function saveLocalCache(counts: Record<ContributionCategoryId, number>, config: LaunchProgressConfig): void {
+export function saveCachedProgress(totals: NullableTotals): void {
   try {
-    const data: StoredCache = {
-      counts,
-      config,
-      timestamp: new Date().toISOString(),
-    };
-    localStorage.setItem(CACHE_KEY, JSON.stringify(data));
+    const known = Object.fromEntries(Object.entries(totals).filter(([, value]) => typeof value === 'number'));
+    if (!Object.keys(known).length) return;
+    localStorage.setItem(CACHE_KEY, JSON.stringify({ totals: known, savedAtMs: Date.now() }));
   } catch {
     // Ignore storage quota or disabled storage
   }
 }
 
-/**
- * Fetches the remote launch configuration document from platformConfiguration/launch.
- * Falls back to DEFAULT_PRODUCTION_CONFIG if not created yet.
- */
-export async function fetchLaunchConfig(db: Firestore): Promise<LaunchProgressConfig> {
-  try {
-    const configSnap = await getDoc(doc(db, 'platformConfiguration', 'launch'));
-    if (configSnap.exists()) {
-      const data = configSnap.data();
-      return {
-        launchWindowLabel: data.launchWindowLabel || DEFAULT_PRODUCTION_CONFIG.launchWindowLabel,
-        launchTargetDate: data.launchTargetDate || null,
-        categoryTargets: {
-          ...DEFAULT_PRODUCTION_CONFIG.categoryTargets,
-          ...(data.categoryTargets || {}),
-        },
-        notes: data.notes || DEFAULT_PRODUCTION_CONFIG.notes,
-        updatedAt: data.updatedAt || undefined,
-      };
-    }
-  } catch {
-    // Fall back to production defaults if config collection is inaccessible
+/** Launch targets: the admin-managed `platformConfiguration/launch`, over the production defaults. */
+export function parseLaunchConfig(data: Record<string, unknown> | undefined): LaunchProgressConfig {
+  if (!data) return DEFAULT_PRODUCTION_CONFIG;
+  const targets = { ...DEFAULT_PRODUCTION_CONFIG.categoryTargets };
+  const overrides = data.categoryTargets && typeof data.categoryTargets === 'object' ? data.categoryTargets as Record<string, unknown> : {};
+  for (const id of PROGRESS_CATEGORY_IDS) {
+    const value = overrides[id];
+    // null deliberately means "target being set"; anything else invalid keeps the default.
+    if (value === null) targets[id] = null;
+    else if (typeof value === 'number' && Number.isFinite(value) && value > 0) targets[id] = value;
   }
-  return DEFAULT_PRODUCTION_CONFIG;
+  return {
+    launchWindowLabel: typeof data.launchWindowLabel === 'string' && data.launchWindowLabel ? data.launchWindowLabel : DEFAULT_PRODUCTION_CONFIG.launchWindowLabel,
+    launchTargetDate: typeof data.launchTargetDate === 'string' && data.launchTargetDate ? data.launchTargetDate : null,
+    categoryTargets: targets,
+    notes: typeof data.notes === 'string' && data.notes ? data.notes : DEFAULT_PRODUCTION_CONFIG.notes,
+    updatedAt: typeof data.updatedAt === 'string' ? data.updatedAt : undefined,
+  };
 }
 
-/**
- * Securely counts approved records for a specific category using server aggregations.
- */
-async function countCategoryApproved(
+/** Targets follow the configuration live, so a changed target is reconciled without any approval cue. */
+export function subscribeLaunchConfig(db: Firestore, onConfig: (config: LaunchProgressConfig) => void): Unsubscribe {
+  return onSnapshot(
+    doc(db, 'platformConfiguration', 'launch'),
+    (snapshot) => onConfig(parseLaunchConfig(snapshot.exists() ? snapshot.data() : undefined)),
+    () => onConfig(DEFAULT_PRODUCTION_CONFIG),
+  );
+}
+
+export interface ProjectionSnapshotMeta {
+  /** True when the SDK served a local copy: never treated as live. */
+  fromCache: boolean;
+}
+
+export function subscribePublicProgress(
   db: Firestore,
-  category: ContributionCategoryId,
-): Promise<number | null> {
-  try {
-    switch (category) {
-      case 'lexicon': {
-        const q = query(collection(db, 'dictionaryEntries'), where('isPublished', '==', true));
-        const snap = await getCountFromServer(q);
-        return snap.data().count;
-      }
-      case 'expressions': {
-        const q = query(collection(db, 'expressionEntries'), where('isPublished', '==', true));
-        const snap = await getCountFromServer(q);
-        return snap.data().count;
-      }
-      case 'sentences': {
-        const q = query(collection(db, 'kasemSentences'), where('status', '==', 'confirmed'));
-        const snap = await getCountFromServer(q);
-        return snap.data().count;
-      }
-      case 'literature': {
-        const q = query(
-          collection(db, 'publishedContent'),
-          where('publicationStatus', '==', 'published'),
-          where('collectionKind', '==', 'literature'),
-        );
-        const snap = await getCountFromServer(q);
-        return snap.data().count;
-      }
-      case 'music': {
-        const q = query(
-          collection(db, 'publishedContent'),
-          where('publicationStatus', '==', 'published'),
-          where('collectionKind', '==', 'music'),
-        );
-        const snap = await getCountFromServer(q);
-        return snap.data().count;
-      }
-      case 'audiobooks': {
-        const q = query(
-          collection(db, 'publishedContent'),
-          where('publicationStatus', '==', 'published'),
-          where('collectionKind', '==', 'audiobooks'),
-        );
-        const snap = await getCountFromServer(q);
-        return snap.data().count;
-      }
-      case 'video': {
-        const q = query(
-          collection(db, 'publishedContent'),
-          where('publicationStatus', '==', 'published'),
-          where('collectionKind', '==', 'video'),
-        );
-        const snap = await getCountFromServer(q);
-        return snap.data().count;
-      }
-      case 'grammar': {
-        const q = query(collection(db, 'grammarRules'), where('status', '==', 'published'));
-        const snap = await getCountFromServer(q);
-        return snap.data().count;
-      }
-      case 'proverbs': {
-        const q = query(
-          collection(db, 'expressionEntries'),
-          where('isPublished', '==', true),
-          where('expressionKind', '==', 'proverb'),
-        );
-        const snap = await getCountFromServer(q);
-        return snap.data().count;
-      }
-      case 'pronunciation': {
-        // Pronunciation audio clips attached to published dictionary entries
-        const q = query(collection(db, 'dictionaryEntries'), where('isPublished', '==', true));
-        const snap = await getCountFromServer(q);
-        return snap.data().count;
-      }
-      default:
-        return 0;
+  onNext: (view: PublicProgressView | null, meta: ProjectionSnapshotMeta) => void,
+  onError: (error: unknown) => void,
+): Unsubscribe {
+  return onSnapshot(
+    doc(db, 'publicProgress', 'current'),
+    { includeMetadataChanges: true },
+    (snapshot) => onNext(snapshot.exists() ? parsePublicProgress(snapshot.data()) : null, { fromCache: snapshot.metadata.fromCache }),
+    onError,
+  );
+}
+
+/**
+ * The canonical counting rules as aggregate queries a visitor's browser is
+ * allowed to run. They mirror `countPlan` in public-progress.ts, with one
+ * limit: expired sentence consent cannot be excluded from the browser, which
+ * is one reason the live projection is preferred whenever it exists.
+ */
+function snapshotPlan(db: Firestore, id: ContributionCategoryId): { add: Query[]; subtract: Query[] } {
+  const published = (kind: string) => query(
+    collection(db, 'publishedContent'),
+    where('publicationStatus', '==', 'published'),
+    where('collectionKind', '==', kind),
+  );
+  switch (id) {
+    case 'lexicon':
+      return { add: [query(collection(db, 'dictionaryEntries'), where('isPublished', '==', true))], subtract: [] };
+    case 'pronunciation':
+      return { add: [query(collection(db, 'dictionaryEntries'), where('isPublished', '==', true), where('audioUrl', '>', ''))], subtract: [] };
+    case 'expressions': {
+      const all = query(collection(db, 'expressionEntries'), where('isPublished', '==', true));
+      return { add: [all], subtract: [query(all, where('expressionKind', '==', 'proverb'))] };
     }
-  } catch (err) {
-    // Return null so callers know this count failed rather than assuming 0
-    return null;
+    case 'proverbs':
+      return { add: [query(collection(db, 'expressionEntries'), where('isPublished', '==', true), where('expressionKind', '==', 'proverb'))], subtract: [] };
+    case 'sentences':
+      return { add: [query(collection(db, 'kasemSentences'), where('status', '==', 'confirmed'), where('projectionVersion', '==', 2))], subtract: [] };
+    case 'grammar':
+      return { add: [query(collection(db, 'grammarRules'), where('status', '==', 'published'))], subtract: [] };
+    default:
+      return { add: [published(id)], subtract: [query(published(id), where('publicationRoute', '==', 'open'))] };
   }
 }
 
-export async function fetchLiveLaunchProgress(options?: {
-  useFixtures?: boolean;
-}): Promise<ProgressState> {
-  const isFixture = options?.useFixtures ?? false;
-
-  if (isFixture) {
-    const fixtureConfig: LaunchProgressConfig = {
-      launchWindowLabel: 'Planned: December 2026 / January 2027 (Sample fixture preview)',
-      launchTargetDate: '2026-12-15',
-      categoryTargets: FIXTURE_TARGETS,
-      notes: 'Sample targets and counts for UI development and motion verification.',
-    };
-
-    const categories = buildProgressList(FIXTURE_APPROVED_COUNTS, fixtureConfig, undefined, true);
-    const summary = calculateTargetsSummary(categories);
-
-    return {
-      status: 'ready',
-      categories,
-      launchConfig: fixtureConfig,
-      lastUpdated: new Date().toISOString(),
-      targetsReachedCount: summary.reachedCount,
-      totalWithTargetsCount: summary.totalWithTargets,
-      fixtureMode: true,
-      totalCommunityPledges: categories.reduce((sum, c) => sum + c.pledgeCount, 0),
-    };
-  }
-
-  const cached = loadLocalCache();
-  const db = websiteFirestore();
-
-  try {
-    const launchConfig = await fetchLaunchConfig(db);
-
-    const categoriesList: ContributionCategoryId[] = [
-      'lexicon',
-      'expressions',
-      'sentences',
-      'literature',
-      'music',
-      'audiobooks',
-      'video',
-      'grammar',
-      'proverbs',
-      'pronunciation',
-    ];
-
-    const results = await Promise.allSettled(
-      categoriesList.map(async (catId) => {
-        const count = await countCategoryApproved(db, catId);
-        return { catId, count };
-      }),
-    );
-
-    const liveCounts = { ...(cached?.counts || {}) } as Record<ContributionCategoryId, number>;
-    let anySuccess = false;
-
-    for (const res of results) {
-      if (res.status === 'fulfilled' && res.value.count !== null) {
-        liveCounts[res.value.catId] = res.value.count;
-        anySuccess = true;
-      } else if (cached?.counts && cached.counts[res.status === 'fulfilled' ? res.value.catId : 'lexicon'] !== undefined) {
-        // Retain cached count if query failed
-      }
+/** One aggregate count per rule; a category that cannot be measured is null, never 0. */
+export async function fetchSnapshotCounts(db: Firestore): Promise<NullableTotals> {
+  const results = await Promise.all(PROGRESS_CATEGORY_IDS.map(async (id) => {
+    try {
+      const plan = snapshotPlan(db, id);
+      const [added, subtracted] = await Promise.all([
+        Promise.all(plan.add.map((item) => getCountFromServer(item))),
+        Promise.all(plan.subtract.map((item) => getCountFromServer(item))),
+      ]);
+      const sum = (snapshots: typeof added) => snapshots.reduce((total, snapshot) => total + snapshot.data().count, 0);
+      return [id, Math.max(0, sum(added) - sum(subtracted))] as const;
+    } catch {
+      return [id, null] as const;
     }
-
-    if (!anySuccess && !cached) {
-      // Complete offline or Firestore failure with no cache
-      const emptyCategories = buildProgressList(
-        {} as Record<ContributionCategoryId, number>,
-        launchConfig,
-      );
-      return {
-        status: 'error',
-        categories: emptyCategories,
-        launchConfig,
-        lastUpdated: null,
-        error: 'Unable to reach the Indigen World verification service. Please check your connection.',
-        targetsReachedCount: 0,
-        totalWithTargetsCount: 0,
-        fixtureMode: false,
-        totalCommunityPledges: emptyCategories.reduce((sum, c) => sum + c.pledgeCount, 0),
-      };
-    }
-
-    saveLocalCache(liveCounts, launchConfig);
-
-    const categories = buildProgressList(liveCounts, launchConfig);
-    const summary = calculateTargetsSummary(categories);
-
-    return {
-      status: anySuccess ? 'ready' : 'stale',
-      categories,
-      launchConfig,
-      lastUpdated: new Date().toISOString(),
-      targetsReachedCount: summary.reachedCount,
-      totalWithTargetsCount: summary.totalWithTargets,
-      fixtureMode: false,
-      totalCommunityPledges: categories.reduce((sum, c) => sum + c.pledgeCount, 0),
-    };
-  } catch (err) {
-    if (cached) {
-      const categories = buildProgressList(cached.counts, cached.config);
-      const summary = calculateTargetsSummary(categories);
-      return {
-        status: 'stale',
-        categories,
-        launchConfig: cached.config,
-        lastUpdated: cached.timestamp,
-        error: 'Showing cached progress. Could not connect to update.',
-        targetsReachedCount: summary.reachedCount,
-        totalWithTargetsCount: summary.totalWithTargets,
-        fixtureMode: false,
-        totalCommunityPledges: categories.reduce((sum, c) => sum + c.pledgeCount, 0),
-      };
-    }
-
-    const emptyCategories = buildProgressList(
-      {} as Record<ContributionCategoryId, number>,
-      DEFAULT_PRODUCTION_CONFIG,
-    );
-    return {
-      status: 'error',
-      categories: emptyCategories,
-      launchConfig: DEFAULT_PRODUCTION_CONFIG,
-      lastUpdated: null,
-      error: 'Live progress is temporarily unavailable. We are reconnecting…',
-      targetsReachedCount: 0,
-      totalWithTargetsCount: 0,
-      fixtureMode: false,
-      totalCommunityPledges: emptyCategories.reduce((sum, c) => sum + c.pledgeCount, 0),
-    };
-  }
+  }));
+  return Object.fromEntries(results) as NullableTotals;
 }

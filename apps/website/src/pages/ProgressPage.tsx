@@ -1,6 +1,6 @@
-/** Full-screen community progress with optional details in accessible popups. */
+/** Full-screen community progress: TribeStudio pumps verified contributions into each collection's vessel. */
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import { useDocumentMeta } from '../lib/useDocumentMeta';
 import { ROUTES_BY_PATH } from '../content/navigation';
 import { Link } from '../app/router';
@@ -9,10 +9,16 @@ import { Button } from '../components/Button';
 import { Icon } from '../components/Icon';
 import { BrandMark } from '../components/BrandMark';
 import { useProgressMotion } from '../features/progress/useProgressMotion';
-import { fetchLiveLaunchProgress } from '../features/progress/progressData';
+import { useLiveProgress } from '../features/progress/useLiveProgress';
+import { useApprovalFlows } from '../features/progress/useApprovalFlows';
+import { approvalLabel, type FreshApproval } from '../features/progress/liveProgressModel';
+import { formatCount } from '../features/progress/progressFormat';
 import { VerticalJar } from '../features/progress/VerticalJar';
 import { HorizontalTank } from '../features/progress/HorizontalTank';
 import { CulturalPot } from '../features/progress/CulturalPot';
+import { TribePump } from '../features/progress/TribePump';
+import { PipeNetwork } from '../features/progress/PipeNetwork';
+import { ConnectionStatus } from '../features/progress/ConnectionStatus';
 import { ProgressDataTable } from '../features/progress/ProgressDataTable';
 import { CategoryBreakdownModal } from '../features/progress/CategoryBreakdownModal';
 import { PledgeModal } from '../features/progress/PledgeModal';
@@ -20,23 +26,67 @@ import { ShareVesselModal } from '../features/progress/ShareVesselModal';
 import { AuditQueryModal } from '../features/progress/AuditQueryModal';
 import { playVesselChime } from '../features/progress/progressAudio';
 import {
-  DEFAULT_PRODUCTION_CONFIG,
+  CATEGORIES_BY_ID,
   COMMUNITY_CONTRIBUTOR_HONORS,
   HISTORICAL_MILESTONES,
 } from '../features/progress/progressConfig';
-import { calculateProjectedDays } from '../features/progress/progressCalculation';
+import { buildProgressList, calculateProjectedDays, calculateTargetsSummary } from '../features/progress/progressCalculation';
 import type {
   CategoryProgress,
-  ProgressState,
+  ContributionCategoryId,
   VesselViewMode,
 } from '../features/progress/progressTypes';
 
 const VIEW_MODE_STORAGE_KEY = 'iw_progress_vessel_view_mode';
+/** Screen readers hear at most one approval summary in this window. */
+const ANNOUNCE_WINDOW_MS = 8000;
 const route = ROUTES_BY_PATH.progress ?? {
   title: 'Our Progress · Help Fill the Jars',
   description: 'Track community contributions bringing Indigen World closer to our planned December/January launch.',
   path: 'progress',
 };
+
+const VIEW_LABELS: Record<VesselViewMode, { short: string; long: string; icon: 'volume' | 'layers' | 'source' | 'context' }> = {
+  vertical: { short: 'Jars', long: 'Vertical jars', icon: 'volume' },
+  horizontal: { short: 'Tanks', long: 'Horizontal tanks', icon: 'layers' },
+  cultural: { short: 'Local pots', long: 'Traditional pots', icon: 'source' },
+  table: { short: 'Table', long: 'Data table', icon: 'context' },
+};
+const VIEW_MODES = ['vertical', 'horizontal', 'cultural', 'table'] as const;
+
+/** Which collections are on screen right now, without re-rendering as the page scrolls. */
+function useVisibleCategories(rootRef: RefObject<HTMLElement | null>, key: string) {
+  const visible = useRef(new Set<string>());
+  useEffect(() => {
+    const root = rootRef.current;
+    visible.current = new Set();
+    if (!root || typeof IntersectionObserver === 'undefined') return undefined;
+    const observer = new IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        const id = (entry.target as HTMLElement).dataset.category;
+        if (!id) continue;
+        if (entry.isIntersecting) visible.current.add(id);
+        else visible.current.delete(id);
+      }
+    }, { threshold: 0.35 });
+    root.querySelectorAll('[data-category]').forEach((element) => observer.observe(element));
+    return () => observer.disconnect();
+  }, [rootRef, key]);
+  return useCallback((id: ContributionCategoryId) => visible.current.has(id), []);
+}
+
+/** Decorative motion pauses while the vessels are scrolled out of view. */
+function useInView(ref: RefObject<HTMLElement | null>) {
+  const [inView, setInView] = useState(true);
+  useEffect(() => {
+    const element = ref.current;
+    if (!element || typeof IntersectionObserver === 'undefined') return undefined;
+    const observer = new IntersectionObserver(([entry]) => setInView(entry.isIntersecting), { rootMargin: '80px' });
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [ref]);
+  return inView;
+}
 
 export function ProgressPage() {
   useDocumentMeta(route.title, route.description);
@@ -58,54 +108,82 @@ export function ProgressPage() {
 
   // Fixture mode toggle: inspect sample targets in dev without fabricating data
   const [useFixtures, setUseFixtures] = useState(false);
-
-  // Audio chime enabled state
   const [soundEnabled, setSoundEnabled] = useState(false);
-
-  const [popup, setPopup] = useState<'view' | 'settings' | 'pace' | 'milestones' | 'honors' | 'about' | 'contribute' | null>(null);
-
-  // Selected modals state
+  const [popup, setPopup] = useState<'view' | 'settings' | 'pace' | 'milestones' | 'honors' | 'about' | 'contribute' | 'simulate' | null>(null);
   const [breakdownProgress, setBreakdownProgress] = useState<CategoryProgress | null>(null);
   const [pledgeProgress, setPledgeProgress] = useState<CategoryProgress | null>(null);
   const [shareProgress, setShareProgress] = useState<CategoryProgress | null>(null);
   const [auditProgress, setAuditProgress] = useState<CategoryProgress | null>(null);
+  const [paceCategoryId, setPaceCategoryId] = useState<string>('lexicon');
+  const [pageHidden, setPageHidden] = useState(() => typeof document !== 'undefined' && document.hidden);
+  const [announcement, setAnnouncement] = useState('');
+  const [sessionPledges, setSessionPledges] = useState<Partial<Record<ContributionCategoryId, number>>>({});
+
+  const stageRef = useRef<HTMLDivElement>(null);
   const galleryRef = useRef<HTMLDivElement>(null);
   const scrollGallery = (direction: number) => galleryRef.current?.scrollBy({ left: direction * galleryRef.current.clientWidth * 0.85, behavior: canAnimate ? 'smooth' : 'instant' });
 
-  // Selected category for the Launch Pace Calculator
-  const [paceCategoryId, setPaceCategoryId] = useState<string>('lexicon');
-
-  const [state, setState] = useState<ProgressState>({
-    status: 'loading',
-    categories: [],
-    launchConfig: DEFAULT_PRODUCTION_CONFIG,
-    lastUpdated: null,
-    targetsReachedCount: 0,
-    totalWithTargetsCount: 0,
-    fixtureMode: false,
-    totalCommunityPledges: 0,
-  });
-
-  const requestId = useRef(0);
-  const loadData = useCallback(async (fixtures: boolean) => {
-    const currentRequest = ++requestId.current;
-    setState((prev) => ({ ...prev, status: 'loading' }));
-    try {
-      const result = await fetchLiveLaunchProgress({ useFixtures: import.meta.env.DEV && fixtures });
-      if (currentRequest !== requestId.current) return;
-      setState((prev) => result.status === 'error'
-        ? { ...prev, status: 'error', error: result.error }
-        : result);
-    } catch {
-      if (currentRequest !== requestId.current) return;
-      setState((prev) => ({ ...prev, status: 'error', error: 'Unable to load verified launch metrics right now. Please retry.' }));
-    }
+  useEffect(() => {
+    const onVisibility = () => setPageHidden(document.hidden);
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => document.removeEventListener('visibilitychange', onVisibility);
   }, []);
 
-  useEffect(() => {
-    void loadData(useFixtures);
-    return () => { requestId.current += 1; };
-  }, [useFixtures, loadData]);
+  const hasPipes = viewMode === 'vertical' || viewMode === 'horizontal';
+  const stageInView = useInView(stageRef);
+  const decorativeMotion = canAnimate && stageInView;
+  const flows = useApprovalFlows({ travel: canAnimate && hasPipes, cues: !pageHidden });
+  // Filled in once the vessels exist (they mount when the first numbers arrive).
+  const isVisibleRef = useRef<(id: ContributionCategoryId) => boolean>(() => false);
+
+  // Polite, batched announcements: one sentence for a burst, never one per particle.
+  const announceRef = useRef<{ pending: Map<ContributionCategoryId, { delta: number; total: number }>; timer: number | undefined; last: number }>({ pending: new Map(), timer: undefined, last: 0 });
+  const announce = useCallback((approvals: FreshApproval[]) => {
+    const state = announceRef.current;
+    for (const approval of approvals) {
+      const previous = state.pending.get(approval.category);
+      state.pending.set(approval.category, { delta: (previous?.delta ?? 0) + approval.delta, total: approval.totalAfter });
+    }
+    if (state.timer !== undefined) return;
+    const wait = Math.max(1200, state.last + ANNOUNCE_WINDOW_MS - Date.now());
+    state.timer = window.setTimeout(() => {
+      // The new total keeps two similar announcements distinct, so both are read.
+      const parts = [...state.pending.entries()].map(([id, { delta, total }]) => `${CATEGORIES_BY_ID[id].title} ${approvalLabel(delta)}, now ${formatCount(total)}`);
+      state.pending.clear();
+      state.timer = undefined;
+      state.last = Date.now();
+      if (parts.length) setAnnouncement(`New verified contributions: ${parts.join(', ')}.`);
+    }, wait);
+  }, []);
+  useEffect(() => () => window.clearTimeout(announceRef.current.timer), []);
+
+  const flowsRef = useRef(flows);
+  flowsRef.current = flows;
+  const soundRef = useRef(soundEnabled);
+  soundRef.current = soundEnabled;
+  const handleApprovals = useCallback((approvals: FreshApproval[]) => {
+    flowsRef.current.push(approvals, (id) => isVisibleRef.current(id));
+    announce(approvals);
+    if (soundRef.current && !document.hidden) playVesselChime();
+  }, [announce]);
+
+  const live = useLiveProgress({ fixtureMode: import.meta.env.DEV && useFixtures, onApprovals: handleApprovals });
+  isVisibleRef.current = useVisibleCategories(stageRef, `${viewMode}|${live.hasData}|${live.fixtureMode}`);
+
+  const categories = useMemo(() => {
+    const list = buildProgressList(live.totals, live.config, undefined, live.fixtureMode);
+    return list.map((item) => ({ ...item, pledgeCount: item.pledgeCount + (sessionPledges[item.category.id] ?? 0) }));
+  }, [live.totals, live.config, live.fixtureMode, sessionPledges]);
+  const summary = calculateTargetsSummary(categories);
+  const knownCount = categories.filter((item) => item.isCountKnown).length;
+
+  const handleViewModeChange = useCallback((mode: VesselViewMode) => {
+    // A transient flow belongs to the view it started in; the next view shows the true snapshot.
+    flowsRef.current.cancelAll();
+    setViewMode(mode);
+    if (soundRef.current) playVesselChime();
+    try { localStorage.setItem(VIEW_MODE_STORAGE_KEY, mode); } catch { /* Optional preference. */ }
+  }, []);
 
   // Keyboard shortcut listener: Alt+T toggles accessible table view
   useEffect(() => {
@@ -118,13 +196,7 @@ export function ProgressPage() {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [viewMode, soundEnabled]);
-
-  const handleViewModeChange = (mode: VesselViewMode) => {
-    setViewMode(mode);
-    if (soundEnabled) playVesselChime();
-    try { localStorage.setItem(VIEW_MODE_STORAGE_KEY, mode); } catch { /* Optional preference. */ }
-  };
+  }, [viewMode, handleViewModeChange]);
 
   const handleToggleSound = () => {
     const next = !soundEnabled;
@@ -134,17 +206,24 @@ export function ProgressPage() {
 
   const handlePledgeSubmitted = (categoryId: string, amount: number) => {
     if (soundEnabled) playVesselChime();
-    setState((prev) => ({ ...prev,
-      totalCommunityPledges: prev.totalCommunityPledges + amount,
-      categories: prev.categories.map((category) => category.category.id === categoryId
-        ? { ...category, pledgeCount: category.pledgeCount + amount } : category),
-    }));
+    setSessionPledges((current) => ({ ...current, [categoryId]: (current[categoryId as ContributionCategoryId] ?? 0) + amount }));
   };
-  const handlePrintBulletin = () => { closePopup(); window.setTimeout(() => window.print(), 0); };
-  const selectedPaceCategory = state.categories.find((category) => category.category.id === paceCategoryId) || state.categories[0];
-  const projectedDays = selectedPaceCategory ? calculateProjectedDays(selectedPaceCategory.approvedCount, selectedPaceCategory.target, selectedPaceCategory.velocityWeek) : null;
-  const viewLabel = { vertical: 'Vertical jars', horizontal: 'Horizontal tanks', cultural: 'Traditional pots', table: 'Data table' }[viewMode];
   const closePopup = () => setPopup(null);
+  const handlePrintBulletin = () => { closePopup(); window.setTimeout(() => window.print(), 0); };
+  const selectedPaceCategory = categories.find((category) => category.category.id === paceCategoryId) || categories[0];
+  const projectedDays = selectedPaceCategory ? calculateProjectedDays(selectedPaceCategory.approvedCount, selectedPaceCategory.target, selectedPaceCategory.velocityWeek) : null;
+  const viewLabel = VIEW_LABELS[viewMode].long;
+  const showVessels = live.hasData;
+  const vesselHandlers = {
+    onOpenBreakdown: setBreakdownProgress,
+    onOpenShare: setShareProgress,
+    onOpenAudit: setAuditProgress,
+    onOpenPledge: setPledgeProgress,
+  };
+  const vesselState = (progress: CategoryProgress) => ({
+    fillCount: flows.held[progress.category.id] ?? null,
+    arrival: flows.arrivals[progress.category.id] ?? null,
+  });
 
   return (
     <div className="progress-immersive progress-observatory" data-motion={canAnimate ? 'animated' : 'static'}>
@@ -164,17 +243,17 @@ export function ProgressPage() {
         <div className="progress-immersive-heading">
           <p className="eyebrow"><span className="observatory-live-dot" /> KASEM · LIVING HERITAGE</p>
           <h1>Help fill <em>the jars.</em></h1>
-          <p className="observatory-intro">A little from you. A future for all of us.</p>
+          <p className="observatory-intro">Every approved contribution moves us closer.</p>
           <div className="progress-hero-summary">
-            <span className="progress-stats-pill">{state.totalWithTargetsCount > 0 ? <><strong>{state.targetsReachedCount} / {state.totalWithTargetsCount}</strong> targets reached</> : '10 contribution categories'}</span>
+            <span className="progress-stats-pill">{showVessels && summary.totalWithTargets > 0 ? <><strong>{summary.reachedCount} / {summary.totalWithTargets}</strong> targets reached</> : '10 contribution categories'}</span>
             {prefersReducedMotion && <span className="progress-summary-badge">Reduced motion</span>}
           </div>
         </div>
         <div className="observatory-toolbar">
           <div className="observatory-views" role="group" aria-label="Progress view">
-            {(['vertical', 'horizontal', 'cultural', 'table'] as const).map(mode => <button key={mode} type="button" aria-pressed={viewMode === mode} onClick={() => handleViewModeChange(mode)}>
-              <Icon name={mode === 'vertical' ? 'volume' : mode === 'horizontal' ? 'layers' : mode === 'cultural' ? 'source' : 'context'} size={14} />
-              {{ vertical: 'Jars', horizontal: 'Tanks', cultural: 'Local pots', table: 'Table' }[mode]}
+            {VIEW_MODES.map(mode => <button key={mode} type="button" aria-pressed={viewMode === mode} onClick={() => handleViewModeChange(mode)}>
+              <Icon name={VIEW_LABELS[mode].icon} size={14} />
+              {VIEW_LABELS[mode].short}
             </button>)}
           </div>
           <button className="observatory-text-button" type="button" aria-haspopup="dialog" onClick={() => setPopup('about')}><Icon name="check" size={14} /> Verified contributions <Icon name="context" size={13} /></button>
@@ -183,94 +262,68 @@ export function ProgressPage() {
 
       <section className="progress-immersive-stage" id="vessels-section" aria-label="Community contribution progress">
         <div className="container">
-          <div className="observatory-gallery-heading"><span>{viewLabel}<small> / {String(state.categories.length).padStart(2, '0')} COLLECTIONS</small></span>
-            {(viewMode === 'vertical' || viewMode === 'cultural') && <div className="observatory-gallery-controls"><button type="button" onClick={() => scrollGallery(-1)} aria-label="Previous collections"><span aria-hidden="true">←</span></button><button type="button" onClick={() => scrollGallery(1)} aria-label="Next collections"><span aria-hidden="true">→</span></button></div>}
+          <div className="observatory-gallery-heading"><span>{viewLabel}<small> / {String(categories.length).padStart(2, '0')} COLLECTIONS</small></span>
+            {viewMode === 'cultural' && <div className="observatory-gallery-controls"><button type="button" onClick={() => scrollGallery(-1)} aria-label="Previous collections"><span aria-hidden="true">←</span></button><button type="button" onClick={() => scrollGallery(1)} aria-label="Next collections"><span aria-hidden="true">→</span></button></div>}
           </div>
-          {state.status === 'loading' && <p className="progress-status" role="status">Loading verified contribution counts…</p>}
-          {state.status === 'error' && (
+          {!showVessels && live.connection !== 'error' && live.connection !== 'offline' && <p className="progress-status" role="status">Loading verified contribution counts…</p>}
+          {!showVessels && (live.connection === 'error' || live.connection === 'offline') && (
             <div className="callout callout--warn" role="alert">
-              <strong>{state.error}</strong>
-              <Button type="button" onClick={() => void loadData(useFixtures)} variant="secondary">Retry loading</Button>
+              <strong>{live.connection === 'offline' ? 'You are offline. Verified counts will load when you reconnect.' : live.error ?? 'Verified counts are unavailable right now.'}</strong>
+              <Button type="button" onClick={live.refresh} variant="secondary">Retry loading</Button>
             </div>
           )}
-          {state.status === 'stale' && <p className="progress-status" role="status">Cached progress · Refresh to reconnect.</p>}
-          {state.fixtureMode && <p className="progress-preview-notice" role="status"><strong>Sample counts &amp; targets</strong> · Preview only, not live progress.</p>}
-          {/* Vessel Display Gallery / Table */}
-          {viewMode === 'vertical' && (
-            <div
-              className="vessels-gallery vessels-gallery--vertical"
-              ref={galleryRef}
-              tabIndex={0}
-              aria-label="Category jars progress gallery"
-            >
-              {state.categories.map((progress, index) => (
-                <VerticalJar
-                  key={progress.category.id}
-                  progress={progress}
-                  canAnimate={canAnimate}
-                  staggerIndex={index}
-                  onOpenBreakdown={setBreakdownProgress}
-                  onOpenShare={setShareProgress}
-                  onOpenAudit={setAuditProgress}
-                  onOpenPledge={setPledgeProgress}
-                />
-              ))}
+          {showVessels && knownCount < categories.length && !live.fixtureMode && (
+            <p className="progress-status" role="status">Some counts could not be read just now and are shown as “—”.</p>
+          )}
+          {live.fixtureMode && <p className="progress-preview-notice" role="status"><strong>Sample counts &amp; targets</strong> · Preview only, not live progress.</p>}
+
+          <div ref={stageRef} className={`pipeline-stage pipeline-stage--${viewMode}`} data-motion={decorativeMotion ? 'animated' : 'static'}>
+            {showVessels && hasPipes && (
+              <PipeNetwork
+                layout={viewMode === 'vertical' ? 'jars' : 'tanks'}
+                containerRef={stageRef}
+                measureKey={`${viewMode}|${knownCount}|${live.fixtureMode}`}
+                active={flows.active}
+                travel={canAnimate}
+                onArrive={flows.arrive}
+              />
+            )}
+            {viewMode === 'vertical' && <span className="pipeline-trunk-marker" data-pipe-trunk aria-hidden="true" />}
+            <div className="pipeline-head">
+              <TribePump outlet={viewMode === 'vertical' ? 'center' : viewMode === 'horizontal' ? 'left' : 'none'} pulse={flows.pumpPulse} motion={decorativeMotion} />
+              <ConnectionStatus state={live.connection} confirmedAtMs={live.confirmedAtMs} />
             </div>
-          )}
 
-          {viewMode === 'horizontal' && (
-            <div
-              className="vessels-gallery vessels-gallery--horizontal"
-              ref={galleryRef}
-              aria-label="Category horizontal tanks progress list"
-            >
-              {state.categories.map((progress, index) => (
-                <HorizontalTank
-                  key={progress.category.id}
-                  progress={progress}
-                  canAnimate={canAnimate}
-                  staggerIndex={index}
-                  onOpenBreakdown={setBreakdownProgress}
-                  onOpenShare={setShareProgress}
-                  onOpenAudit={setAuditProgress}
-                  onOpenPledge={setPledgeProgress}
-                />
-              ))}
-            </div>
-          )}
+            {showVessels && viewMode === 'vertical' && (
+              <div className="vessels-gallery vessels-gallery--vertical" ref={galleryRef} aria-label="Category jars progress gallery">
+                {categories.map((progress, index) => (
+                  <VerticalJar key={progress.category.id} progress={progress} canAnimate={decorativeMotion} staggerIndex={index} {...vesselState(progress)} {...vesselHandlers} />
+                ))}
+              </div>
+            )}
 
-          {viewMode === 'cultural' && (
-            <div
-              className="vessels-gallery vessels-gallery--cultural"
-              ref={galleryRef}
-              tabIndex={0}
-              aria-label="Illustrated earthenware progress vessels gallery"
-            >
-              {state.categories.map((progress, index) => (
-                <CulturalPot
-                  key={progress.category.id}
-                  progress={progress}
-                  canAnimate={canAnimate}
-                  staggerIndex={index}
-                  onOpenBreakdown={setBreakdownProgress}
-                  onOpenShare={setShareProgress}
-                  onOpenAudit={setAuditProgress}
-                  onOpenPledge={setPledgeProgress}
-                />
-              ))}
-            </div>
-          )}
+            {showVessels && viewMode === 'horizontal' && (
+              <div className="vessels-gallery vessels-gallery--horizontal" ref={galleryRef} aria-label="Category horizontal tanks progress list">
+                {categories.map((progress, index) => (
+                  <HorizontalTank key={progress.category.id} progress={progress} canAnimate={decorativeMotion} staggerIndex={index} {...vesselState(progress)} {...vesselHandlers} />
+                ))}
+              </div>
+            )}
 
-          {viewMode === 'table' && (
-            <ProgressDataTable
-              categories={state.categories}
-              onOpenBreakdown={setBreakdownProgress}
-              onOpenShare={setShareProgress}
-              onOpenAudit={setAuditProgress}
-              onOpenPledge={setPledgeProgress}
-            />
-          )}
+            {showVessels && viewMode === 'cultural' && (
+              <div className="vessels-gallery vessels-gallery--cultural" ref={galleryRef} tabIndex={0} aria-label="Illustrated earthenware progress vessels gallery">
+                {categories.map((progress, index) => (
+                  <CulturalPot key={progress.category.id} progress={progress} canAnimate={decorativeMotion} staggerIndex={index} {...vesselState(progress)} {...vesselHandlers} />
+                ))}
+              </div>
+            )}
 
+            {showVessels && viewMode === 'table' && (
+              <ProgressDataTable categories={categories} arrivals={flows.arrivals} {...vesselHandlers} />
+            )}
+          </div>
+
+          <p className="sr-only" aria-live="polite" aria-atomic="true">{announcement}</p>
 
           <nav className="progress-discovery-bar" aria-label="Explore progress details">
             <button type="button" className="control-toggle-btn" aria-haspopup="dialog" onClick={() => setPopup('about')}><Icon name="source" size={14} /> How it works</button>
@@ -283,10 +336,10 @@ export function ProgressPage() {
       {popup === 'view' && (
         <ProgressPopup title="Choose your view" onClose={closePopup}>
           <div className="progress-popup-options" role="group" aria-label="Vessel layout">
-            {(['vertical', 'horizontal', 'cultural', 'table'] as const).map((mode) => (
+            {VIEW_MODES.map((mode) => (
               <button type="button" key={mode} className={`progress-popup-option ${viewMode === mode ? 'is-active' : ''}`} aria-pressed={viewMode === mode} onClick={() => { handleViewModeChange(mode); closePopup(); }}>
-                <Icon name={mode === 'vertical' ? 'volume' : mode === 'horizontal' ? 'layers' : mode === 'cultural' ? 'source' : 'context'} size={18} />
-                {{ vertical: 'Vertical jars', horizontal: 'Horizontal tanks', cultural: 'Traditional pots', table: 'Data table' }[mode]}
+                <Icon name={VIEW_LABELS[mode].icon} size={18} />
+                {VIEW_LABELS[mode].long}
               </button>
             ))}
           </div>
@@ -300,15 +353,27 @@ export function ProgressPage() {
             <button type="button" className="progress-popup-option" aria-pressed={soundEnabled} onClick={handleToggleSound}><Icon name="volume" size={16} /> {soundEnabled ? 'Chimes on' : 'Enable sound'}</button>
             <button type="button" className="progress-popup-option" onClick={handlePrintBulletin}><Icon name="bookmark" size={16} /> Print flyer</button>
             {import.meta.env.DEV && <button type="button" className={`progress-popup-option ${useFixtures ? 'is-active' : ''}`} aria-pressed={useFixtures} onClick={() => { setUseFixtures((prev) => !prev); closePopup(); }}><Icon name="context" size={16} /> {useFixtures ? 'Return to live progress' : 'Preview sample targets'}</button>}
+            {import.meta.env.DEV && useFixtures && <button type="button" className="progress-popup-option" onClick={() => setPopup('simulate')}><Icon name="play" size={16} /> Simulate an approval</button>}
             {import.meta.env.DEV && useFixtures && <button type="button" className="progress-popup-option" onClick={() => setPopup('milestones')}><Icon name="bookmark" size={16} /> Sample milestones</button>}
             {import.meta.env.DEV && useFixtures && <button type="button" className="progress-popup-option" onClick={() => setPopup('honors')}><Icon name="check" size={16} /> Sample contributors</button>}
-            <button type="button" className="progress-popup-option" onClick={() => { void loadData(useFixtures); closePopup(); }}><Icon name="arrow" size={16} /> Refresh counts</button>
+            <button type="button" className="progress-popup-option" onClick={() => { live.refresh(); closePopup(); }}><Icon name="arrow" size={16} /> Reconnect</button>
           </div>
-          {import.meta.env.DEV && <p className="tiny muted">Preview mode uses sample counts and targets to demonstrate the liquid colours and levels. It does not show live community progress.</p>}
+          {import.meta.env.DEV && <p className="tiny muted">Preview mode uses sample counts and targets. Simulated approvals exist only in this development preview and never touch live progress.</p>}
+        </ProgressPopup>
+      )}
+      {import.meta.env.DEV && useFixtures && popup === 'simulate' && (
+        <ProgressPopup title="Simulate an approval" onClose={closePopup}>
+          <p className="tiny muted">Development preview only. Plays a sample approval through the same path a committed one takes.</p>
+          <div className="progress-popup-options" role="group" aria-label="Collection to approve into">
+            {categories.map((item) => (
+              <button key={item.category.id} type="button" className="progress-popup-option" onClick={() => { closePopup(); window.setTimeout(() => live.simulateApproval(item.category.id), 350); }}>
+                <Icon name={item.category.iconName} size={16} /> {item.category.shortLabel}
+              </button>
+            ))}
+          </div>
         </ProgressPopup>
       )}
       {popup === 'pace' && <ProgressPopup title="Launch pace" onClose={closePopup}>
-          {/* Launch Pace & Velocity Calculator Section */}
           <div className="progress-calculator-card">
             <div className="section-heading">
               <p className="eyebrow">Momentum &amp; Run-rate</p>
@@ -322,7 +387,7 @@ export function ProgressPage() {
               <div className="calculator-select-row">
                 <p className="calculator-label" id="pace-category-label">Choose a category</p>
                 <div className="progress-popup-options" role="group" aria-labelledby="pace-category-label">
-                  {state.categories.map((c) => (
+                  {categories.map((c) => (
                     <button
                       key={c.category.id}
                       type="button"
@@ -339,12 +404,12 @@ export function ProgressPage() {
               {selectedPaceCategory && (
                 <div className="calculator-results-grid">
                   <div className="calculator-result-box">
-                    <span className="tiny muted">{state.fixtureMode ? 'Sample weekly rate' : 'Measured weekly rate'}</span>
+                    <span className="tiny muted">{live.fixtureMode ? 'Sample weekly rate' : 'Measured weekly rate'}</span>
                     <strong>{selectedPaceCategory.velocityWeek > 0 ? `+${selectedPaceCategory.velocityWeek} ${selectedPaceCategory.category.unitPlural}/week` : 'Not available yet'}</strong>
                   </div>
 
                   <div className="calculator-result-box">
-                    <span className="tiny muted">{state.fixtureMode ? 'Sample pledges' : 'Pledges in this session'}</span>
+                    <span className="tiny muted">{live.fixtureMode ? 'Sample pledges' : 'Pledges in this session'}</span>
                     <strong>{selectedPaceCategory.pledgeCount} {selectedPaceCategory.category.unitPlural} promised</strong>
                   </div>
 
@@ -365,11 +430,9 @@ export function ProgressPage() {
             </div>
           </div>
 
-
         <p className="tiny muted">Estimates depend on a target and a measured weekly rate; they are not confirmed launch dates.</p>
       </ProgressPopup>}
       {import.meta.env.DEV && useFixtures && popup === 'milestones' && <ProgressPopup title="Illustrative milestones" onClose={closePopup}>
-          {/* Historical Milestone Genesis Timeline Section */}
           <div className="progress-milestones-section">
             <div className="section-heading">
               <p className="eyebrow">Community genesis</p>
@@ -397,11 +460,8 @@ export function ProgressPage() {
               ))}
             </div>
           </div>
-
-
       </ProgressPopup>}
       {import.meta.env.DEV && useFixtures && popup === 'honors' && <ProgressPopup title="Illustrative contributors" onClose={closePopup}>
-          {/* Community Contributor Honor Wall Section */}
           <div className="progress-honor-wall">
             <div className="section-heading">
               <p className="eyebrow">Voices of our heritage</p>
@@ -426,16 +486,14 @@ export function ProgressPage() {
               ))}
             </div>
           </div>
-
-
       </ProgressPopup>}
       {popup === 'about' && <ProgressPopup title="How progress works" onClose={closePopup}>
-        <p>Every approved contribution helps preserve Kasem heritage. Open a vessel’s details to explore its category, share its progress, or make a pledge.</p>
-        <p>Liquid colour moves from red through yellow and blue to green as a vessel fills. More progress brings more bubbles. Counts and percentages show the exact progress.</p>
+        <p>TribeStudio is the pump. When a reviewer approves a contribution and it is published, the change travels down the pipe into its own collection’s vessel. Collections never share liquid: each fills on its own.</p>
+        <p>A vessel fills to exactly its approved total divided by its target, so a small collection shows a small sliver and its precise percentage. The pulse in the pipe marks an approval arriving; its size is not the size of the collection.</p>
+        <p><strong>Live</strong> means this page is subscribed to verified totals and shows approvals within moments of their being committed. <strong>Updated</strong> with a time means the totals were counted at that time instead. Totals counted before you opened the page are history and are never replayed as new.</p>
         <p>Local pots use generated pottery illustrations and a separate fill gauge because clay is opaque. They are artistic interpretations, not photographs of authenticated Kasena artifacts.</p>
-        <p><strong>{state.launchConfig.launchWindowLabel}</strong></p>
-        {state.launchConfig.notes && <p className="tiny muted">{state.launchConfig.notes}</p>}
-          {/* Transparent Methodology & Integrity */}
+        <p><strong>{live.config.launchWindowLabel}</strong></p>
+        {live.config.notes && <p className="tiny muted">{live.config.notes}</p>}
           <div className="progress-methodology-section">
             <div className="section-heading">
               <p className="eyebrow">Trustworthy counting</p>
@@ -449,14 +507,14 @@ export function ProgressPage() {
               <article className="methodology-card">
                 <h4>Approved contributions only</h4>
                 <p>
-                  Launch progress measures approved, usable heritage data. Submissions awaiting review only fill a vessel after reviewers verify them.
+                  Launch progress measures approved, usable heritage data. Submissions awaiting review, and posts published openly without review, never fill a vessel.
                 </p>
               </article>
 
               <article className="methodology-card">
                 <h4>Categories stay distinct</h4>
                 <p>
-                  We never merge distinct cultural forms or split multi-word expressions into individual dictionary words merely to inflate a total. Words, expressions, proverbs, and audio maintain their authentic identities.
+                  We never merge distinct cultural forms or split multi-word expressions into individual dictionary words merely to inflate a total. A proverb is counted once, as a proverb.
                 </p>
               </article>
 
@@ -470,7 +528,7 @@ export function ProgressPage() {
               <article className="methodology-card">
                 <h4>Privacy &amp; safety first</h4>
                 <p>
-                  Metrics use privacy-preserving server counts. Contributor identities, private notes, and raw unpublished community corpus are never downloaded into a public browser.
+                  Totals are counted on our servers. The page receives a collection, a number and a time — never a contributor, a private note or unpublished work.
                 </p>
               </article>
             </div>
@@ -486,7 +544,7 @@ export function ProgressPage() {
       {/* Active Modals */}
       <CategoryBreakdownModal
         progress={breakdownProgress}
-        fixtureMode={state.fixtureMode}
+        fixtureMode={live.fixtureMode}
         onOpenPledge={(progress) => { setBreakdownProgress(null); setPledgeProgress(progress); }}
         onOpenShare={(progress) => { setBreakdownProgress(null); setShareProgress(progress); }}
         onOpenAudit={(progress) => { setBreakdownProgress(null); setAuditProgress(progress); }}
@@ -501,18 +559,31 @@ export function ProgressPage() {
 
       <ShareVesselModal
         progress={shareProgress}
-        fixtureMode={state.fixtureMode}
+        fixtureMode={live.fixtureMode}
         onClose={() => setShareProgress(null)}
       />
 
       <AuditQueryModal
         progress={auditProgress}
-        fixtureMode={state.fixtureMode}
+        fixtureMode={live.fixtureMode}
+        connection={live.connection}
         onClose={() => setAuditProgress(null)}
       />
 
+      {import.meta.env.DEV && live.fixtureMode && <DevSimulationHook simulate={live.simulateApproval} />}
     </div>
   );
+}
+
+/** Development preview only: lets automated browser checks trigger a sample approval. */
+function DevSimulationHook({ simulate }: { simulate: (category: ContributionCategoryId, delta?: number) => void }) {
+  useEffect(() => {
+    if (!import.meta.env.DEV) return undefined;
+    const target = window as unknown as { __progressSimulateApproval?: typeof simulate };
+    target.__progressSimulateApproval = simulate;
+    return () => { delete target.__progressSimulateApproval; };
+  }, [simulate]);
+  return null;
 }
 
 export default ProgressPage;

@@ -9,6 +9,7 @@ import { useEffect, useState } from 'react';
 import { ProgressDialog } from './ProgressDialog';
 import { Button } from '../../components/Button';
 import { Icon } from '../../components/Icon';
+import { formatCount, formatPercent } from './progressFormat';
 import type { CategoryProgress } from './progressTypes';
 
 interface ShareVesselModalProps {
@@ -22,14 +23,18 @@ export function ShareVesselModal({ progress, fixtureMode = false, onClose }: Sha
   useEffect(() => { setCopied(false); }, [progress?.category.id]);
 
   if (!progress) return null;
-  const { category, approvedCount, target, percentage } = progress;
+  const { category, approvedCount, target } = progress;
 
   const targetText = target ? `${target.toLocaleString()} ${category.unitPlural}` : 'being set';
-  const percentText = percentage !== null ? `(${percentage}%)` : '';
+  const percentValue = formatPercent(approvedCount, target);
+  const percentText = percentValue ? `(${percentValue})` : '';
+  const countText = formatCount(approvedCount);
 
-  const shareText = fixtureMode
-    ? `Sample preview only — ${category.title}: ${approvedCount.toLocaleString()} sample ${category.unitPlural} against a sample target of ${targetText} ${percentText}. Explore live progress: https://indigenworld.com/progress`
-    : `Help fill the Kasem ${category.title} jar! We currently have ${approvedCount.toLocaleString()} approved ${category.unitPlural} of our ${targetText} launch target ${percentText}. Every contribution counts: https://indigenworld.com/progress`;
+  const shareText = !progress.isCountKnown
+    ? `Help fill the Kasem ${category.title} jar! Follow our verified launch progress: https://indigenworld.com/progress`
+    : fixtureMode
+    ? `Sample preview only — ${category.title}: ${countText} sample ${category.unitPlural} against a sample target of ${targetText} ${percentText}. Explore live progress: https://indigenworld.com/progress`
+    : `Help fill the Kasem ${category.title} jar! We currently have ${countText} approved ${category.unitPlural} of our ${targetText} launch target ${percentText}. Every contribution counts: https://indigenworld.com/progress`;
 
   const handleCopyText = async () => {
     try {
@@ -65,9 +70,9 @@ export function ShareVesselModal({ progress, fixtureMode = false, onClose }: Sha
             </div>
             <h4>{category.title}</h4>
             <div className="share-preview-card__numbers">
-              <span className="share-big-count">{approvedCount.toLocaleString()}</span>
+              <span className="share-big-count">{countText}</span>
               <span className="share-unit">{category.unitPlural}</span>
-              {percentage !== null && <span className="share-pill">{percentage}% Filled</span>}
+              {percentValue && <span className="share-pill">{percentValue} Filled</span>}
             </div>
             <p className="tiny muted">{category.description}</p>
             <div className="share-preview-card__footer">

@@ -73,10 +73,12 @@ export interface CategoryDefinition {
 
 export interface CategoryProgress {
   category: CategoryDefinition;
-  approvedCount: number;
+  /** Verified total; null when it could not be read — never shown as 0. */
+  approvedCount: number | null;
+  isCountKnown: boolean;
   awaitingReviewCount?: number | null;
   target: number | null; // null represents "Target being set"
-  percentage: number | null; // null if target is null; otherwise (approvedCount / target) * 100
+  percentage: number | null; // exact (approvedCount / target) * 100; null without a target or a count
   fillPercentage: number; // 0 to 100 (capped at 100 for visual fill)
   isTargetReached: boolean;
   isBeyondTarget: boolean;
@@ -111,14 +113,15 @@ export interface ContributorHonor {
   category: string;
 }
 
-export interface ProgressState {
-  status: 'loading' | 'ready' | 'stale' | 'error';
-  categories: CategoryProgress[];
-  launchConfig: LaunchProgressConfig;
-  lastUpdated: string | null;
-  error?: string | null;
-  targetsReachedCount: number;
-  totalWithTargetsCount: number;
-  fixtureMode: boolean;
-  totalCommunityPledges: number;
-}
+/**
+ * Where the numbers on screen came from, and how fresh they are.
+ *   connecting    first sync, nothing confirmed yet
+ *   live          subscribed to the server projection and confirmed by it
+ *   reconnecting  was live; the connection dropped and is being restored
+ *   offline       the browser reports no network
+ *   snapshot      the live projection is unavailable; counts were fetched once
+ *   cached        last numbers this device saw, not yet confirmed
+ *   sample        development fixture, never production data
+ *   error         nothing could be read
+ */
+export type ConnectionState = 'connecting' | 'live' | 'reconnecting' | 'offline' | 'snapshot' | 'cached' | 'sample' | 'error';

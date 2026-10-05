@@ -757,6 +757,38 @@
       ]
     },
     {
+      "collectionGroup": "dictionaryEntries",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "isPublished",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "audioUrl",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "kasemSentences",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "projectionVersion",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "expiresAtMillis",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
       "collectionGroup": "kawuriTasks",
       "queryScope": "COLLECTION",
       "fields": [

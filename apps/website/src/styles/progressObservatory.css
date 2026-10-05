@@ -21,10 +21,11 @@
   background-size: 80px 80px; transform: perspective(600px) rotateX(68deg); transform-origin: center top;
   mask-image: linear-gradient(transparent, #0006 50%, transparent);
 }
-.observatory-atmosphere span { position: absolute; width: 450px; height: 450px; border-radius: 50%; background: #a4e7f620; filter: blur(60px); }
-.observatory-atmosphere span:nth-child(1) { top: 200px; left: -200px; }
-.observatory-atmosphere span:nth-child(2) { top: 700px; right: -180px; background: #b7d9fa40; }
-.observatory-atmosphere span:nth-child(3) { top: -200px; left: 35%; }
+/* Soft gradients rather than a live blur filter: the drift then costs a cheap composite, not a repaint. */
+.observatory-atmosphere span { position: absolute; width: 570px; height: 570px; border-radius: 50%; background: radial-gradient(circle, #a4e7f630 0, #a4e7f61a 36%, transparent 70%); will-change: transform; }
+.observatory-atmosphere span:nth-child(1) { top: 140px; left: -260px; }
+.observatory-atmosphere span:nth-child(2) { top: 640px; right: -240px; background: radial-gradient(circle, #b7d9fa58 0, #b7d9fa26 38%, transparent 70%); }
+.observatory-atmosphere span:nth-child(3) { top: -260px; left: calc(35% - 60px); }
 .progress-observatory[data-motion="animated"] .observatory-atmosphere span { animation: atmosphereDrift 16s ease-in-out infinite alternate; }
 .progress-observatory .container, .progress-observatory .progress-immersive-header { width: min(1440px, calc(100% - 100px)); max-width: 1440px; margin-inline: auto; }
 .progress-observatory .progress-immersive-header { padding: 26px 0 0; border: 0; }

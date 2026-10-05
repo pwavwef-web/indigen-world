@@ -1,3 +1,6 @@
+/** TribeStudio itself: where contributions are made and reviewed. */
+export const STUDIO_HOME_URL = "https://tribestudio.indigenworld.com/";
+
 export const STUDIO_CREATE_URL = "https://tribestudio.indigenworld.com/studio/submissions/new";
 
 /**

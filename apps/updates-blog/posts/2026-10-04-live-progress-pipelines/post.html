@@ -1,0 +1,58 @@
+<div class="iw-release-post">
+  <p>Our progress page now shows where verified contributions come from and where they go. TribeStudio sits at the top of the page as a pump, glass pipes run to every collection, and when a reviewer approves a contribution you can watch it travel down the pipe into its own jar.</p>
+  <p>This update is built and tested, and it is waiting to be released. The availability section below explains what that means.</p>
+
+  <h2>From TribeStudio to the right jar</h2>
+  <p>Every contribution to Indigen World is made and reviewed in TribeStudio. On the progress page, TribeStudio is now the pump that feeds the whole network. Select it to open the studio.</p>
+  <p>When an approval is published, a short pulse of blue liquid leaves the pump, runs along the pipes and drops into the matching collection. Only that collection’s jar receives it. The jars share a supply line, but no liquid ever passes from one collection to another: each one fills on its own.</p>
+  <figure>
+    <img src="images/approval-travelling-live.jpg" alt="Progress page with the TribeStudio pump at the top, a Live status label, glass pipes leading to ten jars, and a pulse of blue liquid travelling along the pipe toward the Everyday Expressions jar, whose count already reads 11." style="width:100%;height:auto;" />
+    <figcaption>An approval on its way to Everyday Expressions. Actual product screenshot using labelled test data in a local Firestore emulator; the approval was committed and counted by the real backend code. The new number appears at once, and the liquid catches up as it arrives.</figcaption>
+  </figure>
+
+  <h2>An approval arriving</h2>
+  <p>When the liquid reaches the jar, it pours in, a ripple spreads across the surface and a small “+1 approved” label appears beside the inlet. The fill then rises to the new total. If several approvals for the same collection arrive close together, the page shows them as one truthful batch, such as “+3 approved”.</p>
+  <figure>
+    <img src="images/approval-arriving-live.jpg" alt="The same page a moment later: a thin stream pours from the inlet into the Everyday Expressions jar, with a +1 approved label beside the inlet and the other jars unchanged." style="width:100%;height:auto;" />
+    <figcaption>The arrival: a jet into the jar, a ripple and “+1 approved”. Every other jar stays still. Actual product screenshot with labelled emulator test data.</figcaption>
+  </figure>
+  <p>The numbers never wait for the animation. A count updates the moment the approval is recorded, and if you switch views, lose your connection or come back to a hidden tab, the page simply shows the correct totals. Approvals counted before you opened the page are history: they are never replayed as if they were happening now.</p>
+
+  <h2>Honest numbers, even when they are small</h2>
+  <p>Our launch targets are ambitious, so most collections are still a small fraction of one percent. Each jar now fills to exactly its approved total divided by its target, and percentages keep enough precision to tell a little progress from none. 357 words of 200,000 shows as 0.18%. Two grammar patterns of 5,000 now shows as 0.04%, where the page used to round it to 0%. A jar is never given a fake minimum fill to look busier.</p>
+  <figure>
+    <img src="images/pipelines-jars-production-counts.jpg" alt="Jars view showing real counts: 357 words at 0.18 percent, 107 expressions at 10.7 percent, 1 story at 1 percent, 2 grammar patterns at 0.04 percent, songs at 0, and a dash for pronunciation, with an Updated time beside the pump." style="width:100%;height:auto;" />
+    <figcaption>Real production counts on October 4, 2026, shown in a local preview before release. The page labels these counted totals “Updated” with their time, because the live feed is not deployed yet. Pronunciation shows a dash rather than a guess: the index it needs is part of this release.</figcaption>
+  </figure>
+
+  <h2>Counts that mean verified</h2>
+  <p>While connecting the pipes, we checked every collection against what “verified” promises:</p>
+  <ul>
+    <li><strong>Reviewed work only.</strong> Open posts that creators publish directly, without a reviewer, no longer fill Stories, Songs, Narrations or Videos. When this update is released, Songs &amp; Lyrics will read 0 instead of 2, because both songs counted so far were published openly.</li>
+    <li><strong>Pronunciations are recordings.</strong> The page used to count every published word as a pronunciation. It now counts published words that carry a reviewed public recording: 93 on October 4, not 357.</li>
+    <li><strong>A proverb is counted once.</strong> Proverbs fill Proverbs &amp; Wisdom and are no longer counted again under Everyday Expressions.</li>
+    <li><strong>Sentences match the public corpus.</strong> Only confirmed sentences that visitors can actually read count, and a sentence leaves the count if its contributor’s consent expires.</li>
+  </ul>
+  <p>Targets are unchanged. Counting happens on our servers, and the page receives only a collection, a number and a time. It never receives a contributor’s name, a private note or unpublished work.</p>
+
+  <h2>Tanks, pots and the table</h2>
+  <p>The horizontal tanks are connected too: one trunk runs down the left side, with a branch into the end of each tank, and the liquid fills from left to right. Local pots and the data table keep their own layouts and show the same verified totals; in those views an approval briefly highlights its collection instead of travelling.</p>
+  <figure>
+    <img src="images/pipelines-tanks-sample.jpg" alt="Horizontal tanks view with the TribeStudio pump at the top left, a trunk pipe running down the left side and a branch into the left end of each tank, each filled with blue liquid to its level." style="width:100%;height:auto;" />
+    <figcaption>The tank network. Actual local screenshot using clearly labelled sample counts and targets to show the fill levels; these are not live totals.</figcaption>
+  </figure>
+
+  <h2>On your phone</h2>
+  <p>On a phone, all ten jars sit in two columns with a slim supply pipe down the side, so you can see every collection without swiping sideways. Tanks become compact rows with their numbers underneath.</p>
+  <figure>
+    <img src="images/pipelines-jars-mobile-sample.jpg" alt="Phone-width view with a Sample data label above the TribeStudio pump, a slim pipe down the left edge and two columns of jars fed from pipes above each row." style="max-width:390px;width:100%;height:auto;" />
+    <figcaption>Phone layout at 390 pixels wide. Actual local screenshot with labelled sample data.</figcaption>
+  </figure>
+
+  <h2>Live means live</h2>
+  <p>The small label beside the pump says exactly what you are looking at. <strong>Live</strong> means the page is connected and shows approvals within moments of their being recorded. <strong>Updated</strong> with a time means the totals were counted at that time. <strong>Reconnecting</strong> and <strong>Offline</strong> mean what they say.</p>
+  <p>Pause motion at the top of the page stops the decorative movement. If your device asks for reduced motion, approvals appear as a still highlight instead of a moving pulse. Screen readers hear a short, polite summary of new approvals rather than every effect.</p>
+
+  <h2>Availability</h2>
+  <p>This update is implemented and has been tested end to end against a local copy of our database, but it is <strong>not live yet</strong>. It needs the new counting service, its security rule and two database indexes to be released together with the website. Until then, <a href="https://indigenworld.com/progress">indigenworld.com/progress</a> continues to show the current design. We will update this article when the release is confirmed.</p>
+</div>

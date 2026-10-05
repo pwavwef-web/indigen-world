@@ -23,6 +23,12 @@ const progressDataSource = read('src/features/progress/progressData.ts');
 const verticalJarSource = read('src/features/progress/VerticalJar.tsx');
 const horizontalTankSource = read('src/features/progress/HorizontalTank.tsx');
 const glassVesselSource = read('src/features/progress/GlassVessel.tsx');
+const tribePumpSource = read('src/features/progress/TribePump.tsx');
+const pipeNetworkSource = read('src/features/progress/PipeNetwork.tsx');
+const liveProgressSource = read('src/features/progress/useLiveProgress.ts');
+const connectionStatusSource = read('src/features/progress/ConnectionStatus.tsx');
+const pipelineStyles = read('src/styles/progressPipelines.css');
+const creatorLinksSource = read('src/content/creatorLinks.ts');
 const vesselPresentationSource = read('src/features/progress/VesselPresentation.tsx');
 const progressPageSource = read('src/pages/ProgressPage.tsx');
 const progressDialogSource = read('src/features/progress/ProgressDialog.tsx');
@@ -44,11 +50,14 @@ const { liquidAppearance } = await import(await helperModule('liquidAppearance.t
 // Colours, bubbles and live measurements must follow actual progress, not samples.
 {
   assert.equal(liquidAppearance(0).bubbleCount, 0, 'empty liquid contains no bubbles');
-  assert.equal(liquidAppearance(0).stage, 'red');
-  assert.equal(liquidAppearance(25).stage, 'yellow');
-  assert.equal(liquidAppearance(50).stage, 'blue');
-  assert.equal(liquidAppearance(75).stage, 'green');
-  assert.equal(liquidAppearance(100).stage, 'green');
+  assert.equal(liquidAppearance(0).stage, 'empty');
+  assert.equal(liquidAppearance(0.04).stage, 'filling', 'a tiny genuine fill is still liquid');
+  assert.equal(liquidAppearance(50).stage, 'filling');
+  assert.equal(liquidAppearance(100).stage, 'full');
+  for (const fill of [0, 0.04, 10.5, 50, 100]) {
+    const [r, g, b] = [1, 3, 5].map((offset) => parseInt(liquidAppearance(fill).colour.slice(offset, offset + 2), 16));
+    assert.ok(b > g && g > r, `liquid at ${fill}% is blue, never orange or red`);
+  }
   assert.equal(liquidAppearance(125).fillPercent, 100, 'overflow is visually clamped');
   assert.equal(liquidAppearance(-5).fillPercent, 0, 'negative liquid is clamped');
   for (const value of [NaN, Infinity, -Infinity]) {
@@ -408,8 +417,10 @@ const testCategory = { id: 'lexicon', title: 'Words & Meanings' };
   // Vessel rendering and accessibility
   assert.match(glassVesselSource, /<clipPath id=\{`cavity-\$\{id\}`\}>/, 'shared glass renderer clips liquid to the cavity');
   assert.match(glassVesselSource, /<clipPath id=\{`fill-\$\{id\}`\}>/, 'bubbles and surface effects remain inside the exact fill');
-  assert.match(verticalJarSource, /<GlassVessel progress=/, 'vertical jar uses the shared glass renderer');
-  assert.match(horizontalTankSource, /<GlassVessel progress=\{props.progress\} horizontal/, 'tank uses horizontal fill geometry');
+  assert.match(verticalJarSource, /<GlassVessel categoryId=/, 'vertical jar uses the shared glass renderer');
+  assert.match(horizontalTankSource, /<GlassVessel categoryId=\{props\.progress\.category\.id\} \{\.\.\.state\} horizontal/, 'tank uses horizontal fill geometry');
+  assert.match(glassVesselSource, /data-pipe-inlet=\{categoryId\}/, 'every vessel marks the inlet its pipe joins');
+  assert.doesNotMatch(progressCalculationSource, /Math\.round\(rawPercent/, 'percentages are not rounded before they drive the fill');
   assert.match(vesselPresentationSource, /role="progressbar"/, 'all vessel views expose accessible progressbar semantics');
 
   // Page view switch and motion controls
@@ -449,11 +460,30 @@ const testCategory = { id: 'lexicon', title: 'Words & Meanings' };
   assert.doesNotMatch(progressPageSource + verticalJarSource + horizontalTankSource + read('src/features/progress/CulturalPot.tsx'), /<(?:details|summary|select)\b/, 'progress controls use popup choices instead of dropdowns');
   assert.match(progressPageSource, /<ProgressPopup\b/, 'explanation buttons open popups');
   assert.match(vesselPresentationSource, /onOpenBreakdown/, 'all vessel categories can open their explanation');
-  assert.match(vesselPresentationSource, /<button type="button" className="vessel-inspect"/, 'vessel inspection is keyboard accessible');
+  assert.match(vesselPresentationSource, /<button type="button" className="vessel-explore"[^>]*aria-label=\{`Explore \$\{category\.title\} details`\}/, 'each collection has a keyboard-accessible Explore button');
   assert.match(progressDialogSource, /\.showModal\(\)/, 'native dialog contains modal focus');
   assert.match(progressDialogSource, /aria-labelledby=/, 'popup has an accessible title');
   assert.match(progressDialogSource, /onCancel=/, 'Escape closes the popup');
   assert.match(progressDialogSource, /opener\.focus\(/, 'closing restores trigger focus');
 }
 
-console.log('Progress calculation, liquid behaviour, fixture separation and popup presentation checks passed.');
+
+// Pipeline: the pump is a real link, the network never takes input, and "Live" is earned.
+{
+  assert.match(creatorLinksSource, /STUDIO_HOME_URL = "https:\/\/tribestudio\.indigenworld\.com\/"/, 'the pump opens the configured TribeStudio home');
+  assert.match(tribePumpSource, /<a className="tribe-pump__link" href=\{STUDIO_HOME_URL\}/, 'the pump is an anchor, not a canvas hit area');
+  assert.match(tribePumpSource, /aria-label="TribeStudio, Open studio \(opens in a new tab\)"/, 'the pump has a meaningful accessible name');
+  assert.match(tribePumpSource, /pulse > 0 \? 'tribe-pump__spin is-spinning'/, 'the rotor only spins up for an actual approval');
+  assert.match(pipeNetworkSource, /aria-hidden="true"/, 'the pipe network is decorative to assistive technology');
+  assert.match(pipelineStyles, /\.pipe-network \{[^}]*pointer-events: none;/, 'the pipe network never intercepts clicks');
+  assert.match(pipelineStyles, /\.pipe-network \{[^}]*z-index: 0;/, 'the network sits behind vessels and focus rings');
+  assert.match(liveProgressSource, /if \(meta\.fromCache\)[\s\S]*?never as live/, 'a cached snapshot is never presented as live');
+  assert.match(liveProgressSource, /connection: online\(\) \? 'live' : 'offline'/, 'live is claimed only for a server-confirmed snapshot');
+  assert.match(liveProgressSource, /if \(!import\.meta\.env\.DEV \|\| !fixtureMode\) return;/, 'simulated approvals exist only in development, over sample data');
+  assert.match(progressPageSource, /\{import\.meta\.env\.DEV && live\.fixtureMode && <DevSimulationHook/, 'the simulation hook is never mounted in production');
+  assert.match(connectionStatusSource, /case 'live': return 'Live';/, 'connection states are labelled');
+  assert.match(progressDataSource, /doc\(db, 'publicProgress', 'current'\)/, 'the page subscribes to the server projection');
+  assert.match(progressDataSource, /where\('publicationRoute', '==', 'open'\)/, 'the snapshot fallback leaves out unreviewed open posts');
+}
+
+console.log('Progress calculation, liquid behaviour, fixture separation, pipeline and popup presentation checks passed.');

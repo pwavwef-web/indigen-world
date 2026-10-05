@@ -645,6 +645,18 @@ service cloud.firestore {
     // Creator system (TribeStudio founding creators)
     // ======================================================================
 
+    // ---- Public launch progress: world-readable, backend-written -----------
+    // Verified totals per collection and a short ring of recent changes, each
+    // a category, a signed number and a time — never a record id, a person,
+    // text or media. Written only by services/functions/src/public-progress.ts
+    // from server-side counts; unlike platformConfiguration, not even an admin
+    // client may write it, because a hand-edited total is exactly the vanity
+    // number the page promises not to show.
+    match /publicProgress/{docId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
     // ---- Platform configuration: public-read, admin-managed -----------------
     // Keeps dialects, categories, guidelines and the WhatsApp URL out of the
     // frontend. Guests read; only admins write.

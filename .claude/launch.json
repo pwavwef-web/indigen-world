@@ -31,6 +31,27 @@
       "port": 5180
     },
     {
+      "name": "website-emulators",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "cross-env",
+        "VITE_USE_EMULATORS=true",
+        "VITE_FIREBASE_API_KEY=demo-key",
+        "VITE_FIREBASE_PROJECT_ID=demo-indigen-world",
+        "VITE_FIREBASE_APP_ID=demo-app",
+        "npm",
+        "run",
+        "dev",
+        "--workspace",
+        "@indigen-world/website",
+        "--",
+        "--port",
+        "5196",
+        "--strictPort"
+      ],
+      "port": 5196
+    },
+    {
       "name": "kasem-dictionary",
       "runtimeExecutable": "npm",
       "runtimeArgs": [

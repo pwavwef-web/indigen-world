@@ -6,6 +6,8 @@ date identifies when the post was prepared; it does not prove the update is live
 
 ## Posts
 
+- [2026-10-04: Watch verified contributions flow into the jars](2026-10-04-live-progress-pipelines/README.md) — TribeStudio as the pump, measured glass pipes into every jar and tank, live approval flows from a new server-counted public projection, exact small percentages, and corrected counting (open posts, pronunciations, proverbs, sentences). Implemented and verified locally, including end-to-end emulator runs; **not deployed** (functions, rule, two indexes and website pending). Includes actual screenshots of production counts, labelled emulator test data and sample previews; article unpublished.
+
 - [2026-10-04: One design for every workspace](2026-10-04-one-design-for-every-workspace/README.md) — TribeStudio Hosting deployed October 4 (17:48 UTC); live routes, release assets and sign-in screens verified on both hostnames. All three workspaces, the public creator pages and sign-in screens on the Comitia design system with a Display panel (dark mode, text size, contrast, animations off). Signed-in production journeys unverified; article unpublished. Includes actual screenshots of labelled test records.
 
 - [2026-10-04: An open, animated space for our community progress](2026-10-04-floating-progress-vessels/README.md) — floating glass jars and tanks, generated pottery artwork, mobile swipe galleries and details in popups. Deployed October 4; public assets and live browser behavior verified. Includes actual screenshots with labelled sample data; Blogger publication pending.

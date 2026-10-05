@@ -7,13 +7,18 @@
  */
 
 import { useState } from 'react';
-import type { CategoryProgress } from './progressTypes';
+import type { CategoryProgress, ContributionCategoryId } from './progressTypes';
 import { Icon } from '../../components/Icon';
 import { Button } from '../../components/Button';
 import { playSampleAudioPreview } from './progressAudio';
+import { approvalLabel } from './liveProgressModel';
+import { formatCount, formatPercent } from './progressFormat';
+import type { ArrivalCue } from './useApprovalFlows';
 
 interface ProgressDataTableProps {
   categories: CategoryProgress[];
+  /** Recent approvals: a brief, non-travelling cue on their rows. */
+  arrivals?: Partial<Record<ContributionCategoryId, ArrivalCue>>;
   onOpenBreakdown?: (progress: CategoryProgress) => void;
   onOpenShare?: (progress: CategoryProgress) => void;
   onOpenAudit?: (progress: CategoryProgress) => void;
@@ -24,6 +29,7 @@ type SortField = 'title' | 'approved' | 'percentage' | 'velocity';
 
 export function ProgressDataTable({
   categories,
+  arrivals = {},
   onOpenBreakdown,
   onOpenShare,
   onOpenAudit,
@@ -55,7 +61,7 @@ export function ProgressDataTable({
         diff = a.category.title.localeCompare(b.category.title);
         break;
       case 'approved':
-        diff = a.approvedCount - b.approvedCount;
+        diff = (a.approvedCount ?? -1) - (b.approvedCount ?? -1);
         break;
       case 'percentage':
         diff = (a.percentage ?? -1) - (b.percentage ?? -1);
@@ -100,8 +106,10 @@ export function ProgressDataTable({
         <tbody>
           {sortedCategories.map((item) => {
             const { category, approvedCount, awaitingReviewCount, target, percentage, velocityWeek, pledgeCount } = item;
+            const arrival = arrivals[category.id];
+            const percentText = formatPercent(approvedCount, target);
             return (
-              <tr key={category.id} className={item.needsContributions ? 'row--highlight' : ''}>
+              <tr key={category.id} data-category={category.id} className={[item.needsContributions ? 'row--highlight' : '', arrival ? 'row--arrival' : ''].filter(Boolean).join(' ')}>
                 <th scope="row" className="category-cell">
                   <div className="category-cell__content">
                     <span className="category-dot" style={{ backgroundColor: category.culturalPalette.primary }} />
@@ -112,7 +120,8 @@ export function ProgressDataTable({
                   </div>
                 </th>
                 <td>
-                  <strong>{approvedCount.toLocaleString()}</strong> {category.unitPlural}
+                  <strong>{formatCount(approvedCount)}</strong> {item.isCountKnown ? category.unitPlural : 'count unavailable'}
+                  {arrival && <span className="table-arrival-tag" key={arrival.key} aria-hidden="true">{approvalLabel(arrival.delta)}</span>}
                 </td>
                 <td>
                   {awaitingReviewCount ? (
@@ -129,18 +138,15 @@ export function ProgressDataTable({
                   )}
                 </td>
                 <td>
-                  {percentage !== null ? (
+                  {percentage !== null && percentText ? (
                     <div className="table-progress-cell">
                       <div className="table-progress-track" aria-hidden="true">
                         <div
                           className="table-progress-fill"
-                          style={{
-                            width: `${Math.min(100, percentage)}%`,
-                            backgroundColor: category.culturalPalette.primary,
-                          }}
+                          style={{ width: `${item.fillPercentage}%` }}
                         />
                       </div>
-                      <span className="table-progress-num">{percentage}%</span>
+                      <span className="table-progress-num">{percentText}</span>
                     </div>
                   ) : (
                     <span className="tiny muted">—</span>
@@ -150,7 +156,7 @@ export function ProgressDataTable({
                   {velocityWeek > 0 ? (
                     <span className="velocity-tag">+{velocityWeek}/wk</span>
                   ) : (
-                    <span className="tiny muted">0</span>
+                    <span className="tiny muted" title="Not measured yet">—</span>
                   )}
                 </td>
                 <td>

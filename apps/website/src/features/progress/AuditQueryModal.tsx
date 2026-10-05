@@ -8,17 +8,27 @@
 import { ProgressDialog } from './ProgressDialog';
 import { Button } from '../../components/Button';
 import { Icon } from '../../components/Icon';
-import type { CategoryProgress } from './progressTypes';
+import { connectionLabel } from './ConnectionStatus';
+import { formatCount } from './progressFormat';
+import type { CategoryProgress, ConnectionState } from './progressTypes';
 
 interface AuditQueryModalProps {
   progress: CategoryProgress | null;
   fixtureMode?: boolean;
+  connection?: ConnectionState;
   onClose: () => void;
 }
 
-export function AuditQueryModal({ progress, fixtureMode = false, onClose }: AuditQueryModalProps) {
+export function AuditQueryModal({ progress, fixtureMode = false, connection, onClose }: AuditQueryModalProps) {
   if (!progress) return null;
   const { category, approvedCount, awaitingReviewCount } = progress;
+  const source = fixtureMode
+    ? 'Sample fixture (development preview)'
+    : connection === 'live'
+      ? 'Live: server-counted totals in /publicProgress/current'
+      : connection === 'snapshot'
+        ? 'Snapshot: aggregate count queries from this browser'
+        : connection ? connectionLabel(connection, null) : 'Unknown';
 
   return (
     <ProgressDialog labelledBy="audit-title" onClose={onClose}>
@@ -35,7 +45,7 @@ export function AuditQueryModal({ progress, fixtureMode = false, onClose }: Audi
 
         <div className="progress-modal-body">
           <p className="tiny muted">
-            Progress is retrieved as aggregate counts. These are the category’s configured counting and review rules.
+            Progress arrives as aggregate counts. These are the category’s counting and publication rules.
           </p>
 
           <div className="audit-detail-block">
@@ -56,7 +66,12 @@ export function AuditQueryModal({ progress, fixtureMode = false, onClose }: Audi
 
             <div className="audit-field">
               <span className="tiny muted">{fixtureMode ? 'Sample count' : 'Current aggregate count'}</span>
-              <strong>{approvedCount.toLocaleString()} usable records</strong>
+              <strong>{progress.isCountKnown ? `${formatCount(approvedCount)} usable records` : 'Count unavailable'}</strong>
+            </div>
+
+            <div className="audit-field">
+              <span className="tiny muted">Source</span>
+              <span>{source}</span>
             </div>
 
             {awaitingReviewCount !== null && awaitingReviewCount !== undefined && (
@@ -69,7 +84,7 @@ export function AuditQueryModal({ progress, fixtureMode = false, onClose }: Audi
 
           <div className="callout callout--sand" style={{ marginTop: '1rem' }}>
             <span className="tiny">
-              <strong>Aggregate counts:</strong> This page requests counts instead of downloading full contribution records. Counts do not include private contributor notes or identity fields.
+              <strong>Aggregate counts:</strong> Totals are counted on the server, and this page receives only a collection, a number and a time. No contribution record, contributor identity or private note is downloaded.
             </span>
           </div>
         </div>

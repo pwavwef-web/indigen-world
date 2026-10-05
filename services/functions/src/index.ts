@@ -135,6 +135,15 @@ export {
 export { onCommunityKawuriMention } from './community-kawuri.js';
 export { generateLearnIllustration, reviewLearnIllustration } from './learn-illustrations.js';
 export { submitPronunciationRecording, decidePronunciationRecording } from './pronunciation-recordings.js';
+// The verified totals and sanitized live feed behind the public /progress page.
+export {
+  onDictionaryEntryProgress,
+  onExpressionEntryProgress,
+  onKasemSentenceProgress,
+  onGrammarRuleProgress,
+  onPublishedContentProgress,
+  reconcilePublicProgress,
+} from './public-progress.js';
 export {
   getStudioVideoCapabilities,
   createStudioVideoJob,

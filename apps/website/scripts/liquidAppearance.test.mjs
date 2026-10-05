@@ -14,22 +14,35 @@ test('empty, invalid and unconfigured targets cannot show liquid or bubbles', ()
   assert.equal(unknown.bubbleCount, 0);
 });
 
-test('colour milestones progress through red, yellow, blue and green', () => {
-  for (const [fill, stage] of [[0, 'red'], [24.99, 'red'], [25, 'yellow'], [49.99, 'yellow'], [50, 'blue'], [74.99, 'blue'], [75, 'green'], [100, 'green']]) {
+function hueOf(hex) {
+  const [r, g, b] = [1, 3, 5].map((offset) => parseInt(hex.slice(offset, offset + 2), 16) / 255);
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  if (max === min) return { hue: 0, saturation: 0 };
+  const delta = max - min;
+  const hue = max === r ? ((g - b) / delta) % 6 : max === g ? (b - r) / delta + 2 : (r - g) / delta + 4;
+  return { hue: (hue * 60 + 360) % 360, saturation: delta / (1 - Math.abs(max + min - 1)) };
+}
+
+test('liquid is one coherent blue at every level, with no colour jumps', () => {
+  for (const [fill, stage] of [[0, 'empty'], [0.01, 'filling'], [50, 'filling'], [99.99, 'filling'], [100, 'full']]) {
     assert.equal(liquidAppearance(fill).stage, stage, `stage at ${fill}%`);
   }
-  const milestoneColours = [0, 25, 50, 75].map((fill) => liquidAppearance(fill).colour);
-  assert.equal(new Set(milestoneColours).size, 4, 'four milestones visibly differ');
-  assert.notEqual(liquidAppearance(10).colour, liquidAppearance(20).colour, 'colour transitions within a milestone range');
-  for (const boundary of [25, 50, 75]) {
-    const before = liquidAppearance(boundary - 0.01).colour;
-    const after = liquidAppearance(boundary).colour;
-    assert.match(before, /^#[\da-f]{6}$/i);
-    assert.match(after, /^#[\da-f]{6}$/i);
-    for (const offset of [1, 3, 5]) {
-      assert.ok(Math.abs(parseInt(before.slice(offset, offset + 2), 16) - parseInt(after.slice(offset, offset + 2), 16)) <= 1, `no colour jump at ${boundary}%`);
+  let previous = liquidAppearance(0).colour;
+  for (let fill = 0; fill <= 100; fill += 0.5) {
+    const { colour, deep, light } = liquidAppearance(fill);
+    for (const shade of [colour, deep, light]) {
+      assert.match(shade, /^#[\da-f]{6}$/i);
+      const { hue, saturation } = hueOf(shade);
+      assert.ok(hue >= 195 && hue <= 215, `${shade} at ${fill}% stays blue (hue ${hue.toFixed(0)})`);
+      assert.ok(saturation > 0.6, `${shade} at ${fill}% is a clear colour, not grey`);
     }
+    for (const offset of [1, 3, 5]) {
+      assert.ok(Math.abs(parseInt(previous.slice(offset, offset + 2), 16) - parseInt(colour.slice(offset, offset + 2), 16)) <= 2, `no colour jump at ${fill}%`);
+    }
+    previous = colour;
   }
+  assert.ok(hueOf(liquidAppearance(80, true).colour).saturation < 0.3, 'an unset target stays neutral grey');
 });
 
 test('more liquid produces a bounded, growing bubble volume', () => {
