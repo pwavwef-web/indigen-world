@@ -302,7 +302,7 @@ class _MediaGrid extends StatelessWidget {
   }
 }
 
-class _MediaTile extends StatelessWidget {
+class _MediaTile extends ConsumerWidget {
   const _MediaTile({
     required this.item,
     required this.onOpen,
@@ -323,7 +323,9 @@ class _MediaTile extends StatelessWidget {
   final int overflow;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final lowData = ref.watch(lowDataModeProvider);
+    final imageUrl = feedImageUrl(lowData: lowData, original: item.url, thumbnail: item.thumbnailUrl);
     if (item.isAudio) return AudioPlayerTile(item: item, compact: true);
 
     if (item.isVideo && live) {
@@ -334,10 +336,12 @@ class _MediaTile extends StatelessWidget {
       );
     }
 
-    final picture = item.isVideo
+    final Widget picture = (lowData && (item.isVideo ? item.thumbnailUrl?.isNotEmpty != true : imageUrl == null))
+        ? ColoredBox(color: context.brand.divider, child: const Center(child: Text('Tap to load media')))
+        : item.isVideo
         ? VideoCover(videoUrl: item.url, thumbnailUrl: item.thumbnailUrl)
         : CachedNetworkImage(
-            imageUrl: item.url,
+            imageUrl: imageUrl!,
             fit: BoxFit.cover,
             placeholder: (context, url) => ColoredBox(color: context.brand.divider),
             errorWidget: (context, url, error) => ColoredBox(
@@ -421,20 +425,25 @@ class AudioPlayerTile extends StatefulWidget {
 class _AudioPlayerTileState extends State<AudioPlayerTile> {
   late final AudioPlayer _player;
   var _failed = false;
+  var _loaded = false;
+  var _opening = false;
 
   @override
   void initState() {
     super.initState();
     _player = AudioPlayer();
-    unawaited(_load());
   }
 
   Future<void> _load() async {
+    if (_opening) return;
+    setState(() { _opening = true; _failed = false; });
     try {
       await _player.setUrl(widget.item.url);
+      _loaded = true;
+      if (mounted) unawaited(_player.play());
     } on Object {
       if (mounted) setState(() => _failed = true);
-    }
+    } finally { if (mounted) setState(() => _opening = false); }
   }
 
   @override
@@ -463,14 +472,14 @@ class _AudioPlayerTileState extends State<AudioPlayerTile> {
                   processing == ProcessingState.buffering;
               return IconButton.filled(
                 tooltip: playing ? 'Pause voice note' : 'Play voice note',
-                onPressed: _failed || loading
+                onPressed: loading || _opening
                     ? null
-                    : () => playing ? _player.pause() : _player.play(),
+                    : () => !_loaded || _failed ? _load() : playing ? _player.pause() : _player.play(),
                 style: IconButton.styleFrom(
                   backgroundColor: context.brand.gold,
                   foregroundColor: context.brand.ink,
                 ),
-                icon: loading
+                icon: loading || _opening
                     ? const SizedBox.square(
                         dimension: 18,
                         child: CircularProgressIndicator(strokeWidth: 2),

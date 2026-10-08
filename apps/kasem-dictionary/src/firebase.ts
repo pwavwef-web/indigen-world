@@ -1,4 +1,5 @@
 import { initializeApp } from "firebase/app";
+import { sourceReference, type SourceReference } from './sourceReference';
 import { belongsToCollection, COLLECTIONS, type CollectionKind } from "./collections";
 import {
   collection,
@@ -36,6 +37,8 @@ export interface DictionaryEntry {
   usageContext: string;
   frenchTranslation: string;
   sourceCollection: string;
+  reference: SourceReference;
+  examples?: { kasem: string; english: string }[];
 }
 
 function text(data: DocumentData, keys: string[], fallback = ""): string {
@@ -49,18 +52,20 @@ function text(data: DocumentData, keys: string[], fallback = ""): string {
 export function readEntry(id: string, data: DocumentData, kind: CollectionKind = "words"): DictionaryEntry | null {
   if (!belongsToCollection(kind, data)) return null;
   if (kind !== "words") {
-    const headword = text(data, kind === "names" ? ["name"] : ["phrase"]);
+    const headword = text(data, kind === "names" ? ["name"] : kind === 'sentences' ? ['kasem'] : kind === 'grammar' ? ['title'] : ["phrase"]);
     if (!headword) return null;
     return {
       id: `${COLLECTIONS[kind].source}:${id}`, sourceCollection: COLLECTIONS[kind].source,
-      headword, translation: text(data, ["meaning"], "Meaning not recorded yet"),
-      partOfSpeech: kind === "names" ? ({ given: "Given name", clan: "Clan name", place: "Place name" }[String(data.kind)] ?? "Name") : kind === "proverbs" ? "Proverb" : data.expressionKind === "idiom" ? "Idiom" : "Common phrase",
+      headword, translation: text(data, kind === 'grammar' ? ['summary'] : kind === 'sentences' ? ['english'] : ["meaning"], "Meaning not recorded yet"),
+      partOfSpeech: kind === 'grammar' ? 'Grammar rule' : kind === 'sentences' ? 'Whole sentence' : kind === "names" ? ({ given: "Given name", clan: "Clan name", place: "Place name" }[String(data.kind)] ?? "Name") : kind === "proverbs" ? "Proverb" : data.expressionKind === "idiom" ? "Idiom" : "Common phrase",
       dialect: text(data, ["dialect"], "Kasem"), pronunciation: text(data, ["pronunciation"], "No written guide yet"),
       audioUrl: text(data, ["audioUrl", "pronunciationAudioUrl"]), example: "No example yet", exampleTranslation: "No translated example yet",
       culturalNote: text(data, ["culturalNote"]) || null, literalTranslation: text(data, ["literalTranslation"]),
       usageContext: text(data, ["context", "usageContext"]), frenchTranslation: "",
       authenticationStatus: text(data, ["authenticationStatus"]),
       attribution: text(data, ["licenceDisplay", "attribution"], kind === "names" ? "Indigen World curated Kassena names collection" : "Source not recorded in this entry"),
+      reference: sourceReference(data),
+      examples: kind === 'grammar' && Array.isArray(data.examples) ? data.examples.filter((row: Record<string, unknown>) => typeof row.kasem === 'string' && typeof row.english === 'string') : [],
     };
   }
   if (data.contentKind === 'expression' || data.collectionKind === 'expressions'
@@ -86,6 +91,7 @@ export function readEntry(id: string, data: DocumentData, kind: CollectionKind =
     literalTranslation: text(data, ["literalTranslation"]),
     usageContext: text(data, ["usageContext"]),
     frenchTranslation: text(data, ["frenchTranslation"]),
+    reference: sourceReference(data),
   };
 }
 
@@ -96,7 +102,8 @@ export function subscribeToDictionary(
 ): Unsubscribe {
   const published = query(
     collection(getFirestore(app), COLLECTIONS[kind].source),
-    where(COLLECTIONS[kind].field, "==", true)
+    where(COLLECTIONS[kind].field, "==", kind === 'grammar' ? 'published' : kind === 'sentences' ? 'confirmed' : true),
+    ...(kind === 'sentences' ? [where('projectionVersion', '==', 2), where('expiresAtMillis', '==', null)] : [])
   );
 
   return onSnapshot(

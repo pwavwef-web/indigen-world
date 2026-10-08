@@ -43,6 +43,8 @@ class IndigenAudioHandler extends BaseAudioHandler
   /// somebody who mutes likes and follows must not thereby lose their play
   /// button.
   static const notificationChannelId = 'world.indigen.mobile.audio';
+  /// Wired from the authenticated entitlement scope; false before bootstrap.
+  bool Function() canPlayOffline = () => false;
 
   /// The human name of that channel, as it appears in Android settings.
   static const notificationChannelName = 'Music playback';
@@ -95,7 +97,7 @@ class IndigenAudioHandler extends BaseAudioHandler
         if (_player.playing) unawaited(_player.pause());
       } else if (_resumeAfterInterruption) {
         _resumeAfterInterruption = false;
-        unawaited(_player.play());
+        unawaited(play());
       }
     });
     session.becomingNoisyEventStream.listen((_) {
@@ -127,6 +129,9 @@ class IndigenAudioHandler extends BaseAudioHandler
     // unmodifiable one would throw the first time it did.
     queue.add(List<MediaItem>.of(items));
     mediaItem.add(items[index]);
+    if (musicTrackUrlOf(items[index])?.startsWith('file:') == true && !canPlayOffline()) {
+      unawaited(pause()); _errors.add('Offline listening requires an active subscription.');
+    }
 
     final sources = <AudioSource>[];
     for (final item in items) {
@@ -157,6 +162,9 @@ class IndigenAudioHandler extends BaseAudioHandler
     // car stereo announcing itself over Bluetooth, would start the album again
     // with nothing in the app to stop it from.
     if (queue.value.isEmpty) return;
+    if (musicTrackUrlOf(mediaItem.value ?? queue.value.first)?.startsWith('file:') == true && !canPlayOffline()) {
+      await pause(); _errors.add('Offline access is no longer active. Your files are kept on this device.'); return;
+    }
     await _ensureSessionConfigured();
     // Not awaited, and this is the whole reason this method has a body rather
     // than being `=> _player.play()`. just_audio's `play()` completes when
@@ -284,6 +292,7 @@ class IndigenAudioHandler extends BaseAudioHandler
     final items = queue.value;
     if (index == null || index < 0 || index >= items.length) return;
     mediaItem.add(items[index]);
+    if (musicTrackUrlOf(items[index])?.startsWith('file:') == true && !canPlayOffline()) { unawaited(pause()); _errors.add('Offline listening requires an active subscription.'); }
   }
 
   /// Writes the real duration into the playing item once the header has parsed.

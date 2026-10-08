@@ -212,3 +212,4 @@ if (process.env.ENABLE_SUPPORT_WHATSAPP === 'true') {
 export { releaseKnowledgeRecord, revokeKnowledgeRelease, resolveKnowledgeRecords, exportKnowledgeRecords } from './knowledge-release.js';
 
 export { configureKnowledgeGovernance } from './knowledge-governance.js';
+export { onDictionaryCandidate, onContributorCandidate, onKnowledgeCandidate, onSentenceCandidate, onGrammarCandidate, onExpressionCandidate, onEvidenceCandidate } from './kawuri-candidate-index.js';

@@ -71,7 +71,9 @@ function EntryDetail({ entry, saved, onToggleSaved }: {
         </div>}
         {entry.culturalNote && <div><dt>Usage and context</dt><dd>{entry.culturalNote}</dd></div>}
       </dl>
-      <details className="source-note"><summary>Source and attribution</summary><p>{entry.attribution}</p></details>
+      {entry.examples?.length ? <section aria-label="Recorded grammar examples">{entry.examples.map((example, index) => <blockquote key={index}><p lang="xsm">{example.kasem}</p><p>{example.english}</p></blockquote>)}</section> : null}
+      <details className="source-note"><summary>Source and attribution</summary><p>{entry.reference.title}</p><p>{entry.reference.references.length ? entry.reference.references.join(' · ') : 'Page or section not recorded'}</p><p>{entry.attribution}</p><p>Dialect: {entry.dialect}</p>{entry.reference.href ? <a href={entry.reference.href}>Open the book reference and its illustrations in context</a> : null}</details>
+      <a href={`?collection=${encodeURIComponent(entry.sourceCollection === 'grammarRules' ? 'grammar' : entry.sourceCollection === 'kasemSentences' ? 'sentences' : entry.sourceCollection === 'dictionaryEntries' ? 'words' : entry.partOfSpeech === 'Proverb' ? 'proverbs' : entry.sourceCollection === 'kasemNames' ? 'names' : 'phrases')}&entry=${encodeURIComponent(entry.id)}`}>Link to this record</a>
       <a className="knowledge-link" href={entry.sourceCollection === "kasemNames" ? "https://tribestudio.indigenworld.com/studio/knowledge" : `https://tribestudio.indigenworld.com/studio/knowledge?related=${encodeURIComponent(entry.id.includes(":") ? entry.id : `${entry.sourceCollection}:${entry.id}`)}`}>
         Contribute context or a pronunciation <span aria-hidden="true">↗</span>
       </a>
@@ -81,7 +83,10 @@ function EntryDetail({ entry, saved, onToggleSaved }: {
 }
 
 export function App() {
-  const [collectionKind, setCollectionKind] = useState<CollectionKind>("words");
+  const [collectionKind, setCollectionKind] = useState<CollectionKind>(() => {
+    const requested = new URLSearchParams(location.search).get('collection');
+    return requested && Object.hasOwn(COLLECTIONS, requested) ? requested as CollectionKind : 'words';
+  });
   const collection = COLLECTIONS[collectionKind];
   const browseRef = useRef<HTMLDivElement>(null);
   const [entries, setEntries] = useState<DictionaryEntry[]>([]);
@@ -163,6 +168,8 @@ export function App() {
     return subscribeToDictionary(
       (next) => {
         setEntries(next);
+        const requested = new URLSearchParams(location.search).get('entry');
+        if (requested && next.some(entry => entry.id === requested)) setSelectedId(requested);
         setStatus("ready");
       },
       () => setStatus("error"),

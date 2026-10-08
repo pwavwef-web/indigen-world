@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:audio_service/audio_service.dart';
+import 'package:indigen_world_mobile/data/local/app_database.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/features/collection/collection_data.dart';
@@ -98,6 +99,16 @@ class MusicQueuePlan {
   final int startIndex;
 
   bool get isEmpty => tracks.isEmpty;
+}
+MusicQueuePlan buildDownloadedQueue(List<DownloadedTrackRecord> rows, String trackId, Map<String, String> urls) {
+  final tracks = <MusicTrack>[
+    for (final row in rows)
+      if (urls[row.trackId]?.startsWith('file:') ?? false)
+        MusicTrack(id: row.trackId, title: row.title, artist: row.artist,
+          album: row.album, url: urls[row.trackId]!),
+  ];
+  final index = tracks.indexWhere((track) => track.id == trackId);
+  return index < 0 ? const MusicQueuePlan(tracks: [], startIndex: 0) : MusicQueuePlan(tracks: tracks, startIndex: index);
 }
 
 /// Turns a collection listing into a playable queue.
@@ -283,6 +294,19 @@ class MusicController extends Notifier<MusicSessionState> {
     return true;
   }
 
+  Future<void> playDownloads(List<DownloadedTrackRecord> rows, {required String trackId}) async {
+    if (!ref.read(downloadsAllowedProvider)) { state = state.copyWith(error: 'An active offline subscription is required. Your files are still kept on this device.'); return; }
+    final plan = buildDownloadedQueue(rows, trackId, await _offlineUrls());
+    final handler = ref.read(musicAudioHandlerProvider);
+    if (plan.isEmpty || handler == null) { state = state.copyWith(error: plan.isEmpty ? 'This file is missing or incomplete. Download it again.' : _noPlayerMessage); return; }
+    state = state.copyWith(queueKind: CollectionKind.music, clearError: true);
+    ref.read(musicBarPlacementProvider.notifier).expand();
+    try {
+      await handler.setPlaylist([for (final track in plan.tracks) track.toMediaItem()], initialIndex: plan.startIndex);
+      await play();
+    } on Object { state = state.copyWith(error: 'This file could not be played. Download it again.'); }
+  }
+
   /// Downloaded copies, keyed by track id, or an empty map.
   ///
   /// Read through [offlineTrackUrlsLookupProvider] rather than from a stream,
@@ -294,6 +318,7 @@ class MusicController extends Notifier<MusicSessionState> {
   /// Failure is empty rather than fatal: an unreadable index means everything
   /// streams, which is what would have happened before downloads existed.
   Future<Map<String, String>> _offlineUrls() async {
+    if (!ref.read(downloadsAllowedProvider)) return const <String, String>{};
     try {
       return await ref.read(offlineTrackUrlsLookupProvider)();
     } on Object catch (error) {

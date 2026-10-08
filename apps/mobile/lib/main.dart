@@ -21,6 +21,7 @@ import 'package:indigen_world_mobile/features/ads/ad_consent.dart';
 import 'package:indigen_world_mobile/features/downloads/data/downloads_providers.dart';
 import 'package:indigen_world_mobile/features/music/music_audio_handler.dart';
 import 'package:indigen_world_mobile/features/music/music_providers.dart';
+import 'package:indigen_world_mobile/features/subscriptions/data/subscription_providers.dart';
 import 'package:indigen_world_mobile/features/rating/rating_service.dart';
 
 Future<void> main() async {
@@ -117,13 +118,21 @@ Future<void> main() async {
         // app itself has to hand it the real one exactly here.
         offlineTrackUrlsLookupProvider.overrideWith(
           (ref) =>
-              () => ref.read(downloadsRepositoryProvider).playableIndex(),
+              () async => ref.read(downloadsAllowedProvider) ? ref.read(downloadsRepositoryProvider).playableIndex() : const <String, String>{},
         ),
         // Omitted entirely when the session failed to start, which is what
         // leaves the provider at its test-safe null and the app at "no music
         // player" rather than "no app".
         if (audioHandler != null)
-          musicAudioHandlerProvider.overrideWithValue(audioHandler),
+          musicAudioHandlerProvider.overrideWith((ref) {
+            final handler = audioHandler!;
+            handler.canPlayOffline = () => (ref.read(entitlementProvider).asData?.value.isActive ?? false) && ref.read(downloadLimitProvider) > 0;
+            ref.listen<bool>(downloadsAllowedProvider, (_, allowed) {
+              if (!allowed && (handler.mediaItem.value?.extras?['url'] as String?)?.startsWith('file:') == true) unawaited(handler.pause());
+            });
+            ref.onDispose(() => handler.canPlayOffline = () => false);
+            return handler;
+          }),
         // Without this the provider keeps its test-safe `false` default, and
         // every Firebase-backed surface — sign-in, the community feed, posting,
         // the Explore feed — behaves as though the device were offline no

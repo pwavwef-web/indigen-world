@@ -32,9 +32,13 @@ import 'package:path_provider/path_provider.dart';
 /// plays for ninety seconds and then stops, on a phone with no network to
 /// recover from — which is exactly the situation somebody downloaded it for.
 class DownloadsRepository {
-  DownloadsRepository(this._database);
+  DownloadsRepository(this._database, {Future<Directory> Function()? directory, HttpClient? client})
+      : _directoryOverride = directory, _httpClient = client ?? HttpClient() { _httpClient.connectionTimeout = const Duration(seconds: 20); }
 
   final AppDatabase _database;
+  final Future<Directory> Function()? _directoryOverride;
+  Future<void> _tail = Future.value();
+  final _activeFiles = <String>{};
 
   /// Where the audio goes. One directory so a "delete everything" is one call.
   static const _folder = 'offline-audio';
@@ -46,8 +50,7 @@ class DownloadsRepository {
 
   static const _timeout = Duration(minutes: 10);
 
-  final _httpClient = HttpClient()
-    ..connectionTimeout = const Duration(seconds: 20);
+  final HttpClient _httpClient;
 
   /// The index, live.
   Stream<List<DownloadedTrackRecord>> watch() => _database.watchDownloads();
@@ -65,12 +68,26 @@ class DownloadsRepository {
     required int limit,
     void Function(double progress)? onProgress,
   }) async {
+    final previous = _tail;
+    final done = Completer<void>(); _tail = done.future;
+    await previous;
+    try { return await _download(track, kind: kind, limit: limit, onProgress: onProgress); }
+    finally { done.complete(); }
+  }
+
+  Future<String?> _download(
+    MusicTrack track, {
+    required CollectionKind kind,
+    required int limit,
+    void Function(double progress)? onProgress,
+  }) async {
     if (limit <= 0) {
       return 'Offline listening is part of a subscription.';
     }
     final existing = await _database.getDownloads();
-    if (existing.any((row) => row.trackId == track.id)) return null;
-    if (existing.length >= limit) {
+    final prior = existing.where((row) => row.trackId == track.id).firstOrNull;
+    if (prior != null && (await playableIndex()).containsKey(track.id)) return null;
+    if (prior == null && existing.length >= limit) {
       return 'You can keep $limit tracks offline. Remove one to make room.';
     }
 
@@ -78,9 +95,11 @@ class DownloadsRepository {
     final fileName = _fileNameFor(track);
     final target = File(p.join(directory.path, fileName));
     final partial = File('${target.path}.part');
+    _activeFiles.add(p.basename(partial.path));
 
     try {
       final uri = Uri.parse(track.url);
+      if (!['https', 'http'].contains(uri.scheme) || track.id.contains('/') || track.id.contains('\\')) return 'That download URL is not supported.';
       final request = await _httpClient.getUrl(uri).timeout(_timeout);
       final response = await request.close().timeout(_timeout);
       if (response.statusCode != HttpStatus.ok) {
@@ -108,6 +127,7 @@ class DownloadsRepository {
       } finally {
         await sink.close();
       }
+      if (written == 0 || (expected > 0 && written != expected) || !await _hasAudioHeader(partial)) return 'That download is incomplete. Try again.';
 
       // Only now is it a download. Before the rename it is a temporary file
       // with no row, which is precisely what the orphan sweep cleans up.
@@ -133,6 +153,9 @@ class DownloadsRepository {
       debugPrint('Download failed for ${track.id}: $error');
       await _quietlyDelete(partial);
       return 'That download did not finish. Try again on a better connection.';
+    } finally {
+      _activeFiles.remove(p.basename(partial.path));
+      await _quietlyDelete(partial);
     }
   }
 
@@ -141,7 +164,7 @@ class DownloadsRepository {
     final rows = await _database.getDownloads();
     final row = rows.where((entry) => entry.trackId == trackId).firstOrNull;
     await _database.deleteDownload(trackId);
-    if (row == null) return;
+    if (row == null || p.basename(row.fileName) != row.fileName) return;
     final directory = await _directory();
     await _quietlyDelete(File(p.join(directory.path, row.fileName)));
   }
@@ -156,8 +179,8 @@ class DownloadsRepository {
 
   /// Track id to a playable `file://` URL, for everything present on disk.
   ///
-  /// Rows whose file has vanished are dropped from the index as they are found
-  /// rather than reported: the system clears app storage under pressure without
+  /// Missing or damaged files are omitted from the playable index; rows remain
+  /// so Downloads can offer repair: the system clears app storage under pressure without
   /// telling anybody, and a queue entry pointing at a file that is not there
   /// would fail mid-album with no explanation.
   Future<Map<String, String>> playableIndex() async {
@@ -165,10 +188,8 @@ class DownloadsRepository {
     final index = <String, String>{};
     for (final row in await _database.getDownloads()) {
       final file = File(p.join(directory.path, row.fileName));
-      if (await file.exists()) {
+      if (p.basename(row.fileName) == row.fileName && !row.fileName.endsWith('.part') && row.sizeBytes > 0 && await file.exists() && await file.length() == row.sizeBytes && await _hasAudioHeader(file)) {
         index[row.trackId] = file.uri.toString();
-      } else {
-        await _database.deleteDownload(row.trackId);
       }
     }
     return index;
@@ -194,12 +215,13 @@ class DownloadsRepository {
     await for (final entity in directory.list()) {
       if (entity is! File) continue;
       final name = p.basename(entity.path);
-      if (known.contains(name)) continue;
+      if (known.contains(name) || _activeFiles.contains(name)) continue;
       await _quietlyDelete(entity);
     }
   }
 
   Future<Directory> _directory() async {
+    if (_directoryOverride != null) return _directoryOverride();
     final documents = await getApplicationDocumentsDirectory();
     final directory = Directory(p.join(documents.path, _folder));
     if (!await directory.exists()) await directory.create(recursive: true);
@@ -220,6 +242,20 @@ class DownloadsRepository {
         ? extension
         : '.mp3';
     return '${track.id}$safe';
+  }
+
+  static Future<bool> _hasAudioHeader(File file) async {
+    try {
+      final handle = await file.open();
+      try {
+        final bytes = await handle.read(16);
+        final header = String.fromCharCodes(bytes);
+        return header.startsWith('ID3') || header.startsWith('OggS') || header.startsWith('fLaC')
+            || (header.startsWith('RIFF') && header.substring(8).startsWith('WAVE'))
+            || (bytes.length >= 8 && header.substring(4).startsWith('ftyp'))
+            || (bytes.length >= 2 && bytes[0] == 0xff && (bytes[1] & 0xe0) == 0xe0);
+      } finally { await handle.close(); }
+    } on Object { return false; }
   }
 
   static Future<void> _quietlyDelete(File file) async {

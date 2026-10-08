@@ -21,6 +21,7 @@ const named = <T extends Record<string, unknown>>(loader: () => Promise<T>, key:
 
 const LexiconWorkspace = named(() => import('./workspace/LexiconWorkspace'), 'LexiconWorkspace');
 const KnowledgePreview = import.meta.env.DEV ? named(() => import('./knowledge/KnowledgePreview'), 'KnowledgePreview') : null;
+const KnowledgeWorkspace = named(() => import('./knowledge/KnowledgeWorkspace'), 'KnowledgeWorkspace');
 const ContributorPreview = import.meta.env.DEV ? named(() => import('./contributor/ContributorPreview'), 'ContributorPreview') : null;
 const ContributorPortal = named(() => import('./contributor/ContributorPortal'), 'ContributorPortal');
 const LandingPage = named(() => import('./creator/pages/LandingPage'), 'LandingPage');
@@ -113,6 +114,7 @@ function VideoNotYetAvailable() {
 }
 
 function renderStudio(path: string, canVideo: boolean) {
+  if (path === '/studio/knowledge') return <KnowledgeWorkspace />;
   if (path === '/studio') return <DashboardPage />;
   if (path === '/studio/profile') return <ProfilePage />;
   if (path === '/studio/opportunities') return <OpportunitiesPage />;
@@ -160,7 +162,8 @@ function Routed() {
       // Invited contributors land on their workspace overview, which leads
       // with the assignment to continue. Deep links to an assignment
       // (/contributor/{uid}/{work}) are untouched: they are contributor routes.
-      if (!contributorRoute && isActive && account.get('defaultWork')) {
+      const contributionDestination = /^\/studio\/(dictionary|expressions|knowledge|submissions\/new)(?:\/|$)/.test(path);
+      if (!contributorRoute && !contributionDestination && isActive && account.get('defaultWork')) {
         navigate('/contributor', { replace: true });
       }
       setContributorCheck(user.uid);
@@ -228,7 +231,7 @@ function Routed() {
       }
       return (
         <ApplicationStatusGate>
-          <StudioLayout immersive={path.startsWith('/studio/editor/')}>{renderStudio(path, canMakeVideo(role))}</StudioLayout>
+          <StudioLayout key={user.uid} immersive={path.startsWith('/studio/editor/')}>{renderStudio(path, canMakeVideo(role))}</StudioLayout>
         </ApplicationStatusGate>
       );
     }

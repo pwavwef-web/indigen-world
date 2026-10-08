@@ -15,6 +15,14 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// the same two switches.
 const videoAutoplayPreferenceKey = 'indigen_video_autoplay_v1';
 const videoMutedPreferenceKey = 'indigen_video_muted_v1';
+const lowDataPreferenceKey = 'indigen_low_data_v1';
+
+/// Device choice; no network-type detection. Conservatively waits for restore.
+final lowDataModeProvider = NotifierProvider<LowDataController, bool>(LowDataController.new);
+final effectiveVideoAutoplayProvider = Provider<bool>((ref) => !ref.watch(lowDataModeProvider) && ref.watch(videoAutoplayProvider));
+
+/// Never invent thumbnail URLs; a missing variant requires deliberate opening.
+String? feedImageUrl({required bool lowData, required String original, String? thumbnail}) => lowData ? (thumbnail?.isNotEmpty == true ? thumbnail : null) : original;
 
 /// Whether a clip plays itself once it is mostly on screen.
 ///
@@ -58,28 +66,32 @@ class FullScreenMediaCount extends Notifier<int> {
 /// Shared behaviour for the two device-local media switches.
 abstract class _MediaSwitch extends Notifier<bool> {
   String get key;
+  bool get restoredFallback => fallback;
   bool get fallback;
+  int _generation = 0;
+  bool _disposed = false;
 
   @override
   bool build() {
-    unawaited(_restore());
+    ref.onDispose(() => _disposed = true);
+    unawaited(_restore(_generation));
     return fallback;
   }
 
-  Future<void> _restore() async {
+  Future<void> _restore(int generation) async {
     try {
       final preferences = await SharedPreferences.getInstance();
       final stored = preferences.getBool(key);
       // A member who never touched the switch keeps the default, and a storage
       // read that fails is treated the same way rather than as a choice.
-      if (stored != null && stored != state) state = stored;
+      if (!_disposed && generation == _generation) state = stored ?? restoredFallback;
     } on Object {
       // Nothing to recover: the default is already in state.
     }
   }
 
   Future<void> set(bool value) async {
-    if (state == value) return;
+    _generation++;
     state = value;
     try {
       final preferences = await SharedPreferences.getInstance();
@@ -106,4 +118,13 @@ class VideoMutedController extends _MediaSwitch {
 
   @override
   bool get fallback => true;
+}
+
+class LowDataController extends _MediaSwitch {
+  @override
+  String get key => lowDataPreferenceKey;
+  @override
+  bool get fallback => true;
+  @override
+  bool get restoredFallback => false;
 }

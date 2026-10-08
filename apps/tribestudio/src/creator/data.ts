@@ -7,6 +7,7 @@ import {
   orderBy,
   onSnapshot,
   query,
+  runTransaction,
   setDoc,
   updateDoc,
   where,
@@ -350,15 +351,27 @@ export async function saveSubmission(
   input: SubmissionDraftInput,
   status: 'DRAFT' | 'SUBMITTED',
   existing?: Submission | null,
-): Promise<void> {
+  expectedVersion?: number,
+): Promise<Submission> {
   // A newly generated ID has no readable document yet under ownership rules.
   // Explicit null creates it without a read; undefined refreshes a saved draft.
-  const current = existing === undefined ? await fetchSubmission(input.id) : existing;
-  const nextStatus = current?.status === 'NEEDS_REVISION'
-    ? (status === 'SUBMITTED' ? 'RESUBMITTED' : 'NEEDS_REVISION')
-    : status;
-  const document = buildSubmission(input, nextStatus, current ?? undefined);
-  await setDoc(doc(db, 'submissions', input.id), document);
+  const reference = doc(db, 'submissions', input.id);
+  if (existing === null) {
+    const document = buildSubmission(input, status);
+    await setDoc(reference, document);
+    return document;
+  }
+  return runTransaction(db, async transaction => {
+    const snapshot = await transaction.get(reference);
+    const current = snapshot.data() as Submission | undefined;
+    if (!current || current.authUid !== input.uid || !['DRAFT', 'NEEDS_REVISION'].includes(current.status)) throw new Error('This record has already left the editable queue. Open My contributions to see its latest status.');
+    const version = expectedVersion ?? existing?.lifecycle.version;
+    if (version !== undefined && current.lifecycle.version !== version) throw new Error('A newer remote version exists. Reload it, then choose whether to continue your recovered draft or use the current version.');
+    const nextStatus = current.status === 'NEEDS_REVISION' ? (status === 'SUBMITTED' ? 'RESUBMITTED' : 'NEEDS_REVISION') : status;
+    const document = buildSubmission(input, nextStatus, current);
+    transaction.set(reference, document);
+    return document;
+  });
 }
 
 /**

@@ -33,6 +33,10 @@ const KIT_MOCKS = {
 };
 
 async function load(path, names, mocks = {}) {
+  if (mocks.window?.sessionStorage && !mocks.window.localStorage) mocks.window.localStorage = mocks.window.sessionStorage;
+  if (['src/creator/pages/SubmissionNewPage.tsx', 'src/creator/pages/ExpressionsPage.tsx', 'src/creator/pages/DictionaryPage.tsx', 'src/knowledge/KnowledgeWorkspace.tsx'].includes(path)) {
+    mocks = { ...await load('src/drafts/useRecovery.tsx', ['useRecovery', 'DraftRecovery'], { ...await load('src/drafts/store.ts', ['draftKey', 'readDraft', 'writeDraft']), ...mocks }), ...mocks };
+  }
   if (path.endsWith('SubmissionNewPage.tsx')) {
     mocks = { ...await load('src/creator/discoverySource.ts', ['discoverySource']), ...mocks };
   }
@@ -46,7 +50,7 @@ async function load(path, names, mocks = {}) {
   const { code } = await transformWithOxc(readFileSync(resolve(root, path), 'utf8'), path, { jsx: { runtime: 'classic' } });
   const executable = code.replace(/^import[\s\S]*?;\n/gm, '').replace(/\bexport (?=(?:async )?function|const|let|class)/g, '');
   mocks = { ...KIT_MOCKS, ...mocks };
-  return runInNewContext(executable + '\n;({' + names.join(',') + '})', { URL, URLSearchParams, Blob, File, Event, console, ...mocks });
+  return runInNewContext(executable + '\n;({' + names.join(',') + '})', { URL, URLSearchParams, Blob, File, Event, console, crypto: globalThis.crypto, localStorage: mocks.window?.localStorage ?? mocks.window?.sessionStorage, ...mocks });
 }
 
 function hooks() {
@@ -203,6 +207,7 @@ test('text and link-only submissions omit media; saved media and metadata surviv
 test('saving a revision preserves NEEDS_REVISION and submitting changes it to RESUBMITTED', async () => {
   let current = null;
   const mocks = { db: {}, doc: (...args) => args, getDoc: async () => ({ exists: () => !!current, data: () => current }), setDoc: async (_ref, value) => { current = value; } };
+  mocks.runTransaction = async (_db, operation) => operation({ get: mocks.getDoc, set: mocks.setDoc });
   const { buildSubmission, saveSubmission } = await load('src/creator/data.ts', ['buildSubmission', 'saveSubmission'], mocks);
   current = buildSubmission(input, 'NEEDS_REVISION');
   current.moderation.feedback = 'Clarify source';
@@ -483,12 +488,14 @@ test('an unreadable contribution score is an error rather than a zero score', as
   await assert.rejects(fetchMyContributorScore('creator'), /Network unavailable/);
 });
 
-test('draft recovery stores only an account-scoped saved document pointer', async () => {
+test('draft recovery keeps account-scoped text alongside the saved document pointer', async () => {
   const e = await editorHarness();
   find(e.render(), (n) => n.props?.id === 't').props.onChange({ target: { value: 'Private unsent story' } });
   e.render(); await e.runTimers(); e.render();
   assert.equal(e.stored.get('tribestudio:last-draft:creator:open'), 'saved-draft');
-  assert.equal([...e.stored.values()].some((value) => value.includes('Private unsent story')), false);
+  const recovery = JSON.parse(e.stored.get('tribestudio:recovery:v1:creator:submission%3Aopen'));
+  assert.equal(recovery.owner, 'creator');
+  assert.equal(recovery.value.input.title, 'Private unsent story');
   e.dispose();
 });
 
@@ -987,11 +994,11 @@ async function expressionPage({ receipts = [] } = {}) {
     getDocs: async () => ({ docs: receipts.map((receipt) => ({ id: receipt.id, data: () => receipt })) }),
     httpsCallable: (_functions, name) => async (payload) => { calls.push({ name, payload: plain(payload) }); return { data: { contributionId: 'new-1', submissionId: 'new-1' } }; },
   });
-  const { ExpressionsPage } = await load('src/creator/pages/ExpressionsPage.tsx', ['ExpressionsPage'], {
+  const { ExpressionEditor } = await load('src/creator/pages/ExpressionsPage.tsx', ['ExpressionEditor'], {
     ...h.api, ...data, window, Link: 'a', KasemPalette: 'palette', insertIntoField() {}, trackEvent() {},
-    useAuth: () => ({ user: { uid: 'member-1' } }),
+    useAuth: () => ({ user: { uid: 'member-1' } }), useQueryParam: () => null,
   });
-  const render = () => h.render(ExpressionsPage);
+  const render = () => h.render(ExpressionEditor, { uid: 'member-1' });
   const settle = async () => { h.flush(); await tick(); await tick(); };
   return { h, calls, render, settle };
 }

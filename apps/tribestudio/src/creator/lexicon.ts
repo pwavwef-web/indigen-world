@@ -263,6 +263,7 @@ export interface DraftPronunciation {
 }
 
 export interface EntryDraft {
+  requestId: string;
   headword: string;
   partOfSpeech: string;
   alsoUsedAs: string[];
@@ -302,6 +303,7 @@ export function emptySense(): SenseDraft {
 
 export function emptyDraft(): EntryDraft {
   return {
+    requestId: crypto.randomUUID(),
     headword: '',
     partOfSpeech: 'noun',
     alsoUsedAs: [],

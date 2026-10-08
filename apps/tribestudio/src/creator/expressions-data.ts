@@ -48,6 +48,7 @@ export const EXPRESSION_DIALECTS = ['Navrongo', 'Paga', 'Chiana', 'Other', 'Not 
 export const MAX_PHRASE_LENGTH = 300;
 
 export interface ExpressionDraft {
+  requestId: string;
   phrase: string;
   kind: ExpressionKind;
   meaning: string;
@@ -67,6 +68,7 @@ export interface ExpressionDraft {
 
 export function emptyExpressionDraft(): ExpressionDraft {
   return {
+    requestId: crypto.randomUUID(),
     phrase: '',
     kind: 'phrase',
     meaning: '',
@@ -120,6 +122,7 @@ export async function submitExpression(draft: ExpressionDraft): Promise<{ contri
     'submitExpression',
   );
   const response = await call({
+    requestId: draft.requestId,
     phrase: draft.phrase.trim(),
     expressionKind: draft.kind,
     meaning: draft.meaning.trim(),

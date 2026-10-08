@@ -1,4 +1,5 @@
 import { ReviewTiming } from '../ReviewTiming';
+import { contributionTimeline } from '../timeline';
 import { useListMemory, useListScroll } from '../listMemory';
 import { useMemo } from 'react';
 import { TableShell } from '@indigen-world/console-ui';
@@ -103,7 +104,14 @@ export function ContributionsPage({ initialFilter }: { initialFilter: string }) 
                   </th>
                   <td data-label="Your Kasem" lang="xsm">{item.translation || <span className="ts-faint">—</span>}{item.alternatives.length ? <span className="ts-table__sub">+{item.alternatives.length} alternative{item.alternatives.length === 1 ? '' : 's'}</span> : null}</td>
                   <td data-label="Assignment">{titles.get(work)}</td>
-                  <td data-label="Status"><StatusChip status={status} /></td>
+                  <td data-label="Status"><StatusChip status={status} />
+                    <details className="cw-timeline" onClick={event => event.stopPropagation()}>
+                      <summary>Review timeline</summary>
+                      <ol>{contributionTimeline(item, data.rounds.filter(round => round.work === work)).map(event => <li key={event.id}><strong>{event.label}</strong><time dateTime={event.at}>{relativeTime(event.at, now)}</time>{event.feedback ? <p>Reviewer: {event.feedback}</p> : null}{event.revisionOf ? <small>Corrects earlier submission {event.revisionOf}</small> : null}</li>)}</ol>
+                      {data.roundsState === 'loading' ? <p role="status">Loading review history…</p> : data.roundsState === 'error' ? <p role="alert">Review history could not be loaded. Open the contribution to retry.</p> : !data.rounds.some(round => round.item === item.id && round.work === work) ? <p>No review decision is recorded yet.</p> : null}
+                      <PortalLink className="ts-btn ts-btn--primary ts-btn--sm" to={data.paths.work(work, item.id)}>{status === 'returned' ? 'Correct and resubmit' : status === 'draft' ? 'Continue draft' : 'Open contribution'}</PortalLink>
+                    </details>
+                  </td>
                   <td data-label="Updated" className="cw-table__when"><span className="ts-nowrap">{relativeTime(item.reviewedAt || item.updatedAt, now) || <span className="ts-faint">—</span>}</span><ReviewTiming item={item} /></td>
                 </tr>
               ))}

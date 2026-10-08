@@ -109,7 +109,7 @@ class _InlineVideoTileState extends ConsumerState<InlineVideoTile> {
   // ── Decoder slots ─────────────────────────────────────────────────────────
 
   Future<void> _open() async {
-    if (!mounted || _controller != null || _failed) return;
+    if (!mounted || !ref.read(effectiveVideoAutoplayProvider) || _controller != null || _failed) return;
     if (_openTiles >= _maxOpen) {
       _waitingForSlot.add(this);
       return;
@@ -233,7 +233,7 @@ class _InlineVideoTileState extends ConsumerState<InlineVideoTile> {
     final shouldPlay =
         identical(_floor, this) &&
         _fraction >= _stopThreshold &&
-        ref.read(videoAutoplayProvider) &&
+        ref.read(effectiveVideoAutoplayProvider) &&
         // Nothing in the feed plays under a full-screen viewer: the viewer is
         // showing the same clip, with the sound on.
         ref.read(fullScreenMediaProvider) == 0 &&
@@ -260,7 +260,10 @@ class _InlineVideoTileState extends ConsumerState<InlineVideoTile> {
     ref.listen<bool>(videoMutedProvider, (_, muted) {
       unawaited(_controller?.setVolume(_silent || muted ? 0 : 1));
     });
-    ref.listen<bool>(videoAutoplayProvider, (_, _) => _syncPlayback());
+    ref.listen<bool>(effectiveVideoAutoplayProvider, (_, enabled) {
+      if (!enabled) { _waitingForSlot.remove(this); setState(_release); }
+      else if (_fraction > 0.02) { unawaited(_open()); }
+    });
     ref.listen<int>(fullScreenMediaProvider, (_, _) => _syncPlayback());
     ref.listen<bool>(musicIsPlayingProvider, (_, _) => _syncPlayback());
     final muted = _silent || ref.watch(videoMutedProvider);
