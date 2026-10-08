@@ -14,7 +14,10 @@ navigation updates, and both Kawuri functions published and verified October
 ## What changed
 
 - The entire editable reference: nine chapters, twelve tables and 1,638 source
-  blocks, including front matter and documented transcription damage.
+  blocks, including front matter and documented transcription damage. Nineteen
+  original source illustrations are preserved with their chapter positions,
+  credits, dimensions and verified PNG hashes. The source's only extra header/
+  footer text is page numbers, retained separately as pagination metadata.
 - 421 lexical/form records: 412 dictionary source records across 410 distinct
   documents, plus nine expressions. 363 dictionary documents are new; 49 source
   records add book attestations on 47 existing documents.

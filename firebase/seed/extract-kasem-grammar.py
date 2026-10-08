@@ -2,7 +2,10 @@
 Usage: bundled-python extract-kasem-grammar.py <source.docx>
 No sentence is generated from dictionary words. Every pair has a source block.
 """
-import sys, json, re, hashlib
+import sys, json, re, hashlib, zipfile
+from xml.etree import ElementTree as ET
+from PIL import Image
+from io import BytesIO
 from pathlib import Path
 from docx import Document
 
@@ -23,11 +26,30 @@ def valid(form):
     return bool(form and re.fullmatch(r'[A-Za-zɛɔŋƐƆŊáéíóúàèìòùÁÉÍÓÚÀÈÌÒÙ\s?!.,’\-]+',form)) and not re.search(r'\b(?:the|this|class|before|negative|particle|compare|habitual|in progress|or|tone|also|and)\b',form,re.I)
 
 def main(path):
-    source=Path(path); doc=Document(source); blocks=[]
+    source=Path(path); doc=Document(source); blocks=[]; figures=[]
+    out=ROOT/'data/grammar-book-seed';out.mkdir(parents=True,exist_ok=True)
+    image_out=out/'images';image_out.mkdir(exist_ok=True)
+    descriptions=['People at a market','A walking woman','Three seated men','A child in profile',
+        'A thatched house','The sun above the horizon','A chain with connected links','Two bowls',
+        'A seated woman holding a utensil','A woman cooking over a fire',
+        'A child, mouth, room and bowl','Two dogs','Two woven fans','Two hoes',
+        'A cropped figure of a woman','Two figures in motion','People cooking in a courtyard',
+        'A woman tending a cooking pot','A seated man working with his hands']
+    for index,element in enumerate(doc.element.body):
+        for node in element.iter():
+            if not node.tag.endswith('}blip'):continue
+            rel=node.get('{http://schemas.openxmlformats.org/officeDocument/2006/relationships}embed')
+            if not rel:continue
+            part=doc.part.rels[rel].target_part;name=Path(str(part.partname)).name
+            raw=part.blob;(image_out/name).write_bytes(raw);width,height=Image.open(BytesIO(raw)).size
+            number=int(re.search(r'\d+',name)[0])
+            figures.append({'file':name,'block':index,'chapter':chapter(index)[0],
+                'description':descriptions[number-1],'width':width,'height':height,
+                'sourceSha256':hashlib.sha256(raw).hexdigest(),'credit':'Original source illustration, A Basic Grammar of Kasem, GILLBT.'})
     for index,element in enumerate(doc.element.body):
         if element.tag not in [W+'p',W+'tbl']: continue
         number,title=chapter(index)
-        blocks.append({'index':index,'chapter':number,'section':title,'kind':'table' if element.tag==W+'tbl' else 'paragraph','text':text(element),'rows':[[text(c) for c in row.findall(W+'tc')] for row in element.findall(W+'tr')] if element.tag==W+'tbl' else []})
+        blocks.append({'index':index,'chapter':number,'section':title,'kind':'table' if element.tag==W+'tbl' else 'paragraph','text':text(element),'rows':[[text(c) for c in row.findall(W+'tc')] for row in element.findall(W+'tr')] if element.tag==W+'tbl' else [],'figures':[f['file'] for f in figures if f['block']==index]})
     by_index={b['index']:b for b in blocks}; entries={}; examples={}; withheld=[]
     ref=lambda index:f'Chapter {chapter(index)[0]}, DOCX block {index}'
     def pair(form,meaning,index,pos='Not specified in source',note='',example=False,gloss=''):
@@ -167,7 +189,12 @@ def main(path):
         if index in uncertain or re.search(r'na ne|coiae|meaii|didnotsee|Weare|Iam|Iand',row['english']):
             row['ambiguous']=True;row['note']+=' Transcription uncertainty or optional meaning: reference only, excluded from exact translation answers.'
     payload={'importId':'gillbt-basic-grammar-1983-2014','sourceDocumentName':source.name,'sourceSha256':hashlib.sha256(source.read_bytes()).hexdigest(),'attribution':'P. L. Hewer, A Basic Grammar of Kasem, GILLBT. First printed 1983; supplied 2014 printing. Copyright GILLBT retained.','dialect':'Kasem (GILLBT grammar source)','sourceBlockCount':len(blocks),'tableCount':len(doc.tables),'chapters':[{'number':n,'title':t} for _,n,t in STARTS],'entries':list(entries.values()),'examples':list(examples.values()),'blocks':blocks,'withheld':withheld,'sourceIssues':['The editable copy contains transcription errors, missing words and punctuation, damaged column alignment and duplicated future-continuous material. Unrecoverable forms stay in the chapter reference and are excluded from exact answers.','Phonetic symbols are descriptions of sounds, not additional keyboard letters. The consonant-list count/list contains apparent transcription mistakes; the explicit ch/ny notes and seven written vowels agree with the orthography guide.','Source-specific spellings, tone marking and class labels are preserved. A pronoun table prints dé for class B singular, whereas the noun-class table prints de. No blanket change to historical dictionary words or existing spelling rules is made.','An aligned source gloss is labelled as a source rendering. No speaker confirmation, recording, invented interlinear gloss or new sentence is created.']}
-    out=ROOT/'data/grammar-book-seed';out.mkdir(parents=True,exist_ok=True);(out/'book.json').write_text(json.dumps(payload,ensure_ascii=False,indent=2)+'\n',encoding='utf8')
-    print(json.dumps({'blocks':len(blocks),'tables':len(doc.tables),'entries':len(entries),'examples':len(examples),'withheld':len(withheld)}))
+    payload['figures']=figures
+    with zipfile.ZipFile(source) as archive:
+        payload['sourcePagination']=[{'part':name,'text':value} for name in archive.namelist()
+            if re.match(r'word/(?:header|footer)\d+\.xml$',name)
+            for value in [' '.join(n.text or '' for n in ET.fromstring(archive.read(name)).iter(W+'t'))] if value]
+    (out/'book.json').write_text(json.dumps(payload,ensure_ascii=False,indent=2)+'\n',encoding='utf8')
+    print(json.dumps({'blocks':len(blocks),'tables':len(doc.tables),'figures':len(figures),'entries':len(entries),'examples':len(examples),'withheld':len(withheld)}))
 
 if __name__=='__main__':main(sys.argv[1])

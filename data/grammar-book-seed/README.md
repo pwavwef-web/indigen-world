@@ -16,6 +16,10 @@ confirmation, gold authentication or independent validation is asserted.
 
 - `book.json` retains all 1,638 ordered DOCX body blocks, nine chapters and
   twelve tables, including front matter, damaged text and duplicated passages.
+  All nineteen original illustrations are preserved with their source-block
+  positions, descriptions, dimensions, credits and PNG hashes in `images/`.
+  Headers contained no extra text; the source footer page-number text is
+  retained as pagination metadata.
 - 421 lexical and grammatical form records include the complete verb table's
   nineteen paradigms, noun paradigms, pronouns, determiners, explicitly glossed
   words, commands and question forms. Parenthesized optional endings are

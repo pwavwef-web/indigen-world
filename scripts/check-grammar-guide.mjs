@@ -16,6 +16,7 @@ try {
     assert.equal(await page.locator('#rules details').count(),56);
     assert.equal(await page.locator('#chapters details[id^=chapter]').count(),9);
     assert.equal(await page.locator('#chapters table').count(),12);
+    assert.equal(await page.locator('#chapters .source-figure img').count(),19);
     assert.equal(await page.locator('#example-table tbody tr').count(),book.examples.length);
     assert.equal(await page.locator('#word-table tbody tr').count(),book.entries.length);
     await page.screenshot({path:images+'/grammar-guide-'+name+'.png'});
@@ -32,6 +33,8 @@ try {
     assert.equal(await page.locator('#word-table tbody tr:visible').count(),0);
     await page.locator('#chapter-8 summary').click();
     assert.equal(await page.locator('#chapter-8 table tbody tr').count(),19);
+    await page.locator('#chapter-8 .source-figure img').first().scrollIntoViewIfNeeded();
+    await page.waitForFunction(()=>[...document.querySelectorAll('#chapter-8 .source-figure img')].some(img=>img.complete&&img.naturalWidth>0));
     assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'page fits viewport, including source tables');
     assert.deepEqual(errors,[]);await page.close();
   }

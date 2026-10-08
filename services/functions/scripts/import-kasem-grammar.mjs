@@ -25,6 +25,8 @@ export function validateBook(payload, spellingRules) {
   if (!Array.isArray(spellingRules) || spellingRules.length !== 56) throw new Error('Incomplete grammar rules');
   if (!/^[a-f0-9]{64}$/.test(payload.sourceSha256) || payload.blocks?.length !== payload.sourceBlockCount
     || payload.blocks.filter(block => block.kind === 'table').length !== payload.tableCount) throw new Error('Incomplete source provenance');
+  if (payload.figures?.length !== 19 || payload.figures.some(figure => !/^[a-f0-9]{64}$/.test(figure.sourceSha256)
+    || !payload.blocks.find(block => block.index === figure.block)?.figures.includes(figure.file))) throw new Error('Incomplete source figures');
   const ids = new Set();
   for (const entry of payload.entries) {
     if (!entry.id || !entry.headword || !entry.translation || !entry.sourceRefs.length || ids.has(entry.id)) throw new Error('Invalid or duplicate source entry');
@@ -137,7 +139,7 @@ async function main() {
       const batch=db.batch(); plan.slice(offset,offset+350).forEach(p=>batch.set(p.ref,p.data,{merge:true})); await batch.commit();
     }
     await manifestRef.set({ status:'published', publicationMode:'owner-direct-source', importId:book.importId, sourceDocumentName:book.sourceDocumentName,
-      sourceSha256:book.sourceSha256, attribution:book.attribution, counts, sourceRecordCounts, sourceBlocks:book.sourceBlockCount, tableCount:book.tableCount, chapters:book.chapters.length,
+      sourceSha256:book.sourceSha256, attribution:book.attribution, counts, sourceRecordCounts, sourceBlocks:book.sourceBlockCount, tableCount:book.tableCount, figureCount:book.figures.length, chapters:book.chapters.length,
       providerRetrieval:true, modelTraining:false, authorization:'User explicitly requested direct automatic publication of the supplied book without review, 2026-10-08.',
       licence:'GILLBT copyright retained; no open licence or model-training permission asserted.', publishedAt:now, sourceIssues:book.sourceIssues },{merge:true});
     const verified=[];

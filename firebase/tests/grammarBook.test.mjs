@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { validateBook, publicationExamples } from '../../services/functions/scripts/import-kasem-grammar.mjs';
 import { directSourceCorpusRecord } from '../../services/functions/lib/kawuri-corpus.js';
 import { grammarRecordFrom, matchBookGrammarRules } from '../../services/functions/lib/kawuri-grammar.js';
@@ -14,6 +15,11 @@ test('grammar source retains every ordered body block and all twelve tables acro
   assert.equal(book.blocks.length,1638);assert.equal(book.blocks.filter(b=>b.kind==='table').length,12);
   assert.deepEqual([...new Set(rules.map(r=>r.chapter))],[1,2,3,4,5,6,7,8,9]);
   assert.ok(book.blocks.find(b=>b.index===294).text.includes('\t'));
+  assert.equal(book.figures.length,19);
+  for(const figure of book.figures) {
+    assert.equal(createHash('sha256').update(readFileSync('data/grammar-book-seed/images/'+figure.file)).digest('hex'),figure.sourceSha256);
+    assert.ok(book.blocks.find(b=>b.index===figure.block).figures.includes(figure.file));
+  }
   assert.throws(()=>validateBook({...book,blocks:book.blocks.slice(1)},rules));
   assert.throws(()=>validateBook({...book,sourceSha256:''},rules));
 });
