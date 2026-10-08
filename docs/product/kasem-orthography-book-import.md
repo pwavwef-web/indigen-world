@@ -34,6 +34,8 @@ Vocabulary ɑ and appendix à for plural you conflict with the explicit á rule.
 
 ## Release evidence
 
-2026-10-08: production import verified all 994 planned writes: 889 dictionary records (23 existing matches), five expressions, 29 grammar writes (28 book rules and one existing-rule correction), 71 source examples. Private recovery snapshot: `production-backups/kasem-orthography/2026-10-08T10-05-19-421Z.json`.
+2026-10-08: production import verified all 994 planned source writes across 991 destination documents: 889 dictionary source records represented by 886 dictionary documents (23 initial existing matches, including three shared destinations), five expressions, 29 grammar writes (28 book rules and one existing-rule correction), 71 source examples. Anonymous reads verified every normalized source word/meaning pair. Private final recovery snapshot: `production-backups/kasem-orthography/2026-10-08T10-28-01-458Z.json` in the release worktree.
+
+Hosting successfully released all three sites; their public guides matched the generated artifact. The live dictionary guide passed desktop/mobile layout, vocabulary-filter and JavaScript checks. Both `kawuriChat` and `onCommunityKawuriMention` deployed successfully from `main` at `cb0eb9ffc88b96565888e38da0eea6f5eeb55693`. A fresh production read through the compiled active grounding loader returned 1,225 published words, 76 printed book expressions/examples and 28 book rules; alphabet and “we came” answers were verified. All 62 backend checks and eight relevant mobile tests passed.
 
 See the release post for final Hosting, Kawuri and Android binary status. Web data can reach existing clients through their normal sync; the Android IME change requires a new app binary. No Play rollout is inferred from source publication or an AAB build.

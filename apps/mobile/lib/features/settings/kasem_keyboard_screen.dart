@@ -287,7 +287,7 @@ class _KeyboardStatusCard extends StatelessWidget {
             ),
             alignment: Alignment.center,
             child: const Text(
-              'Ɩ Ʋ\nƆ Ŋ',
+              'Ɛ Ɔ\nŊ ch',
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: Colors.white,

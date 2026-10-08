@@ -31,6 +31,10 @@ export function validateBook(payload, spellingRules) {
   }
 }
 
+export function destinationCounts(plan) {
+  return Object.fromEntries(['dictionaryEntries','expressionEntries','grammarRules','kasemSentences'].map(name => [name, new Set(plan.filter(p => p.ref.parent.id === name).map(p => p.ref.path)).size]));
+}
+
 async function main() {
   validateBook(book, rules);
   let privateCredentialDirectory;
@@ -55,7 +59,7 @@ async function main() {
     for (const entry of book.entries) {
       const phrase = /\s/.test(entry.headword);
       const collection = phrase ? 'expressionEntries' : 'dictionaryEntries';
-      const matched = existing.get(norm(entry.headword) + '|' + norm(entry.translation));
+      const matched = (phrase ? expressions : dictionary).docs.find(doc => doc.id === entry.id) ?? existing.get(norm(entry.headword) + '|' + norm(entry.translation));
       const ref = matched?.ref ?? db.collection(collection).doc(entry.id);
       const data = {
         headword: entry.headword, kasemText: entry.headword, englishText: entry.translation, translation: entry.translation,
@@ -108,8 +112,9 @@ async function main() {
         providerRetrieval: true, expiresAtMillis: null, updatedAt: now,
       } });
     }
-    const counts = Object.fromEntries(['dictionaryEntries','expressionEntries','grammarRules','kasemSentences'].map(name => [name, plan.filter(p => p.ref.parent.id === name).length]));
-    console.log(JSON.stringify({ projectId, commit, vocabularyRows: book.vocabularyRowCount, counts, matchingExisting: plan.filter(p=>p.data.sourceAttestations).length }, null, 2));
+    const counts = destinationCounts(plan);
+    const sourceRecordCounts = Object.fromEntries(['dictionaryEntries','expressionEntries','grammarRules','kasemSentences'].map(name => [name, plan.filter(p => p.ref.parent.id === name).length]));
+    console.log(JSON.stringify({ projectId, commit, vocabularyRows: book.vocabularyRowCount, counts, sourceRecordCounts, matchingExisting: plan.filter(p=>p.data.sourceAttestations).length }, null, 2));
     if (!commit) return;
     // Read all destinations before writing, retaining documents for recovery.
     const before = [];
@@ -125,13 +130,13 @@ async function main() {
       const batch=db.batch(); plan.slice(offset,offset+350).forEach(p=>batch.set(p.ref,p.data,{merge:true})); await batch.commit();
     }
     await manifestRef.set({ status:'published', publicationMode:'owner-direct-source', sourceDocumentName:book.sourceDocumentName,
-      sourceSha256:book.sourceSha256, attribution:book.attribution, counts, vocabularyRows:book.vocabularyRowCount,
+      sourceSha256:book.sourceSha256, attribution:book.attribution, counts, sourceRecordCounts, vocabularyRows:book.vocabularyRowCount,
       providerRetrieval:true, modelTraining:false, authorization:'User explicitly requested direct automatic publication of the supplied book without review, 2026-10-08.',
       licence:'BGL 1997 copyright retained; no open licence or model-training permission asserted.', publishedAt:now, sourceIssues:book.sourceIssues },{merge:true});
     const verified=[];
     for(let offset=0;offset<plan.length;offset+=200) verified.push(...await db.getAll(...plan.slice(offset,offset+200).map(p=>p.ref)));
     if(verified.some(doc=>!doc.exists || (doc.ref.parent.id==='grammarRules' ? doc.get('status')!=='published' : doc.ref.parent.id==='kasemSentences' ? doc.get('status')!=='confirmed' : doc.get('isPublished')!==true))) throw new Error('Post-import verification failed');
-    console.log(`Published and verified ${plan.length} records. Recovery snapshot: ${backup}`);
+    console.log(`Published and verified ${plan.length} source writes across ${Object.values(counts).reduce((a,b)=>a+b,0)} destination documents. Recovery snapshot: ${backup}`);
   } finally {
     if (privateCredentialDirectory) {
       unlinkSync(join(privateCredentialDirectory,'credentials.json')); rmdirSync(privateCredentialDirectory);

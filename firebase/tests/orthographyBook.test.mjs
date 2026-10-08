@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { validateBook } from '../../services/functions/scripts/import-kasem-orthography.mjs';
+import { validateBook, destinationCounts } from '../../services/functions/scripts/import-kasem-orthography.mjs';
 import { directSourceCorpusRecord, corpusRecordFrom } from '../../services/functions/lib/kawuri-corpus.js';
 import { grammarRecordFrom, matchSpellingRules } from '../../services/functions/lib/kawuri-grammar.js';
 import { chooseGroundingPlan, renderGroundedAnswer } from '../../services/functions/lib/kawuri-grounding.js';
@@ -20,6 +20,11 @@ test('provenance is validated before any import writes',()=>{
   assert.throws(()=>validateBook({...book,vocabularyRowCount:645},rules));
   assert.throws(()=>validateBook({...book,entries:[{...book.entries[0],headword:'ɩ'}]},rules));
   assert.throws(()=>validateBook(book,rules.slice(1)));
+});
+
+test('repeated source records count a shared dictionary destination only once',()=>{
+  const ref=path=>({path,parent:{id:path.split('/')[0]}});
+  assert.deepEqual(destinationCounts([{ref:ref('dictionaryEntries/shared')},{ref:ref('dictionaryEntries/shared')},{ref:ref('expressionEntries/phrase')}]),{dictionaryEntries:1,expressionEntries:1,grammarRules:0,kasemSentences:0});
 });
 test('direct source examples require the completed manifest and never invent speaker confirmations',()=>{
   const data={kasem:'á tua',english:'you plural came',importId:book.importId,status:'confirmed',projectionVersion:2,publicationMode:'owner-direct-source',providerRetrieval:true,literal:'invented gloss',gloss:[{kasem:'á',english:'you'}],confirmations:2};
