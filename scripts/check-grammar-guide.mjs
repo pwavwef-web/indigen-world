@@ -35,8 +35,11 @@ try {
     assert.equal(await page.locator('#chapter-8 table tbody tr').count(),19);
     await page.locator('#chapter-8 .source-figure img').first().scrollIntoViewIfNeeded();
     await page.waitForFunction(()=>[...document.querySelectorAll('#chapter-8 .source-figure img')].some(img=>img.complete&&img.naturalWidth>0));
+    await page.getByText('Front matter and source credits',{exact:true}).click();
+    await page.locator('img[src$="image1.png"]').scrollIntoViewIfNeeded();
+    await page.waitForFunction(()=>document.querySelector('img[src$="image1.png"]').naturalWidth===1787);
     assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'page fits viewport, including source tables');
     assert.deepEqual(errors,[]);await page.close();
   }
-  console.log(`Verified 56 rules, nine chapters, twelve tables, ${book.examples.length} examples, ${book.entries.length} word/form records, filtering and phone width. Saved actual product screenshots.`);
+  console.log(`Verified 56 rules, nine chapters, twelve tables, nineteen source illustrations, ${book.examples.length} examples, ${book.entries.length} word/form records, filtering and phone width. Saved actual product screenshots.`);
 }finally{await browser.close();}

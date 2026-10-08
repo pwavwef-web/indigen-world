@@ -6,7 +6,7 @@ date identifies when the post was prepared; it does not prove the update is live
 
 ## Posts
 
-- [2026-10-08: Kasem grammar sentences and word forms from the book](2026-10-08-kasem-basic-grammar-book/README.md) — all nine chapters and twelve tables, 56 grammar summaries, printed examples, noun and verb forms, and new dictionary entries. Source content, all three web guides/navigation and both Kawuri functions published and verified October 8; article unpublished. Includes live product screenshots.
+- [2026-10-08: Kasem grammar sentences and word forms from the book](2026-10-08-kasem-basic-grammar-book/README.md) — all nine chapters, twelve tables and nineteen source illustrations, 56 grammar summaries, printed examples, noun and verb forms, and new dictionary entries. Source content, all three web guides/navigation and both Kawuri functions published and verified October 8; article unpublished. Includes live product screenshots.
 
 - [2026-10-08: Kasem words and spelling from the orthography book](2026-10-08-kasem-orthography-book/README.md) — all 646 vocabulary rows, appendix forms, 28 rules and printed examples, directly published from the supplied book; corrected character palettes and Android layout. See the post for verified deployment status.
 

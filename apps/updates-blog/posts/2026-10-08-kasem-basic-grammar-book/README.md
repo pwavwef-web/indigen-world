@@ -70,10 +70,14 @@ No Blogger publication or external message has been sent.
 - Recovery snapshot retained privately at
   `production-backups/kasem-grammar/2026-10-08T16-51-23-753Z.json`.
 - Firebase Hosting: successful release to `indigen-world`, `kasem-dictionary`
-  and `tribestudio` from `f774312958c94a2cc799efff899d99d839ffe6a7` on `main`.
+  and `tribestudio`; complete illustrated reference released from
+  `481afb675ebcc8e8f6bb68ca400e0dd13b8ed5f0` on `main`.
   Both reference pages and the changed navigation asset matched their build
   files on each host. Live dictionary browser verified the new Grammar guide
   link and `badwoni` / friend entry. The live guide passed all browser checks.
+  All nineteen published PNGs matched their original source hashes on every
+  host (57 image checks). Phone checks included the large front-matter
+  illustration and chapter-eight figures, with no page overflow.
 - Kawuri: successful Node.js 22 updates of `kawuriChat` and
   `onCommunityKawuriMention`, from the implementation present on `9c3a218`.
   The live anonymous chat endpoint returned the future-continuous explanation
