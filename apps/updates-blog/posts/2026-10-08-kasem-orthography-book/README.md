@@ -1,6 +1,6 @@
 # Kasem words and spelling from the orthography book
 
-Status: **Article unpublished. Book content, all three websites and both Kawuri functions published and verified in production on 2026-10-08. Android build verification in progress; Google Play rollout unconfirmed.**
+Status: **Article unpublished. Book content, all three websites and both Kawuri functions published and verified in production on 2026-10-08. Android keyboard source corrected; production bundle blocked by dependency downloads. Google Play rollout unconfirmed.**
 
 | Field | Value |
 |---|---|
@@ -44,4 +44,5 @@ The user's automatic-publication request was applied to the book's project conte
 - Production content import: completed and verified October 8, 2026.
 - Web Hosting: successful release to `indigen-world`, `kasem-dictionary` and `tribestudio`; all three public guides matched the generated release artifact. Live dictionary guide passed rule-count, vocabulary-filter, phone-width and JavaScript checks.
 - Kawuri: successful Node.js 22 deployment of `kawuriChat` and `onCommunityKawuriMention`. Deployment source: `cb0eb9ffc88b96565888e38da0eea6f5eeb55693` on `main`. A fresh read through the compiled active lookup returned 1,225 published words, 76 book expressions/examples and 28 book rules, and verified the alphabet answer and `dé tua` / “we came” answer. All 62 backend checks passed; eight relevant mobile tests passed.
-- Android binary: verification in progress. Google Play distribution unconfirmed.
+- Android binary: source version `0.1.30+39`; keyboard and related mobile source corrected, eight relevant mobile tests passed. The production AAB was not produced. Repeated builds failed on Google Maven DNS/download errors; the final attempt reached `mergeProductionReleaseArtProfile` but could not download Firestore 26.5.0, Messaging 25.1.1 and 64 other artifacts. The original corrupt Gradle journal was avoided with an isolated cache; its later automatic retry was stopped after the repeated download failure. Google Play distribution unconfirmed.
+- GitHub Actions: the October 8 checks on `276a426` did not start; GitHub's job annotation reports that the account is locked by a billing issue. Local checks and Firebase deployment evidence above are separate from CI status.
