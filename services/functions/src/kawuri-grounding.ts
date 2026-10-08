@@ -6,7 +6,8 @@ import { heldOutEvidenceIds } from './kasem-dataset.js';
 import { resolveKnowledge } from './knowledge-release.js';
 import type { knowledgeProjection } from './knowledge-policy.js';
 import { directSourceCorpusRecord } from './kawuri-corpus.js';
-import { grammarRecordFrom, matchSpellingRules, type GrammarRecord } from './kawuri-grammar.js';
+import { grammarRecordFrom, matchSpellingRules, matchBookGrammarRules, type GrammarRecord } from './kawuri-grammar.js';
+import { DIRECT_SOURCE_BOOK_IDS, publishedSourceManifest } from './kasem-source-books.js';
 
 /** No provider-authored text crosses this boundary. Plans select a lookup or a
  * fixed help topic; all displayed language comes from current source records. */
@@ -153,22 +154,23 @@ export async function loadGroundingSources(): Promise<GroundingSources> {
     }
   }
   const spellingRules: GrammarRecord[] = [];
-  const importManifest = await db.collection('dictionaryImports').doc('bgl-kasem-orthography-1997').get();
-  if (importManifest.get('status') === 'published' && importManifest.get('publicationMode') === 'owner-direct-source'
-    && importManifest.get('providerRetrieval') === true) {
+  for (const importId of DIRECT_SOURCE_BOOK_IDS) {
+    const importManifest = await db.collection('dictionaryImports').doc(importId).get();
+    const sourceManifest = { ...importManifest.data(), importId };
+    if (!publishedSourceManifest(importId, sourceManifest)) continue;
     const [sentences, rules, phrases] = await Promise.all([
-      db.collection('kasemSentences').where('importId', '==', 'bgl-kasem-orthography-1997').limit(201).get(),
-      db.collection('grammarRules').where('importId', '==', 'bgl-kasem-orthography-1997').limit(101).get(),
-      db.collection('expressionEntries').where('importBatch', '==', 'bgl-kasem-orthography-1997').limit(101).get(),
+      db.collection('kasemSentences').where('importId', '==', importId).limit(501).get(),
+      db.collection('grammarRules').where('importId', '==', importId).limit(101).get(),
+      db.collection('expressionEntries').where('importBatch', '==', importId).limit(101).get(),
     ]);
-    if (sentences.size > 200 || rules.size > 100 || phrases.size > 100) throw new Error('Book import exceeds the retrieval bound.');
+    if (sentences.size > 500 || rules.size > 100 || phrases.size > 100) throw new Error('Book import exceeds the retrieval bound.');
     for (const doc of sentences.docs) {
-      const row = directSourceCorpusRecord(doc.id, doc.data(), importManifest.data() ?? {});
+      const row = directSourceCorpusRecord(doc.id, doc.data(), sourceManifest);
       if (row && quotableForm(row.kasem)) expressions.push({ id: doc.id, english: row.english, kasem: row.kasem,
         alternatives: [], dialect: row.dialect, context: row.note, source: 'book', attribution: clean(doc.get('attribution')) });
     }
     for (const doc of rules.docs) {
-      if (doc.get('status') !== 'published' || doc.get('publicationMode') !== 'owner-direct-source') continue;
+      if (doc.get('status') !== 'published' || doc.get('publicationMode') !== 'owner-direct-source' || doc.get('importId') !== importId) continue;
       const row = grammarRecordFrom(doc.id, doc.data());
       if (row) spellingRules.push(row);
     }
@@ -233,7 +235,7 @@ function queryWasAsked(query: string, turns: readonly GroundingTurn[]): boolean 
 
 export function chooseGroundingPlan(turns: readonly GroundingTurn[], planned: GroundingPlan | null): GroundingPlan {
   const local = localGroundingPlan(turns);
-  if (isSpellingQuestion(turns.at(-1)?.text ?? '')) return { ...local, kind: 'language', query: turns.at(-1)?.text ?? '' };
+  if (isSpellingQuestion(turns.at(-1)?.text ?? '') || isBookGrammarQuestion(turns.at(-1)?.text ?? '')) return { ...local, kind: 'language', query: turns.at(-1)?.text ?? '' };
   if (local.examples || local.kind === 'app') return local;
   if (!planned) return local;
   if (planned.kind === 'app') return planned;
@@ -248,7 +250,7 @@ function expressionBlock(record: QuotedExpression, index: number): string {
     record.dialect ? `Recorded dialect: ${record.dialect}` : '',
     record.context ? `${record.source === 'book' ? 'Source context' : "Contributor's recorded context"}: ${record.context}` : '',
     record.attribution ? `Recorded attribution: ${record.attribution}` : '',
-    `Source: ${record.source === 'book' ? 'BGL 1997 printed example, published directly by owner request; no speaker review claimed' : record.source === 'contributor' ? 'reviewed contributor expression' : record.source === 'corpus'
+    `Source: ${record.source === 'book' ? 'printed book record, published directly by owner request; no speaker review claimed' : record.source === 'contributor' ? 'reviewed contributor expression' : record.source === 'corpus'
       ? 'authenticated Kawuri corpus (' + record.id + ')' : 'reviewed sentence evidence'}.`]
     .filter(Boolean).join('\n');
 }
@@ -278,6 +280,14 @@ export function renderGroundedAnswer(plan: GroundingPlan, sources: GroundingSour
         ...rule.examples.map(example => `${example.kasem} — ${example.english}`), `Source rule: ${rule.id}`].filter(Boolean).join('\n')),
       'Read the complete spelling guide: https://kasem-dictionary.web.app/spelling-guide.html'].join('\n\n'));
   }
+  if (isBookGrammarQuestion(plan.query)) {
+    const rules = matchBookGrammarRules(sources.spellingRules ?? [], plan.query);
+    if (rules.length) return result(['Kasem grammar reference — P. L. Hewer, A Basic Grammar of Kasem, GILLBT, first printed 1983; supplied 2014 printing.',
+      ...rules.map(rule => [rule.title, rule.summary, rule.note,
+        ...rule.examples.map(example => `${example.kasem} — ${example.english}`), `Source rule: ${rule.id}`].filter(Boolean).join('\n')),
+      'Read the complete grammar guide: https://kasem-dictionary.web.app/grammar-guide.html'].join('\n\n'));
+    if (/\bgrammar\b/i.test(plan.query)) return result('The grammar guide covers sounds and writing, greetings, clauses, noun phrases and pronouns, place and time, joining clauses, noun classes, verb phrases, and small words and questions. Read the book reference: https://kasem-dictionary.web.app/grammar-guide.html');
+  }
   const wanted = comparable(plan.query);
   const expressions = sources.expressions.filter(record => plan.examples ? categoryMatches(record, plan.category)
     : [record.english, record.kasem, ...record.alternatives].some(form => comparable(form) === wanted))
@@ -297,7 +307,11 @@ export function renderGroundedAnswer(plan: GroundingPlan, sources: GroundingSour
 }
 
 function isSpellingQuestion(question: string): boolean {
-  return /\b(spell(?:ing)?|orthography|alphabet|vowels?|consonants?|tone|diacritics?|labiali[sz]ation|word division|hyphens?|pronouns?|numerals?|counting|conditional)\b/i.test(question);
+  return /\b(spell(?:ing)?|orthography|alphabet|vowels?|consonants?|tone|diacritics?|labiali[sz]ation|word division|hyphens?)\b/i.test(question);
+}
+
+function isBookGrammarQuestion(question: string): boolean {
+  return /\b(grammar|tenses?|aspect|past|future|present|continuous|progressive|habitual|noun(?:s| classes?)?|clauses?|word order|pronouns?|determiners?|articles?|numerals?|counting|conditionals?|adjectives?|adverbs?|possessi\w+|relative|agreement|imperatives?|commands?|particles?|questions?|negatives?|negation|joining|purpose|result)\b/i.test(question);
 }
 
 export function renderGroundedLesson(turns: readonly GroundingTurn[], entries: DictionaryRecord[]): GroundedAnswer {

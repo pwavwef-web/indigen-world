@@ -260,3 +260,24 @@ export function matchSpellingRules(records: readonly GrammarRecord[], question: 
   }));
   return matches.slice(0, MAX_BRIEFING_RULES);
 }
+
+/** Prefer the most specific printed topic, e.g. future continuous before
+ * continuous. Ordinary words such as "you" cannot trigger a grammar answer. */
+export function matchBookGrammarRules(records: readonly GrammarRecord[], question: string): GrammarRecord[] {
+  const words = ` ${normaliseTerm(question).replace(/[^\p{L}\p{N}'’ -]/gu, ' ')} `;
+  const ordinary = new Set(['a', 'the', 'if', 'when', 'you', 'we', 'is', 'and', 'will', 'to', 'of', 'in', 'then', 'not']);
+  const bookRecords = records.filter(record => record.id.startsWith('gillbt83-'));
+  const matched = bookRecords
+    .map(record => ({ record, score: Math.max(0, ...record.triggers.map(trigger => {
+      const phrase = normaliseTerm(trigger);
+      return !ordinary.has(phrase) && words.includes(` ${phrase} `) ? phrase.length : 0;
+    })) }))
+    .filter(item => item.score > 0).sort((a,b) => b.score - a.score)
+    .slice(0, MAX_BRIEFING_RULES).map(item => item.record);
+  if (matched.length) return matched;
+  const overview = /\bpronouns?\b/i.test(question) ? ['personal-pronouns','impersonal-pronouns','strong-pronouns']
+    : /\bquestions?\b/i.test(question) ? ['yes-no','information-questions','useful-questions']
+    : /\b(?:verbs?|tenses?)\b/i.test(question) ? ['tense-aspect','particle-summary','verb-phrases']
+    : /\bnouns?\b/i.test(question) ? ['noun-classes','determiners','adjectives'] : [];
+  return overview.flatMap(key => bookRecords.filter(record => record.id === 'gillbt83-' + key));
+}

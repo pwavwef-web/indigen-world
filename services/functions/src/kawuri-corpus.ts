@@ -1,5 +1,6 @@
 import { getFirestore } from 'firebase-admin/firestore';
 import { logger } from 'firebase-functions';
+import { DIRECT_SOURCE_BOOK_IDS, publishedSourceManifest } from './kasem-source-books.js';
 
 import { sentenceRequest } from './kawuri-dictionary.js';
 import { allowed, exampleQuality, parseContext, type EvidenceNote, type UsageContext } from './kasem-evidence.js';
@@ -244,14 +245,15 @@ async function loadCorpus(): Promise<CorpusRecord[]> {
   // The owner's direct import is source publication, not speaker consensus.
   // Only this completed, server-owned import manifest authorises retrieval;
   // arbitrary confirmed projections cannot bypass evidence review.
-  const manifest = await getFirestore().collection('dictionaryImports').doc('bgl-kasem-orthography-1997').get();
-  if (manifest.get('status') === 'published' && manifest.get('publicationMode') === 'owner-direct-source'
-    && manifest.get('providerRetrieval') === true) {
+  for (const importId of DIRECT_SOURCE_BOOK_IDS) {
+    const manifest = await getFirestore().collection('dictionaryImports').doc(importId).get();
+    const sourceManifest = { ...manifest.data(), importId };
+    if (!publishedSourceManifest(importId, sourceManifest)) continue;
     const sourceExamples = await getFirestore().collection('kasemSentences')
-      .where('importId', '==', 'bgl-kasem-orthography-1997').limit(201).get();
-    if (sourceExamples.size > 200) throw new Error('Source examples exceed the retrieval limit.');
+      .where('importId', '==', importId).limit(501).get();
+    if (sourceExamples.size > 500) throw new Error('Source examples exceed the retrieval limit.');
     for (const doc of sourceExamples.docs) {
-      const record = directSourceCorpusRecord(doc.id, doc.data(), manifest.data() ?? {});
+      const record = directSourceCorpusRecord(doc.id, doc.data(), sourceManifest);
       if (record) records.push(record);
     }
   }
@@ -259,8 +261,8 @@ async function loadCorpus(): Promise<CorpusRecord[]> {
 }
 
 export function directSourceCorpusRecord(id: string, data: Record<string, unknown>, manifest: Record<string, unknown>): CorpusRecord | null {
-  if (manifest.status !== 'published' || manifest.publicationMode !== 'owner-direct-source' || manifest.providerRetrieval !== true
-    || data.importId !== 'bgl-kasem-orthography-1997' || data.status !== 'confirmed' || data.projectionVersion !== 2
+  if (!publishedSourceManifest(data.importId, manifest)
+    || data.status !== 'confirmed' || data.projectionVersion !== 2
     || data.publicationMode !== 'owner-direct-source' || data.providerRetrieval !== true || data.ambiguous === true) return null;
   return corpusRecordFrom(id, { ...data, confirmations: 0, literal: '', gloss: [] });
 }

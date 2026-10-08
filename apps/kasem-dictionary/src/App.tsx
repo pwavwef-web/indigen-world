@@ -261,6 +261,7 @@ export function App() {
         </nav>
         <nav className="header-links" aria-label="Dictionary links">
           <a href="/spelling-guide.html">Spelling guide</a>
+          <a href="/grammar-guide.html">Grammar guide</a>
           <span className="language-pair">Kasem <b aria-hidden="true">↔</b> English</span>
           <a href="https://indigenworld.com/dictionary">Indigen World <span aria-hidden="true">↗</span></a>
         </nav>

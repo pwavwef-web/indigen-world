@@ -484,7 +484,7 @@ export function ExpressionEditor({ item, itemNumber = 1, itemTotal = 1, hasNextI
 
       {!locked ? (
         <div className="contributor-characters" role="group" aria-label="Kasem characters">
-          <small>Insert a Kasem letter · <a href="/spelling-guide.html" target="_blank" rel="noreferrer">Spelling guide</a></small>
+          <small>Insert a Kasem letter · <a href="/spelling-guide.html" target="_blank" rel="noreferrer">Spelling guide</a> · <a href="/grammar-guide.html" target="_blank" rel="noreferrer">Grammar guide</a></small>
           <div>
             {KASEM_CHARACTERS.map((char) => (
               <button type="button" key={char} className="cw-letter" aria-label={`Insert ${char}`} disabled={busy || Boolean(recovery)} onMouseDown={(event) => event.preventDefault()} onClick={() => {

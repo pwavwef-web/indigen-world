@@ -6,6 +6,8 @@ date identifies when the post was prepared; it does not prove the update is live
 
 ## Posts
 
+- [2026-10-08: Kasem grammar sentences and word forms from the book](2026-10-08-kasem-basic-grammar-book/README.md) — all nine chapters and twelve tables, 56 grammar summaries, printed examples, noun and verb forms, and new dictionary entries. Source content published directly; see the post for web and Kawuri deployment status.
+
 - [2026-10-08: Kasem words and spelling from the orthography book](2026-10-08-kasem-orthography-book/README.md) — all 646 vocabulary rows, appendix forms, 28 rules and printed examples, directly published from the supplied book; corrected character palettes and Android layout. See the post for verified deployment status.
 
 - [2026-10-04: Watch verified contributions flow into the jars](2026-10-04-live-progress-pipelines/README.md) — TribeStudio as the pump, measured glass pipes into every jar and tank, live approval flows from a new server-counted public projection, exact small percentages, and corrected counting (open posts, pronunciations, proverbs, sentences). Deployed October 5 from `13c9ab4` (two indexes, the `publicProgress` rule, six functions, website); live page reads “Live”, counts match the server projection, and assets match the tested build on both hostnames. Real production approvals counted live from 00:28 UTC, and one watched arriving on the public page at 00:31 (expressions 111 → 112). Includes a live production screenshot, labelled emulator test data and sample previews; article unpublished.
