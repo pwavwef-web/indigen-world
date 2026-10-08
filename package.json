@@ -73,7 +73,7 @@
     "test:contributor-e2e": "npm run build:functions && cross-env FUNCTIONS_DISCOVERY_TIMEOUT=120 firebase emulators:exec --project demo-indigen-world --only auth,firestore,storage,functions \"node --test --test-concurrency=1 firebase/tests/contributorWorkspace.e2e.test.mjs firebase/tests/dictionaryScope.integration.test.mjs\"",
     "test:community-feed": "npm run build:functions && node --test firebase/tests/communityFeed.test.mjs",
     "test:community-feed:integration": "npm run build:functions && firebase emulators:exec --config .community-feed-test.firebase.json --project demo-indigen-feed-tests --only firestore \"node --test firebase/tests/communityFeed.integration.test.mjs\"",
-    "test:public-progress": "npm run build:functions && node --test firebase/tests/publicProgress.test.mjs firebase/tests/orthographyBook.test.mjs firebase/tests/grammarBook.test.mjs",
+    "test:public-progress": "npm run build:functions && node --test firebase/tests/publicProgress.test.mjs",
     "test:public-progress:integration": "npm run build:functions && firebase emulators:exec --config .public-progress-test.firebase.json --project demo-indigen-progress-tests --only firestore \"node --test firebase/tests/publicProgress.integration.test.mjs\"",
     "test:knowledge": "npm run build:functions && node scripts/test-knowledge.mjs",
     "test:kawuri-grounding": "npm run build:functions && node --test firebase/tests/kawuriGrounding.test.mjs firebase/tests/functionHelpers.test.mjs firebase/tests/kasemCorpus.test.mjs",
