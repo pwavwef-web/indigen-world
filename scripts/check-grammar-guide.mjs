@@ -12,6 +12,7 @@ try {
     const page=await browser.newPage({viewport:{width,height}});
     const errors=[];page.on('pageerror',error=>errors.push(error.message));
     await page.goto(origin+'/grammar-guide.html');
+    assert.equal(await page.getByRole('link',{name:'Dictionary',exact:true}).getAttribute('href'),'https://kasem-dictionary.web.app/');
     assert.equal(await page.locator('#rules details').count(),56);
     assert.equal(await page.locator('#chapters details[id^=chapter]').count(),9);
     assert.equal(await page.locator('#chapters table').count(),12);
