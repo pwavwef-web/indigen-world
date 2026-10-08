@@ -44,7 +44,7 @@ class TranslationField extends StatelessWidget {
         keyboardType: TextInputType.multiline,
         decoration: const InputDecoration(
           labelText: 'The Kasem for it',
-          hintText: 'kʋm, na-kʋm',
+          hintText: 'kom, na-kom',
           alignLabelWithHint: true,
           prefixIcon: Icon(Icons.translate_rounded),
           helperText: 'More than one? Separate them with a comma or a slash.',

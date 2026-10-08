@@ -133,10 +133,10 @@ void main() {
     controller.selection = const TextSelection.collapsed(offset: 1);
     await tester.pump();
 
-    await tester.tap(key('ɩ — open i'));
+    await tester.tap(key('ŋ — eng'));
     await tester.pump();
 
-    expect(controller.text, 'bɩa');
+    expect(controller.text, 'bŋa');
     expect(controller.selection.baseOffset, 2);
   });
 }

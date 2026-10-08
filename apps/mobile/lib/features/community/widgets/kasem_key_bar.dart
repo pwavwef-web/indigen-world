@@ -1,44 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
 
-/// The row of Kasem letters that sits on top of the keyboard.
-///
-/// ── Why this exists ───────────────────────────────────────────────────────
-/// Kasem is written in the African reference alphabet: `ɛ`, `ɔ`, `ŋ`, `ə`, `ʋ`
-/// and `ɩ` are letters of it, and tone is written with an accent over a vowel.
-/// No phone ships a Kasem keyboard, and installing one is a thing almost
-/// nobody does — so a community asked to write *in Kasem* was being handed a
-/// keyboard that cannot spell it. What people do instead is substitute: `e`
-/// for `ɛ`, `n` for `ŋ`, no accents at all. Every one of those substitutions
-/// is a word the dictionary will not match and an archive that is slightly
-/// less the language than it should be.
-///
-/// Six letters and three tone marks fix that, and they cost one strip above
-/// the keyboard.
-///
-/// ── Why the marks are combining ───────────────────────────────────────────
-/// The accents are combining characters rather than a shelf of precomposed
-/// vowels: `á à ā é è ē í ì ī ó ò ō ú ù ū` is fifteen keys before `ɛ` and `ɔ`
-/// have theirs, and the row would be a keyboard of its own. Typing the vowel
-/// and then tapping the accent puts the mark on it, which is exactly how tone
-/// is taught to be written.
+/// BGL Ghana Kasem written letters and the two specified tone marks.
 class KasemKeyBar extends StatelessWidget {
   const KasemKeyBar({required this.onInsert, super.key});
 
   final ValueChanged<String> onInsert;
 
   /// The letters of the alphabet an ordinary keyboard has no key for.
-  static const letters = ['ɛ', 'ɔ', 'ŋ', 'ə', 'ʋ', 'ɩ'];
+  static const letters = ['ɛ', 'ɔ', 'ŋ'];
 
   /// Acute, grave and macron, drawn on a dotted circle the way a type
   /// specimen shows a floating accent.
-  static const marks = ['́', '̀', '̄'];
+  static const marks = ['́', '̀'];
 
-  static const _markNames = {
-    '́': 'High tone',
-    '̀': 'Low tone',
-    '̄': 'Mid tone',
-  };
+  static const _markNames = {'́': 'High tone', '̀': 'Low tone'};
 
   @override
   Widget build(BuildContext context) {

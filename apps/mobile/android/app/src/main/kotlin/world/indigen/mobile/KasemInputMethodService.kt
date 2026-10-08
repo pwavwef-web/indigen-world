@@ -285,13 +285,15 @@ class KasemInputMethodService : InputMethodService() {
             addRow(KasemKeyboardLayout.extendedRow.map { letterKey(it) })
         }
 
-        KasemKeyboardLayout.letterRows.take(2).forEach { row ->
+        val rows = if (language == KeyboardLanguage.KASEM)
+            KasemKeyboardLayout.kasemRows else KasemKeyboardLayout.letterRows
+        rows.take(2).forEach { row ->
             addRow(row.map { letterKey(it) })
         }
 
         addRow(buildList {
             add(shiftKeyView())
-            addAll(KasemKeyboardLayout.letterRows[2].map { letterKey(it) })
+            addAll(rows[2].map { letterKey(it) })
             add(backspaceKey())
         })
 

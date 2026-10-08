@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/features/settings/kasem_keyboard.dart';
 import 'package:indigen_world_mobile/features/settings/settings_widgets.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class KasemKeyboardScreen extends StatefulWidget {
   const KasemKeyboardScreen({
@@ -352,24 +353,31 @@ class _LanguageNote extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           const Text(
-            'Every Kasem letter has its own key: ɩ, ʋ, ə, ɔ, ŋ and ɛ sit on '
-            'their own row above the alphabet whenever the keyboard is in '
-            'Kasem mode.',
+            'The book uses seven written vowels: a, e, i, o, u, ɛ and ɔ. '
+            'The Kasem row adds ɛ, ɔ, ŋ, ch and ny, plus acute and grave '
+            'marks for the limited tone distinctions in the spelling guide.',
           ),
           const SizedBox(height: 9),
           const Text(
-            'Holding a vowel gives the same letter a second way — hold E, I, '
-            'O, U or A for ɛ, ɩ, ɔ, ʋ or ə — and holding one of the Kasem '
-            'vowels adds its high tone. Hold C, K, G, P or Ŋ for Ch, Kw, Gw, '
-            'Pw or Ŋw. Keys that do something extra show it in small type in '
-            'the corner.',
+            'Hold A, D, W or Y for á, dé, wó or yé. Hold E, O or N for '
+            'ɛ, ɔ or ŋ. Hold K, G, P, Ch, Ny or Ŋ for their w combinations. '
+            'The book writes the sounds /ɩ/ and /ʋ/ with e and o, and uses '
+            'ei, oa or a for the central vowel depending on its position.',
           ),
           const SizedBox(height: 9),
           Text(
-            'The alphabet is settled; the digraph shortcuts and the key '
-            'positions still need review with fluent Kasem speakers before '
-            'the layout is frozen.',
+            'Based on Kasem Orthography, Kasem Language Committee, '
+            'Bureau of Ghana Languages, 1997. Full rules and source examples '
+            'are available in the online dictionary spelling guide.',
             style: TextStyle(color: context.brand.mutedInk),
+          ),
+          TextButton.icon(
+            onPressed: () => launchUrl(
+              Uri.https('kasem-dictionary.web.app', '/spelling-guide.html'),
+              mode: LaunchMode.externalApplication,
+            ),
+            icon: const Icon(Icons.menu_book_outlined),
+            label: const Text('Read the Kasem spelling guide'),
           ),
         ],
       ),

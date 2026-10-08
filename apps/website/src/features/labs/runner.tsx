@@ -121,7 +121,7 @@ export function RunnerWorkspace() {
           {run.word.attribution && <small>Example: <a href={`https://tatoeba.org/en/sentences/show/${encodeURIComponent(run.word.attribution.tatoebaId)}`} target="_blank" rel="noreferrer">Tatoeba #{run.word.attribution.tatoebaId}</a>{run.word.attribution.contributor && ` by ${run.word.attribution.contributor}`} · {run.word.attribution.licence}</small>}
         </div>
         <label className="trail-field">Kasem translation<input required maxLength={2000} value={translation} onChange={e => setTranslation(e.target.value)} placeholder="The word or expression you use" autoComplete="off" /></label>
-        <div className="trail-letters" aria-label="Kasem letters">{["ɛ", "ɔ", "ʋ", "ŋ"].map(letter => <button type="button" key={letter} aria-label={`Add ${letter}`} onClick={() => setTranslation(t => t + letter)}>{letter}</button>)}</div>
+        <div className="trail-letters" aria-label="Kasem letters">{["ɛ", "ɔ", "ŋ"].map(letter => <button type="button" key={letter} aria-label={`Add ${letter}`} onClick={() => setTranslation(t => t + letter)}>{letter}</button>)}</div>
         <div className="trail-form-row">
           <label className="trail-field">Word class<select aria-label="Word class" required value={wordClass} onChange={e => setWordClass(e.target.value)}><option value="">Choose a class</option>{lexicalSchema.properties.partOfSpeech.enum.map(value => <option key={value} value={value}>{value.replaceAll("-", " ")}</option>)}</select></label>
           <label className="trail-field">Dialect or community<input required maxLength={80} value={dialect} onChange={e => setDialect(e.target.value)} placeholder="Where you use this translation" /></label>

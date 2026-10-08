@@ -3,12 +3,13 @@ import { subscribeToDictionary, type DictionaryEntry } from "./firebase";
 import { COLLECTIONS, type CollectionKind } from "./collections";
 import { useScrollHeader } from "./useScrollHeader";
 
-const LETTERS = "ABCDEƐFGHIƖJKLMNŊOƆPQRSTUƲVWXYZ".split("");
+const LETTERS = ["A", "B", "CH", "D", "E", "Ɛ", "F", "G", "H", "I", "J", "K", "L", "M", "N", "NY", "Ŋ", "O", "Ɔ", "P", "R", "S", "T", "U", "V", "W", "Y", "Z"];
 const RECENT_KEY = "kasena-dictionary:recent-words";
 const SAVED_KEY = "kasena-dictionary:saved-words";
 
 function firstLetter(word: string): string {
-  return word.normalize("NFD").replace(/^[^\p{L}]+/u, "").charAt(0).toUpperCase();
+  const letters = word.normalize("NFD").replace(/^[^\p{L}]+/u, "").toUpperCase();
+  return /^(CH|NY)/.exec(letters)?.[0] ?? letters.charAt(0);
 }
 
 function normalizeSearch(value: string): string {
@@ -259,6 +260,7 @@ export function App() {
           }}><span aria-hidden="true">{COLLECTIONS[kind].icon}</span>{COLLECTIONS[kind].label}</button>)}
         </nav>
         <nav className="header-links" aria-label="Dictionary links">
+          <a href="/spelling-guide.html">Spelling guide</a>
           <span className="language-pair">Kasem <b aria-hidden="true">↔</b> English</span>
           <a href="https://indigenworld.com/dictionary">Indigen World <span aria-hidden="true">↗</span></a>
         </nav>
@@ -289,7 +291,7 @@ export function App() {
               </label>
               <p className="search-hint">Search in {collection.label.toLowerCase()} <kbd>⌘ / Ctrl K</kbd></p>
               <div className="character-keys" aria-label="Kasem characters">
-                <span>Kasem keys</span>{["ɛ", "ɩ", "ŋ", "ɔ", "ʋ"].map(character => <button type="button" key={character} onClick={() => {
+                <span>Kasem keys</span>{["ɛ", "ŋ", "ɔ"].map(character => <button type="button" key={character} onClick={() => {
                   const input = searchRef.current;
                   const start = input?.selectionStart ?? queryText.length;
                   const end = input?.selectionEnd ?? start;

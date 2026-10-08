@@ -24,12 +24,33 @@
     "englishTriggers": [
       "the"
     ],
-    "title": "Saying \"the\" — it is part of the noun",
+    "title": "Nouns and determiners are separate words",
     "status": "published",
-    "summary": "There is no Kasem word for \"the\". Definiteness is marked on the noun itself, and unlike the indefinite mo it changes from noun to noun according to the noun's class. So \"the\" cannot be translated on its own; what can be recorded is the definite form of each noun, which is what the dictionary now collects.",
-    "pattern": "<noun in its definite form>",
-    "examples": [],
-    "note": "This is why \"the\" was retired from the guided word queue: the question had no answer and was rank 1 of 15,000, so every new contributor met it first."
+    "summary": "Spell both the noun and its determiner fully and separately even when they merge in pronunciation. The book gives naane dem, chechare dem and yeili dem. Determiners must not be described as inseparable pieces of every noun.",
+    "pattern": "<full noun> <separate determiner>",
+    "examples": [
+      {
+        "kasem": "naane dem",
+        "english": "the cows",
+        "note": ""
+      },
+      {
+        "kasem": "chechare dem",
+        "english": "the egg",
+        "note": ""
+      },
+      {
+        "kasem": "yeili dem",
+        "english": "the tooth",
+        "note": ""
+      }
+    ],
+    "note": "Corrected from BGL Kasem Orthography (1997), page 21: nouns and determiners are written separately.",
+    "version": 2,
+    "claimStatus": "supported",
+    "evidenceRefs": [
+      "Kasem Orthography, Bureau of Ghana Languages, 1997, page 21"
+    ]
   },
   {
     "id": "noun-classes",

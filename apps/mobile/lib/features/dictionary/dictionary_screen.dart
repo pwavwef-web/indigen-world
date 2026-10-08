@@ -521,7 +521,7 @@ class _NoResults extends StatelessWidget {
         Text(
           narrowed
               ? 'The filters may be doing this rather than the spelling.'
-              : 'Tone marks and the letters ɛ ɩ ŋ ɔ ʋ are all optional — '
+              : 'Tone marks and the written letters ɛ ŋ ɔ are all optional — '
                     'typing what you can reach finds the word either way.',
           textAlign: TextAlign.center,
           style: TextStyle(color: brand.mutedInk, fontSize: 12.5, height: 1.45),

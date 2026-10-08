@@ -2,29 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
 
-/// The letters a phone keyboard does not have.
-///
-/// ── The number that makes this a feature rather than a nicety ─────────────
-/// 785 of the published headwords carry at least one letter that does not exist
-/// on a stock Android or iOS English keyboard: ɩ in 640, ʋ in 195, ə in 177,
-/// ɔ in 156, ŋ in 115, ɛ in 9. A learner who has heard `dɩ` and cannot type ɩ
-/// does the only thing available and types `di` — which is why
-/// [foldForSearch] exists and why the search box works at all.
-///
-/// Folding rescues the *search*. It does nothing for the person writing. A
-/// contributor filing a word, and a validator correcting a spelling, both have
-/// to produce the real letter, and until this bar existed their only options
-/// were a third-party keyboard or a spelling that is a different word.
-///
-/// This is the Kasem answer to Pleco's handwriting panel. Pleco spends that
-/// screen space helping a user produce characters their keyboard cannot; so
-/// does this. What differs is only which characters are missing.
-///
-/// ── Why it is a bar and not a keyboard ───────────────────────────────────
-/// Because the system keyboard is already correct for the other twenty-six
-/// letters, and replacing it would cost the user their own layout, their
-/// autocorrect and their language. Seven keys above the keyboard is the whole
-/// gap.
+/// Character palette for BGL's Ghana Kasem spelling (1997).
+/// IPA-only letters remain searchable in historical records, but are not offered
+/// as spelling suggestions. Acute and grave marks have limited specified uses.
 class KasemKeyBar extends StatefulWidget {
   const KasemKeyBar({required this.targets, this.onInserted, super.key});
 
@@ -179,9 +159,7 @@ const _kKeyHeight = 40.0;
 
 /// One extended letter, in both cases, with the name a learner can read.
 ///
-/// The names are the sounds rather than the Unicode names. "Latin small letter
-/// iota" is correct and tells a Kasem speaker nothing; "ɩ — as in dɩ" is what
-/// the tooltip is for.
+/// Tooltips explain the written letters and the limited tone-mark uses.
 @immutable
 class KasemLetter {
   const KasemLetter(this.small, this.capital, this.name);
@@ -191,24 +169,13 @@ class KasemLetter {
   final String name;
 }
 
-/// The seven letters, in the order the Kasem alphabet files them.
-///
-/// Ordered by their place in the alphabet rather than by frequency, because the
-/// bar is also how somebody learns where these letters sit — and a row sorted
-/// by how often each is typed would teach the wrong thing while saving nobody
-/// any time on a row of seven.
-///
-/// `ɣ` is included even though it appears in very few published headwords: it
-/// is in the orthography, and a letter absent from the bar is a letter a
-/// contributor concludes the app will not accept.
+/// Three non-ASCII written letters, followed by the book's tone marks.
 const kKasemLetters = <KasemLetter>[
   KasemLetter('ɛ', 'Ɛ', 'ɛ — open e'),
-  KasemLetter('ə', 'Ə', 'ə — schwa'),
-  KasemLetter('ɣ', 'Ɣ', 'ɣ — soft g'),
-  KasemLetter('ɩ', 'Ɩ', 'ɩ — open i'),
-  KasemLetter('ŋ', 'Ŋ', 'ŋ — ng'),
+  KasemLetter('ŋ', 'Ŋ', 'ŋ — eng'),
   KasemLetter('ɔ', 'Ɔ', 'ɔ — open o'),
-  KasemLetter('ʋ', 'Ʋ', 'ʋ — open u'),
+  KasemLetter('́', '́', 'Acute tone — limited grammatical uses'),
+  KasemLetter('̀', '̀', 'Grave tone — as in vèi'),
 ];
 
 class _Key extends StatelessWidget {

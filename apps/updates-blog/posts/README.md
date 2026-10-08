@@ -6,6 +6,8 @@ date identifies when the post was prepared; it does not prove the update is live
 
 ## Posts
 
+- [2026-10-08: Kasem words and spelling from the orthography book](2026-10-08-kasem-orthography-book/README.md) — all 646 vocabulary rows, appendix forms, 28 rules and printed examples, directly published from the supplied book; corrected character palettes and Android layout. See the post for verified deployment status.
+
 - [2026-10-04: Watch verified contributions flow into the jars](2026-10-04-live-progress-pipelines/README.md) — TribeStudio as the pump, measured glass pipes into every jar and tank, live approval flows from a new server-counted public projection, exact small percentages, and corrected counting (open posts, pronunciations, proverbs, sentences). Deployed October 5 from `13c9ab4` (two indexes, the `publicProgress` rule, six functions, website); live page reads “Live”, counts match the server projection, and assets match the tested build on both hostnames. Real production approvals counted live from 00:28 UTC, and one watched arriving on the public page at 00:31 (expressions 111 → 112). Includes a live production screenshot, labelled emulator test data and sample previews; article unpublished.
 
 - [2026-10-04: One design for every workspace](2026-10-04-one-design-for-every-workspace/README.md) — TribeStudio Hosting deployed October 4 (17:48 UTC); live routes, release assets and sign-in screens verified on both hostnames. All three workspaces, the public creator pages and sign-in screens on the Comitia design system with a Display panel (dark mode, text size, contrast, animations off). Signed-in production journeys unverified; article unpublished. Includes actual screenshots of labelled test records.
