@@ -83,5 +83,10 @@ Recovery snapshot (ignored, preserved locally):
 `production-backups/kasem-grammar/2026-10-08T16-51-23-753Z.json`.
 Keep the snapshot private; it contains existing production document contents.
 
-Web Hosting and Kawuri deployment status is recorded in the dated release post.
+Web Hosting and both Kawuri functions deployed successfully October 8, 2026.
+Both reference pages and changed navigation assets matched the build files on
+all three hosts. The live guide passed phone/desktop browser checks; the live
+dictionary displayed the new `badwoni` / friend entry. The live anonymous
+Kawuri endpoint returned future continuous and “I didn’t sweep” answers with
+GILLBT attribution. Detailed deployment evidence is in the dated release post.
 No Android binary or Google Play release is part of this content update.

@@ -1,7 +1,8 @@
 # Kasem grammar sentences and word forms from the book
 
-Status: **Article unpublished. Production content published and verified October
-8, 2026. Web guide/navigation and Kawuri changes implemented; deployment pending.**
+Status: **Article unpublished. Production content, all three web guides and
+navigation updates, and both Kawuri functions published and verified October
+8, 2026. No Android binary or Google Play release is part of this content update.**
 
 | Field | Value |
 |---|---|
@@ -25,15 +26,17 @@ Status: **Article unpublished. Production content published and verified October
 
 ## Images and credits
 
-- `images/grammar-guide-desktop.png` (1440 × 1050): actual grammar guide preview.
+- `images/grammar-guide-desktop.png` (1440 × 1050): actual deployed grammar guide.
 - `images/grammar-guide-mobile.png` (390 × 844): actual guide at phone width.
 - `images/future-continuous-rule.png` (1008 × 492): actual expanded rule,
   explanation, source examples and citation.
-- Credit: Indigen World product screenshots, October 8, 2026, initially captured
-  from the local dictionary preview. Source text credit: P. L. Hewer / GILLBT.
+- `images/dictionary-word.png` (1440 × 1000): actual live new `badwoni` / friend
+  entry with its paradigm context and the Grammar guide navigation link.
+- Credit: Indigen World product screenshots, October 8, 2026, captured from
+  `https://kasem-dictionary.web.app`. Source text credit: P. L. Hewer / GILLBT.
 - Regenerate using `node scripts/check-grammar-guide.mjs`. Set
   `GRAMMAR_PREVIEW_URL` to the preview or confirmed live origin.
-- Blogger: **Insert image → Upload from computer** for all three PNGs. Replace
+- Blogger: **Insert image → Upload from computer** for all four PNGs. Replace
   relative `src` URLs in `post.html` with the resulting Blogger image URLs;
   retain descriptive alt text, dimensions and captions.
 
@@ -63,7 +66,18 @@ No Blogger publication or external message has been sent.
   both filters, source row counts, phone width and no JavaScript errors.
 - Recovery snapshot retained privately at
   `production-backups/kasem-grammar/2026-10-08T16-51-23-753Z.json`.
-- Firebase Hosting and the two Kawuri functions: deployment pending.
+- Firebase Hosting: successful release to `indigen-world`, `kasem-dictionary`
+  and `tribestudio` from `f774312958c94a2cc799efff899d99d839ffe6a7` on `main`.
+  Both reference pages and the changed navigation asset matched their build
+  files on each host. Live dictionary browser verified the new Grammar guide
+  link and `badwoni` / friend entry. The live guide passed all browser checks.
+- Kawuri: successful Node.js 22 updates of `kawuriChat` and
+  `onCommunityKawuriMention`, from the implementation present on `9c3a218`.
+  The live anonymous chat endpoint returned the future-continuous explanation
+  and “I didn’t sweep” / `A wo zɔre` example with GILLBT source attribution.
+- GitHub Actions on `9c3a218` did not run: job `113436200085` has zero steps and
+  the annotation says the account is locked due to a billing issue. Local
+  checks and successful Firebase deployments are independent evidence.
 - No Android bundle or Google Play rollout is part of this content update.
 
 Reproducible extraction and import notes: [source README](../../../../data/grammar-book-seed/README.md).
