@@ -135,7 +135,9 @@ class _RequestKasemNameScreenState
     final ascii = foldKasemToAscii(_name.text);
     // Asked for before and still waiting. Said here rather than discovered at
     // the callable, which refuses a second ask and would look like a bug.
-    final alreadyAsked = ref.watch(pendingKasemNameAsciiProvider).contains(ascii);
+    final alreadyAsked = ref
+        .watch(pendingKasemNameAsciiProvider)
+        .contains(ascii);
     // Only the two refusals the screen already explains above the button keep
     // it switched off. Everything else is said when it is pressed.
     final ready = ascii.length >= 3 && !alreadyAsked;
@@ -376,11 +378,7 @@ class _SentState extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 40, 20, 32),
       children: [
-        Icon(
-          Icons.mark_email_read_rounded,
-          size: 54,
-          color: brand.success,
-        ),
+        Icon(Icons.mark_email_read_rounded, size: 54, color: brand.success),
         const SizedBox(height: 16),
         Text(
           'Sent for review',

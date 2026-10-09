@@ -42,7 +42,11 @@ void main() {
       // A solitary `mo¹` promises a `mo²` that does not exist, and a reader
       // who goes looking for it has been misled by a footnote.
       expect(shouldNumber(siblingCount: 1, homographIndex: 1), isFalse);
-      final display = homographDisplay('mo', homographIndex: 1, siblingCount: 1);
+      final display = homographDisplay(
+        'mo',
+        homographIndex: 1,
+        siblingCount: 1,
+      );
       expect(display.text, 'mo');
       expect(display.numbered, isFalse);
     });
@@ -77,13 +81,21 @@ void main() {
       // A superscript two is announced as anything from "two" to nothing at
       // all depending on the reader, and "mo two" is indistinguishable from a
       // quantity.
-      final display = homographDisplay('mo', homographIndex: 2, siblingCount: 2);
+      final display = homographDisplay(
+        'mo',
+        homographIndex: 2,
+        siblingCount: 2,
+      );
       expect(display.text, 'mo²');
       expect(display.spoken, 'mo, sense 2');
     });
 
     test('an unnumbered headword is spoken as itself, with nothing added', () {
-      final display = homographDisplay('nia', homographIndex: 1, siblingCount: 1);
+      final display = homographDisplay(
+        'nia',
+        homographIndex: 1,
+        siblingCount: 1,
+      );
       expect(display.spoken, 'nia');
     });
   });
@@ -116,11 +128,19 @@ void main() {
 
     expect(siblings, 2);
     expect(
-      homographDisplay(headword, homographIndex: 1, siblingCount: siblings).text,
+      homographDisplay(
+        headword,
+        homographIndex: 1,
+        siblingCount: siblings,
+      ).text,
       'mo¹',
     );
     expect(
-      homographDisplay(headword, homographIndex: 2, siblingCount: siblings).text,
+      homographDisplay(
+        headword,
+        homographIndex: 2,
+        siblingCount: siblings,
+      ).text,
       'mo²',
     );
   });

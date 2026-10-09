@@ -232,7 +232,9 @@ class DownloadsRepository {
     final directory = await _directory();
     final file = File(p.join(directory.path, row.fileName));
     try {
-      if (!await file.exists() || await file.length() != row.sizeBytes || !await _hasAudioHeader(file)) {
+      if (!await file.exists() ||
+          await file.length() != row.sizeBytes ||
+          !await _hasAudioHeader(file)) {
         return null;
       }
       return file.uri.toString();

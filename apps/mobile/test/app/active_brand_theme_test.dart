@@ -10,6 +10,7 @@
 //     stands, so a supporter's app is not repainted blue on every launch.
 
 import 'dart:async';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';

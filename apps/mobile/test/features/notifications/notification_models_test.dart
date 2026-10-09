@@ -142,7 +142,11 @@ void main() {
       for (final kind in NotificationKind.values) {
         expect(kind.icon, isNotNull, reason: '$kind has no icon');
         for (final brand in [BrandPalette.light, BrandPalette.dark]) {
-          expect(kind.accent(brand).a, greaterThan(0), reason: '$kind is invisible');
+          expect(
+            kind.accent(brand).a,
+            greaterThan(0),
+            reason: '$kind is invisible',
+          );
         }
       }
     });
@@ -161,12 +165,15 @@ void main() {
       );
     });
 
-    test('a milestone wears the like colour, because that is what it counts', () {
-      expect(
-        NotificationKind.milestone.accent(BrandPalette.light),
-        BrandPalette.light.like,
-      );
-    });
+    test(
+      'a milestone wears the like colour, because that is what it counts',
+      () {
+        expect(
+          NotificationKind.milestone.accent(BrandPalette.light),
+          BrandPalette.light.like,
+        );
+      },
+    );
   });
 
   group('initials', () {

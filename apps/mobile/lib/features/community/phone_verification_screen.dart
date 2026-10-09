@@ -14,7 +14,11 @@ import 'package:indigen_world_mobile/features/community/widgets/verified_badge.d
 /// one-way hash, which is all the community needs in order to say that somebody
 /// real is behind an account.
 class PhoneVerificationScreen extends ConsumerStatefulWidget {
-  const PhoneVerificationScreen({this.embedded = false, this.onDone, super.key});
+  const PhoneVerificationScreen({
+    this.embedded = false,
+    this.onDone,
+    super.key,
+  });
 
   /// Renders the two steps alone, for a host that supplies its own chrome --
   /// [AccountSetupFlow] puts them inside its own page with its own progress
@@ -51,8 +55,10 @@ class _PhoneVerificationScreenState
   PhoneVerificationRepository? get _repository =>
       ref.read(phoneVerificationRepositoryProvider);
 
-  Future<void> _run(Future<void> Function(PhoneVerificationRepository) action,
-      {required _Step onSuccess}) async {
+  Future<void> _run(
+    Future<void> Function(PhoneVerificationRepository) action, {
+    required _Step onSuccess,
+  }) async {
     final repository = _repository;
     if (repository == null) {
       setState(() => _error = 'Indigen World could not be reached right now.');
@@ -103,101 +109,97 @@ class _PhoneVerificationScreenState
   Widget _buildBody(BuildContext context) {
     final brand = context.brand;
     return SafeArea(
-        child: Align(
-          alignment: Alignment.topCenter,
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 520),
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
-              children: [
-                _Explainer(step: _step),
-                const SizedBox(height: 22),
-                if (_step == _Step.number) ...[
-                  TextField(
-                    key: const Key('phone-number-field'),
-                    controller: _phone,
-                    autofocus: true,
-                    keyboardType: TextInputType.phone,
-                    decoration: const InputDecoration(
-                      labelText: 'Mobile number',
-                      // The example carries the shape the server accepts, so
-                      // nobody has to discover it from a refusal.
-                      hintText: '0244 123 456 · or +226 70 12 34 56',
-                    ),
+      child: Align(
+        alignment: Alignment.topCenter,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 520),
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
+            children: [
+              _Explainer(step: _step),
+              const SizedBox(height: 22),
+              if (_step == _Step.number) ...[
+                TextField(
+                  key: const Key('phone-number-field'),
+                  controller: _phone,
+                  autofocus: true,
+                  keyboardType: TextInputType.phone,
+                  decoration: const InputDecoration(
+                    labelText: 'Mobile number',
+                    // The example carries the shape the server accepts, so
+                    // nobody has to discover it from a refusal.
+                    hintText: '0244 123 456 · or +226 70 12 34 56',
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Outside Ghana, start with your country code.',
-                    style: TextStyle(color: brand.mutedInk, fontSize: 12.5),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Outside Ghana, start with your country code.',
+                  style: TextStyle(color: brand.mutedInk, fontSize: 12.5),
+                ),
+              ] else if (_step == _Step.code) ...[
+                TextField(
+                  key: const Key('phone-code-field'),
+                  controller: _code,
+                  autofocus: true,
+                  keyboardType: TextInputType.number,
+                  maxLength: 6,
+                  style: const TextStyle(
+                    fontSize: 26,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 8,
                   ),
-                ] else if (_step == _Step.code) ...[
-                  TextField(
-                    key: const Key('phone-code-field'),
-                    controller: _code,
-                    autofocus: true,
-                    keyboardType: TextInputType.number,
-                    maxLength: 6,
-                    style: const TextStyle(
-                      fontSize: 26,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 8,
-                    ),
-                    decoration: const InputDecoration(
-                      labelText: 'Six-digit code',
-                      counterText: '',
-                    ),
+                  decoration: const InputDecoration(
+                    labelText: 'Six-digit code',
+                    counterText: '',
                   ),
-                  TextButton(
-                    onPressed: _busy
-                        ? null
-                        : () => setState(() {
-                            _step = _Step.number;
-                            _error = null;
-                          }),
-                    child: const Text('Use a different number'),
-                  ),
-                ],
-                if (_error case final message?) ...[
-                  const SizedBox(height: 6),
-                  Text(
-                    message,
-                    style: TextStyle(
-                      color: brand.danger,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-                const SizedBox(height: 18),
-                if (_step != _Step.done)
-                  FilledButton(
-                    key: const Key('phone-verification-action'),
-                    onPressed: _busy ? null : _submit,
-                    style: FilledButton.styleFrom(
-                      minimumSize: const Size(0, 50),
-                    ),
-                    child: Text(
-                      _busy
-                          ? 'Working…'
-                          : _step == _Step.number
-                          ? 'Send me a code'
-                          : 'Verify',
-                    ),
-                  )
-                else
-                  FilledButton(
-                    key: const Key('phone-verification-done'),
-                    onPressed: () => _finish(verified: true),
-                    style: FilledButton.styleFrom(
-                      minimumSize: const Size(0, 50),
-                    ),
-                    child: const Text('Done'),
-                  ),
+                ),
+                TextButton(
+                  onPressed: _busy
+                      ? null
+                      : () => setState(() {
+                          _step = _Step.number;
+                          _error = null;
+                        }),
+                  child: const Text('Use a different number'),
+                ),
               ],
-            ),
+              if (_error case final message?) ...[
+                const SizedBox(height: 6),
+                Text(
+                  message,
+                  style: TextStyle(
+                    color: brand.danger,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+              const SizedBox(height: 18),
+              if (_step != _Step.done)
+                FilledButton(
+                  key: const Key('phone-verification-action'),
+                  onPressed: _busy ? null : _submit,
+                  style: FilledButton.styleFrom(minimumSize: const Size(0, 50)),
+                  child: Text(
+                    _busy
+                        ? 'Working…'
+                        : _step == _Step.number
+                        ? 'Send me a code'
+                        : 'Verify',
+                  ),
+                )
+              else
+                FilledButton(
+                  key: const Key('phone-verification-done'),
+                  onPressed: () => _finish(verified: true),
+                  style: FilledButton.styleFrom(minimumSize: const Size(0, 50)),
+                  child: const Text('Done'),
+                ),
+            ],
           ),
         ),
-      );
+      ),
+    );
   }
 
   Future<void> _submit() async {

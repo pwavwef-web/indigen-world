@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:flutter/gestures.dart' show kDoubleTapSlop, kDoubleTapTimeout;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -1776,7 +1777,8 @@ class _ReelCardState extends ConsumerState<_ReelCard> {
 
   bool _stillRequested = false;
   void _onTapUp(TapUpDetails details) {
-    if (widget.reel.isImage && !_stillRequested) setState(() => _stillRequested = true);
+    if (widget.reel.isImage && !_stillRequested)
+      setState(() => _stillRequested = true);
     final like = widget.onDoubleTapLike;
     if (like == null) {
       widget.onTapMedia();
@@ -2068,7 +2070,10 @@ class _ReelCardState extends ConsumerState<_ReelCard> {
 
     final ready = _ready ? _controller : null;
     final media = ReelMediaFrame(
-      imageUrl: ref.watch(lowDataModeProvider) && reel.isImage && !_stillRequested ? (reel.communityMedia?.thumbnailUrl ?? '') : reel.imageUrl,
+      imageUrl:
+          ref.watch(lowDataModeProvider) && reel.isImage && !_stillRequested
+          ? (reel.communityMedia?.thumbnailUrl ?? '')
+          : reel.imageUrl,
       isActive: widget.isActive,
       controller: ready,
       aspectRatio: reel.mediaAspectRatio,
@@ -2104,7 +2109,18 @@ class _ReelCardState extends ConsumerState<_ReelCard> {
           fit: StackFit.expand,
           children: [
             media,
-            if (ref.watch(lowDataModeProvider) && reel.isImage && !_stillRequested) const Center(child: Text('Tap to load full image', style: TextStyle(color: Colors.white, backgroundColor: Colors.black54))),
+            if (ref.watch(lowDataModeProvider) &&
+                reel.isImage &&
+                !_stillRequested)
+              const Center(
+                child: Text(
+                  'Tap to load full image',
+                  style: TextStyle(
+                    color: Colors.white,
+                    backgroundColor: Colors.black54,
+                  ),
+                ),
+              ),
             // The shades exist to make the words legible, so they leave with
             // the words and the picture is left clean.
             Positioned(

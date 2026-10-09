@@ -221,7 +221,10 @@ void main() {
       await tester.tap(find.byKey(const Key('learn-word-audio')));
       await _settle(tester);
       expect(find.text('Pronunciation unavailable'), findsOneWidget);
-      expect(find.textContaining('does not play a computer voice'), findsOneWidget);
+      expect(
+        find.textContaining('does not play a computer voice'),
+        findsOneWidget,
+      );
       expect(find.byKey(const Key('record-pronunciation')), findsOneWidget);
     });
 
@@ -239,7 +242,9 @@ void main() {
       await _settle(tester);
       expect(find.text('Locked for now'), findsOneWidget);
       expect(
-        find.textContaining('Finish Unit 1 · First words first — 2 lessons to go'),
+        find.textContaining(
+          'Finish Unit 1 · First words first — 2 lessons to go',
+        ),
         findsOneWidget,
       );
     });
@@ -253,16 +258,24 @@ void main() {
       );
       expect(container.read(shellChromeVisibilityProvider), isTrue);
 
-      await tester.drag(find.byType(CustomScrollView).first, const Offset(0, -260));
+      await tester.drag(
+        find.byType(CustomScrollView).first,
+        const Offset(0, -260),
+      );
       await _settle(tester);
       expect(container.read(shellChromeVisibilityProvider), isFalse);
 
-      await tester.drag(find.byType(CustomScrollView).first, const Offset(0, 120));
+      await tester.drag(
+        find.byType(CustomScrollView).first,
+        const Offset(0, 120),
+      );
       await _settle(tester);
       expect(container.read(shellChromeVisibilityProvider), isTrue);
     });
 
-    testWidgets('stays usable on a small phone with large text', (tester) async {
+    testWidgets('stays usable on a small phone with large text', (
+      tester,
+    ) async {
       tester.platformDispatcher.textScaleFactorTestValue = 1.3;
       addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
       await _pump(tester, size: const Size(320, 640));

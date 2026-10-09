@@ -10,17 +10,22 @@ import 'package:indigen_world_mobile/features/learn/learn_content.dart';
 import 'package:indigen_world_mobile/features/learn/learn_progress.dart';
 import 'package:indigen_world_mobile/features/learn/practice/practice_decks.dart';
 
-const _question = LessonQuestion(prompt: 'p', answers: ['a', 'b'], correctAnswer: 0);
-
-Lesson _lesson(String id, int unit, int order, {String course = 'kasem'}) => Lesson(
-  id: id,
-  title: 'Lesson $id',
-  unitTitle: 'Unit $unit title',
-  unitOrder: unit,
-  order: order,
-  courseId: course,
-  questions: const [_question],
+const _question = LessonQuestion(
+  prompt: 'p',
+  answers: ['a', 'b'],
+  correctAnswer: 0,
 );
+
+Lesson _lesson(String id, int unit, int order, {String course = 'kasem'}) =>
+    Lesson(
+      id: id,
+      title: 'Lesson $id',
+      unitTitle: 'Unit $unit title',
+      unitOrder: unit,
+      order: order,
+      courseId: course,
+      questions: const [_question],
+    );
 
 DictionaryEntry _entry(
   String id,
@@ -66,34 +71,51 @@ void main() {
       progress: progress,
     );
 
-    test('a new learner starts at the first lesson; later units are locked', () {
-      final start = outline(const LearnProgress());
-      expect(start.path.map((lesson) => lesson.id), ['1a', '1b', '2a'],
-          reason: 'another course’s lessons are not part of this one');
-      expect(start.nextLesson!.id, '1a');
-      expect(start.units.map((unit) => unit.state), [
-        UnitState.available,
-        UnitState.locked,
-        UnitState.inPreparation,
-      ]);
-      expect(start.units[1].blockedBy!.unit.title, 'Start a conversation');
-      expect(start.units[1].blockedBy!.remaining, 2);
-      expect(start.upcoming.map((unit) => unit.unit.title), ['Family & people', 'Food & home']);
-    });
+    test(
+      'a new learner starts at the first lesson; later units are locked',
+      () {
+        final start = outline(const LearnProgress());
+        expect(start.path.map((lesson) => lesson.id), [
+          '1a',
+          '1b',
+          '2a',
+        ], reason: 'another course’s lessons are not part of this one');
+        expect(start.nextLesson!.id, '1a');
+        expect(start.units.map((unit) => unit.state), [
+          UnitState.available,
+          UnitState.locked,
+          UnitState.inPreparation,
+        ]);
+        expect(start.units[1].blockedBy!.unit.title, 'Start a conversation');
+        expect(start.units[1].blockedBy!.remaining, 2);
+        expect(start.upcoming.map((unit) => unit.unit.title), [
+          'Family & people',
+          'Food & home',
+        ]);
+      },
+    );
 
     test('progress moves units through in progress to completed', () {
       final midway = outline(const LearnProgress(completedLessons: {'1a'}));
       expect(midway.units[0].state, UnitState.inProgress);
       final started = outline(const LearnProgress(lessonSteps: {'1a': 1}));
-      expect(started.units[0].state, UnitState.inProgress, reason: 'a question answered is a start');
-      final unitDone = outline(const LearnProgress(completedLessons: {'1a', '1b'}));
+      expect(
+        started.units[0].state,
+        UnitState.inProgress,
+        reason: 'a question answered is a start',
+      );
+      final unitDone = outline(
+        const LearnProgress(completedLessons: {'1a', '1b'}),
+      );
       expect(unitDone.units[0].state, UnitState.completed);
       expect(unitDone.units[1].state, UnitState.available);
       expect(unitDone.currentUnit!.unit.title, 'Family & people');
     });
 
     test('a finished course has no next lesson, and a unit with none is in preparation', () {
-      final done = outline(const LearnProgress(completedLessons: {'1a', '1b', '2a'}));
+      final done = outline(
+        const LearnProgress(completedLessons: {'1a', '1b', '2a'}),
+      );
       expect(done.allComplete, isTrue);
       expect(done.nextLesson, isNull);
       expect(done.units[2].state, UnitState.inPreparation);
@@ -115,8 +137,16 @@ void main() {
         progress: const LearnProgress(),
       );
       expect(published.units.first.unit.title, 'First words');
-      expect(published.units.first.unit.assetImage, 'assets/learn/hero-greeting.webp');
-      expect(published.units.skip(1).every((unit) => unit.state == UnitState.inPreparation), isTrue);
+      expect(
+        published.units.first.unit.assetImage,
+        'assets/learn/hero-greeting.webp',
+      );
+      expect(
+        published.units
+            .skip(1)
+            .every((unit) => unit.state == UnitState.inPreparation),
+        isTrue,
+      );
     });
   });
 
@@ -152,7 +182,11 @@ void main() {
       );
       expect(deck.first.id, 'e2');
       expect(deck[1].id, 'e4');
-      expect(deck.map((entry) => entry.id), isNot(contains('e3')), reason: 'not due yet');
+      expect(
+        deck.map((entry) => entry.id),
+        isNot(contains('e3')),
+        reason: 'not due yet',
+      );
       expect(deck.length, 3);
     });
 
@@ -190,7 +224,10 @@ void main() {
       expect(back.lessonTitle, 'Say hello');
       expect(back.lessonItems, ['Choose the greeting → De zaanem']);
       expect(back.word, 'nabiu');
-      expect(KawuriLearningContext.fromOptions(const {'direction': 'x'}), isNull);
+      expect(
+        KawuriLearningContext.fromOptions(const {'direction': 'x'}),
+        isNull,
+      );
     });
 
     test('marks verified content and forbids inventing Kasem', () {
@@ -204,11 +241,17 @@ void main() {
     });
 
     test('offers only the actions its context can support', () {
-      const noWord = KawuriLearningContext(courseName: 'Kasem', lessonTitle: 'Say hello');
+      const noWord = KawuriLearningContext(
+        courseName: 'Kasem',
+        lessonTitle: 'Say hello',
+      );
       expect(KawuriLearningAction.explainWord.offeredFor(noWord), isFalse);
       expect(KawuriLearningAction.practise.offeredFor(noWord), isTrue);
       expect(KawuriLearningAction.explainWord.offeredFor(context), isTrue);
-      expect(KawuriLearningAction.quiz.promptFor(context), contains('Say hello'));
+      expect(
+        KawuriLearningAction.quiz.promptFor(context),
+        contains('Say hello'),
+      );
     });
   });
 }

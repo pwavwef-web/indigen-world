@@ -90,7 +90,10 @@ void main() {
   testWidgets('a sixth contributor does not get a sixth face', (tester) async {
     await pumpPill(tester, rows: board(9));
 
-    expect(find.byType(CommunityAvatar), findsNWidgets(TopContributorsPill.faces));
+    expect(
+      find.byType(CommunityAvatar),
+      findsNWidgets(TopContributorsPill.faces),
+    );
   });
 
   testWidgets('three contributors draw three faces, not three and two ghosts', (
@@ -106,7 +109,10 @@ void main() {
     await pumpPill(tester, rows: board(1));
 
     expect(find.byType(CommunityAvatar), findsOneWidget);
-    expect(find.text('All time · one member has scored so far'), findsOneWidget);
+    expect(
+      find.text('All time · one member has scored so far'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('an empty board invites rather than showing grey circles', (

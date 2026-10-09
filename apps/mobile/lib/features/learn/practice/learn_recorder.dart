@@ -99,8 +99,7 @@ class LearnRecorderState extends ConsumerState<LearnRecorder> {
     if (!await _recorder.hasPermission()) {
       if (mounted) {
         setState(
-          () => _error =
-              'Microphone access is off. Allow it in your phone’s settings to record.',
+          () => _error = 'Microphone access is off. Allow it in your phone’s settings to record.',
         );
       }
       return;
@@ -177,7 +176,8 @@ class LearnRecorderState extends ConsumerState<LearnRecorder> {
         unawaited(player.play());
       }
     } on Object {
-      if (mounted) setState(() => _error = 'The recording could not be played.');
+      if (mounted)
+        setState(() => _error = 'The recording could not be played.');
     }
     if (mounted) setState(() {});
   }
@@ -225,7 +225,9 @@ class LearnRecorderState extends ConsumerState<LearnRecorder> {
                   style: FilledButton.styleFrom(
                     padding: EdgeInsets.zero,
                     shape: const CircleBorder(),
-                    backgroundColor: _recording ? brand.danger : brand.accentFill,
+                    backgroundColor: _recording
+                        ? brand.danger
+                        : brand.accentFill,
                     foregroundColor: Colors.white,
                   ),
                   child: Icon(

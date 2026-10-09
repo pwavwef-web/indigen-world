@@ -31,10 +31,7 @@ import 'package:indigen_world_mobile/l10n/app_localizations.dart';
 /// The empty state draws the same nav bar the feed does, and deliberately: an
 /// empty Following feed is exactly where somebody needs the way back to For you
 /// and the way out of Explore.
-Future<void> _pumpExplore(
-  WidgetTester tester, {
-  VoidCallback? onExit,
-}) async {
+Future<void> _pumpExplore(WidgetTester tester, {VoidCallback? onExit}) async {
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
@@ -163,9 +160,6 @@ void main() {
     // Following being empty means the member follows nobody, which is a
     // different thing from the archive being empty and gets a different
     // sentence. The bar is what makes both reachable.
-    expect(
-      find.text('Nothing from the people you follow'),
-      findsOneWidget,
-    );
+    expect(find.text('Nothing from the people you follow'), findsOneWidget);
   });
 }

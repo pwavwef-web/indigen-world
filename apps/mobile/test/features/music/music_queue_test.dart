@@ -14,14 +14,17 @@ import 'package:indigen_world_mobile/features/explore/published_content.dart';
 import 'package:indigen_world_mobile/features/music/music_controller.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-PublishedReel _reel(String id, {String? mediaUrl, String? mediaType = 'audio'}) =>
-    PublishedReel(
-      id: id,
-      title: id,
-      creatorName: 'Afi',
-      mediaUrl: mediaUrl ?? 'https://example.test/$id.m4a',
-      mediaType: mediaType,
-    );
+PublishedReel _reel(
+  String id, {
+  String? mediaUrl,
+  String? mediaType = 'audio',
+}) => PublishedReel(
+  id: id,
+  title: id,
+  creatorName: 'Afi',
+  mediaUrl: mediaUrl ?? 'https://example.test/$id.m4a',
+  mediaType: mediaType,
+);
 
 /// Five rows as a member sees them, two of which cannot be played: the second
 /// is still being processed and the fourth is a poem somebody filed under
@@ -136,18 +139,22 @@ void main() {
       expect(container.read(musicControllerProvider).queueKind, isNull);
     });
 
-    test('an unplayable collection is a different message, and not a queue',
-        () async {
-      final container = ProviderContainer();
-      addTearDown(container.dispose);
+    test(
+      'an unplayable collection is a different message, and not a queue',
+      () async {
+        final container = ProviderContainer();
+        addTearDown(container.dispose);
 
-      await container.read(musicControllerProvider.notifier).playCollection(
-        [_reel('poem', mediaType: 'document')],
-        startIndex: 0,
-        kind: CollectionKind.music,
-      );
+        await container
+            .read(musicControllerProvider.notifier)
+            .playCollection(
+              [_reel('poem', mediaType: 'document')],
+              startIndex: 0,
+              kind: CollectionKind.music,
+            );
 
-      expect(container.read(musicControllerProvider).error, contains('yet'));
-    });
+        expect(container.read(musicControllerProvider).error, contains('yet'));
+      },
+    );
   });
 }

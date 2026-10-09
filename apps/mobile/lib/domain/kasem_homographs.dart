@@ -116,11 +116,7 @@ HomographDisplay homographDisplay(
     siblingCount: siblingCount,
     homographIndex: homographIndex,
   )) {
-    return HomographDisplay(
-      text: headword,
-      spoken: headword,
-      numbered: false,
-    );
+    return HomographDisplay(text: headword, spoken: headword, numbered: false);
   }
   return HomographDisplay(
     text: '$headword${superscript(homographIndex)}',

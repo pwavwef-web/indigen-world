@@ -69,8 +69,7 @@ class _ListenPracticeScreenState extends ConsumerState<ListenPracticeScreen> {
       return PracticeMessage(
         icon: Icons.headphones_rounded,
         title: 'No recordings published yet',
-        body:
-            'Listening practice uses words recorded by Kasem speakers, and none are published yet. You can record one for review.',
+        body: 'Listening practice uses words recorded by Kasem speakers, and none are published yet. You can record one for review.',
         actionLabel: 'Record a word',
         onAction: () => Navigator.of(context).pushReplacement(
           MaterialPageRoute<void>(builder: (_) => const SpeakPracticeScreen()),
@@ -87,8 +86,10 @@ class _ListenPracticeScreenState extends ConsumerState<ListenPracticeScreen> {
       return PracticeSummary(
         title: 'Well listened',
         lines: [
-          if (_paid!) '+${LearnProgress.xpPerPracticeDay} XP for today’s listening.'
-          else 'Today’s listening XP was already earned.',
+          if (_paid!)
+            '+${LearnProgress.xpPerPracticeDay} XP for today’s listening.'
+          else
+            'Today’s listening XP was already earned.',
         ],
         onDone: () => Navigator.of(context).pop(),
       );
@@ -136,7 +137,9 @@ class _ListenPracticeScreenState extends ConsumerState<ListenPracticeScreen> {
         ),
         TextButton.icon(
           onPressed: () => Navigator.of(context).push(
-            MaterialPageRoute<void>(builder: (_) => const SpeakPracticeScreen()),
+            MaterialPageRoute<void>(
+              builder: (_) => const SpeakPracticeScreen(),
+            ),
           ),
           icon: const Icon(Icons.mic_rounded),
           label: const Text('Record another word for review'),
@@ -152,7 +155,8 @@ class _ListenPracticeScreenState extends ConsumerState<ListenPracticeScreen> {
         title: 'Listening complete',
         lines: [
           '$_correct of $rounds right.',
-          if (_paid == true) '+${LearnProgress.xpPerPracticeDay} XP for today’s listening.',
+          if (_paid == true)
+            '+${LearnProgress.xpPerPracticeDay} XP for today’s listening.',
           if (_paid == false) 'Today’s listening XP was already earned.',
         ],
         onDone: () => Navigator.of(context).pop(),
@@ -257,7 +261,10 @@ class _Option extends StatelessWidget {
       color: brand.surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(14),
-        side: BorderSide(color: edge, width: state == _OptionState.open ? 1 : 2),
+        side: BorderSide(
+          color: edge,
+          width: state == _OptionState.open ? 1 : 2,
+        ),
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(14),

@@ -115,8 +115,7 @@ class _MergeEntriesScreenState extends ConsumerState<MergeEntriesScreen> {
     final reason = _reason.text.trim();
     if (reason.length < 10) {
       setState(
-        () => _error =
-            'Say why these are the same word — it is the only record of the merge.',
+        () => _error = 'Say why these are the same word — it is the only record of the merge.',
       );
       return;
     }
@@ -307,7 +306,8 @@ class _MergeEntriesScreenState extends ConsumerState<MergeEntriesScreen> {
                       textCapitalization: TextCapitalization.sentences,
                       decoration: const InputDecoration(
                         labelText: 'Why these are one word',
-                        hintText: 'Required. It is the only record of the merge.',
+                        hintText:
+                            'Required. It is the only record of the merge.',
                         alignLabelWithHint: true,
                         prefixIcon: Icon(Icons.merge_rounded),
                       ),
@@ -398,11 +398,7 @@ class _WhichStays extends StatelessWidget {
             'The entry that stays keeps its link, its saved copies and its '
             'sense number. That is usually the older one — the wording can '
             'move across, the address cannot.',
-            style: TextStyle(
-              color: brand.mutedInk,
-              fontSize: 12,
-              height: 1.45,
-            ),
+            style: TextStyle(color: brand.mutedInk, fontSize: 12, height: 1.45),
           ),
         ],
       ),
@@ -596,10 +592,8 @@ class _MovingAcross extends StatelessWidget {
               padding: const EdgeInsets.only(bottom: 6),
               child: RichText(
                 text: TextSpan(
-                  style: DefaultTextStyle.of(context).style.copyWith(
-                    fontSize: 13,
-                    height: 1.4,
-                  ),
+                  style: DefaultTextStyle.of(context).style
+                      .copyWith(fontSize: 13, height: 1.4),
                   children: [
                     TextSpan(
                       text: '${row.label}: ',
@@ -616,7 +610,11 @@ class _MovingAcross extends StatelessWidget {
           Text(
             'Meanings and recorded forms are added rather than replaced, so '
             'nothing either entry says is lost.',
-            style: TextStyle(color: brand.mutedInk, fontSize: 11.5, height: 1.4),
+            style: TextStyle(
+              color: brand.mutedInk,
+              fontSize: 11.5,
+              height: 1.4,
+            ),
           ),
         ],
       ),

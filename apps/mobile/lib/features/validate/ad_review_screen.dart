@@ -42,7 +42,8 @@ class _AdReviewScreenState extends ConsumerState<AdReviewScreen> {
     final feedback = _feedback.text.trim();
     if (decision.requiresFeedback && feedback.isEmpty) {
       setState(
-        () => _error = 'Say why. An advertiser told "no" with no reason '
+        () => _error =
+            'Say why. An advertiser told "no" with no reason '
             'cannot do anything about it.',
       );
       return;

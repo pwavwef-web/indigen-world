@@ -206,8 +206,7 @@ const kContributionOffers = <ContributionOffer>[
   ContributionOffer(
     kind: CollectionKind.video,
     title: 'Video',
-    blurb:
-        'Footage of a place, a performance, a ceremony or a conversation.',
+    blurb: 'Footage of a place, a performance, a ceremony or a conversation.',
   ),
 ];
 

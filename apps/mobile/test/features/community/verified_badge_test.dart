@@ -21,10 +21,7 @@ void main() {
     });
 
     test('a phone alone makes a member', () {
-      expect(
-        fakeProfile(phoneVerified: true).mark,
-        VerifiedMark.member,
-      );
+      expect(fakeProfile(phoneVerified: true).mark, VerifiedMark.member);
     });
 
     test('a granted kind shows once a phone is behind it', () {
@@ -91,11 +88,13 @@ void main() {
   });
 
   group('the badge', () {
-    Future<void> pump(WidgetTester tester, VerifiedMark mark) => tester
-        .pumpWidget(
+    Future<void> pump(WidgetTester tester, VerifiedMark mark) =>
+        tester.pumpWidget(
           communityHarness(
             repository: FakeCommunityRepository(),
-            child: Scaffold(body: Center(child: VerifiedBadge(mark: mark))),
+            child: Scaffold(
+              body: Center(child: VerifiedBadge(mark: mark)),
+            ),
           ),
         );
 

@@ -35,45 +35,46 @@ import 'package:indigen_world_mobile/shared/glass_surface.dart';
 /// nothing to say it was a choice, and could be shown a different one an hour
 /// later. That is worse than showing nothing: it is a dictionary confidently
 /// answering a question it did not understand.
-final dictionaryIndexProvider =
-    Provider<Map<String, List<DictionaryEntry>>>((ref) {
-      final entries =
-          ref.watch(publishedDictionaryEntriesProvider).asData?.value ??
-          const <DictionaryEntry>[];
-      final index = <String, List<DictionaryEntry>>{};
-      final fragments = <String, List<DictionaryEntry>>{};
+final dictionaryIndexProvider = Provider<Map<String, List<DictionaryEntry>>>((
+  ref,
+) {
+  final entries =
+      ref.watch(publishedDictionaryEntriesProvider).asData?.value ??
+      const <DictionaryEntry>[];
+  final index = <String, List<DictionaryEntry>>{};
+  final fragments = <String, List<DictionaryEntry>>{};
 
-      for (final entry in entries) {
-        final headword = normaliseWord(entry.headword);
-        if (headword.isEmpty) continue;
-        index.putIfAbsent(headword, () => <DictionaryEntry>[]).add(entry);
-        if (!headword.contains(' ')) continue;
-        for (final part in headword.split(' ')) {
-          if (part.length > 1) {
-            fragments.putIfAbsent(part, () => <DictionaryEntry>[]).add(entry);
-          }
-        }
+  for (final entry in entries) {
+    final headword = normaliseWord(entry.headword);
+    if (headword.isEmpty) continue;
+    index.putIfAbsent(headword, () => <DictionaryEntry>[]).add(entry);
+    if (!headword.contains(' ')) continue;
+    for (final part in headword.split(' ')) {
+      if (part.length > 1) {
+        fragments.putIfAbsent(part, () => <DictionaryEntry>[]).add(entry);
       }
+    }
+  }
 
-      // Whole headwords still win: a one-word entry must never be shadowed by
-      // a fragment of a longer one. Collected separately and merged after, so
-      // the rule holds regardless of the order entries arrive in — with a
-      // single-valued map `putIfAbsent` enforced it by accident, and only for
-      // as long as the fragment happened to be seen second.
-      for (final fragment in fragments.entries) {
-        index.putIfAbsent(fragment.key, () => fragment.value);
-      }
+  // Whole headwords still win: a one-word entry must never be shadowed by
+  // a fragment of a longer one. Collected separately and merged after, so
+  // the rule holds regardless of the order entries arrive in — with a
+  // single-valued map `putIfAbsent` enforced it by accident, and only for
+  // as long as the fragment happened to be seen second.
+  for (final fragment in fragments.entries) {
+    index.putIfAbsent(fragment.key, () => fragment.value);
+  }
 
-      // The senses under one spelling are ordered, so a chooser lists them
-      // 1, 2, 3 rather than in snapshot order.
-      for (final senses in index.values) {
-        senses.sort((left, right) {
-          final bySense = left.homographIndex.compareTo(right.homographIndex);
-          return bySense != 0 ? bySense : left.id.compareTo(right.id);
-        });
-      }
-      return Map.unmodifiable(index);
+  // The senses under one spelling are ordered, so a chooser lists them
+  // 1, 2, 3 rather than in snapshot order.
+  for (final senses in index.values) {
+    senses.sort((left, right) {
+      final bySense = left.homographIndex.compareTo(right.homographIndex);
+      return bySense != 0 ? bySense : left.id.compareTo(right.id);
     });
+  }
+  return Map.unmodifiable(index);
+});
 
 /// One entry, the same for everybody, for the whole of one day.
 ///

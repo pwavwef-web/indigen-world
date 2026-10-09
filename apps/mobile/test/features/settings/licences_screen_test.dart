@@ -94,10 +94,7 @@ void main() {
     // Tatoeba's, and the page has to say so rather than crediting everything.
     expect(find.textContaining('carry no Tatoeba credit'), findsOneWidget);
     // The boundary that matters: community Kasem is not under this licence.
-    expect(
-      find.textContaining('are not part of this licence'),
-      findsOneWidget,
-    );
+    expect(find.textContaining('are not part of this licence'), findsOneWidget);
   });
 
   group('PolicyScreen', () {

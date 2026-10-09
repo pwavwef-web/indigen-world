@@ -13,6 +13,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:indigen_world_mobile/app/app_theme.dart';
+import 'package:indigen_world_mobile/core/media_preferences.dart';
 import 'package:indigen_world_mobile/features/community/data/community_models.dart';
 import 'package:indigen_world_mobile/features/community/widgets/community_post_card.dart';
 import 'package:indigen_world_mobile/features/community/widgets/inline_video.dart';
@@ -40,8 +41,14 @@ Future<void> _pumpAttachments(
   WidgetTester tester,
   List<CommunityMedia> media,
 ) async {
+  final container = ProviderContainer();
+  addTearDown(container.dispose);
+  // These layout checks exercise the normal media setting. Low-data request
+  // suppression is verified independently in low_data_requests_test.dart.
+  await container.read(lowDataModeProvider.notifier).set(false);
   await tester.pumpWidget(
-    ProviderScope(
+    UncontrolledProviderScope(
+      container: container,
       child: MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,

@@ -150,11 +150,7 @@ void main() {
 
     final store = LocalReelDraftStore();
     const draftId = 'device_draft';
-    final adopted = await store.adoptFile(
-      draftId,
-      clip,
-      fileName: 'video.mp4',
-    );
+    final adopted = await store.adoptFile(draftId, clip, fileName: 'video.mp4');
     expect(File(adopted).existsSync(), isTrue);
     expect(File(clip).existsSync(), isFalse, reason: 'moved, not copied');
     debugPrint('REEL_DEVICE adopted into $adopted');
@@ -226,7 +222,10 @@ void main() {
     // Four seconds of playback over a 1.5 s window: it must have looped, and
     // never shown much past the end.
     const slack = Duration(milliseconds: 400);
-    expect(seen.every((at) => at >= start - slack && at <= end + slack), isTrue);
+    expect(
+      seen.every((at) => at >= start - slack && at <= end + slack),
+      isTrue,
+    );
 
     controller.setOriginalSound(false);
     await Future<void>.delayed(const Duration(milliseconds: 100));

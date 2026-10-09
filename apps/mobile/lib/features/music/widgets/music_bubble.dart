@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/material.dart';
 import 'package:indigen_world_mobile/core/brand.dart';

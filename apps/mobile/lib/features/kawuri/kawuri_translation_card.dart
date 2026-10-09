@@ -57,7 +57,9 @@ class _KawuriTranslationCardState extends State<KawuriTranslationCard> {
       decoration: BoxDecoration(
         color: context.brand.surfaceMuted,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: context.brand.nightAccent.withValues(alpha: .5)),
+        border: Border.all(
+          color: context.brand.nightAccent.withValues(alpha: .5),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

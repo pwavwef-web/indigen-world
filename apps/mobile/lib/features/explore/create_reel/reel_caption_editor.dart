@@ -322,7 +322,9 @@ class _ReelCaptionEditorScreenState extends State<ReelCaptionEditorScreen> {
             ],
           ),
           body: DecoratedBox(
-            decoration: BoxDecoration(gradient: BrandGradients.night(context.brand)),
+            decoration: BoxDecoration(
+              gradient: BrandGradients.night(context.brand),
+            ),
             child: SafeArea(top: false, child: _body(context)),
           ),
         ),

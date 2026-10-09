@@ -28,7 +28,11 @@ class AccountDraftSession {
   final VoidCallback changed;
   Timer? _timer;
   String _owner = '', _last = '';
-  bool _ready = false, _busy = false, _disabled = false, _disposed = false, _closing = false;
+  bool _ready = false,
+      _busy = false,
+      _disabled = false,
+      _disposed = false,
+      _closing = false;
   Map<String, dynamic>? recovery;
   String status = 'Checking draft recovery…';
   String get owner => _owner;

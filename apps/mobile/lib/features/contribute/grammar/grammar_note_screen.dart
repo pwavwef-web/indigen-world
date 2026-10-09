@@ -80,14 +80,27 @@ class _GrammarNoteScreenState extends ConsumerState<GrammarNoteScreen> {
       ? FirebaseAuth.instance.currentUser?.uid ?? 'offline'
       : 'offline';
 
-
   @override
   void initState() {
     super.initState();
     if (widget.initialData != null) _restore(widget.initialData!);
     if (widget.prefillData != null) _restore(widget.prefillData!);
     final draftProviders = ProviderScope.containerOf(context, listen: false);
-    _recovery = AccountDraftSession(account: () => draftProviders.read(authStateProvider).asData?.value?.uid ?? '', area: 'evidence:${widget.initialData?['id'] ?? 'new'}', snapshot: _payload, meaningful: () => f('title').text.isNotEmpty || _examples.any((row) => row.values.any((field) => field.text.isNotEmpty)), version: () => '${widget.initialData?['revision'] ?? 0}', changed: () { if (mounted) setState(() {}); });
+    _recovery = AccountDraftSession(
+      account: () =>
+          draftProviders.read(authStateProvider).asData?.value?.uid ?? '',
+      area: 'evidence:${widget.initialData?['id'] ?? 'new'}',
+      snapshot: _payload,
+      meaningful: () =>
+          f('title').text.isNotEmpty ||
+          _examples.any(
+            (row) => row.values.any((field) => field.text.isNotEmpty),
+          ),
+      version: () => '${widget.initialData?['revision'] ?? 0}',
+      changed: () {
+        if (mounted) setState(() {});
+      },
+    );
   }
 
   void _restore(Map<String, dynamic> data) {
@@ -577,7 +590,13 @@ class _GrammarNoteScreenState extends ConsumerState<GrammarNoteScreen> {
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          DraftRecoveryPanel(session: _recovery, restore: (value) => setState(() { _restore(value); _permissions['sourceConfirmed'] = false; })),
+          DraftRecoveryPanel(
+            session: _recovery,
+            restore: (value) => setState(() {
+              _restore(value);
+              _permissions['sourceConfirmed'] = false;
+            }),
+          ),
           const Text(
             'Share how you would say it, and when. You can leave a word unexplained.',
           ),
@@ -708,13 +727,22 @@ class _GrammarNoteScreenState extends ConsumerState<GrammarNoteScreen> {
                 child: const Text('Save draft'),
               ),
               TextButton(
-                onPressed: () { final value = _recovery.continueDraft(); if (value != null) setState(() { _restore(value); _permissions['sourceConfirmed'] = false; }); },
+                onPressed: () {
+                  final value = _recovery.continueDraft();
+                  if (value != null)
+                    setState(() {
+                      _restore(value);
+                      _permissions['sourceConfirmed'] = false;
+                    });
+                },
                 child: const Text('Restore draft'),
               ),
             ],
           ),
           FilledButton(
-            onPressed: signedIn && !_busy && _recovery.canSubmit ? _submit : null,
+            onPressed: signedIn && !_busy && _recovery.canSubmit
+                ? _submit
+                : null,
             child: Text(
               _busy
                   ? 'Saving…'
@@ -730,7 +758,8 @@ class _GrammarNoteScreenState extends ConsumerState<GrammarNoteScreen> {
 
   @override
   void dispose() {
-    unawaited(_recovery.flush(closing: true)); _recovery.dispose();
+    unawaited(_recovery.flush(closing: true));
+    _recovery.dispose();
     for (final c in [..._fields.values, ..._examples.expand((e) => e.values)]) {
       c.dispose();
     }

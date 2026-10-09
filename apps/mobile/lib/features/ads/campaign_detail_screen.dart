@@ -322,9 +322,7 @@ class _AdPaymentPanelState extends ConsumerState<AdPaymentPanel>
       );
       if (!mounted) return;
       if (!opened) {
-        setState(
-          () => _error = 'No browser could open the payment page.',
-        );
+        setState(() => _error = 'No browser could open the payment page.');
         return;
       }
       setState(() {

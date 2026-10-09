@@ -624,9 +624,12 @@ class _HeroArt extends StatelessWidget {
         : unit?.imageAttribution ?? '';
     if (networkUrl.isEmpty && asset.isEmpty) {
       return ClipRect(
-        child: CustomPaint(painter: KassenaPatternPainter(
+        child: CustomPaint(
+          painter: KassenaPatternPainter(
             tint: context.brand.highlight,
-            opacity: 0.08)),
+            opacity: 0.08,
+          ),
+        ),
       );
     }
     return Semantics(
@@ -700,9 +703,12 @@ class _PatternFill extends StatelessWidget {
       ),
     ),
     child: ClipRect(
-      child: CustomPaint(painter: KassenaPatternPainter(
-            tint: context.brand.highlight,
-            opacity: 0.22)),
+      child: CustomPaint(
+        painter: KassenaPatternPainter(
+          tint: context.brand.highlight,
+          opacity: 0.22,
+        ),
+      ),
     ),
   );
 }
@@ -997,9 +1003,12 @@ class _WordMotif extends StatelessWidget {
         fit: StackFit.expand,
         children: [
           ClipRect(
-            child: CustomPaint(painter: KassenaPatternPainter(
-            tint: context.brand.highlight,
-            opacity: 0.28)),
+            child: CustomPaint(
+              painter: KassenaPatternPainter(
+                tint: context.brand.highlight,
+                opacity: 0.28,
+              ),
+            ),
           ),
           Center(
             child: Text(
@@ -1370,7 +1379,10 @@ class _UnitStateBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     final (icon, color) = switch (state) {
       UnitState.completed => (Icons.check_rounded, const Color(0xFFE2B85A)),
-      UnitState.inProgress => (Icons.play_arrow_rounded, context.brand.nightAccent),
+      UnitState.inProgress => (
+        Icons.play_arrow_rounded,
+        context.brand.nightAccent,
+      ),
       UnitState.locked => (Icons.lock_rounded, Colors.white),
       UnitState.inPreparation => (Icons.schedule_rounded, Colors.white),
       UnitState.available => (null, null),

@@ -68,7 +68,10 @@ ProviderContainer _container({List<String> following = const []}) {
 /// future never completes. And one turn is not enough for the Following feed —
 /// `followingIdsProvider` has to deliver before the feed that reads it can
 /// recompute, so the values arrive a turn apart.
-Future<void> _settle(ProviderContainer container, Provider<List<Reel>> of) async {
+Future<void> _settle(
+  ProviderContainer container,
+  Provider<List<Reel>> of,
+) async {
   container.listen(of, (_, _) {});
   for (var turn = 0; turn < 4; turn++) {
     await Future<void>.delayed(Duration.zero);

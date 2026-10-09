@@ -258,7 +258,9 @@ int? searchRank({
   final foldedHeadword = foldForSearch(headword);
   if (foldedHeadword == foldedQuery) return 0;
 
-  final foldedRenderings = renderings.map(foldForSearch).toList(growable: false);
+  final foldedRenderings = renderings
+      .map(foldForSearch)
+      .toList(growable: false);
   if (foldedRenderings.contains(foldedQuery)) return 1;
 
   final foldedTranslations = translations
@@ -268,7 +270,8 @@ int? searchRank({
 
   if (foldedHeadword.startsWith(foldedQuery)) return 3;
   if (foldedRenderings.any((value) => value.startsWith(foldedQuery))) return 3;
-  if (foldedTranslations.any((value) => value.startsWith(foldedQuery))) return 4;
+  if (foldedTranslations.any((value) => value.startsWith(foldedQuery)))
+    return 4;
 
   if (foldedHeadword.contains(foldedQuery)) return 5;
   if (foldedRenderings.any((value) => value.contains(foldedQuery))) return 5;

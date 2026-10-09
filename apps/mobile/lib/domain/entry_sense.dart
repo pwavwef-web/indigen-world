@@ -281,9 +281,7 @@ class SenseExample {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is SenseExample &&
-          other.kasem == kasem &&
-          other.english == english;
+      other is SenseExample && other.kasem == kasem && other.english == english;
 
   @override
   int get hashCode => Object.hash(kasem, english);

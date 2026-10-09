@@ -316,9 +316,7 @@ abstract class DictionaryEntry with _$DictionaryEntry {
     /// Not to be confused with [homographIndex], which numbers entries that
     /// are *different words* sharing one spelling. Both draw "1." and "2." on
     /// the page and only one of them is a stable identity.
-    @EntrySenseListConverter()
-    @Default(<EntrySense>[])
-    List<EntrySense> senses,
+    @EntrySenseListConverter() @Default(<EntrySense>[]) List<EntrySense> senses,
 
     /// Whether this entry is in the dictionary.
     ///
@@ -420,8 +418,7 @@ abstract class DictionaryEntry with _$DictionaryEntry {
   /// [agreeingOneForm].
   List<({String label, String form})> get agreementForms => [
     if (agreeingOneForm.isNotEmpty) (label: 'Used with', form: agreeingOneForm),
-    if (agreeingTwoForm.isNotEmpty)
-      (label: 'And with', form: agreeingTwoForm),
+    if (agreeingTwoForm.isNotEmpty) (label: 'And with', form: agreeingTwoForm),
   ].where((row) => row.form.trim().isNotEmpty).toList(growable: false);
 
   /// The noun paradigm, as label/form pairs, in the order a reader wants them.
@@ -454,7 +451,8 @@ abstract class DictionaryEntry with _$DictionaryEntry {
     if (futureForm.isNotEmpty) (label: 'Tomorrow', form: futureForm),
     if (pluralSubjectForm.isNotEmpty)
       (label: 'Several doing it', form: pluralSubjectForm),
-    if (imperativeForm.isNotEmpty) (label: 'Telling somebody', form: imperativeForm),
+    if (imperativeForm.isNotEmpty)
+      (label: 'Telling somebody', form: imperativeForm),
   ].where((row) => row.form.trim().isNotEmpty).toList(growable: false);
 
   /// Whether the noun table has anything in it beyond the headword.
@@ -613,8 +611,7 @@ abstract class DictionaryEntry with _$DictionaryEntry {
   /// sentences under the senses they illustrate, and printing the first one
   /// again lower down would have a reader wondering which sense it belonged
   /// to -- which is the exact confusion senses were added to remove.
-  bool get hasSenseExamples =>
-      senses.any((sense) => sense.examples.isNotEmpty);
+  bool get hasSenseExamples => senses.any((sense) => sense.examples.isNotEmpty);
 
   /// Every meaning as one line, for a semantic label.
   ///

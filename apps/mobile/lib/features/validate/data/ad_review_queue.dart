@@ -107,12 +107,13 @@ class AdReviewRepository {
       .limit(60)
       .snapshots()
       .map((snapshot) {
-        final rows = snapshot.docs.map(AdCampaign.fromDoc).toList(growable: true)
-          ..sort((left, right) {
-            final leftAt = left.createdAt ?? DateTime(1970);
-            final rightAt = right.createdAt ?? DateTime(1970);
-            return rightAt.compareTo(leftAt);
-          });
+        final rows =
+            snapshot.docs.map(AdCampaign.fromDoc).toList(growable: true)
+              ..sort((left, right) {
+                final leftAt = left.createdAt ?? DateTime(1970);
+                final rightAt = right.createdAt ?? DateTime(1970);
+                return rightAt.compareTo(leftAt);
+              });
         return List<AdCampaign>.unmodifiable(rows);
       });
 

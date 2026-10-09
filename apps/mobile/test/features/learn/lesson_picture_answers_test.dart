@@ -40,9 +40,7 @@ const _lessons = [
 ];
 
 Widget _harness(List<Lesson> lessons) => ProviderScope(
-  overrides: [
-    lessonPathProvider.overrideWith((ref) => Stream.value(lessons)),
-  ],
+  overrides: [lessonPathProvider.overrideWith((ref) => Stream.value(lessons))],
   child: MaterialApp(
     localizationsDelegates: AppLocalizations.localizationsDelegates,
     supportedLocales: AppLocalizations.supportedLocales,

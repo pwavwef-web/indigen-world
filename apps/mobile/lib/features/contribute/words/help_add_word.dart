@@ -82,7 +82,11 @@ Future<bool> openHelpAddWord(
   }
 
   try {
-    final request = await lookup.request(word, topic: topic, source: source.wire);
+    final request = await lookup.request(
+      word,
+      topic: topic,
+      source: source.wire,
+    );
     analytics.log(
       LoopEvent.wordRequest,
       parameters: loopParameters({
@@ -180,7 +184,8 @@ class _HelpAddWordCardState extends ConsumerState<HelpAddWordCard> {
           : const Icon(Icons.add_comment_outlined, size: 18),
       label: Text('Help add “$word”'),
     );
-    if (widget.dense) return Align(alignment: Alignment.centerLeft, child: button);
+    if (widget.dense)
+      return Align(alignment: Alignment.centerLeft, child: button);
     final theme = Theme.of(context);
     return Column(
       children: [

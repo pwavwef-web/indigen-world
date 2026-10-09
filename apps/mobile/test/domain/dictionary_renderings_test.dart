@@ -48,10 +48,7 @@ void main() {
   });
 
   test('a legacy entry with one rendering is untouched', () {
-    final parsed = dictionaryEntryFromData(
-      'legacy',
-      entry(kasemText: 'nia'),
-    )!;
+    final parsed = dictionaryEntryFromData('legacy', entry(kasemText: 'nia'))!;
 
     expect(parsed.headword, 'nia');
     expect(parsed.furtherRenderings, isEmpty);

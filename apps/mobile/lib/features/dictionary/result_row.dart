@@ -87,10 +87,7 @@ class DictionaryResultRow extends StatelessWidget {
                         ipa,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: brand.mutedInk,
-                          fontSize: 12.5,
-                        ),
+                        style: TextStyle(color: brand.mutedInk, fontSize: 12.5),
                       ),
                     ),
                   ],
@@ -194,9 +191,8 @@ class _Meanings extends StatelessWidget {
       maxLines: 3,
       overflow: TextOverflow.ellipsis,
       text: TextSpan(
-        style: DefaultTextStyle.of(
-          context,
-        ).style.copyWith(fontSize: 13.5, height: 1.4),
+        style: DefaultTextStyle.of(context).style
+            .copyWith(fontSize: 13.5, height: 1.4),
         children: [
           for (var index = 0; index < meanings.length; index++) ...[
             TextSpan(

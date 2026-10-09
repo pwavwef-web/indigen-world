@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+
 import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -46,8 +47,8 @@ void main() {
   test('offline queue spans collections without reading original collections or network', () async {
     await row('song');
     await row('chapter', kind: 'audiobooks');
-    await File('${directory.path}/song.mp3').writeAsBytes([1, 2, 3]);
-    await File('${directory.path}/chapter.mp3').writeAsBytes([4, 5, 6]);
+    await File('${directory.path}/song.mp3').writeAsBytes('ID3'.codeUnits);
+    await File('${directory.path}/chapter.mp3').writeAsBytes('ID3'.codeUnits);
     final rows = await database.getDownloads();
     final urls = await repository.playableIndex();
     final queue = downloadedQueue(rows, urls);
@@ -72,7 +73,7 @@ void main() {
     await row('partial');
     await row('valid');
     await File('${directory.path}/partial.mp3').writeAsBytes([1]);
-    await File('${directory.path}/valid.mp3').writeAsBytes([1, 2, 3]);
+    await File('${directory.path}/valid.mp3').writeAsBytes('ID3'.codeUnits);
     expect((await repository.playableIndex()).keys, ['valid']);
     expect(await database.countDownloads(), 3);
     await repository.remove('valid');
@@ -94,7 +95,7 @@ void main() {
           );
         } else {
           request.response.contentLength = 3;
-          request.response.add([1, 2, 3]);
+          request.response.add('ID3'.codeUnits);
         }
         await request.response.close();
       });
@@ -124,11 +125,10 @@ void main() {
       );
       await repository.sweep();
       expect(await File.fromUri(Uri.parse(art['new']!)).exists(), isTrue);
-      expect(await File.fromUri(Uri.parse(urls['new']!)).readAsBytes(), [
-        1,
-        2,
-        3,
-      ]);
+      expect(
+        await File.fromUri(Uri.parse(urls['new']!)).readAsBytes(),
+        'ID3'.codeUnits,
+      );
     },
   );
 }

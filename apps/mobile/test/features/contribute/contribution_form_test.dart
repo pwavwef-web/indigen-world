@@ -44,13 +44,23 @@ Future<void> pumpForm(
 }
 
 void main() {
-  testWidgets('a proverb asks for literal wording separately from its meaning', (tester) async {
-    await pumpForm(tester, CollectionKind.dictionary, lexicalKind: LexicalKind.proverb);
-    expect(find.text('What it means in English'), findsOneWidget);
-    expect(find.text('Literal English translation (optional)'), findsOneWidget);
-    expect(find.text('When is this saying used? (optional)'), findsOneWidget);
-    expect(find.text('French meaning (optional)'), findsOneWidget);
-  });
+  testWidgets(
+    'a proverb asks for literal wording separately from its meaning',
+    (tester) async {
+      await pumpForm(
+        tester,
+        CollectionKind.dictionary,
+        lexicalKind: LexicalKind.proverb,
+      );
+      expect(find.text('What it means in English'), findsOneWidget);
+      expect(
+        find.text('Literal English translation (optional)'),
+        findsOneWidget,
+      );
+      expect(find.text('When is this saying used? (optional)'), findsOneWidget);
+      expect(find.text('French meaning (optional)'), findsOneWidget);
+    },
+  );
   testWidgets('a word is asked what a word needs', (tester) async {
     await pumpForm(tester, CollectionKind.dictionary);
 
@@ -71,10 +81,7 @@ void main() {
     // offer of a second meaning phrased as an invitation rather than a step.
     expect(find.text('Meaning 1'), findsNothing);
     expect(find.text('How is it said?'), findsNothing);
-    expect(
-      find.text('This word means something else too'),
-      findsOneWidget,
-    );
+    expect(find.text('This word means something else too'), findsOneWidget);
 
     // A dictionary word carries nobody else's work, and has nothing for a
     // cover to be the cover of.
@@ -124,10 +131,7 @@ void main() {
     // are how they do it.
     expect(find.text('How is it said?'), findsOneWidget);
     expect(find.text('What is it about?'), findsOneWidget);
-    expect(
-      find.text('Word class for this meaning (optional)'),
-      findsOneWidget,
-    );
+    expect(find.text('Word class for this meaning (optional)'), findsOneWidget);
   });
 
   testWidgets('an empty extra meaning is removed without a confirmation', (

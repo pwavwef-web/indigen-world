@@ -444,8 +444,8 @@ AuthFailure googleSignInFailure(GoogleSignInException error) {
     GoogleSignInExceptionCode.providerConfigurationError => const AuthFailure(
       AuthFailureKind.configuration,
       'This device cannot show the Google account sheet. '
-          'Check Google Play services is up to date, or use your email and '
-          'password.',
+      'Check Google Play services is up to date, or use your email and '
+      'password.',
     ),
     GoogleSignInExceptionCode.uiUnavailable => const AuthFailure(
       AuthFailureKind.unavailable,
@@ -474,9 +474,11 @@ AuthFailure googleSignInFailure(GoogleSignInException error) {
 /// one cancellation before the generic mapping runs.
 @visibleForTesting
 AuthFailure hostedGoogleFlowFailure(FirebaseAuthException error) =>
-    const {'web-context-canceled', 'user-cancelled', 'canceled'}.contains(
-      error.code,
-    )
+    const {
+      'web-context-canceled',
+      'user-cancelled',
+      'canceled',
+    }.contains(error.code)
     ? const AuthFailure(
         AuthFailureKind.cancelled,
         'Google Sign-In did not finish. Please try again.',

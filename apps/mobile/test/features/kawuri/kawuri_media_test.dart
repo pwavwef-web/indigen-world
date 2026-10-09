@@ -618,57 +618,61 @@ void main() {
       },
     );
 
-    testWidgets('the sound switch is offered only by a backend that honours it', (
-      tester,
-    ) async {
-      Future<void> pump(Map<Object?, Object?> caps) async {
-        await tester.pumpWidget(
-          ProviderScope(
-            overrides: [
-              kawuriMediaRepositoryProvider.overrideWithValue(
-                FakeMediaRepository(),
+    testWidgets(
+      'the sound switch is offered only by a backend that honours it',
+      (tester) async {
+        Future<void> pump(Map<Object?, Object?> caps) async {
+          await tester.pumpWidget(
+            ProviderScope(
+              overrides: [
+                kawuriMediaRepositoryProvider.overrideWithValue(
+                  FakeMediaRepository(),
+                ),
+                kawuriCapabilitiesProvider.overrideWith(
+                  (ref) async => KawuriCapabilities.fromMap(caps),
+                ),
+              ],
+              child: MaterialApp(
+                localizationsDelegates: AppLocalizations.localizationsDelegates,
+                supportedLocales: AppLocalizations.supportedLocales,
+                theme: buildIndigenTheme(),
+                home: const KawuriCreateScreen(kind: KawuriCreateKind.video),
               ),
-              kawuriCapabilitiesProvider.overrideWith(
-                (ref) async => KawuriCapabilities.fromMap(caps),
-              ),
-            ],
-            child: MaterialApp(
-              localizationsDelegates: AppLocalizations.localizationsDelegates,
-              supportedLocales: AppLocalizations.supportedLocales,
-              theme: buildIndigenTheme(),
-              home: const KawuriCreateScreen(kind: KawuriCreateKind.video),
             ),
-          ),
+          );
+          await tester.pumpAndSettle();
+        }
+
+        await pump(manifest());
+        final sound = find.byKey(const Key('kawuri-video-sound'));
+        await tester.scrollUntilVisible(
+          sound,
+          150,
+          scrollable: find.byType(Scrollable).first,
         );
+        expect(tester.widget<SwitchListTile>(sound).value, isTrue);
+        expect(
+          find.textContaining('will not be speaking Kasem'),
+          findsOneWidget,
+        );
+        await tester.tap(sound);
         await tester.pumpAndSettle();
-      }
+        expect(tester.widget<SwitchListTile>(sound).value, isFalse);
+        expect(find.textContaining('A silent video'), findsOneWidget);
 
-      await pump(manifest());
-      final sound = find.byKey(const Key('kawuri-video-sound'));
-      await tester.scrollUntilVisible(
-        sound,
-        150,
-        scrollable: find.byType(Scrollable).first,
-      );
-      expect(tester.widget<SwitchListTile>(sound).value, isTrue);
-      expect(find.textContaining('will not be speaking Kasem'), findsOneWidget);
-      await tester.tap(sound);
-      await tester.pumpAndSettle();
-      expect(tester.widget<SwitchListTile>(sound).value, isFalse);
-      expect(find.textContaining('A silent video'), findsOneWidget);
-
-      // An older backend makes every video silent, so no switch is shown and
-      // the screen keeps saying so.
-      await tester.pumpWidget(const SizedBox.shrink());
-      await pump(manifest(videoAudio: false));
-      expect(find.byKey(const Key('kawuri-video-sound')), findsNothing);
-      await tester.scrollUntilVisible(
-        find.textContaining('without sound'),
-        150,
-        scrollable: find.byType(Scrollable).first,
-      );
-      expect(find.textContaining('without sound'), findsOneWidget);
-    });
+        // An older backend makes every video silent, so no switch is shown and
+        // the screen keeps saying so.
+        await tester.pumpWidget(const SizedBox.shrink());
+        await pump(manifest(videoAudio: false));
+        expect(find.byKey(const Key('kawuri-video-sound')), findsNothing);
+        await tester.scrollUntilVisible(
+          find.textContaining('without sound'),
+          150,
+          scrollable: find.byType(Scrollable).first,
+        );
+        expect(find.textContaining('without sound'), findsOneWidget);
+      },
+    );
 
     for (final width in [320.0, 412.0]) {
       testWidgets(

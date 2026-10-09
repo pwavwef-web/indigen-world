@@ -54,7 +54,9 @@ Future<void> pump(WidgetTester tester, Widget child, {double width = 260}) {
       supportedLocales: AppLocalizations.supportedLocales,
       theme: buildIndigenTheme(),
       home: Scaffold(
-        body: Center(child: SizedBox(width: width, child: child)),
+        body: Center(
+          child: SizedBox(width: width, child: child),
+        ),
       ),
     ),
   );

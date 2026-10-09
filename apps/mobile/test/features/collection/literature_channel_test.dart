@@ -32,13 +32,25 @@ void main() {
     body: 'A harvest story from Paga.',
   );
 
-  test('a film published under a story category stays off the Literature shelf', () {
-    expect(belongsInCollection(filmedStory, CollectionKind.literature), isFalse);
-  });
+  test(
+    'a film published under a story category stays off the Literature shelf',
+    () {
+      expect(
+        belongsInCollection(filmedStory, CollectionKind.literature),
+        isFalse,
+      );
+    },
+  );
 
   test('documents and written work are what Literature is made of', () {
-    expect(belongsInCollection(documentStory, CollectionKind.literature), isTrue);
-    expect(belongsInCollection(writtenStory, CollectionKind.literature), isTrue);
+    expect(
+      belongsInCollection(documentStory, CollectionKind.literature),
+      isTrue,
+    );
+    expect(
+      belongsInCollection(writtenStory, CollectionKind.literature),
+      isTrue,
+    );
     // A recorded reading filed under Literature is not a film, and the detail
     // screen already hands it to the shared music player.
     const reading = PublishedReel(
@@ -63,6 +75,9 @@ void main() {
     // `mediaType` is null on everything published before the workflow began
     // inferring it. Dropping those would empty the shelf it was meant to tidy.
     expect(writtenStory.isVideo, isFalse);
-    expect(belongsInCollection(writtenStory, CollectionKind.literature), isTrue);
+    expect(
+      belongsInCollection(writtenStory, CollectionKind.literature),
+      isTrue,
+    );
   });
 }

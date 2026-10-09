@@ -60,8 +60,9 @@ class AuthFailure implements Exception {
 
   /// The same failure with [detail] attached, for a caller that knows which
   /// leg of the sign-in failed and wants to say so.
-  AuthFailure withDetail(String? value) =>
-      value == null || value.isEmpty ? this : AuthFailure(kind, message, detail: value);
+  AuthFailure withDetail(String? value) => value == null || value.isEmpty
+      ? this
+      : AuthFailure(kind, message, detail: value);
 
   @override
   String toString() => detail == null ? message : '$message ($detail)';

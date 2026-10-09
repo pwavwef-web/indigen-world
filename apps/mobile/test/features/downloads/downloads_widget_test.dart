@@ -77,6 +77,7 @@ void main() {
               downloadsProvider.overrideWith((ref) => Stream.value([row])),
               downloadLimitProvider.overrideWithValue(25),
               downloadsAllowedProvider.overrideWithValue(allowed),
+              downloadedArtworkProvider.overrideWith((ref) async => {}),
               playableDownloadsProvider.overrideWith(
                 (ref) async => {'test-only': 'file:///synthetic/test-only.mp3'},
               ),

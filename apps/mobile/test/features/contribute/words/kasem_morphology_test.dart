@@ -68,17 +68,20 @@ void main() {
       expect(pronounForDefinite('ka sem'), 'se');
     });
 
-    test('the pronoun is stored per determiner, not sliced off the spelling', () {
-      // THE test that keeps this a record instead of a generalisation. Seven
-      // of the eight are the article minus its `-m`; `wom` is not. An
-      // implementation that dropped the last letter would pass every other
-      // case in this file and be wrong about exactly one real word.
-      expect(pronounForDefinite('bu wom'), 'o', reason: 'not "wo"');
-      // And it must stay silent about a determiner nobody has attested,
-      // rather than confidently slicing an `-m` off it.
-      expect(pronounForDefinite('bu nam'), isNull);
-      expect(pronounForDefinite('bu zom'), isNull);
-    });
+    test(
+      'the pronoun is stored per determiner, not sliced off the spelling',
+      () {
+        // THE test that keeps this a record instead of a generalisation. Seven
+        // of the eight are the article minus its `-m`; `wom` is not. An
+        // implementation that dropped the last letter would pass every other
+        // case in this file and be wrong about exactly one real word.
+        expect(pronounForDefinite('bu wom'), 'o', reason: 'not "wo"');
+        // And it must stay silent about a determiner nobody has attested,
+        // rather than confidently slicing an `-m` off it.
+        expect(pronounForDefinite('bu nam'), isNull);
+        expect(pronounForDefinite('bu zom'), isNull);
+      },
+    );
 
     test('an unrecognised or absent definite form yields no pronoun', () {
       expect(pronounForDefinite('the boy'), isNull);

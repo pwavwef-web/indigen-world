@@ -47,7 +47,8 @@ class _NameRequestReviewScreenState
     final note = _note.text.trim();
     if (decision.requiresFeedback && note.length < 5) {
       setState(
-        () => _error = 'Say why. The member reads this, and a "no" with no '
+        () => _error =
+            'Say why. The member reads this, and a "no" with no '
             'reason is one they cannot answer.',
       );
       return;
@@ -58,11 +59,12 @@ class _NameRequestReviewScreenState
       context: context,
       title: '${decision.label}?',
       message: switch (decision) {
-        NameRequestDecision.approve => request.handle.isEmpty
-            ? '${request.name} goes on the published list and anybody may '
-                  'take it.'
-            : '${request.name} goes on the published list and @${request.handle}'
-                  ' becomes theirs in the same moment.',
+        NameRequestDecision.approve =>
+          request.handle.isEmpty
+              ? '${request.name} goes on the published list and anybody may '
+                    'take it.'
+              : '${request.name} goes on the published list and @${request.handle}'
+                    ' becomes theirs in the same moment.',
         NameRequestDecision.reject =>
           'The name is not added, and the member is told why.',
       },
@@ -331,8 +333,9 @@ class _NameRequestReviewScreenState
   static String _handleOutcome(KasemNameRequest request) =>
       switch (request.handleOutcome) {
         'applied' => '@${request.handle} was given to them.',
-        'already-yours' => 'They were already called @${request.handle}, so the '
-            'ring appeared the moment the name was published.',
+        'already-yours' =>
+          'They were already called @${request.handle}, so the '
+              'ring appeared the moment the name was published.',
         'already-changed' =>
           '@${request.handle} was not given: they had already spent their one '
               'name change. The name was added anyway.',

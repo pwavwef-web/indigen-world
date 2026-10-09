@@ -131,11 +131,7 @@ void main() {
     // screen left the two panels about eighty pixels each and wrapped
     // "120 learning · 340 contributed" onto four lines inside one of them.
     seedLearning(120);
-    await pumpLearn(
-      tester,
-      contributed: 340,
-      size: const Size(360, 760),
-    );
+    await pumpLearn(tester, contributed: 340, size: const Size(360, 760));
 
     await tester.tap(find.text('460'));
     await tester.pump();

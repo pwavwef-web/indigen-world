@@ -588,7 +588,10 @@ class _FollowUpState extends ConsumerState<_FollowUp> {
       children: [
         Text(
           'Ask a follow-up',
-          style: TextStyle(color: context.brand.nightAccent, fontWeight: FontWeight.w800),
+          style: TextStyle(
+            color: context.brand.nightAccent,
+            fontWeight: FontWeight.w800,
+          ),
         ),
         const SizedBox(height: 8),
         DropdownButtonFormField<String>(

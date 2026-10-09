@@ -124,16 +124,18 @@ class _SubmissionReviewScreenState
         reason: duplicate ? 'duplicate' : null,
       );
       if (item.isQueueAnswer) {
-        ref.read(loopAnalyticsProvider).log(
-          LoopEvent.reviewOutcome,
-          parameters: loopParameters({
-            'decision': decision.wire,
-            'publish_as': choosing ? _target.wire : null,
-            'duplicate': duplicate ? 1 : 0,
-            'origin': item.wordQueueOrigin,
-            'revision': item.revisionCount,
-          }),
-        );
+        ref
+            .read(loopAnalyticsProvider)
+            .log(
+              LoopEvent.reviewOutcome,
+              parameters: loopParameters({
+                'decision': decision.wire,
+                'publish_as': choosing ? _target.wire : null,
+                'duplicate': duplicate ? 1 : 0,
+                'origin': item.wordQueueOrigin,
+                'revision': item.revisionCount,
+              }),
+            );
       }
       ref.invalidate(reviewQueueProvider);
       if (!mounted) return;
@@ -169,8 +171,7 @@ class _SubmissionReviewScreenState
     final reason = _feedbackController.text.trim();
     if (reason.length < 10) {
       setState(
-        () => _error =
-            'Say why these are the same word — it is the only record of the merge.',
+        () => _error = 'Say why these are the same word — it is the only record of the merge.',
       );
       return;
     }
@@ -218,7 +219,10 @@ class _SubmissionReviewScreenState
       ref.invalidate(reviewQueueProvider);
       if (!mounted) return;
       Navigator.of(context).pop();
-      showGlassToast(context, 'Published and merged into “${existing.kasemText}”.');
+      showGlassToast(
+        context,
+        'Published and merged into “${existing.kasemText}”.',
+      );
     } on ReviewFailure catch (failure) {
       if (mounted) setState(() => _error = failure.message);
     } on DictionaryAdminFailure catch (failure) {
@@ -337,7 +341,8 @@ class _SubmissionReviewScreenState
                         _entryLabel = label;
                         _error = null;
                       }),
-                      onDuplicate: (value) => setState(() => _duplicate = value),
+                      onDuplicate: (value) =>
+                          setState(() => _duplicate = value),
                     ),
                   ],
                 ],
@@ -863,10 +868,7 @@ class _ExistingEntryCard extends StatelessWidget {
                     if (row.englishText.isNotEmpty)
                       Text(
                         row.englishText,
-                        style: TextStyle(
-                          color: brand.mutedInk,
-                          fontSize: 12.5,
-                        ),
+                        style: TextStyle(color: brand.mutedInk, fontSize: 12.5),
                       ),
                   ],
                 ),
@@ -973,7 +975,10 @@ class _QueueAnswerFacts extends StatelessWidget {
           Icon(icon, size: 16, color: brand.mutedInk),
           const SizedBox(width: 8),
           Expanded(
-            child: Text(text, style: const TextStyle(fontSize: 12.5, height: 1.4)),
+            child: Text(
+              text,
+              style: const TextStyle(fontSize: 12.5, height: 1.4),
+            ),
           ),
         ],
       ),
@@ -995,8 +1000,14 @@ class _QueueAnswerFacts extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           if (item.queueSentence.isNotEmpty)
-            line(Icons.format_quote_rounded, 'Asked with: “${item.queueSentence}”'),
-          line(Icons.route_rounded, 'Came from: ${_origin(item.wordQueueOrigin)}'),
+            line(
+              Icons.format_quote_rounded,
+              'Asked with: “${item.queueSentence}”',
+            ),
+          line(
+            Icons.route_rounded,
+            'Came from: ${_origin(item.wordQueueOrigin)}',
+          ),
           if (item.revisionCount > 0)
             line(
               Icons.history_edu_rounded,
@@ -1048,7 +1059,8 @@ class _AnswerTargetPicker extends ConsumerStatefulWidget {
   final ValueChanged<bool> onDuplicate;
 
   @override
-  ConsumerState<_AnswerTargetPicker> createState() => _AnswerTargetPickerState();
+  ConsumerState<_AnswerTargetPicker> createState() =>
+      _AnswerTargetPickerState();
 }
 
 class _AnswerTargetPickerState extends ConsumerState<_AnswerTargetPicker> {

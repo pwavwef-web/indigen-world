@@ -43,10 +43,8 @@ void main() {
 
   /// What the bar itself is showing — not what the field underneath holds,
   /// which `find.text` would also match once a letter has been typed.
-  Finder shown(String glyph) => find.descendant(
-    of: find.byType(KasemKeyBar),
-    matching: find.text(glyph),
-  );
+  Finder shown(String glyph) =>
+      find.descendant(of: find.byType(KasemKeyBar), matching: find.text(glyph));
 
   testWidgets('the bar is a strip along the bottom, not a wall', (
     tester,

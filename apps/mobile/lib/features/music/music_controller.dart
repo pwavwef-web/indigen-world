@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -282,7 +283,9 @@ class MusicController extends Notifier<MusicSessionState> {
     required String trackId,
   }) async {
     if (!ref.read(downloadsAllowedProvider)) {
-      state = state.copyWith(error: 'An active offline subscription is required. Your files are still kept on this device.');
+      state = state.copyWith(
+        error: 'An active offline subscription is required. Your files are still kept on this device.',
+      );
       return;
     }
     final local = await ref.read(downloadsRepositoryProvider).playableIndex();

@@ -284,7 +284,9 @@ class _NotificationPreferencesGroup extends ConsumerWidget {
             final it => '$it of $total muted',
           },
           enabled: ready,
-          onTap: ready ? () => unawaited(setAll(enabled: muted == total)) : null,
+          onTap: ready
+              ? () => unawaited(setAll(enabled: muted == total))
+              : null,
         ),
         for (final preference in NotificationPreference.values)
           SwitchListTile.adaptive(

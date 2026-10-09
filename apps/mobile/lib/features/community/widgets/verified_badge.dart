@@ -61,8 +61,9 @@ class VerifiedBadge extends StatelessWidget {
   /// as well as what it does — a badge nobody can explain is a badge people
   /// invent meanings for.
   static String meaning(VerifiedMark mark) => switch (mark) {
-    VerifiedMark.project => 'An account run by Indigen World or Project '
-        'Kassena. What it posts comes from the project itself.',
+    VerifiedMark.project =>
+      'An account run by Indigen World or Project '
+          'Kassena. What it posts comes from the project itself.',
     VerifiedMark.elder =>
       'Recognised by the project as a custodian of Kasem — an elder, a chief '
           'or a linguist. It marks standing in the language, not authority '

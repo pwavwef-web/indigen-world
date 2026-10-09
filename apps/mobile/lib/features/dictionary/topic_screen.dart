@@ -34,11 +34,8 @@ List<DictionaryEntry> entriesForTopic(
 ];
 
 /// Open words people asked for under a topic.
-final topicAskedWordsProvider =
-    FutureProvider.autoDispose.family<List<QueueWord>, String>((
-      ref,
-      topicId,
-    ) async {
+final topicAskedWordsProvider = FutureProvider.autoDispose
+    .family<List<QueueWord>, String>((ref, topicId) async {
       final lookup = ref.watch(queueLookupProvider);
       if (lookup == null) return const <QueueWord>[];
       return lookup.openForTopic(topicId);
@@ -120,15 +117,17 @@ class _TopicScreenState extends ConsumerState<TopicScreen> {
   }
 
   void _openAsked(QueueWord word) {
-    ref.read(loopAnalyticsProvider).log(
-      LoopEvent.promptOpen,
-      parameters: loopParameters({
-        'origin': 'topic',
-        'word_id': word.id,
-        'word': word.word,
-        'topic': widget.topicId,
-      }),
-    );
+    ref
+        .read(loopAnalyticsProvider)
+        .log(
+          LoopEvent.promptOpen,
+          parameters: loopParameters({
+            'origin': 'topic',
+            'word_id': word.id,
+            'word': word.word,
+            'topic': widget.topicId,
+          }),
+        );
     context.push('/contribute/word/${word.id}?origin=topic');
   }
 

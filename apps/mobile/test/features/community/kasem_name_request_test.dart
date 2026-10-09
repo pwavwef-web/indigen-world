@@ -210,30 +210,31 @@ void main() {
       expect(find.textContaining('Say who bears this name'), findsOneWidget);
     });
 
-    testWidgets('pressing it without a note answers rather than doing nothing', (
-      tester,
-    ) async {
-      final repository = _FakeRequests();
-      await _pump(
-        tester,
-        child: const RequestKasemNameScreen(),
-        repository: repository,
-      );
+    testWidgets(
+      'pressing it without a note answers rather than doing nothing',
+      (tester) async {
+        final repository = _FakeRequests();
+        await _pump(
+          tester,
+          child: const RequestKasemNameScreen(),
+          repository: repository,
+        );
 
-      await tester.enterText(
-        find.byKey(const Key('request-name-field')),
-        'Awɛlɩmwɛ',
-      );
-      await tester.pump();
-      await tester.tap(_sendButton);
-      await tester.pumpAndSettle();
+        await tester.enterText(
+          find.byKey(const Key('request-name-field')),
+          'Awɛlɩmwɛ',
+        );
+        await tester.pump();
+        await tester.tap(_sendButton);
+        await tester.pumpAndSettle();
 
-      // Refused, because the callable refuses it too -- but refused out loud,
-      // and without spending the round trip to hear it.
-      expect(repository.sent, isEmpty);
-      expect(find.textContaining('Say who bears this name'), findsWidgets);
-      expect(find.text('Sent for review'), findsNothing);
-    });
+        // Refused, because the callable refuses it too -- but refused out loud,
+        // and without spending the round trip to hear it.
+        expect(repository.sent, isEmpty);
+        expect(find.textContaining('Say who bears this name'), findsWidgets);
+        expect(find.text('Sent for review'), findsNothing);
+      },
+    );
 
     testWidgets('sends what was typed and then stops', (tester) async {
       final repository = _FakeRequests();

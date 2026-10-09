@@ -55,7 +55,8 @@ class KawuriLearningContext {
     '${_prefix}course': courseName,
     if (unitTitle.isNotEmpty) '${_prefix}unit': unitTitle,
     if (lessonTitle.isNotEmpty) '${_prefix}lesson': lessonTitle,
-    if (lessonItems.isNotEmpty) '${_prefix}items': lessonItems.take(12).join('\n'),
+    if (lessonItems.isNotEmpty)
+      '${_prefix}items': lessonItems.take(12).join('\n'),
     if (hasWord) '${_prefix}word': word,
     if (wordMeaning.isNotEmpty) '${_prefix}meaning': wordMeaning,
     if (wordPartOfSpeech.isNotEmpty) '${_prefix}pos': wordPartOfSpeech,
@@ -145,12 +146,14 @@ enum KawuriLearningAction {
     explainWord => 'Explain the Kasem word "${context.word}".',
     example =>
       'Give me an example of "${context.word}" in use. Only use a verified example, and tell me if there is none.',
-    quiz => context.lessonTitle.isNotEmpty
-        ? 'Quiz me on "${context.lessonTitle}", one question at a time.'
-        : 'Quiz me on "${context.word}", one question at a time.',
-    practise => context.lessonTitle.isNotEmpty
-        ? 'Help me practise "${context.lessonTitle}".'
-        : 'Help me practise ${context.courseName}.',
+    quiz =>
+      context.lessonTitle.isNotEmpty
+          ? 'Quiz me on "${context.lessonTitle}", one question at a time.'
+          : 'Quiz me on "${context.word}", one question at a time.',
+    practise =>
+      context.lessonTitle.isNotEmpty
+          ? 'Help me practise "${context.lessonTitle}".'
+          : 'Help me practise ${context.courseName}.',
   };
 }
 
@@ -185,7 +188,11 @@ class KawuriLearningCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(Icons.school_rounded, color: context.brand.nightAccent, size: 18),
+              Icon(
+                Icons.school_rounded,
+                color: context.brand.nightAccent,
+                size: 18,
+              ),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
@@ -221,7 +228,11 @@ class KawuriLearningCard extends StatelessWidget {
               for (final action in KawuriLearningAction.values)
                 if (action.offeredFor(learning))
                   ActionChip(
-                    avatar: Icon(action.icon, size: 16, color: context.brand.nightAccent),
+                    avatar: Icon(
+                      action.icon,
+                      size: 16,
+                      color: context.brand.nightAccent,
+                    ),
                     label: Text(action.label),
                     onPressed: () => onAction(action),
                     backgroundColor: context.brand.accentPlate,

@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:indigen_world_mobile/features/settings/kasem_keyboard.dart';
@@ -49,14 +50,18 @@ class _KasemKeyboardToggleState extends State<KasemKeyboardToggle>
       _poll = Timer.periodic(const Duration(seconds: 1), (_) {
         if (!_dismissed &&
             _targets.any((node) => node.hasFocus) &&
-            (ModalRoute.of(context)?.isCurrent ?? false)) { unawaited(_refresh()); }
+            (ModalRoute.of(context)?.isCurrent ?? false)) {
+          unawaited(_refresh());
+        }
       });
     }
   }
 
   void _focusChanged() {
     if (mounted) setState(() {});
-    if (widget.platform.supported && _targets.any((node) => node.hasFocus)) { unawaited(_refresh()); }
+    if (widget.platform.supported && _targets.any((node) => node.hasFocus)) {
+      unawaited(_refresh());
+    }
   }
 
   Future<void> _readDismissal() async {

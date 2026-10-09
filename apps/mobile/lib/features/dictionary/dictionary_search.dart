@@ -193,14 +193,11 @@ class DictionaryHit {
   /// is a note nobody reads.
   String? get explanation => switch (reason) {
     MatchReason.direct => null,
-    MatchReason.plural =>
-      '$matchedForm is the plural of ${entry.headword}',
-    MatchReason.definite =>
-      '$matchedForm is ${entry.headword} said with “the”',
+    MatchReason.plural => '$matchedForm is the plural of ${entry.headword}',
+    MatchReason.definite => '$matchedForm is ${entry.headword} said with “the”',
     MatchReason.pluralDefinite =>
       '$matchedForm is the plural of ${entry.headword}, said with “the”',
-    MatchReason.counted =>
-      '$matchedForm is ${entry.headword} counted',
+    MatchReason.counted => '$matchedForm is ${entry.headword} counted',
     MatchReason.otherForm => '$matchedForm is a form of ${entry.headword}',
     MatchReason.sense => 'Found inside one of its meanings',
   };
@@ -310,19 +307,20 @@ Iterable<String> _englishSide(DictionaryEntry entry) sync* {
 ///
 /// The order is the order a learner is most likely to have met the form in, so
 /// a form that fills two slots is explained as the commoner of the two.
-List<({String form, MatchReason reason})> _inflections(DictionaryEntry entry) => [
-  (form: entry.pluralForm, reason: MatchReason.plural),
-  (form: entry.definiteForm, reason: MatchReason.definite),
-  (form: entry.pluralDefiniteForm, reason: MatchReason.pluralDefinite),
-  (form: entry.countedForm, reason: MatchReason.counted),
-  (form: entry.presentForm, reason: MatchReason.otherForm),
-  (form: entry.pastForm, reason: MatchReason.otherForm),
-  (form: entry.futureForm, reason: MatchReason.otherForm),
-  (form: entry.pluralSubjectForm, reason: MatchReason.otherForm),
-  (form: entry.imperativeForm, reason: MatchReason.otherForm),
-  (form: entry.agreeingOneForm, reason: MatchReason.otherForm),
-  (form: entry.agreeingTwoForm, reason: MatchReason.otherForm),
-].where((row) => row.form.trim().isNotEmpty).toList(growable: false);
+List<({String form, MatchReason reason})> _inflections(DictionaryEntry entry) =>
+    [
+      (form: entry.pluralForm, reason: MatchReason.plural),
+      (form: entry.definiteForm, reason: MatchReason.definite),
+      (form: entry.pluralDefiniteForm, reason: MatchReason.pluralDefinite),
+      (form: entry.countedForm, reason: MatchReason.counted),
+      (form: entry.presentForm, reason: MatchReason.otherForm),
+      (form: entry.pastForm, reason: MatchReason.otherForm),
+      (form: entry.futureForm, reason: MatchReason.otherForm),
+      (form: entry.pluralSubjectForm, reason: MatchReason.otherForm),
+      (form: entry.imperativeForm, reason: MatchReason.otherForm),
+      (form: entry.agreeingOneForm, reason: MatchReason.otherForm),
+      (form: entry.agreeingTwoForm, reason: MatchReason.otherForm),
+    ].where((row) => row.form.trim().isNotEmpty).toList(growable: false);
 
 /// How well [entry] answers an already-folded [query], under [filters].
 ///
@@ -476,9 +474,8 @@ DictionaryResults searchDictionary({
     // second screen, where nobody looks. Between two entries that answer the
     // query equally well, the one a learner can hear and see used is the
     // better answer, every time.
-    final byDepth = _completeness(right.entry).compareTo(
-      _completeness(left.entry),
-    );
+    final byDepth = _completeness(right.entry)
+        .compareTo(_completeness(left.entry));
     if (byDepth != 0) return byDepth;
     final byWord = left.entry.sortKey.compareTo(right.entry.sortKey);
     return byWord != 0

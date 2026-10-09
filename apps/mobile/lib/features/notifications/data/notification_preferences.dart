@@ -72,7 +72,12 @@ enum NotificationPreference {
     Icons.whatshot_rounded,
   );
 
-  const NotificationPreference(this.key, this.title, this.description, this.icon);
+  const NotificationPreference(
+    this.key,
+    this.title,
+    this.description,
+    this.icon,
+  );
 
   /// The field name inside `notificationPrefs`.
   final String key;

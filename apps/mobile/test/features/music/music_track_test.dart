@@ -67,8 +67,10 @@ void main() {
     });
 
     test('names the album after the category, then the collection', () {
-      expect(MusicTrack.fromReel(_reel(category: 'Praise song'))!.album,
-          'Praise song');
+      expect(
+        MusicTrack.fromReel(_reel(category: 'Praise song'))!.album,
+        'Praise song',
+      );
       expect(MusicTrack.fromReel(_reel())!.album, CollectionKind.music.label);
       expect(
         MusicTrack.fromReel(_reel(), kind: CollectionKind.audiobooks)!.album,
@@ -76,17 +78,20 @@ void main() {
       );
     });
 
-    test('takes artwork from the thumbnail, and never from the song itself',
-        () {
-      expect(
-        MusicTrack.fromReel(_reel(thumbnailUrl: 'https://example.test/art.jpg'))!
-            .artworkUrl,
-        'https://example.test/art.jpg',
-      );
-      // No thumbnail: `posterUrl` falls through to null rather than offering
-      // the .m4a to an image decoder, and the track inherits that.
-      expect(MusicTrack.fromReel(_reel())!.artworkUrl, isNull);
-    });
+    test(
+      'takes artwork from the thumbnail, and never from the song itself',
+      () {
+        expect(
+          MusicTrack.fromReel(
+            _reel(thumbnailUrl: 'https://example.test/art.jpg'),
+          )!.artworkUrl,
+          'https://example.test/art.jpg',
+        );
+        // No thumbnail: `posterUrl` falls through to null rather than offering
+        // the .m4a to an image decoder, and the track inherits that.
+        expect(MusicTrack.fromReel(_reel())!.artworkUrl, isNull);
+      },
+    );
   });
 
   group('toMediaItem', () {

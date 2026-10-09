@@ -101,7 +101,9 @@ void main() {
     expect(find.byType(HeroDetailScreen), findsOneWidget);
     expect(find.text('Pe-Awe'), findsOneWidget);
     expect(
-      find.text('A longer account of the same life, for the page of their own.'),
+      find.text(
+        'A longer account of the same life, for the page of their own.',
+      ),
       findsOneWidget,
     );
     // An archive that cannot be checked is a rumour with a logo on it.
@@ -109,9 +111,7 @@ void main() {
   });
 
   testWidgets('a hero with no source offers no link to one', (tester) async {
-    await tester.pumpWidget(
-      _harness(HeroDetailScreen(hero: _heroes[1])),
-    );
+    await tester.pumpWidget(_harness(HeroDetailScreen(hero: _heroes[1])));
     await tester.pump();
 
     expect(find.text('Where this came from'), findsNothing);

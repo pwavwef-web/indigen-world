@@ -70,10 +70,8 @@ class MusicArtist {
 }
 
 /// The comparable form of a title, a name or a query.
-String normaliseMusicText(String raw) => raw
-    .toLowerCase()
-    .replaceAll(RegExp(r'\s+'), ' ')
-    .trim();
+String normaliseMusicText(String raw) =>
+    raw.toLowerCase().replaceAll(RegExp(r'\s+'), ' ').trim();
 
 /// Which artist a record belongs to.
 ///
@@ -229,13 +227,12 @@ final playableMusicProvider =
     });
 
 /// Everybody in [kind], busiest first.
-final musicArtistsProvider =
-    Provider.family<List<MusicArtist>, CollectionKind>(
-      (ref, kind) => groupArtists(
-        ref.watch(playableMusicProvider(kind)).asData?.value ??
-            const <PublishedReel>[],
-      ),
-    );
+final musicArtistsProvider = Provider.family<List<MusicArtist>, CollectionKind>(
+  (ref, kind) => groupArtists(
+    ref.watch(playableMusicProvider(kind)).asData?.value ??
+        const <PublishedReel>[],
+  ),
+);
 
 /// When a record was published, for ordering, or null when it does not say.
 DateTime? publishedMoment(PublishedReel reel) {
@@ -291,19 +288,20 @@ List<MusicCategory> musicCategories(
     byName.putIfAbsent(key, () => <PublishedReel>[]).add(item);
     display.putIfAbsent(key, () => name);
   }
-  final categories = [
-    for (final entry in byName.entries)
-      if (entry.value.length >= minimum)
-        MusicCategory(
-          name: display[entry.key]!,
-          tracks: List.unmodifiable(entry.value),
-        ),
-  ]..sort((a, b) {
-      final bySize = b.tracks.length.compareTo(a.tracks.length);
-      return bySize != 0
-          ? bySize
-          : a.name.toLowerCase().compareTo(b.name.toLowerCase());
-    });
+  final categories =
+      [
+        for (final entry in byName.entries)
+          if (entry.value.length >= minimum)
+            MusicCategory(
+              name: display[entry.key]!,
+              tracks: List.unmodifiable(entry.value),
+            ),
+      ]..sort((a, b) {
+        final bySize = b.tracks.length.compareTo(a.tracks.length);
+        return bySize != 0
+            ? bySize
+            : a.name.toLowerCase().compareTo(b.name.toLowerCase());
+      });
   return categories.length < 2
       ? const <MusicCategory>[]
       : List.unmodifiable(categories);

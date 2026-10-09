@@ -179,10 +179,10 @@ class EntryDetailScreen extends ConsumerWidget {
                       : Icons.visibility_off_outlined,
                   label: resolvedEntry.isPublished
                       ? resolvedEntry.authenticationStatus == 'gold'
-                          ? 'EXPERT AUTHENTICATED'
-                          : resolvedEntry.authenticationStatus == 'reviewed'
-                              ? 'COMMUNITY REVIEWED'
-                              : 'PUBLISHED ENTRY'
+                            ? 'EXPERT AUTHENTICATED'
+                            : resolvedEntry.authenticationStatus == 'reviewed'
+                            ? 'COMMUNITY REVIEWED'
+                            : 'PUBLISHED ENTRY'
                       : 'NOT PUBLISHED',
                   color: resolvedEntry.isPublished
                       ? context.brand.success
@@ -443,21 +443,21 @@ class EntryDetailScreen extends ConsumerWidget {
             // deserves to be shown.
             if (resolvedEntry.example.isNotEmpty &&
                 !resolvedEntry.hasSenseExamples) ...[
-            const SizedBox(height: 12),
-            _DetailCard(
-              icon: Icons.chat_bubble_outline_rounded,
-              title: 'Example',
-              body: [
-                resolvedEntry.example,
-                resolvedEntry.exampleTranslation,
-              ].where((line) => line.isNotEmpty).join('\n'),
-              // Directly beneath the sentence, not in "Source and rights"
-              // below. A CC BY credit belongs next to the thing it credits;
-              // moving it to a rights block further down would be the same
-              // information in the one place a reader has already decided not
-              // to look. Renders nothing at all when no credit is owed.
-              footer: SentenceCredit(entry: resolvedEntry),
-            ),
+              const SizedBox(height: 12),
+              _DetailCard(
+                icon: Icons.chat_bubble_outline_rounded,
+                title: 'Example',
+                body: [
+                  resolvedEntry.example,
+                  resolvedEntry.exampleTranslation,
+                ].where((line) => line.isNotEmpty).join('\n'),
+                // Directly beneath the sentence, not in "Source and rights"
+                // below. A CC BY credit belongs next to the thing it credits;
+                // moving it to a rights block further down would be the same
+                // information in the one place a reader has already decided not
+                // to look. Renders nothing at all when no credit is owed.
+                footer: SentenceCredit(entry: resolvedEntry),
+              ),
             ],
             if (culturalNote != null) ...[
               const SizedBox(height: 12),
@@ -469,15 +469,27 @@ class EntryDetailScreen extends ConsumerWidget {
             ],
             if (resolvedEntry.frenchTranslation.isNotEmpty) ...[
               const SizedBox(height: 12),
-              _DetailCard(icon: Icons.translate_rounded, title: 'French meaning', body: resolvedEntry.frenchTranslation),
+              _DetailCard(
+                icon: Icons.translate_rounded,
+                title: 'French meaning',
+                body: resolvedEntry.frenchTranslation,
+              ),
             ],
             if (resolvedEntry.literalTranslation.isNotEmpty) ...[
               const SizedBox(height: 12),
-              _DetailCard(icon: Icons.menu_book_outlined, title: 'Literal translation', body: resolvedEntry.literalTranslation),
+              _DetailCard(
+                icon: Icons.menu_book_outlined,
+                title: 'Literal translation',
+                body: resolvedEntry.literalTranslation,
+              ),
             ],
             if (resolvedEntry.usageContext.isNotEmpty) ...[
               const SizedBox(height: 12),
-              _DetailCard(icon: Icons.info_outline, title: 'When it is used', body: resolvedEntry.usageContext),
+              _DetailCard(
+                icon: Icons.info_outline,
+                title: 'When it is used',
+                body: resolvedEntry.usageContext,
+              ),
             ],
             const SizedBox(height: 12),
             _DetailCard(
@@ -531,7 +543,6 @@ class EntryDetailScreen extends ConsumerWidget {
       ),
     );
   }
-
 }
 
 /// Where a word went when two entries for it were folded into one.
@@ -555,9 +566,10 @@ class _MergedAwayScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final target = ref.watch(
-      publishedDictionaryEntryProvider(entry.mergedIntoId),
-    ).asData?.value;
+    final target = ref
+        .watch(publishedDictionaryEntryProvider(entry.mergedIntoId))
+        .asData
+        ?.value;
     return Scaffold(
       appBar: AppBar(title: const Text('Dictionary entry')),
       body: ScreenContainer(
@@ -592,8 +604,7 @@ class _MergedAwayScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 18),
                 FilledButton.icon(
-                  onPressed: () =>
-                      context.push('/entry/${entry.mergedIntoId}'),
+                  onPressed: () => context.push('/entry/${entry.mergedIntoId}'),
                   icon: const Icon(Icons.arrow_forward_rounded),
                   // The word it became, once it has loaded. Named rather than
                   // "Open the entry", because a reader following a link they
@@ -852,7 +863,8 @@ class _ConcordNote extends StatelessWidget {
     // ending; two that carry the same marker are the pair this collection
     // exists to gather, and saying so is what tells a contributor their second
     // answer was worth typing.
-    final agrees = article != null &&
+    final agrees =
+        article != null &&
         numeral != null &&
         numeral.prefix.isNotEmpty &&
         article.startsWith(numeral.prefix);
@@ -1136,13 +1148,15 @@ class _VerifiedViewState extends ConsumerState<_VerifiedView> {
   @override
   void initState() {
     super.initState();
-    ref.read(loopAnalyticsProvider).log(
-      LoopEvent.verifiedEntryView,
-      parameters: loopParameters({
-        'origin': widget.origin,
-        'entry_id': widget.entryId,
-      }),
-    );
+    ref
+        .read(loopAnalyticsProvider)
+        .log(
+          LoopEvent.verifiedEntryView,
+          parameters: loopParameters({
+            'origin': widget.origin,
+            'entry_id': widget.entryId,
+          }),
+        );
   }
 
   @override

@@ -75,10 +75,7 @@ class FakeDictionaryAdmin implements DictionaryAdminRepository {
   }) async {}
 
   @override
-  Future<void> delete({
-    required String entryId,
-    required String reason,
-  }) async {
+  Future<void> delete({required String entryId, required String reason}) async {
     deletes++;
     deletedId = entryId;
     lastReason = reason;
@@ -144,10 +141,8 @@ void main() {
   }
 
   /// The box with this label, wherever the form has scrolled it to.
-  Finder box(String label) => find.ancestor(
-    of: find.text(label),
-    matching: find.byType(TextField),
-  );
+  Finder box(String label) =>
+      find.ancestor(of: find.text(label), matching: find.byType(TextField));
 
   /// Scrolls to a box the way a reviewer would and types in it.
   ///
@@ -215,28 +210,29 @@ void main() {
     expect(box('What you changed, and why'), findsOneWidget);
   });
 
-  testWidgets('a reason and a change is all it takes, and only the change is sent', (
-    tester,
-  ) async {
-    await pumpEditor(tester);
+  testWidgets(
+    'a reason and a change is all it takes, and only the change is sent',
+    (tester) async {
+      await pumpEditor(tester);
 
-    await fill(tester, 'Meaning (English)', 'child, offspring');
-    await fill(
-      tester,
-      'What you changed, and why',
-      'Adding the second gloss a speaker gave.',
-    );
-    await tapSave(tester);
+      await fill(tester, 'Meaning (English)', 'child, offspring');
+      await fill(
+        tester,
+        'What you changed, and why',
+        'Adding the second gloss a speaker gave.',
+      );
+      await tapSave(tester);
 
-    expect(admin.edits, 1);
-    expect(admin.lastReason, 'Adding the second gloss a speaker gave.');
-    final sent = admin.lastPatch!.toJson();
-    expect(sent['englishText'], 'child, offspring');
-    // The rule the whole screen is built around: the etymology was never
-    // touched, so it is not in the patch and the backend leaves it alone.
-    expect(sent.containsKey('etymology'), isFalse);
-    expect(sent.containsKey('senses'), isFalse);
-  });
+      expect(admin.edits, 1);
+      expect(admin.lastReason, 'Adding the second gloss a speaker gave.');
+      final sent = admin.lastPatch!.toJson();
+      expect(sent['englishText'], 'child, offspring');
+      // The rule the whole screen is built around: the etymology was never
+      // touched, so it is not in the patch and the backend leaves it alone.
+      expect(sent.containsKey('etymology'), isFalse);
+      expect(sent.containsKey('senses'), isFalse);
+    },
+  );
 
   testWidgets('an unchanged form refuses rather than sending an empty patch', (
     tester,
@@ -276,7 +272,10 @@ void main() {
   testWidgets('a refusal from the server is said out loud, not filed away', (
     tester,
   ) async {
-    await pumpEditor(tester, failWith: 'That entry has been merged into another.');
+    await pumpEditor(
+      tester,
+      failWith: 'That entry has been merged into another.',
+    );
 
     await fill(tester, 'Meaning (English)', 'child, offspring');
     await fill(
@@ -353,6 +352,9 @@ void main() {
     );
 
     expect(find.text('This word is already in the dictionary'), findsOneWidget);
-    expect(find.widgetWithText(OutlinedButton, 'Compare and merge'), findsOneWidget);
+    expect(
+      find.widgetWithText(OutlinedButton, 'Compare and merge'),
+      findsOneWidget,
+    );
   });
 }

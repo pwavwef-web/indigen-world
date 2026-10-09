@@ -28,6 +28,7 @@ class DownloadsScreen extends ConsumerStatefulWidget {
 class _DownloadsScreenState extends ConsumerState<DownloadsScreen>
     with WidgetsBindingObserver {
   final _retrying = <String>{};
+  final _playing = <String>{};
   final _failedPlayback = <String>{};
   @override
   void initState() {
@@ -91,6 +92,13 @@ class _DownloadsScreenState extends ConsumerState<DownloadsScreen>
             padding: EdgeInsets.fromLTRB(18, 12, 18, 32 + musicInset(context)),
             children: [
               _Summary(count: loaded.length, limit: limit, bytes: bytes),
+              if (!allowed && loaded.isNotEmpty)
+                const Padding(
+                  padding: EdgeInsets.all(12),
+                  child: Text(
+                    'Your files are kept on this device. Sign in with an active offline subscription to play them.',
+                  ),
+                ),
               const SizedBox(height: 16),
               if (loaded.isEmpty)
                 GlassEmptyState(
@@ -118,8 +126,12 @@ class _DownloadsScreenState extends ConsumerState<DownloadsScreen>
                             false) &&
                         !_failedPlayback.contains(row.trackId),
                     checking:
-                        playable.isLoading || _retrying.contains(row.trackId),
+                        playable.isLoading ||
+                        _retrying.contains(row.trackId) ||
+                        _playing.contains(row.trackId),
                     onPlay: () async {
+                      if (!_playing.add(row.trackId)) return;
+                      setState(() {});
                       try {
                         final controller = ref.read(
                           musicControllerProvider.notifier,
@@ -136,7 +148,11 @@ class _DownloadsScreenState extends ConsumerState<DownloadsScreen>
                           showGlassToast(context, error);
                           return;
                         }
-                        await Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const NowPlayingScreen()));
+                        await Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => const NowPlayingScreen(),
+                          ),
+                        );
                       } on Object {
                         if (context.mounted) {
                           setState(() => _failedPlayback.add(row.trackId));
@@ -144,6 +160,10 @@ class _DownloadsScreenState extends ConsumerState<DownloadsScreen>
                             context,
                             'Could not play this file. Try downloading it again.',
                           );
+                        }
+                      } finally {
+                        if (mounted) {
+                          setState(() => _playing.remove(row.trackId));
                         }
                       }
                     },
@@ -334,7 +354,9 @@ class _DownloadRow extends StatelessWidget {
         child: Row(
           children: [
             IconButton(
-              tooltip: playable ? 'Play downloaded track' : 'Download missing or incomplete file again',
+              tooltip: playable
+                  ? 'Play downloaded track'
+                  : 'Download missing or incomplete file again',
               onPressed: checking || !allowed
                   ? null
                   : playable
@@ -389,6 +411,12 @@ class _DownloadRow extends StatelessWidget {
                 ],
               ),
             ),
+            if (playable)
+              IconButton(
+                tooltip: 'Download again if playback fails',
+                onPressed: allowed && !checking ? onRetry : null,
+                icon: const Icon(Icons.refresh_rounded),
+              ),
             IconButton(
               tooltip: 'Remove',
               onPressed: onRemove,

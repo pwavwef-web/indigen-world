@@ -1,4 +1,5 @@
 import 'dart:ui' show ImageFilter;
+
 import 'package:flutter/material.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/features/music/widgets/audio_artwork.dart';
@@ -32,7 +33,9 @@ class NowPlayingBackdrop extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (context.brand.isBlack) { return ColoredBox(color: context.brand.background); }
+    if (context.brand.isBlack) {
+      return ColoredBox(color: context.brand.background);
+    }
     final url = artworkUrl;
     final deep = Color.lerp(tint, Colors.black, 0.55)!;
     return Stack(

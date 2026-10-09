@@ -85,29 +85,50 @@ void main() {
     next.dispose();
     expect((await SharedPreferences.getInstance()).getKeys(), isEmpty);
   });
-  test('closing captures the final edit without notifying an unmounting widget', () async {
-    var changed = 0;
-    var value = <String, dynamic>{'text':'First edit'};
-    final session = AccountDraftSession(account: () => 'closing-owner', area: 'closing', snapshot: () => value, meaningful: () => true, version: () => '1', changed: () => changed++);
-    await Future<void>.delayed(Duration.zero);
-    final previousChanges = changed;
-    value = {'text':'Final ɛ ɔ ŋ edit'};
-    final saving = session.flush(closing: true);
-    session.dispose();
-    await saving;
-    expect(changed, previousChanges);
-    final reopened = AccountDraftSession(account: () => 'closing-owner', area:'closing', snapshot: () => {}, meaningful: () => false, version: () => '1', changed: () {});
-    await Future<void>.delayed(Duration.zero);
-    expect(reopened.continueDraft(), value);
-    reopened.dispose();
-  });
+  test(
+    'closing captures the final edit without notifying an unmounting widget',
+    () async {
+      var changed = 0;
+      var value = <String, dynamic>{'text': 'First edit'};
+      final session = AccountDraftSession(
+        account: () => 'closing-owner',
+        area: 'closing',
+        snapshot: () => value,
+        meaningful: () => true,
+        version: () => '1',
+        changed: () => changed++,
+      );
+      await Future<void>.delayed(Duration.zero);
+      final previousChanges = changed;
+      value = {'text': 'Final ɛ ɔ ŋ edit'};
+      final saving = session.flush(closing: true);
+      session.dispose();
+      await saving;
+      expect(changed, previousChanges);
+      final reopened = AccountDraftSession(
+        account: () => 'closing-owner',
+        area: 'closing',
+        snapshot: () => {},
+        meaningful: () => false,
+        version: () => '1',
+        changed: () {},
+      );
+      await Future<void>.delayed(Duration.zero);
+      expect(reopened.continueDraft(), value);
+      reopened.dispose();
+    },
+  );
 
   test('closing serializes the final edit behind an in-flight save', () async {
     var value = <String, dynamic>{'text': 'Initial edit'};
     var notifications = 0;
     final session = AccountDraftSession(
-      account: () => 'busy-owner', area: 'busy-closing', snapshot: () => value,
-      meaningful: () => true, version: () => '1', changed: () => notifications++,
+      account: () => 'busy-owner',
+      area: 'busy-closing',
+      snapshot: () => value,
+      meaningful: () => true,
+      version: () => '1',
+      changed: () => notifications++,
     );
     // Constructor's first write is awaiting preferences; close without yielding.
     value = {'text': 'Final ɛ ɔ ŋ edit'};
@@ -116,8 +137,12 @@ void main() {
     await saving;
     expect(notifications, 0);
     final reopened = AccountDraftSession(
-      account: () => 'busy-owner', area: 'busy-closing', snapshot: () => {},
-      meaningful: () => false, version: () => '1', changed: () {},
+      account: () => 'busy-owner',
+      area: 'busy-closing',
+      snapshot: () => {},
+      meaningful: () => false,
+      version: () => '1',
+      changed: () {},
     );
     await Future<void>.delayed(Duration.zero);
     expect(reopened.continueDraft(), value);

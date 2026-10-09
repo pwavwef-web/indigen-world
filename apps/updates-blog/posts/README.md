@@ -6,6 +6,8 @@ date identifies when the post was prepared; it does not prove the update is live
 
 ## Posts
 
+- [2026-10-09: Indigen World 0.1.32: one release with the latest improvements](2026-10-09-consolidated-app-release/README.md) — consolidated Android build 41 with community, local listening, recovered drafts, Black appearance and Kasem reference improvements. See the release record for verified merge, bundle and GitHub status; Play rollout and Blogger publication are separate.
+
 - [2026-10-09: Reliable contributions, clearer sources and offline listening](2026-10-09-reliable-contribution-and-reference-workflows/README.md) — review branch and local verification; not deployed or published. Account recovery, review evidence, source browsing, bounded grounding, ten category destinations, Downloads playback and low-data preference. Includes product screenshots with synthetic fixtures and existing public illustrations.
 
 - [2026-10-08: Kasem grammar sentences and word forms from the book](2026-10-08-kasem-basic-grammar-book/README.md) — all nine chapters, twelve tables and nineteen source illustrations, 56 grammar summaries, printed examples, noun and verb forms, and new dictionary entries. Source content, all three web guides/navigation and both Kawuri functions published and verified October 8; article unpublished. Includes live product screenshots.
