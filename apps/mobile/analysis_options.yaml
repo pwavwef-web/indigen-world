@@ -9,6 +9,8 @@ analyzer:
     - windows/**
     - macos/**
     - linux/**
+    # Unmodified upstream runtime; application tests cover its use.
+    - third_party/**
 include: package:flutter_lints/flutter.yaml
 
 linter:
