@@ -20,7 +20,11 @@ This is a remaining scaling limit, not a partial graph being treated as safe.
 Dictionary/contributor/corpus/book retrieval no longer fails merely because a
 collection has more than 4,000 rows. Practice's existing reader is unchanged.
 
-## Deployment order (operator handoff; not performed)
+## Deployment order (operator handoff)
+
+The authorized0.1.31+40 release deployed all seven triggers on2026-10-09 and
+verified them ACTIVE. `KAWURI_CANDIDATE_INDEX` remains false. Steps2–5 below have
+not been performed in production; no source ingestion or backfill was run.
 
 1. Build/test Functions. Deploy only the seven `on*Candidate` triggers first.
    They reread the current source in a transaction, making delayed events safe.

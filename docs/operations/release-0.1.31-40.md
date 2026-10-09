@@ -1,7 +1,8 @@
 # Production release 0.1.31+40 — 2026-10-09
 
-Status: all14 scoped Functions deployed and verified ACTIVE. Hosting and signed
-AAB preparation still in progress; no completed Hosting/AAB claimed yet.
+Status: all14 scoped Functions deployed and verified ACTIVE; all three Hosting
+sites deployed and their served HTML/entry JavaScript verified against local
+builds. Signed AAB preparation is still in progress.
 
 The owner explicitly requested deployment, a version-code bump and a new release
 AAB. They then authorized deploying the reviewed branch without merging, as a
@@ -24,8 +25,9 @@ upload, Blogger publication, production source ingestion or backfill is authoriz
   SDK remains locked. A separate Gradle cache avoids the previously corrupt journal.
 - Final focused mobile79/79 pass, including in-flight closing-save regression.
   Flutter analysis retains exactly three existing experimental audio warnings.
-- The Downloads capture test passed; a label-font refinement needs recapture after
-  the AAB build releases this isolated SDK's lock. Physical-device tests unavailable.
+- The final Downloads capture test passed and its readable title/body/actions
+  were inspected. The post contains this actual asset with test-font/synthetic
+  fixture credits. Physical-device tests unavailable.
 - Functions rebuilt successfully. Existing 655 helper/21 emulator/browser results
   are in `ten-improvements-verification.md`. Required public sentence and reviewer
   index definitions were found in live metadata; CLI did not report READY state.
@@ -51,12 +53,24 @@ at 17:34 UTC found all14 ACTIVE with the same source hash
 Reviewer and sentence indexes are READY. All three submission endpoints returned
 401 UNAUTHENTICATED without an account; no production records were created.
 
-The first Hosting predeploy attempt failed before upload because the Windows
-hook could not locate npm. The ignored config now uses its absolute npm.cmd path.
+The first Hosting predeploy attempts failed before upload because the Windows
+cross-env hook treated command arguments as a filename. Three ignored .cmd
+wrappers now call the same existing package checks using the absolute npm path.
+No checks were skipped. Hosting completed17:47 UTC from6dd6b6a, and verification
+at17:48 UTC confirmed200 and byte-identical HTML/entry JavaScript on
+https://indigen-world.web.app, https://kasem-dictionary.web.app and
+https://tribestudio.web.app. Responses include HSTS and nosniff. Root cache headers
+remain the existing3600s on website/dictionary and no-store on Studio.
 The first cold-cache Android build failed at video_thumbnail's removed jcenter()
 call after44m53s. Commit03519b2 vendors the same0.5.6 runtime with MIT attribution,
 Maven Central/shared AGP compatibility and the same namespace. Pub resolution
 changed only that dependency's source; no other package versions changed.
+The second Android attempt exited1 after13m07s: the SQLite3.5.1 native hook
+rejected a truncated Android x64 download. A fresh official GitHub release asset
+was1808568 bytes and matched the package-pinned SHA256
+`949965f0eba976f707ae364cdcb42c342b5f0626081f8d7f0378fb7b52848772`.
+Only that verified binary was cached in this worktree; the bad temporary file was
+removed. Package checksums, architectures and native asset protections remain intact.
 
 ## Resume commands/state
 
@@ -66,8 +80,10 @@ project/targets. `deploy-api.cjs` is a diagnostic SDK deployment with narrow err
 messages; do not dump credentials, `.env`, raw debug logs or live function payloads.
 `build.mjs` uses the isolated pinned SDK/JDK21 and existing `build:mobile-aab` script.
 
-Current session16001 reruns mobile capture and signed AAB with the compatible
-plugin and existing Gradle cache. Sessions4963/61597 ended with the specific
+Final session98719 completed: locked restoration0, analysis1 (same three baseline
+warnings), focused79/790, capture0. Current session67484 runs build-only.mjs for
+the signed bundle using the verified cache. Session16001 exited1 at the SQLite
+hook above. Sessions4963/61597 ended with the specific
 Android/predeploy failures above;31795 Functions deployment ended0. Other
 project's original SDK owner29672 must not be stopped. Shell PATH initially
 omits Flutter; use the isolated SDK bin and Android Studio JDK bin explicitly.

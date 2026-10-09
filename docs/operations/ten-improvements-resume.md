@@ -173,4 +173,35 @@ no key value in notes/Git, no usage, runner strips live credential environment.
 
 Local implementation/checkpoint work is preserved. Remaining work is the79-test
 focused mobile rerun and readable capture, followed by staging/device checks with
-their prerequisites. No live deployment, backfill, release or sharing is authorized.
+their prerequisites. No live deployment, backfill, release or sharing was authorized
+at that checkpoint. The following release checkpoint supersedes that restriction.
+
+## Authorized production release checkpoint — 2026-10-09
+
+Owner requested deployment, mobile version bump and signed AAB; explicitly allowed
+this reviewed branch without merging. Tracked main-only guard stays unchanged.
+Version0.1.31+40 is committed3366d7c. Flutter startup isolation resolved the prior
+block: final focused79/79 passed; analysis retains three existing audio warnings.
+
+Functions SDK deployment31795 completed0 at17:32 UTC. All14 scoped endpoints are
+ACTIVE onNode22 with source hash616a26e17f7476fd4843e14d2f18bd9d6b62f0e3 and
+candidate flagfalse. Read-only live metadata shows required indexesREADY; the
+three submission endpoints deny anonymous calls401. No synthetic production writes.
+Hosting31584 completed0 at17:47 from6dd6b6a. All three web.app sites return200;
+HTML/entry JavaScript match local builds. No rules/index migration was needed.
+
+The first AAB build4963 failed after44m53s at video_thumbnail's removedjcenter()
+API. Commit03519b2 keeps version0.5.6 and unmodified runtime in a licensed local
+copy, changing Android build compatibility only. Pub resolution changed one source,
+no other versions. Retry16001 is currently compiling; native thumbnail compilation
+has passed. Do not claim an AAB until the runner succeeds and signing is checked.
+An evidence-only font refinement needs final capture after this build.
+
+Current ignored helpers/config/results: `.tooling/ten-shipping/release/`.
+After16001 completes: run `node .../verify-aab.mjs` to check version/package/archive
+and matching existing upload certificate, then `node .../final-mobile.mjs` for
+locked dependencies, analysis, focused79 and readable capture. Inspect image,
+copy into post, update release docs with facts, commit handoff and leave clean.
+All helpers use the isolated pinned Flutter/JDK21/Gradle cache and sanitized env.
+No other project's SDK/process may be stopped. Main merge, Play upload, production
+backfill/readiness, Blogger publication/sharing remain outside this release scope.

@@ -20,7 +20,7 @@
 
 ## 0.5.1
 * Add IOException for Android (Thanks k1zerX)
-* Fix boolean value issue and enlarge the time window (Thanks niketatjombay) 
+* Fix boolean value issue and enlarge the time window (Thanks niketatjombay)
 * Bump to 0.5.1
 
 ## 0.5.0

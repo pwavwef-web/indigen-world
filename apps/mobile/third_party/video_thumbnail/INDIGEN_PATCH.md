@@ -11,7 +11,8 @@ This copy replaces both repository calls with `mavenCentral()` and removes its
 legacy AGP 4.1 classpath dependency, using the application's pinned AGP instead.
 The redundant manifest package is removed; the same namespace remains in Gradle.
 The package SDK constraint permits Dart 3, which already ran its hosted runtime.
-Dart, Java and iOS implementation code are unchanged. No thumbnail URL or runtime
+Dart, Java and iOS implementation code are unchanged apart from trimming upstream
+trailing whitespace. No thumbnail URL or runtime
 behaviour is modified. Do not patch the shared pub cache to build this app.
 
 Validate with the pinned Flutter SDK and `npm run build:mobile-aab`; this exercises

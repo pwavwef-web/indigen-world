@@ -62,7 +62,7 @@ File tempVideo = File("${tempDir.path}/assets/my_video.mp4")
 final fileName = await VideoThumbnail.thumbnailFile(
   video: tempVideo.path,
   thumbnailPath: (await getTemporaryDirectory()).path,
-  imageFormat: ImageFormat.PNG,  
+  imageFormat: ImageFormat.PNG,
   quality: 100,
 );
 ```

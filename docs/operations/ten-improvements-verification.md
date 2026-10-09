@@ -71,10 +71,10 @@ Emulator configs reserve 8288/9288 and 8388/9388/9389 plus their local hubs.
 | `verify:ten-shipping -- --browser` / `--review-browser` | Recovery/timeline/source/modals/ten routes and existing progress motion/layout suite passed. Latest reviewer/public-source run exits 0: actual Auth/Firestore SDK queue, concurrent decision/position/count refresh; anonymous both-book fixtures, stable URLs/anchors and whole expressions/sentences/rules. Earlier reviewer shutdown timeout was fixed by terminating Firestore explicitly; not counted as a successful old run. |
 | `flutter --version`, locked dependency restoration | Flutter3.47.0/Dart3.13.0 match pin. An incomplete global Pub cache temporarily blocked analysis/compilation; locked SDK/app dependencies restored without upgrades. |
 | `flutter analyze --no-pub`; final `dart analyze` using pinned SDK | Stable analysis exits 1: exactly three existing `experimental_member_use` warnings for StreamAudioSource/StreamAudioResponse in knowledge_workspace_screen.dart (currently lines 1074/1079/1082). The same source is in base 8e805e4; no new errors or warnings and no suppressions. An intermediate Flutter run during edits duplicated the baseline diagnostics and caught a test import-order info; import fixed, final full Dart analysis confirms only three baseline warnings. Final targeted analysis of recovery/session and screenshot test exits 0. |
-| Focused Flutter tests | Earlier 78/78 passed. Final 79-test suite and readable capture waited over 15 minutes behind another project's Flutter SDK startup lock, then only our two waiting test commands were terminated (exit1). The other project was preserved. The added in-flight closing-save regression and capture refinement are not claimed passed; final changed files have clean targeted analysis. |
+| Focused Flutter tests | Final 79/79 passed using the isolated pinned SDK, including the in-flight closing-save regression. The earlier shared startup-lock attempts exited1 and are not counted as passing. The other project's process was preserved. Release refinements are separately checked in `release-0.1.31-40.md`. |
 | `flutter doctor -v` | Android SDK36.1 present but some licenses unaccepted; no Android/iOS physical device attached. Windows/Chrome/Edge available; Visual Studio Windows build toolchain absent. No APK/device build or playback pass claimed. |
 | `gh run list/view`, annotations for main run `37818504989` | Job has no steps; annotation says account locked due billing. Unstarted CI is not passing; no account/billing changes attempted. |
-| `git diff --check`, release assets/captions validation | Passed; all four embedded web images exist with descriptive alt text/captions. No release post publication or sharing. Mobile recapture blocked as described above. |
+| `git diff --check`, release assets/captions validation | Passed; all five embedded images exist with descriptive alt text/captions. Mobile capture passed and was inspected; its test-font/device limits are credited. No release post publication or sharing. |
 
 Node host is 24.12.0, while Functions builds target Node22. Local handler tests run
 on the host; Node22 staging HTTPS/App Check smoke tests remain a deployment handoff.
@@ -86,7 +86,11 @@ Palette spot checks: white on Studio action blue `#2c66f5` is 4.85:1;
 `#2459e6` on `#f6f7fb` is 5.38:1; slate `#5d667b` on that surface is 5.37:1.
 These checks support the affected text/action treatments, not a full contrast audit.
 
-## Rollout and rollback (not performed)
+## Rollout and rollback
+
+The authorized release subsequently deployed compatible Functions and all three
+web clients. Required indexes are READY; anonymous submission requests are denied.
+See `release-0.1.31-40.md` for actual evidence and remaining runtime boundaries.
 
 1. Deploy backward-compatible submission functions (retry receipts/correction
    preconditions) before shipping the new contribution clients. Receipts are
@@ -118,20 +122,20 @@ reader is unchanged. No permission-sensitive eligibility cache was introduced.
 
 `apps/updates-blog/posts/2026-10-09-reliable-contribution-and-reference-workflows/`
 contains `post.html`, `README.md`, `share.md` and phone/tablet/desktop screenshots
-of recovery, history, reviewer evidence and public reference. The earlier mobile
-widget render used Flutter's block-glyph Ahem font and was unsuitable for sharing;
-the readable recapture could not run while the shared SDK lock was held.
+of recovery, history, reviewer evidence and public reference. The readable mobile
+Downloads capture passed and was inspected after isolating the pinned SDK.
 The grammar figure is an existing public source illustration with its original
 attribution/context. Screenshots are implementation evidence, not proof of a live
 release. Blogger upload/replacement steps and credits are in the post README.
 The prepared mobile capture test uses the real app palette with SDK Roboto as a
-readable test font fallback; both that capture and physical rendering are unverified.
+readable test font fallback. Its app-bar/button font families are explicitly set
+for evidence only. Physical-device fonts and audio remain unverified.
 
-Remaining local verification: after the other project's Flutter command releases
-the SDK lock, run `npm run verify:ten-shipping -- --mobile`. The expected baseline
-analysis warnings still yield aggregate exit1; inspect `flutter-focused` separately.
-Then set `SHIPPING_EVIDENCE_DIR` to the absolute ignored screenshot directory and
-run the Downloads widget test to capture/inspect an image before adding it to the post.
+Final mobile verification passed 79/79 after the release compatibility fix;
+locked restoration and the readable capture passed. Analysis retains exactly the
+three existing warnings (exit1); inspect focused-test status separately. For repeat
+captures, set `SHIPPING_EVIDENCE_DIR` to an absolute ignored screenshot directory
+and run the Downloads widget test before inspecting/adding an image to the post.
 
 No PR was opened or branch pushed in this session. Checkpoints are local commits;
 `ten-improvements-resume.md` preserves the audit and any remaining work.

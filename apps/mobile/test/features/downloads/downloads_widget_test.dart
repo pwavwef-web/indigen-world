@@ -34,19 +34,40 @@ void main() {
       // palette with SDK Roboto as a readable test-only font fallback.
       if (Platform.environment['SHIPPING_EVIDENCE_DIR'] != null) {
         await tester.runAsync(() async {
-          final artifacts = File(Platform.resolvedExecutable).parent.parent.parent;
+          final artifacts = File(Platform.resolvedExecutable)
+              .parent
+              .parent
+              .parent;
           for (final font in [
             ('Noto Sans', 'roboto-regular.ttf'),
             ('Roboto', 'roboto-regular.ttf'),
             ('MaterialIcons', 'materialicons-regular.otf'),
           ]) {
             final loader = FontLoader(font.$1);
-            loader.addFont(File('${artifacts.path}/material_fonts/${font.$2}')
-                .readAsBytes().then((bytes) => ByteData.sublistView(bytes)));
+            loader.addFont(
+              File('${artifacts.path}/material_fonts/${font.$2}')
+                  .readAsBytes()
+                  .then((bytes) => ByteData.sublistView(bytes)),
+            );
             await loader.load();
           }
         });
       }
+      final appTheme = buildIndigenTheme();
+      final evidenceTheme = appTheme.copyWith(
+        appBarTheme: appTheme.appBarTheme.copyWith(
+          titleTextStyle: appTheme.appBarTheme.titleTextStyle?.copyWith(
+            fontFamily: 'Noto Sans',
+          ),
+        ),
+        textButtonTheme: TextButtonThemeData(
+          style: TextButton.styleFrom(
+            textStyle: appTheme.textTheme.labelLarge?.copyWith(
+              fontFamily: 'Noto Sans',
+            ),
+          ),
+        ),
+      );
       final boundary = GlobalKey();
       Future<void> show(bool allowed) async {
         await tester.pumpWidget(
@@ -62,7 +83,9 @@ void main() {
               downloadsSizeProvider.overrideWith((ref) async => 1024),
             ],
             child: MaterialApp(
-              theme: buildIndigenTheme(),
+              theme: Platform.environment['SHIPPING_EVIDENCE_DIR'] != null
+                  ? evidenceTheme
+                  : appTheme,
               home: RepaintBoundary(
                 key: boundary,
                 child: const DownloadsScreen(),
