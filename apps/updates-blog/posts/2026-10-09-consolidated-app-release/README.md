@@ -2,6 +2,8 @@
 
 Prepared 9 October 2026. The signed Android 0.1.32+41 bundle is verified. Merge and GitHub publication are tracked in `docs/product/releases/0.1.32+41.md`. Google Play upload/rollout, physical-device verification, Blogger publication and sharing are separate and unconfirmed.
 
+Confirmed GitHub publication: [Indigen World 0.1.32 (41)](https://github.com/pwavwef-web/indigen-world/releases/tag/mobile-v0.1.32%2B41), published 9 October 2026 at 21:48 UTC after PR #31 merged. The signed build 41 AAB and checksum file are attached; the uploaded digest matches the freshly verified local artifact. This confirms GitHub availability, with the other availability limits above unchanged.
+
 | Field | Value |
 | --- | --- |
 | Title | Indigen World 0.1.32: one release with the latest improvements |
