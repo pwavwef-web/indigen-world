@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:indigen_world_mobile/features/community/widgets/video_cover.dart';
 import 'package:indigen_world_mobile/features/explore/published_content.dart';
@@ -113,16 +114,18 @@ void main() {
       tester,
     ) async {
       await tester.pumpWidget(
-        const MaterialApp(
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
+        const ProviderScope(
+          child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
 
-          home: SizedBox(
-            width: 200,
-            height: 200,
-            child: VideoCover(
-              videoUrl: 'https://example.test/clip.mp4',
-              thumbnailUrl: 'https://example.test/cover.jpg',
+            home: SizedBox(
+              width: 200,
+              height: 200,
+              child: VideoCover(
+                videoUrl: 'https://example.test/clip.mp4',
+                thumbnailUrl: 'https://example.test/cover.jpg',
+              ),
             ),
           ),
         ),
@@ -138,14 +141,16 @@ void main() {
       tester,
     ) async {
       await tester.pumpWidget(
-        const MaterialApp(
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
+        const ProviderScope(
+          child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
 
-          home: SizedBox(
-            width: 200,
-            height: 200,
-            child: VideoCover(videoUrl: 'https://example.test/clip.mp4'),
+            home: SizedBox(
+              width: 200,
+              height: 200,
+              child: VideoCover(videoUrl: 'https://example.test/clip.mp4'),
+            ),
           ),
         ),
       );

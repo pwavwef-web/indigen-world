@@ -6,20 +6,29 @@
 // and checks that it asks for that and only that — plus the consent and rights
 // pledges, which are asked of every kind and are what has to survive any trim.
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:indigen_world_mobile/app/app_theme.dart';
+import 'package:indigen_world_mobile/features/auth/auth_repository.dart';
 import 'package:indigen_world_mobile/features/collection/collection_data.dart';
 import 'package:indigen_world_mobile/features/contribute/contribution_form_screen.dart';
 import 'package:indigen_world_mobile/features/contribute/contribution_kinds.dart';
 import 'package:indigen_world_mobile/l10n/app_localizations.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+class _SyntheticFormUser extends Fake implements User {
+  @override
+  String get uid => 'synthetic-form-owner';
+}
 
 Future<void> pumpForm(
   WidgetTester tester,
   CollectionKind kind, {
   String? relatedEntryId,
   LexicalKind? lexicalKind,
+  bool signedIn = false,
 }) async {
   tester.view.physicalSize = const Size(800, 1200);
   tester.view.devicePixelRatio = 1;
@@ -28,6 +37,12 @@ Future<void> pumpForm(
 
   await tester.pumpWidget(
     ProviderScope(
+      overrides: [
+        if (signedIn)
+          authStateProvider.overrideWith(
+            (ref) => Stream<User?>.value(_SyntheticFormUser()),
+          ),
+      ],
       child: MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
@@ -41,9 +56,11 @@ Future<void> pumpForm(
     ),
   );
   await tester.pump(const Duration(milliseconds: 400));
+  if (signedIn) await tester.pump(const Duration(milliseconds: 600));
 }
 
 void main() {
+  setUp(() => SharedPreferences.setMockInitialValues({}));
   testWidgets(
     'a proverb asks for literal wording separately from its meaning',
     (tester) async {
@@ -217,7 +234,7 @@ void main() {
   testWidgets('every required field is still refused when empty', (
     tester,
   ) async {
-    await pumpForm(tester, CollectionKind.dictionary);
+    await pumpForm(tester, CollectionKind.dictionary, signedIn: true);
 
     await tester.ensureVisible(find.text('Submit for review'));
     await tester.pump();
