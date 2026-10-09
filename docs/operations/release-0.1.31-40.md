@@ -1,6 +1,7 @@
 # Production release 0.1.31+40 — 2026-10-09
 
-Status: deployment/build in progress; no completed live release or AAB claimed.
+Status: all14 scoped Functions deployed and verified ACTIVE. Hosting and signed
+AAB preparation still in progress; no completed Hosting/AAB claimed yet.
 
 The owner explicitly requested deployment, a version-code bump and a new release
 AAB. They then authorized deploying the reviewed branch without merging, as a
@@ -40,10 +41,22 @@ disabled. No readiness change or production backfill; old retrieval remains acti
 The new candidate triggers are transactional/idempotent and have retry enabled;
 the CLI's failure-policy confirmation is accepted only for these scoped targets.
 
-Preflight attempts encountered intermittent Google API request failures at Pub/Sub
+Earlier preflight attempts encountered intermittent Google API request failures at Pub/Sub
 identity generation, function listing and Secret Manager metadata. Direct authenticated
 checks confirmed Pub/Sub/Eventarc identities ready. Deployment completion still needs
 fresh live state verification. No permissions, TLS checks or release checks weakened.
+The Node22 SDK deployment completed successfully at 17:33 UTC. Live verification
+at 17:34 UTC found all14 ACTIVE with the same source hash
+`616a26e17f7476fd4843e14d2f18bd9d6b62f0e3`, Node22 and candidate flag false.
+Reviewer and sentence indexes are READY. All three submission endpoints returned
+401 UNAUTHENTICATED without an account; no production records were created.
+
+The first Hosting predeploy attempt failed before upload because the Windows
+hook could not locate npm. The ignored config now uses its absolute npm.cmd path.
+The first cold-cache Android build failed at video_thumbnail's removed jcenter()
+call after44m53s. Commit03519b2 vendors the same0.5.6 runtime with MIT attribution,
+Maven Central/shared AGP compatibility and the same namespace. Pub resolution
+changed only that dependency's source; no other package versions changed.
 
 ## Resume commands/state
 
@@ -53,10 +66,10 @@ project/targets. `deploy-api.cjs` is a diagnostic SDK deployment with narrow err
 messages; do not dump credentials, `.env`, raw debug logs or live function payloads.
 `build.mjs` uses the isolated pinned SDK/JDK21 and existing `build:mobile-aab` script.
 
-Current sessions:4963 signed AAB build (Gradle downloading dependencies into isolated
-cache),68624 SDK Functions deployment,7474 Node22 runtime resolution for CLI retry.
-Our old original-SDK version wait56267 remains to stop only its owned process31260.
-Other project's original SDK owner29672 must not be stopped. Shell PATH initially
+Current session16001 reruns mobile capture and signed AAB with the compatible
+plugin and existing Gradle cache. Sessions4963/61597 ended with the specific
+Android/predeploy failures above;31795 Functions deployment ended0. Other
+project's original SDK owner29672 must not be stopped. Shell PATH initially
 omits Flutter; use the isolated SDK bin and Android Studio JDK bin explicitly.
 
 After successful backend deployment, inspect all14 targets ACTIVE and smoke missing
