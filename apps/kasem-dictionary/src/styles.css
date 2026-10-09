@@ -1360,3 +1360,10 @@ footer b {
   font-size: 12px;
   line-height: 1.6;
 }
+
+.source-note { margin-top: 24px; padding: 16px; border: 1px solid var(--line); border-radius: 12px; font-size: 14px; line-height: 1.7; overflow-wrap: anywhere; }
+.source-note summary { font-weight: 700; cursor: pointer; }
+.source-note a, .detail > a { text-underline-offset: 4px; }
+.reference-illustration { margin: 24px 0; }
+.reference-illustration img { max-width: 100%; height: auto; display: block; }
+.reference-illustration figcaption { color: var(--muted); font-size: 13px; line-height: 1.6; margin-top: 12px; }

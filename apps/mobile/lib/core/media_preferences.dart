@@ -18,11 +18,19 @@ const videoMutedPreferenceKey = 'indigen_video_muted_v1';
 const lowDataPreferenceKey = 'indigen_low_data_v1';
 
 /// Device choice; no network-type detection. Conservatively waits for restore.
-final lowDataModeProvider = NotifierProvider<LowDataController, bool>(LowDataController.new);
-final effectiveVideoAutoplayProvider = Provider<bool>((ref) => !ref.watch(lowDataModeProvider) && ref.watch(videoAutoplayProvider));
+final lowDataModeProvider = NotifierProvider<LowDataController, bool>(
+  LowDataController.new,
+);
+final effectiveVideoAutoplayProvider = Provider<bool>(
+  (ref) => !ref.watch(lowDataModeProvider) && ref.watch(videoAutoplayProvider),
+);
 
 /// Never invent thumbnail URLs; a missing variant requires deliberate opening.
-String? feedImageUrl({required bool lowData, required String original, String? thumbnail}) => lowData ? (thumbnail?.isNotEmpty == true ? thumbnail : null) : original;
+String? feedImageUrl({
+  required bool lowData,
+  required String original,
+  String? thumbnail,
+}) => lowData ? (thumbnail?.isNotEmpty == true ? thumbnail : null) : original;
 
 /// Whether a clip plays itself once it is mostly on screen.
 ///
@@ -84,7 +92,9 @@ abstract class _MediaSwitch extends Notifier<bool> {
       final stored = preferences.getBool(key);
       // A member who never touched the switch keeps the default, and a storage
       // read that fails is treated the same way rather than as a choice.
-      if (!_disposed && generation == _generation) state = stored ?? restoredFallback;
+      if (!_disposed && generation == _generation) {
+        state = stored ?? restoredFallback;
+      }
     } on Object {
       // Nothing to recover: the default is already in state.
     }

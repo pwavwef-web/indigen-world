@@ -857,7 +857,11 @@ class _ReelFeedViewState extends ConsumerState<ReelFeedView>
     }
   }
 
-  bool get _effectivePlaying => _playing && (_manuallyRequested || ref.read(effectiveVideoAutoplayProvider)) && !_sheetPaused && !_audioPaused;
+  bool get _effectivePlaying =>
+      _playing &&
+      (_manuallyRequested || ref.read(effectiveVideoAutoplayProvider)) &&
+      !_sheetPaused &&
+      !_audioPaused;
 
   @override
   void didUpdateWidget(ReelFeedView oldWidget) {
@@ -1266,9 +1270,12 @@ class _ReelFeedViewState extends ConsumerState<ReelFeedView>
                   isActive: isActive,
                   keepPlayer:
                       _holdPlayers &&
-                      ((isActive && (openNeighbours || _manuallyRequested)) || (isNeighbour && openNeighbours)),
+                      ((isActive && (openNeighbours || _manuallyRequested)) ||
+                          (isNeighbour && openNeighbours)),
                   isPlaying: isActive && _effectivePlaying,
-                  userPaused: isActive && (!_playing || (!openNeighbours && !_manuallyRequested)),
+                  userPaused:
+                      isActive &&
+                      (!_playing || (!openNeighbours && !_manuallyRequested)),
                   onScreen: onScreen,
                   liked: liked,
                   serverLiked: serverLiked,
@@ -1767,7 +1774,9 @@ class _ReelCardState extends ConsumerState<_ReelCard> {
   Offset? _heartAt;
   var _heartKey = 0;
 
+  bool _stillRequested = false;
   void _onTapUp(TapUpDetails details) {
+    if (widget.reel.isImage && !_stillRequested) setState(() => _stillRequested = true);
     final like = widget.onDoubleTapLike;
     if (like == null) {
       widget.onTapMedia();
@@ -2059,7 +2068,7 @@ class _ReelCardState extends ConsumerState<_ReelCard> {
 
     final ready = _ready ? _controller : null;
     final media = ReelMediaFrame(
-      imageUrl: reel.imageUrl,
+      imageUrl: ref.watch(lowDataModeProvider) && reel.isImage && !_stillRequested ? (reel.communityMedia?.thumbnailUrl ?? '') : reel.imageUrl,
       isActive: widget.isActive,
       controller: ready,
       aspectRatio: reel.mediaAspectRatio,
@@ -2095,6 +2104,7 @@ class _ReelCardState extends ConsumerState<_ReelCard> {
           fit: StackFit.expand,
           children: [
             media,
+            if (ref.watch(lowDataModeProvider) && reel.isImage && !_stillRequested) const Center(child: Text('Tap to load full image', style: TextStyle(color: Colors.white, backgroundColor: Colors.black54))),
             // The shades exist to make the words legible, so they leave with
             // the words and the picture is left clean.
             Positioned(

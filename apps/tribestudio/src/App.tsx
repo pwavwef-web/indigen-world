@@ -83,7 +83,7 @@ function SignInGate({ path }: { path: string }) {
         {error ? <Notice tone="danger" role="alert">{error}</Notice> : null}
         <GoogleButton onClick={() => void start()} busy={busy} />
         <p className="ts-hint" style={{ textAlign: 'center' }}>
-          Contributor or validator? <a href="/contributor">Sign in with your email</a>
+          Contributor or validator? <a href={`/contributor?returnTo=${encodeURIComponent(window.location.pathname + window.location.search)}`}>Sign in with your email</a>
         </p>
       </div>
     </AuthScreen>

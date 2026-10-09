@@ -288,11 +288,21 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ),
               SwitchListTile.adaptive(
                 key: const Key('settings-low-data'),
-                secondary: Icon(Icons.data_saver_on_outlined, color: context.brand.accent),
-                title: const Text('Low-data mode', style: TextStyle(fontWeight: FontWeight.w700)),
-                subtitle: const Text('Stops feed video autoplay and neighbouring video preloads. Uses available image thumbnails; tap to open full media. Saved on this device.'),
+                secondary: Icon(
+                  Icons.data_saver_on_outlined,
+                  color: context.brand.accent,
+                ),
+                title: const Text(
+                  'Low-data mode',
+                  style: TextStyle(fontWeight: FontWeight.w700),
+                ),
+                subtitle: const Text(
+                  'Stops feed video autoplay and neighbouring video preloads. Uses available image thumbnails; tap to open full media. Saved on this device.',
+                ),
                 value: ref.watch(lowDataModeProvider),
-                onChanged: (value) => unawaited(ref.read(lowDataModeProvider.notifier).set(value)),
+                onChanged: (value) => unawaited(
+                  ref.read(lowDataModeProvider.notifier).set(value),
+                ),
               ),
               SwitchListTile.adaptive(
                 secondary: Icon(

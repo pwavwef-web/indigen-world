@@ -4,7 +4,10 @@ import { readFileSync } from 'node:fs';
 import { initializeApp, deleteApp } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import { initializeTestEnvironment, assertFails } from '@firebase/rules-unit-testing';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, getDocs, collection, query, where, updateDoc } from 'firebase/firestore';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
+import { decideSubmission } from '../../services/functions/lib/creators.js';
 import { candidateDocument, candidateKey, refreshCandidate, findCandidates } from '../../services/functions/lib/kawuri-candidate-index.js';
 import { groundedAnswerFor, loadGroundingSources } from '../../services/functions/lib/kawuri-grounding.js';
 import { submitExpression } from '../../services/functions/lib/expressions.js';
@@ -57,7 +60,7 @@ test('withdrawn, restricted, held-out, poisoned and unpublished candidate payloa
 test('pagination admits only 400 candidates and reports truncation honestly',async()=>{
  const batch=db.batch(); for(let i=0;i<405;i++)batch.set(db.doc('kawuriCandidates/cap-'+String(i).padStart(4,'0')),{schema:1,collection:'dictionaryEntries',sourceId:'missing-'+i,keys:[candidateKey('cap-test')]});await batch.commit();
  const result=await findCandidates(['cap-test']);assert.equal(result.candidates.length,400);assert.equal(result.limited,true);
- assert.match((await groundedAnswerFor([{role:'user',text:'cap-test'}],plan('cap-test'))).reply,/400 candidates/);
+ assert.match((await groundedAnswerFor([{role:'user',text:'cap-test'}],plan('cap-test'))).reply,/400 indexed candidates/);
 });
 test('the selector index and reviewer records remain unreadable to anonymous clients',async()=>{
  const anonymous=rules.unauthenticatedContext().firestore();
@@ -90,4 +93,44 @@ test('corpus candidates recheck revisions, family registries, current grants and
  await db.doc('knowledgeRoleGrants/reviewer-b').update({active:false});assert.equal((await resolveKnowledgeCandidates([id])).length,0);
  await db.doc('knowledgeRoleGrants/reviewer-b').set(grant);
  await db.doc('knowledgeRecords/'+id).update({'rights.version':'new-consent'});assert.equal((await resolveKnowledgeCandidates([id])).length,0);
+});
+
+test('review guards prevent self-review, unauthorized access and concurrent overwrite; corrections retain audit',async()=>{
+ const id='synthetic-correction', owner='correction-owner';
+ await db.doc('submissions/'+id).set({id,authUid:owner,creator:{collection:'creatorProfiles',id:owner},campaign:{id:'open'},studioType:'writing',category:'storytelling',title:'TEST ONLY correction',body:'Synthetic sourced contribution.',status:'SUBMITTED',permissions:{publication:false},lifecycle:{version:1,createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()}});
+ const request={auth:{uid:'reviewer-one',token:{role:'validator'}},data:{submissionId:id,decision:'REQUEST_REVISION',feedback:'Please add the recorded context.',expectedStatus:'SUBMITTED',expectedVersion:1}};
+ await assert.rejects(decideSubmission.run({...request,auth:{uid:owner,token:{role:'validator'}}}),/own submissions/);
+ await assert.rejects(decideSubmission.run({...request,auth:{uid:'unqualified',token:{role:'contributor'}}}));
+ await assert.rejects(decideSubmission.run({...request,data:{...request.data,feedback:''}}));
+ const results=await Promise.allSettled([decideSubmission.run(request),decideSubmission.run({...request,auth:{uid:'reviewer-two',token:{role:'validator'}}})]);
+ assert.equal(results.filter(result=>result.status==='fulfilled').length,1);
+ assert.equal((await db.doc('submissions/'+id).get()).get('status'),'NEEDS_REVISION');
+ const author=rules.authenticatedContext(owner).firestore();
+ await updateDoc(doc(author,'submissions',id),{body:'Synthetic correction with source context.',status:'RESUBMITTED','lifecycle.version':3,'lifecycle.updatedAt':new Date().toISOString()});
+ await decideSubmission.run({...request,data:{...request.data,decision:'APPROVE',expectedStatus:'RESUBMITTED',expectedVersion:3}});
+ const audits=await db.collection('auditLogs').get();
+ assert(audits.docs.some(row=>JSON.stringify(row.data()).includes('REQUEST_REVISION')));
+ assert(audits.docs.some(row=>JSON.stringify(row.data()).includes('APPROVE')));
+ assert.equal((await db.doc('submissions/'+id).get()).get('status'),'APPROVED');
+});
+
+test('sentence queries respect permanent and expiring permissions; restricted book fixture stays private',async()=>{
+ const batch=db.batch();
+ for(const [id,expiry] of [['permanent',null],['expiring',Date.now()+600_000],['expired',Date.now()-60_000]]) batch.set(db.doc('kasemSentences/'+id),{status:'confirmed',projectionVersion:2,expiresAtMillis:expiry,kasem:'TEST ɛ ɔ ŋ',english:'Synthetic sentence',importId:'gillbt-basic-grammar-1983-2014'});
+ batch.set(db.doc('dictionaryEntries/restricted-book'),{isPublished:false,culturalPermissionTier:'restricted',kasemText:'TEST ONLY',englishText:'Restricted synthetic fixture',importBatch:'bgl-kasem-orthography-1997'});
+ await batch.commit();const anonymous=rules.unauthenticatedContext().firestore();
+ const base=[where('status','==','confirmed'),where('projectionVersion','==',2)];
+ assert.equal((await getDocs(query(collection(anonymous,'kasemSentences'),...base,where('expiresAtMillis','==',null)))).size,1);
+ assert.equal((await getDocs(query(collection(anonymous,'kasemSentences'),...base,where('expiresAtMillis','>',Date.now()+60_000)))).size,1);
+ await assertFails(getDoc(doc(anonymous,'kasemSentences','expired')));
+ await assertFails(getDoc(doc(anonymous,'dictionaryEntries','restricted-book')));
+});
+
+test('backfill dry-run writes nothing and applied page resumes only at its recorded cursor',async()=>{
+ const batch=db.batch();for(let i=0;i<101;i++) batch.set(db.doc('grammarRules/backfill-'+String(i).padStart(3,'0')),{status:'published',title:'TEST ONLY backfill '+i,summary:'Synthetic rule'});await batch.commit();
+ const run=async args=>JSON.parse((await promisify(execFile)(process.execPath,[new URL('../../services/functions/scripts/backfill-kawuri-candidates.mjs',import.meta.url).pathname.replace(/^\/([A-Za-z]:)/,'$1'),'--project',projectId,'--collection','grammarRules','--pages','1',...args],{env:process.env})).stdout);
+ const dry=await run([]);assert.equal(dry.dryRun,true);assert.equal(dry.scanned,100);assert.equal((await db.doc('kawuriIndexState/backfill-grammarRules').get()).exists,false);
+ const first=await run(['--apply']);assert.equal(first.complete,false);
+ const resumed=await run(['--apply','--after',first.nextCursor]);assert.equal(resumed.scanned,1);
+ assert.equal((await db.doc('kawuriIndexState/backfill-grammarRules').get()).get('complete'),true);
 });

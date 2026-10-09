@@ -68,7 +68,7 @@ class FirebaseKnowledgeRepository implements KnowledgeRepository {
 
   @override
   Future<KnowledgePage> list({String? cursor}) async => KnowledgePage.fromMap(
-    await _call('listKnowledgeRecords', {'scope': 'mine', if (cursor != null) 'cursor': cursor}),
+    await _call('listKnowledgeRecords', {'scope': 'mine', 'cursor': ?cursor}),
   );
 
   @override
@@ -78,7 +78,7 @@ class FirebaseKnowledgeRepository implements KnowledgeRepository {
   Future<Map<String, dynamic>> save({required Map<String, dynamic> record, required String requestId, required bool submit, String? id, int? revision}) async => knowledgeMap(
     (await _call('saveKnowledgeRecord', {
       'record': record, 'requestId': requestId, 'submit': submit,
-      if (id != null) 'id': id, if (revision != null) 'revision': revision,
+      'id': ?id, 'revision': ?revision,
     }))['record'],
   );
 

@@ -21,7 +21,7 @@ assert.match(styles, /--navy-900:\s*#0f1830;/, "dictionary uses the shared Indig
 assert.match(styles, /--blue:\s*#2f6bff;/, "dictionary uses the shared Indigen World action blue");
 assert.match(html, /name="theme-color" content="#0f1830"/, "browser chrome matches the shared Indigen World theme");
 assert.match(app, /search_kasem_dictionary/, "app exposes its primary search journey to supporting agents");
-assert.match(firebase, /where\(COLLECTIONS\[kind\]\.field, "==", true\)/, "app reads published entries only");
+assert.match(firebase, /where\(COLLECTIONS\[kind\]\.field, "==", kind === 'grammar' \? 'published' : kind === 'sentences' \? 'confirmed' : true\)/, "app reads published entries only");
 assert.match(collections, /field: "isPublished"/, "words and expressions use the publication flag");
 assert.match(collections, /source: "kasemNames", field: "published"/, "curated names use their publication flag");
 assert.match(firebase, /4c3913f1d671a7b129a0df/, "app uses its dedicated Firebase Web App registration");

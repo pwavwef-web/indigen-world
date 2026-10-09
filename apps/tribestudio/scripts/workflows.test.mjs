@@ -37,6 +37,9 @@ async function load(path, names, mocks = {}) {
   if (['src/creator/pages/SubmissionNewPage.tsx', 'src/creator/pages/ExpressionsPage.tsx', 'src/creator/pages/DictionaryPage.tsx', 'src/knowledge/KnowledgeWorkspace.tsx'].includes(path)) {
     mocks = { ...await load('src/drafts/useRecovery.tsx', ['useRecovery', 'DraftRecovery'], { ...await load('src/drafts/store.ts', ['draftKey', 'readDraft', 'writeDraft']), ...mocks }), ...mocks };
   }
+  if (path === 'src/contributor/ContributorPortal.tsx') {
+    mocks = { ...await load('src/authReturn.ts', ['studioReturn']), ...mocks };
+  }
   if (path.endsWith('SubmissionNewPage.tsx')) {
     mocks = { ...await load('src/creator/discoverySource.ts', ['discoverySource']), ...mocks };
   }
@@ -1090,4 +1093,44 @@ test('each expression shows where its review stands, and a declined one can be c
   assert.equal(page.calls[0].payload.revisionOf, 'old-1');
   assert.equal(page.calls[0].payload.dialect, 'Paga');
   page.h.dispose();
+});
+
+
+test('scoped recovery preserves Unicode and metadata, rejects another account and unknown legacy drafts', async () => {
+  const {draftKey,readDraft,writeDraft}=await load('src/drafts/store.ts',['draftKey','readDraft','writeDraft']);
+  const rows=new Map(), storage={getItem:key=>rows.get(key)??null,setItem:(key,value)=>rows.set(key,value)};
+  storage.setItem('tribestudio.dictionary.draft.v1',JSON.stringify({kasem:'unattributed old text'}));
+  assert.equal(readDraft(storage,'alice','dictionary'),null);
+  const value={text:'ɛ ɔ ŋ á ñ',category:'grammar',dialect:'Navrongo',requestId:'durable-id',media:{storagePath:'owned/path'}};
+  writeDraft(storage,'alice','dictionary',value,'2');
+  assert.deepEqual(plain(readDraft(storage,'alice','dictionary').value),value);
+  assert.equal(readDraft(storage,'bob','dictionary'),null);
+  storage.setItem(draftKey('bob','dictionary'),storage.getItem(draftKey('alice','dictionary')));
+  assert.equal(readDraft(storage,'bob','dictionary'),null);
+});
+test('recovery requires a choice, reports version conflicts, retries storage and never recreates a cleared submission', async () => {
+  const h=hooks(), rows=new Map(), events=new Map(); let full=false, restored=0;
+  const window={localStorage:{getItem:key=>rows.get(key)??null,setItem:(key,value)=>{if(full)throw Error('full');rows.set(key,value)},removeItem:key=>rows.delete(key)},addEventListener:(name,fn)=>events.set(name,fn),removeEventListener:name=>events.delete(name)};
+  const store=await load('src/drafts/store.ts',['draftKey','readDraft','writeDraft']);
+  store.writeDraft(window.localStorage,'owner','form',{text:'Earlier ɛ',dialect:'Paga'},'1');
+  const {useRecovery}=await load('src/drafts/useRecovery.tsx',['useRecovery'],{...h.api,...store,window});
+  let value={text:'Current ɔ',dialect:'Navrongo'};
+  const render=()=>h.render(()=>useRecovery('owner','form',value,true,saved=>{restored++;value=saved},'2'));
+  let draft=render();h.flush(); assert.equal(restored,0);assert.equal(draft.conflict,true);
+  draft.continueDraft();draft=render();h.flush();assert.equal(restored,1);assert.equal(value.text,'Earlier ɛ');
+  full=true;value={...value,text:'New ŋ'};render();h.flush();draft=render();assert.match(draft.status,/could not/);
+  full=false;draft.persist();draft=render();assert.match(draft.status,/Saved/);
+  draft.clear();render();h.flush();events.get('pagehide')?.();h.dispose();assert.equal(rows.size,0);
+});
+test('only allowlisted contribution destinations survive email sign-in returns',async()=>{
+ const {studioReturn}=await load('src/authReturn.ts',['studioReturn']);
+ for(const route of ['/studio/dictionary','/studio/expressions?kind=proverb','/studio/knowledge?category=sentences','/studio/submissions/new?type=audio&category=song'])assert.equal(studioReturn(route),route);
+ for(const route of ['//evil.test','https://evil.test','/studio/admin','/studio/dictionary/unexpected'])assert.equal(studioReturn(route),null);
+});
+test('timeline keeps submitted and published separate and preserves earlier revision links',async()=>{
+ const {contributionTimeline}=await load('src/contributor/timeline.ts',['contributionTimeline']);
+ const rounds=[{id:'earlier',item:'i',status:'NEEDS_REVISION',createdAt:'2026-01-01',decidedAt:'2026-01-02',feedback:'Correct context'}, {id:'new',item:'i',status:'PUBLISHED',revisionOf:'earlier',createdAt:'2026-01-03',decidedAt:'2026-01-04'}];
+ const events=plain(contributionTimeline({id:'i'},rounds));
+ assert.deepEqual(events.map(event=>event.label),['Submitted for review','Correction requested','Submitted for review','Published']);
+ assert.equal(events.at(-1).revisionOf,'earlier');assert.equal(events[1].feedback,'Correct context');
 });

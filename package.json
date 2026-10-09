@@ -20,6 +20,7 @@
     "services/functions"
   ],
   "scripts": {
+    "verify:ten-shipping": "node scripts/verify-ten-shipping.mjs",
     "dev:labs": "node scripts/labs-web.mjs",
     "emulators:labs": "npm run build:functions && node scripts/labs-emulators.mjs",
     "seed:labs": "cross-env GCLOUD_PROJECT=demo-indigen-world FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099 node firebase/seed/labs-demo.mjs",

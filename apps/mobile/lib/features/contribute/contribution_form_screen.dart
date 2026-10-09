@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -12,6 +13,7 @@ import 'package:indigen_world_mobile/features/contribute/contribution_kinds.dart
 import 'package:indigen_world_mobile/features/contribute/contribution_received_screen.dart';
 import 'package:indigen_world_mobile/features/contribute/contribution_upload.dart';
 import 'package:indigen_world_mobile/features/contribute/draft_assist.dart';
+import 'package:indigen_world_mobile/features/contribute/draft_recovery.dart';
 import 'package:indigen_world_mobile/features/contribute/pronunciation_recorder.dart';
 import 'package:indigen_world_mobile/features/contribute/words/data/parts_of_speech.dart';
 import 'package:indigen_world_mobile/features/contribute/words/widgets/lexical_detail_fields.dart';
@@ -82,6 +84,9 @@ class ContributionFormScreen extends ConsumerStatefulWidget {
 
 class _ContributionFormScreenState
     extends ConsumerState<ContributionFormScreen> {
+  late AccountDraftSession _recovery;
+  String _requestId = 'mobile-${DateTime.now().microsecondsSinceEpoch}';
+  UploadedContributionFile? _uploadedMedia, _uploadedCover;
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _titleController;
   final _bodyController = TextEditingController();
@@ -188,7 +193,84 @@ class _ContributionFormScreenState
     // that it is now typed into a different box.
     _senses.first.definition.text = widget.initialSource;
     _senses.first.definition.addListener(_syncTitleFromSenses);
+    _recovery = AccountDraftSession(
+      account: () => ref.read(authStateProvider).asData?.value?.uid ?? '',
+      area:
+          'collection:${_kind.name}:${widget.lexicalKind?.wire ?? 'word'}:${widget.relatedEntryId ?? 'new'}',
+      snapshot: _recoverySnapshot,
+      meaningful: () =>
+          _bodyController.text.isNotEmpty ||
+          _titleController.text != widget.initialSource ||
+          _sourceController.text.isNotEmpty ||
+          _notesController.text.isNotEmpty,
+      version: () => '',
+      changed: () {
+        if (mounted) setState(() {});
+      },
+    );
   }
+
+  Map<String, TextEditingController> get _recoveryFields => {
+    'title': _titleController,
+    'body': _bodyController,
+    'source': _sourceController,
+    'literal': _literalTranslationController,
+    'context': _usageContextController,
+    'french': _frenchTranslationController,
+    'notes': _notesController,
+    'kasemExample': _kasemExampleController,
+    'englishExample': _englishExampleController,
+  };
+  Map<String, dynamic> _recoverySnapshot() => {
+    for (final entry in _recoveryFields.entries) entry.key: entry.value.text,
+    'forms': _forms.recoverySnapshot(),
+    'senses': _senses.recoverySnapshot(),
+    'dialect': _dialect,
+    'format': _format,
+    'partOfSpeech': _partOfSpeech?.id,
+    'alsoUsedAs': _alsoUsedAs.toList(),
+    'requestId': _requestId,
+    'media': _uploadedMedia?.toMap(),
+    'cover': _uploadedCover?.toMap(),
+    'usesThirdPartyMaterial': _usesThirdPartyMaterial,
+    'publicationPermission': _publicationPermission,
+  };
+  UploadedContributionFile? _recoverUpload(Object? raw) {
+    if (raw is! Map ||
+        raw['storagePath'] is! String ||
+        !('${raw['storagePath']}').contains('/${_recovery.owner}/')) {
+      return null;
+    }
+    return UploadedContributionFile(
+      storagePath: raw['storagePath'] as String,
+      mimeType: raw['mimeType'] as String,
+      sizeBytes: (raw['sizeBytes'] as num).toInt(),
+      mediaType: raw['mediaType'] as String,
+    );
+  }
+
+  void _restoreRecovery(Map<String, dynamic> value) => setState(() {
+    for (final entry in _recoveryFields.entries) {
+      entry.value.text = value[entry.key] as String? ?? '';
+    }
+    _forms.recover(value['forms'] as Map? ?? {});
+    _senses.first.definition.removeListener(_syncTitleFromSenses);
+    _senses.recover(value['senses'] as List? ?? []);
+    _senses.first.definition.addListener(_syncTitleFromSenses);
+    _dialect = value['dialect'] as String?;
+    _format = value['format'] as String?;
+    _partOfSpeech = partOfSpeechById(value['partOfSpeech'] as String? ?? '');
+    _alsoUsedAs = Set<String>.from(value['alsoUsedAs'] as List? ?? []);
+    _requestId = value['requestId'] as String? ?? _requestId;
+    _uploadedMedia = _recoverUpload(value['media']);
+    _uploadedCover = _recoverUpload(value['cover']);
+    _file = null;
+    _cover = null;
+    _usesThirdPartyMaterial = value['usesThirdPartyMaterial'] as bool?;
+    _publicationPermission = value['publicationPermission'] == true;
+    _rightsConfirmed = false;
+    _participantConsentConfirmed = false;
+  });
 
   /// Copies the first meaning into the field the pipeline reads as English.
   ///
@@ -226,6 +308,8 @@ class _ContributionFormScreenState
 
   @override
   void dispose() {
+    unawaited(_recovery.flush());
+    _recovery.dispose();
     _senses.first.definition.removeListener(_syncTitleFromSenses);
     _senses.dispose();
     _titleController.dispose();
@@ -242,131 +326,144 @@ class _ContributionFormScreenState
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    backgroundColor: context.brand.background,
-    appBar: AppBar(title: const Text('Contribute')),
-    body: ScreenContainer(
-      child: ListView(
-        key: const PageStorageKey('contribution-form-scroll'),
-        // The mini-player floats above the Navigator, so it covers a pushed
-        // route too. Asked for rather than assumed: a member who has never
-        // pressed play gets nothing reserved.
-        padding: EdgeInsets.only(bottom: 40 + musicInset(context)),
-        children: [
-          BrandHeader(
-            // No eyebrow over a heading that would only say the word again —
-            // except on a correction, where "Contribute" is the orientation
-            // the heading itself no longer gives.
-            eyebrow: widget.relatedEntryId == null ? null : 'Contribute',
-            title: widget.relatedEntryId == null
-                ? _heading
-                : 'Suggest a correction.',
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _ContributionFields(
-                  formKey: _formKey,
-                  kind: _kind,
-                  onDraftChanged: _kind == CollectionKind.dictionary
-                      ? _refreshAssist
-                      : null,
-                  lexicalKind: widget.lexicalKind,
-                  partOfSpeech: _partOfSpeech,
-                  onPartOfSpeechChanged: (value) => setState(() {
-                    _partOfSpeech = value;
-                    // The label, not the id: `format` is a free-text column
-                    // shared with four other kinds, and the backend's
-                    // `canonicalPartOfSpeech` resolves a label back to its id.
-                    // Writing the id here would put "proper-noun" in a field
-                    // the review desk prints verbatim.
-                    _format = value.label;
-                    // The offers are per class — "also an action" on a noun,
-                    // "also a thing" on a verb — so a selection made under one
-                    // class means nothing under another. Cleared rather than
-                    // carried: a hidden chip that is still selected sends a
-                    // claim nobody can see they made.
-                    _alsoUsedAs = <String>{};
-                  }),
-                  forms: _forms,
-                  senses: _senses,
-                  alsoUsedAs: _alsoUsedAs,
-                  onAlsoUsedAsChanged: (value) =>
-                      setState(() => _alsoUsedAs = value),
-                  titleController: _titleController,
-                  bodyController: _bodyController,
-                  sourceController: _sourceController,
-                  literalTranslationController: _literalTranslationController,
-                  usageContextController: _usageContextController,
-                  frenchTranslationController: _frenchTranslationController,
-                  notesController: _notesController,
-                  kasemExampleController: _kasemExampleController,
-                  englishExampleController: _englishExampleController,
-                  dialect: _dialect,
-                  format: _format,
-                  file: _file,
-                  uploadProgress: _uploadProgress,
-                  cover: _cover,
-                  coverProgress: _coverProgress,
-                  rightsConfirmed: _rightsConfirmed,
-                  publicationPermission: _publicationPermission,
-                  participantConsentConfirmed: _participantConsentConfirmed,
-                  usesThirdPartyMaterial: _usesThirdPartyMaterial,
-                  onDialectChanged: (value) => setState(() => _dialect = value),
-                  onFormatChanged: (value) => setState(() => _format = value),
-                  onPickFile: _pickFile,
-                  onPronunciationRecorded: (recording) => setState(() {
-                    _file = recording;
-                    _submitError = null;
-                  }),
-                  onClearFile: () => setState(() => _file = null),
-                  onPickCover: _pickCover,
-                  onClearCover: () => setState(() => _cover = null),
-                  onRightsChanged: (value) =>
-                      setState(() => _rightsConfirmed = value),
-                  onPublicationChanged: (value) =>
-                      setState(() => _publicationPermission = value),
-                  onParticipantConsentChanged: (value) =>
-                      setState(() => _participantConsentConfirmed = value),
-                  onThirdPartyMaterialChanged: (value) =>
-                      setState(() => _usesThirdPartyMaterial = value),
-                ),
-                if (_assistChecks.isNotEmpty) ...[
-                  const SizedBox(height: 16),
-                  DraftAssistNotices(checks: _assistChecks),
-                ],
-                if (_submitError != null) ...[
-                  const SizedBox(height: 14),
-                  _SubmitError(message: _submitError!),
-                ],
-                const SizedBox(height: 18),
-                FilledButton.icon(
-                  onPressed: _saving ? null : _submit,
-                  icon: _saving
-                      ? const SizedBox.square(
-                          dimension: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.cloud_upload_outlined),
-                  label: Text(
-                    _saving ? 'Sending securely…' : 'Submit for review',
-                  ),
-                ),
-                const SizedBox(height: 9),
-                Text(
-                  'Reviewed before it is published.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: context.brand.mutedInk, fontSize: 11),
-                ),
-              ],
+  Widget build(BuildContext context) {
+    ref.watch(authStateProvider);
+    if (_recovery.accountChanged) return accountChangedDraftScreen(context);
+    return Scaffold(
+      backgroundColor: context.brand.background,
+      appBar: AppBar(title: const Text('Contribute')),
+      body: ScreenContainer(
+        child: ListView(
+          key: const PageStorageKey('contribution-form-scroll'),
+          // The mini-player floats above the Navigator, so it covers a pushed
+          // route too. Asked for rather than assumed: a member who has never
+          // pressed play gets nothing reserved.
+          padding: EdgeInsets.only(bottom: 40 + musicInset(context)),
+          children: [
+            DraftRecoveryPanel(session: _recovery, restore: _restoreRecovery),
+            if (_uploadedMedia != null)
+              const Text(
+                'Uploaded attachment preserved. Choose another file to replace it.',
+              ),
+            BrandHeader(
+              // No eyebrow over a heading that would only say the word again —
+              // except on a correction, where "Contribute" is the orientation
+              // the heading itself no longer gives.
+              eyebrow: widget.relatedEntryId == null ? null : 'Contribute',
+              title: widget.relatedEntryId == null
+                  ? _heading
+                  : 'Suggest a correction.',
             ),
-          ),
-        ],
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _ContributionFields(
+                    formKey: _formKey,
+                    kind: _kind,
+                    onDraftChanged: _kind == CollectionKind.dictionary
+                        ? _refreshAssist
+                        : null,
+                    lexicalKind: widget.lexicalKind,
+                    partOfSpeech: _partOfSpeech,
+                    onPartOfSpeechChanged: (value) => setState(() {
+                      _partOfSpeech = value;
+                      // The label, not the id: `format` is a free-text column
+                      // shared with four other kinds, and the backend's
+                      // `canonicalPartOfSpeech` resolves a label back to its id.
+                      // Writing the id here would put "proper-noun" in a field
+                      // the review desk prints verbatim.
+                      _format = value.label;
+                      // The offers are per class — "also an action" on a noun,
+                      // "also a thing" on a verb — so a selection made under one
+                      // class means nothing under another. Cleared rather than
+                      // carried: a hidden chip that is still selected sends a
+                      // claim nobody can see they made.
+                      _alsoUsedAs = <String>{};
+                    }),
+                    forms: _forms,
+                    senses: _senses,
+                    alsoUsedAs: _alsoUsedAs,
+                    onAlsoUsedAsChanged: (value) =>
+                        setState(() => _alsoUsedAs = value),
+                    titleController: _titleController,
+                    bodyController: _bodyController,
+                    sourceController: _sourceController,
+                    literalTranslationController: _literalTranslationController,
+                    usageContextController: _usageContextController,
+                    frenchTranslationController: _frenchTranslationController,
+                    notesController: _notesController,
+                    kasemExampleController: _kasemExampleController,
+                    englishExampleController: _englishExampleController,
+                    dialect: _dialect,
+                    format: _format,
+                    file: _file,
+                    uploadProgress: _uploadProgress,
+                    cover: _cover,
+                    coverProgress: _coverProgress,
+                    rightsConfirmed: _rightsConfirmed,
+                    publicationPermission: _publicationPermission,
+                    participantConsentConfirmed: _participantConsentConfirmed,
+                    usesThirdPartyMaterial: _usesThirdPartyMaterial,
+                    onDialectChanged: (value) =>
+                        setState(() => _dialect = value),
+                    onFormatChanged: (value) => setState(() => _format = value),
+                    onPickFile: _pickFile,
+                    onPronunciationRecorded: (recording) => setState(() {
+                      _file = recording; _uploadedMedia = null;
+                      _submitError = null;
+                    }),
+                    onClearFile: () => setState(() { _file = null; _uploadedMedia = null; }),
+                    onPickCover: _pickCover,
+                    onClearCover: () => setState(() { _cover = null; _uploadedCover = null; }),
+                    onRightsChanged: (value) =>
+                        setState(() => _rightsConfirmed = value),
+                    onPublicationChanged: (value) =>
+                        setState(() => _publicationPermission = value),
+                    onParticipantConsentChanged: (value) =>
+                        setState(() => _participantConsentConfirmed = value),
+                    onThirdPartyMaterialChanged: (value) =>
+                        setState(() => _usesThirdPartyMaterial = value),
+                  ),
+                  if (_assistChecks.isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    DraftAssistNotices(checks: _assistChecks),
+                  ],
+                  if (_submitError != null) ...[
+                    const SizedBox(height: 14),
+                    _SubmitError(message: _submitError!),
+                  ],
+                  const SizedBox(height: 18),
+                  FilledButton.icon(
+                    onPressed: _saving ? null : _submit,
+                    icon: _saving
+                        ? const SizedBox.square(
+                            dimension: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.cloud_upload_outlined),
+                    label: Text(
+                      _saving ? 'Sending securely…' : 'Submit for review',
+                    ),
+                  ),
+                  const SizedBox(height: 9),
+                  Text(
+                    'Reviewed before it is published.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: context.brand.mutedInk,
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
-    ),
-  );
+    );
+  }
 
   /// The heading, which now has one kind to name rather than five.
   ///
@@ -393,7 +490,7 @@ class _ContributionFormScreenState
       final picked = await const ContributionUploader().pick(kind);
       if (picked == null || !mounted) return;
       setState(() {
-        _file = picked;
+        _file = picked; _uploadedMedia = null;
         _submitError = null;
       });
     } on ContributionUploadFailure catch (failure) {
@@ -410,7 +507,7 @@ class _ContributionFormScreenState
       );
       if (picked == null || !mounted) return;
       setState(() {
-        _cover = picked;
+        _cover = picked; _uploadedCover = null;
         _submitError = null;
       });
     } on ContributionUploadFailure catch (failure) {
@@ -444,9 +541,10 @@ class _ContributionFormScreenState
   }
 
   Future<void> _submit() async {
+    if (!_recovery.canSubmit) return;
     FocusScope.of(context).unfocus();
     final isValid = _formKey.currentState?.validate() ?? false;
-    final needsFile = contributionRequiresUpload(_kind) && _file == null;
+    final needsFile = contributionRequiresUpload(_kind) && _file == null && _uploadedMedia == null;
     if (!isValid ||
         !_rightsConfirmed ||
         !_participantConsentConfirmed ||
@@ -488,9 +586,9 @@ class _ContributionFormScreenState
       // The file goes first and separately: it lands in the member's own
       // private prefix, and the callable is handed the path rather than the
       // bytes, so a 40 MB recording never has to fit through a function call.
-      UploadedContributionFile? uploaded;
+      UploadedContributionFile? uploaded = _uploadedMedia;
       final staged = _file;
-      if (staged != null) {
+      if (staged != null && _uploadedMedia == null) {
         uploaded = await const ContributionUploader().upload(
           uid: user.uid,
           file: staged,
@@ -503,9 +601,9 @@ class _ContributionFormScreenState
       // Then the artwork, into the same prefix and reported on its own bar.
       // One combined percentage across two files of wildly different sizes
       // would sit at 99% for the whole of the small one.
-      UploadedContributionFile? uploadedCover;
+      UploadedContributionFile? uploadedCover = _uploadedCover;
       final art = _cover;
-      if (art != null) {
+      if (art != null && _uploadedCover == null) {
         uploadedCover = await const ContributionUploader().upload(
           uid: user.uid,
           file: art,
@@ -515,6 +613,9 @@ class _ContributionFormScreenState
         );
       }
 
+      _uploadedMedia = uploaded;
+      _uploadedCover = uploadedCover;
+      await _recovery.flush();
       await repository.submit(
         CollectionContributionDraft(
           kind: _kind,
@@ -576,7 +677,12 @@ class _ContributionFormScreenState
               ? _forms.etymologyText
               : '',
         ),
+        requestId: _requestId,
       );
+      await _recovery.clear(restart: true);
+      _requestId = 'mobile-${DateTime.now().microsecondsSinceEpoch}';
+      _uploadedMedia = null;
+      _uploadedCover = null;
       ref.invalidate(myCollectionContributionsProvider);
       if (!mounted) return;
       _bodyController.clear();

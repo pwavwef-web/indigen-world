@@ -47,3 +47,23 @@ Flutter pub get passed with pinned 3.47.0/Dart3.13.0. Analysis reports baseline 
 workspace lints/warnings plus a new errors.add typo and import ordering to repair.
 Emulator suite shipping.integration.test.mjs and targeted Flutter tests currently running.
 Use isolated worktree above; original 159 paths remain protected. CI billing still blocks jobs.
+
+## Checkpoint 3 — 2026-10-09
+All ten areas have implementation changes. Mobile forms now have explicit account
+recovery (collection, word queue, grammar annotation and knowledge); legacy lexical
+editor also migrated. Original checkout remains untouched. No live changes.
+Passed: website/dictionary/shared/admin types and builds, 22 contract fixtures;
+15 mobile downloads/preferences/queue tests plus 2 recovery tests; 19/20 emulator
+cases (last failure is an archive-before-approval test sequence, now repaired).
+Full helper baseline: 637/640 passed; ignored local word seed and ffmpeg-static
+binary missing after ignore-scripts install. Generated local ignored seed with
+existing builder, rebuilt ffmpeg-static; rerun required. No book ingestion run.
+Remaining verification: final Studio assertion/build, mobile widget capture and
+analysis, browser recovery/source/responsive capture, final emulator rerun, helper
+rerun, low-data request widget proof, reviewer capture, release post and rollout
+document. Running sessions 15477 Studio, 65282 analysis, 29775 browser, 95437
+Downloads widget. Runner scripts/verify-ten-shipping.mjs records per-check codes;
+logs in ignored .tooling/ten-shipping. Need separate results per invocation so
+web/emulator invocations do not overwrite summary. Flutter devices: Windows,
+Chrome, Edge only; Android/iOS physical playback unverified. Node24 host vs
+Functions Node22 target noted. Keep checkpoints; do not deploy/backfill production.

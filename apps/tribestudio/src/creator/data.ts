@@ -358,7 +358,19 @@ export async function saveSubmission(
   const reference = doc(db, 'submissions', input.id);
   if (existing === null) {
     const document = buildSubmission(input, status);
-    await setDoc(reference, document);
+    try { await setDoc(reference, document); }
+    catch (error) {
+      // Recover a lost acknowledgement only for an identical account payload.
+      let prior: Submission | undefined;
+      try { prior = (await getDoc(reference)).data() as Submission | undefined; } catch { throw error; }
+      if (!prior || prior.authUid !== input.uid) throw error;
+      const same = (value: Submission) => JSON.stringify(Object.fromEntries(Object.keys(document).filter(key => !['lifecycle','moderation','status','rewardEligible','permissions'].includes(key)).map(key => [key, value[key as keyof Submission]])))
+        + JSON.stringify({ ...value.permissions, recordedAt: null });
+      if (same(prior) !== same(document)) throw new Error('A saved remote copy differs from this draft. Open it and choose the version to continue.');
+      if (prior.status === status) return prior;
+      if (prior.status === 'DRAFT') return saveSubmission(input, status, prior, prior.lifecycle.version);
+      throw new Error('This contribution has already left the editable queue. Open it to see the latest decision.');
+    }
     return document;
   }
   return runTransaction(db, async transaction => {

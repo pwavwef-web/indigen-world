@@ -1,0 +1,5 @@
+.draft-recovery { border-inline-start: 3px solid var(--c-blue); margin-block: var(--space-3); font-size: var(--fs-sm); line-height: var(--lh-body, 1.6); overflow-wrap: anywhere; animation: ts-enter-soft var(--dur-2) var(--ease-emph) both; }
+.draft-recovery p { margin: 0; }
+.draft-recovery .ts-cluster { margin-top: var(--space-3); }
+.draft-recovery button { white-space: normal; min-height: 2.75rem; }
+@media (prefers-reduced-motion: reduce) { .draft-recovery { animation: none; } }

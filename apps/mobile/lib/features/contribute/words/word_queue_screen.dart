@@ -10,6 +10,7 @@ import 'package:indigen_world_mobile/features/collection/collection_data.dart';
 import 'package:indigen_world_mobile/features/contribute/contribution_form_screen.dart';
 import 'package:indigen_world_mobile/features/contribute/contribution_kinds.dart';
 import 'package:indigen_world_mobile/features/contribute/contribution_upload.dart';
+import 'package:indigen_world_mobile/features/contribute/draft_recovery.dart';
 import 'package:indigen_world_mobile/features/contribute/language_loop_analytics.dart';
 import 'package:indigen_world_mobile/features/contribute/my_submissions_screen.dart';
 import 'package:indigen_world_mobile/features/contribute/pronunciation_recorder.dart';
@@ -76,6 +77,7 @@ class WordQueueScreen extends ConsumerStatefulWidget {
 }
 
 class _WordQueueScreenState extends ConsumerState<WordQueueScreen> {
+  late AccountDraftSession _recovery;
   final _formKey = GlobalKey<FormState>();
   final _translations = TextEditingController();
   final _kasemExample = TextEditingController();
@@ -205,6 +207,31 @@ class _WordQueueScreenState extends ConsumerState<WordQueueScreen> {
   @override
   void initState() {
     super.initState();
+    _recovery = AccountDraftSession(
+      account: () => ref.read(authStateProvider).asData?.value?.uid ?? '',
+      area: 'word-queue',
+      snapshot: () => {
+        'wordId': _answeringWordId,
+        'translations': _translations.text,
+        'example': _kasemExample.text,
+        'notes': _notes.text,
+        'forms': _forms.recoverySnapshot(),
+        'dialect': _dialect,
+        'partOfSpeech': _partOfSpeech?.id,
+        'alsoUsedAs': _alsoUsedAs.toList(),
+        'sentenceFit': _sentenceFit.name,
+        'revisionId': _reviseContributionId,
+        'creditByName': _creditByName,
+      },
+      meaningful: () =>
+          _translations.text.isNotEmpty ||
+          _notes.text.isNotEmpty ||
+          _kasemExample.text.isNotEmpty,
+      version: () => _reviseContributionId ?? '',
+      changed: () {
+        if (mounted) setState(() {});
+      },
+    );
     final revision = widget.revision;
     if (revision != null) {
       _translations.text = revision.translations;
@@ -243,14 +270,16 @@ class _WordQueueScreenState extends ConsumerState<WordQueueScreen> {
     final wordId = _answeringWordId;
     if (wordId == null || _translations.text.trim().isEmpty) return;
     if (!_startedWords.add(wordId)) return;
-    ref.read(loopAnalyticsProvider).log(
-      LoopEvent.formStart,
-      parameters: loopParameters({
-        'origin': _originFor(wordId),
-        'word_id': wordId,
-        'revision': _reviseContributionId == null ? 0 : 1,
-      }),
-    );
+    ref
+        .read(loopAnalyticsProvider)
+        .log(
+          LoopEvent.formStart,
+          parameters: loopParameters({
+            'origin': _originFor(wordId),
+            'word_id': wordId,
+            'revision': _reviseContributionId == null ? 0 : 1,
+          }),
+        );
   }
 
   /// Where the member came to [wordId] from: the door they arrived by for the
@@ -260,6 +289,8 @@ class _WordQueueScreenState extends ConsumerState<WordQueueScreen> {
 
   @override
   void dispose() {
+    unawaited(_recovery.flush());
+    _recovery.dispose();
     _translations.removeListener(_noteFormStart);
     _translations.dispose();
     _kasemExample.dispose();
@@ -270,6 +301,8 @@ class _WordQueueScreenState extends ConsumerState<WordQueueScreen> {
 
   @override
   Widget build(BuildContext context) {
+    ref.watch(authStateProvider);
+    if (_recovery.accountChanged) return accountChangedDraftScreen(context);
     // Read before the controller is watched, so a signed-out member never
     // triggers a fetch that can only come back `unauthenticated`. The queue
     // callables all require auth; asking anyway would spend a round trip on a
@@ -401,6 +434,10 @@ class _WordQueueScreenState extends ConsumerState<WordQueueScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        DraftRecoveryPanel(
+          session: _recovery,
+          restore: (value) => unawaited(_restoreQueueRecovery(value)),
+        ),
         if (revising && widget.revision!.reviewerNote.isNotEmpty) ...[
           _ReviewerNote(note: widget.revision!.reviewerNote),
           const SizedBox(height: 12),
@@ -433,8 +470,9 @@ class _WordQueueScreenState extends ConsumerState<WordQueueScreen> {
         // orientation, not instruction: somebody four words in knows how this
         // works, and a sentence that keeps explaining it starts reading as an
         // apology for the screen.
-        if (guest) ...[
-        ] else if (state.answered == 0 && state.skipped == 0) ...[
+        if (guest)
+          ...[]
+        else if (state.answered == 0 && state.skipped == 0) ...[
           Text(
             'We give you an English word. You give us the Kasem. '
             'Pass on anything you are not sure about.',
@@ -658,7 +696,35 @@ class _WordQueueScreenState extends ConsumerState<WordQueueScreen> {
     if (ref.read(isSignedInProvider)) setState(() => _signedInToSend = true);
   }
 
+  Future<void> _restoreQueueRecovery(Map<String, dynamic> value) async {
+    final wordId = value['wordId'] as String?;
+    if (wordId == null) return;
+    await _loadFocus(wordId);
+    if (!mounted || _focusWord == null) return;
+    _focusPending = false;
+    _answeringWordId = wordId;
+    ref.read(wordQueueControllerProvider.notifier).focus(_focusWord!);
+    setState(() {
+      _translations.text = value['translations'] as String? ?? '';
+      _kasemExample.text = value['example'] as String? ?? '';
+      _notes.text = value['notes'] as String? ?? '';
+      _forms.recover(value['forms'] as Map? ?? {});
+      _dialect = value['dialect'] as String?;
+      _partOfSpeech = partOfSpeechById(value['partOfSpeech'] as String? ?? '');
+      _alsoUsedAs = Set<String>.from(value['alsoUsedAs'] as List? ?? []);
+      _sentenceFit = WordQueueSentenceFit.values.firstWhere(
+        (fit) => fit.name == value['sentenceFit'],
+        orElse: () => WordQueueSentenceFit.fits,
+      );
+      _reviseContributionId = value['revisionId'] as String?;
+      _creditByName = value['creditByName'] != false;
+      _allowTraining = false;
+      _recording = null;
+    });
+  }
+
   Future<void> _submit() async {
+    if (!_recovery.canSubmit) return;
     FocusScope.of(context).unfocus();
     if (!(_formKey.currentState?.validate() ?? false)) return;
     final chosen = _partOfSpeech;
@@ -731,20 +797,23 @@ class _WordQueueScreenState extends ConsumerState<WordQueueScreen> {
           ),
         );
     if (!sent || !mounted) return;
+    await _recovery.clear(restart: true);
 
-    ref.read(loopAnalyticsProvider).log(
-      LoopEvent.submit,
-      parameters: loopParameters({
-        'origin': _originFor(wordId),
-        'word_id': wordId,
-        'revision': revise == null ? 0 : 1,
-      }),
-    );
+    ref
+        .read(loopAnalyticsProvider)
+        .log(
+          LoopEvent.submit,
+          parameters: loopParameters({
+            'origin': _originFor(wordId),
+            'word_id': wordId,
+            'revision': revise == null ? 0 : 1,
+          }),
+        );
     // Never offered again in Explore, on this phone, whatever else happens.
     unawaited(
-      ref.read(queuePromptMemoryProvider.future).then(
-        (memory) => memory.markAnswered(wordId),
-      ),
+      ref
+          .read(queuePromptMemoryProvider.future)
+          .then((memory) => memory.markAnswered(wordId)),
     );
     if (revise != null) _reviseContributionId = null;
     _signedInToSend = false;
@@ -829,6 +898,8 @@ class _WordQueueScreenState extends ConsumerState<WordQueueScreen> {
   /// network on purpose, so the next word is already on screen here and the
   /// scroll is never waiting on a round trip.
   Future<void> _skip(WordQueueSkipReason reason) async {
+    await _recovery.flush();
+    if (!mounted) return;
     FocusScope.of(context).unfocus();
     final recorded = ref
         .read(wordQueueControllerProvider.notifier)
@@ -944,7 +1015,11 @@ class _OwnWordOffer extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(14, 13, 14, 13),
           child: Row(
             children: [
-              Icon(Icons.lightbulb_outline_rounded, size: 18, color: brand.gold),
+              Icon(
+                Icons.lightbulb_outline_rounded,
+                size: 18,
+                color: brand.gold,
+              ),
               const SizedBox(width: 11),
               Expanded(
                 child: Column(
@@ -982,7 +1057,6 @@ class _OwnWordOffer extends StatelessWidget {
     );
   }
 }
-
 
 /// "Did that sentence actually show the word?"
 ///
@@ -1550,13 +1624,21 @@ class _ReviewerNote extends StatelessWidget {
                 const SizedBox(height: 3),
                 Text(
                   note,
-                  style: TextStyle(color: brand.ink, fontSize: 12.5, height: 1.45),
+                  style: TextStyle(
+                    color: brand.ink,
+                    fontSize: 12.5,
+                    height: 1.45,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   'Your earlier answer is filled in below. Correct it and send '
                   'it back; it keeps its place with the same reviewer.',
-                  style: TextStyle(color: brand.mutedInk, fontSize: 11, height: 1.4),
+                  style: TextStyle(
+                    color: brand.mutedInk,
+                    fontSize: 11,
+                    height: 1.4,
+                  ),
                 ),
               ],
             ),

@@ -1,3 +1,4 @@
+import './recovery.css';
 import { useEffect, useRef, useState } from 'react';
 import { draftKey, readDraft, writeDraft, type DraftEnvelope } from './store';
 

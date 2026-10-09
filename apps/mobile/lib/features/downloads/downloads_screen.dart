@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/data/local/app_database.dart';
-import 'package:indigen_world_mobile/features/downloads/data/downloads_providers.dart';
 import 'package:indigen_world_mobile/features/collection/collection_data.dart';
+import 'package:indigen_world_mobile/features/downloads/data/downloads_providers.dart';
 import 'package:indigen_world_mobile/features/music/music_controller.dart';
 import 'package:indigen_world_mobile/features/music/music_track.dart';
 import 'package:indigen_world_mobile/features/music/now_playing_screen.dart';
@@ -55,7 +55,13 @@ class DownloadsScreen extends ConsumerWidget {
             padding: const EdgeInsets.fromLTRB(18, 12, 18, 32),
             children: [
               _Summary(count: loaded.length, limit: limit, bytes: bytes),
-              if (!allowed && loaded.isNotEmpty) const Padding(padding: EdgeInsets.all(12), child: Text('Your files are kept on this device. Sign in with an active offline subscription to play them.')),
+              if (!allowed && loaded.isNotEmpty)
+                const Padding(
+                  padding: EdgeInsets.all(12),
+                  child: Text(
+                    'Your files are kept on this device. Sign in with an active offline subscription to play them.',
+                  ),
+                ),
               const SizedBox(height: 16),
               if (loaded.isEmpty)
                 GlassEmptyState(
@@ -76,19 +82,48 @@ class DownloadsScreen extends ConsumerWidget {
                 for (final row in loaded)
                   _DownloadRow(
                     row: row,
-                    playable: playable.asData?.value.containsKey(row.trackId) ?? false,
+                    playable:
+                        playable.asData?.value.containsKey(row.trackId) ??
+                        false,
                     allowed: allowed,
                     onPlay: () async {
-                      await ref.read(musicControllerProvider.notifier).playDownloads(loaded, trackId: row.trackId);
+                      await ref
+                          .read(musicControllerProvider.notifier)
+                          .playDownloads(loaded, trackId: row.trackId);
                       if (!context.mounted) return;
                       final error = ref.read(musicControllerProvider).error;
-                      if (error != null) { showGlassToast(context, error); return; }
-                      await Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const NowPlayingScreen()));
+                      if (error != null) {
+                        showGlassToast(context, error);
+                        return;
+                      }
+                      await Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => const NowPlayingScreen(),
+                        ),
+                      );
                     },
                     onRepair: () async {
-                      final error = await ref.read(downloadsRepositoryProvider).download(MusicTrack(id: row.trackId, title: row.title, artist: row.artist, album: row.album, url: row.sourceUrl, artworkUrl: row.artworkUrl), kind: CollectionKind.values.firstWhere((kind) => kind.name == row.kind, orElse: () => CollectionKind.music), limit: allowed ? limit : 0);
+                      final error = await ref
+                          .read(downloadsRepositoryProvider)
+                          .download(
+                            MusicTrack(
+                              id: row.trackId,
+                              title: row.title,
+                              artist: row.artist,
+                              album: row.album,
+                              url: row.sourceUrl,
+                              artworkUrl: row.artworkUrl,
+                            ),
+                            kind: CollectionKind.values.firstWhere(
+                              (kind) => kind.name == row.kind,
+                              orElse: () => CollectionKind.music,
+                            ),
+                            limit: allowed ? limit : 0,
+                          );
                       ref.invalidate(playableDownloadsProvider);
-                      if (context.mounted && error != null) showGlassToast(context, error);
+                      if (context.mounted && error != null) {
+                        showGlassToast(context, error);
+                      }
                     },
                     onRemove: () => ref
                         .read(downloadsRepositoryProvider)
@@ -177,7 +212,14 @@ class _Summary extends StatelessWidget {
 }
 
 class _DownloadRow extends StatefulWidget {
-  const _DownloadRow({required this.row, required this.onRemove, required this.onPlay, required this.onRepair, required this.playable, required this.allowed});
+  const _DownloadRow({
+    required this.row,
+    required this.onRemove,
+    required this.onPlay,
+    required this.onRepair,
+    required this.playable,
+    required this.allowed,
+  });
 
   final DownloadedTrackRecord row;
   final VoidCallback onRemove;
@@ -187,13 +229,19 @@ class _DownloadRow extends StatefulWidget {
   @override
   State<_DownloadRow> createState() => _DownloadRowState();
 }
+
 class _DownloadRowState extends State<_DownloadRow> {
   bool _busy = false;
   Future<void> _run(Future<void> Function() action) async {
     if (_busy) return;
     setState(() => _busy = true);
-    try { await action(); } finally { if (mounted) setState(() => _busy = false); }
+    try {
+      await action();
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
   }
+
   @override
   Widget build(BuildContext context) {
     final brand = context.brand;
@@ -203,7 +251,25 @@ class _DownloadRowState extends State<_DownloadRow> {
         padding: const EdgeInsets.fromLTRB(16, 12, 8, 12),
         child: Row(
           children: [
-            IconButton(tooltip: widget.playable ? 'Play downloaded track' : 'Download missing or incomplete file again', onPressed: widget.allowed && !_busy ? () => _run(widget.playable ? widget.onPlay : widget.onRepair) : null, icon: _busy ? const SizedBox.square(dimension: 20, child: CircularProgressIndicator(strokeWidth: 2)) : Icon(widget.playable ? Icons.play_circle_outline_rounded : Icons.download_rounded)),
+            IconButton(
+              tooltip: widget.playable
+                  ? 'Play downloaded track'
+                  : 'Download missing or incomplete file again',
+              onPressed: widget.allowed && !_busy
+                  ? () =>
+                        _run(widget.playable ? widget.onPlay : widget.onRepair)
+                  : null,
+              icon: _busy
+                  ? const SizedBox.square(
+                      dimension: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : Icon(
+                      widget.playable
+                          ? Icons.play_circle_outline_rounded
+                          : Icons.download_rounded,
+                    ),
+            ),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -217,7 +283,8 @@ class _DownloadRowState extends State<_DownloadRow> {
                   const SizedBox(height: 3),
                   Text(
                     [
-                      if (widget.row.artist case final artist? when artist.isNotEmpty)
+                      if (widget.row.artist case final artist?
+                          when artist.isNotEmpty)
                         artist,
                       widget.row.album,
                     ].join(' · '),
@@ -228,7 +295,14 @@ class _DownloadRowState extends State<_DownloadRow> {
                 ],
               ),
             ),
-            if (widget.playable) IconButton(tooltip: 'Download again if playback fails', onPressed: widget.allowed && !_busy ? () => _run(widget.onRepair) : null, icon: const Icon(Icons.refresh)),
+            if (widget.playable)
+              IconButton(
+                tooltip: 'Download again if playback fails',
+                onPressed: widget.allowed && !_busy
+                    ? () => _run(widget.onRepair)
+                    : null,
+                icon: const Icon(Icons.refresh),
+              ),
             IconButton(
               tooltip: 'Remove',
               onPressed: widget.onRemove,

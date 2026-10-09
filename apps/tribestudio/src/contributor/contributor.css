@@ -2121,3 +2121,12 @@
 .cw-assignment__brief > summary {
   display: inline-flex;
 }
+
+.cw-timeline { margin-top: var(--space-2); min-width: 10rem; max-width: 26rem; font-size: var(--fs-xs); white-space: normal; }
+.cw-timeline summary { cursor: pointer; color: var(--ws-text); padding-block: var(--space-2); font-weight: 600; }
+.cw-timeline ol { list-style: none; margin: var(--space-2) 0; padding-left: var(--space-3); border-left: 2px solid var(--border-strong); }
+.cw-timeline li { display: grid; gap: var(--space-1); padding-bottom: var(--space-3); overflow-wrap: anywhere; }
+.cw-timeline time { color: var(--text-3); }
+.cw-timeline p { margin: 0; }
+.cw-timeline[open] ol { animation: ts-enter-soft var(--dur-2) var(--ease-emph) both; }
+@media (prefers-reduced-motion: reduce) { .cw-timeline[open] ol { animation: none; } }

@@ -206,12 +206,16 @@ class CollectionContributionRepository {
   CollectionReference<Map<String, dynamic>> get _collection =>
       _firestore.collection('collectionContributions');
 
-  Future<void> submit(CollectionContributionDraft draft) async {
+  Future<void> submit(
+    CollectionContributionDraft draft, {
+    String? requestId,
+  }) async {
     final callable = _functions.httpsCallable(
       'submitCollectionContribution',
       options: HttpsCallableOptions(timeout: const Duration(seconds: 45)),
     );
     await callable.call<Map<Object?, Object?>>({
+      'requestId': ?requestId,
       'collectionKind': draft.kind.name,
       'lexicalKind': draft.lexicalKind,
       'title': draft.title.trim(),
@@ -245,7 +249,8 @@ class CollectionContributionRepository {
       if (draft.ipa.trim().isNotEmpty) 'ipa': draft.ipa.trim(),
       if (draft.kasemDefinition.trim().isNotEmpty)
         'kasemDefinition': draft.kasemDefinition.trim(),
-      if (draft.etymology.trim().isNotEmpty) 'etymology': draft.etymology.trim(),
+      if (draft.etymology.trim().isNotEmpty)
+        'etymology': draft.etymology.trim(),
       // Omitted rather than sent empty, on the same terms as `forms` above.
       if (draft.senses.isNotEmpty) 'senses': draft.senses,
       'rightsConfirmed': true,
@@ -294,10 +299,7 @@ class CollectionContributionRepository {
       }
     } on FirebaseException catch (error) {
       if (error.code != 'failed-precondition') rethrow;
-      yield* mine
-          .limit(kMyContributionsLimit)
-          .snapshots()
-          .map(_newestFirst);
+      yield* mine.limit(kMyContributionsLimit).snapshots().map(_newestFirst);
     }
   }
 

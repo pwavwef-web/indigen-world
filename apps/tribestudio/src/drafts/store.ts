@@ -7,7 +7,7 @@ export function readDraft<T>(storage: Storage, uid: string, area: string): Draft
   const raw = storage.getItem(draftKey(uid, area));
   if (!raw) return null;
   const record = JSON.parse(raw) as DraftEnvelope<T>;
-  return record.schema === 1 && record.owner === uid && Number.isFinite(record.savedAt)
+  return record && typeof record === 'object' && record.schema === 1 && record.owner === uid && Number.isFinite(record.savedAt)
     && typeof record.version === 'string' && record.value && typeof record.value === 'object' ? record : null;
 }
 export function writeDraft<T>(storage: Storage, uid: string, area: string, value: T, version: string): DraftEnvelope<T> {

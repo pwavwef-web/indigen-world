@@ -2,9 +2,9 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:audio_service/audio_service.dart';
-import 'package:indigen_world_mobile/data/local/app_database.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:indigen_world_mobile/data/local/app_database.dart';
 import 'package:indigen_world_mobile/features/collection/collection_data.dart';
 import 'package:indigen_world_mobile/features/downloads/data/downloads_providers.dart';
 import 'package:indigen_world_mobile/features/explore/published_content.dart';
@@ -100,15 +100,27 @@ class MusicQueuePlan {
 
   bool get isEmpty => tracks.isEmpty;
 }
-MusicQueuePlan buildDownloadedQueue(List<DownloadedTrackRecord> rows, String trackId, Map<String, String> urls) {
+
+MusicQueuePlan buildDownloadedQueue(
+  List<DownloadedTrackRecord> rows,
+  String trackId,
+  Map<String, String> urls,
+) {
   final tracks = <MusicTrack>[
     for (final row in rows)
       if (urls[row.trackId]?.startsWith('file:') ?? false)
-        MusicTrack(id: row.trackId, title: row.title, artist: row.artist,
-          album: row.album, url: urls[row.trackId]!),
+        MusicTrack(
+          id: row.trackId,
+          title: row.title,
+          artist: row.artist,
+          album: row.album,
+          url: urls[row.trackId]!,
+        ),
   ];
   final index = tracks.indexWhere((track) => track.id == trackId);
-  return index < 0 ? const MusicQueuePlan(tracks: [], startIndex: 0) : MusicQueuePlan(tracks: tracks, startIndex: index);
+  return index < 0
+      ? const MusicQueuePlan(tracks: [], startIndex: 0)
+      : MusicQueuePlan(tracks: tracks, startIndex: index);
 }
 
 /// Turns a collection listing into a playable queue.
@@ -171,7 +183,8 @@ final musicControllerProvider =
     NotifierProvider<MusicController, MusicSessionState>(MusicController.new);
 
 class MusicController extends Notifier<MusicSessionState> {
-  static const _noPlayerMessage = 'The music player is unavailable on this '
+  static const _noPlayerMessage =
+      'The music player is unavailable on this '
       'device.';
 
   AppLifecycleListener? _lifecycle;
@@ -294,17 +307,38 @@ class MusicController extends Notifier<MusicSessionState> {
     return true;
   }
 
-  Future<void> playDownloads(List<DownloadedTrackRecord> rows, {required String trackId}) async {
-    if (!ref.read(downloadsAllowedProvider)) { state = state.copyWith(error: 'An active offline subscription is required. Your files are still kept on this device.'); return; }
+  Future<void> playDownloads(
+    List<DownloadedTrackRecord> rows, {
+    required String trackId,
+  }) async {
+    if (!ref.read(downloadsAllowedProvider)) {
+      state = state.copyWith(
+        error: 'An active offline subscription is required. Your files are still kept on this device.',
+      );
+      return;
+    }
     final plan = buildDownloadedQueue(rows, trackId, await _offlineUrls());
     final handler = ref.read(musicAudioHandlerProvider);
-    if (plan.isEmpty || handler == null) { state = state.copyWith(error: plan.isEmpty ? 'This file is missing or incomplete. Download it again.' : _noPlayerMessage); return; }
+    if (plan.isEmpty || handler == null) {
+      state = state.copyWith(
+        error: plan.isEmpty
+            ? 'This file is missing or incomplete. Download it again.'
+            : _noPlayerMessage,
+      );
+      return;
+    }
     state = state.copyWith(queueKind: CollectionKind.music, clearError: true);
     ref.read(musicBarPlacementProvider.notifier).expand();
     try {
-      await handler.setPlaylist([for (final track in plan.tracks) track.toMediaItem()], initialIndex: plan.startIndex);
+      await handler.setPlaylist([
+        for (final track in plan.tracks) track.toMediaItem(),
+      ], initialIndex: plan.startIndex);
       await play();
-    } on Object { state = state.copyWith(error: 'This file could not be played. Download it again.'); }
+    } on Object {
+      state = state.copyWith(
+        error: 'This file could not be played. Download it again.',
+      );
+    }
   }
 
   /// Downloaded copies, keyed by track id, or an empty map.
@@ -406,11 +440,13 @@ class MusicController extends Notifier<MusicSessionState> {
   Future<void> cycleRepeat() async {
     final handler = ref.read(musicAudioHandlerProvider);
     if (handler == null) return;
-    await handler.setRepeatMode(switch (handler.playbackState.value.repeatMode) {
-      AudioServiceRepeatMode.none => AudioServiceRepeatMode.all,
-      AudioServiceRepeatMode.all => AudioServiceRepeatMode.one,
-      _ => AudioServiceRepeatMode.none,
-    });
+    await handler.setRepeatMode(
+      switch (handler.playbackState.value.repeatMode) {
+        AudioServiceRepeatMode.none => AudioServiceRepeatMode.all,
+        AudioServiceRepeatMode.all => AudioServiceRepeatMode.one,
+        _ => AudioServiceRepeatMode.none,
+      },
+    );
   }
 
   /// Records that the pause that just happened was the app's doing.

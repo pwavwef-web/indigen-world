@@ -1,3 +1,4 @@
+import { ILLUSTRATIONS } from './illustrations';
 import { initializeApp } from "firebase/app";
 import { sourceReference, type SourceReference } from './sourceReference';
 import { belongsToCollection, COLLECTIONS, type CollectionKind } from "./collections";
@@ -38,6 +39,7 @@ export interface DictionaryEntry {
   frenchTranslation: string;
   sourceCollection: string;
   reference: SourceReference;
+  illustration?: { url: string; alt: string; caption: string };
   examples?: { kasem: string; english: string }[];
 }
 
@@ -58,7 +60,7 @@ export function readEntry(id: string, data: DocumentData, kind: CollectionKind =
       id: `${COLLECTIONS[kind].source}:${id}`, sourceCollection: COLLECTIONS[kind].source,
       headword, translation: text(data, kind === 'grammar' ? ['summary'] : kind === 'sentences' ? ['english'] : ["meaning"], "Meaning not recorded yet"),
       partOfSpeech: kind === 'grammar' ? 'Grammar rule' : kind === 'sentences' ? 'Whole sentence' : kind === "names" ? ({ given: "Given name", clan: "Clan name", place: "Place name" }[String(data.kind)] ?? "Name") : kind === "proverbs" ? "Proverb" : data.expressionKind === "idiom" ? "Idiom" : "Common phrase",
-      dialect: text(data, ["dialect"], "Kasem"), pronunciation: text(data, ["pronunciation"], "No written guide yet"),
+      dialect: text(data, ["dialect"], "Not recorded"), pronunciation: text(data, ["pronunciation"], "No written guide yet"),
       audioUrl: text(data, ["audioUrl", "pronunciationAudioUrl"]), example: "No example yet", exampleTranslation: "No translated example yet",
       culturalNote: text(data, ["culturalNote"]) || null, literalTranslation: text(data, ["literalTranslation"]),
       usageContext: text(data, ["context", "usageContext"]), frenchTranslation: "",
@@ -80,7 +82,7 @@ export function readEntry(id: string, data: DocumentData, kind: CollectionKind =
     headword,
     translation,
     partOfSpeech: text(data, ["partOfSpeech", "wordClass"], "Not specified"),
-    dialect: text(data, ["dialect", "region"], "Kasem"),
+    dialect: text(data, ["dialect", "region"], "Not recorded"),
     pronunciation: text(data, ["pronunciation", "phonetic"], "No written guide yet"),
     audioUrl: text(data, ["audioUrl", "pronunciationAudioUrl"]),
     example: text(data, ["kasemExample", "example", "exampleKasem"], "No example yet"),
@@ -100,20 +102,35 @@ export function subscribeToDictionary(
   onError: () => void,
   kind: CollectionKind = "words"
 ): Unsubscribe {
-  const published = query(
-    collection(getFirestore(app), COLLECTIONS[kind].source),
-    where(COLLECTIONS[kind].field, "==", kind === 'grammar' ? 'published' : kind === 'sentences' ? 'confirmed' : true),
-    ...(kind === 'sentences' ? [where('projectionVersion', '==', 2), where('expiresAtMillis', '==', null)] : [])
-  );
-
-  return onSnapshot(
-    published,
-    (snapshot) => onEntries(
-      snapshot.docs
-        .map((document) => readEntry(document.id, document.data(), kind))
-        .filter((entry): entry is DictionaryEntry => entry !== null)
-        .sort((a, b) => a.headword.localeCompare(b.headword, undefined, { sensitivity: "base" }))
-    ),
-    onError
-  );
+  if (kind === 'illustrations') {
+    onEntries(ILLUSTRATIONS.map(figure => ({ id: `grammarIllustrations:${figure.id}`, sourceCollection: 'grammarIllustrations', headword: figure.title, translation: figure.caption, partOfSpeech: 'Original source illustration', dialect: 'Not recorded', pronunciation: '', audioUrl: '', example: '', exampleTranslation: '', culturalNote: null, attribution: 'A Basic Grammar of Kasem · GILLBT', authenticationStatus: '', literalTranslation: '', usageContext: '', frenchTranslation: '', reference: sourceReference({importId:'gillbt-basic-grammar-1983-2014', sourceRefs:[`DOCX block ${figure.block}`]}), illustration: {url:figure.url,alt:figure.alt,caption:figure.caption} })));
+    return () => {};
+  }
+  const db = getFirestore(app);
+  const base = [where(COLLECTIONS[kind].field, "==", kind === 'grammar' ? 'published' : kind === 'sentences' ? 'confirmed' : true)];
+  const rows = new Map<string, DictionaryEntry[]>();
+  const emit = () => onEntries([...rows.values()].flat()
+    .filter(entry => kind !== 'sentences' || expiries.get(entry.id) == null || Number(expiries.get(entry.id)) > Date.now())
+    .sort((a,b) => a.headword.localeCompare(b.headword, undefined, {sensitivity:'base'})));
+  const expiries = new Map<string, number | null>();
+  const listen = (key:string, filters: ReturnType<typeof where>[]) => onSnapshot(query(collection(db,COLLECTIONS[kind].source),...base,...filters),snapshot => {
+    rows.set(key,snapshot.docs.map(document => {
+      const data=document.data(), entry=readEntry(document.id,data,kind);
+      if(entry && kind === 'sentences') expiries.set(entry.id,data.expiresAtMillis ?? null);
+      return entry;
+    }).filter((entry):entry is DictionaryEntry => entry !== null));
+    emit();
+  },onError);
+  if(kind !== 'sentences') return listen('published',[]);
+  const permanent=listen('permanent',[where('projectionVersion','==',2),where('expiresAtMillis','==',null)]);
+  let expiring:Unsubscribe=()=>{};
+  const refresh=()=>{
+    expiring();
+    // Future cutoff lets Firestore prove every result is eligible at request time.
+    rows.delete('expiring');emit();
+    expiring=listen('expiring',[where('projectionVersion','==',2),where('expiresAtMillis','>',Date.now()+60_000)]);
+  };
+  refresh();
+  const timer=setInterval(refresh,30_000);
+  return ()=>{clearInterval(timer);permanent();expiring();};
 }

@@ -205,11 +205,7 @@ class _PostMediaViewState extends State<PostMediaView> {
       borderRadius: BorderRadius.circular(PostMediaView._radius),
       child: AspectRatio(
         aspectRatio: PostMediaView.gridAspect,
-        child: _MediaGrid(
-          media: media,
-          heroBase: _heroBase,
-          onOpen: _open,
-        ),
+        child: _MediaGrid(media: media, heroBase: _heroBase, onOpen: _open),
       ),
     );
   }
@@ -325,7 +321,11 @@ class _MediaTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final lowData = ref.watch(lowDataModeProvider);
-    final imageUrl = feedImageUrl(lowData: lowData, original: item.url, thumbnail: item.thumbnailUrl);
+    final imageUrl = feedImageUrl(
+      lowData: lowData,
+      original: item.url,
+      thumbnail: item.thumbnailUrl,
+    );
     if (item.isAudio) return AudioPlayerTile(item: item, compact: true);
 
     if (item.isVideo && live) {
@@ -336,14 +336,22 @@ class _MediaTile extends ConsumerWidget {
       );
     }
 
-    final Widget picture = (lowData && (item.isVideo ? item.thumbnailUrl?.isNotEmpty != true : imageUrl == null))
-        ? ColoredBox(color: context.brand.divider, child: const Center(child: Text('Tap to load media')))
+    final Widget picture =
+        (lowData &&
+            (item.isVideo
+                ? item.thumbnailUrl?.isNotEmpty != true
+                : imageUrl == null))
+        ? ColoredBox(
+            color: context.brand.divider,
+            child: const Center(child: Text('Tap to load media')),
+          )
         : item.isVideo
         ? VideoCover(videoUrl: item.url, thumbnailUrl: item.thumbnailUrl)
         : CachedNetworkImage(
             imageUrl: imageUrl!,
             fit: BoxFit.cover,
-            placeholder: (context, url) => ColoredBox(color: context.brand.divider),
+            placeholder: (context, url) =>
+                ColoredBox(color: context.brand.divider),
             errorWidget: (context, url, error) => ColoredBox(
               color: context.brand.divider,
               child: Icon(
@@ -436,14 +444,19 @@ class _AudioPlayerTileState extends State<AudioPlayerTile> {
 
   Future<void> _load() async {
     if (_opening) return;
-    setState(() { _opening = true; _failed = false; });
+    setState(() {
+      _opening = true;
+      _failed = false;
+    });
     try {
       await _player.setUrl(widget.item.url);
       _loaded = true;
       if (mounted) unawaited(_player.play());
     } on Object {
       if (mounted) setState(() => _failed = true);
-    } finally { if (mounted) setState(() => _opening = false); }
+    } finally {
+      if (mounted) setState(() => _opening = false);
+    }
   }
 
   @override
@@ -474,7 +487,11 @@ class _AudioPlayerTileState extends State<AudioPlayerTile> {
                 tooltip: playing ? 'Pause voice note' : 'Play voice note',
                 onPressed: loading || _opening
                     ? null
-                    : () => !_loaded || _failed ? _load() : playing ? _player.pause() : _player.play(),
+                    : () => !_loaded || _failed
+                          ? _load()
+                          : playing
+                          ? _player.pause()
+                          : _player.play(),
                 style: IconButton.styleFrom(
                   backgroundColor: context.brand.gold,
                   foregroundColor: context.brand.ink,
@@ -592,10 +609,11 @@ Future<void> openMediaViewer(
       actions: actions,
       author: author,
     ),
-    transitionsBuilder: (context, animation, secondary, child) => FadeTransition(
-      opacity: CurvedAnimation(parent: animation, curve: Curves.easeOut),
-      child: child,
-    ),
+    transitionsBuilder: (context, animation, secondary, child) =>
+        FadeTransition(
+          opacity: CurvedAnimation(parent: animation, curve: Curves.easeOut),
+          child: child,
+        ),
   ),
 );
 
@@ -741,9 +759,8 @@ class _MediaViewerPageState extends ConsumerState<MediaViewerPage>
   void _appreciate() {
     final actions = widget.actions;
     if (actions == null) return;
-    final liked = ref.read(myLikesProvider).asData?.value.contains(
-          actions.postId,
-        ) ??
+    final liked =
+        ref.read(myLikesProvider).asData?.value.contains(actions.postId) ??
         false;
     HapticFeedback.mediumImpact();
     setState(() => _likeDelta = liked ? -1 : 1);

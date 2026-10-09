@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/data/local/app_database.dart';
 import 'package:indigen_world_mobile/features/downloads/data/downloads_repository.dart';
@@ -58,13 +59,22 @@ final offlineEntitlementActiveProvider = StreamProvider<bool>((ref) {
   Timer? timer;
   final expiry = entitlement?.expiresAt;
   if (expiry != null && expiry.isAfter(DateTime.now())) {
-    timer = Timer(expiry.difference(DateTime.now()), () => controller.add(false));
+    timer = Timer(
+      expiry.difference(DateTime.now()),
+      () => controller.add(false),
+    );
   }
-  ref.onDispose(() { timer?.cancel(); unawaited(controller.close()); });
+  ref.onDispose(() {
+    timer?.cancel();
+    unawaited(controller.close());
+  });
   return controller.stream;
 });
-final downloadsAllowedProvider = Provider<bool>((ref) =>
-    (ref.watch(offlineEntitlementActiveProvider).asData?.value ?? false) && ref.watch(downloadLimitProvider) > 0);
+final downloadsAllowedProvider = Provider<bool>(
+  (ref) =>
+      (ref.watch(offlineEntitlementActiveProvider).asData?.value ?? false) &&
+      ref.watch(downloadLimitProvider) > 0,
+);
 
 final playableDownloadsProvider = FutureProvider<Map<String, String>>((ref) {
   ref.watch(downloadsProvider);

@@ -103,8 +103,7 @@ class SenseDraft {
       if (domain.isNotEmpty) 'domain': domain,
       if (kasemDefinition.text.trim().isNotEmpty)
         'kasemDefinition': kasemDefinition.text.trim(),
-      if (usageNote.text.trim().isNotEmpty)
-        'usageNote': usageNote.text.trim(),
+      if (usageNote.text.trim().isNotEmpty) 'usageNote': usageNote.text.trim(),
       if (kasem.isNotEmpty || english.isNotEmpty)
         'examples': [
           {'kasem': kasem, 'english': english},
@@ -197,9 +196,8 @@ class SensesController extends ChangeNotifier {
   ];
 
   /// The first meaning's text — what the pipeline stores as the English side.
-  String get primaryDefinition => drafts.isEmpty
-      ? ''
-      : drafts.first.definition.text.trim();
+  String get primaryDefinition =>
+      drafts.isEmpty ? '' : drafts.first.definition.text.trim();
 
   /// The first sentence anybody gave, for the two legacy example fields.
   ///
@@ -240,6 +238,53 @@ class SensesController extends ChangeNotifier {
   /// what the caller should pass for that: it lifts a legacy gloss into a
   /// single sense on read, so the editor opens showing the meaning the reader
   /// sees rather than an empty form for a word that plainly has one.
+  List<Map<String, dynamic>> recoverySnapshot() => [
+    for (final draft in drafts)
+      {
+        'definition': draft.definition.text,
+        'kasemDefinition': draft.kasemDefinition.text,
+        'usageNote': draft.usageNote.text,
+        'kasemExample': draft.kasemExample.text,
+        'englishExample': draft.englishExample.text,
+        'synonyms': draft.synonyms.text,
+        'antonyms': draft.antonyms.text,
+        'partOfSpeech': draft.partOfSpeech?.id,
+        'register': draft.register,
+        'domain': draft.domain,
+        'expanded': draft.expanded,
+      },
+  ];
+  void recover(List values) {
+    for (final draft in drafts) {
+      draft.dispose();
+    }
+    drafts.clear();
+    for (final raw in values.whereType<Map>().take(kMaxSenses)) {
+      final draft = SenseDraft();
+      final fields = {
+        'definition': draft.definition,
+        'kasemDefinition': draft.kasemDefinition,
+        'usageNote': draft.usageNote,
+        'kasemExample': draft.kasemExample,
+        'englishExample': draft.englishExample,
+        'synonyms': draft.synonyms,
+        'antonyms': draft.antonyms,
+      };
+      for (final entry in fields.entries) {
+        entry.value.text = raw[entry.key] as String? ?? '';
+      }
+      draft.partOfSpeech = partOfSpeechById(
+        raw['partOfSpeech'] as String? ?? '',
+      );
+      draft.register = raw['register'] as String? ?? '';
+      draft.domain = raw['domain'] as String? ?? '';
+      draft.expanded = raw['expanded'] == true;
+      drafts.add(draft);
+    }
+    if (drafts.isEmpty) drafts.add(SenseDraft());
+    notifyListeners();
+  }
+
   void loadFrom(Iterable<EntrySense> senses) {
     for (final draft in drafts) {
       draft.dispose();
@@ -356,7 +401,9 @@ class SensesSection extends StatelessWidget {
                 onPressed: enabled && controller.canAdd ? controller.add : null,
                 icon: const Icon(Icons.add_rounded, size: 19),
                 label: Text(
-                  several ? 'Add another meaning' : 'This word means something else too',
+                  several
+                      ? 'Add another meaning'
+                      : 'This word means something else too',
                 ),
               ),
             ),
@@ -550,7 +597,9 @@ class _SenseEditor extends StatelessWidget {
           Align(
             alignment: Alignment.centerLeft,
             child: TextButton.icon(
-              onPressed: enabled ? () => controller.toggleExpanded(index) : null,
+              onPressed: enabled
+                  ? () => controller.toggleExpanded(index)
+                  : null,
               icon: Icon(
                 draft.expanded
                     ? Icons.expand_less_rounded
@@ -558,9 +607,7 @@ class _SenseEditor extends StatelessWidget {
                 size: 20,
               ),
               label: Text(
-                draft.expanded
-                    ? 'Fewer details'
-                    : 'More about this meaning',
+                draft.expanded ? 'Fewer details' : 'More about this meaning',
                 style: const TextStyle(fontSize: 13),
               ),
             ),

@@ -213,6 +213,8 @@ async function loadIndexedGrounding(plan: GroundingPlan): Promise<GroundingSourc
       const source = sources[index]!, data = source.data(), collection = page[index]!.collection;
       if (!data || data.withdrawn === true || data.deleted === true) continue;
       if (collection === 'dictionaryEntries' && isWord(data)) {
+        const importId = data.importId ?? data.importBatch;
+        if (data.publicationMode === 'owner-direct-source' && (!DIRECT_SOURCE_BOOK_IDS.some(id => id === importId) || !publishedSourceManifest(importId, { ...(await db.collection('dictionaryImports').doc(importId).get()).data(), importId }))) continue;
         const word = dictionaryRecordFrom(source.id, data);
         if (word && quotableForm(word.kasem) && quotableForm(word.english)) words.push(word);
       } else if (collection === 'submissions') {
