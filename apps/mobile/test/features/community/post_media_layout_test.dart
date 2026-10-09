@@ -20,6 +20,7 @@ import 'package:indigen_world_mobile/features/community/widgets/inline_video.dar
 import 'package:indigen_world_mobile/features/community/widgets/post_media_view.dart';
 import 'package:indigen_world_mobile/features/community/widgets/post_text.dart';
 import 'package:indigen_world_mobile/l10n/app_localizations.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
 CommunityPost _post(List<CommunityMedia> media) => CommunityPost(
@@ -41,6 +42,7 @@ Future<void> _pumpAttachments(
   WidgetTester tester,
   List<CommunityMedia> media,
 ) async {
+  SharedPreferences.setMockInitialValues({lowDataPreferenceKey: false});
   final container = ProviderContainer();
   addTearDown(container.dispose);
   // These layout checks exercise the normal media setting. Low-data request
