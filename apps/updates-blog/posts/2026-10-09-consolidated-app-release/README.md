@@ -1,6 +1,6 @@
 # Indigen World 0.1.32: one release with the latest improvements
 
-Prepared 9 October 2026. Merge, GitHub publication and Android artifact verification are tracked in `docs/product/releases/0.1.32+41.md`. Google Play upload/rollout, physical-device verification, Blogger publication and sharing are separate and unconfirmed.
+Prepared 9 October 2026. The signed Android 0.1.32+41 bundle is verified. Merge and GitHub publication are tracked in `docs/product/releases/0.1.32+41.md`. Google Play upload/rollout, physical-device verification, Blogger publication and sharing are separate and unconfirmed.
 
 | Field | Value |
 | --- | --- |
